@@ -43,6 +43,9 @@ export default function NavBar() {
 
         {signedIn && (
           <nav className="flex items-center gap-2">
+            <Link className={linkClass("/approvals")} href="/approvals">
+            Approvals
+          </Link>
             <Link className={linkClass("/dashboard")} href="/dashboard">
               Dashboard
             </Link>
