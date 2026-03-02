@@ -1,7 +1,8 @@
 @import "tailwindcss";
 
 :root {
-  color-scheme: light;
+  --brand-primary: #2563eb; /* blue-600 */
+  --brand-primary-hover: #1d4ed8; /* blue-700 */
 }
 
 html,

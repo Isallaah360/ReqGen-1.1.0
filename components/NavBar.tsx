@@ -25,43 +25,108 @@ export default function NavBar() {
     router.push("/");
   }
 
-  // ✅ Clear, consistent active styling:
-  // Active: dark background + white text
-  // Inactive: white background + dark text
-  const linkClass = (href: string) => {
-    const active = pathname === href;
-    return `px-3 py-2 rounded-xl text-sm font-semibold transition border ${
-      active
-        ? "bg-slate-900 text-white border-slate-900 shadow-sm"
-        : "bg-white text-slate-900 border-slate-200 hover:bg-slate-100"
-    }`;
+  const headerStyle: React.CSSProperties = {
+    position: "sticky",
+    top: 0,
+    zIndex: 50,
+    background: "#ffffff",
+    borderBottom: "1px solid #d7deea",
+    boxShadow: "0 1px 6px rgba(11, 18, 32, 0.06)",
   };
 
+  const wrapStyle: React.CSSProperties = {
+    maxWidth: 980,
+    margin: "0 auto",
+    padding: "12px 16px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  };
+
+  const brandStyle: React.CSSProperties = {
+    fontWeight: 800,
+    fontSize: 18,
+    color: "#0b1220",
+    letterSpacing: "-0.2px",
+  };
+
+  const navStyle: React.CSSProperties = {
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+    flexWrap: "wrap",
+  };
+
+  const pillBase: React.CSSProperties = {
+    padding: "10px 14px",
+    borderRadius: 12,
+    fontSize: 13,
+    fontWeight: 700,
+    border: "1px solid #d7deea",
+    background: "#ffffff",
+    color: "#0b1220",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    lineHeight: 1,
+    cursor: "pointer",
+  };
+
+  const pillActive: React.CSSProperties = {
+    ...pillBase,
+    border: "1px solid #1d4ed8",
+    background: "#1d4ed8", // blue-700
+    color: "#ffffff",
+    boxShadow: "0 6px 16px rgba(29, 78, 216, 0.22)",
+  };
+
+  const pillHover: React.CSSProperties = {
+    ...pillBase,
+    background: "#eef2ff", // very light blue
+    border: "1px solid #c7d2fe",
+    color: "#1d4ed8",
+  };
+
+  // small helper component so hover looks nice without Tailwind
+  function NavPill({ href, label }: { href: string; label: string }) {
+    const active = pathname === href;
+    const [hover, setHover] = useState(false);
+
+    return (
+      <Link
+        href={href}
+        style={active ? pillActive : hover ? pillHover : pillBase}
+        onMouseEnter={() => setHover(true)}
+        onMouseLeave={() => setHover(false)}
+      >
+        {label}
+      </Link>
+    );
+  }
+
   return (
-    <header className="sticky top-0 z-10 border-b bg-white/90 backdrop-blur">
-      <div className="mx-auto max-w-5xl px-4 py-3 flex items-center justify-between">
-        <Link href="/" className="font-bold text-lg tracking-tight text-slate-900">
-          ReqGen <span className="text-slate-400">1.1.0</span>
+    <header style={headerStyle}>
+      <div style={wrapStyle}>
+        <Link href="/" style={brandStyle}>
+          ReqGen <span style={{ color: "#64748b", fontWeight: 800 }}>1.1.0</span>
         </Link>
 
-        {/* ✅ Show nav links ONLY when logged in */}
         {signedIn && (
-          <nav className="flex items-center gap-2">
-            <Link className={linkClass("/dashboard")} href="/dashboard">
-              Dashboard
-            </Link>
-
-            <Link className={linkClass("/requests")} href="/requests">
-              My Requests
-            </Link>
-
-            <Link className={linkClass("/requests/new")} href="/requests/new">
-              New Request
-            </Link>
+          <nav style={navStyle}>
+            <NavPill href="/dashboard" label="Dashboard" />
+            <NavPill href="/requests" label="My Requests" />
+            <NavPill href="/requests/new" label="New Request" />
 
             <button
               onClick={logout}
-              className="ml-2 px-3 py-2 rounded-xl text-sm font-semibold bg-red-600 text-white hover:bg-red-700 transition"
+              style={{
+                ...pillBase,
+                border: "1px solid #ef4444",
+                background: "#ef4444",
+                color: "#ffffff",
+                boxShadow: "0 6px 16px rgba(239, 68, 68, 0.18)",
+              }}
             >
               Logout
             </button>
