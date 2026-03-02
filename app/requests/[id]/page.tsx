@@ -1,5 +1,6 @@
 "use client";
 
+import { RequestProgress } from "../../../components/RequestProgress";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "../../../lib/supabaseClient";
@@ -27,7 +28,7 @@ type Hist = {
 export default function RequestDetailsPage() {
   const router = useRouter();
   const params = useParams();
-  const id = String(params.id);
+  const id = params?.id ? String(params.id) : "";
 
   const [loading, setLoading] = useState(true);
   const [msg, setMsg] = useState<string | null>(null);
@@ -38,6 +39,12 @@ export default function RequestDetailsPage() {
     async function load() {
       setLoading(true);
       setMsg(null);
+
+      if (!id) {
+        setMsg("Invalid request id.");
+        setLoading(false);
+        return;
+      }
 
       const { data: auth } = await supabase.auth.getUser();
       if (!auth.user) {
@@ -82,7 +89,9 @@ export default function RequestDetailsPage() {
             <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">
               Request Details
             </h1>
-            <p className="mt-2 text-sm text-slate-600">Track the request and its approvals.</p>
+            <p className="mt-2 text-sm text-slate-600">
+              Track the request and its approvals.
+            </p>
           </div>
 
           <button
@@ -107,11 +116,14 @@ export default function RequestDetailsPage() {
           </div>
         ) : (
           <>
+            {/* Summary Card */}
             <div className="mt-6 rounded-2xl border bg-white p-6 shadow-sm">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <div className="text-sm text-slate-600">Request No</div>
-                  <div className="text-lg font-extrabold text-slate-900">{req.request_no}</div>
+                  <div className="text-lg font-extrabold text-slate-900">
+                    {req.request_no}
+                  </div>
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -122,7 +134,10 @@ export default function RequestDetailsPage() {
 
               <div className="mt-5 grid gap-4 md:grid-cols-2">
                 <Info label="Title" value={req.title} />
-                <Info label="Amount (₦)" value={Number(req.amount || 0).toLocaleString()} />
+                <Info
+                  label="Amount (₦)"
+                  value={Number(req.amount || 0).toLocaleString()}
+                />
               </div>
 
               <div className="mt-5">
@@ -133,18 +148,31 @@ export default function RequestDetailsPage() {
               </div>
             </div>
 
+            {/* ✅ Progress Tracker */}
+            <div className="mt-6">
+              <RequestProgress currentStage={req.current_stage} status={req.status} />
+            </div>
+
+            {/* History */}
             <div className="mt-6 rounded-2xl border bg-white p-6 shadow-sm">
               <h2 className="text-lg font-bold text-slate-900">History</h2>
-              <p className="mt-1 text-sm text-slate-600">All actions are signed and recorded.</p>
+              <p className="mt-1 text-sm text-slate-600">
+                All actions are signed and recorded.
+              </p>
 
               {history.length === 0 ? (
                 <div className="mt-4 text-sm text-slate-700">No history yet.</div>
               ) : (
                 <div className="mt-4 space-y-3">
                   {history.map((h) => (
-                    <div key={h.id} className="rounded-xl border border-slate-200 bg-white p-4">
+                    <div
+                      key={h.id}
+                      className="rounded-xl border border-slate-200 bg-white p-4"
+                    >
                       <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div className="text-sm font-bold text-slate-900">{h.action_type}</div>
+                        <div className="text-sm font-bold text-slate-900">
+                          {h.action_type}
+                        </div>
                         {h.to_stage && <StageBadge stage={h.to_stage} />}
                       </div>
 
