@@ -16,6 +16,7 @@ export default function SignupPage() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
   const [signatureFile, setSignatureFile] = useState<File | null>(null);
 
@@ -45,6 +46,7 @@ export default function SignupPage() {
     if (!deptId) return "Please select department.";
     if (!email.trim().includes("@")) return "Please enter a valid email.";
     if (password.length < 6) return "Password must be at least 6 characters.";
+    if (confirmPassword !== password) return setMsg("Passwords do not match.");
     if (!signatureFile) return "Please upload your signature image.";
     return null;
   }
@@ -138,7 +140,7 @@ export default function SignupPage() {
           value={fullName}
           onChange={(e) => setFullName(e.target.value)}
           style={{ width: "100%", padding: 10, margin: "6px 0 12px" }}
-          placeholder="e.g., Isah Usman Barde"
+          placeholder="e.g., Islamic Education Trust"
         />
 
         <label>Phone</label>
@@ -146,7 +148,7 @@ export default function SignupPage() {
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
           style={{ width: "100%", padding: 10, margin: "6px 0 12px" }}
-          placeholder="e.g., 0803..."
+          placeholder="e.g., 0803*****46"
         />
 
         <label>Gender</label>
@@ -193,6 +195,15 @@ export default function SignupPage() {
           style={{ width: "100%", padding: 10, margin: "6px 0 12px" }}
           placeholder="Minimum 6 characters"
         />
+
+        <label>Confirm Password</label>
+          <input
+            type="password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            style={{ width: "100%", padding: 10, margin: "6px 0 12px" }}
+            placeholder="Password must match"
+          />
 
         <label>Signature (PNG/JPG)</label>
         <input
