@@ -9,6 +9,7 @@ export default function NavBar() {
   const router = useRouter();
   const pathname = usePathname();
   const [signedIn, setSignedIn] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSignedIn(!!data.session));
@@ -17,6 +18,34 @@ export default function NavBar() {
     });
     return () => sub.subscription.unsubscribe();
   }, []);
+
+  async function refreshRole() {
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) {
+    setIsAdmin(false);
+    return;
+  }
+
+  const { data: prof } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", auth.user.id)
+    .single();
+
+  setIsAdmin((prof?.role || "") === "Admin");
+}
+
+supabase.auth.getSession().then(async ({ data }) => {
+  setSignedIn(!!data.session);
+  if (data.session) await refreshRole();
+});
+
+const { data: sub } = supabase.auth.onAuthStateChange(async (_event, session) => {
+  setSignedIn(!!session);
+  if (session) await refreshRole();
+  else setIsAdmin(false);
+});
+
 
   async function logout() {
     await supabase.auth.signOut();
@@ -43,6 +72,11 @@ export default function NavBar() {
 
         {signedIn && (
           <nav className="flex items-center gap-2">
+            {isAdmin && (
+            <Link className={linkClass("/admin")} href="/admin">
+              Admin
+            </Link>
+          )}
             <Link className={linkClass("/approvals")} href="/approvals">
             Approvals
           </Link>

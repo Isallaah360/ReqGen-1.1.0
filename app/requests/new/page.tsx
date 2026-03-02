@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../../lib/supabaseClient";
 
-type Dept = { id: string; name: string };
+type Dept = { id: string; name: string; hod_user_id: string | null; director_user_id: string | null };
 
 export default function NewRequestPage() {
   const router = useRouter();
@@ -71,7 +71,7 @@ export default function NewRequestPage() {
         .eq("id", prof.dept_id)
         .single();
 
-      if (!deptErr && dept) setDeptName((dept as Dept).name);
+      if (!deptErr && dept) setDeptName((dept as any).name);
 
       const { data: signed } = await supabase.storage
         .from("signatures")
@@ -103,6 +103,45 @@ export default function NewRequestPage() {
     return `RG-${yyyy}${mm}${dd}-${rnd}`;
   }
 
+  async function getSetting(key: string): Promise<string | null> {
+    const { data, error } = await supabase
+      .from("app_settings")
+      .select("value")
+      .eq("key", key)
+      .maybeSingle();
+
+    if (error) return null;
+    return (data?.value as string) || null;
+  }
+
+  async function resolveInitialOwner(dept_id: string): Promise<{
+    stage: "Director" | "HOD" | "Registry";
+    owner: string;
+  }> {
+    // Load dept routing
+    const { data: dept, error } = await supabase
+      .from("departments")
+      .select("id,name,hod_user_id,director_user_id")
+      .eq("id", dept_id)
+      .single();
+
+    if (error || !dept) {
+      // fallback to registry
+      const reg = await getSetting("REGISTRY_USER_ID");
+      if (!reg) throw new Error("REGISTRY_USER_ID not set in Admin Panel.");
+      return { stage: "Registry", owner: reg };
+    }
+
+    const d = dept as Dept;
+
+    if (d.director_user_id) return { stage: "Director", owner: d.director_user_id };
+    if (d.hod_user_id) return { stage: "HOD", owner: d.hod_user_id };
+
+    const reg = await getSetting("REGISTRY_USER_ID");
+    if (!reg) throw new Error("REGISTRY_USER_ID not set in Admin Panel.");
+    return { stage: "Registry", owner: reg };
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setMsg(null);
@@ -120,6 +159,9 @@ export default function NewRequestPage() {
       const requestNo = makeRequestNo();
       const amt = Number(amount);
 
+      // ✅ NEW: Resolve initial owner + stage using Admin routing
+      const routing = await resolveInitialOwner(deptId);
+
       const insertPayload: any = {
         request_no: requestNo,
         created_by: user.id,
@@ -130,10 +172,11 @@ export default function NewRequestPage() {
         title: title.trim(),
         details: details.trim(),
         status: "Submitted",
-        current_stage: "HOD",
-        current_owner: user.id, // temporary until routing engine is added
+        current_stage: routing.stage,
+        current_owner: routing.owner,
       };
 
+      // Insert request and return inserted id
       const { data: inserted, error: insErr } = await supabase
         .from("requests")
         .insert(insertPayload)
@@ -142,11 +185,12 @@ export default function NewRequestPage() {
 
       if (insErr) throw new Error(insErr.message);
 
+      // Insert signed history entry (Submit)
       const { error: histErr } = await supabase.from("request_history").insert({
         request_id: inserted.id,
         action_by: user.id,
         from_stage: null,
-        to_stage: "HOD",
+        to_stage: routing.stage,
         action_type: "Submit",
         comment: "Submitted",
         signature_url: signaturePath, // REQUIRED
@@ -154,7 +198,21 @@ export default function NewRequestPage() {
 
       if (histErr) throw new Error("History insert failed: " + histErr.message);
 
-      setMsg("✅ Request submitted successfully (Signed)!");
+      // ✅ NEW: Insert a notification for assigned officer
+      const { error: notifErr } = await supabase.from("notifications").insert({
+        user_id: routing.owner,
+        title: "New Request Assigned",
+        body: `${requestNo}: ${title.trim()}`,
+        link: `/requests/${inserted.id}`,
+        is_read: false,
+      });
+
+      if (notifErr) {
+        // we won't fail the request if notification fails
+        console.warn("Notification insert failed:", notifErr.message);
+      }
+
+      setMsg(`✅ Submitted! Assigned to ${routing.stage}. Notification sent.`);
       setTimeout(() => router.push("/requests"), 700);
     } catch (e: any) {
       setMsg("❌ Submit failed: " + (e?.message || "Unknown error"));
