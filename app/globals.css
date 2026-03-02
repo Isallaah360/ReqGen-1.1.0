@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
+/* --- Base theme colors --- */
 :root {
-  --brand-primary: #2563eb; /* blue-600 */
-  --brand-primary-hover: #1d4ed8; /* blue-700 */
+  color-scheme: light;
 }
 
 html,
@@ -12,19 +12,9 @@ body {
 
 body {
   margin: 0;
-  background: #f8fafc; /* soft light bg */
-  color: #0f172a;      /* slate-900 */
-  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica,
-    Arial, "Apple Color Emoji", "Segoe UI Emoji";
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
 }
 
-a {
-  color: inherit;
-  text-decoration: none;
-}
-
+/* Make form inputs always readable */
 input,
 select,
 textarea,
