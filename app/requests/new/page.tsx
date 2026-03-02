@@ -15,56 +15,16 @@ export default function NewRequestPage() {
   const [deptId, setDeptId] = useState<string>("");
   const [deptName, setDeptName] = useState<string>("");
 
-  const [requestType, setRequestType] = useState<"Personal" | "Official">(
-    "Personal"
-  );
-  const [personalCategory, setPersonalCategory] = useState<"Fund" | "NonFund">(
-    "NonFund"
-  );
+  const [requestType, setRequestType] = useState<"Personal" | "Official">("Personal");
+  const [personalCategory, setPersonalCategory] = useState<"Fund" | "NonFund">("NonFund");
 
   const [title, setTitle] = useState("");
   const [details, setDetails] = useState("");
   const [amount, setAmount] = useState<string>("0");
 
-  // Signature enforcement + preview
   const [signaturePath, setSignaturePath] = useState<string | null>(null);
-  const [signaturePreviewUrl, setSignaturePreviewUrl] = useState<string | null>(
-    null
-  );
+  const [signaturePreviewUrl, setSignaturePreviewUrl] = useState<string | null>(null);
 
-  // Helper: pick the first stage + owner based on department routing
-  async function getFirstStageAndOwner(deptId: string): Promise<{
-    firstStage: "Director" | "HOD";
-    firstOwner: string;
-  }> {
-    const { data: deptRoute, error } = await supabase
-      .from("departments")
-      .select("director_user_id, hod_user_id")
-      .eq("id", deptId)
-      .single();
-
-    if (error) throw new Error("Failed to load department routing: " + error.message);
-
-    // If director assigned, start with Director; else HOD
-    const firstStage: "Director" | "HOD" = deptRoute?.director_user_id
-      ? "Director"
-      : "HOD";
-
-    const firstOwner =
-      firstStage === "Director"
-        ? deptRoute?.director_user_id
-        : deptRoute?.hod_user_id;
-
-    if (!firstOwner) {
-      throw new Error(
-        `Routing not configured: Please assign ${firstStage} for this department in /admin.`
-      );
-    }
-
-    return { firstStage, firstOwner };
-  }
-
-  // Load current user profile (dept + signature)
   useEffect(() => {
     async function load() {
       setLoading(true);
@@ -80,7 +40,7 @@ export default function NewRequestPage() {
 
       const { data: prof, error: profErr } = await supabase
         .from("profiles")
-        .select("id, dept_id, signature_url")
+        .select("dept_id, signature_url")
         .eq("id", user.id)
         .single();
 
@@ -96,9 +56,8 @@ export default function NewRequestPage() {
         return;
       }
 
-      // Enforce signature must exist before submitting any request
       if (!prof?.signature_url) {
-        setMsg("❌ You must upload your signature before submitting any request.");
+        setMsg("❌ You must upload your signature in Profile before submitting any request.");
         setLoading(false);
         return;
       }
@@ -106,7 +65,6 @@ export default function NewRequestPage() {
       setDeptId(prof.dept_id);
       setSignaturePath(prof.signature_url);
 
-      // Load department name
       const { data: dept, error: deptErr } = await supabase
         .from("departments")
         .select("id,name")
@@ -115,14 +73,11 @@ export default function NewRequestPage() {
 
       if (!deptErr && dept) setDeptName((dept as Dept).name);
 
-      // Create a temporary signed URL for preview (bucket is private)
-      const { data: signed, error: signedErr } = await supabase.storage
+      const { data: signed } = await supabase.storage
         .from("signatures")
-        .createSignedUrl(prof.signature_url, 60 * 10); // 10 minutes
+        .createSignedUrl(prof.signature_url, 60 * 10);
 
-      if (!signedErr && signed?.signedUrl) {
-        setSignaturePreviewUrl(signed.signedUrl);
-      }
+      if (signed?.signedUrl) setSignaturePreviewUrl(signed.signedUrl);
 
       setLoading(false);
     }
@@ -131,13 +86,9 @@ export default function NewRequestPage() {
   }, [router]);
 
   function validate(): string | null {
-    if (!signaturePath)
-      return "Signature is required. Please upload your signature.";
+    if (!signaturePath) return "Signature is required. Upload it in Profile.";
     if (title.trim().length < 3) return "Please enter a title.";
     if (details.trim().length < 5) return "Please enter details.";
-    if (requestType === "Personal") {
-      if (!personalCategory) return "Select personal category.";
-    }
     const amt = Number(amount);
     if (Number.isNaN(amt) || amt < 0) return "Amount must be a valid number.";
     return null;
@@ -157,27 +108,17 @@ export default function NewRequestPage() {
     setMsg(null);
 
     const err = validate();
-    if (err) {
-      setMsg("❌ " + err);
-      return;
-    }
+    if (err) return setMsg("❌ " + err);
 
     try {
       setMsg("Submitting request...");
 
       const { data: authData } = await supabase.auth.getUser();
       const user = authData.user;
-
-      if (!user) {
-        router.push("/login");
-        return;
-      }
+      if (!user) return router.push("/login");
 
       const requestNo = makeRequestNo();
       const amt = Number(amount);
-
-      // ✅ Determine first stage + owner (Director or HOD)
-      const { firstStage, firstOwner } = await getFirstStageAndOwner(deptId);
 
       const insertPayload: any = {
         request_no: requestNo,
@@ -189,11 +130,10 @@ export default function NewRequestPage() {
         title: title.trim(),
         details: details.trim(),
         status: "Submitted",
-        current_stage: firstStage,
-        current_owner: firstOwner,
+        current_stage: "HOD",
+        current_owner: user.id, // temporary until routing engine is added
       };
 
-      // Insert request and return inserted id
       const { data: inserted, error: insErr } = await supabase
         .from("requests")
         .insert(insertPayload)
@@ -202,12 +142,11 @@ export default function NewRequestPage() {
 
       if (insErr) throw new Error(insErr.message);
 
-      // Insert signed audit history entry (Submit)
       const { error: histErr } = await supabase.from("request_history").insert({
         request_id: inserted.id,
         action_by: user.id,
         from_stage: null,
-        to_stage: firstStage,
+        to_stage: "HOD",
         action_type: "Submit",
         comment: "Submitted",
         signature_url: signaturePath, // REQUIRED
@@ -215,125 +154,124 @@ export default function NewRequestPage() {
 
       if (histErr) throw new Error("History insert failed: " + histErr.message);
 
-      setMsg(`✅ Request submitted successfully (Signed) — sent to ${firstStage}!`);
-      setTimeout(() => router.push("/dashboard"), 900);
+      setMsg("✅ Request submitted successfully (Signed)!");
+      setTimeout(() => router.push("/requests"), 700);
     } catch (e: any) {
       setMsg("❌ Submit failed: " + (e?.message || "Unknown error"));
     }
   }
 
   return (
-    <div style={{ maxWidth: 720, margin: "40px auto", padding: 16 }}>
-      <h1 style={{ fontSize: 28, fontWeight: 700 }}>New Request</h1>
-
-      {loading && <p style={{ marginTop: 12 }}>Loading...</p>}
-
-      {!loading && (
-        <div style={{ marginTop: 8, color: "#555" }}>
-          Department: <b>{deptName || "—"}</b>
-        </div>
-      )}
-
-      {/* Signature preview (required) */}
-      {!loading && signaturePreviewUrl && (
-        <div
-          style={{
-            marginTop: 14,
-            padding: 12,
-            border: "1px solid #ddd",
-            borderRadius: 12,
-            background: "white",
-          }}
-        >
-          <div style={{ fontWeight: 700, marginBottom: 8 }}>
-            Your Signature (Required)
+    <main className="min-h-screen bg-slate-50 px-4">
+      <div className="mx-auto max-w-3xl py-10">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">New Request</h1>
+            <p className="mt-2 text-sm text-slate-600">
+              Department: <b className="text-slate-900">{deptName || "—"}</b>
+            </p>
           </div>
-          <img
-            src={signaturePreviewUrl}
-            alt="Signature preview"
-            style={{
-              maxWidth: 260,
-              padding: 8,
-              borderRadius: 10,
-              background: "#fff",
-              border: "1px solid #eee",
-            }}
-          />
+
+          <button
+            onClick={() => router.push("/dashboard")}
+            className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
+          >
+            Back
+          </button>
         </div>
-      )}
-
-      <form onSubmit={handleSubmit} style={{ marginTop: 16 }}>
-        <label>Request Type</label>
-        <select
-          value={requestType}
-          onChange={(e) => setRequestType(e.target.value as any)}
-          style={{ width: "100%", padding: 10, margin: "6px 0 12px" }}
-        >
-          <option value="Personal">Personal</option>
-          <option value="Official">Official</option>
-        </select>
-
-        {requestType === "Personal" && (
-          <>
-            <label>Personal Category</label>
-            <select
-              value={personalCategory}
-              onChange={(e) => setPersonalCategory(e.target.value as any)}
-              style={{ width: "100%", padding: 10, margin: "6px 0 12px" }}
-            >
-              <option value="NonFund">Non-Fund</option>
-              <option value="Fund">Fund</option>
-            </select>
-          </>
-        )}
-
-        <label>Title</label>
-        <input
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          style={{ width: "100%", padding: 10, margin: "6px 0 12px" }}
-          placeholder="e.g., Leave Request / Purchase Request"
-        />
-
-        <label>Details</label>
-        <textarea
-          value={details}
-          onChange={(e) => setDetails(e.target.value)}
-          style={{
-            width: "100%",
-            padding: 10,
-            margin: "6px 0 12px",
-            minHeight: 120,
-          }}
-          placeholder="Write full details..."
-        />
-
-        <label>Amount (₦)</label>
-        <input
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-          style={{ width: "100%", padding: 10, margin: "6px 0 12px" }}
-          placeholder="0"
-        />
-
-        <button
-          type="submit"
-          style={{
-            width: "100%",
-            padding: 12,
-            fontWeight: 700,
-            cursor: "pointer",
-          }}
-        >
-          Submit Request
-        </button>
 
         {msg && (
-          <div style={{ marginTop: 12, padding: 10, background: "#f5f5f5" }}>
+          <div className="mt-4 rounded-xl bg-slate-100 px-3 py-2 text-sm text-slate-800">
             {msg}
           </div>
         )}
-      </form>
-    </div>
+
+        {loading ? (
+          <div className="mt-6 text-slate-600">Loading...</div>
+        ) : (
+          <div className="mt-6 rounded-2xl border bg-white p-6 shadow-sm">
+            {signaturePreviewUrl && (
+              <div className="mb-6 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <div className="text-sm font-semibold text-slate-800">Your Signature (Required)</div>
+                <img
+                  src={signaturePreviewUrl}
+                  alt="Signature preview"
+                  className="mt-3 h-20 w-auto rounded-xl border bg-white p-2"
+                />
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <label className="text-sm font-semibold text-slate-800">Request Type</label>
+                  <select
+                    value={requestType}
+                    onChange={(e) => setRequestType(e.target.value as any)}
+                    className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
+                  >
+                    <option value="Personal">Personal</option>
+                    <option value="Official">Official</option>
+                  </select>
+                </div>
+
+                {requestType === "Personal" ? (
+                  <div>
+                    <label className="text-sm font-semibold text-slate-800">Personal Category</label>
+                    <select
+                      value={personalCategory}
+                      onChange={(e) => setPersonalCategory(e.target.value as any)}
+                      className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
+                    >
+                      <option value="NonFund">Non-Fund</option>
+                      <option value="Fund">Fund</option>
+                    </select>
+                  </div>
+                ) : (
+                  <div />
+                )}
+              </div>
+
+              <div>
+                <label className="text-sm font-semibold text-slate-800">Title</label>
+                <input
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="e.g., Leave Request / Purchase Request"
+                  className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-semibold text-slate-800">Details</label>
+                <textarea
+                  value={details}
+                  onChange={(e) => setDetails(e.target.value)}
+                  placeholder="Write full details..."
+                  className="mt-1 min-h-[140px] w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-semibold text-slate-800">Amount (₦)</label>
+                <input
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  placeholder="0"
+                  className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-blue-700"
+              >
+                Submit Request
+              </button>
+            </form>
+          </div>
+        )}
+      </div>
+    </main>
   );
 }
