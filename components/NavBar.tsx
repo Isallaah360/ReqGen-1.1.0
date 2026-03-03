@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "../lib/supabaseClient";
 
@@ -20,9 +20,12 @@ export default function NavBar() {
   const [signedIn, setSignedIn] = useState(false);
 
   // role-based tabs
-  const [myRole, setMyRole] = useState<string>(""); // "Admin" | "Auditor" | "AccountOfficer" | "Staff" | etc
+  const [myRole, setMyRole] = useState<string>(""); // Admin | Auditor | AccountOfficer | Staff ...
   const isAdmin = myRole === "Admin";
-  const canFinance = ["Admin", "Auditor", "AccountOfficer"].includes(myRole);
+  const canFinance = useMemo(
+    () => ["Admin", "Auditor", "AccountOfficer"].includes(myRole),
+    [myRole]
+  );
 
   // notifications
   const [openBell, setOpenBell] = useState(false);
@@ -30,51 +33,72 @@ export default function NavBar() {
   const [items, setItems] = useState<Notif[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
 
+  // prevent overlapping refresh calls
+  const refreshingRef = useRef(false);
+
   async function refreshRoleAndNotifs() {
-    const { data: authData } = await supabase.auth.getUser();
-    const user = authData.user;
+    if (refreshingRef.current) return;
+    refreshingRef.current = true;
 
-    if (!user) {
-      setSignedIn(false);
-      setMyRole("");
-      setUserId(null);
-      setUnreadCount(0);
-      setItems([]);
-      return;
+    try {
+      const { data: authData, error: authErr } = await supabase.auth.getUser();
+      const user = authData?.user;
+
+      if (authErr || !user) {
+        setSignedIn(false);
+        setMyRole("");
+        setUserId(null);
+        setUnreadCount(0);
+        setItems([]);
+        return;
+      }
+
+      setSignedIn(true);
+      setUserId(user.id);
+
+      // ✅ role (RLS must allow reading own profile)
+      const { data: prof, error: profErr } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .single();
+
+      if (profErr) {
+        // fallback to Staff (so UI still works) and show a tiny hint in console
+        console.warn("NavBar: profiles role read blocked:", profErr.message);
+        setMyRole("Staff");
+      } else {
+        setMyRole((prof?.role || "Staff") as string);
+      }
+
+      // ✅ notifications ONLY for this user (CRITICAL)
+      const { data: n, error: nErr } = await supabase
+        .from("notifications")
+        .select("id,title,link,is_read,created_at")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(8);
+
+      if (nErr) {
+        console.warn("NavBar: notifications read failed:", nErr.message);
+        setItems([]);
+        setUnreadCount(0);
+      } else {
+        const list = (n || []) as Notif[];
+        setItems(list);
+        setUnreadCount(list.filter((x) => !x.is_read).length);
+      }
+    } finally {
+      refreshingRef.current = false;
     }
-
-    setSignedIn(true);
-    setUserId(user.id);
-
-    // role
-    const { data: prof, error: profErr } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .single();
-
-    if (profErr) setMyRole("");
-    else setMyRole((prof?.role || "Staff") as string);
-
-    // notifications (safe even if empty)
-    const { data: n } = await supabase
-      .from("notifications")
-      .select("id,title,link,is_read,created_at")
-      .order("created_at", { ascending: false })
-      .limit(8);
-
-    const list = (n || []) as Notif[];
-    setItems(list);
-    setUnreadCount(list.filter((x) => !x.is_read).length);
   }
 
   useEffect(() => {
     refreshRoleAndNotifs();
 
     const { data: sub } = supabase.auth.onAuthStateChange(() => {
-      refreshRoleAndNotifs();
-      // close bell when auth changes (prevents "stuck" dropdown)
       setOpenBell(false);
+      refreshRoleAndNotifs();
     });
 
     return () => sub.subscription.unsubscribe();
@@ -86,7 +110,7 @@ export default function NavBar() {
     if (!userId) return;
 
     const ch = supabase
-      .channel("notif-ch")
+      .channel(`notif-ch-${userId}`)
       .on(
         "postgres_changes",
         {
@@ -119,6 +143,7 @@ export default function NavBar() {
 
   async function markAllRead() {
     if (!userId) return;
+
     await supabase
       .from("notifications")
       .update({ is_read: true })
@@ -145,10 +170,7 @@ export default function NavBar() {
   return (
     <header className="sticky top-0 z-10 border-b bg-white/80 backdrop-blur">
       <div className="mx-auto max-w-5xl px-4 py-3 flex items-center justify-between">
-        <Link
-          href="/"
-          className="font-extrabold text-lg tracking-tight text-slate-900"
-        >
+        <Link href="/" className="font-extrabold text-lg tracking-tight text-slate-900">
           ReqGen <span className="text-slate-400">1.1.0</span>
         </Link>
 
@@ -221,9 +243,7 @@ export default function NavBar() {
                           n.is_read ? "bg-white" : "bg-blue-50"
                         }`}
                       >
-                        <div className="text-sm font-semibold text-slate-900">
-                          {n.title}
-                        </div>
+                        <div className="text-sm font-semibold text-slate-900">{n.title}</div>
                         <div className="text-xs text-slate-500">
                           {new Date(n.created_at).toLocaleString()}
                         </div>

@@ -1,9 +1,22 @@
 "use client";
 
-import { RequestProgress } from "../../../components/RequestProgress";
+import dynamic from "next/dynamic";
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "../../../lib/supabaseClient";
+
+/**
+ * ✅ Robust import:
+ * - Works if you exported `export function RequestProgress() {}`
+ * - Works if you exported `export default function RequestProgress() {}`
+ */
+const RequestProgress = dynamic(
+  () =>
+    import("../../../components/RequestProgress").then((m: any) => {
+      return m.RequestProgress ?? m.default;
+    }),
+  { ssr: false, loading: () => null }
+);
 
 type Req = {
   id: string;
@@ -14,6 +27,7 @@ type Req = {
   status: string;
   current_stage: string;
   current_owner: string | null;
+  created_by: string;
   dept_id: string;
   request_type: "Personal" | "Official";
   personal_category: "Fund" | "NonFund" | null;
@@ -34,7 +48,7 @@ type ProfileMini = { id: string; role: string; signature_url: string | null };
 export default function RequestDetailsPage() {
   const router = useRouter();
   const params = useParams();
-  const id = String(params.id);
+  const id = typeof params?.id === "string" ? params.id : String((params as any)?.id || "");
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -48,7 +62,7 @@ export default function RequestDetailsPage() {
 
   const canAct = useMemo(() => {
     if (!req || !me) return false;
-    return req.current_owner === me.id; // only the assigned owner can act
+    return req.current_owner === me.id;
   }, [req, me]);
 
   useEffect(() => {
@@ -62,7 +76,12 @@ export default function RequestDetailsPage() {
         return;
       }
 
-      // Load my role + signature
+      if (!id) {
+        setMsg("Invalid request id.");
+        setLoading(false);
+        return;
+      }
+
       const { data: myProf, error: myErr } = await supabase
         .from("profiles")
         .select("id,role,signature_url")
@@ -74,13 +93,13 @@ export default function RequestDetailsPage() {
         setLoading(false);
         return;
       }
-
       setMe(myProf as ProfileMini);
 
-      // Load request
       const { data: r, error: rErr } = await supabase
         .from("requests")
-        .select("id,request_no,title,details,amount,status,current_stage,current_owner,dept_id,request_type,personal_category,created_at")
+        .select(
+          "id,request_no,title,details,amount,status,current_stage,current_owner,created_by,dept_id,request_type,personal_category,created_at"
+        )
         .eq("id", id)
         .single();
 
@@ -89,10 +108,8 @@ export default function RequestDetailsPage() {
         setLoading(false);
         return;
       }
-
       setReq(r as Req);
 
-      // Load history
       const { data: h, error: hErr } = await supabase
         .from("request_history")
         .select("id,action_type,comment,to_stage,created_at,signature_url")
@@ -118,11 +135,12 @@ export default function RequestDetailsPage() {
     return (data?.value as string) || null;
   }
 
-  // ✅ Basic routing (we will expand to your full blueprint next)
-  async function resolveNextOwner(currentStage: string, r: Req): Promise<{ nextStage: string; nextOwner: string | null; nextStatus: string }> {
-    const stage = (currentStage || "").toUpperCase();
+  async function resolveNextOwner(
+    currentStage: string,
+    r: Req
+  ): Promise<{ nextStage: string; nextOwner: string | null; nextStatus: string }> {
+    const stage = (currentStage || "").trim().toUpperCase();
 
-    // If Official: Director/HOD -> Registry -> DG -> Account
     if (r.request_type === "Official") {
       if (stage === "DIRECTOR" || stage === "HOD") {
         const reg = await getSetting("REGISTRY_USER_ID");
@@ -139,12 +157,9 @@ export default function RequestDetailsPage() {
         if (!acc) throw new Error("ACCOUNT_USER_ID not set.");
         return { nextStage: "Account", nextOwner: acc, nextStatus: "Approved" };
       }
-      // final
       return { nextStage: "Done", nextOwner: null, nextStatus: "Approved" };
     }
 
-    // Personal:
-    // Director/HOD -> HR -> Registry -> DG -> (Fund=>Account else HR)
     if (stage === "DIRECTOR" || stage === "HOD") {
       const hr = await getSetting("HR_USER_ID");
       if (!hr) throw new Error("HR_USER_ID not set.");
@@ -184,6 +199,28 @@ export default function RequestDetailsPage() {
     });
   }
 
+  async function reloadAfterAction() {
+    if (!id) return;
+
+    const { data: r2 } = await supabase
+      .from("requests")
+      .select(
+        "id,request_no,title,details,amount,status,current_stage,current_owner,created_by,dept_id,request_type,personal_category,created_at"
+      )
+      .eq("id", id)
+      .single();
+
+    setReq((r2 as any) || null);
+
+    const { data: h2 } = await supabase
+      .from("request_history")
+      .select("id,action_type,comment,to_stage,created_at,signature_url")
+      .eq("request_id", id)
+      .order("created_at", { ascending: false });
+
+    setHistory((h2 || []) as Hist[]);
+  }
+
   async function act(action: "Approve" | "Reject") {
     if (!req || !me) return;
 
@@ -191,12 +228,10 @@ export default function RequestDetailsPage() {
       setMsg("❌ You must upload your signature in Profile before taking actions.");
       return;
     }
-
     if (!canAct) {
       setMsg("❌ You cannot act on this request (not assigned to you).");
       return;
     }
-
     if (action === "Reject" && comment.trim().length < 3) {
       setMsg("❌ Please write a reason/comment for rejection.");
       return;
@@ -207,19 +242,17 @@ export default function RequestDetailsPage() {
 
     try {
       if (action === "Reject") {
-        // Update request
         const { error: upErr } = await supabase
           .from("requests")
           .update({
             status: "Rejected",
+            current_owner: req.created_by,
             current_stage: req.current_stage,
-            current_owner: req.created_by ?? req.current_owner,
           })
           .eq("id", req.id);
 
         if (upErr) throw new Error(upErr.message);
 
-        // History
         const { error: hErr } = await supabase.from("request_history").insert({
           request_id: req.id,
           action_by: me.id,
@@ -232,7 +265,8 @@ export default function RequestDetailsPage() {
 
         if (hErr) throw new Error(hErr.message);
 
-        setMsg("✅ Rejected successfully.");
+        await notify(req.created_by, "Request Rejected", `${req.request_no}: ${req.title}`, `/requests/${req.id}`);
+        setMsg("✅ Rejected successfully. Sent back to requester.");
       } else {
         const next = await resolveNextOwner(req.current_stage, req);
 
@@ -259,36 +293,16 @@ export default function RequestDetailsPage() {
 
         if (hErr) throw new Error(hErr.message);
 
-        // notify next owner
         if (next.nextOwner) {
-          await notify(
-            next.nextOwner,
-            "Request Assigned",
-            `${req.request_no}: ${req.title}`,
-            `/requests/${req.id}`
-          );
+          await notify(next.nextOwner, "Request Assigned", `${req.request_no}: ${req.title}`, `/requests/${req.id}`);
         }
 
         setMsg(`✅ Approved. Sent to ${next.nextStage}.`);
       }
 
-      // reload
-      router.refresh();
-      // quick local reload
-      const { data: r2 } = await supabase
-        .from("requests")
-        .select("id,request_no,title,details,amount,status,current_stage,current_owner,dept_id,request_type,personal_category,created_at")
-        .eq("id", id)
-        .single();
-      setReq((r2 as any) || null);
-
-      const { data: h2 } = await supabase
-        .from("request_history")
-        .select("id,action_type,comment,to_stage,created_at,signature_url")
-        .eq("request_id", id)
-        .order("created_at", { ascending: false });
-      setHistory((h2 || []) as Hist[]);
       setComment("");
+      router.refresh();
+      await reloadAfterAction();
     } catch (e: any) {
       setMsg("❌ Action failed: " + (e?.message || "Unknown error"));
     } finally {
@@ -301,9 +315,7 @@ export default function RequestDetailsPage() {
       <div className="mx-auto max-w-4xl py-10">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">
-              Request Details
-            </h1>
+            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">Request Details</h1>
             <p className="mt-2 text-sm text-slate-600">Track the request and its approvals.</p>
           </div>
 
@@ -315,18 +327,12 @@ export default function RequestDetailsPage() {
           </button>
         </div>
 
-        {msg && (
-          <div className="mt-4 rounded-xl bg-slate-100 px-3 py-2 text-sm text-slate-800">
-            {msg}
-          </div>
-        )}
+        {msg && <div className="mt-4 rounded-xl bg-slate-100 px-3 py-2 text-sm text-slate-800">{msg}</div>}
 
         {loading ? (
           <div className="mt-6 text-slate-600">Loading...</div>
         ) : !req ? (
-          <div className="mt-6 rounded-2xl border bg-white p-6 shadow-sm text-slate-700">
-            Request not found.
-          </div>
+          <div className="mt-6 rounded-2xl border bg-white p-6 shadow-sm text-slate-700">Request not found.</div>
         ) : (
           <>
             <div className="mt-6 rounded-2xl border bg-white p-6 shadow-sm">
@@ -342,6 +348,13 @@ export default function RequestDetailsPage() {
                 </div>
               </div>
 
+              {/* ✅ PROGRESS: safe + won’t crash whole page */}
+              <div className="mt-6">
+                <SafeBlock>
+                  <RequestProgress stage={req.current_stage} />
+                </SafeBlock>
+              </div>
+
               <div className="mt-5 grid gap-4 md:grid-cols-2">
                 <Info label="Title" value={req.title} />
                 <Info label="Amount (₦)" value={Number(req.amount || 0).toLocaleString()} />
@@ -355,12 +368,9 @@ export default function RequestDetailsPage() {
               </div>
             </div>
 
-            {/* ✅ ACTION PANEL */}
             <div className="mt-6 rounded-2xl border bg-white p-6 shadow-sm">
               <h2 className="text-lg font-bold text-slate-900">Actions</h2>
-              <p className="mt-1 text-sm text-slate-600">
-                Only the assigned officer can approve or reject this request.
-              </p>
+              <p className="mt-1 text-sm text-slate-600">Only the assigned officer can approve or reject this request.</p>
 
               {!canAct ? (
                 <div className="mt-4 rounded-xl bg-slate-50 border border-slate-200 p-4 text-sm text-slate-700">
@@ -432,6 +442,30 @@ export default function RequestDetailsPage() {
   );
 }
 
+/** ✅ Error boundary wrapper so UI never dies because of RequestProgress */
+class SafeBlock extends React.Component<{ children: React.ReactNode }, { hasError: boolean }> {
+  constructor(props: any) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  componentDidCatch() {}
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+          Progress view unavailable (but request details are still working).
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+import React from "react";
+
 function Info({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
@@ -454,7 +488,7 @@ function StatusBadge({ status }: { status: string }) {
   const cls =
     s.includes("submit")
       ? "bg-blue-50 text-blue-700 border-blue-200"
-      : s.includes("approve")
+      : s.includes("approve") || s.includes("in review")
       ? "bg-emerald-50 text-emerald-700 border-emerald-200"
       : s.includes("reject")
       ? "bg-red-50 text-red-700 border-red-200"
