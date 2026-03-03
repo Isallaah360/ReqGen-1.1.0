@@ -13,6 +13,14 @@ type Notif = {
   created_at: string;
 };
 
+function normRole(role: string) {
+  return (role || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "") // "Account Officer" -> "accountofficer"
+    .replace(/_/g, "");  // "account_officer" -> "accountofficer"
+}
+
 export default function NavBar() {
   const router = useRouter();
   const pathname = usePathname();
@@ -20,9 +28,11 @@ export default function NavBar() {
   const [signedIn, setSignedIn] = useState(false);
 
   // role-based tabs
-  const [myRole, setMyRole] = useState<string>(""); // Admin | Auditor | AccountOfficer | Staff | ...
-  const isAdmin = myRole === "Admin";
-  const canFinance = ["Admin", "Auditor", "AccountOfficer"].includes(myRole);
+  const [myRole, setMyRole] = useState<string>(""); // Admin | Auditor | AccountOfficer | Staff | etc
+  const roleKey = normRole(myRole);
+
+  const isAdmin = roleKey === "admin";
+  const canFinance = ["admin", "auditor", "accountofficer"].includes(roleKey);
 
   // notifications
   const [openBell, setOpenBell] = useState(false);
@@ -57,36 +67,27 @@ export default function NavBar() {
         : "text-slate-700 hover:bg-slate-100"
     }`;
 
-  async function refreshRoleAndNotifs() {
-    const { data: authData } = await supabase.auth.getUser();
-    const user = authData.user;
-
-    if (!user) {
-      setSignedIn(false);
-      setMyRole("");
-      setUserId(null);
-      setItems([]);
-      setUnreadCount(0);
-      return;
-    }
-
-    setSignedIn(true);
-    setUserId(user.id);
-
-    // role
-    const { data: prof, error: profErr } = await supabase
+  async function fetchMyRole(uid: string) {
+    // IMPORTANT: do NOT clear role on error. Keep last known role.
+    const { data: prof, error } = await supabase
       .from("profiles")
       .select("role")
-      .eq("id", user.id)
-      .single();
+      .eq("id", uid)
+      .maybeSingle();
 
-    setMyRole(profErr ? "Staff" : (prof?.role || "Staff"));
+    if (!error && prof?.role) {
+      setMyRole(prof.role);
+    } else if (!myRole) {
+      // only set default if we truly don't have one yet
+      setMyRole("Staff");
+    }
+  }
 
-    // ✅ IMPORTANT: filter notifications by user_id
+  async function refreshNotifs(uid: string) {
     const { data: n } = await supabase
       .from("notifications")
       .select("id,title,link,is_read,created_at")
-      .eq("user_id", user.id)
+      .eq("user_id", uid)
       .order("created_at", { ascending: false })
       .limit(8);
 
@@ -95,20 +96,58 @@ export default function NavBar() {
     setUnreadCount(list.filter((x) => !x.is_read).length);
   }
 
+  async function refreshRoleAndNotifs() {
+    // ✅ Use session FIRST (more reliable than getUser for UI state)
+    const { data: sess } = await supabase.auth.getSession();
+    const session = sess.session;
+
+    if (!session?.user) {
+      setSignedIn(false);
+      setUserId(null);
+      setItems([]);
+      setUnreadCount(0);
+      setMyRole("");
+      return;
+    }
+
+    const uid = session.user.id;
+    setSignedIn(true);
+    setUserId(uid);
+
+    // load role + notifications
+    await Promise.all([fetchMyRole(uid), refreshNotifs(uid)]);
+  }
+
   useEffect(() => {
     refreshRoleAndNotifs();
 
-    const { data: sub } = supabase.auth.onAuthStateChange(() => {
-      refreshRoleAndNotifs();
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
       setOpenBell(false);
       setOpenMenu(false);
+
+      if (!session?.user) {
+        setSignedIn(false);
+        setUserId(null);
+        setItems([]);
+        setUnreadCount(0);
+        setMyRole("");
+        return;
+      }
+
+      const uid = session.user.id;
+      setSignedIn(true);
+      setUserId(uid);
+
+      // refresh role/notifs after login/logout
+      fetchMyRole(uid);
+      refreshNotifs(uid);
     });
 
     return () => sub.subscription.unsubscribe();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ✅ realtime notifications (auto refresh count)
+  // realtime notifications (auto refresh count)
   useEffect(() => {
     if (!userId) return;
 
@@ -116,13 +155,8 @@ export default function NavBar() {
       .channel("notif-ch")
       .on(
         "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "notifications",
-          filter: `user_id=eq.${userId}`,
-        },
-        () => refreshRoleAndNotifs()
+        { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` },
+        () => refreshNotifs(userId)
       )
       .subscribe();
 
@@ -142,11 +176,9 @@ export default function NavBar() {
   useEffect(() => {
     function onDocClick(e: MouseEvent) {
       const t = e.target as Node;
-
       if (openBell && bellRef.current && !bellRef.current.contains(t)) setOpenBell(false);
       if (openMenu && menuRef.current && !menuRef.current.contains(t)) setOpenMenu(false);
     }
-
     document.addEventListener("mousedown", onDocClick);
     return () => document.removeEventListener("mousedown", onDocClick);
   }, [openBell, openMenu]);
@@ -168,7 +200,7 @@ export default function NavBar() {
       .eq("is_read", false);
 
     setOpenBell(false);
-    await refreshRoleAndNotifs();
+    await refreshNotifs(userId);
   }
 
   async function openNotif(n: Notif) {
@@ -250,7 +282,7 @@ export default function NavBar() {
               )}
             </div>
 
-            {/* Mobile stacked menu (hamburger) */}
+            {/* Mobile stacked menu */}
             <div className="relative md:hidden" ref={menuRef}>
               <button
                 onClick={() => setOpenMenu((v) => !v)}
@@ -275,7 +307,9 @@ export default function NavBar() {
                         key={l.href}
                         href={l.href}
                         className={`block rounded-xl px-3 py-2 text-sm font-semibold ${
-                          pathname === l.href ? "bg-blue-600 text-white" : "text-slate-800 hover:bg-slate-100"
+                          pathname === l.href
+                            ? "bg-blue-600 text-white"
+                            : "text-slate-800 hover:bg-slate-100"
                         }`}
                       >
                         {l.label}
