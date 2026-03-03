@@ -1,22 +1,8 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "../../../lib/supabaseClient";
-
-/**
- * ✅ Robust import:
- * - Works if you exported `export function RequestProgress() {}`
- * - Works if you exported `export default function RequestProgress() {}`
- */
-const RequestProgress = dynamic(
-  () =>
-    import("../../../components/RequestProgress").then((m: any) => {
-      return m.RequestProgress ?? m.default;
-    }),
-  { ssr: false, loading: () => null }
-);
 
 type Req = {
   id: string;
@@ -82,6 +68,7 @@ export default function RequestDetailsPage() {
         return;
       }
 
+      // my profile
       const { data: myProf, error: myErr } = await supabase
         .from("profiles")
         .select("id,role,signature_url")
@@ -95,6 +82,7 @@ export default function RequestDetailsPage() {
       }
       setMe(myProf as ProfileMini);
 
+      // request
       const { data: r, error: rErr } = await supabase
         .from("requests")
         .select(
@@ -110,6 +98,7 @@ export default function RequestDetailsPage() {
       }
       setReq(r as Req);
 
+      // history
       const { data: h, error: hErr } = await supabase
         .from("request_history")
         .select("id,action_type,comment,to_stage,created_at,signature_url")
@@ -126,11 +115,7 @@ export default function RequestDetailsPage() {
   }, [id, router]);
 
   async function getSetting(key: string): Promise<string | null> {
-    const { data, error } = await supabase
-      .from("app_settings")
-      .select("value")
-      .eq("key", key)
-      .maybeSingle();
+    const { data, error } = await supabase.from("app_settings").select("value").eq("key", key).maybeSingle();
     if (error) return null;
     return (data?.value as string) || null;
   }
@@ -160,6 +145,7 @@ export default function RequestDetailsPage() {
       return { nextStage: "Done", nextOwner: null, nextStatus: "Approved" };
     }
 
+    // Personal
     if (stage === "DIRECTOR" || stage === "HOD") {
       const hr = await getSetting("HR_USER_ID");
       if (!hr) throw new Error("HR_USER_ID not set.");
@@ -186,6 +172,7 @@ export default function RequestDetailsPage() {
         return { nextStage: "HR", nextOwner: hr, nextStatus: "Approved" };
       }
     }
+
     return { nextStage: "Done", nextOwner: null, nextStatus: "Approved" };
   }
 
@@ -348,13 +335,6 @@ export default function RequestDetailsPage() {
                 </div>
               </div>
 
-              {/* ✅ PROGRESS: safe + won’t crash whole page */}
-              <div className="mt-6">
-                <SafeBlock>
-                  <RequestProgress stage={req.current_stage} />
-                </SafeBlock>
-              </div>
-
               <div className="mt-5 grid gap-4 md:grid-cols-2">
                 <Info label="Title" value={req.title} />
                 <Info label="Amount (₦)" value={Number(req.amount || 0).toLocaleString()} />
@@ -366,8 +346,13 @@ export default function RequestDetailsPage() {
                   {req.details}
                 </div>
               </div>
+
+              <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-800">
+                <b>Current Stage:</b> {req.current_stage || "—"} &nbsp; • &nbsp; <b>Status:</b> {req.status || "—"}
+              </div>
             </div>
 
+            {/* ACTION PANEL */}
             <div className="mt-6 rounded-2xl border bg-white p-6 shadow-sm">
               <h2 className="text-lg font-bold text-slate-900">Actions</h2>
               <p className="mt-1 text-sm text-slate-600">Only the assigned officer can approve or reject this request.</p>
@@ -441,30 +426,6 @@ export default function RequestDetailsPage() {
     </main>
   );
 }
-
-/** ✅ Error boundary wrapper so UI never dies because of RequestProgress */
-class SafeBlock extends React.Component<{ children: React.ReactNode }, { hasError: boolean }> {
-  constructor(props: any) {
-    super(props);
-    this.state = { hasError: false };
-  }
-  static getDerivedStateFromError() {
-    return { hasError: true };
-  }
-  componentDidCatch() {}
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
-          Progress view unavailable (but request details are still working).
-        </div>
-      );
-    }
-    return this.props.children;
-  }
-}
-
-import React from "react";
 
 function Info({ label, value }: { label: string; value: string }) {
   return (
