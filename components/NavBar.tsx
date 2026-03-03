@@ -13,7 +13,7 @@ type Notif = {
   created_at: string;
 };
 
-function normRole(role: string) {
+function roleKey(role: string) {
   return (role || "")
     .trim()
     .toLowerCase()
@@ -27,12 +27,14 @@ export default function NavBar() {
 
   const [signedIn, setSignedIn] = useState(false);
 
-  // role-based tabs
-  const [myRole, setMyRole] = useState<string>(""); // Admin | Auditor | AccountOfficer | Staff | etc
-  const roleKey = normRole(myRole);
+  // roles
+  const [myRole, setMyRole] = useState<string>("Staff");
+  const rk = roleKey(myRole);
 
-  const isAdmin = roleKey === "admin";
-  const canFinance = ["admin", "auditor", "accountofficer"].includes(roleKey);
+  const isAdmin = rk === "admin";
+
+  // ✅ Finance allowed ONLY for Admin, Auditor, Accounts
+  const canFinance = ["admin", "auditor", "account", "accounts", "accountofficer"].includes(rk);
 
   // notifications
   const [openBell, setOpenBell] = useState(false);
@@ -47,6 +49,7 @@ export default function NavBar() {
   const menuRef = useRef<HTMLDivElement | null>(null);
 
   const links = useMemo(() => {
+    // ✅ Original simple menu (always visible when signed in)
     const base = [
       { href: "/approvals", label: "Approvals" },
       { href: "/dashboard", label: "Dashboard" },
@@ -67,23 +70,33 @@ export default function NavBar() {
         : "text-slate-700 hover:bg-slate-100"
     }`;
 
-  async function fetchMyRole(uid: string) {
-    // IMPORTANT: do NOT clear role on error. Keep last known role.
-    const { data: prof, error } = await supabase
+  async function refreshAll() {
+    // ✅ Session is the most reliable for UI state
+    const { data: sess, error: sessErr } = await supabase.auth.getSession();
+    if (sessErr || !sess.session?.user) {
+      setSignedIn(false);
+      setUserId(null);
+      setMyRole("Staff");
+      setUnreadCount(0);
+      setItems([]);
+      return;
+    }
+
+    const uid = sess.session.user.id;
+    setSignedIn(true);
+    setUserId(uid);
+
+    // ✅ Role fetch (tolerant + never breaks navbar)
+    const { data: prof, error: profErr } = await supabase
       .from("profiles")
       .select("role")
       .eq("id", uid)
       .maybeSingle();
 
-    if (!error && prof?.role) {
-      setMyRole(prof.role);
-    } else if (!myRole) {
-      // only set default if we truly don't have one yet
-      setMyRole("Staff");
-    }
-  }
+    if (!profErr && prof?.role) setMyRole(prof.role);
+    else setMyRole("Staff");
 
-  async function refreshNotifs(uid: string) {
+    // ✅ Notifications must filter by user_id
     const { data: n } = await supabase
       .from("notifications")
       .select("id,title,link,is_read,created_at")
@@ -96,58 +109,20 @@ export default function NavBar() {
     setUnreadCount(list.filter((x) => !x.is_read).length);
   }
 
-  async function refreshRoleAndNotifs() {
-    // ✅ Use session FIRST (more reliable than getUser for UI state)
-    const { data: sess } = await supabase.auth.getSession();
-    const session = sess.session;
-
-    if (!session?.user) {
-      setSignedIn(false);
-      setUserId(null);
-      setItems([]);
-      setUnreadCount(0);
-      setMyRole("");
-      return;
-    }
-
-    const uid = session.user.id;
-    setSignedIn(true);
-    setUserId(uid);
-
-    // load role + notifications
-    await Promise.all([fetchMyRole(uid), refreshNotifs(uid)]);
-  }
-
   useEffect(() => {
-    refreshRoleAndNotifs();
+    refreshAll();
 
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: sub } = supabase.auth.onAuthStateChange(() => {
       setOpenBell(false);
       setOpenMenu(false);
-
-      if (!session?.user) {
-        setSignedIn(false);
-        setUserId(null);
-        setItems([]);
-        setUnreadCount(0);
-        setMyRole("");
-        return;
-      }
-
-      const uid = session.user.id;
-      setSignedIn(true);
-      setUserId(uid);
-
-      // refresh role/notifs after login/logout
-      fetchMyRole(uid);
-      refreshNotifs(uid);
+      refreshAll();
     });
 
     return () => sub.subscription.unsubscribe();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // realtime notifications (auto refresh count)
+  // realtime notifications
   useEffect(() => {
     if (!userId) return;
 
@@ -156,7 +131,7 @@ export default function NavBar() {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` },
-        () => refreshNotifs(userId)
+        () => refreshAll()
       )
       .subscribe();
 
@@ -166,13 +141,11 @@ export default function NavBar() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
-  // close popups when route changes
   useEffect(() => {
     setOpenBell(false);
     setOpenMenu(false);
   }, [pathname]);
 
-  // click outside to close dropdowns
   useEffect(() => {
     function onDocClick(e: MouseEvent) {
       const t = e.target as Node;
@@ -200,7 +173,7 @@ export default function NavBar() {
       .eq("is_read", false);
 
     setOpenBell(false);
-    await refreshNotifs(userId);
+    await refreshAll();
   }
 
   async function openNotif(n: Notif) {
@@ -235,8 +208,6 @@ export default function NavBar() {
                 onClick={() => setOpenBell((v) => !v)}
                 className="relative rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
                 title="Notifications"
-                aria-haspopup="menu"
-                aria-expanded={openBell}
               >
                 🔔
                 {unreadCount > 0 && (
@@ -250,10 +221,7 @@ export default function NavBar() {
                 <div className="absolute right-0 top-12 w-80 rounded-2xl border bg-white shadow-lg overflow-hidden">
                   <div className="flex items-center justify-between px-4 py-3 bg-slate-50">
                     <div className="font-bold text-slate-900">Notifications</div>
-                    <button
-                      onClick={markAllRead}
-                      className="text-xs font-semibold text-blue-700 hover:underline"
-                    >
+                    <button onClick={markAllRead} className="text-xs font-semibold text-blue-700 hover:underline">
                       Mark all read
                     </button>
                   </div>
@@ -271,9 +239,7 @@ export default function NavBar() {
                           }`}
                         >
                           <div className="text-sm font-semibold text-slate-900">{n.title}</div>
-                          <div className="text-xs text-slate-500">
-                            {new Date(n.created_at).toLocaleString()}
-                          </div>
+                          <div className="text-xs text-slate-500">{new Date(n.created_at).toLocaleString()}</div>
                         </button>
                       ))}
                     </div>
@@ -282,13 +248,11 @@ export default function NavBar() {
               )}
             </div>
 
-            {/* Mobile stacked menu */}
+            {/* Mobile menu */}
             <div className="relative md:hidden" ref={menuRef}>
               <button
                 onClick={() => setOpenMenu((v) => !v)}
                 className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
-                aria-haspopup="menu"
-                aria-expanded={openMenu}
                 title="Menu"
               >
                 ☰
@@ -298,7 +262,7 @@ export default function NavBar() {
                 <div className="absolute right-0 top-12 w-64 rounded-2xl border bg-white shadow-lg overflow-hidden">
                   <div className="px-4 py-3 bg-slate-50">
                     <div className="text-sm font-bold text-slate-900">Menu</div>
-                    <div className="text-xs text-slate-600">Role: {myRole || "Staff"}</div>
+                    <div className="text-xs text-slate-600">Role: {myRole}</div>
                   </div>
 
                   <div className="p-2">
@@ -307,9 +271,7 @@ export default function NavBar() {
                         key={l.href}
                         href={l.href}
                         className={`block rounded-xl px-3 py-2 text-sm font-semibold ${
-                          pathname === l.href
-                            ? "bg-blue-600 text-white"
-                            : "text-slate-800 hover:bg-slate-100"
+                          pathname === l.href ? "bg-blue-600 text-white" : "text-slate-800 hover:bg-slate-100"
                         }`}
                       >
                         {l.label}
