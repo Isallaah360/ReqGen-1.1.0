@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabaseClient";
 
-type UserRow = { id: string; email: string | null; role?: string | null };
+type UserRow = { id: string; email: string | null; role: string | null };
 type DeptRow = {
   id: string;
   name: string;
@@ -12,6 +12,8 @@ type DeptRow = {
   director_user_id: string | null;
 };
 type SettingRow = { key: string; value: string };
+
+const GLOBAL_KEYS = ["REGISTRY_USER_ID", "DG_USER_ID", "ACCOUNT_USER_ID", "HR_USER_ID"] as const;
 
 export default function AdminPage() {
   const router = useRouter();
@@ -30,99 +32,124 @@ export default function AdminPage() {
   const [selectedUserId, setSelectedUserId] = useState<string>("");
   const [selectedRole, setSelectedRole] = useState<string>("Staff");
   const [savingRole, setSavingRole] = useState(false);
+  const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    async function load() {
-      setLoading(true);
-      setMsg(null);
+  const usersById = useMemo(() => {
+    const m = new Map<string, UserRow>();
+    users.forEach((u) => m.set(u.id, u));
+    return m;
+  }, [users]);
 
-      // Auth check
-      const { data: authData } = await supabase.auth.getUser();
-      const user = authData.user;
-      if (!user) {
-        router.push("/login");
-        return;
-      }
+  async function loadAll() {
+    setLoading(true);
+    setMsg(null);
 
-      setMeEmail(user.email || "");
-
-      // ✅ Admin check (must be Admin)
-      const { data: me, error: meErr } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", user.id)
-        .single();
-
-      if (meErr) {
-        setMsg("Failed to verify admin: " + meErr.message);
-        setLoading(false);
-        return;
-      }
-
-      const role = me?.role || "Staff";
-      setMeRole(role);
-
-      if (role !== "Admin") {
-        router.push("/dashboard");
-        return;
-      }
-
-      // Users list from profiles (for dropdowns)
-      const { data: profs, error: profErr } = await supabase
-        .from("profiles")
-        .select("id,email,role")
-        .order("email", { ascending: true });
-
-      if (profErr) setMsg("Failed to load users: " + profErr.message);
-      else setUsers((profs || []) as UserRow[]);
-
-      // Departments routing
-      const { data: deptRows, error: deptErr } = await supabase
-        .from("departments")
-        .select("id,name,hod_user_id,director_user_id")
-        .order("name", { ascending: true });
-
-      if (deptErr) setMsg("Failed to load departments: " + deptErr.message);
-      else setDepts((deptRows || []) as DeptRow[]);
-
-      // Global settings
-      const { data: setRows, error: setErr } = await supabase
-        .from("app_settings")
-        .select("key,value");
-
-      if (!setErr && setRows) {
-        const map: Record<string, string> = {};
-        (setRows as SettingRow[]).forEach((r) => (map[r.key] = r.value));
-        setSettings(map);
-      }
-
+    // 1) Auth
+    const { data: authData, error: authErr } = await supabase.auth.getUser();
+    if (authErr) {
+      setMsg("Auth error: " + authErr.message);
       setLoading(false);
+      return;
     }
 
-    load();
-  }, [router]);
+    const user = authData.user;
+    if (!user) {
+      router.push("/login");
+      return;
+    }
+
+    setMeEmail(user.email || "");
+
+    // 2) Admin gate
+    const { data: me, error: meErr } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+
+    if (meErr) {
+      setMsg("Failed to verify admin: " + meErr.message);
+      setLoading(false);
+      return;
+    }
+
+    const role = (me?.role || "Staff") as string;
+    setMeRole(role);
+
+    if (role !== "Admin") {
+      router.push("/dashboard");
+      return;
+    }
+
+    // 3) Load all admin data in parallel (fast + stable)
+    const [profsRes, deptRes, setRes] = await Promise.all([
+      supabase.from("profiles").select("id,email,role").order("email", { ascending: true }),
+      supabase.from("departments").select("id,name,hod_user_id,director_user_id").order("name", { ascending: true }),
+      supabase.from("app_settings").select("key,value"),
+    ]);
+
+    if (profsRes.error) setMsg("Failed to load users: " + profsRes.error.message);
+    else setUsers((profsRes.data || []) as UserRow[]);
+
+    if (deptRes.error) setMsg("Failed to load departments: " + deptRes.error.message);
+    else setDepts((deptRes.data || []) as DeptRow[]);
+
+    if (!setRes.error && setRes.data) {
+      const map: Record<string, string> = {};
+      (setRes.data as SettingRow[]).forEach((r) => (map[r.key] = r.value));
+      setSettings(map);
+    }
+
+    setLoading(false);
+  }
+
+  useEffect(() => {
+    loadAll();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // When selecting a user, auto-load their current role into role dropdown
+  useEffect(() => {
+    if (!selectedUserId) return;
+    const u = usersById.get(selectedUserId);
+    if (u?.role) setSelectedRole(u.role);
+    else setSelectedRole("Staff");
+  }, [selectedUserId, usersById]);
 
   async function saveDept(deptId: string, hodId: string | null, dirId: string | null) {
     setMsg(null);
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from("departments")
+        .update({ hod_user_id: hodId || null, director_user_id: dirId || null })
+        .eq("id", deptId);
 
-    const { error } = await supabase
-      .from("departments")
-      .update({ hod_user_id: hodId || null, director_user_id: dirId || null })
-      .eq("id", deptId);
+      if (error) throw new Error(error.message);
 
-    if (error) setMsg("❌ Failed: " + error.message);
-    else setMsg("✅ Department routing saved.");
+      setMsg("✅ Department routing saved.");
+      await loadAll();
+    } catch (e: any) {
+      setMsg("❌ Failed: " + (e?.message || "Unknown error"));
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function saveSetting(key: string, value: string) {
     setMsg(null);
+    setSaving(true);
+    try {
+      const { error } = await supabase.from("app_settings").upsert({ key, value: value || "" });
+      if (error) throw new Error(error.message);
 
-    const { error } = await supabase
-      .from("app_settings")
-      .upsert({ key, value: value || "" });
-
-    if (error) setMsg("❌ Failed: " + error.message);
-    else setMsg("✅ Setting saved.");
+      setMsg("✅ Setting saved.");
+      await loadAll();
+    } catch (e: any) {
+      setMsg("❌ Failed: " + (e?.message || "Unknown error"));
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function saveUserRole() {
@@ -133,9 +160,8 @@ export default function AdminPage() {
       return;
     }
 
+    setSavingRole(true);
     try {
-      setSavingRole(true);
-
       const { error } = await supabase
         .from("profiles")
         .update({ role: selectedRole })
@@ -143,12 +169,8 @@ export default function AdminPage() {
 
       if (error) throw new Error(error.message);
 
-      // refresh users list in UI
-      setUsers((prev) =>
-        prev.map((u) => (u.id === selectedUserId ? { ...u, role: selectedRole } : u))
-      );
-
       setMsg("✅ Role updated successfully.");
+      await loadAll();
     } catch (e: any) {
       setMsg("❌ Role update failed: " + (e?.message || "Unknown error"));
     } finally {
@@ -169,9 +191,7 @@ export default function AdminPage() {
       <div className="mx-auto max-w-5xl py-10">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">
-              Admin Panel
-            </h1>
+            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">Admin Panel</h1>
             <p className="mt-2 text-sm text-slate-600">
               Logged in as <b className="text-slate-900">{meEmail || "—"}</b> • Role{" "}
               <b className="text-slate-900">{meRole}</b>
@@ -196,8 +216,7 @@ export default function AdminPage() {
         <div className="mt-6 rounded-2xl border bg-white p-6 shadow-sm">
           <h2 className="text-lg font-bold text-slate-900">User Role Assignment</h2>
           <p className="mt-1 text-sm text-slate-600">
-            Set a user as Admin (full access) or Staff (normal). Officers can still be
-            assigned via Global Officers/Departments.
+            Admin has full access. Staff is normal. Officers are assigned in Global Officers / Departments.
           </p>
 
           <div className="mt-4 grid gap-4 md:grid-cols-3">
@@ -243,10 +262,10 @@ export default function AdminPage() {
         <div className="mt-6 rounded-2xl border bg-white p-6 shadow-sm">
           <h2 className="text-lg font-bold text-slate-900">Global Officers</h2>
           <p className="mt-1 text-sm text-slate-600">
-            Registry, DG, Account, HR roles are stored in <b>app_settings</b>.
+            Stored in <b>app_settings</b>. These drive routing and notifications.
           </p>
 
-          {["REGISTRY_USER_ID", "DG_USER_ID", "ACCOUNT_USER_ID", "HR_USER_ID"].map((k) => (
+          {GLOBAL_KEYS.map((k) => (
             <div key={k} className="mt-4">
               <div className="text-sm font-semibold text-slate-800">{k}</div>
               <div className="mt-2 flex flex-col gap-2 md:flex-row">
@@ -265,7 +284,8 @@ export default function AdminPage() {
 
                 <button
                   onClick={() => saveSetting(k, settings[k] || "")}
-                  className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700"
+                  disabled={saving}
+                  className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:opacity-60"
                 >
                   Save
                 </button>
@@ -331,7 +351,8 @@ export default function AdminPage() {
 
                 <button
                   onClick={() => saveDept(d.id, d.hod_user_id, d.director_user_id)}
-                  className="mt-4 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
+                  disabled={saving}
+                  className="mt-4 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
                 >
                   Save Department
                 </button>
