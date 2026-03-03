@@ -20,12 +20,9 @@ export default function NavBar() {
   const [signedIn, setSignedIn] = useState(false);
 
   // role-based tabs
-  const [myRole, setMyRole] = useState<string>(""); // Admin | Auditor | AccountOfficer | Staff ...
+  const [myRole, setMyRole] = useState<string>(""); // Admin | Auditor | AccountOfficer | Staff | ...
   const isAdmin = myRole === "Admin";
-  const canFinance = useMemo(
-    () => ["Admin", "Auditor", "AccountOfficer"].includes(myRole),
-    [myRole]
-  );
+  const canFinance = ["Admin", "Auditor", "AccountOfficer"].includes(myRole);
 
   // notifications
   const [openBell, setOpenBell] = useState(false);
@@ -33,84 +30,90 @@ export default function NavBar() {
   const [items, setItems] = useState<Notif[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
 
-  // prevent overlapping refresh calls
-  const refreshingRef = useRef(false);
+  // mobile menu
+  const [openMenu, setOpenMenu] = useState(false);
+
+  const bellRef = useRef<HTMLDivElement | null>(null);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+
+  const links = useMemo(() => {
+    const base = [
+      { href: "/approvals", label: "Approvals" },
+      { href: "/dashboard", label: "Dashboard" },
+      { href: "/requests", label: "My Requests" },
+      { href: "/requests/new", label: "New Request" },
+    ];
+
+    if (canFinance) base.push({ href: "/finance/subheads", label: "Finance" });
+    if (isAdmin) base.push({ href: "/admin", label: "Admin" });
+
+    return base;
+  }, [canFinance, isAdmin]);
+
+  const linkClass = (href: string) =>
+    `px-3 py-2 rounded-xl text-sm font-semibold transition ${
+      pathname === href
+        ? "bg-blue-600 text-white shadow-sm"
+        : "text-slate-700 hover:bg-slate-100"
+    }`;
 
   async function refreshRoleAndNotifs() {
-    if (refreshingRef.current) return;
-    refreshingRef.current = true;
+    const { data: authData } = await supabase.auth.getUser();
+    const user = authData.user;
 
-    try {
-      const { data: authData, error: authErr } = await supabase.auth.getUser();
-      const user = authData?.user;
-
-      if (authErr || !user) {
-        setSignedIn(false);
-        setMyRole("");
-        setUserId(null);
-        setUnreadCount(0);
-        setItems([]);
-        return;
-      }
-
-      setSignedIn(true);
-      setUserId(user.id);
-
-      // ✅ role (RLS must allow reading own profile)
-      const { data: prof, error: profErr } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", user.id)
-        .single();
-
-      if (profErr) {
-        // fallback to Staff (so UI still works) and show a tiny hint in console
-        console.warn("NavBar: profiles role read blocked:", profErr.message);
-        setMyRole("Staff");
-      } else {
-        setMyRole((prof?.role || "Staff") as string);
-      }
-
-      // ✅ notifications ONLY for this user (CRITICAL)
-      const { data: n, error: nErr } = await supabase
-        .from("notifications")
-        .select("id,title,link,is_read,created_at")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(8);
-
-      if (nErr) {
-        console.warn("NavBar: notifications read failed:", nErr.message);
-        setItems([]);
-        setUnreadCount(0);
-      } else {
-        const list = (n || []) as Notif[];
-        setItems(list);
-        setUnreadCount(list.filter((x) => !x.is_read).length);
-      }
-    } finally {
-      refreshingRef.current = false;
+    if (!user) {
+      setSignedIn(false);
+      setMyRole("");
+      setUserId(null);
+      setItems([]);
+      setUnreadCount(0);
+      return;
     }
+
+    setSignedIn(true);
+    setUserId(user.id);
+
+    // role
+    const { data: prof, error: profErr } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+
+    setMyRole(profErr ? "Staff" : (prof?.role || "Staff"));
+
+    // ✅ IMPORTANT: filter notifications by user_id
+    const { data: n } = await supabase
+      .from("notifications")
+      .select("id,title,link,is_read,created_at")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(8);
+
+    const list = (n || []) as Notif[];
+    setItems(list);
+    setUnreadCount(list.filter((x) => !x.is_read).length);
   }
 
   useEffect(() => {
     refreshRoleAndNotifs();
 
     const { data: sub } = supabase.auth.onAuthStateChange(() => {
-      setOpenBell(false);
       refreshRoleAndNotifs();
+      setOpenBell(false);
+      setOpenMenu(false);
     });
 
     return () => sub.subscription.unsubscribe();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ✅ Auto refresh notifications using realtime
+  // ✅ realtime notifications (auto refresh count)
   useEffect(() => {
     if (!userId) return;
 
     const ch = supabase
-      .channel(`notif-ch-${userId}`)
+      .channel("notif-ch")
       .on(
         "postgres_changes",
         {
@@ -129,21 +132,35 @@ export default function NavBar() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
-  // Close bell when route changes (avoid overlay staying open)
+  // close popups when route changes
   useEffect(() => {
     setOpenBell(false);
+    setOpenMenu(false);
   }, [pathname]);
+
+  // click outside to close dropdowns
+  useEffect(() => {
+    function onDocClick(e: MouseEvent) {
+      const t = e.target as Node;
+
+      if (openBell && bellRef.current && !bellRef.current.contains(t)) setOpenBell(false);
+      if (openMenu && menuRef.current && !menuRef.current.contains(t)) setOpenMenu(false);
+    }
+
+    document.addEventListener("mousedown", onDocClick);
+    return () => document.removeEventListener("mousedown", onDocClick);
+  }, [openBell, openMenu]);
 
   async function logout() {
     await supabase.auth.signOut();
     setOpenBell(false);
+    setOpenMenu(false);
     router.push("/");
     router.refresh();
   }
 
   async function markAllRead() {
     if (!userId) return;
-
     await supabase
       .from("notifications")
       .update({ is_read: true })
@@ -160,109 +177,132 @@ export default function NavBar() {
     router.push(n.link || "/approvals");
   }
 
-  const linkClass = (href: string) =>
-    `px-3 py-2 rounded-xl text-sm font-semibold transition ${
-      pathname === href
-        ? "bg-blue-600 text-white shadow-sm"
-        : "text-slate-700 hover:bg-slate-100"
-    }`;
-
   return (
-    <header className="sticky top-0 z-10 border-b bg-white/80 backdrop-blur">
+    <header className="sticky top-0 z-20 border-b bg-white/80 backdrop-blur">
       <div className="mx-auto max-w-5xl px-4 py-3 flex items-center justify-between">
         <Link href="/" className="font-extrabold text-lg tracking-tight text-slate-900">
           ReqGen <span className="text-slate-400">1.1.0</span>
         </Link>
 
-        {signedIn ? (
-          <nav className="flex items-center gap-2 relative">
-            <Link className={linkClass("/approvals")} href="/approvals">
-              Approvals
-            </Link>
-            <Link className={linkClass("/dashboard")} href="/dashboard">
-              Dashboard
-            </Link>
-            <Link className={linkClass("/requests")} href="/requests">
-              My Requests
-            </Link>
-            <Link className={linkClass("/requests/new")} href="/requests/new">
-              New Request
-            </Link>
+        {!signedIn ? (
+          <div />
+        ) : (
+          <div className="flex items-center gap-2">
+            {/* Desktop tabs */}
+            <nav className="hidden md:flex items-center gap-2">
+              {links.map((l) => (
+                <Link key={l.href} className={linkClass(l.href)} href={l.href}>
+                  {l.label}
+                </Link>
+              ))}
+            </nav>
 
-            {/* ✅ Finance tab for Admin/Auditor/AccountOfficer */}
-            {canFinance && (
-              <Link className={linkClass("/finance/subheads")} href="/finance/subheads">
-                Finance
-              </Link>
-            )}
+            {/* 🔔 Notifications */}
+            <div className="relative" ref={bellRef}>
+              <button
+                onClick={() => setOpenBell((v) => !v)}
+                className="relative rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
+                title="Notifications"
+                aria-haspopup="menu"
+                aria-expanded={openBell}
+              >
+                🔔
+                {unreadCount > 0 && (
+                  <span className="absolute -top-2 -right-2 rounded-full bg-red-600 px-2 py-0.5 text-xs font-bold text-white">
+                    {unreadCount}
+                  </span>
+                )}
+              </button>
 
-            {/* ✅ Admin tab only for Admin */}
-            {isAdmin && (
-              <Link className={linkClass("/admin")} href="/admin">
-                Admin
-              </Link>
-            )}
+              {openBell && (
+                <div className="absolute right-0 top-12 w-80 rounded-2xl border bg-white shadow-lg overflow-hidden">
+                  <div className="flex items-center justify-between px-4 py-3 bg-slate-50">
+                    <div className="font-bold text-slate-900">Notifications</div>
+                    <button
+                      onClick={markAllRead}
+                      className="text-xs font-semibold text-blue-700 hover:underline"
+                    >
+                      Mark all read
+                    </button>
+                  </div>
 
-            {/* 🔔 Notification Bell */}
-            <button
-              onClick={() => setOpenBell((v) => !v)}
-              className="ml-2 relative rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
-              title="Notifications"
-              aria-haspopup="menu"
-              aria-expanded={openBell}
-            >
-              🔔
-              {unreadCount > 0 && (
-                <span className="absolute -top-2 -right-2 rounded-full bg-red-600 px-2 py-0.5 text-xs font-bold text-white">
-                  {unreadCount}
-                </span>
-              )}
-            </button>
-
-            {openBell && (
-              <div className="absolute right-0 top-12 w-80 rounded-2xl border bg-white shadow-lg overflow-hidden">
-                <div className="flex items-center justify-between px-4 py-3 bg-slate-50">
-                  <div className="font-bold text-slate-900">Notifications</div>
-                  <button
-                    onClick={markAllRead}
-                    className="text-xs font-semibold text-blue-700 hover:underline"
-                  >
-                    Mark all read
-                  </button>
+                  {items.length === 0 ? (
+                    <div className="p-4 text-sm text-slate-600">No notifications.</div>
+                  ) : (
+                    <div className="max-h-96 overflow-auto">
+                      {items.map((n) => (
+                        <button
+                          key={n.id}
+                          onClick={() => openNotif(n)}
+                          className={`w-full text-left px-4 py-3 border-t hover:bg-slate-50 ${
+                            n.is_read ? "bg-white" : "bg-blue-50"
+                          }`}
+                        >
+                          <div className="text-sm font-semibold text-slate-900">{n.title}</div>
+                          <div className="text-xs text-slate-500">
+                            {new Date(n.created_at).toLocaleString()}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
+              )}
+            </div>
 
-                {items.length === 0 ? (
-                  <div className="p-4 text-sm text-slate-600">No notifications.</div>
-                ) : (
-                  <div className="max-h-96 overflow-auto">
-                    {items.map((n) => (
-                      <button
-                        key={n.id}
-                        onClick={() => openNotif(n)}
-                        className={`w-full text-left px-4 py-3 border-t hover:bg-slate-50 ${
-                          n.is_read ? "bg-white" : "bg-blue-50"
+            {/* Mobile stacked menu (hamburger) */}
+            <div className="relative md:hidden" ref={menuRef}>
+              <button
+                onClick={() => setOpenMenu((v) => !v)}
+                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
+                aria-haspopup="menu"
+                aria-expanded={openMenu}
+                title="Menu"
+              >
+                ☰
+              </button>
+
+              {openMenu && (
+                <div className="absolute right-0 top-12 w-64 rounded-2xl border bg-white shadow-lg overflow-hidden">
+                  <div className="px-4 py-3 bg-slate-50">
+                    <div className="text-sm font-bold text-slate-900">Menu</div>
+                    <div className="text-xs text-slate-600">Role: {myRole || "Staff"}</div>
+                  </div>
+
+                  <div className="p-2">
+                    {links.map((l) => (
+                      <Link
+                        key={l.href}
+                        href={l.href}
+                        className={`block rounded-xl px-3 py-2 text-sm font-semibold ${
+                          pathname === l.href ? "bg-blue-600 text-white" : "text-slate-800 hover:bg-slate-100"
                         }`}
                       >
-                        <div className="text-sm font-semibold text-slate-900">{n.title}</div>
-                        <div className="text-xs text-slate-500">
-                          {new Date(n.created_at).toLocaleString()}
-                        </div>
-                      </button>
+                        {l.label}
+                      </Link>
                     ))}
                   </div>
-                )}
-              </div>
-            )}
 
+                  <div className="border-t p-2">
+                    <button
+                      onClick={logout}
+                      className="w-full rounded-xl bg-red-600 px-3 py-2 text-sm font-semibold text-white hover:bg-red-700"
+                    >
+                      Logout
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Desktop logout */}
             <button
               onClick={logout}
-              className="ml-2 px-4 py-2 rounded-xl text-sm font-semibold bg-red-600 text-white hover:bg-red-700 transition"
+              className="hidden md:inline-flex ml-1 px-4 py-2 rounded-xl text-sm font-semibold bg-red-600 text-white hover:bg-red-700 transition"
             >
               Logout
             </button>
-          </nav>
-        ) : (
-          <div />
+          </div>
         )}
       </div>
     </header>
