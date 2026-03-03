@@ -1,7 +1,7 @@
 "use client";
 
 import { RequestProgress } from "../../../components/RequestProgress";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "../../../lib/supabaseClient";
 
@@ -13,6 +13,10 @@ type Req = {
   amount: number;
   status: string;
   current_stage: string;
+  current_owner: string | null;
+  dept_id: string;
+  request_type: "Personal" | "Official";
+  personal_category: "Fund" | "NonFund" | null;
   created_at: string;
 };
 
@@ -25,26 +29,32 @@ type Hist = {
   signature_url: string | null;
 };
 
+type ProfileMini = { id: string; role: string; signature_url: string | null };
+
 export default function RequestDetailsPage() {
   const router = useRouter();
   const params = useParams();
-  const id = params?.id ? String(params.id) : "";
+  const id = String(params.id);
 
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
   const [msg, setMsg] = useState<string | null>(null);
   const [req, setReq] = useState<Req | null>(null);
   const [history, setHistory] = useState<Hist[]>([]);
+
+  const [me, setMe] = useState<ProfileMini | null>(null);
+  const [comment, setComment] = useState("");
+
+  const canAct = useMemo(() => {
+    if (!req || !me) return false;
+    return req.current_owner === me.id; // only the assigned owner can act
+  }, [req, me]);
 
   useEffect(() => {
     async function load() {
       setLoading(true);
       setMsg(null);
-
-      if (!id) {
-        setMsg("Invalid request id.");
-        setLoading(false);
-        return;
-      }
 
       const { data: auth } = await supabase.auth.getUser();
       if (!auth.user) {
@@ -52,9 +62,25 @@ export default function RequestDetailsPage() {
         return;
       }
 
+      // Load my role + signature
+      const { data: myProf, error: myErr } = await supabase
+        .from("profiles")
+        .select("id,role,signature_url")
+        .eq("id", auth.user.id)
+        .single();
+
+      if (myErr) {
+        setMsg("Failed to load your profile: " + myErr.message);
+        setLoading(false);
+        return;
+      }
+
+      setMe(myProf as ProfileMini);
+
+      // Load request
       const { data: r, error: rErr } = await supabase
         .from("requests")
-        .select("id,request_no,title,details,amount,status,current_stage,created_at")
+        .select("id,request_no,title,details,amount,status,current_stage,current_owner,dept_id,request_type,personal_category,created_at")
         .eq("id", id)
         .single();
 
@@ -66,6 +92,7 @@ export default function RequestDetailsPage() {
 
       setReq(r as Req);
 
+      // Load history
       const { data: h, error: hErr } = await supabase
         .from("request_history")
         .select("id,action_type,comment,to_stage,created_at,signature_url")
@@ -81,6 +108,194 @@ export default function RequestDetailsPage() {
     load();
   }, [id, router]);
 
+  async function getSetting(key: string): Promise<string | null> {
+    const { data, error } = await supabase
+      .from("app_settings")
+      .select("value")
+      .eq("key", key)
+      .maybeSingle();
+    if (error) return null;
+    return (data?.value as string) || null;
+  }
+
+  // ✅ Basic routing (we will expand to your full blueprint next)
+  async function resolveNextOwner(currentStage: string, r: Req): Promise<{ nextStage: string; nextOwner: string | null; nextStatus: string }> {
+    const stage = (currentStage || "").toUpperCase();
+
+    // If Official: Director/HOD -> Registry -> DG -> Account
+    if (r.request_type === "Official") {
+      if (stage === "DIRECTOR" || stage === "HOD") {
+        const reg = await getSetting("REGISTRY_USER_ID");
+        if (!reg) throw new Error("REGISTRY_USER_ID not set.");
+        return { nextStage: "Registry", nextOwner: reg, nextStatus: "In Review" };
+      }
+      if (stage === "REGISTRY") {
+        const dg = await getSetting("DG_USER_ID");
+        if (!dg) throw new Error("DG_USER_ID not set.");
+        return { nextStage: "DG", nextOwner: dg, nextStatus: "In Review" };
+      }
+      if (stage === "DG") {
+        const acc = await getSetting("ACCOUNT_USER_ID");
+        if (!acc) throw new Error("ACCOUNT_USER_ID not set.");
+        return { nextStage: "Account", nextOwner: acc, nextStatus: "Approved" };
+      }
+      // final
+      return { nextStage: "Done", nextOwner: null, nextStatus: "Approved" };
+    }
+
+    // Personal:
+    // Director/HOD -> HR -> Registry -> DG -> (Fund=>Account else HR)
+    if (stage === "DIRECTOR" || stage === "HOD") {
+      const hr = await getSetting("HR_USER_ID");
+      if (!hr) throw new Error("HR_USER_ID not set.");
+      return { nextStage: "HR", nextOwner: hr, nextStatus: "In Review" };
+    }
+    if (stage === "HR") {
+      const reg = await getSetting("REGISTRY_USER_ID");
+      if (!reg) throw new Error("REGISTRY_USER_ID not set.");
+      return { nextStage: "Registry", nextOwner: reg, nextStatus: "In Review" };
+    }
+    if (stage === "REGISTRY") {
+      const dg = await getSetting("DG_USER_ID");
+      if (!dg) throw new Error("DG_USER_ID not set.");
+      return { nextStage: "DG", nextOwner: dg, nextStatus: "In Review" };
+    }
+    if (stage === "DG") {
+      if (r.personal_category === "Fund") {
+        const acc = await getSetting("ACCOUNT_USER_ID");
+        if (!acc) throw new Error("ACCOUNT_USER_ID not set.");
+        return { nextStage: "Account", nextOwner: acc, nextStatus: "Approved" };
+      } else {
+        const hr = await getSetting("HR_USER_ID");
+        if (!hr) throw new Error("HR_USER_ID not set.");
+        return { nextStage: "HR", nextOwner: hr, nextStatus: "Approved" };
+      }
+    }
+    return { nextStage: "Done", nextOwner: null, nextStatus: "Approved" };
+  }
+
+  async function notify(userId: string, title: string, body: string, link: string) {
+    await supabase.from("notifications").insert({
+      user_id: userId,
+      title,
+      body,
+      link,
+      is_read: false,
+    });
+  }
+
+  async function act(action: "Approve" | "Reject") {
+    if (!req || !me) return;
+
+    if (!me.signature_url) {
+      setMsg("❌ You must upload your signature in Profile before taking actions.");
+      return;
+    }
+
+    if (!canAct) {
+      setMsg("❌ You cannot act on this request (not assigned to you).");
+      return;
+    }
+
+    if (action === "Reject" && comment.trim().length < 3) {
+      setMsg("❌ Please write a reason/comment for rejection.");
+      return;
+    }
+
+    setSaving(true);
+    setMsg(null);
+
+    try {
+      if (action === "Reject") {
+        // Update request
+        const { error: upErr } = await supabase
+          .from("requests")
+          .update({
+            status: "Rejected",
+            current_stage: req.current_stage,
+            current_owner: req.created_by ?? req.current_owner,
+          })
+          .eq("id", req.id);
+
+        if (upErr) throw new Error(upErr.message);
+
+        // History
+        const { error: hErr } = await supabase.from("request_history").insert({
+          request_id: req.id,
+          action_by: me.id,
+          from_stage: req.current_stage,
+          to_stage: req.current_stage,
+          action_type: "Reject",
+          comment: comment.trim(),
+          signature_url: me.signature_url,
+        });
+
+        if (hErr) throw new Error(hErr.message);
+
+        setMsg("✅ Rejected successfully.");
+      } else {
+        const next = await resolveNextOwner(req.current_stage, req);
+
+        const { error: upErr } = await supabase
+          .from("requests")
+          .update({
+            status: next.nextStatus,
+            current_stage: next.nextStage,
+            current_owner: next.nextOwner,
+          })
+          .eq("id", req.id);
+
+        if (upErr) throw new Error(upErr.message);
+
+        const { error: hErr } = await supabase.from("request_history").insert({
+          request_id: req.id,
+          action_by: me.id,
+          from_stage: req.current_stage,
+          to_stage: next.nextStage,
+          action_type: "Approve",
+          comment: comment.trim() || "Approved",
+          signature_url: me.signature_url,
+        });
+
+        if (hErr) throw new Error(hErr.message);
+
+        // notify next owner
+        if (next.nextOwner) {
+          await notify(
+            next.nextOwner,
+            "Request Assigned",
+            `${req.request_no}: ${req.title}`,
+            `/requests/${req.id}`
+          );
+        }
+
+        setMsg(`✅ Approved. Sent to ${next.nextStage}.`);
+      }
+
+      // reload
+      router.refresh();
+      // quick local reload
+      const { data: r2 } = await supabase
+        .from("requests")
+        .select("id,request_no,title,details,amount,status,current_stage,current_owner,dept_id,request_type,personal_category,created_at")
+        .eq("id", id)
+        .single();
+      setReq((r2 as any) || null);
+
+      const { data: h2 } = await supabase
+        .from("request_history")
+        .select("id,action_type,comment,to_stage,created_at,signature_url")
+        .eq("request_id", id)
+        .order("created_at", { ascending: false });
+      setHistory((h2 || []) as Hist[]);
+      setComment("");
+    } catch (e: any) {
+      setMsg("❌ Action failed: " + (e?.message || "Unknown error"));
+    } finally {
+      setSaving(false);
+    }
+  }
+
   return (
     <main className="min-h-screen bg-slate-50 px-4">
       <div className="mx-auto max-w-4xl py-10">
@@ -89,9 +304,7 @@ export default function RequestDetailsPage() {
             <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">
               Request Details
             </h1>
-            <p className="mt-2 text-sm text-slate-600">
-              Track the request and its approvals.
-            </p>
+            <p className="mt-2 text-sm text-slate-600">Track the request and its approvals.</p>
           </div>
 
           <button
@@ -116,14 +329,11 @@ export default function RequestDetailsPage() {
           </div>
         ) : (
           <>
-            {/* Summary Card */}
             <div className="mt-6 rounded-2xl border bg-white p-6 shadow-sm">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <div className="text-sm text-slate-600">Request No</div>
-                  <div className="text-lg font-extrabold text-slate-900">
-                    {req.request_no}
-                  </div>
+                  <div className="text-lg font-extrabold text-slate-900">{req.request_no}</div>
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -134,10 +344,7 @@ export default function RequestDetailsPage() {
 
               <div className="mt-5 grid gap-4 md:grid-cols-2">
                 <Info label="Title" value={req.title} />
-                <Info
-                  label="Amount (₦)"
-                  value={Number(req.amount || 0).toLocaleString()}
-                />
+                <Info label="Amount (₦)" value={Number(req.amount || 0).toLocaleString()} />
               </div>
 
               <div className="mt-5">
@@ -148,37 +355,66 @@ export default function RequestDetailsPage() {
               </div>
             </div>
 
-            {/* ✅ Progress Tracker */}
-            <div className="mt-6">
-              <RequestProgress currentStage={req.current_stage} status={req.status} />
+            {/* ✅ ACTION PANEL */}
+            <div className="mt-6 rounded-2xl border bg-white p-6 shadow-sm">
+              <h2 className="text-lg font-bold text-slate-900">Actions</h2>
+              <p className="mt-1 text-sm text-slate-600">
+                Only the assigned officer can approve or reject this request.
+              </p>
+
+              {!canAct ? (
+                <div className="mt-4 rounded-xl bg-slate-50 border border-slate-200 p-4 text-sm text-slate-700">
+                  This request is not assigned to you. You can view only.
+                </div>
+              ) : (
+                <>
+                  <div className="mt-4">
+                    <label className="text-sm font-semibold text-slate-800">Comment (required for Reject)</label>
+                    <textarea
+                      value={comment}
+                      onChange={(e) => setComment(e.target.value)}
+                      className="mt-1 min-h-[90px] w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
+                      placeholder="Write your comment..."
+                    />
+                  </div>
+
+                  <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+                    <button
+                      onClick={() => act("Approve")}
+                      disabled={saving}
+                      className="w-full rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 disabled:opacity-60"
+                    >
+                      {saving ? "Processing..." : "Approve"}
+                    </button>
+
+                    <button
+                      onClick={() => act("Reject")}
+                      disabled={saving}
+                      className="w-full rounded-xl bg-red-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-red-700 disabled:opacity-60"
+                    >
+                      {saving ? "Processing..." : "Reject"}
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
 
-            {/* History */}
             <div className="mt-6 rounded-2xl border bg-white p-6 shadow-sm">
               <h2 className="text-lg font-bold text-slate-900">History</h2>
-              <p className="mt-1 text-sm text-slate-600">
-                All actions are signed and recorded.
-              </p>
+              <p className="mt-1 text-sm text-slate-600">All actions are signed and recorded.</p>
 
               {history.length === 0 ? (
                 <div className="mt-4 text-sm text-slate-700">No history yet.</div>
               ) : (
                 <div className="mt-4 space-y-3">
                   {history.map((h) => (
-                    <div
-                      key={h.id}
-                      className="rounded-xl border border-slate-200 bg-white p-4"
-                    >
+                    <div key={h.id} className="rounded-xl border border-slate-200 bg-white p-4">
                       <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div className="text-sm font-bold text-slate-900">
-                          {h.action_type}
-                        </div>
+                        <div className="text-sm font-bold text-slate-900">{h.action_type}</div>
                         {h.to_stage && <StageBadge stage={h.to_stage} />}
                       </div>
 
-                      {h.comment && (
-                        <div className="mt-2 text-sm text-slate-800">{h.comment}</div>
-                      )}
+                      {h.comment && <div className="mt-2 text-sm text-slate-800">{h.comment}</div>}
 
                       <div className="mt-2 text-xs text-slate-500">
                         {new Date(h.created_at).toLocaleString()}

@@ -5,15 +5,26 @@ import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "../lib/supabaseClient";
 
-type Notif = { id: string; title: string; link: string | null; is_read: boolean; created_at: string };
+type Notif = {
+  id: string;
+  title: string;
+  link: string | null;
+  is_read: boolean;
+  created_at: string;
+};
 
 export default function NavBar() {
   const router = useRouter();
   const pathname = usePathname();
 
   const [signedIn, setSignedIn] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
 
+  // role-based tabs
+  const [myRole, setMyRole] = useState<string>(""); // "Admin" | "Auditor" | "AccountOfficer" | "Staff" | etc
+  const isAdmin = myRole === "Admin";
+  const canFinance = ["Admin", "Auditor", "AccountOfficer"].includes(myRole);
+
+  // notifications
   const [openBell, setOpenBell] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [items, setItems] = useState<Notif[]>([]);
@@ -25,7 +36,7 @@ export default function NavBar() {
 
     if (!user) {
       setSignedIn(false);
-      setIsAdmin(false);
+      setMyRole("");
       setUserId(null);
       setUnreadCount(0);
       setItems([]);
@@ -36,23 +47,25 @@ export default function NavBar() {
     setUserId(user.id);
 
     // role
-    const { data: prof } = await supabase
+    const { data: prof, error: profErr } = await supabase
       .from("profiles")
       .select("role")
       .eq("id", user.id)
       .single();
 
-    setIsAdmin((prof?.role || "") === "Admin");
+    if (profErr) setMyRole("");
+    else setMyRole((prof?.role || "Staff") as string);
 
-    // notifications
+    // notifications (safe even if empty)
     const { data: n } = await supabase
       .from("notifications")
       .select("id,title,link,is_read,created_at")
       .order("created_at", { ascending: false })
       .limit(8);
 
-    setItems((n || []) as Notif[]);
-    setUnreadCount((n || []).filter((x: any) => !x.is_read).length);
+    const list = (n || []) as Notif[];
+    setItems(list);
+    setUnreadCount(list.filter((x) => !x.is_read).length);
   }
 
   useEffect(() => {
@@ -60,13 +73,15 @@ export default function NavBar() {
 
     const { data: sub } = supabase.auth.onAuthStateChange(() => {
       refreshRoleAndNotifs();
+      // close bell when auth changes (prevents "stuck" dropdown)
+      setOpenBell(false);
     });
 
     return () => sub.subscription.unsubscribe();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ✅ Auto refresh using realtime (fast + modern)
+  // ✅ Auto refresh notifications using realtime
   useEffect(() => {
     if (!userId) return;
 
@@ -74,7 +89,12 @@ export default function NavBar() {
       .channel("notif-ch")
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` },
+        {
+          event: "*",
+          schema: "public",
+          table: "notifications",
+          filter: `user_id=eq.${userId}`,
+        },
         () => refreshRoleAndNotifs()
       )
       .subscribe();
@@ -85,36 +105,50 @@ export default function NavBar() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
+  // Close bell when route changes (avoid overlay staying open)
+  useEffect(() => {
+    setOpenBell(false);
+  }, [pathname]);
+
   async function logout() {
     await supabase.auth.signOut();
+    setOpenBell(false);
     router.push("/");
     router.refresh();
   }
 
   async function markAllRead() {
     if (!userId) return;
-    await supabase.from("notifications").update({ is_read: true }).eq("user_id", userId).eq("is_read", false);
+    await supabase
+      .from("notifications")
+      .update({ is_read: true })
+      .eq("user_id", userId)
+      .eq("is_read", false);
+
     setOpenBell(false);
     await refreshRoleAndNotifs();
   }
 
   async function openNotif(n: Notif) {
-    // mark as read (single)
     await supabase.from("notifications").update({ is_read: true }).eq("id", n.id);
     setOpenBell(false);
-    if (n.link) router.push(n.link);
-    else router.push("/approvals");
+    router.push(n.link || "/approvals");
   }
 
   const linkClass = (href: string) =>
     `px-3 py-2 rounded-xl text-sm font-semibold transition ${
-      pathname === href ? "bg-blue-600 text-white" : "text-slate-700 hover:bg-slate-100"
+      pathname === href
+        ? "bg-blue-600 text-white shadow-sm"
+        : "text-slate-700 hover:bg-slate-100"
     }`;
 
   return (
     <header className="sticky top-0 z-10 border-b bg-white/80 backdrop-blur">
       <div className="mx-auto max-w-5xl px-4 py-3 flex items-center justify-between">
-        <Link href="/" className="font-extrabold text-lg tracking-tight text-slate-900">
+        <Link
+          href="/"
+          className="font-extrabold text-lg tracking-tight text-slate-900"
+        >
           ReqGen <span className="text-slate-400">1.1.0</span>
         </Link>
 
@@ -133,6 +167,14 @@ export default function NavBar() {
               New Request
             </Link>
 
+            {/* ✅ Finance tab for Admin/Auditor/AccountOfficer */}
+            {canFinance && (
+              <Link className={linkClass("/finance/subheads")} href="/finance/subheads">
+                Finance
+              </Link>
+            )}
+
+            {/* ✅ Admin tab only for Admin */}
             {isAdmin && (
               <Link className={linkClass("/admin")} href="/admin">
                 Admin
@@ -144,6 +186,8 @@ export default function NavBar() {
               onClick={() => setOpenBell((v) => !v)}
               className="ml-2 relative rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
               title="Notifications"
+              aria-haspopup="menu"
+              aria-expanded={openBell}
             >
               🔔
               {unreadCount > 0 && (
@@ -157,7 +201,10 @@ export default function NavBar() {
               <div className="absolute right-0 top-12 w-80 rounded-2xl border bg-white shadow-lg overflow-hidden">
                 <div className="flex items-center justify-between px-4 py-3 bg-slate-50">
                   <div className="font-bold text-slate-900">Notifications</div>
-                  <button onClick={markAllRead} className="text-xs font-semibold text-blue-700 hover:underline">
+                  <button
+                    onClick={markAllRead}
+                    className="text-xs font-semibold text-blue-700 hover:underline"
+                  >
                     Mark all read
                   </button>
                 </div>
@@ -174,8 +221,12 @@ export default function NavBar() {
                           n.is_read ? "bg-white" : "bg-blue-50"
                         }`}
                       >
-                        <div className="text-sm font-semibold text-slate-900">{n.title}</div>
-                        <div className="text-xs text-slate-500">{new Date(n.created_at).toLocaleString()}</div>
+                        <div className="text-sm font-semibold text-slate-900">
+                          {n.title}
+                        </div>
+                        <div className="text-xs text-slate-500">
+                          {new Date(n.created_at).toLocaleString()}
+                        </div>
                       </button>
                     ))}
                   </div>
