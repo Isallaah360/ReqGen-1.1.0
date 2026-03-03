@@ -8,78 +8,56 @@ import { supabase } from "../lib/supabaseClient";
 export default function NavBar() {
   const router = useRouter();
   const pathname = usePathname();
+
   const [signedIn, setSignedIn] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => setSignedIn(!!data.session));
+    let mounted = true;
+
+    // initial session
+    supabase.auth.getSession().then(({ data }) => {
+      if (!mounted) return;
+      setSignedIn(!!data.session);
+    });
+
+    // listen changes
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!mounted) return;
       setSignedIn(!!session);
     });
-    return () => sub.subscription.unsubscribe();
+
+    return () => {
+      mounted = false;
+      sub.subscription.unsubscribe();
+    };
   }, []);
-
-  async function refreshRole() {
-  const { data: auth } = await supabase.auth.getUser();
-  if (!auth.user) {
-    setIsAdmin(false);
-    return;
-  }
-
-  const { data: prof } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", auth.user.id)
-    .single();
-
-  setIsAdmin((prof?.role || "") === "Admin");
-}
-
-supabase.auth.getSession().then(async ({ data }) => {
-  setSignedIn(!!data.session);
-  if (data.session) await refreshRole();
-});
-
-const { data: sub } = supabase.auth.onAuthStateChange(async (_event, session) => {
-  setSignedIn(!!session);
-  if (session) await refreshRole();
-  else setIsAdmin(false);
-});
-
 
   async function logout() {
     await supabase.auth.signOut();
     router.push("/");
+    router.refresh(); // ✅ important to refresh UI
   }
 
-  const linkClass = (href: string) => {
-    const active = pathname === href;
-    return [
-      "px-4 py-2 rounded-xl text-sm font-semibold transition",
-      "border",
-      active
-        ? "bg-blue-600 text-white border-blue-600 shadow-sm"
-        : "bg-white text-slate-900 border-slate-200 hover:bg-slate-100",
-    ].join(" ");
-  };
+  const linkClass = (href: string) =>
+    `px-3 py-2 rounded-xl text-sm font-semibold transition ${
+      pathname === href
+        ? "bg-blue-600 text-white"
+        : "text-slate-700 hover:bg-slate-100"
+    }`;
 
   return (
-    <header className="sticky top-0 z-50 border-b bg-white shadow-sm">
-      <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
-        <Link href="/" className="text-lg font-extrabold tracking-tight text-slate-900">
+    <header className="sticky top-0 z-10 border-b bg-white/80 backdrop-blur">
+      <div className="mx-auto max-w-5xl px-4 py-3 flex items-center justify-between">
+        <Link href="/" className="font-extrabold text-lg tracking-tight text-slate-900">
           ReqGen <span className="text-slate-400">1.1.0</span>
         </Link>
 
-        {signedIn && (
+        {/* ✅ Only show these links AFTER login */}
+        {signedIn ? (
           <nav className="flex items-center gap-2">
-            {isAdmin && (
-            <Link className={linkClass("/admin")} href="/admin">
-              Admin
-            </Link>
-          )}
             <Link className={linkClass("/approvals")} href="/approvals">
-            Approvals
-          </Link>
+              Approvals
+            </Link>
             <Link className={linkClass("/dashboard")} href="/dashboard">
               Dashboard
             </Link>
@@ -92,11 +70,13 @@ const { data: sub } = supabase.auth.onAuthStateChange(async (_event, session) =>
 
             <button
               onClick={logout}
-              className="ml-2 rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-red-700"
+              className="ml-2 px-4 py-2 rounded-xl text-sm font-semibold bg-red-600 text-white hover:bg-red-700 transition"
             >
               Logout
             </button>
           </nav>
+        ) : (
+          <div />
         )}
       </div>
     </header>

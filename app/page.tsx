@@ -1,88 +1,56 @@
-import Link from "next/link";
-
 export default function HomePage() {
   return (
-    <main className="min-h-screen bg-[#f8fafc] px-4">
-      <div className="mx-auto max-w-5xl py-10">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            {/* If you have a logo later, uncomment:
-            <img src="/iet-logo.png" alt="IET" className="h-10 w-auto" />
-            */}
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight text-slate-900">
-                ReqGen <span className="text-slate-400">1.1.0</span>
-              </h1>
-              <p className="mt-1 text-sm text-slate-600">
-                Islamic Education Trust (IET) — Request Management System
-              </p>
-            </div>
-          </div>
-        </div>
+    <main className="min-h-screen bg-slate-50 px-4">
+      <div className="mx-auto max-w-4xl py-12">
+        <h1 className="text-4xl font-extrabold tracking-tight text-slate-900">
+          ReqGen <span className="text-slate-400">1.1.0</span>
+        </h1>
 
-        {/* Main card */}
-        <div className="mt-8 grid gap-6 lg:grid-cols-2">
-          {/* About */}
+        <p className="mt-3 text-slate-600">
+          Islamic Education Trust (IET) — Request Management System
+        </p>
+
+        <div className="mt-8 grid gap-6 md:grid-cols-2">
           <div className="rounded-2xl border bg-white p-6 shadow-sm">
             <h2 className="text-lg font-bold text-slate-900">About the App</h2>
-            <p className="mt-2 text-sm leading-6 text-slate-700">
-              ReqGen helps IET staff generate and track requests with proper approvals
-              through the official workflow (Director → HOD → Registry → DG → Account/HR).
-            </p>
-
-            <ul className="mt-4 space-y-2 text-sm text-slate-700">
-              <li>✅ Secure login and role-based approvals</li>
-              <li>✅ Digital signatures on submissions and actions</li>
-              <li>✅ Fast routing and tracking of request stages</li>
-              <li>✅ Monthly reporting support for Accounts & Audit</li>
+            <ul className="mt-3 space-y-2 text-sm text-slate-700">
+              <li>✅ Secure login & role-based approvals</li>
+              <li>✅ Digital signatures on actions</li>
+              <li>✅ Workflow routing (Director → HOD → Registry → DG → Account/HR)</li>
+              <li>✅ Audit trail for reconciliation</li>
             </ul>
-
-            <div className="mt-5 text-xs text-slate-500">
-              Tip: Create your account first, then upload your signature in Profile.
-            </div>
           </div>
 
-          {/* Actions */}
           <div className="rounded-2xl border bg-white p-6 shadow-sm">
             <h2 className="text-lg font-bold text-slate-900">Get Started</h2>
             <p className="mt-2 text-sm text-slate-600">
-              Sign up if you are a new staff, or login if you already have an account.
+              Create an account or login to continue.
             </p>
 
-            <div className="mt-6 grid gap-3">
-              <Link
+            <div className="mt-5 flex flex-col gap-3">
+              <a
                 href="/signup"
-                className="w-full rounded-xl bg-slate-900 px-4 py-3 text-center text-sm font-semibold text-white hover:bg-slate-800"
+                className="rounded-xl bg-blue-600 px-4 py-3 text-center text-sm font-semibold text-white shadow-sm hover:bg-blue-700"
               >
-                Create Account (Sign Up)
-              </Link>
-
-              <Link
+                Sign Up
+              </a>
+              <a
                 href="/login"
-                className="w-full rounded-xl border px-4 py-3 text-center text-sm font-semibold text-slate-900 hover:bg-slate-50"
+                className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-center text-sm font-semibold text-slate-900 hover:bg-slate-100"
               >
                 Login
-              </Link>
-
-              <Link
-                href="/about"
-                className="w-full rounded-xl border px-4 py-3 text-center text-sm font-semibold text-slate-700 hover:bg-slate-50"
-              >
-                Learn More (About)
-              </Link>
+              </a>
             </div>
 
-            <p className="mt-6 text-xs text-slate-500">
+            <p className="mt-4 text-xs text-slate-500">
               Version: ReqGen 1.1.0 — Test Deployment
             </p>
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="mt-10 text-center text-xs text-slate-500">
-          © {new Date().getFullYear()} Islamic Education Trust (IET). Powered by ReqGen.
-        </div>
+        <p className="mt-10 text-center text-xs text-slate-500">
+          © 2026 Islamic Education Trust (IET). Powered by ReqGen.
+        </p>
       </div>
     </main>
   );
