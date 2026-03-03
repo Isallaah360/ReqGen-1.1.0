@@ -1,3 +1,5 @@
+"use client";
+
 type Stage =
   | "Director"
   | "HOD"
@@ -20,31 +22,36 @@ function normalizeStage(stage: string | null | undefined): Stage {
   if (s.includes("registry")) return "Registry";
   if (s === "dg" || s.includes("director general")) return "DG";
   if (s.includes("account")) return "Account";
-  if (s.includes("complete")) return "Completed";
+  if (s.includes("complete") || s.includes("done")) return "Completed";
   if (s.includes("reject")) return "Rejected";
 
-  // default fallback
   return "HOD";
 }
 
-export function RequestProgress({
-  currentStage,
-  status,
-}: {
-  currentStage: string | null | undefined;
-  status: string | null | undefined;
-}) {
-  const stage = normalizeStage(currentStage);
-  const st = (status || "").toLowerCase();
+type RequestProgressProps = {
+  // ✅ supports what some pages already pass
+  stage?: string | null;
 
-  const isRejected = st.includes("reject") || stage === "Rejected";
-  const isCompleted = st.includes("complete") || stage === "Completed";
+  // ✅ supports older prop name too
+  currentStage?: string | null;
+
+  // ✅ optional but recommended
+  status?: string | null;
+};
+
+export function RequestProgress({ stage, currentStage, status }: RequestProgressProps) {
+  const effectiveStage = stage ?? currentStage;
+  const normalized = normalizeStage(effectiveStage);
+
+  const st = (status || "").toLowerCase();
+  const isRejected = st.includes("reject") || normalized === "Rejected";
+  const isCompleted = st.includes("complete") || st.includes("approved") || normalized === "Completed";
 
   const activeIndex = isRejected
-    ? ORDER.indexOf("HOD")
+    ? 0
     : isCompleted
     ? ORDER.length - 1
-    : Math.max(0, ORDER.indexOf(stage as Stage));
+    : Math.max(0, ORDER.indexOf(normalized));
 
   const percent = isRejected ? 0 : Math.round(((activeIndex + 1) / ORDER.length) * 100);
 
@@ -61,7 +68,7 @@ export function RequestProgress({
     : `In Progress • ${percent}%`;
 
   return (
-    <div className="rounded-2xl border bg-white p-5 shadow-sm">
+    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <div className="text-sm font-bold text-slate-900">Request Progress</div>
@@ -77,9 +84,11 @@ export function RequestProgress({
 
       {/* Progress bar */}
       <div className="mt-4">
-        <div className="h-2 w-full rounded-full bg-slate-200 overflow-hidden">
+        <div className="h-2 w-full overflow-hidden rounded-full bg-slate-200">
           <div
-            className={`h-2 rounded-full ${isRejected ? "bg-red-600" : isCompleted ? "bg-emerald-600" : "bg-blue-600"}`}
+            className={`h-2 rounded-full ${
+              isRejected ? "bg-red-600" : isCompleted ? "bg-emerald-600" : "bg-blue-600"
+            }`}
             style={{ width: `${percent}%` }}
           />
         </div>
@@ -115,10 +124,8 @@ export function RequestProgress({
         })}
       </div>
 
-      {/* Current stage note */}
       <div className="mt-4 text-sm text-slate-700">
-        <b>Current Stage:</b>{" "}
-        <span className="font-semibold text-slate-900">{stage}</span>
+        <b>Current Stage:</b> <span className="font-semibold text-slate-900">{normalized}</span>
       </div>
 
       {isRejected && (
