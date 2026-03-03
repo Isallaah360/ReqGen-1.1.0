@@ -10,32 +10,48 @@ export default function NavBar() {
   const pathname = usePathname();
 
   const [signedIn, setSignedIn] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  async function refreshRole() {
+    const { data: authData } = await supabase.auth.getUser();
+    const user = authData.user;
+
+    if (!user) {
+      setSignedIn(false);
+      setIsAdmin(false);
+      return;
+    }
+
+    setSignedIn(true);
+
+    const { data: prof, error } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+
+    if (error) {
+      setIsAdmin(false);
+      return;
+    }
+
+    setIsAdmin((prof?.role || "") === "Admin");
+  }
 
   useEffect(() => {
-    let mounted = true;
+    refreshRole();
 
-    // initial session
-    supabase.auth.getSession().then(({ data }) => {
-      if (!mounted) return;
-      setSignedIn(!!data.session);
+    const { data: sub } = supabase.auth.onAuthStateChange(() => {
+      refreshRole();
     });
 
-    // listen changes
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!mounted) return;
-      setSignedIn(!!session);
-    });
-
-    return () => {
-      mounted = false;
-      sub.subscription.unsubscribe();
-    };
+    return () => sub.subscription.unsubscribe();
   }, []);
 
   async function logout() {
     await supabase.auth.signOut();
     router.push("/");
-    router.refresh(); // ✅ important to refresh UI
+    router.refresh();
   }
 
   const linkClass = (href: string) =>
@@ -48,11 +64,13 @@ export default function NavBar() {
   return (
     <header className="sticky top-0 z-10 border-b bg-white/80 backdrop-blur">
       <div className="mx-auto max-w-5xl px-4 py-3 flex items-center justify-between">
-        <Link href="/" className="font-extrabold text-lg tracking-tight text-slate-900">
+        <Link
+          href="/"
+          className="font-extrabold text-lg tracking-tight text-slate-900"
+        >
           ReqGen <span className="text-slate-400">1.1.0</span>
         </Link>
 
-        {/* ✅ Only show these links AFTER login */}
         {signedIn ? (
           <nav className="flex items-center gap-2">
             <Link className={linkClass("/approvals")} href="/approvals">
@@ -67,6 +85,13 @@ export default function NavBar() {
             <Link className={linkClass("/requests/new")} href="/requests/new">
               New Request
             </Link>
+
+            {/* ✅ ADMIN TAB (Only for Admin) */}
+            {isAdmin && (
+              <Link className={linkClass("/admin")} href="/admin">
+                Admin
+              </Link>
+            )}
 
             <button
               onClick={logout}
