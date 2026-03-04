@@ -56,7 +56,6 @@ export default function FinanceReportsPage() {
   const [dateTo, setDateTo] = useState<string>(`${year}-12-31`);
 
   useEffect(() => {
-    // keep dateFrom/dateTo aligned when year changes (user can still edit manually after)
     setDateFrom(`${year}-01-01`);
     setDateTo(`${year}-12-31`);
   }, [year]);
@@ -66,14 +65,12 @@ export default function FinanceReportsPage() {
       setLoading(true);
       setMsg(null);
 
-      // auth
       const { data: auth } = await supabase.auth.getUser();
       if (!auth.user) {
         router.push("/login");
         return;
       }
 
-      // role
       const { data: prof, error: profErr } = await supabase
         .from("profiles")
         .select("role")
@@ -94,7 +91,6 @@ export default function FinanceReportsPage() {
         return;
       }
 
-      // departments
       const { data: drows, error: dErr } = await supabase
         .from("departments")
         .select("id,name")
@@ -107,7 +103,6 @@ export default function FinanceReportsPage() {
       }
       setDepts((drows || []) as Dept[]);
 
-      // subheads
       const { data: srows, error: sErr } = await supabase
         .from("subheads")
         .select("id,dept_id,code,name,approved_allocation,expenditure,balance,is_active,updated_at")
@@ -126,15 +121,12 @@ export default function FinanceReportsPage() {
     load();
   }, [router]);
 
-  // load approved requests for chart / date range (separate so filters can re-run)
   useEffect(() => {
     async function loadApproved() {
       if (!canFinance) return;
 
       setMsg(null);
 
-      // Date boundaries for SQL
-      // we include end date by pushing it to end-of-day in client logic (simple approach: add 1 day and use <)
       const from = dateFrom;
       const toPlusOne = ymd(new Date(new Date(dateTo).getTime() + 24 * 60 * 60 * 1000));
 
@@ -146,7 +138,6 @@ export default function FinanceReportsPage() {
         .lt("created_at", toPlusOne)
         .order("created_at", { ascending: true });
 
-      // Optional dept filter (requests table must have dept_id)
       if (deptFilter !== "ALL") {
         q = (q as any).eq("dept_id", deptFilter);
       }
@@ -177,7 +168,6 @@ export default function FinanceReportsPage() {
     return subs.filter((s) => s.dept_id === deptFilter);
   }, [subs, deptFilter]);
 
-  // ✅ Budget Tracking (Annual Budget / Total Expenditure / Remaining Balance)
   const budgetTotals = useMemo(() => {
     const annualBudget = filteredSubs.reduce((a, s) => a + Number(s.approved_allocation || 0), 0);
     const totalExp = filteredSubs.reduce((a, s) => a + Number(s.expenditure || 0), 0);
@@ -185,7 +175,6 @@ export default function FinanceReportsPage() {
     return { annualBudget, totalExp, remaining };
   }, [filteredSubs]);
 
-  // ✅ Totals by Department
   const totalsByDept = useMemo(() => {
     const rows: Array<{
       dept_id: string;
@@ -195,10 +184,7 @@ export default function FinanceReportsPage() {
       balance: number;
     }> = [];
 
-    const acc: Record<
-      string,
-      { allocation: number; expenditure: number; balance: number }
-    > = {};
+    const acc: Record<string, { allocation: number; expenditure: number; balance: number }> = {};
 
     filteredSubs.forEach((s) => {
       const k = s.dept_id;
@@ -223,7 +209,6 @@ export default function FinanceReportsPage() {
     return rows;
   }, [filteredSubs, deptMap]);
 
-  // ✅ Expenditure by Subhead (table rows)
   const expenditureBySubhead = useMemo(() => {
     return [...filteredSubs].sort((a, b) => {
       const ea = Number(b.expenditure || 0) - Number(a.expenditure || 0);
@@ -232,7 +217,6 @@ export default function FinanceReportsPage() {
     });
   }, [filteredSubs]);
 
-  // ✅ Monthly Expenditure Chart (approved requests)
   const monthly = useMemo(() => {
     const arr = Array.from({ length: 12 }, (_, i) => ({ month: i, total: 0 }));
     approvedReqs.forEach((r) => {
@@ -245,18 +229,19 @@ export default function FinanceReportsPage() {
   }, [approvedReqs]);
 
   function exportCSV() {
-    // Government-style export: Department + Subhead detail
     const lines: string[] = [];
-    lines.push([
-      "Department",
-      "Subhead Code",
-      "Subhead Name",
-      "Approved Allocation (NGN)",
-      "Expenditure (NGN)",
-      "Balance (NGN)",
-      "Is Active",
-      "Updated At",
-    ].join(","));
+    lines.push(
+      [
+        "Department",
+        "Subhead Code",
+        "Subhead Name",
+        "Approved Allocation (NGN)",
+        "Expenditure (NGN)",
+        "Balance (NGN)",
+        "Is Active",
+        "Updated At",
+      ].join(",")
+    );
 
     expenditureBySubhead.forEach((s) => {
       const deptName = deptMap[s.dept_id]?.name || s.dept_id;
@@ -283,14 +268,18 @@ export default function FinanceReportsPage() {
   }
 
   function openPDF() {
-    // Print-ready report page (Save as PDF in browser)
-    const qs = new URLSearchParams({
-      year: String(year),
-      dept: deptFilter,
-      from: dateFrom,
-      to: dateTo,
-    });
-    window.open(`/finance/reports/print?${qs.toString()}`, "_blank");
+    // ✅ SAFE PRINT: store filters then open print page without query params
+    localStorage.setItem(
+      "fin_print_filters",
+      JSON.stringify({
+        deptId: deptFilter,
+        dateFrom,
+        dateTo,
+        year,
+      })
+    );
+
+    window.open("/finance/reports/print", "_blank");
   }
 
   if (loading) {
@@ -459,22 +448,11 @@ export default function FinanceReportsPage() {
               </div>
 
               {totalsByDept.map((r) => (
-                <div
-                  key={r.dept_id}
-                  className="grid grid-cols-12 border-t px-4 py-3 text-sm"
-                >
-                  <div className="col-span-4 font-semibold text-slate-900">
-                    {r.dept_name}
-                  </div>
-                  <div className="col-span-3 text-right text-slate-900 font-semibold">
-                    {naira(r.allocation)}
-                  </div>
-                  <div className="col-span-3 text-right text-slate-900">
-                    {naira(r.expenditure)}
-                  </div>
-                  <div className="col-span-2 text-right font-semibold text-slate-900">
-                    {naira(r.balance)}
-                  </div>
+                <div key={r.dept_id} className="grid grid-cols-12 border-t px-4 py-3 text-sm">
+                  <div className="col-span-4 font-semibold text-slate-900">{r.dept_name}</div>
+                  <div className="col-span-3 text-right text-slate-900 font-semibold">{naira(r.allocation)}</div>
+                  <div className="col-span-3 text-right text-slate-900">{naira(r.expenditure)}</div>
+                  <div className="col-span-2 text-right font-semibold text-slate-900">{naira(r.balance)}</div>
                 </div>
               ))}
             </div>
@@ -500,30 +478,18 @@ export default function FinanceReportsPage() {
 
               {expenditureBySubhead.slice(0, 60).map((s) => (
                 <div key={s.id} className="grid grid-cols-12 border-t px-4 py-3 text-sm">
-                  <div className="col-span-3 text-slate-800">
-                    {deptMap[s.dept_id]?.name || s.dept_id}
-                  </div>
-                  <div className="col-span-2 font-semibold text-slate-900">
-                    {s.code || "—"}
-                  </div>
-                  <div className="col-span-3 text-slate-900">
-                    {s.name}
-                  </div>
-                  <div className="col-span-2 text-right text-slate-900">
-                    {naira(Number(s.expenditure || 0))}
-                  </div>
-                  <div className="col-span-2 text-right font-semibold text-slate-900">
-                    {naira(Number(s.balance || 0))}
-                  </div>
+                  <div className="col-span-3 text-slate-800">{deptMap[s.dept_id]?.name || s.dept_id}</div>
+                  <div className="col-span-2 font-semibold text-slate-900">{s.code || "—"}</div>
+                  <div className="col-span-3 text-slate-900">{s.name}</div>
+                  <div className="col-span-2 text-right text-slate-900">{naira(Number(s.expenditure || 0))}</div>
+                  <div className="col-span-2 text-right font-semibold text-slate-900">{naira(Number(s.balance || 0))}</div>
                 </div>
               ))}
             </div>
           )}
 
           {expenditureBySubhead.length > 60 && (
-            <div className="mt-3 text-xs text-slate-500">
-              Showing first 60 rows. Use Export for full list.
-            </div>
+            <div className="mt-3 text-xs text-slate-500">Showing first 60 rows. Use Export for full list.</div>
           )}
         </div>
       </div>
@@ -535,9 +501,7 @@ function KpiCard({ title, value }: { title: string; value: string }) {
   return (
     <div className="rounded-2xl border bg-white p-6 shadow-sm">
       <div className="text-sm font-semibold text-slate-600">{title}</div>
-      <div className="mt-2 text-2xl font-extrabold tracking-tight text-slate-900">
-        {value}
-      </div>
+      <div className="mt-2 text-2xl font-extrabold tracking-tight text-slate-900">{value}</div>
       <div className="mt-1 text-xs text-slate-500">NGN</div>
     </div>
   );
@@ -545,7 +509,6 @@ function KpiCard({ title, value }: { title: string; value: string }) {
 
 function csv(v: string) {
   const s = String(v ?? "");
-  // escape for CSV
   if (s.includes(",") || s.includes('"') || s.includes("\n")) {
     return `"${s.replaceAll('"', '""')}"`;
   }

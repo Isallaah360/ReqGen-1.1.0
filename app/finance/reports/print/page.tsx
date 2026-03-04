@@ -1,82 +1,61 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { supabase } from "../../../../lib/supabaseClient";
+import { useRouter } from "next/navigation";
+import { supabase } from "../../../../lib/supabaseClient"; // ✅ FIXED PATH
 
-type Req = {
-  id: string;
-  request_no: string;
-  title: string;
-  details: string;
-  amount: number;
-  created_by: string;
-  dept_id: string;
-  subhead_id: string | null;
-  current_stage: string;
-  status: string;
-  created_at: string;
-};
+type Dept = { id: string; name: string };
+type Subhead = { id: string; code: string | null; name: string };
 
-type Subhead = {
-  id: string;
-  code: string;
-  name: string;
-  approved_allocation: number;
+type Row = {
+  dept_name: string;
+  subhead_code: string;
+  subhead_name: string;
+  allocation: number;
   expenditure: number;
   balance: number;
 };
 
-type Profile = { id: string; full_name: string | null; signature_url: string | null };
-
-type Hist = {
-  action_type: string;
-  to_stage: string | null;
-  created_at: string;
-  signature_url: string | null;
-  action_by: string;
-};
-
-async function signedUrl(path: string | null) {
-  if (!path) return null;
-  const { data } = await supabase.storage.from("signatures").createSignedUrl(path, 60 * 10);
-  return data?.signedUrl || null;
+function money(n: any) {
+  return `₦${Number(n || 0).toLocaleString()}`;
 }
 
-export default function PrintRequestPage() {
+export default function FinanceReportPrintPage() {
   const router = useRouter();
-  const params = useParams();
-  const id = String((params as any)?.id || "");
 
   const [loading, setLoading] = useState(true);
   const [msg, setMsg] = useState<string | null>(null);
 
-  const [req, setReq] = useState<Req | null>(null);
-  const [subhead, setSubhead] = useState<Subhead | null>(null);
+  // ✅ filters from localStorage (no useSearchParams)
+  const [deptId, setDeptId] = useState<string>("ALL");
+  const [dateFrom, setDateFrom] = useState<string>("");
+  const [dateTo, setDateTo] = useState<string>("");
 
-  const [requester, setRequester] = useState<Profile | null>(null);
-  const [hist, setHist] = useState<Hist[]>([]);
+  const [dept, setDept] = useState<Dept | null>(null);
+  const [rows, setRows] = useState<Row[]>([]);
 
-  const [sigRequester, setSigRequester] = useState<string | null>(null);
-  const [sigChecked, setSigChecked] = useState<string | null>(null);
-  const [sigDG, setSigDG] = useState<string | null>(null);
+  const totals = useMemo(() => {
+    const allocation = rows.reduce((a, r) => a + Number(r.allocation || 0), 0);
+    const expenditure = rows.reduce((a, r) => a + Number(r.expenditure || 0), 0);
+    const balance = rows.reduce((a, r) => a + Number(r.balance || 0), 0);
+    return { allocation, expenditure, balance };
+  }, [rows]);
 
-  // Pick "Checked by": latest approve that routes towards DG (or latest approve)
-  const checkedRecord = useMemo(() => {
-    const approvals = hist.filter((h) => (h.action_type || "").toLowerCase().includes("approve"));
-    return approvals.find((h) => (h.to_stage || "").toLowerCase().includes("dg")) || approvals[0] || null;
-  }, [hist]);
+  useEffect(() => {
+    const raw =
+      typeof window !== "undefined" ? localStorage.getItem("fin_print_filters") : null;
 
-  // Pick "DG": approve to Account or Completed (or latest approve)
-  const dgRecord = useMemo(() => {
-    const approvals = hist.filter((h) => (h.action_type || "").toLowerCase().includes("approve"));
-    return (
-      approvals.find((h) => (h.to_stage || "").toLowerCase().includes("account")) ||
-      approvals.find((h) => (h.to_stage || "").toLowerCase().includes("complete")) ||
-      approvals[0] ||
-      null
-    );
-  }, [hist]);
+    if (raw) {
+      try {
+        const f = JSON.parse(raw);
+        setDeptId(f?.deptId || "ALL");
+        setDateFrom(f?.dateFrom || "");
+        setDateTo(f?.dateTo || "");
+      } catch {
+        // ignore
+      }
+    }
+  }, []);
 
   useEffect(() => {
     async function load() {
@@ -89,61 +68,50 @@ export default function PrintRequestPage() {
         return;
       }
 
-      const { data: r, error: rErr } = await supabase
-        .from("requests")
-        .select("id,request_no,title,details,amount,created_by,dept_id,subhead_id,current_stage,status,created_at")
-        .eq("id", id)
-        .single();
+      try {
+        // Dept info (optional)
+        if (deptId && deptId !== "ALL") {
+          const { data: d, error: dErr } = await supabase
+            .from("departments")
+            .select("id,name")
+            .eq("id", deptId)
+            .single();
+          if (!dErr) setDept((d as any) || null);
+          else setDept(null);
+        } else {
+          setDept(null);
+        }
 
-      if (rErr) {
-        setMsg("Failed to load request: " + rErr.message);
-        setLoading(false);
-        return;
-      }
-      setReq(r as any);
-
-      if ((r as any).subhead_id) {
-        const { data: sh } = await supabase
+        // MAIN: snapshot from subheads
+        let q = supabase
           .from("subheads")
-          .select("id,code,name,approved_allocation,expenditure,balance")
-          .eq("id", (r as any).subhead_id)
-          .single();
-        setSubhead((sh as any) || null);
-      } else setSubhead(null);
+          .select("id,dept_id,code,name,approved_allocation,expenditure,balance,departments(name)")
+          .order("code", { ascending: true });
 
-      const { data: prof } = await supabase
-        .from("profiles")
-        .select("id,full_name,signature_url")
-        .eq("id", (r as any).created_by)
-        .single();
-      setRequester((prof as any) || null);
+        if (deptId && deptId !== "ALL") q = (q as any).eq("dept_id", deptId);
 
-      const { data: h } = await supabase
-        .from("request_history")
-        .select("action_type,to_stage,created_at,signature_url,action_by")
-        .eq("request_id", id)
-        .order("created_at", { ascending: false });
-      setHist((h || []) as any);
+        const { data, error } = await q;
+        if (error) throw new Error(error.message);
 
-      setLoading(false);
+        const list = (data || []).map((x: any) => ({
+          dept_name: x?.departments?.name || "—",
+          subhead_code: x.code || "—",
+          subhead_name: x.name || "",
+          allocation: Number(x.approved_allocation || 0),
+          expenditure: Number(x.expenditure || 0),
+          balance: Number(x.balance || 0),
+        })) as Row[];
+
+        setRows(list);
+        setLoading(false);
+      } catch (e: any) {
+        setMsg("❌ Failed to load report: " + (e?.message || "Unknown error"));
+        setLoading(false);
+      }
     }
+
     load();
-  }, [id, router]);
-
-  useEffect(() => {
-    async function loadSigs() {
-      if (!requester) return;
-
-      setSigRequester(await signedUrl(requester.signature_url));
-
-      if (checkedRecord?.signature_url) setSigChecked(await signedUrl(checkedRecord.signature_url));
-      else setSigChecked(null);
-
-      if (dgRecord?.signature_url) setSigDG(await signedUrl(dgRecord.signature_url));
-      else setSigDG(null);
-    }
-    loadSigs();
-  }, [requester, checkedRecord, dgRecord]);
+  }, [router, deptId]);
 
   if (loading) {
     return (
@@ -153,44 +121,37 @@ export default function PrintRequestPage() {
     );
   }
 
-  if (!req) {
-    return (
-      <main className="min-h-screen bg-slate-50 px-4">
-        <div className="mx-auto max-w-4xl py-10">Not found.</div>
-      </main>
-    );
-  }
-
   return (
     <main className="min-h-screen bg-slate-50 px-4 py-6">
       <style>{`
-        /* FORCE 1 PAGE */
         @media print {
           body { background: white !important; }
           .no-print { display: none !important; }
-          .sheet { box-shadow: none !important; border: none !important; margin: 0 !important; padding: 0 !important; }
+          .sheet { box-shadow: none !important; border: none !important; margin: 0 !important; }
           @page { size: A4; margin: 10mm; }
-          .sheet-inner { padding: 0 !important; }
         }
-
-        /* Prevent page breaks inside blocks */
+        /* ✅ Force 1 page */
+        .sheet-inner {
+          height: calc(297mm - 20mm);
+          overflow: hidden;
+        }
         .avoid-break { break-inside: avoid; page-break-inside: avoid; }
-
       `}</style>
 
       <div className="mx-auto max-w-4xl">
         <div className="no-print flex items-center justify-between mb-3">
           <button
-            onClick={() => router.push(`/requests/${req.id}`)}
+            onClick={() => router.back()}
             className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
           >
             Back
           </button>
+
           <button
             onClick={() => window.print()}
             className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
           >
-            Print
+            Print / Save PDF
           </button>
         </div>
 
@@ -200,18 +161,19 @@ export default function PrintRequestPage() {
           </div>
         )}
 
-        {/* SHEET */}
         <div className="sheet bg-white border shadow-sm rounded-2xl">
-          <div className="sheet-inner px-8 py-7">
-            {/* HEADER (logo centered like original) */}
+          <div className="sheet-inner px-8 py-6">
+            {/* ✅ LOGO CENTER (must be /public/iet-logo.png) */}
             <div className="text-center avoid-break">
               <img
                 src="/iet-logo.png"
                 alt="IET Logo"
-                className="mx-auto h-14 w-14 object-contain"
+                className="mx-auto h-16 w-16 object-contain"
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).style.display = "none";
+                }}
               />
-
-              <div className="mt-2 text-base font-extrabold tracking-tight">
+              <div className="mt-2 text-[15px] font-extrabold tracking-tight">
                 ISLAMIC EDUCATION TRUST
               </div>
               <div className="text-[11px] text-slate-700">
@@ -222,74 +184,57 @@ export default function PrintRequestPage() {
               </div>
             </div>
 
-            {/* SUBHEAD */}
-            <div className="mt-4 flex items-center gap-3 avoid-break">
-              <div className="text-sm font-bold">SUB-HEAD:</div>
-              <div className="flex-1 border rounded-sm h-7 px-2 flex items-center text-sm">
-                {subhead ? `${subhead.code} — ${subhead.name}` : ""}
+            <div className="mt-4 text-center text-sm font-extrabold tracking-wide avoid-break">
+              FINANCE REPORT (PRINT OUT)
+            </div>
+
+            <div className="mt-4 grid grid-cols-2 gap-3 text-sm avoid-break">
+              <Box label="Department" value={dept?.name || "All Departments"} />
+              <Box
+                label="Date Range"
+                value={dateFrom && dateTo ? `${dateFrom} to ${dateTo}` : "Current Snapshot"}
+              />
+            </div>
+
+            <div className="mt-4 grid grid-cols-3 gap-3 text-sm avoid-break">
+              <Box label="Total Allocation" value={money(totals.allocation)} strong />
+              <Box label="Total Expenditure" value={money(totals.expenditure)} strong />
+              <Box label="Remaining Balance" value={money(totals.balance)} strong />
+            </div>
+
+            {/* ✅ NO EXTRA LINES/SPACES, keep tight for 1-page */}
+            <div className="mt-4 avoid-break">
+              <div className="rounded-2xl border border-slate-200 overflow-hidden">
+                <div className="grid grid-cols-12 bg-slate-50 px-4 py-2 text-xs font-bold text-slate-700">
+                  <div className="col-span-3">DEPARTMENT</div>
+                  <div className="col-span-3">SUBHEAD</div>
+                  <div className="col-span-2 text-right">ALLOCATION</div>
+                  <div className="col-span-2 text-right">EXPENDITURE</div>
+                  <div className="col-span-2 text-right">BALANCE</div>
+                </div>
+
+                {rows.length === 0 ? (
+                  <div className="px-4 py-6 text-sm text-slate-600">No records.</div>
+                ) : (
+                  rows.slice(0, 12).map((r, idx) => (
+                    <div key={idx} className="grid grid-cols-12 px-4 py-2 text-xs border-t">
+                      <div className="col-span-3 text-slate-800">{r.dept_name}</div>
+                      <div className="col-span-3 text-slate-800">
+                        {r.subhead_code} — {r.subhead_name}
+                      </div>
+                      <div className="col-span-2 text-right">{money(r.allocation)}</div>
+                      <div className="col-span-2 text-right">{money(r.expenditure)}</div>
+                      <div className="col-span-2 text-right">{money(r.balance)}</div>
+                    </div>
+                  ))
+                )}
               </div>
-            </div>
 
-            {/* ADDRESS */}
-            <div className="mt-4 text-sm leading-5 avoid-break">
-              <div>The Director General,</div>
-              <div>Islamic Education Trust,</div>
-              <div>Minna.</div>
-            </div>
-
-            <div className="mt-3 text-sm font-semibold avoid-break">
-              Assalamu’ Alaikum Sir,
-            </div>
-
-            {/* TITLE */}
-            <div className="mt-2 text-center font-extrabold text-sm tracking-wide avoid-break">
-              REQUEST FOR FUND
-            </div>
-
-            {/* BODY (no extra blank lines, only actual details) */}
-            <div className="mt-3 text-sm leading-6">
-              I write to request for the release of the total sum of{" "}
-              <span className="inline-block min-w-[180px] border-b border-slate-600 text-center font-semibold">
-                ₦{Number(req.amount || 0).toLocaleString()}
-              </span>{" "}
-              for the expense below/attached:
-            </div>
-
-            <div className="mt-2 text-sm whitespace-pre-wrap leading-6">
-              {req.details}
-            </div>
-
-            <div className="mt-4 text-sm avoid-break">Wassalamu’ Alaikum.</div>
-
-            {/* RIGHT BOX */}
-            <div className="mt-4 flex justify-end avoid-break">
-              <div className="w-72 text-sm">
-                <div className="flex items-center justify-between gap-3 mb-2">
-                  <div className="font-semibold">ALLOCATION B/D:</div>
-                  <div className="w-32 border h-7 rounded-sm px-2 flex items-center justify-end">
-                    ₦{Number(subhead?.approved_allocation || 0).toLocaleString()}
-                  </div>
+              {rows.length > 12 && (
+                <div className="mt-2 text-[11px] text-slate-500 italic">
+                  Showing first 12 rows to keep A4 one-page. Use CSV export for full list.
                 </div>
-                <div className="flex items-center justify-between gap-3 mb-2">
-                  <div className="font-semibold">EXPENDITURE:</div>
-                  <div className="w-32 border h-7 rounded-sm px-2 flex items-center justify-end">
-                    ₦{Number(subhead?.expenditure || 0).toLocaleString()}
-                  </div>
-                </div>
-                <div className="flex items-center justify-between gap-3">
-                  <div className="font-semibold">BALANCE C/D:</div>
-                  <div className="w-32 border h-7 rounded-sm px-2 flex items-center justify-end">
-                    ₦{Number(subhead?.balance || 0).toLocaleString()}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* SIGNATURES */}
-            <div className="mt-6 space-y-4 text-sm avoid-break">
-              <SigRow label="Requested by:" name={requester?.full_name || ""} sigUrl={sigRequester} />
-              <SigRow label="Checked by:" name="" sigUrl={sigChecked} />
-              <SigRow label="Approved by Director General, IET:" name="" sigUrl={sigDG} />
+              )}
             </div>
 
             <div className="mt-4 text-center text-xs text-slate-500 italic avoid-break">
@@ -302,26 +247,20 @@ export default function PrintRequestPage() {
   );
 }
 
-function SigRow({ label, name, sigUrl }: { label: string; name: string; sigUrl: string | null }) {
-  const today = new Date().toLocaleDateString();
+function Box({
+  label,
+  value,
+  strong,
+}: {
+  label: string;
+  value: string;
+  strong?: boolean;
+}) {
   return (
-    <div className="grid grid-cols-12 items-end gap-3">
-      <div className="col-span-4">{label}</div>
-
-      <div className="col-span-4 border-b border-slate-400 h-7 flex items-end">
-        <span className="text-xs text-slate-700">{name}</span>
-      </div>
-
-      <div className="col-span-2 border-b border-slate-400 h-7 flex items-end justify-center">
-        {sigUrl ? (
-          <img src={sigUrl} alt="sig" className="h-6 object-contain" />
-        ) : (
-          <span className="text-xs text-slate-400">Signature</span>
-        )}
-      </div>
-
-      <div className="col-span-2 border-b border-slate-400 h-7 flex items-end justify-center">
-        <span className="text-xs">{today}</span>
+    <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
+      <div className="text-xs font-semibold text-slate-500">{label}</div>
+      <div className={`mt-1 text-sm ${strong ? "font-extrabold" : "font-semibold"} text-slate-900`}>
+        {value}
       </div>
     </div>
   );
