@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { supabase } from "../lib/supabaseClient";
+import { supabase } from "../../lib/supabaseClient";
 
 type Notif = {
   id: string;
@@ -18,7 +18,7 @@ function roleKey(role: string) {
     .trim()
     .toLowerCase()
     .replace(/\s+/g, "") // "Account Officer" -> "accountofficer"
-    .replace(/_/g, "");  // "account_officer" -> "accountofficer"
+    .replace(/_/g, ""); // "account_officer" -> "accountofficer"
 }
 
 export default function NavBar() {
@@ -49,7 +49,6 @@ export default function NavBar() {
   const menuRef = useRef<HTMLDivElement | null>(null);
 
   const links = useMemo(() => {
-    // ✅ Original simple menu (always visible when signed in)
     const base = [
       { href: "/approvals", label: "Approvals" },
       { href: "/dashboard", label: "Dashboard" },
@@ -65,13 +64,10 @@ export default function NavBar() {
 
   const linkClass = (href: string) =>
     `px-3 py-2 rounded-xl text-sm font-semibold transition ${
-      pathname === href
-        ? "bg-blue-600 text-white shadow-sm"
-        : "text-slate-700 hover:bg-slate-100"
+      pathname === href ? "bg-blue-600 text-white shadow-sm" : "text-slate-700 hover:bg-slate-100"
     }`;
 
   async function refreshAll() {
-    // ✅ Session is the most reliable for UI state
     const { data: sess, error: sessErr } = await supabase.auth.getSession();
     if (sessErr || !sess.session?.user) {
       setSignedIn(false);
@@ -86,7 +82,6 @@ export default function NavBar() {
     setSignedIn(true);
     setUserId(uid);
 
-    // ✅ Role fetch (tolerant + never breaks navbar)
     const { data: prof, error: profErr } = await supabase
       .from("profiles")
       .select("role")
@@ -96,7 +91,6 @@ export default function NavBar() {
     if (!profErr && prof?.role) setMyRole(prof.role);
     else setMyRole("Staff");
 
-    // ✅ Notifications must filter by user_id
     const { data: n } = await supabase
       .from("notifications")
       .select("id,title,link,is_read,created_at")
@@ -122,7 +116,6 @@ export default function NavBar() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // realtime notifications
   useEffect(() => {
     if (!userId) return;
 
@@ -166,11 +159,7 @@ export default function NavBar() {
 
   async function markAllRead() {
     if (!userId) return;
-    await supabase
-      .from("notifications")
-      .update({ is_read: true })
-      .eq("user_id", userId)
-      .eq("is_read", false);
+    await supabase.from("notifications").update({ is_read: true }).eq("user_id", userId).eq("is_read", false);
 
     setOpenBell(false);
     await refreshAll();

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import NavBar from "../components/NavBar";
+import NavBar from "./components/NavBar";
 
 export const metadata: Metadata = {
   title: "ReqGen 1.1.0",
