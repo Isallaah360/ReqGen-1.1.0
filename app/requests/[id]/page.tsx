@@ -19,6 +19,9 @@ type Req = {
   request_type: "Personal" | "Official";
   personal_category: "Fund" | "NonFund" | null;
   created_at: string;
+
+  // ✅ optional (won't break if missing in DB)
+  funds_state?: string | null;
 };
 
 type Hist = {
@@ -31,13 +34,25 @@ type Hist = {
 };
 
 type SubheadMini = { id: string; code: string; name: string };
-
 type ProfileMini = { id: string; role: string; signature_url: string | null };
+
+function normStage(s: string | null | undefined) {
+  return (s || "").trim().toUpperCase();
+}
+
+function normStatus(s: string | null | undefined) {
+  return (s || "").trim().toLowerCase();
+}
 
 export default function RequestDetailsPage() {
   const router = useRouter();
   const params = useParams();
-  const id = String((params as any)?.id || "");
+
+  // ✅ safer id parsing
+  const id =
+    typeof (params as any)?.id === "string"
+      ? ((params as any).id as string)
+      : String((params as any)?.id || "");
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -53,10 +68,13 @@ export default function RequestDetailsPage() {
   const isMyRequest = useMemo(() => !!req && !!me && req.created_by === me.id, [req, me]);
 
   // ✅ creator can edit/delete only if still HOD or Director stage
+  // (optional: also require funds_state still reserved; safe if missing)
   const canEditDelete = useMemo(() => {
     if (!req || !me) return false;
-    const stage = (req.current_stage || "").toUpperCase();
-    return req.created_by === me.id && (stage === "HOD" || stage === "DIRECTOR");
+    const stage = normStage(req.current_stage);
+    const state = (req.funds_state || "").toLowerCase(); // might be empty
+    const stateOk = !state || state === "reserved"; // if you don't have funds_state, allow by stage only
+    return req.created_by === me.id && (stage === "HOD" || stage === "DIRECTOR") && stateOk;
   }, [req, me]);
 
   // ✅ only assigned owner can Approve/Reject
@@ -65,10 +83,22 @@ export default function RequestDetailsPage() {
     return req.current_owner === me.id;
   }, [req, me]);
 
+  const isClosed = useMemo(() => {
+    const st = normStatus(req?.status);
+    const stage = normStage(req?.current_stage);
+    return st.includes("reject") || stage === "COMPLETED";
+  }, [req]);
+
   useEffect(() => {
     async function load() {
       setLoading(true);
       setMsg(null);
+
+      if (!id) {
+        setMsg("Invalid request id.");
+        setLoading(false);
+        return;
+      }
 
       const { data: auth } = await supabase.auth.getUser();
       if (!auth.user) {
@@ -76,6 +106,7 @@ export default function RequestDetailsPage() {
         return;
       }
 
+      // me
       const { data: myProf, error: myErr } = await supabase
         .from("profiles")
         .select("id,role,signature_url")
@@ -87,11 +118,14 @@ export default function RequestDetailsPage() {
         setLoading(false);
         return;
       }
-      setMe(myProf as any);
+      setMe(myProf as ProfileMini);
 
+      // request (funds_state optional)
       const { data: r, error: rErr } = await supabase
         .from("requests")
-        .select("id,request_no,title,details,amount,status,current_stage,current_owner,created_by,dept_id,subhead_id,request_type,personal_category,created_at")
+        .select(
+          "id,request_no,title,details,amount,status,current_stage,current_owner,created_by,dept_id,subhead_id,request_type,personal_category,created_at,funds_state"
+        )
         .eq("id", id)
         .single();
 
@@ -100,17 +134,21 @@ export default function RequestDetailsPage() {
         setLoading(false);
         return;
       }
-      setReq(r as any);
+      setReq(r as Req);
 
-      if (r?.subhead_id) {
+      // subhead
+      if ((r as any)?.subhead_id) {
         const { data: sh } = await supabase
           .from("subheads")
           .select("id,code,name")
-          .eq("id", r.subhead_id)
+          .eq("id", (r as any).subhead_id)
           .single();
-        if (sh) setSubhead(sh as any);
+        if (sh) setSubhead(sh as SubheadMini);
+      } else {
+        setSubhead(null);
       }
 
+      // history
       const { data: h, error: hErr } = await supabase
         .from("request_history")
         .select("id,action_type,comment,to_stage,created_at,signature_url")
@@ -118,7 +156,7 @@ export default function RequestDetailsPage() {
         .order("created_at", { ascending: false });
 
       if (hErr) setMsg("Failed to load history: " + hErr.message);
-      setHistory((h || []) as any);
+      setHistory((h || []) as Hist[]);
 
       setLoading(false);
     }
@@ -137,7 +175,7 @@ export default function RequestDetailsPage() {
   }
 
   async function resolveNextOwner(currentStage: string, r: Req) {
-    const stage = (currentStage || "").trim().toUpperCase();
+    const stage = normStage(currentStage);
 
     if (r.request_type === "Official") {
       if (stage === "DIRECTOR" || stage === "HOD") {
@@ -185,6 +223,7 @@ export default function RequestDetailsPage() {
         return { nextStage: "HR", nextOwner: hr, nextStatus: "Approved" };
       }
     }
+
     return { nextStage: "Completed", nextOwner: null, nextStatus: "Approved" };
   }
 
@@ -199,11 +238,16 @@ export default function RequestDetailsPage() {
   }
 
   async function reload() {
+    if (!id) return;
+
     const { data: r2 } = await supabase
       .from("requests")
-      .select("id,request_no,title,details,amount,status,current_stage,current_owner,created_by,dept_id,subhead_id,request_type,personal_category,created_at")
+      .select(
+        "id,request_no,title,details,amount,status,current_stage,current_owner,created_by,dept_id,subhead_id,request_type,personal_category,created_at,funds_state"
+      )
       .eq("id", id)
       .single();
+
     setReq((r2 as any) || null);
 
     const { data: h2 } = await supabase
@@ -211,11 +255,25 @@ export default function RequestDetailsPage() {
       .select("id,action_type,comment,to_stage,created_at,signature_url")
       .eq("request_id", id)
       .order("created_at", { ascending: false });
-    setHistory((h2 || []) as any);
+
+    setHistory((h2 || []) as Hist[]);
+
+    const subId = (r2 as any)?.subhead_id as string | null;
+    if (subId) {
+      const { data: sh } = await supabase.from("subheads").select("id,code,name").eq("id", subId).single();
+      setSubhead((sh as any) || null);
+    } else {
+      setSubhead(null);
+    }
   }
 
   async function act(action: "Approve" | "Reject") {
     if (!req || !me) return;
+
+    if (isClosed) {
+      setMsg("❌ This request is already closed (Completed/Rejected).");
+      return;
+    }
 
     if (!me.signature_url) {
       setMsg("❌ You must upload your signature in Profile before taking actions.");
@@ -235,34 +293,22 @@ export default function RequestDetailsPage() {
 
     try {
       if (action === "Reject") {
-        const { error: upErr } = await supabase
-          .from("requests")
-          .update({
-            status: "Rejected",
-            current_owner: req.created_by,
-            current_stage: req.current_stage,
-          })
-          .eq("id", req.id);
-
-        if (upErr) throw new Error(upErr.message);
-
-        const { error: hErr } = await supabase.from("request_history").insert({
-          request_id: req.id,
-          action_by: me.id,
-          from_stage: req.current_stage,
-          to_stage: req.current_stage,
-          action_type: "Reject",
-          comment: comment.trim(),
-          signature_url: me.signature_url,
+        // ✅ restore funds + write history inside RPC
+        const { error: rejErr } = await supabase.rpc("reject_request_and_restore", {
+          p_request_id: req.id,
+          p_comment: comment.trim(),
+          p_signature_url: me.signature_url,
         });
 
-        if (hErr) throw new Error(hErr.message);
+        if (rejErr) throw new Error(rejErr.message);
 
         await notify(req.created_by, "Request Rejected", `${req.request_no}: ${req.title}`, `/requests/${req.id}`);
-        setMsg("✅ Rejected successfully.");
+
+        setMsg("✅ Rejected. Funds restored to subhead.");
       } else {
         const next = await resolveNextOwner(req.current_stage, req);
 
+        // update request
         const { error: upErr } = await supabase
           .from("requests")
           .update({
@@ -274,6 +320,7 @@ export default function RequestDetailsPage() {
 
         if (upErr) throw new Error(upErr.message);
 
+        // history
         const { error: hErr } = await supabase.from("request_history").insert({
           request_id: req.id,
           action_by: me.id,
@@ -286,6 +333,15 @@ export default function RequestDetailsPage() {
 
         if (hErr) throw new Error(hErr.message);
 
+        // ✅ finalize funds ONLY when it becomes Completed
+        if (normStage(next.nextStage) === "COMPLETED") {
+          const { error: finErr } = await supabase.rpc("finalize_request_funds", {
+            p_request_id: req.id,
+          });
+          if (finErr) throw new Error("Finalize funds failed: " + finErr.message);
+        }
+
+        // notify next owner
         if (next.nextOwner) {
           await notify(next.nextOwner, "Request Assigned", `${req.request_no}: ${req.title}`, `/requests/${req.id}`);
         }
@@ -333,7 +389,9 @@ export default function RequestDetailsPage() {
         <div className="flex items-start justify-between gap-4">
           <div>
             <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">Request Details</h1>
-            <p className="mt-2 text-sm text-slate-600">Current stage: <b className="text-slate-900">{req?.current_stage || "—"}</b></p>
+            <p className="mt-2 text-sm text-slate-600">
+              Current stage: <b className="text-slate-900">{req?.current_stage || "—"}</b>
+            </p>
           </div>
 
           <div className="flex gap-2">
@@ -382,17 +440,10 @@ export default function RequestDetailsPage() {
               </div>
 
               <div className="mt-4 grid gap-4 md:grid-cols-2">
-                <Info
-                  label="Subhead"
-                  value={subhead ? `${subhead.code} — ${subhead.name}` : "—"}
-                />
+                <Info label="Subhead" value={subhead ? `${subhead.code} — ${subhead.name}` : "—"} />
                 <Info
                   label="Type"
-                  value={
-                    req.request_type === "Personal"
-                      ? `Personal • ${req.personal_category || ""}`
-                      : "Official"
-                  }
+                  value={req.request_type === "Personal" ? `Personal • ${req.personal_category || ""}` : "Official"}
                 />
               </div>
 
@@ -420,12 +471,20 @@ export default function RequestDetailsPage() {
                   </button>
                 </div>
               )}
+
+              {!canEditDelete && isMyRequest && (
+                <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+                  Edit/Delete is locked once the request reaches Registry/DG/Account/HR.
+                </div>
+              )}
             </div>
 
             {/* ACTIONS */}
             <div className="mt-6 rounded-2xl border bg-white p-6 shadow-sm">
               <h2 className="text-lg font-bold text-slate-900">Actions</h2>
-              <p className="mt-1 text-sm text-slate-600">Only the assigned officer can approve/reject.</p>
+              <p className="mt-1 text-sm text-slate-600">
+                Only the assigned officer can approve/reject. All actions require signature.
+              </p>
 
               {!canAct ? (
                 <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
