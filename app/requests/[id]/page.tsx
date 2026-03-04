@@ -15,6 +15,7 @@ type Req = {
   current_owner: string | null;
   created_by: string;
   dept_id: string;
+  subhead_id: string | null;
   request_type: "Personal" | "Official";
   personal_category: "Fund" | "NonFund" | null;
   created_at: string;
@@ -29,12 +30,14 @@ type Hist = {
   signature_url: string | null;
 };
 
+type SubheadMini = { id: string; code: string; name: string };
+
 type ProfileMini = { id: string; role: string; signature_url: string | null };
 
 export default function RequestDetailsPage() {
   const router = useRouter();
   const params = useParams();
-  const id = typeof params?.id === "string" ? params.id : String((params as any)?.id || "");
+  const id = String((params as any)?.id || "");
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -42,10 +45,21 @@ export default function RequestDetailsPage() {
   const [msg, setMsg] = useState<string | null>(null);
   const [req, setReq] = useState<Req | null>(null);
   const [history, setHistory] = useState<Hist[]>([]);
+  const [subhead, setSubhead] = useState<SubheadMini | null>(null);
 
   const [me, setMe] = useState<ProfileMini | null>(null);
   const [comment, setComment] = useState("");
 
+  const isMyRequest = useMemo(() => !!req && !!me && req.created_by === me.id, [req, me]);
+
+  // ✅ creator can edit/delete only if still HOD or Director stage
+  const canEditDelete = useMemo(() => {
+    if (!req || !me) return false;
+    const stage = (req.current_stage || "").toUpperCase();
+    return req.created_by === me.id && (stage === "HOD" || stage === "DIRECTOR");
+  }, [req, me]);
+
+  // ✅ only assigned owner can Approve/Reject
   const canAct = useMemo(() => {
     if (!req || !me) return false;
     return req.current_owner === me.id;
@@ -62,13 +76,6 @@ export default function RequestDetailsPage() {
         return;
       }
 
-      if (!id) {
-        setMsg("Invalid request id.");
-        setLoading(false);
-        return;
-      }
-
-      // my profile
       const { data: myProf, error: myErr } = await supabase
         .from("profiles")
         .select("id,role,signature_url")
@@ -80,14 +87,11 @@ export default function RequestDetailsPage() {
         setLoading(false);
         return;
       }
-      setMe(myProf as ProfileMini);
+      setMe(myProf as any);
 
-      // request
       const { data: r, error: rErr } = await supabase
         .from("requests")
-        .select(
-          "id,request_no,title,details,amount,status,current_stage,current_owner,created_by,dept_id,request_type,personal_category,created_at"
-        )
+        .select("id,request_no,title,details,amount,status,current_stage,current_owner,created_by,dept_id,subhead_id,request_type,personal_category,created_at")
         .eq("id", id)
         .single();
 
@@ -96,9 +100,17 @@ export default function RequestDetailsPage() {
         setLoading(false);
         return;
       }
-      setReq(r as Req);
+      setReq(r as any);
 
-      // history
+      if (r?.subhead_id) {
+        const { data: sh } = await supabase
+          .from("subheads")
+          .select("id,code,name")
+          .eq("id", r.subhead_id)
+          .single();
+        if (sh) setSubhead(sh as any);
+      }
+
       const { data: h, error: hErr } = await supabase
         .from("request_history")
         .select("id,action_type,comment,to_stage,created_at,signature_url")
@@ -106,7 +118,7 @@ export default function RequestDetailsPage() {
         .order("created_at", { ascending: false });
 
       if (hErr) setMsg("Failed to load history: " + hErr.message);
-      setHistory((h || []) as Hist[]);
+      setHistory((h || []) as any);
 
       setLoading(false);
     }
@@ -115,15 +127,16 @@ export default function RequestDetailsPage() {
   }, [id, router]);
 
   async function getSetting(key: string): Promise<string | null> {
-    const { data, error } = await supabase.from("app_settings").select("value").eq("key", key).maybeSingle();
+    const { data, error } = await supabase
+      .from("app_settings")
+      .select("value")
+      .eq("key", key)
+      .maybeSingle();
     if (error) return null;
     return (data?.value as string) || null;
   }
 
-  async function resolveNextOwner(
-    currentStage: string,
-    r: Req
-  ): Promise<{ nextStage: string; nextOwner: string | null; nextStatus: string }> {
+  async function resolveNextOwner(currentStage: string, r: Req) {
     const stage = (currentStage || "").trim().toUpperCase();
 
     if (r.request_type === "Official") {
@@ -142,10 +155,10 @@ export default function RequestDetailsPage() {
         if (!acc) throw new Error("ACCOUNT_USER_ID not set.");
         return { nextStage: "Account", nextOwner: acc, nextStatus: "Approved" };
       }
-      return { nextStage: "Done", nextOwner: null, nextStatus: "Approved" };
+      return { nextStage: "Completed", nextOwner: null, nextStatus: "Approved" };
     }
 
-    // Personal
+    // Personal:
     if (stage === "DIRECTOR" || stage === "HOD") {
       const hr = await getSetting("HR_USER_ID");
       if (!hr) throw new Error("HR_USER_ID not set.");
@@ -172,8 +185,7 @@ export default function RequestDetailsPage() {
         return { nextStage: "HR", nextOwner: hr, nextStatus: "Approved" };
       }
     }
-
-    return { nextStage: "Done", nextOwner: null, nextStatus: "Approved" };
+    return { nextStage: "Completed", nextOwner: null, nextStatus: "Approved" };
   }
 
   async function notify(userId: string, title: string, body: string, link: string) {
@@ -186,17 +198,12 @@ export default function RequestDetailsPage() {
     });
   }
 
-  async function reloadAfterAction() {
-    if (!id) return;
-
+  async function reload() {
     const { data: r2 } = await supabase
       .from("requests")
-      .select(
-        "id,request_no,title,details,amount,status,current_stage,current_owner,created_by,dept_id,request_type,personal_category,created_at"
-      )
+      .select("id,request_no,title,details,amount,status,current_stage,current_owner,created_by,dept_id,subhead_id,request_type,personal_category,created_at")
       .eq("id", id)
       .single();
-
     setReq((r2 as any) || null);
 
     const { data: h2 } = await supabase
@@ -204,8 +211,7 @@ export default function RequestDetailsPage() {
       .select("id,action_type,comment,to_stage,created_at,signature_url")
       .eq("request_id", id)
       .order("created_at", { ascending: false });
-
-    setHistory((h2 || []) as Hist[]);
+    setHistory((h2 || []) as any);
   }
 
   async function act(action: "Approve" | "Reject") {
@@ -253,7 +259,7 @@ export default function RequestDetailsPage() {
         if (hErr) throw new Error(hErr.message);
 
         await notify(req.created_by, "Request Rejected", `${req.request_no}: ${req.title}`, `/requests/${req.id}`);
-        setMsg("✅ Rejected successfully. Sent back to requester.");
+        setMsg("✅ Rejected successfully.");
       } else {
         const next = await resolveNextOwner(req.current_stage, req);
 
@@ -288,10 +294,34 @@ export default function RequestDetailsPage() {
       }
 
       setComment("");
-      router.refresh();
-      await reloadAfterAction();
+      await reload();
     } catch (e: any) {
       setMsg("❌ Action failed: " + (e?.message || "Unknown error"));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function deleteRequest() {
+    if (!req) return;
+    if (!canEditDelete) {
+      setMsg("❌ You can only delete while request is still at HOD/Director.");
+      return;
+    }
+
+    const ok = confirm("Delete this request? Funds will be restored to the subhead.");
+    if (!ok) return;
+
+    setSaving(true);
+    setMsg(null);
+    try {
+      const { error } = await supabase.rpc("delete_request_restore", { p_request_id: req.id });
+      if (error) throw new Error(error.message);
+
+      setMsg("✅ Deleted and funds restored.");
+      setTimeout(() => router.push("/requests"), 700);
+    } catch (e: any) {
+      setMsg("❌ Delete failed: " + (e?.message || "Unknown error"));
     } finally {
       setSaving(false);
     }
@@ -303,15 +333,26 @@ export default function RequestDetailsPage() {
         <div className="flex items-start justify-between gap-4">
           <div>
             <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">Request Details</h1>
-            <p className="mt-2 text-sm text-slate-600">Track the request and its approvals.</p>
+            <p className="mt-2 text-sm text-slate-600">Current stage: <b className="text-slate-900">{req?.current_stage || "—"}</b></p>
           </div>
 
-          <button
-            onClick={() => router.push("/requests")}
-            className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
-          >
-            Back
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => router.push("/requests")}
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
+            >
+              Back
+            </button>
+
+            {req && (
+              <button
+                onClick={() => router.push(`/requests/${req.id}/print`)}
+                className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
+              >
+                Print
+              </button>
+            )}
+          </div>
         </div>
 
         {msg && <div className="mt-4 rounded-xl bg-slate-100 px-3 py-2 text-sm text-slate-800">{msg}</div>}
@@ -340,6 +381,21 @@ export default function RequestDetailsPage() {
                 <Info label="Amount (₦)" value={Number(req.amount || 0).toLocaleString()} />
               </div>
 
+              <div className="mt-4 grid gap-4 md:grid-cols-2">
+                <Info
+                  label="Subhead"
+                  value={subhead ? `${subhead.code} — ${subhead.name}` : "—"}
+                />
+                <Info
+                  label="Type"
+                  value={
+                    req.request_type === "Personal"
+                      ? `Personal • ${req.personal_category || ""}`
+                      : "Official"
+                  }
+                />
+              </div>
+
               <div className="mt-5">
                 <div className="text-xs font-semibold text-slate-500">Details</div>
                 <div className="mt-2 whitespace-pre-wrap rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-800">
@@ -347,19 +403,33 @@ export default function RequestDetailsPage() {
                 </div>
               </div>
 
-              <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-800">
-                <b>Current Stage:</b> {req.current_stage || "—"} &nbsp; • &nbsp; <b>Status:</b> {req.status || "—"}
-              </div>
+              {canEditDelete && (
+                <div className="mt-5 flex flex-col gap-2 sm:flex-row">
+                  <button
+                    onClick={() => router.push(`/requests/${req.id}/edit`)}
+                    className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 hover:bg-slate-100"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={deleteRequest}
+                    disabled={saving}
+                    className="w-full rounded-xl bg-red-600 px-4 py-3 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-60"
+                  >
+                    {saving ? "Working..." : "Delete"}
+                  </button>
+                </div>
+              )}
             </div>
 
-            {/* ACTION PANEL */}
+            {/* ACTIONS */}
             <div className="mt-6 rounded-2xl border bg-white p-6 shadow-sm">
               <h2 className="text-lg font-bold text-slate-900">Actions</h2>
-              <p className="mt-1 text-sm text-slate-600">Only the assigned officer can approve or reject this request.</p>
+              <p className="mt-1 text-sm text-slate-600">Only the assigned officer can approve/reject.</p>
 
               {!canAct ? (
-                <div className="mt-4 rounded-xl bg-slate-50 border border-slate-200 p-4 text-sm text-slate-700">
-                  This request is not assigned to you. You can view only.
+                <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+                  View only.
                 </div>
               ) : (
                 <>
@@ -394,6 +464,7 @@ export default function RequestDetailsPage() {
               )}
             </div>
 
+            {/* HISTORY */}
             <div className="mt-6 rounded-2xl border bg-white p-6 shadow-sm">
               <h2 className="text-lg font-bold text-slate-900">History</h2>
               <p className="mt-1 text-sm text-slate-600">All actions are signed and recorded.</p>
