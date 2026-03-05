@@ -5,128 +5,110 @@ import { useRouter } from "next/navigation";
 import { supabase } from "../../../lib/supabaseClient";
 
 type Dept = { id: string; name: string };
-type Subhead = { id: string; code: string; name: string; balance: number; is_active: boolean };
+
+type Subhead = {
+  id: string;
+  dept_id: string;
+  code: string | null;
+  name: string;
+  balance: number | null;
+};
+
+function naira(n: number) {
+  return "₦" + Math.round(n).toLocaleString();
+}
+
+async function getSetting(key: string): Promise<string | null> {
+  const { data, error } = await supabase
+    .from("app_settings")
+    .select("value")
+    .eq("key", key)
+    .maybeSingle();
+  if (error) return null;
+  return (data?.value as string) || null;
+}
+
+async function notify(userId: string, title: string, body: string, link: string) {
+  await supabase.from("notifications").insert({
+    user_id: userId,
+    title,
+    body,
+    link,
+    is_read: false,
+  });
+}
 
 export default function NewRequestPage() {
   const router = useRouter();
 
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
-  const [deptId, setDeptId] = useState<string>("");
-  const [deptName, setDeptName] = useState<string>("");
+  const [meId, setMeId] = useState<string>("");
 
-  const [subheads, setSubheads] = useState<Subhead[]>([]);
-  const [subheadId, setSubheadId] = useState<string>("");
-  const selectedSubhead = useMemo(
-    () => subheads.find((s) => s.id === subheadId) || null,
-    [subheads, subheadId]
-  );
+  const [depts, setDepts] = useState<Dept[]>([]);
+  const [subs, setSubs] = useState<Subhead[]>([]);
 
+  // form
+  const [deptId, setDeptId] = useState("");
+  const [subheadId, setSubheadId] = useState("");
+  const [title, setTitle] = useState("");
+  const [details, setDetails] = useState("");
+  const [amount, setAmount] = useState<number>(0);
+
+  // type
   const [requestType, setRequestType] = useState<"Personal" | "Official">("Official");
   const [personalCategory, setPersonalCategory] = useState<"Fund" | "NonFund">("Fund");
 
-  const [title, setTitle] = useState("");
-  const [details, setDetails] = useState("");
-  const [amount, setAmount] = useState<string>("0");
+  const filteredSubs = useMemo(() => {
+    if (!deptId) return [];
+    return subs.filter((s) => s.dept_id === deptId);
+  }, [subs, deptId]);
 
-  const [signaturePath, setSignaturePath] = useState<string | null>(null);
-  const [signaturePreviewUrl, setSignaturePreviewUrl] = useState<string | null>(null);
+  const selectedSub = useMemo(() => {
+    return subs.find((s) => s.id === subheadId) || null;
+  }, [subs, subheadId]);
 
-  // realtime channel (selected subhead)
-  useEffect(() => {
-    if (!subheadId) return;
-
-    const ch = supabase
-      .channel("subhead-live")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "subheads", filter: `id=eq.${subheadId}` },
-        async () => {
-          const { data } = await supabase
-            .from("subheads")
-            .select("id,code,name,balance,is_active")
-            .eq("id", subheadId)
-            .single();
-          if (data) {
-            setSubheads((prev) => prev.map((x) => (x.id === subheadId ? (data as any) : x)));
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(ch);
-    };
-  }, [subheadId]);
+  const balance = Number(selectedSub?.balance || 0);
 
   useEffect(() => {
     async function load() {
       setLoading(true);
       setMsg(null);
 
-      const { data: authData } = await supabase.auth.getUser();
-      const user = authData.user;
-
-      if (!user) {
+      const { data: auth } = await supabase.auth.getUser();
+      if (!auth.user) {
         router.push("/login");
         return;
       }
+      setMeId(auth.user.id);
 
-      const { data: prof, error: profErr } = await supabase
-        .from("profiles")
-        .select("dept_id, signature_url")
-        .eq("id", user.id)
-        .single();
-
-      if (profErr) {
-        setMsg("Failed to load profile: " + profErr.message);
-        setLoading(false);
-        return;
-      }
-
-      if (!prof?.dept_id) {
-        setMsg("Profile department not set. Please contact Admin.");
-        setLoading(false);
-        return;
-      }
-
-      if (!prof?.signature_url) {
-        setMsg("❌ You must upload your signature in Profile before submitting any request.");
-        setLoading(false);
-        return;
-      }
-
-      setDeptId(prof.dept_id);
-      setSignaturePath(prof.signature_url);
-
-      const { data: dept } = await supabase
+      const { data: d, error: dErr } = await supabase
         .from("departments")
         .select("id,name")
-        .eq("id", prof.dept_id)
-        .single();
-      if (dept) setDeptName((dept as Dept).name);
+        .order("name", { ascending: true });
 
-      // load subheads for department
-      const { data: sh, error: shErr } = await supabase
-        .from("subheads")
-        .select("id,code,name,balance,is_active")
-        .eq("dept_id", prof.dept_id)
-        .eq("is_active", true)
-        .order("code", { ascending: true });
-
-      if (shErr) {
-        setMsg("Failed to load subheads: " + shErr.message);
-      } else {
-        setSubheads((sh || []) as any);
-        const first = (sh || [])[0]?.id;
-        if (first) setSubheadId(first);
+      if (dErr) {
+        setMsg("Failed to load departments: " + dErr.message);
+        setLoading(false);
+        return;
       }
 
-      const { data: signed } = await supabase.storage
-        .from("signatures")
-        .createSignedUrl(prof.signature_url, 60 * 10);
-      if (signed?.signedUrl) setSignaturePreviewUrl(signed.signedUrl);
+      const { data: s, error: sErr } = await supabase
+        .from("subheads")
+        .select("id,dept_id,code,name,balance")
+        .eq("is_active", true)
+        .order("name", { ascending: true });
+
+      if (sErr) {
+        setMsg("Failed to load subheads: " + sErr.message);
+        setLoading(false);
+        return;
+      }
+
+      setDepts((d || []) as Dept[]);
+      setSubs((s || []) as Subhead[]);
 
       setLoading(false);
     }
@@ -134,241 +116,239 @@ export default function NewRequestPage() {
     load();
   }, [router]);
 
-  function validate(): string | null {
-    if (!signaturePath) return "Signature is required. Upload it in Profile.";
-    if (!subheadId) return "Please select a subhead.";
-    if (title.trim().length < 3) return "Please enter a title.";
-    if (details.trim().length < 5) return "Please enter details.";
-    const amt = Number(amount);
-    if (Number.isNaN(amt) || amt <= 0) return "Amount must be a valid number.";
-    if (selectedSubhead && amt > Number(selectedSubhead.balance || 0)) return "Insufficient subhead balance.";
-    return null;
-  }
+  // If dept changes reset subhead
+  useEffect(() => {
+    setSubheadId("");
+  }, [deptId]);
 
-  function makeRequestNo(): string {
-    const d = new Date();
-    const yyyy = d.getFullYear();
-    const mm = String(d.getMonth() + 1).padStart(2, "0");
-    const dd = String(d.getDate()).padStart(2, "0");
-    const rnd = Math.floor(Math.random() * 900000) + 100000;
-    return `RG-${yyyy}${mm}${dd}-${rnd}`;
-  }
-
-  async function notify(userId: string, title: string, body: string, link: string) {
-    await supabase.from("notifications").insert({
-      user_id: userId,
-      title,
-      body,
-      link,
-      is_read: false,
-    });
-  }
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function createRequest() {
     setMsg(null);
 
-    const err = validate();
-    if (err) return setMsg("❌ " + err);
+    if (!deptId) return setMsg("❌ Please select a department.");
+    if (!subheadId) return setMsg("❌ Please select a subhead.");
+    if (!title.trim()) return setMsg("❌ Title is required.");
+    if (!details.trim()) return setMsg("❌ Details is required.");
+    if (!amount || amount <= 0) return setMsg("❌ Amount must be greater than 0.");
+
+    // balance check
+    if (amount > balance) {
+      return setMsg(`❌ Insufficient balance in this subhead. Balance is ${naira(balance)}.`);
+    }
+
+    setSaving(true);
 
     try {
-      setMsg("Submitting request...");
+      // 1) get HOD user
+      const hodId = await getSetting("HOD_USER_ID");
+      if (!hodId) throw new Error("HOD_USER_ID not set in app_settings");
 
-      const { data: authData } = await supabase.auth.getUser();
-      const user = authData.user;
-      if (!user) return router.push("/login");
+      // 2) generate request number (simple)
+      const requestNo = "REQ-" + Date.now();
 
-      const requestNo = makeRequestNo();
-      const amt = Number(amount);
-
-      // initial owner: HOD or Director (your routing design)
-      const firstStage = "HOD";
-
-      const insertPayload: any = {
-        request_no: requestNo,
-        created_by: user.id,
-        dept_id: deptId,
-        subhead_id: subheadId,
-        request_type: requestType,
-        personal_category: requestType === "Personal" ? personalCategory : null,
-        amount: amt,
-        title: title.trim(),
-        details: details.trim(),
-        status: "Submitted",
-        current_stage: firstStage,
-        current_owner: user.id, // temporary until your routing sets actual HOD/Director owner
-        funds_state: "reserved",
-        funds_reserved_amount: amt,
-      };
-
-      const { data: inserted, error: insErr } = await supabase
+      // 3) insert request
+      const { data: created, error: insErr } = await supabase
         .from("requests")
-        .insert(insertPayload)
-        .select("id")
+        .insert({
+          request_no: requestNo,
+          title: title.trim(),
+          details: details.trim(),
+          amount,
+          dept_id: deptId,
+          subhead_id: subheadId,
+          created_by: meId,
+          request_type: requestType,
+          personal_category: requestType === "Personal" ? personalCategory : null,
+          status: "Submitted",
+          current_stage: "HOD",
+          current_owner: hodId,
+        })
+        .select("id,request_no,title,amount,dept_id,subhead_id")
         .single();
 
       if (insErr) throw new Error(insErr.message);
 
-      // ✅ reserve funds atomically
-      const { error: resErr } = await supabase.rpc("reserve_request_funds", { p_request_id: inserted.id });
-      if (resErr) throw new Error("Funds reserve failed: " + resErr.message);
+      // 4) deduct subhead balance immediately
+      const newBal = balance - amount;
 
-      // history (submit) with requester signature
+      const { error: balErr } = await supabase
+        .from("subheads")
+        .update({ balance: newBal })
+        .eq("id", subheadId);
+
+      if (balErr) throw new Error("Balance update failed: " + balErr.message);
+
+      // 5) history record
       const { error: histErr } = await supabase.from("request_history").insert({
-        request_id: inserted.id,
-        action_by: user.id,
+        request_id: created.id,
+        action_by: meId,
         from_stage: null,
-        to_stage: firstStage,
+        to_stage: "HOD",
         action_type: "Submit",
         comment: "Submitted",
-        signature_url: signaturePath,
+        signature_url: null,
       });
+
       if (histErr) throw new Error("History insert failed: " + histErr.message);
 
-      // (optional) notify approvals inbox route later when you set owner properly
-      // await notify(<hod_user_id>, "New Request Submitted", `${requestNo}: ${title}`, `/requests/${inserted.id}`);
+      // 6) notify HOD
+      await notify(
+        hodId,
+        "New Request Pending",
+        `${created.request_no}: ${created.title}`,
+        `/requests/${created.id}`
+      );
 
-      setMsg("✅ Request submitted and funds reserved!");
-      setTimeout(() => router.push("/requests"), 700);
+      setMsg("✅ Submitted successfully. Sent to HOD.");
+
+      // refresh local balance view
+      setSubs((prev) =>
+        prev.map((s) => (s.id === subheadId ? { ...s, balance: newBal } : s))
+      );
+
+      // go to details
+      setTimeout(() => router.push(`/requests/${created.id}`), 600);
     } catch (e: any) {
       setMsg("❌ Submit failed: " + (e?.message || "Unknown error"));
+    } finally {
+      setSaving(false);
     }
+  }
+
+  if (loading) {
+    return (
+      <main className="min-h-screen bg-slate-50 px-4">
+        <div className="mx-auto max-w-3xl py-10 text-slate-600">Loading...</div>
+      </main>
+    );
   }
 
   return (
     <main className="min-h-screen bg-slate-50 px-4">
       <div className="mx-auto max-w-3xl py-10">
-        <div className="flex items-start justify-between gap-4">
+        <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">New Request</h1>
+        <p className="mt-2 text-sm text-slate-600">
+          Select subhead, see balance, submit request and it will route to HOD.
+        </p>
+
+        {msg && <div className="mt-4 rounded-xl bg-slate-100 px-3 py-2 text-sm text-slate-800">{msg}</div>}
+
+        <div className="mt-6 rounded-2xl border bg-white p-6 shadow-sm space-y-4">
+          {/* Type */}
+          <div className="grid gap-4 md:grid-cols-2">
+            <div>
+              <label className="text-sm font-semibold text-slate-800">Request Type</label>
+              <select
+                value={requestType}
+                onChange={(e) => setRequestType(e.target.value as any)}
+                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none"
+              >
+                <option value="Official">Official</option>
+                <option value="Personal">Personal</option>
+              </select>
+            </div>
+
+            {requestType === "Personal" ? (
+              <div>
+                <label className="text-sm font-semibold text-slate-800">Personal Category</label>
+                <select
+                  value={personalCategory}
+                  onChange={(e) => setPersonalCategory(e.target.value as any)}
+                  className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none"
+                >
+                  <option value="Fund">Fund</option>
+                  <option value="NonFund">Non-Fund</option>
+                </select>
+              </div>
+            ) : (
+              <div />
+            )}
+          </div>
+
+          {/* Department/Subhead */}
+          <div className="grid gap-4 md:grid-cols-2">
+            <div>
+              <label className="text-sm font-semibold text-slate-800">Department</label>
+              <select
+                value={deptId}
+                onChange={(e) => setDeptId(e.target.value)}
+                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none"
+              >
+                <option value="">-- Select Department --</option>
+                {depts.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="text-sm font-semibold text-slate-800">Subhead</label>
+              <select
+                value={subheadId}
+                onChange={(e) => setSubheadId(e.target.value)}
+                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none"
+                disabled={!deptId}
+              >
+                <option value="">{deptId ? "-- Select Subhead --" : "Select department first"}</option>
+                {filteredSubs.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {(s.code ? s.code + " — " : "") + s.name}
+                  </option>
+                ))}
+              </select>
+
+              {subheadId && (
+                <div className="mt-2 text-sm">
+                  Balance: <b className="text-slate-900">{naira(balance)}</b>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Title/Amount */}
+          <div className="grid gap-4 md:grid-cols-2">
+            <div>
+              <label className="text-sm font-semibold text-slate-800">Title</label>
+              <input
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none"
+                placeholder="e.g. Stationeries Purchase"
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-semibold text-slate-800">Amount (₦)</label>
+              <input
+                value={amount || ""}
+                onChange={(e) => setAmount(Number(e.target.value || 0))}
+                type="number"
+                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none"
+                placeholder="e.g. 50000"
+              />
+            </div>
+          </div>
+
+          {/* Details */}
           <div>
-            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">New Request</h1>
-            <p className="mt-2 text-sm text-slate-600">
-              Department: <b className="text-slate-900">{deptName || "—"}</b>
-            </p>
+            <label className="text-sm font-semibold text-slate-800">Details</label>
+            <textarea
+              value={details}
+              onChange={(e) => setDetails(e.target.value)}
+              className="mt-1 min-h-[120px] w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none"
+              placeholder="Describe the request..."
+            />
           </div>
 
           <button
-            onClick={() => router.push("/dashboard")}
-            className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
+            onClick={createRequest}
+            disabled={saving}
+            className="w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
           >
-            Back
+            {saving ? "Submitting..." : "Submit Request"}
           </button>
         </div>
-
-        {msg && (
-          <div className="mt-4 rounded-xl bg-slate-100 px-3 py-2 text-sm text-slate-800">
-            {msg}
-          </div>
-        )}
-
-        {loading ? (
-          <div className="mt-6 text-slate-600">Loading...</div>
-        ) : (
-          <div className="mt-6 rounded-2xl border bg-white p-6 shadow-sm">
-            {signaturePreviewUrl && (
-              <div className="mb-6 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                <div className="text-sm font-semibold text-slate-800">Your Signature (Required)</div>
-                <img
-                  src={signaturePreviewUrl}
-                  alt="Signature preview"
-                  className="mt-3 h-20 w-auto rounded-xl border bg-white p-2"
-                />
-              </div>
-            )}
-
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Subhead */}
-              <div>
-                <label className="text-sm font-semibold text-slate-800">Subhead</label>
-                <select
-                  value={subheadId}
-                  onChange={(e) => setSubheadId(e.target.value)}
-                  className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
-                >
-                  <option value="">-- Select subhead --</option>
-                  {subheads.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.code} — {s.name}
-                    </option>
-                  ))}
-                </select>
-
-                <div className="mt-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
-                  <div className="text-slate-600">Current Balance</div>
-                  <div className="text-lg font-extrabold text-slate-900">
-                    ₦{Number(selectedSubhead?.balance || 0).toLocaleString()}
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid gap-4 md:grid-cols-2">
-                <div>
-                  <label className="text-sm font-semibold text-slate-800">Request Type</label>
-                  <select
-                    value={requestType}
-                    onChange={(e) => setRequestType(e.target.value as any)}
-                    className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
-                  >
-                    <option value="Official">Official</option>
-                    <option value="Personal">Personal</option>
-                  </select>
-                </div>
-
-                {requestType === "Personal" ? (
-                  <div>
-                    <label className="text-sm font-semibold text-slate-800">Personal Category</label>
-                    <select
-                      value={personalCategory}
-                      onChange={(e) => setPersonalCategory(e.target.value as any)}
-                      className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
-                    >
-                      <option value="Fund">Fund</option>
-                      <option value="NonFund">Non-Fund</option>
-                    </select>
-                  </div>
-                ) : (
-                  <div />
-                )}
-              </div>
-
-              <div>
-                <label className="text-sm font-semibold text-slate-800">Title</label>
-                <input
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="e.g., Request for Fund"
-                  className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-semibold text-slate-800">Details</label>
-                <textarea
-                  value={details}
-                  onChange={(e) => setDetails(e.target.value)}
-                  placeholder="Write full details..."
-                  className="mt-1 min-h-[140px] w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-semibold text-slate-800">Amount (₦)</label>
-                <input
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  placeholder="0"
-                  className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
-                />
-              </div>
-
-              <button
-                type="submit"
-                className="w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-blue-700"
-              >
-                Submit Request (Reserve Funds)
-              </button>
-            </form>
-          </div>
-        )}
       </div>
     </main>
   );
