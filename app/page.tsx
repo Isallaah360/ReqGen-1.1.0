@@ -16,7 +16,7 @@ export default function HomePage() {
             <ul className="mt-3 space-y-2 text-sm text-slate-700">
               <li>✅ Secure login & role-based approvals</li>
               <li>✅ Digital signatures on actions</li>
-              <li>✅ Workflow routing (Director → HOD → Registry → DG → Account/HR)</li>
+              <li>✅ Workflow routing (Staff → Director → HOD → Registry → DG → Account/HR)</li>
               <li>✅ Audit trail for reconciliation</li>
             </ul>
           </div>

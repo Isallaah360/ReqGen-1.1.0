@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { supabase } from "../../../lib/supabaseClient";
+import { supabase } from "@/lib/supabaseClient";
 
 type Acc = { id: string; code: string; name: string; is_active: boolean };
 type UserRow = { id: string; email: string | null; role: string | null };

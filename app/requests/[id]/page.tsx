@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { supabase } from "../../../lib/supabaseClient";
+import { supabase } from "@/lib/supabaseClient";
 
 // ✅ Correct path because RequestProgress is inside app/components/
 import { RequestProgress } from "../../components/RequestProgress";

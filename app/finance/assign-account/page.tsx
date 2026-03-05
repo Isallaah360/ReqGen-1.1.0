@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "../../../lib/supabaseClient";
+import { supabase } from "@/lib/supabaseClient";
 
 type Acc = { id: string; name: string; code: string | null; bucket: string | null };
 type UserMini = { id: string; full_name: string | null; role: string | null; email: string | null };

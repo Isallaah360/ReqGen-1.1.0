@@ -20,7 +20,7 @@ export default function AboutPage() {
 
           <h2 className="mt-6 text-lg font-bold text-slate-900">Developer</h2>
           <p className="mt-2 text-sm text-slate-700">
-            Built for IET internal operations. Developer details will appear here.
+            Built for IET internal operations. Developed by BARDERIAN ENTERPRISES.
           </p>
         </div>
       </div>
