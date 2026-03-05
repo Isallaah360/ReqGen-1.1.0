@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../../../lib/supabaseClient";
 
@@ -11,59 +12,62 @@ type Profile = {
   role: string | null;
 };
 
-type IetAccount = {
+type Account = {
   id: string;
   code: string | null;
   name: string;
+  bank_name: string | null;
+  account_number: string | null;
   is_active: boolean | null;
 };
 
 type AssignmentRow = {
   id: string;
-  officer_user_id: string;
   account_id: string;
-  is_active: boolean;
+  officer_user_id: string;
   created_at: string;
-  updated_at: string;
 };
 
-function roleKey(role: string | null | undefined) {
-  return String(role || "")
+function roleKey(role: string) {
+  return (role || "")
     .trim()
     .toLowerCase()
     .replace(/\s+/g, "")
     .replace(/_/g, "");
 }
 
-export default function AssignAccountToOfficerPage() {
+export default function AssignAccountOfficerPage() {
   const router = useRouter();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
-  const [myRole, setMyRole] = useState<string>("Staff");
-  const canManage = useMemo(() => ["admin", "auditor"].includes(roleKey(myRole)), [myRole]);
+  const [myRole, setMyRole] = useState<string>("");
 
+  const canManage = useMemo(() => {
+    const rk = roleKey(myRole);
+    return rk === "admin" || rk === "auditor";
+  }, [myRole]);
+
+  const [accounts, setAccounts] = useState<Account[]>([]);
   const [officers, setOfficers] = useState<Profile[]>([]);
-  const [accounts, setAccounts] = useState<IetAccount[]>([]);
   const [assignments, setAssignments] = useState<AssignmentRow[]>([]);
 
-  // form
-  const [selectedOfficerId, setSelectedOfficerId] = useState<string>("");
-  const [selectedAccountId, setSelectedAccountId] = useState<string>("");
+  const [accountId, setAccountId] = useState<string>("");
+  const [officerId, setOfficerId] = useState<string>("");
+
+  const accountMap = useMemo(() => {
+    const m: Record<string, Account> = {};
+    accounts.forEach((a) => (m[a.id] = a));
+    return m;
+  }, [accounts]);
 
   const officerMap = useMemo(() => {
     const m: Record<string, Profile> = {};
     officers.forEach((o) => (m[o.id] = o));
     return m;
   }, [officers]);
-
-  const accountMap = useMemo(() => {
-    const m: Record<string, IetAccount> = {};
-    accounts.forEach((a) => (m[a.id] = a));
-    return m;
-  }, [accounts]);
 
   async function loadAll() {
     setLoading(true);
@@ -75,68 +79,65 @@ export default function AssignAccountToOfficerPage() {
       return;
     }
 
-    // my role
-    const { data: prof, error: profErr } = await supabase
+    const { data: prof, error: pErr } = await supabase
       .from("profiles")
       .select("role")
       .eq("id", auth.user.id)
       .maybeSingle();
 
-    if (profErr) {
-      setMsg("Failed to load your role: " + profErr.message);
+    if (pErr) {
+      setMsg("Failed to load role: " + pErr.message);
       setLoading(false);
       return;
     }
 
-    const r = (prof?.role || "Staff") as string;
-    setMyRole(r);
+    const role = (prof?.role || "Staff") as string;
+    setMyRole(role);
 
-    if (!["admin", "auditor"].includes(roleKey(r))) {
+    if (!["admin", "auditor"].includes(roleKey(role))) {
       router.push("/dashboard");
       return;
     }
 
-    // officers list: AccountOfficer (and allow also Accounts/account)
-    const { data: p, error: pErr } = await supabase
-      .from("profiles")
-      .select("id,full_name,email,role")
-      .order("full_name", { ascending: true });
-
-    if (pErr) {
-      setMsg("Failed to load officers: " + pErr.message);
-      setOfficers([]);
-    } else {
-      const list = ((p || []) as Profile[]).filter((x) => {
-        const rk = roleKey(x.role);
-        return ["accountofficer", "accounts", "account"].includes(rk);
-      });
-      setOfficers(list);
-    }
-
-    // accounts list
-    const { data: a, error: aErr } = await supabase
+    // accounts (active first)
+    const { data: arows, error: aErr } = await supabase
       .from("iet_accounts")
-      .select("id,code,name,is_active")
+      .select("id,code,name,bank_name,account_number,is_active")
+      .order("is_active", { ascending: false })
       .order("name", { ascending: true });
 
     if (aErr) {
-      setMsg("Failed to load IET accounts: " + aErr.message);
+      setMsg("Failed to load accounts: " + aErr.message);
       setAccounts([]);
     } else {
-      setAccounts((a || []) as IetAccount[]);
+      setAccounts((arows || []) as Account[]);
     }
 
-    // assignments list
-    const { data: asg, error: asgErr } = await supabase
-      .from("iet_account_officers")
-      .select("id,officer_user_id,account_id,is_active,created_at,updated_at")
+    // officers (role = AccountOfficer)
+    const { data: orows, error: oErr } = await supabase
+      .from("profiles")
+      .select("id,full_name,email,role")
+      .eq("role", "AccountOfficer")
+      .order("full_name", { ascending: true });
+
+    if (oErr) {
+      setMsg("Failed to load officers: " + oErr.message);
+      setOfficers([]);
+    } else {
+      setOfficers((orows || []) as Profile[]);
+    }
+
+    // assignments
+    const { data: asn, error: asnErr } = await supabase
+      .from("iet_account_officer_assignments")
+      .select("id,account_id,officer_user_id,created_at")
       .order("created_at", { ascending: false });
 
-    if (asgErr) {
-      setMsg("Failed to load assignments: " + asgErr.message);
+    if (asnErr) {
+      setMsg("Failed to load assignments: " + asnErr.message);
       setAssignments([]);
     } else {
-      setAssignments((asg || []) as AssignmentRow[]);
+      setAssignments((asn || []) as AssignmentRow[]);
     }
 
     setLoading(false);
@@ -145,17 +146,17 @@ export default function AssignAccountToOfficerPage() {
   useEffect(() => {
     loadAll();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [router]);
+  }, []);
 
   async function assign() {
     if (!canManage) return;
 
-    if (!selectedOfficerId) {
-      setMsg("❌ Please select an Accounting Officer.");
+    if (!accountId) {
+      setMsg("❌ Please select an account.");
       return;
     }
-    if (!selectedAccountId) {
-      setMsg("❌ Please select an Account Bucket.");
+    if (!officerId) {
+      setMsg("❌ Please select an officer.");
       return;
     }
 
@@ -163,16 +164,22 @@ export default function AssignAccountToOfficerPage() {
     setMsg(null);
 
     try {
-      const { error } = await supabase.from("iet_account_officers").upsert({
-        officer_user_id: selectedOfficerId,
-        account_id: selectedAccountId,
-        is_active: true,
-      });
+      // ✅ 1 officer per bank = upsert using UNIQUE(account_id)
+      const { error } = await supabase
+        .from("iet_account_officer_assignments")
+        .upsert(
+          {
+            account_id: accountId,
+            officer_user_id: officerId,
+          } as any,
+          { onConflict: "account_id" }
+        );
 
       if (error) throw new Error(error.message);
 
       setMsg("✅ Assigned successfully.");
-      setSelectedAccountId("");
+      setAccountId("");
+      setOfficerId("");
       await loadAll();
     } catch (e: any) {
       setMsg("❌ Assign failed: " + (e?.message || "Unknown error"));
@@ -181,28 +188,7 @@ export default function AssignAccountToOfficerPage() {
     }
   }
 
-  async function toggleActive(row: AssignmentRow) {
-    if (!canManage) return;
-
-    setSaving(true);
-    setMsg(null);
-    try {
-      const { error } = await supabase
-        .from("iet_account_officers")
-        .update({ is_active: !row.is_active })
-        .eq("id", row.id);
-
-      if (error) throw new Error(error.message);
-
-      await loadAll();
-    } catch (e: any) {
-      setMsg("❌ Update failed: " + (e?.message || "Unknown error"));
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function remove(row: AssignmentRow) {
+  async function removeAssignment(id: string) {
     if (!canManage) return;
 
     const ok = confirm("Remove this assignment?");
@@ -210,10 +196,14 @@ export default function AssignAccountToOfficerPage() {
 
     setSaving(true);
     setMsg(null);
-    try {
-      const { error } = await supabase.from("iet_account_officers").delete().eq("id", row.id);
-      if (error) throw new Error(error.message);
 
+    try {
+      const { error } = await supabase
+        .from("iet_account_officer_assignments")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw new Error(error.message);
       setMsg("✅ Removed.");
       await loadAll();
     } catch (e: any) {
@@ -234,23 +224,30 @@ export default function AssignAccountToOfficerPage() {
   return (
     <main className="min-h-screen bg-slate-50 px-4">
       <div className="mx-auto max-w-6xl py-10">
-        <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">
-              Finance • Assign Accounts to Officers
+              Assign Bank Account to Accounting Officer
             </h1>
             <p className="mt-2 text-sm text-slate-600">
-              Admin/Auditor can assign IET Account buckets to Accounting Officers.
+              Rule: <b>1 officer per bank account</b>. Officers are users with role <b>AccountOfficer</b>.
             </p>
           </div>
 
-          <div className="flex gap-2">
-            <button
-              onClick={() => router.push("/finance/manage-accounts")}
+          <div className="flex flex-wrap gap-2">
+            <Link
+              href="/finance/manage-accounts"
               className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
             >
-              Back
-            </button>
+              ← Back to Manage Accounts
+            </Link>
+
+            <Link
+              href="/finance"
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
+            >
+              Back to Finance
+            </Link>
           </div>
         </div>
 
@@ -260,65 +257,66 @@ export default function AssignAccountToOfficerPage() {
           </div>
         )}
 
-        {!canManage ? (
-          <div className="mt-6 rounded-2xl border bg-white p-6 shadow-sm text-slate-700">
-            You don’t have permission to assign accounts.
-          </div>
-        ) : (
-          <div className="mt-6 rounded-2xl border bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-bold text-slate-900">New Assignment</h2>
+        {/* ASSIGN FORM */}
+        <div className="mt-6 rounded-2xl border bg-white p-6 shadow-sm">
+          <h2 className="text-lg font-bold text-slate-900">Assign</h2>
 
-            <div className="mt-4 grid gap-4 md:grid-cols-3">
-              <div>
-                <label className="text-sm font-semibold text-slate-800">Accounting Officer</label>
-                <select
-                  value={selectedOfficerId}
-                  onChange={(e) => setSelectedOfficerId(e.target.value)}
-                  className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
-                >
-                  <option value="">-- Select Officer --</option>
-                  {officers.map((o) => (
-                    <option key={o.id} value={o.id}>
-                      {(o.full_name || o.email || o.id) + (o.role ? ` (${o.role})` : "")}
-                    </option>
-                  ))}
-                </select>
-                {officers.length === 0 && (
-                  <div className="mt-2 text-xs text-red-600">
-                    No Accounting Officers found. Make sure their profiles.role is "AccountOfficer".
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <label className="text-sm font-semibold text-slate-800">Account Bucket</label>
-                <select
-                  value={selectedAccountId}
-                  onChange={(e) => setSelectedAccountId(e.target.value)}
-                  className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
-                >
-                  <option value="">-- Select Account --</option>
-                  {accounts.map((a) => (
+          <div className="mt-4 grid gap-4 md:grid-cols-2">
+            <div>
+              <label className="text-sm font-semibold text-slate-800">Account</label>
+              <select
+                value={accountId}
+                onChange={(e) => setAccountId(e.target.value)}
+                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
+              >
+                <option value="">-- Select --</option>
+                {accounts
+                  .filter((a) => a.is_active !== false)
+                  .map((a) => (
                     <option key={a.id} value={a.id}>
-                      {(a.code ? `${a.code} — ` : "") + a.name + (a.is_active === false ? " (Inactive)" : "")}
+                      {(a.code ? `${a.code} — ` : "") + a.name} ({a.bank_name || "Bank"} {a.account_number || ""})
                     </option>
                   ))}
-                </select>
-              </div>
-
-              <div className="flex items-end">
-                <button
-                  onClick={assign}
-                  disabled={saving}
-                  className="w-full rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
-                >
-                  {saving ? "Saving..." : "Assign"}
-                </button>
+              </select>
+              <div className="mt-1 text-xs text-slate-500">
+                Only active accounts are shown.
               </div>
             </div>
-          </div>
-        )}
 
+            <div>
+              <label className="text-sm font-semibold text-slate-800">Officer</label>
+              <select
+                value={officerId}
+                onChange={(e) => setOfficerId(e.target.value)}
+                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
+              >
+                <option value="">-- Select --</option>
+                {officers.map((o) => (
+                  <option key={o.id} value={o.id}>
+                    {(o.full_name || o.email || o.id) + " (AccountOfficer)"}
+                  </option>
+                ))}
+              </select>
+              {officers.length === 0 && (
+                <div className="mt-2 text-xs text-red-600">
+                  No AccountOfficer users found. Set users role to <b>AccountOfficer</b> in Admin.
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="mt-5">
+            <button
+              onClick={assign}
+              disabled={saving}
+              className="w-full rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-60"
+            >
+              {saving ? "Working..." : "Assign Officer"}
+            </button>
+          </div>
+        </div>
+
+        {/* ASSIGNMENTS TABLE */}
         <div className="mt-6 rounded-2xl border bg-white p-6 shadow-sm">
           <h2 className="text-lg font-bold text-slate-900">Current Assignments</h2>
 
@@ -327,44 +325,31 @@ export default function AssignAccountToOfficerPage() {
           ) : (
             <div className="mt-4 overflow-hidden rounded-xl border border-slate-200">
               <div className="grid grid-cols-12 bg-slate-100 px-4 py-3 text-xs font-semibold text-slate-600">
-                <div className="col-span-4">Officer</div>
-                <div className="col-span-5">Account</div>
-                <div className="col-span-1 text-center">Active</div>
-                <div className="col-span-2 text-right">Actions</div>
+                <div className="col-span-5">Bank Account</div>
+                <div className="col-span-5">Officer</div>
+                <div className="col-span-2 text-right">Action</div>
               </div>
 
-              {assignments.map((row) => {
-                const o = officerMap[row.officer_user_id];
-                const a = accountMap[row.account_id];
+              {assignments.map((x) => {
+                const a = accountMap[x.account_id];
+                const o = officerMap[x.officer_user_id];
                 return (
-                  <div key={row.id} className="grid grid-cols-12 border-t px-4 py-3 text-sm items-center">
-                    <div className="col-span-4 font-semibold text-slate-900">
-                      {o?.full_name || o?.email || row.officer_user_id}
-                    </div>
+                  <div key={x.id} className="grid grid-cols-12 border-t px-4 py-3 text-sm">
                     <div className="col-span-5 text-slate-900">
-                      {a ? `${a.code ? a.code + " — " : ""}${a.name}` : row.account_id}
-                    </div>
-                    <div className="col-span-1 text-center">
-                      <span className={`inline-flex rounded-lg border px-2 py-1 text-xs font-bold ${
-                        row.is_active ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-slate-50 text-slate-700 border-slate-200"
-                      }`}>
-                        {row.is_active ? "Yes" : "No"}
-                      </span>
+                      {a
+                        ? `${a.code ? a.code + " — " : ""}${a.name} (${a.bank_name || "Bank"} ${a.account_number || ""})`
+                        : x.account_id}
                     </div>
 
-                    <div className="col-span-2 flex justify-end gap-2">
-                      <button
-                        onClick={() => toggleActive(row)}
-                        disabled={saving}
-                        className="rounded-lg border border-slate-200 bg-white px-3 py-1 text-xs font-bold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
-                      >
-                        {row.is_active ? "Disable" : "Enable"}
-                      </button>
+                    <div className="col-span-5 text-slate-800">
+                      {o ? o.full_name || o.email || o.id : x.officer_user_id}
+                    </div>
 
+                    <div className="col-span-2 flex justify-end">
                       <button
-                        onClick={() => remove(row)}
+                        onClick={() => removeAssignment(x.id)}
                         disabled={saving}
-                        className="rounded-lg bg-red-600 px-3 py-1 text-xs font-bold text-white hover:bg-red-700 disabled:opacity-60"
+                        className="rounded-lg bg-red-600 px-2 py-1 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-60"
                       >
                         Remove
                       </button>
@@ -376,7 +361,7 @@ export default function AssignAccountToOfficerPage() {
           )}
 
           <div className="mt-3 text-xs text-slate-500">
-            Tip: If officers list is empty, ensure their <b>profiles.role</b> is exactly <b>AccountOfficer</b>.
+            If assignment upsert fails, your DB must have <b>UNIQUE(account_id)</b> on the assignments table.
           </div>
         </div>
       </div>
