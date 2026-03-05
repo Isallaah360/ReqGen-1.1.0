@@ -4,85 +4,79 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../../lib/supabaseClient";
 
-type Profile = {
+type Profile = { id: string; full_name: string | null; role: string | null };
+type Dept = { id: string; name: string; created_at: string };
+type Account = { id: string; code: string; name: string; is_active: boolean; updated_at: string };
+type Subhead = {
   id: string;
-  full_name: string | null;
-  role: string | null;
-};
-
-type Account = {
-  id: string;
+  dept_id: string;
+  account_id: string | null;
   code: string | null;
   name: string;
+  approved_allocation: number;
+  expenditure: number;
+  balance: number;
   is_active: boolean;
-  created_at: string;
   updated_at: string;
 };
-
-type OfficerRow = {
-  id: string;
-  officer_user_id: string;
-  account_id: string;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-};
+type Assign = { id: string; account_id: string; officer_id: string; is_active: boolean; created_at: string };
 
 function roleKey(role: string) {
-  return (role || "")
-    .trim()
-    .toLowerCase()
-    .replace(/\s+/g, "")
-    .replace(/_/g, "");
+  return (role || "").trim().toLowerCase().replace(/\s+/g, "").replace(/_/g, "");
+}
+function naira(n: number) {
+  return "₦" + Math.round(Number(n || 0)).toLocaleString();
 }
 
 export default function ManageAccountsPage() {
   const router = useRouter();
-
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
-  const [myRole, setMyRole] = useState<string>("Staff");
-  const canManage = useMemo(() => {
-    const rk = roleKey(myRole);
-    return rk === "admin" || rk === "auditor";
-  }, [myRole]);
+  const [me, setMe] = useState<Profile | null>(null);
 
-  // Accounts CRUD
-  const [accounts, setAccounts] = useState<Account[]>([]);
-  const [editId, setEditId] = useState<string | null>(null);
-  const [code, setCode] = useState("");
-  const [name, setName] = useState("");
-  const [isActive, setIsActive] = useState(true);
-
-  // Officers / users
   const [users, setUsers] = useState<Profile[]>([]);
-  const [officerUserId, setOfficerUserId] = useState<string>("");
-  const [officerRole, setOfficerRole] = useState<"AccountOfficer" | "Account">("AccountOfficer");
+  const [depts, setDepts] = useState<Dept[]>([]);
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [subheads, setSubheads] = useState<Subhead[]>([]);
+  const [assignments, setAssignments] = useState<Assign[]>([]);
 
-  // Assignments
+  const tabs = ["Departments", "Accounts", "Subheads", "Officers", "Assign"] as const;
+  type Tab = (typeof tabs)[number];
+  const [tab, setTab] = useState<Tab>("Departments");
+
+  const canAdmin = useMemo(() => ["admin", "auditor"].includes(roleKey(me?.role || "")), [me]);
+
+  // Dept form
+  const [deptName, setDeptName] = useState("");
+  const [deptEditId, setDeptEditId] = useState<string | null>(null);
+
+  // Account form
+  const [accCode, setAccCode] = useState("");
+  const [accName, setAccName] = useState("");
+  const [accEditId, setAccEditId] = useState<string | null>(null);
+
+  // Subhead form
+  const [subDeptId, setSubDeptId] = useState<string>("");
+  const [subAccountId, setSubAccountId] = useState<string>("");
+  const [subCode, setSubCode] = useState("");
+  const [subName, setSubName] = useState("");
+  const [subAlloc, setSubAlloc] = useState<string>("0");
+  const [subEditId, setSubEditId] = useState<string | null>(null);
+
+  // Promote officer
+  const [promoteUserId, setPromoteUserId] = useState<string>("");
+
+  // Assign
   const [assignAccountId, setAssignAccountId] = useState<string>("");
   const [assignOfficerId, setAssignOfficerId] = useState<string>("");
-  const [assignments, setAssignments] = useState<OfficerRow[]>([]);
 
-  const officers = useMemo(() => {
-    // show anyone whose role looks like account officer
-    const allowed = new Set(["accountofficer", "accounts", "account", "finance"]);
-    return users.filter((u) => allowed.has(roleKey(u.role || "")));
-  }, [users]);
+  const deptMap = useMemo(() => Object.fromEntries(depts.map((d) => [d.id, d])), [depts]);
+  const accountMap = useMemo(() => Object.fromEntries(accounts.map((a) => [a.id, a])), [accounts]);
+  const userMap = useMemo(() => Object.fromEntries(users.map((u) => [u.id, u])), [users]);
 
-  const userMap = useMemo(() => {
-    const m: Record<string, Profile> = {};
-    users.forEach((u) => (m[u.id] = u));
-    return m;
-  }, [users]);
-
-  const accountMap = useMemo(() => {
-    const m: Record<string, Account> = {};
-    accounts.forEach((a) => (m[a.id] = a));
-    return m;
-  }, [accounts]);
+  const officers = useMemo(() => users.filter((u) => roleKey(u.role || "") === "accountofficer"), [users]);
 
   async function loadAll() {
     setLoading(true);
@@ -94,64 +88,60 @@ export default function ManageAccountsPage() {
       return;
     }
 
-    const { data: prof, error: profErr } = await supabase
+    const { data: my, error: myErr } = await supabase
       .from("profiles")
-      .select("role")
+      .select("id,full_name,role")
       .eq("id", auth.user.id)
-      .maybeSingle();
+      .single();
 
-    if (profErr) {
-      setMsg("Failed to load your role: " + profErr.message);
+    if (myErr) {
+      setMsg("Failed to load profile: " + myErr.message);
       setLoading(false);
       return;
     }
 
-    const r = (prof?.role || "Staff") as string;
-    setMyRole(r);
+    setMe(my as any);
 
-    if (!["Admin", "Auditor"].includes(r)) {
+    if (!["admin", "auditor"].includes(roleKey((my as any)?.role || ""))) {
       router.push("/dashboard");
       return;
     }
 
-    // load accounts
-    const { data: arows, error: aErr } = await supabase
+    const { data: u } = await supabase.from("profiles").select("id,full_name,role").order("full_name");
+    setUsers((u || []) as any);
+
+    const { data: d, error: dErr } = await supabase.from("departments").select("id,name,created_at").order("name");
+    if (dErr) setMsg("Departments load error: " + dErr.message);
+    setDepts((d || []) as any);
+
+    const { data: a, error: aErr } = await supabase
       .from("iet_accounts")
-      .select("id,code,name,is_active,created_at,updated_at")
-      .order("created_at", { ascending: false });
+      .select("id,code,name,is_active,updated_at")
+      .order("code");
+    if (aErr) setMsg("Accounts load error: " + aErr.message);
+    setAccounts((a || []) as any);
 
-    if (aErr) {
-      setMsg("Failed to load accounts: " + aErr.message);
-      setAccounts([]);
-    } else {
-      setAccounts((arows || []) as Account[]);
-    }
+    const { data: s, error: sErr } = await supabase
+      .from("subheads")
+      .select("id,dept_id,account_id,code,name,approved_allocation,expenditure,balance,is_active,updated_at")
+      .order("name");
+    if (sErr) setMsg("Subheads load error: " + sErr.message);
+    setSubheads((s || []) as any);
 
-    // load users (profiles)
-    const { data: urows, error: uErr } = await supabase
-      .from("profiles")
-      .select("id,full_name,role")
-      .order("full_name", { ascending: true });
-
-    if (uErr) {
-      setMsg((prev) => (prev ? prev + "\n" : "") + "Failed to load users: " + uErr.message);
-      setUsers([]);
-    } else {
-      setUsers((urows || []) as Profile[]);
-    }
-
-    // load assignments
     const { data: asg, error: asgErr } = await supabase
-      .from("iet_account_officers")
-      .select("id,officer_user_id,account_id,is_active,created_at,updated_at")
+      .from("iet_account_officer_assignments")
+      .select("id,account_id,officer_id,is_active,created_at")
       .order("created_at", { ascending: false });
 
-    if (asgErr) {
-      setMsg((prev) => (prev ? prev + "\n" : "") + "Failed to load assignments: " + asgErr.message);
-      setAssignments([]);
-    } else {
-      setAssignments((asg || []) as OfficerRow[]);
-    }
+    if (asgErr) setMsg("Assignments load error: " + asgErr.message);
+    setAssignments((asg || []) as any);
+
+    // Defaults
+    setSubDeptId((d || [])[0]?.id || "");
+    setSubAccountId((a || [])[0]?.id || "");
+    setPromoteUserId((u || [])[0]?.id || "");
+    setAssignAccountId((a || [])[0]?.id || "");
+    setAssignOfficerId((u || []).find((x: any) => roleKey(x.role || "") === "accountofficer")?.id || "");
 
     setLoading(false);
   }
@@ -161,180 +151,223 @@ export default function ManageAccountsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  function resetForm() {
-    setEditId(null);
-    setCode("");
-    setName("");
-    setIsActive(true);
-  }
-
-  async function saveAccount() {
-    if (!canManage) return;
-    if (!name.trim()) {
-      setMsg("❌ Account name is required.");
-      return;
-    }
-
-    const c = code.trim() || null;
-
+  // ---------- Departments
+  async function saveDept() {
+    if (!deptName.trim()) return setMsg("❌ Department name required.");
     setSaving(true);
     setMsg(null);
     try {
-      if (!editId) {
-        const { error } = await supabase.from("iet_accounts").insert({
-          code: c,
-          name: name.trim(),
-          is_active: isActive,
-        });
+      if (deptEditId) {
+        const { error } = await supabase.from("departments").update({ name: deptName.trim() }).eq("id", deptEditId);
         if (error) throw new Error(error.message);
-        setMsg("✅ Account created.");
+        setMsg("✅ Department updated.");
       } else {
-        const { error } = await supabase
-          .from("iet_accounts")
-          .update({
-            code: c,
-            name: name.trim(),
-            is_active: isActive,
-          })
-          .eq("id", editId);
+        const { error } = await supabase.from("departments").insert({ name: deptName.trim() });
         if (error) throw new Error(error.message);
-        setMsg("✅ Account updated.");
+        setMsg("✅ Department created.");
       }
-
-      resetForm();
+      setDeptName("");
+      setDeptEditId(null);
       await loadAll();
     } catch (e: any) {
-      setMsg("❌ Save failed: " + (e?.message || "Unknown error"));
+      setMsg("❌ " + (e?.message || "Failed"));
     } finally {
       setSaving(false);
     }
   }
 
-  async function editAccount(a: Account) {
-    setEditId(a.id);
-    setCode(a.code || "");
-    setName(a.name || "");
-    setIsActive(Boolean(a.is_active));
+  async function deleteDept(id: string) {
+    const ok = confirm("Delete this department? (All subheads under it will also be deleted)");
+    if (!ok) return;
+    setSaving(true);
     setMsg(null);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    try {
+      const { error } = await supabase.from("departments").delete().eq("id", id);
+      if (error) throw new Error(error.message);
+      setMsg("✅ Department deleted.");
+      await loadAll();
+    } catch (e: any) {
+      setMsg("❌ " + (e?.message || "Delete failed"));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  // ---------- Accounts
+  async function saveAccount() {
+    if (!accCode.trim() || !accName.trim()) return setMsg("❌ Account code and name required.");
+    setSaving(true);
+    setMsg(null);
+    try {
+      const payload = { code: accCode.trim().toUpperCase(), name: accName.trim() };
+      if (accEditId) {
+        const { error } = await supabase.from("iet_accounts").update(payload).eq("id", accEditId);
+        if (error) throw new Error(error.message);
+        setMsg("✅ Account updated.");
+      } else {
+        const { error } = await supabase.from("iet_accounts").insert({ ...payload, is_active: true });
+        if (error) throw new Error(error.message);
+        setMsg("✅ Account created.");
+      }
+      setAccEditId(null);
+      setAccCode("");
+      setAccName("");
+      await loadAll();
+    } catch (e: any) {
+      setMsg("❌ " + (e?.message || "Failed"));
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function deleteAccount(id: string) {
-    if (!canManage) return;
-    const ok = confirm("Delete this account? Any assignments to officers will also be removed.");
+    const ok = confirm("Delete this account? (Assignments may be removed too)");
     if (!ok) return;
-
     setSaving(true);
     setMsg(null);
     try {
-      // delete assignments first (safe)
-      await supabase.from("iet_account_officers").delete().eq("account_id", id);
-
       const { error } = await supabase.from("iet_accounts").delete().eq("id", id);
       if (error) throw new Error(error.message);
-
       setMsg("✅ Account deleted.");
       await loadAll();
     } catch (e: any) {
-      setMsg("❌ Delete failed: " + (e?.message || "Unknown error"));
+      setMsg("❌ " + (e?.message || "Delete failed"));
     } finally {
       setSaving(false);
     }
   }
 
-  async function createOfficerRole() {
-    if (!canManage) return;
-    if (!officerUserId) {
-      setMsg("❌ Select a user to make Accounting Officer.");
-      return;
-    }
+  // ---------- Subheads
+  async function saveSubhead() {
+    if (!subDeptId) return setMsg("❌ Select department.");
+    if (!subName.trim()) return setMsg("❌ Subhead name required.");
+
+    const alloc = Number(subAlloc);
+    if (!Number.isFinite(alloc) || alloc < 0) return setMsg("❌ Allocation must be valid number.");
 
     setSaving(true);
     setMsg(null);
     try {
-      const { error } = await supabase
-        .from("profiles")
-        .update({ role: officerRole })
-        .eq("id", officerUserId);
+      const payload = {
+        dept_id: subDeptId,
+        account_id: subAccountId || null,
+        code: subCode.trim() || null,
+        name: subName.trim(),
+        approved_allocation: alloc,
+      };
 
-      if (error) throw new Error(error.message);
+      if (subEditId) {
+        const { error } = await supabase.from("subheads").update(payload).eq("id", subEditId);
+        if (error) throw new Error(error.message);
+        setMsg("✅ Subhead updated.");
+      } else {
+        const { error } = await supabase.from("subheads").insert({
+          ...payload,
+          expenditure: 0,
+          balance: alloc,
+          is_active: true,
+        });
+        if (error) throw new Error(error.message);
+        setMsg("✅ Subhead created.");
+      }
 
-      setMsg("✅ Officer created/updated successfully.");
-      setOfficerUserId("");
+      setSubEditId(null);
+      setSubCode("");
+      setSubName("");
+      setSubAlloc("0");
       await loadAll();
     } catch (e: any) {
-      setMsg("❌ Failed to update officer role: " + (e?.message || "Unknown error"));
+      setMsg("❌ " + (e?.message || "Failed"));
     } finally {
       setSaving(false);
     }
   }
 
-  async function assignAccount() {
-    if (!canManage) return;
-    if (!assignAccountId || !assignOfficerId) {
-      setMsg("❌ Select both Account and Officer.");
-      return;
-    }
-
+  async function deleteSubhead(id: string) {
+    const ok = confirm("Delete this subhead?");
+    if (!ok) return;
     setSaving(true);
     setMsg(null);
     try {
-      const { error } = await supabase.from("iet_account_officers").insert({
-        officer_user_id: assignOfficerId,
+      const { error } = await supabase.from("subheads").delete().eq("id", id);
+      if (error) throw new Error(error.message);
+      setMsg("✅ Subhead deleted.");
+      await loadAll();
+    } catch (e: any) {
+      setMsg("❌ " + (e?.message || "Delete failed"));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  // ---------- Officers
+  async function promoteToOfficer() {
+    if (!promoteUserId) return setMsg("❌ Select a user.");
+    setSaving(true);
+    setMsg(null);
+    try {
+      const { error } = await supabase.from("profiles").update({ role: "AccountOfficer" }).eq("id", promoteUserId);
+      if (error) throw new Error(error.message);
+      setMsg("✅ User promoted to AccountOfficer.");
+      await loadAll();
+    } catch (e: any) {
+      setMsg("❌ " + (e?.message || "Failed"));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function demoteOfficer(userId: string) {
+    const ok = confirm("Remove AccountOfficer role from this user?");
+    if (!ok) return;
+    setSaving(true);
+    setMsg(null);
+    try {
+      const { error } = await supabase.from("profiles").update({ role: "Staff" }).eq("id", userId);
+      if (error) throw new Error(error.message);
+      setMsg("✅ Officer removed (role reset to Staff).");
+      await loadAll();
+    } catch (e: any) {
+      setMsg("❌ " + (e?.message || "Failed"));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  // ---------- Assign
+  async function assignAccount() {
+    if (!assignAccountId) return setMsg("❌ Select account.");
+    if (!assignOfficerId) return setMsg("❌ Select officer.");
+    setSaving(true);
+    setMsg(null);
+    try {
+      const { error } = await supabase.from("iet_account_officer_assignments").insert({
         account_id: assignAccountId,
+        officer_id: assignOfficerId,
         is_active: true,
       });
-
       if (error) throw new Error(error.message);
-
-      setMsg("✅ Assigned successfully.");
-      setAssignAccountId("");
-      setAssignOfficerId("");
+      setMsg("✅ Assignment created.");
       await loadAll();
     } catch (e: any) {
-      setMsg("❌ Assign failed: " + (e?.message || "Unknown error"));
+      setMsg("❌ " + (e?.message || "Assign failed"));
     } finally {
       setSaving(false);
     }
   }
 
-  async function toggleAssignment(row: OfficerRow) {
-    if (!canManage) return;
-
-    setSaving(true);
-    setMsg(null);
-    try {
-      const { error } = await supabase
-        .from("iet_account_officers")
-        .update({ is_active: !row.is_active })
-        .eq("id", row.id);
-
-      if (error) throw new Error(error.message);
-
-      setMsg("✅ Assignment updated.");
-      await loadAll();
-    } catch (e: any) {
-      setMsg("❌ Update failed: " + (e?.message || "Unknown error"));
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function deleteAssignment(id: string) {
-    if (!canManage) return;
+  async function removeAssignment(id: string) {
     const ok = confirm("Remove this assignment?");
     if (!ok) return;
-
     setSaving(true);
     setMsg(null);
     try {
-      const { error } = await supabase.from("iet_account_officers").delete().eq("id", id);
+      const { error } = await supabase.from("iet_account_officer_assignments").delete().eq("id", id);
       if (error) throw new Error(error.message);
-
       setMsg("✅ Assignment removed.");
       await loadAll();
     } catch (e: any) {
-      setMsg("❌ Remove failed: " + (e?.message || "Unknown error"));
+      setMsg("❌ " + (e?.message || "Failed"));
     } finally {
       setSaving(false);
     }
@@ -347,303 +380,507 @@ export default function ManageAccountsPage() {
       </main>
     );
   }
+  if (!canAdmin) return null;
 
   return (
     <main className="min-h-screen bg-slate-50 px-4">
       <div className="mx-auto max-w-6xl py-10">
-        <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">
-              Accounts Setup
-            </h1>
+            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">Manage Accounts</h1>
             <p className="mt-2 text-sm text-slate-600">
-              Create IET accounts and assign them to Accounting Officers.
+              Admin/Auditor can Create, Edit, Delete & Assign Departments, Subheads, Accounts and Accounting Officers.
             </p>
           </div>
-        </div>
 
-        {msg && (
-          <div className="mt-4 rounded-xl bg-slate-100 px-4 py-3 text-sm text-slate-800 whitespace-pre-line">
-            {msg}
-          </div>
-        )}
-
-        {/* Create / Edit Account */}
-        <div className="mt-6 rounded-2xl border bg-white p-6 shadow-sm">
-          <div className="text-lg font-bold text-slate-900">
-            {editId ? "Edit Account" : "Create Account"}
-          </div>
-
-          <div className="mt-4 grid gap-4 md:grid-cols-2">
-            <div>
-              <label className="text-sm font-semibold text-slate-800">Code</label>
-              <input
-                value={code}
-                onChange={(e) => setCode(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
-                placeholder="e.g. GENADMIN"
-              />
-            </div>
-
-            <div>
-              <label className="text-sm font-semibold text-slate-800">Name</label>
-              <input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
-                placeholder="e.g. General Admin"
-              />
-            </div>
-          </div>
-
-          <div className="mt-4 flex items-center gap-2">
-            <input
-              id="active"
-              type="checkbox"
-              checked={isActive}
-              onChange={(e) => setIsActive(e.target.checked)}
-            />
-            <label htmlFor="active" className="text-sm text-slate-700">
-              Active
-            </label>
-          </div>
-
-          <div className="mt-4 flex flex-wrap gap-2">
+          <div className="flex gap-2">
             <button
-              onClick={saveAccount}
-              disabled={saving}
-              className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
+              onClick={() => router.push("/finance/reports")}
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
             >
-              {saving ? "Saving..." : editId ? "Update" : "Create"}
+              ← Back to Finance
             </button>
-
-            {editId && (
-              <button
-                onClick={resetForm}
-                className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
-              >
-                Cancel
-              </button>
-            )}
+            <button
+              onClick={loadAll}
+              className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800"
+            >
+              Refresh
+            </button>
           </div>
         </div>
 
-        {/* Accounts list */}
-        <div className="mt-6 rounded-2xl border bg-white p-6 shadow-sm">
-          <div className="text-lg font-bold text-slate-900">All IET Accounts</div>
+        {msg && <div className="mt-4 rounded-xl bg-slate-100 px-3 py-2 text-sm text-slate-800">{msg}</div>}
 
-          {accounts.length === 0 ? (
-            <div className="mt-4 text-sm text-slate-700">No accounts yet.</div>
-          ) : (
-            <div className="mt-4 overflow-hidden rounded-xl border border-slate-200">
-              <div className="grid grid-cols-12 bg-slate-100 px-4 py-3 text-xs font-semibold text-slate-600">
-                <div className="col-span-3">Code</div>
-                <div className="col-span-5">Name</div>
-                <div className="col-span-2">Status</div>
-                <div className="col-span-2 text-right">Actions</div>
+        <div className="mt-6 flex flex-wrap gap-2">
+          {tabs.map((t) => (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              className={`rounded-xl px-4 py-2 text-sm font-semibold border ${
+                tab === t ? "bg-blue-600 text-white border-blue-600" : "bg-white text-slate-800 border-slate-200 hover:bg-slate-100"
+              }`}
+            >
+              {t}
+            </button>
+          ))}
+        </div>
+
+        {/* Departments */}
+        {tab === "Departments" && (
+          <div className="mt-6 grid gap-4 lg:grid-cols-2">
+            <div className="rounded-2xl border bg-white p-6 shadow-sm">
+              <div className="text-lg font-bold text-slate-900">{deptEditId ? "Edit Department" : "Create Department"}</div>
+
+              <div className="mt-4">
+                <label className="text-sm font-semibold text-slate-800">Name</label>
+                <input
+                  value={deptName}
+                  onChange={(e) => setDeptName(e.target.value)}
+                  className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
+                  placeholder="e.g. General Admin"
+                />
               </div>
 
-              {accounts.map((a) => (
-                <div key={a.id} className="grid grid-cols-12 border-t px-4 py-3 text-sm">
-                  <div className="col-span-3 font-semibold text-slate-900">{a.code || "—"}</div>
-                  <div className="col-span-5 text-slate-900">{a.name}</div>
-                  <div className="col-span-2">
-                    <span
-                      className={`inline-flex rounded-lg border px-2 py-1 text-xs font-semibold ${
-                        a.is_active
-                          ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                          : "bg-slate-50 text-slate-700 border-slate-200"
-                      }`}
-                    >
-                      {a.is_active ? "Active" : "Inactive"}
-                    </span>
-                  </div>
-                  <div className="col-span-2 flex justify-end gap-2">
-                    <button
-                      onClick={() => editAccount(a)}
-                      className="rounded-lg border border-slate-200 bg-white px-3 py-1 text-xs font-semibold hover:bg-slate-100"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => deleteAccount(a.id)}
-                      disabled={saving}
-                      className="rounded-lg bg-red-600 px-3 py-1 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-60"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Create Accounting Officer */}
-        <div className="mt-6 rounded-2xl border bg-white p-6 shadow-sm">
-          <div className="text-lg font-bold text-slate-900">Create Accounting Officer</div>
-          <p className="mt-1 text-sm text-slate-600">
-            Pick a registered user and set their role to <b>AccountOfficer</b>.
-          </p>
-
-          <div className="mt-4 grid gap-4 md:grid-cols-2">
-            <div>
-              <label className="text-sm font-semibold text-slate-800">User</label>
-              <select
-                value={officerUserId}
-                onChange={(e) => setOfficerUserId(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
-              >
-                <option value="">-- Select --</option>
-                {users.map((u) => (
-                  <option key={u.id} value={u.id}>
-                    {(u.full_name || "Unnamed") + " • " + (u.role || "Staff")}
-                  </option>
-                ))}
-              </select>
+              <div className="mt-4 flex gap-2">
+                <button
+                  onClick={saveDept}
+                  disabled={saving}
+                  className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
+                >
+                  {saving ? "Saving..." : deptEditId ? "Update" : "Create"}
+                </button>
+                {deptEditId && (
+                  <button
+                    onClick={() => {
+                      setDeptEditId(null);
+                      setDeptName("");
+                    }}
+                    className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
+                  >
+                    Cancel
+                  </button>
+                )}
+              </div>
             </div>
 
-            <div>
-              <label className="text-sm font-semibold text-slate-800">Set Role</label>
-              <select
-                value={officerRole}
-                onChange={(e) => setOfficerRole(e.target.value as any)}
-                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
-              >
-                <option value="AccountOfficer">AccountOfficer</option>
-                <option value="Account">Account</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="mt-4">
-            <button
-              onClick={createOfficerRole}
-              disabled={saving}
-              className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-60"
-            >
-              {saving ? "Working..." : "Make Accounting Officer"}
-            </button>
-          </div>
-        </div>
-
-        {/* Assign Account to Officer */}
-        <div className="mt-6 rounded-2xl border bg-white p-6 shadow-sm">
-          <div className="text-lg font-bold text-slate-900">Assign Account to Officer</div>
-
-          <div className="mt-4 grid gap-4 md:grid-cols-2">
-            <div>
-              <label className="text-sm font-semibold text-slate-800">Account</label>
-              <select
-                value={assignAccountId}
-                onChange={(e) => setAssignAccountId(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
-              >
-                <option value="">-- Select --</option>
-                {accounts.map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {(a.code || "—") + " • " + a.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="text-sm font-semibold text-slate-800">Officer</label>
-              <select
-                value={assignOfficerId}
-                onChange={(e) => setAssignOfficerId(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
-              >
-                <option value="">-- Select --</option>
-                {officers.map((u) => (
-                  <option key={u.id} value={u.id}>
-                    {(u.full_name || "Unnamed") + " • " + (u.role || "Staff")}
-                  </option>
-                ))}
-              </select>
-
-              {officers.length === 0 && (
-                <div className="mt-2 text-xs text-red-600">
-                  No Accounting Officers found. Use “Create Accounting Officer” above.
+            <div className="rounded-2xl border bg-white p-6 shadow-sm">
+              <div className="text-lg font-bold text-slate-900">Departments</div>
+              {depts.length === 0 ? (
+                <div className="mt-4 text-sm text-slate-600">No departments.</div>
+              ) : (
+                <div className="mt-4 space-y-2">
+                  {depts.map((d) => (
+                    <div key={d.id} className="flex items-center justify-between rounded-xl border border-slate-200 px-4 py-3">
+                      <div className="font-semibold text-slate-900">{d.name}</div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => {
+                            setDeptEditId(d.id);
+                            setDeptName(d.name);
+                          }}
+                          className="rounded-lg border border-slate-200 bg-white px-3 py-1 text-xs font-semibold hover:bg-slate-100"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => deleteDept(d.id)}
+                          disabled={saving}
+                          className="rounded-lg bg-red-600 px-3 py-1 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-60"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
           </div>
+        )}
 
-          <div className="mt-4">
-            <button
-              onClick={assignAccount}
-              disabled={saving}
-              className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
-            >
-              {saving ? "Assigning..." : "Assign"}
-            </button>
-          </div>
-        </div>
+        {/* Accounts */}
+        {tab === "Accounts" && (
+          <div className="mt-6 grid gap-4 lg:grid-cols-2">
+            <div className="rounded-2xl border bg-white p-6 shadow-sm">
+              <div className="text-lg font-bold text-slate-900">{accEditId ? "Edit Account" : "Create Account"}</div>
 
-        {/* Assignments table */}
-        <div className="mt-6 rounded-2xl border bg-white p-6 shadow-sm">
-          <div className="text-lg font-bold text-slate-900">Officer Assignments</div>
-
-          {assignments.length === 0 ? (
-            <div className="mt-4 text-sm text-slate-700">No assignments yet.</div>
-          ) : (
-            <div className="mt-4 overflow-hidden rounded-xl border border-slate-200">
-              <div className="grid grid-cols-12 bg-slate-100 px-4 py-3 text-xs font-semibold text-slate-600">
-                <div className="col-span-5">Officer</div>
-                <div className="col-span-5">Account</div>
-                <div className="col-span-1">Status</div>
-                <div className="col-span-1 text-right">Actions</div>
+              <div className="mt-4 grid gap-4 md:grid-cols-2">
+                <div>
+                  <label className="text-sm font-semibold text-slate-800">Code</label>
+                  <input
+                    value={accCode}
+                    onChange={(e) => setAccCode(e.target.value)}
+                    className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
+                    placeholder="e.g. GENADMIN"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-semibold text-slate-800">Name</label>
+                  <input
+                    value={accName}
+                    onChange={(e) => setAccName(e.target.value)}
+                    className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
+                    placeholder="e.g. General Admin"
+                  />
+                </div>
               </div>
 
-              {assignments.map((r) => {
-                const u = userMap[r.officer_user_id];
-                const a = accountMap[r.account_id];
-                return (
-                  <div key={r.id} className="grid grid-cols-12 border-t px-4 py-3 text-sm">
-                    <div className="col-span-5 text-slate-900">
-                      {(u?.full_name || "Unknown") + " • " + (u?.role || "—")}
-                    </div>
-                    <div className="col-span-5 text-slate-900">
-                      {(a?.code || "—") + " • " + (a?.name || "Unknown")}
-                    </div>
-                    <div className="col-span-1">
-                      <span
-                        className={`inline-flex rounded-lg border px-2 py-1 text-xs font-semibold ${
-                          r.is_active
-                            ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                            : "bg-slate-50 text-slate-700 border-slate-200"
-                        }`}
-                      >
-                        {r.is_active ? "On" : "Off"}
-                      </span>
-                    </div>
-                    <div className="col-span-1 flex justify-end gap-2">
-                      <button
-                        onClick={() => toggleAssignment(r)}
-                        disabled={saving}
-                        className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-semibold hover:bg-slate-100 disabled:opacity-60"
-                      >
-                        Toggle
-                      </button>
-                      <button
-                        onClick={() => deleteAssignment(r.id)}
-                        disabled={saving}
-                        className="rounded-lg bg-red-600 px-2 py-1 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-60"
-                      >
-                        X
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
+              <div className="mt-4 flex gap-2">
+                <button
+                  onClick={saveAccount}
+                  disabled={saving}
+                  className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
+                >
+                  {saving ? "Saving..." : accEditId ? "Update" : "Create"}
+                </button>
+                {accEditId && (
+                  <button
+                    onClick={() => {
+                      setAccEditId(null);
+                      setAccCode("");
+                      setAccName("");
+                    }}
+                    className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
+                  >
+                    Cancel
+                  </button>
+                )}
+              </div>
             </div>
-          )}
-        </div>
 
-        <div className="mt-8 text-xs text-slate-500">
-          Access: Admin/Auditor only.
+            <div className="rounded-2xl border bg-white p-6 shadow-sm">
+              <div className="text-lg font-bold text-slate-900">IET Accounts</div>
+              {accounts.length === 0 ? (
+                <div className="mt-4 text-sm text-slate-600">No accounts.</div>
+              ) : (
+                <div className="mt-4 space-y-2">
+                  {accounts.map((a) => (
+                    <div key={a.id} className="flex items-center justify-between rounded-xl border border-slate-200 px-4 py-3">
+                      <div>
+                        <div className="font-semibold text-slate-900">{a.code} — {a.name}</div>
+                        <div className="text-xs text-slate-500">Updated: {new Date(a.updated_at).toLocaleString()}</div>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => {
+                            setAccEditId(a.id);
+                            setAccCode(a.code);
+                            setAccName(a.name);
+                          }}
+                          className="rounded-lg border border-slate-200 bg-white px-3 py-1 text-xs font-semibold hover:bg-slate-100"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => deleteAccount(a.id)}
+                          disabled={saving}
+                          className="rounded-lg bg-red-600 px-3 py-1 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-60"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Subheads */}
+        {tab === "Subheads" && (
+          <div className="mt-6 grid gap-4 lg:grid-cols-2">
+            <div className="rounded-2xl border bg-white p-6 shadow-sm">
+              <div className="text-lg font-bold text-slate-900">{subEditId ? "Edit Subhead" : "Create Subhead"}</div>
+
+              <div className="mt-4 grid gap-4 md:grid-cols-2">
+                <div>
+                  <label className="text-sm font-semibold text-slate-800">Department</label>
+                  <select
+                    value={subDeptId}
+                    onChange={(e) => setSubDeptId(e.target.value)}
+                    className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
+                  >
+                    {depts.map((d) => (
+                      <option key={d.id} value={d.id}>{d.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-sm font-semibold text-slate-800">Account Bucket</label>
+                  <select
+                    value={subAccountId}
+                    onChange={(e) => setSubAccountId(e.target.value)}
+                    className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
+                  >
+                    <option value="">-- None --</option>
+                    {accounts.map((a) => (
+                      <option key={a.id} value={a.id}>{a.code} — {a.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="mt-4 grid gap-4 md:grid-cols-2">
+                <div>
+                  <label className="text-sm font-semibold text-slate-800">Code</label>
+                  <input
+                    value={subCode}
+                    onChange={(e) => setSubCode(e.target.value)}
+                    className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
+                    placeholder="e.g. GA-004"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm font-semibold text-slate-800">Name</label>
+                  <input
+                    value={subName}
+                    onChange={(e) => setSubName(e.target.value)}
+                    className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
+                    placeholder="e.g. Vehicles Maintenance"
+                  />
+                </div>
+              </div>
+
+              <div className="mt-4">
+                <label className="text-sm font-semibold text-slate-800">Allocation (₦)</label>
+                <input
+                  value={subAlloc}
+                  onChange={(e) => setSubAlloc(e.target.value)}
+                  className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
+                  inputMode="numeric"
+                />
+              </div>
+
+              <div className="mt-4 flex gap-2">
+                <button
+                  onClick={saveSubhead}
+                  disabled={saving}
+                  className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
+                >
+                  {saving ? "Saving..." : subEditId ? "Update" : "Create"}
+                </button>
+                {subEditId && (
+                  <button
+                    onClick={() => {
+                      setSubEditId(null);
+                      setSubCode("");
+                      setSubName("");
+                      setSubAlloc("0");
+                    }}
+                    className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
+                  >
+                    Cancel
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div className="rounded-2xl border bg-white p-6 shadow-sm">
+              <div className="text-lg font-bold text-slate-900">Subheads</div>
+
+              {subheads.length === 0 ? (
+                <div className="mt-4 text-sm text-slate-600">No subheads.</div>
+              ) : (
+                <div className="mt-4 space-y-2 max-h-[540px] overflow-auto pr-2">
+                  {subheads.map((s) => (
+                    <div key={s.id} className="rounded-xl border border-slate-200 px-4 py-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <div className="font-semibold text-slate-900">
+                            {(s.code ? s.code + " — " : "") + s.name}
+                          </div>
+                          <div className="text-xs text-slate-600">
+                            Dept: <b>{deptMap[s.dept_id]?.name || s.dept_id}</b> • Account:{" "}
+                            <b>{s.account_id ? (accountMap[s.account_id]?.code || "—") : "—"}</b>
+                          </div>
+                          <div className="text-xs text-slate-600 mt-1">
+                            Allocation: <b>{naira(s.approved_allocation)}</b> • Expenditure:{" "}
+                            <b>{naira(s.expenditure)}</b> • Balance: <b>{naira(s.balance)}</b>
+                          </div>
+                        </div>
+
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => {
+                              setSubEditId(s.id);
+                              setSubDeptId(s.dept_id);
+                              setSubAccountId(s.account_id || "");
+                              setSubCode(s.code || "");
+                              setSubName(s.name);
+                              setSubAlloc(String(Number(s.approved_allocation || 0)));
+                              setTab("Subheads");
+                            }}
+                            className="rounded-lg border border-slate-200 bg-white px-3 py-1 text-xs font-semibold hover:bg-slate-100"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => deleteSubhead(s.id)}
+                            disabled={saving}
+                            className="rounded-lg bg-red-600 px-3 py-1 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-60"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="text-[11px] text-slate-500 mt-2">
+                        Updated: {new Date(s.updated_at).toLocaleString()}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Officers */}
+        {tab === "Officers" && (
+          <div className="mt-6 grid gap-4 lg:grid-cols-2">
+            <div className="rounded-2xl border bg-white p-6 shadow-sm">
+              <div className="text-lg font-bold text-slate-900">Create Accounting Officers</div>
+              <div className="mt-2 text-sm text-slate-600">Promote any registered user to <b>AccountOfficer</b>.</div>
+
+              <div className="mt-4">
+                <label className="text-sm font-semibold text-slate-800">User</label>
+                <select
+                  value={promoteUserId}
+                  onChange={(e) => setPromoteUserId(e.target.value)}
+                  className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
+                >
+                  <option value="">-- Select --</option>
+                  {users.map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {(u.full_name || "Unnamed") + " • " + (u.role || "Staff")}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="mt-4">
+                <button
+                  onClick={promoteToOfficer}
+                  disabled={saving}
+                  className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-60"
+                >
+                  {saving ? "Working..." : "Promote to AccountOfficer"}
+                </button>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border bg-white p-6 shadow-sm">
+              <div className="text-lg font-bold text-slate-900">Accounting Officers</div>
+              {officers.length === 0 ? (
+                <div className="mt-4 text-sm text-slate-600">No officers yet.</div>
+              ) : (
+                <div className="mt-4 space-y-2">
+                  {officers.map((o) => (
+                    <div key={o.id} className="flex items-center justify-between rounded-xl border border-slate-200 px-4 py-3">
+                      <div className="font-semibold text-slate-900">{o.full_name || "Unnamed"}</div>
+                      <button
+                        onClick={() => demoteOfficer(o.id)}
+                        disabled={saving}
+                        className="rounded-lg bg-red-600 px-3 py-1 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-60"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Assign */}
+        {tab === "Assign" && (
+          <div className="mt-6 grid gap-4 lg:grid-cols-2">
+            <div className="rounded-2xl border bg-white p-6 shadow-sm">
+              <div className="text-lg font-bold text-slate-900">Assign Account to Officer</div>
+
+              <div className="mt-4 grid gap-4 md:grid-cols-2">
+                <div>
+                  <label className="text-sm font-semibold text-slate-800">Account</label>
+                  <select
+                    value={assignAccountId}
+                    onChange={(e) => setAssignAccountId(e.target.value)}
+                    className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
+                  >
+                    <option value="">-- Select --</option>
+                    {accounts.map((a) => (
+                      <option key={a.id} value={a.id}>{a.code} — {a.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-sm font-semibold text-slate-800">Officer</label>
+                  <select
+                    value={assignOfficerId}
+                    onChange={(e) => setAssignOfficerId(e.target.value)}
+                    className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
+                  >
+                    <option value="">-- Select --</option>
+                    {officers.map((o) => (
+                      <option key={o.id} value={o.id}>{o.full_name || "Unnamed"}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="mt-4">
+                <button
+                  onClick={assignAccount}
+                  disabled={saving}
+                  className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
+                >
+                  {saving ? "Assigning..." : "Assign"}
+                </button>
+              </div>
+
+              {officers.length === 0 && (
+                <div className="mt-3 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl p-3">
+                  No officers yet. Go to <b>Officers</b> tab and promote users.
+                </div>
+              )}
+            </div>
+
+            <div className="rounded-2xl border bg-white p-6 shadow-sm">
+              <div className="text-lg font-bold text-slate-900">Current Assignments</div>
+
+              {assignments.length === 0 ? (
+                <div className="mt-4 text-sm text-slate-600">No assignments yet.</div>
+              ) : (
+                <div className="mt-4 space-y-2 max-h-[540px] overflow-auto pr-2">
+                  {assignments.map((a) => (
+                    <div key={a.id} className="flex items-center justify-between rounded-xl border border-slate-200 px-4 py-3">
+                      <div>
+                        <div className="font-semibold text-slate-900">
+                          {accountMap[a.account_id]?.code || "—"} → {userMap[a.officer_id]?.full_name || "Unnamed"}
+                        </div>
+                        <div className="text-xs text-slate-500">{new Date(a.created_at).toLocaleString()}</div>
+                      </div>
+                      <button
+                        onClick={() => removeAssignment(a.id)}
+                        disabled={saving}
+                        className="rounded-lg bg-red-600 px-3 py-1 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-60"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        <div className="mt-10 text-xs text-slate-500">
+          If anything looks empty after updates → click <b>Refresh</b>.
         </div>
       </div>
     </main>
