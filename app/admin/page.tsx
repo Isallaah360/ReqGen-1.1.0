@@ -1,19 +1,62 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
-type UserRow = { id: string; email: string | null; role: string | null };
+type UserRow = {
+  id: string;
+  email: string | null;
+  full_name: string | null;
+  role: string | null;
+  dept_id?: string | null;
+};
+
 type DeptRow = {
   id: string;
   name: string;
   hod_user_id: string | null;
   director_user_id: string | null;
 };
+
 type SettingRow = { key: string; value: string };
 
-const GLOBAL_KEYS = ["REGISTRY_USER_ID", "DG_USER_ID", "ACCOUNT_USER_ID", "HR_USER_ID"] as const;
+const ROLE_OPTIONS = [
+  "Staff",
+  "Admin",
+  "Auditor",
+  "AccountOfficer",
+  "Director",
+  "HOD",
+  "HR",
+  "Registry",
+  "DG",
+] as const;
+
+const GLOBAL_KEYS = [
+  "HOD_USER_ID",
+  "DIRECTOR_USER_ID",
+  "REGISTRY_USER_ID",
+  "DG_USER_ID",
+  "ACCOUNT_USER_ID",
+  "HR_USER_ID",
+] as const;
+
+function roleKey(role: string) {
+  return (role || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "")
+    .replace(/_/g, "");
+}
+
+function userLabel(u: UserRow) {
+  const name = u.full_name?.trim() || "Unnamed User";
+  const email = u.email?.trim() || u.id;
+  const role = u.role?.trim() || "Staff";
+  return `${name} • ${email} (${role})`;
+}
 
 export default function AdminPage() {
   const router = useRouter();
@@ -28,11 +71,17 @@ export default function AdminPage() {
   const [depts, setDepts] = useState<DeptRow[]>([]);
   const [settings, setSettings] = useState<Record<string, string>>({});
 
-  // Role assignment section
+  // Role assignment
   const [selectedUserId, setSelectedUserId] = useState<string>("");
   const [selectedRole, setSelectedRole] = useState<string>("Staff");
+
   const [savingRole, setSavingRole] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  const canAdmin = useMemo(() => {
+    const rk = roleKey(meRole);
+    return rk === "admin" || rk === "auditor";
+  }, [meRole]);
 
   const usersById = useMemo(() => {
     const m = new Map<string, UserRow>();
@@ -60,7 +109,7 @@ export default function AdminPage() {
 
     setMeEmail(user.email || "");
 
-    // 2) Admin gate
+    // 2) Admin/Auditor gate
     const { data: me, error: meErr } = await supabase
       .from("profiles")
       .select("role")
@@ -76,25 +125,39 @@ export default function AdminPage() {
     const role = (me?.role || "Staff") as string;
     setMeRole(role);
 
-    if (role !== "Admin") {
+    if (!["admin", "auditor"].includes(roleKey(role))) {
       router.push("/dashboard");
       return;
     }
 
-    // 3) Load all admin data in parallel (fast + stable)
+    // 3) Load all admin data in parallel
     const [profsRes, deptRes, setRes] = await Promise.all([
-      supabase.from("profiles").select("id,email,role").order("email", { ascending: true }),
-      supabase.from("departments").select("id,name,hod_user_id,director_user_id").order("name", { ascending: true }),
+      supabase
+        .from("profiles")
+        .select("id,email,full_name,role,dept_id")
+        .order("full_name", { ascending: true }),
+      supabase
+        .from("departments")
+        .select("id,name,hod_user_id,director_user_id")
+        .order("name", { ascending: true }),
       supabase.from("app_settings").select("key,value"),
     ]);
 
-    if (profsRes.error) setMsg("Failed to load users: " + profsRes.error.message);
-    else setUsers((profsRes.data || []) as UserRow[]);
+    if (profsRes.error) {
+      setMsg("Failed to load users: " + profsRes.error.message);
+    } else {
+      setUsers((profsRes.data || []) as UserRow[]);
+    }
 
-    if (deptRes.error) setMsg("Failed to load departments: " + deptRes.error.message);
-    else setDepts((deptRes.data || []) as DeptRow[]);
+    if (deptRes.error) {
+      setMsg("Failed to load departments: " + deptRes.error.message);
+    } else {
+      setDepts((deptRes.data || []) as DeptRow[]);
+    }
 
-    if (!setRes.error && setRes.data) {
+    if (setRes.error) {
+      setMsg("Failed to load settings: " + setRes.error.message);
+    } else if (setRes.data) {
       const map: Record<string, string> = {};
       (setRes.data as SettingRow[]).forEach((r) => (map[r.key] = r.value));
       setSettings(map);
@@ -108,21 +171,24 @@ export default function AdminPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // When selecting a user, auto-load their current role into role dropdown
+  // When a user is selected, auto-load current role
   useEffect(() => {
     if (!selectedUserId) return;
     const u = usersById.get(selectedUserId);
-    if (u?.role) setSelectedRole(u.role);
-    else setSelectedRole("Staff");
+    setSelectedRole(u?.role || "Staff");
   }, [selectedUserId, usersById]);
 
   async function saveDept(deptId: string, hodId: string | null, dirId: string | null) {
     setMsg(null);
     setSaving(true);
+
     try {
       const { error } = await supabase
         .from("departments")
-        .update({ hod_user_id: hodId || null, director_user_id: dirId || null })
+        .update({
+          hod_user_id: hodId || null,
+          director_user_id: dirId || null,
+        })
         .eq("id", deptId);
 
       if (error) throw new Error(error.message);
@@ -139,8 +205,12 @@ export default function AdminPage() {
   async function saveSetting(key: string, value: string) {
     setMsg(null);
     setSaving(true);
+
     try {
-      const { error } = await supabase.from("app_settings").upsert({ key, value: value || "" });
+      const { error } = await supabase
+        .from("app_settings")
+        .upsert({ key, value: value || "" });
+
       if (error) throw new Error(error.message);
 
       setMsg("✅ Setting saved.");
@@ -181,17 +251,40 @@ export default function AdminPage() {
   if (loading) {
     return (
       <main className="min-h-screen bg-slate-50 px-4">
-        <div className="mx-auto max-w-5xl py-10 text-slate-600">Loading...</div>
+        <div className="mx-auto max-w-6xl py-10 text-slate-600">Loading...</div>
+      </main>
+    );
+  }
+
+  if (!canAdmin) {
+    return (
+      <main className="min-h-screen bg-slate-50 px-4">
+        <div className="mx-auto max-w-4xl py-10">
+          <div className="rounded-2xl border bg-white p-6 shadow-sm">
+            <div className="text-lg font-bold text-slate-900">Access denied</div>
+            <div className="mt-1 text-sm text-slate-600">
+              Only Admin or Auditor can access this page.
+            </div>
+            <button
+              onClick={() => router.push("/dashboard")}
+              className="mt-4 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+            >
+              Back to Dashboard
+            </button>
+          </div>
+        </div>
       </main>
     );
   }
 
   return (
     <main className="min-h-screen bg-slate-50 px-4">
-      <div className="mx-auto max-w-5xl py-10">
+      <div className="mx-auto max-w-6xl py-10">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">Admin Panel</h1>
+            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">
+              Admin Panel
+            </h1>
             <p className="mt-2 text-sm text-slate-600">
               Logged in as <b className="text-slate-900">{meEmail || "—"}</b> • Role{" "}
               <b className="text-slate-900">{meRole}</b>
@@ -212,11 +305,44 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* ✅ Role Assignment */}
+        {/* QUICK LINKS */}
+        <div className="mt-6 grid gap-4 md:grid-cols-3">
+          <Link
+            href="/admin/users"
+            className="rounded-2xl border bg-white p-5 shadow-sm hover:bg-slate-50"
+          >
+            <div className="text-lg font-bold text-slate-900">Users & Roles</div>
+            <div className="mt-1 text-sm text-slate-600">
+              Manage staff accounts, roles and dept routing.
+            </div>
+          </Link>
+
+          <Link
+            href="/admin/settings"
+            className="rounded-2xl border bg-white p-5 shadow-sm hover:bg-slate-50"
+          >
+            <div className="text-lg font-bold text-slate-900">Routing Settings</div>
+            <div className="mt-1 text-sm text-slate-600">
+              Set HOD, Director, Registry, DG, HR and Account routing.
+            </div>
+          </Link>
+
+          <Link
+            href="/finance"
+            className="rounded-2xl border bg-white p-5 shadow-sm hover:bg-slate-50"
+          >
+            <div className="text-lg font-bold text-slate-900">Finance Section</div>
+            <div className="mt-1 text-sm text-slate-600">
+              Manage departments, subheads, accounts and reports.
+            </div>
+          </Link>
+        </div>
+
+        {/* ROLE ASSIGNMENT */}
         <div className="mt-6 rounded-2xl border bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-bold text-slate-900">User Role Assignment</h2>
+          <h2 className="text-lg font-bold text-slate-900">Quick Role Assignment</h2>
           <p className="mt-1 text-sm text-slate-600">
-            Admin has full access. Staff is normal. Officers are assigned in Global Officers / Departments.
+            Assign any global role directly here.
           </p>
 
           <div className="mt-4 grid gap-4 md:grid-cols-3">
@@ -230,7 +356,7 @@ export default function AdminPage() {
                 <option value="">-- Select user --</option>
                 {users.map((u) => (
                   <option key={u.id} value={u.id}>
-                    {u.email || u.id} {u.role ? `(${u.role})` : ""}
+                    {userLabel(u)}
                   </option>
                 ))}
               </select>
@@ -243,8 +369,11 @@ export default function AdminPage() {
                 onChange={(e) => setSelectedRole(e.target.value)}
                 className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
               >
-                <option value="Staff">Staff</option>
-                <option value="Admin">Admin</option>
+                {ROLE_OPTIONS.map((r) => (
+                  <option key={r} value={r}>
+                    {r}
+                  </option>
+                ))}
               </select>
             </div>
           </div>
@@ -258,9 +387,9 @@ export default function AdminPage() {
           </button>
         </div>
 
-        {/* ✅ Global Officers */}
+        {/* GLOBAL OFFICERS */}
         <div className="mt-6 rounded-2xl border bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-bold text-slate-900">Global Officers</h2>
+          <h2 className="text-lg font-bold text-slate-900">Global Routing Officers</h2>
           <p className="mt-1 text-sm text-slate-600">
             Stored in <b>app_settings</b>. These drive routing and notifications.
           </p>
@@ -277,7 +406,7 @@ export default function AdminPage() {
                   <option value="">-- Select user --</option>
                   {users.map((u) => (
                     <option key={u.id} value={u.id}>
-                      {u.email || u.id}
+                      {userLabel(u)}
                     </option>
                   ))}
                 </select>
@@ -294,9 +423,12 @@ export default function AdminPage() {
           ))}
         </div>
 
-        {/* ✅ Department Routing */}
+        {/* DEPARTMENT ROUTING */}
         <div className="mt-6 rounded-2xl border bg-white p-6 shadow-sm">
           <h2 className="text-lg font-bold text-slate-900">Departments Routing</h2>
+          <p className="mt-1 text-sm text-slate-600">
+            Set HOD and Director per department.
+          </p>
 
           <div className="mt-4 space-y-4">
             {depts.map((d) => (
@@ -320,7 +452,7 @@ export default function AdminPage() {
                       <option value="">-- None --</option>
                       {users.map((u) => (
                         <option key={u.id} value={u.id}>
-                          {u.email || u.id}
+                          {userLabel(u)}
                         </option>
                       ))}
                     </select>
@@ -333,7 +465,9 @@ export default function AdminPage() {
                       onChange={(e) =>
                         setDepts((prev) =>
                           prev.map((x) =>
-                            x.id === d.id ? { ...x, director_user_id: e.target.value || null } : x
+                            x.id === d.id
+                              ? { ...x, director_user_id: e.target.value || null }
+                              : x
                           )
                         )
                       }
@@ -342,7 +476,7 @@ export default function AdminPage() {
                       <option value="">-- None --</option>
                       {users.map((u) => (
                         <option key={u.id} value={u.id}>
-                          {u.email || u.id}
+                          {userLabel(u)}
                         </option>
                       ))}
                     </select>
