@@ -4,93 +4,128 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
-type Profile = { id: string; full_name: string | null; role: string | null };
-type SettingKey =
-  | "HOD_USER_ID"
-  | "DIRECTOR_USER_ID"
-  | "REGISTRY_USER_ID"
-  | "DG_USER_ID"
-  | "HR_USER_ID"
-  | "ACCOUNT_USER_ID";
+type UserRow = {
+  id: string;
+  email: string | null;
+  full_name: string | null;
+  role: string | null;
+};
 
-type Row = { key: SettingKey; value: string | null };
+type SettingRow = { key: string; value: string };
+
+const SETTING_KEYS = [
+  "REGISTRY_USER_ID",
+  "DG_USER_ID",
+  "ACCOUNT_USER_ID",
+  "HR_USER_ID",
+] as const;
 
 function roleKey(role: string) {
-  return (role || "").trim().toLowerCase().replace(/\s+/g, "").replace(/_/g, "");
+  return (role || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "")
+    .replace(/_/g, "");
+}
+
+function userLabel(u: UserRow) {
+  const name = u.full_name?.trim() || "Unnamed User";
+  const email = u.email?.trim() || u.id;
+  const role = u.role?.trim() || "Staff";
+  return `${name} • ${email} (${role})`;
 }
 
 export default function AdminSettingsPage() {
   const router = useRouter();
+
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const [meRole, setMeRole] = useState("");
 
-  const [meRole, setMeRole] = useState<string>("Staff");
-  const [users, setUsers] = useState<Profile[]>([]);
-  const [rows, setRows] = useState<Row[]>([
-    { key: "HOD_USER_ID", value: null },
-    { key: "DIRECTOR_USER_ID", value: null },
-    { key: "REGISTRY_USER_ID", value: null },
-    { key: "DG_USER_ID", value: null },
-    { key: "HR_USER_ID", value: null },
-    { key: "ACCOUNT_USER_ID", value: null },
-  ]);
+  const [users, setUsers] = useState<UserRow[]>([]);
+  const [settings, setSettings] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState(false);
 
-  const canAdmin = useMemo(() => ["admin", "auditor"].includes(roleKey(meRole)), [meRole]);
+  const canAdmin = useMemo(() => {
+    const rk = roleKey(meRole);
+    return rk === "admin" || rk === "auditor";
+  }, [meRole]);
 
-  async function load() {
+  async function loadAll() {
     setLoading(true);
     setMsg(null);
 
-    const { data: auth } = await supabase.auth.getUser();
-    if (!auth.user) {
+    const { data: authData } = await supabase.auth.getUser();
+    const user = authData.user;
+
+    if (!user) {
       router.push("/login");
       return;
     }
 
-    // role
-    const { data: prof } = await supabase.from("profiles").select("role").eq("id", auth.user.id).maybeSingle();
-    const r = (prof?.role || "Staff") as string;
-    setMeRole(r);
+    const { data: me, error: meErr } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .single();
 
-    if (!["admin", "auditor"].includes(roleKey(r))) {
+    if (meErr) {
+      setMsg("Failed to verify access: " + meErr.message);
+      setLoading(false);
+      return;
+    }
+
+    setMeRole((me?.role || "Staff") as string);
+
+    if (!["admin", "auditor"].includes(roleKey((me?.role || "Staff") as string))) {
       router.push("/dashboard");
       return;
     }
 
-    // users
-    const { data: u } = await supabase.from("profiles").select("id,full_name,role").order("full_name");
-    setUsers((u || []) as any);
+    const [profsRes, settingsRes] = await Promise.all([
+      supabase
+        .from("profiles")
+        .select("id,email,full_name,role")
+        .order("full_name", { ascending: true }),
+      supabase.from("app_settings").select("key,value"),
+    ]);
 
-    // settings
-    const keys = rows.map((x) => x.key);
-    const { data: s, error } = await supabase.from("app_settings").select("key,value").in("key", keys);
-    if (error) {
-      setMsg("Failed to load settings: " + error.message);
-    } else {
-      const map: Record<string, string | null> = {};
-      (s || []).forEach((x: any) => (map[x.key] = x.value));
-      setRows((prev) => prev.map((p) => ({ ...p, value: map[p.key] ?? null })));
+    if (profsRes.error) setMsg("Failed to load users: " + profsRes.error.message);
+    else setUsers((profsRes.data || []) as UserRow[]);
+
+    if (settingsRes.error) setMsg("Failed to load settings: " + settingsRes.error.message);
+    else {
+      const map: Record<string, string> = {};
+      (settingsRes.data || []).forEach((r: any) => {
+        map[r.key] = r.value;
+      });
+      setSettings(map);
     }
 
     setLoading(false);
   }
 
   useEffect(() => {
-    load();
+    loadAll();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function saveKey(key: SettingKey, value: string | null) {
+  async function saveSetting(key: string, value: string) {
     setSaving(true);
     setMsg(null);
+
     try {
-      const { error } = await supabase.from("app_settings").upsert({ key, value });
+      const { error } = await supabase.from("app_settings").upsert({
+        key,
+        value: value || "",
+      });
+
       if (error) throw new Error(error.message);
-      setMsg("✅ Saved " + key);
-      await load();
+
+      setMsg(`✅ ${key} saved successfully.`);
+      await loadAll();
     } catch (e: any) {
-      setMsg("❌ Save failed: " + (e?.message || "Unknown"));
+      setMsg("❌ Failed: " + (e?.message || "Unknown error"));
     } finally {
       setSaving(false);
     }
@@ -99,7 +134,7 @@ export default function AdminSettingsPage() {
   if (loading) {
     return (
       <main className="min-h-screen bg-slate-50 px-4">
-        <div className="mx-auto max-w-4xl py-10 text-slate-600">Loading...</div>
+        <div className="mx-auto max-w-5xl py-10 text-slate-600">Loading...</div>
       </main>
     );
   }
@@ -108,12 +143,14 @@ export default function AdminSettingsPage() {
 
   return (
     <main className="min-h-screen bg-slate-50 px-4">
-      <div className="mx-auto max-w-4xl py-10">
+      <div className="mx-auto max-w-5xl py-10">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">System Routing Settings</h1>
+            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">
+              Routing Settings
+            </h1>
             <p className="mt-2 text-sm text-slate-600">
-              Set who receives requests at each stage (HOD, Director, Registry, DG, HR, Account).
+              Set the global routing officers for notifications and approvals.
             </p>
           </div>
 
@@ -121,55 +158,44 @@ export default function AdminSettingsPage() {
             onClick={() => router.push("/admin")}
             className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
           >
-            ← Back
+            Back
           </button>
         </div>
 
-        {msg && <div className="mt-4 rounded-xl bg-slate-100 px-3 py-2 text-sm text-slate-800">{msg}</div>}
+        {msg && (
+          <div className="mt-4 rounded-xl bg-slate-100 px-3 py-2 text-sm text-slate-800">
+            {msg}
+          </div>
+        )}
 
-        <div className="mt-6 space-y-4">
-          {rows.map((r) => (
-            <div key={r.key} className="rounded-2xl border bg-white p-5 shadow-sm">
-              <div className="text-sm font-bold text-slate-900">{r.key}</div>
-
-              <div className="mt-3 grid gap-3 md:grid-cols-3 items-end">
-                <div className="md:col-span-2">
-                  <label className="text-xs font-semibold text-slate-600">Select User</label>
-                  <select
-                    value={r.value || ""}
-                    onChange={(e) => {
-                      const v = e.target.value || null;
-                      setRows((prev) => prev.map((x) => (x.key === r.key ? { ...x, value: v } : x)));
-                    }}
-                    className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
-                  >
-                    <option value="">-- Select --</option>
-                    {users.map((u) => (
-                      <option key={u.id} value={u.id}>
-                        {(u.full_name || "Unnamed") + " • " + (u.role || "Staff")}
-                      </option>
-                    ))}
-                  </select>
-
-                  <div className="mt-2 text-xs text-slate-500">
-                    Current: <b>{r.value || "Not set"}</b>
-                  </div>
-                </div>
+        <div className="mt-6 rounded-2xl border bg-white p-6 shadow-sm">
+          {SETTING_KEYS.map((k) => (
+            <div key={k} className="mt-4 first:mt-0">
+              <div className="text-sm font-semibold text-slate-800">{k}</div>
+              <div className="mt-2 flex flex-col gap-2 md:flex-row">
+                <select
+                  value={settings[k] || ""}
+                  onChange={(e) => setSettings((prev) => ({ ...prev, [k]: e.target.value }))}
+                  className="w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
+                >
+                  <option value="">-- Select user --</option>
+                  {users.map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {userLabel(u)}
+                    </option>
+                  ))}
+                </select>
 
                 <button
+                  onClick={() => saveSetting(k, settings[k] || "")}
                   disabled={saving}
-                  onClick={() => saveKey(r.key, r.value)}
                   className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
                 >
-                  {saving ? "Saving..." : "Save"}
+                  Save
                 </button>
               </div>
             </div>
           ))}
-        </div>
-
-        <div className="mt-6 text-xs text-slate-500">
-          After setting <b>HOD_USER_ID</b>, new requests will submit successfully.
         </div>
       </div>
     </main>
