@@ -16,6 +16,8 @@ type UserRow = {
 type DeptRow = {
   id: string;
   name: string;
+  hod_user_id: string | null;
+  director_user_id: string | null;
 };
 
 type SettingRow = { key: string; value: string };
@@ -75,13 +77,6 @@ export default function AdminPage() {
   const [savingRole, setSavingRole] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  // create user
-  const [newName, setNewName] = useState("");
-  const [newEmail, setNewEmail] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [newRole, setNewRole] = useState("Staff");
-  const [newDeptId, setNewDeptId] = useState("");
-
   const canAdmin = useMemo(() => {
     const rk = roleKey(meRole);
     return rk === "admin" || rk === "auditor";
@@ -119,7 +114,7 @@ export default function AdminPage() {
       .single();
 
     if (meErr) {
-      setMsg("Failed to verify admin: " + meErr.message);
+      setMsg("Failed to verify admin access: " + meErr.message);
       setLoading(false);
       return;
     }
@@ -137,19 +132,32 @@ export default function AdminPage() {
         .from("profiles")
         .select("id,email,full_name,role,dept_id")
         .order("full_name", { ascending: true }),
-      supabase.from("departments").select("id,name").order("name", { ascending: true }),
+      supabase
+        .from("departments")
+        .select("id,name,hod_user_id,director_user_id")
+        .order("name", { ascending: true }),
       supabase.from("app_settings").select("key,value"),
     ]);
 
-    if (profsRes.error) setMsg("Failed to load users: " + profsRes.error.message);
-    else setUsers((profsRes.data || []) as UserRow[]);
+    if (profsRes.error) {
+      setMsg("Failed to load users: " + profsRes.error.message);
+    } else {
+      setUsers((profsRes.data || []) as UserRow[]);
+    }
 
-    if (deptRes.error) setMsg("Failed to load departments: " + deptRes.error.message);
-    else setDepts((deptRes.data || []) as DeptRow[]);
+    if (deptRes.error) {
+      setMsg("Failed to load departments: " + deptRes.error.message);
+    } else {
+      setDepts((deptRes.data || []) as DeptRow[]);
+    }
 
-    if (!setRes.error && setRes.data) {
+    if (setRes.error) {
+      setMsg("Failed to load settings: " + setRes.error.message);
+    } else {
       const map: Record<string, string> = {};
-      (setRes.data as SettingRow[]).forEach((r) => (map[r.key] = r.value));
+      ((setRes.data || []) as SettingRow[]).forEach((r) => {
+        map[r.key] = r.value;
+      });
       setSettings(map);
     }
 
@@ -200,6 +208,7 @@ export default function AdminPage() {
   async function saveSetting(key: string, value: string) {
     setMsg(null);
     setSaving(true);
+
     try {
       const { error } = await supabase
         .from("app_settings")
@@ -207,7 +216,7 @@ export default function AdminPage() {
 
       if (error) throw new Error(error.message);
 
-      setMsg("✅ Setting saved.");
+      setMsg(`✅ ${key} saved successfully.`);
       await loadAll();
     } catch (e: any) {
       setMsg("❌ Failed: " + (e?.message || "Unknown error"));
@@ -216,54 +225,25 @@ export default function AdminPage() {
     }
   }
 
-  async function createUserAccount() {
+  async function saveDeptRouting(deptId: string, hodId: string | null, directorId: string | null) {
     setMsg(null);
-
-    if (!newName.trim()) {
-      setMsg("❌ Full name is required.");
-      return;
-    }
-    if (!newEmail.trim()) {
-      setMsg("❌ Email is required.");
-      return;
-    }
-    if (!newPassword.trim() || newPassword.trim().length < 6) {
-      setMsg("❌ Password must be at least 6 characters.");
-      return;
-    }
-
     setSaving(true);
+
     try {
-      const res = await fetch("/api/admin/create-user", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          full_name: newName,
-          email: newEmail,
-          password: newPassword,
-          role: newRole,
-          dept_id: newDeptId || null,
-        }),
-      });
+      const { error } = await supabase
+        .from("departments")
+        .update({
+          hod_user_id: hodId || null,
+          director_user_id: directorId || null,
+        })
+        .eq("id", deptId);
 
-      const json = await res.json();
+      if (error) throw new Error(error.message);
 
-      if (!res.ok) {
-        throw new Error(json?.error || "Failed to create user.");
-      }
-
-      setMsg("✅ User created successfully. Send the login details to the staff.");
-      setNewName("");
-      setNewEmail("");
-      setNewPassword("");
-      setNewRole("Staff");
-      setNewDeptId("");
-
+      setMsg("✅ Department routing saved.");
       await loadAll();
     } catch (e: any) {
-      setMsg("❌ Create user failed: " + (e?.message || "Unknown error"));
+      setMsg("❌ Department save failed: " + (e?.message || "Unknown error"));
     } finally {
       setSaving(false);
     }
@@ -327,14 +307,14 @@ export default function AdminPage() {
         )}
 
         {/* QUICK LINKS */}
-        <div className="mt-6 grid gap-4 md:grid-cols-3">
+        <div className="mt-6 grid gap-4 md:grid-cols-4">
           <Link
             href="/admin/users"
             className="rounded-2xl border bg-white p-5 shadow-sm hover:bg-slate-50"
           >
             <div className="text-lg font-bold text-slate-900">Users & Roles</div>
             <div className="mt-1 text-sm text-slate-600">
-              Manage staff accounts, roles and dept routing.
+              Manage staff accounts, roles and department mapping.
             </div>
           </Link>
 
@@ -349,6 +329,16 @@ export default function AdminPage() {
           </Link>
 
           <Link
+            href="/admin/departments"
+            className="rounded-2xl border bg-white p-5 shadow-sm hover:bg-slate-50"
+          >
+            <div className="text-lg font-bold text-slate-900">Department Routing</div>
+            <div className="mt-1 text-sm text-slate-600">
+              Assign HOD and Director for each department.
+            </div>
+          </Link>
+
+          <Link
             href="/finance"
             className="rounded-2xl border bg-white p-5 shadow-sm hover:bg-slate-50"
           >
@@ -359,83 +349,29 @@ export default function AdminPage() {
           </Link>
         </div>
 
-        {/* CREATE USER */}
+        {/* USER CREATION NOTICE */}
         <div className="mt-6 rounded-2xl border bg-white p-6 shadow-sm">
           <h2 className="text-lg font-bold text-slate-900">Create User Account</h2>
-          <p className="mt-1 text-sm text-slate-600">
-            Create login details for staff, assign role, and optionally assign department.
+          <p className="mt-2 text-sm text-slate-600">
+            For security, new login accounts should be created manually in Supabase
+            Authentication, then configured here in Admin Panel.
           </p>
 
-          <div className="mt-4 grid gap-4 md:grid-cols-2">
-            <div>
-              <label className="text-sm font-semibold text-slate-800">Full Name</label>
-              <input
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
-                placeholder="e.g. Ahmed Musa"
-              />
+          <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+            <div className="font-semibold text-slate-900">Safe workflow</div>
+            <div className="mt-2">
+              1. Create user in <b>Supabase → Authentication → Users → Add user</b>.
             </div>
-
-            <div>
-              <label className="text-sm font-semibold text-slate-800">Email</label>
-              <input
-                value={newEmail}
-                onChange={(e) => setNewEmail(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
-                placeholder="name@domain.com"
-              />
+            <div className="mt-1">
+              2. Let the user sign in or register profile details.
             </div>
-
-            <div>
-              <label className="text-sm font-semibold text-slate-800">Temporary Password</label>
-              <input
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
-                placeholder="Minimum 6 characters"
-              />
+            <div className="mt-1">
+              3. Come back here and assign role + department.
             </div>
-
-            <div>
-              <label className="text-sm font-semibold text-slate-800">Role</label>
-              <select
-                value={newRole}
-                onChange={(e) => setNewRole(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
-              >
-                {ROLE_OPTIONS.map((r) => (
-                  <option key={r} value={r}>
-                    {r}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="md:col-span-2">
-              <label className="text-sm font-semibold text-slate-800">Department (optional)</label>
-              <select
-                value={newDeptId}
-                onChange={(e) => setNewDeptId(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
-              >
-                <option value="">-- None --</option>
-                {depts.map((d) => (
-                  <option key={d.id} value={d.id}>
-                    {d.name}
-                  </option>
-                ))}
-              </select>
+            <div className="mt-1">
+              4. User can then reset password and upload signature from Profile.
             </div>
           </div>
-
-          <button
-            onClick={createUserAccount}
-            disabled={saving}
-            className="mt-4 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 disabled:opacity-60"
-          >
-            {saving ? "Creating..." : "Create User"}
-          </button>
         </div>
 
         {/* QUICK ROLE ASSIGNMENT */}
@@ -538,7 +474,110 @@ export default function AdminPage() {
             </div>
           ))}
         </div>
+
+        {/* INLINE DEPARTMENT ROUTING SUMMARY */}
+        <div className="mt-6 rounded-2xl border bg-white p-6 shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-bold text-slate-900">Department HOD / Director Routing</h2>
+              <p className="mt-1 text-sm text-slate-600">
+                Assign first approvers for each department.
+              </p>
+            </div>
+
+            <Link
+              href="/admin/departments"
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
+            >
+              Open Full Department Routing
+            </Link>
+          </div>
+
+          <div className="mt-4 space-y-4">
+            {depts.length === 0 ? (
+              <div className="text-sm text-slate-600">No departments found.</div>
+            ) : (
+              depts.map((d) => (
+                <DeptRoutingCard
+                  key={d.id}
+                  dept={d}
+                  users={users}
+                  onSave={saveDeptRouting}
+                  saving={saving}
+                />
+              ))
+            )}
+          </div>
+        </div>
       </div>
     </main>
+  );
+}
+
+function DeptRoutingCard({
+  dept,
+  users,
+  onSave,
+  saving,
+}: {
+  dept: DeptRow;
+  users: UserRow[];
+  onSave: (deptId: string, hodId: string | null, directorId: string | null) => Promise<void>;
+  saving: boolean;
+}) {
+  const [hodId, setHodId] = useState(dept.hod_user_id || "");
+  const [directorId, setDirectorId] = useState(dept.director_user_id || "");
+
+  useEffect(() => {
+    setHodId(dept.hod_user_id || "");
+    setDirectorId(dept.director_user_id || "");
+  }, [dept.hod_user_id, dept.director_user_id]);
+
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-5">
+      <div className="font-bold text-slate-900">{dept.name}</div>
+
+      <div className="mt-4 grid gap-4 md:grid-cols-2">
+        <div>
+          <label className="text-sm font-semibold text-slate-800">HOD</label>
+          <select
+            value={hodId}
+            onChange={(e) => setHodId(e.target.value)}
+            className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
+          >
+            <option value="">-- None --</option>
+            {users.map((u) => (
+              <option key={u.id} value={u.id}>
+                {userLabel(u)}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="text-sm font-semibold text-slate-800">Director</label>
+          <select
+            value={directorId}
+            onChange={(e) => setDirectorId(e.target.value)}
+            className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
+          >
+            <option value="">-- None --</option>
+            {users.map((u) => (
+              <option key={u.id} value={u.id}>
+                {userLabel(u)}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      <button
+        onClick={() => onSave(dept.id, hodId || null, directorId || null)}
+        disabled={saving}
+        className="mt-4 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
+      >
+        Save Department
+      </button>
+    </div>
   );
 }
