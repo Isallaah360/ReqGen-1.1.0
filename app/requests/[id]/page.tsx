@@ -3,8 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
-
-// ✅ Correct path because RequestProgress is inside app/components/
 import { RequestProgress } from "../../components/RequestProgress";
 
 type Req = {
@@ -36,6 +34,12 @@ type Hist = {
 type SubheadMini = { id: string; code: string; name: string };
 type ProfileMini = { id: string; role: string; signature_url: string | null };
 
+type NextStep = {
+  nextStage: string;
+  nextOwner: string | null;
+  nextStatus: "Submitted" | "In Review" | "Approved" | "Rejected" | "Completed";
+};
+
 export default function RequestDetailsPage() {
   const router = useRouter();
   const params = useParams();
@@ -61,14 +65,12 @@ export default function RequestDetailsPage() {
     [req, me]
   );
 
-  // ✅ creator can edit/delete only if still HOD or Director stage
   const canEditDelete = useMemo(() => {
     if (!req || !me) return false;
     const stage = (req.current_stage || "").trim().toUpperCase();
     return req.created_by === me.id && (stage === "HOD" || stage === "DIRECTOR");
   }, [req, me]);
 
-  // ✅ only assigned owner can Approve/Reject
   const canAct = useMemo(() => {
     if (!req || !me) return false;
     return req.current_owner === me.id;
@@ -91,7 +93,6 @@ export default function RequestDetailsPage() {
         return;
       }
 
-      // me
       const { data: myProf, error: myErr } = await supabase
         .from("profiles")
         .select("id,role,signature_url")
@@ -105,7 +106,6 @@ export default function RequestDetailsPage() {
       }
       setMe(myProf as ProfileMini);
 
-      // request
       const { data: r, error: rErr } = await supabase
         .from("requests")
         .select(
@@ -121,7 +121,6 @@ export default function RequestDetailsPage() {
       }
       setReq(r as Req);
 
-      // subhead
       if ((r as any)?.subhead_id) {
         const { data: sh } = await supabase
           .from("subheads")
@@ -133,7 +132,6 @@ export default function RequestDetailsPage() {
         setSubhead(null);
       }
 
-      // history
       const { data: h, error: hErr } = await supabase
         .from("request_history")
         .select("id,action_type,comment,to_stage,created_at,signature_url")
@@ -155,61 +153,77 @@ export default function RequestDetailsPage() {
       .select("value")
       .eq("key", key)
       .maybeSingle();
+
     if (error) return null;
     return (data?.value as string) || null;
   }
 
-  async function resolveNextOwner(currentStage: string, r: Req) {
+  async function resolveNextOwner(currentStage: string, r: Req): Promise<NextStep> {
     const stage = (currentStage || "").trim().toUpperCase();
 
+    // OFFICIAL FLOW
+    // HOD/Director -> Registry -> DG -> Account -> Completed
     if (r.request_type === "Official") {
       if (stage === "DIRECTOR" || stage === "HOD") {
         const reg = await getSetting("REGISTRY_USER_ID");
         if (!reg) throw new Error("REGISTRY_USER_ID not set.");
         return { nextStage: "Registry", nextOwner: reg, nextStatus: "In Review" };
       }
+
       if (stage === "REGISTRY") {
         const dg = await getSetting("DG_USER_ID");
         if (!dg) throw new Error("DG_USER_ID not set.");
         return { nextStage: "DG", nextOwner: dg, nextStatus: "In Review" };
       }
+
       if (stage === "DG") {
         const acc = await getSetting("ACCOUNT_USER_ID");
         if (!acc) throw new Error("ACCOUNT_USER_ID not set.");
         return { nextStage: "Account", nextOwner: acc, nextStatus: "Approved" };
       }
-      return { nextStage: "Completed", nextOwner: null, nextStatus: "Approved" };
+
+      if (stage === "ACCOUNT") {
+        return { nextStage: "Completed", nextOwner: null, nextStatus: "Completed" };
+      }
+
+      return { nextStage: "Completed", nextOwner: null, nextStatus: "Completed" };
     }
 
-    // Personal:
+    // PERSONAL FLOW
+    // HOD/Director -> HR -> Registry -> DG -> Account/HR -> Completed
     if (stage === "DIRECTOR" || stage === "HOD") {
       const hr = await getSetting("HR_USER_ID");
       if (!hr) throw new Error("HR_USER_ID not set.");
       return { nextStage: "HR", nextOwner: hr, nextStatus: "In Review" };
     }
+
     if (stage === "HR") {
       const reg = await getSetting("REGISTRY_USER_ID");
       if (!reg) throw new Error("REGISTRY_USER_ID not set.");
       return { nextStage: "Registry", nextOwner: reg, nextStatus: "In Review" };
     }
+
     if (stage === "REGISTRY") {
       const dg = await getSetting("DG_USER_ID");
       if (!dg) throw new Error("DG_USER_ID not set.");
       return { nextStage: "DG", nextOwner: dg, nextStatus: "In Review" };
     }
+
     if (stage === "DG") {
       if (r.personal_category === "Fund") {
         const acc = await getSetting("ACCOUNT_USER_ID");
         if (!acc) throw new Error("ACCOUNT_USER_ID not set.");
         return { nextStage: "Account", nextOwner: acc, nextStatus: "Approved" };
       } else {
-        const hr = await getSetting("HR_USER_ID");
-        if (!hr) throw new Error("HR_USER_ID not set.");
-        return { nextStage: "HR", nextOwner: hr, nextStatus: "Approved" };
+        return { nextStage: "Completed", nextOwner: null, nextStatus: "Completed" };
       }
     }
 
-    return { nextStage: "Completed", nextOwner: null, nextStatus: "Approved" };
+    if (stage === "ACCOUNT") {
+      return { nextStage: "Completed", nextOwner: null, nextStatus: "Completed" };
+    }
+
+    return { nextStage: "Completed", nextOwner: null, nextStatus: "Completed" };
   }
 
   async function notify(userId: string, title: string, body: string, link: string) {
@@ -233,7 +247,7 @@ export default function RequestDetailsPage() {
       .eq("id", id)
       .single();
 
-    setReq((r2 as any) || null);
+    setReq((r2 as Req) || null);
 
     const { data: h2 } = await supabase
       .from("request_history")
@@ -263,10 +277,12 @@ export default function RequestDetailsPage() {
       setMsg("❌ You must upload your signature in Profile before taking actions.");
       return;
     }
+
     if (!canAct) {
       setMsg("❌ You cannot act on this request (not assigned to you).");
       return;
     }
+
     if (action === "Reject" && comment.trim().length < 3) {
       setMsg("❌ Please write a reason/comment for rejection.");
       return;
@@ -277,7 +293,6 @@ export default function RequestDetailsPage() {
 
     try {
       if (action === "Reject") {
-        // ✅ restore funds via RPC
         const { error: rejErr } = await supabase.rpc("reject_request_and_restore", {
           p_request_id: req.id,
           p_comment: comment.trim(),
@@ -329,7 +344,11 @@ export default function RequestDetailsPage() {
           );
         }
 
-        setMsg(`✅ Approved. Sent to ${next.nextStage}.`);
+        setMsg(
+          next.nextStage === "Completed"
+            ? "✅ Approved. Request completed."
+            : `✅ Approved. Sent to ${next.nextStage}.`
+        );
       }
 
       setComment("");
@@ -343,6 +362,7 @@ export default function RequestDetailsPage() {
 
   async function deleteRequest() {
     if (!req) return;
+
     if (!canEditDelete) {
       setMsg("❌ You can only delete while request is still at HOD/Director.");
       return;
@@ -353,6 +373,7 @@ export default function RequestDetailsPage() {
 
     setSaving(true);
     setMsg(null);
+
     try {
       const { error } = await supabase.rpc("delete_request_restore", {
         p_request_id: req.id,
@@ -378,8 +399,7 @@ export default function RequestDetailsPage() {
               Request Details
             </h1>
             <p className="mt-2 text-sm text-slate-600">
-              Current stage:{" "}
-              <b className="text-slate-900">{req?.current_stage || "—"}</b>
+              Current stage: <b className="text-slate-900">{req?.current_stage || "—"}</b>
             </p>
           </div>
 
@@ -420,9 +440,7 @@ export default function RequestDetailsPage() {
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <div className="text-sm text-slate-600">Request No</div>
-                  <div className="text-lg font-extrabold text-slate-900">
-                    {req.request_no}
-                  </div>
+                  <div className="text-lg font-extrabold text-slate-900">{req.request_no}</div>
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -431,17 +449,13 @@ export default function RequestDetailsPage() {
                 </div>
               </div>
 
-              {/* ✅ This line will NOT break build anymore */}
               <div className="mt-6">
                 <RequestProgress stage={req.current_stage} status={req.status} />
               </div>
 
               <div className="mt-5 grid gap-4 md:grid-cols-2">
                 <Info label="Title" value={req.title} />
-                <Info
-                  label="Amount (₦)"
-                  value={Number(req.amount || 0).toLocaleString()}
-                />
+                <Info label="Amount (₦)" value={Number(req.amount || 0).toLocaleString()} />
               </div>
 
               <div className="mt-4 grid gap-4 md:grid-cols-2">
@@ -491,7 +505,6 @@ export default function RequestDetailsPage() {
               )}
             </div>
 
-            {/* ACTIONS */}
             <div className="mt-6 rounded-2xl border bg-white p-6 shadow-sm">
               <h2 className="text-lg font-bold text-slate-900">Actions</h2>
               <p className="mt-1 text-sm text-slate-600">
@@ -537,7 +550,6 @@ export default function RequestDetailsPage() {
               )}
             </div>
 
-            {/* HISTORY */}
             <div className="mt-6 rounded-2xl border bg-white p-6 shadow-sm">
               <h2 className="text-lg font-bold text-slate-900">History</h2>
               <p className="mt-1 text-sm text-slate-600">All actions are signed and recorded.</p>
@@ -553,7 +565,9 @@ export default function RequestDetailsPage() {
                         {h.to_stage && <StageBadge stage={h.to_stage} />}
                       </div>
 
-                      {h.comment && <div className="mt-2 text-sm text-slate-800">{h.comment}</div>}
+                      {h.comment && (
+                        <div className="mt-2 text-sm text-slate-800">{h.comment}</div>
+                      )}
 
                       <div className="mt-2 text-xs text-slate-500">
                         {new Date(h.created_at).toLocaleString()}
@@ -593,7 +607,7 @@ function StatusBadge({ status }: { status: string }) {
   const cls =
     s.includes("submit")
       ? "bg-blue-50 text-blue-700 border-blue-200"
-      : s.includes("approve") || s.includes("in review")
+      : s.includes("approve") || s.includes("review") || s.includes("complete")
       ? "bg-emerald-50 text-emerald-700 border-emerald-200"
       : s.includes("reject")
       ? "bg-red-50 text-red-700 border-red-200"
