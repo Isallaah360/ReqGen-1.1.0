@@ -85,6 +85,10 @@ export default function PrintRequestPage() {
   const [requester, setRequester] = useState<Profile | null>(null);
   const [hist, setHist] = useState<Hist[]>([]);
 
+  const [checkedByProfile, setCheckedByProfile] = useState<Profile | null>(null);
+  const [dgProfile, setDgProfile] = useState<Profile | null>(null);
+  const [accountProfile, setAccountProfile] = useState<Profile | null>(null);
+
   const [sigRequester, setSigRequester] = useState<string | null>(null);
   const [sigChecked, setSigChecked] = useState<string | null>(null);
   const [sigDG, setSigDG] = useState<string | null>(null);
@@ -96,9 +100,35 @@ export default function PrintRequestPage() {
     );
 
     return (
-      approvals.find((h) => (h.to_stage || "").toLowerCase().includes("dg")) ||
-      approvals.find((h) => (h.to_stage || "").toLowerCase().includes("registry")) ||
+      approvals.find((h) => (h.to_stage || "").toLowerCase() === "dg") ||
+      approvals.find((h) => (h.to_stage || "").toLowerCase() === "registry") ||
+      approvals.find((h) => (h.to_stage || "").toLowerCase() === "hr") ||
+      approvals.find((h) => (h.to_stage || "").toLowerCase() === "hod") ||
+      approvals.find((h) => (h.to_stage || "").toLowerCase() === "director") ||
       approvals[0] ||
+      null
+    );
+  }, [hist]);
+
+  const dgRecord = useMemo(() => {
+    const approvals = hist.filter((h) =>
+      (h.action_type || "").toLowerCase().includes("approve")
+    );
+
+    return (
+      approvals.find((h) => (h.to_stage || "").toLowerCase() === "account") ||
+      approvals.find((h) => (h.to_stage || "").toLowerCase() === "completed") ||
+      null
+    );
+  }, [hist]);
+
+  const accountRecord = useMemo(() => {
+    const approvals = hist.filter((h) =>
+      (h.action_type || "").toLowerCase().includes("approve")
+    );
+
+    return (
+      approvals.find((h) => (h.to_stage || "").toLowerCase() === "completed") ||
       null
     );
   }, [hist]);
@@ -116,8 +146,7 @@ export default function PrintRequestPage() {
 
       const { data: r, error: rErr } = await supabase
         .from("requests")
-        .select(
-          `
+        .select(`
           id,
           request_no,
           title,
@@ -135,8 +164,7 @@ export default function PrintRequestPage() {
           dg_signature_url,
           registry_signature_url,
           account_signature_url
-        `
-        )
+        `)
         .eq("id", id)
         .single();
 
@@ -168,7 +196,7 @@ export default function PrintRequestPage() {
             .from("request_history")
             .select("id,action_type,to_stage,created_at,signature_url,action_by")
             .eq("request_id", requestRow.id)
-            .order("created_at", { ascending: false }),
+            .order("created_at", { ascending: true }),
         ]);
 
       setDept((d as Dept) || null);
@@ -183,6 +211,44 @@ export default function PrintRequestPage() {
   }, [id, router]);
 
   useEffect(() => {
+    if (req?.request_no) {
+      document.title = req.request_no;
+    } else {
+      document.title = "request-print";
+    }
+  }, [req?.request_no]);
+
+  useEffect(() => {
+    async function loadApproverProfiles() {
+      if (!checkedRecord && !dgRecord && !accountRecord) return;
+
+      const ids = [
+        checkedRecord?.action_by,
+        dgRecord?.action_by,
+        accountRecord?.action_by,
+      ].filter(Boolean) as string[];
+
+      if (ids.length === 0) return;
+
+      const { data } = await supabase
+        .from("profiles")
+        .select("id,full_name,signature_url")
+        .in("id", ids);
+
+      const rows = (data || []) as Profile[];
+
+      const byId = new Map<string, Profile>();
+      rows.forEach((r) => byId.set(r.id, r));
+
+      setCheckedByProfile(checkedRecord?.action_by ? byId.get(checkedRecord.action_by) || null : null);
+      setDgProfile(dgRecord?.action_by ? byId.get(dgRecord.action_by) || null : null);
+      setAccountProfile(accountRecord?.action_by ? byId.get(accountRecord.action_by) || null : null);
+    }
+
+    loadApproverProfiles();
+  }, [checkedRecord, dgRecord, accountRecord]);
+
+  useEffect(() => {
     async function loadSigs() {
       if (!req) return;
 
@@ -194,10 +260,18 @@ export default function PrintRequestPage() {
         (await signedUrl(req.registry_signature_url)) ||
         (await signedUrl(req.hod_signature_url)) ||
         (await signedUrl(req.director_signature_url)) ||
-        (await signedUrl(checkedRecord?.signature_url || null));
+        (await signedUrl(checkedRecord?.signature_url || null)) ||
+        (await signedUrl(checkedByProfile?.signature_url || null));
 
-      const dgSig = await signedUrl(req.dg_signature_url);
-      const accountSig = await signedUrl(req.account_signature_url);
+      const dgSig =
+        (await signedUrl(req.dg_signature_url)) ||
+        (await signedUrl(dgRecord?.signature_url || null)) ||
+        (await signedUrl(dgProfile?.signature_url || null));
+
+      const accountSig =
+        (await signedUrl(req.account_signature_url)) ||
+        (await signedUrl(accountRecord?.signature_url || null)) ||
+        (await signedUrl(accountProfile?.signature_url || null));
 
       setSigRequester(requesterSig);
       setSigChecked(checkedSig);
@@ -206,7 +280,7 @@ export default function PrintRequestPage() {
     }
 
     loadSigs();
-  }, [req, requester, checkedRecord]);
+  }, [req, requester, checkedRecord, dgRecord, accountRecord, checkedByProfile, dgProfile, accountProfile]);
 
   if (loading) {
     return (
@@ -275,7 +349,6 @@ export default function PrintRequestPage() {
         )}
 
         <div className="sheet mx-auto min-h-[1122px] w-full bg-white px-[42px] py-[34px] text-black">
-          {/* HEADER */}
           <div className="text-center">
             <div className="mx-auto flex justify-center">
               <Image
@@ -300,63 +373,36 @@ export default function PrintRequestPage() {
             </div>
           </div>
 
-          {/* TOP BLUE LINE */}
           <div className="mt-4 h-[4px] w-full bg-blue-500" />
 
-          {/* REFERENCE / DATE / STAGE */}
           <div className="mt-4 grid grid-cols-12 gap-x-5 gap-y-1 text-[14px] font-bold">
-            <FieldBox
-              label="Reference:"
-              value={req.request_no}
-              className="col-span-5"
-            />
-            <FieldBox
-              label="Date:"
-              value={formatDate(req.created_at)}
-              className="col-span-4"
-            />
-            <FieldBox
-              label="Stage:"
-              value={req.current_stage || ""}
-              className="col-span-3"
-            />
+            <FieldBox label="Reference:" value={req.request_no} className="col-span-5" />
+            <FieldBox label="Date:" value={formatDate(req.created_at)} className="col-span-4" />
+            <FieldBox label="Stage:" value={req.current_stage || ""} className="col-span-3" />
 
-            <FieldBox
-              label="Department:"
-              value={dept?.name || ""}
-              className="col-span-5"
-            />
+            <FieldBox label="Department:" value={dept?.name || ""} className="col-span-5" />
             <FieldBox
               label="Sub-Head:"
               value={subhead ? `${subhead.code || ""} ${subhead.name}`.trim() : ""}
               className="col-span-4"
             />
-            <FieldBox
-              label="Status:"
-              value={req.status || ""}
-              className="col-span-3"
-            />
+            <FieldBox label="Status:" value={req.status || ""} className="col-span-3" />
           </div>
 
-          {/* SECOND BLUE LINE */}
           <div className="mt-3 h-[3px] w-full bg-blue-300" />
 
-          {/* ADDRESS */}
           <div className="mt-6 text-[19px] font-bold leading-[1.45]">
             <div>The Director General,</div>
             <div>Islamic Education Trust,</div>
             <div>Minna.</div>
           </div>
 
-          {/* SALUTATION */}
           <div className="mt-10 text-[19px] font-bold">Assalamu` Alaikum Sir,</div>
 
-          {/* TITLE */}
           <div className="mt-4 text-center text-[21px] font-black uppercase">
             Request for Fund
           </div>
 
-          {/* OPENING SENTENCE */}
           <div className="mt-4 text-[18px] font-bold leading-[1.55]">
             I write to request for the release of the total sum of{" "}
             <span className="inline-block min-w-[270px] border-b-[2px] border-black text-center font-bold">
@@ -365,15 +411,12 @@ export default function PrintRequestPage() {
             for the expense below/attached:
           </div>
 
-          {/* BODY */}
           <div className="mt-4 min-h-[300px] whitespace-pre-wrap text-[18px] font-semibold leading-[1.55]">
             {req.details}
           </div>
 
-          {/* CLOSING */}
           <div className="mt-10 text-[19px] font-bold">Wassalamu` Alaikum.</div>
 
-          {/* ALLOCATION BOX */}
           <div className="mt-6 flex justify-end">
             <div className="w-[470px] space-y-2">
               <SmallFieldRow
@@ -391,10 +434,8 @@ export default function PrintRequestPage() {
             </div>
           </div>
 
-          {/* BLUE LINE */}
           <div className="mt-6 h-[3px] w-full bg-blue-300" />
 
-          {/* SIGNATURES */}
           <div className="mt-8 space-y-3 text-[17px] font-bold">
             <SignatureLine
               label="Requested by:"
@@ -405,31 +446,26 @@ export default function PrintRequestPage() {
 
             <SignatureLine
               label="Checked by:"
-              name=""
+              name={checkedByProfile?.full_name || ""}
               sigUrl={sigChecked}
-              date={
-                checkedRecord?.created_at ? formatDate(checkedRecord.created_at) : ""
-              }
+              date={checkedRecord?.created_at ? formatDate(checkedRecord.created_at) : ""}
             />
 
             <SignatureLine
               label="Approved by DG, IET:"
-              name=""
+              name={dgProfile?.full_name || ""}
               sigUrl={sigDG}
-              date={findStageDate(hist, "Account") || findStageDate(hist, "Completed")}
+              date={dgRecord?.created_at ? formatDate(dgRecord.created_at) : ""}
             />
 
             <SignatureLine
               label="Paid by Account:"
-              name=""
+              name={accountProfile?.full_name || ""}
               sigUrl={sigAccount}
-              date={req.status === "Paid" || req.current_stage === "Completed"
-                ? findStageDate(hist, "Completed") || findStageDate(hist, "Account")
-                : ""}
+              date={accountRecord?.created_at ? formatDate(accountRecord.created_at) : ""}
             />
           </div>
 
-          {/* FOOTER */}
           <div className="mt-12 text-center text-[18px] italic font-medium">
             Building Bridges
           </div>
@@ -437,13 +473,6 @@ export default function PrintRequestPage() {
       </div>
     </main>
   );
-}
-
-function findStageDate(hist: Hist[], stage: string) {
-  const row = hist.find(
-    (h) => (h.to_stage || "").toLowerCase() === stage.toLowerCase()
-  );
-  return row?.created_at ? formatDate(row.created_at) : "";
 }
 
 function FieldBox({
@@ -494,14 +523,12 @@ function SignatureLine({
   date: string;
 }) {
   return (
-    <div className="grid grid-cols-[150px_1fr_115px_170px_105px_120px] items-end gap-1">
+    <div className="grid grid-cols-[155px_2.4fr_180px_115px] items-end gap-2">
       <div>{label}</div>
 
-      <div className="border-b-[2px] border-black pb-[2px] text-[16px] font-semibold">
+      <div className="border-b-[2px] border-black pb-[2px] text-[15px] font-semibold pr-2">
         {name}
       </div>
-
-      <div className="text-right">Signature:</div>
 
       <div className="relative h-[34px] border-b-[2px] border-black">
         {sigUrl ? (
@@ -514,9 +541,7 @@ function SignatureLine({
         ) : null}
       </div>
 
-      <div className="text-right">Date:</div>
-
-      <div className="border-b-[2px] border-black pb-[2px] text-[16px] font-semibold">
+      <div className="border-b-[2px] border-black pb-[2px] text-[15px] font-semibold">
         {date}
       </div>
     </div>
