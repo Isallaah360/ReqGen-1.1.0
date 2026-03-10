@@ -17,8 +17,8 @@ function roleKey(role: string) {
   return (role || "")
     .trim()
     .toLowerCase()
-    .replace(/\s+/g, "") // "Account Officer" -> "accountofficer"
-    .replace(/_/g, ""); // "account_officer" -> "accountofficer"
+    .replace(/\s+/g, "")
+    .replace(/_/g, "");
 }
 
 export default function NavBar() {
@@ -27,22 +27,17 @@ export default function NavBar() {
 
   const [signedIn, setSignedIn] = useState(false);
 
-  // roles
   const [myRole, setMyRole] = useState<string>("Staff");
   const rk = roleKey(myRole);
 
   const isAdmin = rk === "admin";
-
-  // ✅ Finance allowed ONLY for Admin, Auditor, Accounts
   const canFinance = ["admin", "auditor", "account", "accounts", "accountofficer"].includes(rk);
 
-  // notifications
   const [openBell, setOpenBell] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [items, setItems] = useState<Notif[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
 
-  // mobile menu
   const [openMenu, setOpenMenu] = useState(false);
 
   const bellRef = useRef<HTMLDivElement | null>(null);
@@ -69,6 +64,7 @@ export default function NavBar() {
 
   async function refreshAll() {
     const { data: sess, error: sessErr } = await supabase.auth.getSession();
+
     if (sessErr || !sess.session?.user) {
       setSignedIn(false);
       setUserId(null);
@@ -100,7 +96,18 @@ export default function NavBar() {
 
     const list = (n || []) as Notif[];
     setItems(list);
-    setUnreadCount(list.filter((x) => !x.is_read).length);
+
+    const unreadNotifCount = list.filter((x) => !x.is_read).length;
+
+    const { count: pendingApprovalCount, error: pendingErr } = await supabase
+      .from("requests")
+      .select("*", { count: "exact", head: true })
+      .eq("current_owner", uid)
+      .in("status", ["Submitted", "In Review", "Approved"]);
+
+    const pendingCount = pendingErr ? 0 : pendingApprovalCount || 0;
+
+    setUnreadCount(Math.max(unreadNotifCount, pendingCount));
   }
 
   useEffect(() => {
@@ -119,17 +126,36 @@ export default function NavBar() {
   useEffect(() => {
     if (!userId) return;
 
-    const ch = supabase
-      .channel("notif-ch")
+    const notifChannel = supabase
+      .channel(`notif-ch-${userId}`)
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` },
+        {
+          event: "*",
+          schema: "public",
+          table: "notifications",
+          filter: `user_id=eq.${userId}`,
+        },
+        () => refreshAll()
+      )
+      .subscribe();
+
+    const requestChannel = supabase
+      .channel(`req-ch-${userId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "requests",
+        },
         () => refreshAll()
       )
       .subscribe();
 
     return () => {
-      supabase.removeChannel(ch);
+      supabase.removeChannel(notifChannel);
+      supabase.removeChannel(requestChannel);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
@@ -145,6 +171,7 @@ export default function NavBar() {
       if (openBell && bellRef.current && !bellRef.current.contains(t)) setOpenBell(false);
       if (openMenu && menuRef.current && !menuRef.current.contains(t)) setOpenMenu(false);
     }
+
     document.addEventListener("mousedown", onDocClick);
     return () => document.removeEventListener("mousedown", onDocClick);
   }, [openBell, openMenu]);
@@ -159,7 +186,12 @@ export default function NavBar() {
 
   async function markAllRead() {
     if (!userId) return;
-    await supabase.from("notifications").update({ is_read: true }).eq("user_id", userId).eq("is_read", false);
+
+    await supabase
+      .from("notifications")
+      .update({ is_read: true })
+      .eq("user_id", userId)
+      .eq("is_read", false);
 
     setOpenBell(false);
     await refreshAll();
@@ -182,7 +214,6 @@ export default function NavBar() {
           <div />
         ) : (
           <div className="flex items-center gap-2">
-            {/* Desktop tabs */}
             <nav className="hidden md:flex items-center gap-2">
               {links.map((l) => (
                 <Link key={l.href} className={linkClass(l.href)} href={l.href}>
@@ -191,12 +222,11 @@ export default function NavBar() {
               ))}
             </nav>
 
-            {/* 🔔 Notifications */}
             <div className="relative" ref={bellRef}>
               <button
                 onClick={() => setOpenBell((v) => !v)}
                 className="relative rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
-                title="Notifications"
+                title="Notifications / Pending Approvals"
               >
                 🔔
                 {unreadCount > 0 && (
@@ -210,13 +240,18 @@ export default function NavBar() {
                 <div className="absolute right-0 top-12 w-80 rounded-2xl border bg-white shadow-lg overflow-hidden">
                   <div className="flex items-center justify-between px-4 py-3 bg-slate-50">
                     <div className="font-bold text-slate-900">Notifications</div>
-                    <button onClick={markAllRead} className="text-xs font-semibold text-blue-700 hover:underline">
+                    <button
+                      onClick={markAllRead}
+                      className="text-xs font-semibold text-blue-700 hover:underline"
+                    >
                       Mark all read
                     </button>
                   </div>
 
                   {items.length === 0 ? (
-                    <div className="p-4 text-sm text-slate-600">No notifications.</div>
+                    <div className="p-4 text-sm text-slate-600">
+                      No notifications yet.
+                    </div>
                   ) : (
                     <div className="max-h-96 overflow-auto">
                       {items.map((n) => (
@@ -228,7 +263,9 @@ export default function NavBar() {
                           }`}
                         >
                           <div className="text-sm font-semibold text-slate-900">{n.title}</div>
-                          <div className="text-xs text-slate-500">{new Date(n.created_at).toLocaleString()}</div>
+                          <div className="text-xs text-slate-500">
+                            {new Date(n.created_at).toLocaleString()}
+                          </div>
                         </button>
                       ))}
                     </div>
@@ -237,7 +274,6 @@ export default function NavBar() {
               )}
             </div>
 
-            {/* Mobile menu */}
             <div className="relative md:hidden" ref={menuRef}>
               <button
                 onClick={() => setOpenMenu((v) => !v)}
@@ -280,7 +316,6 @@ export default function NavBar() {
               )}
             </div>
 
-            {/* Desktop logout */}
             <button
               onClick={logout}
               className="hidden md:inline-flex ml-1 px-4 py-2 rounded-xl text-sm font-semibold bg-red-600 text-white hover:bg-red-700 transition"

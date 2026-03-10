@@ -208,9 +208,13 @@ export default function RequestDetailsPage() {
         if (error) throw new Error(error.message);
 
         const nextStage = (data as any)?.next_stage;
+        const nextStatus = (data as any)?.next_status;
+
         setMsg(
           nextStage === "Completed"
-            ? "✅ Approved. Request completed."
+            ? nextStatus === "Paid"
+              ? "✅ Payment approved successfully. Request closed as Paid."
+              : "✅ Approved. Request completed."
             : `✅ Approved. Sent to ${nextStage}.`
         );
       } else {

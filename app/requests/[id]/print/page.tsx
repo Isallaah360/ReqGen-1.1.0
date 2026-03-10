@@ -250,6 +250,11 @@ export default function PrintRequestPage() {
               <div className="border border-slate-300 rounded-sm px-2 py-1 inline-block">
                 {req.request_no}
               </div>
+              <div className="mt-3 flex justify-end">
+                <div className="rounded-lg border px-3 py-1 text-xs font-bold">
+                  STATUS: {req.status || "—"} • STAGE: {req.current_stage || "—"}
+                </div>
+              </div>
               <div className="mt-2">
                 <span className="font-semibold">Date:</span>{" "}
                 {new Date(req.created_at).toLocaleDateString()}
