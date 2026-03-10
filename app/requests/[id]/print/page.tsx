@@ -220,8 +220,6 @@ export default function PrintRequestPage() {
 
   useEffect(() => {
     async function loadApproverProfiles() {
-      if (!checkedRecord && !dgRecord && !accountRecord) return;
-
       const ids = [
         checkedRecord?.action_by,
         dgRecord?.action_by,
@@ -236,13 +234,18 @@ export default function PrintRequestPage() {
         .in("id", ids);
 
       const rows = (data || []) as Profile[];
-
       const byId = new Map<string, Profile>();
       rows.forEach((r) => byId.set(r.id, r));
 
-      setCheckedByProfile(checkedRecord?.action_by ? byId.get(checkedRecord.action_by) || null : null);
-      setDgProfile(dgRecord?.action_by ? byId.get(dgRecord.action_by) || null : null);
-      setAccountProfile(accountRecord?.action_by ? byId.get(accountRecord.action_by) || null : null);
+      setCheckedByProfile(
+        checkedRecord?.action_by ? byId.get(checkedRecord.action_by) || null : null
+      );
+      setDgProfile(
+        dgRecord?.action_by ? byId.get(dgRecord.action_by) || null : null
+      );
+      setAccountProfile(
+        accountRecord?.action_by ? byId.get(accountRecord.action_by) || null : null
+      );
     }
 
     loadApproverProfiles();
@@ -310,11 +313,9 @@ export default function PrintRequestPage() {
           body {
             background: white !important;
           }
-
           .no-print {
             display: none !important;
           }
-
           .sheet {
             box-shadow: none !important;
             border: none !important;
@@ -349,6 +350,7 @@ export default function PrintRequestPage() {
         )}
 
         <div className="sheet mx-auto min-h-[1122px] w-full bg-white px-[42px] py-[34px] text-black">
+          {/* HEADER */}
           <div className="text-center">
             <div className="mx-auto flex justify-center">
               <Image
@@ -375,22 +377,24 @@ export default function PrintRequestPage() {
 
           <div className="mt-4 h-[4px] w-full bg-blue-500" />
 
-          <div className="mt-4 grid grid-cols-12 gap-x-5 gap-y-1 text-[14px] font-bold">
-            <FieldBox label="Reference:" value={req.request_no} className="col-span-5" />
-            <FieldBox label="Date:" value={formatDate(req.created_at)} className="col-span-4" />
-            <FieldBox label="Stage:" value={req.current_stage || ""} className="col-span-3" />
+          {/* CLEAN TOP FIELDS */}
+          <div className="mt-4 grid grid-cols-12 gap-x-6 gap-y-2">
+            <TopLineField label="Reference:" value={req.request_no} className="col-span-5" />
+            <TopLineField label="Date:" value={formatDate(req.created_at)} className="col-span-4" />
+            <TopLineField label="Stage:" value={req.current_stage || ""} className="col-span-3" />
 
-            <FieldBox label="Department:" value={dept?.name || ""} className="col-span-5" />
-            <FieldBox
+            <TopLineField label="Department:" value={dept?.name || ""} className="col-span-5" />
+            <TopLineField
               label="Sub-Head:"
               value={subhead ? `${subhead.code || ""} ${subhead.name}`.trim() : ""}
               className="col-span-4"
             />
-            <FieldBox label="Status:" value={req.status || ""} className="col-span-3" />
+            <TopLineField label="Status:" value={req.status || ""} className="col-span-3" />
           </div>
 
           <div className="mt-3 h-[3px] w-full bg-blue-300" />
 
+          {/* ADDRESS */}
           <div className="mt-6 text-[19px] font-bold leading-[1.45]">
             <div>The Director General,</div>
             <div>Islamic Education Trust,</div>
@@ -419,24 +423,16 @@ export default function PrintRequestPage() {
 
           <div className="mt-6 flex justify-end">
             <div className="w-[470px] space-y-2">
-              <SmallFieldRow
-                label="ALLOCATION B/D:"
-                value={naira(subhead?.approved_allocation)}
-              />
-              <SmallFieldRow
-                label="EXPENDITURE:"
-                value={naira(subhead?.expenditure)}
-              />
-              <SmallFieldRow
-                label="BALANCE C/D:"
-                value={naira(subhead?.balance)}
-              />
+              <SmallFieldRow label="ALLOCATION B/D:" value={naira(subhead?.approved_allocation)} />
+              <SmallFieldRow label="EXPENDITURE:" value={naira(subhead?.expenditure)} />
+              <SmallFieldRow label="BALANCE C/D:" value={naira(subhead?.balance)} />
             </div>
           </div>
 
           <div className="mt-6 h-[3px] w-full bg-blue-300" />
 
-          <div className="mt-8 space-y-3 text-[17px] font-bold">
+          {/* SIGNATURES */}
+          <div className="mt-8 space-y-5 text-[17px] font-bold">
             <SignatureLine
               label="Requested by:"
               name={requester?.full_name || ""}
@@ -475,7 +471,7 @@ export default function PrintRequestPage() {
   );
 }
 
-function FieldBox({
+function TopLineField({
   label,
   value,
   className,
@@ -485,9 +481,9 @@ function FieldBox({
   className?: string;
 }) {
   return (
-    <div className={`flex items-center gap-2 ${className || ""}`}>
+    <div className={`flex items-end gap-2 ${className || ""}`}>
       <div className="shrink-0 text-[16px] font-bold">{label}</div>
-      <div className="h-[28px] flex-1 rounded-[4px] border-[2px] border-black px-2 text-[14px] font-semibold leading-[24px] overflow-hidden whitespace-nowrap">
+      <div className="min-w-0 flex-1 border-b-[2px] border-black px-1 pb-[2px] text-[16px] font-semibold leading-tight break-words">
         {value}
       </div>
     </div>
@@ -523,26 +519,35 @@ function SignatureLine({
   date: string;
 }) {
   return (
-    <div className="grid grid-cols-[155px_2.4fr_180px_115px] items-end gap-2">
-      <div>{label}</div>
+    <div>
+      <div className="grid grid-cols-[170px_1.9fr_0.8fr_0.8fr] items-end gap-3">
+        <div className="whitespace-nowrap">{label}</div>
 
-      <div className="border-b-[2px] border-black pb-[2px] text-[15px] font-semibold pr-2">
-        {name}
+        <div className="border-b-[2px] border-black pb-[2px] text-[15px] font-semibold pr-2">
+          {name}
+        </div>
+
+        <div className="relative h-[34px] border-b-[2px] border-black">
+          {sigUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={sigUrl}
+              alt="signature"
+              className="absolute bottom-0 left-1/2 h-[28px] max-w-[90%] -translate-x-1/2 object-contain"
+            />
+          ) : null}
+        </div>
+
+        <div className="border-b-[2px] border-black pb-[2px] text-center text-[15px] font-semibold">
+          {date}
+        </div>
       </div>
 
-      <div className="relative h-[34px] border-b-[2px] border-black">
-        {sigUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={sigUrl}
-            alt="signature"
-            className="absolute bottom-0 left-1 h-[30px] max-w-full object-contain"
-          />
-        ) : null}
-      </div>
-
-      <div className="border-b-[2px] border-black pb-[2px] text-[15px] font-semibold">
-        {date}
+      <div className="grid grid-cols-[170px_1.9fr_0.8fr_0.8fr] gap-3 pt-1 text-center text-[11px] font-medium text-slate-600">
+        <div />
+        <div>Name</div>
+        <div>Signature</div>
+        <div>Date</div>
       </div>
     </div>
   );
