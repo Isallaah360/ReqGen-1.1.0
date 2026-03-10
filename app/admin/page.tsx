@@ -347,6 +347,15 @@ export default function AdminPage() {
               Manage departments, subheads, accounts and reports.
             </div>
           </Link>
+          <Link
+            href="/admin/account-routing"
+            className="rounded-2xl border bg-white p-5 shadow-sm hover:bg-slate-50"
+          >
+            <div className="text-lg font-bold text-slate-900">Account Routing</div>
+            <div className="mt-1 text-sm text-slate-600">
+              Assign department-approved requests to the correct IET account and Account Officer.
+            </div>
+          </Link>
         </div>
 
         {/* USER CREATION NOTICE */}

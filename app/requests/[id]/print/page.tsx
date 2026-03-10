@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
@@ -16,19 +17,36 @@ type Req = {
   current_stage: string;
   status: string;
   created_at: string;
+  requester_signature_url: string | null;
+  hod_signature_url: string | null;
+  director_signature_url: string | null;
+  dg_signature_url: string | null;
+  registry_signature_url: string | null;
+  account_signature_url: string | null;
+};
+
+type Dept = {
+  id: string;
+  name: string;
 };
 
 type Subhead = {
   id: string;
-  code: string;
+  code: string | null;
   name: string;
-  approved_allocation: number;
-  expenditure: number;
-  balance: number;
+  approved_allocation: number | null;
+  expenditure: number | null;
+  balance: number | null;
 };
 
-type Profile = { id: string; full_name: string | null; signature_url: string | null };
+type Profile = {
+  id: string;
+  full_name: string | null;
+  signature_url: string | null;
+};
+
 type Hist = {
+  id: string;
   action_type: string;
   to_stage: string | null;
   created_at: string;
@@ -36,14 +54,21 @@ type Hist = {
   action_by: string;
 };
 
-async function signedUrl(path: string | null) {
-  if (!path) return null;
-  const { data } = await supabase.storage.from("signatures").createSignedUrl(path, 60 * 10);
-  return data?.signedUrl || null;
+function naira(n: number | null | undefined) {
+  return `₦${Number(n || 0).toLocaleString()}`;
 }
 
-function naira(n: number) {
-  return `₦${Number(n || 0).toLocaleString()}`;
+function formatDate(d: string | null | undefined) {
+  if (!d) return "";
+  return new Date(d).toLocaleDateString();
+}
+
+async function signedUrl(path: string | null) {
+  if (!path) return null;
+  const { data } = await supabase.storage
+    .from("signatures")
+    .createSignedUrl(path, 60 * 10);
+  return data?.signedUrl || null;
 }
 
 export default function PrintRequestPage() {
@@ -55,37 +80,28 @@ export default function PrintRequestPage() {
   const [msg, setMsg] = useState<string | null>(null);
 
   const [req, setReq] = useState<Req | null>(null);
+  const [dept, setDept] = useState<Dept | null>(null);
   const [subhead, setSubhead] = useState<Subhead | null>(null);
-
   const [requester, setRequester] = useState<Profile | null>(null);
   const [hist, setHist] = useState<Hist[]>([]);
 
   const [sigRequester, setSigRequester] = useState<string | null>(null);
   const [sigChecked, setSigChecked] = useState<string | null>(null);
   const [sigDG, setSigDG] = useState<string | null>(null);
-
-  const approvals = useMemo(() => {
-    return hist.filter((h) => (h.action_type || "").toLowerCase().includes("approve"));
-  }, [hist]);
+  const [sigAccount, setSigAccount] = useState<string | null>(null);
 
   const checkedRecord = useMemo(() => {
-    // "Checked by" usually the approve that forwarded to DG OR the latest approve before DG
-    const rec =
-      approvals.find((h) => (h.to_stage || "").toLowerCase().includes("dg")) ||
-      approvals[0] ||
-      null;
-    return rec;
-  }, [approvals]);
+    const approvals = hist.filter((h) =>
+      (h.action_type || "").toLowerCase().includes("approve")
+    );
 
-  const dgRecord = useMemo(() => {
-    // DG approval = approve to Account or Completed
-    const rec =
-      approvals.find((h) => (h.to_stage || "").toLowerCase().includes("account")) ||
-      approvals.find((h) => (h.to_stage || "").toLowerCase().includes("completed")) ||
+    return (
+      approvals.find((h) => (h.to_stage || "").toLowerCase().includes("dg")) ||
+      approvals.find((h) => (h.to_stage || "").toLowerCase().includes("registry")) ||
       approvals[0] ||
-      null;
-    return rec;
-  }, [approvals]);
+      null
+    );
+  }, [hist]);
 
   useEffect(() => {
     async function load() {
@@ -101,7 +117,25 @@ export default function PrintRequestPage() {
       const { data: r, error: rErr } = await supabase
         .from("requests")
         .select(
-          "id,request_no,title,details,amount,created_by,dept_id,subhead_id,current_stage,status,created_at"
+          `
+          id,
+          request_no,
+          title,
+          details,
+          amount,
+          created_by,
+          dept_id,
+          subhead_id,
+          current_stage,
+          status,
+          created_at,
+          requester_signature_url,
+          hod_signature_url,
+          director_signature_url,
+          dg_signature_url,
+          registry_signature_url,
+          account_signature_url
+        `
         )
         .eq("id", id)
         .single();
@@ -111,33 +145,36 @@ export default function PrintRequestPage() {
         setLoading(false);
         return;
       }
-      setReq(r as any);
 
-      if ((r as any).subhead_id) {
-        const { data: sh } = await supabase
-          .from("subheads")
-          .select("id,code,name,approved_allocation,expenditure,balance")
-          .eq("id", (r as any).subhead_id)
-          .single();
-        setSubhead((sh as any) || null);
-      } else {
-        setSubhead(null);
-      }
+      const requestRow = r as Req;
+      setReq(requestRow);
 
-      const { data: prof } = await supabase
-        .from("profiles")
-        .select("id,full_name,signature_url")
-        .eq("id", (r as any).created_by)
-        .single();
-      setRequester((prof as any) || null);
+      const [{ data: d }, { data: sh }, { data: prof }, { data: h }] =
+        await Promise.all([
+          supabase.from("departments").select("id,name").eq("id", requestRow.dept_id).single(),
+          requestRow.subhead_id
+            ? supabase
+                .from("subheads")
+                .select("id,code,name,approved_allocation,expenditure,balance")
+                .eq("id", requestRow.subhead_id)
+                .single()
+            : Promise.resolve({ data: null } as any),
+          supabase
+            .from("profiles")
+            .select("id,full_name,signature_url")
+            .eq("id", requestRow.created_by)
+            .single(),
+          supabase
+            .from("request_history")
+            .select("id,action_type,to_stage,created_at,signature_url,action_by")
+            .eq("request_id", requestRow.id)
+            .order("created_at", { ascending: false }),
+        ]);
 
-      const { data: h } = await supabase
-        .from("request_history")
-        .select("action_type,to_stage,created_at,signature_url,action_by")
-        .eq("request_id", id)
-        .order("created_at", { ascending: false });
-
-      setHist((h || []) as any);
+      setDept((d as Dept) || null);
+      setSubhead((sh as Subhead) || null);
+      setRequester((prof as Profile) || null);
+      setHist((h || []) as Hist[]);
 
       setLoading(false);
     }
@@ -145,63 +182,77 @@ export default function PrintRequestPage() {
     load();
   }, [id, router]);
 
-  // ✅ Set PDF filename (browser uses this in "Save as PDF")
-  useEffect(() => {
-    if (!req) return;
-    document.title = (req.request_no || req.id || "IET-Request").replace(/[^\w\-]+/g, "_");
-  }, [req]);
-
   useEffect(() => {
     async function loadSigs() {
-      if (!requester) return;
+      if (!req) return;
 
-      setSigRequester(await signedUrl(requester.signature_url));
+      const requesterSig =
+        (await signedUrl(req.requester_signature_url)) ||
+        (await signedUrl(requester?.signature_url || null));
 
-      if (checkedRecord?.signature_url) setSigChecked(await signedUrl(checkedRecord.signature_url));
-      else setSigChecked(null);
+      const checkedSig =
+        (await signedUrl(req.registry_signature_url)) ||
+        (await signedUrl(req.hod_signature_url)) ||
+        (await signedUrl(req.director_signature_url)) ||
+        (await signedUrl(checkedRecord?.signature_url || null));
 
-      if (dgRecord?.signature_url) setSigDG(await signedUrl(dgRecord.signature_url));
-      else setSigDG(null);
+      const dgSig = await signedUrl(req.dg_signature_url);
+      const accountSig = await signedUrl(req.account_signature_url);
+
+      setSigRequester(requesterSig);
+      setSigChecked(checkedSig);
+      setSigDG(dgSig);
+      setSigAccount(accountSig);
     }
+
     loadSigs();
-  }, [requester, checkedRecord, dgRecord]);
+  }, [req, requester, checkedRecord]);
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-slate-50 px-4">
-        <div className="mx-auto max-w-4xl py-10 text-slate-600">Loading...</div>
+      <main className="min-h-screen bg-slate-100 px-4 py-8">
+        <div className="mx-auto max-w-5xl text-slate-600">Loading...</div>
       </main>
     );
   }
 
   if (!req) {
     return (
-      <main className="min-h-screen bg-slate-50 px-4">
-        <div className="mx-auto max-w-4xl py-10">Not found.</div>
+      <main className="min-h-screen bg-slate-100 px-4 py-8">
+        <div className="mx-auto max-w-5xl text-slate-700">Request not found.</div>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-6">
-      {/* ✅ Print rules: force one page feel + no second page spill */}
+    <main className="min-h-screen bg-slate-100 px-4 py-8">
       <style>{`
+        @page {
+          size: A4;
+          margin: 10mm;
+        }
+
         @media print {
-          body { background: white !important; }
-          .no-print { display: none !important; }
-          .sheet { box-shadow: none !important; border: none !important; border-radius: 0 !important; margin: 0 !important; }
-          @page { size: A4; margin: 10mm; }
+          body {
+            background: white !important;
+          }
 
-          /* make colors/images show in print */
-          * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          .no-print {
+            display: none !important;
+          }
 
-          /* prevent ugly page breaks */
-          .avoid-break { break-inside: avoid; page-break-inside: avoid; }
+          .sheet {
+            box-shadow: none !important;
+            border: none !important;
+            margin: 0 !important;
+            width: 100% !important;
+            min-height: auto !important;
+          }
         }
       `}</style>
 
-      <div className="mx-auto max-w-4xl">
-        <div className="no-print flex items-center justify-between mb-4">
+      <div className="mx-auto max-w-[900px]">
+        <div className="no-print mb-4 flex items-center justify-between">
           <button
             onClick={() => router.push(`/requests/${req.id}`)}
             className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
@@ -213,158 +264,260 @@ export default function PrintRequestPage() {
             onClick={() => window.print()}
             className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
           >
-            Print / Save PDF
+            Print
           </button>
         </div>
 
         {msg && (
-          <div className="no-print mb-4 rounded-xl bg-slate-100 px-3 py-2 text-sm text-slate-800">
+          <div className="no-print mb-4 rounded-xl bg-white px-3 py-2 text-sm text-slate-800">
             {msg}
           </div>
         )}
 
-        {/* SHEET */}
-        <div className="sheet bg-white border shadow-sm rounded-2xl px-8 py-8">
-          {/* Header */}
-          <div className="flex items-start justify-between gap-4">
-            {/* ✅ REAL LOGO: put file in /public/iet-logo.png */}
-            <div className="flex items-center gap-3">
-              <img
+        <div className="sheet mx-auto min-h-[1122px] w-full bg-white px-[42px] py-[34px] text-black">
+          {/* HEADER */}
+          <div className="text-center">
+            <div className="mx-auto flex justify-center">
+              <Image
                 src="/iet-logo.png"
                 alt="IET Logo"
-                className="h-16 w-16 object-contain"
-                onError={(e) => {
-                  // If missing, hide to avoid ugly icon
-                  (e.currentTarget as HTMLImageElement).style.display = "none";
-                }}
+                width={86}
+                height={86}
+                className="h-[86px] w-auto object-contain"
+                priority
               />
-              <div>
-                <div className="text-lg font-extrabold tracking-tight">ISLAMIC EDUCATION TRUST</div>
-                <div className="text-xs text-slate-700">IW2, Ilmi Avenue Intermediate Housing Estate</div>
-                <div className="text-xs text-slate-700">PMB 229, Minna, Niger State - Nigeria</div>
-              </div>
             </div>
 
-            <div className="text-right text-xs text-slate-700">
-              <div className="font-semibold">Ref:</div>
-              <div className="border border-slate-300 rounded-sm px-2 py-1 inline-block">
-                {req.request_no}
-              </div>
-              <div className="mt-3 flex justify-end">
-                <div className="rounded-lg border px-3 py-1 text-xs font-bold">
-                  STATUS: {req.status || "—"} • STAGE: {req.current_stage || "—"}
-                </div>
-              </div>
-              <div className="mt-2">
-                <span className="font-semibold">Date:</span>{" "}
-                {new Date(req.created_at).toLocaleDateString()}
-              </div>
+            <div className="mt-2 text-[28px] font-black uppercase leading-none tracking-tight">
+              Islamic Education Trust
+            </div>
+
+            <div className="mt-1 text-[15px] font-semibold leading-tight">
+              IW2, Ilmi Avenue Intermediate Housing Estate
+            </div>
+            <div className="text-[15px] font-semibold leading-tight">
+              PMB 229, Minna, Niger State - Nigeria
             </div>
           </div>
 
-          {/* Title */}
-          <div className="mt-4 text-center">
-            <div className="font-extrabold text-sm tracking-wide underline underline-offset-4">
-              REQUEST FOR FUND
-            </div>
+          {/* TOP BLUE LINE */}
+          <div className="mt-4 h-[4px] w-full bg-blue-500" />
+
+          {/* REFERENCE / DATE / STAGE */}
+          <div className="mt-4 grid grid-cols-12 gap-x-5 gap-y-1 text-[14px] font-bold">
+            <FieldBox
+              label="Reference:"
+              value={req.request_no}
+              className="col-span-5"
+            />
+            <FieldBox
+              label="Date:"
+              value={formatDate(req.created_at)}
+              className="col-span-4"
+            />
+            <FieldBox
+              label="Stage:"
+              value={req.current_stage || ""}
+              className="col-span-3"
+            />
+
+            <FieldBox
+              label="Department:"
+              value={dept?.name || ""}
+              className="col-span-5"
+            />
+            <FieldBox
+              label="Sub-Head:"
+              value={subhead ? `${subhead.code || ""} ${subhead.name}`.trim() : ""}
+              className="col-span-4"
+            />
+            <FieldBox
+              label="Status:"
+              value={req.status || ""}
+              className="col-span-3"
+            />
           </div>
 
-          {/* Subhead line */}
-          <div className="avoid-break mt-4 flex items-center gap-3">
-            <div className="text-sm font-bold whitespace-nowrap">SUB-HEAD:</div>
-            <div className="flex-1 border border-slate-300 rounded-sm h-7 px-2 flex items-center text-sm">
-              {subhead ? `${subhead.code} — ${subhead.name}` : ""}
-            </div>
-          </div>
+          {/* SECOND BLUE LINE */}
+          <div className="mt-3 h-[3px] w-full bg-blue-300" />
 
-          {/* Address */}
-          <div className="avoid-break mt-4 text-sm leading-5">
+          {/* ADDRESS */}
+          <div className="mt-6 text-[19px] font-bold leading-[1.45]">
             <div>The Director General,</div>
             <div>Islamic Education Trust,</div>
             <div>Minna.</div>
           </div>
 
-          <div className="avoid-break mt-3 text-sm font-semibold">Assalamu’ Alaikum Sir,</div>
+          {/* SALUTATION */}
+          <div className="mt-10 text-[19px] font-bold">Assalamu` Alaikum Sir,</div>
 
-          {/* Body */}
-          <div className="mt-3 text-sm leading-6">
+          {/* TITLE */}
+          <div className="mt-4 text-center text-[21px] font-black uppercase">
+            Request for Fund
+          </div>
+
+          {/* OPENING SENTENCE */}
+          <div className="mt-4 text-[18px] font-bold leading-[1.55]">
             I write to request for the release of the total sum of{" "}
-            <span className="inline-block min-w-[160px] border-b border-slate-600 text-center font-semibold">
+            <span className="inline-block min-w-[270px] border-b-[2px] border-black text-center font-bold">
               {naira(req.amount)}
             </span>{" "}
             for the expense below/attached:
           </div>
 
-          {/* Details area (tightened to fit A4) */}
-          <div className="mt-3">
-            <div className="text-sm whitespace-pre-wrap min-h-[160px]">
-              {req.details}
-            </div>
+          {/* BODY */}
+          <div className="mt-4 min-h-[300px] whitespace-pre-wrap text-[18px] font-semibold leading-[1.55]">
+            {req.details}
+          </div>
 
-            {/* fewer lines to keep one page */}
-            <div className="mt-2 space-y-2">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="border-b border-slate-300" />
-              ))}
+          {/* CLOSING */}
+          <div className="mt-10 text-[19px] font-bold">Wassalamu` Alaikum.</div>
+
+          {/* ALLOCATION BOX */}
+          <div className="mt-6 flex justify-end">
+            <div className="w-[470px] space-y-2">
+              <SmallFieldRow
+                label="ALLOCATION B/D:"
+                value={naira(subhead?.approved_allocation)}
+              />
+              <SmallFieldRow
+                label="EXPENDITURE:"
+                value={naira(subhead?.expenditure)}
+              />
+              <SmallFieldRow
+                label="BALANCE C/D:"
+                value={naira(subhead?.balance)}
+              />
             </div>
           </div>
 
-          <div className="avoid-break mt-4 text-sm">Wassalamu’ Alaikum.</div>
+          {/* BLUE LINE */}
+          <div className="mt-6 h-[3px] w-full bg-blue-300" />
 
-          {/* Right box */}
-          <div className="avoid-break mt-4 flex justify-end">
-            <div className="w-72 text-sm">
-              <RowBox label="ALLOCATION B/D:" value={naira(subhead?.approved_allocation || 0)} />
-              <RowBox label="EXPENDITURE:" value={naira(subhead?.expenditure || 0)} />
-              <RowBox label="BALANCE C/D:" value={naira(subhead?.balance || 0)} />
-            </div>
+          {/* SIGNATURES */}
+          <div className="mt-8 space-y-3 text-[17px] font-bold">
+            <SignatureLine
+              label="Requested by:"
+              name={requester?.full_name || ""}
+              sigUrl={sigRequester}
+              date={formatDate(req.created_at)}
+            />
+
+            <SignatureLine
+              label="Checked by:"
+              name=""
+              sigUrl={sigChecked}
+              date={
+                checkedRecord?.created_at ? formatDate(checkedRecord.created_at) : ""
+              }
+            />
+
+            <SignatureLine
+              label="Approved by DG, IET:"
+              name=""
+              sigUrl={sigDG}
+              date={findStageDate(hist, "Account") || findStageDate(hist, "Completed")}
+            />
+
+            <SignatureLine
+              label="Paid by Account:"
+              name=""
+              sigUrl={sigAccount}
+              date={req.status === "Paid" || req.current_stage === "Completed"
+                ? findStageDate(hist, "Completed") || findStageDate(hist, "Account")
+                : ""}
+            />
           </div>
 
-          {/* Signatures (tight spacing) */}
-          <div className="avoid-break mt-6 space-y-4 text-sm">
-            <SigRow label="Requested by:" name={requester?.full_name || ""} sigUrl={sigRequester} />
-            <SigRow label="Checked by:" name="" sigUrl={sigChecked} />
-            <SigRow label="Approved by Director General, IET:" name="" sigUrl={sigDG} />
+          {/* FOOTER */}
+          <div className="mt-12 text-center text-[18px] italic font-medium">
+            Building Bridges
           </div>
-
-          <div className="mt-5 text-center text-xs text-slate-500 italic">Building Bridges</div>
         </div>
       </div>
     </main>
   );
 }
 
-function RowBox({ label, value }: { label: string; value: string }) {
+function findStageDate(hist: Hist[], stage: string) {
+  const row = hist.find(
+    (h) => (h.to_stage || "").toLowerCase() === stage.toLowerCase()
+  );
+  return row?.created_at ? formatDate(row.created_at) : "";
+}
+
+function FieldBox({
+  label,
+  value,
+  className,
+}: {
+  label: string;
+  value: string;
+  className?: string;
+}) {
   return (
-    <div className="flex items-center justify-between gap-3 mb-2">
-      <div className="font-semibold">{label}</div>
-      <div className="w-28 border border-slate-300 h-7 rounded-sm px-2 flex items-center justify-end">
+    <div className={`flex items-center gap-2 ${className || ""}`}>
+      <div className="shrink-0 text-[16px] font-bold">{label}</div>
+      <div className="h-[28px] flex-1 rounded-[4px] border-[2px] border-black px-2 text-[14px] font-semibold leading-[24px] overflow-hidden whitespace-nowrap">
         {value}
       </div>
     </div>
   );
 }
 
-function SigRow({ label, name, sigUrl }: { label: string; name: string; sigUrl: string | null }) {
-  const today = new Date().toLocaleDateString();
+function SmallFieldRow({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
   return (
-    <div className="grid grid-cols-12 items-end gap-3">
-      <div className="col-span-4">{label}</div>
+    <div className="flex items-center justify-end gap-3">
+      <div className="w-[190px] text-right text-[18px] font-black">{label}</div>
+      <div className="h-[33px] w-[270px] rounded-[5px] border-[2px] border-black px-3 text-right text-[16px] font-semibold leading-[29px]">
+        {value}
+      </div>
+    </div>
+  );
+}
 
-      <div className="col-span-4 border-b border-slate-400 h-7 flex items-end">
-        <span className="text-xs text-slate-700">{name}</span>
+function SignatureLine({
+  label,
+  name,
+  sigUrl,
+  date,
+}: {
+  label: string;
+  name: string;
+  sigUrl: string | null;
+  date: string;
+}) {
+  return (
+    <div className="grid grid-cols-[150px_1fr_115px_170px_105px_120px] items-end gap-1">
+      <div>{label}</div>
+
+      <div className="border-b-[2px] border-black pb-[2px] text-[16px] font-semibold">
+        {name}
       </div>
 
-      <div className="col-span-2 border-b border-slate-400 h-7 flex items-end justify-center">
+      <div className="text-right">Signature:</div>
+
+      <div className="relative h-[34px] border-b-[2px] border-black">
         {sigUrl ? (
-          <img src={sigUrl} alt="sig" className="h-6 object-contain" />
-        ) : (
-          <span className="text-xs text-slate-400">Signature</span>
-        )}
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={sigUrl}
+            alt="signature"
+            className="absolute bottom-0 left-1 h-[30px] max-w-full object-contain"
+          />
+        ) : null}
       </div>
 
-      <div className="col-span-2 border-b border-slate-400 h-7 flex items-end justify-center">
-        <span className="text-xs">{today}</span>
+      <div className="text-right">Date:</div>
+
+      <div className="border-b-[2px] border-black pb-[2px] text-[16px] font-semibold">
+        {date}
       </div>
     </div>
   );
