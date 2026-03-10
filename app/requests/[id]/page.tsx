@@ -34,12 +34,6 @@ type Hist = {
 type SubheadMini = { id: string; code: string; name: string };
 type ProfileMini = { id: string; role: string; signature_url: string | null };
 
-type NextStep = {
-  nextStage: string;
-  nextOwner: string | null;
-  nextStatus: "Submitted" | "In Review" | "Approved" | "Rejected" | "Completed";
-};
-
 export default function RequestDetailsPage() {
   const router = useRouter();
   const params = useParams();
@@ -147,95 +141,6 @@ export default function RequestDetailsPage() {
     load();
   }, [id, router]);
 
-  async function getSetting(key: string): Promise<string | null> {
-    const { data, error } = await supabase
-      .from("app_settings")
-      .select("value")
-      .eq("key", key)
-      .maybeSingle();
-
-    if (error) return null;
-    return (data?.value as string) || null;
-  }
-
-  async function resolveNextOwner(currentStage: string, r: Req): Promise<NextStep> {
-    const stage = (currentStage || "").trim().toUpperCase();
-
-    // OFFICIAL FLOW
-    // HOD/Director -> Registry -> DG -> Account -> Completed
-    if (r.request_type === "Official") {
-      if (stage === "DIRECTOR" || stage === "HOD") {
-        const reg = await getSetting("REGISTRY_USER_ID");
-        if (!reg) throw new Error("REGISTRY_USER_ID not set.");
-        return { nextStage: "Registry", nextOwner: reg, nextStatus: "In Review" };
-      }
-
-      if (stage === "REGISTRY") {
-        const dg = await getSetting("DG_USER_ID");
-        if (!dg) throw new Error("DG_USER_ID not set.");
-        return { nextStage: "DG", nextOwner: dg, nextStatus: "In Review" };
-      }
-
-      if (stage === "DG") {
-        const acc = await getSetting("ACCOUNT_USER_ID");
-        if (!acc) throw new Error("ACCOUNT_USER_ID not set.");
-        return { nextStage: "Account", nextOwner: acc, nextStatus: "Approved" };
-      }
-
-      if (stage === "ACCOUNT") {
-        return { nextStage: "Completed", nextOwner: null, nextStatus: "Completed" };
-      }
-
-      return { nextStage: "Completed", nextOwner: null, nextStatus: "Completed" };
-    }
-
-    // PERSONAL FLOW
-    // HOD/Director -> HR -> Registry -> DG -> Account/HR -> Completed
-    if (stage === "DIRECTOR" || stage === "HOD") {
-      const hr = await getSetting("HR_USER_ID");
-      if (!hr) throw new Error("HR_USER_ID not set.");
-      return { nextStage: "HR", nextOwner: hr, nextStatus: "In Review" };
-    }
-
-    if (stage === "HR") {
-      const reg = await getSetting("REGISTRY_USER_ID");
-      if (!reg) throw new Error("REGISTRY_USER_ID not set.");
-      return { nextStage: "Registry", nextOwner: reg, nextStatus: "In Review" };
-    }
-
-    if (stage === "REGISTRY") {
-      const dg = await getSetting("DG_USER_ID");
-      if (!dg) throw new Error("DG_USER_ID not set.");
-      return { nextStage: "DG", nextOwner: dg, nextStatus: "In Review" };
-    }
-
-    if (stage === "DG") {
-      if (r.personal_category === "Fund") {
-        const acc = await getSetting("ACCOUNT_USER_ID");
-        if (!acc) throw new Error("ACCOUNT_USER_ID not set.");
-        return { nextStage: "Account", nextOwner: acc, nextStatus: "Approved" };
-      } else {
-        return { nextStage: "Completed", nextOwner: null, nextStatus: "Completed" };
-      }
-    }
-
-    if (stage === "ACCOUNT") {
-      return { nextStage: "Completed", nextOwner: null, nextStatus: "Completed" };
-    }
-
-    return { nextStage: "Completed", nextOwner: null, nextStatus: "Completed" };
-  }
-
-  async function notify(userId: string, title: string, body: string, link: string) {
-    await supabase.from("notifications").insert({
-      user_id: userId,
-      title,
-      body,
-      link,
-      is_read: false,
-    });
-  }
-
   async function reload() {
     if (!id) return;
 
@@ -292,63 +197,33 @@ export default function RequestDetailsPage() {
     setMsg(null);
 
     try {
-      if (action === "Reject") {
-        const { error: rejErr } = await supabase.rpc("reject_request_and_restore", {
+      if (action === "Approve") {
+        const { data, error } = await supabase.rpc("approve_request_step", {
           p_request_id: req.id,
+          p_action_by: me.id,
           p_comment: comment.trim(),
           p_signature_url: me.signature_url,
         });
 
-        if (rejErr) throw new Error(rejErr.message);
+        if (error) throw new Error(error.message);
 
-        await notify(
-          req.created_by,
-          "Request Rejected",
-          `${req.request_no}: ${req.title}`,
-          `/requests/${req.id}`
+        const nextStage = (data as any)?.next_stage;
+        setMsg(
+          nextStage === "Completed"
+            ? "✅ Approved. Request completed."
+            : `✅ Approved. Sent to ${nextStage}.`
         );
-
-        setMsg("✅ Rejected. Funds restored to subhead.");
       } else {
-        const next = await resolveNextOwner(req.current_stage, req);
-
-        const { error: upErr } = await supabase
-          .from("requests")
-          .update({
-            status: next.nextStatus,
-            current_stage: next.nextStage,
-            current_owner: next.nextOwner,
-          })
-          .eq("id", req.id);
-
-        if (upErr) throw new Error(upErr.message);
-
-        const { error: hErr } = await supabase.from("request_history").insert({
-          request_id: req.id,
-          action_by: me.id,
-          from_stage: req.current_stage,
-          to_stage: next.nextStage,
-          action_type: "Approve",
-          comment: comment.trim() || "Approved",
-          signature_url: me.signature_url,
+        const { error } = await supabase.rpc("reject_request_step", {
+          p_request_id: req.id,
+          p_action_by: me.id,
+          p_comment: comment.trim(),
+          p_signature_url: me.signature_url,
         });
 
-        if (hErr) throw new Error(hErr.message);
+        if (error) throw new Error(error.message);
 
-        if (next.nextOwner) {
-          await notify(
-            next.nextOwner,
-            "Request Assigned",
-            `${req.request_no}: ${req.title}`,
-            `/requests/${req.id}`
-          );
-        }
-
-        setMsg(
-          next.nextStage === "Completed"
-            ? "✅ Approved. Request completed."
-            : `✅ Approved. Sent to ${next.nextStage}.`
-        );
+        setMsg("✅ Rejected. Funds restored to subhead.");
       }
 
       setComment("");
