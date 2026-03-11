@@ -97,9 +97,7 @@ async function resolveSignatureUrl(value: string | null | undefined) {
       .from("signatures")
       .createSignedUrl(candidate, 60 * 10);
 
-    if (!error && data?.signedUrl) {
-      return data.signedUrl;
-    }
+    if (!error && data?.signedUrl) return data.signedUrl;
   }
 
   return null;
@@ -111,6 +109,7 @@ export default function PrintRequestPage() {
   const id = String((params as any)?.id || "");
 
   const [loading, setLoading] = useState(true);
+  const [resolvingPrintData, setResolvingPrintData] = useState(true);
   const [msg, setMsg] = useState<string | null>(null);
 
   const [req, setReq] = useState<Req | null>(null);
@@ -173,11 +172,7 @@ export default function PrintRequestPage() {
       setReq(reqRow);
 
       const [deptRes, subRes, requesterRes, histRes] = await Promise.all([
-        supabase
-          .from("departments")
-          .select("id,name")
-          .eq("id", reqRow.dept_id)
-          .single(),
+        supabase.from("departments").select("id,name").eq("id", reqRow.dept_id).single(),
         reqRow.subhead_id
           ? supabase
               .from("subheads")
@@ -254,6 +249,7 @@ export default function PrintRequestPage() {
     [hist, req?.account_paid_by_user_id]
   );
 
+  // stronger fallbacks from actual chain transitions
   const checkedFallback = useMemo(() => {
     return (
       hist.find((h) => (h.to_stage || "").toLowerCase() === "registry") ||
@@ -264,12 +260,20 @@ export default function PrintRequestPage() {
   }, [hist]);
 
   const dgFallback = useMemo(() => {
-    return hist.find((h) => (h.to_stage || "").toLowerCase() === "account") || null;
-  }, [hist]);
+    return (
+      hist.find((h) => (h.to_stage || "").toLowerCase() === "account") ||
+      hist.find((h) => cleanName(profilesMap[h.action_by]).toLowerCase().includes("dg")) ||
+      null
+    );
+  }, [hist, profilesMap]);
 
   const accountFallback = useMemo(() => {
-    return hist.find((h) => (h.to_stage || "").toLowerCase() === "completed") || null;
-  }, [hist]);
+    return (
+      hist.find((h) => (h.to_stage || "").toLowerCase() === "completed") ||
+      hist.find((h) => cleanName(profilesMap[h.action_by]).toLowerCase().includes("account")) ||
+      null
+    );
+  }, [hist, profilesMap]);
 
   const checkedRow = checkedHist || checkedFallback;
   const dgRow = dgHist || dgFallback;
@@ -293,6 +297,8 @@ export default function PrintRequestPage() {
   useEffect(() => {
     async function loadSigs() {
       if (!req) return;
+
+      setResolvingPrintData(true);
 
       const requesterSig =
         (await resolveSignatureUrl(req.requester_signature_url)) ||
@@ -319,15 +325,45 @@ export default function PrintRequestPage() {
       setSigChecked(checkedSig);
       setSigDG(dgSig);
       setSigAccount(accountSig);
+
+      setResolvingPrintData(false);
     }
 
     loadSigs();
   }, [req, requester, checkedRow, dgRow, accountRow, checkedPerson, dgPerson, accountPerson]);
 
-  if (loading) {
+  const readyToPrint = useMemo(() => {
+    if (!req) return false;
+
+    const namesReady =
+      !!cleanName(requester) &&
+      !!cleanName(checkedPerson) &&
+      !!cleanName(dgPerson) &&
+      !!cleanName(accountPerson);
+
+    const signaturesReady =
+      !!sigRequester &&
+      !!sigChecked &&
+      !!sigDG &&
+      !!sigAccount;
+
+    return namesReady && signaturesReady;
+  }, [req, requester, checkedPerson, dgPerson, accountPerson, sigRequester, sigChecked, sigDG, sigAccount]);
+
+  function handlePrint() {
+    if (!readyToPrint) {
+      setMsg("Print data is not complete yet. All names and signatures must load before preview/printing.");
+      return;
+    }
+    window.print();
+  }
+
+  if (loading || resolvingPrintData) {
     return (
       <main className="min-h-screen bg-slate-100 px-4 py-8">
-        <div className="mx-auto max-w-5xl text-slate-600">Loading...</div>
+        <div className="mx-auto max-w-3xl rounded-2xl border bg-white p-6 text-slate-700 shadow-sm">
+          Preparing final print preview with all names and signatures...
+        </div>
       </main>
     );
   }
@@ -345,7 +381,7 @@ export default function PrintRequestPage() {
       <style>{`
         @page {
           size: A4;
-          margin: 6mm;
+          margin: 5mm;
         }
 
         @media print {
@@ -366,7 +402,7 @@ export default function PrintRequestPage() {
         }
       `}</style>
 
-      <div className="mx-auto max-w-[820px]">
+      <div className="mx-auto max-w-[800px]">
         <div className="no-print mb-3 flex items-center justify-between">
           <button
             onClick={() => router.push(`/requests/${req.id}`)}
@@ -376,8 +412,9 @@ export default function PrintRequestPage() {
           </button>
 
           <button
-            onClick={() => window.print()}
-            className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+            onClick={handlePrint}
+            disabled={!readyToPrint}
+            className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
           >
             Print
           </button>
@@ -389,34 +426,40 @@ export default function PrintRequestPage() {
           </div>
         )}
 
-        <div className="sheet mx-auto w-full bg-white px-[24px] py-[16px] text-black">
+        {!readyToPrint && (
+          <div className="no-print mb-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+            Some required names or signatures are still missing. Printing is blocked until all four signature lines are populated.
+          </div>
+        )}
+
+        <div className="sheet mx-auto w-full bg-white px-[20px] py-[14px] text-black">
           <div className="text-center">
             <div className="mx-auto flex justify-center">
               <Image
                 src="/iet-logo.png"
                 alt="IET Logo"
-                width={58}
-                height={58}
-                className="h-[58px] w-auto object-contain"
+                width={52}
+                height={52}
+                className="h-[52px] w-auto object-contain"
                 priority
               />
             </div>
 
-            <div className="mt-1 text-[18px] font-black uppercase leading-none tracking-tight">
+            <div className="mt-1 text-[16px] font-black uppercase leading-none tracking-tight">
               Islamic Education Trust
             </div>
 
-            <div className="mt-0.5 text-[11px] font-semibold leading-tight">
+            <div className="mt-0.5 text-[10px] font-semibold leading-tight">
               IW2, Ilmi Avenue Intermediate Housing Estate
             </div>
-            <div className="text-[11px] font-semibold leading-tight">
+            <div className="text-[10px] font-semibold leading-tight">
               PMB 229, Minna, Niger State - Nigeria
             </div>
           </div>
 
           <div className="mt-2 h-[2px] w-full bg-blue-500" />
 
-          <div className="mt-2 grid grid-cols-12 gap-x-4 gap-y-1">
+          <div className="mt-2 grid grid-cols-12 gap-x-3 gap-y-1">
             <TopLineField label="Reference:" value={req.request_no} className="col-span-5" />
             <TopLineField label="Date:" value={formatDate(req.created_at)} className="col-span-4" />
             <TopLineField label="Stage:" value={req.current_stage || ""} className="col-span-3" />
@@ -430,45 +473,45 @@ export default function PrintRequestPage() {
             <TopLineField label="Status:" value={req.status || ""} className="col-span-3" />
           </div>
 
-          <div className="mt-1.5 h-[1.5px] w-full bg-blue-300" />
+          <div className="mt-1 h-[1px] w-full bg-blue-300" />
 
-          <div className="mt-3 text-[12px] font-bold leading-[1.35]">
+          <div className="mt-2 text-[11px] font-bold leading-[1.25]">
             <div>The Director General,</div>
             <div>Islamic Education Trust,</div>
             <div>Minna.</div>
           </div>
 
-          <div className="mt-4 text-[12px] font-bold">Assalamu` Alaikum Sir,</div>
+          <div className="mt-3 text-[11px] font-bold">Assalamu` Alaikum Sir,</div>
 
-          <div className="mt-1.5 text-center text-[14px] font-black uppercase">
+          <div className="mt-1 text-center text-[12px] font-black uppercase">
             Request for Fund
           </div>
 
-          <div className="mt-1.5 text-[11px] font-bold leading-[1.35]">
+          <div className="mt-1 text-[10px] font-bold leading-[1.25]">
             I write to request for the release of the total sum of{" "}
-            <span className="inline-block min-w-[180px] border-b-[1.5px] border-black text-center font-bold">
+            <span className="inline-block min-w-[160px] border-b border-black text-center font-bold">
               {naira(req.amount)}
             </span>{" "}
             for the expense below/attached:
           </div>
 
-          <div className="mt-2 min-h-[90px] whitespace-pre-wrap text-[10.5px] font-semibold leading-[1.3]">
+          <div className="mt-1.5 min-h-[72px] whitespace-pre-wrap text-[9.5px] font-semibold leading-[1.18]">
             {req.details}
           </div>
 
-          <div className="mt-3 text-[12px] font-bold">Wassalamu` Alaikum.</div>
+          <div className="mt-2 text-[11px] font-bold">Wassalamu` Alaikum.</div>
 
           <div className="mt-2 flex justify-end">
-            <div className="w-[360px] space-y-1">
+            <div className="w-[330px] space-y-1">
               <SmallFieldRow label="ALLOCATION B/D:" value={naira(subhead?.approved_allocation)} />
               <SmallFieldRow label="EXPENDITURE:" value={naira(subhead?.expenditure)} />
               <SmallFieldRow label="BALANCE C/D:" value={naira(subhead?.balance)} />
             </div>
           </div>
 
-          <div className="mt-2.5 h-[1.5px] w-full bg-blue-300" />
+          <div className="mt-2 h-[1px] w-full bg-blue-300" />
 
-          <div className="mt-2.5 space-y-2 text-[11px] font-bold">
+          <div className="mt-2 space-y-1.5 text-[10px] font-bold">
             <SignatureLine
               label="Requested by:"
               name={cleanName(requester)}
@@ -500,25 +543,25 @@ export default function PrintRequestPage() {
 
           {hist.length > 0 && (
             <>
-              <div className="mt-2.5 h-[1.5px] w-full bg-blue-300" />
-              <div className="mt-2">
-                <div className="text-[11px] font-black uppercase">Comments Trail</div>
+              <div className="mt-2 h-[1px] w-full bg-blue-300" />
+              <div className="mt-1.5">
+                <div className="text-[10px] font-black uppercase">Comments Trail</div>
 
-                <div className="mt-1.5 space-y-1.5">
-                  {hist.map((h) => {
+                <div className="mt-1 space-y-1">
+                  {hist.slice(0, 6).map((h) => {
                     const actor = profilesMap[h.action_by];
                     return (
                       <div key={h.id} className="rounded border border-slate-300 px-2 py-1">
                         <div className="flex items-center justify-between gap-2">
-                          <div className="text-[10px] font-bold">
+                          <div className="text-[8.8px] font-bold">
                             {cleanName(actor) || "—"} • {h.action_type || "—"} • {h.to_stage || "—"}
                           </div>
-                          <div className="text-[9px] font-semibold">
+                          <div className="text-[8px] font-semibold">
                             {formatDate(h.created_at)}
                           </div>
                         </div>
 
-                        <div className="mt-0.5 whitespace-pre-wrap text-[9.5px] text-slate-800 leading-[1.25]">
+                        <div className="mt-0.5 whitespace-pre-wrap text-[8.6px] text-slate-800 leading-[1.15]">
                           {h.comment || "No comment"}
                         </div>
                       </div>
@@ -529,7 +572,7 @@ export default function PrintRequestPage() {
             </>
           )}
 
-          <div className="mt-3 text-center text-[11px] italic font-medium">
+          <div className="mt-2 text-center text-[10px] italic font-medium">
             Building Bridges
           </div>
         </div>
@@ -548,9 +591,9 @@ function TopLineField({
   className?: string;
 }) {
   return (
-    <div className={`flex items-end gap-1.5 ${className || ""}`}>
-      <div className="shrink-0 text-[10.5px] font-bold">{label}</div>
-      <div className="min-w-0 flex-1 border-b-[1.5px] border-black px-1 pb-[1px] text-[10.5px] font-semibold leading-tight break-words">
+    <div className={`flex items-end gap-1 ${className || ""}`}>
+      <div className="shrink-0 text-[9px] font-bold">{label}</div>
+      <div className="min-w-0 flex-1 border-b border-black px-1 pb-[1px] text-[9px] font-semibold leading-tight break-words">
         {value}
       </div>
     </div>
@@ -566,8 +609,8 @@ function SmallFieldRow({
 }) {
   return (
     <div className="flex items-center justify-end gap-2">
-      <div className="w-[145px] text-right text-[11px] font-black">{label}</div>
-      <div className="h-[22px] w-[210px] rounded border border-black px-2 text-right text-[10.5px] font-semibold leading-[20px]">
+      <div className="w-[130px] text-right text-[9.5px] font-black">{label}</div>
+      <div className="h-[19px] w-[190px] rounded border border-black px-2 text-right text-[9px] font-semibold leading-[17px]">
         {value}
       </div>
     </div>
@@ -587,30 +630,30 @@ function SignatureLine({
 }) {
   return (
     <div>
-      <div className="grid grid-cols-[125px_2fr_0.7fr_0.7fr] items-end gap-2">
+      <div className="grid grid-cols-[110px_2fr_0.68fr_0.68fr] items-end gap-2">
         <div className="whitespace-nowrap">{label}</div>
 
-        <div className="border-b-[1.5px] border-black pb-[1px] text-[10.5px] font-semibold pr-1">
+        <div className="border-b border-black pb-[1px] text-[9px] font-semibold pr-1">
           {name}
         </div>
 
-        <div className="relative h-[22px] border-b-[1.5px] border-black">
+        <div className="relative h-[18px] border-b border-black">
           {sigUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={sigUrl}
               alt="signature"
-              className="absolute bottom-0 left-1/2 h-[18px] max-w-[90%] -translate-x-1/2 object-contain"
+              className="absolute bottom-0 left-1/2 h-[14px] max-w-[90%] -translate-x-1/2 object-contain"
             />
           ) : null}
         </div>
 
-        <div className="border-b-[1.5px] border-black pb-[1px] text-center text-[10.5px] font-semibold">
+        <div className="border-b border-black pb-[1px] text-center text-[9px] font-semibold">
           {date}
         </div>
       </div>
 
-      <div className="grid grid-cols-[125px_2fr_0.7fr_0.7fr] gap-2 pt-0.5 text-center text-[8.5px] font-medium text-slate-600">
+      <div className="grid grid-cols-[110px_2fr_0.68fr_0.68fr] gap-2 pt-0.5 text-center text-[7.5px] font-medium text-slate-600">
         <div />
         <div>Name</div>
         <div>Signature</div>
