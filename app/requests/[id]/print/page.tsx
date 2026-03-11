@@ -63,6 +63,10 @@ function formatDate(d: string | null | undefined) {
   return new Date(d).toLocaleDateString();
 }
 
+function displayPersonName(p: Profile | null | undefined) {
+  return (p?.full_name || "").trim();
+}
+
 async function signedUrl(path: string | null) {
   if (!path) return null;
   const { data } = await supabase.storage
@@ -350,7 +354,6 @@ export default function PrintRequestPage() {
         )}
 
         <div className="sheet mx-auto min-h-[1122px] w-full bg-white px-[42px] py-[34px] text-black">
-          {/* HEADER */}
           <div className="text-center">
             <div className="mx-auto flex justify-center">
               <Image
@@ -377,7 +380,6 @@ export default function PrintRequestPage() {
 
           <div className="mt-4 h-[4px] w-full bg-blue-500" />
 
-          {/* CLEAN TOP FIELDS */}
           <div className="mt-4 grid grid-cols-12 gap-x-6 gap-y-2">
             <TopLineField label="Reference:" value={req.request_no} className="col-span-5" />
             <TopLineField label="Date:" value={formatDate(req.created_at)} className="col-span-4" />
@@ -394,7 +396,6 @@ export default function PrintRequestPage() {
 
           <div className="mt-3 h-[3px] w-full bg-blue-300" />
 
-          {/* ADDRESS */}
           <div className="mt-6 text-[19px] font-bold leading-[1.45]">
             <div>The Director General,</div>
             <div>Islamic Education Trust,</div>
@@ -431,32 +432,31 @@ export default function PrintRequestPage() {
 
           <div className="mt-6 h-[3px] w-full bg-blue-300" />
 
-          {/* SIGNATURES */}
           <div className="mt-8 space-y-5 text-[17px] font-bold">
             <SignatureLine
               label="Requested by:"
-              name={requester?.full_name || ""}
+              name={displayPersonName(requester)}
               sigUrl={sigRequester}
               date={formatDate(req.created_at)}
             />
 
             <SignatureLine
               label="Checked by:"
-              name={checkedByProfile?.full_name || ""}
+              name={displayPersonName(checkedByProfile)}
               sigUrl={sigChecked}
               date={checkedRecord?.created_at ? formatDate(checkedRecord.created_at) : ""}
             />
 
             <SignatureLine
               label="Approved by DG, IET:"
-              name={dgProfile?.full_name || ""}
+              name={displayPersonName(dgProfile)}
               sigUrl={sigDG}
               date={dgRecord?.created_at ? formatDate(dgRecord.created_at) : ""}
             />
 
             <SignatureLine
               label="Paid by Account:"
-              name={accountProfile?.full_name || ""}
+              name={displayPersonName(accountProfile)}
               sigUrl={sigAccount}
               date={accountRecord?.created_at ? formatDate(accountRecord.created_at) : ""}
             />
@@ -529,7 +529,6 @@ function SignatureLine({
 
         <div className="relative h-[34px] border-b-[2px] border-black">
           {sigUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
             <img
               src={sigUrl}
               alt="signature"
