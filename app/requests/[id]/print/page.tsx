@@ -92,32 +92,12 @@ export default function PrintRequestPage() {
   const [subhead, setSubhead] = useState<Subhead | null>(null);
   const [requester, setRequester] = useState<Profile | null>(null);
   const [hist, setHist] = useState<Hist[]>([]);
-
-  const [checkedByProfile, setCheckedByProfile] = useState<Profile | null>(null);
-  const [dgProfile, setDgProfile] = useState<Profile | null>(null);
-  const [accountProfile, setAccountProfile] = useState<Profile | null>(null);
-
   const [profilesMap, setProfilesMap] = useState<Record<string, Profile>>({});
 
   const [sigRequester, setSigRequester] = useState<string | null>(null);
   const [sigChecked, setSigChecked] = useState<string | null>(null);
   const [sigDG, setSigDG] = useState<string | null>(null);
   const [sigAccount, setSigAccount] = useState<string | null>(null);
-
-  const checkedHist = useMemo(
-    () => hist.find((h) => h.action_by === req?.checked_by_user_id) || null,
-    [hist, req?.checked_by_user_id]
-  );
-
-  const dgHist = useMemo(
-    () => hist.find((h) => h.action_by === req?.dg_approved_by_user_id) || null,
-    [hist, req?.dg_approved_by_user_id]
-  );
-
-  const accountHist = useMemo(
-    () => hist.find((h) => h.action_by === req?.account_paid_by_user_id) || null,
-    [hist, req?.account_paid_by_user_id]
-  );
 
   useEffect(() => {
     async function load() {
@@ -194,7 +174,9 @@ export default function PrintRequestPage() {
       if (deptRes.data) setDept(deptRes.data as Dept);
       if (subRes.data) setSubhead(subRes.data as Subhead);
       if (requesterRes.data) setRequester(requesterRes.data as Profile);
-      setHist((histRes.data || []) as Hist[]);
+
+      const histRows = (histRes.data || []) as Hist[];
+      setHist(histRows);
 
       const profileIds = Array.from(
         new Set(
@@ -203,7 +185,7 @@ export default function PrintRequestPage() {
             reqRow.checked_by_user_id,
             reqRow.dg_approved_by_user_id,
             reqRow.account_paid_by_user_id,
-            ...((histRes.data || []) as Hist[]).map((h) => h.action_by),
+            ...histRows.map((h) => h.action_by),
           ].filter(Boolean) as string[]
         )
       );
@@ -214,27 +196,11 @@ export default function PrintRequestPage() {
           .select("id,full_name,signature_url")
           .in("id", profileIds);
 
-        const rows = (pRows || []) as Profile[];
-
-        const byId = new Map<string, Profile>();
         const plainMap: Record<string, Profile> = {};
-
-        rows.forEach((p) => {
-          byId.set(p.id, p);
+        ((pRows || []) as Profile[]).forEach((p) => {
           plainMap[p.id] = p;
         });
-
         setProfilesMap(plainMap);
-
-        setCheckedByProfile(
-          reqRow.checked_by_user_id ? byId.get(reqRow.checked_by_user_id) || null : null
-        );
-        setDgProfile(
-          reqRow.dg_approved_by_user_id ? byId.get(reqRow.dg_approved_by_user_id) || null : null
-        );
-        setAccountProfile(
-          reqRow.account_paid_by_user_id ? byId.get(reqRow.account_paid_by_user_id) || null : null
-        );
       }
 
       setLoading(false);
@@ -247,37 +213,93 @@ export default function PrintRequestPage() {
     document.title = req?.request_no || "request-print";
   }, [req?.request_no]);
 
+  // exact rows from direct saved IDs
+  const checkedHist = useMemo(
+    () => hist.find((h) => h.action_by === req?.checked_by_user_id) || null,
+    [hist, req?.checked_by_user_id]
+  );
+
+  const dgHist = useMemo(
+    () => hist.find((h) => h.action_by === req?.dg_approved_by_user_id) || null,
+    [hist, req?.dg_approved_by_user_id]
+  );
+
+  const accountHist = useMemo(
+    () => hist.find((h) => h.action_by === req?.account_paid_by_user_id) || null,
+    [hist, req?.account_paid_by_user_id]
+  );
+
+  // fallback rows from workflow trail
+  const checkedHistFallback = useMemo(() => {
+    return (
+      hist.find((h) => (h.to_stage || "").toLowerCase() === "registry") ||
+      hist.find((h) => (h.to_stage || "").toLowerCase() === "hr") ||
+      hist.find((h) => (h.to_stage || "").toLowerCase() === "dg") ||
+      null
+    );
+  }, [hist]);
+
+  const dgHistFallback = useMemo(() => {
+    return hist.find((h) => (h.to_stage || "").toLowerCase() === "account") || null;
+  }, [hist]);
+
+  const accountHistFallback = useMemo(() => {
+    return hist.find((h) => (h.to_stage || "").toLowerCase() === "completed") || null;
+  }, [hist]);
+
+  // resolved display rows
+  const checkedRow = checkedHist || checkedHistFallback;
+  const dgRow = dgHist || dgHistFallback;
+  const accountRow = accountHist || accountHistFallback;
+
+  // resolved display people
+  const checkedPerson =
+    (req?.checked_by_user_id && profilesMap[req.checked_by_user_id]) ||
+    (checkedRow?.action_by && profilesMap[checkedRow.action_by]) ||
+    null;
+
+  const dgPerson =
+    (req?.dg_approved_by_user_id && profilesMap[req.dg_approved_by_user_id]) ||
+    (dgRow?.action_by && profilesMap[dgRow.action_by]) ||
+    null;
+
+  const accountPerson =
+    (req?.account_paid_by_user_id && profilesMap[req.account_paid_by_user_id]) ||
+    (accountRow?.action_by && profilesMap[accountRow.action_by]) ||
+    null;
+
   useEffect(() => {
     async function loadSigs() {
       if (!req) return;
 
-      setSigRequester(
+      const requesterSig =
         (await signedUrl(req.requester_signature_url)) ||
-          (await signedUrl(requester?.signature_url || null))
-      );
+        (await signedUrl(requester?.signature_url || null));
 
-      setSigChecked(
+      const checkedSig =
         (await signedUrl(req.hod_signature_url)) ||
-          (await signedUrl(req.director_signature_url)) ||
-          (await signedUrl(checkedHist?.signature_url || null)) ||
-          (await signedUrl(checkedByProfile?.signature_url || null))
-      );
+        (await signedUrl(req.director_signature_url)) ||
+        (await signedUrl(checkedRow?.signature_url || null)) ||
+        (await signedUrl(checkedPerson?.signature_url || null));
 
-      setSigDG(
+      const dgSig =
         (await signedUrl(req.dg_signature_url)) ||
-          (await signedUrl(dgHist?.signature_url || null)) ||
-          (await signedUrl(dgProfile?.signature_url || null))
-      );
+        (await signedUrl(dgRow?.signature_url || null)) ||
+        (await signedUrl(dgPerson?.signature_url || null));
 
-      setSigAccount(
+      const accountSig =
         (await signedUrl(req.account_signature_url)) ||
-          (await signedUrl(accountHist?.signature_url || null)) ||
-          (await signedUrl(accountProfile?.signature_url || null))
-      );
+        (await signedUrl(accountRow?.signature_url || null)) ||
+        (await signedUrl(accountPerson?.signature_url || null));
+
+      setSigRequester(requesterSig);
+      setSigChecked(checkedSig);
+      setSigDG(dgSig);
+      setSigAccount(accountSig);
     }
 
     loadSigs();
-  }, [req, requester, checkedHist, dgHist, accountHist, checkedByProfile, dgProfile, accountProfile]);
+  }, [req, requester, checkedRow, dgRow, accountRow, checkedPerson, dgPerson, accountPerson]);
 
   if (loading) {
     return (
@@ -433,23 +455,23 @@ export default function PrintRequestPage() {
 
             <SignatureLine
               label="Checked by:"
-              name={cleanName(checkedByProfile)}
+              name={cleanName(checkedPerson)}
               sigUrl={sigChecked}
-              date={checkedHist?.created_at ? formatDate(checkedHist.created_at) : ""}
+              date={checkedRow?.created_at ? formatDate(checkedRow.created_at) : ""}
             />
 
             <SignatureLine
               label="Approved by DG, IET:"
-              name={cleanName(dgProfile)}
+              name={cleanName(dgPerson)}
               sigUrl={sigDG}
-              date={dgHist?.created_at ? formatDate(dgHist.created_at) : ""}
+              date={dgRow?.created_at ? formatDate(dgRow.created_at) : ""}
             />
 
             <SignatureLine
               label="Paid by Account:"
-              name={cleanName(accountProfile)}
+              name={cleanName(accountPerson)}
               sigUrl={sigAccount}
-              date={accountHist?.created_at ? formatDate(accountHist.created_at) : ""}
+              date={accountRow?.created_at ? formatDate(accountRow.created_at) : ""}
             />
           </div>
 
