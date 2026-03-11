@@ -75,18 +75,34 @@ async function resolveSignatureUrl(value: string | null | undefined) {
   const raw = (value || "").trim();
   if (!raw) return null;
 
-  // already a full URL
-  if (raw.startsWith("http://") || raw.startsWith("https://")) {
+  if (
+    raw.startsWith("http://") ||
+    raw.startsWith("https://") ||
+    raw.startsWith("data:image/") ||
+    raw.startsWith("blob:")
+  ) {
     return raw;
   }
 
-  // otherwise treat as storage path in "signatures" bucket
-  const { data, error } = await supabase.storage
-    .from("signatures")
-    .createSignedUrl(raw, 60 * 10);
+  const attempts = [
+    raw,
+    raw.replace(/^signatures\//, ""),
+    raw.replace(/^\/+/, ""),
+  ];
 
-  if (error) return null;
-  return data?.signedUrl || null;
+  for (const candidate of attempts) {
+    if (!candidate) continue;
+
+    const { data, error } = await supabase.storage
+      .from("signatures")
+      .createSignedUrl(candidate, 60 * 10);
+
+    if (!error && data?.signedUrl) {
+      return data.signedUrl;
+    }
+  }
+
+  return null;
 }
 
 export default function PrintRequestPage() {
@@ -238,7 +254,7 @@ export default function PrintRequestPage() {
     [hist, req?.account_paid_by_user_id]
   );
 
-  const checkedHistFallback = useMemo(() => {
+  const checkedFallback = useMemo(() => {
     return (
       hist.find((h) => (h.to_stage || "").toLowerCase() === "registry") ||
       hist.find((h) => (h.to_stage || "").toLowerCase() === "hr") ||
@@ -247,17 +263,17 @@ export default function PrintRequestPage() {
     );
   }, [hist]);
 
-  const dgHistFallback = useMemo(() => {
+  const dgFallback = useMemo(() => {
     return hist.find((h) => (h.to_stage || "").toLowerCase() === "account") || null;
   }, [hist]);
 
-  const accountHistFallback = useMemo(() => {
+  const accountFallback = useMemo(() => {
     return hist.find((h) => (h.to_stage || "").toLowerCase() === "completed") || null;
   }, [hist]);
 
-  const checkedRow = checkedHist || checkedHistFallback;
-  const dgRow = dgHist || dgHistFallback;
-  const accountRow = accountHist || accountHistFallback;
+  const checkedRow = checkedHist || checkedFallback;
+  const dgRow = dgHist || dgFallback;
+  const accountRow = accountHist || accountFallback;
 
   const checkedPerson =
     (req?.checked_by_user_id && profilesMap[req.checked_by_user_id]) ||
@@ -325,11 +341,11 @@ export default function PrintRequestPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-100 px-4 py-6">
+    <main className="min-h-screen bg-slate-100 px-4 py-4">
       <style>{`
         @page {
           size: A4;
-          margin: 8mm;
+          margin: 6mm;
         }
 
         @media print {
@@ -350,8 +366,8 @@ export default function PrintRequestPage() {
         }
       `}</style>
 
-      <div className="mx-auto max-w-[860px]">
-        <div className="no-print mb-4 flex items-center justify-between">
+      <div className="mx-auto max-w-[820px]">
+        <div className="no-print mb-3 flex items-center justify-between">
           <button
             onClick={() => router.push(`/requests/${req.id}`)}
             className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
@@ -368,39 +384,39 @@ export default function PrintRequestPage() {
         </div>
 
         {msg && (
-          <div className="no-print mb-4 rounded-xl bg-white px-3 py-2 text-sm text-slate-800">
+          <div className="no-print mb-3 rounded-xl bg-white px-3 py-2 text-sm text-slate-800">
             {msg}
           </div>
         )}
 
-        <div className="sheet mx-auto w-full bg-white px-[34px] py-[24px] text-black">
+        <div className="sheet mx-auto w-full bg-white px-[24px] py-[16px] text-black">
           <div className="text-center">
             <div className="mx-auto flex justify-center">
               <Image
                 src="/iet-logo.png"
                 alt="IET Logo"
-                width={74}
-                height={74}
-                className="h-[74px] w-auto object-contain"
+                width={58}
+                height={58}
+                className="h-[58px] w-auto object-contain"
                 priority
               />
             </div>
 
-            <div className="mt-1 text-[23px] font-black uppercase leading-none tracking-tight">
+            <div className="mt-1 text-[18px] font-black uppercase leading-none tracking-tight">
               Islamic Education Trust
             </div>
 
-            <div className="mt-1 text-[13px] font-semibold leading-tight">
+            <div className="mt-0.5 text-[11px] font-semibold leading-tight">
               IW2, Ilmi Avenue Intermediate Housing Estate
             </div>
-            <div className="text-[13px] font-semibold leading-tight">
+            <div className="text-[11px] font-semibold leading-tight">
               PMB 229, Minna, Niger State - Nigeria
             </div>
           </div>
 
-          <div className="mt-3 h-[3px] w-full bg-blue-500" />
+          <div className="mt-2 h-[2px] w-full bg-blue-500" />
 
-          <div className="mt-3 grid grid-cols-12 gap-x-5 gap-y-1">
+          <div className="mt-2 grid grid-cols-12 gap-x-4 gap-y-1">
             <TopLineField label="Reference:" value={req.request_no} className="col-span-5" />
             <TopLineField label="Date:" value={formatDate(req.created_at)} className="col-span-4" />
             <TopLineField label="Stage:" value={req.current_stage || ""} className="col-span-3" />
@@ -414,45 +430,45 @@ export default function PrintRequestPage() {
             <TopLineField label="Status:" value={req.status || ""} className="col-span-3" />
           </div>
 
-          <div className="mt-2 h-[2px] w-full bg-blue-300" />
+          <div className="mt-1.5 h-[1.5px] w-full bg-blue-300" />
 
-          <div className="mt-4 text-[15px] font-bold leading-[1.45]">
+          <div className="mt-3 text-[12px] font-bold leading-[1.35]">
             <div>The Director General,</div>
             <div>Islamic Education Trust,</div>
             <div>Minna.</div>
           </div>
 
-          <div className="mt-6 text-[15px] font-bold">Assalamu` Alaikum Sir,</div>
+          <div className="mt-4 text-[12px] font-bold">Assalamu` Alaikum Sir,</div>
 
-          <div className="mt-2 text-center text-[17px] font-black uppercase">
+          <div className="mt-1.5 text-center text-[14px] font-black uppercase">
             Request for Fund
           </div>
 
-          <div className="mt-2 text-[14px] font-bold leading-[1.5]">
+          <div className="mt-1.5 text-[11px] font-bold leading-[1.35]">
             I write to request for the release of the total sum of{" "}
-            <span className="inline-block min-w-[220px] border-b-[2px] border-black text-center font-bold">
+            <span className="inline-block min-w-[180px] border-b-[1.5px] border-black text-center font-bold">
               {naira(req.amount)}
             </span>{" "}
             for the expense below/attached:
           </div>
 
-          <div className="mt-3 min-h-[140px] whitespace-pre-wrap text-[13px] font-semibold leading-[1.45]">
+          <div className="mt-2 min-h-[90px] whitespace-pre-wrap text-[10.5px] font-semibold leading-[1.3]">
             {req.details}
           </div>
 
-          <div className="mt-5 text-[15px] font-bold">Wassalamu` Alaikum.</div>
+          <div className="mt-3 text-[12px] font-bold">Wassalamu` Alaikum.</div>
 
-          <div className="mt-3 flex justify-end">
-            <div className="w-[420px] space-y-1.5">
+          <div className="mt-2 flex justify-end">
+            <div className="w-[360px] space-y-1">
               <SmallFieldRow label="ALLOCATION B/D:" value={naira(subhead?.approved_allocation)} />
               <SmallFieldRow label="EXPENDITURE:" value={naira(subhead?.expenditure)} />
               <SmallFieldRow label="BALANCE C/D:" value={naira(subhead?.balance)} />
             </div>
           </div>
 
-          <div className="mt-4 h-[2px] w-full bg-blue-300" />
+          <div className="mt-2.5 h-[1.5px] w-full bg-blue-300" />
 
-          <div className="mt-4 space-y-3 text-[14px] font-bold">
+          <div className="mt-2.5 space-y-2 text-[11px] font-bold">
             <SignatureLine
               label="Requested by:"
               name={cleanName(requester)}
@@ -484,25 +500,25 @@ export default function PrintRequestPage() {
 
           {hist.length > 0 && (
             <>
-              <div className="mt-4 h-[2px] w-full bg-blue-300" />
-              <div className="mt-3">
-                <div className="text-[14px] font-black uppercase">Comments Trail</div>
+              <div className="mt-2.5 h-[1.5px] w-full bg-blue-300" />
+              <div className="mt-2">
+                <div className="text-[11px] font-black uppercase">Comments Trail</div>
 
-                <div className="mt-2 space-y-2">
+                <div className="mt-1.5 space-y-1.5">
                   {hist.map((h) => {
                     const actor = profilesMap[h.action_by];
                     return (
-                      <div key={h.id} className="rounded-lg border border-slate-300 p-2">
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="text-[12px] font-bold">
+                      <div key={h.id} className="rounded border border-slate-300 px-2 py-1">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="text-[10px] font-bold">
                             {cleanName(actor) || "—"} • {h.action_type || "—"} • {h.to_stage || "—"}
                           </div>
-                          <div className="text-[11px] font-semibold">
+                          <div className="text-[9px] font-semibold">
                             {formatDate(h.created_at)}
                           </div>
                         </div>
 
-                        <div className="mt-1 min-h-[32px] whitespace-pre-wrap text-[12px] text-slate-800">
+                        <div className="mt-0.5 whitespace-pre-wrap text-[9.5px] text-slate-800 leading-[1.25]">
                           {h.comment || "No comment"}
                         </div>
                       </div>
@@ -513,7 +529,7 @@ export default function PrintRequestPage() {
             </>
           )}
 
-          <div className="mt-5 text-center text-[15px] italic font-medium">
+          <div className="mt-3 text-center text-[11px] italic font-medium">
             Building Bridges
           </div>
         </div>
@@ -532,9 +548,9 @@ function TopLineField({
   className?: string;
 }) {
   return (
-    <div className={`flex items-end gap-2 ${className || ""}`}>
-      <div className="shrink-0 text-[13px] font-bold">{label}</div>
-      <div className="min-w-0 flex-1 border-b-[2px] border-black px-1 pb-[1px] text-[13px] font-semibold leading-tight break-words">
+    <div className={`flex items-end gap-1.5 ${className || ""}`}>
+      <div className="shrink-0 text-[10.5px] font-bold">{label}</div>
+      <div className="min-w-0 flex-1 border-b-[1.5px] border-black px-1 pb-[1px] text-[10.5px] font-semibold leading-tight break-words">
         {value}
       </div>
     </div>
@@ -549,9 +565,9 @@ function SmallFieldRow({
   value: string;
 }) {
   return (
-    <div className="flex items-center justify-end gap-3">
-      <div className="w-[170px] text-right text-[14px] font-black">{label}</div>
-      <div className="h-[28px] w-[240px] rounded-[5px] border-[2px] border-black px-3 text-right text-[13px] font-semibold leading-[24px]">
+    <div className="flex items-center justify-end gap-2">
+      <div className="w-[145px] text-right text-[11px] font-black">{label}</div>
+      <div className="h-[22px] w-[210px] rounded border border-black px-2 text-right text-[10.5px] font-semibold leading-[20px]">
         {value}
       </div>
     </div>
@@ -571,30 +587,30 @@ function SignatureLine({
 }) {
   return (
     <div>
-      <div className="grid grid-cols-[150px_2fr_0.75fr_0.75fr] items-end gap-3">
+      <div className="grid grid-cols-[125px_2fr_0.7fr_0.7fr] items-end gap-2">
         <div className="whitespace-nowrap">{label}</div>
 
-        <div className="border-b-[2px] border-black pb-[1px] text-[13px] font-semibold pr-2">
+        <div className="border-b-[1.5px] border-black pb-[1px] text-[10.5px] font-semibold pr-1">
           {name}
         </div>
 
-        <div className="relative h-[28px] border-b-[2px] border-black">
+        <div className="relative h-[22px] border-b-[1.5px] border-black">
           {sigUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={sigUrl}
               alt="signature"
-              className="absolute bottom-0 left-1/2 h-[22px] max-w-[88%] -translate-x-1/2 object-contain"
+              className="absolute bottom-0 left-1/2 h-[18px] max-w-[90%] -translate-x-1/2 object-contain"
             />
           ) : null}
         </div>
 
-        <div className="border-b-[2px] border-black pb-[1px] text-center text-[13px] font-semibold">
+        <div className="border-b-[1.5px] border-black pb-[1px] text-center text-[10.5px] font-semibold">
           {date}
         </div>
       </div>
 
-      <div className="grid grid-cols-[150px_2fr_0.75fr_0.75fr] gap-3 pt-1 text-center text-[10px] font-medium text-slate-600">
+      <div className="grid grid-cols-[125px_2fr_0.7fr_0.7fr] gap-2 pt-0.5 text-center text-[8.5px] font-medium text-slate-600">
         <div />
         <div>Name</div>
         <div>Signature</div>
