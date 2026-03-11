@@ -23,6 +23,9 @@ type Req = {
   dg_signature_url: string | null;
   registry_signature_url: string | null;
   account_signature_url: string | null;
+  checked_by_user_id: string | null;
+  dg_approved_by_user_id: string | null;
+  account_paid_by_user_id: string | null;
 };
 
 type Dept = {
@@ -90,12 +93,31 @@ export default function PrintRequestPage() {
   const [requester, setRequester] = useState<Profile | null>(null);
   const [hist, setHist] = useState<Hist[]>([]);
 
+  const [checkedByProfile, setCheckedByProfile] = useState<Profile | null>(null);
+  const [dgProfile, setDgProfile] = useState<Profile | null>(null);
+  const [accountProfile, setAccountProfile] = useState<Profile | null>(null);
+
   const [profilesMap, setProfilesMap] = useState<Record<string, Profile>>({});
 
   const [sigRequester, setSigRequester] = useState<string | null>(null);
   const [sigChecked, setSigChecked] = useState<string | null>(null);
   const [sigDG, setSigDG] = useState<string | null>(null);
   const [sigAccount, setSigAccount] = useState<string | null>(null);
+
+  const checkedHist = useMemo(
+    () => hist.find((h) => h.action_by === req?.checked_by_user_id) || null,
+    [hist, req?.checked_by_user_id]
+  );
+
+  const dgHist = useMemo(
+    () => hist.find((h) => h.action_by === req?.dg_approved_by_user_id) || null,
+    [hist, req?.dg_approved_by_user_id]
+  );
+
+  const accountHist = useMemo(
+    () => hist.find((h) => h.action_by === req?.account_paid_by_user_id) || null,
+    [hist, req?.account_paid_by_user_id]
+  );
 
   useEffect(() => {
     async function load() {
@@ -127,7 +149,10 @@ export default function PrintRequestPage() {
           director_signature_url,
           dg_signature_url,
           registry_signature_url,
-          account_signature_url
+          account_signature_url,
+          checked_by_user_id,
+          dg_approved_by_user_id,
+          account_paid_by_user_id
         `)
         .eq("id", id)
         .single();
@@ -142,7 +167,11 @@ export default function PrintRequestPage() {
       setReq(reqRow);
 
       const [deptRes, subRes, requesterRes, histRes] = await Promise.all([
-        supabase.from("departments").select("id,name").eq("id", reqRow.dept_id).single(),
+        supabase
+          .from("departments")
+          .select("id,name")
+          .eq("id", reqRow.dept_id)
+          .single(),
         reqRow.subhead_id
           ? supabase
               .from("subheads")
@@ -167,24 +196,45 @@ export default function PrintRequestPage() {
       if (requesterRes.data) setRequester(requesterRes.data as Profile);
       setHist((histRes.data || []) as Hist[]);
 
-      const actorIds = Array.from(
-        new Set([
-          reqRow.created_by,
-          ...((histRes.data || []) as Hist[]).map((h) => h.action_by).filter(Boolean),
-        ])
+      const profileIds = Array.from(
+        new Set(
+          [
+            reqRow.created_by,
+            reqRow.checked_by_user_id,
+            reqRow.dg_approved_by_user_id,
+            reqRow.account_paid_by_user_id,
+            ...((histRes.data || []) as Hist[]).map((h) => h.action_by),
+          ].filter(Boolean) as string[]
+        )
       );
 
-      if (actorIds.length > 0) {
+      if (profileIds.length > 0) {
         const { data: pRows } = await supabase
           .from("profiles")
           .select("id,full_name,signature_url")
-          .in("id", actorIds);
+          .in("id", profileIds);
 
-        const map: Record<string, Profile> = {};
-        (pRows || []).forEach((p: any) => {
-          map[p.id] = p;
+        const rows = (pRows || []) as Profile[];
+
+        const byId = new Map<string, Profile>();
+        const plainMap: Record<string, Profile> = {};
+
+        rows.forEach((p) => {
+          byId.set(p.id, p);
+          plainMap[p.id] = p;
         });
-        setProfilesMap(map);
+
+        setProfilesMap(plainMap);
+
+        setCheckedByProfile(
+          reqRow.checked_by_user_id ? byId.get(reqRow.checked_by_user_id) || null : null
+        );
+        setDgProfile(
+          reqRow.dg_approved_by_user_id ? byId.get(reqRow.dg_approved_by_user_id) || null : null
+        );
+        setAccountProfile(
+          reqRow.account_paid_by_user_id ? byId.get(reqRow.account_paid_by_user_id) || null : null
+        );
       }
 
       setLoading(false);
@@ -197,67 +247,37 @@ export default function PrintRequestPage() {
     document.title = req?.request_no || "request-print";
   }, [req?.request_no]);
 
-  const approveRows = useMemo(() => {
-    return hist.filter((h) =>
-      (h.action_type || "").toLowerCase().includes("approve")
-    );
-  }, [hist]);
-
-  const checkedRow = useMemo(() => {
-    return (
-      approveRows.find((h) => (h.to_stage || "").toLowerCase() === "dg") ||
-      approveRows.find((h) => (h.to_stage || "").toLowerCase() === "registry") ||
-      approveRows.find((h) => (h.to_stage || "").toLowerCase() === "hr") ||
-      approveRows.find((h) => (h.to_stage || "").toLowerCase() === "hod") ||
-      approveRows.find((h) => (h.to_stage || "").toLowerCase() === "director") ||
-      null
-    );
-  }, [approveRows]);
-
-  const dgRow = useMemo(() => {
-    return (
-      approveRows.find((h) => (h.to_stage || "").toLowerCase() === "account") ||
-      null
-    );
-  }, [approveRows]);
-
-  const accountRow = useMemo(() => {
-    return (
-      approveRows.find((h) => (h.to_stage || "").toLowerCase() === "completed") ||
-      null
-    );
-  }, [approveRows]);
-
   useEffect(() => {
     async function loadSigs() {
       if (!req) return;
 
-      const requesterSig =
+      setSigRequester(
         (await signedUrl(req.requester_signature_url)) ||
-        (await signedUrl(requester?.signature_url || null));
+          (await signedUrl(requester?.signature_url || null))
+      );
 
-      const checkedSig =
-        (await signedUrl(checkedRow?.signature_url || null)) ||
-        (await signedUrl(req.registry_signature_url)) ||
+      setSigChecked(
         (await signedUrl(req.hod_signature_url)) ||
-        (await signedUrl(req.director_signature_url));
+          (await signedUrl(req.director_signature_url)) ||
+          (await signedUrl(checkedHist?.signature_url || null)) ||
+          (await signedUrl(checkedByProfile?.signature_url || null))
+      );
 
-      const dgSig =
-        (await signedUrl(dgRow?.signature_url || null)) ||
-        (await signedUrl(req.dg_signature_url));
+      setSigDG(
+        (await signedUrl(req.dg_signature_url)) ||
+          (await signedUrl(dgHist?.signature_url || null)) ||
+          (await signedUrl(dgProfile?.signature_url || null))
+      );
 
-      const accountSig =
-        (await signedUrl(accountRow?.signature_url || null)) ||
-        (await signedUrl(req.account_signature_url));
-
-      setSigRequester(requesterSig);
-      setSigChecked(checkedSig);
-      setSigDG(dgSig);
-      setSigAccount(accountSig);
+      setSigAccount(
+        (await signedUrl(req.account_signature_url)) ||
+          (await signedUrl(accountHist?.signature_url || null)) ||
+          (await signedUrl(accountProfile?.signature_url || null))
+      );
     }
 
     loadSigs();
-  }, [req, requester, checkedRow, dgRow, accountRow]);
+  }, [req, requester, checkedHist, dgHist, accountHist, checkedByProfile, dgProfile, accountProfile]);
 
   if (loading) {
     return (
@@ -413,23 +433,23 @@ export default function PrintRequestPage() {
 
             <SignatureLine
               label="Checked by:"
-              name={cleanName(checkedRow?.action_by ? profilesMap[checkedRow.action_by] : null)}
+              name={cleanName(checkedByProfile)}
               sigUrl={sigChecked}
-              date={checkedRow?.created_at ? formatDate(checkedRow.created_at) : ""}
+              date={checkedHist?.created_at ? formatDate(checkedHist.created_at) : ""}
             />
 
             <SignatureLine
               label="Approved by DG, IET:"
-              name={cleanName(dgRow?.action_by ? profilesMap[dgRow.action_by] : null)}
+              name={cleanName(dgProfile)}
               sigUrl={sigDG}
-              date={dgRow?.created_at ? formatDate(dgRow.created_at) : ""}
+              date={dgHist?.created_at ? formatDate(dgHist.created_at) : ""}
             />
 
             <SignatureLine
               label="Paid by Account:"
-              name={cleanName(accountRow?.action_by ? profilesMap[accountRow.action_by] : null)}
+              name={cleanName(accountProfile)}
               sigUrl={sigAccount}
-              date={accountRow?.created_at ? formatDate(accountRow.created_at) : ""}
+              date={accountHist?.created_at ? formatDate(accountHist.created_at) : ""}
             />
           </div>
 
@@ -442,12 +462,11 @@ export default function PrintRequestPage() {
                 <div className="mt-2 space-y-2">
                   {hist.map((h) => {
                     const actor = profilesMap[h.action_by];
-                    const actorName = cleanName(actor);
                     return (
                       <div key={h.id} className="rounded-lg border border-slate-300 p-2">
                         <div className="flex items-center justify-between gap-3">
                           <div className="text-[12px] font-bold">
-                            {actorName || "—"} • {h.action_type || "—"} • {h.to_stage || "—"}
+                            {cleanName(actor) || "—"} • {h.action_type || "—"} • {h.to_stage || "—"}
                           </div>
                           <div className="text-[11px] font-semibold">
                             {formatDate(h.created_at)}
