@@ -172,7 +172,11 @@ export default function PrintRequestPage() {
       setReq(reqRow);
 
       const [deptRes, subRes, requesterRes, histRes] = await Promise.all([
-        supabase.from("departments").select("id,name").eq("id", reqRow.dept_id).single(),
+        supabase
+          .from("departments")
+          .select("id,name")
+          .eq("id", reqRow.dept_id)
+          .single(),
         reqRow.subhead_id
           ? supabase
               .from("subheads")
@@ -249,7 +253,6 @@ export default function PrintRequestPage() {
     [hist, req?.account_paid_by_user_id]
   );
 
-  // stronger fallbacks from actual chain transitions
   const checkedFallback = useMemo(() => {
     return (
       hist.find((h) => (h.to_stage || "").toLowerCase() === "registry") ||
@@ -260,25 +263,18 @@ export default function PrintRequestPage() {
   }, [hist]);
 
   const dgFallback = useMemo(() => {
-    return (
-      hist.find((h) => (h.to_stage || "").toLowerCase() === "account") ||
-      hist.find((h) => cleanName(profilesMap[h.action_by]).toLowerCase().includes("dg")) ||
-      null
-    );
-  }, [hist, profilesMap]);
+    return hist.find((h) => (h.to_stage || "").toLowerCase() === "account") || null;
+  }, [hist]);
 
   const accountFallback = useMemo(() => {
-    return (
-      hist.find((h) => (h.to_stage || "").toLowerCase() === "completed") ||
-      hist.find((h) => cleanName(profilesMap[h.action_by]).toLowerCase().includes("account")) ||
-      null
-    );
-  }, [hist, profilesMap]);
+    return hist.find((h) => (h.to_stage || "").toLowerCase() === "completed") || null;
+  }, [hist]);
 
   const checkedRow = checkedHist || checkedFallback;
   const dgRow = dgHist || dgFallback;
   const accountRow = accountHist || accountFallback;
 
+  // resolved people shown on lines
   const checkedPerson =
     (req?.checked_by_user_id && profilesMap[req.checked_by_user_id]) ||
     (checkedRow?.action_by && profilesMap[checkedRow.action_by]) ||
@@ -300,26 +296,27 @@ export default function PrintRequestPage() {
 
       setResolvingPrintData(true);
 
+      // IMPORTANT: match signature to the exact shown person first
       const requesterSig =
-        (await resolveSignatureUrl(req.requester_signature_url)) ||
-        (await resolveSignatureUrl(requester?.signature_url || null));
+        (await resolveSignatureUrl(requester?.signature_url || null)) ||
+        (await resolveSignatureUrl(req.requester_signature_url));
 
       const checkedSig =
+        (await resolveSignatureUrl(checkedPerson?.signature_url || null)) ||
         (await resolveSignatureUrl(req.hod_signature_url)) ||
         (await resolveSignatureUrl(req.director_signature_url)) ||
         (await resolveSignatureUrl(req.registry_signature_url)) ||
-        (await resolveSignatureUrl(checkedRow?.signature_url || null)) ||
-        (await resolveSignatureUrl(checkedPerson?.signature_url || null));
+        (await resolveSignatureUrl(checkedRow?.signature_url || null));
 
       const dgSig =
+        (await resolveSignatureUrl(dgPerson?.signature_url || null)) ||
         (await resolveSignatureUrl(req.dg_signature_url)) ||
-        (await resolveSignatureUrl(dgRow?.signature_url || null)) ||
-        (await resolveSignatureUrl(dgPerson?.signature_url || null));
+        (await resolveSignatureUrl(dgRow?.signature_url || null));
 
       const accountSig =
+        (await resolveSignatureUrl(accountPerson?.signature_url || null)) ||
         (await resolveSignatureUrl(req.account_signature_url)) ||
-        (await resolveSignatureUrl(accountRow?.signature_url || null)) ||
-        (await resolveSignatureUrl(accountPerson?.signature_url || null));
+        (await resolveSignatureUrl(accountRow?.signature_url || null));
 
       setSigRequester(requesterSig);
       setSigChecked(checkedSig);
@@ -330,7 +327,7 @@ export default function PrintRequestPage() {
     }
 
     loadSigs();
-  }, [req, requester, checkedRow, dgRow, accountRow, checkedPerson, dgPerson, accountPerson]);
+  }, [req, requester, checkedPerson, dgPerson, accountPerson, checkedRow, dgRow, accountRow]);
 
   const readyToPrint = useMemo(() => {
     if (!req) return false;
@@ -341,18 +338,14 @@ export default function PrintRequestPage() {
       !!cleanName(dgPerson) &&
       !!cleanName(accountPerson);
 
-    const signaturesReady =
-      !!sigRequester &&
-      !!sigChecked &&
-      !!sigDG &&
-      !!sigAccount;
+    const sigsReady = !!sigRequester && !!sigChecked && !!sigDG && !!sigAccount;
 
-    return namesReady && signaturesReady;
+    return namesReady && sigsReady;
   }, [req, requester, checkedPerson, dgPerson, accountPerson, sigRequester, sigChecked, sigDG, sigAccount]);
 
   function handlePrint() {
     if (!readyToPrint) {
-      setMsg("Print data is not complete yet. All names and signatures must load before preview/printing.");
+      setMsg("All four names and signatures must load before printing.");
       return;
     }
     window.print();
@@ -428,7 +421,7 @@ export default function PrintRequestPage() {
 
         {!readyToPrint && (
           <div className="no-print mb-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-            Some required names or signatures are still missing. Printing is blocked until all four signature lines are populated.
+            Printing is blocked until all four names and signatures are fully populated.
           </div>
         )}
 
