@@ -48,6 +48,7 @@ type Profile = {
 type Hist = {
   id: string;
   action_type: string;
+  comment: string | null;
   to_stage: string | null;
   created_at: string;
   signature_url: string | null;
@@ -63,7 +64,7 @@ function formatDate(d: string | null | undefined) {
   return new Date(d).toLocaleDateString();
 }
 
-function displayPersonName(p: Profile | null | undefined) {
+function cleanName(p: Profile | null | undefined) {
   return (p?.full_name || "").trim();
 }
 
@@ -89,53 +90,12 @@ export default function PrintRequestPage() {
   const [requester, setRequester] = useState<Profile | null>(null);
   const [hist, setHist] = useState<Hist[]>([]);
 
-  const [checkedByProfile, setCheckedByProfile] = useState<Profile | null>(null);
-  const [dgProfile, setDgProfile] = useState<Profile | null>(null);
-  const [accountProfile, setAccountProfile] = useState<Profile | null>(null);
+  const [profilesMap, setProfilesMap] = useState<Record<string, Profile>>({});
 
   const [sigRequester, setSigRequester] = useState<string | null>(null);
   const [sigChecked, setSigChecked] = useState<string | null>(null);
   const [sigDG, setSigDG] = useState<string | null>(null);
   const [sigAccount, setSigAccount] = useState<string | null>(null);
-
-  const checkedRecord = useMemo(() => {
-    const approvals = hist.filter((h) =>
-      (h.action_type || "").toLowerCase().includes("approve")
-    );
-
-    return (
-      approvals.find((h) => (h.to_stage || "").toLowerCase() === "dg") ||
-      approvals.find((h) => (h.to_stage || "").toLowerCase() === "registry") ||
-      approvals.find((h) => (h.to_stage || "").toLowerCase() === "hr") ||
-      approvals.find((h) => (h.to_stage || "").toLowerCase() === "hod") ||
-      approvals.find((h) => (h.to_stage || "").toLowerCase() === "director") ||
-      approvals[0] ||
-      null
-    );
-  }, [hist]);
-
-  const dgRecord = useMemo(() => {
-    const approvals = hist.filter((h) =>
-      (h.action_type || "").toLowerCase().includes("approve")
-    );
-
-    return (
-      approvals.find((h) => (h.to_stage || "").toLowerCase() === "account") ||
-      approvals.find((h) => (h.to_stage || "").toLowerCase() === "completed") ||
-      null
-    );
-  }, [hist]);
-
-  const accountRecord = useMemo(() => {
-    const approvals = hist.filter((h) =>
-      (h.action_type || "").toLowerCase().includes("approve")
-    );
-
-    return (
-      approvals.find((h) => (h.to_stage || "").toLowerCase() === "completed") ||
-      null
-    );
-  }, [hist]);
 
   useEffect(() => {
     async function load() {
@@ -178,35 +138,54 @@ export default function PrintRequestPage() {
         return;
       }
 
-      const requestRow = r as Req;
-      setReq(requestRow);
+      const reqRow = r as Req;
+      setReq(reqRow);
 
-      const [{ data: d }, { data: sh }, { data: prof }, { data: h }] =
-        await Promise.all([
-          supabase.from("departments").select("id,name").eq("id", requestRow.dept_id).single(),
-          requestRow.subhead_id
-            ? supabase
-                .from("subheads")
-                .select("id,code,name,approved_allocation,expenditure,balance")
-                .eq("id", requestRow.subhead_id)
-                .single()
-            : Promise.resolve({ data: null } as any),
-          supabase
-            .from("profiles")
-            .select("id,full_name,signature_url")
-            .eq("id", requestRow.created_by)
-            .single(),
-          supabase
-            .from("request_history")
-            .select("id,action_type,to_stage,created_at,signature_url,action_by")
-            .eq("request_id", requestRow.id)
-            .order("created_at", { ascending: true }),
-        ]);
+      const [deptRes, subRes, requesterRes, histRes] = await Promise.all([
+        supabase.from("departments").select("id,name").eq("id", reqRow.dept_id).single(),
+        reqRow.subhead_id
+          ? supabase
+              .from("subheads")
+              .select("id,code,name,approved_allocation,expenditure,balance")
+              .eq("id", reqRow.subhead_id)
+              .single()
+          : Promise.resolve({ data: null } as any),
+        supabase
+          .from("profiles")
+          .select("id,full_name,signature_url")
+          .eq("id", reqRow.created_by)
+          .single(),
+        supabase
+          .from("request_history")
+          .select("id,action_type,comment,to_stage,created_at,signature_url,action_by")
+          .eq("request_id", reqRow.id)
+          .order("created_at", { ascending: true }),
+      ]);
 
-      setDept((d as Dept) || null);
-      setSubhead((sh as Subhead) || null);
-      setRequester((prof as Profile) || null);
-      setHist((h || []) as Hist[]);
+      if (deptRes.data) setDept(deptRes.data as Dept);
+      if (subRes.data) setSubhead(subRes.data as Subhead);
+      if (requesterRes.data) setRequester(requesterRes.data as Profile);
+      setHist((histRes.data || []) as Hist[]);
+
+      const actorIds = Array.from(
+        new Set([
+          reqRow.created_by,
+          ...((histRes.data || []) as Hist[]).map((h) => h.action_by).filter(Boolean),
+        ])
+      );
+
+      if (actorIds.length > 0) {
+        const { data: pRows } = await supabase
+          .from("profiles")
+          .select("id,full_name,signature_url")
+          .in("id", actorIds);
+
+        const map: Record<string, Profile> = {};
+        (pRows || []).forEach((p: any) => {
+          map[p.id] = p;
+        });
+        setProfilesMap(map);
+      }
 
       setLoading(false);
     }
@@ -215,45 +194,39 @@ export default function PrintRequestPage() {
   }, [id, router]);
 
   useEffect(() => {
-    if (req?.request_no) {
-      document.title = req.request_no;
-    } else {
-      document.title = "request-print";
-    }
+    document.title = req?.request_no || "request-print";
   }, [req?.request_no]);
 
-  useEffect(() => {
-    async function loadApproverProfiles() {
-      const ids = [
-        checkedRecord?.action_by,
-        dgRecord?.action_by,
-        accountRecord?.action_by,
-      ].filter(Boolean) as string[];
+  const approveRows = useMemo(() => {
+    return hist.filter((h) =>
+      (h.action_type || "").toLowerCase().includes("approve")
+    );
+  }, [hist]);
 
-      if (ids.length === 0) return;
+  const checkedRow = useMemo(() => {
+    return (
+      approveRows.find((h) => (h.to_stage || "").toLowerCase() === "dg") ||
+      approveRows.find((h) => (h.to_stage || "").toLowerCase() === "registry") ||
+      approveRows.find((h) => (h.to_stage || "").toLowerCase() === "hr") ||
+      approveRows.find((h) => (h.to_stage || "").toLowerCase() === "hod") ||
+      approveRows.find((h) => (h.to_stage || "").toLowerCase() === "director") ||
+      null
+    );
+  }, [approveRows]);
 
-      const { data } = await supabase
-        .from("profiles")
-        .select("id,full_name,signature_url")
-        .in("id", ids);
+  const dgRow = useMemo(() => {
+    return (
+      approveRows.find((h) => (h.to_stage || "").toLowerCase() === "account") ||
+      null
+    );
+  }, [approveRows]);
 
-      const rows = (data || []) as Profile[];
-      const byId = new Map<string, Profile>();
-      rows.forEach((r) => byId.set(r.id, r));
-
-      setCheckedByProfile(
-        checkedRecord?.action_by ? byId.get(checkedRecord.action_by) || null : null
-      );
-      setDgProfile(
-        dgRecord?.action_by ? byId.get(dgRecord.action_by) || null : null
-      );
-      setAccountProfile(
-        accountRecord?.action_by ? byId.get(accountRecord.action_by) || null : null
-      );
-    }
-
-    loadApproverProfiles();
-  }, [checkedRecord, dgRecord, accountRecord]);
+  const accountRow = useMemo(() => {
+    return (
+      approveRows.find((h) => (h.to_stage || "").toLowerCase() === "completed") ||
+      null
+    );
+  }, [approveRows]);
 
   useEffect(() => {
     async function loadSigs() {
@@ -264,21 +237,18 @@ export default function PrintRequestPage() {
         (await signedUrl(requester?.signature_url || null));
 
       const checkedSig =
+        (await signedUrl(checkedRow?.signature_url || null)) ||
         (await signedUrl(req.registry_signature_url)) ||
         (await signedUrl(req.hod_signature_url)) ||
-        (await signedUrl(req.director_signature_url)) ||
-        (await signedUrl(checkedRecord?.signature_url || null)) ||
-        (await signedUrl(checkedByProfile?.signature_url || null));
+        (await signedUrl(req.director_signature_url));
 
       const dgSig =
-        (await signedUrl(req.dg_signature_url)) ||
-        (await signedUrl(dgRecord?.signature_url || null)) ||
-        (await signedUrl(dgProfile?.signature_url || null));
+        (await signedUrl(dgRow?.signature_url || null)) ||
+        (await signedUrl(req.dg_signature_url));
 
       const accountSig =
-        (await signedUrl(req.account_signature_url)) ||
-        (await signedUrl(accountRecord?.signature_url || null)) ||
-        (await signedUrl(accountProfile?.signature_url || null));
+        (await signedUrl(accountRow?.signature_url || null)) ||
+        (await signedUrl(req.account_signature_url));
 
       setSigRequester(requesterSig);
       setSigChecked(checkedSig);
@@ -287,7 +257,7 @@ export default function PrintRequestPage() {
     }
 
     loadSigs();
-  }, [req, requester, checkedRecord, dgRecord, accountRecord, checkedByProfile, dgProfile, accountProfile]);
+  }, [req, requester, checkedRow, dgRow, accountRow]);
 
   if (loading) {
     return (
@@ -306,11 +276,11 @@ export default function PrintRequestPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-100 px-4 py-8">
+    <main className="min-h-screen bg-slate-100 px-4 py-6">
       <style>{`
         @page {
           size: A4;
-          margin: 10mm;
+          margin: 8mm;
         }
 
         @media print {
@@ -326,11 +296,12 @@ export default function PrintRequestPage() {
             margin: 0 !important;
             width: 100% !important;
             min-height: auto !important;
+            page-break-inside: avoid !important;
           }
         }
       `}</style>
 
-      <div className="mx-auto max-w-[900px]">
+      <div className="mx-auto max-w-[860px]">
         <div className="no-print mb-4 flex items-center justify-between">
           <button
             onClick={() => router.push(`/requests/${req.id}`)}
@@ -353,34 +324,34 @@ export default function PrintRequestPage() {
           </div>
         )}
 
-        <div className="sheet mx-auto min-h-[1122px] w-full bg-white px-[42px] py-[34px] text-black">
+        <div className="sheet mx-auto w-full bg-white px-[34px] py-[24px] text-black">
           <div className="text-center">
             <div className="mx-auto flex justify-center">
               <Image
                 src="/iet-logo.png"
                 alt="IET Logo"
-                width={86}
-                height={86}
-                className="h-[86px] w-auto object-contain"
+                width={74}
+                height={74}
+                className="h-[74px] w-auto object-contain"
                 priority
               />
             </div>
 
-            <div className="mt-2 text-[28px] font-black uppercase leading-none tracking-tight">
+            <div className="mt-1 text-[23px] font-black uppercase leading-none tracking-tight">
               Islamic Education Trust
             </div>
 
-            <div className="mt-1 text-[15px] font-semibold leading-tight">
+            <div className="mt-1 text-[13px] font-semibold leading-tight">
               IW2, Ilmi Avenue Intermediate Housing Estate
             </div>
-            <div className="text-[15px] font-semibold leading-tight">
+            <div className="text-[13px] font-semibold leading-tight">
               PMB 229, Minna, Niger State - Nigeria
             </div>
           </div>
 
-          <div className="mt-4 h-[4px] w-full bg-blue-500" />
+          <div className="mt-3 h-[3px] w-full bg-blue-500" />
 
-          <div className="mt-4 grid grid-cols-12 gap-x-6 gap-y-2">
+          <div className="mt-3 grid grid-cols-12 gap-x-5 gap-y-1">
             <TopLineField label="Reference:" value={req.request_no} className="col-span-5" />
             <TopLineField label="Date:" value={formatDate(req.created_at)} className="col-span-4" />
             <TopLineField label="Stage:" value={req.current_stage || ""} className="col-span-3" />
@@ -394,75 +365,107 @@ export default function PrintRequestPage() {
             <TopLineField label="Status:" value={req.status || ""} className="col-span-3" />
           </div>
 
-          <div className="mt-3 h-[3px] w-full bg-blue-300" />
+          <div className="mt-2 h-[2px] w-full bg-blue-300" />
 
-          <div className="mt-6 text-[19px] font-bold leading-[1.45]">
+          <div className="mt-4 text-[15px] font-bold leading-[1.45]">
             <div>The Director General,</div>
             <div>Islamic Education Trust,</div>
             <div>Minna.</div>
           </div>
 
-          <div className="mt-10 text-[19px] font-bold">Assalamu` Alaikum Sir,</div>
+          <div className="mt-6 text-[15px] font-bold">Assalamu` Alaikum Sir,</div>
 
-          <div className="mt-4 text-center text-[21px] font-black uppercase">
+          <div className="mt-2 text-center text-[17px] font-black uppercase">
             Request for Fund
           </div>
 
-          <div className="mt-4 text-[18px] font-bold leading-[1.55]">
+          <div className="mt-2 text-[14px] font-bold leading-[1.5]">
             I write to request for the release of the total sum of{" "}
-            <span className="inline-block min-w-[270px] border-b-[2px] border-black text-center font-bold">
+            <span className="inline-block min-w-[220px] border-b-[2px] border-black text-center font-bold">
               {naira(req.amount)}
             </span>{" "}
             for the expense below/attached:
           </div>
 
-          <div className="mt-4 min-h-[300px] whitespace-pre-wrap text-[18px] font-semibold leading-[1.55]">
+          <div className="mt-3 min-h-[140px] whitespace-pre-wrap text-[13px] font-semibold leading-[1.45]">
             {req.details}
           </div>
 
-          <div className="mt-10 text-[19px] font-bold">Wassalamu` Alaikum.</div>
+          <div className="mt-5 text-[15px] font-bold">Wassalamu` Alaikum.</div>
 
-          <div className="mt-6 flex justify-end">
-            <div className="w-[470px] space-y-2">
+          <div className="mt-3 flex justify-end">
+            <div className="w-[420px] space-y-1.5">
               <SmallFieldRow label="ALLOCATION B/D:" value={naira(subhead?.approved_allocation)} />
               <SmallFieldRow label="EXPENDITURE:" value={naira(subhead?.expenditure)} />
               <SmallFieldRow label="BALANCE C/D:" value={naira(subhead?.balance)} />
             </div>
           </div>
 
-          <div className="mt-6 h-[3px] w-full bg-blue-300" />
+          <div className="mt-4 h-[2px] w-full bg-blue-300" />
 
-          <div className="mt-8 space-y-5 text-[17px] font-bold">
+          <div className="mt-4 space-y-3 text-[14px] font-bold">
             <SignatureLine
               label="Requested by:"
-              name={displayPersonName(requester)}
+              name={cleanName(requester)}
               sigUrl={sigRequester}
               date={formatDate(req.created_at)}
             />
 
             <SignatureLine
               label="Checked by:"
-              name={displayPersonName(checkedByProfile)}
+              name={cleanName(checkedRow?.action_by ? profilesMap[checkedRow.action_by] : null)}
               sigUrl={sigChecked}
-              date={checkedRecord?.created_at ? formatDate(checkedRecord.created_at) : ""}
+              date={checkedRow?.created_at ? formatDate(checkedRow.created_at) : ""}
             />
 
             <SignatureLine
               label="Approved by DG, IET:"
-              name={displayPersonName(dgProfile)}
+              name={cleanName(dgRow?.action_by ? profilesMap[dgRow.action_by] : null)}
               sigUrl={sigDG}
-              date={dgRecord?.created_at ? formatDate(dgRecord.created_at) : ""}
+              date={dgRow?.created_at ? formatDate(dgRow.created_at) : ""}
             />
 
             <SignatureLine
               label="Paid by Account:"
-              name={displayPersonName(accountProfile)}
+              name={cleanName(accountRow?.action_by ? profilesMap[accountRow.action_by] : null)}
               sigUrl={sigAccount}
-              date={accountRecord?.created_at ? formatDate(accountRecord.created_at) : ""}
+              date={accountRow?.created_at ? formatDate(accountRow.created_at) : ""}
             />
           </div>
 
-          <div className="mt-12 text-center text-[18px] italic font-medium">
+          {hist.length > 0 && (
+            <>
+              <div className="mt-4 h-[2px] w-full bg-blue-300" />
+              <div className="mt-3">
+                <div className="text-[14px] font-black uppercase">Comments Trail</div>
+
+                <div className="mt-2 space-y-2">
+                  {hist.map((h) => {
+                    const actor = profilesMap[h.action_by];
+                    const actorName = cleanName(actor);
+                    return (
+                      <div key={h.id} className="rounded-lg border border-slate-300 p-2">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="text-[12px] font-bold">
+                            {actorName || "—"} • {h.action_type || "—"} • {h.to_stage || "—"}
+                          </div>
+                          <div className="text-[11px] font-semibold">
+                            {formatDate(h.created_at)}
+                          </div>
+                        </div>
+
+                        <div className="mt-1 min-h-[32px] whitespace-pre-wrap text-[12px] text-slate-800">
+                          {h.comment || "No comment"}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </>
+          )}
+
+          <div className="mt-5 text-center text-[15px] italic font-medium">
             Building Bridges
           </div>
         </div>
@@ -482,8 +485,8 @@ function TopLineField({
 }) {
   return (
     <div className={`flex items-end gap-2 ${className || ""}`}>
-      <div className="shrink-0 text-[16px] font-bold">{label}</div>
-      <div className="min-w-0 flex-1 border-b-[2px] border-black px-1 pb-[2px] text-[16px] font-semibold leading-tight break-words">
+      <div className="shrink-0 text-[13px] font-bold">{label}</div>
+      <div className="min-w-0 flex-1 border-b-[2px] border-black px-1 pb-[1px] text-[13px] font-semibold leading-tight break-words">
         {value}
       </div>
     </div>
@@ -499,8 +502,8 @@ function SmallFieldRow({
 }) {
   return (
     <div className="flex items-center justify-end gap-3">
-      <div className="w-[190px] text-right text-[18px] font-black">{label}</div>
-      <div className="h-[33px] w-[270px] rounded-[5px] border-[2px] border-black px-3 text-right text-[16px] font-semibold leading-[29px]">
+      <div className="w-[170px] text-right text-[14px] font-black">{label}</div>
+      <div className="h-[28px] w-[240px] rounded-[5px] border-[2px] border-black px-3 text-right text-[13px] font-semibold leading-[24px]">
         {value}
       </div>
     </div>
@@ -520,29 +523,30 @@ function SignatureLine({
 }) {
   return (
     <div>
-      <div className="grid grid-cols-[170px_1.9fr_0.8fr_0.8fr] items-end gap-3">
+      <div className="grid grid-cols-[150px_2fr_0.75fr_0.75fr] items-end gap-3">
         <div className="whitespace-nowrap">{label}</div>
 
-        <div className="border-b-[2px] border-black pb-[2px] text-[15px] font-semibold pr-2">
+        <div className="border-b-[2px] border-black pb-[1px] text-[13px] font-semibold pr-2">
           {name}
         </div>
 
-        <div className="relative h-[34px] border-b-[2px] border-black">
+        <div className="relative h-[28px] border-b-[2px] border-black">
           {sigUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
             <img
               src={sigUrl}
               alt="signature"
-              className="absolute bottom-0 left-1/2 h-[28px] max-w-[90%] -translate-x-1/2 object-contain"
+              className="absolute bottom-0 left-1/2 h-[22px] max-w-[88%] -translate-x-1/2 object-contain"
             />
           ) : null}
         </div>
 
-        <div className="border-b-[2px] border-black pb-[2px] text-center text-[15px] font-semibold">
+        <div className="border-b-[2px] border-black pb-[1px] text-center text-[13px] font-semibold">
           {date}
         </div>
       </div>
 
-      <div className="grid grid-cols-[170px_1.9fr_0.8fr_0.8fr] gap-3 pt-1 text-center text-[11px] font-medium text-slate-600">
+      <div className="grid grid-cols-[150px_2fr_0.75fr_0.75fr] gap-3 pt-1 text-center text-[10px] font-medium text-slate-600">
         <div />
         <div>Name</div>
         <div>Signature</div>
