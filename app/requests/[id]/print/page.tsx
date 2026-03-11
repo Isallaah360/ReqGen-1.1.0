@@ -71,11 +71,21 @@ function cleanName(p: Profile | null | undefined) {
   return (p?.full_name || "").trim();
 }
 
-async function signedUrl(path: string | null) {
-  if (!path) return null;
-  const { data } = await supabase.storage
+async function resolveSignatureUrl(value: string | null | undefined) {
+  const raw = (value || "").trim();
+  if (!raw) return null;
+
+  // already a full URL
+  if (raw.startsWith("http://") || raw.startsWith("https://")) {
+    return raw;
+  }
+
+  // otherwise treat as storage path in "signatures" bucket
+  const { data, error } = await supabase.storage
     .from("signatures")
-    .createSignedUrl(path, 60 * 10);
+    .createSignedUrl(raw, 60 * 10);
+
+  if (error) return null;
   return data?.signedUrl || null;
 }
 
@@ -213,7 +223,6 @@ export default function PrintRequestPage() {
     document.title = req?.request_no || "request-print";
   }, [req?.request_no]);
 
-  // exact rows from direct saved IDs
   const checkedHist = useMemo(
     () => hist.find((h) => h.action_by === req?.checked_by_user_id) || null,
     [hist, req?.checked_by_user_id]
@@ -229,7 +238,6 @@ export default function PrintRequestPage() {
     [hist, req?.account_paid_by_user_id]
   );
 
-  // fallback rows from workflow trail
   const checkedHistFallback = useMemo(() => {
     return (
       hist.find((h) => (h.to_stage || "").toLowerCase() === "registry") ||
@@ -247,12 +255,10 @@ export default function PrintRequestPage() {
     return hist.find((h) => (h.to_stage || "").toLowerCase() === "completed") || null;
   }, [hist]);
 
-  // resolved display rows
   const checkedRow = checkedHist || checkedHistFallback;
   const dgRow = dgHist || dgHistFallback;
   const accountRow = accountHist || accountHistFallback;
 
-  // resolved display people
   const checkedPerson =
     (req?.checked_by_user_id && profilesMap[req.checked_by_user_id]) ||
     (checkedRow?.action_by && profilesMap[checkedRow.action_by]) ||
@@ -273,24 +279,25 @@ export default function PrintRequestPage() {
       if (!req) return;
 
       const requesterSig =
-        (await signedUrl(req.requester_signature_url)) ||
-        (await signedUrl(requester?.signature_url || null));
+        (await resolveSignatureUrl(req.requester_signature_url)) ||
+        (await resolveSignatureUrl(requester?.signature_url || null));
 
       const checkedSig =
-        (await signedUrl(req.hod_signature_url)) ||
-        (await signedUrl(req.director_signature_url)) ||
-        (await signedUrl(checkedRow?.signature_url || null)) ||
-        (await signedUrl(checkedPerson?.signature_url || null));
+        (await resolveSignatureUrl(req.hod_signature_url)) ||
+        (await resolveSignatureUrl(req.director_signature_url)) ||
+        (await resolveSignatureUrl(req.registry_signature_url)) ||
+        (await resolveSignatureUrl(checkedRow?.signature_url || null)) ||
+        (await resolveSignatureUrl(checkedPerson?.signature_url || null));
 
       const dgSig =
-        (await signedUrl(req.dg_signature_url)) ||
-        (await signedUrl(dgRow?.signature_url || null)) ||
-        (await signedUrl(dgPerson?.signature_url || null));
+        (await resolveSignatureUrl(req.dg_signature_url)) ||
+        (await resolveSignatureUrl(dgRow?.signature_url || null)) ||
+        (await resolveSignatureUrl(dgPerson?.signature_url || null));
 
       const accountSig =
-        (await signedUrl(req.account_signature_url)) ||
-        (await signedUrl(accountRow?.signature_url || null)) ||
-        (await signedUrl(accountPerson?.signature_url || null));
+        (await resolveSignatureUrl(req.account_signature_url)) ||
+        (await resolveSignatureUrl(accountRow?.signature_url || null)) ||
+        (await resolveSignatureUrl(accountPerson?.signature_url || null));
 
       setSigRequester(requesterSig);
       setSigChecked(checkedSig);
