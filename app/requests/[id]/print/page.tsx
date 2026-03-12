@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -17,15 +17,17 @@ type Req = {
   current_stage: string;
   status: string;
   created_at: string;
+
   requester_signature_url: string | null;
-  hod_signature_url: string | null;
-  director_signature_url: string | null;
-  dg_signature_url: string | null;
-  registry_signature_url: string | null;
-  account_signature_url: string | null;
-  checked_by_user_id: string | null;
-  dg_approved_by_user_id: string | null;
-  account_paid_by_user_id: string | null;
+
+  checked_by_name: string | null;
+  checked_by_signature_url: string | null;
+
+  dg_approved_by_name: string | null;
+  dg_approved_signature_url: string | null;
+
+  account_paid_by_name: string | null;
+  account_paid_signature_url: string | null;
 };
 
 type Dept = {
@@ -54,8 +56,7 @@ type Hist = {
   comment: string | null;
   to_stage: string | null;
   created_at: string;
-  signature_url: string | null;
-  action_by: string;
+  actor_name: string | null;
 };
 
 function naira(n: number | null | undefined) {
@@ -65,10 +66,6 @@ function naira(n: number | null | undefined) {
 function formatDate(d: string | null | undefined) {
   if (!d) return "";
   return new Date(d).toLocaleDateString();
-}
-
-function cleanName(p: Profile | null | undefined) {
-  return (p?.full_name || "").trim();
 }
 
 async function resolveSignatureUrl(value: string | null | undefined) {
@@ -109,7 +106,7 @@ export default function PrintRequestPage() {
   const id = String((params as any)?.id || "");
 
   const [loading, setLoading] = useState(true);
-  const [resolvingPrintData, setResolvingPrintData] = useState(true);
+  const [resolving, setResolving] = useState(true);
   const [msg, setMsg] = useState<string | null>(null);
 
   const [req, setReq] = useState<Req | null>(null);
@@ -117,7 +114,6 @@ export default function PrintRequestPage() {
   const [subhead, setSubhead] = useState<Subhead | null>(null);
   const [requester, setRequester] = useState<Profile | null>(null);
   const [hist, setHist] = useState<Hist[]>([]);
-  const [profilesMap, setProfilesMap] = useState<Record<string, Profile>>({});
 
   const [sigRequester, setSigRequester] = useState<string | null>(null);
   const [sigChecked, setSigChecked] = useState<string | null>(null);
@@ -150,14 +146,12 @@ export default function PrintRequestPage() {
           status,
           created_at,
           requester_signature_url,
-          hod_signature_url,
-          director_signature_url,
-          dg_signature_url,
-          registry_signature_url,
-          account_signature_url,
-          checked_by_user_id,
-          dg_approved_by_user_id,
-          account_paid_by_user_id
+          checked_by_name,
+          checked_by_signature_url,
+          dg_approved_by_name,
+          dg_approved_signature_url,
+          account_paid_by_name,
+          account_paid_signature_url
         `)
         .eq("id", id)
         .single();
@@ -172,11 +166,7 @@ export default function PrintRequestPage() {
       setReq(reqRow);
 
       const [deptRes, subRes, requesterRes, histRes] = await Promise.all([
-        supabase
-          .from("departments")
-          .select("id,name")
-          .eq("id", reqRow.dept_id)
-          .single(),
+        supabase.from("departments").select("id,name").eq("id", reqRow.dept_id).single(),
         reqRow.subhead_id
           ? supabase
               .from("subheads")
@@ -191,7 +181,7 @@ export default function PrintRequestPage() {
           .single(),
         supabase
           .from("request_history")
-          .select("id,action_type,comment,to_stage,created_at,signature_url,action_by")
+          .select("id,action_type,comment,to_stage,created_at,actor_name")
           .eq("request_id", reqRow.id)
           .order("created_at", { ascending: true }),
       ]);
@@ -199,34 +189,7 @@ export default function PrintRequestPage() {
       if (deptRes.data) setDept(deptRes.data as Dept);
       if (subRes.data) setSubhead(subRes.data as Subhead);
       if (requesterRes.data) setRequester(requesterRes.data as Profile);
-
-      const histRows = (histRes.data || []) as Hist[];
-      setHist(histRows);
-
-      const profileIds = Array.from(
-        new Set(
-          [
-            reqRow.created_by,
-            reqRow.checked_by_user_id,
-            reqRow.dg_approved_by_user_id,
-            reqRow.account_paid_by_user_id,
-            ...histRows.map((h) => h.action_by),
-          ].filter(Boolean) as string[]
-        )
-      );
-
-      if (profileIds.length > 0) {
-        const { data: pRows } = await supabase
-          .from("profiles")
-          .select("id,full_name,signature_url")
-          .in("id", profileIds);
-
-        const plainMap: Record<string, Profile> = {};
-        ((pRows || []) as Profile[]).forEach((p) => {
-          plainMap[p.id] = p;
-        });
-        setProfilesMap(plainMap);
-      }
+      setHist((histRes.data || []) as Hist[]);
 
       setLoading(false);
     }
@@ -238,124 +201,55 @@ export default function PrintRequestPage() {
     document.title = req?.request_no || "request-print";
   }, [req?.request_no]);
 
-  const checkedHist = useMemo(
-    () => hist.find((h) => h.action_by === req?.checked_by_user_id) || null,
-    [hist, req?.checked_by_user_id]
-  );
-
-  const dgHist = useMemo(
-    () => hist.find((h) => h.action_by === req?.dg_approved_by_user_id) || null,
-    [hist, req?.dg_approved_by_user_id]
-  );
-
-  const accountHist = useMemo(
-    () => hist.find((h) => h.action_by === req?.account_paid_by_user_id) || null,
-    [hist, req?.account_paid_by_user_id]
-  );
-
-  const checkedFallback = useMemo(() => {
-    return (
-      hist.find((h) => (h.to_stage || "").toLowerCase() === "registry") ||
-      hist.find((h) => (h.to_stage || "").toLowerCase() === "hr") ||
-      hist.find((h) => (h.to_stage || "").toLowerCase() === "dg") ||
-      null
-    );
-  }, [hist]);
-
-  const dgFallback = useMemo(() => {
-    return hist.find((h) => (h.to_stage || "").toLowerCase() === "account") || null;
-  }, [hist]);
-
-  const accountFallback = useMemo(() => {
-    return hist.find((h) => (h.to_stage || "").toLowerCase() === "completed") || null;
-  }, [hist]);
-
-  const checkedRow = checkedHist || checkedFallback;
-  const dgRow = dgHist || dgFallback;
-  const accountRow = accountHist || accountFallback;
-
-  // resolved people shown on lines
-  const checkedPerson =
-    (req?.checked_by_user_id && profilesMap[req.checked_by_user_id]) ||
-    (checkedRow?.action_by && profilesMap[checkedRow.action_by]) ||
-    null;
-
-  const dgPerson =
-    (req?.dg_approved_by_user_id && profilesMap[req.dg_approved_by_user_id]) ||
-    (dgRow?.action_by && profilesMap[dgRow.action_by]) ||
-    null;
-
-  const accountPerson =
-    (req?.account_paid_by_user_id && profilesMap[req.account_paid_by_user_id]) ||
-    (accountRow?.action_by && profilesMap[accountRow.action_by]) ||
-    null;
-
   useEffect(() => {
-    async function loadSigs() {
+    async function loadSignatures() {
       if (!req) return;
 
-      setResolvingPrintData(true);
+      setResolving(true);
 
-      // IMPORTANT: match signature to the exact shown person first
       const requesterSig =
         (await resolveSignatureUrl(requester?.signature_url || null)) ||
         (await resolveSignatureUrl(req.requester_signature_url));
 
-      const checkedSig =
-        (await resolveSignatureUrl(checkedPerson?.signature_url || null)) ||
-        (await resolveSignatureUrl(req.hod_signature_url)) ||
-        (await resolveSignatureUrl(req.director_signature_url)) ||
-        (await resolveSignatureUrl(req.registry_signature_url)) ||
-        (await resolveSignatureUrl(checkedRow?.signature_url || null));
-
-      const dgSig =
-        (await resolveSignatureUrl(dgPerson?.signature_url || null)) ||
-        (await resolveSignatureUrl(req.dg_signature_url)) ||
-        (await resolveSignatureUrl(dgRow?.signature_url || null));
-
-      const accountSig =
-        (await resolveSignatureUrl(accountPerson?.signature_url || null)) ||
-        (await resolveSignatureUrl(req.account_signature_url)) ||
-        (await resolveSignatureUrl(accountRow?.signature_url || null));
+      const checkedSig = await resolveSignatureUrl(req.checked_by_signature_url);
+      const dgSig = await resolveSignatureUrl(req.dg_approved_signature_url);
+      const accountSig = await resolveSignatureUrl(req.account_paid_signature_url);
 
       setSigRequester(requesterSig);
       setSigChecked(checkedSig);
       setSigDG(dgSig);
       setSigAccount(accountSig);
 
-      setResolvingPrintData(false);
+      setResolving(false);
     }
 
-    loadSigs();
-  }, [req, requester, checkedPerson, dgPerson, accountPerson, checkedRow, dgRow, accountRow]);
+    loadSignatures();
+  }, [req, requester]);
 
-  const readyToPrint = useMemo(() => {
-    if (!req) return false;
-
-    const namesReady =
-      !!cleanName(requester) &&
-      !!cleanName(checkedPerson) &&
-      !!cleanName(dgPerson) &&
-      !!cleanName(accountPerson);
-
-    const sigsReady = !!sigRequester && !!sigChecked && !!sigDG && !!sigAccount;
-
-    return namesReady && sigsReady;
-  }, [req, requester, checkedPerson, dgPerson, accountPerson, sigRequester, sigChecked, sigDG, sigAccount]);
+  const ready =
+    !!req &&
+    !!requester?.full_name &&
+    !!req.checked_by_name &&
+    !!req.dg_approved_by_name &&
+    !!req.account_paid_by_name &&
+    !!sigRequester &&
+    !!sigChecked &&
+    !!sigDG &&
+    !!sigAccount;
 
   function handlePrint() {
-    if (!readyToPrint) {
-      setMsg("All four names and signatures must load before printing.");
+    if (!ready) {
+      setMsg("Printing is blocked until all four names and signatures are fully populated.");
       return;
     }
     window.print();
   }
 
-  if (loading || resolvingPrintData) {
+  if (loading || resolving) {
     return (
       <main className="min-h-screen bg-slate-100 px-4 py-8">
         <div className="mx-auto max-w-3xl rounded-2xl border bg-white p-6 text-slate-700 shadow-sm">
-          Preparing final print preview with all names and signatures...
+          Preparing final print preview...
         </div>
       </main>
     );
@@ -376,7 +270,6 @@ export default function PrintRequestPage() {
           size: A4;
           margin: 5mm;
         }
-
         @media print {
           body {
             background: white !important;
@@ -406,7 +299,7 @@ export default function PrintRequestPage() {
 
           <button
             onClick={handlePrint}
-            disabled={!readyToPrint}
+            disabled={!ready}
             className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
           >
             Print
@@ -414,14 +307,8 @@ export default function PrintRequestPage() {
         </div>
 
         {msg && (
-          <div className="no-print mb-3 rounded-xl bg-white px-3 py-2 text-sm text-slate-800">
-            {msg}
-          </div>
-        )}
-
-        {!readyToPrint && (
           <div className="no-print mb-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-            Printing is blocked until all four names and signatures are fully populated.
+            {msg}
           </div>
         )}
 
@@ -441,7 +328,6 @@ export default function PrintRequestPage() {
             <div className="mt-1 text-[16px] font-black uppercase leading-none tracking-tight">
               Islamic Education Trust
             </div>
-
             <div className="mt-0.5 text-[10px] font-semibold leading-tight">
               IW2, Ilmi Avenue Intermediate Housing Estate
             </div>
@@ -507,30 +393,30 @@ export default function PrintRequestPage() {
           <div className="mt-2 space-y-1.5 text-[10px] font-bold">
             <SignatureLine
               label="Requested by:"
-              name={cleanName(requester)}
+              name={requester?.full_name || ""}
               sigUrl={sigRequester}
               date={formatDate(req.created_at)}
             />
 
             <SignatureLine
               label="Checked by:"
-              name={cleanName(checkedPerson)}
+              name={req.checked_by_name || ""}
               sigUrl={sigChecked}
-              date={checkedRow?.created_at ? formatDate(checkedRow.created_at) : ""}
+              date={formatDate(req.created_at)}
             />
 
             <SignatureLine
               label="Approved by DG, IET:"
-              name={cleanName(dgPerson)}
+              name={req.dg_approved_by_name || ""}
               sigUrl={sigDG}
-              date={dgRow?.created_at ? formatDate(dgRow.created_at) : ""}
+              date={formatDate(req.created_at)}
             />
 
             <SignatureLine
               label="Paid by Account:"
-              name={cleanName(accountPerson)}
+              name={req.account_paid_by_name || ""}
               sigUrl={sigAccount}
-              date={accountRow?.created_at ? formatDate(accountRow.created_at) : ""}
+              date={formatDate(req.created_at)}
             />
           </div>
 
@@ -541,25 +427,22 @@ export default function PrintRequestPage() {
                 <div className="text-[10px] font-black uppercase">Comments Trail</div>
 
                 <div className="mt-1 space-y-1">
-                  {hist.slice(0, 6).map((h) => {
-                    const actor = profilesMap[h.action_by];
-                    return (
-                      <div key={h.id} className="rounded border border-slate-300 px-2 py-1">
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="text-[8.8px] font-bold">
-                            {cleanName(actor) || "—"} • {h.action_type || "—"} • {h.to_stage || "—"}
-                          </div>
-                          <div className="text-[8px] font-semibold">
-                            {formatDate(h.created_at)}
-                          </div>
+                  {hist.slice(0, 6).map((h) => (
+                    <div key={h.id} className="rounded border border-slate-300 px-2 py-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="text-[8.8px] font-bold">
+                          {(h.actor_name || "—")} • {h.action_type || "—"} • {h.to_stage || "—"}
                         </div>
-
-                        <div className="mt-0.5 whitespace-pre-wrap text-[8.6px] text-slate-800 leading-[1.15]">
-                          {h.comment || "No comment"}
+                        <div className="text-[8px] font-semibold">
+                          {formatDate(h.created_at)}
                         </div>
                       </div>
-                    );
-                  })}
+
+                      <div className="mt-0.5 whitespace-pre-wrap text-[8.6px] text-slate-800 leading-[1.15]">
+                        {h.comment || "No comment"}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </>
@@ -632,7 +515,6 @@ function SignatureLine({
 
         <div className="relative h-[18px] border-b border-black">
           {sigUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
             <img
               src={sigUrl}
               alt="signature"
