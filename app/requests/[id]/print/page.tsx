@@ -73,11 +73,14 @@ function formatDate(d: string | null | undefined) {
   return new Date(d).toLocaleDateString();
 }
 
+function normalizeName(v: string | null | undefined) {
+  return (v || "").trim().toLowerCase().replace(/\s+/g, " ");
+}
+
 async function getRenderableSignatureUrl(value: string | null | undefined) {
   const raw = (value || "").trim();
   if (!raw) return null;
 
-  // Already usable full URL / data URL
   if (
     raw.startsWith("http://") ||
     raw.startsWith("https://") ||
@@ -87,7 +90,6 @@ async function getRenderableSignatureUrl(value: string | null | undefined) {
     return raw;
   }
 
-  // Treat as storage path in signatures bucket
   const candidates = Array.from(
     new Set([
       raw,
@@ -124,6 +126,7 @@ export default function PrintRequestPage() {
   const [dept, setDept] = useState<Dept | null>(null);
   const [subhead, setSubhead] = useState<Subhead | null>(null);
   const [history, setHistory] = useState<Hist[]>([]);
+  const [profiles, setProfiles] = useState<Profile[]>([]);
   const [requesterProfile, setRequesterProfile] = useState<Profile | null>(null);
 
   const [sigRequester, setSigRequester] = useState<string | null>(null);
@@ -140,6 +143,9 @@ export default function PrintRequestPage() {
     checkedResolved: "",
     dgResolved: "",
     accountResolved: "",
+    checkedProfileFallback: "",
+    dgProfileFallback: "",
+    accountProfileFallback: "",
   });
 
   useEffect(() => {
@@ -192,7 +198,7 @@ export default function PrintRequestPage() {
       const reqRow = r as Req;
       setReq(reqRow);
 
-      const [deptRes, subRes, histRes, requesterRes] = await Promise.all([
+      const [deptRes, subRes, histRes, requesterRes, profileRes] = await Promise.all([
         supabase
           .from("departments")
           .select("id,name")
@@ -215,12 +221,16 @@ export default function PrintRequestPage() {
           .select("id,full_name,signature_url")
           .eq("id", reqRow.created_by)
           .single(),
+        supabase
+          .from("profiles")
+          .select("id,full_name,signature_url"),
       ]);
 
       if (deptRes.data) setDept(deptRes.data as Dept);
       if (subRes.data) setSubhead(subRes.data as Subhead);
       if (histRes.data) setHistory(histRes.data as Hist[]);
       if (requesterRes.data) setRequesterProfile(requesterRes.data as Profile);
+      if (profileRes.data) setProfiles((profileRes.data || []) as Profile[]);
 
       setLoading(false);
     }
@@ -232,6 +242,14 @@ export default function PrintRequestPage() {
     document.title = req?.request_no || "request-print";
   }, [req?.request_no]);
 
+  function findProfileSignatureByName(name: string | null | undefined) {
+    const target = normalizeName(name);
+    if (!target) return "";
+
+    const match = profiles.find((p) => normalizeName(p.full_name) === target);
+    return (match?.signature_url || "").trim();
+  }
+
   useEffect(() => {
     async function loadAllSigs() {
       if (!req) return;
@@ -242,14 +260,34 @@ export default function PrintRequestPage() {
         (req.requester_signature_url || "").trim() ||
         (requesterProfile?.signature_url || "").trim();
 
-      const checkedRaw = (req.checked_by_signature_url || "").trim();
-      const dgRaw = (req.dg_approved_signature_url || "").trim();
-      const accountRaw = (req.account_paid_signature_url || "").trim();
+      const checkedSnapshotRaw = (req.checked_by_signature_url || "").trim();
+      const dgSnapshotRaw = (req.dg_approved_signature_url || "").trim();
+      const accountSnapshotRaw = (req.account_paid_signature_url || "").trim();
 
-      const requesterResolved = await getRenderableSignatureUrl(requesterRaw);
-      const checkedResolved = await getRenderableSignatureUrl(checkedRaw);
-      const dgResolved = await getRenderableSignatureUrl(dgRaw);
-      const accountResolved = await getRenderableSignatureUrl(accountRaw);
+      const checkedProfileFallback = findProfileSignatureByName(req.checked_by_name);
+      const dgProfileFallback = findProfileSignatureByName(req.dg_approved_by_name);
+      const accountProfileFallback = findProfileSignatureByName(req.account_paid_by_name);
+
+      const checkedRaw = checkedSnapshotRaw || checkedProfileFallback;
+      const dgRaw = dgSnapshotRaw || dgProfileFallback;
+      const accountRaw = accountSnapshotRaw || accountProfileFallback;
+
+      let requesterResolved = await getRenderableSignatureUrl(requesterRaw);
+      let checkedResolved = await getRenderableSignatureUrl(checkedSnapshotRaw);
+      let dgResolved = await getRenderableSignatureUrl(dgSnapshotRaw);
+      let accountResolved = await getRenderableSignatureUrl(accountSnapshotRaw);
+
+      if (!checkedResolved && checkedProfileFallback) {
+        checkedResolved = await getRenderableSignatureUrl(checkedProfileFallback);
+      }
+
+      if (!dgResolved && dgProfileFallback) {
+        dgResolved = await getRenderableSignatureUrl(dgProfileFallback);
+      }
+
+      if (!accountResolved && accountProfileFallback) {
+        accountResolved = await getRenderableSignatureUrl(accountProfileFallback);
+      }
 
       setSigRequester(requesterResolved);
       setSigChecked(checkedResolved);
@@ -265,13 +303,16 @@ export default function PrintRequestPage() {
         checkedResolved: checkedResolved || "(not resolved)",
         dgResolved: dgResolved || "(not resolved)",
         accountResolved: accountResolved || "(not resolved)",
+        checkedProfileFallback: checkedProfileFallback || "(none)",
+        dgProfileFallback: dgProfileFallback || "(none)",
+        accountProfileFallback: accountProfileFallback || "(none)",
       });
 
       setResolving(false);
     }
 
     loadAllSigs();
-  }, [req, requesterProfile]);
+  }, [req, requesterProfile, profiles]);
 
   const ready = useMemo(() => {
     if (!req) return false;
@@ -375,23 +416,27 @@ export default function PrintRequestPage() {
             <div className="no-print mb-3 rounded-xl border border-slate-200 bg-white px-3 py-3 text-xs text-slate-700">
               <div className="mb-2 font-bold">Signature debug</div>
 
-              <div className="mb-2">
+              <div className="mb-3">
                 <div className="font-semibold">Requester raw:</div>
                 <div className="break-all">{sigDebug.requesterRaw}</div>
                 <div className="font-semibold mt-1">Requester resolved:</div>
                 <div className="break-all">{sigDebug.requesterResolved}</div>
               </div>
 
-              <div className="mb-2">
+              <div className="mb-3">
                 <div className="font-semibold">Checked raw:</div>
                 <div className="break-all">{sigDebug.checkedRaw}</div>
+                <div className="font-semibold mt-1">Checked fallback from profile:</div>
+                <div className="break-all">{sigDebug.checkedProfileFallback}</div>
                 <div className="font-semibold mt-1">Checked resolved:</div>
                 <div className="break-all">{sigDebug.checkedResolved}</div>
               </div>
 
-              <div className="mb-2">
+              <div className="mb-3">
                 <div className="font-semibold">DG raw:</div>
                 <div className="break-all">{sigDebug.dgRaw}</div>
+                <div className="font-semibold mt-1">DG fallback from profile:</div>
+                <div className="break-all">{sigDebug.dgProfileFallback}</div>
                 <div className="font-semibold mt-1">DG resolved:</div>
                 <div className="break-all">{sigDebug.dgResolved}</div>
               </div>
@@ -399,6 +444,8 @@ export default function PrintRequestPage() {
               <div>
                 <div className="font-semibold">Account raw:</div>
                 <div className="break-all">{sigDebug.accountRaw}</div>
+                <div className="font-semibold mt-1">Account fallback from profile:</div>
+                <div className="break-all">{sigDebug.accountProfileFallback}</div>
                 <div className="font-semibold mt-1">Account resolved:</div>
                 <div className="break-all">{sigDebug.accountResolved}</div>
               </div>
@@ -630,7 +677,6 @@ function SignatureLine({
 
         <div className="relative h-[18px] border-b border-black">
           {sigUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
             <img
               src={sigUrl}
               alt="signature"
