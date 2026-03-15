@@ -73,11 +73,11 @@ function formatDate(d: string | null | undefined) {
   return new Date(d).toLocaleDateString();
 }
 
-async function resolveSignatureUrl(value: string | null | undefined) {
+async function getRenderableSignatureUrl(value: string | null | undefined) {
   const raw = (value || "").trim();
   if (!raw) return null;
 
-  // Already usable
+  // Already usable full URL / data URL
   if (
     raw.startsWith("http://") ||
     raw.startsWith("https://") ||
@@ -87,8 +87,8 @@ async function resolveSignatureUrl(value: string | null | undefined) {
     return raw;
   }
 
-  // Try common storage path variants
-  const attempts = Array.from(
+  // Treat as storage path in signatures bucket
+  const candidates = Array.from(
     new Set([
       raw,
       raw.replace(/^signatures\//, ""),
@@ -98,10 +98,10 @@ async function resolveSignatureUrl(value: string | null | undefined) {
     ])
   ).filter(Boolean);
 
-  for (const candidate of attempts) {
+  for (const candidate of candidates) {
     const { data, error } = await supabase.storage
       .from("signatures")
-      .createSignedUrl(candidate, 60 * 10);
+      .createSignedUrl(candidate, 60 * 60);
 
     if (!error && data?.signedUrl) {
       return data.signedUrl;
@@ -131,16 +131,15 @@ export default function PrintRequestPage() {
   const [sigDG, setSigDG] = useState<string | null>(null);
   const [sigAccount, setSigAccount] = useState<string | null>(null);
 
-  const [sigDebug, setSigDebug] = useState<{
-    requester: string;
-    checked: string;
-    dg: string;
-    account: string;
-  }>({
-    requester: "",
-    checked: "",
-    dg: "",
-    account: "",
+  const [sigDebug, setSigDebug] = useState({
+    requesterRaw: "",
+    checkedRaw: "",
+    dgRaw: "",
+    accountRaw: "",
+    requesterResolved: "",
+    checkedResolved: "",
+    dgResolved: "",
+    accountResolved: "",
   });
 
   useEffect(() => {
@@ -236,28 +235,36 @@ export default function PrintRequestPage() {
   useEffect(() => {
     async function loadAllSigs() {
       if (!req) return;
+
       setResolving(true);
 
-      const requesterRaw = req.requester_signature_url || requesterProfile?.signature_url || "";
-      const checkedRaw = req.checked_by_signature_url || "";
-      const dgRaw = req.dg_approved_signature_url || "";
-      const accountRaw = req.account_paid_signature_url || "";
+      const requesterRaw =
+        (req.requester_signature_url || "").trim() ||
+        (requesterProfile?.signature_url || "").trim();
 
-      const requesterSig = await resolveSignatureUrl(requesterRaw);
-      const checkedSig = await resolveSignatureUrl(checkedRaw);
-      const dgSig = await resolveSignatureUrl(dgRaw);
-      const accountSig = await resolveSignatureUrl(accountRaw);
+      const checkedRaw = (req.checked_by_signature_url || "").trim();
+      const dgRaw = (req.dg_approved_signature_url || "").trim();
+      const accountRaw = (req.account_paid_signature_url || "").trim();
 
-      setSigRequester(requesterSig);
-      setSigChecked(checkedSig);
-      setSigDG(dgSig);
-      setSigAccount(accountSig);
+      const requesterResolved = await getRenderableSignatureUrl(requesterRaw);
+      const checkedResolved = await getRenderableSignatureUrl(checkedRaw);
+      const dgResolved = await getRenderableSignatureUrl(dgRaw);
+      const accountResolved = await getRenderableSignatureUrl(accountRaw);
+
+      setSigRequester(requesterResolved);
+      setSigChecked(checkedResolved);
+      setSigDG(dgResolved);
+      setSigAccount(accountResolved);
 
       setSigDebug({
-        requester: requesterRaw || "(empty)",
-        checked: checkedRaw || "(empty)",
-        dg: dgRaw || "(empty)",
-        account: accountRaw || "(empty)",
+        requesterRaw: requesterRaw || "(empty)",
+        checkedRaw: checkedRaw || "(empty)",
+        dgRaw: dgRaw || "(empty)",
+        accountRaw: accountRaw || "(empty)",
+        requesterResolved: requesterResolved || "(not resolved)",
+        checkedResolved: checkedResolved || "(not resolved)",
+        dgResolved: dgResolved || "(not resolved)",
+        accountResolved: accountResolved || "(not resolved)",
       });
 
       setResolving(false);
@@ -283,7 +290,9 @@ export default function PrintRequestPage() {
 
   function handlePrint() {
     if (!ready) {
-      setMsg("Printing is blocked until requester, checked by, DG, and Account names/signatures are fully available.");
+      setMsg(
+        "Printing is blocked until requester, checked by, DG, and Account names/signatures are fully available."
+      );
       return;
     }
     window.print();
@@ -358,19 +367,43 @@ export default function PrintRequestPage() {
         )}
 
         {!ready && (
-          <div className="no-print mb-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-            Printing is blocked until requester, checked by, DG, and Account names/signatures are fully available.
-          </div>
-        )}
+          <>
+            <div className="no-print mb-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+              Printing is blocked until requester, checked by, DG, and Account names/signatures are fully available.
+            </div>
 
-        {!ready && (
-          <div className="no-print mb-3 rounded-xl border border-slate-200 bg-white px-3 py-3 text-xs text-slate-700">
-            <div className="font-bold mb-2">Signature debug</div>
-            <div>Requester raw: {sigDebug.requester}</div>
-            <div>Checked raw: {sigDebug.checked}</div>
-            <div>DG raw: {sigDebug.dg}</div>
-            <div>Account raw: {sigDebug.account}</div>
-          </div>
+            <div className="no-print mb-3 rounded-xl border border-slate-200 bg-white px-3 py-3 text-xs text-slate-700">
+              <div className="mb-2 font-bold">Signature debug</div>
+
+              <div className="mb-2">
+                <div className="font-semibold">Requester raw:</div>
+                <div className="break-all">{sigDebug.requesterRaw}</div>
+                <div className="font-semibold mt-1">Requester resolved:</div>
+                <div className="break-all">{sigDebug.requesterResolved}</div>
+              </div>
+
+              <div className="mb-2">
+                <div className="font-semibold">Checked raw:</div>
+                <div className="break-all">{sigDebug.checkedRaw}</div>
+                <div className="font-semibold mt-1">Checked resolved:</div>
+                <div className="break-all">{sigDebug.checkedResolved}</div>
+              </div>
+
+              <div className="mb-2">
+                <div className="font-semibold">DG raw:</div>
+                <div className="break-all">{sigDebug.dgRaw}</div>
+                <div className="font-semibold mt-1">DG resolved:</div>
+                <div className="break-all">{sigDebug.dgResolved}</div>
+              </div>
+
+              <div>
+                <div className="font-semibold">Account raw:</div>
+                <div className="break-all">{sigDebug.accountRaw}</div>
+                <div className="font-semibold mt-1">Account resolved:</div>
+                <div className="break-all">{sigDebug.accountResolved}</div>
+              </div>
+            </div>
+          </>
         )}
 
         <div className="sheet mx-auto w-full bg-white px-[20px] py-[14px] text-black">
