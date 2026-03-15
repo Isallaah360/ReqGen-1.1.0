@@ -77,6 +77,7 @@ async function resolveSignatureUrl(value: string | null | undefined) {
   const raw = (value || "").trim();
   if (!raw) return null;
 
+  // Already usable
   if (
     raw.startsWith("http://") ||
     raw.startsWith("https://") ||
@@ -86,20 +87,25 @@ async function resolveSignatureUrl(value: string | null | undefined) {
     return raw;
   }
 
-  const attempts = [
-    raw,
-    raw.replace(/^signatures\//, ""),
-    raw.replace(/^\/+/, ""),
-  ];
+  // Try common storage path variants
+  const attempts = Array.from(
+    new Set([
+      raw,
+      raw.replace(/^signatures\//, ""),
+      raw.replace(/^\/+/, ""),
+      raw.replace(/^storage\/v1\/object\/public\/signatures\//, ""),
+      raw.replace(/^storage\/v1\/object\/sign\/signatures\//, ""),
+    ])
+  ).filter(Boolean);
 
   for (const candidate of attempts) {
-    if (!candidate) continue;
-
     const { data, error } = await supabase.storage
       .from("signatures")
       .createSignedUrl(candidate, 60 * 10);
 
-    if (!error && data?.signedUrl) return data.signedUrl;
+    if (!error && data?.signedUrl) {
+      return data.signedUrl;
+    }
   }
 
   return null;
@@ -124,6 +130,18 @@ export default function PrintRequestPage() {
   const [sigChecked, setSigChecked] = useState<string | null>(null);
   const [sigDG, setSigDG] = useState<string | null>(null);
   const [sigAccount, setSigAccount] = useState<string | null>(null);
+
+  const [sigDebug, setSigDebug] = useState<{
+    requester: string;
+    checked: string;
+    dg: string;
+    account: string;
+  }>({
+    requester: "",
+    checked: "",
+    dg: "",
+    account: "",
+  });
 
   useEffect(() => {
     async function load() {
@@ -220,18 +238,27 @@ export default function PrintRequestPage() {
       if (!req) return;
       setResolving(true);
 
-      const requesterSig =
-        (await resolveSignatureUrl(req.requester_signature_url)) ||
-        (await resolveSignatureUrl(requesterProfile?.signature_url || null));
+      const requesterRaw = req.requester_signature_url || requesterProfile?.signature_url || "";
+      const checkedRaw = req.checked_by_signature_url || "";
+      const dgRaw = req.dg_approved_signature_url || "";
+      const accountRaw = req.account_paid_signature_url || "";
 
-      const checkedSig = await resolveSignatureUrl(req.checked_by_signature_url);
-      const dgSig = await resolveSignatureUrl(req.dg_approved_signature_url);
-      const accountSig = await resolveSignatureUrl(req.account_paid_signature_url);
+      const requesterSig = await resolveSignatureUrl(requesterRaw);
+      const checkedSig = await resolveSignatureUrl(checkedRaw);
+      const dgSig = await resolveSignatureUrl(dgRaw);
+      const accountSig = await resolveSignatureUrl(accountRaw);
 
       setSigRequester(requesterSig);
       setSigChecked(checkedSig);
       setSigDG(dgSig);
       setSigAccount(accountSig);
+
+      setSigDebug({
+        requester: requesterRaw || "(empty)",
+        checked: checkedRaw || "(empty)",
+        dg: dgRaw || "(empty)",
+        account: accountRaw || "(empty)",
+      });
 
       setResolving(false);
     }
@@ -256,7 +283,7 @@ export default function PrintRequestPage() {
 
   function handlePrint() {
     if (!ready) {
-      setMsg("Printing is blocked until all four names and signatures are fully populated.");
+      setMsg("Printing is blocked until requester, checked by, DG, and Account names/signatures are fully available.");
       return;
     }
     window.print();
@@ -333,6 +360,16 @@ export default function PrintRequestPage() {
         {!ready && (
           <div className="no-print mb-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
             Printing is blocked until requester, checked by, DG, and Account names/signatures are fully available.
+          </div>
+        )}
+
+        {!ready && (
+          <div className="no-print mb-3 rounded-xl border border-slate-200 bg-white px-3 py-3 text-xs text-slate-700">
+            <div className="font-bold mb-2">Signature debug</div>
+            <div>Requester raw: {sigDebug.requester}</div>
+            <div>Checked raw: {sigDebug.checked}</div>
+            <div>DG raw: {sigDebug.dg}</div>
+            <div>Account raw: {sigDebug.account}</div>
           </div>
         )}
 
