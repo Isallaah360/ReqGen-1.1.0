@@ -101,18 +101,15 @@ export default function RequestDetailsPage() {
     return req.current_owner === me.id;
   }, [req, me]);
 
-  const meRoleKey = useMemo(() => roleKey(me?.role || ""), [me?.role]);
-
-  // Registry after DG approval must choose an account officer
+  // IMPORTANT: only based on workflow state, not role text
   const needsAccountOfficerSelection = useMemo(() => {
     if (!req || !me) return false;
     return (
       canAct &&
-      meRoleKey === "registry" &&
       (req.current_stage || "").trim().toUpperCase() === "REGISTRY" &&
       (req.status || "").trim().toUpperCase() === "APPROVED"
     );
-  }, [req, me, meRoleKey, canAct]);
+  }, [req, me, canAct]);
 
   useEffect(() => {
     async function load() {
@@ -181,15 +178,17 @@ export default function RequestDetailsPage() {
       if (hErr) setMsg("Failed to load history: " + hErr.message);
       setHistory((h || []) as Hist[]);
 
-      // load account officers for registry assignment
+      // Load ALL profiles, then filter client-side for AccountOfficer variants
       const { data: officers, error: officerErr } = await supabase
         .from("profiles")
         .select("id,full_name,email,role")
-        .eq("role", "AccountOfficer")
         .order("full_name", { ascending: true });
 
       if (!officerErr) {
-        setAccountOfficers((officers || []) as OfficerMini[]);
+        const rows = (officers || []) as OfficerMini[];
+        setAccountOfficers(
+          rows.filter((o) => roleKey(o.role || "") === "accountofficer")
+        );
       }
 
       setLoading(false);
@@ -282,7 +281,7 @@ export default function RequestDetailsPage() {
               ? "✅ Payment approved successfully. Request closed as Paid."
               : "✅ Approved. Request completed."
             : nextStage === "Account" && needsAccountOfficerSelection
-            ? `✅ Registry forwarded request to selected Account Officer successfully.`
+            ? "✅ Registry forwarded request to selected Account Officer successfully."
             : `✅ Approved. Sent to ${nextStage}.`
         );
       } else {
@@ -491,14 +490,14 @@ export default function RequestDetailsPage() {
                         ))}
                       </select>
                       <div className="mt-2 text-xs text-slate-600">
-                        Because DG has already approved, Registry must now dispatch this request to one of the 3 Account Officers.
+                        DG has approved this request. Registry must now forward it to one of the 3 Account Officers.
                       </div>
                     </div>
                   )}
 
                   <div className="mt-4">
                     <label className="text-sm font-semibold text-slate-800">
-                      Comment {actionHint(needsAccountOfficerSelection, req.current_stage)}
+                      Comment {needsAccountOfficerSelection ? "(optional, but recommended)" : "(required for Reject)"}
                     </label>
                     <textarea
                       value={comment}
@@ -568,12 +567,6 @@ export default function RequestDetailsPage() {
       </div>
     </main>
   );
-}
-
-function actionHint(needsAccountOfficerSelection: boolean, stage: string) {
-  if (needsAccountOfficerSelection) return "(optional, but recommended)";
-  if ((stage || "").toUpperCase() === "ACCOUNT") return "(payment note optional)";
-  return "(required for Reject)";
 }
 
 function Info({ label, value }: { label: string; value: string }) {
