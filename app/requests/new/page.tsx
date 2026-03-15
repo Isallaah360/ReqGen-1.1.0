@@ -17,6 +17,7 @@ type Subhead = {
   code: string | null;
   name: string;
   balance: number | null;
+  expenditure?: number | null;
   is_active: boolean | null;
 };
 
@@ -74,7 +75,7 @@ export default function NewRequestPage() {
       return;
     }
 
-    setMe((prof || null) as any);
+    setMe((prof || null) as ProfileMini);
 
     const { data: drows, error: dErr } = await supabase
       .from("departments")
@@ -93,7 +94,7 @@ export default function NewRequestPage() {
 
     const { data: srows, error: sErr } = await supabase
       .from("subheads")
-      .select("id,dept_id,code,name,balance,is_active")
+      .select("id,dept_id,code,name,balance,expenditure,is_active")
       .eq("is_active", true)
       .order("name", { ascending: true });
 
@@ -103,13 +104,14 @@ export default function NewRequestPage() {
       return;
     }
 
-    setSubs((srows || []) as Subhead[]);
+    const subList = (srows || []) as Subhead[];
+    setSubs(subList);
 
     if (deptList.length > 0) {
       const firstDeptId = deptList[0].id;
       setDeptId(firstDeptId);
 
-      const firstSub = ((srows || []) as Subhead[]).find((s) => s.dept_id === firstDeptId);
+      const firstSub = subList.find((s) => s.dept_id === firstDeptId);
       if (firstSub) setSubheadId(firstSub.id);
     }
 
@@ -157,6 +159,11 @@ export default function NewRequestPage() {
 
     if (!me) {
       setMsg("❌ Your profile is not loaded.");
+      return;
+    }
+
+    if (!me.full_name || !me.full_name.trim()) {
+      setMsg("❌ Please update your full name in Profile before creating request.");
       return;
     }
 
@@ -208,8 +215,7 @@ export default function NewRequestPage() {
       return;
     }
 
-    // ✅ PROFESSIONAL FIX:
-    // Route first to department HOD, else Director
+    // First routing stays HOD else Director
     const firstOwner = dept.hod_user_id || dept.director_user_id || null;
     const firstStage = dept.hod_user_id ? "HOD" : dept.director_user_id ? "Director" : null;
 
@@ -222,8 +228,9 @@ export default function NewRequestPage() {
 
     try {
       const requestNo = buildRequestNo();
+      const requesterName = me.full_name.trim();
 
-      // 1) Create request
+      // 1) Create request document snapshot from day one
       const { data: created, error: reqErr } = await supabase
         .from("requests")
         .insert({
@@ -231,16 +238,22 @@ export default function NewRequestPage() {
           title: title.trim(),
           details: details.trim(),
           amount: amt,
+
           status: "Submitted",
           current_stage: firstStage,
           current_owner: firstOwner,
+
           created_by: me.id,
           dept_id: deptId,
           subhead_id: subheadId,
           request_type: requestType,
           personal_category: requestType === "Personal" ? personalCategory : null,
+
           funds_state: "reserved",
+
+          requester_name: requesterName,
           requester_signature_url: me.signature_url,
+          requester_comment: details.trim(),
         })
         .select("id")
         .single();
@@ -250,22 +263,26 @@ export default function NewRequestPage() {
       const requestId = created?.id;
       if (!requestId) throw new Error("Request created without ID.");
 
-      // 2) Reserve amount on subhead immediately
+      // 2) Reserve amount on subhead
       const newBalance = subBal - amt;
+      const currentExpenditure = Number(selectedSubhead.expenditure || 0);
+
       const { error: subErr } = await supabase
         .from("subheads")
         .update({
-          expenditure: Number(selectedSubhead.balance || 0) + 0 - newBalance,
+          expenditure: currentExpenditure + amt,
           balance: newBalance,
         })
         .eq("id", subheadId);
 
       if (subErr) throw new Error(subErr.message);
 
-      // 3) History
+      // 3) First history snapshot
       const { error: histErr } = await supabase.from("request_history").insert({
         request_id: requestId,
         action_by: me.id,
+        actor_name: requesterName,
+        actor_signature_url: me.signature_url,
         from_stage: "Draft",
         to_stage: firstStage,
         action_type: "Submit",
@@ -313,7 +330,7 @@ export default function NewRequestPage() {
         <div>
           <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">New Request</h1>
           <p className="mt-2 text-sm text-slate-600">
-            Select department & subhead, confirm balance, then submit. It routes to the department HOD/Director.
+            Select department and subhead, confirm balance, then submit. It routes first to the department HOD or Director.
           </p>
         </div>
 

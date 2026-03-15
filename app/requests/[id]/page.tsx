@@ -20,6 +20,8 @@ type Req = {
   request_type: "Personal" | "Official";
   personal_category: "Fund" | "NonFund" | null;
   created_at: string;
+  assigned_account_officer_user_id: string | null;
+  assigned_account_officer_name: string | null;
 };
 
 type Hist = {
@@ -29,10 +31,36 @@ type Hist = {
   to_stage: string | null;
   created_at: string;
   signature_url: string | null;
+  actor_name: string | null;
 };
 
 type SubheadMini = { id: string; code: string; name: string };
-type ProfileMini = { id: string; role: string; signature_url: string | null };
+
+type ProfileMini = {
+  id: string;
+  role: string;
+  signature_url: string | null;
+  full_name?: string | null;
+};
+
+type OfficerMini = {
+  id: string;
+  full_name: string | null;
+  email: string | null;
+  role: string | null;
+};
+
+function roleKey(role: string) {
+  return (role || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "")
+    .replace(/_/g, "");
+}
+
+function officerLabel(o: OfficerMini) {
+  return o.full_name?.trim() || o.email?.trim() || o.id;
+}
 
 export default function RequestDetailsPage() {
   const router = useRouter();
@@ -54,6 +82,9 @@ export default function RequestDetailsPage() {
   const [me, setMe] = useState<ProfileMini | null>(null);
   const [comment, setComment] = useState("");
 
+  const [accountOfficers, setAccountOfficers] = useState<OfficerMini[]>([]);
+  const [selectedOfficerId, setSelectedOfficerId] = useState("");
+
   const isMyRequest = useMemo(
     () => !!req && !!me && req.created_by === me.id,
     [req, me]
@@ -69,6 +100,19 @@ export default function RequestDetailsPage() {
     if (!req || !me) return false;
     return req.current_owner === me.id;
   }, [req, me]);
+
+  const meRoleKey = useMemo(() => roleKey(me?.role || ""), [me?.role]);
+
+  // Registry after DG approval must choose an account officer
+  const needsAccountOfficerSelection = useMemo(() => {
+    if (!req || !me) return false;
+    return (
+      canAct &&
+      meRoleKey === "registry" &&
+      (req.current_stage || "").trim().toUpperCase() === "REGISTRY" &&
+      (req.status || "").trim().toUpperCase() === "APPROVED"
+    );
+  }, [req, me, meRoleKey, canAct]);
 
   useEffect(() => {
     async function load() {
@@ -89,7 +133,7 @@ export default function RequestDetailsPage() {
 
       const { data: myProf, error: myErr } = await supabase
         .from("profiles")
-        .select("id,role,signature_url")
+        .select("id,role,signature_url,full_name")
         .eq("id", auth.user.id)
         .single();
 
@@ -103,7 +147,7 @@ export default function RequestDetailsPage() {
       const { data: r, error: rErr } = await supabase
         .from("requests")
         .select(
-          "id,request_no,title,details,amount,status,current_stage,current_owner,created_by,dept_id,subhead_id,request_type,personal_category,created_at"
+          "id,request_no,title,details,amount,status,current_stage,current_owner,created_by,dept_id,subhead_id,request_type,personal_category,created_at,assigned_account_officer_user_id,assigned_account_officer_name"
         )
         .eq("id", id)
         .single();
@@ -113,7 +157,9 @@ export default function RequestDetailsPage() {
         setLoading(false);
         return;
       }
-      setReq(r as Req);
+      const requestRow = r as Req;
+      setReq(requestRow);
+      setSelectedOfficerId(requestRow.assigned_account_officer_user_id || "");
 
       if ((r as any)?.subhead_id) {
         const { data: sh } = await supabase
@@ -128,12 +174,23 @@ export default function RequestDetailsPage() {
 
       const { data: h, error: hErr } = await supabase
         .from("request_history")
-        .select("id,action_type,comment,to_stage,created_at,signature_url")
+        .select("id,action_type,comment,to_stage,created_at,signature_url,actor_name")
         .eq("request_id", id)
         .order("created_at", { ascending: false });
 
       if (hErr) setMsg("Failed to load history: " + hErr.message);
       setHistory((h || []) as Hist[]);
+
+      // load account officers for registry assignment
+      const { data: officers, error: officerErr } = await supabase
+        .from("profiles")
+        .select("id,full_name,email,role")
+        .eq("role", "AccountOfficer")
+        .order("full_name", { ascending: true });
+
+      if (!officerErr) {
+        setAccountOfficers((officers || []) as OfficerMini[]);
+      }
 
       setLoading(false);
     }
@@ -147,16 +204,17 @@ export default function RequestDetailsPage() {
     const { data: r2 } = await supabase
       .from("requests")
       .select(
-        "id,request_no,title,details,amount,status,current_stage,current_owner,created_by,dept_id,subhead_id,request_type,personal_category,created_at"
+        "id,request_no,title,details,amount,status,current_stage,current_owner,created_by,dept_id,subhead_id,request_type,personal_category,created_at,assigned_account_officer_user_id,assigned_account_officer_name"
       )
       .eq("id", id)
       .single();
 
     setReq((r2 as Req) || null);
+    setSelectedOfficerId((r2 as any)?.assigned_account_officer_user_id || "");
 
     const { data: h2 } = await supabase
       .from("request_history")
-      .select("id,action_type,comment,to_stage,created_at,signature_url")
+      .select("id,action_type,comment,to_stage,created_at,signature_url,actor_name")
       .eq("request_id", id)
       .order("created_at", { ascending: false });
 
@@ -193,6 +251,11 @@ export default function RequestDetailsPage() {
       return;
     }
 
+    if (action === "Approve" && needsAccountOfficerSelection && !selectedOfficerId) {
+      setMsg("❌ Registry must select an Account Officer before forwarding.");
+      return;
+    }
+
     setSaving(true);
     setMsg(null);
 
@@ -203,6 +266,9 @@ export default function RequestDetailsPage() {
           p_action_by: me.id,
           p_comment: comment.trim(),
           p_signature_url: me.signature_url,
+          p_assigned_account_officer_user_id: needsAccountOfficerSelection
+            ? selectedOfficerId
+            : null,
         });
 
         if (error) throw new Error(error.message);
@@ -215,6 +281,8 @@ export default function RequestDetailsPage() {
             ? nextStatus === "Paid"
               ? "✅ Payment approved successfully. Request closed as Paid."
               : "✅ Approved. Request completed."
+            : nextStage === "Account" && needsAccountOfficerSelection
+            ? `✅ Registry forwarded request to selected Account Officer successfully.`
             : `✅ Approved. Sent to ${nextStage}.`
         );
       } else {
@@ -352,6 +420,15 @@ export default function RequestDetailsPage() {
                 />
               </div>
 
+              {req.assigned_account_officer_name && (
+                <div className="mt-4">
+                  <Info
+                    label="Assigned Account Officer"
+                    value={req.assigned_account_officer_name}
+                  />
+                </div>
+              )}
+
               <div className="mt-5">
                 <div className="text-xs font-semibold text-slate-500">Details</div>
                 <div className="mt-2 whitespace-pre-wrap rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-800">
@@ -396,9 +473,32 @@ export default function RequestDetailsPage() {
                 </div>
               ) : (
                 <>
+                  {needsAccountOfficerSelection && (
+                    <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50 p-4">
+                      <label className="text-sm font-semibold text-slate-800">
+                        Registry: Select Account Officer
+                      </label>
+                      <select
+                        value={selectedOfficerId}
+                        onChange={(e) => setSelectedOfficerId(e.target.value)}
+                        className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
+                      >
+                        <option value="">-- Select Account Officer --</option>
+                        {accountOfficers.map((o) => (
+                          <option key={o.id} value={o.id}>
+                            {officerLabel(o)}
+                          </option>
+                        ))}
+                      </select>
+                      <div className="mt-2 text-xs text-slate-600">
+                        Because DG has already approved, Registry must now dispatch this request to one of the 3 Account Officers.
+                      </div>
+                    </div>
+                  )}
+
                   <div className="mt-4">
                     <label className="text-sm font-semibold text-slate-800">
-                      Comment (required for Reject)
+                      Comment {actionHint(needsAccountOfficerSelection, req.current_stage)}
                     </label>
                     <textarea
                       value={comment}
@@ -414,7 +514,7 @@ export default function RequestDetailsPage() {
                       disabled={saving}
                       className="w-full rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 disabled:opacity-60"
                     >
-                      {saving ? "Processing..." : "Approve"}
+                      {saving ? "Processing..." : needsAccountOfficerSelection ? "Send to Account Officer" : "Approve"}
                     </button>
 
                     <button
@@ -431,7 +531,9 @@ export default function RequestDetailsPage() {
 
             <div className="mt-6 rounded-2xl border bg-white p-6 shadow-sm">
               <h2 className="text-lg font-bold text-slate-900">History</h2>
-              <p className="mt-1 text-sm text-slate-600">All actions are signed and recorded.</p>
+              <p className="mt-1 text-sm text-slate-600">
+                All actions, comments, and signatures are recorded.
+              </p>
 
               {history.length === 0 ? (
                 <div className="mt-4 text-sm text-slate-700">No history yet.</div>
@@ -440,12 +542,16 @@ export default function RequestDetailsPage() {
                   {history.map((h) => (
                     <div key={h.id} className="rounded-xl border border-slate-200 bg-white p-4">
                       <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div className="text-sm font-bold text-slate-900">{h.action_type}</div>
+                        <div className="text-sm font-bold text-slate-900">
+                          {h.actor_name || "Officer"} • {h.action_type}
+                        </div>
                         {h.to_stage && <StageBadge stage={h.to_stage} />}
                       </div>
 
                       {h.comment && (
-                        <div className="mt-2 text-sm text-slate-800">{h.comment}</div>
+                        <div className="mt-2 whitespace-pre-wrap text-sm text-slate-800">
+                          {h.comment}
+                        </div>
                       )}
 
                       <div className="mt-2 text-xs text-slate-500">
@@ -462,6 +568,12 @@ export default function RequestDetailsPage() {
       </div>
     </main>
   );
+}
+
+function actionHint(needsAccountOfficerSelection: boolean, stage: string) {
+  if (needsAccountOfficerSelection) return "(optional, but recommended)";
+  if ((stage || "").toUpperCase() === "ACCOUNT") return "(payment note optional)";
+  return "(required for Reject)";
 }
 
 function Info({ label, value }: { label: string; value: string }) {
@@ -486,7 +598,7 @@ function StatusBadge({ status }: { status: string }) {
   const cls =
     s.includes("submit")
       ? "bg-blue-50 text-blue-700 border-blue-200"
-      : s.includes("approve") || s.includes("review") || s.includes("complete")
+      : s.includes("approve") || s.includes("review") || s.includes("complete") || s.includes("paid")
       ? "bg-emerald-50 text-emerald-700 border-emerald-200"
       : s.includes("reject")
       ? "bg-red-50 text-red-700 border-red-200"
