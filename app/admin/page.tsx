@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -10,7 +9,7 @@ type UserRow = {
   email: string | null;
   full_name: string | null;
   role: string | null;
-  dept_id: string | null;
+  signature_url: string | null;
 };
 
 type DeptRow = {
@@ -18,28 +17,31 @@ type DeptRow = {
   name: string;
   hod_user_id: string | null;
   director_user_id: string | null;
+  is_active: boolean | null;
 };
 
-type SettingRow = { key: string; value: string };
+type SettingRow = {
+  key: string;
+  value: string | null;
+};
+
+const GLOBAL_KEYS = [
+  "REGISTRY_USER_ID",
+  "DG_USER_ID",
+  "HR_USER_ID",
+] as const;
 
 const ROLE_OPTIONS = [
   "Staff",
   "Admin",
   "Auditor",
+  "Registry",
+  "HR",
+  "DG",
   "AccountOfficer",
   "Director",
   "HOD",
-  "HR",
-  "Registry",
-  "DG",
-] as const;
-
-const GLOBAL_KEYS = [
-  "REGISTRY_USER_ID",
-  "DG_USER_ID",
-  "ACCOUNT_USER_ID",
-  "HR_USER_ID",
-] as const;
+];
 
 function roleKey(role: string) {
   return (role || "")
@@ -49,17 +51,25 @@ function roleKey(role: string) {
     .replace(/_/g, "");
 }
 
-function userLabel(u: UserRow) {
-  const name = u.full_name?.trim() || "Unnamed User";
-  const email = u.email?.trim() || u.id;
-  const role = u.role?.trim() || "Staff";
-  return `${name} • ${email} (${role})`;
+function requiresSignature(role: string) {
+  const rk = roleKey(role);
+  return [
+    "admin",
+    "auditor",
+    "registry",
+    "hr",
+    "dg",
+    "accountofficer",
+    "director",
+    "hod",
+  ].includes(rk);
 }
 
 export default function AdminPage() {
   const router = useRouter();
 
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
   const [meEmail, setMeEmail] = useState("");
@@ -69,18 +79,8 @@ export default function AdminPage() {
   const [depts, setDepts] = useState<DeptRow[]>([]);
   const [settings, setSettings] = useState<Record<string, string>>({});
 
-  // quick role assignment
   const [selectedUserId, setSelectedUserId] = useState("");
   const [selectedRole, setSelectedRole] = useState("Staff");
-  const [selectedDeptId, setSelectedDeptId] = useState("");
-
-  const [savingRole, setSavingRole] = useState(false);
-  const [saving, setSaving] = useState(false);
-
-  const canAdmin = useMemo(() => {
-    const rk = roleKey(meRole);
-    return rk === "admin" || rk === "auditor";
-  }, [meRole]);
 
   const usersById = useMemo(() => {
     const m = new Map<string, UserRow>();
@@ -114,7 +114,7 @@ export default function AdminPage() {
       .single();
 
     if (meErr) {
-      setMsg("Failed to verify admin access: " + meErr.message);
+      setMsg("Failed to verify admin: " + meErr.message);
       setLoading(false);
       return;
     }
@@ -122,41 +122,41 @@ export default function AdminPage() {
     const role = (me?.role || "Staff") as string;
     setMeRole(role);
 
-    if (!["admin", "auditor"].includes(roleKey(role))) {
+    if (roleKey(role) !== "admin") {
       router.push("/dashboard");
       return;
     }
 
-    const [profsRes, deptRes, setRes] = await Promise.all([
+    const [usersRes, deptsRes, settingsRes] = await Promise.all([
       supabase
         .from("profiles")
-        .select("id,email,full_name,role,dept_id")
+        .select("id,email,full_name,role,signature_url")
         .order("full_name", { ascending: true }),
+
       supabase
         .from("departments")
-        .select("id,name,hod_user_id,director_user_id")
+        .select("id,name,hod_user_id,director_user_id,is_active")
         .order("name", { ascending: true }),
+
       supabase.from("app_settings").select("key,value"),
     ]);
 
-    if (profsRes.error) {
-      setMsg("Failed to load users: " + profsRes.error.message);
+    if (usersRes.error) {
+      setMsg("Failed to load users: " + usersRes.error.message);
     } else {
-      setUsers((profsRes.data || []) as UserRow[]);
+      setUsers((usersRes.data || []) as UserRow[]);
     }
 
-    if (deptRes.error) {
-      setMsg("Failed to load departments: " + deptRes.error.message);
+    if (deptsRes.error) {
+      setMsg("Failed to load departments: " + deptsRes.error.message);
     } else {
-      setDepts((deptRes.data || []) as DeptRow[]);
+      setDepts((deptsRes.data || []) as DeptRow[]);
     }
 
-    if (setRes.error) {
-      setMsg("Failed to load settings: " + setRes.error.message);
-    } else {
+    if (!settingsRes.error && settingsRes.data) {
       const map: Record<string, string> = {};
-      ((setRes.data || []) as SettingRow[]).forEach((r) => {
-        map[r.key] = r.value;
+      (settingsRes.data as SettingRow[]).forEach((r) => {
+        map[r.key] = r.value || "";
       });
       setSettings(map);
     }
@@ -173,7 +173,6 @@ export default function AdminPage() {
     if (!selectedUserId) return;
     const u = usersById.get(selectedUserId);
     setSelectedRole(u?.role || "Staff");
-    setSelectedDeptId(u?.dept_id || "");
   }, [selectedUserId, usersById]);
 
   async function saveUserRole() {
@@ -184,51 +183,55 @@ export default function AdminPage() {
       return;
     }
 
-    setSavingRole(true);
+    const user = usersById.get(selectedUserId);
+    if (!user) {
+      setMsg("❌ Selected user not found.");
+      return;
+    }
+
+    if (requiresSignature(selectedRole) && !user.signature_url) {
+      setMsg(`❌ ${selectedRole} role requires a signature. User must upload signature first.`);
+      return;
+    }
+
+    setSaving(true);
     try {
       const { error } = await supabase
         .from("profiles")
-        .update({
-          role: selectedRole,
-          dept_id: selectedDeptId || null,
-        })
+        .update({ role: selectedRole })
         .eq("id", selectedUserId);
 
       if (error) throw new Error(error.message);
 
-      setMsg("✅ Role updated successfully.");
+      setMsg("✅ User role updated successfully.");
       await loadAll();
     } catch (e: any) {
       setMsg("❌ Role update failed: " + (e?.message || "Unknown error"));
-    } finally {
-      setSavingRole(false);
-    }
-  }
-
-  async function saveSetting(key: string, value: string) {
-    setMsg(null);
-    setSaving(true);
-
-    try {
-      const { error } = await supabase
-        .from("app_settings")
-        .upsert({ key, value: value || "" });
-
-      if (error) throw new Error(error.message);
-
-      setMsg(`✅ ${key} saved successfully.`);
-      await loadAll();
-    } catch (e: any) {
-      setMsg("❌ Failed: " + (e?.message || "Unknown error"));
     } finally {
       setSaving(false);
     }
   }
 
-  async function saveDeptRouting(deptId: string, hodId: string | null, directorId: string | null) {
+  async function saveDept(deptId: string, hodId: string | null, directorId: string | null) {
     setMsg(null);
-    setSaving(true);
 
+    if (hodId) {
+      const hodUser = usersById.get(hodId);
+      if (hodUser && !hodUser.signature_url) {
+        setMsg("❌ HOD must have a signature before assignment.");
+        return;
+      }
+    }
+
+    if (directorId) {
+      const directorUser = usersById.get(directorId);
+      if (directorUser && !directorUser.signature_url) {
+        setMsg("❌ Director must have a signature before assignment.");
+        return;
+      }
+    }
+
+    setSaving(true);
     try {
       const { error } = await supabase
         .from("departments")
@@ -249,31 +252,49 @@ export default function AdminPage() {
     }
   }
 
+  async function saveSetting(key: string, value: string) {
+    setMsg(null);
+
+    if (!value) {
+      setMsg("❌ Please select a user.");
+      return;
+    }
+
+    const user = usersById.get(value);
+    if (!user) {
+      setMsg("❌ Selected user not found.");
+      return;
+    }
+
+    if (!user.signature_url) {
+      setMsg("❌ Selected officer must have a signature before assignment.");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from("app_settings")
+        .upsert({ key, value });
+
+      if (error) throw new Error(error.message);
+
+      setMsg("✅ Global officer saved.");
+      await loadAll();
+    } catch (e: any) {
+      setMsg("❌ Global officer save failed: " + (e?.message || "Unknown error"));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const signatureReadyCount = users.filter((u) => !!u.signature_url).length;
+  const totalUsers = users.length;
+
   if (loading) {
     return (
       <main className="min-h-screen bg-slate-50 px-4">
         <div className="mx-auto max-w-6xl py-10 text-slate-600">Loading...</div>
-      </main>
-    );
-  }
-
-  if (!canAdmin) {
-    return (
-      <main className="min-h-screen bg-slate-50 px-4">
-        <div className="mx-auto max-w-4xl py-10">
-          <div className="rounded-2xl border bg-white p-6 shadow-sm">
-            <div className="text-lg font-bold text-slate-900">Access denied</div>
-            <div className="mt-1 text-sm text-slate-600">
-              Only Admin or Auditor can access this page.
-            </div>
-            <button
-              onClick={() => router.push("/dashboard")}
-              className="mt-4 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
-            >
-              Back to Dashboard
-            </button>
-          </div>
-        </div>
       </main>
     );
   }
@@ -306,102 +327,35 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* QUICK LINKS */}
-        <div className="mt-6 grid gap-4 md:grid-cols-4">
-          <Link
-            href="/admin/users"
-            className="rounded-2xl border bg-white p-5 shadow-sm hover:bg-slate-50"
-          >
-            <div className="text-lg font-bold text-slate-900">Users & Roles</div>
-            <div className="mt-1 text-sm text-slate-600">
-              Manage staff accounts, roles and department mapping.
-            </div>
-          </Link>
-
-          <Link
-            href="/admin/settings"
-            className="rounded-2xl border bg-white p-5 shadow-sm hover:bg-slate-50"
-          >
-            <div className="text-lg font-bold text-slate-900">Routing Settings</div>
-            <div className="mt-1 text-sm text-slate-600">
-              Set Registry, DG, HR and Account routing.
-            </div>
-          </Link>
-
-          <Link
-            href="/admin/departments"
-            className="rounded-2xl border bg-white p-5 shadow-sm hover:bg-slate-50"
-          >
-            <div className="text-lg font-bold text-slate-900">Department Routing</div>
-            <div className="mt-1 text-sm text-slate-600">
-              Assign HOD and Director for each department.
-            </div>
-          </Link>
-
-          <Link
-            href="/finance"
-            className="rounded-2xl border bg-white p-5 shadow-sm hover:bg-slate-50"
-          >
-            <div className="text-lg font-bold text-slate-900">Finance Section</div>
-            <div className="mt-1 text-sm text-slate-600">
-              Manage departments, subheads, accounts and reports.
-            </div>
-          </Link>
-          <Link
-            href="/admin/account-routing"
-            className="rounded-2xl border bg-white p-5 shadow-sm hover:bg-slate-50"
-          >
-            <div className="text-lg font-bold text-slate-900">Account Routing</div>
-            <div className="mt-1 text-sm text-slate-600">
-              Assign department-approved requests to the correct IET account and Account Officer.
-            </div>
-          </Link>
+        <div className="mt-6 grid gap-4 md:grid-cols-3">
+          <StatCard title="Total Users" value={String(totalUsers)} />
+          <StatCard title="Signature Ready" value={String(signatureReadyCount)} />
+          <StatCard
+            title="Needs Signature"
+            value={String(Math.max(totalUsers - signatureReadyCount, 0))}
+          />
         </div>
 
-        {/* USER CREATION NOTICE */}
-        <div className="mt-6 rounded-2xl border bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-bold text-slate-900">Create User Account</h2>
-          <p className="mt-2 text-sm text-slate-600">
-            For security, new login accounts should be created manually in Supabase
-            Authentication, then configured here in Admin Panel.
-          </p>
-
-          <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
-            <div className="font-semibold text-slate-900">Safe workflow</div>
-            <div className="mt-2">
-              1. Create user in <b>Supabase → Authentication → Users → Add user</b>.
-            </div>
-            <div className="mt-1">
-              2. Let the user sign in or register profile details.
-            </div>
-            <div className="mt-1">
-              3. Come back here and assign role + department.
-            </div>
-            <div className="mt-1">
-              4. User can then reset password and upload signature from Profile.
-            </div>
-          </div>
-        </div>
-
-        {/* QUICK ROLE ASSIGNMENT */}
         <div className="mt-6 rounded-2xl border bg-white p-6 shadow-sm">
           <h2 className="text-lg font-bold text-slate-900">Quick Role Assignment</h2>
           <p className="mt-1 text-sm text-slate-600">
-            Assign any global role directly here.
+            Critical workflow roles require signature readiness before assignment.
           </p>
 
-          <div className="mt-4 grid gap-4 md:grid-cols-4">
+          <div className="mt-4 grid gap-4 md:grid-cols-3">
             <div className="md:col-span-2">
               <label className="text-sm font-semibold text-slate-800">Select User</label>
               <select
                 value={selectedUserId}
                 onChange={(e) => setSelectedUserId(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
+                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900"
               >
                 <option value="">-- Select user --</option>
                 {users.map((u) => (
                   <option key={u.id} value={u.id}>
-                    {userLabel(u)}
+                    {(u.full_name || u.email || u.id) +
+                      (u.role ? ` (${u.role})` : "") +
+                      (u.signature_url ? " • Signature Ready" : " • No Signature")}
                   </option>
                 ))}
               </select>
@@ -412,7 +366,7 @@ export default function AdminPage() {
               <select
                 value={selectedRole}
                 onChange={(e) => setSelectedRole(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
+                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900"
               >
                 {ROLE_OPTIONS.map((r) => (
                   <option key={r} value={r}>
@@ -421,61 +375,47 @@ export default function AdminPage() {
                 ))}
               </select>
             </div>
-
-            <div>
-              <label className="text-sm font-semibold text-slate-800">Department (optional)</label>
-              <select
-                value={selectedDeptId}
-                onChange={(e) => setSelectedDeptId(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
-              >
-                <option value="">-- None --</option>
-                {depts.map((d) => (
-                  <option key={d.id} value={d.id}>
-                    {d.name}
-                  </option>
-                ))}
-              </select>
-            </div>
           </div>
 
           <button
             onClick={saveUserRole}
-            disabled={savingRole}
-            className="mt-4 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:opacity-60"
+            disabled={saving}
+            className="mt-4 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
           >
-            {savingRole ? "Saving..." : "Save Role"}
+            {saving ? "Saving..." : "Save Role"}
           </button>
         </div>
 
-        {/* GLOBAL ROUTING SETTINGS */}
         <div className="mt-6 rounded-2xl border bg-white p-6 shadow-sm">
           <h2 className="text-lg font-bold text-slate-900">Global Routing Officers</h2>
           <p className="mt-1 text-sm text-slate-600">
-            Stored in <b>app_settings</b>. These drive routing and notifications.
+            Registry, DG and HR must always be assigned to signature-ready users.
           </p>
 
           {GLOBAL_KEYS.map((k) => (
             <div key={k} className="mt-4">
               <div className="text-sm font-semibold text-slate-800">{k}</div>
+
               <div className="mt-2 flex flex-col gap-2 md:flex-row">
                 <select
                   value={settings[k] || ""}
                   onChange={(e) => setSettings((s) => ({ ...s, [k]: e.target.value }))}
-                  className="w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
+                  className="w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900"
                 >
                   <option value="">-- Select user --</option>
-                  {users.map((u) => (
-                    <option key={u.id} value={u.id}>
-                      {userLabel(u)}
-                    </option>
-                  ))}
+                  {users
+                    .filter((u) => !!u.signature_url)
+                    .map((u) => (
+                      <option key={u.id} value={u.id}>
+                        {u.full_name || u.email || u.id}
+                      </option>
+                    ))}
                 </select>
 
                 <button
                   onClick={() => saveSetting(k, settings[k] || "")}
                   disabled={saving}
-                  className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:opacity-60"
+                  className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
                 >
                   Save
                 </button>
@@ -484,38 +424,126 @@ export default function AdminPage() {
           ))}
         </div>
 
-        {/* INLINE DEPARTMENT ROUTING SUMMARY */}
         <div className="mt-6 rounded-2xl border bg-white p-6 shadow-sm">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h2 className="text-lg font-bold text-slate-900">Department HOD / Director Routing</h2>
-              <p className="mt-1 text-sm text-slate-600">
-                Assign first approvers for each department.
-              </p>
-            </div>
-
-            <Link
-              href="/admin/departments"
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
-            >
-              Open Full Department Routing
-            </Link>
-          </div>
+          <h2 className="text-lg font-bold text-slate-900">Department Routing</h2>
+          <p className="mt-1 text-sm text-slate-600">
+            If Director is assigned, request starts with Director then moves to HOD.
+            If no Director is assigned, request starts at HOD.
+          </p>
 
           <div className="mt-4 space-y-4">
-            {depts.length === 0 ? (
-              <div className="text-sm text-slate-600">No departments found.</div>
-            ) : (
-              depts.map((d) => (
-                <DeptRoutingCard
-                  key={d.id}
-                  dept={d}
-                  users={users}
-                  onSave={saveDeptRouting}
-                  saving={saving}
-                />
-              ))
-            )}
+            {depts.map((d) => (
+              <div key={d.id} className="rounded-2xl border border-slate-200 p-5">
+                <div className="font-bold text-slate-900">{d.name}</div>
+
+                <div className="mt-4 grid gap-4 md:grid-cols-2">
+                  <div>
+                    <label className="text-sm font-semibold text-slate-800">Director</label>
+                    <select
+                      value={d.director_user_id || ""}
+                      onChange={(e) =>
+                        setDepts((prev) =>
+                          prev.map((x) =>
+                            x.id === d.id
+                              ? { ...x, director_user_id: e.target.value || null }
+                              : x
+                          )
+                        )
+                      }
+                      className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900"
+                    >
+                      <option value="">-- None --</option>
+                      {users
+                        .filter((u) => !!u.signature_url)
+                        .map((u) => (
+                          <option key={u.id} value={u.id}>
+                            {u.full_name || u.email || u.id}
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-semibold text-slate-800">HOD</label>
+                    <select
+                      value={d.hod_user_id || ""}
+                      onChange={(e) =>
+                        setDepts((prev) =>
+                          prev.map((x) =>
+                            x.id === d.id ? { ...x, hod_user_id: e.target.value || null } : x
+                          )
+                        )
+                      }
+                      className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900"
+                    >
+                      <option value="">-- None --</option>
+                      {users
+                        .filter((u) => !!u.signature_url)
+                        .map((u) => (
+                          <option key={u.id} value={u.id}>
+                            {u.full_name || u.email || u.id}
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => saveDept(d.id, d.hod_user_id, d.director_user_id)}
+                  disabled={saving}
+                  className="mt-4 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
+                >
+                  Save Department Routing
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-6 rounded-2xl border bg-white p-6 shadow-sm">
+          <h2 className="text-lg font-bold text-slate-900">Signature Readiness</h2>
+          <p className="mt-1 text-sm text-slate-600">
+            Users without signature should not handle workflow-sensitive roles.
+          </p>
+
+          <div className="mt-4 overflow-x-auto">
+            <table className="min-w-full border-collapse">
+              <thead>
+                <tr className="border-b border-slate-200 text-left text-sm text-slate-600">
+                  <th className="py-2 pr-4">Name</th>
+                  <th className="py-2 pr-4">Email</th>
+                  <th className="py-2 pr-4">Role</th>
+                  <th className="py-2 pr-4">Signature</th>
+                  <th className="py-2 pr-4">Ready</th>
+                </tr>
+              </thead>
+              <tbody>
+                {users.map((u) => {
+                  const ready = !!u.signature_url;
+                  return (
+                    <tr key={u.id} className="border-b border-slate-100 text-sm text-slate-800">
+                      <td className="py-2 pr-4 font-semibold">{u.full_name || "—"}</td>
+                      <td className="py-2 pr-4">{u.email || "—"}</td>
+                      <td className="py-2 pr-4">{u.role || "Staff"}</td>
+                      <td className="py-2 pr-4">
+                        {u.signature_url ? "✅ Present" : "❌ Missing"}
+                      </td>
+                      <td className="py-2 pr-4">
+                        {ready ? (
+                          <span className="rounded-lg bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-700">
+                            Ready
+                          </span>
+                        ) : (
+                          <span className="rounded-lg bg-red-50 px-2 py-1 text-xs font-semibold text-red-700">
+                            Not Ready
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
@@ -523,70 +551,11 @@ export default function AdminPage() {
   );
 }
 
-function DeptRoutingCard({
-  dept,
-  users,
-  onSave,
-  saving,
-}: {
-  dept: DeptRow;
-  users: UserRow[];
-  onSave: (deptId: string, hodId: string | null, directorId: string | null) => Promise<void>;
-  saving: boolean;
-}) {
-  const [hodId, setHodId] = useState(dept.hod_user_id || "");
-  const [directorId, setDirectorId] = useState(dept.director_user_id || "");
-
-  useEffect(() => {
-    setHodId(dept.hod_user_id || "");
-    setDirectorId(dept.director_user_id || "");
-  }, [dept.hod_user_id, dept.director_user_id]);
-
+function StatCard({ title, value }: { title: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5">
-      <div className="font-bold text-slate-900">{dept.name}</div>
-
-      <div className="mt-4 grid gap-4 md:grid-cols-2">
-        <div>
-          <label className="text-sm font-semibold text-slate-800">HOD</label>
-          <select
-            value={hodId}
-            onChange={(e) => setHodId(e.target.value)}
-            className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
-          >
-            <option value="">-- None --</option>
-            {users.map((u) => (
-              <option key={u.id} value={u.id}>
-                {userLabel(u)}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label className="text-sm font-semibold text-slate-800">Director</label>
-          <select
-            value={directorId}
-            onChange={(e) => setDirectorId(e.target.value)}
-            className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
-          >
-            <option value="">-- None --</option>
-            {users.map((u) => (
-              <option key={u.id} value={u.id}>
-                {userLabel(u)}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      <button
-        onClick={() => onSave(dept.id, hodId || null, directorId || null)}
-        disabled={saving}
-        className="mt-4 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
-      >
-        Save Department
-      </button>
+    <div className="rounded-2xl border bg-white p-5 shadow-sm">
+      <div className="text-sm font-semibold text-slate-500">{title}</div>
+      <div className="mt-2 text-2xl font-extrabold text-slate-900">{value}</div>
     </div>
   );
 }
