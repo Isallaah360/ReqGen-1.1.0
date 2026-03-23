@@ -9,6 +9,7 @@ type Dept = {
   name: string;
   hod_user_id: string | null;
   director_user_id: string | null;
+  is_active?: boolean | null;
 };
 
 type Subhead = {
@@ -32,6 +33,14 @@ function naira(n: number) {
   return "₦" + Math.round(n || 0).toLocaleString();
 }
 
+function buildRequestNo() {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, "0");
+  const t = String(now.getTime()).slice(-6);
+  return `REQ-${y}${m}-${t}`;
+}
+
 export default function NewRequestPage() {
   const router = useRouter();
 
@@ -53,75 +62,74 @@ export default function NewRequestPage() {
   const [amount, setAmount] = useState("");
   const [details, setDetails] = useState("");
 
-  async function loadAll() {
-    setLoading(true);
-    setMsg(null);
-
-    const { data: auth } = await supabase.auth.getUser();
-    if (!auth.user) {
-      router.push("/login");
-      return;
-    }
-
-    const { data: prof, error: profErr } = await supabase
-      .from("profiles")
-      .select("id,full_name,email,signature_url")
-      .eq("id", auth.user.id)
-      .single();
-
-    if (profErr) {
-      setMsg("Failed to load your profile: " + profErr.message);
-      setLoading(false);
-      return;
-    }
-
-    setMe((prof || null) as ProfileMini);
-
-    const { data: drows, error: dErr } = await supabase
-      .from("departments")
-      .select("id,name,hod_user_id,director_user_id")
-      .eq("is_active", true)
-      .order("name", { ascending: true });
-
-    if (dErr) {
-      setMsg("Failed to load departments: " + dErr.message);
-      setLoading(false);
-      return;
-    }
-
-    const deptList = (drows || []) as Dept[];
-    setDepts(deptList);
-
-    const { data: srows, error: sErr } = await supabase
-      .from("subheads")
-      .select("id,dept_id,code,name,balance,expenditure,is_active")
-      .eq("is_active", true)
-      .order("name", { ascending: true });
-
-    if (sErr) {
-      setMsg("Failed to load subheads: " + sErr.message);
-      setLoading(false);
-      return;
-    }
-
-    const subList = (srows || []) as Subhead[];
-    setSubs(subList);
-
-    if (deptList.length > 0) {
-      const firstDeptId = deptList[0].id;
-      setDeptId(firstDeptId);
-
-      const firstSub = subList.find((s) => s.dept_id === firstDeptId);
-      if (firstSub) setSubheadId(firstSub.id);
-    }
-
-    setLoading(false);
-  }
-
   useEffect(() => {
+    async function loadAll() {
+      setLoading(true);
+      setMsg(null);
+
+      const { data: auth } = await supabase.auth.getUser();
+      if (!auth.user) {
+        router.push("/login");
+        return;
+      }
+
+      const { data: prof, error: profErr } = await supabase
+        .from("profiles")
+        .select("id,full_name,email,signature_url")
+        .eq("id", auth.user.id)
+        .single();
+
+      if (profErr) {
+        setMsg("Failed to load your profile: " + profErr.message);
+        setLoading(false);
+        return;
+      }
+
+      setMe((prof || null) as ProfileMini);
+
+      const { data: deptRows, error: deptErr } = await supabase
+        .from("departments")
+        .select("id,name,hod_user_id,director_user_id,is_active")
+        .eq("is_active", true)
+        .order("name", { ascending: true });
+
+      if (deptErr) {
+        setMsg("Failed to load departments: " + deptErr.message);
+        setLoading(false);
+        return;
+      }
+
+      const deptList = (deptRows || []) as Dept[];
+      setDepts(deptList);
+
+      const { data: subRows, error: subErr } = await supabase
+        .from("subheads")
+        .select("id,dept_id,code,name,balance,expenditure,is_active")
+        .eq("is_active", true)
+        .order("name", { ascending: true });
+
+      if (subErr) {
+        setMsg("Failed to load subheads: " + subErr.message);
+        setLoading(false);
+        return;
+      }
+
+      const subList = (subRows || []) as Subhead[];
+      setSubs(subList);
+
+      if (deptList.length > 0) {
+        const firstDept = deptList[0];
+        setDeptId(firstDept.id);
+
+        const firstSub = subList.find((s) => s.dept_id === firstDept.id);
+        if (firstSub) setSubheadId(firstSub.id);
+      }
+
+      setLoading(false);
+    }
+
     loadAll();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [router]);
 
   const filteredSubs = useMemo(() => {
     return subs.filter((s) => s.dept_id === deptId);
@@ -135,14 +143,6 @@ export default function NewRequestPage() {
     const first = filteredSubs[0];
     setSubheadId(first?.id || "");
   }, [deptId, filteredSubs]);
-
-  function buildRequestNo() {
-    const now = new Date();
-    const y = now.getFullYear();
-    const m = String(now.getMonth() + 1).padStart(2, "0");
-    const t = String(now.getTime()).slice(-6);
-    return `REQ-${y}${m}-${t}`;
-  }
 
   async function notify(userId: string, title: string, body: string, link: string) {
     await supabase.from("notifications").insert({
@@ -167,7 +167,7 @@ export default function NewRequestPage() {
       return;
     }
 
-    if (!me.signature_url) {
+    if (!me.signature_url || !me.signature_url.trim()) {
       setMsg("❌ Please upload your signature in Profile before creating request.");
       return;
     }
@@ -215,12 +215,13 @@ export default function NewRequestPage() {
       return;
     }
 
-    // First routing stays HOD else Director
-    const firstOwner = dept.hod_user_id || dept.director_user_id || null;
-    const firstStage = dept.hod_user_id ? "HOD" : dept.director_user_id ? "Director" : null;
+    // FINAL RULE:
+    // Director first if exists, otherwise HOD directly.
+    const firstOwner = dept.director_user_id || dept.hod_user_id || null;
+    const firstStage = dept.director_user_id ? "Director" : dept.hod_user_id ? "HOD" : null;
 
     if (!firstOwner || !firstStage) {
-      setMsg("❌ This department does not have HOD/Director routing set yet in Admin Panel.");
+      setMsg("❌ This department does not have Director/HOD routing set yet in Admin Panel.");
       return;
     }
 
@@ -230,7 +231,6 @@ export default function NewRequestPage() {
       const requestNo = buildRequestNo();
       const requesterName = me.full_name.trim();
 
-      // 1) Create request document snapshot from day one
       const { data: created, error: reqErr } = await supabase
         .from("requests")
         .insert({
@@ -246,14 +246,15 @@ export default function NewRequestPage() {
           created_by: me.id,
           dept_id: deptId,
           subhead_id: subheadId,
+
           request_type: requestType,
           personal_category: requestType === "Personal" ? personalCategory : null,
 
           funds_state: "reserved",
 
           requester_name: requesterName,
-          requester_signature_url: me.signature_url,
           requester_comment: details.trim(),
+          requester_signature_snapshot: me.signature_url,
         })
         .select("id")
         .single();
@@ -263,7 +264,7 @@ export default function NewRequestPage() {
       const requestId = created?.id;
       if (!requestId) throw new Error("Request created without ID.");
 
-      // 2) Reserve amount on subhead
+      // Reserve subhead funds immediately
       const newBalance = subBal - amt;
       const currentExpenditure = Number(selectedSubhead.expenditure || 0);
 
@@ -277,7 +278,7 @@ export default function NewRequestPage() {
 
       if (subErr) throw new Error(subErr.message);
 
-      // 3) First history snapshot
+      // Initial history
       const { error: histErr } = await supabase.from("request_history").insert({
         request_id: requestId,
         action_by: me.id,
@@ -292,7 +293,7 @@ export default function NewRequestPage() {
 
       if (histErr) throw new Error(histErr.message);
 
-      // 4) Notify first approver
+      // Notify first approver
       await notify(
         firstOwner,
         "New Request Submitted",
@@ -330,7 +331,8 @@ export default function NewRequestPage() {
         <div>
           <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">New Request</h1>
           <p className="mt-2 text-sm text-slate-600">
-            Select department and subhead, confirm balance, then submit. It routes first to the department HOD or Director.
+            Select department and subhead, confirm balance, then submit.
+            Request starts with Director if the department has one, otherwise it goes to HOD.
           </p>
         </div>
 
