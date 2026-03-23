@@ -20,7 +20,8 @@ type Req = {
   request_type: "Personal" | "Official";
   personal_category: "Fund" | "NonFund" | null;
   created_at: string;
-  assigned_account_officer_user_id: string | null;
+
+  assigned_account_officer_id: string | null;
   assigned_account_officer_name: string | null;
 };
 
@@ -34,7 +35,11 @@ type Hist = {
   actor_name: string | null;
 };
 
-type SubheadMini = { id: string; code: string; name: string };
+type SubheadMini = {
+  id: string;
+  code: string | null;
+  name: string;
+};
 
 type ProfileMini = {
   id: string;
@@ -93,7 +98,7 @@ export default function RequestDetailsPage() {
   const canEditDelete = useMemo(() => {
     if (!req || !me) return false;
     const stage = (req.current_stage || "").trim().toUpperCase();
-    return req.created_by === me.id && (stage === "HOD" || stage === "DIRECTOR");
+    return req.created_by === me.id && (stage === "DIRECTOR" || stage === "HOD");
   }, [req, me]);
 
   const canAct = useMemo(() => {
@@ -101,15 +106,18 @@ export default function RequestDetailsPage() {
     return req.current_owner === me.id;
   }, [req, me]);
 
-  // IMPORTANT: only based on workflow state, not role text
+  // Registry must preselect Account Officer before sending to DG
   const needsAccountOfficerSelection = useMemo(() => {
-    if (!req || !me) return false;
-    return (
-      canAct &&
-      (req.current_stage || "").trim().toUpperCase() === "REGISTRY" &&
-      (req.status || "").trim().toUpperCase() === "APPROVED"
-    );
-  }, [req, me, canAct]);
+    if (!req || !canAct) return false;
+
+    const isRegistry = (req.current_stage || "").trim().toUpperCase() === "REGISTRY";
+    const isOfficial = (req.request_type || "").trim().toUpperCase() === "OFFICIAL";
+    const isFundPersonal =
+      (req.request_type || "").trim().toUpperCase() === "PERSONAL" &&
+      (req.personal_category || "").trim().toUpperCase() === "FUND";
+
+    return isRegistry && (isOfficial || isFundPersonal);
+  }, [req, canAct]);
 
   useEffect(() => {
     async function load() {
@@ -144,7 +152,7 @@ export default function RequestDetailsPage() {
       const { data: r, error: rErr } = await supabase
         .from("requests")
         .select(
-          "id,request_no,title,details,amount,status,current_stage,current_owner,created_by,dept_id,subhead_id,request_type,personal_category,created_at,assigned_account_officer_user_id,assigned_account_officer_name"
+          "id,request_no,title,details,amount,status,current_stage,current_owner,created_by,dept_id,subhead_id,request_type,personal_category,created_at,assigned_account_officer_id,assigned_account_officer_name"
         )
         .eq("id", id)
         .single();
@@ -154,9 +162,10 @@ export default function RequestDetailsPage() {
         setLoading(false);
         return;
       }
+
       const requestRow = r as Req;
       setReq(requestRow);
-      setSelectedOfficerId(requestRow.assigned_account_officer_user_id || "");
+      setSelectedOfficerId(requestRow.assigned_account_officer_id || "");
 
       if ((r as any)?.subhead_id) {
         const { data: sh } = await supabase
@@ -164,6 +173,7 @@ export default function RequestDetailsPage() {
           .select("id,code,name")
           .eq("id", (r as any).subhead_id)
           .single();
+
         if (sh) setSubhead(sh as SubheadMini);
       } else {
         setSubhead(null);
@@ -175,10 +185,12 @@ export default function RequestDetailsPage() {
         .eq("request_id", id)
         .order("created_at", { ascending: false });
 
-      if (hErr) setMsg("Failed to load history: " + hErr.message);
-      setHistory((h || []) as Hist[]);
+      if (hErr) {
+        setMsg("Failed to load history: " + hErr.message);
+      } else {
+        setHistory((h || []) as Hist[]);
+      }
 
-      // Load ALL profiles, then filter client-side for AccountOfficer variants
       const { data: officers, error: officerErr } = await supabase
         .from("profiles")
         .select("id,full_name,email,role")
@@ -186,9 +198,7 @@ export default function RequestDetailsPage() {
 
       if (!officerErr) {
         const rows = (officers || []) as OfficerMini[];
-        setAccountOfficers(
-          rows.filter((o) => roleKey(o.role || "") === "accountofficer")
-        );
+        setAccountOfficers(rows.filter((o) => roleKey(o.role || "") === "accountofficer"));
       }
 
       setLoading(false);
@@ -203,13 +213,13 @@ export default function RequestDetailsPage() {
     const { data: r2 } = await supabase
       .from("requests")
       .select(
-        "id,request_no,title,details,amount,status,current_stage,current_owner,created_by,dept_id,subhead_id,request_type,personal_category,created_at,assigned_account_officer_user_id,assigned_account_officer_name"
+        "id,request_no,title,details,amount,status,current_stage,current_owner,created_by,dept_id,subhead_id,request_type,personal_category,created_at,assigned_account_officer_id,assigned_account_officer_name"
       )
       .eq("id", id)
       .single();
 
     setReq((r2 as Req) || null);
-    setSelectedOfficerId((r2 as any)?.assigned_account_officer_user_id || "");
+    setSelectedOfficerId((r2 as any)?.assigned_account_officer_id || "");
 
     const { data: h2 } = await supabase
       .from("request_history")
@@ -251,7 +261,7 @@ export default function RequestDetailsPage() {
     }
 
     if (action === "Approve" && needsAccountOfficerSelection && !selectedOfficerId) {
-      setMsg("❌ Registry must select an Account Officer before forwarding.");
+      setMsg("❌ Registry must select an Account Officer before sending to DG.");
       return;
     }
 
@@ -265,7 +275,7 @@ export default function RequestDetailsPage() {
           p_action_by: me.id,
           p_comment: comment.trim(),
           p_signature_url: me.signature_url,
-          p_assigned_account_officer_user_id: needsAccountOfficerSelection
+          p_assigned_account_officer_id: needsAccountOfficerSelection
             ? selectedOfficerId
             : null,
         });
@@ -280,8 +290,8 @@ export default function RequestDetailsPage() {
             ? nextStatus === "Paid"
               ? "✅ Payment approved successfully. Request closed as Paid."
               : "✅ Approved. Request completed."
-            : nextStage === "Account" && needsAccountOfficerSelection
-            ? "✅ Registry forwarded request to selected Account Officer successfully."
+            : needsAccountOfficerSelection && nextStage === "DG"
+            ? "✅ Registry has selected Account Officer and sent the request to DG."
             : `✅ Approved. Sent to ${nextStage}.`
         );
       } else {
@@ -310,7 +320,7 @@ export default function RequestDetailsPage() {
     if (!req) return;
 
     if (!canEditDelete) {
-      setMsg("❌ You can only delete while request is still at HOD/Director.");
+      setMsg("❌ You can only delete while request is still at Director/HOD.");
       return;
     }
 
@@ -334,6 +344,14 @@ export default function RequestDetailsPage() {
     } finally {
       setSaving(false);
     }
+  }
+
+  if (loading) {
+    return (
+      <main className="min-h-screen bg-slate-50 px-4">
+        <div className="mx-auto max-w-4xl py-10 text-slate-600">Loading...</div>
+      </main>
+    );
   }
 
   return (
@@ -374,9 +392,7 @@ export default function RequestDetailsPage() {
           </div>
         )}
 
-        {loading ? (
-          <div className="mt-6 text-slate-600">Loading...</div>
-        ) : !req ? (
+        {!req ? (
           <div className="mt-6 rounded-2xl border bg-white p-6 shadow-sm text-slate-700">
             Request not found.
           </div>
@@ -386,7 +402,9 @@ export default function RequestDetailsPage() {
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <div className="text-sm text-slate-600">Request No</div>
-                  <div className="text-lg font-extrabold text-slate-900">{req.request_no}</div>
+                  <div className="text-lg font-extrabold text-slate-900">
+                    {req.request_no}
+                  </div>
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -422,7 +440,7 @@ export default function RequestDetailsPage() {
               {req.assigned_account_officer_name && (
                 <div className="mt-4">
                   <Info
-                    label="Assigned Account Officer"
+                    label="Selected Account Officer"
                     value={req.assigned_account_officer_name}
                   />
                 </div>
@@ -455,7 +473,7 @@ export default function RequestDetailsPage() {
 
               {!canEditDelete && isMyRequest && (
                 <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
-                  Edit/Delete is locked once the request reaches Registry/DG/Account/HR.
+                  Edit/Delete is locked once the request leaves Director/HOD level.
                 </div>
               )}
             </div>
@@ -475,7 +493,7 @@ export default function RequestDetailsPage() {
                   {needsAccountOfficerSelection && (
                     <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50 p-4">
                       <label className="text-sm font-semibold text-slate-800">
-                        Registry: Select Account Officer
+                        Registry: Select Account Officer before sending to DG
                       </label>
                       <select
                         value={selectedOfficerId}
@@ -490,7 +508,7 @@ export default function RequestDetailsPage() {
                         ))}
                       </select>
                       <div className="mt-2 text-xs text-slate-600">
-                        DG has approved this request. Registry must now forward it to one of the 3 Account Officers.
+                        Registry must choose the Account Officer now. After DG approval, the request will go directly to that selected officer.
                       </div>
                     </div>
                   )}
@@ -513,7 +531,11 @@ export default function RequestDetailsPage() {
                       disabled={saving}
                       className="w-full rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 disabled:opacity-60"
                     >
-                      {saving ? "Processing..." : needsAccountOfficerSelection ? "Send to Account Officer" : "Approve"}
+                      {saving
+                        ? "Processing..."
+                        : needsAccountOfficerSelection
+                        ? "Send to DG"
+                        : "Approve"}
                     </button>
 
                     <button
