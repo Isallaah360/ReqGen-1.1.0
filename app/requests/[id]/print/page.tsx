@@ -17,22 +17,30 @@ type Req = {
   current_stage: string;
   status: string;
   created_at: string;
+  request_type: "Official" | "Personal";
+  personal_category: "Fund" | "NonFund" | null;
 
   requester_name: string | null;
-  requester_signature_url: string | null;
   requester_comment: string | null;
+  requester_signature_snapshot: string | null;
 
   checked_by_name: string | null;
-  checked_by_signature_url: string | null;
   checked_comment: string | null;
+  checked_signature_snapshot: string | null;
 
-  dg_approved_by_name: string | null;
-  dg_approved_signature_url: string | null;
+  hr_name: string | null;
+  hr_comment: string | null;
+  hr_signature_snapshot: string | null;
+
+  dg_name: string | null;
   dg_comment: string | null;
+  dg_signature_snapshot: string | null;
 
-  account_paid_by_name: string | null;
-  account_paid_signature_url: string | null;
+  account_name: string | null;
   account_comment: string | null;
+  account_signature_snapshot: string | null;
+
+  assigned_account_officer_name: string | null;
 };
 
 type Dept = {
@@ -54,14 +62,9 @@ type Hist = {
   action_type: string;
   comment: string | null;
   to_stage: string | null;
+  from_stage: string | null;
   created_at: string;
   actor_name: string | null;
-};
-
-type Profile = {
-  id: string;
-  full_name: string | null;
-  signature_url: string | null;
 };
 
 function naira(n: number | null | undefined) {
@@ -71,10 +74,6 @@ function naira(n: number | null | undefined) {
 function formatDate(d: string | null | undefined) {
   if (!d) return "";
   return new Date(d).toLocaleDateString();
-}
-
-function normalizeName(v: string | null | undefined) {
-  return (v || "").trim().toLowerCase().replace(/\s+/g, " ");
 }
 
 async function getRenderableSignatureUrl(value: string | null | undefined) {
@@ -119,34 +118,18 @@ export default function PrintRequestPage() {
   const id = String((params as any)?.id || "");
 
   const [loading, setLoading] = useState(true);
-  const [resolving, setResolving] = useState(true);
   const [msg, setMsg] = useState<string | null>(null);
 
   const [req, setReq] = useState<Req | null>(null);
   const [dept, setDept] = useState<Dept | null>(null);
   const [subhead, setSubhead] = useState<Subhead | null>(null);
   const [history, setHistory] = useState<Hist[]>([]);
-  const [profiles, setProfiles] = useState<Profile[]>([]);
-  const [requesterProfile, setRequesterProfile] = useState<Profile | null>(null);
 
   const [sigRequester, setSigRequester] = useState<string | null>(null);
   const [sigChecked, setSigChecked] = useState<string | null>(null);
+  const [sigHR, setSigHR] = useState<string | null>(null);
   const [sigDG, setSigDG] = useState<string | null>(null);
   const [sigAccount, setSigAccount] = useState<string | null>(null);
-
-  const [sigDebug, setSigDebug] = useState({
-    requesterRaw: "",
-    checkedRaw: "",
-    dgRaw: "",
-    accountRaw: "",
-    requesterResolved: "",
-    checkedResolved: "",
-    dgResolved: "",
-    accountResolved: "",
-    checkedProfileFallback: "",
-    dgProfileFallback: "",
-    accountProfileFallback: "",
-  });
 
   useEffect(() => {
     async function load() {
@@ -173,18 +156,24 @@ export default function PrintRequestPage() {
           current_stage,
           status,
           created_at,
+          request_type,
+          personal_category,
           requester_name,
-          requester_signature_url,
           requester_comment,
+          requester_signature_snapshot,
           checked_by_name,
-          checked_by_signature_url,
           checked_comment,
-          dg_approved_by_name,
-          dg_approved_signature_url,
+          checked_signature_snapshot,
+          hr_name,
+          hr_comment,
+          hr_signature_snapshot,
+          dg_name,
           dg_comment,
-          account_paid_by_name,
-          account_paid_signature_url,
-          account_comment
+          dg_signature_snapshot,
+          account_name,
+          account_comment,
+          account_signature_snapshot,
+          assigned_account_officer_name
         `)
         .eq("id", id)
         .single();
@@ -198,12 +187,13 @@ export default function PrintRequestPage() {
       const reqRow = r as Req;
       setReq(reqRow);
 
-      const [deptRes, subRes, histRes, requesterRes, profileRes] = await Promise.all([
+      const [deptRes, subRes, histRes, s1, s2, s3, s4, s5] = await Promise.all([
         supabase
           .from("departments")
           .select("id,name")
           .eq("id", reqRow.dept_id)
           .single(),
+
         reqRow.subhead_id
           ? supabase
               .from("subheads")
@@ -211,26 +201,29 @@ export default function PrintRequestPage() {
               .eq("id", reqRow.subhead_id)
               .single()
           : Promise.resolve({ data: null } as any),
+
         supabase
           .from("request_history")
-          .select("id,action_type,comment,to_stage,created_at,actor_name")
+          .select("id,action_type,comment,to_stage,from_stage,created_at,actor_name")
           .eq("request_id", reqRow.id)
           .order("created_at", { ascending: true }),
-        supabase
-          .from("profiles")
-          .select("id,full_name,signature_url")
-          .eq("id", reqRow.created_by)
-          .single(),
-        supabase
-          .from("profiles")
-          .select("id,full_name,signature_url"),
+
+        getRenderableSignatureUrl(reqRow.requester_signature_snapshot),
+        getRenderableSignatureUrl(reqRow.checked_signature_snapshot),
+        getRenderableSignatureUrl(reqRow.hr_signature_snapshot),
+        getRenderableSignatureUrl(reqRow.dg_signature_snapshot),
+        getRenderableSignatureUrl(reqRow.account_signature_snapshot),
       ]);
 
       if (deptRes.data) setDept(deptRes.data as Dept);
       if (subRes.data) setSubhead(subRes.data as Subhead);
-      if (histRes.data) setHistory(histRes.data as Hist[]);
-      if (requesterRes.data) setRequesterProfile(requesterRes.data as Profile);
-      if (profileRes.data) setProfiles((profileRes.data || []) as Profile[]);
+      if (histRes.data) setHistory((histRes.data || []) as Hist[]);
+
+      setSigRequester(s1);
+      setSigChecked(s2);
+      setSigHR(s3);
+      setSigDG(s4);
+      setSigAccount(s5);
 
       setLoading(false);
     }
@@ -242,104 +235,36 @@ export default function PrintRequestPage() {
     document.title = req?.request_no || "request-print";
   }, [req?.request_no]);
 
-  function findProfileSignatureByName(name: string | null | undefined) {
-    const target = normalizeName(name);
-    if (!target) return "";
-
-    const match = profiles.find((p) => normalizeName(p.full_name) === target);
-    return (match?.signature_url || "").trim();
-  }
-
-  useEffect(() => {
-    async function loadAllSigs() {
-      if (!req) return;
-
-      setResolving(true);
-
-      const requesterRaw =
-        (req.requester_signature_url || "").trim() ||
-        (requesterProfile?.signature_url || "").trim();
-
-      const checkedSnapshotRaw = (req.checked_by_signature_url || "").trim();
-      const dgSnapshotRaw = (req.dg_approved_signature_url || "").trim();
-      const accountSnapshotRaw = (req.account_paid_signature_url || "").trim();
-
-      const checkedProfileFallback = findProfileSignatureByName(req.checked_by_name);
-      const dgProfileFallback = findProfileSignatureByName(req.dg_approved_by_name);
-      const accountProfileFallback = findProfileSignatureByName(req.account_paid_by_name);
-
-      const checkedRaw = checkedSnapshotRaw || checkedProfileFallback;
-      const dgRaw = dgSnapshotRaw || dgProfileFallback;
-      const accountRaw = accountSnapshotRaw || accountProfileFallback;
-
-      let requesterResolved = await getRenderableSignatureUrl(requesterRaw);
-      let checkedResolved = await getRenderableSignatureUrl(checkedSnapshotRaw);
-      let dgResolved = await getRenderableSignatureUrl(dgSnapshotRaw);
-      let accountResolved = await getRenderableSignatureUrl(accountSnapshotRaw);
-
-      if (!checkedResolved && checkedProfileFallback) {
-        checkedResolved = await getRenderableSignatureUrl(checkedProfileFallback);
-      }
-
-      if (!dgResolved && dgProfileFallback) {
-        dgResolved = await getRenderableSignatureUrl(dgProfileFallback);
-      }
-
-      if (!accountResolved && accountProfileFallback) {
-        accountResolved = await getRenderableSignatureUrl(accountProfileFallback);
-      }
-
-      setSigRequester(requesterResolved);
-      setSigChecked(checkedResolved);
-      setSigDG(dgResolved);
-      setSigAccount(accountResolved);
-
-      setSigDebug({
-        requesterRaw: requesterRaw || "(empty)",
-        checkedRaw: checkedRaw || "(empty)",
-        dgRaw: dgRaw || "(empty)",
-        accountRaw: accountRaw || "(empty)",
-        requesterResolved: requesterResolved || "(not resolved)",
-        checkedResolved: checkedResolved || "(not resolved)",
-        dgResolved: dgResolved || "(not resolved)",
-        accountResolved: accountResolved || "(not resolved)",
-        checkedProfileFallback: checkedProfileFallback || "(none)",
-        dgProfileFallback: dgProfileFallback || "(none)",
-        accountProfileFallback: accountProfileFallback || "(none)",
-      });
-
-      setResolving(false);
-    }
-
-    loadAllSigs();
-  }, [req, requesterProfile, profiles]);
+  const requiresAccountLine = useMemo(() => {
+    if (!req) return false;
+    if ((req.request_type || "").toUpperCase() === "OFFICIAL") return true;
+    return (req.personal_category || "").toUpperCase() === "FUND";
+  }, [req]);
 
   const ready = useMemo(() => {
     if (!req) return false;
 
-    return Boolean(
-      (req.requester_name || requesterProfile?.full_name) &&
-        req.checked_by_name &&
-        req.dg_approved_by_name &&
-        req.account_paid_by_name &&
-        sigRequester &&
-        sigChecked &&
-        sigDG &&
-        sigAccount
-    );
-  }, [req, requesterProfile, sigRequester, sigChecked, sigDG, sigAccount]);
+    const requesterReady = !!req.requester_name && !!sigRequester;
+    const checkedReady = !!req.checked_by_name && !!sigChecked;
+    const dgReady = !!req.dg_name && !!sigDG;
+    const accountReady = requiresAccountLine ? !!req.account_name && !!sigAccount : true;
+
+    return requesterReady && checkedReady && dgReady && accountReady;
+  }, [req, sigRequester, sigChecked, sigDG, sigAccount, requiresAccountLine]);
 
   function handlePrint() {
     if (!ready) {
-      setMsg(
-        "Printing is blocked until requester, checked by, DG, and Account names/signatures are fully available."
-      );
+      setMsg("Printing is blocked until the required request signatures are fully available.");
       return;
     }
     window.print();
   }
 
-  if (loading || resolving) {
+  const commentTrail = useMemo(() => {
+    return history.filter((h) => (h.comment || "").trim().length > 0);
+  }, [history]);
+
+  if (loading) {
     return (
       <main className="min-h-screen bg-slate-100 px-4 py-8">
         <div className="mx-auto max-w-3xl rounded-2xl border bg-white p-6 text-slate-700 shadow-sm">
@@ -408,49 +333,9 @@ export default function PrintRequestPage() {
         )}
 
         {!ready && (
-          <>
-            <div className="no-print mb-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-              Printing is blocked until requester, checked by, DG, and Account names/signatures are fully available.
-            </div>
-
-            <div className="no-print mb-3 rounded-xl border border-slate-200 bg-white px-3 py-3 text-xs text-slate-700">
-              <div className="mb-2 font-bold">Signature debug</div>
-
-              <div className="mb-3">
-                <div className="font-semibold">Requester raw:</div>
-                <div className="break-all">{sigDebug.requesterRaw}</div>
-                <div className="font-semibold mt-1">Requester resolved:</div>
-                <div className="break-all">{sigDebug.requesterResolved}</div>
-              </div>
-
-              <div className="mb-3">
-                <div className="font-semibold">Checked raw:</div>
-                <div className="break-all">{sigDebug.checkedRaw}</div>
-                <div className="font-semibold mt-1">Checked fallback from profile:</div>
-                <div className="break-all">{sigDebug.checkedProfileFallback}</div>
-                <div className="font-semibold mt-1">Checked resolved:</div>
-                <div className="break-all">{sigDebug.checkedResolved}</div>
-              </div>
-
-              <div className="mb-3">
-                <div className="font-semibold">DG raw:</div>
-                <div className="break-all">{sigDebug.dgRaw}</div>
-                <div className="font-semibold mt-1">DG fallback from profile:</div>
-                <div className="break-all">{sigDebug.dgProfileFallback}</div>
-                <div className="font-semibold mt-1">DG resolved:</div>
-                <div className="break-all">{sigDebug.dgResolved}</div>
-              </div>
-
-              <div>
-                <div className="font-semibold">Account raw:</div>
-                <div className="break-all">{sigDebug.accountRaw}</div>
-                <div className="font-semibold mt-1">Account fallback from profile:</div>
-                <div className="break-all">{sigDebug.accountProfileFallback}</div>
-                <div className="font-semibold mt-1">Account resolved:</div>
-                <div className="break-all">{sigDebug.accountResolved}</div>
-              </div>
-            </div>
-          </>
+          <div className="no-print mb-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+            Printing is blocked until the required request signatures are fully available.
+          </div>
         )}
 
         <div className="sheet mx-auto w-full bg-white px-[20px] py-[14px] text-black">
@@ -495,7 +380,7 @@ export default function PrintRequestPage() {
 
           <div className="mt-1 h-[1px] w-full bg-blue-300" />
 
-          <div className="mt-2 text-[11px] font-bold leading-[1.25]">
+          <div className="mt-2 text-[11px] font-bold leading-[1.22]">
             <div>The Director General,</div>
             <div>Islamic Education Trust,</div>
             <div>Minna.</div>
@@ -507,7 +392,7 @@ export default function PrintRequestPage() {
             Request for Fund
           </div>
 
-          <div className="mt-1 text-[10px] font-bold leading-[1.25]">
+          <div className="mt-1 text-[10px] font-bold leading-[1.22]">
             I write to request for the release of the total sum of{" "}
             <span className="inline-block min-w-[160px] border-b border-black text-center font-bold">
               {naira(req.amount)}
@@ -515,7 +400,7 @@ export default function PrintRequestPage() {
             for the expense below/attached:
           </div>
 
-          <div className="mt-1.5 min-h-[72px] whitespace-pre-wrap text-[9.5px] font-semibold leading-[1.18]">
+          <div className="mt-1.5 min-h-[68px] whitespace-pre-wrap text-[9.5px] font-semibold leading-[1.18]">
             {req.details}
           </div>
 
@@ -534,7 +419,7 @@ export default function PrintRequestPage() {
           <div className="mt-2 space-y-1.5 text-[10px] font-bold">
             <SignatureLine
               label="Requested by:"
-              name={req.requester_name || requesterProfile?.full_name || ""}
+              name={req.requester_name || ""}
               sigUrl={sigRequester}
               date={formatDate(req.created_at)}
             />
@@ -548,48 +433,72 @@ export default function PrintRequestPage() {
 
             <SignatureLine
               label="Approved by DG, IET:"
-              name={req.dg_approved_by_name || ""}
+              name={req.dg_name || ""}
               sigUrl={sigDG}
               date={formatDate(req.created_at)}
             />
 
-            <SignatureLine
-              label="Paid by Account:"
-              name={req.account_paid_by_name || ""}
-              sigUrl={sigAccount}
-              date={formatDate(req.created_at)}
-            />
+            {requiresAccountLine && (
+              <SignatureLine
+                label="Paid by Account:"
+                name={req.account_name || ""}
+                sigUrl={sigAccount}
+                date={formatDate(req.created_at)}
+              />
+            )}
           </div>
 
-          {(req.checked_comment || req.dg_comment || req.account_comment) && (
+          {(req.checked_comment || req.hr_comment || req.dg_comment || req.account_comment) && (
             <>
               <div className="mt-2 h-[1px] w-full bg-blue-300" />
               <div className="mt-1.5">
-                <div className="text-[10px] font-black uppercase">Approval Comments</div>
+                <div className="text-[10px] font-black uppercase">Approval Summary</div>
 
                 <div className="mt-1 space-y-1">
                   {req.checked_comment && (
-                    <CommentBox name={req.checked_by_name || "Checked by"} comment={req.checked_comment} />
+                    <CommentBox
+                      name={req.checked_by_name || "Checked by"}
+                      role="Department Recommendation"
+                      comment={req.checked_comment}
+                    />
                   )}
+
+                  {req.hr_comment && (
+                    <CommentBox
+                      name={req.hr_name || "HR"}
+                      role="HR"
+                      comment={req.hr_comment}
+                    />
+                  )}
+
                   {req.dg_comment && (
-                    <CommentBox name={req.dg_approved_by_name || "DG"} comment={req.dg_comment} />
+                    <CommentBox
+                      name={req.dg_name || "DG"}
+                      role="DG"
+                      comment={req.dg_comment}
+                    />
                   )}
+
                   {req.account_comment && (
-                    <CommentBox name={req.account_paid_by_name || "Account"} comment={req.account_comment} />
+                    <CommentBox
+                      name={req.account_name || "Account"}
+                      role="Account"
+                      comment={req.account_comment}
+                    />
                   )}
                 </div>
               </div>
             </>
           )}
 
-          {history.length > 0 && (
+          {commentTrail.length > 0 && (
             <>
               <div className="mt-2 h-[1px] w-full bg-blue-300" />
               <div className="mt-1.5">
                 <div className="text-[10px] font-black uppercase">Comments Trail</div>
 
                 <div className="mt-1 space-y-1">
-                  {history.slice(0, 6).map((h) => (
+                  {commentTrail.slice(0, 6).map((h) => (
                     <div key={h.id} className="rounded border border-slate-300 px-2 py-1">
                       <div className="flex items-center justify-between gap-2">
                         <div className="text-[8.8px] font-bold">
@@ -600,7 +509,7 @@ export default function PrintRequestPage() {
                         </div>
                       </div>
 
-                      <div className="mt-0.5 whitespace-pre-wrap text-[8.6px] text-slate-800 leading-[1.15]">
+                      <div className="mt-0.5 whitespace-pre-wrap text-[8.5px] text-slate-800 leading-[1.15]">
                         {h.comment || "No comment"}
                       </div>
                     </div>
@@ -677,6 +586,7 @@ function SignatureLine({
 
         <div className="relative h-[18px] border-b border-black">
           {sigUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
             <img
               src={sigUrl}
               alt="signature"
@@ -700,11 +610,21 @@ function SignatureLine({
   );
 }
 
-function CommentBox({ name, comment }: { name: string; comment: string }) {
+function CommentBox({
+  name,
+  role,
+  comment,
+}: {
+  name: string;
+  role: string;
+  comment: string;
+}) {
   return (
     <div className="rounded border border-slate-300 px-2 py-1">
-      <div className="text-[8.8px] font-bold">{name}</div>
-      <div className="mt-0.5 whitespace-pre-wrap text-[8.6px] text-slate-800 leading-[1.15]">
+      <div className="text-[8.8px] font-bold">
+        {name} • {role}
+      </div>
+      <div className="mt-0.5 whitespace-pre-wrap text-[8.5px] text-slate-800 leading-[1.15]">
         {comment}
       </div>
     </div>
