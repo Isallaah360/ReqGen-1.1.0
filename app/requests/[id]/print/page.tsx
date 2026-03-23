@@ -76,7 +76,7 @@ function formatDate(d: string | null | undefined) {
   return new Date(d).toLocaleDateString();
 }
 
-async function getRenderableSignatureUrl(value: string | null | undefined) {
+function getPublicSignatureUrl(value: string | null | undefined) {
   const raw = (value || "").trim();
   if (!raw) return null;
 
@@ -89,27 +89,12 @@ async function getRenderableSignatureUrl(value: string | null | undefined) {
     return raw;
   }
 
-  const candidates = Array.from(
-    new Set([
-      raw,
-      raw.replace(/^signatures\//, ""),
-      raw.replace(/^\/+/, ""),
-      raw.replace(/^storage\/v1\/object\/public\/signatures\//, ""),
-      raw.replace(/^storage\/v1\/object\/sign\/signatures\//, ""),
-    ])
-  ).filter(Boolean);
+  const cleaned = raw.replace(/^signatures\//, "").replace(/^\/+/, "");
+  const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
 
-  for (const candidate of candidates) {
-    const { data, error } = await supabase.storage
-      .from("signatures")
-      .createSignedUrl(candidate, 60 * 60);
+  if (!base) return null;
 
-    if (!error && data?.signedUrl) {
-      return data.signedUrl;
-    }
-  }
-
-  return null;
+  return `${base}/storage/v1/object/public/signatures/${cleaned}`;
 }
 
 export default function PrintRequestPage() {
@@ -187,7 +172,7 @@ export default function PrintRequestPage() {
       const reqRow = r as Req;
       setReq(reqRow);
 
-      const [deptRes, subRes, histRes, s1, s2, s3, s4, s5] = await Promise.all([
+      const [deptRes, subRes, histRes] = await Promise.all([
         supabase
           .from("departments")
           .select("id,name")
@@ -207,23 +192,17 @@ export default function PrintRequestPage() {
           .select("id,action_type,comment,to_stage,from_stage,created_at,actor_name")
           .eq("request_id", reqRow.id)
           .order("created_at", { ascending: true }),
-
-        getRenderableSignatureUrl(reqRow.requester_signature_snapshot),
-        getRenderableSignatureUrl(reqRow.checked_signature_snapshot),
-        getRenderableSignatureUrl(reqRow.hr_signature_snapshot),
-        getRenderableSignatureUrl(reqRow.dg_signature_snapshot),
-        getRenderableSignatureUrl(reqRow.account_signature_snapshot),
       ]);
 
       if (deptRes.data) setDept(deptRes.data as Dept);
       if (subRes.data) setSubhead(subRes.data as Subhead);
       if (histRes.data) setHistory((histRes.data || []) as Hist[]);
 
-      setSigRequester(s1);
-      setSigChecked(s2);
-      setSigHR(s3);
-      setSigDG(s4);
-      setSigAccount(s5);
+      setSigRequester(getPublicSignatureUrl(reqRow.requester_signature_snapshot));
+      setSigChecked(getPublicSignatureUrl(reqRow.checked_signature_snapshot));
+      setSigHR(getPublicSignatureUrl(reqRow.hr_signature_snapshot));
+      setSigDG(getPublicSignatureUrl(reqRow.dg_signature_snapshot));
+      setSigAccount(getPublicSignatureUrl(reqRow.account_signature_snapshot));
 
       setLoading(false);
     }
@@ -287,7 +266,7 @@ export default function PrintRequestPage() {
       <style>{`
         @page {
           size: A4;
-          margin: 5mm;
+          margin: 6mm;
         }
 
         @media print {
@@ -308,7 +287,7 @@ export default function PrintRequestPage() {
         }
       `}</style>
 
-      <div className="mx-auto max-w-[800px]">
+      <div className="mx-auto max-w-[820px]">
         <div className="no-print mb-3 flex items-center justify-between">
           <button
             onClick={() => router.push(`/requests/${req.id}`)}
@@ -338,26 +317,26 @@ export default function PrintRequestPage() {
           </div>
         )}
 
-        <div className="sheet mx-auto w-full bg-white px-[20px] py-[14px] text-black">
+        <div className="sheet mx-auto w-full bg-white px-[18px] py-[12px] text-black">
           <div className="text-center">
             <div className="mx-auto flex justify-center">
               <Image
                 src="/iet-logo.png"
                 alt="IET Logo"
-                width={52}
-                height={52}
-                className="h-[52px] w-auto object-contain"
+                width={48}
+                height={48}
+                className="h-[48px] w-auto object-contain"
                 priority
               />
             </div>
 
-            <div className="mt-1 text-[16px] font-black uppercase leading-none tracking-tight">
+            <div className="mt-1 text-[15px] font-black uppercase leading-none tracking-tight">
               Islamic Education Trust
             </div>
-            <div className="mt-0.5 text-[10px] font-semibold leading-tight">
+            <div className="mt-0.5 text-[9.5px] font-semibold leading-tight">
               IW2, Ilmi Avenue Intermediate Housing Estate
             </div>
-            <div className="text-[10px] font-semibold leading-tight">
+            <div className="text-[9.5px] font-semibold leading-tight">
               PMB 229, Minna, Niger State - Nigeria
             </div>
           </div>
@@ -380,34 +359,34 @@ export default function PrintRequestPage() {
 
           <div className="mt-1 h-[1px] w-full bg-blue-300" />
 
-          <div className="mt-2 text-[11px] font-bold leading-[1.22]">
+          <div className="mt-2 text-[10.5px] font-bold leading-[1.2]">
             <div>The Director General,</div>
             <div>Islamic Education Trust,</div>
             <div>Minna.</div>
           </div>
 
-          <div className="mt-3 text-[11px] font-bold">Assalamu` Alaikum Sir,</div>
+          <div className="mt-2.5 text-[10.5px] font-bold">Assalamu` Alaikum Sir,</div>
 
-          <div className="mt-1 text-center text-[12px] font-black uppercase">
+          <div className="mt-1 text-center text-[11.5px] font-black uppercase">
             Request for Fund
           </div>
 
-          <div className="mt-1 text-[10px] font-bold leading-[1.22]">
+          <div className="mt-1 text-[9.5px] font-bold leading-[1.2]">
             I write to request for the release of the total sum of{" "}
-            <span className="inline-block min-w-[160px] border-b border-black text-center font-bold">
+            <span className="inline-block min-w-[150px] border-b border-black text-center font-bold">
               {naira(req.amount)}
             </span>{" "}
             for the expense below/attached:
           </div>
 
-          <div className="mt-1.5 min-h-[68px] whitespace-pre-wrap text-[9.5px] font-semibold leading-[1.18]">
+          <div className="mt-1 min-h-[54px] whitespace-pre-wrap text-[9px] font-semibold leading-[1.12]">
             {req.details}
           </div>
 
-          <div className="mt-2 text-[11px] font-bold">Wassalamu` Alaikum.</div>
+          <div className="mt-1.5 text-[10.5px] font-bold">Wassalamu` Alaikum.</div>
 
-          <div className="mt-2 flex justify-end">
-            <div className="w-[330px] space-y-1">
+          <div className="mt-1.5 flex justify-end">
+            <div className="w-[320px] space-y-1">
               <SmallFieldRow label="ALLOCATION B/D:" value={naira(subhead?.approved_allocation)} />
               <SmallFieldRow label="EXPENDITURE:" value={naira(subhead?.expenditure)} />
               <SmallFieldRow label="BALANCE C/D:" value={naira(subhead?.balance)} />
@@ -416,7 +395,7 @@ export default function PrintRequestPage() {
 
           <div className="mt-2 h-[1px] w-full bg-blue-300" />
 
-          <div className="mt-2 space-y-1.5 text-[10px] font-bold">
+          <div className="mt-1.5 space-y-1 text-[9.5px] font-bold">
             <SignatureLine
               label="Requested by:"
               name={req.requester_name || ""}
@@ -451,12 +430,12 @@ export default function PrintRequestPage() {
           {(req.checked_comment || req.hr_comment || req.dg_comment || req.account_comment) && (
             <>
               <div className="mt-2 h-[1px] w-full bg-blue-300" />
-              <div className="mt-1.5">
-                <div className="text-[10px] font-black uppercase">Approval Summary</div>
+              <div className="mt-1">
+                <div className="text-[9px] font-black uppercase">Approval Notes</div>
 
                 <div className="mt-1 space-y-1">
                   {req.checked_comment && (
-                    <CommentBox
+                    <CompactComment
                       name={req.checked_by_name || "Checked by"}
                       role="Department Recommendation"
                       comment={req.checked_comment}
@@ -464,7 +443,7 @@ export default function PrintRequestPage() {
                   )}
 
                   {req.hr_comment && (
-                    <CommentBox
+                    <CompactComment
                       name={req.hr_name || "HR"}
                       role="HR"
                       comment={req.hr_comment}
@@ -472,7 +451,7 @@ export default function PrintRequestPage() {
                   )}
 
                   {req.dg_comment && (
-                    <CommentBox
+                    <CompactComment
                       name={req.dg_name || "DG"}
                       role="DG"
                       comment={req.dg_comment}
@@ -480,7 +459,7 @@ export default function PrintRequestPage() {
                   )}
 
                   {req.account_comment && (
-                    <CommentBox
+                    <CompactComment
                       name={req.account_name || "Account"}
                       role="Account"
                       comment={req.account_comment}
@@ -494,22 +473,22 @@ export default function PrintRequestPage() {
           {commentTrail.length > 0 && (
             <>
               <div className="mt-2 h-[1px] w-full bg-blue-300" />
-              <div className="mt-1.5">
-                <div className="text-[10px] font-black uppercase">Comments Trail</div>
+              <div className="mt-1">
+                <div className="text-[9px] font-black uppercase">Workflow Trail</div>
 
                 <div className="mt-1 space-y-1">
-                  {commentTrail.slice(0, 6).map((h) => (
+                  {commentTrail.slice(0, 5).map((h) => (
                     <div key={h.id} className="rounded border border-slate-300 px-2 py-1">
                       <div className="flex items-center justify-between gap-2">
-                        <div className="text-[8.8px] font-bold">
+                        <div className="text-[8px] font-bold">
                           {h.actor_name || "—"} • {h.action_type || "—"} • {h.to_stage || "—"}
                         </div>
-                        <div className="text-[8px] font-semibold">
+                        <div className="text-[7.6px] font-semibold">
                           {formatDate(h.created_at)}
                         </div>
                       </div>
 
-                      <div className="mt-0.5 whitespace-pre-wrap text-[8.5px] text-slate-800 leading-[1.15]">
+                      <div className="mt-0.5 whitespace-pre-wrap text-[7.8px] text-slate-800 leading-[1.1]">
                         {h.comment || "No comment"}
                       </div>
                     </div>
@@ -519,7 +498,7 @@ export default function PrintRequestPage() {
             </>
           )}
 
-          <div className="mt-2 text-center text-[10px] italic font-medium">
+          <div className="mt-2 text-center text-[9px] italic font-medium">
             Building Bridges
           </div>
         </div>
@@ -539,8 +518,8 @@ function TopLineField({
 }) {
   return (
     <div className={`flex items-end gap-1 ${className || ""}`}>
-      <div className="shrink-0 text-[9px] font-bold">{label}</div>
-      <div className="min-w-0 flex-1 border-b border-black px-1 pb-[1px] text-[9px] font-semibold leading-tight break-words">
+      <div className="shrink-0 text-[8.5px] font-bold">{label}</div>
+      <div className="min-w-0 flex-1 border-b border-black px-1 pb-[1px] text-[8.5px] font-semibold leading-tight break-words">
         {value}
       </div>
     </div>
@@ -556,8 +535,8 @@ function SmallFieldRow({
 }) {
   return (
     <div className="flex items-center justify-end gap-2">
-      <div className="w-[130px] text-right text-[9.5px] font-black">{label}</div>
-      <div className="h-[19px] w-[190px] rounded border border-black px-2 text-right text-[9px] font-semibold leading-[17px]">
+      <div className="w-[128px] text-right text-[8.8px] font-black">{label}</div>
+      <div className="h-[18px] w-[185px] rounded border border-black px-2 text-right text-[8.5px] font-semibold leading-[16px]">
         {value}
       </div>
     </div>
@@ -577,30 +556,29 @@ function SignatureLine({
 }) {
   return (
     <div>
-      <div className="grid grid-cols-[110px_2fr_0.68fr_0.68fr] items-end gap-2">
+      <div className="grid grid-cols-[120px_2fr_0.72fr_0.72fr] items-end gap-2">
         <div className="whitespace-nowrap">{label}</div>
 
-        <div className="border-b border-black pb-[1px] text-[9px] font-semibold pr-1">
+        <div className="border-b border-black pb-[1px] text-[8.8px] font-semibold pr-1">
           {name}
         </div>
 
         <div className="relative h-[18px] border-b border-black">
           {sigUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
             <img
               src={sigUrl}
               alt="signature"
-              className="absolute bottom-0 left-1/2 h-[14px] max-w-[90%] -translate-x-1/2 object-contain"
+              className="absolute bottom-0 left-1/2 h-[13px] max-w-[90%] -translate-x-1/2 object-contain"
             />
           ) : null}
         </div>
 
-        <div className="border-b border-black pb-[1px] text-center text-[9px] font-semibold">
+        <div className="border-b border-black pb-[1px] text-center text-[8.8px] font-semibold">
           {date}
         </div>
       </div>
 
-      <div className="grid grid-cols-[110px_2fr_0.68fr_0.68fr] gap-2 pt-0.5 text-center text-[7.5px] font-medium text-slate-600">
+      <div className="grid grid-cols-[120px_2fr_0.72fr_0.72fr] gap-2 pt-0.5 text-center text-[7px] font-medium text-slate-600">
         <div />
         <div>Name</div>
         <div>Signature</div>
@@ -610,7 +588,7 @@ function SignatureLine({
   );
 }
 
-function CommentBox({
+function CompactComment({
   name,
   role,
   comment,
@@ -621,10 +599,10 @@ function CommentBox({
 }) {
   return (
     <div className="rounded border border-slate-300 px-2 py-1">
-      <div className="text-[8.8px] font-bold">
+      <div className="text-[7.8px] font-bold">
         {name} • {role}
       </div>
-      <div className="mt-0.5 whitespace-pre-wrap text-[8.5px] text-slate-800 leading-[1.15]">
+      <div className="mt-0.5 whitespace-pre-wrap text-[7.8px] text-slate-800 leading-[1.08]">
         {comment}
       </div>
     </div>
