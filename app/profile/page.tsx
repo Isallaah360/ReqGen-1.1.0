@@ -33,7 +33,6 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [msg, setMsg] = useState<string | null>(null);
 
-  // profile fields
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [gender, setGender] = useState<string>("");
@@ -45,13 +44,11 @@ export default function ProfilePage() {
   const [email, setEmail] = useState<string>("");
   const [newEmail, setNewEmail] = useState<string>("");
 
-  // signature
   const [sigPath, setSigPath] = useState<string | null>(null);
   const [sigPreview, setSigPreview] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [uploadingSig, setUploadingSig] = useState(false);
 
-  // password
   const [newPassword, setNewPassword] = useState("");
   const [confirmNewPassword, setConfirmNewPassword] = useState("");
 
@@ -181,12 +178,14 @@ export default function ProfilePage() {
 
       const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
       const safeExt = ["png", "jpg", "jpeg", "webp"].includes(ext) ? ext : "jpg";
-      const path = `${user.id}/signature.${safeExt}`;
+
+      // ✅ versioned path to defeat browser caching everywhere
+      const path = `${user.id}/signature-${Date.now()}.${safeExt}`;
 
       const { error: upErr } = await supabase.storage
         .from("signatures")
         .upload(path, file, {
-          upsert: true,
+          upsert: false,
           contentType: file.type || "image/jpeg",
         });
 
