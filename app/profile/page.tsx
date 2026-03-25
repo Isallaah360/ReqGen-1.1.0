@@ -6,6 +6,27 @@ import { supabase } from "@/lib/supabaseClient";
 
 type Dept = { id: string; name: string };
 
+function getPublicSignatureUrl(path: string | null | undefined) {
+  const raw = (path || "").trim();
+  if (!raw) return null;
+
+  if (
+    raw.startsWith("http://") ||
+    raw.startsWith("https://") ||
+    raw.startsWith("data:image/") ||
+    raw.startsWith("blob:")
+  ) {
+    return raw;
+  }
+
+  const cleaned = raw.replace(/^signatures\//, "").replace(/^\/+/, "");
+  const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
+
+  if (!base) return null;
+
+  return `${base}/storage/v1/object/public/signatures/${cleaned}`;
+}
+
 export default function ProfilePage() {
   const router = useRouter();
 
@@ -21,15 +42,16 @@ export default function ProfilePage() {
   const [deptName, setDeptName] = useState<string>("");
   const [role, setRole] = useState<string>("Staff");
 
-  const [email, setEmail] = useState<string>(""); // current auth email
+  const [email, setEmail] = useState<string>("");
   const [newEmail, setNewEmail] = useState<string>("");
 
   // signature
   const [sigPath, setSigPath] = useState<string | null>(null);
   const [sigPreview, setSigPreview] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
+  const [uploadingSig, setUploadingSig] = useState(false);
 
-  // password change
+  // password
   const [newPassword, setNewPassword] = useState("");
   const [confirmNewPassword, setConfirmNewPassword] = useState("");
 
@@ -69,7 +91,10 @@ export default function ProfilePage() {
       setGender(prof?.gender || "");
       setDeptId(prof?.dept_id || null);
       setRole(prof?.role || "Staff");
-      setSigPath(prof?.signature_url || null);
+
+      const savedSigPath = prof?.signature_url || null;
+      setSigPath(savedSigPath);
+      setSigPreview(getPublicSignatureUrl(savedSigPath));
 
       if (prof?.dept_id) {
         const { data: dept } = await supabase
@@ -79,14 +104,6 @@ export default function ProfilePage() {
           .single();
 
         if (dept) setDeptName((dept as Dept).name);
-      }
-
-      if (prof?.signature_url) {
-        const { data: signed } = await supabase.storage
-          .from("signatures")
-          .createSignedUrl(prof.signature_url, 60 * 10);
-
-        if (signed?.signedUrl) setSigPreview(signed.signedUrl);
       }
 
       setLoading(false);
@@ -119,20 +136,37 @@ export default function ProfilePage() {
       })
       .eq("id", user.id);
 
-    if (error) setMsg("❌ Save failed: " + error.message);
-    else setMsg("✅ Profile saved successfully.");
+    if (error) {
+      setMsg("❌ Save failed: " + error.message);
+    } else {
+      setMsg("✅ Profile saved successfully.");
+    }
   }
 
   async function uploadSignature() {
     setMsg(null);
 
-    if (!file) return setMsg("❌ Please select a signature image first.");
+    if (!file) {
+      setMsg("❌ Please select a signature image first.");
+      return;
+    }
 
-    const ok = file.type === "image/png" || file.type === "image/jpeg";
-    if (!ok) return setMsg("❌ Signature must be PNG or JPG.");
+    const allowedTypes = [
+      "image/png",
+      "image/jpeg",
+      "image/jpg",
+      "image/webp",
+    ];
 
-    // Optional (but good): limit size to 300KB
-    if (file.size > 300 * 1024) return setMsg("❌ Signature file too large (max 300KB).");
+    if (!allowedTypes.includes(file.type)) {
+      setMsg("❌ Signature must be PNG, JPG, JPEG or WEBP.");
+      return;
+    }
+
+    if (file.size > 500 * 1024) {
+      setMsg("❌ Signature file too large (max 500KB).");
+      return;
+    }
 
     const { data: authData } = await supabase.auth.getUser();
     const user = authData.user;
@@ -142,14 +176,19 @@ export default function ProfilePage() {
     }
 
     try {
+      setUploadingSig(true);
       setMsg("Uploading signature...");
 
-      const ext = file.name.split(".").pop()?.toLowerCase() || "png";
-      const path = `${user.id}/signature.${ext}`;
+      const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+      const safeExt = ["png", "jpg", "jpeg", "webp"].includes(ext) ? ext : "jpg";
+      const path = `${user.id}/signature.${safeExt}`;
 
       const { error: upErr } = await supabase.storage
         .from("signatures")
-        .upload(path, file, { upsert: true, contentType: file.type });
+        .upload(path, file, {
+          upsert: true,
+          contentType: file.type || "image/jpeg",
+        });
 
       if (upErr) throw new Error(upErr.message);
 
@@ -161,17 +200,13 @@ export default function ProfilePage() {
       if (profErr) throw new Error(profErr.message);
 
       setSigPath(path);
-
-      const { data: signed } = await supabase.storage
-        .from("signatures")
-        .createSignedUrl(path, 60 * 10);
-
-      if (signed?.signedUrl) setSigPreview(signed.signedUrl);
-
+      setSigPreview(getPublicSignatureUrl(path));
       setFile(null);
       setMsg("✅ Signature saved successfully.");
     } catch (e: any) {
       setMsg("❌ Signature upload failed: " + (e?.message || "Unknown error"));
+    } finally {
+      setUploadingSig(false);
     }
   }
 
@@ -179,16 +214,20 @@ export default function ProfilePage() {
     setMsg(null);
 
     const clean = newEmail.trim().toLowerCase();
-    if (!clean.includes("@")) return setMsg("❌ Please enter a valid email.");
+    if (!clean.includes("@")) {
+      setMsg("❌ Please enter a valid email.");
+      return;
+    }
 
     try {
       const { error } = await supabase.auth.updateUser({ email: clean });
       if (error) throw new Error(error.message);
 
-      // Keep profiles.email in sync
       const { data: authData } = await supabase.auth.getUser();
       const user = authData.user;
-      if (user) await supabase.from("profiles").update({ email: clean }).eq("id", user.id);
+      if (user) {
+        await supabase.from("profiles").update({ email: clean }).eq("id", user.id);
+      }
 
       setMsg("✅ Email update started. Check email if confirmation is required.");
     } catch (e: any) {
@@ -199,8 +238,15 @@ export default function ProfilePage() {
   async function changePassword() {
     setMsg(null);
 
-    if (newPassword.length < 6) return setMsg("❌ Password must be at least 6 characters.");
-    if (newPassword !== confirmNewPassword) return setMsg("❌ Passwords do not match.");
+    if (newPassword.length < 6) {
+      setMsg("❌ Password must be at least 6 characters.");
+      return;
+    }
+
+    if (newPassword !== confirmNewPassword) {
+      setMsg("❌ Passwords do not match.");
+      return;
+    }
 
     try {
       const { error } = await supabase.auth.updateUser({ password: newPassword });
@@ -227,7 +273,9 @@ export default function ProfilePage() {
       <div className="mx-auto max-w-4xl py-10">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">My Profile</h1>
+            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">
+              My Profile
+            </h1>
             <p className="mt-2 text-sm text-slate-600">
               Update your details. Department & Role are managed by Admin.
             </p>
@@ -332,10 +380,12 @@ export default function ProfilePage() {
             </div>
 
             <div className="mt-4">
-              <label className="text-sm font-semibold text-slate-800">Upload/Replace (PNG/JPG)</label>
+              <label className="text-sm font-semibold text-slate-800">
+                Upload/Replace (PNG/JPG/JPEG/WEBP)
+              </label>
               <input
                 type="file"
-                accept="image/png,image/jpeg"
+                accept="image/png,image/jpeg,image/jpg,image/webp"
                 onChange={(e) => setFile(e.target.files?.[0] || null)}
                 className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-slate-900"
               />
@@ -343,9 +393,10 @@ export default function ProfilePage() {
 
             <button
               onClick={uploadSignature}
-              className="mt-4 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 hover:bg-slate-100"
+              disabled={uploadingSig}
+              className="mt-4 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
             >
-              Save Signature
+              {uploadingSig ? "Saving Signature..." : "Save Signature"}
             </button>
 
             {!sigPath && (
