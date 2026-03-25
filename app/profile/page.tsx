@@ -24,7 +24,7 @@ function getPublicSignatureUrl(path: string | null | undefined) {
 
   if (!base) return null;
 
-  return `${base}/storage/v1/object/public/signatures/${cleaned}`;
+  return `${base}/storage/v1/object/public/signatures/${cleaned}?t=${Date.now()}`;
 }
 
 export default function ProfilePage() {
@@ -296,7 +296,6 @@ export default function ProfilePage() {
         )}
 
         <div className="mt-6 grid gap-6 md:grid-cols-2">
-          {/* Profile Details */}
           <div className="rounded-2xl border bg-white p-6 shadow-sm">
             <h2 className="text-lg font-bold text-slate-900">Profile Details</h2>
 
@@ -358,7 +357,6 @@ export default function ProfilePage() {
             </button>
           </div>
 
-          {/* Signature */}
           <div className="rounded-2xl border bg-white p-6 shadow-sm">
             <h2 className="text-lg font-bold text-slate-900">Signature</h2>
             <p className="mt-1 text-sm text-slate-600">
@@ -407,9 +405,7 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* Security section */}
         <div className="mt-6 grid gap-6 md:grid-cols-2">
-          {/* Email */}
           <div className="rounded-2xl border bg-white p-6 shadow-sm">
             <h2 className="text-lg font-bold text-slate-900">Email</h2>
             <p className="mt-1 text-sm text-slate-600">
@@ -437,7 +433,6 @@ export default function ProfilePage() {
             </p>
           </div>
 
-          {/* Password */}
           <div className="rounded-2xl border bg-white p-6 shadow-sm">
             <h2 className="text-lg font-bold text-slate-900">Password</h2>
 
