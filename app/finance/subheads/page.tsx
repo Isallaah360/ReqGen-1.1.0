@@ -22,7 +22,7 @@ function roleKey(role: string) {
 }
 
 function naira(n: number) {
-  return "₦" + Math.round(n).toLocaleString();
+  return "₦" + Math.round(n || 0).toLocaleString();
 }
 
 export default function SubheadsPage() {
@@ -35,11 +35,11 @@ export default function SubheadsPage() {
   const [myRole, setMyRole] = useState("staff");
   const rk = roleKey(myRole);
   const canManage = rk === "admin" || rk === "auditor";
+  const canAuditView = ["admin", "auditor", "account", "accountofficer"].includes(rk);
 
   const [depts, setDepts] = useState<Dept[]>([]);
   const [subs, setSubs] = useState<Sub[]>([]);
 
-  // form
   const [editId, setEditId] = useState<string | null>(null);
   const [deptId, setDeptId] = useState<string>("");
   const [code, setCode] = useState("");
@@ -52,13 +52,25 @@ export default function SubheadsPage() {
     setMsg(null);
 
     const { data: auth } = await supabase.auth.getUser();
-    if (!auth.user) return router.push("/login");
+    if (!auth.user) {
+      router.push("/login");
+      return;
+    }
 
-    const { data: prof } = await supabase.from("profiles").select("role").eq("id", auth.user.id).maybeSingle();
+    const { data: prof } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", auth.user.id)
+      .maybeSingle();
+
     setMyRole((prof?.role || "Staff") as string);
 
-    const { data: drows } = await supabase.from("departments").select("id,name").order("name");
-    setDepts((drows || []) as any);
+    const { data: drows } = await supabase
+      .from("departments")
+      .select("id,name")
+      .order("name");
+
+    setDepts((drows || []) as Dept[]);
 
     const { data: srows, error: sErr } = await supabase
       .from("subheads")
@@ -66,14 +78,13 @@ export default function SubheadsPage() {
       .order("name");
 
     if (sErr) setMsg(sErr.message);
-    setSubs((srows || []) as any);
+    setSubs((srows || []) as Sub[]);
 
     setLoading(false);
   }
 
   useEffect(() => {
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const deptMap = useMemo(() => {
@@ -92,8 +103,15 @@ export default function SubheadsPage() {
   }
 
   async function save() {
-    if (!canManage) return setMsg("Not allowed.");
-    if (name.trim().length < 2) return setMsg("Subhead name too short.");
+    if (!canManage) {
+      setMsg("Not allowed.");
+      return;
+    }
+
+    if (name.trim().length < 2) {
+      setMsg("Subhead name too short.");
+      return;
+    }
 
     setSaving(true);
     setMsg(null);
@@ -103,27 +121,30 @@ export default function SubheadsPage() {
       code: code.trim() || null,
       name: name.trim(),
       approved_allocation: Number(allocation || 0),
-      // expenditure remains as-is in DB; balance will update by trigger/RPC later.
       is_active: active,
     };
 
     try {
       if (!editId) {
-        // new subhead starts with expenditure=0 and balance=allocation
         payload.expenditure = 0;
         payload.balance = Number(allocation || 0);
 
         const { error } = await supabase.from("subheads").insert(payload);
         if (error) throw new Error(error.message);
+
         setMsg("✅ Subhead created.");
       } else {
-        // update: balance should be recomputed against current expenditure
         const current = subs.find((x) => x.id === editId);
         const exp = Number(current?.expenditure || 0);
         payload.balance = Number(allocation || 0) - exp;
 
-        const { error } = await supabase.from("subheads").update(payload).eq("id", editId);
+        const { error } = await supabase
+          .from("subheads")
+          .update(payload)
+          .eq("id", editId);
+
         if (error) throw new Error(error.message);
+
         setMsg("✅ Subhead updated.");
       }
 
@@ -137,14 +158,20 @@ export default function SubheadsPage() {
   }
 
   async function del(id: string) {
-    if (!canManage) return setMsg("Not allowed.");
+    if (!canManage) {
+      setMsg("Not allowed.");
+      return;
+    }
+
     if (!confirm("Delete this subhead?")) return;
 
     setSaving(true);
     setMsg(null);
+
     try {
       const { error } = await supabase.from("subheads").delete().eq("id", id);
       if (error) throw new Error(error.message);
+
       setMsg("✅ Deleted.");
       await load();
     } catch (e: any) {
@@ -157,32 +184,51 @@ export default function SubheadsPage() {
   if (loading) {
     return (
       <main className="min-h-screen bg-slate-50 px-4">
-        <div className="mx-auto max-w-6xl py-10 text-slate-600">Loading...</div>
+        <div className="mx-auto max-w-7xl py-10 text-slate-600">Loading...</div>
       </main>
     );
   }
 
   return (
     <main className="min-h-screen bg-slate-50 px-4">
-      <div className="mx-auto max-w-6xl py-10">
-        <div className="flex items-start justify-between gap-4">
+      <div className="mx-auto max-w-7xl py-10">
+        <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">Subheads</h1>
-            <p className="mt-2 text-sm text-slate-600">Create/edit subheads, assign to departments, allocate budgets.</p>
+            <p className="mt-2 text-sm text-slate-600">
+              Create/edit subheads, assign to departments, allocate budgets, and monitor expenditure and balance.
+            </p>
           </div>
 
-          <button
-            onClick={() => router.push("/finance")}
-            className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
-          >
-            ← Back to Finance
-          </button>
+          <div className="flex flex-wrap gap-2">
+            {canAuditView && (
+              <button
+                onClick={() => router.push("/finance/audit")}
+                className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
+              >
+                Audit Trail & Reconciliation
+              </button>
+            )}
+
+            <button
+              onClick={() => router.push("/finance")}
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
+            >
+              ← Back to Finance
+            </button>
+          </div>
         </div>
 
-        {msg && <div className="mt-4 rounded-xl bg-white border px-4 py-3 text-sm text-slate-800">{msg}</div>}
+        {msg && (
+          <div className="mt-4 rounded-xl bg-white border px-4 py-3 text-sm text-slate-800">
+            {msg}
+          </div>
+        )}
 
         <div className="mt-6 rounded-2xl border bg-white p-6 shadow-sm">
-          <div className="text-lg font-bold text-slate-900">{editId ? "Edit Subhead" : "Create Subhead"}</div>
+          <div className="text-lg font-bold text-slate-900">
+            {editId ? "Edit Subhead" : "Create Subhead"}
+          </div>
 
           {!canManage && (
             <div className="mt-3 rounded-xl border bg-slate-50 p-4 text-sm text-slate-700">
@@ -263,31 +309,56 @@ export default function SubheadsPage() {
           </div>
 
           {editId && (
-            <button onClick={resetForm} className="mt-3 text-sm font-semibold text-slate-700 hover:underline">
+            <button
+              onClick={resetForm}
+              className="mt-3 text-sm font-semibold text-slate-700 hover:underline"
+            >
               Cancel edit
             </button>
           )}
         </div>
 
         <div className="mt-6 overflow-hidden rounded-2xl border bg-white shadow-sm">
-          <div className="grid grid-cols-12 bg-slate-100 px-4 py-3 text-xs font-semibold text-slate-600">
+          <div className="grid grid-cols-14 bg-slate-100 px-4 py-3 text-xs font-semibold text-slate-600">
             <div className="col-span-3">Department</div>
             <div className="col-span-2">Code</div>
             <div className="col-span-3">Subhead</div>
             <div className="col-span-2 text-right">Allocation</div>
-            <div className="col-span-2 text-right">Actions</div>
+            <div className="col-span-2 text-right">Expenditure</div>
+            <div className="col-span-1 text-right">Balance</div>
+            <div className="col-span-1 text-right">Actions</div>
           </div>
 
           {subs.length === 0 ? (
             <div className="p-4 text-sm text-slate-700">No subheads yet.</div>
           ) : (
             subs.map((s) => (
-              <div key={s.id} className="grid grid-cols-12 border-t px-4 py-3 text-sm">
-                <div className="col-span-3 text-slate-800">{s.dept_id ? deptMap[s.dept_id] : "—"}</div>
-                <div className="col-span-2 font-semibold text-slate-900">{s.code || "—"}</div>
-                <div className="col-span-3 text-slate-900">{s.name}</div>
-                <div className="col-span-2 text-right font-semibold text-slate-900">{naira(Number(s.approved_allocation || 0))}</div>
-                <div className="col-span-2 flex justify-end gap-2">
+              <div key={s.id} className="grid grid-cols-14 border-t px-4 py-3 text-sm">
+                <div className="col-span-3 text-slate-800">
+                  {s.dept_id ? deptMap[s.dept_id] : "—"}
+                </div>
+
+                <div className="col-span-2 font-semibold text-slate-900">
+                  {s.code || "—"}
+                </div>
+
+                <div className="col-span-3 text-slate-900">
+                  {s.name}
+                </div>
+
+                <div className="col-span-2 text-right font-semibold text-blue-700">
+                  {naira(Number(s.approved_allocation || 0))}
+                </div>
+
+                <div className="col-span-2 text-right font-semibold text-red-600">
+                  {naira(Number(s.expenditure || 0))}
+                </div>
+
+                <div className="col-span-1 text-right font-bold text-emerald-700">
+                  {naira(Number(s.balance || 0))}
+                </div>
+
+                <div className="col-span-1 flex justify-end gap-2">
                   <button
                     disabled={!canManage}
                     onClick={() => {
@@ -302,6 +373,7 @@ export default function SubheadsPage() {
                   >
                     Edit
                   </button>
+
                   <button
                     disabled={!canManage || saving}
                     onClick={() => del(s.id)}
