@@ -26,11 +26,13 @@ export default function NavBar() {
   const pathname = usePathname();
 
   const [signedIn, setSignedIn] = useState(false);
-
   const [myRole, setMyRole] = useState<string>("Staff");
+
   const rk = roleKey(myRole);
 
-  const isAdmin = rk === "admin";
+  // ✅ Auditor behaves like Admin
+  const isAdmin = ["admin", "auditor"].includes(rk);
+
   const canFinance = ["admin", "auditor", "account", "accounts", "accountofficer"].includes(rk);
 
   const [openBell, setOpenBell] = useState(false);
@@ -43,32 +45,39 @@ export default function NavBar() {
   const bellRef = useRef<HTMLDivElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
 
+  // ✅ UPDATED NAVIGATION LINKS
   const links = useMemo(() => {
     const base = [
       { href: "/approvals", label: "Approvals" },
       { href: "/dashboard", label: "Dashboard" },
       { href: "/requests", label: "My Requests" },
-      { href: "/requests/new", label: "New Request" },
     ];
 
-    if (canFinance) base.push({ href: "/finance/subheads", label: "Finance" });
-    if (isAdmin) base.push({ href: "/admin", label: "Admin" });
+    if (canFinance) {
+      base.push({ href: "/finance/subheads", label: "Finance" });
+      base.push({ href: "/finance/audit", label: "Audit" });
+    }
+
+    if (isAdmin) {
+      base.push({ href: "/admin", label: "Admin" });
+    }
 
     return base;
   }, [canFinance, isAdmin]);
 
   const linkClass = (href: string) =>
     `px-3 py-2 rounded-xl text-sm font-semibold transition ${
-      pathname === href ? "bg-blue-600 text-white shadow-sm" : "text-slate-700 hover:bg-slate-100"
+      pathname === href
+        ? "bg-blue-600 text-white shadow-sm"
+        : "text-slate-700 hover:bg-slate-100"
     }`;
 
   async function refreshAll() {
-    const { data: sess, error: sessErr } = await supabase.auth.getSession();
+    const { data: sess } = await supabase.auth.getSession();
 
-    if (sessErr || !sess.session?.user) {
+    if (!sess.session?.user) {
       setSignedIn(false);
       setUserId(null);
-      setMyRole("Staff");
       setUnreadCount(0);
       setItems([]);
       return;
@@ -78,14 +87,13 @@ export default function NavBar() {
     setSignedIn(true);
     setUserId(uid);
 
-    const { data: prof, error: profErr } = await supabase
+    const { data: prof } = await supabase
       .from("profiles")
       .select("role")
       .eq("id", uid)
       .maybeSingle();
 
-    if (!profErr && prof?.role) setMyRole(prof.role);
-    else setMyRole("Staff");
+    setMyRole(prof?.role || "Staff");
 
     const { data: n } = await supabase
       .from("notifications")
@@ -99,35 +107,30 @@ export default function NavBar() {
 
     const unreadNotifCount = list.filter((x) => !x.is_read).length;
 
-    const { count: pendingApprovalCount, error: pendingErr } = await supabase
+    // ✅ Correct pending logic
+    const { count: pendingApprovalCount } = await supabase
       .from("requests")
       .select("*", { count: "exact", head: true })
-      .eq("current_owner", uid)
-      .in("status", ["Submitted", "In Review", "Approved"]);
+      .eq("current_owner", uid);
 
-    const pendingCount = pendingErr ? 0 : pendingApprovalCount || 0;
-
-    setUnreadCount(Math.max(unreadNotifCount, pendingCount));
+    setUnreadCount(Math.max(unreadNotifCount, pendingApprovalCount || 0));
   }
 
   useEffect(() => {
     refreshAll();
 
     const { data: sub } = supabase.auth.onAuthStateChange(() => {
-      setOpenBell(false);
-      setOpenMenu(false);
       refreshAll();
     });
 
     return () => sub.subscription.unsubscribe();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     if (!userId) return;
 
     const notifChannel = supabase
-      .channel(`notif-ch-${userId}`)
+      .channel(`notif-${userId}`)
       .on(
         "postgres_changes",
         {
@@ -136,12 +139,12 @@ export default function NavBar() {
           table: "notifications",
           filter: `user_id=eq.${userId}`,
         },
-        () => refreshAll()
+        refreshAll
       )
       .subscribe();
 
     const requestChannel = supabase
-      .channel(`req-ch-${userId}`)
+      .channel(`req-${userId}`)
       .on(
         "postgres_changes",
         {
@@ -149,7 +152,7 @@ export default function NavBar() {
           schema: "public",
           table: "requests",
         },
-        () => refreshAll()
+        refreshAll
       )
       .subscribe();
 
@@ -157,29 +160,21 @@ export default function NavBar() {
       supabase.removeChannel(notifChannel);
       supabase.removeChannel(requestChannel);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
   useEffect(() => {
-    setOpenBell(false);
-    setOpenMenu(false);
-  }, [pathname]);
-
-  useEffect(() => {
-    function onDocClick(e: MouseEvent) {
+    function onClick(e: MouseEvent) {
       const t = e.target as Node;
       if (openBell && bellRef.current && !bellRef.current.contains(t)) setOpenBell(false);
       if (openMenu && menuRef.current && !menuRef.current.contains(t)) setOpenMenu(false);
     }
 
-    document.addEventListener("mousedown", onDocClick);
-    return () => document.removeEventListener("mousedown", onDocClick);
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
   }, [openBell, openMenu]);
 
   async function logout() {
     await supabase.auth.signOut();
-    setOpenBell(false);
-    setOpenMenu(false);
     router.push("/");
     router.refresh();
   }
@@ -193,13 +188,11 @@ export default function NavBar() {
       .eq("user_id", userId)
       .eq("is_read", false);
 
-    setOpenBell(false);
-    await refreshAll();
+    refreshAll();
   }
 
   async function openNotif(n: Notif) {
     await supabase.from("notifications").update({ is_read: true }).eq("id", n.id);
-    setOpenBell(false);
     router.push(n.link || "/approvals");
   }
 
@@ -210,9 +203,7 @@ export default function NavBar() {
           ReqGen <span className="text-slate-400">1.1.0</span>
         </Link>
 
-        {!signedIn ? (
-          <div />
-        ) : (
+        {!signedIn ? null : (
           <div className="flex items-center gap-2">
             <nav className="hidden md:flex items-center gap-2">
               {links.map((l) => (
@@ -222,103 +213,52 @@ export default function NavBar() {
               ))}
             </nav>
 
+            {/* 🔔 Notifications */}
             <div className="relative" ref={bellRef}>
               <button
                 onClick={() => setOpenBell((v) => !v)}
-                className="relative rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
-                title="Notifications / Pending Approvals"
+                className="relative rounded-xl border px-3 py-2 bg-white hover:bg-slate-100"
               >
                 🔔
                 {unreadCount > 0 && (
-                  <span className="absolute -top-2 -right-2 rounded-full bg-red-600 px-2 py-0.5 text-xs font-bold text-white">
+                  <span className="absolute -top-2 -right-2 bg-red-600 text-white text-xs px-2 rounded-full">
                     {unreadCount}
                   </span>
                 )}
               </button>
 
               {openBell && (
-                <div className="absolute right-0 top-12 w-80 rounded-2xl border bg-white shadow-lg overflow-hidden">
-                  <div className="flex items-center justify-between px-4 py-3 bg-slate-50">
-                    <div className="font-bold text-slate-900">Notifications</div>
-                    <button
-                      onClick={markAllRead}
-                      className="text-xs font-semibold text-blue-700 hover:underline"
-                    >
+                <div className="absolute right-0 top-12 w-80 bg-white border rounded-2xl shadow-lg">
+                  <div className="flex justify-between p-3 bg-slate-50">
+                    <b>Notifications</b>
+                    <button onClick={markAllRead} className="text-xs text-blue-600">
                       Mark all read
                     </button>
                   </div>
 
                   {items.length === 0 ? (
-                    <div className="p-4 text-sm text-slate-600">
-                      No notifications yet.
-                    </div>
+                    <div className="p-4 text-sm">No notifications</div>
                   ) : (
-                    <div className="max-h-96 overflow-auto">
-                      {items.map((n) => (
-                        <button
-                          key={n.id}
-                          onClick={() => openNotif(n)}
-                          className={`w-full text-left px-4 py-3 border-t hover:bg-slate-50 ${
-                            n.is_read ? "bg-white" : "bg-blue-50"
-                          }`}
-                        >
-                          <div className="text-sm font-semibold text-slate-900">{n.title}</div>
-                          <div className="text-xs text-slate-500">
-                            {new Date(n.created_at).toLocaleString()}
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
-            <div className="relative md:hidden" ref={menuRef}>
-              <button
-                onClick={() => setOpenMenu((v) => !v)}
-                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
-                title="Menu"
-              >
-                ☰
-              </button>
-
-              {openMenu && (
-                <div className="absolute right-0 top-12 w-64 rounded-2xl border bg-white shadow-lg overflow-hidden">
-                  <div className="px-4 py-3 bg-slate-50">
-                    <div className="text-sm font-bold text-slate-900">Menu</div>
-                    <div className="text-xs text-slate-600">Role: {myRole}</div>
-                  </div>
-
-                  <div className="p-2">
-                    {links.map((l) => (
-                      <Link
-                        key={l.href}
-                        href={l.href}
-                        className={`block rounded-xl px-3 py-2 text-sm font-semibold ${
-                          pathname === l.href ? "bg-blue-600 text-white" : "text-slate-800 hover:bg-slate-100"
-                        }`}
+                    items.map((n) => (
+                      <button
+                        key={n.id}
+                        onClick={() => openNotif(n)}
+                        className="w-full text-left p-3 border-t hover:bg-slate-50"
                       >
-                        {l.label}
-                      </Link>
-                    ))}
-                  </div>
-
-                  <div className="border-t p-2">
-                    <button
-                      onClick={logout}
-                      className="w-full rounded-xl bg-red-600 px-3 py-2 text-sm font-semibold text-white hover:bg-red-700"
-                    >
-                      Logout
-                    </button>
-                  </div>
+                        <div className="font-semibold">{n.title}</div>
+                        <div className="text-xs text-slate-500">
+                          {new Date(n.created_at).toLocaleString()}
+                        </div>
+                      </button>
+                    ))
+                  )}
                 </div>
               )}
             </div>
 
             <button
               onClick={logout}
-              className="hidden md:inline-flex ml-1 px-4 py-2 rounded-xl text-sm font-semibold bg-red-600 text-white hover:bg-red-700 transition"
+              className="ml-2 px-4 py-2 rounded-xl bg-red-600 text-white hover:bg-red-700"
             >
               Logout
             </button>

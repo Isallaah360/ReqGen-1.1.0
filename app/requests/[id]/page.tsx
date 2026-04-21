@@ -106,6 +106,22 @@ export default function RequestDetailsPage() {
     return req.current_owner === me.id;
   }, [req, me]);
 
+  const rk = useMemo(() => roleKey(me?.role || ""), [me?.role]);
+
+  const requestIsPrintable = useMemo(() => {
+    const s = (req?.status || "").trim().toLowerCase();
+    return s.includes("paid") || s.includes("completed");
+  }, [req?.status]);
+
+  const isPrivilegedPrintRole = useMemo(() => {
+    return ["admin", "auditor", "registry", "account", "accountofficer"].includes(rk);
+  }, [rk]);
+
+  const canViewPrint = useMemo(() => {
+    if (!req) return false;
+    return requestIsPrintable && (isMyRequest || isPrivilegedPrintRole);
+  }, [req, requestIsPrintable, isMyRequest, isPrivilegedPrintRole]);
+
   // Registry must preselect Account Officer before sending to DG
   const needsAccountOfficerSelection = useMemo(() => {
     if (!req || !canAct) return false;
@@ -375,7 +391,7 @@ export default function RequestDetailsPage() {
               Back
             </button>
 
-            {req && (
+            {req && canViewPrint && (
               <button
                 onClick={() => router.push(`/requests/${req.id}/print`)}
                 className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
@@ -515,7 +531,10 @@ export default function RequestDetailsPage() {
 
                   <div className="mt-4">
                     <label className="text-sm font-semibold text-slate-800">
-                      Comment {needsAccountOfficerSelection ? "(optional, but recommended)" : "(required for Reject)"}
+                      Comment{" "}
+                      {needsAccountOfficerSelection
+                        ? "(optional, but recommended)"
+                        : "(required for Reject)"}
                     </label>
                     <textarea
                       value={comment}
@@ -613,7 +632,10 @@ function StatusBadge({ status }: { status: string }) {
   const cls =
     s.includes("submit")
       ? "bg-blue-50 text-blue-700 border-blue-200"
-      : s.includes("approve") || s.includes("review") || s.includes("complete") || s.includes("paid")
+      : s.includes("approve") ||
+        s.includes("review") ||
+        s.includes("complete") ||
+        s.includes("paid")
       ? "bg-emerald-50 text-emerald-700 border-emerald-200"
       : s.includes("reject")
       ? "bg-red-50 text-red-700 border-red-200"
