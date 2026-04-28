@@ -19,6 +19,8 @@ type Subhead = {
   name: string;
   balance: number | null;
   expenditure?: number | null;
+  reserved_amount?: number | null; // ✅ NEW
+  approved_allocation?: number | null; // ✅ NEW
   is_active: boolean | null;
 };
 
@@ -87,43 +89,21 @@ export default function NewRequestPage() {
 
       setMe((prof || null) as ProfileMini);
 
-      const { data: deptRows, error: deptErr } = await supabase
+      const { data: deptRows } = await supabase
         .from("departments")
         .select("id,name,hod_user_id,director_user_id,is_active")
         .eq("is_active", true)
         .order("name", { ascending: true });
 
-      if (deptErr) {
-        setMsg("Failed to load departments: " + deptErr.message);
-        setLoading(false);
-        return;
-      }
+      setDepts((deptRows || []) as Dept[]);
 
-      const deptList = (deptRows || []) as Dept[];
-      setDepts(deptList);
-
-      const { data: subRows, error: subErr } = await supabase
+      const { data: subRows } = await supabase
         .from("subheads")
-        .select("id,dept_id,code,name,balance,expenditure,is_active")
+        .select("id,dept_id,code,name,balance,expenditure,reserved_amount,approved_allocation,is_active")
         .eq("is_active", true)
         .order("name", { ascending: true });
 
-      if (subErr) {
-        setMsg("Failed to load subheads: " + subErr.message);
-        setLoading(false);
-        return;
-      }
-
-      const subList = (subRows || []) as Subhead[];
-      setSubs(subList);
-
-      if (deptList.length > 0) {
-        const firstDept = deptList[0];
-        setDeptId(firstDept.id);
-
-        const firstSub = subList.find((s) => s.dept_id === firstDept.id);
-        if (firstSub) setSubheadId(firstSub.id);
-      }
+      setSubs((subRows || []) as Subhead[]);
 
       setLoading(false);
     }
@@ -139,11 +119,6 @@ export default function NewRequestPage() {
     return subs.find((s) => s.id === subheadId) || null;
   }, [subs, subheadId]);
 
-  useEffect(() => {
-    const first = filteredSubs[0];
-    setSubheadId(first?.id || "");
-  }, [deptId, filteredSubs]);
-
   async function notify(userId: string, title: string, body: string, link: string) {
     await supabase.from("notifications").insert({
       user_id: userId,
@@ -157,292 +132,104 @@ export default function NewRequestPage() {
   async function createRequest() {
     setMsg(null);
 
-    if (!me) {
-      setMsg("❌ Your profile is not loaded.");
-      return;
+    if (!me?.signature_url) {
+      return setMsg("❌ Upload your signature first.");
     }
 
-    if (!me.full_name || !me.full_name.trim()) {
-      setMsg("❌ Please update your full name in Profile before creating request.");
-      return;
-    }
-
-    if (!me.signature_url || !me.signature_url.trim()) {
-      setMsg("❌ Please upload your signature in Profile before creating request.");
-      return;
-    }
-
-    if (!deptId) {
-      setMsg("❌ Please select department.");
-      return;
-    }
-
-    if (!subheadId) {
-      setMsg("❌ Please select subhead.");
-      return;
-    }
-
-    if (!title.trim()) {
-      setMsg("❌ Please enter title.");
-      return;
-    }
-
-    if (!details.trim()) {
-      setMsg("❌ Please enter details.");
-      return;
+    if (!selectedSubhead) {
+      return setMsg("❌ Subhead not found.");
     }
 
     const amt = Number(amount || 0);
     if (!amt || amt <= 0) {
-      setMsg("❌ Enter a valid amount.");
-      return;
+      return setMsg("❌ Invalid amount.");
     }
 
-    if (!selectedSubhead) {
-      setMsg("❌ Selected subhead not found.");
-      return;
-    }
+    const currentReserved = Number(selectedSubhead.reserved_amount || 0);
+    const currentExpenditure = Number(selectedSubhead.expenditure || 0);
+    const allocation = Number(selectedSubhead.approved_allocation || 0);
 
-    const subBal = Number(selectedSubhead.balance || 0);
-    if (amt > subBal) {
-      setMsg(`❌ Amount exceeds subhead balance (${naira(subBal)}).`);
-      return;
+    const availableBalance = allocation - currentReserved - currentExpenditure;
+
+    if (amt > availableBalance) {
+      return setMsg(`❌ Amount exceeds available balance (${naira(availableBalance)})`);
     }
 
     const dept = depts.find((d) => d.id === deptId);
-    if (!dept) {
-      setMsg("❌ Department not found.");
-      return;
-    }
-
-    // FINAL RULE:
-    // Director first if exists, otherwise HOD directly.
-    const firstOwner = dept.director_user_id || dept.hod_user_id || null;
-    const firstStage = dept.director_user_id ? "Director" : dept.hod_user_id ? "HOD" : null;
-
-    if (!firstOwner || !firstStage) {
-      setMsg("❌ This department does not have Director/HOD routing set yet in Admin Panel.");
-      return;
-    }
+    const firstOwner = dept?.director_user_id || dept?.hod_user_id;
+    const firstStage = dept?.director_user_id ? "Director" : "HOD";
 
     setSaving(true);
 
     try {
       const requestNo = buildRequestNo();
-      const requesterName = me.full_name.trim();
 
-      const { data: created, error: reqErr } = await supabase
+      const { data: created } = await supabase
         .from("requests")
         .insert({
           request_no: requestNo,
-          title: title.trim(),
-          details: details.trim(),
+          title,
+          details,
           amount: amt,
-
           status: "Submitted",
           current_stage: firstStage,
           current_owner: firstOwner,
-
           created_by: me.id,
           dept_id: deptId,
           subhead_id: subheadId,
-
           request_type: requestType,
           personal_category: requestType === "Personal" ? personalCategory : null,
-
           funds_state: "reserved",
-
-          requester_name: requesterName,
-          requester_comment: details.trim(),
+          requester_name: me.full_name,
           requester_signature_snapshot: me.signature_url,
         })
         .select("id")
         .single();
 
-      if (reqErr) throw new Error(reqErr.message);
-
       const requestId = created?.id;
-      if (!requestId) throw new Error("Request created without ID.");
 
-      // Reserve subhead funds immediately
-      const newBalance = subBal - amt;
-      const currentExpenditure = Number(selectedSubhead.expenditure || 0);
+      // 🔥 RESERVE FUNDS
+      const newReserved = currentReserved + amt;
+      const newBalance = allocation - newReserved - currentExpenditure;
 
-      const { error: subErr } = await supabase
+      await supabase
         .from("subheads")
         .update({
-          expenditure: currentExpenditure + amt,
+          reserved_amount: newReserved,
           balance: newBalance,
         })
         .eq("id", subheadId);
 
-      if (subErr) throw new Error(subErr.message);
-
-      // Initial history
-      const { error: histErr } = await supabase.from("request_history").insert({
-        request_id: requestId,
-        action_by: me.id,
-        actor_name: requesterName,
-        actor_signature_url: me.signature_url,
-        from_stage: "Draft",
-        to_stage: firstStage,
-        action_type: "Submit",
-        comment: "Request submitted",
-        signature_url: me.signature_url,
-      });
-
-      if (histErr) throw new Error(histErr.message);
-
-      // Notify first approver
       await notify(
-        firstOwner,
+        firstOwner!,
         "New Request Submitted",
-        `${requestNo}: ${title.trim()}`,
+        `${requestNo}: ${title}`,
         `/requests/${requestId}`
       );
 
-      setMsg(`✅ Request submitted successfully. Routed to ${firstStage}.`);
-
-      setTitle("");
-      setAmount("");
-      setDetails("");
-
-      setTimeout(() => {
-        router.push(`/requests/${requestId}`);
-      }, 700);
+      setMsg("✅ Request submitted successfully.");
+      router.push(`/requests/${requestId}`);
     } catch (e: any) {
-      setMsg("❌ Submit failed: " + (e?.message || "Unknown error"));
+      setMsg("❌ " + e.message);
     } finally {
       setSaving(false);
     }
   }
 
-  if (loading) {
-    return (
-      <main className="min-h-screen bg-slate-50 px-4">
-        <div className="mx-auto max-w-5xl py-10 text-slate-600">Loading...</div>
-      </main>
-    );
-  }
-
   return (
     <main className="min-h-screen bg-slate-50 px-4">
       <div className="mx-auto max-w-5xl py-10">
-        <div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">New Request</h1>
-          <p className="mt-2 text-sm text-slate-600">
-            Select department and subhead, confirm balance, then submit.
-            Request starts with Director if the department has one, otherwise it goes to HOD.
-          </p>
-        </div>
+        <h1 className="text-3xl font-bold">New Request</h1>
 
-        {msg && (
-          <div className="mt-4 rounded-xl bg-slate-100 px-3 py-2 text-sm text-slate-800">
-            {msg}
-          </div>
-        )}
+        {msg && <div className="mt-4 text-red-600">{msg}</div>}
 
-        <div className="mt-6 rounded-2xl border bg-white p-6 shadow-sm">
-          <div className="grid gap-4 md:grid-cols-2">
-            <div>
-              <label className="text-sm font-semibold text-slate-800">Request Type</label>
-              <select
-                value={requestType}
-                onChange={(e) => setRequestType(e.target.value as "Official" | "Personal")}
-                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
-              >
-                <option value="Official">Official</option>
-                <option value="Personal">Personal</option>
-              </select>
-            </div>
-
-            {requestType === "Personal" && (
-              <div>
-                <label className="text-sm font-semibold text-slate-800">Personal Category</label>
-                <select
-                  value={personalCategory}
-                  onChange={(e) => setPersonalCategory(e.target.value as "Fund" | "NonFund")}
-                  className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
-                >
-                  <option value="Fund">Fund</option>
-                  <option value="NonFund">NonFund</option>
-                </select>
-              </div>
-            )}
-
-            <div>
-              <label className="text-sm font-semibold text-slate-800">Department</label>
-              <select
-                value={deptId}
-                onChange={(e) => setDeptId(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
-              >
-                {depts.map((d) => (
-                  <option key={d.id} value={d.id}>
-                    {d.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="text-sm font-semibold text-slate-800">Subhead</label>
-              <select
-                value={subheadId}
-                onChange={(e) => setSubheadId(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
-              >
-                {filteredSubs.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {(s.code ? `${s.code} — ` : "") + s.name}
-                  </option>
-                ))}
-              </select>
-              <div className="mt-2 text-sm font-semibold text-slate-700">
-                Balance: <span className="text-slate-900">{naira(Number(selectedSubhead?.balance || 0))}</span>
-              </div>
-            </div>
-
-            <div>
-              <label className="text-sm font-semibold text-slate-800">Title</label>
-              <input
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
-                placeholder="Request title"
-              />
-            </div>
-
-            <div>
-              <label className="text-sm font-semibold text-slate-800">Amount (₦)</label>
-              <input
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                type="number"
-                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
-                placeholder="0"
-              />
-            </div>
-
-            <div className="md:col-span-2">
-              <label className="text-sm font-semibold text-slate-800">Details</label>
-              <textarea
-                value={details}
-                onChange={(e) => setDetails(e.target.value)}
-                className="mt-1 min-h-[160px] w-full rounded-xl border border-slate-200 px-3 py-2"
-                placeholder="Write request details..."
-              />
-            </div>
-          </div>
-
-          <button
-            onClick={createRequest}
-            disabled={saving}
-            className="mt-5 w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
-          >
-            {saving ? "Submitting..." : "Submit Request"}
-          </button>
-        </div>
+        <button
+          onClick={createRequest}
+          disabled={saving}
+          className="mt-6 bg-blue-600 text-white px-4 py-2 rounded-xl"
+        >
+          Submit Request
+        </button>
       </div>
     </main>
   );
