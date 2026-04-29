@@ -64,74 +64,75 @@ export default function NewRequestPage() {
   const [amount, setAmount] = useState("");
   const [details, setDetails] = useState("");
 
-  useEffect(() => {
-    async function loadAll() {
-      setLoading(true);
-      setMsg(null);
+  async function loadAll() {
+    setLoading(true);
+    setMsg(null);
 
-      const { data: auth } = await supabase.auth.getUser();
-      if (!auth.user) {
-        router.push("/login");
-        return;
-      }
-
-      const { data: prof, error: profErr } = await supabase
-        .from("profiles")
-        .select("id,full_name,email,signature_url")
-        .eq("id", auth.user.id)
-        .single();
-
-      if (profErr) {
-        setMsg("Failed to load your profile: " + profErr.message);
-        setLoading(false);
-        return;
-      }
-
-      setMe((prof || null) as ProfileMini);
-
-      const { data: deptRows, error: deptErr } = await supabase
-        .from("departments")
-        .select("id,name,hod_user_id,director_user_id,is_active")
-        .eq("is_active", true)
-        .order("name", { ascending: true });
-
-      if (deptErr) {
-        setMsg("Failed to load departments: " + deptErr.message);
-        setLoading(false);
-        return;
-      }
-
-      const deptList = (deptRows || []) as Dept[];
-      setDepts(deptList);
-
-      const { data: subRows, error: subErr } = await supabase
-        .from("subheads")
-        .select("id,dept_id,code,name,approved_allocation,balance,expenditure,reserved_amount,is_active")
-        .eq("is_active", true)
-        .order("name", { ascending: true });
-
-      if (subErr) {
-        setMsg("Failed to load subheads: " + subErr.message);
-        setLoading(false);
-        return;
-      }
-
-      const subList = (subRows || []) as Subhead[];
-      setSubs(subList);
-
-      if (deptList.length > 0) {
-        const firstDept = deptList[0];
-        setDeptId(firstDept.id);
-
-        const firstSub = subList.find((s) => s.dept_id === firstDept.id);
-        if (firstSub) setSubheadId(firstSub.id);
-      }
-
-      setLoading(false);
+    const { data: auth } = await supabase.auth.getUser();
+    if (!auth.user) {
+      router.push("/login");
+      return;
     }
 
+    const { data: prof, error: profErr } = await supabase
+      .from("profiles")
+      .select("id,full_name,email,signature_url")
+      .eq("id", auth.user.id)
+      .single();
+
+    if (profErr) {
+      setMsg("Failed to load your profile: " + profErr.message);
+      setLoading(false);
+      return;
+    }
+
+    setMe((prof || null) as ProfileMini);
+
+    const { data: deptRows, error: deptErr } = await supabase
+      .from("departments")
+      .select("id,name,hod_user_id,director_user_id,is_active")
+      .eq("is_active", true)
+      .order("name", { ascending: true });
+
+    if (deptErr) {
+      setMsg("Failed to load departments: " + deptErr.message);
+      setLoading(false);
+      return;
+    }
+
+    const deptList = (deptRows || []) as Dept[];
+    setDepts(deptList);
+
+    const { data: subRows, error: subErr } = await supabase
+      .from("subheads")
+      .select("id,dept_id,code,name,approved_allocation,balance,expenditure,reserved_amount,is_active")
+      .eq("is_active", true)
+      .order("name", { ascending: true });
+
+    if (subErr) {
+      setMsg("Failed to load subheads: " + subErr.message);
+      setLoading(false);
+      return;
+    }
+
+    const subList = (subRows || []) as Subhead[];
+    setSubs(subList);
+
+    if (deptList.length > 0) {
+      const firstDept = deptList[0];
+      setDeptId(firstDept.id);
+
+      const firstSub = subList.find((s) => s.dept_id === firstDept.id);
+      if (firstSub) setSubheadId(firstSub.id);
+    }
+
+    setLoading(false);
+  }
+
+  useEffect(() => {
     loadAll();
-  }, [router]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const filteredSubs = useMemo(() => {
     return subs.filter((s) => s.dept_id === deptId);
@@ -146,15 +147,15 @@ export default function NewRequestPage() {
     setSubheadId(first?.id || "");
   }, [deptId, filteredSubs]);
 
-  async function notify(userId: string, title: string, body: string, link: string) {
-    await supabase.from("notifications").insert({
-      user_id: userId,
-      title,
-      body,
-      link,
-      is_read: false,
-    });
-  }
+  const availableBalance = useMemo(() => {
+    if (!selectedSubhead) return 0;
+
+    const allocation = Number(selectedSubhead.approved_allocation || 0);
+    const reserved = Number(selectedSubhead.reserved_amount || 0);
+    const expenditure = Number(selectedSubhead.expenditure || 0);
+
+    return allocation - reserved - expenditure;
+  }, [selectedSubhead]);
 
   async function createRequest() {
     setMsg(null);
@@ -179,11 +180,6 @@ export default function NewRequestPage() {
 
     if (!selectedSubhead) return setMsg("❌ Selected subhead not found.");
 
-    const allocation = Number(selectedSubhead.approved_allocation || 0);
-    const currentReserved = Number(selectedSubhead.reserved_amount || 0);
-    const currentExpenditure = Number(selectedSubhead.expenditure || 0);
-    const availableBalance = allocation - currentReserved - currentExpenditure;
-
     if (amt > availableBalance) {
       return setMsg(`❌ Amount exceeds available balance (${naira(availableBalance)}).`);
     }
@@ -204,78 +200,32 @@ export default function NewRequestPage() {
       const requestNo = buildRequestNo();
       const requesterName = me.full_name.trim();
 
-      const { data: created, error: reqErr } = await supabase
-        .from("requests")
-        .insert({
-          request_no: requestNo,
-          title: title.trim(),
-          details: details.trim(),
-          amount: amt,
-
-          status: "Submitted",
-          current_stage: firstStage,
-          current_owner: firstOwner,
-
-          created_by: me.id,
-          dept_id: deptId,
-          subhead_id: subheadId,
-
-          request_type: requestType,
-          personal_category: requestType === "Personal" ? personalCategory : null,
-
-          funds_state: "reserved",
-
-          requester_name: requesterName,
-          requester_comment: details.trim(),
-          requester_signature_snapshot: me.signature_url,
-        })
-        .select("id")
-        .single();
-
-      if (reqErr) throw new Error(reqErr.message);
-
-      const requestId = created?.id;
-      if (!requestId) throw new Error("Request created without ID.");
-
-      const newReserved = currentReserved + amt;
-      const newBalance = allocation - newReserved - currentExpenditure;
-
-      const { error: subErr } = await supabase
-        .from("subheads")
-        .update({
-          reserved_amount: newReserved,
-          balance: newBalance,
-        })
-        .eq("id", subheadId);
-
-      if (subErr) throw new Error(subErr.message);
-
-      const { error: histErr } = await supabase.from("request_history").insert({
-        request_id: requestId,
-        action_by: me.id,
-        actor_name: requesterName,
-        actor_signature_url: me.signature_url,
-        from_stage: "Draft",
-        to_stage: firstStage,
-        action_type: "Submit",
-        comment: "Request submitted",
-        signature_url: me.signature_url,
+      const { data, error } = await supabase.rpc("submit_request_with_reservation", {
+        p_title: title.trim(),
+        p_details: details.trim(),
+        p_amount: amt,
+        p_dept_id: deptId,
+        p_subhead_id: subheadId,
+        p_request_type: requestType,
+        p_personal_category: requestType === "Personal" ? personalCategory : null,
+        p_created_by: me.id,
+        p_requester_name: requesterName,
+        p_requester_signature: me.signature_url,
+        p_request_no: requestNo,
       });
 
-      if (histErr) throw new Error(histErr.message);
+      if (error) throw new Error(error.message);
 
-      await notify(
-        firstOwner,
-        "New Request Submitted",
-        `${requestNo}: ${title.trim()}`,
-        `/requests/${requestId}`
-      );
+      const requestId = (data as any)?.request_id;
+      if (!requestId) throw new Error("Request was submitted but no request ID was returned.");
 
-      setMsg(`✅ Request submitted successfully. Routed to ${firstStage}.`);
+      setMsg(`✅ Request submitted successfully. Routed to ${(data as any)?.first_stage || "next officer"}.`);
 
       setTitle("");
       setAmount("");
       setDetails("");
+
+      await loadAll();
 
       setTimeout(() => {
         router.push(`/requests/${requestId}`);
@@ -302,7 +252,7 @@ export default function NewRequestPage() {
           <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">New Request</h1>
           <p className="mt-2 text-sm text-slate-600">
             Select department and subhead, confirm available balance, then submit.
-            Request starts with Director if the department has one, otherwise it goes to HOD.
+            The requested amount is reserved immediately after submission.
           </p>
         </div>
 
