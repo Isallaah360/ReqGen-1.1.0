@@ -5,12 +5,14 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
 type Dept = { id: string; name: string };
+
 type Subhead = {
   id: string;
   dept_id: string;
   code: string | null;
   name: string;
   approved_allocation: number | null;
+  reserved_amount: number | null;
   expenditure: number | null;
   balance: number | null;
   is_active: boolean | null;
@@ -24,8 +26,16 @@ type ReqMini = {
   created_at: string;
 };
 
+function roleKey(role: string) {
+  return (role || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "")
+    .replace(/_/g, "");
+}
+
 function naira(n: number) {
-  return "₦ " + Math.round(n).toLocaleString();
+  return "₦ " + Math.round(n || 0).toLocaleString();
 }
 
 function ymd(d: Date) {
@@ -42,13 +52,13 @@ export default function FinanceReportsPage() {
   const [msg, setMsg] = useState<string | null>(null);
 
   const [myRole, setMyRole] = useState<string>("");
-  const canFinance = ["Admin", "Auditor", "AccountOfficer"].includes(myRole);
+  const rk = roleKey(myRole);
+  const canFinance = ["admin", "auditor", "account", "accounts", "accountofficer"].includes(rk);
 
   const [depts, setDepts] = useState<Dept[]>([]);
   const [subs, setSubs] = useState<Subhead[]>([]);
   const [approvedReqs, setApprovedReqs] = useState<ReqMini[]>([]);
 
-  // filters
   const now = new Date();
   const [year, setYear] = useState<number>(now.getFullYear());
   const [deptFilter, setDeptFilter] = useState<string>("ALL");
@@ -86,7 +96,7 @@ export default function FinanceReportsPage() {
       const r = (prof?.role || "Staff") as string;
       setMyRole(r);
 
-      if (!["Admin", "Auditor", "AccountOfficer"].includes(r)) {
+      if (!["admin", "auditor", "account", "accounts", "accountofficer"].includes(roleKey(r))) {
         router.push("/dashboard");
         return;
       }
@@ -101,11 +111,12 @@ export default function FinanceReportsPage() {
         setLoading(false);
         return;
       }
+
       setDepts((drows || []) as Dept[]);
 
       const { data: srows, error: sErr } = await supabase
         .from("subheads")
-        .select("id,dept_id,code,name,approved_allocation,expenditure,balance,is_active,updated_at")
+        .select("id,dept_id,code,name,approved_allocation,reserved_amount,expenditure,balance,is_active,updated_at")
         .order("name", { ascending: true });
 
       if (sErr) {
@@ -113,8 +124,8 @@ export default function FinanceReportsPage() {
         setLoading(false);
         return;
       }
-      setSubs((srows || []) as Subhead[]);
 
+      setSubs((srows || []) as Subhead[]);
       setLoading(false);
     }
 
@@ -133,7 +144,7 @@ export default function FinanceReportsPage() {
       let q = supabase
         .from("requests")
         .select("id,amount,status,created_at")
-        .ilike("status", "%approve%")
+        .or("status.ilike.%approve%,status.ilike.%paid%,status.ilike.%completed%")
         .gte("created_at", from)
         .lt("created_at", toPlusOne)
         .order("created_at", { ascending: true });
@@ -145,7 +156,7 @@ export default function FinanceReportsPage() {
       const { data, error } = await q;
 
       if (error) {
-        setMsg("Failed to load approved requests: " + error.message);
+        setMsg("Failed to load approved/paid requests: " + error.message);
         setApprovedReqs([]);
         return;
       }
@@ -154,7 +165,6 @@ export default function FinanceReportsPage() {
     }
 
     loadApproved();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [canFinance, dateFrom, dateTo, deptFilter]);
 
   const deptMap = useMemo(() => {
@@ -169,10 +179,24 @@ export default function FinanceReportsPage() {
   }, [subs, deptFilter]);
 
   const budgetTotals = useMemo(() => {
-    const annualBudget = filteredSubs.reduce((a, s) => a + Number(s.approved_allocation || 0), 0);
-    const totalExp = filteredSubs.reduce((a, s) => a + Number(s.expenditure || 0), 0);
-    const remaining = filteredSubs.reduce((a, s) => a + Number(s.balance || 0), 0);
-    return { annualBudget, totalExp, remaining };
+    const annualBudget = filteredSubs.reduce(
+      (a, s) => a + Number(s.approved_allocation || 0),
+      0
+    );
+    const reserved = filteredSubs.reduce(
+      (a, s) => a + Number(s.reserved_amount || 0),
+      0
+    );
+    const totalExp = filteredSubs.reduce(
+      (a, s) => a + Number(s.expenditure || 0),
+      0
+    );
+    const remaining = filteredSubs.reduce(
+      (a, s) => a + Number(s.balance || 0),
+      0
+    );
+
+    return { annualBudget, reserved, totalExp, remaining };
   }, [filteredSubs]);
 
   const totalsByDept = useMemo(() => {
@@ -180,16 +204,24 @@ export default function FinanceReportsPage() {
       dept_id: string;
       dept_name: string;
       allocation: number;
+      reserved: number;
       expenditure: number;
       balance: number;
     }> = [];
 
-    const acc: Record<string, { allocation: number; expenditure: number; balance: number }> = {};
+    const acc: Record<
+      string,
+      { allocation: number; reserved: number; expenditure: number; balance: number }
+    > = {};
 
     filteredSubs.forEach((s) => {
       const k = s.dept_id;
-      if (!acc[k]) acc[k] = { allocation: 0, expenditure: 0, balance: 0 };
+      if (!acc[k]) {
+        acc[k] = { allocation: 0, reserved: 0, expenditure: 0, balance: 0 };
+      }
+
       acc[k].allocation += Number(s.approved_allocation || 0);
+      acc[k].reserved += Number(s.reserved_amount || 0);
       acc[k].expenditure += Number(s.expenditure || 0);
       acc[k].balance += Number(s.balance || 0);
     });
@@ -201,6 +233,7 @@ export default function FinanceReportsPage() {
           dept_id: deptId,
           dept_name: deptMap[deptId]?.name || deptId,
           allocation: acc[deptId].allocation,
+          reserved: acc[deptId].reserved,
           expenditure: acc[deptId].expenditure,
           balance: acc[deptId].balance,
         });
@@ -219,23 +252,27 @@ export default function FinanceReportsPage() {
 
   const monthly = useMemo(() => {
     const arr = Array.from({ length: 12 }, (_, i) => ({ month: i, total: 0 }));
+
     approvedReqs.forEach((r) => {
       const dt = new Date(r.created_at);
       const m = dt.getMonth();
       arr[m].total += Number(r.amount || 0);
     });
+
     const max = Math.max(1, ...arr.map((x) => x.total));
     return { arr, max };
   }, [approvedReqs]);
 
   function exportCSV() {
     const lines: string[] = [];
+
     lines.push(
       [
         "Department",
         "Subhead Code",
         "Subhead Name",
         "Approved Allocation (NGN)",
+        "Reserved (NGN)",
         "Expenditure (NGN)",
         "Balance (NGN)",
         "Is Active",
@@ -250,25 +287,28 @@ export default function FinanceReportsPage() {
         csv(s.code || ""),
         csv(s.name || ""),
         String(Number(s.approved_allocation || 0)),
+        String(Number(s.reserved_amount || 0)),
         String(Number(s.expenditure || 0)),
         String(Number(s.balance || 0)),
         String(Boolean(s.is_active)),
         csv(s.updated_at || ""),
       ];
+
       lines.push(row.join(","));
     });
 
     const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
+
     a.href = url;
     a.download = `finance-report-${deptFilter}-${dateFrom}-to-${dateTo}.csv`;
     a.click();
+
     URL.revokeObjectURL(url);
   }
 
   function openPDF() {
-    // ✅ SAFE PRINT: store filters then open print page without query params
     localStorage.setItem(
       "fin_print_filters",
       JSON.stringify({
@@ -299,17 +339,26 @@ export default function FinanceReportsPage() {
               Finance Reports Dashboard
             </h1>
             <p className="mt-2 text-sm text-slate-600">
-              Mini government finance view: budget, expenditure, balances, and monthly spending.
+              Mini government finance view: allocation, reserved commitments, expenditure,
+              balances, and monthly spending.
             </p>
           </div>
 
           <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => router.push("/finance/subheads")}
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
+            >
+              ← Back to Finance
+            </button>
+
             <button
               onClick={exportCSV}
               className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
             >
               Export Excel (CSV)
             </button>
+
             <button
               onClick={openPDF}
               className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700"
@@ -325,7 +374,6 @@ export default function FinanceReportsPage() {
           </div>
         )}
 
-        {/* Filters */}
         <div className="mt-6 rounded-2xl border bg-white p-5 shadow-sm">
           <div className="grid gap-4 md:grid-cols-4">
             <div>
@@ -381,24 +429,23 @@ export default function FinanceReportsPage() {
           </div>
 
           <div className="mt-3 text-xs text-slate-500">
-            Monthly chart uses <b>Approved</b> requests within the date range.
+            Monthly chart uses <b>Approved/Paid/Completed</b> requests within the date range.
           </div>
         </div>
 
-        {/* Budget Tracking cards */}
-        <div className="mt-6 grid gap-4 md:grid-cols-3">
+        <div className="mt-6 grid gap-4 md:grid-cols-4">
           <KpiCard title="Annual Budget" value={naira(budgetTotals.annualBudget)} />
+          <KpiCard title="Reserved" value={naira(budgetTotals.reserved)} />
           <KpiCard title="Total Expenditure" value={naira(budgetTotals.totalExp)} />
           <KpiCard title="Remaining Balance" value={naira(budgetTotals.remaining)} />
         </div>
 
-        {/* Monthly chart */}
         <div className="mt-6 rounded-2xl border bg-white p-6 shadow-sm">
           <div className="flex flex-wrap items-end justify-between gap-2">
             <div>
               <h2 className="text-lg font-bold text-slate-900">Monthly Expenditure</h2>
               <p className="mt-1 text-sm text-slate-600">
-                Approved requests totals per month ({year})
+                Approved/Paid/Completed requests totals per month ({year})
               </p>
             </div>
             <div className="text-xs text-slate-500">
@@ -409,7 +456,21 @@ export default function FinanceReportsPage() {
           <div className="mt-4 grid grid-cols-12 gap-2 items-end h-40">
             {monthly.arr.map((m) => {
               const h = Math.round((m.total / monthly.max) * 100);
-              const label = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][m.month];
+              const label = [
+                "Jan",
+                "Feb",
+                "Mar",
+                "Apr",
+                "May",
+                "Jun",
+                "Jul",
+                "Aug",
+                "Sep",
+                "Oct",
+                "Nov",
+                "Dec",
+              ][m.month];
+
               return (
                 <div key={m.month} className="flex flex-col items-center gap-2">
                   <div className="w-full rounded-lg bg-slate-100 overflow-hidden h-32 flex items-end">
@@ -426,70 +487,102 @@ export default function FinanceReportsPage() {
           </div>
 
           <div className="mt-3 text-sm text-slate-700">
-            Total approved spending in range:{" "}
-            <b className="text-slate-900">{naira(monthly.arr.reduce((a, x) => a + x.total, 0))}</b>
+            Total request value in range:{" "}
+            <b className="text-slate-900">
+              {naira(monthly.arr.reduce((a, x) => a + x.total, 0))}
+            </b>
           </div>
         </div>
 
-        {/* Totals by Department */}
         <div className="mt-6 rounded-2xl border bg-white p-6 shadow-sm">
           <h2 className="text-lg font-bold text-slate-900">Total Allocation by Department</h2>
-          <p className="mt-1 text-sm text-slate-600">Government-style summary by ministry/department.</p>
+          <p className="mt-1 text-sm text-slate-600">
+            Government-style summary by ministry/department.
+          </p>
 
           {totalsByDept.length === 0 ? (
             <div className="mt-4 text-sm text-slate-700">No records.</div>
           ) : (
-            <div className="mt-4 overflow-hidden rounded-xl border border-slate-200">
-              <div className="grid grid-cols-12 bg-slate-100 px-4 py-3 text-xs font-semibold text-slate-600">
-                <div className="col-span-4">Department</div>
-                <div className="col-span-3 text-right">Allocation</div>
-                <div className="col-span-3 text-right">Expenditure</div>
-                <div className="col-span-2 text-right">Balance</div>
-              </div>
-
-              {totalsByDept.map((r) => (
-                <div key={r.dept_id} className="grid grid-cols-12 border-t px-4 py-3 text-sm">
-                  <div className="col-span-4 font-semibold text-slate-900">{r.dept_name}</div>
-                  <div className="col-span-3 text-right text-slate-900 font-semibold">{naira(r.allocation)}</div>
-                  <div className="col-span-3 text-right text-slate-900">{naira(r.expenditure)}</div>
-                  <div className="col-span-2 text-right font-semibold text-slate-900">{naira(r.balance)}</div>
+            <div className="mt-4 overflow-x-auto rounded-xl border border-slate-200">
+              <div className="min-w-[900px]">
+                <div className="grid grid-cols-14 bg-slate-100 px-4 py-3 text-xs font-semibold text-slate-600">
+                  <div className="col-span-4">Department</div>
+                  <div className="col-span-3 text-right">Allocation</div>
+                  <div className="col-span-2 text-right">Reserved</div>
+                  <div className="col-span-3 text-right">Expenditure</div>
+                  <div className="col-span-2 text-right">Balance</div>
                 </div>
-              ))}
+
+                {totalsByDept.map((r) => (
+                  <div key={r.dept_id} className="grid grid-cols-14 border-t px-4 py-3 text-sm">
+                    <div className="col-span-4 font-semibold text-slate-900">{r.dept_name}</div>
+                    <div className="col-span-3 text-right text-slate-900 font-semibold">
+                      {naira(r.allocation)}
+                    </div>
+                    <div className="col-span-2 text-right text-amber-700 font-semibold">
+                      {naira(r.reserved)}
+                    </div>
+                    <div className="col-span-3 text-right text-red-700">
+                      {naira(r.expenditure)}
+                    </div>
+                    <div className="col-span-2 text-right font-semibold text-emerald-700">
+                      {naira(r.balance)}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>
 
-        {/* Expenditure by Subhead */}
         <div className="mt-6 rounded-2xl border bg-white p-6 shadow-sm">
           <h2 className="text-lg font-bold text-slate-900">Total Expenditure by Subhead</h2>
-          <p className="mt-1 text-sm text-slate-600">Detailed breakdown by subhead code.</p>
+          <p className="mt-1 text-sm text-slate-600">
+            Detailed breakdown by subhead code.
+          </p>
 
           {expenditureBySubhead.length === 0 ? (
             <div className="mt-4 text-sm text-slate-700">No subheads.</div>
           ) : (
-            <div className="mt-4 overflow-hidden rounded-xl border border-slate-200">
-              <div className="grid grid-cols-12 bg-slate-100 px-4 py-3 text-xs font-semibold text-slate-600">
-                <div className="col-span-3">Dept</div>
-                <div className="col-span-2">Code</div>
-                <div className="col-span-3">Subhead</div>
-                <div className="col-span-2 text-right">Expenditure</div>
-                <div className="col-span-2 text-right">Balance</div>
-              </div>
-
-              {expenditureBySubhead.slice(0, 60).map((s) => (
-                <div key={s.id} className="grid grid-cols-12 border-t px-4 py-3 text-sm">
-                  <div className="col-span-3 text-slate-800">{deptMap[s.dept_id]?.name || s.dept_id}</div>
-                  <div className="col-span-2 font-semibold text-slate-900">{s.code || "—"}</div>
-                  <div className="col-span-3 text-slate-900">{s.name}</div>
-                  <div className="col-span-2 text-right text-slate-900">{naira(Number(s.expenditure || 0))}</div>
-                  <div className="col-span-2 text-right font-semibold text-slate-900">{naira(Number(s.balance || 0))}</div>
+            <div className="mt-4 overflow-x-auto rounded-xl border border-slate-200">
+              <div className="min-w-[1000px]">
+                <div className="grid grid-cols-15 bg-slate-100 px-4 py-3 text-xs font-semibold text-slate-600">
+                  <div className="col-span-3">Dept</div>
+                  <div className="col-span-2">Code</div>
+                  <div className="col-span-4">Subhead</div>
+                  <div className="col-span-2 text-right">Reserved</div>
+                  <div className="col-span-2 text-right">Expenditure</div>
+                  <div className="col-span-2 text-right">Balance</div>
                 </div>
-              ))}
+
+                {expenditureBySubhead.slice(0, 60).map((s) => (
+                  <div key={s.id} className="grid grid-cols-15 border-t px-4 py-3 text-sm">
+                    <div className="col-span-3 text-slate-800">
+                      {deptMap[s.dept_id]?.name || s.dept_id}
+                    </div>
+                    <div className="col-span-2 font-semibold text-slate-900">
+                      {s.code || "—"}
+                    </div>
+                    <div className="col-span-4 text-slate-900">{s.name}</div>
+                    <div className="col-span-2 text-right font-semibold text-amber-700">
+                      {naira(Number(s.reserved_amount || 0))}
+                    </div>
+                    <div className="col-span-2 text-right text-red-700">
+                      {naira(Number(s.expenditure || 0))}
+                    </div>
+                    <div className="col-span-2 text-right font-semibold text-emerald-700">
+                      {naira(Number(s.balance || 0))}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
           {expenditureBySubhead.length > 60 && (
-            <div className="mt-3 text-xs text-slate-500">Showing first 60 rows. Use Export for full list.</div>
+            <div className="mt-3 text-xs text-slate-500">
+              Showing first 60 rows. Use Export for full list.
+            </div>
           )}
         </div>
       </div>
@@ -501,7 +594,9 @@ function KpiCard({ title, value }: { title: string; value: string }) {
   return (
     <div className="rounded-2xl border bg-white p-6 shadow-sm">
       <div className="text-sm font-semibold text-slate-600">{title}</div>
-      <div className="mt-2 text-2xl font-extrabold tracking-tight text-slate-900">{value}</div>
+      <div className="mt-2 text-2xl font-extrabold tracking-tight text-slate-900">
+        {value}
+      </div>
       <div className="mt-1 text-xs text-slate-500">NGN</div>
     </div>
   );

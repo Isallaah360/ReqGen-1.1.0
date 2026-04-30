@@ -53,6 +53,7 @@ type Subhead = {
   code: string | null;
   name: string;
   approved_allocation: number | null;
+  reserved_amount: number | null;
   expenditure: number | null;
   balance: number | null;
 };
@@ -66,6 +67,19 @@ type Hist = {
   created_at: string;
   actor_name: string | null;
 };
+
+type ProfileMini = {
+  id: string;
+  role: string | null;
+};
+
+function roleKey(role: string | null | undefined) {
+  return (role || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "")
+    .replace(/_/g, "");
+}
 
 function naira(n: number | null | undefined) {
   return `₦${Number(n || 0).toLocaleString()}`;
@@ -105,6 +119,7 @@ export default function PrintRequestPage() {
   const [loading, setLoading] = useState(true);
   const [msg, setMsg] = useState<string | null>(null);
 
+  const [me, setMe] = useState<ProfileMini | null>(null);
   const [req, setReq] = useState<Req | null>(null);
   const [dept, setDept] = useState<Dept | null>(null);
   const [subhead, setSubhead] = useState<Subhead | null>(null);
@@ -116,14 +131,55 @@ export default function PrintRequestPage() {
   const [sigDG, setSigDG] = useState<string | null>(null);
   const [sigAccount, setSigAccount] = useState<string | null>(null);
 
+  const rk = roleKey(me?.role);
+
+  const canOpenPrintPage = useMemo(() => {
+    return ["admin", "auditor", "account", "accounts", "accountofficer"].includes(rk);
+  }, [rk]);
+
+  const requestIsCompletedForPrint = useMemo(() => {
+    const s = (req?.status || "").trim().toLowerCase();
+    return s === "paid" || s === "completed" || s.includes("paid") || s.includes("completed");
+  }, [req?.status]);
+
   useEffect(() => {
     async function load() {
       setLoading(true);
       setMsg(null);
 
+      if (!id) {
+        setMsg("Invalid request ID.");
+        setLoading(false);
+        return;
+      }
+
       const { data: auth } = await supabase.auth.getUser();
       if (!auth.user) {
         router.push("/login");
+        return;
+      }
+
+      const { data: prof, error: profErr } = await supabase
+        .from("profiles")
+        .select("id,role")
+        .eq("id", auth.user.id)
+        .single();
+
+      if (profErr) {
+        setMsg("Failed to load your profile: " + profErr.message);
+        setLoading(false);
+        return;
+      }
+
+      const myProfile = prof as ProfileMini;
+      setMe(myProfile);
+
+      const myRole = roleKey(myProfile.role);
+      const allowedRole = ["admin", "auditor", "account", "accounts", "accountofficer"].includes(myRole);
+
+      if (!allowedRole) {
+        setMsg("Access denied. Only Admin, Auditor and Account Officers can print completed requests.");
+        setLoading(false);
         return;
       }
 
@@ -172,6 +228,16 @@ export default function PrintRequestPage() {
       const reqRow = r as Req;
       setReq(reqRow);
 
+      const s = (reqRow.status || "").trim().toLowerCase();
+      const printableStatus =
+        s === "paid" || s === "completed" || s.includes("paid") || s.includes("completed");
+
+      if (!printableStatus) {
+        setMsg("Printing is allowed only after the request has been completed or paid.");
+        setLoading(false);
+        return;
+      }
+
       const [deptRes, subRes, histRes] = await Promise.all([
         supabase
           .from("departments")
@@ -182,7 +248,7 @@ export default function PrintRequestPage() {
         reqRow.subhead_id
           ? supabase
               .from("subheads")
-              .select("id,code,name,approved_allocation,expenditure,balance")
+              .select("id,code,name,approved_allocation,reserved_amount,expenditure,balance")
               .eq("id", reqRow.subhead_id)
               .single()
           : Promise.resolve({ data: null } as any),
@@ -228,14 +294,41 @@ export default function PrintRequestPage() {
     const dgReady = !!req.dg_name && !!sigDG;
     const accountReady = requiresAccountLine ? !!req.account_name && !!sigAccount : true;
 
-    return requesterReady && checkedReady && dgReady && accountReady;
-  }, [req, sigRequester, sigChecked, sigDG, sigAccount, requiresAccountLine]);
+    return (
+      canOpenPrintPage &&
+      requestIsCompletedForPrint &&
+      requesterReady &&
+      checkedReady &&
+      dgReady &&
+      accountReady
+    );
+  }, [
+    req,
+    sigRequester,
+    sigChecked,
+    sigDG,
+    sigAccount,
+    requiresAccountLine,
+    canOpenPrintPage,
+    requestIsCompletedForPrint,
+  ]);
 
   function handlePrint() {
+    if (!canOpenPrintPage) {
+      setMsg("Access denied. Only Admin, Auditor and Account Officers can print completed requests.");
+      return;
+    }
+
+    if (!requestIsCompletedForPrint) {
+      setMsg("Printing is allowed only after the request has been completed or paid.");
+      return;
+    }
+
     if (!ready) {
       setMsg("Printing is blocked until the required request signatures are fully available.");
       return;
     }
+
     window.print();
   }
 
@@ -248,6 +341,35 @@ export default function PrintRequestPage() {
       <main className="min-h-screen bg-slate-100 px-4 py-8">
         <div className="mx-auto max-w-3xl rounded-2xl border bg-white p-6 text-slate-700 shadow-sm">
           Preparing final print preview...
+        </div>
+      </main>
+    );
+  }
+
+  if (msg && (!req || !canOpenPrintPage || !requestIsCompletedForPrint)) {
+    return (
+      <main className="min-h-screen bg-slate-100 px-4 py-8">
+        <div className="mx-auto max-w-3xl rounded-2xl border bg-white p-6 shadow-sm">
+          <div className="text-lg font-bold text-slate-900">Print Access</div>
+          <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            {msg}
+          </div>
+
+          <div className="mt-5 flex flex-wrap gap-2">
+            <button
+              onClick={() => router.push("/finance/subheads")}
+              className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+            >
+              Back to Finance
+            </button>
+
+            <button
+              onClick={() => router.push("/dashboard")}
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
+            >
+              Dashboard
+            </button>
+          </div>
         </div>
       </main>
     );
@@ -290,10 +412,10 @@ export default function PrintRequestPage() {
       <div className="mx-auto max-w-[820px]">
         <div className="no-print mb-3 flex items-center justify-between">
           <button
-            onClick={() => router.push(`/requests/${req.id}`)}
+            onClick={() => router.push("/finance/subheads")}
             className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
           >
-            Back
+            Back to Finance
           </button>
 
           <button
@@ -388,6 +510,7 @@ export default function PrintRequestPage() {
           <div className="mt-1.5 flex justify-end">
             <div className="w-[320px] space-y-1">
               <SmallFieldRow label="ALLOCATION B/D:" value={naira(subhead?.approved_allocation)} />
+              <SmallFieldRow label="RESERVED:" value={naira(subhead?.reserved_amount)} />
               <SmallFieldRow label="EXPENDITURE:" value={naira(subhead?.expenditure)} />
               <SmallFieldRow label="BALANCE C/D:" value={naira(subhead?.balance)} />
             </div>
