@@ -67,6 +67,11 @@ function officerLabel(o: OfficerMini) {
   return o.full_name?.trim() || o.email?.trim() || o.id;
 }
 
+function requestTypeLabel(req: Req) {
+  if (req.request_type === "Official") return "Official";
+  return `Personal • ${req.personal_category || "—"}`;
+}
+
 export default function RequestDetailsPage() {
   const router = useRouter();
   const params = useParams();
@@ -106,34 +111,36 @@ export default function RequestDetailsPage() {
     return req.current_owner === me.id;
   }, [req, me]);
 
-  const rk = useMemo(() => roleKey(me?.role || ""), [me?.role]);
+  const isOfficial = useMemo(() => {
+    return (req?.request_type || "").trim().toUpperCase() === "OFFICIAL";
+  }, [req?.request_type]);
 
-  const requestIsPrintable = useMemo(() => {
-    const s = (req?.status || "").trim().toLowerCase();
-    return s.includes("paid") || s.includes("completed");
-  }, [req?.status]);
+  const isPersonalFund = useMemo(() => {
+    return (
+      (req?.request_type || "").trim().toUpperCase() === "PERSONAL" &&
+      (req?.personal_category || "").trim().toUpperCase() === "FUND"
+    );
+  }, [req?.request_type, req?.personal_category]);
 
-  const isPrivilegedPrintRole = useMemo(() => {
-    return ["admin", "auditor", "registry", "account", "accountofficer"].includes(rk);
-  }, [rk]);
+  const isPersonalNonFund = useMemo(() => {
+    return (
+      (req?.request_type || "").trim().toUpperCase() === "PERSONAL" &&
+      (req?.personal_category || "").trim().toUpperCase() === "NONFUND"
+    );
+  }, [req?.request_type, req?.personal_category]);
 
-  const canViewPrint = useMemo(() => {
-    if (!req) return false;
-    return requestIsPrintable && (isMyRequest || isPrivilegedPrintRole);
-  }, [req, requestIsPrintable, isMyRequest, isPrivilegedPrintRole]);
+  const isHRFiling = useMemo(() => {
+    const stage = (req?.current_stage || "").trim().toUpperCase().replace(/\s+/g, "");
+    return stage === "HRFILING";
+  }, [req?.current_stage]);
 
-  // Registry must preselect Account Officer before sending to DG
   const needsAccountOfficerSelection = useMemo(() => {
     if (!req || !canAct) return false;
 
     const isRegistry = (req.current_stage || "").trim().toUpperCase() === "REGISTRY";
-    const isOfficial = (req.request_type || "").trim().toUpperCase() === "OFFICIAL";
-    const isFundPersonal =
-      (req.request_type || "").trim().toUpperCase() === "PERSONAL" &&
-      (req.personal_category || "").trim().toUpperCase() === "FUND";
 
-    return isRegistry && (isOfficial || isFundPersonal);
-  }, [req, canAct]);
+    return isRegistry && (isOfficial || isPersonalFund);
+  }, [req, canAct, isOfficial, isPersonalFund]);
 
   useEffect(() => {
     async function load() {
@@ -163,6 +170,7 @@ export default function RequestDetailsPage() {
         setLoading(false);
         return;
       }
+
       setMe(myProf as ProfileMini);
 
       const { data: r, error: rErr } = await supabase
@@ -214,7 +222,11 @@ export default function RequestDetailsPage() {
 
       if (!officerErr) {
         const rows = (officers || []) as OfficerMini[];
-        setAccountOfficers(rows.filter((o) => roleKey(o.role || "") === "accountofficer"));
+        setAccountOfficers(
+          rows.filter((o) =>
+            ["accountofficer", "account", "accounts"].includes(roleKey(o.role || ""))
+          )
+        );
       }
 
       setLoading(false);
@@ -267,7 +279,7 @@ export default function RequestDetailsPage() {
     }
 
     if (!canAct) {
-      setMsg("❌ You cannot act on this request (not assigned to you).");
+      setMsg("❌ You cannot act on this request. It is not assigned to you.");
       return;
     }
 
@@ -277,7 +289,7 @@ export default function RequestDetailsPage() {
     }
 
     if (action === "Approve" && needsAccountOfficerSelection && !selectedOfficerId) {
-      setMsg("❌ Registry must select an Account Officer before sending to DG.");
+      setMsg("❌ Registry must select an Account Officer before sending this request to DG.");
       return;
     }
 
@@ -301,15 +313,19 @@ export default function RequestDetailsPage() {
         const nextStage = (data as any)?.next_stage;
         const nextStatus = (data as any)?.next_status;
 
-        setMsg(
-          nextStage === "Completed"
-            ? nextStatus === "Paid"
-              ? "✅ Payment approved successfully. Request closed as Paid."
-              : "✅ Approved. Request completed."
-            : needsAccountOfficerSelection && nextStage === "DG"
-            ? "✅ Registry has selected Account Officer and sent the request to DG."
-            : `✅ Approved. Sent to ${nextStage}.`
-        );
+        if (nextStage === "Completed") {
+          setMsg(
+            nextStatus === "Paid"
+              ? "✅ Request paid successfully and closed."
+              : "✅ Request completed successfully."
+          );
+        } else if (isHRFiling) {
+          setMsg("✅ HR filing completed successfully.");
+        } else if (needsAccountOfficerSelection && nextStage === "DG") {
+          setMsg("✅ Account Officer selected. Request sent to DG.");
+        } else {
+          setMsg(`✅ Approved. Sent to ${nextStage}.`);
+        }
       } else {
         const { error } = await supabase.rpc("reject_request_step", {
           p_request_id: req.id,
@@ -320,7 +336,7 @@ export default function RequestDetailsPage() {
 
         if (error) throw new Error(error.message);
 
-        setMsg("✅ Rejected. Funds restored to subhead.");
+        setMsg("✅ Request rejected successfully.");
       }
 
       setComment("");
@@ -340,7 +356,7 @@ export default function RequestDetailsPage() {
       return;
     }
 
-    const ok = confirm("Delete this request? Funds will be restored to the subhead.");
+    const ok = confirm("Delete this request? Any reserved funds will be restored if applicable.");
     if (!ok) return;
 
     setSaving(true);
@@ -353,7 +369,7 @@ export default function RequestDetailsPage() {
 
       if (error) throw new Error(error.message);
 
-      setMsg("✅ Deleted and funds restored.");
+      setMsg("✅ Deleted successfully.");
       setTimeout(() => router.push("/requests"), 700);
     } catch (e: any) {
       setMsg("❌ Delete failed: " + (e?.message || "Unknown error"));
@@ -361,6 +377,14 @@ export default function RequestDetailsPage() {
       setSaving(false);
     }
   }
+
+  const approveButtonText = useMemo(() => {
+    if (saving) return "Processing...";
+    if (needsAccountOfficerSelection) return "Send to DG";
+    if (isHRFiling) return "Complete Filing";
+    if ((req?.current_stage || "").toUpperCase() === "ACCOUNT") return "Treat / Pay";
+    return "Approve";
+  }, [saving, needsAccountOfficerSelection, isHRFiling, req?.current_stage]);
 
   if (loading) {
     return (
@@ -379,7 +403,8 @@ export default function RequestDetailsPage() {
               Request Details
             </h1>
             <p className="mt-2 text-sm text-slate-600">
-              Current stage: <b className="text-slate-900">{req?.current_stage || "—"}</b>
+              Current stage:{" "}
+              <b className="text-slate-900">{req?.current_stage || "—"}</b>
             </p>
           </div>
 
@@ -390,15 +415,6 @@ export default function RequestDetailsPage() {
             >
               Back
             </button>
-
-            {req && canViewPrint && (
-              <button
-                onClick={() => router.push(`/requests/${req.id}/print`)}
-                className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
-              >
-                Print
-              </button>
-            )}
           </div>
         </div>
 
@@ -435,20 +451,30 @@ export default function RequestDetailsPage() {
 
               <div className="mt-5 grid gap-4 md:grid-cols-2">
                 <Info label="Title" value={req.title} />
-                <Info label="Amount (₦)" value={Number(req.amount || 0).toLocaleString()} />
+                <Info
+                  label="Amount (₦)"
+                  value={
+                    isPersonalNonFund
+                      ? "Not Applicable"
+                      : Number(req.amount || 0).toLocaleString()
+                  }
+                />
               </div>
 
               <div className="mt-4 grid gap-4 md:grid-cols-2">
                 <Info
-                  label="Subhead"
-                  value={subhead ? `${subhead.code} — ${subhead.name}` : "—"}
-                />
-                <Info
                   label="Type"
+                  value={requestTypeLabel(req)}
+                />
+
+                <Info
+                  label="Subhead"
                   value={
-                    req.request_type === "Personal"
-                      ? `Personal • ${req.personal_category || ""}`
-                      : "Official"
+                    isOfficial
+                      ? subhead
+                        ? `${subhead.code ? `${subhead.code} — ` : ""}${subhead.name}`
+                        : "—"
+                      : "Not Applicable"
                   }
                 />
               </div>
@@ -459,6 +485,20 @@ export default function RequestDetailsPage() {
                     label="Selected Account Officer"
                     value={req.assigned_account_officer_name}
                   />
+                </div>
+              )}
+
+              {isPersonalNonFund && (
+                <div className="mt-4 rounded-xl border border-purple-100 bg-purple-50 p-4 text-sm text-purple-900">
+                  This is a Personal NonFund request. It will not go to Account. After DG approval,
+                  it returns to HR for final filing.
+                </div>
+              )}
+
+              {isPersonalFund && (
+                <div className="mt-4 rounded-xl border border-blue-100 bg-blue-50 p-4 text-sm text-blue-900">
+                  This is a Personal Fund request. It does not deduct departmental subhead funds,
+                  but it will be treated by the selected Account Officer after DG approval.
                 </div>
               )}
 
@@ -524,15 +564,22 @@ export default function RequestDetailsPage() {
                         ))}
                       </select>
                       <div className="mt-2 text-xs text-slate-600">
-                        Registry must choose the Account Officer now. After DG approval, the request will go directly to that selected officer.
+                        Registry must choose the Account Officer now. After DG approval,
+                        this request will go directly to that selected officer.
                       </div>
+                    </div>
+                  )}
+
+                  {isHRFiling && (
+                    <div className="mt-4 rounded-xl border border-purple-200 bg-purple-50 p-4 text-sm text-purple-900">
+                      HR Filing stage: review the approved Personal NonFund request and complete it for filing.
                     </div>
                   )}
 
                   <div className="mt-4">
                     <label className="text-sm font-semibold text-slate-800">
                       Comment{" "}
-                      {needsAccountOfficerSelection
+                      {needsAccountOfficerSelection || isHRFiling
                         ? "(optional, but recommended)"
                         : "(required for Reject)"}
                     </label>
@@ -550,11 +597,7 @@ export default function RequestDetailsPage() {
                       disabled={saving}
                       className="w-full rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 disabled:opacity-60"
                     >
-                      {saving
-                        ? "Processing..."
-                        : needsAccountOfficerSelection
-                        ? "Send to DG"
-                        : "Approve"}
+                      {approveButtonText}
                     </button>
 
                     <button
@@ -635,7 +678,8 @@ function StatusBadge({ status }: { status: string }) {
       : s.includes("approve") ||
         s.includes("review") ||
         s.includes("complete") ||
-        s.includes("paid")
+        s.includes("paid") ||
+        s.includes("filing")
       ? "bg-emerald-50 text-emerald-700 border-emerald-200"
       : s.includes("reject")
       ? "bg-red-50 text-red-700 border-red-200"
