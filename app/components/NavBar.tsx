@@ -38,6 +38,7 @@ export default function NavBar() {
 
   const isAdmin = ["admin", "auditor"].includes(rk);
   const canFinance = ["admin", "auditor", "account", "accounts", "accountofficer"].includes(rk);
+  const canHRFiling = ["admin", "auditor", "hr"].includes(rk);
 
   const links = useMemo(() => {
     const base = [
@@ -50,16 +51,20 @@ export default function NavBar() {
       base.push({ href: "/finance/subheads", label: "Finance" });
     }
 
+    if (canHRFiling) {
+      base.push({ href: "/hr/filing", label: "HR Filing" });
+    }
+
     if (isAdmin) {
       base.push({ href: "/admin", label: "Admin" });
     }
 
     return base;
-  }, [canFinance, isAdmin]);
+  }, [canFinance, canHRFiling, isAdmin]);
 
   const linkClass = (href: string) =>
     `px-3 py-2 rounded-xl text-sm font-semibold transition ${
-      pathname === href
+      pathname === href || pathname.startsWith(href + "/")
         ? "bg-blue-600 text-white shadow-sm"
         : "text-slate-700 hover:bg-slate-100"
     }`;
@@ -86,8 +91,11 @@ export default function NavBar() {
       .eq("id", uid)
       .maybeSingle();
 
-    if (!profErr && prof?.role) setMyRole(prof.role);
-    else setMyRole("Staff");
+    if (!profErr && prof?.role) {
+      setMyRole(prof.role);
+    } else {
+      setMyRole("Staff");
+    }
 
     const { data: n } = await supabase
       .from("notifications")
@@ -132,7 +140,7 @@ export default function NavBar() {
           table: "notifications",
           filter: `user_id=eq.${userId}`,
         },
-        refreshAll
+        () => refreshAll()
       )
       .subscribe();
 
@@ -145,7 +153,7 @@ export default function NavBar() {
           schema: "public",
           table: "requests",
         },
-        refreshAll
+        () => refreshAll()
       )
       .subscribe();
 
@@ -153,7 +161,12 @@ export default function NavBar() {
       supabase.removeChannel(notifChannel);
       supabase.removeChannel(requestChannel);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
+
+  useEffect(() => {
+    setOpenBell(false);
+  }, [pathname]);
 
   useEffect(() => {
     function onClick(e: MouseEvent) {
@@ -169,6 +182,7 @@ export default function NavBar() {
 
   async function logout() {
     await supabase.auth.signOut();
+    setOpenBell(false);
     router.push("/");
     router.refresh();
   }
@@ -182,17 +196,19 @@ export default function NavBar() {
       .eq("user_id", userId)
       .eq("is_read", false);
 
-    refreshAll();
+    setOpenBell(false);
+    await refreshAll();
   }
 
   async function openNotif(n: Notif) {
     await supabase.from("notifications").update({ is_read: true }).eq("id", n.id);
+    setOpenBell(false);
     router.push(n.link || "/approvals");
   }
 
   return (
     <header className="sticky top-0 z-20 border-b bg-white/80 backdrop-blur">
-      <div className="mx-auto max-w-5xl px-4 py-3 flex items-center justify-between">
+      <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between">
         <Link href="/" className="font-extrabold text-lg tracking-tight text-slate-900">
           ReqGen <span className="text-slate-400">1.1.0</span>
         </Link>
@@ -234,7 +250,9 @@ export default function NavBar() {
                   </div>
 
                   {items.length === 0 ? (
-                    <div className="p-4 text-sm text-slate-600">No notifications yet.</div>
+                    <div className="p-4 text-sm text-slate-600">
+                      No notifications yet.
+                    </div>
                   ) : (
                     <div className="max-h-96 overflow-auto">
                       {items.map((n) => (
@@ -245,7 +263,9 @@ export default function NavBar() {
                             n.is_read ? "bg-white" : "bg-blue-50"
                           }`}
                         >
-                          <div className="text-sm font-semibold text-slate-900">{n.title}</div>
+                          <div className="text-sm font-semibold text-slate-900">
+                            {n.title}
+                          </div>
                           <div className="text-xs text-slate-500">
                             {new Date(n.created_at).toLocaleString()}
                           </div>
