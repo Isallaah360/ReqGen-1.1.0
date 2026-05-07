@@ -64,6 +64,11 @@ export default function NewRequestPage() {
   const [amount, setAmount] = useState("");
   const [details, setDetails] = useState("");
 
+  const isOfficial = requestType === "Official";
+  const isPersonal = requestType === "Personal";
+  const isPersonalFund = requestType === "Personal" && personalCategory === "Fund";
+  const isPersonalNonFund = requestType === "Personal" && personalCategory === "NonFund";
+
   async function loadAll() {
     setLoading(true);
     setMsg(null);
@@ -143,9 +148,20 @@ export default function NewRequestPage() {
   }, [subs, subheadId]);
 
   useEffect(() => {
+    if (!isOfficial) {
+      setSubheadId("");
+      return;
+    }
+
     const first = filteredSubs[0];
     setSubheadId(first?.id || "");
-  }, [deptId, filteredSubs]);
+  }, [deptId, filteredSubs, isOfficial]);
+
+  useEffect(() => {
+    if (isPersonalNonFund) {
+      setAmount("");
+    }
+  }, [isPersonalNonFund]);
 
   const availableBalance = useMemo(() => {
     if (!selectedSubhead) return 0;
@@ -160,7 +176,9 @@ export default function NewRequestPage() {
   async function createRequest() {
     setMsg(null);
 
-    if (!me) return setMsg("❌ Your profile is not loaded.");
+    if (!me) {
+      return setMsg("❌ Your profile is not loaded.");
+    }
 
     if (!me.full_name || !me.full_name.trim()) {
       return setMsg("❌ Please update your full name in Profile before creating request.");
@@ -170,22 +188,40 @@ export default function NewRequestPage() {
       return setMsg("❌ Please upload your signature in Profile before creating request.");
     }
 
-    if (!deptId) return setMsg("❌ Please select department.");
-    if (!subheadId) return setMsg("❌ Please select subhead.");
-    if (!title.trim()) return setMsg("❌ Please enter title.");
-    if (!details.trim()) return setMsg("❌ Please enter details.");
+    if (!deptId) {
+      return setMsg("❌ Please select department.");
+    }
 
-    const amt = Number(amount || 0);
-    if (!amt || amt <= 0) return setMsg("❌ Enter a valid amount.");
+    if (!title.trim()) {
+      return setMsg("❌ Please enter title.");
+    }
 
-    if (!selectedSubhead) return setMsg("❌ Selected subhead not found.");
+    if (!details.trim()) {
+      return setMsg("❌ Please enter details.");
+    }
 
-    if (amt > availableBalance) {
+    const amt = isPersonalNonFund ? 0 : Number(amount || 0);
+
+    if ((isOfficial || isPersonalFund) && (!amt || amt <= 0)) {
+      return setMsg("❌ Enter a valid amount.");
+    }
+
+    if (isOfficial && !subheadId) {
+      return setMsg("❌ Please select subhead for Official Request.");
+    }
+
+    if (isOfficial && !selectedSubhead) {
+      return setMsg("❌ Selected subhead not found.");
+    }
+
+    if (isOfficial && amt > availableBalance) {
       return setMsg(`❌ Amount exceeds available balance (${naira(availableBalance)}).`);
     }
 
     const dept = depts.find((d) => d.id === deptId);
-    if (!dept) return setMsg("❌ Department not found.");
+    if (!dept) {
+      return setMsg("❌ Department not found.");
+    }
 
     const firstOwner = dept.director_user_id || dept.hod_user_id || null;
     const firstStage = dept.director_user_id ? "Director" : dept.hod_user_id ? "HOD" : null;
@@ -205,9 +241,9 @@ export default function NewRequestPage() {
         p_details: details.trim(),
         p_amount: amt,
         p_dept_id: deptId,
-        p_subhead_id: subheadId,
+        p_subhead_id: isOfficial ? subheadId : null,
         p_request_type: requestType,
-        p_personal_category: requestType === "Personal" ? personalCategory : null,
+        p_personal_category: isPersonal ? personalCategory : null,
         p_created_by: me.id,
         p_requester_name: requesterName,
         p_requester_signature: me.signature_url,
@@ -217,7 +253,9 @@ export default function NewRequestPage() {
       if (error) throw new Error(error.message);
 
       const requestId = (data as any)?.request_id;
-      if (!requestId) throw new Error("Request was submitted but no request ID was returned.");
+      if (!requestId) {
+        throw new Error("Request was submitted but no request ID was returned.");
+      }
 
       setMsg(`✅ Request submitted successfully. Routed to ${(data as any)?.first_stage || "next officer"}.`);
 
@@ -249,10 +287,12 @@ export default function NewRequestPage() {
     <main className="min-h-screen bg-slate-50 px-4">
       <div className="mx-auto max-w-5xl py-10">
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">New Request</h1>
+          <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">
+            New Request
+          </h1>
           <p className="mt-2 text-sm text-slate-600">
-            Select department and subhead, confirm available balance, then submit.
-            The requested amount is reserved immediately after submission.
+            Official requests are tied to subheads and reserve funds immediately.
+            Personal Fund requests do not affect subhead balances. Personal NonFund requests do not require amount or subhead.
           </p>
         </div>
 
@@ -265,10 +305,24 @@ export default function NewRequestPage() {
         <div className="mt-6 rounded-2xl border bg-white p-6 shadow-sm">
           <div className="grid gap-4 md:grid-cols-2">
             <div>
-              <label className="text-sm font-semibold text-slate-800">Request Type</label>
+              <label className="text-sm font-semibold text-slate-800">
+                Request Type
+              </label>
               <select
                 value={requestType}
-                onChange={(e) => setRequestType(e.target.value as "Official" | "Personal")}
+                onChange={(e) => {
+                  const v = e.target.value as "Official" | "Personal";
+                  setRequestType(v);
+
+                  if (v === "Official") {
+                    setPersonalCategory("Fund");
+
+                    const first = filteredSubs[0];
+                    setSubheadId(first?.id || "");
+                  } else {
+                    setSubheadId("");
+                  }
+                }}
                 className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
               >
                 <option value="Official">Official</option>
@@ -276,12 +330,21 @@ export default function NewRequestPage() {
               </select>
             </div>
 
-            {requestType === "Personal" && (
+            {isPersonal && (
               <div>
-                <label className="text-sm font-semibold text-slate-800">Personal Category</label>
+                <label className="text-sm font-semibold text-slate-800">
+                  Personal Category
+                </label>
                 <select
                   value={personalCategory}
-                  onChange={(e) => setPersonalCategory(e.target.value as "Fund" | "NonFund")}
+                  onChange={(e) => {
+                    const v = e.target.value as "Fund" | "NonFund";
+                    setPersonalCategory(v);
+
+                    if (v === "NonFund") {
+                      setAmount("");
+                    }
+                  }}
                   className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
                 >
                   <option value="Fund">Fund</option>
@@ -291,7 +354,9 @@ export default function NewRequestPage() {
             )}
 
             <div>
-              <label className="text-sm font-semibold text-slate-800">Department</label>
+              <label className="text-sm font-semibold text-slate-800">
+                Department
+              </label>
               <select
                 value={deptId}
                 onChange={(e) => setDeptId(e.target.value)}
@@ -305,50 +370,77 @@ export default function NewRequestPage() {
               </select>
             </div>
 
-            <div>
-              <label className="text-sm font-semibold text-slate-800">Subhead</label>
-              <select
-                value={subheadId}
-                onChange={(e) => setSubheadId(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
-              >
-                {filteredSubs.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {(s.code ? `${s.code} — ` : "") + s.name}
-                  </option>
-                ))}
-              </select>
+            {isOfficial && (
+              <div>
+                <label className="text-sm font-semibold text-slate-800">
+                  Subhead
+                </label>
+                <select
+                  value={subheadId}
+                  onChange={(e) => setSubheadId(e.target.value)}
+                  className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
+                >
+                  {filteredSubs.length === 0 ? (
+                    <option value="">No active subhead for this department</option>
+                  ) : (
+                    filteredSubs.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {(s.code ? `${s.code} — ` : "") + s.name}
+                      </option>
+                    ))
+                  )}
+                </select>
 
-              <div className="mt-2 grid gap-2 text-sm font-semibold text-slate-700 sm:grid-cols-4">
-                <div>
-                  Allocation:{" "}
-                  <span className="text-slate-900">
-                    {naira(Number(selectedSubhead?.approved_allocation || 0))}
-                  </span>
-                </div>
-                <div>
-                  Reserved:{" "}
-                  <span className="text-blue-700">
-                    {naira(Number(selectedSubhead?.reserved_amount || 0))}
-                  </span>
-                </div>
-                <div>
-                  Expenditure:{" "}
-                  <span className="text-red-700">
-                    {naira(Number(selectedSubhead?.expenditure || 0))}
-                  </span>
-                </div>
-                <div>
-                  Balance:{" "}
-                  <span className="text-emerald-700">
-                    {naira(Number(selectedSubhead?.balance || 0))}
-                  </span>
+                <div className="mt-3 grid gap-2 text-sm font-semibold text-slate-700 sm:grid-cols-4">
+                  <div className="rounded-xl bg-slate-50 p-3">
+                    <div className="text-xs text-slate-500">Allocation</div>
+                    <div className="mt-1 text-slate-900">
+                      {naira(Number(selectedSubhead?.approved_allocation || 0))}
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl bg-amber-50 p-3">
+                    <div className="text-xs text-amber-700">Reserved</div>
+                    <div className="mt-1 text-amber-800">
+                      {naira(Number(selectedSubhead?.reserved_amount || 0))}
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl bg-red-50 p-3">
+                    <div className="text-xs text-red-700">Expenditure</div>
+                    <div className="mt-1 text-red-800">
+                      {naira(Number(selectedSubhead?.expenditure || 0))}
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl bg-emerald-50 p-3">
+                    <div className="text-xs text-emerald-700">Balance</div>
+                    <div className="mt-1 text-emerald-800">
+                      {naira(Number(selectedSubhead?.balance || 0))}
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
+
+            {isPersonalFund && (
+              <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-900 md:col-span-2">
+                Personal Fund Request does not use a subhead and will not deduct from departmental allocation.
+                It will pass through HR, Registry, DG, and then the selected Account Officer for treatment.
+              </div>
+            )}
+
+            {isPersonalNonFund && (
+              <div className="rounded-xl border border-purple-100 bg-purple-50 px-4 py-3 text-sm text-purple-900 md:col-span-2">
+                Personal NonFund Request does not use subhead or amount. It will pass through HR, Registry,
+                DG, and then return to HR for final filing.
+              </div>
+            )}
 
             <div>
-              <label className="text-sm font-semibold text-slate-800">Title</label>
+              <label className="text-sm font-semibold text-slate-800">
+                Title
+              </label>
               <input
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
@@ -357,19 +449,39 @@ export default function NewRequestPage() {
               />
             </div>
 
-            <div>
-              <label className="text-sm font-semibold text-slate-800">Amount (₦)</label>
-              <input
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                type="number"
-                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
-                placeholder="0"
-              />
-            </div>
+            {(isOfficial || isPersonalFund) && (
+              <div>
+                <label className="text-sm font-semibold text-slate-800">
+                  Amount (₦)
+                </label>
+                <input
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  type="number"
+                  className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
+                  placeholder="0"
+                />
+              </div>
+            )}
+
+            {isPersonalNonFund && (
+              <div>
+                <label className="text-sm font-semibold text-slate-800">
+                  Amount
+                </label>
+                <input
+                  value="Not Applicable"
+                  readOnly
+                  disabled
+                  className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-slate-500"
+                />
+              </div>
+            )}
 
             <div className="md:col-span-2">
-              <label className="text-sm font-semibold text-slate-800">Details</label>
+              <label className="text-sm font-semibold text-slate-800">
+                Details
+              </label>
               <textarea
                 value={details}
                 onChange={(e) => setDetails(e.target.value)}
