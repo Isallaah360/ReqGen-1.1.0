@@ -30,6 +30,8 @@ type PrintableRequest = {
   requester_name: string | null;
   account_name: string | null;
   subhead_id: string | null;
+  request_type: "Official" | "Personal";
+  personal_category: "Fund" | "NonFund" | null;
 };
 
 function roleKey(role: string) {
@@ -43,6 +45,25 @@ function naira(n: number) {
 function shortDate(d: string | null | undefined) {
   if (!d) return "—";
   return new Date(d).toLocaleDateString();
+}
+
+function requestTypeLabel(r: PrintableRequest) {
+  if ((r.request_type || "").toUpperCase() === "OFFICIAL") return "Official";
+  if ((r.personal_category || "").toUpperCase() === "FUND") return "Personal Fund";
+  if ((r.personal_category || "").toUpperCase() === "NONFUND") return "Personal NonFund";
+  return "Personal";
+}
+
+function requestPrintSource(r: PrintableRequest, subheadMap: Record<string, string>) {
+  if ((r.request_type || "").toUpperCase() === "OFFICIAL") {
+    return subheadMap[r.subhead_id || ""] || "No subhead";
+  }
+
+  if ((r.personal_category || "").toUpperCase() === "FUND") {
+    return "Personal Fund • No subhead";
+  }
+
+  return "Not applicable";
 }
 
 export default function SubheadsPage() {
@@ -109,8 +130,11 @@ export default function SubheadsPage() {
     if (allowedPrint) {
       const { data: reqRows, error: reqErr } = await supabase
         .from("requests")
-        .select("id,request_no,title,amount,status,current_stage,created_at,requester_name,account_name,subhead_id")
+        .select(
+          "id,request_no,title,amount,status,current_stage,created_at,requester_name,account_name,subhead_id,request_type,personal_category"
+        )
         .in("status", ["Paid", "Completed"])
+        .or("request_type.eq.Official,and(request_type.eq.Personal,personal_category.eq.Fund)")
         .order("created_at", { ascending: false })
         .limit(50);
 
@@ -271,7 +295,7 @@ export default function SubheadsPage() {
               Finance • Subheads
             </h1>
             <p className="mt-2 text-sm text-slate-600">
-              Manage allocations, commitments, expenditures, balances and completed request printouts.
+              Manage allocations, commitments, expenditures, balances and payment-related completed request printouts.
             </p>
           </div>
 
@@ -314,10 +338,10 @@ export default function SubheadsPage() {
             <div className="flex flex-wrap items-center justify-between gap-3 border-b bg-slate-50 px-6 py-4">
               <div>
                 <h2 className="text-lg font-bold text-slate-900">
-                  Completed Requests Ready for Print
+                  Payment-Related Completed Requests Ready for Print
                 </h2>
                 <p className="mt-1 text-sm text-slate-600">
-                  Available only to Admin, Auditor and Account Officers.
+                  Shows Official requests and Personal Fund requests only. Personal NonFund requests are handled by HR Filing.
                 </p>
               </div>
 
@@ -331,7 +355,7 @@ export default function SubheadsPage() {
 
             {printableRequests.length === 0 ? (
               <div className="p-6 text-sm text-slate-700">
-                No completed or paid request is ready for printing yet.
+                No payment-related completed or paid request is ready for printing yet.
               </div>
             ) : (
               <>
@@ -345,13 +369,18 @@ export default function SubheadsPage() {
                             {r.title}
                           </div>
                           <div className="mt-1 text-xs text-slate-500">
-                            {subheadMap[r.subhead_id || ""] || "No subhead"}
+                            {requestPrintSource(r, subheadMap)}
                           </div>
                         </div>
 
-                        <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
-                          {r.status}
-                        </span>
+                        <div className="flex flex-col items-end gap-1">
+                          <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">
+                            {requestTypeLabel(r)}
+                          </span>
+                          <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
+                            {r.status}
+                          </span>
+                        </div>
                       </div>
 
                       <div className="mt-3 grid gap-2 text-sm sm:grid-cols-3">
@@ -382,14 +411,15 @@ export default function SubheadsPage() {
                 </div>
 
                 <div className="hidden xl:block overflow-x-auto">
-                  <div className="min-w-[1100px]">
-                    <div className="grid grid-cols-12 bg-slate-100 px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600">
+                  <div className="min-w-[1180px]">
+                    <div className="grid grid-cols-13 bg-slate-100 px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600">
                       <div className="col-span-2">Request No</div>
                       <div className="col-span-3">Title</div>
-                      <div className="col-span-2">Subhead</div>
+                      <div className="col-span-2">Type / Source</div>
                       <div className="col-span-1 text-right">Amount</div>
                       <div className="col-span-1">Status</div>
                       <div className="col-span-1">Requester</div>
+                      <div className="col-span-1">Account</div>
                       <div className="col-span-1">Date</div>
                       <div className="col-span-1 text-right">Action</div>
                     </div>
@@ -397,7 +427,7 @@ export default function SubheadsPage() {
                     {printableRequests.map((r) => (
                       <div
                         key={r.id}
-                        className="grid grid-cols-12 items-center border-t px-6 py-4 text-sm hover:bg-slate-50"
+                        className="grid grid-cols-13 items-center border-t px-6 py-4 text-sm hover:bg-slate-50"
                       >
                         <div className="col-span-2 font-extrabold text-slate-900">
                           {r.request_no}
@@ -406,12 +436,14 @@ export default function SubheadsPage() {
                         <div className="col-span-3">
                           <div className="font-semibold text-slate-900">{r.title}</div>
                           <div className="mt-1 text-xs text-slate-500">
-                            Account: {r.account_name || "—"}
+                            {requestPrintSource(r, subheadMap)}
                           </div>
                         </div>
 
-                        <div className="col-span-2 text-slate-700">
-                          {subheadMap[r.subhead_id || ""] || "—"}
+                        <div className="col-span-2">
+                          <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">
+                            {requestTypeLabel(r)}
+                          </span>
                         </div>
 
                         <div className="col-span-1 text-right font-bold text-slate-900">
@@ -426,6 +458,10 @@ export default function SubheadsPage() {
 
                         <div className="col-span-1 text-slate-700">
                           {r.requester_name || "—"}
+                        </div>
+
+                        <div className="col-span-1 text-slate-700">
+                          {r.account_name || "—"}
                         </div>
 
                         <div className="col-span-1 text-slate-600">
