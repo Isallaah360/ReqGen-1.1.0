@@ -66,6 +66,7 @@ type Hist = {
   from_stage: string | null;
   created_at: string;
   actor_name: string | null;
+  signature_url: string | null;
 };
 
 type ProfileMini = {
@@ -111,6 +112,43 @@ function getPublicSignatureUrl(value: string | null | undefined) {
   return `${base}/storage/v1/object/public/signatures/${cleaned}`;
 }
 
+function isCompletedOrPaid(status: string | null | undefined) {
+  const s = (status || "").trim().toLowerCase();
+  return s === "paid" || s === "completed" || s.includes("paid") || s.includes("completed");
+}
+
+function isAccountRole(rk: string) {
+  return ["account", "accounts", "accountofficer"].includes(rk);
+}
+
+function canRolePrintRequest(rk: string, req: Req | null) {
+  if (!req) return false;
+
+  const isOfficial = (req.request_type || "").toUpperCase() === "OFFICIAL";
+  const isPersonalFund =
+    (req.request_type || "").toUpperCase() === "PERSONAL" &&
+    (req.personal_category || "").toUpperCase() === "FUND";
+  const isPersonalNonFund =
+    (req.request_type || "").toUpperCase() === "PERSONAL" &&
+    (req.personal_category || "").toUpperCase() === "NONFUND";
+
+  if (["admin", "auditor"].includes(rk)) return true;
+
+  if (isOfficial) {
+    return isAccountRole(rk);
+  }
+
+  if (isPersonalFund) {
+    return isAccountRole(rk) || rk === "hr";
+  }
+
+  if (isPersonalNonFund) {
+    return rk === "hr";
+  }
+
+  return false;
+}
+
 export default function PrintRequestPage() {
   const router = useRouter();
   const params = useParams();
@@ -130,17 +168,48 @@ export default function PrintRequestPage() {
   const [sigHR, setSigHR] = useState<string | null>(null);
   const [sigDG, setSigDG] = useState<string | null>(null);
   const [sigAccount, setSigAccount] = useState<string | null>(null);
+  const [sigHRFiling, setSigHRFiling] = useState<string | null>(null);
 
   const rk = roleKey(me?.role);
 
+  const isOfficial = useMemo(() => {
+    return (req?.request_type || "").toUpperCase() === "OFFICIAL";
+  }, [req?.request_type]);
+
+  const isPersonalFund = useMemo(() => {
+    return (
+      (req?.request_type || "").toUpperCase() === "PERSONAL" &&
+      (req?.personal_category || "").toUpperCase() === "FUND"
+    );
+  }, [req?.request_type, req?.personal_category]);
+
+  const isPersonalNonFund = useMemo(() => {
+    return (
+      (req?.request_type || "").toUpperCase() === "PERSONAL" &&
+      (req?.personal_category || "").toUpperCase() === "NONFUND"
+    );
+  }, [req?.request_type, req?.personal_category]);
+
   const canOpenPrintPage = useMemo(() => {
-    return ["admin", "auditor", "account", "accounts", "accountofficer"].includes(rk);
-  }, [rk]);
+    return canRolePrintRequest(rk, req);
+  }, [rk, req]);
 
   const requestIsCompletedForPrint = useMemo(() => {
-    const s = (req?.status || "").trim().toLowerCase();
-    return s === "paid" || s === "completed" || s.includes("paid") || s.includes("completed");
+    return isCompletedOrPaid(req?.status);
   }, [req?.status]);
+
+  const hrFilingHistory = useMemo(() => {
+    return history.find((h) => {
+      const from = (h.from_stage || "").toUpperCase().replace(/\s+/g, "");
+      const to = (h.to_stage || "").toUpperCase().replace(/\s+/g, "");
+      const action = (h.action_type || "").toUpperCase();
+
+      return (
+        action === "APPROVE" &&
+        (from === "HRFILING" || to === "COMPLETED")
+      );
+    });
+  }, [history]);
 
   useEffect(() => {
     async function load() {
@@ -173,15 +242,6 @@ export default function PrintRequestPage() {
 
       const myProfile = prof as ProfileMini;
       setMe(myProfile);
-
-      const myRole = roleKey(myProfile.role);
-      const allowedRole = ["admin", "auditor", "account", "accounts", "accountofficer"].includes(myRole);
-
-      if (!allowedRole) {
-        setMsg("Access denied. Only Admin, Auditor and Account Officers can print completed requests.");
-        setLoading(false);
-        return;
-      }
 
       const { data: r, error: rErr } = await supabase
         .from("requests")
@@ -228,11 +288,18 @@ export default function PrintRequestPage() {
       const reqRow = r as Req;
       setReq(reqRow);
 
-      const s = (reqRow.status || "").trim().toLowerCase();
-      const printableStatus =
-        s === "paid" || s === "completed" || s.includes("paid") || s.includes("completed");
+      const myRole = roleKey(myProfile.role);
+      const allowedRole = canRolePrintRequest(myRole, reqRow);
 
-      if (!printableStatus) {
+      if (!allowedRole) {
+        setMsg(
+          "Access denied. You do not have permission to print this request type."
+        );
+        setLoading(false);
+        return;
+      }
+
+      if (!isCompletedOrPaid(reqRow.status)) {
         setMsg("Printing is allowed only after the request has been completed or paid.");
         setLoading(false);
         return;
@@ -255,20 +322,31 @@ export default function PrintRequestPage() {
 
         supabase
           .from("request_history")
-          .select("id,action_type,comment,to_stage,from_stage,created_at,actor_name")
+          .select("id,action_type,comment,to_stage,from_stage,created_at,actor_name,signature_url")
           .eq("request_id", reqRow.id)
           .order("created_at", { ascending: true }),
       ]);
 
       if (deptRes.data) setDept(deptRes.data as Dept);
       if (subRes.data) setSubhead(subRes.data as Subhead);
-      if (histRes.data) setHistory((histRes.data || []) as Hist[]);
+
+      const histRows = (histRes.data || []) as Hist[];
+      setHistory(histRows);
+
+      const filingHist = histRows.find((h) => {
+        const from = (h.from_stage || "").toUpperCase().replace(/\s+/g, "");
+        const to = (h.to_stage || "").toUpperCase().replace(/\s+/g, "");
+        const action = (h.action_type || "").toUpperCase();
+
+        return action === "APPROVE" && (from === "HRFILING" || to === "COMPLETED");
+      });
 
       setSigRequester(getPublicSignatureUrl(reqRow.requester_signature_snapshot));
       setSigChecked(getPublicSignatureUrl(reqRow.checked_signature_snapshot));
       setSigHR(getPublicSignatureUrl(reqRow.hr_signature_snapshot));
       setSigDG(getPublicSignatureUrl(reqRow.dg_signature_snapshot));
       setSigAccount(getPublicSignatureUrl(reqRow.account_signature_snapshot));
+      setSigHRFiling(getPublicSignatureUrl(filingHist?.signature_url));
 
       setLoading(false);
     }
@@ -281,10 +359,19 @@ export default function PrintRequestPage() {
   }, [req?.request_no]);
 
   const requiresAccountLine = useMemo(() => {
-    if (!req) return false;
-    if ((req.request_type || "").toUpperCase() === "OFFICIAL") return true;
-    return (req.personal_category || "").toUpperCase() === "FUND";
-  }, [req]);
+    return isOfficial || isPersonalFund;
+  }, [isOfficial, isPersonalFund]);
+
+  const printTitle = useMemo(() => {
+    if (isPersonalFund) return "Personal Fund Request";
+    if (isPersonalNonFund) return "Personal Non-Fund Request";
+    return "Request for Fund";
+  }, [isPersonalFund, isPersonalNonFund]);
+
+  const amountText = useMemo(() => {
+    if (isPersonalNonFund) return "Not Applicable";
+    return naira(req?.amount);
+  }, [isPersonalNonFund, req?.amount]);
 
   const ready = useMemo(() => {
     if (!req) return false;
@@ -292,30 +379,43 @@ export default function PrintRequestPage() {
     const requesterReady = !!req.requester_name && !!sigRequester;
     const checkedReady = !!req.checked_by_name && !!sigChecked;
     const dgReady = !!req.dg_name && !!sigDG;
+
+    const hrReady = isPersonalFund || isPersonalNonFund ? !!req.hr_name && !!sigHR : true;
     const accountReady = requiresAccountLine ? !!req.account_name && !!sigAccount : true;
+
+    const hrFilingReady = isPersonalNonFund
+      ? !!hrFilingHistory?.actor_name && !!sigHRFiling
+      : true;
 
     return (
       canOpenPrintPage &&
       requestIsCompletedForPrint &&
       requesterReady &&
       checkedReady &&
+      hrReady &&
       dgReady &&
-      accountReady
+      accountReady &&
+      hrFilingReady
     );
   }, [
     req,
     sigRequester,
     sigChecked,
+    sigHR,
     sigDG,
     sigAccount,
+    sigHRFiling,
+    hrFilingHistory?.actor_name,
     requiresAccountLine,
     canOpenPrintPage,
     requestIsCompletedForPrint,
+    isPersonalFund,
+    isPersonalNonFund,
   ]);
 
   function handlePrint() {
     if (!canOpenPrintPage) {
-      setMsg("Access denied. Only Admin, Auditor and Account Officers can print completed requests.");
+      setMsg("Access denied. You do not have permission to print this request type.");
       return;
     }
 
@@ -335,6 +435,16 @@ export default function PrintRequestPage() {
   const commentTrail = useMemo(() => {
     return history.filter((h) => (h.comment || "").trim().length > 0);
   }, [history]);
+
+  const backPath = useMemo(() => {
+    if (isPersonalNonFund && rk === "hr") return "/approvals";
+    return "/finance/subheads";
+  }, [isPersonalNonFund, rk]);
+
+  const backLabel = useMemo(() => {
+    if (isPersonalNonFund && rk === "hr") return "Back to Approvals";
+    return "Back to Finance";
+  }, [isPersonalNonFund, rk]);
 
   if (loading) {
     return (
@@ -357,10 +467,10 @@ export default function PrintRequestPage() {
 
           <div className="mt-5 flex flex-wrap gap-2">
             <button
-              onClick={() => router.push("/finance/subheads")}
+              onClick={() => router.push(backPath)}
               className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
             >
-              Back to Finance
+              {backLabel}
             </button>
 
             <button
@@ -412,10 +522,10 @@ export default function PrintRequestPage() {
       <div className="mx-auto max-w-[820px]">
         <div className="no-print mb-3 flex items-center justify-between">
           <button
-            onClick={() => router.push("/finance/subheads")}
+            onClick={() => router.push(backPath)}
             className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
           >
-            Back to Finance
+            {backLabel}
           </button>
 
           <button
@@ -468,15 +578,31 @@ export default function PrintRequestPage() {
           <div className="mt-2 grid grid-cols-12 gap-x-3 gap-y-1">
             <TopLineField label="Reference:" value={req.request_no} className="col-span-5" />
             <TopLineField label="Date:" value={formatDate(req.created_at)} className="col-span-4" />
-            <TopLineField label="Stage:" value={req.current_stage || ""} className="col-span-3" />
+            <TopLineField label="Status:" value={req.status || ""} className="col-span-3" />
 
             <TopLineField label="Department:" value={dept?.name || ""} className="col-span-5" />
-            <TopLineField
-              label="Sub-Head:"
-              value={subhead ? `${subhead.code || ""} ${subhead.name}`.trim() : ""}
-              className="col-span-4"
-            />
-            <TopLineField label="Status:" value={req.status || ""} className="col-span-3" />
+
+            {isOfficial ? (
+              <TopLineField
+                label="Sub-Head:"
+                value={subhead ? `${subhead.code || ""} ${subhead.name}`.trim() : ""}
+                className="col-span-4"
+              />
+            ) : (
+              <TopLineField
+                label="Type:"
+                value={
+                  isPersonalFund
+                    ? "Personal Fund"
+                    : isPersonalNonFund
+                    ? "Personal Non-Fund"
+                    : "Personal"
+                }
+                className="col-span-4"
+              />
+            )}
+
+            <TopLineField label="Stage:" value={req.current_stage || ""} className="col-span-3" />
           </div>
 
           <div className="mt-1 h-[1px] w-full bg-blue-300" />
@@ -490,16 +616,23 @@ export default function PrintRequestPage() {
           <div className="mt-2.5 text-[10.5px] font-bold">Assalamu` Alaikum Sir,</div>
 
           <div className="mt-1 text-center text-[11.5px] font-black uppercase">
-            Request for Fund
+            {printTitle}
           </div>
 
-          <div className="mt-1 text-[9.5px] font-bold leading-[1.2]">
-            I write to request for the release of the total sum of{" "}
-            <span className="inline-block min-w-[150px] border-b border-black text-center font-bold">
-              {naira(req.amount)}
-            </span>{" "}
-            for the expense below/attached:
-          </div>
+          {!isPersonalNonFund ? (
+            <div className="mt-1 text-[9.5px] font-bold leading-[1.2]">
+              I write to request for the release of the total sum of{" "}
+              <span className="inline-block min-w-[150px] border-b border-black text-center font-bold">
+                {amountText}
+              </span>{" "}
+              for the purpose below/attached:
+            </div>
+          ) : (
+            <div className="mt-1 text-[9.5px] font-bold leading-[1.2]">
+              I write to request consideration and approval for the personal non-fund matter
+              stated below/attached:
+            </div>
+          )}
 
           <div className="mt-1 min-h-[54px] whitespace-pre-wrap text-[9px] font-semibold leading-[1.12]">
             {req.details}
@@ -507,14 +640,16 @@ export default function PrintRequestPage() {
 
           <div className="mt-1.5 text-[10.5px] font-bold">Wassalamu` Alaikum.</div>
 
-          <div className="mt-1.5 flex justify-end">
-            <div className="w-[320px] space-y-1">
-              <SmallFieldRow label="ALLOCATION B/D:" value={naira(subhead?.approved_allocation)} />
-              <SmallFieldRow label="RESERVED:" value={naira(subhead?.reserved_amount)} />
-              <SmallFieldRow label="EXPENDITURE:" value={naira(subhead?.expenditure)} />
-              <SmallFieldRow label="BALANCE C/D:" value={naira(subhead?.balance)} />
+          {isOfficial && (
+            <div className="mt-1.5 flex justify-end">
+              <div className="w-[320px] space-y-1">
+                <SmallFieldRow label="ALLOCATION B/D:" value={naira(subhead?.approved_allocation)} />
+                <SmallFieldRow label="RESERVED:" value={naira(subhead?.reserved_amount)} />
+                <SmallFieldRow label="EXPENDITURE:" value={naira(subhead?.expenditure)} />
+                <SmallFieldRow label="BALANCE C/D:" value={naira(subhead?.balance)} />
+              </div>
             </div>
-          </div>
+          )}
 
           <div className="mt-2 h-[1px] w-full bg-blue-300" />
 
@@ -533,6 +668,15 @@ export default function PrintRequestPage() {
               date={formatDate(req.created_at)}
             />
 
+            {(isPersonalFund || isPersonalNonFund) && (
+              <SignatureLine
+                label="Reviewed by HR:"
+                name={req.hr_name || ""}
+                sigUrl={sigHR}
+                date={formatDate(req.created_at)}
+              />
+            )}
+
             <SignatureLine
               label="Approved by DG, IET:"
               name={req.dg_name || ""}
@@ -546,6 +690,15 @@ export default function PrintRequestPage() {
                 name={req.account_name || ""}
                 sigUrl={sigAccount}
                 date={formatDate(req.created_at)}
+              />
+            )}
+
+            {isPersonalNonFund && (
+              <SignatureLine
+                label="Filed by HR:"
+                name={hrFilingHistory?.actor_name || ""}
+                sigUrl={sigHRFiling}
+                date={formatDate(hrFilingHistory?.created_at)}
               />
             )}
           </div>
@@ -568,7 +721,7 @@ export default function PrintRequestPage() {
                   {req.hr_comment && (
                     <CompactComment
                       name={req.hr_name || "HR"}
-                      role="HR"
+                      role="HR Review"
                       comment={req.hr_comment}
                     />
                   )}
@@ -581,7 +734,7 @@ export default function PrintRequestPage() {
                     />
                   )}
 
-                  {req.account_comment && (
+                  {req.account_comment && requiresAccountLine && (
                     <CompactComment
                       name={req.account_name || "Account"}
                       role="Account"
