@@ -24,6 +24,26 @@ type VoucherRow = {
   created_at: string;
 };
 
+type ReadyRequest = {
+  id: string;
+  request_no: string;
+  title: string;
+  details: string;
+  amount: number | null;
+  status: string | null;
+  current_stage: string | null;
+  created_at: string;
+  request_type: string | null;
+  personal_category: string | null;
+  requester_name: string | null;
+  dept_id: string | null;
+  dept_name: string | null;
+  subhead_id: string | null;
+  subhead_code: string | null;
+  subhead_name: string | null;
+  account_name: string | null;
+};
+
 function roleKey(role: string | null | undefined) {
   return (role || "")
     .trim()
@@ -45,12 +65,7 @@ function shortDate(d: string | null | undefined) {
   return new Date(d).toLocaleDateString();
 }
 
-function shortDateTime(d: string | null | undefined) {
-  if (!d) return "—";
-  return new Date(d).toLocaleString();
-}
-
-function categoryLabel(v: VoucherRow) {
+function categoryLabel(v: { request_type: string | null; personal_category: string | null }) {
   const rt = normalize(v.request_type);
   const pc = normalize(v.personal_category);
 
@@ -60,7 +75,7 @@ function categoryLabel(v: VoucherRow) {
   return v.request_type || "—";
 }
 
-function categoryBadgeClass(v: VoucherRow) {
+function categoryBadgeClass(v: { request_type: string | null; personal_category: string | null }) {
   const rt = normalize(v.request_type);
   const pc = normalize(v.personal_category);
 
@@ -98,6 +113,10 @@ function statusBadgeClass(status: string | null | undefined) {
     return "border-slate-200 bg-slate-50 text-slate-700";
   }
 
+  if (s.includes("complete")) {
+    return "border-emerald-200 bg-emerald-50 text-emerald-700";
+  }
+
   return "border-slate-200 bg-slate-50 text-slate-700";
 }
 
@@ -105,6 +124,7 @@ export default function PaymentVouchersPage() {
   const router = useRouter();
 
   const [loading, setLoading] = useState(true);
+  const [generatingId, setGeneratingId] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
 
   const [myRole, setMyRole] = useState("Staff");
@@ -112,6 +132,7 @@ export default function PaymentVouchersPage() {
   const canAccess = ["admin", "auditor", "account", "accounts", "accountofficer"].includes(rk);
 
   const [rows, setRows] = useState<VoucherRow[]>([]);
+  const [readyRows, setReadyRows] = useState<ReadyRequest[]>([]);
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
@@ -146,20 +167,30 @@ export default function PaymentVouchersPage() {
     if (!["admin", "auditor", "account", "accounts", "accountofficer"].includes(roleKey(role))) {
       setMsg("Access denied. Only Admin, Auditor and Account Officers can view payment vouchers.");
       setRows([]);
+      setReadyRows([]);
       setLoading(false);
       return;
     }
 
-    const { data, error } = await supabase.rpc("get_payment_vouchers");
+    const [voucherRes, readyRes] = await Promise.all([
+      supabase.rpc("get_payment_vouchers"),
+      supabase.rpc("get_requests_ready_for_payment_voucher"),
+    ]);
 
-    if (error) {
-      setMsg("Failed to load payment vouchers: " + error.message);
+    if (voucherRes.error) {
+      setMsg("Failed to load payment vouchers: " + voucherRes.error.message);
       setRows([]);
-      setLoading(false);
-      return;
+    } else {
+      setRows((voucherRes.data || []) as VoucherRow[]);
     }
 
-    setRows((data || []) as VoucherRow[]);
+    if (readyRes.error) {
+      setMsg("Failed to load voucher-ready requests: " + readyRes.error.message);
+      setReadyRows([]);
+    } else {
+      setReadyRows((readyRes.data || []) as ReadyRequest[]);
+    }
+
     setLoading(false);
   }
 
@@ -167,6 +198,39 @@ export default function PaymentVouchersPage() {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  async function generateVoucher(requestId: string) {
+    const ok = confirm("Generate payment voucher for this request?");
+    if (!ok) return;
+
+    setGeneratingId(requestId);
+    setMsg(null);
+
+    try {
+      const { data, error } = await supabase.rpc("generate_payment_voucher", {
+        p_request_id: requestId,
+      });
+
+      if (error) throw new Error(error.message);
+
+      const voucherNo = (data as any)?.voucher_no || "Payment Voucher";
+      const voucherId = (data as any)?.voucher_id;
+
+      setMsg(`✅ ${voucherNo} generated successfully.`);
+
+      await load();
+
+      if (voucherId) {
+        setTimeout(() => {
+          router.push(`/payment-vouchers/${voucherId}/print`);
+        }, 600);
+      }
+    } catch (e: any) {
+      setMsg("❌ Failed to generate voucher: " + (e?.message || "Unknown error"));
+    } finally {
+      setGeneratingId(null);
+    }
+  }
 
   const filteredRows = useMemo(() => {
     const s = search.trim().toLowerCase();
@@ -304,6 +368,155 @@ export default function PaymentVouchersPage() {
           <StatCard title="Total Value" value={naira(stats.totalAmount)} tone="amber" />
         </div>
 
+        <div className="mt-6 rounded-3xl border bg-white shadow-sm overflow-hidden">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b bg-slate-50 px-6 py-4">
+            <div>
+              <h2 className="text-lg font-bold text-slate-900">
+                Requests Ready for Voucher
+              </h2>
+              <p className="mt-1 text-sm text-slate-600">
+                Paid/completed Official and Personal Fund requests without existing vouchers.
+              </p>
+            </div>
+
+            <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">
+              {readyRows.length} ready
+            </span>
+          </div>
+
+          {readyRows.length === 0 ? (
+            <div className="p-6 text-sm text-slate-700">
+              No request is currently ready for voucher generation.
+            </div>
+          ) : (
+            <>
+              <div className="grid gap-3 p-4 xl:hidden">
+                {readyRows.map((r) => (
+                  <div key={r.id} className="rounded-2xl border bg-white p-4">
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <div>
+                        <div className="font-extrabold text-slate-900">{r.request_no}</div>
+                        <div className="mt-1 text-sm font-semibold text-slate-800">{r.title}</div>
+                        <div className="mt-1 text-xs text-slate-500">
+                          {r.dept_name || "—"}
+                        </div>
+                      </div>
+
+                      <span
+                        className={`rounded-full border px-3 py-1 text-xs font-bold ${categoryBadgeClass(r)}`}
+                      >
+                        {categoryLabel(r)}
+                      </span>
+                    </div>
+
+                    <div className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
+                      <InfoLine label="Requester" value={r.requester_name || "—"} />
+                      <InfoLine label="Amount" value={naira(r.amount)} />
+                      <InfoLine label="Status" value={r.status || "—"} />
+                      <InfoLine label="Account" value={r.account_name || "—"} />
+                    </div>
+
+                    <div className="mt-4 flex flex-wrap justify-end gap-2">
+                      <button
+                        onClick={() => router.push(`/requests/${r.id}`)}
+                        className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
+                      >
+                        Request
+                      </button>
+
+                      <button
+                        onClick={() => generateVoucher(r.id)}
+                        disabled={generatingId === r.id}
+                        className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
+                      >
+                        {generatingId === r.id ? "Generating..." : "Generate Voucher"}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="hidden xl:block overflow-x-auto">
+                <div className="min-w-[1180px]">
+                  <div className="grid grid-cols-14 bg-slate-100 px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600">
+                    <div className="col-span-2">Request No</div>
+                    <div className="col-span-3">Title</div>
+                    <div className="col-span-2">Department</div>
+                    <div className="col-span-1">Type</div>
+                    <div className="col-span-1 text-right">Amount</div>
+                    <div className="col-span-2">Requester</div>
+                    <div className="col-span-1">Status</div>
+                    <div className="col-span-2 text-right">Action</div>
+                  </div>
+
+                  {readyRows.map((r) => (
+                    <div
+                      key={r.id}
+                      className="grid grid-cols-14 items-center border-t px-6 py-4 text-sm hover:bg-slate-50"
+                    >
+                      <div className="col-span-2 font-extrabold text-slate-900">
+                        {r.request_no}
+                      </div>
+
+                      <div className="col-span-3">
+                        <div className="font-semibold text-slate-900">{r.title}</div>
+                        <div className="mt-1 line-clamp-1 text-xs text-slate-500">
+                          {r.details}
+                        </div>
+                      </div>
+
+                      <div className="col-span-2 text-slate-700">
+                        {r.dept_name || "—"}
+                      </div>
+
+                      <div className="col-span-1">
+                        <span
+                          className={`rounded-full border px-2 py-1 text-[11px] font-bold ${categoryBadgeClass(r)}`}
+                        >
+                          {categoryLabel(r)}
+                        </span>
+                      </div>
+
+                      <div className="col-span-1 text-right font-bold text-slate-900">
+                        {naira(r.amount)}
+                      </div>
+
+                      <div className="col-span-2 text-slate-700">
+                        {r.requester_name || "—"}
+                      </div>
+
+                      <div className="col-span-1">
+                        <span
+                          className={`rounded-full border px-2 py-1 text-[11px] font-bold ${statusBadgeClass(r.status)}`}
+                        >
+                          {r.status || "—"}
+                        </span>
+                      </div>
+
+                      <div className="col-span-2 flex justify-end gap-2">
+                        <button
+                          onClick={() => router.push(`/requests/${r.id}`)}
+                          className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-900 hover:bg-slate-100"
+                        >
+                          Request
+                        </button>
+
+                        <button
+                          onClick={() => generateVoucher(r.id)}
+                          disabled={generatingId === r.id}
+                          className="rounded-xl bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
+                        >
+                          {generatingId === r.id ? "Generating..." : "Generate"}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+
         <div className="mt-6 rounded-3xl border bg-white p-5 shadow-sm">
           <div className="grid gap-4 md:grid-cols-3">
             <div>
@@ -350,90 +563,11 @@ export default function PaymentVouchersPage() {
           </div>
         </div>
 
-        <div className="mt-6 grid gap-4 xl:hidden">
-          {filteredRows.length === 0 ? (
-            <EmptyState />
-          ) : (
-            filteredRows.map((v) => (
-              <div key={v.id} className="rounded-3xl border bg-white p-5 shadow-sm">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <div className="text-lg font-extrabold text-slate-900">
-                      {v.voucher_no}
-                    </div>
-                    <div className="mt-1 text-sm font-semibold text-slate-800">
-                      Request: {v.request_no || "—"}
-                    </div>
-                    <div className="mt-1 text-sm text-slate-500">
-                      {v.dept_name || "—"}
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col items-end gap-1">
-                    <span
-                      className={`rounded-full border px-3 py-1 text-xs font-bold ${categoryBadgeClass(v)}`}
-                    >
-                      {categoryLabel(v)}
-                    </span>
-
-                    <span
-                      className={`rounded-full border px-3 py-1 text-xs font-bold ${statusBadgeClass(v.status)}`}
-                    >
-                      {v.status || "—"}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="mt-4 grid gap-2 text-sm sm:grid-cols-2">
-                  <InfoLine label="Payee" value={v.payee_name || "—"} />
-                  <InfoLine label="Amount" value={naira(v.amount)} />
-                  <InfoLine label="Prepared By" value={v.prepared_by_name || "—"} />
-                  <InfoLine label="Checked By" value={v.checked_by_name || "—"} />
-                  <InfoLine label="Authorized By" value={v.authorized_by_name || "—"} />
-                  <InfoLine label="Date" value={shortDate(v.created_at)} />
-                </div>
-
-                <div className="mt-4 rounded-2xl bg-slate-50 p-4 text-sm text-slate-700">
-                  <div className="font-semibold text-slate-900">Narration</div>
-                  <div className="mt-1 line-clamp-3 whitespace-pre-wrap">
-                    {v.narration || "—"}
-                  </div>
-                </div>
-
-                <div className="mt-4 flex flex-wrap justify-end gap-2">
-                  <button
-                    onClick={() => router.push(`/requests/${v.request_id}`)}
-                    className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
-                  >
-                    Request
-                  </button>
-
-                  <button
-                    onClick={() => router.push(`/payment-vouchers/${v.id}`)}
-                    className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
-                  >
-                    View
-                  </button>
-
-                  <button
-                    onClick={() => router.push(`/payment-vouchers/${v.id}/print`)}
-                    className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
-                  >
-                    Print
-                  </button>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-
         <div className="mt-6 hidden xl:block rounded-3xl border bg-white shadow-sm overflow-hidden">
           <div className="border-b bg-slate-50 px-6 py-4">
-            <h2 className="text-lg font-bold text-slate-900">
-              Voucher Register
-            </h2>
+            <h2 className="text-lg font-bold text-slate-900">Voucher Register</h2>
             <p className="mt-1 text-sm text-slate-600">
-              Generated payment vouchers linked to request approvals.
+              Generated payment vouchers linked to approved payment requests.
             </p>
           </div>
 
@@ -464,27 +598,21 @@ export default function PaymentVouchersPage() {
                       {v.voucher_no}
                     </div>
 
-                    <div className="col-span-2 text-slate-700">
-                      {v.request_no || "—"}
-                    </div>
+                    <div className="col-span-2 text-slate-700">{v.request_no || "—"}</div>
 
                     <div className="col-span-2 font-semibold text-slate-900">
                       {v.payee_name || "—"}
                     </div>
 
                     <div className="col-span-2">
-                      <div className="line-clamp-2 text-slate-700">
-                        {v.narration || "—"}
-                      </div>
+                      <div className="line-clamp-2 text-slate-700">{v.narration || "—"}</div>
                     </div>
 
                     <div className="col-span-1 text-right font-bold text-slate-900">
                       {naira(v.amount)}
                     </div>
 
-                    <div className="col-span-2 text-slate-700">
-                      {v.dept_name || "—"}
-                    </div>
+                    <div className="col-span-2 text-slate-700">{v.dept_name || "—"}</div>
 
                     <div className="col-span-1">
                       <span
@@ -502,9 +630,7 @@ export default function PaymentVouchersPage() {
                       </span>
                     </div>
 
-                    <div className="col-span-1 text-slate-600">
-                      {shortDate(v.created_at)}
-                    </div>
+                    <div className="col-span-1 text-slate-600">{shortDate(v.created_at)}</div>
 
                     <div className="col-span-2 flex justify-end gap-2">
                       <button
@@ -532,6 +658,77 @@ export default function PaymentVouchersPage() {
                 ))}
               </div>
             </div>
+          )}
+        </div>
+
+        <div className="mt-6 grid gap-4 xl:hidden">
+          {filteredRows.length === 0 ? (
+            <EmptyState />
+          ) : (
+            filteredRows.map((v) => (
+              <div key={v.id} className="rounded-3xl border bg-white p-5 shadow-sm">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <div className="text-lg font-extrabold text-slate-900">{v.voucher_no}</div>
+                    <div className="mt-1 text-sm font-semibold text-slate-800">
+                      Request: {v.request_no || "—"}
+                    </div>
+                    <div className="mt-1 text-sm text-slate-500">{v.dept_name || "—"}</div>
+                  </div>
+
+                  <div className="flex flex-col items-end gap-1">
+                    <span
+                      className={`rounded-full border px-3 py-1 text-xs font-bold ${categoryBadgeClass(v)}`}
+                    >
+                      {categoryLabel(v)}
+                    </span>
+
+                    <span
+                      className={`rounded-full border px-3 py-1 text-xs font-bold ${statusBadgeClass(v.status)}`}
+                    >
+                      {v.status || "—"}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="mt-4 grid gap-2 text-sm sm:grid-cols-2">
+                  <InfoLine label="Payee" value={v.payee_name || "—"} />
+                  <InfoLine label="Amount" value={naira(v.amount)} />
+                  <InfoLine label="Prepared By" value={v.prepared_by_name || "—"} />
+                  <InfoLine label="Checked By" value={v.checked_by_name || "—"} />
+                  <InfoLine label="Authorized By" value={v.authorized_by_name || "—"} />
+                  <InfoLine label="Date" value={shortDate(v.created_at)} />
+                </div>
+
+                <div className="mt-4 rounded-2xl bg-slate-50 p-4 text-sm text-slate-700">
+                  <div className="font-semibold text-slate-900">Narration</div>
+                  <div className="mt-1 line-clamp-3 whitespace-pre-wrap">{v.narration || "—"}</div>
+                </div>
+
+                <div className="mt-4 flex flex-wrap justify-end gap-2">
+                  <button
+                    onClick={() => router.push(`/requests/${v.request_id}`)}
+                    className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
+                  >
+                    Request
+                  </button>
+
+                  <button
+                    onClick={() => router.push(`/payment-vouchers/${v.id}`)}
+                    className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
+                  >
+                    View
+                  </button>
+
+                  <button
+                    onClick={() => router.push(`/payment-vouchers/${v.id}/print`)}
+                    className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+                  >
+                    Print
+                  </button>
+                </div>
+              </div>
+            ))
           )}
         </div>
 
