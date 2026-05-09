@@ -13,6 +13,15 @@ type Notif = {
   created_at: string;
 };
 
+type PendingItem = {
+  id: string;
+  request_no: string;
+  title: string;
+  current_stage: string;
+  status: string;
+  created_at: string;
+};
+
 function roleKey(role: string) {
   return (role || "")
     .trim()
@@ -28,10 +37,12 @@ export default function NavBar() {
   const [signedIn, setSignedIn] = useState(false);
   const [myRole, setMyRole] = useState<string>("Staff");
   const [openBell, setOpenBell] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [items, setItems] = useState<Notif[]>([]);
-  const [userId, setUserId] = useState<string | null>(null);
 
+  const [pendingCount, setPendingCount] = useState(0);
+  const [pendingItems, setPendingItems] = useState<PendingItem[]>([]);
+  const [items, setItems] = useState<Notif[]>([]);
+
+  const [userId, setUserId] = useState<string | null>(null);
   const bellRef = useRef<HTMLDivElement | null>(null);
 
   const rk = roleKey(myRole);
@@ -76,7 +87,8 @@ export default function NavBar() {
       setSignedIn(false);
       setUserId(null);
       setMyRole("Staff");
-      setUnreadCount(0);
+      setPendingCount(0);
+      setPendingItems([]);
       setItems([]);
       return;
     }
@@ -85,18 +97,46 @@ export default function NavBar() {
     setSignedIn(true);
     setUserId(uid);
 
-    const { data: prof, error: profErr } = await supabase
+    const { data: prof } = await supabase
       .from("profiles")
       .select("role")
       .eq("id", uid)
       .maybeSingle();
 
-    if (!profErr && prof?.role) {
-      setMyRole(prof.role);
-    } else {
-      setMyRole("Staff");
-    }
+    setMyRole((prof?.role || "Staff") as string);
 
+    /*
+      Bell badge should represent real work waiting for this user.
+      It should not count old notification rows.
+    */
+    const pendingStatuses = [
+      "Submitted",
+      "In Review",
+      "Approved",
+      "Approved for Filing",
+    ];
+
+    const { count } = await supabase
+      .from("requests")
+      .select("*", { count: "exact", head: true })
+      .eq("current_owner", uid)
+      .in("status", pendingStatuses);
+
+    setPendingCount(count || 0);
+
+    const { data: pendingRows } = await supabase
+      .from("requests")
+      .select("id,request_no,title,current_stage,status,created_at")
+      .eq("current_owner", uid)
+      .in("status", pendingStatuses)
+      .order("created_at", { ascending: false })
+      .limit(8);
+
+    setPendingItems((pendingRows || []) as PendingItem[]);
+
+    /*
+      Keep recent notifications in dropdown, but do not use them for badge count.
+    */
     const { data: n } = await supabase
       .from("notifications")
       .select("id,title,link,is_read,created_at")
@@ -104,17 +144,7 @@ export default function NavBar() {
       .order("created_at", { ascending: false })
       .limit(8);
 
-    const list = (n || []) as Notif[];
-    setItems(list);
-
-    const unreadNotifCount = list.filter((x) => !x.is_read).length;
-
-    const { count: pendingApprovalCount } = await supabase
-      .from("requests")
-      .select("*", { count: "exact", head: true })
-      .eq("current_owner", uid);
-
-    setUnreadCount(Math.max(unreadNotifCount, pendingApprovalCount || 0));
+    setItems((n || []) as Notif[]);
   }
 
   useEffect(() => {
@@ -166,6 +196,8 @@ export default function NavBar() {
 
   useEffect(() => {
     setOpenBell(false);
+    refreshAll();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
 
   useEffect(() => {
@@ -206,6 +238,11 @@ export default function NavBar() {
     router.push(n.link || "/approvals");
   }
 
+  function openPending(p: PendingItem) {
+    setOpenBell(false);
+    router.push(`/requests/${p.id}`);
+  }
+
   return (
     <header className="sticky top-0 z-20 border-b bg-white/80 backdrop-blur">
       <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between">
@@ -227,52 +264,89 @@ export default function NavBar() {
               <button
                 onClick={() => setOpenBell((v) => !v)}
                 className="relative rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
-                title="Notifications"
+                title="Pending approvals"
               >
                 🔔
-                {unreadCount > 0 && (
+                {pendingCount > 0 && (
                   <span className="absolute -top-2 -right-2 rounded-full bg-red-600 px-2 py-0.5 text-xs font-bold text-white">
-                    {unreadCount}
+                    {pendingCount}
                   </span>
                 )}
               </button>
 
               {openBell && (
-                <div className="absolute right-0 top-12 w-80 rounded-2xl border bg-white shadow-lg overflow-hidden">
+                <div className="absolute right-0 top-12 w-96 rounded-2xl border bg-white shadow-lg overflow-hidden">
                   <div className="flex items-center justify-between px-4 py-3 bg-slate-50">
-                    <div className="font-bold text-slate-900">Notifications</div>
+                    <div>
+                      <div className="font-bold text-slate-900">Pending Work</div>
+                      <div className="text-xs text-slate-500">
+                        {pendingCount} request{pendingCount === 1 ? "" : "s"} assigned to you
+                      </div>
+                    </div>
+
                     <button
                       onClick={markAllRead}
                       className="text-xs font-semibold text-blue-700 hover:underline"
                     >
-                      Mark all read
+                      Mark notices read
                     </button>
                   </div>
 
-                  {items.length === 0 ? (
+                  {pendingItems.length === 0 ? (
                     <div className="p-4 text-sm text-slate-600">
-                      No notifications yet.
+                      No pending request assigned to you.
                     </div>
                   ) : (
-                    <div className="max-h-96 overflow-auto">
-                      {items.map((n) => (
+                    <div className="max-h-80 overflow-auto">
+                      {pendingItems.map((p) => (
                         <button
-                          key={n.id}
-                          onClick={() => openNotif(n)}
-                          className={`w-full text-left px-4 py-3 border-t hover:bg-slate-50 ${
-                            n.is_read ? "bg-white" : "bg-blue-50"
-                          }`}
+                          key={p.id}
+                          onClick={() => openPending(p)}
+                          className="w-full border-t px-4 py-3 text-left hover:bg-blue-50"
                         >
-                          <div className="text-sm font-semibold text-slate-900">
-                            {n.title}
+                          <div className="text-sm font-bold text-slate-900">
+                            {p.request_no}
                           </div>
-                          <div className="text-xs text-slate-500">
-                            {new Date(n.created_at).toLocaleString()}
+                          <div className="mt-1 text-sm font-semibold text-slate-700">
+                            {p.title}
+                          </div>
+                          <div className="mt-1 text-xs text-slate-500">
+                            {p.current_stage} • {p.status} •{" "}
+                            {new Date(p.created_at).toLocaleString()}
                           </div>
                         </button>
                       ))}
                     </div>
                   )}
+
+                  <div className="border-t bg-slate-50 px-4 py-3">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      Recent Notifications
+                    </div>
+
+                    {items.length === 0 ? (
+                      <div className="mt-2 text-xs text-slate-500">No recent notifications.</div>
+                    ) : (
+                      <div className="mt-2 max-h-44 overflow-auto rounded-xl border bg-white">
+                        {items.map((n) => (
+                          <button
+                            key={n.id}
+                            onClick={() => openNotif(n)}
+                            className={`w-full border-t px-3 py-2 text-left first:border-t-0 hover:bg-slate-50 ${
+                              n.is_read ? "bg-white" : "bg-blue-50"
+                            }`}
+                          >
+                            <div className="text-xs font-semibold text-slate-900">
+                              {n.title}
+                            </div>
+                            <div className="text-[11px] text-slate-500">
+                              {new Date(n.created_at).toLocaleString()}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
             </div>

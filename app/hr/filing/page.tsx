@@ -114,6 +114,10 @@ export default function HRFilingPage() {
   const [deptFilter, setDeptFilter] = useState("ALL");
   const [statusFilter, setStatusFilter] = useState("ALL");
 
+  function openTemplate(id: string) {
+    router.push(`/requests/${id}/print`);
+  }
+
   async function load() {
     setLoading(true);
     setMsg(null);
@@ -412,15 +416,15 @@ export default function HRFilingPage() {
 
                 <div className="mt-4 flex flex-wrap justify-end gap-2">
                   <button
-                    onClick={() => router.push(`/requests/${r.id}`)}
+                    onClick={() => openTemplate(r.id)}
                     className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
                   >
-                    View
+                    View Template
                   </button>
 
                   {isCompleted(r) && (
                     <button
-                      onClick={() => router.push(`/requests/${r.id}/print`)}
+                      onClick={() => openTemplate(r.id)}
                       className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
                     >
                       Print / File
@@ -518,7 +522,7 @@ export default function HRFilingPage() {
 
                     <div className="col-span-1 flex justify-end gap-2">
                       <button
-                        onClick={() => router.push(`/requests/${r.id}`)}
+                        onClick={() => openTemplate(r.id)}
                         className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-900 hover:bg-slate-100"
                       >
                         View
@@ -526,7 +530,7 @@ export default function HRFilingPage() {
 
                       {isCompleted(r) && (
                         <button
-                          onClick={() => router.push(`/requests/${r.id}/print`)}
+                          onClick={() => openTemplate(r.id)}
                           className="rounded-xl bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-700"
                         >
                           Print

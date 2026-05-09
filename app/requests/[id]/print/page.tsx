@@ -10,15 +10,26 @@ type Req = {
   request_no: string;
   title: string;
   details: string;
-  amount: number;
+  amount: number | null;
+
   created_by: string;
   dept_id: string;
+  dept_name: string | null;
+
   subhead_id: string | null;
+  subhead_code: string | null;
+  subhead_name: string | null;
+  approved_allocation: number | null;
+  reserved_amount: number | null;
+  expenditure: number | null;
+  balance: number | null;
+
   current_stage: string;
   status: string;
   created_at: string;
-  request_type: "Official" | "Personal";
-  personal_category: "Fund" | "NonFund" | null;
+
+  request_type: "Official" | "Personal" | string;
+  personal_category: "Fund" | "NonFund" | string | null;
 
   requester_name: string | null;
   requester_comment: string | null;
@@ -43,24 +54,9 @@ type Req = {
   assigned_account_officer_name: string | null;
 };
 
-type Dept = {
-  id: string;
-  name: string;
-};
-
-type Subhead = {
-  id: string;
-  code: string | null;
-  name: string;
-  approved_allocation: number | null;
-  reserved_amount: number | null;
-  expenditure: number | null;
-  balance: number | null;
-};
-
 type Hist = {
   id: string;
-  action_type: string;
+  action_type: string | null;
   comment: string | null;
   to_stage: string | null;
   from_stage: string | null;
@@ -80,6 +76,10 @@ function roleKey(role: string | null | undefined) {
     .toLowerCase()
     .replace(/\s+/g, "")
     .replace(/_/g, "");
+}
+
+function normalize(v: string | null | undefined) {
+  return (v || "").toLowerCase().replace(/[^a-z]/g, "");
 }
 
 function naira(n: number | null | undefined) {
@@ -124,27 +124,15 @@ function isAccountRole(rk: string) {
 function canRolePrintRequest(rk: string, req: Req | null) {
   if (!req) return false;
 
-  const isOfficial = (req.request_type || "").toUpperCase() === "OFFICIAL";
-  const isPersonalFund =
-    (req.request_type || "").toUpperCase() === "PERSONAL" &&
-    (req.personal_category || "").toUpperCase() === "FUND";
-  const isPersonalNonFund =
-    (req.request_type || "").toUpperCase() === "PERSONAL" &&
-    (req.personal_category || "").toUpperCase() === "NONFUND";
+  const isOfficial = normalize(req.request_type) === "official";
+  const isPersonalFund = normalize(req.request_type) === "personal" && normalize(req.personal_category) === "fund";
+  const isPersonalNonFund = normalize(req.request_type) === "personal" && normalize(req.personal_category) === "nonfund";
 
   if (["admin", "auditor"].includes(rk)) return true;
 
-  if (isOfficial) {
-    return isAccountRole(rk);
-  }
-
-  if (isPersonalFund) {
-    return isAccountRole(rk) || rk === "hr";
-  }
-
-  if (isPersonalNonFund) {
-    return rk === "hr";
-  }
+  if (isOfficial) return isAccountRole(rk);
+  if (isPersonalFund) return isAccountRole(rk) || rk === "hr";
+  if (isPersonalNonFund) return rk === "hr";
 
   return false;
 }
@@ -159,8 +147,6 @@ export default function PrintRequestPage() {
 
   const [me, setMe] = useState<ProfileMini | null>(null);
   const [req, setReq] = useState<Req | null>(null);
-  const [dept, setDept] = useState<Dept | null>(null);
-  const [subhead, setSubhead] = useState<Subhead | null>(null);
   const [history, setHistory] = useState<Hist[]>([]);
 
   const [sigRequester, setSigRequester] = useState<string | null>(null);
@@ -173,22 +159,20 @@ export default function PrintRequestPage() {
   const rk = roleKey(me?.role);
 
   const isOfficial = useMemo(() => {
-    return (req?.request_type || "").toUpperCase() === "OFFICIAL";
+    return normalize(req?.request_type) === "official";
   }, [req?.request_type]);
 
   const isPersonalFund = useMemo(() => {
-    return (
-      (req?.request_type || "").toUpperCase() === "PERSONAL" &&
-      (req?.personal_category || "").toUpperCase() === "FUND"
-    );
+    return normalize(req?.request_type) === "personal" && normalize(req?.personal_category) === "fund";
   }, [req?.request_type, req?.personal_category]);
 
   const isPersonalNonFund = useMemo(() => {
-    return (
-      (req?.request_type || "").toUpperCase() === "PERSONAL" &&
-      (req?.personal_category || "").toUpperCase() === "NONFUND"
-    );
+    return normalize(req?.request_type) === "personal" && normalize(req?.personal_category) === "nonfund";
   }, [req?.request_type, req?.personal_category]);
+
+  const requiresAccountLine = useMemo(() => {
+    return isOfficial || isPersonalFund;
+  }, [isOfficial, isPersonalFund]);
 
   const canOpenPrintPage = useMemo(() => {
     return canRolePrintRequest(rk, req);
@@ -200,14 +184,11 @@ export default function PrintRequestPage() {
 
   const hrFilingHistory = useMemo(() => {
     return history.find((h) => {
-      const from = (h.from_stage || "").toUpperCase().replace(/\s+/g, "");
-      const to = (h.to_stage || "").toUpperCase().replace(/\s+/g, "");
-      const action = (h.action_type || "").toUpperCase();
+      const from = normalize(h.from_stage);
+      const to = normalize(h.to_stage);
+      const action = normalize(h.action_type);
 
-      return (
-        action === "APPROVE" &&
-        (from === "HRFILING" || to === "COMPLETED")
-      );
+      return action === "approve" && (from === "hrfiling" || to === "completed");
     });
   }, [history]);
 
@@ -232,10 +213,10 @@ export default function PrintRequestPage() {
         .from("profiles")
         .select("id,role")
         .eq("id", auth.user.id)
-        .single();
+        .maybeSingle();
 
-      if (profErr) {
-        setMsg("Failed to load your profile: " + profErr.message);
+      if (profErr || !prof) {
+        setMsg("Failed to load your profile: " + (profErr?.message || "Profile not found."));
         setLoading(false);
         return;
       }
@@ -243,41 +224,9 @@ export default function PrintRequestPage() {
       const myProfile = prof as ProfileMini;
       setMe(myProfile);
 
-      const { data: r, error: rErr } = await supabase
-        .from("requests")
-        .select(`
-          id,
-          request_no,
-          title,
-          details,
-          amount,
-          created_by,
-          dept_id,
-          subhead_id,
-          current_stage,
-          status,
-          created_at,
-          request_type,
-          personal_category,
-          requester_name,
-          requester_comment,
-          requester_signature_snapshot,
-          checked_by_name,
-          checked_comment,
-          checked_signature_snapshot,
-          hr_name,
-          hr_comment,
-          hr_signature_snapshot,
-          dg_name,
-          dg_comment,
-          dg_signature_snapshot,
-          account_name,
-          account_comment,
-          account_signature_snapshot,
-          assigned_account_officer_name
-        `)
-        .eq("id", id)
-        .single();
+      const { data: printRows, error: rErr } = await supabase.rpc("get_print_request_detail", {
+        p_request_id: id,
+      });
 
       if (rErr) {
         setMsg("Failed to load request: " + rErr.message);
@@ -285,16 +234,19 @@ export default function PrintRequestPage() {
         return;
       }
 
-      const reqRow = r as Req;
+      const reqRow = Array.isArray(printRows) ? (printRows[0] as Req | undefined) : (printRows as Req | undefined);
+
+      if (!reqRow) {
+        setMsg("Request not found or you do not have access.");
+        setLoading(false);
+        return;
+      }
+
       setReq(reqRow);
 
       const myRole = roleKey(myProfile.role);
-      const allowedRole = canRolePrintRequest(myRole, reqRow);
-
-      if (!allowedRole) {
-        setMsg(
-          "Access denied. You do not have permission to print this request type."
-        );
+      if (!canRolePrintRequest(myRole, reqRow)) {
+        setMsg("Access denied. You do not have permission to print this request type.");
         setLoading(false);
         return;
       }
@@ -305,40 +257,25 @@ export default function PrintRequestPage() {
         return;
       }
 
-      const [deptRes, subRes, histRes] = await Promise.all([
-        supabase
-          .from("departments")
-          .select("id,name")
-          .eq("id", reqRow.dept_id)
-          .single(),
+      const { data: histRows, error: histErr } = await supabase.rpc("get_print_request_history", {
+        p_request_id: id,
+      });
 
-        reqRow.subhead_id
-          ? supabase
-              .from("subheads")
-              .select("id,code,name,approved_allocation,reserved_amount,expenditure,balance")
-              .eq("id", reqRow.subhead_id)
-              .single()
-          : Promise.resolve({ data: null } as any),
+      if (histErr) {
+        setMsg("Failed to load request history: " + histErr.message);
+        setLoading(false);
+        return;
+      }
 
-        supabase
-          .from("request_history")
-          .select("id,action_type,comment,to_stage,from_stage,created_at,actor_name,signature_url")
-          .eq("request_id", reqRow.id)
-          .order("created_at", { ascending: true }),
-      ]);
+      const historyRows = (histRows || []) as Hist[];
+      setHistory(historyRows);
 
-      if (deptRes.data) setDept(deptRes.data as Dept);
-      if (subRes.data) setSubhead(subRes.data as Subhead);
+      const filingHist = historyRows.find((h) => {
+        const from = normalize(h.from_stage);
+        const to = normalize(h.to_stage);
+        const action = normalize(h.action_type);
 
-      const histRows = (histRes.data || []) as Hist[];
-      setHistory(histRows);
-
-      const filingHist = histRows.find((h) => {
-        const from = (h.from_stage || "").toUpperCase().replace(/\s+/g, "");
-        const to = (h.to_stage || "").toUpperCase().replace(/\s+/g, "");
-        const action = (h.action_type || "").toUpperCase();
-
-        return action === "APPROVE" && (from === "HRFILING" || to === "COMPLETED");
+        return action === "approve" && (from === "hrfiling" || to === "completed");
       });
 
       setSigRequester(getPublicSignatureUrl(reqRow.requester_signature_snapshot));
@@ -358,10 +295,6 @@ export default function PrintRequestPage() {
     document.title = req?.request_no || "request-print";
   }, [req?.request_no]);
 
-  const requiresAccountLine = useMemo(() => {
-    return isOfficial || isPersonalFund;
-  }, [isOfficial, isPersonalFund]);
-
   const printTitle = useMemo(() => {
     if (isPersonalFund) return "Personal Fund Request";
     if (isPersonalNonFund) return "Personal Non-Fund Request";
@@ -372,6 +305,16 @@ export default function PrintRequestPage() {
     if (isPersonalNonFund) return "Not Applicable";
     return naira(req?.amount);
   }, [isPersonalNonFund, req?.amount]);
+
+  const backPath = useMemo(() => {
+    if (rk === "hr" && (isPersonalFund || isPersonalNonFund)) return "/hr/filing";
+    return "/finance/subheads";
+  }, [rk, isPersonalFund, isPersonalNonFund]);
+
+  const backLabel = useMemo(() => {
+    if (rk === "hr" && (isPersonalFund || isPersonalNonFund)) return "Back to HR Filing";
+    return "Back to Finance";
+  }, [rk, isPersonalFund, isPersonalNonFund]);
 
   const ready = useMemo(() => {
     if (!req) return false;
@@ -436,16 +379,6 @@ export default function PrintRequestPage() {
     return history.filter((h) => (h.comment || "").trim().length > 0);
   }, [history]);
 
-  const backPath = useMemo(() => {
-    if (isPersonalNonFund && rk === "hr") return "/approvals";
-    return "/finance/subheads";
-  }, [isPersonalNonFund, rk]);
-
-  const backLabel = useMemo(() => {
-    if (isPersonalNonFund && rk === "hr") return "Back to Approvals";
-    return "Back to Finance";
-  }, [isPersonalNonFund, rk]);
-
   if (loading) {
     return (
       <main className="min-h-screen bg-slate-100 px-4 py-8">
@@ -461,6 +394,7 @@ export default function PrintRequestPage() {
       <main className="min-h-screen bg-slate-100 px-4 py-8">
         <div className="mx-auto max-w-3xl rounded-2xl border bg-white p-6 shadow-sm">
           <div className="text-lg font-bold text-slate-900">Print Access</div>
+
           <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
             {msg}
           </div>
@@ -580,12 +514,12 @@ export default function PrintRequestPage() {
             <TopLineField label="Date:" value={formatDate(req.created_at)} className="col-span-4" />
             <TopLineField label="Status:" value={req.status || ""} className="col-span-3" />
 
-            <TopLineField label="Department:" value={dept?.name || ""} className="col-span-5" />
+            <TopLineField label="Department:" value={req.dept_name || ""} className="col-span-5" />
 
             {isOfficial ? (
               <TopLineField
                 label="Sub-Head:"
-                value={subhead ? `${subhead.code || ""} ${subhead.name}`.trim() : ""}
+                value={`${req.subhead_code || ""} ${req.subhead_name || ""}`.trim()}
                 className="col-span-4"
               />
             ) : (
@@ -643,10 +577,10 @@ export default function PrintRequestPage() {
           {isOfficial && (
             <div className="mt-1.5 flex justify-end">
               <div className="w-[320px] space-y-1">
-                <SmallFieldRow label="ALLOCATION B/D:" value={naira(subhead?.approved_allocation)} />
-                <SmallFieldRow label="RESERVED:" value={naira(subhead?.reserved_amount)} />
-                <SmallFieldRow label="EXPENDITURE:" value={naira(subhead?.expenditure)} />
-                <SmallFieldRow label="BALANCE C/D:" value={naira(subhead?.balance)} />
+                <SmallFieldRow label="ALLOCATION B/D:" value={naira(req.approved_allocation)} />
+                <SmallFieldRow label="RESERVED:" value={naira(req.reserved_amount)} />
+                <SmallFieldRow label="EXPENDITURE:" value={naira(req.expenditure)} />
+                <SmallFieldRow label="BALANCE C/D:" value={naira(req.balance)} />
               </div>
             </div>
           )}
@@ -835,7 +769,7 @@ function SignatureLine({
       <div className="grid grid-cols-[120px_2fr_0.72fr_0.72fr] items-end gap-2">
         <div className="whitespace-nowrap">{label}</div>
 
-        <div className="border-b border-black pb-[1px] text-[8.8px] font-semibold pr-1">
+        <div className="border-b border-black pb-[1px] pr-1 text-[8.8px] font-semibold">
           {name}
         </div>
 
