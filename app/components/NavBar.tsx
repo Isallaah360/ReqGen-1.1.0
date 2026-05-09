@@ -60,6 +60,7 @@ export default function NavBar() {
 
     if (canFinance) {
       base.push({ href: "/finance/subheads", label: "Finance" });
+      base.push({ href: "/payment-vouchers", label: "Vouchers" });
     }
 
     if (canHRFiling) {
