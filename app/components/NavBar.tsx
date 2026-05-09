@@ -36,35 +36,35 @@ export default function NavBar() {
 
   const [signedIn, setSignedIn] = useState(false);
   const [myRole, setMyRole] = useState<string>("Staff");
+
   const [openBell, setOpenBell] = useState(false);
+  const [openFinance, setOpenFinance] = useState(false);
 
   const [pendingCount, setPendingCount] = useState(0);
   const [pendingItems, setPendingItems] = useState<PendingItem[]>([]);
   const [items, setItems] = useState<Notif[]>([]);
 
   const [userId, setUserId] = useState<string | null>(null);
+
   const bellRef = useRef<HTMLDivElement | null>(null);
+  const financeRef = useRef<HTMLDivElement | null>(null);
 
   const rk = roleKey(myRole);
 
   const isAdmin = ["admin", "auditor"].includes(rk);
   const canFinance = ["admin", "auditor", "account", "accounts", "accountofficer"].includes(rk);
-  const canHRFiling = ["admin", "auditor", "hr"].includes(rk);
+  const canAuditView = ["admin", "auditor", "account", "accounts", "accountofficer"].includes(rk);
+  const canHRPersonal = ["admin", "auditor", "hr"].includes(rk);
 
   const links = useMemo(() => {
     const base = [
       { href: "/approvals", label: "Approvals" },
       { href: "/dashboard", label: "Dashboard" },
-      { href: "/requests", label: "My Requests" },
+      { href: "/requests", label: "Requests" },
     ];
 
-    if (canFinance) {
-      base.push({ href: "/finance/subheads", label: "Finance" });
-      base.push({ href: "/payment-vouchers", label: "Vouchers" });
-    }
-
-    if (canHRFiling) {
-      base.push({ href: "/hr/filing", label: "HR Office" });
+    if (canHRPersonal) {
+      base.push({ href: "/hr/filing", label: "HR" });
     }
 
     if (isAdmin) {
@@ -72,7 +72,21 @@ export default function NavBar() {
     }
 
     return base;
-  }, [canFinance, canHRFiling, isAdmin]);
+  }, [canHRPersonal, isAdmin]);
+
+  const financeLinks = useMemo(() => {
+    const list = [
+      { href: "/finance/subheads", label: "Subheads / Finance" },
+      { href: "/payment-vouchers", label: "Payment Vouchers" },
+      { href: "/finance/reports", label: "Reports" },
+    ];
+
+    if (canAuditView) {
+      list.push({ href: "/finance/audit", label: "Audit & Reconciliation" });
+    }
+
+    return list;
+  }, [canAuditView]);
 
   const linkClass = (href: string) =>
     `px-3 py-2 rounded-xl text-sm font-semibold transition ${
@@ -80,6 +94,9 @@ export default function NavBar() {
         ? "bg-blue-600 text-white shadow-sm"
         : "text-slate-700 hover:bg-slate-100"
     }`;
+
+  const financeActive =
+    pathname.startsWith("/finance") || pathname.startsWith("/payment-vouchers");
 
   async function refreshAll() {
     const { data: sess, error: sessErr } = await supabase.auth.getSession();
@@ -106,10 +123,6 @@ export default function NavBar() {
 
     setMyRole((prof?.role || "Staff") as string);
 
-    /*
-      Bell badge should represent real work waiting for this user.
-      It should not count old notification rows.
-    */
     const pendingStatuses = [
       "Submitted",
       "In Review",
@@ -135,9 +148,6 @@ export default function NavBar() {
 
     setPendingItems((pendingRows || []) as PendingItem[]);
 
-    /*
-      Keep recent notifications in dropdown, but do not use them for badge count.
-    */
     const { data: n } = await supabase
       .from("notifications")
       .select("id,title,link,is_read,created_at")
@@ -156,6 +166,7 @@ export default function NavBar() {
     });
 
     return () => sub.subscription.unsubscribe();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -197,6 +208,7 @@ export default function NavBar() {
 
   useEffect(() => {
     setOpenBell(false);
+    setOpenFinance(false);
     refreshAll();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
@@ -204,18 +216,24 @@ export default function NavBar() {
   useEffect(() => {
     function onClick(e: MouseEvent) {
       const t = e.target as Node;
+
       if (openBell && bellRef.current && !bellRef.current.contains(t)) {
         setOpenBell(false);
+      }
+
+      if (openFinance && financeRef.current && !financeRef.current.contains(t)) {
+        setOpenFinance(false);
       }
     }
 
     document.addEventListener("mousedown", onClick);
     return () => document.removeEventListener("mousedown", onClick);
-  }, [openBell]);
+  }, [openBell, openFinance]);
 
   async function logout() {
     await supabase.auth.signOut();
     setOpenBell(false);
+    setOpenFinance(false);
     router.push("/");
     router.refresh();
   }
@@ -246,7 +264,7 @@ export default function NavBar() {
 
   return (
     <header className="sticky top-0 z-20 border-b bg-white/80 backdrop-blur">
-      <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between">
+      <div className="mx-auto max-w-7xl px-4 py-3 flex items-center justify-between">
         <Link href="/" className="font-extrabold text-lg tracking-tight text-slate-900">
           ReqGen <span className="text-slate-400">1.1.0</span>
         </Link>
@@ -254,7 +272,58 @@ export default function NavBar() {
         {!signedIn ? null : (
           <div className="flex items-center gap-2">
             <nav className="hidden md:flex items-center gap-2">
-              {links.map((l) => (
+              {links.slice(0, 3).map((l) => (
+                <Link key={l.href} className={linkClass(l.href)} href={l.href}>
+                  {l.label}
+                </Link>
+              ))}
+
+              {canFinance && (
+                <div className="relative" ref={financeRef}>
+                  <button
+                    onClick={() => setOpenFinance((v) => !v)}
+                    className={`px-3 py-2 rounded-xl text-sm font-semibold transition ${
+                      financeActive
+                        ? "bg-blue-600 text-white shadow-sm"
+                        : "text-slate-700 hover:bg-slate-100"
+                    }`}
+                    title="Finance menu"
+                  >
+                    Finance ▾
+                  </button>
+
+                  {openFinance && (
+                    <div className="absolute left-0 top-12 w-72 overflow-hidden rounded-2xl border bg-white shadow-lg">
+                      <div className="border-b bg-slate-50 px-4 py-3">
+                        <div className="text-sm font-bold text-slate-900">
+                          Finance Directorate
+                        </div>
+                        <div className="mt-0.5 text-xs text-slate-500">
+                          Budgets, vouchers, reports and audit tools
+                        </div>
+                      </div>
+
+                      <div className="p-2">
+                        {financeLinks.map((l) => (
+                          <Link
+                            key={l.href}
+                            href={l.href}
+                            className={`block rounded-xl px-3 py-2 text-sm font-semibold ${
+                              pathname === l.href || pathname.startsWith(l.href + "/")
+                                ? "bg-blue-600 text-white"
+                                : "text-slate-800 hover:bg-slate-100"
+                            }`}
+                          >
+                            {l.label}
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {links.slice(3).map((l) => (
                 <Link key={l.href} className={linkClass(l.href)} href={l.href}>
                   {l.label}
                 </Link>
