@@ -18,6 +18,8 @@ type ReqRow = {
   hr_name: string | null;
   dg_name: string | null;
   dept_id: string | null;
+  request_type: string | null;
+  personal_category: string | null;
 };
 
 type Dept = {
@@ -38,11 +40,6 @@ function shortDate(d: string | null | undefined) {
   return new Date(d).toLocaleDateString();
 }
 
-function shortDateTime(d: string | null | undefined) {
-  if (!d) return "—";
-  return new Date(d).toLocaleString();
-}
-
 function statusBadgeClass(status: string | null | undefined) {
   const s = (status || "").toLowerCase();
 
@@ -54,11 +51,54 @@ function statusBadgeClass(status: string | null | undefined) {
     return "border-red-200 bg-red-50 text-red-700";
   }
 
+  if (s.includes("filing")) {
+    return "border-purple-200 bg-purple-50 text-purple-700";
+  }
+
   if (s.includes("review") || s.includes("approve")) {
     return "border-blue-200 bg-blue-50 text-blue-700";
   }
 
   return "border-slate-200 bg-slate-50 text-slate-700";
+}
+
+function stageBadgeClass(stage: string | null | undefined) {
+  const s = (stage || "").toLowerCase();
+
+  if (s.includes("completed")) {
+    return "border-emerald-200 bg-emerald-50 text-emerald-700";
+  }
+
+  if (s.includes("hr filing")) {
+    return "border-purple-200 bg-purple-50 text-purple-700";
+  }
+
+  if (s.includes("dg")) {
+    return "border-indigo-200 bg-indigo-50 text-indigo-700";
+  }
+
+  if (s.includes("hr")) {
+    return "border-blue-200 bg-blue-50 text-blue-700";
+  }
+
+  return "border-slate-200 bg-slate-50 text-slate-700";
+}
+
+function isPersonalNonFund(r: ReqRow) {
+  return (
+    (r.request_type || "").toLowerCase() === "personal" &&
+    (r.personal_category || "").toLowerCase().replace(/\s+/g, "") === "nonfund"
+  );
+}
+
+function isCompleted(r: ReqRow) {
+  return (r.status || "").toLowerCase().includes("complete");
+}
+
+function isReadyForFiling(r: ReqRow) {
+  const stage = (r.current_stage || "").toLowerCase().replace(/\s+/g, "");
+  const status = (r.status || "").toLowerCase();
+  return stage === "hrfiling" || status.includes("filing");
 }
 
 export default function HRFilingPage() {
@@ -77,7 +117,7 @@ export default function HRFilingPage() {
 
   const [search, setSearch] = useState("");
   const [deptFilter, setDeptFilter] = useState("ALL");
-  const [statusFilter, setStatusFilter] = useState("Completed");
+  const [statusFilter, setStatusFilter] = useState("ALL");
 
   async function load() {
     setLoading(true);
@@ -124,29 +164,21 @@ export default function HRFilingPage() {
 
     setDepts((deptRows || []) as Dept[]);
 
-    let q = supabase
+    /*
+      IMPORTANT:
+      We load ALL Personal NonFund requests first.
+      Then filters are applied in React.
+      This avoids Supabase filter mismatch due to status/stage differences.
+    */
+    const { data: reqRows, error: reqErr } = await supabase
       .from("requests")
       .select(
-        "id,request_no,title,details,amount,status,current_stage,created_at,requester_name,checked_by_name,hr_name,dg_name,dept_id"
+        "id,request_no,title,details,amount,status,current_stage,created_at,requester_name,checked_by_name,hr_name,dg_name,dept_id,request_type,personal_category"
       )
       .eq("request_type", "Personal")
       .eq("personal_category", "NonFund")
       .order("created_at", { ascending: false })
-      .limit(100);
-
-    if (statusFilter === "Completed") {
-      q = q.in("status", ["Completed"]);
-    } else if (statusFilter === "All") {
-      // no status filter
-    } else {
-      q = q.eq("status", statusFilter);
-    }
-
-    if (deptFilter !== "ALL") {
-      q = q.eq("dept_id", deptFilter);
-    }
-
-    const { data: reqRows, error: reqErr } = await q;
+      .limit(300);
 
     if (reqErr) {
       setMsg("Failed to load HR filing requests: " + reqErr.message);
@@ -162,7 +194,7 @@ export default function HRFilingPage() {
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [deptFilter, statusFilter]);
+  }, []);
 
   const deptMap = useMemo(() => {
     const m: Record<string, string> = {};
@@ -175,46 +207,72 @@ export default function HRFilingPage() {
   const filteredRows = useMemo(() => {
     const s = search.trim().toLowerCase();
 
-    if (!s) return rows;
-
     return rows.filter((r) => {
-      const haystack = [
-        r.request_no,
-        r.title,
-        r.details,
-        r.requester_name,
-        r.checked_by_name,
-        r.hr_name,
-        r.dg_name,
-        r.dept_id ? deptMap[r.dept_id] : "",
-        r.status,
-      ]
-        .join(" ")
-        .toLowerCase();
+      if (!isPersonalNonFund(r)) return false;
 
-      return haystack.includes(s);
+      if (deptFilter !== "ALL" && r.dept_id !== deptFilter) return false;
+
+      if (statusFilter === "Completed" && !isCompleted(r)) return false;
+
+      if (statusFilter === "ReadyForFiling" && !isReadyForFiling(r)) return false;
+
+      if (statusFilter === "InProgress") {
+        const completed = isCompleted(r);
+        const rejected = (r.status || "").toLowerCase().includes("reject");
+        if (completed || rejected) return false;
+      }
+
+      if (statusFilter === "Rejected") {
+        if (!(r.status || "").toLowerCase().includes("reject")) return false;
+      }
+
+      if (s) {
+        const haystack = [
+          r.request_no,
+          r.title,
+          r.details,
+          r.requester_name,
+          r.checked_by_name,
+          r.hr_name,
+          r.dg_name,
+          r.dept_id ? deptMap[r.dept_id] : "",
+          r.status,
+          r.current_stage,
+        ]
+          .join(" ")
+          .toLowerCase();
+
+        if (!haystack.includes(s)) return false;
+      }
+
+      return true;
     });
-  }, [rows, search, deptMap]);
+  }, [rows, search, deptMap, deptFilter, statusFilter]);
 
   const stats = useMemo(() => {
-    const total = rows.length;
-    const completed = rows.filter((r) =>
-      (r.status || "").toLowerCase().includes("complete")
-    ).length;
+    const personalNonFundRows = rows.filter(isPersonalNonFund);
 
-    const thisMonth = rows.filter((r) => {
+    const total = personalNonFundRows.length;
+
+    const completed = personalNonFundRows.filter(isCompleted).length;
+
+    const readyForFiling = personalNonFundRows.filter(isReadyForFiling).length;
+
+    const thisMonth = personalNonFundRows.filter((r) => {
       const d = new Date(r.created_at);
       const now = new Date();
       return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
     }).length;
 
-    return { total, completed, thisMonth };
+    return { total, completed, readyForFiling, thisMonth };
   }, [rows]);
 
   if (loading) {
     return (
       <main className="min-h-screen bg-slate-50 px-4">
-        <div className="mx-auto max-w-7xl py-10 text-slate-600">Loading HR filing...</div>
+        <div className="mx-auto max-w-7xl py-10 text-slate-600">
+          Loading HR filing...
+        </div>
       </main>
     );
   }
@@ -250,7 +308,7 @@ export default function HRFilingPage() {
               HR Filing
             </h1>
             <p className="mt-2 text-sm text-slate-600">
-              Completed Personal NonFund requests ready for HR filing, printing and records.
+              Personal NonFund requests for HR review, DG approval, final filing and records.
             </p>
           </div>
 
@@ -277,10 +335,11 @@ export default function HRFilingPage() {
           </div>
         )}
 
-        <div className="mt-6 grid gap-4 md:grid-cols-3">
+        <div className="mt-6 grid gap-4 md:grid-cols-4">
           <StatCard title="Total Personal NonFund" value={String(stats.total)} tone="blue" />
+          <StatCard title="Ready for Filing" value={String(stats.readyForFiling)} tone="purple" />
           <StatCard title="Completed / Filed" value={String(stats.completed)} tone="emerald" />
-          <StatCard title="This Month" value={String(stats.thisMonth)} tone="purple" />
+          <StatCard title="This Month" value={String(stats.thisMonth)} tone="slate" />
         </div>
 
         <div className="mt-6 rounded-3xl border bg-white p-5 shadow-sm">
@@ -318,10 +377,10 @@ export default function HRFilingPage() {
                 onChange={(e) => setStatusFilter(e.target.value)}
                 className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-3 text-slate-900 outline-none focus:border-blue-500"
               >
-                <option value="Completed">Completed Only</option>
-                <option value="All">All Personal NonFund</option>
-                <option value="In Review">In Review</option>
-                <option value="Approved for Filing">Approved for Filing</option>
+                <option value="ALL">All Personal NonFund</option>
+                <option value="InProgress">In Progress</option>
+                <option value="ReadyForFiling">Ready for HR Filing</option>
+                <option value="Completed">Completed / Filed</option>
                 <option value="Rejected">Rejected</option>
               </select>
             </div>
@@ -345,13 +404,23 @@ export default function HRFilingPage() {
                     </div>
                   </div>
 
-                  <span
-                    className={`rounded-full border px-3 py-1 text-xs font-bold ${statusBadgeClass(
-                      r.status
-                    )}`}
-                  >
-                    {r.status || "—"}
-                  </span>
+                  <div className="flex flex-col items-end gap-1">
+                    <span
+                      className={`rounded-full border px-3 py-1 text-xs font-bold ${statusBadgeClass(
+                        r.status
+                      )}`}
+                    >
+                      {r.status || "—"}
+                    </span>
+
+                    <span
+                      className={`rounded-full border px-3 py-1 text-xs font-bold ${stageBadgeClass(
+                        r.current_stage
+                      )}`}
+                    >
+                      {r.current_stage || "—"}
+                    </span>
+                  </div>
                 </div>
 
                 <div className="mt-4 grid gap-2 text-sm sm:grid-cols-2">
@@ -376,7 +445,7 @@ export default function HRFilingPage() {
                     View
                   </button>
 
-                  {(r.status || "").toLowerCase().includes("complete") && (
+                  {isCompleted(r) && (
                     <button
                       onClick={() => router.push(`/requests/${r.id}/print`)}
                       className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
@@ -404,12 +473,13 @@ export default function HRFilingPage() {
             <EmptyState />
           ) : (
             <div className="overflow-x-auto">
-              <div className="min-w-[1180px]">
-                <div className="grid grid-cols-14 bg-slate-100 px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600">
+              <div className="min-w-[1240px]">
+                <div className="grid grid-cols-15 bg-slate-100 px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600">
                   <div className="col-span-2">Request No</div>
                   <div className="col-span-3">Title</div>
                   <div className="col-span-2">Department</div>
                   <div className="col-span-1">Status</div>
+                  <div className="col-span-1">Stage</div>
                   <div className="col-span-2">Requester</div>
                   <div className="col-span-1">HR</div>
                   <div className="col-span-1">DG</div>
@@ -420,7 +490,7 @@ export default function HRFilingPage() {
                 {filteredRows.map((r) => (
                   <div
                     key={r.id}
-                    className="grid grid-cols-14 items-center border-t px-6 py-4 text-sm hover:bg-slate-50"
+                    className="grid grid-cols-15 items-center border-t px-6 py-4 text-sm hover:bg-slate-50"
                   >
                     <div className="col-span-2 font-extrabold text-slate-900">
                       {r.request_no}
@@ -444,6 +514,16 @@ export default function HRFilingPage() {
                         )}`}
                       >
                         {r.status || "—"}
+                      </span>
+                    </div>
+
+                    <div className="col-span-1">
+                      <span
+                        className={`rounded-full border px-3 py-1 text-xs font-bold ${stageBadgeClass(
+                          r.current_stage
+                        )}`}
+                      >
+                        {r.current_stage || "—"}
                       </span>
                     </div>
 
@@ -471,7 +551,7 @@ export default function HRFilingPage() {
                         View
                       </button>
 
-                      {(r.status || "").toLowerCase().includes("complete") && (
+                      {isCompleted(r) && (
                         <button
                           onClick={() => router.push(`/requests/${r.id}/print`)}
                           className="rounded-xl bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-700"
@@ -490,8 +570,8 @@ export default function HRFilingPage() {
         <div className="mt-6 rounded-3xl border border-blue-100 bg-blue-50 p-5 text-sm text-blue-900">
           <div className="font-bold">HR Filing Note</div>
           <p className="mt-1">
-            This page is only for Personal NonFund requests. Personal Fund requests are handled
-            through Account and printed from the Finance page after payment.
+            This page shows Personal NonFund requests at every HR filing stage. Personal Fund requests
+            are handled through Account and printed from the Finance page after payment.
           </p>
         </div>
       </div>
@@ -506,13 +586,15 @@ function StatCard({
 }: {
   title: string;
   value: string;
-  tone: "blue" | "emerald" | "purple";
+  tone: "blue" | "emerald" | "purple" | "slate";
 }) {
   const cls =
     tone === "emerald"
       ? "bg-emerald-50 text-emerald-700"
       : tone === "purple"
       ? "bg-purple-50 text-purple-700"
+      : tone === "slate"
+      ? "bg-slate-50 text-slate-700"
       : "bg-blue-50 text-blue-700";
 
   return (
