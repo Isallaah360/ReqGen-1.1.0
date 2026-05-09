@@ -63,7 +63,7 @@ export default function NavBar() {
     }
 
     if (canHRFiling) {
-      base.push({ href: "/hr/filing", label: "HR Filing" });
+      base.push({ href: "/hr/filing", label: "HR Office" });
     }
 
     if (isAdmin) {

@@ -17,6 +17,7 @@ type ReqRow = {
   checked_by_name: string | null;
   hr_name: string | null;
   dg_name: string | null;
+  account_name: string | null;
   dept_id: string | null;
   dept_name: string | null;
   request_type: string | null;
@@ -31,13 +32,63 @@ function roleKey(role: string | null | undefined) {
     .replace(/_/g, "");
 }
 
+function normalize(v: string | null | undefined) {
+  return (v || "").toLowerCase().replace(/[^a-z]/g, "");
+}
+
 function shortDate(d: string | null | undefined) {
   if (!d) return "—";
   return new Date(d).toLocaleDateString();
 }
 
+function naira(n: number | null | undefined) {
+  return "₦" + Math.round(Number(n || 0)).toLocaleString();
+}
+
+function isPersonal(r: ReqRow) {
+  return normalize(r.request_type) === "personal";
+}
+
+function isPersonalFund(r: ReqRow) {
+  return isPersonal(r) && normalize(r.personal_category) === "fund";
+}
+
+function isPersonalNonFund(r: ReqRow) {
+  return isPersonal(r) && normalize(r.personal_category) === "nonfund";
+}
+
+function isCompleted(r: ReqRow) {
+  const s = (r.status || "").toLowerCase();
+  return s.includes("complete") || s.includes("paid");
+}
+
+function isRejected(r: ReqRow) {
+  return (r.status || "").toLowerCase().includes("reject");
+}
+
+function isReadyForHR(r: ReqRow) {
+  const stage = normalize(r.current_stage);
+  const status = (r.status || "").toLowerCase();
+
+  return (
+    stage === "hr" ||
+    stage === "hrfiling" ||
+    status.includes("filing")
+  );
+}
+
+function categoryLabel(r: ReqRow) {
+  if (isPersonalFund(r)) return "Personal Fund";
+  if (isPersonalNonFund(r)) return "Personal NonFund";
+  return "Personal";
+}
+
 function statusBadgeClass(status: string | null | undefined) {
   const s = (status || "").toLowerCase();
+
+  if (s.includes("paid")) {
+    return "border-emerald-200 bg-emerald-50 text-emerald-700";
+  }
 
   if (s.includes("complete")) {
     return "border-emerald-200 bg-emerald-50 text-emerald-700";
@@ -65,6 +116,10 @@ function stageBadgeClass(stage: string | null | undefined) {
     return "border-emerald-200 bg-emerald-50 text-emerald-700";
   }
 
+  if (s.includes("account")) {
+    return "border-amber-200 bg-amber-50 text-amber-700";
+  }
+
   if (s.includes("hr filing")) {
     return "border-purple-200 bg-purple-50 text-purple-700";
   }
@@ -80,22 +135,16 @@ function stageBadgeClass(stage: string | null | undefined) {
   return "border-slate-200 bg-slate-50 text-slate-700";
 }
 
-function normalize(v: string | null | undefined) {
-  return (v || "").toLowerCase().replace(/[^a-z]/g, "");
-}
+function categoryBadgeClass(r: ReqRow) {
+  if (isPersonalFund(r)) {
+    return "border-blue-200 bg-blue-50 text-blue-700";
+  }
 
-function isPersonalNonFund(r: ReqRow) {
-  return normalize(r.request_type) === "personal" && normalize(r.personal_category) === "nonfund";
-}
+  if (isPersonalNonFund(r)) {
+    return "border-purple-200 bg-purple-50 text-purple-700";
+  }
 
-function isCompleted(r: ReqRow) {
-  return (r.status || "").toLowerCase().includes("complete");
-}
-
-function isReadyForFiling(r: ReqRow) {
-  const stage = normalize(r.current_stage);
-  const status = (r.status || "").toLowerCase();
-  return stage === "hrfiling" || status.includes("filing");
+  return "border-slate-200 bg-slate-50 text-slate-700";
 }
 
 export default function HRFilingPage() {
@@ -112,7 +161,12 @@ export default function HRFilingPage() {
 
   const [search, setSearch] = useState("");
   const [deptFilter, setDeptFilter] = useState("ALL");
+  const [categoryFilter, setCategoryFilter] = useState("ALL");
   const [statusFilter, setStatusFilter] = useState("ALL");
+
+  function openWorkflow(id: string) {
+    router.push(`/requests/${id}`);
+  }
 
   function openTemplate(id: string) {
     router.push(`/requests/${id}/print`);
@@ -145,7 +199,7 @@ export default function HRFilingPage() {
     setMyRole(role);
 
     if (!["admin", "auditor", "hr"].includes(roleKey(role))) {
-      setMsg("Access denied. Only HR, Admin and Auditor can access HR Filing.");
+      setMsg("Access denied. Only HR, Admin and Auditor can access HR Personal Requests.");
       setRows([]);
       setLoading(false);
       return;
@@ -154,13 +208,13 @@ export default function HRFilingPage() {
     const { data, error } = await supabase.rpc("get_hr_filing_requests");
 
     if (error) {
-      setMsg("Failed to load HR filing requests: " + error.message);
+      setMsg("Failed to load HR personal requests: " + error.message);
       setRows([]);
       setLoading(false);
       return;
     }
 
-    setRows((data || []) as ReqRow[]);
+    setRows(((data || []) as ReqRow[]).filter(isPersonal));
     setLoading(false);
   }
 
@@ -187,23 +241,21 @@ export default function HRFilingPage() {
     const s = search.trim().toLowerCase();
 
     return rows.filter((r) => {
-      if (!isPersonalNonFund(r)) return false;
+      if (!isPersonal(r)) return false;
 
       if (deptFilter !== "ALL" && r.dept_id !== deptFilter) return false;
 
-      if (statusFilter === "Completed" && !isCompleted(r)) return false;
+      if (categoryFilter === "Fund" && !isPersonalFund(r)) return false;
+      if (categoryFilter === "NonFund" && !isPersonalNonFund(r)) return false;
 
-      if (statusFilter === "ReadyForFiling" && !isReadyForFiling(r)) return false;
+      if (statusFilter === "Completed" && !isCompleted(r)) return false;
+      if (statusFilter === "ReadyForHR" && !isReadyForHR(r)) return false;
 
       if (statusFilter === "InProgress") {
-        const completed = isCompleted(r);
-        const rejected = (r.status || "").toLowerCase().includes("reject");
-        if (completed || rejected) return false;
+        if (isCompleted(r) || isRejected(r)) return false;
       }
 
-      if (statusFilter === "Rejected") {
-        if (!(r.status || "").toLowerCase().includes("reject")) return false;
-      }
+      if (statusFilter === "Rejected" && !isRejected(r)) return false;
 
       if (s) {
         const haystack = [
@@ -214,9 +266,11 @@ export default function HRFilingPage() {
           r.checked_by_name,
           r.hr_name,
           r.dg_name,
+          r.account_name,
           r.dept_name,
           r.status,
           r.current_stage,
+          r.personal_category,
         ]
           .join(" ")
           .toLowerCase();
@@ -226,29 +280,31 @@ export default function HRFilingPage() {
 
       return true;
     });
-  }, [rows, search, deptFilter, statusFilter]);
+  }, [rows, search, deptFilter, categoryFilter, statusFilter]);
 
   const stats = useMemo(() => {
-    const personalNonFundRows = rows.filter(isPersonalNonFund);
+    const personalRows = rows.filter(isPersonal);
 
-    const total = personalNonFundRows.length;
-    const completed = personalNonFundRows.filter(isCompleted).length;
-    const readyForFiling = personalNonFundRows.filter(isReadyForFiling).length;
+    const total = personalRows.length;
+    const fund = personalRows.filter(isPersonalFund).length;
+    const nonFund = personalRows.filter(isPersonalNonFund).length;
+    const readyForHR = personalRows.filter(isReadyForHR).length;
+    const completed = personalRows.filter(isCompleted).length;
 
-    const thisMonth = personalNonFundRows.filter((r) => {
+    const thisMonth = personalRows.filter((r) => {
       const d = new Date(r.created_at);
       const now = new Date();
       return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
     }).length;
 
-    return { total, completed, readyForFiling, thisMonth };
+    return { total, fund, nonFund, readyForHR, completed, thisMonth };
   }, [rows]);
 
   if (loading) {
     return (
       <main className="min-h-screen bg-slate-50 px-4">
         <div className="mx-auto max-w-7xl py-10 text-slate-600">
-          Loading HR filing...
+          Loading HR personal requests...
         </div>
       </main>
     );
@@ -259,7 +315,10 @@ export default function HRFilingPage() {
       <main className="min-h-screen bg-slate-50 px-4">
         <div className="mx-auto max-w-3xl py-10">
           <div className="rounded-2xl border bg-white p-6 shadow-sm">
-            <h1 className="text-xl font-extrabold text-slate-900">HR Filing Access</h1>
+            <h1 className="text-xl font-extrabold text-slate-900">
+              HR Personal Requests Access
+            </h1>
+
             <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
               {msg || "Access denied."}
             </div>
@@ -282,10 +341,10 @@ export default function HRFilingPage() {
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">
-              HR Filing
+              HR Personal Requests
             </h1>
             <p className="mt-2 text-sm text-slate-600">
-              Personal NonFund requests for HR review, DG approval, final filing and records.
+              All Personal Fund and Personal NonFund requests that pass through HR.
             </p>
           </div>
 
@@ -312,15 +371,17 @@ export default function HRFilingPage() {
           </div>
         )}
 
-        <div className="mt-6 grid gap-4 md:grid-cols-4">
-          <StatCard title="Total Personal NonFund" value={String(stats.total)} tone="blue" />
-          <StatCard title="Ready for Filing" value={String(stats.readyForFiling)} tone="purple" />
-          <StatCard title="Completed / Filed" value={String(stats.completed)} tone="emerald" />
+        <div className="mt-6 grid gap-4 md:grid-cols-3 xl:grid-cols-6">
+          <StatCard title="Total Personal" value={String(stats.total)} tone="blue" />
+          <StatCard title="Personal Fund" value={String(stats.fund)} tone="blue" />
+          <StatCard title="Personal NonFund" value={String(stats.nonFund)} tone="purple" />
+          <StatCard title="Ready for HR" value={String(stats.readyForHR)} tone="amber" />
+          <StatCard title="Completed / Paid" value={String(stats.completed)} tone="emerald" />
           <StatCard title="This Month" value={String(stats.thisMonth)} tone="slate" />
         </div>
 
         <div className="mt-6 rounded-3xl border bg-white p-5 shadow-sm">
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-4">
             <div>
               <label className="text-sm font-semibold text-slate-800">Search</label>
               <input
@@ -348,16 +409,29 @@ export default function HRFilingPage() {
             </div>
 
             <div>
+              <label className="text-sm font-semibold text-slate-800">Category</label>
+              <select
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+                className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-3 text-slate-900 outline-none focus:border-blue-500"
+              >
+                <option value="ALL">All Personal</option>
+                <option value="Fund">Personal Fund</option>
+                <option value="NonFund">Personal NonFund</option>
+              </select>
+            </div>
+
+            <div>
               <label className="text-sm font-semibold text-slate-800">Status</label>
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
                 className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-3 text-slate-900 outline-none focus:border-blue-500"
               >
-                <option value="ALL">All Personal NonFund</option>
+                <option value="ALL">All Statuses</option>
                 <option value="InProgress">In Progress</option>
-                <option value="ReadyForFiling">Ready for HR Filing</option>
-                <option value="Completed">Completed / Filed</option>
+                <option value="ReadyForHR">Ready for HR</option>
+                <option value="Completed">Completed / Paid</option>
                 <option value="Rejected">Rejected</option>
               </select>
             </div>
@@ -383,6 +457,14 @@ export default function HRFilingPage() {
 
                   <div className="flex flex-col items-end gap-1">
                     <span
+                      className={`rounded-full border px-3 py-1 text-xs font-bold ${categoryBadgeClass(
+                        r
+                      )}`}
+                    >
+                      {categoryLabel(r)}
+                    </span>
+
+                    <span
                       className={`rounded-full border px-3 py-1 text-xs font-bold ${statusBadgeClass(
                         r.status
                       )}`}
@@ -402,9 +484,11 @@ export default function HRFilingPage() {
 
                 <div className="mt-4 grid gap-2 text-sm sm:grid-cols-2">
                   <InfoLine label="Requester" value={r.requester_name || "—"} />
+                  <InfoLine label="Amount" value={isPersonalFund(r) ? naira(r.amount) : "Not Applicable"} />
                   <InfoLine label="HOD/Director" value={r.checked_by_name || "—"} />
                   <InfoLine label="HR Review" value={r.hr_name || "—"} />
                   <InfoLine label="DG" value={r.dg_name || "—"} />
+                  <InfoLine label="Account" value={isPersonalFund(r) ? r.account_name || "—" : "Not Applicable"} />
                   <InfoLine label="Created" value={shortDate(r.created_at)} />
                   <InfoLine label="Stage" value={r.current_stage || "—"} />
                 </div>
@@ -416,10 +500,10 @@ export default function HRFilingPage() {
 
                 <div className="mt-4 flex flex-wrap justify-end gap-2">
                   <button
-                    onClick={() => openTemplate(r.id)}
+                    onClick={() => openWorkflow(r.id)}
                     className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
                   >
-                    View Template
+                    View Workflow
                   </button>
 
                   {isCompleted(r) && (
@@ -439,10 +523,10 @@ export default function HRFilingPage() {
         <div className="mt-6 hidden xl:block rounded-3xl border bg-white shadow-sm overflow-hidden">
           <div className="border-b bg-slate-50 px-6 py-4">
             <h2 className="text-lg font-bold text-slate-900">
-              Personal NonFund Filing Register
+              Personal Requests Register
             </h2>
             <p className="mt-1 text-sm text-slate-600">
-              HR filing register for non-financial personal requests.
+              HR register for Personal Fund and Personal NonFund requests.
             </p>
           </div>
 
@@ -450,16 +534,17 @@ export default function HRFilingPage() {
             <EmptyState />
           ) : (
             <div className="overflow-x-auto">
-              <div className="min-w-[1240px]">
-                <div className="grid grid-cols-15 bg-slate-100 px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600">
+              <div className="min-w-[1320px]">
+                <div className="grid grid-cols-16 bg-slate-100 px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600">
                   <div className="col-span-2">Request No</div>
                   <div className="col-span-3">Title</div>
                   <div className="col-span-2">Department</div>
+                  <div className="col-span-1">Category</div>
+                  <div className="col-span-1">Amount</div>
                   <div className="col-span-1">Status</div>
                   <div className="col-span-1">Stage</div>
                   <div className="col-span-2">Requester</div>
                   <div className="col-span-1">HR</div>
-                  <div className="col-span-1">DG</div>
                   <div className="col-span-1">Date</div>
                   <div className="col-span-1 text-right">Action</div>
                 </div>
@@ -467,7 +552,7 @@ export default function HRFilingPage() {
                 {filteredRows.map((r) => (
                   <div
                     key={r.id}
-                    className="grid grid-cols-15 items-center border-t px-6 py-4 text-sm hover:bg-slate-50"
+                    className="grid grid-cols-16 items-center border-t px-6 py-4 text-sm hover:bg-slate-50"
                   >
                     <div className="col-span-2 font-extrabold text-slate-900">
                       {r.request_no}
@@ -486,7 +571,21 @@ export default function HRFilingPage() {
 
                     <div className="col-span-1">
                       <span
-                        className={`rounded-full border px-3 py-1 text-xs font-bold ${statusBadgeClass(
+                        className={`rounded-full border px-2 py-1 text-[11px] font-bold ${categoryBadgeClass(
+                          r
+                        )}`}
+                      >
+                        {isPersonalFund(r) ? "Fund" : "NonFund"}
+                      </span>
+                    </div>
+
+                    <div className="col-span-1 font-semibold text-slate-900">
+                      {isPersonalFund(r) ? naira(r.amount) : "—"}
+                    </div>
+
+                    <div className="col-span-1">
+                      <span
+                        className={`rounded-full border px-2 py-1 text-[11px] font-bold ${statusBadgeClass(
                           r.status
                         )}`}
                       >
@@ -496,7 +595,7 @@ export default function HRFilingPage() {
 
                     <div className="col-span-1">
                       <span
-                        className={`rounded-full border px-3 py-1 text-xs font-bold ${stageBadgeClass(
+                        className={`rounded-full border px-2 py-1 text-[11px] font-bold ${stageBadgeClass(
                           r.current_stage
                         )}`}
                       >
@@ -512,17 +611,13 @@ export default function HRFilingPage() {
                       {r.hr_name || "—"}
                     </div>
 
-                    <div className="col-span-1 text-slate-700">
-                      {r.dg_name || "—"}
-                    </div>
-
                     <div className="col-span-1 text-slate-600">
                       {shortDate(r.created_at)}
                     </div>
 
                     <div className="col-span-1 flex justify-end gap-2">
                       <button
-                        onClick={() => openTemplate(r.id)}
+                        onClick={() => openWorkflow(r.id)}
                         className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-900 hover:bg-slate-100"
                       >
                         View
@@ -545,10 +640,11 @@ export default function HRFilingPage() {
         </div>
 
         <div className="mt-6 rounded-3xl border border-blue-100 bg-blue-50 p-5 text-sm text-blue-900">
-          <div className="font-bold">HR Filing Note</div>
+          <div className="font-bold">HR Personal Requests Note</div>
           <p className="mt-1">
-            This page shows Personal NonFund requests at every HR filing stage. Personal Fund requests
-            are handled through Account and printed from the Finance page after payment.
+            This page shows both Personal Fund and Personal NonFund requests because both categories
+            pass through HR. Personal Fund requests are paid by Account after DG approval, while
+            Personal NonFund requests return to HR for final filing.
           </p>
         </div>
       </div>
@@ -563,13 +659,15 @@ function StatCard({
 }: {
   title: string;
   value: string;
-  tone: "blue" | "emerald" | "purple" | "slate";
+  tone: "blue" | "emerald" | "purple" | "slate" | "amber";
 }) {
   const cls =
     tone === "emerald"
       ? "bg-emerald-50 text-emerald-700"
       : tone === "purple"
       ? "bg-purple-50 text-purple-700"
+      : tone === "amber"
+      ? "bg-amber-50 text-amber-700"
       : tone === "slate"
       ? "bg-slate-50 text-slate-700"
       : "bg-blue-50 text-blue-700";
@@ -596,7 +694,7 @@ function InfoLine({ label, value }: { label: string; value: string }) {
 function EmptyState() {
   return (
     <div className="rounded-2xl border bg-white p-6 text-sm text-slate-700 shadow-sm xl:rounded-none xl:border-0 xl:shadow-none">
-      No Personal NonFund request found for the selected filter.
+      No Personal Request found for the selected filter.
     </div>
   );
 }
