@@ -18,13 +18,9 @@ type ReqRow = {
   hr_name: string | null;
   dg_name: string | null;
   dept_id: string | null;
+  dept_name: string | null;
   request_type: string | null;
   personal_category: string | null;
-};
-
-type Dept = {
-  id: string;
-  name: string;
 };
 
 function roleKey(role: string | null | undefined) {
@@ -84,11 +80,12 @@ function stageBadgeClass(stage: string | null | undefined) {
   return "border-slate-200 bg-slate-50 text-slate-700";
 }
 
+function normalize(v: string | null | undefined) {
+  return (v || "").toLowerCase().replace(/[^a-z]/g, "");
+}
+
 function isPersonalNonFund(r: ReqRow) {
-  return (
-    (r.request_type || "").toLowerCase() === "personal" &&
-    (r.personal_category || "").toLowerCase().replace(/\s+/g, "") === "nonfund"
-  );
+  return normalize(r.request_type) === "personal" && normalize(r.personal_category) === "nonfund";
 }
 
 function isCompleted(r: ReqRow) {
@@ -96,7 +93,7 @@ function isCompleted(r: ReqRow) {
 }
 
 function isReadyForFiling(r: ReqRow) {
-  const stage = (r.current_stage || "").toLowerCase().replace(/\s+/g, "");
+  const stage = normalize(r.current_stage);
   const status = (r.status || "").toLowerCase();
   return stage === "hrfiling" || status.includes("filing");
 }
@@ -109,11 +106,9 @@ export default function HRFilingPage() {
 
   const [myRole, setMyRole] = useState<string>("Staff");
   const rk = roleKey(myRole);
-
   const canAccess = ["admin", "auditor", "hr"].includes(rk);
 
   const [rows, setRows] = useState<ReqRow[]>([]);
-  const [depts, setDepts] = useState<Dept[]>([]);
 
   const [search, setSearch] = useState("");
   const [deptFilter, setDeptFilter] = useState("ALL");
@@ -147,47 +142,21 @@ export default function HRFilingPage() {
 
     if (!["admin", "auditor", "hr"].includes(roleKey(role))) {
       setMsg("Access denied. Only HR, Admin and Auditor can access HR Filing.");
-      setLoading(false);
-      return;
-    }
-
-    const { data: deptRows, error: deptErr } = await supabase
-      .from("departments")
-      .select("id,name")
-      .order("name", { ascending: true });
-
-    if (deptErr) {
-      setMsg("Failed to load departments: " + deptErr.message);
-      setLoading(false);
-      return;
-    }
-
-    setDepts((deptRows || []) as Dept[]);
-
-    /*
-      IMPORTANT:
-      We load ALL Personal NonFund requests first.
-      Then filters are applied in React.
-      This avoids Supabase filter mismatch due to status/stage differences.
-    */
-    const { data: reqRows, error: reqErr } = await supabase
-      .from("requests")
-      .select(
-        "id,request_no,title,details,amount,status,current_stage,created_at,requester_name,checked_by_name,hr_name,dg_name,dept_id,request_type,personal_category"
-      )
-      .eq("request_type", "Personal")
-      .eq("personal_category", "NonFund")
-      .order("created_at", { ascending: false })
-      .limit(300);
-
-    if (reqErr) {
-      setMsg("Failed to load HR filing requests: " + reqErr.message);
       setRows([]);
       setLoading(false);
       return;
     }
 
-    setRows((reqRows || []) as ReqRow[]);
+    const { data, error } = await supabase.rpc("get_hr_filing_requests");
+
+    if (error) {
+      setMsg("Failed to load HR filing requests: " + error.message);
+      setRows([]);
+      setLoading(false);
+      return;
+    }
+
+    setRows((data || []) as ReqRow[]);
     setLoading(false);
   }
 
@@ -196,13 +165,19 @@ export default function HRFilingPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const deptMap = useMemo(() => {
-    const m: Record<string, string> = {};
-    depts.forEach((d) => {
-      m[d.id] = d.name;
+  const departments = useMemo(() => {
+    const map = new Map<string, string>();
+
+    rows.forEach((r) => {
+      if (r.dept_id) {
+        map.set(r.dept_id, r.dept_name || "Unknown Department");
+      }
     });
-    return m;
-  }, [depts]);
+
+    return Array.from(map.entries())
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [rows]);
 
   const filteredRows = useMemo(() => {
     const s = search.trim().toLowerCase();
@@ -235,7 +210,7 @@ export default function HRFilingPage() {
           r.checked_by_name,
           r.hr_name,
           r.dg_name,
-          r.dept_id ? deptMap[r.dept_id] : "",
+          r.dept_name,
           r.status,
           r.current_stage,
         ]
@@ -247,15 +222,13 @@ export default function HRFilingPage() {
 
       return true;
     });
-  }, [rows, search, deptMap, deptFilter, statusFilter]);
+  }, [rows, search, deptFilter, statusFilter]);
 
   const stats = useMemo(() => {
     const personalNonFundRows = rows.filter(isPersonalNonFund);
 
     const total = personalNonFundRows.length;
-
     const completed = personalNonFundRows.filter(isCompleted).length;
-
     const readyForFiling = personalNonFundRows.filter(isReadyForFiling).length;
 
     const thisMonth = personalNonFundRows.filter((r) => {
@@ -362,7 +335,7 @@ export default function HRFilingPage() {
                 className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-3 text-slate-900 outline-none focus:border-blue-500"
               >
                 <option value="ALL">All Departments</option>
-                {depts.map((d) => (
+                {departments.map((d) => (
                   <option key={d.id} value={d.id}>
                     {d.name}
                   </option>
@@ -400,7 +373,7 @@ export default function HRFilingPage() {
                     </div>
                     <div className="mt-1 font-semibold text-slate-800">{r.title}</div>
                     <div className="mt-1 text-sm text-slate-500">
-                      {r.dept_id ? deptMap[r.dept_id] || "—" : "—"}
+                      {r.dept_name || "—"}
                     </div>
                   </div>
 
@@ -504,7 +477,7 @@ export default function HRFilingPage() {
                     </div>
 
                     <div className="col-span-2 text-slate-700">
-                      {r.dept_id ? deptMap[r.dept_id] || "—" : "—"}
+                      {r.dept_name || "—"}
                     </div>
 
                     <div className="col-span-1">
