@@ -199,7 +199,7 @@ export default function HRFilingPage() {
     setMyRole(role);
 
     if (!["admin", "auditor", "hr"].includes(roleKey(role))) {
-      setMsg("Access denied. Only HR, Admin and Auditor can access HR Personal Requests.");
+      setMsg("Access denied. Only HR, Admin and Auditor can access HR Office Requests.");
       setRows([]);
       setLoading(false);
       return;
@@ -208,7 +208,7 @@ export default function HRFilingPage() {
     const { data, error } = await supabase.rpc("get_hr_filing_requests");
 
     if (error) {
-      setMsg("Failed to load HR personal requests: " + error.message);
+      setMsg("Failed to load HR office requests: " + error.message);
       setRows([]);
       setLoading(false);
       return;
@@ -304,7 +304,7 @@ export default function HRFilingPage() {
     return (
       <main className="min-h-screen bg-slate-50 px-4">
         <div className="mx-auto max-w-7xl py-10 text-slate-600">
-          Loading HR personal requests...
+          Loading HR office requests...
         </div>
       </main>
     );
@@ -316,7 +316,7 @@ export default function HRFilingPage() {
         <div className="mx-auto max-w-3xl py-10">
           <div className="rounded-2xl border bg-white p-6 shadow-sm">
             <h1 className="text-xl font-extrabold text-slate-900">
-              HR Personal Requests Access
+              HR Office Access
             </h1>
 
             <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
@@ -341,10 +341,10 @@ export default function HRFilingPage() {
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">
-              HR Personal Requests
+              HR Office
             </h1>
             <p className="mt-2 text-sm text-slate-600">
-              All Personal Fund and Personal NonFund requests that pass through HR.
+              All IET Staff Personal Fund and Personal NonFund requests that pass through HR.
             </p>
           </div>
 
@@ -640,9 +640,9 @@ export default function HRFilingPage() {
         </div>
 
         <div className="mt-6 rounded-3xl border border-blue-100 bg-blue-50 p-5 text-sm text-blue-900">
-          <div className="font-bold">HR Personal Requests Note</div>
+          <div className="font-bold">HR Staff Personal Requests Note</div>
           <p className="mt-1">
-            This page shows both Personal Fund and Personal NonFund requests because both categories
+            This page shows both Staff Personal Fund and Personal NonFund requests because both categories
             pass through HR. Personal Fund requests are paid by Account after DG approval, while
             Personal NonFund requests return to HR for final filing.
           </p>
