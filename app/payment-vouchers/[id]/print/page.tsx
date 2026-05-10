@@ -57,18 +57,6 @@ type VoucherDetail = {
   updated_at: string | null;
 };
 
-type Hist = {
-  id: string;
-  action_type: string | null;
-  from_status: string | null;
-  to_status: string | null;
-  comment: string | null;
-  actor_name: string | null;
-  actor_role: string | null;
-  actor_signature_url: string | null;
-  created_at: string;
-};
-
 function normalize(v: string | null | undefined) {
   return (v || "").toLowerCase().replace(/[^a-z]/g, "");
 }
@@ -84,7 +72,6 @@ function formatDate(d: string | null | undefined) {
 
 function amountToWords(n: number | null | undefined) {
   const num = Math.round(Number(n || 0));
-
   if (num === 0) return "Zero Naira Only";
 
   const ones = [
@@ -206,9 +193,7 @@ export default function PaymentVoucherPrintPage() {
 
   const [loading, setLoading] = useState(true);
   const [msg, setMsg] = useState<string | null>(null);
-
   const [voucher, setVoucher] = useState<VoucherDetail | null>(null);
-  const [history, setHistory] = useState<Hist[]>([]);
 
   async function load() {
     setLoading(true);
@@ -227,20 +212,19 @@ export default function PaymentVoucherPrintPage() {
       return;
     }
 
-    const [detailRes, histRes] = await Promise.all([
-      supabase.rpc("get_payment_voucher_detail", { p_voucher_id: id }),
-      supabase.rpc("get_payment_voucher_history", { p_voucher_id: id }),
-    ]);
+    const { data, error } = await supabase.rpc("get_payment_voucher_detail", {
+      p_voucher_id: id,
+    });
 
-    if (detailRes.error) {
-      setMsg("Failed to load voucher: " + detailRes.error.message);
+    if (error) {
+      setMsg("Failed to load voucher: " + error.message);
       setLoading(false);
       return;
     }
 
-    const row = Array.isArray(detailRes.data)
-      ? (detailRes.data[0] as VoucherDetail | undefined)
-      : (detailRes.data as VoucherDetail | undefined);
+    const row = Array.isArray(data)
+      ? (data[0] as VoucherDetail | undefined)
+      : (data as VoucherDetail | undefined);
 
     if (!row) {
       setMsg("Payment voucher not found.");
@@ -249,11 +233,6 @@ export default function PaymentVoucherPrintPage() {
     }
 
     setVoucher(row);
-
-    if (!histRes.error) {
-      setHistory((histRes.data || []) as Hist[]);
-    }
-
     setLoading(false);
   }
 
@@ -281,17 +260,7 @@ export default function PaymentVoucherPrintPage() {
     [voucher?.authorized_signature_url]
   );
 
-  const sigCheque = useMemo(
-    () => getPublicSignatureUrl(voucher?.cheque_signed_signature_url),
-    [voucher?.cheque_signed_signature_url]
-  );
-
-  const sigCounter = useMemo(
-    () => getPublicSignatureUrl(voucher?.cheque_counter_signed_signature_url),
-    [voucher?.cheque_counter_signed_signature_url]
-  );
-
-  const sigPayee = useMemo(
+  const sigReceived = useMemo(
     () => getPublicSignatureUrl(voucher?.payee_signature_url),
     [voucher?.payee_signature_url]
   );
@@ -309,8 +278,6 @@ export default function PaymentVoucherPrintPage() {
 
     window.print();
   }
-
-  const latestHistory = useMemo(() => history.slice(-4), [history]);
 
   if (loading) {
     return (
@@ -348,7 +315,7 @@ export default function PaymentVoucherPrintPage() {
       <style>{`
         @page {
           size: A4;
-          margin: 7mm;
+          margin: 6mm;
         }
 
         @media print {
@@ -362,7 +329,6 @@ export default function PaymentVoucherPrintPage() {
 
           .voucher-sheet {
             box-shadow: none !important;
-            border: 1px solid #000 !important;
             margin: 0 !important;
             width: 100% !important;
             min-height: auto !important;
@@ -404,15 +370,15 @@ export default function PaymentVoucherPrintPage() {
           </div>
         )}
 
-        <div className="voucher-sheet mx-auto w-full border border-black bg-white px-[18px] py-[14px] text-black shadow-sm">
-          <div className="grid grid-cols-[80px_1fr_160px] items-start gap-3">
-            <div className="flex justify-start">
+        <div className="voucher-sheet mx-auto w-full border-2 border-black bg-white px-[16px] py-[12px] text-black shadow-sm">
+          <div className="grid grid-cols-[72px_1fr_178px] items-start gap-3">
+            <div>
               <Image
                 src="/iet-logo.png"
                 alt="IET Logo"
-                width={62}
-                height={62}
-                className="h-[62px] w-auto object-contain"
+                width={60}
+                height={60}
+                className="h-[60px] w-auto object-contain"
                 priority
               />
             </div>
@@ -421,52 +387,56 @@ export default function PaymentVoucherPrintPage() {
               <div className="text-[18px] font-black uppercase leading-none tracking-tight">
                 Islamic Education Trust
               </div>
-              <div className="mt-1 text-[10px] font-semibold leading-tight">
+              <div className="mt-1 text-[9.5px] font-bold leading-tight">
                 IW2, Ilmi Avenue Intermediate Housing Estate, PMB 229
               </div>
-              <div className="text-[10px] font-semibold leading-tight">
+              <div className="text-[9.5px] font-bold leading-tight">
                 Minna, Niger State - Nigeria
               </div>
-              <div className="mt-2 inline-block border-2 border-black px-8 py-1 text-[15px] font-black uppercase tracking-wide">
+              <div className="mt-1.5 text-[16px] font-black uppercase underline">
                 Payment Voucher
               </div>
             </div>
 
-            <div className="space-y-1 text-[9px] font-bold">
-              <BoxLine label="Voucher No:" value={voucher.voucher_no} />
-              <BoxLine label="Date:" value={formatDate(voucher.created_at)} />
-              <BoxLine label="Status:" value={voucher.status || ""} />
+            <div className="text-[8.5px] font-bold">
+              <TopBox label="PV No." value={voucher.voucher_no} />
+              <TopBox label="Date" value={formatDate(voucher.created_at)} />
+              <TopBox label="Status" value={voucher.status || ""} />
             </div>
           </div>
 
-          <div className="mt-3 h-[2px] w-full bg-black" />
+          <div className="mt-2 h-[2px] bg-black" />
 
-          <div className="mt-3 grid grid-cols-12 gap-x-3 gap-y-2">
+          <div className="mt-2 grid grid-cols-12 gap-x-3 gap-y-1.5">
             <LineField label="Payee:" value={voucher.payee_name || ""} className="col-span-7" />
             <LineField label="Request No:" value={voucher.request_no || ""} className="col-span-5" />
 
             <LineField label="Department:" value={voucher.dept_name || ""} className="col-span-7" />
-            <LineField label="Category:" value={categoryLabel(voucher)} className="col-span-5" />
+            <LineField label="Type:" value={categoryLabel(voucher)} className="col-span-5" />
 
             <LineField
               label="Subhead:"
               value={
                 voucher.subhead_id
                   ? `${voucher.subhead_code || ""} ${voucher.subhead_name || ""}`.trim()
-                  : "N/A"
+                  : ""
               }
               className="col-span-12"
             />
           </div>
 
-          <div className="mt-3 rounded-sm border border-black">
-            <div className="grid grid-cols-12 border-b border-black bg-slate-100 text-[9px] font-black uppercase">
-              <div className="col-span-8 border-r border-black px-2 py-1">Particulars / Description</div>
-              <div className="col-span-4 px-2 py-1 text-right">Amount</div>
+          <div className="mt-2 border-2 border-black">
+            <div className="grid grid-cols-12 border-b-2 border-black bg-slate-100 text-[9px] font-black uppercase">
+              <div className="col-span-8 border-r-2 border-black px-2 py-1">
+                Details / Particulars
+              </div>
+              <div className="col-span-4 px-2 py-1 text-right">
+                Amount
+              </div>
             </div>
 
-            <div className="grid grid-cols-12 min-h-[82px] text-[10px] font-semibold">
-              <div className="col-span-8 border-r border-black px-2 py-2">
+            <div className="grid min-h-[72px] grid-cols-12 text-[9.5px] font-bold">
+              <div className="col-span-8 border-r-2 border-black px-2 py-2">
                 <div className="whitespace-pre-wrap leading-tight">
                   {voucher.narration || "Payment voucher"}
                 </div>
@@ -477,97 +447,78 @@ export default function PaymentVoucherPrintPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-12 border-t border-black text-[10px] font-black">
-              <div className="col-span-8 border-r border-black px-2 py-1 text-right uppercase">
+            <div className="grid grid-cols-12 border-t-2 border-black text-[10px] font-black">
+              <div className="col-span-8 border-r-2 border-black px-2 py-1 text-right uppercase">
                 Total
               </div>
-              <div className="col-span-4 px-2 py-1 text-right">{naira(voucher.amount)}</div>
+              <div className="col-span-4 px-2 py-1 text-right">
+                {naira(voucher.amount)}
+              </div>
             </div>
           </div>
 
-          <div className="mt-2 rounded-sm border border-black px-2 py-1">
+          <div className="mt-2 border-2 border-black px-2 py-1">
             <div className="text-[8px] font-black uppercase">Amount in Words</div>
-            <div className="mt-0.5 text-[10px] font-bold leading-tight">
+            <div className="text-[9.5px] font-bold leading-tight">
               {amountToWords(voucher.amount)}
             </div>
           </div>
 
-          <div className="mt-3 grid grid-cols-12 gap-2">
-            <SmallBox label="Cheque No" value={voucher.cheque_no || ""} className="col-span-4" />
-            <SmallBox label="Cheque Date" value={formatDate(voucher.cheque_date)} className="col-span-4" />
-            <SmallBox label="Bank" value={voucher.bank_name || ""} className="col-span-4" />
+          <div className="mt-2 border-2 border-black">
+            <div className="border-b-2 border-black bg-slate-100 px-2 py-1 text-[8.5px] font-black uppercase">
+              Disbursement Details — To be completed manually for now
+            </div>
+
+            <div className="grid grid-cols-12 gap-2 px-2 py-2">
+              <BlankBox label="Mode: Transfer / Cash / Cheque" className="col-span-4" />
+              <BlankBox label="Account Number / Cheque No." className="col-span-4" />
+              <BlankBox label="Bank" className="col-span-4" />
+              <BlankBox label="Account Name / Payee Name" className="col-span-8" />
+              <BlankBox label="Cheque Date / Payment Date" className="col-span-4" />
+            </div>
           </div>
 
-          <div className="mt-3 rounded-sm border border-black">
-            <div className="border-b border-black bg-slate-100 px-2 py-1 text-[9px] font-black uppercase">
-              Certification and Approval
+          <div className="mt-2 border-2 border-black">
+            <div className="border-b-2 border-black bg-slate-100 px-2 py-1 text-[8.5px] font-black uppercase">
+              Certification / Approval / Receipt
             </div>
 
             <div className="grid grid-cols-2 gap-x-4 gap-y-2 px-3 py-2">
               <SignatureBox
-                title="Prepared by"
+                title="Prepared By"
                 name={voucher.prepared_by_name || ""}
                 sigUrl={sigPrepared}
                 date={formatDate(voucher.prepared_at)}
               />
 
               <SignatureBox
-                title="Checked by"
+                title="Checked By"
                 name={voucher.checked_by_name || ""}
                 sigUrl={sigChecked}
                 date={formatDate(voucher.checked_at)}
               />
 
               <SignatureBox
-                title="Authorized by"
+                title="Authorized By"
                 name={voucher.authorized_by_name || ""}
                 sigUrl={sigAuthorized}
                 date={formatDate(voucher.authorized_at)}
               />
 
               <SignatureBox
-                title="Cheque Signed by"
-                name={voucher.cheque_signed_by_name || ""}
-                sigUrl={sigCheque}
-                date={formatDate(voucher.cheque_signed_at)}
-              />
-
-              <SignatureBox
-                title="Counter Signed by"
-                name={voucher.cheque_counter_signed_by_name || ""}
-                sigUrl={sigCounter}
-                date={formatDate(voucher.cheque_counter_signed_at)}
-              />
-
-              <SignatureBox
-                title="Received by Payee"
+                title="Received By"
                 name={voucher.payee_signed_name || voucher.payee_name || ""}
-                sigUrl={sigPayee}
+                sigUrl={sigReceived}
                 date={formatDate(voucher.payee_signed_at)}
               />
+
+              <ManualSignatureBox title="Cheque Signed By" />
+              <ManualSignatureBox title="Counter Signed By" />
             </div>
           </div>
 
-          {latestHistory.length > 0 && (
-            <div className="mt-3 rounded-sm border border-black">
-              <div className="border-b border-black bg-slate-100 px-2 py-1 text-[9px] font-black uppercase">
-                Voucher Trail
-              </div>
-
-              <div className="grid grid-cols-4 text-[8px] font-bold">
-                {latestHistory.map((h) => (
-                  <div key={h.id} className="border-r border-black px-2 py-1 last:border-r-0">
-                    <div>{h.action_type || "Action"}</div>
-                    <div className="font-semibold">{h.actor_name || "—"}</div>
-                    <div className="font-medium">{formatDate(h.created_at)}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div className="mt-3 flex items-center justify-between text-[8px] font-semibold">
-            <div>Generated by ReqGen • Official IET Payment Voucher</div>
+          <div className="mt-2 flex items-center justify-between text-[8px] font-semibold">
+            <div>Official IET Payment Voucher • Generated by ReqGen</div>
             <div className="italic">Building Bridges</div>
           </div>
         </div>
@@ -576,11 +527,11 @@ export default function PaymentVoucherPrintPage() {
   );
 }
 
-function BoxLine({ label, value }: { label: string; value: string }) {
+function TopBox({ label, value }: { label: string; value: string }) {
   return (
-    <div className="grid grid-cols-[70px_1fr] items-center border border-black">
-      <div className="border-r border-black bg-slate-100 px-1 py-1">{label}</div>
-      <div className="px-1 py-1">{value}</div>
+    <div className="grid grid-cols-[48px_1fr] border border-black">
+      <div className="border-r border-black bg-slate-100 px-1 py-[3px]">{label}</div>
+      <div className="px-1 py-[3px]">{value}</div>
     </div>
   );
 }
@@ -596,29 +547,21 @@ function LineField({
 }) {
   return (
     <div className={`flex items-end gap-1 ${className || ""}`}>
-      <div className="shrink-0 text-[9px] font-black">{label}</div>
-      <div className="min-w-0 flex-1 border-b border-black px-1 pb-[1px] text-[9px] font-bold leading-tight break-words">
+      <div className="shrink-0 text-[8.5px] font-black">{label}</div>
+      <div className="min-w-0 flex-1 border-b border-black px-1 pb-[1px] text-[8.5px] font-bold leading-tight break-words">
         {value}
       </div>
     </div>
   );
 }
 
-function SmallBox({
-  label,
-  value,
-  className,
-}: {
-  label: string;
-  value: string;
-  className?: string;
-}) {
+function BlankBox({ label, className }: { label: string; className?: string }) {
   return (
     <div className={`border border-black ${className || ""}`}>
-      <div className="border-b border-black bg-slate-100 px-2 py-1 text-[8px] font-black uppercase">
+      <div className="border-b border-black bg-slate-100 px-2 py-[3px] text-[7.5px] font-black uppercase">
         {label}
       </div>
-      <div className="min-h-[22px] px-2 py-1 text-[9px] font-bold">{value || " "}</div>
+      <div className="h-[20px]" />
     </div>
   );
 }
@@ -636,29 +579,55 @@ function SignatureBox({
 }) {
   return (
     <div>
-      <div className="text-[8px] font-black uppercase">{title}</div>
+      <div className="text-[7.8px] font-black uppercase">{title}</div>
 
-      <div className="mt-1 grid grid-cols-[1fr_90px_70px] items-end gap-2">
-        <div className="border-b border-black pb-[1px] text-[8.5px] font-bold">
+      <div className="mt-1 grid grid-cols-[1fr_82px_62px] items-end gap-2">
+        <div className="border-b border-black pb-[1px] text-[8.2px] font-bold">
           {name || " "}
         </div>
 
-        <div className="relative h-[20px] border-b border-black">
+        <div className="relative h-[18px] border-b border-black">
           {sigUrl ? (
             <img
               src={sigUrl}
               alt="signature"
-              className="absolute bottom-0 left-1/2 h-[15px] max-w-[90%] -translate-x-1/2 object-contain"
+              className="absolute bottom-0 left-1/2 h-[14px] max-w-[90%] -translate-x-1/2 object-contain"
             />
           ) : null}
         </div>
 
-        <div className="border-b border-black pb-[1px] text-center text-[8px] font-bold">
+        <div className="border-b border-black pb-[1px] text-center text-[7.8px] font-bold">
           {date || " "}
         </div>
       </div>
 
-      <div className="grid grid-cols-[1fr_90px_70px] gap-2 text-center text-[6.8px] font-semibold text-slate-600">
+      <div className="grid grid-cols-[1fr_82px_62px] gap-2 text-center text-[6.5px] font-semibold text-slate-600">
+        <div>Name</div>
+        <div>Signature</div>
+        <div>Date</div>
+      </div>
+    </div>
+  );
+}
+
+function ManualSignatureBox({ title }: { title: string }) {
+  return (
+    <div>
+      <div className="text-[7.8px] font-black uppercase">{title}</div>
+
+      <div className="mt-1 grid grid-cols-[1fr_82px_62px] items-end gap-2">
+        <div className="border-b border-black pb-[1px] text-[8.2px] font-bold">
+          {" "}
+        </div>
+
+        <div className="relative h-[18px] border-b border-black" />
+
+        <div className="border-b border-black pb-[1px] text-center text-[7.8px] font-bold">
+          {" "}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-[1fr_82px_62px] gap-2 text-center text-[6.5px] font-semibold text-slate-600">
         <div>Name</div>
         <div>Signature</div>
         <div>Date</div>
