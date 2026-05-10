@@ -51,6 +51,13 @@ type VoucherDetail = {
   payee_signature_url: string | null;
   payee_signed_at: string | null;
 
+  disbursement_mode: string | null;
+  transfer_account_name: string | null;
+  transfer_account_number: string | null;
+  transfer_bank_name: string | null;
+  cash_payee_name: string | null;
+  counter_signatory_name: string | null;
+
   status: string | null;
   created_at: string | null;
   updated_at: string | null;
@@ -120,6 +127,16 @@ function statusBadgeClass(status: string | null | undefined) {
   return "border-slate-200 bg-slate-50 text-slate-700";
 }
 
+function modeBadgeClass(mode: string | null | undefined) {
+  const m = normalize(mode);
+
+  if (m === "transfer") return "border-blue-200 bg-blue-50 text-blue-700";
+  if (m === "cash") return "border-emerald-200 bg-emerald-50 text-emerald-700";
+  if (m === "cheque") return "border-amber-200 bg-amber-50 text-amber-700";
+
+  return "border-slate-200 bg-slate-50 text-slate-700";
+}
+
 export default function PaymentVoucherDetailPage() {
   const router = useRouter();
   const params = useParams();
@@ -141,6 +158,9 @@ export default function PaymentVoucherDetailPage() {
   const [bankName, setBankName] = useState("");
 
   const canAccess = ["admin", "auditor", "account", "accounts", "accountofficer"].includes(rk);
+  const isCheque = normalize(voucher?.disbursement_mode) === "cheque";
+  const isTransfer = normalize(voucher?.disbursement_mode) === "transfer";
+  const isCash = normalize(voucher?.disbursement_mode) === "cash";
 
   async function load() {
     setLoading(true);
@@ -259,28 +279,32 @@ export default function PaymentVoucherDetailPage() {
   const actionButtons = useMemo(() => {
     if (!voucher) return [];
 
-    if (status === "Prepared") {
-      return [{ label: "Check Voucher", action: "Check", tone: "blue" }];
+    if (status === "Cancelled" || status === "Paid") return [];
+
+    if (normalize(voucher.disbursement_mode) === "transfer") {
+      return [{ label: "Mark Transfer as Paid", action: "Pay", tone: "emerald" }];
     }
 
-    if (status === "Checked") {
-      return [{ label: "Authorize Voucher", action: "Authorize", tone: "purple" }];
+    if (normalize(voucher.disbursement_mode) === "cash") {
+      return [{ label: "Mark Cash as Paid", action: "Pay", tone: "emerald" }];
     }
 
-    if (status === "Authorized") {
-      return [{ label: "Prepare Cheque", action: "Prepare Cheque", tone: "amber" }];
-    }
+    if (normalize(voucher.disbursement_mode) === "cheque") {
+      if (status === "Authorized") {
+        return [{ label: "Prepare Cheque", action: "Prepare Cheque", tone: "amber" }];
+      }
 
-    if (status === "Cheque Prepared") {
-      return [{ label: "Sign Cheque", action: "Sign Cheque", tone: "blue" }];
-    }
+      if (status === "Cheque Prepared") {
+        return [{ label: "Sign Cheque", action: "Sign Cheque", tone: "blue" }];
+      }
 
-    if (status === "Cheque Signed") {
-      return [{ label: "Counter Sign Cheque", action: "Counter Sign Cheque", tone: "purple" }];
-    }
+      if (status === "Cheque Signed") {
+        return [{ label: "Counter Sign Cheque", action: "Counter Sign Cheque", tone: "purple" }];
+      }
 
-    if (status === "Counter Signed") {
-      return [{ label: "Mark as Paid", action: "Pay", tone: "emerald" }];
+      if (status === "Counter Signed") {
+        return [{ label: "Mark Cheque as Paid", action: "Pay", tone: "emerald" }];
+      }
     }
 
     return [];
@@ -340,6 +364,13 @@ export default function PaymentVoucherDetailPage() {
             </button>
 
             <button
+              onClick={() => router.push(`/requests/${voucher.request_id}`)}
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
+            >
+              Open Request
+            </button>
+
+            <button
               onClick={() => router.push(`/payment-vouchers/${voucher.id}/print`)}
               className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
             >
@@ -366,13 +397,19 @@ export default function PaymentVoucherDetailPage() {
             <div>
               <h2 className="text-lg font-bold text-slate-900">Voucher Details</h2>
               <p className="mt-1 text-sm text-slate-600">
-                Payee, narration, department, and cheque information.
+                Payee, narration, department and approval metadata.
               </p>
             </div>
 
-            <span className={`rounded-full border px-3 py-1 text-xs font-bold ${statusBadgeClass(voucher.status)}`}>
-              {voucher.status || "—"}
-            </span>
+            <div className="flex flex-wrap gap-2">
+              <span className={`rounded-full border px-3 py-1 text-xs font-bold ${modeBadgeClass(voucher.disbursement_mode)}`}>
+                {voucher.disbursement_mode || "No Mode"}
+              </span>
+
+              <span className={`rounded-full border px-3 py-1 text-xs font-bold ${statusBadgeClass(voucher.status)}`}>
+                {voucher.status || "—"}
+              </span>
+            </div>
           </div>
 
           <div className="mt-5 grid gap-4 md:grid-cols-2">
@@ -389,6 +426,8 @@ export default function PaymentVoucherDetailPage() {
             />
             <InfoLine label="Prepared By" value={voucher.prepared_by_name || "—"} />
             <InfoLine label="Prepared At" value={shortDateTime(voucher.prepared_at)} />
+            <InfoLine label="Checked By" value={voucher.checked_by_name || "—"} />
+            <InfoLine label="Authorized By" value={voucher.authorized_by_name || "—"} />
           </div>
 
           <div className="mt-5">
@@ -397,44 +436,96 @@ export default function PaymentVoucherDetailPage() {
               {voucher.narration || "—"}
             </div>
           </div>
+        </div>
+
+        <div className="mt-6 rounded-3xl border bg-white p-6 shadow-sm">
+          <h2 className="text-lg font-bold text-slate-900">Disbursement Details</h2>
+          <p className="mt-1 text-sm text-slate-600">
+            Payment mode and supporting transfer, cash or cheque information.
+          </p>
 
           <div className="mt-5 grid gap-4 md:grid-cols-3">
-            <div>
-              <label className="text-sm font-semibold text-slate-800">Cheque No</label>
-              <input
-                value={chequeNo}
-                onChange={(e) => setChequeNo(e.target.value)}
-                className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-3 outline-none focus:border-blue-500"
-                placeholder="Cheque number"
-              />
-            </div>
+            <InfoLine label="Mode" value={voucher.disbursement_mode || "—"} />
 
-            <div>
-              <label className="text-sm font-semibold text-slate-800">Cheque Date</label>
-              <input
-                value={chequeDate}
-                onChange={(e) => setChequeDate(e.target.value)}
-                type="date"
-                className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-3 outline-none focus:border-blue-500"
-              />
-            </div>
+            {isTransfer && (
+              <>
+                <InfoLine label="Account Name" value={voucher.transfer_account_name || "—"} />
+                <InfoLine label="Account Number" value={voucher.transfer_account_number || "—"} />
+                <InfoLine label="Bank Name" value={voucher.transfer_bank_name || "—"} />
+              </>
+            )}
 
-            <div>
-              <label className="text-sm font-semibold text-slate-800">Bank Name</label>
-              <input
-                value={bankName}
-                onChange={(e) => setBankName(e.target.value)}
-                className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-3 outline-none focus:border-blue-500"
-                placeholder="Bank name"
-              />
-            </div>
+            {isCash && (
+              <>
+                <InfoLine label="Cash Payee Name" value={voucher.cash_payee_name || voucher.payee_name || "—"} />
+                <InfoLine label="Received By" value={voucher.payee_signed_name || "—"} />
+                <InfoLine label="Received Date" value={shortDate(voucher.payee_signed_at)} />
+              </>
+            )}
+
+            {isCheque && (
+              <>
+                <InfoLine label="Cheque No" value={voucher.cheque_no || "—"} />
+                <InfoLine label="Cheque Date" value={shortDate(voucher.cheque_date)} />
+                <InfoLine label="Bank Name" value={voucher.bank_name || "—"} />
+                <InfoLine label="Counter Signatory" value={voucher.counter_signatory_name || "—"} />
+              </>
+            )}
+
+            {!isTransfer && !isCash && !isCheque && (
+              <>
+                <InfoLine label="Account / Cheque No" value="—" />
+                <InfoLine label="Bank" value="—" />
+              </>
+            )}
           </div>
         </div>
+
+        {isCheque && voucher.status === "Authorized" && (
+          <div className="mt-6 rounded-3xl border bg-white p-6 shadow-sm">
+            <h2 className="text-lg font-bold text-slate-900">Cheque Confirmation</h2>
+            <p className="mt-1 text-sm text-slate-600">
+              Confirm cheque details before moving the voucher to Cheque Prepared.
+            </p>
+
+            <div className="mt-5 grid gap-4 md:grid-cols-3">
+              <div>
+                <label className="text-sm font-semibold text-slate-800">Cheque No</label>
+                <input
+                  value={chequeNo}
+                  onChange={(e) => setChequeNo(e.target.value)}
+                  className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-3 outline-none focus:border-blue-500"
+                  placeholder="Cheque number"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-semibold text-slate-800">Cheque Date</label>
+                <input
+                  value={chequeDate}
+                  onChange={(e) => setChequeDate(e.target.value)}
+                  type="date"
+                  className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-3 outline-none focus:border-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-semibold text-slate-800">Bank Name</label>
+                <input
+                  value={bankName}
+                  onChange={(e) => setBankName(e.target.value)}
+                  className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-3 outline-none focus:border-blue-500"
+                  placeholder="Bank name"
+                />
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="mt-6 rounded-3xl border bg-white p-6 shadow-sm">
           <h2 className="text-lg font-bold text-slate-900">Voucher Actions</h2>
           <p className="mt-1 text-sm text-slate-600">
-            Progress the payment voucher through check, authorization, cheque and payment stages.
+            Progress this voucher according to the selected disbursement mode.
           </p>
 
           <div className="mt-4">
@@ -549,7 +640,7 @@ function InfoLine({ label, value }: { label: string; value: string }) {
       <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
         {label}
       </div>
-      <div className="mt-1 text-sm font-semibold text-slate-900">{value}</div>
+      <div className="mt-1 break-words text-sm font-semibold text-slate-900">{value}</div>
     </div>
   );
 }
