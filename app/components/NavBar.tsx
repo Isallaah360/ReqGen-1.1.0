@@ -75,18 +75,19 @@ export default function NavBar() {
   }, [canHRPersonal, isAdmin]);
 
   const financeLinks = useMemo(() => {
-    const list = [
-      { href: "/finance/subheads", label: "Subheads / Finance" },
-      { href: "/payment-vouchers", label: "Payment Vouchers" },
-      { href: "/finance/reports", label: "Reports" },
-    ];
+  const list = [
+    { href: "/finance/subheads", label: "Subheads / Finance" },
+    { href: "/payment-vouchers", label: "Payment Vouchers" },
+    { href: "/payment-vouchers/settings", label: "PV Settings" },
+    { href: "/finance/reports", label: "Reports" },
+  ];
 
-    if (canAuditView) {
-      list.push({ href: "/finance/audit", label: "Audit & Reconciliation" });
-    }
+  if (canAuditView) {
+    list.push({ href: "/finance/audit", label: "Audit & Reconciliation" });
+  }
 
-    return list;
-  }, [canAuditView]);
+  return list;
+}, [canAuditView]);
 
   const linkClass = (href: string) =>
     `px-3 py-2 rounded-xl text-sm font-semibold transition ${
