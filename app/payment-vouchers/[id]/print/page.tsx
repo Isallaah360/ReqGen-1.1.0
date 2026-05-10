@@ -52,6 +52,13 @@ type VoucherDetail = {
   payee_signature_url: string | null;
   payee_signed_at: string | null;
 
+  disbursement_mode: string | null;
+  transfer_account_name: string | null;
+  transfer_account_number: string | null;
+  transfer_bank_name: string | null;
+  cash_payee_name: string | null;
+  counter_signatory_name: string | null;
+
   status: string | null;
   created_at: string | null;
   updated_at: string | null;
@@ -72,6 +79,7 @@ function formatDate(d: string | null | undefined) {
 
 function amountToWords(n: number | null | undefined) {
   const num = Math.round(Number(n || 0));
+
   if (num === 0) return "Zero Naira Only";
 
   const ones = [
@@ -430,12 +438,10 @@ export default function PaymentVoucherPrintPage() {
               <div className="col-span-8 border-r-2 border-black px-2 py-1">
                 Details / Particulars
               </div>
-              <div className="col-span-4 px-2 py-1 text-right">
-                Amount
-              </div>
+              <div className="col-span-4 px-2 py-1 text-right">Amount</div>
             </div>
 
-            <div className="grid min-h-[72px] grid-cols-12 text-[9.5px] font-bold">
+            <div className="grid min-h-[70px] grid-cols-12 text-[9.5px] font-bold">
               <div className="col-span-8 border-r-2 border-black px-2 py-2">
                 <div className="whitespace-pre-wrap leading-tight">
                   {voucher.narration || "Payment voucher"}
@@ -466,15 +472,79 @@ export default function PaymentVoucherPrintPage() {
 
           <div className="mt-2 border-2 border-black">
             <div className="border-b-2 border-black bg-slate-100 px-2 py-1 text-[8.5px] font-black uppercase">
-              Disbursement Details — To be completed manually for now
+              Disbursement Details
             </div>
 
             <div className="grid grid-cols-12 gap-2 px-2 py-2">
-              <BlankBox label="Mode: Transfer / Cash / Cheque" className="col-span-4" />
-              <BlankBox label="Account Number / Cheque No." className="col-span-4" />
-              <BlankBox label="Bank" className="col-span-4" />
-              <BlankBox label="Account Name / Payee Name" className="col-span-8" />
-              <BlankBox label="Cheque Date / Payment Date" className="col-span-4" />
+              <FilledBox
+                label="Mode"
+                value={voucher.disbursement_mode || ""}
+                className="col-span-4"
+              />
+
+              {voucher.disbursement_mode === "Transfer" && (
+                <>
+                  <FilledBox
+                    label="Account Number"
+                    value={voucher.transfer_account_number || ""}
+                    className="col-span-4"
+                  />
+                  <FilledBox
+                    label="Bank"
+                    value={voucher.transfer_bank_name || ""}
+                    className="col-span-4"
+                  />
+                  <FilledBox
+                    label="Account Name"
+                    value={voucher.transfer_account_name || ""}
+                    className="col-span-12"
+                  />
+                </>
+              )}
+
+              {voucher.disbursement_mode === "Cash" && (
+                <>
+                  <FilledBox
+                    label="Payee Name"
+                    value={voucher.cash_payee_name || voucher.payee_name || ""}
+                    className="col-span-8"
+                  />
+                  <BlankBox label="Payee Signature / Date" className="col-span-4" />
+                </>
+              )}
+
+              {voucher.disbursement_mode === "Cheque" && (
+                <>
+                  <FilledBox
+                    label="Cheque No."
+                    value={voucher.cheque_no || ""}
+                    className="col-span-4"
+                  />
+                  <FilledBox
+                    label="Cheque Date"
+                    value={formatDate(voucher.cheque_date)}
+                    className="col-span-4"
+                  />
+                  <FilledBox
+                    label="Bank"
+                    value={voucher.bank_name || ""}
+                    className="col-span-4"
+                  />
+                  <FilledBox
+                    label="Counter Signed By"
+                    value={voucher.counter_signatory_name || ""}
+                    className="col-span-12"
+                  />
+                </>
+              )}
+
+              {!voucher.disbursement_mode && (
+                <>
+                  <BlankBox label="Account Number / Cheque No." className="col-span-4" />
+                  <BlankBox label="Bank" className="col-span-4" />
+                  <BlankBox label="Account Name / Payee Name" className="col-span-12" />
+                </>
+              )}
             </div>
           </div>
 
@@ -513,7 +583,13 @@ export default function PaymentVoucherPrintPage() {
               />
 
               <ManualSignatureBox title="Cheque Signed By" />
-              <ManualSignatureBox title="Counter Signed By" />
+              <ManualSignatureBox
+                title={
+                  voucher.counter_signatory_name
+                    ? `Counter Signed By: ${voucher.counter_signatory_name}`
+                    : "Counter Signed By"
+                }
+              />
             </div>
           </div>
 
@@ -566,6 +642,27 @@ function BlankBox({ label, className }: { label: string; className?: string }) {
   );
 }
 
+function FilledBox({
+  label,
+  value,
+  className,
+}: {
+  label: string;
+  value: string;
+  className?: string;
+}) {
+  return (
+    <div className={`border border-black ${className || ""}`}>
+      <div className="border-b border-black bg-slate-100 px-2 py-[3px] text-[7.5px] font-black uppercase">
+        {label}
+      </div>
+      <div className="min-h-[20px] px-2 py-[3px] text-[8.2px] font-bold leading-tight">
+        {value || " "}
+      </div>
+    </div>
+  );
+}
+
 function SignatureBox({
   title,
   name,
@@ -613,7 +710,7 @@ function SignatureBox({
 function ManualSignatureBox({ title }: { title: string }) {
   return (
     <div>
-      <div className="text-[7.8px] font-black uppercase">{title}</div>
+      <div className="text-[7.8px] font-black uppercase line-clamp-1">{title}</div>
 
       <div className="mt-1 grid grid-cols-[1fr_82px_62px] items-end gap-2">
         <div className="border-b border-black pb-[1px] text-[8.2px] font-bold">

@@ -44,6 +44,10 @@ type ReadyRequest = {
   account_name: string | null;
 };
 
+type DisbursementMode = "Transfer" | "Cash" | "Cheque";
+
+const COUNTER_SIGNATORIES = ["Alhaji Abdurrahim Suleiman", "Alhaji Ibrahim Yahya"];
+
 function roleKey(role: string | null | undefined) {
   return (role || "")
     .trim()
@@ -79,43 +83,19 @@ function categoryBadgeClass(v: { request_type: string | null; personal_category:
   const rt = normalize(v.request_type);
   const pc = normalize(v.personal_category);
 
-  if (rt === "official") {
-    return "border-blue-200 bg-blue-50 text-blue-700";
-  }
-
-  if (rt === "personal" && pc === "fund") {
-    return "border-purple-200 bg-purple-50 text-purple-700";
-  }
-
+  if (rt === "official") return "border-blue-200 bg-blue-50 text-blue-700";
+  if (rt === "personal" && pc === "fund") return "border-purple-200 bg-purple-50 text-purple-700";
   return "border-slate-200 bg-slate-50 text-slate-700";
 }
 
 function statusBadgeClass(status: string | null | undefined) {
   const s = (status || "").toLowerCase();
 
-  if (s.includes("paid")) {
-    return "border-emerald-200 bg-emerald-50 text-emerald-700";
-  }
-
-  if (s.includes("cancel")) {
-    return "border-red-200 bg-red-50 text-red-700";
-  }
-
-  if (s.includes("authorized") || s.includes("checked")) {
-    return "border-blue-200 bg-blue-50 text-blue-700";
-  }
-
-  if (s.includes("cheque") || s.includes("counter")) {
-    return "border-amber-200 bg-amber-50 text-amber-700";
-  }
-
-  if (s.includes("prepared")) {
-    return "border-slate-200 bg-slate-50 text-slate-700";
-  }
-
-  if (s.includes("complete")) {
-    return "border-emerald-200 bg-emerald-50 text-emerald-700";
-  }
+  if (s.includes("paid")) return "border-emerald-200 bg-emerald-50 text-emerald-700";
+  if (s.includes("cancel")) return "border-red-200 bg-red-50 text-red-700";
+  if (s.includes("authorized") || s.includes("checked")) return "border-blue-200 bg-blue-50 text-blue-700";
+  if (s.includes("cheque") || s.includes("counter")) return "border-amber-200 bg-amber-50 text-amber-700";
+  if (s.includes("complete")) return "border-emerald-200 bg-emerald-50 text-emerald-700";
 
   return "border-slate-200 bg-slate-50 text-slate-700";
 }
@@ -124,7 +104,7 @@ export default function PaymentVouchersPage() {
   const router = useRouter();
 
   const [loading, setLoading] = useState(true);
-  const [generatingId, setGeneratingId] = useState<string | null>(null);
+  const [generating, setGenerating] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
   const [myRole, setMyRole] = useState("Staff");
@@ -137,6 +117,20 @@ export default function PaymentVouchersPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [typeFilter, setTypeFilter] = useState("ALL");
+
+  const [selectedRequest, setSelectedRequest] = useState<ReadyRequest | null>(null);
+  const [mode, setMode] = useState<DisbursementMode>("Transfer");
+
+  const [transferAccountName, setTransferAccountName] = useState("");
+  const [transferAccountNumber, setTransferAccountNumber] = useState("");
+  const [transferBankName, setTransferBankName] = useState("");
+
+  const [cashPayeeName, setCashPayeeName] = useState("");
+
+  const [chequeNo, setChequeNo] = useState("");
+  const [chequeDate, setChequeDate] = useState("");
+  const [chequeBankName, setChequeBankName] = useState("");
+  const [counterSignatoryName, setCounterSignatoryName] = useState(COUNTER_SIGNATORIES[0]);
 
   async function load() {
     setLoading(true);
@@ -199,16 +193,82 @@ export default function PaymentVouchersPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function generateVoucher(requestId: string) {
+  function openGenerateModal(r: ReadyRequest) {
+    setSelectedRequest(r);
+    setMode("Transfer");
+
+    setTransferAccountName(r.requester_name || "");
+    setTransferAccountNumber("");
+    setTransferBankName("");
+
+    setCashPayeeName(r.requester_name || "");
+
+    setChequeNo("");
+    setChequeDate("");
+    setChequeBankName("");
+    setCounterSignatoryName(COUNTER_SIGNATORIES[0]);
+
+    setMsg(null);
+  }
+
+  function closeGenerateModal() {
+    if (generating) return;
+    setSelectedRequest(null);
+  }
+
+  function validateDisbursement() {
+    if (!selectedRequest) return "No request selected.";
+
+    if (mode === "Transfer") {
+      if (!transferAccountName.trim()) return "Transfer requires Account Name.";
+      if (!transferAccountNumber.trim()) return "Transfer requires Account Number.";
+      if (!transferBankName.trim()) return "Transfer requires Bank Name.";
+    }
+
+    if (mode === "Cash") {
+      if (!cashPayeeName.trim()) return "Cash requires Payee Name.";
+    }
+
+    if (mode === "Cheque") {
+      if (!chequeNo.trim()) return "Cheque requires Cheque Number.";
+      if (!chequeDate) return "Cheque requires Cheque Date.";
+      if (!chequeBankName.trim()) return "Cheque requires Bank Name.";
+      if (!counterSignatoryName.trim()) return "Cheque requires Counter Signed By.";
+    }
+
+    return null;
+  }
+
+  async function generateVoucher() {
+    if (!selectedRequest) return;
+
+    const validation = validateDisbursement();
+    if (validation) {
+      setMsg("❌ " + validation);
+      return;
+    }
+
     const ok = confirm("Generate payment voucher for this request?");
     if (!ok) return;
 
-    setGeneratingId(requestId);
+    setGenerating(true);
     setMsg(null);
 
     try {
       const { data, error } = await supabase.rpc("generate_payment_voucher", {
-        p_request_id: requestId,
+        p_request_id: selectedRequest.id,
+        p_disbursement_mode: mode,
+
+        p_transfer_account_name: mode === "Transfer" ? transferAccountName.trim() : null,
+        p_transfer_account_number: mode === "Transfer" ? transferAccountNumber.trim() : null,
+        p_transfer_bank_name: mode === "Transfer" ? transferBankName.trim() : null,
+
+        p_cash_payee_name: mode === "Cash" ? cashPayeeName.trim() : null,
+
+        p_cheque_no: mode === "Cheque" ? chequeNo.trim() : null,
+        p_cheque_date: mode === "Cheque" ? chequeDate : null,
+        p_cheque_bank_name: mode === "Cheque" ? chequeBankName.trim() : null,
+        p_counter_signatory_name: mode === "Cheque" ? counterSignatoryName.trim() : null,
       });
 
       if (error) throw new Error(error.message);
@@ -217,6 +277,7 @@ export default function PaymentVouchersPage() {
       const voucherId = (data as any)?.voucher_id;
 
       setMsg(`✅ ${voucherNo} generated successfully.`);
+      setSelectedRequest(null);
 
       await load();
 
@@ -228,7 +289,7 @@ export default function PaymentVouchersPage() {
     } catch (e: any) {
       setMsg("❌ Failed to generate voucher: " + (e?.message || "Unknown error"));
     } finally {
-      setGeneratingId(null);
+      setGenerating(false);
     }
   }
 
@@ -241,9 +302,7 @@ export default function PaymentVouchersPage() {
       if (typeFilter === "Official" && normalize(v.request_type) !== "official") return false;
 
       if (typeFilter === "PersonalFund") {
-        if (!(normalize(v.request_type) === "personal" && normalize(v.personal_category) === "fund")) {
-          return false;
-        }
+        if (!(normalize(v.request_type) === "personal" && normalize(v.personal_category) === "fund")) return false;
       }
 
       if (s) {
@@ -302,9 +361,7 @@ export default function PaymentVouchersPage() {
       <main className="min-h-screen bg-slate-50 px-4">
         <div className="mx-auto max-w-3xl py-10">
           <div className="rounded-2xl border bg-white p-6 shadow-sm">
-            <h1 className="text-xl font-extrabold text-slate-900">
-              Payment Voucher Access
-            </h1>
+            <h1 className="text-xl font-extrabold text-slate-900">Payment Voucher Access</h1>
 
             <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
               {msg || "Access denied."}
@@ -371,9 +428,7 @@ export default function PaymentVouchersPage() {
         <div className="mt-6 rounded-3xl border bg-white shadow-sm overflow-hidden">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b bg-slate-50 px-6 py-4">
             <div>
-              <h2 className="text-lg font-bold text-slate-900">
-                Requests Ready for Voucher
-              </h2>
+              <h2 className="text-lg font-bold text-slate-900">Requests Ready for Voucher</h2>
               <p className="mt-1 text-sm text-slate-600">
                 Paid/completed Official and Personal Fund requests without existing vouchers.
               </p>
@@ -389,131 +444,78 @@ export default function PaymentVouchersPage() {
               No request is currently ready for voucher generation.
             </div>
           ) : (
-            <>
-              <div className="grid gap-3 p-4 xl:hidden">
-                {readyRows.map((r) => (
-                  <div key={r.id} className="rounded-2xl border bg-white p-4">
-                    <div className="flex flex-wrap items-start justify-between gap-2">
-                      <div>
-                        <div className="font-extrabold text-slate-900">{r.request_no}</div>
-                        <div className="mt-1 text-sm font-semibold text-slate-800">{r.title}</div>
-                        <div className="mt-1 text-xs text-slate-500">
-                          {r.dept_name || "—"}
-                        </div>
-                      </div>
+            <div className="overflow-x-auto">
+              <div className="min-w-[1180px]">
+                <div className="grid grid-cols-14 bg-slate-100 px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600">
+                  <div className="col-span-2">Request No</div>
+                  <div className="col-span-3">Title</div>
+                  <div className="col-span-2">Department</div>
+                  <div className="col-span-1">Type</div>
+                  <div className="col-span-1 text-right">Amount</div>
+                  <div className="col-span-2">Requester</div>
+                  <div className="col-span-1">Status</div>
+                  <div className="col-span-2 text-right">Action</div>
+                </div>
 
+                {readyRows.map((r) => (
+                  <div
+                    key={r.id}
+                    className="grid grid-cols-14 items-center border-t px-6 py-4 text-sm hover:bg-slate-50"
+                  >
+                    <div className="col-span-2 font-extrabold text-slate-900">
+                      {r.request_no}
+                    </div>
+
+                    <div className="col-span-3">
+                      <div className="font-semibold text-slate-900">{r.title}</div>
+                      <div className="mt-1 line-clamp-1 text-xs text-slate-500">
+                        {r.details}
+                      </div>
+                    </div>
+
+                    <div className="col-span-2 text-slate-700">{r.dept_name || "—"}</div>
+
+                    <div className="col-span-1">
                       <span
-                        className={`rounded-full border px-3 py-1 text-xs font-bold ${categoryBadgeClass(r)}`}
+                        className={`rounded-full border px-2 py-1 text-[11px] font-bold ${categoryBadgeClass(r)}`}
                       >
                         {categoryLabel(r)}
                       </span>
                     </div>
 
-                    <div className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
-                      <InfoLine label="Requester" value={r.requester_name || "—"} />
-                      <InfoLine label="Amount" value={naira(r.amount)} />
-                      <InfoLine label="Status" value={r.status || "—"} />
-                      <InfoLine label="Account" value={r.account_name || "—"} />
+                    <div className="col-span-1 text-right font-bold text-slate-900">
+                      {naira(r.amount)}
                     </div>
 
-                    <div className="mt-4 flex flex-wrap justify-end gap-2">
+                    <div className="col-span-2 text-slate-700">{r.requester_name || "—"}</div>
+
+                    <div className="col-span-1">
+                      <span
+                        className={`rounded-full border px-2 py-1 text-[11px] font-bold ${statusBadgeClass(r.status)}`}
+                      >
+                        {r.status || "—"}
+                      </span>
+                    </div>
+
+                    <div className="col-span-2 flex justify-end gap-2">
                       <button
                         onClick={() => router.push(`/requests/${r.id}`)}
-                        className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
+                        className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-900 hover:bg-slate-100"
                       >
                         Request
                       </button>
 
                       <button
-                        onClick={() => generateVoucher(r.id)}
-                        disabled={generatingId === r.id}
-                        className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
+                        onClick={() => openGenerateModal(r)}
+                        className="rounded-xl bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-700"
                       >
-                        {generatingId === r.id ? "Generating..." : "Generate Voucher"}
+                        Generate
                       </button>
                     </div>
                   </div>
                 ))}
               </div>
-
-              <div className="hidden xl:block overflow-x-auto">
-                <div className="min-w-[1180px]">
-                  <div className="grid grid-cols-14 bg-slate-100 px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600">
-                    <div className="col-span-2">Request No</div>
-                    <div className="col-span-3">Title</div>
-                    <div className="col-span-2">Department</div>
-                    <div className="col-span-1">Type</div>
-                    <div className="col-span-1 text-right">Amount</div>
-                    <div className="col-span-2">Requester</div>
-                    <div className="col-span-1">Status</div>
-                    <div className="col-span-2 text-right">Action</div>
-                  </div>
-
-                  {readyRows.map((r) => (
-                    <div
-                      key={r.id}
-                      className="grid grid-cols-14 items-center border-t px-6 py-4 text-sm hover:bg-slate-50"
-                    >
-                      <div className="col-span-2 font-extrabold text-slate-900">
-                        {r.request_no}
-                      </div>
-
-                      <div className="col-span-3">
-                        <div className="font-semibold text-slate-900">{r.title}</div>
-                        <div className="mt-1 line-clamp-1 text-xs text-slate-500">
-                          {r.details}
-                        </div>
-                      </div>
-
-                      <div className="col-span-2 text-slate-700">
-                        {r.dept_name || "—"}
-                      </div>
-
-                      <div className="col-span-1">
-                        <span
-                          className={`rounded-full border px-2 py-1 text-[11px] font-bold ${categoryBadgeClass(r)}`}
-                        >
-                          {categoryLabel(r)}
-                        </span>
-                      </div>
-
-                      <div className="col-span-1 text-right font-bold text-slate-900">
-                        {naira(r.amount)}
-                      </div>
-
-                      <div className="col-span-2 text-slate-700">
-                        {r.requester_name || "—"}
-                      </div>
-
-                      <div className="col-span-1">
-                        <span
-                          className={`rounded-full border px-2 py-1 text-[11px] font-bold ${statusBadgeClass(r.status)}`}
-                        >
-                          {r.status || "—"}
-                        </span>
-                      </div>
-
-                      <div className="col-span-2 flex justify-end gap-2">
-                        <button
-                          onClick={() => router.push(`/requests/${r.id}`)}
-                          className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-900 hover:bg-slate-100"
-                        >
-                          Request
-                        </button>
-
-                        <button
-                          onClick={() => generateVoucher(r.id)}
-                          disabled={generatingId === r.id}
-                          className="rounded-xl bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
-                        >
-                          {generatingId === r.id ? "Generating..." : "Generate"}
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </>
+            </div>
           )}
         </div>
 
@@ -732,6 +734,151 @@ export default function PaymentVouchersPage() {
           )}
         </div>
 
+        {selectedRequest && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+            <div className="max-h-[92vh] w-full max-w-2xl overflow-auto rounded-3xl bg-white p-6 shadow-2xl">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h2 className="text-xl font-extrabold text-slate-900">
+                    Generate Payment Voucher
+                  </h2>
+                  <p className="mt-1 text-sm text-slate-600">
+                    Select disbursement mode and complete the required fields.
+                  </p>
+                </div>
+
+                <button
+                  onClick={closeGenerateModal}
+                  className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold hover:bg-slate-100"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="mt-4 rounded-2xl border bg-slate-50 p-4 text-sm">
+                <div className="font-extrabold text-slate-900">{selectedRequest.request_no}</div>
+                <div className="mt-1 font-semibold text-slate-800">{selectedRequest.title}</div>
+                <div className="mt-1 text-slate-600">
+                  {selectedRequest.dept_name || "—"} • {categoryLabel(selectedRequest)} •{" "}
+                  <b>{naira(selectedRequest.amount)}</b>
+                </div>
+              </div>
+
+              <div className="mt-5">
+                <label className="text-sm font-semibold text-slate-800">Disbursement Mode</label>
+                <select
+                  value={mode}
+                  onChange={(e) => setMode(e.target.value as DisbursementMode)}
+                  className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-3 outline-none focus:border-blue-500"
+                >
+                  <option value="Transfer">Transfer</option>
+                  <option value="Cash">Cash</option>
+                  <option value="Cheque">Cheque</option>
+                </select>
+              </div>
+
+              {mode === "Transfer" && (
+                <div className="mt-4 grid gap-4 md:grid-cols-2">
+                  <Field
+                    label="Account Name"
+                    value={transferAccountName}
+                    onChange={setTransferAccountName}
+                    placeholder="Payee account name"
+                  />
+
+                  <Field
+                    label="Account Number"
+                    value={transferAccountNumber}
+                    onChange={setTransferAccountNumber}
+                    placeholder="Account number"
+                  />
+
+                  <div className="md:col-span-2">
+                    <Field
+                      label="Bank Name"
+                      value={transferBankName}
+                      onChange={setTransferBankName}
+                      placeholder="Bank name"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {mode === "Cash" && (
+                <div className="mt-4">
+                  <Field
+                    label="Payee Name"
+                    value={cashPayeeName}
+                    onChange={setCashPayeeName}
+                    placeholder="Cash payee name"
+                  />
+                </div>
+              )}
+
+              {mode === "Cheque" && (
+                <div className="mt-4 grid gap-4 md:grid-cols-2">
+                  <Field
+                    label="Cheque No"
+                    value={chequeNo}
+                    onChange={setChequeNo}
+                    placeholder="Cheque number"
+                  />
+
+                  <div>
+                    <label className="text-sm font-semibold text-slate-800">Cheque Date</label>
+                    <input
+                      value={chequeDate}
+                      onChange={(e) => setChequeDate(e.target.value)}
+                      type="date"
+                      className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-3 outline-none focus:border-blue-500"
+                    />
+                  </div>
+
+                  <Field
+                    label="Bank Name"
+                    value={chequeBankName}
+                    onChange={setChequeBankName}
+                    placeholder="Bank name"
+                  />
+
+                  <div>
+                    <label className="text-sm font-semibold text-slate-800">Counter Signed By</label>
+                    <select
+                      value={counterSignatoryName}
+                      onChange={(e) => setCounterSignatoryName(e.target.value)}
+                      className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-3 outline-none focus:border-blue-500"
+                    >
+                      {COUNTER_SIGNATORIES.map((name) => (
+                        <option key={name} value={name}>
+                          {name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              )}
+
+              <div className="mt-6 flex flex-wrap justify-end gap-2">
+                <button
+                  onClick={closeGenerateModal}
+                  disabled={generating}
+                  className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  onClick={generateVoucher}
+                  disabled={generating}
+                  className="rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
+                >
+                  {generating ? "Generating..." : "Generate Voucher"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="mt-6 rounded-3xl border border-blue-100 bg-blue-50 p-5 text-sm text-blue-900">
           <div className="font-bold">Payment Voucher Note</div>
           <p className="mt-1">
@@ -781,6 +928,30 @@ function InfoLine({ label, value }: { label: string; value: string }) {
     <div>
       <span className="text-slate-500">{label}:</span>{" "}
       <b className="text-slate-900">{value}</b>
+    </div>
+  );
+}
+
+function Field({
+  label,
+  value,
+  onChange,
+  placeholder,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+}) {
+  return (
+    <div>
+      <label className="text-sm font-semibold text-slate-800">{label}</label>
+      <input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-3 outline-none focus:border-blue-500"
+      />
     </div>
   );
 }
