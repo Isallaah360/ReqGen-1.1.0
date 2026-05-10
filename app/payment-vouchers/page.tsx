@@ -46,7 +46,7 @@ type ReadyRequest = {
 
 type DisbursementMode = "Transfer" | "Cash" | "Cheque";
 
-const COUNTER_SIGNATORIES = ["Alhaji Abdurrahim Suleiman", "Alhaji Ibrahim Yahya"];
+const COUNTER_SIGNATORIES = ["Alhaji Abdurrahim Sulaiman", "Alhaji Ibrahim A. Yahya", "Muhammad Alhassan"];
 
 function roleKey(role: string | null | undefined) {
   return (role || "")
