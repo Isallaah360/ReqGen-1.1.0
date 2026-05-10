@@ -44,9 +44,12 @@ type ReadyRequest = {
   account_name: string | null;
 };
 
-type DisbursementMode = "Transfer" | "Cash" | "Cheque";
+type CounterSignatory = {
+  id: string;
+  full_name: string;
+};
 
-const COUNTER_SIGNATORIES = ["Alhaji Abdurrahim Sulaiman", "Alhaji Ibrahim A. Yahya", "Muhammad Alhassan"];
+type DisbursementMode = "Transfer" | "Cash" | "Cheque";
 
 function roleKey(role: string | null | undefined) {
   return (role || "")
@@ -113,6 +116,7 @@ export default function PaymentVouchersPage() {
 
   const [rows, setRows] = useState<VoucherRow[]>([]);
   const [readyRows, setReadyRows] = useState<ReadyRequest[]>([]);
+  const [counterSignatories, setCounterSignatories] = useState<CounterSignatory[]>([]);
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
@@ -130,7 +134,7 @@ export default function PaymentVouchersPage() {
   const [chequeNo, setChequeNo] = useState("");
   const [chequeDate, setChequeDate] = useState("");
   const [chequeBankName, setChequeBankName] = useState("");
-  const [counterSignatoryName, setCounterSignatoryName] = useState(COUNTER_SIGNATORIES[0]);
+  const [counterSignatoryName, setCounterSignatoryName] = useState("");
 
   async function load() {
     setLoading(true);
@@ -162,13 +166,19 @@ export default function PaymentVouchersPage() {
       setMsg("Access denied. Only Admin, Auditor and Account Officers can view payment vouchers.");
       setRows([]);
       setReadyRows([]);
+      setCounterSignatories([]);
       setLoading(false);
       return;
     }
 
-    const [voucherRes, readyRes] = await Promise.all([
+    const [voucherRes, readyRes, counterRes] = await Promise.all([
       supabase.rpc("get_payment_vouchers"),
       supabase.rpc("get_requests_ready_for_payment_voucher"),
+      supabase
+        .from("payment_voucher_counter_signatories")
+        .select("id,full_name")
+        .eq("is_active", true)
+        .order("full_name", { ascending: true }),
     ]);
 
     if (voucherRes.error) {
@@ -183,6 +193,18 @@ export default function PaymentVouchersPage() {
       setReadyRows([]);
     } else {
       setReadyRows((readyRes.data || []) as ReadyRequest[]);
+    }
+
+    if (counterRes.error) {
+      setMsg("Failed to load counter signatories: " + counterRes.error.message);
+      setCounterSignatories([]);
+    } else {
+      const list = (counterRes.data || []) as CounterSignatory[];
+      setCounterSignatories(list);
+
+      if (!counterSignatoryName && list.length > 0) {
+        setCounterSignatoryName(list[0].full_name);
+      }
     }
 
     setLoading(false);
@@ -206,7 +228,7 @@ export default function PaymentVouchersPage() {
     setChequeNo("");
     setChequeDate("");
     setChequeBankName("");
-    setCounterSignatoryName(COUNTER_SIGNATORIES[0]);
+    setCounterSignatoryName(counterSignatories[0]?.full_name || "");
 
     setMsg(null);
   }
@@ -848,12 +870,22 @@ export default function PaymentVouchersPage() {
                       onChange={(e) => setCounterSignatoryName(e.target.value)}
                       className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-3 outline-none focus:border-blue-500"
                     >
-                      {COUNTER_SIGNATORIES.map((name) => (
-                        <option key={name} value={name}>
-                          {name}
-                        </option>
-                      ))}
+                      {counterSignatories.length === 0 ? (
+                        <option value="">No active counter signatory found</option>
+                      ) : (
+                        counterSignatories.map((person) => (
+                          <option key={person.id} value={person.full_name}>
+                            {person.full_name}
+                          </option>
+                        ))
+                      )}
                     </select>
+
+                    {counterSignatories.length === 0 && (
+                      <div className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-900">
+                        Add active names in Finance ▾ → PV Settings before generating a cheque voucher.
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
