@@ -13,16 +13,12 @@ type Notif = {
   created_at: string;
 };
 
-type PendingItem = {
-  id: string;
-  request_no: string;
-  title: string;
-  current_stage: string;
-  status: string;
-  created_at: string;
+type NavItem = {
+  href: string;
+  label: string;
 };
 
-function roleKey(role: string) {
+function roleKey(role: string | null | undefined) {
   return (role || "")
     .trim()
     .toLowerCase()
@@ -36,68 +32,86 @@ export default function NavBar() {
 
   const [signedIn, setSignedIn] = useState(false);
   const [myRole, setMyRole] = useState<string>("Staff");
-
   const [openBell, setOpenBell] = useState(false);
   const [openFinance, setOpenFinance] = useState(false);
+  const [openHR, setOpenHR] = useState(false);
 
-  const [pendingCount, setPendingCount] = useState(0);
-  const [pendingItems, setPendingItems] = useState<PendingItem[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [items, setItems] = useState<Notif[]>([]);
-
   const [userId, setUserId] = useState<string | null>(null);
 
   const bellRef = useRef<HTMLDivElement | null>(null);
   const financeRef = useRef<HTMLDivElement | null>(null);
+  const hrRef = useRef<HTMLDivElement | null>(null);
 
   const rk = roleKey(myRole);
 
   const isAdmin = ["admin", "auditor"].includes(rk);
   const canFinance = ["admin", "auditor", "account", "accounts", "accountofficer"].includes(rk);
   const canAuditView = ["admin", "auditor", "account", "accounts", "accountofficer"].includes(rk);
-  const canHRPersonal = ["admin", "auditor", "hr"].includes(rk);
+  const canHR = ["admin", "auditor", "hr"].includes(rk);
 
-  const links = useMemo(() => {
-    const base = [
-      { href: "/approvals", label: "Approvals" },
-      { href: "/dashboard", label: "Dashboard" },
-      { href: "/requests", label: "Requests" },
-    ];
+  function isActiveLink(href: string) {
+    if (href === "/") return pathname === "/";
 
-    if (canHRPersonal) {
-      base.push({ href: "/hr/filing", label: "HR" });
+    if (pathname === href) return true;
+
+    /*
+      Professional active-link rule:
+      This prevents /payment-vouchers from also becoming active when the user is on:
+      /payment-vouchers/settings
+      /payment-vouchers/[id]
+      /payment-vouchers/[id]/print
+    */
+    if (href === "/payment-vouchers") {
+      return pathname === "/payment-vouchers";
     }
 
-    if (isAdmin) {
-      base.push({ href: "/admin", label: "Admin" });
-    }
-
-    return base;
-  }, [canHRPersonal, isAdmin]);
-
-  const financeLinks = useMemo(() => {
-  const list = [
-    { href: "/finance/subheads", label: "Subheads / Finance" },
-    { href: "/payment-vouchers", label: "Payment Vouchers" },
-    { href: "/payment-vouchers/settings", label: "PV Settings" },
-    { href: "/finance/reports", label: "Reports" },
-  ];
-
-  if (canAuditView) {
-    list.push({ href: "/finance/audit", label: "Audit & Reconciliation" });
+    return pathname.startsWith(href + "/");
   }
 
-  return list;
-}, [canAuditView]);
+  const financeLinks = useMemo<NavItem[]>(() => {
+    const list: NavItem[] = [
+      { href: "/finance/subheads", label: "Subheads / Finance" },
+      { href: "/payment-vouchers", label: "Payment Vouchers" },
+      { href: "/payment-vouchers/settings", label: "PV Settings" },
+      { href: "/finance/reports", label: "Reports" },
+    ];
 
-  const linkClass = (href: string) =>
+    if (canAuditView) {
+      list.push({ href: "/finance/audit", label: "Audit & Reconciliation" });
+    }
+
+    return list;
+  }, [canAuditView]);
+
+  const hrLinks = useMemo<NavItem[]>(() => {
+    return [{ href: "/hr/filing", label: "HR Filing" }];
+  }, []);
+
+  const financeActive = useMemo(() => {
+    return financeLinks.some((item) => isActiveLink(item.href));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [financeLinks, pathname]);
+
+  const hrActive = useMemo(() => {
+    return hrLinks.some((item) => isActiveLink(item.href));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hrLinks, pathname]);
+
+  const topLinkClass = (href: string) =>
     `px-3 py-2 rounded-xl text-sm font-semibold transition ${
-      pathname === href || pathname.startsWith(href + "/")
+      isActiveLink(href)
         ? "bg-blue-600 text-white shadow-sm"
         : "text-slate-700 hover:bg-slate-100"
     }`;
 
-  const financeActive =
-    pathname.startsWith("/finance") || pathname.startsWith("/payment-vouchers");
+  const dropdownItemClass = (href: string) =>
+    `block w-full rounded-2xl px-4 py-3 text-left text-sm font-bold transition ${
+      isActiveLink(href)
+        ? "bg-blue-600 text-white shadow-sm"
+        : "text-slate-800 hover:bg-slate-100"
+    }`;
 
   async function refreshAll() {
     const { data: sess, error: sessErr } = await supabase.auth.getSession();
@@ -106,8 +120,7 @@ export default function NavBar() {
       setSignedIn(false);
       setUserId(null);
       setMyRole("Staff");
-      setPendingCount(0);
-      setPendingItems([]);
+      setUnreadCount(0);
       setItems([]);
       return;
     }
@@ -116,38 +129,17 @@ export default function NavBar() {
     setSignedIn(true);
     setUserId(uid);
 
-    const { data: prof } = await supabase
+    const { data: prof, error: profErr } = await supabase
       .from("profiles")
       .select("role")
       .eq("id", uid)
       .maybeSingle();
 
-    setMyRole((prof?.role || "Staff") as string);
-
-    const pendingStatuses = [
-      "Submitted",
-      "In Review",
-      "Approved",
-      "Approved for Filing",
-    ];
-
-    const { count } = await supabase
-      .from("requests")
-      .select("*", { count: "exact", head: true })
-      .eq("current_owner", uid)
-      .in("status", pendingStatuses);
-
-    setPendingCount(count || 0);
-
-    const { data: pendingRows } = await supabase
-      .from("requests")
-      .select("id,request_no,title,current_stage,status,created_at")
-      .eq("current_owner", uid)
-      .in("status", pendingStatuses)
-      .order("created_at", { ascending: false })
-      .limit(8);
-
-    setPendingItems((pendingRows || []) as PendingItem[]);
+    if (!profErr && prof?.role) {
+      setMyRole(prof.role);
+    } else {
+      setMyRole("Staff");
+    }
 
     const { data: n } = await supabase
       .from("notifications")
@@ -156,7 +148,17 @@ export default function NavBar() {
       .order("created_at", { ascending: false })
       .limit(8);
 
-    setItems((n || []) as Notif[]);
+    const list = (n || []) as Notif[];
+    setItems(list);
+
+    const unreadNotifCount = list.filter((x) => !x.is_read).length;
+
+    const { count: pendingApprovalCount } = await supabase
+      .from("requests")
+      .select("*", { count: "exact", head: true })
+      .eq("current_owner", uid);
+
+    setUnreadCount(Math.max(unreadNotifCount, pendingApprovalCount || 0));
   }
 
   useEffect(() => {
@@ -183,7 +185,7 @@ export default function NavBar() {
           table: "notifications",
           filter: `user_id=eq.${userId}`,
         },
-        () => refreshAll()
+        refreshAll
       )
       .subscribe();
 
@@ -196,7 +198,7 @@ export default function NavBar() {
           schema: "public",
           table: "requests",
         },
-        () => refreshAll()
+        refreshAll
       )
       .subscribe();
 
@@ -206,13 +208,6 @@ export default function NavBar() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
-
-  useEffect(() => {
-    setOpenBell(false);
-    setOpenFinance(false);
-    refreshAll();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathname]);
 
   useEffect(() => {
     function onClick(e: MouseEvent) {
@@ -225,16 +220,18 @@ export default function NavBar() {
       if (openFinance && financeRef.current && !financeRef.current.contains(t)) {
         setOpenFinance(false);
       }
+
+      if (openHR && hrRef.current && !hrRef.current.contains(t)) {
+        setOpenHR(false);
+      }
     }
 
     document.addEventListener("mousedown", onClick);
     return () => document.removeEventListener("mousedown", onClick);
-  }, [openBell, openFinance]);
+  }, [openBell, openFinance, openHR]);
 
   async function logout() {
     await supabase.auth.signOut();
-    setOpenBell(false);
-    setOpenFinance(false);
     router.push("/");
     router.refresh();
   }
@@ -248,75 +245,87 @@ export default function NavBar() {
       .eq("user_id", userId)
       .eq("is_read", false);
 
-    setOpenBell(false);
-    await refreshAll();
+    refreshAll();
   }
 
   async function openNotif(n: Notif) {
     await supabase.from("notifications").update({ is_read: true }).eq("id", n.id);
+
     setOpenBell(false);
     router.push(n.link || "/approvals");
   }
 
-  function openPending(p: PendingItem) {
-    setOpenBell(false);
-    router.push(`/requests/${p.id}`);
+  function openFinanceLink(href: string) {
+    setOpenFinance(false);
+    router.push(href);
+  }
+
+  function openHRLink(href: string) {
+    setOpenHR(false);
+    router.push(href);
   }
 
   return (
-    <header className="sticky top-0 z-20 border-b bg-white/80 backdrop-blur">
-      <div className="mx-auto max-w-7xl px-4 py-3 flex items-center justify-between">
-        <Link href="/" className="font-extrabold text-lg tracking-tight text-slate-900">
+    <header className="sticky top-0 z-30 border-b bg-white/90 backdrop-blur">
+      <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
+        <Link href="/" className="font-extrabold tracking-tight text-slate-900 text-lg">
           ReqGen <span className="text-slate-400">1.1.0</span>
         </Link>
 
         {!signedIn ? null : (
           <div className="flex items-center gap-2">
-            <nav className="hidden md:flex items-center gap-2">
-              {links.slice(0, 3).map((l) => (
-                <Link key={l.href} className={linkClass(l.href)} href={l.href}>
-                  {l.label}
-                </Link>
-              ))}
+            <nav className="hidden items-center gap-2 md:flex">
+              <Link className={topLinkClass("/approvals")} href="/approvals">
+                Approvals
+              </Link>
+
+              <Link className={topLinkClass("/dashboard")} href="/dashboard">
+                Dashboard
+              </Link>
+
+              <Link className={topLinkClass("/requests")} href="/requests">
+                My Requests
+              </Link>
 
               {canFinance && (
                 <div className="relative" ref={financeRef}>
                   <button
-                    onClick={() => setOpenFinance((v) => !v)}
-                    className={`px-3 py-2 rounded-xl text-sm font-semibold transition ${
+                    type="button"
+                    onClick={() => {
+                      setOpenFinance((v) => !v);
+                      setOpenHR(false);
+                      setOpenBell(false);
+                    }}
+                    className={`rounded-xl px-3 py-2 text-sm font-semibold transition ${
                       financeActive
                         ? "bg-blue-600 text-white shadow-sm"
                         : "text-slate-700 hover:bg-slate-100"
                     }`}
-                    title="Finance menu"
                   >
-                    Finance ▾
+                    Finance
                   </button>
 
                   {openFinance && (
-                    <div className="absolute left-0 top-12 w-72 overflow-hidden rounded-2xl border bg-white shadow-lg">
-                      <div className="border-b bg-slate-50 px-4 py-3">
-                        <div className="text-sm font-bold text-slate-900">
+                    <div className="absolute left-0 top-12 w-[320px] overflow-hidden rounded-3xl border bg-white shadow-xl">
+                      <div className="border-b bg-slate-50 px-5 py-4">
+                        <div className="text-base font-extrabold text-slate-900">
                           Finance Directorate
                         </div>
-                        <div className="mt-0.5 text-xs text-slate-500">
+                        <div className="mt-1 text-sm font-semibold text-slate-500">
                           Budgets, vouchers, reports and audit tools
                         </div>
                       </div>
 
-                      <div className="p-2">
-                        {financeLinks.map((l) => (
-                          <Link
-                            key={l.href}
-                            href={l.href}
-                            className={`block rounded-xl px-3 py-2 text-sm font-semibold ${
-                              pathname === l.href || pathname.startsWith(l.href + "/")
-                                ? "bg-blue-600 text-white"
-                                : "text-slate-800 hover:bg-slate-100"
-                            }`}
+                      <div className="space-y-1 p-3">
+                        {financeLinks.map((item) => (
+                          <button
+                            key={item.href}
+                            type="button"
+                            onClick={() => openFinanceLink(item.href)}
+                            className={dropdownItemClass(item.href)}
                           >
-                            {l.label}
-                          </Link>
+                            {item.label}
+                          </button>
                         ))}
                       </div>
                     </div>
@@ -324,107 +333,116 @@ export default function NavBar() {
                 </div>
               )}
 
-              {links.slice(3).map((l) => (
-                <Link key={l.href} className={linkClass(l.href)} href={l.href}>
-                  {l.label}
+              {canHR && (
+                <div className="relative" ref={hrRef}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOpenHR((v) => !v);
+                      setOpenFinance(false);
+                      setOpenBell(false);
+                    }}
+                    className={`rounded-xl px-3 py-2 text-sm font-semibold transition ${
+                      hrActive
+                        ? "bg-blue-600 text-white shadow-sm"
+                        : "text-slate-700 hover:bg-slate-100"
+                    }`}
+                  >
+                    HR
+                  </button>
+
+                  {openHR && (
+                    <div className="absolute left-0 top-12 w-[260px] overflow-hidden rounded-3xl border bg-white shadow-xl">
+                      <div className="border-b bg-slate-50 px-5 py-4">
+                        <div className="text-base font-extrabold text-slate-900">
+                          HR Directorate
+                        </div>
+                        <div className="mt-1 text-sm font-semibold text-slate-500">
+                          Personal requests, filing and records
+                        </div>
+                      </div>
+
+                      <div className="space-y-1 p-3">
+                        {hrLinks.map((item) => (
+                          <button
+                            key={item.href}
+                            type="button"
+                            onClick={() => openHRLink(item.href)}
+                            className={dropdownItemClass(item.href)}
+                          >
+                            {item.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {isAdmin && (
+                <Link className={topLinkClass("/admin")} href="/admin">
+                  Admin
                 </Link>
-              ))}
+              )}
             </nav>
 
             <div className="relative" ref={bellRef}>
               <button
-                onClick={() => setOpenBell((v) => !v)}
+                onClick={() => {
+                  setOpenBell((v) => !v);
+                  setOpenFinance(false);
+                  setOpenHR(false);
+                }}
                 className="relative rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
-                title="Pending approvals"
+                title="Notifications"
               >
                 🔔
-                {pendingCount > 0 && (
-                  <span className="absolute -top-2 -right-2 rounded-full bg-red-600 px-2 py-0.5 text-xs font-bold text-white">
-                    {pendingCount}
+                {unreadCount > 0 && (
+                  <span className="absolute -right-2 -top-2 rounded-full bg-red-600 px-2 py-0.5 text-xs font-bold text-white">
+                    {unreadCount}
                   </span>
                 )}
               </button>
 
               {openBell && (
-                <div className="absolute right-0 top-12 w-96 rounded-2xl border bg-white shadow-lg overflow-hidden">
-                  <div className="flex items-center justify-between px-4 py-3 bg-slate-50">
-                    <div>
-                      <div className="font-bold text-slate-900">Pending Work</div>
-                      <div className="text-xs text-slate-500">
-                        {pendingCount} request{pendingCount === 1 ? "" : "s"} assigned to you
-                      </div>
-                    </div>
-
+                <div className="absolute right-0 top-12 w-80 overflow-hidden rounded-2xl border bg-white shadow-lg">
+                  <div className="flex items-center justify-between bg-slate-50 px-4 py-3">
+                    <div className="font-bold text-slate-900">Notifications</div>
                     <button
                       onClick={markAllRead}
                       className="text-xs font-semibold text-blue-700 hover:underline"
                     >
-                      Mark notices read
+                      Mark all read
                     </button>
                   </div>
 
-                  {pendingItems.length === 0 ? (
-                    <div className="p-4 text-sm text-slate-600">
-                      No pending request assigned to you.
-                    </div>
+                  {items.length === 0 ? (
+                    <div className="p-4 text-sm text-slate-600">No notifications yet.</div>
                   ) : (
-                    <div className="max-h-80 overflow-auto">
-                      {pendingItems.map((p) => (
+                    <div className="max-h-96 overflow-auto">
+                      {items.map((n) => (
                         <button
-                          key={p.id}
-                          onClick={() => openPending(p)}
-                          className="w-full border-t px-4 py-3 text-left hover:bg-blue-50"
+                          key={n.id}
+                          onClick={() => openNotif(n)}
+                          className={`w-full border-t px-4 py-3 text-left hover:bg-slate-50 ${
+                            n.is_read ? "bg-white" : "bg-blue-50"
+                          }`}
                         >
-                          <div className="text-sm font-bold text-slate-900">
-                            {p.request_no}
-                          </div>
-                          <div className="mt-1 text-sm font-semibold text-slate-700">
-                            {p.title}
-                          </div>
-                          <div className="mt-1 text-xs text-slate-500">
-                            {p.current_stage} • {p.status} •{" "}
-                            {new Date(p.created_at).toLocaleString()}
+                          <div className="text-sm font-semibold text-slate-900">{n.title}</div>
+                          <div className="text-xs text-slate-500">
+                            {new Date(n.created_at).toLocaleString()}
                           </div>
                         </button>
                       ))}
                     </div>
                   )}
-
-                  <div className="border-t bg-slate-50 px-4 py-3">
-                    <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                      Recent Notifications
-                    </div>
-
-                    {items.length === 0 ? (
-                      <div className="mt-2 text-xs text-slate-500">No recent notifications.</div>
-                    ) : (
-                      <div className="mt-2 max-h-44 overflow-auto rounded-xl border bg-white">
-                        {items.map((n) => (
-                          <button
-                            key={n.id}
-                            onClick={() => openNotif(n)}
-                            className={`w-full border-t px-3 py-2 text-left first:border-t-0 hover:bg-slate-50 ${
-                              n.is_read ? "bg-white" : "bg-blue-50"
-                            }`}
-                          >
-                            <div className="text-xs font-semibold text-slate-900">
-                              {n.title}
-                            </div>
-                            <div className="text-[11px] text-slate-500">
-                              {new Date(n.created_at).toLocaleString()}
-                            </div>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
                 </div>
               )}
             </div>
 
             <button
               onClick={logout}
-              className="hidden md:inline-flex ml-1 px-4 py-2 rounded-xl text-sm font-semibold bg-red-600 text-white hover:bg-red-700 transition"
+              className="hidden rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700 md:inline-flex"
             >
               Logout
             </button>
