@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import { exportTableToExcel, printReport } from "@/lib/reportExport";
 
 type VoucherRow = {
   id: string;
@@ -48,6 +49,10 @@ function normalize(v: string | null | undefined) {
 
 function naira(n: number | null | undefined) {
   return "₦" + Math.round(Number(n || 0)).toLocaleString();
+}
+
+function plainAmount(n: number | null | undefined) {
+  return Math.round(Number(n || 0)).toLocaleString();
 }
 
 function shortDate(d: string | null | undefined) {
@@ -321,7 +326,55 @@ export default function PaymentVoucherReportsPage() {
   }
 
   function handlePrintReport() {
-    window.print();
+    printReport();
+  }
+
+  function handleExportExcel() {
+    exportTableToExcel<VoucherRow>({
+      fileName: `payment_voucher_report_${fromDate}_to_${toDate}`,
+      sheetName: "PV Report",
+      title: "PAYMENT VOUCHER REPORT",
+      subtitle: `Period: ${fromDate || "Beginning"} to ${toDate || "Today"} | Total PVs: ${
+        stats.total
+      } | Active Value: ${naira(stats.totalValue)}`,
+      rows: filteredRows,
+      columns: [
+        { header: "S/N", value: (_row, index) => index + 1 },
+        { header: "PV No", value: (row) => row.voucher_no },
+        { header: "Request No", value: (row) => row.request_no || "—" },
+        { header: "Payee", value: (row) => row.payee_name || "—" },
+        { header: "Department", value: (row) => row.dept_name || "—" },
+        { header: "Request Type", value: (row) => categoryLabel(row) },
+        { header: "Mode", value: (row) => row.disbursement_mode || "—" },
+        { header: "Scope", value: (row) => row.voucher_scope || "Single" },
+        { header: "Items", value: (row) => row.item_count || 1 },
+        { header: "Amount", value: (row) => plainAmount(row.total_amount || row.amount) },
+        { header: "Status", value: (row) => row.status || "—" },
+        { header: "Prepared By", value: (row) => row.prepared_by_name || "—" },
+        { header: "Checked By", value: (row) => row.checked_by_name || "—" },
+        { header: "Authorized By", value: (row) => row.authorized_by_name || "—" },
+        { header: "Date", value: (row) => shortDate(row.created_at) },
+      ],
+      footerRows: [
+        [
+          "Report Total",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          plainAmount(stats.totalValue),
+          "Excludes cancelled vouchers",
+          "",
+          "",
+          "",
+          "",
+        ],
+      ],
+    });
   }
 
   if (loading) {
@@ -361,6 +414,11 @@ export default function PaymentVoucherReportsPage() {
     <main className="min-h-screen bg-slate-50 px-4">
       <style>{`
         @media print {
+          @page {
+            size: A4 landscape;
+            margin: 10mm;
+          }
+
           body {
             background: white !important;
           }
@@ -373,21 +431,45 @@ export default function PaymentVoucherReportsPage() {
             box-shadow: none !important;
             border: none !important;
             padding: 0 !important;
+            margin: 0 !important;
+            width: 100% !important;
+            max-width: none !important;
+          }
+
+          .print-card {
+            break-inside: avoid !important;
+          }
+
+          .print-title {
+            text-align: center !important;
           }
         }
       `}</style>
 
       <div className="print-sheet mx-auto max-w-7xl py-8">
         <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">
+          <div className="print-title">
+            <div className="hidden text-center print:block">
+              <div className="text-lg font-black uppercase text-slate-900">
+                Islamic Education Trust
+              </div>
+              <div className="text-xs font-semibold text-slate-600">
+                IW2, Ilmi Avenue Intermediate Housing Estate, PMB 229, Minna, Niger State - Nigeria
+              </div>
+              <div className="mt-3 border-y border-black py-2 text-base font-black uppercase">
+                Payment Voucher Report
+              </div>
+            </div>
+
+            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 print:mt-3 print:text-xl">
               Payment Voucher Reports
             </h1>
             <p className="mt-2 text-sm text-slate-600">
               Audit register for single and combined payment vouchers.
             </p>
             <p className="mt-1 text-xs font-semibold text-slate-500">
-              Period: {fromDate || "Beginning"} to {toDate || "Today"}
+              Period: {fromDate || "Beginning"} to {toDate || "Today"} • Generated:{" "}
+              {new Date().toLocaleString()}
             </p>
           </div>
 
@@ -401,10 +483,16 @@ export default function PaymentVoucherReportsPage() {
 
             <button
               onClick={handlePrintReport}
-              style={{ color: "#ffffff" }}
               className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700"
             >
-              Print Report
+              Print / Save PDF
+            </button>
+
+            <button
+              onClick={handleExportExcel}
+              className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700"
+            >
+              Export Excel
             </button>
 
             <button
@@ -422,7 +510,7 @@ export default function PaymentVoucherReportsPage() {
           </div>
         )}
 
-        <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-6">
+        <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-6 print:grid-cols-6">
           <StatCard title="Total PVs" value={String(stats.total)} tone="blue" />
           <StatCard title="Active PVs" value={String(stats.active)} tone="slate" />
           <StatCard title="Paid PVs" value={String(stats.paid)} tone="emerald" />
@@ -431,7 +519,7 @@ export default function PaymentVoucherReportsPage() {
           <StatCard title="Total Value" value={naira(stats.totalValue)} tone="purple" />
         </div>
 
-        <div className="mt-4 grid gap-4 md:grid-cols-3 xl:grid-cols-6">
+        <div className="mt-4 grid gap-4 md:grid-cols-3 xl:grid-cols-6 print:grid-cols-6">
           <MiniCard title="Paid Value" value={naira(stats.paidValue)} />
           <MiniCard title="Pending Value" value={naira(stats.pendingValue)} />
           <MiniCard title="Transfer" value={String(stats.transfer)} />
@@ -540,8 +628,8 @@ export default function PaymentVoucherReportsPage() {
           </div>
         </div>
 
-        <div className="mt-6 hidden xl:block rounded-3xl border bg-white shadow-sm overflow-hidden">
-          <div className="border-b bg-slate-50 px-6 py-4">
+        <div className="mt-6 hidden xl:block rounded-3xl border bg-white shadow-sm overflow-hidden print:block print:rounded-none print:border-black print:shadow-none">
+          <div className="border-b bg-slate-50 px-6 py-4 print:bg-white">
             <h2 className="text-lg font-bold text-slate-900">PV Audit Register</h2>
             <p className="mt-1 text-sm text-slate-600">
               {filteredRows.length} voucher(s) found for the selected filters.
@@ -552,8 +640,8 @@ export default function PaymentVoucherReportsPage() {
             <EmptyState />
           ) : (
             <div className="overflow-x-auto">
-              <div className="min-w-[1500px]">
-                <div className="grid grid-cols-19 bg-slate-100 px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600">
+              <div className="min-w-[1500px] print:min-w-0">
+                <div className="grid grid-cols-19 bg-slate-100 px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600 print:border-b print:border-black print:bg-white print:px-2">
                   <div className="col-span-2">PV No</div>
                   <div className="col-span-2">Request</div>
                   <div className="col-span-2">Payee</div>
@@ -571,7 +659,7 @@ export default function PaymentVoucherReportsPage() {
                 {filteredRows.map((v) => (
                   <div
                     key={v.id}
-                    className="grid grid-cols-19 items-center border-t px-6 py-4 text-sm hover:bg-slate-50"
+                    className="grid grid-cols-19 items-center border-t px-6 py-4 text-sm hover:bg-slate-50 print:px-2 print:py-2 print:text-[9px]"
                   >
                     <div className="col-span-2 font-extrabold text-slate-900">
                       {v.voucher_no}
@@ -590,19 +678,19 @@ export default function PaymentVoucherReportsPage() {
                     </div>
 
                     <div className="col-span-1">
-                      <span className={`rounded-full border px-2 py-1 text-[11px] font-bold ${categoryBadgeClass(v)}`}>
+                      <span className={`rounded-full border px-2 py-1 text-[11px] font-bold print:border-0 print:p-0 print:text-[9px] ${categoryBadgeClass(v)}`}>
                         {categoryLabel(v)}
                       </span>
                     </div>
 
                     <div className="col-span-1">
-                      <span className={`rounded-full border px-2 py-1 text-[11px] font-bold ${modeBadgeClass(v.disbursement_mode)}`}>
+                      <span className={`rounded-full border px-2 py-1 text-[11px] font-bold print:border-0 print:p-0 print:text-[9px] ${modeBadgeClass(v.disbursement_mode)}`}>
                         {v.disbursement_mode || "—"}
                       </span>
                     </div>
 
                     <div className="col-span-1">
-                      <span className={`rounded-full border px-2 py-1 text-[11px] font-bold ${scopeBadgeClass(v.voucher_scope)}`}>
+                      <span className={`rounded-full border px-2 py-1 text-[11px] font-bold print:border-0 print:p-0 print:text-[9px] ${scopeBadgeClass(v.voucher_scope)}`}>
                         {v.voucher_scope || "Single"}
                       </span>
                     </div>
@@ -612,7 +700,7 @@ export default function PaymentVoucherReportsPage() {
                     </div>
 
                     <div className="col-span-1">
-                      <span className={`rounded-full border px-2 py-1 text-[11px] font-bold ${statusBadgeClass(v.status)}`}>
+                      <span className={`rounded-full border px-2 py-1 text-[11px] font-bold print:border-0 print:p-0 print:text-[9px] ${statusBadgeClass(v.status)}`}>
                         {v.status || "—"}
                       </span>
                     </div>
@@ -643,7 +731,7 @@ export default function PaymentVoucherReportsPage() {
                   </div>
                 ))}
 
-                <div className="grid grid-cols-19 border-t bg-slate-50 px-6 py-4 text-sm">
+                <div className="grid grid-cols-19 border-t bg-slate-50 px-6 py-4 text-sm print:bg-white print:px-2 print:text-[10px]">
                   <div className="col-span-10 font-black uppercase text-slate-900">
                     Report Total
                   </div>
@@ -659,7 +747,7 @@ export default function PaymentVoucherReportsPage() {
           )}
         </div>
 
-        <div className="mt-6 grid gap-4 xl:hidden">
+        <div className="mt-6 grid gap-4 xl:hidden print:hidden">
           {filteredRows.length === 0 ? (
             <EmptyState />
           ) : (
@@ -716,7 +804,7 @@ export default function PaymentVoucherReportsPage() {
           )}
         </div>
 
-        <div className="mt-6 rounded-3xl border border-blue-100 bg-blue-50 p-5 text-sm text-blue-900">
+        <div className="mt-6 rounded-3xl border border-blue-100 bg-blue-50 p-5 text-sm text-blue-900 print:border-t print:border-black print:bg-white print:text-black">
           <div className="font-bold">PV Reports Note</div>
           <p className="mt-1">
             This report summarizes payment vouchers by date, status, payment mode, request type and
@@ -751,9 +839,9 @@ function StatCard({
       : "bg-blue-50 text-blue-700";
 
   return (
-    <div className="rounded-3xl border bg-white p-5 shadow-sm">
-      <div className="text-sm font-semibold text-slate-500">{title}</div>
-      <div className={`mt-3 inline-flex rounded-2xl px-3 py-2 text-xl font-extrabold ${cls}`}>
+    <div className="print-card rounded-3xl border bg-white p-5 shadow-sm print:rounded-none print:border-black print:p-2 print:shadow-none">
+      <div className="text-sm font-semibold text-slate-500 print:text-[9px]">{title}</div>
+      <div className={`mt-3 inline-flex rounded-2xl px-3 py-2 text-xl font-extrabold print:mt-1 print:p-0 print:text-[11px] ${cls}`}>
         {value}
       </div>
     </div>
@@ -762,11 +850,11 @@ function StatCard({
 
 function MiniCard({ title, value }: { title: string; value: string }) {
   return (
-    <div className="rounded-2xl border bg-white p-4 shadow-sm">
-      <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+    <div className="print-card rounded-2xl border bg-white p-4 shadow-sm print:rounded-none print:border-black print:p-2 print:shadow-none">
+      <div className="text-xs font-semibold uppercase tracking-wide text-slate-500 print:text-[8px]">
         {title}
       </div>
-      <div className="mt-2 text-lg font-extrabold text-slate-900">
+      <div className="mt-2 text-lg font-extrabold text-slate-900 print:mt-1 print:text-[10px]">
         {value}
       </div>
     </div>
