@@ -23,6 +23,10 @@ function roleKey(role: string | null | undefined) {
     .replace(/_/g, "");
 }
 
+function personKey(v: string | null | undefined) {
+  return (v || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
 function shortDateTime(d: string | null | undefined) {
   if (!d) return "—";
   return new Date(d).toLocaleString();
@@ -31,8 +35,24 @@ function shortDateTime(d: string | null | undefined) {
 function typeLabel(t: string | null | undefined) {
   if (t === "ChequeSigner") return "Cheque Signer";
   if (t === "CounterSigner") return "Counter Signer";
-  if (t === "Both") return "Both";
+  if (t === "Both") return "Both Cheque & Counter Signer";
   return "Counter Signer";
+}
+
+function typeHelpText(t: string | null | undefined) {
+  if (t === "ChequeSigner") {
+    return "Can be selected as the first cheque signer on cheque-based PVs.";
+  }
+
+  if (t === "CounterSigner") {
+    return "Can be selected as the counter signer after cheque signature.";
+  }
+
+  if (t === "Both") {
+    return "Can appear in both Cheque Signed By and Counter Signed By dropdowns.";
+  }
+
+  return "Can be selected as a counter signer.";
 }
 
 function typeBadgeClass(t: string | null | undefined) {
@@ -51,6 +71,7 @@ export default function PaymentVoucherSettingsPage() {
 
   const [myRole, setMyRole] = useState("Staff");
   const rk = roleKey(myRole);
+
   const canAccess = ["admin", "auditor"].includes(rk);
 
   const [rows, setRows] = useState<CounterSignatory[]>([]);
@@ -88,7 +109,9 @@ export default function PaymentVoucherSettingsPage() {
     setMyRole(role);
 
     if (!["admin", "auditor"].includes(roleKey(role))) {
-      setMsg("Access denied. Only Admin and Auditor can manage PV settings.");
+      setMsg(
+        "Access denied. Only Admin and Auditor can manage Payment Voucher signatories."
+      );
       setRows([]);
       setLoading(false);
       return;
@@ -100,7 +123,7 @@ export default function PaymentVoucherSettingsPage() {
       .order("full_name", { ascending: true });
 
     if (error) {
-      setMsg("Failed to load signatories: " + error.message);
+      setMsg("Failed to load PV signatories: " + error.message);
       setRows([]);
       setLoading(false);
       return;
@@ -124,6 +147,7 @@ export default function PaymentVoucherSettingsPage() {
       return [
         r.full_name,
         typeLabel(r.signatory_type),
+        typeHelpText(r.signatory_type),
         r.is_active ? "active" : "inactive",
       ]
         .join(" ")
@@ -136,9 +160,11 @@ export default function PaymentVoucherSettingsPage() {
     const total = rows.length;
     const activeCount = rows.filter((r) => r.is_active).length;
     const inactiveCount = total - activeCount;
+
     const chequeSignerCount = rows.filter(
       (r) => r.is_active && (r.signatory_type === "ChequeSigner" || r.signatory_type === "Both")
     ).length;
+
     const counterSignerCount = rows.filter(
       (r) => r.is_active && (r.signatory_type === "CounterSigner" || r.signatory_type === "Both")
     ).length;
@@ -159,18 +185,33 @@ export default function PaymentVoucherSettingsPage() {
     setActive(true);
   }
 
+  function validateForm() {
+    const name = fullName.trim();
+
+    if (!canAccess) return "Not allowed.";
+    if (name.length < 2) return "Signatory name is too short.";
+
+    const duplicate = rows.find((r) => {
+      if (editId && r.id === editId) return false;
+      return personKey(r.full_name) === personKey(name);
+    });
+
+    if (duplicate) {
+      return `"${name}" already exists in PV signatories. Edit the existing record instead.`;
+    }
+
+    return null;
+  }
+
   async function save() {
-    if (!canAccess) {
-      setMsg("Not allowed.");
+    const validation = validateForm();
+
+    if (validation) {
+      setMsg("❌ " + validation);
       return;
     }
 
     const name = fullName.trim();
-
-    if (name.length < 2) {
-      setMsg("Signatory name is too short.");
-      return;
-    }
 
     setSaving(true);
     setMsg(null);
@@ -214,13 +255,28 @@ export default function PaymentVoucherSettingsPage() {
       resetForm();
       await load();
     } catch (e: any) {
-      setMsg("❌ " + (e?.message || "Failed to save."));
+      setMsg("❌ " + (e?.message || "Failed to save PV signatory."));
     } finally {
       setSaving(false);
     }
   }
 
   async function toggleActive(row: CounterSignatory) {
+    if (!canAccess) {
+      setMsg("❌ Only Admin and Auditor can update PV signatories.");
+      return;
+    }
+
+    const nextStatus = !row.is_active;
+
+    const ok = confirm(
+      nextStatus
+        ? `Activate "${row.full_name}" for PV cheque signing?`
+        : `Deactivate "${row.full_name}"?\n\nThis person will stop appearing in new PV cheque signing dropdowns.`
+    );
+
+    if (!ok) return;
+
     setSaving(true);
     setMsg(null);
 
@@ -228,23 +284,33 @@ export default function PaymentVoucherSettingsPage() {
       const { error } = await supabase
         .from("payment_voucher_counter_signatories")
         .update({
-          is_active: !row.is_active,
+          is_active: nextStatus,
         })
         .eq("id", row.id);
 
       if (error) throw new Error(error.message);
 
-      setMsg(row.is_active ? "✅ Signatory deactivated." : "✅ Signatory activated.");
+      setMsg(nextStatus ? "✅ Signatory activated." : "✅ Signatory deactivated.");
       await load();
     } catch (e: any) {
-      setMsg("❌ " + (e?.message || "Failed to update."));
+      setMsg("❌ " + (e?.message || "Failed to update signatory."));
     } finally {
       setSaving(false);
     }
   }
 
   async function del(row: CounterSignatory) {
-    const ok = confirm(`Delete "${row.full_name}" permanently?`);
+    if (!canAccess) {
+      setMsg("❌ Only Admin and Auditor can delete PV signatories.");
+      return;
+    }
+
+    const ok = confirm(
+      row.is_active
+        ? `Delete active signatory "${row.full_name}" permanently?\n\nProfessional recommendation: deactivate instead of deleting if the person has signed previous vouchers.\n\nContinue deleting?`
+        : `Delete "${row.full_name}" permanently?\n\nThis action cannot be undone.`
+    );
+
     if (!ok) return;
 
     setSaving(true);
@@ -258,10 +324,10 @@ export default function PaymentVoucherSettingsPage() {
 
       if (error) throw new Error(error.message);
 
-      setMsg("✅ Signatory deleted.");
+      setMsg("✅ PV signatory deleted.");
       await load();
     } catch (e: any) {
-      setMsg("❌ " + (e?.message || "Failed to delete."));
+      setMsg("❌ " + (e?.message || "Failed to delete PV signatory."));
     } finally {
       setSaving(false);
     }
@@ -287,15 +353,25 @@ export default function PaymentVoucherSettingsPage() {
             </h1>
 
             <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-              {msg || "Access denied. Only Admin and Auditor can manage PV settings."}
+              {msg ||
+                "Access denied. Only Admin and Auditor can manage Payment Voucher cheque signatories."}
             </div>
 
-            <button
-              onClick={() => router.push("/payment-vouchers")}
-              className="mt-5 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
-            >
-              Back to Vouchers
-            </button>
+            <div className="mt-5 flex flex-wrap gap-2">
+              <button
+                onClick={() => router.push("/payment-vouchers")}
+                className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+              >
+                Back to Vouchers
+              </button>
+
+              <button
+                onClick={() => router.push("/dashboard")}
+                className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
+              >
+                Dashboard
+              </button>
+            </div>
           </div>
         </div>
       </main>
@@ -311,14 +387,15 @@ export default function PaymentVoucherSettingsPage() {
               Payment Voucher Settings
             </h1>
             <p className="mt-2 text-sm text-slate-600">
-              Manage cheque signers and counter signers used during cheque voucher generation.
+              Manage authorized cheque signers and counter signers used during cheque PV workflow.
             </p>
           </div>
 
           <div className="flex flex-wrap gap-2">
             <button
               onClick={load}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-100"
+              disabled={saving}
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-100 disabled:opacity-60"
             >
               Refresh
             </button>
@@ -337,6 +414,15 @@ export default function PaymentVoucherSettingsPage() {
             {msg}
           </div>
         )}
+
+        <div className="mt-6 rounded-3xl border border-red-100 bg-red-50 p-5 text-sm text-red-900">
+          <div className="font-extrabold">Restricted Authority Setting</div>
+          <p className="mt-1">
+            This page controls who can appear as Cheque Signer and Counter Signer on Payment
+            Vouchers. Only Admin and Auditor should manage these names. Account Officers can generate
+            vouchers, but they should not control cheque-signing authority.
+          </p>
+        </div>
 
         <div className="mt-6 grid gap-4 md:grid-cols-5">
           <StatCard title="Total Names" value={String(stats.total)} tone="blue" />
@@ -374,8 +460,9 @@ export default function PaymentVoucherSettingsPage() {
               <input
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
-                placeholder="Must match user full name for signature auto-fill"
-                className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-3 text-slate-900 outline-none focus:border-blue-500"
+                placeholder="Must match the user's profile full name"
+                disabled={saving}
+                className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-3 text-slate-900 outline-none focus:border-blue-500 disabled:bg-slate-50"
               />
             </div>
 
@@ -384,7 +471,8 @@ export default function PaymentVoucherSettingsPage() {
               <select
                 value={signatoryType}
                 onChange={(e) => setSignatoryType(e.target.value as SignatoryType)}
-                className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-3 text-slate-900 outline-none focus:border-blue-500"
+                disabled={saving}
+                className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-3 text-slate-900 outline-none focus:border-blue-500 disabled:bg-slate-50"
               >
                 <option value="ChequeSigner">Cheque Signer</option>
                 <option value="CounterSigner">Counter Signer</option>
@@ -398,6 +486,7 @@ export default function PaymentVoucherSettingsPage() {
                   type="checkbox"
                   checked={active}
                   onChange={(e) => setActive(e.target.checked)}
+                  disabled={saving}
                 />
                 Active
               </label>
@@ -415,8 +504,9 @@ export default function PaymentVoucherSettingsPage() {
           </div>
 
           <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-            For signatures to auto-fill on the PV, the Full Name here should match the person’s
-            name in the Users/Profile table, and that user must already have a signature uploaded.
+            For signatures to auto-fill on the PV, the Full Name here must match the person’s name
+            in the Users/Profile table, and that user must already have a signature uploaded. If the
+            name does not match, the PV may show the name but not the signature.
           </div>
         </div>
 
@@ -440,6 +530,9 @@ export default function PaymentVoucherSettingsPage() {
                   <div>
                     <div className="text-lg font-extrabold text-slate-900">
                       {row.full_name}
+                    </div>
+                    <div className="mt-1 text-sm font-semibold text-slate-700">
+                      {typeHelpText(row.signatory_type)}
                     </div>
                     <div className="mt-1 text-xs text-slate-500">
                       Updated {shortDateTime(row.updated_at)}
@@ -516,11 +609,12 @@ export default function PaymentVoucherSettingsPage() {
             <EmptyState />
           ) : (
             <div className="overflow-x-auto">
-              <div className="min-w-[980px]">
-                <div className="grid grid-cols-12 bg-slate-100 px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600">
-                  <div className="col-span-4">Full Name</div>
+              <div className="min-w-[1060px]">
+                <div className="grid grid-cols-13 bg-slate-100 px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600">
+                  <div className="col-span-3">Full Name</div>
                   <div className="col-span-2">Type</div>
-                  <div className="col-span-2">Status</div>
+                  <div className="col-span-3">Authority Description</div>
+                  <div className="col-span-1">Status</div>
                   <div className="col-span-2">Updated</div>
                   <div className="col-span-2 text-right">Actions</div>
                 </div>
@@ -528,9 +622,9 @@ export default function PaymentVoucherSettingsPage() {
                 {filteredRows.map((row) => (
                   <div
                     key={row.id}
-                    className="grid grid-cols-12 items-center border-t px-6 py-4 text-sm hover:bg-slate-50"
+                    className="grid grid-cols-13 items-center border-t px-6 py-4 text-sm hover:bg-slate-50"
                   >
-                    <div className="col-span-4 font-extrabold text-slate-900">
+                    <div className="col-span-3 font-extrabold text-slate-900">
                       {row.full_name}
                     </div>
 
@@ -540,7 +634,11 @@ export default function PaymentVoucherSettingsPage() {
                       </span>
                     </div>
 
-                    <div className="col-span-2">
+                    <div className="col-span-3 text-slate-700">
+                      {typeHelpText(row.signatory_type)}
+                    </div>
+
+                    <div className="col-span-1">
                       <span
                         className={`rounded-full px-3 py-1 text-xs font-bold ${
                           row.is_active
@@ -601,7 +699,8 @@ export default function PaymentVoucherSettingsPage() {
           <div className="font-bold">PV Settings Note</div>
           <p className="mt-1">
             Active Cheque Signers appear under “Cheque Signed By”. Active Counter Signers appear
-            under “Counter Signed By”. Anyone marked “Both” appears in both dropdowns.
+            under “Counter Signed By”. Anyone marked “Both” appears in both dropdowns. Deactivate
+            old signatories instead of deleting them when they have already signed previous vouchers.
           </p>
         </div>
       </div>
