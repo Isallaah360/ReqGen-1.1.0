@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import { exportTableToExcel, printReport } from "@/lib/reportExport";
 
 type VoucherRow = {
   id: string;
@@ -57,6 +58,24 @@ type ProfileMini = {
   role: string | null;
 };
 
+type AuditFinding = {
+  id: string;
+  title: string;
+  description: string;
+  level: "Low" | "Medium" | "High";
+  count: number;
+  action: string;
+};
+
+type SubheadException = SubheadRow & {
+  approved: number;
+  reserved: number;
+  expenditure: number;
+  balance: number;
+  risk: "Low" | "Medium" | "High";
+  note: string;
+};
+
 function roleKey(role: string | null | undefined) {
   return (role || "")
     .trim()
@@ -73,14 +92,13 @@ function naira(n: number | null | undefined) {
   return "₦" + Math.round(Number(n || 0)).toLocaleString();
 }
 
+function plainAmount(n: number | null | undefined) {
+  return Math.round(Number(n || 0)).toLocaleString();
+}
+
 function shortDate(d: string | null | undefined) {
   if (!d) return "—";
   return new Date(d).toLocaleDateString();
-}
-
-function shortDateTime(d: string | null | undefined) {
-  if (!d) return "—";
-  return new Date(d).toLocaleString();
 }
 
 function daysOld(d: string | null | undefined) {
@@ -300,15 +318,8 @@ export default function FinanceAuditPage() {
     });
   }, [vouchers, search, fromDate, toDate, statusFilter, modeFilter]);
 
-  const auditFindings = useMemo(() => {
-    const findings: {
-      id: string;
-      title: string;
-      description: string;
-      level: "Low" | "Medium" | "High";
-      count: number;
-      action: string;
-    }[] = [];
+  const auditFindings = useMemo<AuditFinding[]>(() => {
+    const findings: AuditFinding[] = [];
 
     const cancelled = filteredVouchers.filter((v) => (v.status || "") === "Cancelled");
     const unpaidOld = filteredVouchers.filter((v) => {
@@ -478,7 +489,7 @@ export default function FinanceAuditPage() {
     };
   }, [filteredVouchers, subheads, requests, auditFindings]);
 
-  const subheadExceptions = useMemo(() => {
+  const subheadExceptions = useMemo<SubheadException[]>(() => {
     return subheads
       .map((s) => {
         const approved = Number(s.approved_allocation || 0);
@@ -537,7 +548,174 @@ export default function FinanceAuditPage() {
   }
 
   function printAuditReport() {
-    window.print();
+    printReport();
+  }
+
+  function exportAuditExcel() {
+    type AuditExportRow = {
+      section: string;
+      sn: number | string;
+      reference: string;
+      description: string;
+      category: string;
+      status: string;
+      amount: string;
+      risk: string;
+      action: string;
+      date: string;
+    };
+
+    const summaryRows: AuditExportRow[] = [
+      {
+        section: "Summary",
+        sn: 1,
+        reference: "Voucher Value",
+        description: "Total active voucher value excluding cancelled vouchers",
+        category: "Finance",
+        status: "Summary",
+        amount: plainAmount(stats.totalVoucherValue),
+        risk: "",
+        action: "",
+        date: "",
+      },
+      {
+        section: "Summary",
+        sn: 2,
+        reference: "Paid Value",
+        description: "Total value of paid vouchers",
+        category: "Finance",
+        status: "Summary",
+        amount: plainAmount(stats.paidVoucherValue),
+        risk: "",
+        action: "",
+        date: "",
+      },
+      {
+        section: "Summary",
+        sn: 3,
+        reference: "Pending Value",
+        description: "Total value of vouchers not paid and not cancelled",
+        category: "Finance",
+        status: "Summary",
+        amount: plainAmount(stats.pendingVoucherValue),
+        risk: "",
+        action: "",
+        date: "",
+      },
+      {
+        section: "Summary",
+        sn: 4,
+        reference: "Approved Allocation",
+        description: "Total approved allocation across subheads",
+        category: "Subheads",
+        status: "Summary",
+        amount: plainAmount(stats.allocationTotal),
+        risk: "",
+        action: "",
+        date: "",
+      },
+      {
+        section: "Summary",
+        sn: 5,
+        reference: "Balance",
+        description: "Total subhead balance",
+        category: "Subheads",
+        status: "Summary",
+        amount: plainAmount(stats.balanceTotal),
+        risk: "",
+        action: "",
+        date: "",
+      },
+    ];
+
+    const findingRows: AuditExportRow[] = auditFindings.map((f, index) => ({
+      section: "Audit Finding",
+      sn: index + 1,
+      reference: f.title,
+      description: f.description,
+      category: "Exception",
+      status: `Count: ${f.count}`,
+      amount: "",
+      risk: f.level,
+      action: f.action,
+      date: "",
+    }));
+
+    const subheadRows: AuditExportRow[] = subheadExceptions.map((s, index) => ({
+      section: "Subhead Exception",
+      sn: index + 1,
+      reference: `${s.code || ""} ${s.name}`.trim(),
+      description: s.note,
+      category: "Subhead",
+      status: s.is_active === false ? "Inactive" : "Active",
+      amount: `Allocation: ${plainAmount(s.approved)} | Reserved: ${plainAmount(
+        s.reserved
+      )} | Expenditure: ${plainAmount(s.expenditure)} | Balance: ${plainAmount(s.balance)}`,
+      risk: s.risk,
+      action: "Review subhead allocation, reserved amount, expenditure and balance.",
+      date: "",
+    }));
+
+    const voucherRows: AuditExportRow[] = filteredVouchers.map((v, index) => ({
+      section: "Voucher Register",
+      sn: index + 1,
+      reference: v.voucher_no,
+      description: `${v.payee_name || "—"} | ${v.dept_name || "—"} | ${v.request_no || "—"}`,
+      category: `${categoryLabel(v)} / ${v.disbursement_mode || "—"}`,
+      status: v.status || "—",
+      amount: plainAmount(v.total_amount || v.amount),
+      risk:
+        (v.status || "") !== "Paid" && (v.status || "") !== "Cancelled" && daysOld(v.created_at) >= 7
+          ? "Medium"
+          : "Low",
+      action:
+        (v.status || "") === "Paid"
+          ? "No action required."
+          : (v.status || "") === "Cancelled"
+          ? "Review cancellation reason."
+          : "Follow up pending payment/signature workflow.",
+      date: shortDate(v.created_at),
+    }));
+
+    const rows = [...summaryRows, ...findingRows, ...subheadRows, ...voucherRows];
+
+    exportTableToExcel<AuditExportRow>({
+      fileName: `audit_reconciliation_report_${fromDate}_to_${toDate}`,
+      sheetName: "Audit Report",
+      title: "AUDIT AND RECONCILIATION REPORT",
+      subtitle: `Period: ${fromDate || "Beginning"} to ${toDate || "Today"} | Total PVs: ${
+        stats.totalVouchers
+      } | Voucher Value: ${naira(stats.totalVoucherValue)} | Alerts: ${
+        stats.highFindings
+      } High / ${stats.mediumFindings} Medium`,
+      rows,
+      columns: [
+        { header: "Section", value: (row) => row.section },
+        { header: "S/N", value: (row) => row.sn },
+        { header: "Reference", value: (row) => row.reference },
+        { header: "Description", value: (row) => row.description },
+        { header: "Category", value: (row) => row.category },
+        { header: "Status", value: (row) => row.status },
+        { header: "Amount / Values", value: (row) => row.amount },
+        { header: "Risk", value: (row) => row.risk },
+        { header: "Recommended Action", value: (row) => row.action },
+        { header: "Date", value: (row) => row.date },
+      ],
+      footerRows: [
+        [
+          "Summary Total",
+          "",
+          "Voucher Value",
+          "Excludes cancelled vouchers",
+          "",
+          "",
+          plainAmount(stats.totalVoucherValue),
+          "",
+          "",
+          "",
+        ],
+      ],
+    });
   }
 
   if (loading) {
@@ -579,6 +757,11 @@ export default function FinanceAuditPage() {
     <main className="min-h-screen bg-slate-50 px-4">
       <style>{`
         @media print {
+          @page {
+            size: A4 landscape;
+            margin: 10mm;
+          }
+
           body {
             background: white !important;
           }
@@ -591,21 +774,45 @@ export default function FinanceAuditPage() {
             box-shadow: none !important;
             border: none !important;
             padding: 0 !important;
+            margin: 0 !important;
+            width: 100% !important;
+            max-width: none !important;
+          }
+
+          .print-card {
+            break-inside: avoid !important;
+          }
+
+          .print-title {
+            text-align: center !important;
           }
         }
       `}</style>
 
       <div className="audit-sheet mx-auto max-w-7xl py-8">
         <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">
+          <div className="print-title">
+            <div className="hidden text-center print:block">
+              <div className="text-lg font-black uppercase text-slate-900">
+                Islamic Education Trust
+              </div>
+              <div className="text-xs font-semibold text-slate-600">
+                IW2, Ilmi Avenue Intermediate Housing Estate, PMB 229, Minna, Niger State - Nigeria
+              </div>
+              <div className="mt-3 border-y border-black py-2 text-base font-black uppercase">
+                Audit & Reconciliation Report
+              </div>
+            </div>
+
+            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 print:mt-3 print:text-xl">
               Audit & Reconciliation
             </h1>
             <p className="mt-2 text-sm text-slate-600">
               Finance control room for vouchers, subheads, exceptions and reconciliation review.
             </p>
             <p className="mt-1 text-xs font-semibold text-slate-500">
-              Period: {fromDate || "Beginning"} to {toDate || "Today"}
+              Period: {fromDate || "Beginning"} to {toDate || "Today"} • Generated:{" "}
+              {new Date().toLocaleString()}
             </p>
           </div>
 
@@ -621,7 +828,14 @@ export default function FinanceAuditPage() {
               onClick={printAuditReport}
               className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700"
             >
-              Print Audit Report
+              Print / Save PDF
+            </button>
+
+            <button
+              onClick={exportAuditExcel}
+              className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700"
+            >
+              Export Excel
             </button>
 
             <button
@@ -653,21 +867,21 @@ export default function FinanceAuditPage() {
           </div>
         )}
 
-        <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4 print:grid-cols-4">
           <StatCard title="Voucher Value" value={naira(stats.totalVoucherValue)} tone="blue" />
           <StatCard title="Paid Value" value={naira(stats.paidVoucherValue)} tone="emerald" />
           <StatCard title="Pending Value" value={naira(stats.pendingVoucherValue)} tone="amber" />
           <StatCard title="Open Requests" value={String(stats.openRequests)} tone="purple" />
         </div>
 
-        <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4 print:grid-cols-4">
           <StatCard title="Approved Allocation" value={naira(stats.allocationTotal)} tone="blue" />
           <StatCard title="Reserved" value={naira(stats.reservedTotal)} tone="amber" />
           <StatCard title="Expenditure" value={naira(stats.expenditureTotal)} tone="purple" />
           <StatCard title="Balance" value={naira(stats.balanceTotal)} tone="emerald" />
         </div>
 
-        <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+        <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-5 print:grid-cols-5">
           <MiniCard title="Total PVs" value={String(stats.totalVouchers)} />
           <MiniCard title="Official Requests" value={String(stats.officialRequests)} />
           <MiniCard title="Personal Fund" value={String(stats.personalFundRequests)} />
@@ -763,31 +977,31 @@ export default function FinanceAuditPage() {
           </div>
         </div>
 
-        <div className="mt-6 rounded-3xl border bg-white shadow-sm overflow-hidden">
-          <div className="border-b bg-slate-50 px-6 py-4">
+        <div className="mt-6 rounded-3xl border bg-white shadow-sm overflow-hidden print:rounded-none print:border-black print:shadow-none">
+          <div className="border-b bg-slate-50 px-6 py-4 print:bg-white">
             <h2 className="text-lg font-bold text-slate-900">Audit Findings</h2>
             <p className="mt-1 text-sm text-slate-600">
               Exception-based review of vouchers and subhead control indicators.
             </p>
           </div>
 
-          <div className="grid gap-4 p-5 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-4 p-5 md:grid-cols-2 xl:grid-cols-3 print:grid-cols-3 print:p-2">
             {auditFindings.map((f) => (
-              <div key={f.id} className="rounded-3xl border bg-white p-5 shadow-sm">
+              <div key={f.id} className="print-card rounded-3xl border bg-white p-5 shadow-sm print:rounded-none print:border-black print:p-2 print:shadow-none">
                 <div className="flex items-start justify-between gap-3">
-                  <div className="font-extrabold text-slate-900">{f.title}</div>
-                  <span className={`shrink-0 rounded-full border px-3 py-1 text-xs font-bold ${riskBadgeClass(f.level)}`}>
+                  <div className="font-extrabold text-slate-900 print:text-[10px]">{f.title}</div>
+                  <span className={`shrink-0 rounded-full border px-3 py-1 text-xs font-bold print:p-0 print:text-[9px] ${riskBadgeClass(f.level)}`}>
                     {f.level}
                   </span>
                 </div>
 
-                <div className="mt-2 text-sm font-semibold text-slate-700">
+                <div className="mt-2 text-sm font-semibold text-slate-700 print:text-[9px]">
                   Count: {f.count}
                 </div>
 
-                <p className="mt-2 text-sm text-slate-600">{f.description}</p>
+                <p className="mt-2 text-sm text-slate-600 print:text-[8px]">{f.description}</p>
 
-                <div className="mt-3 rounded-2xl bg-slate-50 p-3 text-sm font-semibold text-slate-800">
+                <div className="mt-3 rounded-2xl bg-slate-50 p-3 text-sm font-semibold text-slate-800 print:bg-white print:p-0 print:text-[8px]">
                   Action: {f.action}
                 </div>
               </div>
@@ -795,11 +1009,11 @@ export default function FinanceAuditPage() {
           </div>
         </div>
 
-        <div className="mt-6 grid gap-6 xl:grid-cols-2">
-          <div className="rounded-3xl border bg-white shadow-sm overflow-hidden">
-            <div className="border-b bg-slate-50 px-6 py-4">
-              <h2 className="text-lg font-bold text-slate-900">Pending Voucher Watchlist</h2>
-              <p className="mt-1 text-sm text-slate-600">
+        <div className="mt-6 grid gap-6 xl:grid-cols-2 print:grid-cols-2">
+          <div className="rounded-3xl border bg-white shadow-sm overflow-hidden print:rounded-none print:border-black print:shadow-none">
+            <div className="border-b bg-slate-50 px-6 py-4 print:bg-white print:px-2">
+              <h2 className="text-lg font-bold text-slate-900 print:text-sm">Pending Voucher Watchlist</h2>
+              <p className="mt-1 text-sm text-slate-600 print:text-[9px]">
                 Active vouchers not yet marked as paid.
               </p>
             </div>
@@ -807,28 +1021,28 @@ export default function FinanceAuditPage() {
             {pendingVouchers.length === 0 ? (
               <EmptyState message="No pending voucher found for the selected filters." />
             ) : (
-              <div className="max-h-[620px] overflow-auto">
+              <div className="max-h-[620px] overflow-auto print:max-h-none print:overflow-visible">
                 {pendingVouchers.map((v) => (
-                  <div key={v.id} className="border-t px-6 py-4 hover:bg-slate-50">
+                  <div key={v.id} className="border-t px-6 py-4 hover:bg-slate-50 print:px-2 print:py-2">
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
-                        <div className="font-extrabold text-slate-900">{v.voucher_no}</div>
-                        <div className="mt-1 text-sm text-slate-600">
+                        <div className="font-extrabold text-slate-900 print:text-[10px]">{v.voucher_no}</div>
+                        <div className="mt-1 text-sm text-slate-600 print:text-[8px]">
                           {v.payee_name || "—"} • {v.dept_name || "—"}
                         </div>
                       </div>
 
                       <div className="flex flex-col items-end gap-1">
-                        <span className={`rounded-full border px-3 py-1 text-xs font-bold ${statusBadgeClass(v.status)}`}>
+                        <span className={`rounded-full border px-3 py-1 text-xs font-bold print:border-0 print:p-0 print:text-[8px] ${statusBadgeClass(v.status)}`}>
                           {v.status || "—"}
                         </span>
-                        <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-700">
+                        <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-700 print:border-0 print:bg-white print:p-0 print:text-[8px]">
                           {daysOld(v.created_at)} day(s)
                         </span>
                       </div>
                     </div>
 
-                    <div className="mt-3 grid gap-2 text-sm md:grid-cols-2">
+                    <div className="mt-3 grid gap-2 text-sm md:grid-cols-2 print:text-[8px]">
                       <InfoLine label="Amount" value={naira(v.total_amount || v.amount)} />
                       <InfoLine label="Mode" value={v.disbursement_mode || "—"} />
                       <InfoLine label="Request" value={v.request_no || "—"} />
@@ -856,10 +1070,10 @@ export default function FinanceAuditPage() {
             )}
           </div>
 
-          <div className="rounded-3xl border bg-white shadow-sm overflow-hidden">
-            <div className="border-b bg-slate-50 px-6 py-4">
-              <h2 className="text-lg font-bold text-slate-900">Subhead Exceptions</h2>
-              <p className="mt-1 text-sm text-slate-600">
+          <div className="rounded-3xl border bg-white shadow-sm overflow-hidden print:rounded-none print:border-black print:shadow-none">
+            <div className="border-b bg-slate-50 px-6 py-4 print:bg-white print:px-2">
+              <h2 className="text-lg font-bold text-slate-900 print:text-sm">Subhead Exceptions</h2>
+              <p className="mt-1 text-sm text-slate-600 print:text-[9px]">
                 Budget lines requiring finance review.
               </p>
             </div>
@@ -867,26 +1081,26 @@ export default function FinanceAuditPage() {
             {subheadExceptions.length === 0 ? (
               <EmptyState message="No subhead exception found." />
             ) : (
-              <div className="max-h-[620px] overflow-auto">
+              <div className="max-h-[620px] overflow-auto print:max-h-none print:overflow-visible">
                 {subheadExceptions.map((s) => (
-                  <div key={s.id} className="border-t px-6 py-4 hover:bg-slate-50">
+                  <div key={s.id} className="border-t px-6 py-4 hover:bg-slate-50 print:px-2 print:py-2">
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
-                        <div className="font-extrabold text-slate-900">
+                        <div className="font-extrabold text-slate-900 print:text-[10px]">
                           {s.code ? `${s.code} — ` : ""}
                           {s.name}
                         </div>
-                        <div className="mt-1 text-sm font-semibold text-slate-600">
+                        <div className="mt-1 text-sm font-semibold text-slate-600 print:text-[8px]">
                           {s.note}
                         </div>
                       </div>
 
-                      <span className={`rounded-full border px-3 py-1 text-xs font-bold ${riskBadgeClass(s.risk)}`}>
+                      <span className={`rounded-full border px-3 py-1 text-xs font-bold print:border-0 print:p-0 print:text-[8px] ${riskBadgeClass(s.risk)}`}>
                         {s.risk}
                       </span>
                     </div>
 
-                    <div className="mt-3 grid gap-2 text-sm md:grid-cols-2">
+                    <div className="mt-3 grid gap-2 text-sm md:grid-cols-2 print:text-[8px]">
                       <InfoLine label="Allocation" value={naira(s.approved)} />
                       <InfoLine label="Reserved" value={naira(s.reserved)} />
                       <InfoLine label="Expenditure" value={naira(s.expenditure)} />
@@ -908,10 +1122,10 @@ export default function FinanceAuditPage() {
           </div>
         </div>
 
-        <div className="mt-6 rounded-3xl border bg-white shadow-sm overflow-hidden">
-          <div className="border-b bg-slate-50 px-6 py-4">
-            <h2 className="text-lg font-bold text-slate-900">Voucher Audit Register</h2>
-            <p className="mt-1 text-sm text-slate-600">
+        <div className="mt-6 rounded-3xl border bg-white shadow-sm overflow-hidden print:rounded-none print:border-black print:shadow-none">
+          <div className="border-b bg-slate-50 px-6 py-4 print:bg-white print:px-2">
+            <h2 className="text-lg font-bold text-slate-900 print:text-sm">Voucher Audit Register</h2>
+            <p className="mt-1 text-sm text-slate-600 print:text-[9px]">
               Filtered voucher register for reconciliation review.
             </p>
           </div>
@@ -920,8 +1134,8 @@ export default function FinanceAuditPage() {
             <EmptyState message="No payment voucher found for selected filters." />
           ) : (
             <div className="overflow-x-auto">
-              <div className="min-w-[1420px]">
-                <div className="grid grid-cols-18 bg-slate-100 px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600">
+              <div className="min-w-[1420px] print:min-w-0">
+                <div className="grid grid-cols-18 bg-slate-100 px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600 print:border-b print:border-black print:bg-white print:px-2 print:text-[8px]">
                   <div className="col-span-2">PV No</div>
                   <div className="col-span-2">Request</div>
                   <div className="col-span-2">Payee</div>
@@ -938,7 +1152,7 @@ export default function FinanceAuditPage() {
                 {filteredVouchers.map((v) => (
                   <div
                     key={v.id}
-                    className="grid grid-cols-18 items-center border-t px-6 py-4 text-sm hover:bg-slate-50"
+                    className="grid grid-cols-18 items-center border-t px-6 py-4 text-sm hover:bg-slate-50 print:px-2 print:py-2 print:text-[8px]"
                   >
                     <div className="col-span-2 font-extrabold text-slate-900">
                       {v.voucher_no}
@@ -953,7 +1167,7 @@ export default function FinanceAuditPage() {
                     <div className="col-span-2 text-slate-700">{v.dept_name || "—"}</div>
 
                     <div className="col-span-1">
-                      <span className={`rounded-full border px-2 py-1 text-[11px] font-bold ${categoryBadgeClass(v)}`}>
+                      <span className={`rounded-full border px-2 py-1 text-[11px] font-bold print:border-0 print:p-0 print:text-[8px] ${categoryBadgeClass(v)}`}>
                         {categoryLabel(v)}
                       </span>
                     </div>
@@ -967,7 +1181,7 @@ export default function FinanceAuditPage() {
                     </div>
 
                     <div className="col-span-1">
-                      <span className={`rounded-full border px-2 py-1 text-[11px] font-bold ${statusBadgeClass(v.status)}`}>
+                      <span className={`rounded-full border px-2 py-1 text-[11px] font-bold print:border-0 print:p-0 print:text-[8px] ${statusBadgeClass(v.status)}`}>
                         {v.status || "—"}
                       </span>
                     </div>
@@ -998,7 +1212,7 @@ export default function FinanceAuditPage() {
                   </div>
                 ))}
 
-                <div className="grid grid-cols-18 border-t bg-slate-50 px-6 py-4 text-sm">
+                <div className="grid grid-cols-18 border-t bg-slate-50 px-6 py-4 text-sm print:bg-white print:px-2 print:text-[9px]">
                   <div className="col-span-8 font-black uppercase text-slate-900">
                     Reconciliation Total
                   </div>
@@ -1014,7 +1228,7 @@ export default function FinanceAuditPage() {
           )}
         </div>
 
-        <div className="mt-6 rounded-3xl border border-blue-100 bg-blue-50 p-5 text-sm text-blue-900">
+        <div className="mt-6 rounded-3xl border border-blue-100 bg-blue-50 p-5 text-sm text-blue-900 print:border-t print:border-black print:bg-white print:text-black">
           <div className="font-bold">Audit & Reconciliation Note</div>
           <p className="mt-1">
             This page provides management-level finance oversight: voucher exposure, payment status,
@@ -1050,9 +1264,9 @@ function StatCard({
       : "bg-blue-50 text-blue-700";
 
   return (
-    <div className="rounded-3xl border bg-white p-5 shadow-sm">
-      <div className="text-sm font-semibold text-slate-500">{title}</div>
-      <div className={`mt-3 inline-flex rounded-2xl px-3 py-2 text-xl font-extrabold ${cls}`}>
+    <div className="print-card rounded-3xl border bg-white p-5 shadow-sm print:rounded-none print:border-black print:p-2 print:shadow-none">
+      <div className="text-sm font-semibold text-slate-500 print:text-[9px]">{title}</div>
+      <div className={`mt-3 inline-flex rounded-2xl px-3 py-2 text-xl font-extrabold print:mt-1 print:p-0 print:text-[11px] ${cls}`}>
         {value}
       </div>
     </div>
@@ -1061,11 +1275,11 @@ function StatCard({
 
 function MiniCard({ title, value }: { title: string; value: string }) {
   return (
-    <div className="rounded-2xl border bg-white p-4 shadow-sm">
-      <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+    <div className="print-card rounded-2xl border bg-white p-4 shadow-sm print:rounded-none print:border-black print:p-2 print:shadow-none">
+      <div className="text-xs font-semibold uppercase tracking-wide text-slate-500 print:text-[8px]">
         {title}
       </div>
-      <div className="mt-2 text-lg font-extrabold text-slate-900">
+      <div className="mt-2 text-lg font-extrabold text-slate-900 print:mt-1 print:text-[10px]">
         {value}
       </div>
     </div>
@@ -1082,9 +1296,5 @@ function InfoLine({ label, value }: { label: string; value: string }) {
 }
 
 function EmptyState({ message }: { message: string }) {
-  return (
-    <div className="p-6 text-sm text-slate-700">
-      {message}
-    </div>
-  );
+  return <div className="p-6 text-sm text-slate-700">{message}</div>;
 }

@@ -16,6 +16,7 @@ type Notif = {
 type NavItem = {
   href: string;
   label: string;
+  description?: string;
 };
 
 function roleKey(role: string | null | undefined) {
@@ -67,24 +68,55 @@ export default function NavBar() {
 
   const financeLinks = useMemo<NavItem[]>(() => {
     const list: NavItem[] = [
-      { href: "/finance/subheads", label: "Subheads / Finance" },
-      { href: "/payment-vouchers", label: "Payment Vouchers" },
-      { href: "/payment-vouchers/reports", label: "PV Reports" },
+      {
+        href: "/finance/subheads",
+        label: "Subheads / Finance",
+        description: "Budget lines, allocations and balances",
+      },
+      {
+        href: "/finance/reports",
+        label: "Monthly / Yearly Reports",
+        description: "Finance summaries, PDF and Excel exports",
+      },
+      {
+        href: "/payment-vouchers",
+        label: "Payment Vouchers",
+        description: "Generate and manage PVs",
+      },
+      {
+        href: "/payment-vouchers/reports",
+        label: "PV Reports",
+        description: "Payment voucher report register",
+      },
     ];
 
     if (["admin", "auditor"].includes(rk)) {
-      list.push({ href: "/payment-vouchers/settings", label: "PV Settings" });
+      list.push({
+        href: "/payment-vouchers/settings",
+        label: "PV Settings",
+        description: "Cheque signers and counter signers",
+      });
     }
 
     if (canAuditView) {
-      list.push({ href: "/finance/audit", label: "Audit & Reconciliation" });
+      list.push({
+        href: "/finance/audit",
+        label: "Audit & Reconciliation",
+        description: "Control room, exceptions and reconciliation",
+      });
     }
 
     return list;
   }, [canAuditView, rk]);
 
   const hrLinks = useMemo<NavItem[]>(() => {
-    return [{ href: "/hr/filing", label: "HR Filing" }];
+    return [
+      {
+        href: "/hr/filing",
+        label: "HR Filing",
+        description: "Personal requests, filing and staff records",
+      },
+    ];
   }, []);
 
   const financeActive = useMemo(() => {
@@ -112,17 +144,27 @@ export default function NavBar() {
     }`;
 
   const dropdownItemClass = (href: string) =>
-    `block w-full rounded-2xl px-4 py-3 text-left text-sm font-bold transition ${
+    `block w-full rounded-2xl px-4 py-3 text-left transition ${
       isActiveLink(href)
-        ? "bg-blue-50 text-blue-700"
+        ? "bg-blue-600 text-white shadow-sm"
         : "text-slate-800 hover:bg-slate-100"
+    }`;
+
+  const dropdownItemDescriptionClass = (href: string) =>
+    `mt-0.5 text-xs font-semibold ${
+      isActiveLink(href) ? "text-blue-100" : "text-slate-500"
     }`;
 
   const mobileItemClass = (href: string) =>
     `block w-full rounded-xl px-4 py-3 text-left text-sm font-bold transition ${
       isActiveLink(href)
-        ? "bg-blue-600 text-white"
+        ? "bg-blue-600 text-white shadow-sm"
         : "text-slate-800 hover:bg-slate-100"
+    }`;
+
+  const mobileItemDescriptionClass = (href: string) =>
+    `mt-0.5 text-xs font-semibold ${
+      isActiveLink(href) ? "text-blue-100" : "text-slate-500"
     }`;
 
   async function refreshAll() {
@@ -335,7 +377,7 @@ export default function NavBar() {
                   </button>
 
                   {openFinance && (
-                    <div className="absolute left-0 top-12 z-50 w-[340px] overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl">
+                    <div className="absolute left-0 top-12 z-50 w-[370px] overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl">
                       <div className="border-b bg-slate-50 px-5 py-4">
                         <div className="text-base font-extrabold text-slate-900">
                           Finance Directorate
@@ -353,7 +395,12 @@ export default function NavBar() {
                             onClick={() => goTo(item.href)}
                             className={dropdownItemClass(item.href)}
                           >
-                            {item.label}
+                            <div className="text-sm font-extrabold">{item.label}</div>
+                            {item.description && (
+                              <div className={dropdownItemDescriptionClass(item.href)}>
+                                {item.description}
+                              </div>
+                            )}
                           </button>
                         ))}
                       </div>
@@ -385,7 +432,7 @@ export default function NavBar() {
                   </button>
 
                   {openHR && (
-                    <div className="absolute left-0 top-12 z-50 w-[280px] overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl">
+                    <div className="absolute left-0 top-12 z-50 w-[300px] overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl">
                       <div className="border-b bg-slate-50 px-5 py-4">
                         <div className="text-base font-extrabold text-slate-900">
                           HR Directorate
@@ -403,7 +450,12 @@ export default function NavBar() {
                             onClick={() => goTo(item.href)}
                             className={dropdownItemClass(item.href)}
                           >
-                            {item.label}
+                            <div className="text-sm font-extrabold">{item.label}</div>
+                            {item.description && (
+                              <div className={dropdownItemDescriptionClass(item.href)}>
+                                {item.description}
+                              </div>
+                            )}
                           </button>
                         ))}
                       </div>
@@ -428,13 +480,17 @@ export default function NavBar() {
                   setOpenHR(false);
                   setOpenBell(false);
                 }}
-                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-900 hover:bg-slate-100"
+                className={`rounded-xl border px-3 py-2 text-sm font-bold transition ${
+                  openMobileMenu
+                    ? "border-blue-600 bg-blue-600 text-white shadow-sm"
+                    : "border-slate-200 bg-white text-slate-900 hover:bg-slate-100"
+                }`}
               >
                 Menu ▾
               </button>
 
               {openMobileMenu && (
-                <div className="absolute right-0 top-12 z-50 max-h-[80vh] w-[310px] overflow-auto rounded-3xl border border-slate-200 bg-white p-3 shadow-2xl">
+                <div className="absolute right-0 top-12 z-50 max-h-[80vh] w-[330px] overflow-auto rounded-3xl border border-slate-200 bg-white p-3 shadow-2xl">
                   <div className="mb-2 rounded-2xl bg-slate-50 px-4 py-3">
                     <div className="font-extrabold text-slate-900">Navigation</div>
                     <div className="mt-1 text-xs font-semibold text-slate-500">
@@ -479,7 +535,12 @@ export default function NavBar() {
                           onClick={() => goTo(item.href)}
                           className={mobileItemClass(item.href)}
                         >
-                          {item.label}
+                          <div>{item.label}</div>
+                          {item.description && (
+                            <div className={mobileItemDescriptionClass(item.href)}>
+                              {item.description}
+                            </div>
+                          )}
                         </button>
                       ))}
                     </>
@@ -498,7 +559,12 @@ export default function NavBar() {
                           onClick={() => goTo(item.href)}
                           className={mobileItemClass(item.href)}
                         >
-                          {item.label}
+                          <div>{item.label}</div>
+                          {item.description && (
+                            <div className={mobileItemDescriptionClass(item.href)}>
+                              {item.description}
+                            </div>
+                          )}
                         </button>
                       ))}
                     </>
@@ -519,6 +585,16 @@ export default function NavBar() {
                       </button>
                     </>
                   )}
+
+                  <div className="mt-3 border-t pt-3">
+                    <button
+                      type="button"
+                      onClick={logout}
+                      className="w-full rounded-xl bg-red-600 px-4 py-3 text-left text-sm font-bold text-white hover:bg-red-700"
+                    >
+                      Logout
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
@@ -532,7 +608,11 @@ export default function NavBar() {
                   setOpenHR(false);
                   setOpenMobileMenu(false);
                 }}
-                className="relative rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
+                className={`relative rounded-xl border px-3 py-2 text-sm font-semibold transition ${
+                  openBell
+                    ? "border-blue-600 bg-blue-600 text-white shadow-sm"
+                    : "border-slate-200 bg-white text-slate-900 hover:bg-slate-100"
+                }`}
                 title="Notifications"
               >
                 🔔

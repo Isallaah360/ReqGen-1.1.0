@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import { exportTableToExcel, printReport } from "@/lib/reportExport";
 
 type Dept = { id: string; name: string };
 
@@ -40,6 +41,10 @@ function roleKey(role: string) {
 
 function naira(n: number) {
   return "₦" + Math.round(n || 0).toLocaleString();
+}
+
+function plainAmount(n: number) {
+  return Math.round(n || 0).toLocaleString();
 }
 
 function shortDate(d: string | null | undefined) {
@@ -175,6 +180,13 @@ export default function SubheadsPage() {
     const expenditureTotal = subs.reduce((a, s) => a + Number(s.expenditure || 0), 0);
     const balanceTotal = subs.reduce((a, s) => a + Number(s.balance || 0), 0);
     const activeCount = subs.filter((s) => s.is_active).length;
+    const inactiveCount = subs.filter((s) => !s.is_active).length;
+    const negativeBalanceCount = subs.filter((s) => Number(s.balance || 0) < 0).length;
+    const lowBalanceCount = subs.filter((s) => {
+      const allocation = Number(s.approved_allocation || 0);
+      const balance = Number(s.balance || 0);
+      return allocation > 0 && balance >= 0 && balance / allocation <= 0.1;
+    }).length;
 
     return {
       allocationTotal,
@@ -182,6 +194,9 @@ export default function SubheadsPage() {
       expenditureTotal,
       balanceTotal,
       activeCount,
+      inactiveCount,
+      negativeBalanceCount,
+      lowBalanceCount,
       totalCount: subs.length,
     };
   }, [subs]);
@@ -278,6 +293,50 @@ export default function SubheadsPage() {
     }
   }
 
+  function printSubheadsReport() {
+    printReport();
+  }
+
+  function exportSubheadsExcel() {
+    exportTableToExcel<Sub>({
+      fileName: `total_subheads_report_${new Date().toISOString().slice(0, 10)}`,
+      sheetName: "Total Subheads",
+      title: "TOTAL SUBHEADS REPORT",
+      subtitle: `Total Subheads: ${totals.totalCount} | Active: ${
+        totals.activeCount
+      } | Allocation: ${naira(totals.allocationTotal)} | Balance: ${naira(
+        totals.balanceTotal
+      )}`,
+      rows: subs,
+      columns: [
+        { header: "S/N", value: (_row, index) => index + 1 },
+        { header: "Department", value: (row) => (row.dept_id ? deptMap[row.dept_id] : "—") },
+        { header: "Code", value: (row) => row.code || "—" },
+        { header: "Subhead", value: (row) => row.name },
+        { header: "Allocation", value: (row) => plainAmount(Number(row.approved_allocation || 0)) },
+        { header: "Reserved", value: (row) => plainAmount(Number(row.reserved_amount || 0)) },
+        { header: "Expenditure", value: (row) => plainAmount(Number(row.expenditure || 0)) },
+        { header: "Balance", value: (row) => plainAmount(Number(row.balance || 0)) },
+        { header: "Status", value: (row) => (row.is_active ? "Active" : "Inactive") },
+        { header: "Updated", value: (row) => shortDate(row.updated_at) },
+      ],
+      footerRows: [
+        [
+          "Report Total",
+          "",
+          "",
+          "",
+          plainAmount(totals.allocationTotal),
+          plainAmount(totals.reservedTotal),
+          plainAmount(totals.expenditureTotal),
+          plainAmount(totals.balanceTotal),
+          "",
+          "",
+        ],
+      ],
+    });
+  }
+
   if (loading) {
     return (
       <main className="min-h-screen bg-slate-50 px-4">
@@ -288,24 +347,94 @@ export default function SubheadsPage() {
 
   return (
     <main className="min-h-screen bg-slate-50 px-4">
-      <div className="mx-auto max-w-7xl py-8">
+      <style>{`
+        @media print {
+          @page {
+            size: A4 landscape;
+            margin: 10mm;
+          }
+
+          body {
+            background: white !important;
+          }
+
+          .no-print {
+            display: none !important;
+          }
+
+          .print-sheet {
+            box-shadow: none !important;
+            border: none !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            width: 100% !important;
+            max-width: none !important;
+          }
+
+          .print-card {
+            break-inside: avoid !important;
+          }
+
+          .print-title {
+            text-align: center !important;
+          }
+        }
+      `}</style>
+
+      <div className="print-sheet mx-auto max-w-7xl py-8">
         <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">
+          <div className="print-title">
+            <div className="hidden text-center print:block">
+              <div className="text-lg font-black uppercase text-slate-900">
+                Islamic Education Trust
+              </div>
+              <div className="text-xs font-semibold text-slate-600">
+                IW2, Ilmi Avenue Intermediate Housing Estate, PMB 229, Minna, Niger State - Nigeria
+              </div>
+              <div className="mt-3 border-y border-black py-2 text-base font-black uppercase">
+                Total Subheads Report
+              </div>
+            </div>
+
+            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 print:mt-3 print:text-xl">
               Finance • Subheads
             </h1>
             <p className="mt-2 text-sm text-slate-600">
               Manage allocations, commitments, expenditures, balances and payment-related completed request printouts.
             </p>
+            <p className="mt-1 hidden text-xs font-semibold text-slate-500 print:block">
+              Generated: {new Date().toLocaleString()}
+            </p>
           </div>
 
-          <div className="flex flex-wrap gap-2">
+          <div className="no-print flex flex-wrap gap-2">
+            <button
+              onClick={load}
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-100"
+            >
+              Refresh
+            </button>
+
+            <button
+              onClick={printSubheadsReport}
+              className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700"
+            >
+              Print / Save PDF
+            </button>
+
+            <button
+              onClick={exportSubheadsExcel}
+              className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700"
+            >
+              Export Excel
+            </button>
+
             {canAuditView && (
               <button
                 onClick={() => router.push("/finance/audit")}
                 className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-100"
               >
-                Audit Trail & Reconciliation
+                Audit & Reconciliation
               </button>
             )}
 
@@ -313,7 +442,7 @@ export default function SubheadsPage() {
               onClick={() => router.push("/finance")}
               className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-100"
             >
-              ← Back to Finance
+              Back to Finance
             </button>
           </div>
         </div>
@@ -324,7 +453,7 @@ export default function SubheadsPage() {
           </div>
         )}
 
-        <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-6">
+        <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-6 print:grid-cols-6">
           <StatCard title="Total Subheads" value={String(totals.totalCount)} tone="slate" />
           <StatCard title="Active Subheads" value={String(totals.activeCount)} tone="emerald" />
           <StatCard title="Allocation" value={naira(totals.allocationTotal)} tone="blue" />
@@ -333,8 +462,15 @@ export default function SubheadsPage() {
           <StatCard title="Balance" value={naira(totals.balanceTotal)} tone="emerald" />
         </div>
 
+        <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4 print:grid-cols-4">
+          <SmallStat title="Inactive Subheads" value={String(totals.inactiveCount)} />
+          <SmallStat title="Negative Balance" value={String(totals.negativeBalanceCount)} />
+          <SmallStat title="Low Balance" value={String(totals.lowBalanceCount)} />
+          <SmallStat title="Departments" value={String(depts.length)} />
+        </div>
+
         {canPrintCompleted && (
-          <div className="mt-6 rounded-3xl border bg-white shadow-sm overflow-hidden">
+          <div className="no-print mt-6 rounded-3xl border bg-white shadow-sm overflow-hidden">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b bg-slate-50 px-6 py-4">
               <div>
                 <h2 className="text-lg font-bold text-slate-900">
@@ -485,7 +621,7 @@ export default function SubheadsPage() {
           </div>
         )}
 
-        <div className="mt-6 rounded-3xl border bg-white p-6 shadow-sm">
+        <div className="no-print mt-6 rounded-3xl border bg-white p-6 shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h2 className="text-lg font-bold text-slate-900">
@@ -585,7 +721,7 @@ export default function SubheadsPage() {
           </div>
         </div>
 
-        <div className="mt-6 grid gap-4 xl:hidden">
+        <div className="mt-6 grid gap-4 xl:hidden print:hidden">
           {subs.length === 0 ? (
             <div className="rounded-2xl border bg-white p-5 text-sm text-slate-700 shadow-sm">
               No subheads yet.
@@ -652,17 +788,17 @@ export default function SubheadsPage() {
           )}
         </div>
 
-        <div className="mt-6 hidden xl:block rounded-3xl border bg-white shadow-sm overflow-hidden">
-          <div className="border-b bg-slate-50 px-6 py-4">
-            <h3 className="text-base font-bold text-slate-900">Subheads Register</h3>
-            <p className="mt-1 text-sm text-slate-600">
+        <div className="mt-6 hidden xl:block rounded-3xl border bg-white shadow-sm overflow-hidden print:block print:rounded-none print:border-black print:shadow-none">
+          <div className="border-b bg-slate-50 px-6 py-4 print:bg-white print:px-2">
+            <h3 className="text-base font-bold text-slate-900 print:text-sm">Subheads Register</h3>
+            <p className="mt-1 text-sm text-slate-600 print:text-[9px]">
               Allocation, reserved commitments, actual expenditure and remaining balance.
             </p>
           </div>
 
           <div className="overflow-x-auto">
-            <div className="min-w-[1320px]">
-              <div className="grid grid-cols-17 bg-slate-100 px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600">
+            <div className="min-w-[1320px] print:min-w-0">
+              <div className="grid grid-cols-17 bg-slate-100 px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600 print:border-b print:border-black print:bg-white print:px-2 print:text-[8px]">
                 <div className="col-span-3">Department</div>
                 <div className="col-span-2">Code</div>
                 <div className="col-span-3">Subhead</div>
@@ -670,7 +806,7 @@ export default function SubheadsPage() {
                 <div className="col-span-2 text-right">Reserved</div>
                 <div className="col-span-2 text-right">Expenditure</div>
                 <div className="col-span-2 text-right">Balance</div>
-                <div className="col-span-1 text-right">Actions</div>
+                <div className="col-span-1 text-right no-print">Actions</div>
               </div>
 
               {subs.length === 0 ? (
@@ -679,13 +815,13 @@ export default function SubheadsPage() {
                 subs.map((s) => (
                   <div
                     key={s.id}
-                    className="grid grid-cols-17 items-center border-t px-6 py-4 text-sm hover:bg-slate-50"
+                    className="grid grid-cols-17 items-center border-t px-6 py-4 text-sm hover:bg-slate-50 print:px-2 print:py-2 print:text-[8px]"
                   >
                     <div className="col-span-3">
                       <div className="font-semibold text-slate-900">
                         {s.dept_id ? deptMap[s.dept_id] : "—"}
                       </div>
-                      <div className="mt-1 text-xs text-slate-500">
+                      <div className="mt-1 text-xs text-slate-500 print:text-[7px]">
                         {s.is_active ? "Active" : "Inactive"}
                       </div>
                     </div>
@@ -696,7 +832,7 @@ export default function SubheadsPage() {
 
                     <div className="col-span-3">
                       <div className="font-semibold text-slate-900">{s.name}</div>
-                      <div className="mt-1 text-xs text-slate-500">
+                      <div className="mt-1 text-xs text-slate-500 print:text-[7px]">
                         Updated {shortDate(s.updated_at)}
                       </div>
                     </div>
@@ -717,7 +853,7 @@ export default function SubheadsPage() {
                       {naira(Number(s.balance || 0))}
                     </div>
 
-                    <div className="col-span-1 flex justify-end gap-2">
+                    <div className="col-span-1 flex justify-end gap-2 no-print">
                       <button
                         disabled={!canManage}
                         onClick={() => {
@@ -744,8 +880,36 @@ export default function SubheadsPage() {
                   </div>
                 ))
               )}
+
+              <div className="grid grid-cols-17 border-t bg-slate-50 px-6 py-4 text-sm print:bg-white print:px-2 print:text-[9px]">
+                <div className="col-span-8 font-black uppercase text-slate-900">
+                  Total
+                </div>
+                <div className="col-span-2 text-right font-black text-blue-700">
+                  {naira(totals.allocationTotal)}
+                </div>
+                <div className="col-span-2 text-right font-black text-amber-700">
+                  {naira(totals.reservedTotal)}
+                </div>
+                <div className="col-span-2 text-right font-black text-red-700">
+                  {naira(totals.expenditureTotal)}
+                </div>
+                <div className="col-span-2 text-right font-black text-emerald-700">
+                  {naira(totals.balanceTotal)}
+                </div>
+                <div className="col-span-1 no-print" />
+              </div>
             </div>
           </div>
+        </div>
+
+        <div className="mt-6 rounded-3xl border border-blue-100 bg-blue-50 p-5 text-sm text-blue-900 print:border-t print:border-black print:bg-white print:text-black">
+          <div className="font-bold">Subheads Report Note</div>
+          <p className="mt-1">
+            This report summarizes all finance subheads, approved allocations, reserved commitments,
+            expenditure and remaining balances. It is intended for internal finance control,
+            reconciliation and management review.
+          </p>
         </div>
       </div>
     </main>
@@ -773,9 +937,22 @@ function StatCard({
       : "text-slate-700 bg-slate-50";
 
   return (
-    <div className="rounded-3xl border bg-white p-5 shadow-sm">
-      <div className="text-sm font-semibold text-slate-500">{title}</div>
-      <div className={`mt-3 inline-flex rounded-2xl px-3 py-2 text-xl font-extrabold ${toneClass}`}>
+    <div className="print-card rounded-3xl border bg-white p-5 shadow-sm print:rounded-none print:border-black print:p-2 print:shadow-none">
+      <div className="text-sm font-semibold text-slate-500 print:text-[9px]">{title}</div>
+      <div className={`mt-3 inline-flex rounded-2xl px-3 py-2 text-xl font-extrabold print:mt-1 print:p-0 print:text-[11px] ${toneClass}`}>
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function SmallStat({ title, value }: { title: string; value: string }) {
+  return (
+    <div className="print-card rounded-2xl border bg-white p-4 shadow-sm print:rounded-none print:border-black print:p-2 print:shadow-none">
+      <div className="text-xs font-semibold uppercase tracking-wide text-slate-500 print:text-[8px]">
+        {title}
+      </div>
+      <div className="mt-2 text-lg font-extrabold text-slate-900 print:mt-1 print:text-[10px]">
         {value}
       </div>
     </div>
