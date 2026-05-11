@@ -226,7 +226,8 @@ export default function PaymentVouchersPage() {
     if (badCategory) {
       return {
         valid: false,
-        message: "Selected requests must be from the same category: Official with Official, or Personal Fund with Personal Fund.",
+        message:
+          "Selected requests must be from the same category: Official with Official, or Personal Fund with Personal Fund.",
       };
     }
 
@@ -716,7 +717,9 @@ export default function PaymentVouchersPage() {
 
             <button
               onClick={() => router.push("/payment-vouchers/reports")}
-              className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-black"
+              disabled={Boolean(deletingId) || generating}
+              style={{ color: "#ffffff" }}
+              className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:opacity-60"
             >
               PV Reports
             </button>
