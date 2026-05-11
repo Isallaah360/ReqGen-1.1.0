@@ -13,7 +13,7 @@ type Notif = {
   created_at: string;
 };
 
-type NavItem = {
+type MenuLink = {
   href: string;
   label: string;
 };
@@ -26,17 +26,21 @@ function roleKey(role: string | null | undefined) {
     .replace(/_/g, "");
 }
 
+function isPathActive(pathname: string | null, href: string) {
+  if (!pathname) return false;
+  if (pathname === href) return true;
+  return pathname.startsWith(`${href}/`);
+}
+
 export default function NavBar() {
   const router = useRouter();
   const pathname = usePathname();
 
   const [signedIn, setSignedIn] = useState(false);
   const [myRole, setMyRole] = useState<string>("Staff");
-
   const [openBell, setOpenBell] = useState(false);
   const [openFinance, setOpenFinance] = useState(false);
   const [openHR, setOpenHR] = useState(false);
-
   const [unreadCount, setUnreadCount] = useState(0);
   const [items, setItems] = useState<Notif[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
@@ -49,61 +53,61 @@ export default function NavBar() {
 
   const isAdmin = ["admin", "auditor"].includes(rk);
   const canFinance = ["admin", "auditor", "account", "accounts", "accountofficer"].includes(rk);
-  const canAuditView = ["admin", "auditor", "account", "accounts", "accountofficer"].includes(rk);
   const canHR = ["admin", "auditor", "hr"].includes(rk);
 
-  function isActiveLink(href: string) {
-    if (href === "/") return pathname === "/";
-    if (pathname === href) return true;
+  const mainLinks = useMemo<MenuLink[]>(() => {
+    return [
+      { href: "/approvals", label: "Approvals" },
+      { href: "/dashboard", label: "Dashboard" },
+      { href: "/requests", label: "My Requests" },
+    ];
+  }, []);
 
-    if (href === "/payment-vouchers") {
-      return pathname === "/payment-vouchers";
-    }
-
-    return pathname.startsWith(href + "/");
-  }
-
-  const financeLinks = useMemo<NavItem[]>(() => {
-    const list: NavItem[] = [
+  const financeLinks = useMemo<MenuLink[]>(() => {
+    return [
       { href: "/finance/subheads", label: "Subheads / Finance" },
       { href: "/payment-vouchers", label: "Payment Vouchers" },
+      { href: "/payment-vouchers/reports", label: "PV Reports" },
       { href: "/payment-vouchers/settings", label: "PV Settings" },
       { href: "/finance/reports", label: "Reports" },
+      { href: "/finance/audit", label: "Audit & Reconciliation" },
     ];
+  }, []);
 
-    if (canAuditView) {
-      list.push({ href: "/finance/audit", label: "Audit & Reconciliation" });
-    }
-
-    return list;
-  }, [canAuditView]);
-
-  const hrLinks = useMemo<NavItem[]>(() => {
+  const hrLinks = useMemo<MenuLink[]>(() => {
     return [{ href: "/hr/filing", label: "HR Filing" }];
   }, []);
 
-  const financeActive = useMemo(() => {
-    return financeLinks.some((item) => isActiveLink(item.href));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [financeLinks, pathname]);
+  const financeIsActive = useMemo(() => {
+    return (
+      pathname?.startsWith("/finance") ||
+      pathname?.startsWith("/payment-vouchers")
+    );
+  }, [pathname]);
 
-  const hrActive = useMemo(() => {
-    return hrLinks.some((item) => isActiveLink(item.href));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hrLinks, pathname]);
+  const hrIsActive = useMemo(() => {
+    return pathname?.startsWith("/hr");
+  }, [pathname]);
 
-  const topLinkClass = (href: string) =>
+  const navLinkClass = (href: string) =>
     `px-3 py-2 rounded-xl text-sm font-semibold transition ${
-      isActiveLink(href)
+      isPathActive(pathname, href)
+        ? "bg-blue-600 text-white shadow-sm"
+        : "text-slate-700 hover:bg-slate-100"
+    }`;
+
+  const dropdownButtonClass = (active: boolean) =>
+    `inline-flex items-center gap-1 rounded-xl px-3 py-2 text-sm font-semibold transition ${
+      active
         ? "bg-blue-600 text-white shadow-sm"
         : "text-slate-700 hover:bg-slate-100"
     }`;
 
   const dropdownItemClass = (href: string) =>
-    `block w-full rounded-2xl px-4 py-3 text-left text-sm font-bold transition ${
-      isActiveLink(href)
-        ? "bg-blue-600 text-white shadow-sm"
-        : "text-slate-800 hover:bg-slate-100"
+    `block rounded-xl px-4 py-3 text-sm font-semibold transition ${
+      isPathActive(pathname, href)
+        ? "bg-blue-50 text-blue-700"
+        : "text-slate-700 hover:bg-slate-50"
     }`;
 
   async function refreshAll() {
@@ -144,14 +148,18 @@ export default function NavBar() {
     const list = (n || []) as Notif[];
     setItems(list);
 
-    const unreadNotifCount = list.filter((x) => !x.is_read).length;
+    const { count: unreadNotifCount } = await supabase
+      .from("notifications")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", uid)
+      .eq("is_read", false);
 
     const { count: pendingApprovalCount } = await supabase
       .from("requests")
       .select("*", { count: "exact", head: true })
       .eq("current_owner", uid);
 
-    setUnreadCount(Math.max(unreadNotifCount, pendingApprovalCount || 0));
+    setUnreadCount(Number(unreadNotifCount || 0) + Number(pendingApprovalCount || 0));
   }
 
   useEffect(() => {
@@ -223,6 +231,12 @@ export default function NavBar() {
     return () => document.removeEventListener("mousedown", onClick);
   }, [openBell, openFinance, openHR]);
 
+  useEffect(() => {
+    setOpenFinance(false);
+    setOpenHR(false);
+    setOpenBell(false);
+  }, [pathname]);
+
   async function logout() {
     await supabase.auth.signOut();
     router.push("/");
@@ -243,42 +257,24 @@ export default function NavBar() {
 
   async function openNotif(n: Notif) {
     await supabase.from("notifications").update({ is_read: true }).eq("id", n.id);
-
-    setOpenBell(false);
     router.push(n.link || "/approvals");
-  }
-
-  function openFinanceLink(href: string) {
-    setOpenFinance(false);
-    router.push(href);
-  }
-
-  function openHRLink(href: string) {
-    setOpenHR(false);
-    router.push(href);
   }
 
   return (
     <header className="sticky top-0 z-30 border-b bg-white/90 backdrop-blur">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
-        <Link href="/" className="text-lg font-extrabold tracking-tight text-slate-900">
+        <Link href="/" className="font-extrabold text-lg tracking-tight text-slate-900">
           ReqGen <span className="text-slate-400">1.1.0</span>
         </Link>
 
         {!signedIn ? null : (
           <div className="flex items-center gap-2">
-            <nav className="hidden items-center gap-2 md:flex">
-              <Link className={topLinkClass("/approvals")} href="/approvals">
-                Approvals
-              </Link>
-
-              <Link className={topLinkClass("/dashboard")} href="/dashboard">
-                Dashboard
-              </Link>
-
-              <Link className={topLinkClass("/requests")} href="/requests">
-                My Requests
-              </Link>
+            <nav className="hidden items-center gap-2 lg:flex">
+              {mainLinks.map((l) => (
+                <Link key={l.href} className={navLinkClass(l.href)} href={l.href}>
+                  {l.label}
+                </Link>
+              ))}
 
               {canFinance && (
                 <div className="relative" ref={financeRef}>
@@ -289,45 +285,26 @@ export default function NavBar() {
                       setOpenHR(false);
                       setOpenBell(false);
                     }}
-                    className={`rounded-xl px-3 py-2 text-sm font-semibold transition ${
-                      financeActive
-                        ? "bg-blue-600 text-white shadow-sm"
-                        : "text-slate-700 hover:bg-slate-100"
-                    }`}
+                    className={dropdownButtonClass(Boolean(financeIsActive))}
                   >
-                    <span className="inline-flex items-center gap-1">
-                      Finance
-                      <span
-                        className={`inline-block text-xs transition-transform ${
-                          openFinance ? "rotate-180" : ""
-                        }`}
-                      >
-                        ▾
-                      </span>
-                    </span>
+                    Finance
+                    <span className="text-xs leading-none">▾</span>
                   </button>
 
                   {openFinance && (
-                    <div className="absolute left-0 top-12 w-[320px] overflow-hidden rounded-3xl border bg-white shadow-xl">
-                      <div className="border-b bg-slate-50 px-5 py-4">
-                        <div className="text-base font-extrabold text-slate-900">
-                          Finance Directorate
-                        </div>
-                        <div className="mt-1 text-sm font-semibold text-slate-500">
+                    <div className="absolute right-0 top-12 w-80 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
+                      <div className="border-b bg-slate-50 px-4 py-3">
+                        <div className="font-extrabold text-slate-900">Finance Directorate</div>
+                        <div className="mt-1 text-xs font-semibold text-slate-500">
                           Budgets, vouchers, reports and audit tools
                         </div>
                       </div>
 
-                      <div className="space-y-1 p-3">
-                        {financeLinks.map((item) => (
-                          <button
-                            key={item.href}
-                            type="button"
-                            onClick={() => openFinanceLink(item.href)}
-                            className={dropdownItemClass(item.href)}
-                          >
-                            {item.label}
-                          </button>
+                      <div className="p-2">
+                        {financeLinks.map((l) => (
+                          <Link key={l.href} href={l.href} className={dropdownItemClass(l.href)}>
+                            {l.label}
+                          </Link>
                         ))}
                       </div>
                     </div>
@@ -344,45 +321,26 @@ export default function NavBar() {
                       setOpenFinance(false);
                       setOpenBell(false);
                     }}
-                    className={`rounded-xl px-3 py-2 text-sm font-semibold transition ${
-                      hrActive
-                        ? "bg-blue-600 text-white shadow-sm"
-                        : "text-slate-700 hover:bg-slate-100"
-                    }`}
+                    className={dropdownButtonClass(Boolean(hrIsActive))}
                   >
-                    <span className="inline-flex items-center gap-1">
-                      HR
-                      <span
-                        className={`inline-block text-xs transition-transform ${
-                          openHR ? "rotate-180" : ""
-                        }`}
-                      >
-                        ▾
-                      </span>
-                    </span>
+                    HR
+                    <span className="text-xs leading-none">▾</span>
                   </button>
 
                   {openHR && (
-                    <div className="absolute left-0 top-12 w-[260px] overflow-hidden rounded-3xl border bg-white shadow-xl">
-                      <div className="border-b bg-slate-50 px-5 py-4">
-                        <div className="text-base font-extrabold text-slate-900">
-                          HR Directorate
-                        </div>
-                        <div className="mt-1 text-sm font-semibold text-slate-500">
-                          Personal requests, filing and records
+                    <div className="absolute right-0 top-12 w-64 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
+                      <div className="border-b bg-slate-50 px-4 py-3">
+                        <div className="font-extrabold text-slate-900">HR Directorate</div>
+                        <div className="mt-1 text-xs font-semibold text-slate-500">
+                          Personal request filing and records
                         </div>
                       </div>
 
-                      <div className="space-y-1 p-3">
-                        {hrLinks.map((item) => (
-                          <button
-                            key={item.href}
-                            type="button"
-                            onClick={() => openHRLink(item.href)}
-                            className={dropdownItemClass(item.href)}
-                          >
-                            {item.label}
-                          </button>
+                      <div className="p-2">
+                        {hrLinks.map((l) => (
+                          <Link key={l.href} href={l.href} className={dropdownItemClass(l.href)}>
+                            {l.label}
+                          </Link>
                         ))}
                       </div>
                     </div>
@@ -391,14 +349,37 @@ export default function NavBar() {
               )}
 
               {isAdmin && (
-                <Link className={topLinkClass("/admin")} href="/admin">
+                <Link className={navLinkClass("/admin")} href="/admin">
                   Admin
+                </Link>
+              )}
+            </nav>
+
+            <nav className="flex items-center gap-1 lg:hidden">
+              <Link className={navLinkClass("/approvals")} href="/approvals">
+                Approvals
+              </Link>
+
+              <Link className={navLinkClass("/requests")} href="/requests">
+                Requests
+              </Link>
+
+              {canFinance && (
+                <Link className={navLinkClass("/finance/subheads")} href="/finance/subheads">
+                  Finance
+                </Link>
+              )}
+
+              {canHR && (
+                <Link className={navLinkClass("/hr/filing")} href="/hr/filing">
+                  HR
                 </Link>
               )}
             </nav>
 
             <div className="relative" ref={bellRef}>
               <button
+                type="button"
                 onClick={() => {
                   setOpenBell((v) => !v);
                   setOpenFinance(false);
@@ -416,10 +397,11 @@ export default function NavBar() {
               </button>
 
               {openBell && (
-                <div className="absolute right-0 top-12 w-80 overflow-hidden rounded-2xl border bg-white shadow-lg">
+                <div className="absolute right-0 top-12 w-80 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
                   <div className="flex items-center justify-between bg-slate-50 px-4 py-3">
                     <div className="font-bold text-slate-900">Notifications</div>
                     <button
+                      type="button"
                       onClick={markAllRead}
                       className="text-xs font-semibold text-blue-700 hover:underline"
                     >
@@ -433,6 +415,7 @@ export default function NavBar() {
                     <div className="max-h-96 overflow-auto">
                       {items.map((n) => (
                         <button
+                          type="button"
                           key={n.id}
                           onClick={() => openNotif(n)}
                           className={`w-full border-t px-4 py-3 text-left hover:bg-slate-50 ${
@@ -452,6 +435,7 @@ export default function NavBar() {
             </div>
 
             <button
+              type="button"
               onClick={logout}
               className="hidden rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700 md:inline-flex"
             >
