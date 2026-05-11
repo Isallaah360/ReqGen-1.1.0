@@ -66,9 +66,33 @@ type VoucherDetail = {
   current_signing_owner: string | null;
   signing_stage: string | null;
 
+  is_multi_request: boolean | null;
+  item_count: number | null;
+  total_amount: number | null;
+  voucher_scope: string | null;
+
   status: string | null;
   created_at: string | null;
   updated_at: string | null;
+};
+
+type VoucherItem = {
+  id: string;
+  voucher_id: string;
+  request_id: string;
+  request_no: string | null;
+  request_type: string | null;
+  personal_category: string | null;
+  title: string | null;
+  details: string | null;
+  amount: number | null;
+  dept_id: string | null;
+  dept_name: string | null;
+  subhead_id: string | null;
+  subhead_code: string | null;
+  subhead_name: string | null;
+  requester_name: string | null;
+  created_at: string | null;
 };
 
 type Hist = {
@@ -114,7 +138,7 @@ function shortDateTime(d: string | null | undefined) {
   return new Date(d).toLocaleString();
 }
 
-function categoryLabel(v: VoucherDetail | null) {
+function categoryLabel(v: VoucherDetail | VoucherItem | null) {
   const rt = normalize(v?.request_type);
   const pc = normalize(v?.personal_category);
 
@@ -157,6 +181,18 @@ function signingStageBadgeClass(stage: string | null | undefined) {
   return "border-slate-200 bg-slate-50 text-slate-700";
 }
 
+function scopeBadgeClass(scope: string | null | undefined) {
+  const s = normalize(scope);
+
+  if (s === "multiple") return "border-indigo-200 bg-indigo-50 text-indigo-700";
+  return "border-slate-200 bg-slate-50 text-slate-700";
+}
+
+function itemSubheadText(item: VoucherItem) {
+  if (!item.subhead_id) return "—";
+  return `${item.subhead_code || ""} — ${item.subhead_name || ""}`.replace(/^ — /, "").trim();
+}
+
 export default function PaymentVoucherDetailPage() {
   const router = useRouter();
   const params = useParams();
@@ -170,6 +206,7 @@ export default function PaymentVoucherDetailPage() {
   const rk = roleKey(me?.role);
 
   const [voucher, setVoucher] = useState<VoucherDetail | null>(null);
+  const [items, setItems] = useState<VoucherItem[]>([]);
   const [history, setHistory] = useState<Hist[]>([]);
 
   const [comment, setComment] = useState("");
@@ -220,9 +257,26 @@ export default function PaymentVoucherDetailPage() {
     isSelectedCounterSigner &&
     isCurrentSigningOwner;
 
-  const canPayVoucher = isFinanceRole && voucher?.status !== "Paid" && voucher?.status !== "Cancelled";
-
   const canCancelVoucher = isFinanceRole && voucher?.status !== "Paid" && voucher?.status !== "Cancelled";
+
+  const voucherTotal = useMemo(() => {
+    if (items.length > 0) {
+      return items.reduce((a, item) => a + Number(item.amount || 0), 0);
+    }
+
+    return Number(voucher?.total_amount || voucher?.amount || 0);
+  }, [items, voucher?.total_amount, voucher?.amount]);
+
+  const voucherScope = useMemo(() => {
+    if (voucher?.voucher_scope) return voucher.voucher_scope;
+    if (voucher?.is_multi_request) return "Multiple";
+    return "Single";
+  }, [voucher?.voucher_scope, voucher?.is_multi_request]);
+
+  const effectiveItemCount = useMemo(() => {
+    if (items.length > 0) return items.length;
+    return Number(voucher?.item_count || 1);
+  }, [items.length, voucher?.item_count]);
 
   async function load() {
     setLoading(true);
@@ -255,14 +309,16 @@ export default function PaymentVoucherDetailPage() {
 
     setMe(prof as ProfileMini);
 
-    const [detailRes, histRes] = await Promise.all([
+    const [detailRes, itemRes, histRes] = await Promise.all([
       supabase.rpc("get_payment_voucher_detail", { p_voucher_id: id }),
+      supabase.rpc("get_payment_voucher_items", { p_voucher_id: id }),
       supabase.rpc("get_payment_voucher_history", { p_voucher_id: id }),
     ]);
 
     if (detailRes.error) {
       setMsg("Failed to load voucher: " + detailRes.error.message);
       setVoucher(null);
+      setItems([]);
       setLoading(false);
       return;
     }
@@ -274,11 +330,19 @@ export default function PaymentVoucherDetailPage() {
     if (!row) {
       setMsg("Payment voucher not found.");
       setVoucher(null);
+      setItems([]);
       setLoading(false);
       return;
     }
 
     setVoucher(row);
+
+    if (itemRes.error) {
+      setMsg("Failed to load voucher items: " + itemRes.error.message);
+      setItems([]);
+    } else {
+      setItems((itemRes.data || []) as VoucherItem[]);
+    }
 
     if (histRes.error) {
       setMsg("Failed to load voucher history: " + histRes.error.message);
@@ -408,7 +472,7 @@ export default function PaymentVoucherDetailPage() {
     }
 
     const ok = confirm(
-      `Permanently delete ${voucher.voucher_no}?\n\nThis will allow request ${voucher.request_no || ""} to generate a new PV.\n\nThis action cannot be undone.`
+      `Permanently delete ${voucher.voucher_no}?\n\nThis will allow linked request(s) to generate a new PV.\n\nThis action cannot be undone.`
     );
 
     if (!ok) return;
@@ -513,7 +577,7 @@ export default function PaymentVoucherDetailPage() {
               onClick={() => router.push(`/requests/${voucher.request_id}`)}
               className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
             >
-              Open Request
+              Open Primary Request
             </button>
 
             <button
@@ -557,13 +621,13 @@ export default function PaymentVoucherDetailPage() {
 
             {canSignCheque && (
               <div className="mt-3 rounded-2xl border border-blue-200 bg-blue-50 p-4 text-blue-900">
-                This PV is assigned to you for cheque signature. Review the voucher details before signing.
+                This PV is assigned to you for cheque signature. Review all voucher items before signing.
               </div>
             )}
 
             {canCounterSignCheque && (
               <div className="mt-3 rounded-2xl border border-purple-200 bg-purple-50 p-4 text-purple-900">
-                This PV is assigned to you for counter signature. Review the voucher details before counter-signing.
+                This PV is assigned to you for counter signature. Review all voucher items before counter-signing.
               </div>
             )}
           </div>
@@ -571,8 +635,8 @@ export default function PaymentVoucherDetailPage() {
 
         <div className="mt-6 grid gap-4 md:grid-cols-4">
           <InfoCard title="Voucher No" value={voucher.voucher_no} />
-          <InfoCard title="Request No" value={voucher.request_no || "—"} />
-          <InfoCard title="Amount" value={naira(voucher.amount)} />
+          <InfoCard title="Scope" value={`${voucherScope} • ${effectiveItemCount} item(s)`} scope={voucherScope} />
+          <InfoCard title="Total Amount" value={naira(voucherTotal)} />
           <InfoCard title="Status" value={voucher.status || "—"} badge />
         </div>
 
@@ -590,6 +654,10 @@ export default function PaymentVoucherDetailPage() {
                 {voucher.disbursement_mode || "No Mode"}
               </span>
 
+              <span className={`rounded-full border px-3 py-1 text-xs font-bold ${scopeBadgeClass(voucherScope)}`}>
+                {voucherScope}
+              </span>
+
               <span className={`rounded-full border px-3 py-1 text-xs font-bold ${statusBadgeClass(voucher.status)}`}>
                 {voucher.status || "—"}
               </span>
@@ -605,11 +673,15 @@ export default function PaymentVoucherDetailPage() {
           <div className="mt-5 grid gap-4 md:grid-cols-2">
             <InfoLine label="Payee" value={voucher.payee_name || "—"} />
             <InfoLine label="Category" value={categoryLabel(voucher)} />
+            <InfoLine label="Primary Request" value={voucher.request_no || "—"} />
+            <InfoLine label="Item Count" value={String(effectiveItemCount)} />
             <InfoLine label="Department" value={voucher.dept_name || "—"} />
             <InfoLine
               label="Subhead"
               value={
-                voucher.subhead_id
+                voucherScope === "Multiple"
+                  ? "Multiple / See item list"
+                  : voucher.subhead_id
                   ? `${voucher.subhead_code || ""} — ${voucher.subhead_name || ""}`.trim()
                   : "—"
               }
@@ -626,6 +698,136 @@ export default function PaymentVoucherDetailPage() {
               {voucher.narration || "—"}
             </div>
           </div>
+        </div>
+
+        <div className="mt-6 rounded-3xl border bg-white shadow-sm overflow-hidden">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b bg-slate-50 px-6 py-4">
+            <div>
+              <h2 className="text-lg font-bold text-slate-900">Voucher Items</h2>
+              <p className="mt-1 text-sm text-slate-600">
+                Full breakdown of request(s) included in this payment voucher.
+              </p>
+            </div>
+
+            <div className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">
+              {effectiveItemCount} item(s) • {naira(voucherTotal)}
+            </div>
+          </div>
+
+          {items.length === 0 ? (
+            <div className="p-6 text-sm text-slate-700">
+              No item breakdown found for this voucher.
+            </div>
+          ) : (
+            <>
+              <div className="hidden xl:block overflow-x-auto">
+                <div className="min-w-[1120px]">
+                  <div className="grid grid-cols-15 bg-slate-100 px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600">
+                    <div className="col-span-1">No</div>
+                    <div className="col-span-2">Request No</div>
+                    <div className="col-span-3">Title</div>
+                    <div className="col-span-2">Department</div>
+                    <div className="col-span-2">Subhead</div>
+                    <div className="col-span-2">Requester</div>
+                    <div className="col-span-1">Type</div>
+                    <div className="col-span-2 text-right">Amount</div>
+                  </div>
+
+                  {items.map((item, index) => (
+                    <div
+                      key={item.id}
+                      className="grid grid-cols-15 items-center border-t px-6 py-4 text-sm hover:bg-slate-50"
+                    >
+                      <div className="col-span-1 font-bold text-slate-600">
+                        {index + 1}
+                      </div>
+
+                      <div className="col-span-2 font-extrabold text-slate-900">
+                        {item.request_no || "—"}
+                      </div>
+
+                      <div className="col-span-3">
+                        <div className="font-semibold text-slate-900">{item.title || "—"}</div>
+                        <div className="mt-1 line-clamp-2 text-xs text-slate-500">
+                          {item.details || "—"}
+                        </div>
+                      </div>
+
+                      <div className="col-span-2 text-slate-700">
+                        {item.dept_name || "—"}
+                      </div>
+
+                      <div className="col-span-2 text-slate-700">
+                        {itemSubheadText(item)}
+                      </div>
+
+                      <div className="col-span-2 text-slate-700">
+                        {item.requester_name || "—"}
+                      </div>
+
+                      <div className="col-span-1">
+                        <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] font-bold text-slate-700">
+                          {categoryLabel(item)}
+                        </span>
+                      </div>
+
+                      <div className="col-span-2 text-right font-extrabold text-slate-900">
+                        {naira(item.amount)}
+                      </div>
+                    </div>
+                  ))}
+
+                  <div className="grid grid-cols-15 border-t bg-slate-50 px-6 py-4 text-sm">
+                    <div className="col-span-13 text-right font-black uppercase text-slate-900">
+                      Total
+                    </div>
+                    <div className="col-span-2 text-right font-black text-slate-900">
+                      {naira(voucherTotal)}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid gap-3 p-4 xl:hidden">
+                {items.map((item, index) => (
+                  <div key={item.id} className="rounded-2xl border bg-white p-4">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <div className="text-xs font-bold uppercase text-slate-500">
+                          Item {index + 1}
+                        </div>
+                        <div className="mt-1 font-extrabold text-slate-900">
+                          {item.request_no || "—"}
+                        </div>
+                        <div className="mt-1 font-semibold text-slate-800">
+                          {item.title || "—"}
+                        </div>
+                      </div>
+
+                      <div className="text-right font-extrabold text-slate-900">
+                        {naira(item.amount)}
+                      </div>
+                    </div>
+
+                    <div className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
+                      <InfoLine label="Department" value={item.dept_name || "—"} />
+                      <InfoLine label="Subhead" value={itemSubheadText(item)} />
+                      <InfoLine label="Requester" value={item.requester_name || "—"} />
+                      <InfoLine label="Type" value={categoryLabel(item)} />
+                    </div>
+
+                    <div className="mt-3 rounded-xl bg-slate-50 p-3 text-sm text-slate-700">
+                      {item.details || "—"}
+                    </div>
+                  </div>
+                ))}
+
+                <div className="rounded-2xl border bg-slate-50 p-4 text-right text-lg font-black text-slate-900">
+                  Total: {naira(voucherTotal)}
+                </div>
+              </div>
+            </>
+          )}
         </div>
 
         <div className="mt-6 rounded-3xl border bg-white p-6 shadow-sm">
@@ -803,17 +1005,23 @@ function InfoCard({
   title,
   value,
   badge,
+  scope,
 }: {
   title: string;
   value: string;
   badge?: boolean;
+  scope?: string;
 }) {
   return (
     <div className="rounded-3xl border bg-white p-5 shadow-sm">
       <div className="text-sm font-semibold text-slate-500">{title}</div>
       <div
         className={`mt-3 inline-flex rounded-2xl px-3 py-2 text-lg font-extrabold ${
-          badge ? statusBadgeClass(value) + " border" : "bg-slate-50 text-slate-900"
+          badge
+            ? statusBadgeClass(value) + " border"
+            : scope
+            ? scopeBadgeClass(scope) + " border"
+            : "bg-slate-50 text-slate-900"
         }`}
       >
         {value}
