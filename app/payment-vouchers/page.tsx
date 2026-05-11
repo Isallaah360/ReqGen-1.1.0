@@ -44,9 +44,12 @@ type ReadyRequest = {
   account_name: string | null;
 };
 
-type CounterSignatory = {
+type SignatoryType = "ChequeSigner" | "CounterSigner" | "Both";
+
+type PVSignatory = {
   id: string;
   full_name: string;
+  signatory_type: SignatoryType | null;
 };
 
 type DisbursementMode = "Transfer" | "Cash" | "Cheque";
@@ -116,7 +119,7 @@ export default function PaymentVouchersPage() {
 
   const [rows, setRows] = useState<VoucherRow[]>([]);
   const [readyRows, setReadyRows] = useState<ReadyRequest[]>([]);
-  const [counterSignatories, setCounterSignatories] = useState<CounterSignatory[]>([]);
+  const [pvSignatories, setPvSignatories] = useState<PVSignatory[]>([]);
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
@@ -134,7 +137,20 @@ export default function PaymentVouchersPage() {
   const [chequeNo, setChequeNo] = useState("");
   const [chequeDate, setChequeDate] = useState("");
   const [chequeBankName, setChequeBankName] = useState("");
+  const [chequeSignedByName, setChequeSignedByName] = useState("");
   const [counterSignatoryName, setCounterSignatoryName] = useState("");
+
+  const chequeSigners = useMemo(() => {
+    return pvSignatories.filter(
+      (x) => x.signatory_type === "ChequeSigner" || x.signatory_type === "Both"
+    );
+  }, [pvSignatories]);
+
+  const counterSigners = useMemo(() => {
+    return pvSignatories.filter(
+      (x) => x.signatory_type === "CounterSigner" || x.signatory_type === "Both"
+    );
+  }, [pvSignatories]);
 
   async function load() {
     setLoading(true);
@@ -166,17 +182,17 @@ export default function PaymentVouchersPage() {
       setMsg("Access denied. Only Admin, Auditor and Account Officers can view payment vouchers.");
       setRows([]);
       setReadyRows([]);
-      setCounterSignatories([]);
+      setPvSignatories([]);
       setLoading(false);
       return;
     }
 
-    const [voucherRes, readyRes, counterRes] = await Promise.all([
+    const [voucherRes, readyRes, signatoryRes] = await Promise.all([
       supabase.rpc("get_payment_vouchers"),
       supabase.rpc("get_requests_ready_for_payment_voucher"),
       supabase
         .from("payment_voucher_counter_signatories")
-        .select("id,full_name")
+        .select("id,full_name,signatory_type")
         .eq("is_active", true)
         .order("full_name", { ascending: true }),
     ]);
@@ -195,15 +211,27 @@ export default function PaymentVouchersPage() {
       setReadyRows((readyRes.data || []) as ReadyRequest[]);
     }
 
-    if (counterRes.error) {
-      setMsg("Failed to load counter signatories: " + counterRes.error.message);
-      setCounterSignatories([]);
+    if (signatoryRes.error) {
+      setMsg("Failed to load PV signatories: " + signatoryRes.error.message);
+      setPvSignatories([]);
     } else {
-      const list = (counterRes.data || []) as CounterSignatory[];
-      setCounterSignatories(list);
+      const list = (signatoryRes.data || []) as PVSignatory[];
+      setPvSignatories(list);
 
-      if (!counterSignatoryName && list.length > 0) {
-        setCounterSignatoryName(list[0].full_name);
+      const firstChequeSigner = list.find(
+        (x) => x.signatory_type === "ChequeSigner" || x.signatory_type === "Both"
+      );
+
+      const firstCounterSigner = list.find(
+        (x) => x.signatory_type === "CounterSigner" || x.signatory_type === "Both"
+      );
+
+      if (!chequeSignedByName && firstChequeSigner) {
+        setChequeSignedByName(firstChequeSigner.full_name);
+      }
+
+      if (!counterSignatoryName && firstCounterSigner) {
+        setCounterSignatoryName(firstCounterSigner.full_name);
       }
     }
 
@@ -228,7 +256,8 @@ export default function PaymentVouchersPage() {
     setChequeNo("");
     setChequeDate("");
     setChequeBankName("");
-    setCounterSignatoryName(counterSignatories[0]?.full_name || "");
+    setChequeSignedByName(chequeSigners[0]?.full_name || "");
+    setCounterSignatoryName(counterSigners[0]?.full_name || "");
 
     setMsg(null);
   }
@@ -255,6 +284,7 @@ export default function PaymentVouchersPage() {
       if (!chequeNo.trim()) return "Cheque requires Cheque Number.";
       if (!chequeDate) return "Cheque requires Cheque Date.";
       if (!chequeBankName.trim()) return "Cheque requires Bank Name.";
+      if (!chequeSignedByName.trim()) return "Cheque requires Cheque Signed By.";
       if (!counterSignatoryName.trim()) return "Cheque requires Counter Signed By.";
     }
 
@@ -290,6 +320,7 @@ export default function PaymentVouchersPage() {
         p_cheque_no: mode === "Cheque" ? chequeNo.trim() : null,
         p_cheque_date: mode === "Cheque" ? chequeDate : null,
         p_cheque_bank_name: mode === "Cheque" ? chequeBankName.trim() : null,
+        p_cheque_signed_by_name: mode === "Cheque" ? chequeSignedByName.trim() : null,
         p_counter_signatory_name: mode === "Cheque" ? counterSignatoryName.trim() : null,
       });
 
@@ -420,6 +451,13 @@ export default function PaymentVouchersPage() {
               className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-100"
             >
               Refresh
+            </button>
+
+            <button
+              onClick={() => router.push("/payment-vouchers/settings")}
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-100"
+            >
+              PV Settings
             </button>
 
             <button
@@ -864,16 +902,16 @@ export default function PaymentVouchersPage() {
                   />
 
                   <div>
-                    <label className="text-sm font-semibold text-slate-800">Counter Signed By</label>
+                    <label className="text-sm font-semibold text-slate-800">Cheque Signed By</label>
                     <select
-                      value={counterSignatoryName}
-                      onChange={(e) => setCounterSignatoryName(e.target.value)}
+                      value={chequeSignedByName}
+                      onChange={(e) => setChequeSignedByName(e.target.value)}
                       className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-3 outline-none focus:border-blue-500"
                     >
-                      {counterSignatories.length === 0 ? (
-                        <option value="">No active counter signatory found</option>
+                      {chequeSigners.length === 0 ? (
+                        <option value="">No active cheque signer found</option>
                       ) : (
-                        counterSignatories.map((person) => (
+                        chequeSigners.map((person) => (
                           <option key={person.id} value={person.full_name}>
                             {person.full_name}
                           </option>
@@ -881,9 +919,34 @@ export default function PaymentVouchersPage() {
                       )}
                     </select>
 
-                    {counterSignatories.length === 0 && (
+                    {chequeSigners.length === 0 && (
                       <div className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-900">
-                        Add active names in Finance ▾ → PV Settings before generating a cheque voucher.
+                        Add an active Cheque Signer or Both in Finance ▾ → PV Settings.
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-semibold text-slate-800">Counter Signed By</label>
+                    <select
+                      value={counterSignatoryName}
+                      onChange={(e) => setCounterSignatoryName(e.target.value)}
+                      className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-3 outline-none focus:border-blue-500"
+                    >
+                      {counterSigners.length === 0 ? (
+                        <option value="">No active counter signer found</option>
+                      ) : (
+                        counterSigners.map((person) => (
+                          <option key={person.id} value={person.full_name}>
+                            {person.full_name}
+                          </option>
+                        ))
+                      )}
+                    </select>
+
+                    {counterSigners.length === 0 && (
+                      <div className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-900">
+                        Add an active Counter Signer or Both in Finance ▾ → PV Settings.
                       </div>
                     )}
                   </div>
