@@ -23,14 +23,17 @@ type VoucherDetail = {
   subhead_code: string | null;
   subhead_name: string | null;
 
+  prepared_by: string | null;
   prepared_by_name: string | null;
   prepared_signature_url: string | null;
   prepared_at: string | null;
 
+  checked_by: string | null;
   checked_by_name: string | null;
   checked_signature_url: string | null;
   checked_at: string | null;
 
+  authorized_by: string | null;
   authorized_by_name: string | null;
   authorized_signature_url: string | null;
   authorized_at: string | null;
@@ -39,10 +42,12 @@ type VoucherDetail = {
   cheque_date: string | null;
   bank_name: string | null;
 
+  cheque_signed_by: string | null;
   cheque_signed_by_name: string | null;
   cheque_signed_signature_url: string | null;
   cheque_signed_at: string | null;
 
+  cheque_counter_signed_by: string | null;
   cheque_counter_signed_by_name: string | null;
   cheque_counter_signed_signature_url: string | null;
   cheque_counter_signed_at: string | null;
@@ -57,6 +62,9 @@ type VoucherDetail = {
   transfer_bank_name: string | null;
   cash_payee_name: string | null;
   counter_signatory_name: string | null;
+
+  current_signing_owner: string | null;
+  signing_stage: string | null;
 
   status: string | null;
   created_at: string | null;
@@ -121,8 +129,10 @@ function statusBadgeClass(status: string | null | undefined) {
 
   if (s.includes("paid")) return "border-emerald-200 bg-emerald-50 text-emerald-700";
   if (s.includes("cancel")) return "border-red-200 bg-red-50 text-red-700";
+  if (s.includes("counter")) return "border-purple-200 bg-purple-50 text-purple-700";
+  if (s.includes("cheque signed")) return "border-blue-200 bg-blue-50 text-blue-700";
+  if (s.includes("cheque")) return "border-amber-200 bg-amber-50 text-amber-700";
   if (s.includes("authorized") || s.includes("checked")) return "border-blue-200 bg-blue-50 text-blue-700";
-  if (s.includes("cheque") || s.includes("counter")) return "border-amber-200 bg-amber-50 text-amber-700";
 
   return "border-slate-200 bg-slate-50 text-slate-700";
 }
@@ -133,6 +143,16 @@ function modeBadgeClass(mode: string | null | undefined) {
   if (m === "transfer") return "border-blue-200 bg-blue-50 text-blue-700";
   if (m === "cash") return "border-emerald-200 bg-emerald-50 text-emerald-700";
   if (m === "cheque") return "border-amber-200 bg-amber-50 text-amber-700";
+
+  return "border-slate-200 bg-slate-50 text-slate-700";
+}
+
+function signingStageBadgeClass(stage: string | null | undefined) {
+  const s = (stage || "").toLowerCase();
+
+  if (s.includes("cheque")) return "border-blue-200 bg-blue-50 text-blue-700";
+  if (s.includes("counter")) return "border-purple-200 bg-purple-50 text-purple-700";
+  if (s.includes("completed")) return "border-emerald-200 bg-emerald-50 text-emerald-700";
 
   return "border-slate-200 bg-slate-50 text-slate-700";
 }
@@ -153,14 +173,56 @@ export default function PaymentVoucherDetailPage() {
   const [history, setHistory] = useState<Hist[]>([]);
 
   const [comment, setComment] = useState("");
-  const [chequeNo, setChequeNo] = useState("");
-  const [chequeDate, setChequeDate] = useState("");
-  const [bankName, setBankName] = useState("");
 
-  const canAccess = ["admin", "auditor", "account", "accounts", "accountofficer"].includes(rk);
+  const isFinanceRole = ["admin", "auditor", "account", "accounts", "accountofficer"].includes(rk);
+  const isAdminOrAuditor = ["admin", "auditor"].includes(rk);
+
   const isCheque = normalize(voucher?.disbursement_mode) === "cheque";
   const isTransfer = normalize(voucher?.disbursement_mode) === "transfer";
   const isCash = normalize(voucher?.disbursement_mode) === "cash";
+
+  const isSelectedChequeSigner = !!me?.id && !!voucher?.cheque_signed_by && me.id === voucher.cheque_signed_by;
+  const isSelectedCounterSigner =
+    !!me?.id && !!voucher?.cheque_counter_signed_by && me.id === voucher.cheque_counter_signed_by;
+
+  const isCurrentSigningOwner =
+    !!me?.id && !!voucher?.current_signing_owner && me.id === voucher.current_signing_owner;
+
+  const canAccess = useMemo(() => {
+    if (!me || !voucher) return false;
+
+    if (isFinanceRole) return true;
+    if (isSelectedChequeSigner) return true;
+    if (isSelectedCounterSigner) return true;
+    if (isCurrentSigningOwner) return true;
+
+    return false;
+  }, [
+    me,
+    voucher,
+    isFinanceRole,
+    isSelectedChequeSigner,
+    isSelectedCounterSigner,
+    isCurrentSigningOwner,
+  ]);
+
+  const canSignCheque =
+    isCheque &&
+    voucher?.status === "Cheque Prepared" &&
+    voucher?.signing_stage === "Awaiting Cheque Signature" &&
+    isSelectedChequeSigner &&
+    isCurrentSigningOwner;
+
+  const canCounterSignCheque =
+    isCheque &&
+    voucher?.status === "Cheque Signed" &&
+    voucher?.signing_stage === "Awaiting Counter Signature" &&
+    isSelectedCounterSigner &&
+    isCurrentSigningOwner;
+
+  const canPayVoucher = isFinanceRole && voucher?.status !== "Paid" && voucher?.status !== "Cancelled";
+
+  const canCancelVoucher = isFinanceRole && voucher?.status !== "Paid" && voucher?.status !== "Cancelled";
 
   async function load() {
     setLoading(true);
@@ -193,13 +255,6 @@ export default function PaymentVoucherDetailPage() {
 
     setMe(prof as ProfileMini);
 
-    const role = roleKey(prof.role);
-    if (!["admin", "auditor", "account", "accounts", "accountofficer"].includes(role)) {
-      setMsg("Access denied. Only Admin, Auditor and Account Officers can access payment vouchers.");
-      setLoading(false);
-      return;
-    }
-
     const [detailRes, histRes] = await Promise.all([
       supabase.rpc("get_payment_voucher_detail", { p_voucher_id: id }),
       supabase.rpc("get_payment_voucher_history", { p_voucher_id: id }),
@@ -224,9 +279,6 @@ export default function PaymentVoucherDetailPage() {
     }
 
     setVoucher(row);
-    setChequeNo(row.cheque_no || "");
-    setChequeDate(row.cheque_date || "");
-    setBankName(row.bank_name || "");
 
     if (histRes.error) {
       setMsg("Failed to load voucher history: " + histRes.error.message);
@@ -243,8 +295,13 @@ export default function PaymentVoucherDetailPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  async function runAction(actionType: string) {
+  async function runFinanceAction(actionType: string) {
     if (!voucher) return;
+
+    if (!isFinanceRole) {
+      setMsg("❌ Access denied. Only Finance/Admin/Auditor/Account can perform this action.");
+      return;
+    }
 
     const ok = confirm(`Proceed with "${actionType}" for this voucher?`);
     if (!ok) return;
@@ -257,9 +314,9 @@ export default function PaymentVoucherDetailPage() {
         p_voucher_id: voucher.id,
         p_action_type: actionType,
         p_comment: comment.trim() || null,
-        p_cheque_no: actionType === "Prepare Cheque" ? chequeNo.trim() || null : null,
-        p_cheque_date: actionType === "Prepare Cheque" ? chequeDate || null : null,
-        p_bank_name: actionType === "Prepare Cheque" ? bankName.trim() || null : null,
+        p_cheque_no: null,
+        p_cheque_date: null,
+        p_bank_name: null,
       });
 
       if (error) throw new Error(error.message);
@@ -274,12 +331,109 @@ export default function PaymentVoucherDetailPage() {
     }
   }
 
-  const status = voucher?.status || "";
+  async function signCheque() {
+    if (!voucher) return;
 
-  const actionButtons = useMemo(() => {
-    if (!voucher) return [];
+    if (!canSignCheque) {
+      setMsg("❌ Only the selected Cheque Signer can sign this voucher at this stage.");
+      return;
+    }
 
-    if (status === "Cancelled" || status === "Paid") return [];
+    const ok = confirm(
+      `Sign cheque for ${voucher.voucher_no}?\n\nYour saved profile signature will be appended to this payment voucher.`
+    );
+
+    if (!ok) return;
+
+    setSaving(true);
+    setMsg(null);
+
+    try {
+      const { error } = await supabase.rpc("sign_payment_voucher_cheque", {
+        p_voucher_id: voucher.id,
+      });
+
+      if (error) throw new Error(error.message);
+
+      setMsg("✅ Cheque signed successfully. It has now been sent for counter signature.");
+      setComment("");
+      await load();
+    } catch (e: any) {
+      setMsg("❌ Cheque signing failed: " + (e?.message || "Unknown error"));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function counterSignCheque() {
+    if (!voucher) return;
+
+    if (!canCounterSignCheque) {
+      setMsg("❌ Only the selected Counter Signer can counter-sign this voucher at this stage.");
+      return;
+    }
+
+    const ok = confirm(
+      `Counter-sign cheque for ${voucher.voucher_no}?\n\nYour saved profile signature will be appended to this payment voucher.`
+    );
+
+    if (!ok) return;
+
+    setSaving(true);
+    setMsg(null);
+
+    try {
+      const { error } = await supabase.rpc("counter_sign_payment_voucher_cheque", {
+        p_voucher_id: voucher.id,
+      });
+
+      if (error) throw new Error(error.message);
+
+      setMsg("✅ Cheque counter-signed successfully. The voucher is now ready for payment.");
+      setComment("");
+      await load();
+    } catch (e: any) {
+      setMsg("❌ Counter-signing failed: " + (e?.message || "Unknown error"));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function deleteVoucher() {
+    if (!voucher) return;
+
+    if (!isAdminOrAuditor) {
+      setMsg("❌ Only Admin and Auditor can delete payment vouchers.");
+      return;
+    }
+
+    const ok = confirm(
+      `Permanently delete ${voucher.voucher_no}?\n\nThis will allow request ${voucher.request_no || ""} to generate a new PV.\n\nThis action cannot be undone.`
+    );
+
+    if (!ok) return;
+
+    setSaving(true);
+    setMsg(null);
+
+    try {
+      const { error } = await supabase.rpc("delete_payment_voucher_for_regeneration", {
+        p_voucher_id: voucher.id,
+      });
+
+      if (error) throw new Error(error.message);
+
+      router.push("/payment-vouchers");
+    } catch (e: any) {
+      setMsg("❌ Failed to delete voucher: " + (e?.message || "Unknown error"));
+      setSaving(false);
+    }
+  }
+
+  const financeActionButtons = useMemo(() => {
+    if (!voucher || !isFinanceRole) return [];
+
+    if (voucher.status === "Cancelled" || voucher.status === "Paid") return [];
 
     if (normalize(voucher.disbursement_mode) === "transfer") {
       return [{ label: "Mark Transfer as Paid", action: "Pay", tone: "emerald" }];
@@ -290,25 +444,15 @@ export default function PaymentVoucherDetailPage() {
     }
 
     if (normalize(voucher.disbursement_mode) === "cheque") {
-      if (status === "Authorized") {
-        return [{ label: "Prepare Cheque", action: "Prepare Cheque", tone: "amber" }];
-      }
-
-      if (status === "Cheque Prepared") {
-        return [{ label: "Sign Cheque", action: "Sign Cheque", tone: "blue" }];
-      }
-
-      if (status === "Cheque Signed") {
-        return [{ label: "Counter Sign Cheque", action: "Counter Sign Cheque", tone: "purple" }];
-      }
-
-      if (status === "Counter Signed") {
+      if (voucher.status === "Counter Signed") {
         return [{ label: "Mark Cheque as Paid", action: "Pay", tone: "emerald" }];
       }
+
+      return [];
     }
 
     return [];
-  }, [voucher, status]);
+  }, [voucher, isFinanceRole]);
 
   if (loading) {
     return (
@@ -320,7 +464,7 @@ export default function PaymentVoucherDetailPage() {
     );
   }
 
-  if (!canAccess || !voucher) {
+  if (!voucher || !canAccess) {
     return (
       <main className="min-h-screen bg-slate-50 px-4">
         <div className="mx-auto max-w-3xl py-10">
@@ -331,10 +475,10 @@ export default function PaymentVoucherDetailPage() {
             </div>
 
             <button
-              onClick={() => router.push("/payment-vouchers")}
+              onClick={() => router.push("/dashboard")}
               className="mt-5 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
             >
-              Back to Vouchers
+              Back to Dashboard
             </button>
           </div>
         </div>
@@ -351,17 +495,19 @@ export default function PaymentVoucherDetailPage() {
               Payment Voucher
             </h1>
             <p className="mt-2 text-sm text-slate-600">
-              Manage and print official IET payment voucher.
+              Review, sign, manage and print official IET payment voucher.
             </p>
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <button
-              onClick={() => router.push("/payment-vouchers")}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
-            >
-              Back to Vouchers
-            </button>
+            {isFinanceRole && (
+              <button
+                onClick={() => router.push("/payment-vouchers")}
+                className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
+              >
+                Back to Vouchers
+              </button>
+            )}
 
             <button
               onClick={() => router.push(`/requests/${voucher.request_id}`)}
@@ -382,6 +528,44 @@ export default function PaymentVoucherDetailPage() {
         {msg && (
           <div className="mt-4 rounded-2xl border bg-white px-4 py-3 text-sm text-slate-800 shadow-sm">
             {msg}
+          </div>
+        )}
+
+        {isCheque && voucher.status !== "Paid" && voucher.status !== "Cancelled" && (
+          <div className="mt-6 rounded-3xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-950">
+            <div className="font-extrabold">Cheque Signing Status</div>
+            <div className="mt-2 grid gap-3 md:grid-cols-3">
+              <div>
+                <span className="font-semibold">Current Stage:</span>{" "}
+                <span className={`rounded-full border px-3 py-1 text-xs font-bold ${signingStageBadgeClass(voucher.signing_stage)}`}>
+                  {voucher.signing_stage || "—"}
+                </span>
+              </div>
+
+              <div>
+                <span className="font-semibold">Cheque Signer:</span>{" "}
+                {voucher.cheque_signed_by_name || "—"}
+                {voucher.cheque_signed_at ? " ✅" : ""}
+              </div>
+
+              <div>
+                <span className="font-semibold">Counter Signer:</span>{" "}
+                {voucher.cheque_counter_signed_by_name || "—"}
+                {voucher.cheque_counter_signed_at ? " ✅" : ""}
+              </div>
+            </div>
+
+            {canSignCheque && (
+              <div className="mt-3 rounded-2xl border border-blue-200 bg-blue-50 p-4 text-blue-900">
+                This PV is assigned to you for cheque signature. Review the voucher details before signing.
+              </div>
+            )}
+
+            {canCounterSignCheque && (
+              <div className="mt-3 rounded-2xl border border-purple-200 bg-purple-50 p-4 text-purple-900">
+                This PV is assigned to you for counter signature. Review the voucher details before counter-signing.
+              </div>
+            )}
           </div>
         )}
 
@@ -409,6 +593,12 @@ export default function PaymentVoucherDetailPage() {
               <span className={`rounded-full border px-3 py-1 text-xs font-bold ${statusBadgeClass(voucher.status)}`}>
                 {voucher.status || "—"}
               </span>
+
+              {voucher.signing_stage && (
+                <span className={`rounded-full border px-3 py-1 text-xs font-bold ${signingStageBadgeClass(voucher.signing_stage)}`}>
+                  {voucher.signing_stage}
+                </span>
+              )}
             </div>
           </div>
 
@@ -468,7 +658,10 @@ export default function PaymentVoucherDetailPage() {
                 <InfoLine label="Cheque No" value={voucher.cheque_no || "—"} />
                 <InfoLine label="Cheque Date" value={shortDate(voucher.cheque_date)} />
                 <InfoLine label="Bank Name" value={voucher.bank_name || "—"} />
-                <InfoLine label="Counter Signatory" value={voucher.counter_signatory_name || "—"} />
+                <InfoLine label="Cheque Signed By" value={voucher.cheque_signed_by_name || "—"} />
+                <InfoLine label="Cheque Signed At" value={shortDateTime(voucher.cheque_signed_at)} />
+                <InfoLine label="Counter Signed By" value={voucher.cheque_counter_signed_by_name || "—"} />
+                <InfoLine label="Counter Signed At" value={shortDateTime(voucher.cheque_counter_signed_at)} />
               </>
             )}
 
@@ -481,98 +674,93 @@ export default function PaymentVoucherDetailPage() {
           </div>
         </div>
 
-        {isCheque && voucher.status === "Authorized" && (
-          <div className="mt-6 rounded-3xl border bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-bold text-slate-900">Cheque Confirmation</h2>
-            <p className="mt-1 text-sm text-slate-600">
-              Confirm cheque details before moving the voucher to Cheque Prepared.
-            </p>
-
-            <div className="mt-5 grid gap-4 md:grid-cols-3">
-              <div>
-                <label className="text-sm font-semibold text-slate-800">Cheque No</label>
-                <input
-                  value={chequeNo}
-                  onChange={(e) => setChequeNo(e.target.value)}
-                  className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-3 outline-none focus:border-blue-500"
-                  placeholder="Cheque number"
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-semibold text-slate-800">Cheque Date</label>
-                <input
-                  value={chequeDate}
-                  onChange={(e) => setChequeDate(e.target.value)}
-                  type="date"
-                  className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-3 outline-none focus:border-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-semibold text-slate-800">Bank Name</label>
-                <input
-                  value={bankName}
-                  onChange={(e) => setBankName(e.target.value)}
-                  className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-3 outline-none focus:border-blue-500"
-                  placeholder="Bank name"
-                />
-              </div>
-            </div>
-          </div>
-        )}
-
         <div className="mt-6 rounded-3xl border bg-white p-6 shadow-sm">
           <h2 className="text-lg font-bold text-slate-900">Voucher Actions</h2>
           <p className="mt-1 text-sm text-slate-600">
-            Progress this voucher according to the selected disbursement mode.
+            Actions are shown based on your role and the voucher’s current status.
           </p>
 
-          <div className="mt-4">
-            <label className="text-sm font-semibold text-slate-800">Comment</label>
-            <textarea
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              className="mt-1 min-h-[90px] w-full rounded-2xl border border-slate-200 px-3 py-3 outline-none focus:border-blue-500"
-              placeholder="Optional comment..."
-            />
-          </div>
+          {isFinanceRole && (
+            <div className="mt-4">
+              <label className="text-sm font-semibold text-slate-800">Comment</label>
+              <textarea
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                className="mt-1 min-h-[90px] w-full rounded-2xl border border-slate-200 px-3 py-3 outline-none focus:border-blue-500"
+                placeholder="Optional comment for finance actions..."
+              />
+            </div>
+          )}
 
           <div className="mt-4 flex flex-wrap gap-2">
-            {actionButtons.length === 0 ? (
-              <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
-                No further action available for this voucher status.
-              </div>
-            ) : (
-              actionButtons.map((a) => (
-                <button
-                  key={a.action}
-                  onClick={() => runAction(a.action)}
-                  disabled={saving}
-                  className={`rounded-xl px-4 py-3 text-sm font-semibold text-white disabled:opacity-60 ${
-                    a.tone === "emerald"
-                      ? "bg-emerald-600 hover:bg-emerald-700"
-                      : a.tone === "purple"
-                      ? "bg-purple-600 hover:bg-purple-700"
-                      : a.tone === "amber"
-                      ? "bg-amber-600 hover:bg-amber-700"
-                      : "bg-blue-600 hover:bg-blue-700"
-                  }`}
-                >
-                  {saving ? "Working..." : a.label}
-                </button>
-              ))
+            {canSignCheque && (
+              <button
+                onClick={signCheque}
+                disabled={saving}
+                className="rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
+              >
+                {saving ? "Signing..." : "Sign Cheque"}
+              </button>
             )}
 
-            {voucher.status !== "Cancelled" && voucher.status !== "Paid" && (
+            {canCounterSignCheque && (
               <button
-                onClick={() => runAction("Cancel")}
+                onClick={counterSignCheque}
+                disabled={saving}
+                className="rounded-xl bg-purple-600 px-4 py-3 text-sm font-semibold text-white hover:bg-purple-700 disabled:opacity-60"
+              >
+                {saving ? "Counter Signing..." : "Counter Sign Cheque"}
+              </button>
+            )}
+
+            {financeActionButtons.map((a) => (
+              <button
+                key={a.action}
+                onClick={() => runFinanceAction(a.action)}
+                disabled={saving}
+                className={`rounded-xl px-4 py-3 text-sm font-semibold text-white disabled:opacity-60 ${
+                  a.tone === "emerald"
+                    ? "bg-emerald-600 hover:bg-emerald-700"
+                    : a.tone === "purple"
+                    ? "bg-purple-600 hover:bg-purple-700"
+                    : a.tone === "amber"
+                    ? "bg-amber-600 hover:bg-amber-700"
+                    : "bg-blue-600 hover:bg-blue-700"
+                }`}
+              >
+                {saving ? "Working..." : a.label}
+              </button>
+            ))}
+
+            {canCancelVoucher && (
+              <button
+                onClick={() => runFinanceAction("Cancel")}
                 disabled={saving}
                 className="rounded-xl bg-red-600 px-4 py-3 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-60"
               >
                 Cancel Voucher
               </button>
             )}
+
+            {isAdminOrAuditor && (
+              <button
+                onClick={deleteVoucher}
+                disabled={saving}
+                className="rounded-xl bg-red-800 px-4 py-3 text-sm font-semibold text-white hover:bg-red-900 disabled:opacity-60"
+              >
+                Delete PV for Regeneration
+              </button>
+            )}
+
+            {!canSignCheque &&
+              !canCounterSignCheque &&
+              financeActionButtons.length === 0 &&
+              !canCancelVoucher &&
+              !isAdminOrAuditor && (
+                <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+                  No action is currently assigned to you for this voucher.
+                </div>
+              )}
           </div>
         </div>
 
