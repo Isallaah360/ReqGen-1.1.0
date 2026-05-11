@@ -24,14 +24,17 @@ type VoucherDetail = {
   subhead_code: string | null;
   subhead_name: string | null;
 
+  prepared_by: string | null;
   prepared_by_name: string | null;
   prepared_signature_url: string | null;
   prepared_at: string | null;
 
+  checked_by: string | null;
   checked_by_name: string | null;
   checked_signature_url: string | null;
   checked_at: string | null;
 
+  authorized_by: string | null;
   authorized_by_name: string | null;
   authorized_signature_url: string | null;
   authorized_at: string | null;
@@ -40,10 +43,12 @@ type VoucherDetail = {
   cheque_date: string | null;
   bank_name: string | null;
 
+  cheque_signed_by: string | null;
   cheque_signed_by_name: string | null;
   cheque_signed_signature_url: string | null;
   cheque_signed_at: string | null;
 
+  cheque_counter_signed_by: string | null;
   cheque_counter_signed_by_name: string | null;
   cheque_counter_signed_signature_url: string | null;
   cheque_counter_signed_at: string | null;
@@ -59,9 +64,36 @@ type VoucherDetail = {
   cash_payee_name: string | null;
   counter_signatory_name: string | null;
 
+  current_signing_owner: string | null;
+  signing_stage: string | null;
+
+  is_multi_request: boolean | null;
+  item_count: number | null;
+  total_amount: number | null;
+  voucher_scope: string | null;
+
   status: string | null;
   created_at: string | null;
   updated_at: string | null;
+};
+
+type VoucherItem = {
+  id: string;
+  voucher_id: string;
+  request_id: string;
+  request_no: string | null;
+  request_type: string | null;
+  personal_category: string | null;
+  title: string | null;
+  details: string | null;
+  amount: number | null;
+  dept_id: string | null;
+  dept_name: string | null;
+  subhead_id: string | null;
+  subhead_code: string | null;
+  subhead_name: string | null;
+  requester_name: string | null;
+  created_at: string | null;
 };
 
 function normalize(v: string | null | undefined) {
@@ -191,7 +223,21 @@ function categoryLabel(v: VoucherDetail | null) {
 
   if (rt === "official") return "Official Request";
   if (rt === "personal" && pc === "fund") return "Personal Fund Request";
+  if (rt === "personal" && pc === "nonfund") return "Personal Non-Fund Request";
+
   return v?.request_type || "—";
+}
+
+function itemParticulars(item: VoucherItem) {
+  const req = item.request_no || "Request";
+  const title = item.title || "Payment request";
+  const subhead = item.subhead_id
+    ? `${item.subhead_code || ""} ${item.subhead_name || ""}`.trim()
+    : "";
+
+  if (subhead) return `${req} — ${title}\nSubhead: ${subhead}`;
+
+  return `${req} — ${title}`;
 }
 
 export default function PaymentVoucherPrintPage() {
@@ -202,6 +248,7 @@ export default function PaymentVoucherPrintPage() {
   const [loading, setLoading] = useState(true);
   const [msg, setMsg] = useState<string | null>(null);
   const [voucher, setVoucher] = useState<VoucherDetail | null>(null);
+  const [items, setItems] = useState<VoucherItem[]>([]);
 
   async function load() {
     setLoading(true);
@@ -220,19 +267,24 @@ export default function PaymentVoucherPrintPage() {
       return;
     }
 
-    const { data, error } = await supabase.rpc("get_payment_voucher_detail", {
-      p_voucher_id: id,
-    });
+    const [detailRes, itemRes] = await Promise.all([
+      supabase.rpc("get_payment_voucher_detail", {
+        p_voucher_id: id,
+      }),
+      supabase.rpc("get_payment_voucher_items", {
+        p_voucher_id: id,
+      }),
+    ]);
 
-    if (error) {
-      setMsg("Failed to load voucher: " + error.message);
+    if (detailRes.error) {
+      setMsg("Failed to load voucher: " + detailRes.error.message);
       setLoading(false);
       return;
     }
 
-    const row = Array.isArray(data)
-      ? (data[0] as VoucherDetail | undefined)
-      : (data as VoucherDetail | undefined);
+    const row = Array.isArray(detailRes.data)
+      ? (detailRes.data[0] as VoucherDetail | undefined)
+      : (detailRes.data as VoucherDetail | undefined);
 
     if (!row) {
       setMsg("Payment voucher not found.");
@@ -241,6 +293,14 @@ export default function PaymentVoucherPrintPage() {
     }
 
     setVoucher(row);
+
+    if (itemRes.error) {
+      setMsg("Failed to load voucher items: " + itemRes.error.message);
+      setItems([]);
+    } else {
+      setItems((itemRes.data || []) as VoucherItem[]);
+    }
+
     setLoading(false);
   }
 
@@ -287,10 +347,57 @@ export default function PaymentVoucherPrintPage() {
   const isTransfer = normalize(voucher?.disbursement_mode) === "transfer";
   const isCash = normalize(voucher?.disbursement_mode) === "cash";
 
+  const totalAmount = useMemo(() => {
+    if (items.length > 0) {
+      return items.reduce((a, item) => a + Number(item.amount || 0), 0);
+    }
+
+    return Number(voucher?.total_amount || voucher?.amount || 0);
+  }, [items, voucher?.total_amount, voucher?.amount]);
+
+  const printableItems = useMemo(() => {
+    if (items.length > 0) return items;
+
+    if (!voucher) return [];
+
+    return [
+      {
+        id: voucher.id,
+        voucher_id: voucher.id,
+        request_id: voucher.request_id,
+        request_no: voucher.request_no,
+        request_type: voucher.request_type,
+        personal_category: voucher.personal_category,
+        title: voucher.narration || "Payment voucher",
+        details: voucher.narration || "",
+        amount: voucher.amount || voucher.total_amount || 0,
+        dept_id: voucher.dept_id,
+        dept_name: voucher.dept_name,
+        subhead_id: voucher.subhead_id,
+        subhead_code: voucher.subhead_code,
+        subhead_name: voucher.subhead_name,
+        requester_name: voucher.payee_name,
+        created_at: voucher.created_at,
+      } as VoucherItem,
+    ];
+  }, [items, voucher]);
+
   const ready = useMemo(() => {
     if (!voucher) return false;
-    return !!voucher.voucher_no && !!voucher.payee_name && Number(voucher.amount || 0) > 0;
-  }, [voucher]);
+    return !!voucher.voucher_no && !!voucher.payee_name && totalAmount > 0;
+  }, [voucher, totalAmount]);
+
+  const finalPrintReady = useMemo(() => {
+    if (!voucher) return false;
+
+    if (!isCheque) return true;
+
+    return (
+      voucher.status === "Counter Signed" ||
+      voucher.status === "Paid" ||
+      (!!voucher.cheque_signed_signature_url && !!voucher.cheque_counter_signed_signature_url)
+    );
+  }, [voucher, isCheque]);
 
   function handlePrint() {
     if (!ready) {
@@ -392,6 +499,13 @@ export default function PaymentVoucherPrintPage() {
           </div>
         )}
 
+        {isCheque && !finalPrintReady && (
+          <div className="no-print mb-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+            This Cheque PV is still awaiting required signature(s). You may preview it, but final
+            signed printing should be done after Cheque Signed and Counter Signed are completed.
+          </div>
+        )}
+
         <div className="voucher-sheet mx-auto w-full border-2 border-black bg-white px-[16px] py-[12px] text-black shadow-sm">
           <div className="grid grid-cols-[72px_1fr_178px] items-start gap-3">
             <div>
@@ -431,7 +545,15 @@ export default function PaymentVoucherPrintPage() {
 
           <div className="mt-2 grid grid-cols-12 gap-x-3 gap-y-1.5">
             <LineField label="Payee:" value={voucher.payee_name || ""} className="col-span-7" />
-            <LineField label="Request No:" value={voucher.request_no || ""} className="col-span-5" />
+            <LineField
+              label="Request:"
+              value={
+                voucher.voucher_scope === "Multiple"
+                  ? `${voucher.item_count || printableItems.length} Requests`
+                  : voucher.request_no || ""
+              }
+              className="col-span-5"
+            />
 
             <LineField label="Department:" value={voucher.dept_name || ""} className="col-span-7" />
             <LineField label="Type:" value={categoryLabel(voucher)} className="col-span-5" />
@@ -439,7 +561,9 @@ export default function PaymentVoucherPrintPage() {
             <LineField
               label="Subhead:"
               value={
-                voucher.subhead_id
+                voucher.voucher_scope === "Multiple"
+                  ? "Multiple / As listed below"
+                  : voucher.subhead_id
                   ? `${voucher.subhead_code || ""} ${voucher.subhead_name || ""}`.trim()
                   : ""
               }
@@ -448,44 +572,58 @@ export default function PaymentVoucherPrintPage() {
           </div>
 
           <div className="mt-2 border-2 border-black">
-            <div className="grid grid-cols-12 border-b-2 border-black bg-slate-100 text-[9px] font-black uppercase">
+            <div className="grid grid-cols-12 border-b-2 border-black bg-slate-100 text-[8.2px] font-black uppercase">
+              <div className="col-span-1 border-r-2 border-black px-1 py-1 text-center">
+                No
+              </div>
               <div className="col-span-8 border-r-2 border-black px-2 py-1">
                 Details / Particulars
               </div>
-              <div className="col-span-4 px-2 py-1 text-right">Amount</div>
+              <div className="col-span-3 px-2 py-1 text-right">Amount</div>
             </div>
 
-            <div className="grid min-h-[70px] grid-cols-12 text-[9.5px] font-bold">
-              <div className="col-span-8 border-r-2 border-black px-2 py-2">
-                <div className="whitespace-pre-wrap leading-tight">
-                  {voucher.narration || "Payment voucher"}
+            <div className="min-h-[78px]">
+              {printableItems.map((item, index) => (
+                <div
+                  key={item.id}
+                  className="grid grid-cols-12 border-b border-black text-[8.4px] font-bold last:border-b-0"
+                >
+                  <div className="col-span-1 border-r-2 border-black px-1 py-1 text-center">
+                    {index + 1}
+                  </div>
+
+                  <div className="col-span-8 border-r-2 border-black px-2 py-1">
+                    <div className="whitespace-pre-wrap leading-tight">
+                      {itemParticulars(item)}
+                    </div>
+                  </div>
+
+                  <div className="col-span-3 px-2 py-1 text-right font-black">
+                    {naira(item.amount)}
+                  </div>
                 </div>
-              </div>
-
-              <div className="col-span-4 px-2 py-2 text-right text-[12px] font-black">
-                {naira(voucher.amount)}
-              </div>
+              ))}
             </div>
 
-            <div className="grid grid-cols-12 border-t-2 border-black text-[10px] font-black">
-              <div className="col-span-8 border-r-2 border-black px-2 py-1 text-right uppercase">
+            <div className="grid grid-cols-12 border-t-2 border-black text-[9.5px] font-black">
+              <div className="col-span-9 border-r-2 border-black px-2 py-1 text-right uppercase">
                 Total
               </div>
-              <div className="col-span-4 px-2 py-1 text-right">
-                {naira(voucher.amount)}
+              <div className="col-span-3 px-2 py-1 text-right">
+                {naira(totalAmount)}
               </div>
             </div>
           </div>
 
           <div className="mt-2 border-2 border-black px-2 py-1">
             <div className="text-[8px] font-black uppercase">Amount in Words</div>
-            <div className="text-[9.5px] font-bold leading-tight">
-              {amountToWords(voucher.amount)}
+            <div className="text-[9.2px] font-bold leading-tight">
+              {amountToWords(totalAmount)}
             </div>
           </div>
 
           <div className="mt-2 border-2 border-black">
-            <div className="border-b-2 border-black bg-slate-100 px-2 py-1 text-[8.5px] font-black uppercase">
+            <div className="border-b-2 border-black bg-slate-100 px-2 py-1 text-[8.2px] font-black uppercase">
               Disbursement Details
             </div>
 
@@ -551,7 +689,7 @@ export default function PaymentVoucherPrintPage() {
                   />
                   <FilledBox
                     label="Counter Signed By"
-                    value={voucher.cheque_counter_signed_by_name || voucher.counter_signatory_name || ""}
+                    value={voucher.cheque_counter_signed_by_name || ""}
                     className="col-span-6"
                   />
                 </>
@@ -568,7 +706,7 @@ export default function PaymentVoucherPrintPage() {
           </div>
 
           <div className="mt-2 border-2 border-black">
-            <div className="border-b-2 border-black bg-slate-100 px-2 py-1 text-[8.5px] font-black uppercase">
+            <div className="border-b-2 border-black bg-slate-100 px-2 py-1 text-[8.2px] font-black uppercase">
               Certification / Approval / Receipt
             </div>
 
@@ -610,7 +748,7 @@ export default function PaymentVoucherPrintPage() {
 
               <SignatureBox
                 title="Counter Signed By"
-                name={voucher.cheque_counter_signed_by_name || voucher.counter_signatory_name || ""}
+                name={voucher.cheque_counter_signed_by_name || ""}
                 sigUrl={sigCounterSigned}
                 date={formatDate(voucher.cheque_counter_signed_at)}
               />
@@ -618,7 +756,10 @@ export default function PaymentVoucherPrintPage() {
           </div>
 
           <div className="mt-2 flex items-center justify-between text-[8px] font-semibold">
-            <div>Official IET Payment Voucher • Generated by ReqGen</div>
+            <div>
+              Official IET Payment Voucher • Generated by ReqGen
+              {voucher.voucher_scope === "Multiple" ? " • Combined PV" : ""}
+            </div>
             <div className="italic">Building Bridges</div>
           </div>
         </div>
