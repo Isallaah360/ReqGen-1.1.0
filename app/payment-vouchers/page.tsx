@@ -111,11 +111,13 @@ export default function PaymentVouchersPage() {
 
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
 
   const [myRole, setMyRole] = useState("Staff");
   const rk = roleKey(myRole);
   const canAccess = ["admin", "auditor", "account", "accounts", "accountofficer"].includes(rk);
+  const canDeleteVoucher = ["admin", "auditor"].includes(rk);
 
   const [rows, setRows] = useState<VoucherRow[]>([]);
   const [readyRows, setReadyRows] = useState<ReadyRequest[]>([]);
@@ -346,6 +348,39 @@ export default function PaymentVouchersPage() {
     }
   }
 
+  async function deleteVoucher(v: VoucherRow) {
+    if (!canDeleteVoucher) {
+      setMsg("❌ Only Admin and Auditor can delete payment vouchers.");
+      return;
+    }
+
+    const ok = confirm(
+      `Permanently delete ${v.voucher_no}?\n\nThis will allow request ${v.request_no || ""} to generate a new payment voucher.\n\nThis action cannot be undone.`
+    );
+
+    if (!ok) return;
+
+    setDeletingId(v.id);
+    setMsg(null);
+
+    try {
+      const { data, error } = await supabase.rpc("delete_payment_voucher_for_regeneration", {
+        p_voucher_id: v.id,
+      });
+
+      if (error) throw new Error(error.message);
+
+      const deletedVoucherNo = (data as any)?.deleted_voucher_no || v.voucher_no;
+
+      setMsg(`✅ ${deletedVoucherNo} deleted. The request can now generate a new PV.`);
+      await load();
+    } catch (e: any) {
+      setMsg("❌ Failed to delete voucher: " + (e?.message || "Unknown error"));
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
   const filteredRows = useMemo(() => {
     const s = search.trim().toLowerCase();
 
@@ -389,6 +424,7 @@ export default function PaymentVouchersPage() {
     const prepared = rows.filter((x) => (x.status || "") === "Prepared").length;
     const checked = rows.filter((x) => (x.status || "") === "Checked").length;
     const authorized = rows.filter((x) => (x.status || "") === "Authorized").length;
+    const chequePrepared = rows.filter((x) => (x.status || "") === "Cheque Prepared").length;
     const paid = rows.filter((x) => (x.status || "") === "Paid").length;
     const cancelled = rows.filter((x) => (x.status || "") === "Cancelled").length;
 
@@ -396,7 +432,16 @@ export default function PaymentVouchersPage() {
       .filter((x) => (x.status || "") !== "Cancelled")
       .reduce((a, x) => a + Number(x.amount || 0), 0);
 
-    return { total, prepared, checked, authorized, paid, cancelled, totalAmount };
+    return {
+      total,
+      prepared,
+      checked,
+      authorized,
+      chequePrepared,
+      paid,
+      cancelled,
+      totalAmount,
+    };
   }, [rows]);
 
   if (loading) {
@@ -448,7 +493,8 @@ export default function PaymentVouchersPage() {
           <div className="flex flex-wrap gap-2">
             <button
               onClick={load}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-100"
+              disabled={Boolean(deletingId) || generating}
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-100 disabled:opacity-60"
             >
               Refresh
             </button>
@@ -475,11 +521,12 @@ export default function PaymentVouchersPage() {
           </div>
         )}
 
-        <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-7">
+        <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-8">
           <StatCard title="Total Vouchers" value={String(stats.total)} tone="blue" />
           <StatCard title="Prepared" value={String(stats.prepared)} tone="slate" />
           <StatCard title="Checked" value={String(stats.checked)} tone="blue" />
           <StatCard title="Authorized" value={String(stats.authorized)} tone="purple" />
+          <StatCard title="Cheque Prep." value={String(stats.chequePrepared)} tone="amber" />
           <StatCard title="Paid" value={String(stats.paid)} tone="emerald" />
           <StatCard title="Cancelled" value={String(stats.cancelled)} tone="red" />
           <StatCard title="Total Value" value={naira(stats.totalAmount)} tone="amber" />
@@ -567,7 +614,8 @@ export default function PaymentVouchersPage() {
 
                       <button
                         onClick={() => openGenerateModal(r)}
-                        className="rounded-xl bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-700"
+                        disabled={generating || Boolean(deletingId)}
+                        className="rounded-xl bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
                       >
                         Generate
                       </button>
@@ -637,8 +685,8 @@ export default function PaymentVouchersPage() {
             <EmptyState />
           ) : (
             <div className="overflow-x-auto">
-              <div className="min-w-[1320px]">
-                <div className="grid grid-cols-16 bg-slate-100 px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600">
+              <div className="min-w-[1420px]">
+                <div className="grid grid-cols-18 bg-slate-100 px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600">
                   <div className="col-span-2">Voucher No</div>
                   <div className="col-span-2">Request No</div>
                   <div className="col-span-2">Payee</div>
@@ -648,13 +696,13 @@ export default function PaymentVouchersPage() {
                   <div className="col-span-1">Type</div>
                   <div className="col-span-1">Status</div>
                   <div className="col-span-1">Date</div>
-                  <div className="col-span-2 text-right">Actions</div>
+                  <div className="col-span-4 text-right">Actions</div>
                 </div>
 
                 {filteredRows.map((v) => (
                   <div
                     key={v.id}
-                    className="grid grid-cols-16 items-center border-t px-6 py-4 text-sm hover:bg-slate-50"
+                    className="grid grid-cols-18 items-center border-t px-6 py-4 text-sm hover:bg-slate-50"
                   >
                     <div className="col-span-2 font-extrabold text-slate-900">
                       {v.voucher_no}
@@ -694,7 +742,7 @@ export default function PaymentVouchersPage() {
 
                     <div className="col-span-1 text-slate-600">{shortDate(v.created_at)}</div>
 
-                    <div className="col-span-2 flex justify-end gap-2">
+                    <div className="col-span-4 flex justify-end gap-2">
                       <button
                         onClick={() => router.push(`/requests/${v.request_id}`)}
                         className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-900 hover:bg-slate-100"
@@ -715,6 +763,16 @@ export default function PaymentVouchersPage() {
                       >
                         Print
                       </button>
+
+                      {canDeleteVoucher && (
+                        <button
+                          onClick={() => deleteVoucher(v)}
+                          disabled={deletingId === v.id || generating}
+                          className="rounded-xl bg-red-600 px-3 py-2 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+                        >
+                          {deletingId === v.id ? "Deleting..." : "Delete"}
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -788,6 +846,16 @@ export default function PaymentVouchersPage() {
                   >
                     Print
                   </button>
+
+                  {canDeleteVoucher && (
+                    <button
+                      onClick={() => deleteVoucher(v)}
+                      disabled={deletingId === v.id || generating}
+                      className="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+                    >
+                      {deletingId === v.id ? "Deleting..." : "Delete"}
+                    </button>
+                  )}
                 </div>
               </div>
             ))
@@ -979,6 +1047,7 @@ export default function PaymentVouchersPage() {
           <p className="mt-1">
             Vouchers are generated only for Official and Personal Fund requests that have already
             been paid or completed. Personal NonFund requests do not require payment vouchers.
+            Admin and Auditor can delete a voucher for regeneration when a correction is needed.
           </p>
         </div>
       </div>

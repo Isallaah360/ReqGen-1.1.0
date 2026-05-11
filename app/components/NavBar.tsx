@@ -32,6 +32,7 @@ export default function NavBar() {
 
   const [signedIn, setSignedIn] = useState(false);
   const [myRole, setMyRole] = useState<string>("Staff");
+
   const [openBell, setOpenBell] = useState(false);
   const [openFinance, setOpenFinance] = useState(false);
   const [openHR, setOpenHR] = useState(false);
@@ -53,16 +54,8 @@ export default function NavBar() {
 
   function isActiveLink(href: string) {
     if (href === "/") return pathname === "/";
-
     if (pathname === href) return true;
 
-    /*
-      Professional active-link rule:
-      This prevents /payment-vouchers from also becoming active when the user is on:
-      /payment-vouchers/settings
-      /payment-vouchers/[id]
-      /payment-vouchers/[id]/print
-    */
     if (href === "/payment-vouchers") {
       return pathname === "/payment-vouchers";
     }
@@ -268,7 +261,7 @@ export default function NavBar() {
   return (
     <header className="sticky top-0 z-30 border-b bg-white/90 backdrop-blur">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
-        <Link href="/" className="font-extrabold tracking-tight text-slate-900 text-lg">
+        <Link href="/" className="text-lg font-extrabold tracking-tight text-slate-900">
           ReqGen <span className="text-slate-400">1.1.0</span>
         </Link>
 
@@ -302,7 +295,16 @@ export default function NavBar() {
                         : "text-slate-700 hover:bg-slate-100"
                     }`}
                   >
-                    Finance
+                    <span className="inline-flex items-center gap-1">
+                      Finance
+                      <span
+                        className={`inline-block text-xs transition-transform ${
+                          openFinance ? "rotate-180" : ""
+                        }`}
+                      >
+                        ▾
+                      </span>
+                    </span>
                   </button>
 
                   {openFinance && (
@@ -348,7 +350,16 @@ export default function NavBar() {
                         : "text-slate-700 hover:bg-slate-100"
                     }`}
                   >
-                    HR
+                    <span className="inline-flex items-center gap-1">
+                      HR
+                      <span
+                        className={`inline-block text-xs transition-transform ${
+                          openHR ? "rotate-180" : ""
+                        }`}
+                      >
+                        ▾
+                      </span>
+                    </span>
                   </button>
 
                   {openHR && (
