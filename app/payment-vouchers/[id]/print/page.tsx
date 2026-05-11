@@ -405,6 +405,11 @@ export default function PaymentVoucherPrintPage() {
       return;
     }
 
+    if (isCheque && !finalPrintReady) {
+      setMsg("Final printing is blocked until Cheque Signed and Counter Signed are completed.");
+      return;
+    }
+
     window.print();
   }
 
@@ -448,7 +453,10 @@ export default function PaymentVoucherPrintPage() {
         }
 
         @media print {
+          html,
           body {
+            width: 210mm;
+            min-height: 297mm;
             background: white !important;
           }
 
@@ -485,7 +493,7 @@ export default function PaymentVoucherPrintPage() {
 
             <button
               onClick={handlePrint}
-              disabled={!ready}
+              disabled={!ready || (isCheque && !finalPrintReady)}
               className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
             >
               Print
@@ -501,40 +509,39 @@ export default function PaymentVoucherPrintPage() {
 
         {isCheque && !finalPrintReady && (
           <div className="no-print mb-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-            This Cheque PV is still awaiting required signature(s). You may preview it, but final
-            signed printing should be done after Cheque Signed and Counter Signed are completed.
+            Final printing is blocked until Cheque Signed and Counter Signed are completed.
           </div>
         )}
 
-        <div className="voucher-sheet mx-auto w-full border-2 border-black bg-white px-[16px] py-[12px] text-black shadow-sm">
-          <div className="grid grid-cols-[72px_1fr_178px] items-start gap-3">
+        <div className="voucher-sheet mx-auto w-full border-2 border-black bg-white px-[15px] py-[11px] text-black shadow-sm">
+          <div className="grid grid-cols-[70px_1fr_188px] items-start gap-3">
             <div>
               <Image
                 src="/iet-logo.png"
                 alt="IET Logo"
-                width={60}
-                height={60}
-                className="h-[60px] w-auto object-contain"
+                width={62}
+                height={62}
+                className="h-[62px] w-auto object-contain"
                 priority
               />
             </div>
 
             <div className="text-center">
-              <div className="text-[18px] font-black uppercase leading-none tracking-tight">
+              <div className="text-[19px] font-black uppercase leading-none tracking-tight">
                 Islamic Education Trust
               </div>
-              <div className="mt-1 text-[9.5px] font-bold leading-tight">
+              <div className="mt-1 text-[10.5px] font-bold leading-tight">
                 IW2, Ilmi Avenue Intermediate Housing Estate, PMB 229
               </div>
-              <div className="text-[9.5px] font-bold leading-tight">
+              <div className="text-[10.5px] font-bold leading-tight">
                 Minna, Niger State - Nigeria
               </div>
-              <div className="mt-1.5 text-[16px] font-black uppercase underline">
+              <div className="mt-1.5 text-[17px] font-black uppercase underline">
                 Payment Voucher
               </div>
             </div>
 
-            <div className="text-[8.5px] font-bold">
+            <div className="text-[9.5px] font-bold">
               <TopBox label="PV No." value={voucher.voucher_no} />
               <TopBox label="Date" value={formatDate(voucher.created_at)} />
               <TopBox label="Status" value={voucher.status || ""} />
@@ -572,7 +579,7 @@ export default function PaymentVoucherPrintPage() {
           </div>
 
           <div className="mt-2 border-2 border-black">
-            <div className="grid grid-cols-12 border-b-2 border-black bg-slate-100 text-[8.2px] font-black uppercase">
+            <div className="grid grid-cols-12 border-b-2 border-black bg-slate-100 text-[9.2px] font-black uppercase">
               <div className="col-span-1 border-r-2 border-black px-1 py-1 text-center">
                 No
               </div>
@@ -582,30 +589,30 @@ export default function PaymentVoucherPrintPage() {
               <div className="col-span-3 px-2 py-1 text-right">Amount</div>
             </div>
 
-            <div className="min-h-[78px]">
-              {printableItems.map((item, index) => (
+            <div className="min-h-[82px]">
+              {printableItems.slice(0, 10).map((item, index) => (
                 <div
                   key={item.id}
-                  className="grid grid-cols-12 border-b border-black text-[8.4px] font-bold last:border-b-0"
+                  className="grid grid-cols-12 border-b border-black text-[9.1px] font-bold last:border-b-0"
                 >
-                  <div className="col-span-1 border-r-2 border-black px-1 py-1 text-center">
+                  <div className="col-span-1 border-r-2 border-black px-1 py-[4px] text-center">
                     {index + 1}
                   </div>
 
-                  <div className="col-span-8 border-r-2 border-black px-2 py-1">
-                    <div className="whitespace-pre-wrap leading-tight">
+                  <div className="col-span-8 border-r-2 border-black px-2 py-[4px]">
+                    <div className="whitespace-pre-wrap leading-[1.18]">
                       {itemParticulars(item)}
                     </div>
                   </div>
 
-                  <div className="col-span-3 px-2 py-1 text-right font-black">
+                  <div className="col-span-3 px-2 py-[4px] text-right text-[9.6px] font-black">
                     {naira(item.amount)}
                   </div>
                 </div>
               ))}
             </div>
 
-            <div className="grid grid-cols-12 border-t-2 border-black text-[9.5px] font-black">
+            <div className="grid grid-cols-12 border-t-2 border-black text-[10.5px] font-black">
               <div className="col-span-9 border-r-2 border-black px-2 py-1 text-right uppercase">
                 Total
               </div>
@@ -616,14 +623,14 @@ export default function PaymentVoucherPrintPage() {
           </div>
 
           <div className="mt-2 border-2 border-black px-2 py-1">
-            <div className="text-[8px] font-black uppercase">Amount in Words</div>
-            <div className="text-[9.2px] font-bold leading-tight">
+            <div className="text-[9px] font-black uppercase">Amount in Words</div>
+            <div className="text-[10.2px] font-bold leading-tight">
               {amountToWords(totalAmount)}
             </div>
           </div>
 
           <div className="mt-2 border-2 border-black">
-            <div className="border-b-2 border-black bg-slate-100 px-2 py-1 text-[8.2px] font-black uppercase">
+            <div className="border-b-2 border-black bg-slate-100 px-2 py-1 text-[9.2px] font-black uppercase">
               Disbursement Details
             </div>
 
@@ -706,11 +713,11 @@ export default function PaymentVoucherPrintPage() {
           </div>
 
           <div className="mt-2 border-2 border-black">
-            <div className="border-b-2 border-black bg-slate-100 px-2 py-1 text-[8.2px] font-black uppercase">
+            <div className="border-b-2 border-black bg-slate-100 px-2 py-1 text-[9.2px] font-black uppercase">
               Certification / Approval / Receipt
             </div>
 
-            <div className="grid grid-cols-2 gap-x-4 gap-y-2 px-3 py-2">
+            <div className="grid grid-cols-2 gap-x-5 gap-y-3 px-3 py-2.5">
               <SignatureBox
                 title="Prepared By"
                 name={voucher.prepared_by_name || ""}
@@ -755,7 +762,7 @@ export default function PaymentVoucherPrintPage() {
             </div>
           </div>
 
-          <div className="mt-2 flex items-center justify-between text-[8px] font-semibold">
+          <div className="mt-2 flex items-center justify-between text-[8.6px] font-semibold">
             <div>
               Official IET Payment Voucher • Generated by ReqGen
               {voucher.voucher_scope === "Multiple" ? " • Combined PV" : ""}
@@ -770,9 +777,9 @@ export default function PaymentVoucherPrintPage() {
 
 function TopBox({ label, value }: { label: string; value: string }) {
   return (
-    <div className="grid grid-cols-[48px_1fr] border border-black">
-      <div className="border-r border-black bg-slate-100 px-1 py-[3px]">{label}</div>
-      <div className="px-1 py-[3px]">{value}</div>
+    <div className="grid grid-cols-[54px_1fr] border border-black">
+      <div className="border-r border-black bg-slate-100 px-1 py-[4px]">{label}</div>
+      <div className="px-1 py-[4px]">{value}</div>
     </div>
   );
 }
@@ -788,8 +795,8 @@ function LineField({
 }) {
   return (
     <div className={`flex items-end gap-1 ${className || ""}`}>
-      <div className="shrink-0 text-[8.5px] font-black">{label}</div>
-      <div className="min-w-0 flex-1 border-b border-black px-1 pb-[1px] text-[8.5px] font-bold leading-tight break-words">
+      <div className="shrink-0 text-[9.6px] font-black">{label}</div>
+      <div className="min-w-0 flex-1 border-b border-black px-1 pb-[1px] text-[9.6px] font-bold leading-tight break-words">
         {value}
       </div>
     </div>
@@ -799,10 +806,10 @@ function LineField({
 function BlankBox({ label, className }: { label: string; className?: string }) {
   return (
     <div className={`border border-black ${className || ""}`}>
-      <div className="border-b border-black bg-slate-100 px-2 py-[3px] text-[7.5px] font-black uppercase">
+      <div className="border-b border-black bg-slate-100 px-2 py-[4px] text-[8.5px] font-black uppercase">
         {label}
       </div>
-      <div className="h-[20px]" />
+      <div className="h-[23px]" />
     </div>
   );
 }
@@ -818,10 +825,10 @@ function FilledBox({
 }) {
   return (
     <div className={`border border-black ${className || ""}`}>
-      <div className="border-b border-black bg-slate-100 px-2 py-[3px] text-[7.5px] font-black uppercase">
+      <div className="border-b border-black bg-slate-100 px-2 py-[4px] text-[8.5px] font-black uppercase">
         {label}
       </div>
-      <div className="min-h-[20px] px-2 py-[3px] text-[8.2px] font-bold leading-tight">
+      <div className="min-h-[23px] px-2 py-[4px] text-[9.2px] font-bold leading-tight">
         {value || " "}
       </div>
     </div>
@@ -841,29 +848,29 @@ function SignatureBox({
 }) {
   return (
     <div>
-      <div className="text-[7.8px] font-black uppercase">{title}</div>
+      <div className="text-[8.8px] font-black uppercase">{title}</div>
 
-      <div className="mt-1 grid grid-cols-[1fr_82px_62px] items-end gap-2">
-        <div className="border-b border-black pb-[1px] text-[8.2px] font-bold">
+      <div className="mt-1 grid grid-cols-[1fr_92px_70px] items-end gap-2">
+        <div className="border-b border-black pb-[2px] text-[9.2px] font-bold leading-tight">
           {name || " "}
         </div>
 
-        <div className="relative h-[18px] border-b border-black">
+        <div className="relative h-[25px] border-b border-black">
           {sigUrl ? (
             <img
               src={sigUrl}
               alt="signature"
-              className="absolute bottom-0 left-1/2 h-[14px] max-w-[90%] -translate-x-1/2 object-contain"
+              className="absolute bottom-[2px] left-1/2 h-[21px] max-w-[96%] -translate-x-1/2 object-contain"
             />
           ) : null}
         </div>
 
-        <div className="border-b border-black pb-[1px] text-center text-[7.8px] font-bold">
+        <div className="border-b border-black pb-[2px] text-center text-[8.8px] font-bold">
           {date || " "}
         </div>
       </div>
 
-      <div className="grid grid-cols-[1fr_82px_62px] gap-2 text-center text-[6.5px] font-semibold text-slate-600">
+      <div className="grid grid-cols-[1fr_92px_70px] gap-2 text-center text-[7.2px] font-semibold text-slate-600">
         <div>Name</div>
         <div>Signature</div>
         <div>Date</div>
