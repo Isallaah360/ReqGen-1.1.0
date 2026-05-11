@@ -70,16 +70,18 @@ export default function NavBar() {
       { href: "/finance/subheads", label: "Subheads / Finance" },
       { href: "/payment-vouchers", label: "Payment Vouchers" },
       { href: "/payment-vouchers/reports", label: "PV Reports" },
-      { href: "/payment-vouchers/settings", label: "PV Settings" },
-      { href: "/finance/reports", label: "Reports" },
     ];
+
+    if (["admin", "auditor"].includes(rk)) {
+      list.push({ href: "/payment-vouchers/settings", label: "PV Settings" });
+    }
 
     if (canAuditView) {
       list.push({ href: "/finance/audit", label: "Audit & Reconciliation" });
     }
 
     return list;
-  }, [canAuditView]);
+  }, [canAuditView, rk]);
 
   const hrLinks = useMemo<NavItem[]>(() => {
     return [{ href: "/hr/filing", label: "HR Filing" }];
