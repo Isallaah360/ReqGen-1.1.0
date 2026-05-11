@@ -95,7 +95,9 @@ function statusBadgeClass(status: string | null | undefined) {
   if (s.includes("paid")) return "border-emerald-200 bg-emerald-50 text-emerald-700";
   if (s.includes("cancel")) return "border-red-200 bg-red-50 text-red-700";
   if (s.includes("counter")) return "border-purple-200 bg-purple-50 text-purple-700";
-  if (s.includes("authorized") || s.includes("checked")) return "border-blue-200 bg-blue-50 text-blue-700";
+  if (s.includes("authorized") || s.includes("checked")) {
+    return "border-blue-200 bg-blue-50 text-blue-700";
+  }
   if (s.includes("cheque")) return "border-amber-200 bg-amber-50 text-amber-700";
   if (s.includes("complete")) return "border-emerald-200 bg-emerald-50 text-emerald-700";
 
@@ -277,9 +279,11 @@ export default function PaymentVoucherReportsPage() {
     const personalFund = filteredRows.filter((x) => categoryKey(x) === "personalfund").length;
 
     const totalValue = activeRows.reduce((a, x) => a + Number(x.total_amount || x.amount || 0), 0);
+
     const paidValue = filteredRows
       .filter((x) => (x.status || "") === "Paid")
       .reduce((a, x) => a + Number(x.total_amount || x.amount || 0), 0);
+
     const pendingValue = filteredRows
       .filter((x) => {
         const s = x.status || "";
@@ -397,7 +401,8 @@ export default function PaymentVoucherReportsPage() {
 
             <button
               onClick={handlePrintReport}
-              className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-black"
+              style={{ color: "#ffffff" }}
+              className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700"
             >
               Print Report
             </button>
