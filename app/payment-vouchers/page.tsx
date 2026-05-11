@@ -715,6 +715,13 @@ export default function PaymentVouchersPage() {
             </button>
 
             <button
+              onClick={() => router.push("/payment-vouchers/reports")}
+              className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-black"
+            >
+              PV Reports
+            </button>
+
+            <button
               onClick={() => router.push("/payment-vouchers/settings")}
               className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-100"
             >
