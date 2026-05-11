@@ -336,7 +336,7 @@ export default function NavBar() {
     <header className="sticky top-0 z-50 border-b bg-white/95 backdrop-blur">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3">
         <Link href="/" className="shrink-0 text-lg font-extrabold tracking-tight text-slate-900">
-          ReqGen <span className="text-slate-400">1.2.0</span>
+          ReqGen <span className="text-slate-400">1.1.0</span>
         </Link>
 
         {!signedIn ? null : (
