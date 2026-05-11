@@ -13,7 +13,7 @@ type Notif = {
   created_at: string;
 };
 
-type MenuLink = {
+type NavItem = {
   href: string;
   label: string;
 };
@@ -26,21 +26,18 @@ function roleKey(role: string | null | undefined) {
     .replace(/_/g, "");
 }
 
-function isPathActive(pathname: string | null, href: string) {
-  if (!pathname) return false;
-  if (pathname === href) return true;
-  return pathname.startsWith(`${href}/`);
-}
-
 export default function NavBar() {
   const router = useRouter();
   const pathname = usePathname();
 
   const [signedIn, setSignedIn] = useState(false);
   const [myRole, setMyRole] = useState<string>("Staff");
+
   const [openBell, setOpenBell] = useState(false);
   const [openFinance, setOpenFinance] = useState(false);
   const [openHR, setOpenHR] = useState(false);
+  const [openMobileMenu, setOpenMobileMenu] = useState(false);
+
   const [unreadCount, setUnreadCount] = useState(0);
   const [items, setItems] = useState<Notif[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
@@ -48,50 +45,59 @@ export default function NavBar() {
   const bellRef = useRef<HTMLDivElement | null>(null);
   const financeRef = useRef<HTMLDivElement | null>(null);
   const hrRef = useRef<HTMLDivElement | null>(null);
+  const mobileRef = useRef<HTMLDivElement | null>(null);
 
   const rk = roleKey(myRole);
 
   const isAdmin = ["admin", "auditor"].includes(rk);
   const canFinance = ["admin", "auditor", "account", "accounts", "accountofficer"].includes(rk);
+  const canAuditView = ["admin", "auditor", "account", "accounts", "accountofficer"].includes(rk);
   const canHR = ["admin", "auditor", "hr"].includes(rk);
 
-  const mainLinks = useMemo<MenuLink[]>(() => {
-    return [
-      { href: "/approvals", label: "Approvals" },
-      { href: "/dashboard", label: "Dashboard" },
-      { href: "/requests", label: "My Requests" },
-    ];
-  }, []);
+  function isActiveLink(href: string) {
+    if (href === "/") return pathname === "/";
+    if (pathname === href) return true;
 
-  const financeLinks = useMemo<MenuLink[]>(() => {
-    return [
+    if (href === "/payment-vouchers") {
+      return pathname === "/payment-vouchers";
+    }
+
+    return pathname.startsWith(href + "/");
+  }
+
+  const financeLinks = useMemo<NavItem[]>(() => {
+    const list: NavItem[] = [
       { href: "/finance/subheads", label: "Subheads / Finance" },
       { href: "/payment-vouchers", label: "Payment Vouchers" },
       { href: "/payment-vouchers/reports", label: "PV Reports" },
       { href: "/payment-vouchers/settings", label: "PV Settings" },
       { href: "/finance/reports", label: "Reports" },
-      { href: "/finance/audit", label: "Audit & Reconciliation" },
     ];
-  }, []);
 
-  const hrLinks = useMemo<MenuLink[]>(() => {
+    if (canAuditView) {
+      list.push({ href: "/finance/audit", label: "Audit & Reconciliation" });
+    }
+
+    return list;
+  }, [canAuditView]);
+
+  const hrLinks = useMemo<NavItem[]>(() => {
     return [{ href: "/hr/filing", label: "HR Filing" }];
   }, []);
 
-  const financeIsActive = useMemo(() => {
-    return (
-      pathname?.startsWith("/finance") ||
-      pathname?.startsWith("/payment-vouchers")
-    );
-  }, [pathname]);
+  const financeActive = useMemo(() => {
+    return financeLinks.some((item) => isActiveLink(item.href));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [financeLinks, pathname]);
 
-  const hrIsActive = useMemo(() => {
-    return pathname?.startsWith("/hr");
-  }, [pathname]);
+  const hrActive = useMemo(() => {
+    return hrLinks.some((item) => isActiveLink(item.href));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hrLinks, pathname]);
 
-  const navLinkClass = (href: string) =>
-    `px-3 py-2 rounded-xl text-sm font-semibold transition ${
-      isPathActive(pathname, href)
+  const topLinkClass = (href: string) =>
+    `rounded-xl px-3 py-2 text-sm font-semibold transition ${
+      isActiveLink(href)
         ? "bg-blue-600 text-white shadow-sm"
         : "text-slate-700 hover:bg-slate-100"
     }`;
@@ -104,10 +110,17 @@ export default function NavBar() {
     }`;
 
   const dropdownItemClass = (href: string) =>
-    `block rounded-xl px-4 py-3 text-sm font-semibold transition ${
-      isPathActive(pathname, href)
+    `block w-full rounded-2xl px-4 py-3 text-left text-sm font-bold transition ${
+      isActiveLink(href)
         ? "bg-blue-50 text-blue-700"
-        : "text-slate-700 hover:bg-slate-50"
+        : "text-slate-800 hover:bg-slate-100"
+    }`;
+
+  const mobileItemClass = (href: string) =>
+    `block w-full rounded-xl px-4 py-3 text-left text-sm font-bold transition ${
+      isActiveLink(href)
+        ? "bg-blue-600 text-white"
+        : "text-slate-800 hover:bg-slate-100"
     }`;
 
   async function refreshAll() {
@@ -225,16 +238,21 @@ export default function NavBar() {
       if (openHR && hrRef.current && !hrRef.current.contains(t)) {
         setOpenHR(false);
       }
+
+      if (openMobileMenu && mobileRef.current && !mobileRef.current.contains(t)) {
+        setOpenMobileMenu(false);
+      }
     }
 
     document.addEventListener("mousedown", onClick);
     return () => document.removeEventListener("mousedown", onClick);
-  }, [openBell, openFinance, openHR]);
+  }, [openBell, openFinance, openHR, openMobileMenu]);
 
   useEffect(() => {
+    setOpenBell(false);
     setOpenFinance(false);
     setOpenHR(false);
-    setOpenBell(false);
+    setOpenMobileMenu(false);
   }, [pathname]);
 
   async function logout() {
@@ -257,24 +275,40 @@ export default function NavBar() {
 
   async function openNotif(n: Notif) {
     await supabase.from("notifications").update({ is_read: true }).eq("id", n.id);
+
+    setOpenBell(false);
     router.push(n.link || "/approvals");
   }
 
+  function goTo(href: string) {
+    setOpenFinance(false);
+    setOpenHR(false);
+    setOpenMobileMenu(false);
+    setOpenBell(false);
+    router.push(href);
+  }
+
   return (
-    <header className="sticky top-0 z-30 border-b bg-white/90 backdrop-blur">
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
-        <Link href="/" className="font-extrabold text-lg tracking-tight text-slate-900">
+    <header className="sticky top-0 z-50 border-b bg-white/95 backdrop-blur">
+      <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3">
+        <Link href="/" className="shrink-0 text-lg font-extrabold tracking-tight text-slate-900">
           ReqGen <span className="text-slate-400">1.1.0</span>
         </Link>
 
         {!signedIn ? null : (
-          <div className="flex items-center gap-2">
-            <nav className="hidden items-center gap-2 lg:flex">
-              {mainLinks.map((l) => (
-                <Link key={l.href} className={navLinkClass(l.href)} href={l.href}>
-                  {l.label}
-                </Link>
-              ))}
+          <div className="flex min-w-0 items-center gap-2">
+            <nav className="hidden items-center gap-2 md:flex">
+              <Link className={topLinkClass("/approvals")} href="/approvals">
+                Approvals
+              </Link>
+
+              <Link className={topLinkClass("/dashboard")} href="/dashboard">
+                Dashboard
+              </Link>
+
+              <Link className={topLinkClass("/requests")} href="/requests">
+                My Requests
+              </Link>
 
               {canFinance && (
                 <div className="relative" ref={financeRef}>
@@ -284,27 +318,41 @@ export default function NavBar() {
                       setOpenFinance((v) => !v);
                       setOpenHR(false);
                       setOpenBell(false);
+                      setOpenMobileMenu(false);
                     }}
-                    className={dropdownButtonClass(Boolean(financeIsActive))}
+                    className={dropdownButtonClass(financeActive)}
                   >
                     Finance
-                    <span className="text-xs leading-none">▾</span>
+                    <span
+                      className={`inline-block text-xs transition-transform ${
+                        openFinance ? "rotate-180" : ""
+                      }`}
+                    >
+                      ▾
+                    </span>
                   </button>
 
                   {openFinance && (
-                    <div className="absolute right-0 top-12 w-80 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
-                      <div className="border-b bg-slate-50 px-4 py-3">
-                        <div className="font-extrabold text-slate-900">Finance Directorate</div>
-                        <div className="mt-1 text-xs font-semibold text-slate-500">
+                    <div className="absolute left-0 top-12 z-50 w-[340px] overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl">
+                      <div className="border-b bg-slate-50 px-5 py-4">
+                        <div className="text-base font-extrabold text-slate-900">
+                          Finance Directorate
+                        </div>
+                        <div className="mt-1 text-sm font-semibold text-slate-500">
                           Budgets, vouchers, reports and audit tools
                         </div>
                       </div>
 
-                      <div className="p-2">
-                        {financeLinks.map((l) => (
-                          <Link key={l.href} href={l.href} className={dropdownItemClass(l.href)}>
-                            {l.label}
-                          </Link>
+                      <div className="space-y-1 p-3">
+                        {financeLinks.map((item) => (
+                          <button
+                            key={item.href}
+                            type="button"
+                            onClick={() => goTo(item.href)}
+                            className={dropdownItemClass(item.href)}
+                          >
+                            {item.label}
+                          </button>
                         ))}
                       </div>
                     </div>
@@ -320,27 +368,41 @@ export default function NavBar() {
                       setOpenHR((v) => !v);
                       setOpenFinance(false);
                       setOpenBell(false);
+                      setOpenMobileMenu(false);
                     }}
-                    className={dropdownButtonClass(Boolean(hrIsActive))}
+                    className={dropdownButtonClass(hrActive)}
                   >
                     HR
-                    <span className="text-xs leading-none">▾</span>
+                    <span
+                      className={`inline-block text-xs transition-transform ${
+                        openHR ? "rotate-180" : ""
+                      }`}
+                    >
+                      ▾
+                    </span>
                   </button>
 
                   {openHR && (
-                    <div className="absolute right-0 top-12 w-64 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
-                      <div className="border-b bg-slate-50 px-4 py-3">
-                        <div className="font-extrabold text-slate-900">HR Directorate</div>
-                        <div className="mt-1 text-xs font-semibold text-slate-500">
-                          Personal request filing and records
+                    <div className="absolute left-0 top-12 z-50 w-[280px] overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl">
+                      <div className="border-b bg-slate-50 px-5 py-4">
+                        <div className="text-base font-extrabold text-slate-900">
+                          HR Directorate
+                        </div>
+                        <div className="mt-1 text-sm font-semibold text-slate-500">
+                          Personal requests, filing and records
                         </div>
                       </div>
 
-                      <div className="p-2">
-                        {hrLinks.map((l) => (
-                          <Link key={l.href} href={l.href} className={dropdownItemClass(l.href)}>
-                            {l.label}
-                          </Link>
+                      <div className="space-y-1 p-3">
+                        {hrLinks.map((item) => (
+                          <button
+                            key={item.href}
+                            type="button"
+                            onClick={() => goTo(item.href)}
+                            className={dropdownItemClass(item.href)}
+                          >
+                            {item.label}
+                          </button>
                         ))}
                       </div>
                     </div>
@@ -349,33 +411,115 @@ export default function NavBar() {
               )}
 
               {isAdmin && (
-                <Link className={navLinkClass("/admin")} href="/admin">
+                <Link className={topLinkClass("/admin")} href="/admin">
                   Admin
                 </Link>
               )}
             </nav>
 
-            <nav className="flex items-center gap-1 lg:hidden">
-              <Link className={navLinkClass("/approvals")} href="/approvals">
-                Approvals
-              </Link>
+            <div className="relative md:hidden" ref={mobileRef}>
+              <button
+                type="button"
+                onClick={() => {
+                  setOpenMobileMenu((v) => !v);
+                  setOpenFinance(false);
+                  setOpenHR(false);
+                  setOpenBell(false);
+                }}
+                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-900 hover:bg-slate-100"
+              >
+                Menu ▾
+              </button>
 
-              <Link className={navLinkClass("/requests")} href="/requests">
-                Requests
-              </Link>
+              {openMobileMenu && (
+                <div className="absolute right-0 top-12 z-50 max-h-[80vh] w-[310px] overflow-auto rounded-3xl border border-slate-200 bg-white p-3 shadow-2xl">
+                  <div className="mb-2 rounded-2xl bg-slate-50 px-4 py-3">
+                    <div className="font-extrabold text-slate-900">Navigation</div>
+                    <div className="mt-1 text-xs font-semibold text-slate-500">
+                      ReqGen government-style modules
+                    </div>
+                  </div>
 
-              {canFinance && (
-                <Link className={navLinkClass("/finance/subheads")} href="/finance/subheads">
-                  Finance
-                </Link>
+                  <button
+                    type="button"
+                    onClick={() => goTo("/approvals")}
+                    className={mobileItemClass("/approvals")}
+                  >
+                    Approvals
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => goTo("/dashboard")}
+                    className={mobileItemClass("/dashboard")}
+                  >
+                    Dashboard
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => goTo("/requests")}
+                    className={mobileItemClass("/requests")}
+                  >
+                    My Requests
+                  </button>
+
+                  {canFinance && (
+                    <>
+                      <div className="mt-3 border-t pt-3 text-xs font-black uppercase tracking-wide text-slate-500">
+                        Finance
+                      </div>
+
+                      {financeLinks.map((item) => (
+                        <button
+                          key={item.href}
+                          type="button"
+                          onClick={() => goTo(item.href)}
+                          className={mobileItemClass(item.href)}
+                        >
+                          {item.label}
+                        </button>
+                      ))}
+                    </>
+                  )}
+
+                  {canHR && (
+                    <>
+                      <div className="mt-3 border-t pt-3 text-xs font-black uppercase tracking-wide text-slate-500">
+                        HR
+                      </div>
+
+                      {hrLinks.map((item) => (
+                        <button
+                          key={item.href}
+                          type="button"
+                          onClick={() => goTo(item.href)}
+                          className={mobileItemClass(item.href)}
+                        >
+                          {item.label}
+                        </button>
+                      ))}
+                    </>
+                  )}
+
+                  {isAdmin && (
+                    <>
+                      <div className="mt-3 border-t pt-3 text-xs font-black uppercase tracking-wide text-slate-500">
+                        Administration
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => goTo("/admin")}
+                        className={mobileItemClass("/admin")}
+                      >
+                        Admin
+                      </button>
+                    </>
+                  )}
+                </div>
               )}
-
-              {canHR && (
-                <Link className={navLinkClass("/hr/filing")} href="/hr/filing">
-                  HR
-                </Link>
-              )}
-            </nav>
+            </div>
 
             <div className="relative" ref={bellRef}>
               <button
@@ -384,6 +528,7 @@ export default function NavBar() {
                   setOpenBell((v) => !v);
                   setOpenFinance(false);
                   setOpenHR(false);
+                  setOpenMobileMenu(false);
                 }}
                 className="relative rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
                 title="Notifications"
@@ -397,7 +542,7 @@ export default function NavBar() {
               </button>
 
               {openBell && (
-                <div className="absolute right-0 top-12 w-80 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
+                <div className="absolute right-0 top-12 z-50 w-80 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
                   <div className="flex items-center justify-between bg-slate-50 px-4 py-3">
                     <div className="font-bold text-slate-900">Notifications</div>
                     <button
@@ -437,7 +582,7 @@ export default function NavBar() {
             <button
               type="button"
               onClick={logout}
-              className="hidden rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700 md:inline-flex"
+              className="hidden rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700 sm:inline-flex"
             >
               Logout
             </button>
