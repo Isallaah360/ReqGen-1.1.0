@@ -273,6 +273,20 @@ export default function PaymentVoucherPrintPage() {
     [voucher?.payee_signature_url]
   );
 
+  const sigChequeSigned = useMemo(
+    () => getPublicSignatureUrl(voucher?.cheque_signed_signature_url),
+    [voucher?.cheque_signed_signature_url]
+  );
+
+  const sigCounterSigned = useMemo(
+    () => getPublicSignatureUrl(voucher?.cheque_counter_signed_signature_url),
+    [voucher?.cheque_counter_signed_signature_url]
+  );
+
+  const isCheque = normalize(voucher?.disbursement_mode) === "cheque";
+  const isTransfer = normalize(voucher?.disbursement_mode) === "transfer";
+  const isCash = normalize(voucher?.disbursement_mode) === "cash";
+
   const ready = useMemo(() => {
     if (!voucher) return false;
     return !!voucher.voucher_no && !!voucher.payee_name && Number(voucher.amount || 0) > 0;
@@ -482,7 +496,7 @@ export default function PaymentVoucherPrintPage() {
                 className="col-span-4"
               />
 
-              {voucher.disbursement_mode === "Transfer" && (
+              {isTransfer && (
                 <>
                   <FilledBox
                     label="Account Number"
@@ -502,7 +516,7 @@ export default function PaymentVoucherPrintPage() {
                 </>
               )}
 
-              {voucher.disbursement_mode === "Cash" && (
+              {isCash && (
                 <>
                   <FilledBox
                     label="Payee Name"
@@ -513,7 +527,7 @@ export default function PaymentVoucherPrintPage() {
                 </>
               )}
 
-              {voucher.disbursement_mode === "Cheque" && (
+              {isCheque && (
                 <>
                   <FilledBox
                     label="Cheque No."
@@ -531,14 +545,19 @@ export default function PaymentVoucherPrintPage() {
                     className="col-span-4"
                   />
                   <FilledBox
+                    label="Cheque Signed By"
+                    value={voucher.cheque_signed_by_name || ""}
+                    className="col-span-6"
+                  />
+                  <FilledBox
                     label="Counter Signed By"
-                    value={voucher.counter_signatory_name || ""}
-                    className="col-span-12"
+                    value={voucher.cheque_counter_signed_by_name || voucher.counter_signatory_name || ""}
+                    className="col-span-6"
                   />
                 </>
               )}
 
-              {!voucher.disbursement_mode && (
+              {!isTransfer && !isCash && !isCheque && (
                 <>
                   <BlankBox label="Account Number / Cheque No." className="col-span-4" />
                   <BlankBox label="Bank" className="col-span-4" />
@@ -582,13 +601,18 @@ export default function PaymentVoucherPrintPage() {
                 date={formatDate(voucher.payee_signed_at)}
               />
 
-              <ManualSignatureBox title="Cheque Signed By" />
-              <ManualSignatureBox
-                title={
-                  voucher.counter_signatory_name
-                    ? `Counter Signed By: ${voucher.counter_signatory_name}`
-                    : "Counter Signed By"
-                }
+              <SignatureBox
+                title="Cheque Signed By"
+                name={voucher.cheque_signed_by_name || ""}
+                sigUrl={sigChequeSigned}
+                date={formatDate(voucher.cheque_signed_at)}
+              />
+
+              <SignatureBox
+                title="Counter Signed By"
+                name={voucher.cheque_counter_signed_by_name || voucher.counter_signatory_name || ""}
+                sigUrl={sigCounterSigned}
+                date={formatDate(voucher.cheque_counter_signed_at)}
               />
             </div>
           </div>
@@ -695,32 +719,6 @@ function SignatureBox({
 
         <div className="border-b border-black pb-[1px] text-center text-[7.8px] font-bold">
           {date || " "}
-        </div>
-      </div>
-
-      <div className="grid grid-cols-[1fr_82px_62px] gap-2 text-center text-[6.5px] font-semibold text-slate-600">
-        <div>Name</div>
-        <div>Signature</div>
-        <div>Date</div>
-      </div>
-    </div>
-  );
-}
-
-function ManualSignatureBox({ title }: { title: string }) {
-  return (
-    <div>
-      <div className="text-[7.8px] font-black uppercase line-clamp-1">{title}</div>
-
-      <div className="mt-1 grid grid-cols-[1fr_82px_62px] items-end gap-2">
-        <div className="border-b border-black pb-[1px] text-[8.2px] font-bold">
-          {" "}
-        </div>
-
-        <div className="relative h-[18px] border-b border-black" />
-
-        <div className="border-b border-black pb-[1px] text-center text-[7.8px] font-bold">
-          {" "}
         </div>
       </div>
 
