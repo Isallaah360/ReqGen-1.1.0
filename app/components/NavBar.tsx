@@ -19,6 +19,10 @@ type NavItem = {
   description?: string;
 };
 
+const PUBLIC_PATHS = ["/", "/login", "/signup", "/forgot-password", "/reset-password"];
+
+const MFA_PATHS = ["/mfa", "/mfa/setup"];
+
 function roleKey(role: string | null | undefined) {
   return (role || "")
     .trim()
@@ -27,11 +31,21 @@ function roleKey(role: string | null | undefined) {
     .replace(/_/g, "");
 }
 
+function isPublicPath(pathname: string) {
+  return PUBLIC_PATHS.includes(pathname);
+}
+
+function isMfaPath(pathname: string) {
+  return MFA_PATHS.includes(pathname);
+}
+
 export default function NavBar() {
   const router = useRouter();
   const pathname = usePathname();
 
   const [signedIn, setSignedIn] = useState(false);
+  const [mfaVerified, setMfaVerified] = useState(false);
+  const [checkingSecurity, setCheckingSecurity] = useState(true);
   const [myRole, setMyRole] = useState<string>("Staff");
 
   const [openBell, setOpenBell] = useState(false);
@@ -69,6 +83,21 @@ export default function NavBar() {
   const financeLinks = useMemo<NavItem[]>(() => {
     const list: NavItem[] = [
       {
+        href: "/finance/departments",
+        label: "Departments",
+        description: "Department records and finance structure",
+      },
+      {
+        href: "/finance/manage-accounts",
+        label: "Manage Accounts",
+        description: "IET bank accounts and account balances",
+      },
+      {
+        href: "/finance/manage-accounts/assign",
+        label: "Assign Accounts",
+        description: "Assign account officers and account funding",
+      },
+      {
         href: "/finance/subheads",
         label: "Subheads / Finance",
         description: "Budget lines, allocations and balances",
@@ -95,6 +124,12 @@ export default function NavBar() {
         href: "/payment-vouchers/settings",
         label: "PV Settings",
         description: "Cheque signers and counter signers",
+      });
+
+      list.push({
+        href: "/admin/security",
+        label: "Security Checklist",
+        description: "MFA, backup and RLS audit checklist",
       });
     }
 
@@ -167,21 +202,45 @@ export default function NavBar() {
       isActiveLink(href) ? "text-blue-100" : "text-slate-500"
     }`;
 
+  async function checkMfaVerified() {
+    const { data: aalData, error: aalErr } =
+      await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+
+    if (aalErr) return false;
+
+    return aalData.currentLevel === "aal2";
+  }
+
   async function refreshAll() {
+    setCheckingSecurity(true);
+
     const { data: sess, error: sessErr } = await supabase.auth.getSession();
 
     if (sessErr || !sess.session?.user) {
       setSignedIn(false);
+      setMfaVerified(false);
       setUserId(null);
       setMyRole("Staff");
       setUnreadCount(0);
       setItems([]);
+      setCheckingSecurity(false);
       return;
     }
 
     const uid = sess.session.user.id;
     setSignedIn(true);
     setUserId(uid);
+
+    const verified = await checkMfaVerified();
+    setMfaVerified(verified);
+
+    if (!verified) {
+      setMyRole("Staff");
+      setUnreadCount(0);
+      setItems([]);
+      setCheckingSecurity(false);
+      return;
+    }
 
     const { data: prof, error: profErr } = await supabase
       .from("profiles")
@@ -217,6 +276,7 @@ export default function NavBar() {
       .eq("current_owner", uid);
 
     setUnreadCount(Number(unreadNotifCount || 0) + Number(pendingApprovalCount || 0));
+    setCheckingSecurity(false);
   }
 
   useEffect(() => {
@@ -231,7 +291,12 @@ export default function NavBar() {
   }, []);
 
   useEffect(() => {
-    if (!userId) return;
+    refreshAll();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!userId || !mfaVerified) return;
 
     const notifChannel = supabase
       .channel(`notif-${userId}`)
@@ -265,7 +330,7 @@ export default function NavBar() {
       supabase.removeChannel(requestChannel);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId]);
+  }, [userId, mfaVerified]);
 
   useEffect(() => {
     function onClick(e: MouseEvent) {
@@ -301,12 +366,18 @@ export default function NavBar() {
 
   async function logout() {
     await supabase.auth.signOut();
+    setSignedIn(false);
+    setMfaVerified(false);
+    setUserId(null);
+    setMyRole("Staff");
+    setUnreadCount(0);
+    setItems([]);
     router.push("/");
     router.refresh();
   }
 
   async function markAllRead() {
-    if (!userId) return;
+    if (!userId || !mfaVerified) return;
 
     await supabase
       .from("notifications")
@@ -318,6 +389,8 @@ export default function NavBar() {
   }
 
   async function openNotif(n: Notif) {
+    if (!mfaVerified) return;
+
     await supabase.from("notifications").update({ is_read: true }).eq("id", n.id);
 
     setOpenBell(false);
@@ -332,6 +405,9 @@ export default function NavBar() {
     router.push(href);
   }
 
+  const showFullNavigation = signedIn && mfaVerified && !isPublicPath(pathname) && !isMfaPath(pathname);
+  const showLockedMfaNavigation = signedIn && !mfaVerified && !isPublicPath(pathname);
+
   return (
     <header className="sticky top-0 z-50 border-b bg-white/95 backdrop-blur">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3">
@@ -339,7 +415,37 @@ export default function NavBar() {
           ReqGen <span className="text-slate-400">1.1.0</span>
         </Link>
 
-        {!signedIn ? null : (
+        {checkingSecurity && signedIn && !isPublicPath(pathname) && (
+          <div className="hidden rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-600 sm:block">
+            Checking security...
+          </div>
+        )}
+
+        {showLockedMfaNavigation && (
+          <div className="flex items-center gap-2">
+            <div className="hidden rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-900 sm:block">
+              2FA verification required
+            </div>
+
+            <button
+              type="button"
+              onClick={() => router.push("/mfa")}
+              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-900 hover:bg-slate-100"
+            >
+              Verify 2FA
+            </button>
+
+            <button
+              type="button"
+              onClick={logout}
+              className="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700"
+            >
+              Logout
+            </button>
+          </div>
+        )}
+
+        {showFullNavigation && (
           <div className="flex min-w-0 items-center gap-2">
             <nav className="hidden items-center gap-2 md:flex">
               <Link className={topLinkClass("/approvals")} href="/approvals">
@@ -377,17 +483,17 @@ export default function NavBar() {
                   </button>
 
                   {openFinance && (
-                    <div className="absolute left-0 top-12 z-50 w-[370px] overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl">
+                    <div className="absolute left-0 top-12 z-50 w-[390px] overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl">
                       <div className="border-b bg-slate-50 px-5 py-4">
                         <div className="text-base font-extrabold text-slate-900">
                           Finance Directorate
                         </div>
                         <div className="mt-1 text-sm font-semibold text-slate-500">
-                          Budgets, vouchers, reports and audit tools
+                          Departments, accounts, budgets, vouchers, reports and audit tools
                         </div>
                       </div>
 
-                      <div className="space-y-1 p-3">
+                      <div className="max-h-[70vh] space-y-1 overflow-auto p-3">
                         {financeLinks.map((item) => (
                           <button
                             key={item.href}
@@ -490,7 +596,7 @@ export default function NavBar() {
               </button>
 
               {openMobileMenu && (
-                <div className="absolute right-0 top-12 z-50 max-h-[80vh] w-[330px] overflow-auto rounded-3xl border border-slate-200 bg-white p-3 shadow-2xl">
+                <div className="absolute right-0 top-12 z-50 max-h-[80vh] w-[340px] overflow-auto rounded-3xl border border-slate-200 bg-white p-3 shadow-2xl">
                   <div className="mb-2 rounded-2xl bg-slate-50 px-4 py-3">
                     <div className="font-extrabold text-slate-900">Navigation</div>
                     <div className="mt-1 text-xs font-semibold text-slate-500">

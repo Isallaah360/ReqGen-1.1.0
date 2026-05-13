@@ -6,6 +6,13 @@ import { supabase } from "@/lib/supabaseClient";
 
 type Dept = { id: string; name: string };
 
+type SecurityStatus = {
+  hasVerifiedTotp: boolean;
+  currentLevel: string | null;
+  nextLevel: string | null;
+  factorCount: number;
+};
+
 function getPublicSignatureUrl(path: string | null | undefined) {
   const raw = (path || "").trim();
   if (!raw) return null;
@@ -25,6 +32,12 @@ function getPublicSignatureUrl(path: string | null | undefined) {
   if (!base) return null;
 
   return `${base}/storage/v1/object/public/signatures/${cleaned}?t=${Date.now()}`;
+}
+
+function securityBadgeClass(ok: boolean) {
+  return ok
+    ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+    : "border-red-200 bg-red-50 text-red-700";
 }
 
 export default function ProfilePage() {
@@ -52,9 +65,47 @@ export default function ProfilePage() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmNewPassword, setConfirmNewPassword] = useState("");
 
+  const [security, setSecurity] = useState<SecurityStatus>({
+    hasVerifiedTotp: false,
+    currentLevel: null,
+    nextLevel: null,
+    factorCount: 0,
+  });
+
   const canSaveProfile = useMemo(() => {
     return fullName.trim().length >= 3 && !!gender;
   }, [fullName, gender]);
+
+  const isSessionMfaVerified = security.currentLevel === "aal2";
+  const isMfaSetupComplete = security.hasVerifiedTotp;
+
+  async function loadSecurityStatus() {
+    const [factorsRes, aalRes] = await Promise.all([
+      supabase.auth.mfa.listFactors(),
+      supabase.auth.mfa.getAuthenticatorAssuranceLevel(),
+    ]);
+
+    if (factorsRes.error) {
+      setSecurity({
+        hasVerifiedTotp: false,
+        currentLevel: aalRes.data?.currentLevel || null,
+        nextLevel: aalRes.data?.nextLevel || null,
+        factorCount: 0,
+      });
+      return;
+    }
+
+    const verifiedTotpFactors = factorsRes.data.totp.filter(
+      (factor) => factor.status === "verified"
+    );
+
+    setSecurity({
+      hasVerifiedTotp: verifiedTotpFactors.length > 0,
+      currentLevel: aalRes.data?.currentLevel || null,
+      nextLevel: aalRes.data?.nextLevel || null,
+      factorCount: verifiedTotpFactors.length,
+    });
+  }
 
   useEffect(() => {
     async function load() {
@@ -71,17 +122,22 @@ export default function ProfilePage() {
       setEmail(user.email || "");
       setNewEmail(user.email || "");
 
-      const { data: prof, error: profErr } = await supabase
-        .from("profiles")
-        .select("full_name, phone, gender, dept_id, role, signature_url")
-        .eq("id", user.id)
-        .single();
+      const [profileRes] = await Promise.all([
+        supabase
+          .from("profiles")
+          .select("full_name, phone, gender, dept_id, role, signature_url")
+          .eq("id", user.id)
+          .single(),
+        loadSecurityStatus(),
+      ]);
 
-      if (profErr) {
-        setMsg("Failed to load profile: " + profErr.message);
+      if (profileRes.error) {
+        setMsg("Failed to load profile: " + profileRes.error.message);
         setLoading(false);
         return;
       }
+
+      const prof = profileRes.data;
 
       setFullName(prof?.full_name || "");
       setPhone(prof?.phone || "");
@@ -148,12 +204,7 @@ export default function ProfilePage() {
       return;
     }
 
-    const allowedTypes = [
-      "image/png",
-      "image/jpeg",
-      "image/jpg",
-      "image/webp",
-    ];
+    const allowedTypes = ["image/png", "image/jpeg", "image/jpg", "image/webp"];
 
     if (!allowedTypes.includes(file.type)) {
       setMsg("❌ Signature must be PNG, JPG, JPEG or WEBP.");
@@ -178,8 +229,6 @@ export default function ProfilePage() {
 
       const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
       const safeExt = ["png", "jpg", "jpeg", "webp"].includes(ext) ? ext : "jpg";
-
-      // ✅ versioned path to defeat browser caching everywhere
       const path = `${user.id}/signature-${Date.now()}.${safeExt}`;
 
       const { error: upErr } = await supabase.storage
@@ -262,21 +311,22 @@ export default function ProfilePage() {
   if (loading) {
     return (
       <main className="min-h-screen bg-slate-50 px-4">
-        <div className="mx-auto max-w-4xl py-10 text-slate-600">Loading...</div>
+        <div className="mx-auto max-w-5xl py-10 text-slate-600">Loading profile...</div>
       </main>
     );
   }
 
   return (
     <main className="min-h-screen bg-slate-50 px-4">
-      <div className="mx-auto max-w-4xl py-10">
-        <div className="flex items-start justify-between gap-4">
+      <div className="mx-auto max-w-5xl py-10">
+        <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">
               My Profile
             </h1>
             <p className="mt-2 text-sm text-slate-600">
-              Update your details. Department & Role are managed by Admin.
+              Update your details, signature and security information. Department and role are
+              managed by Admin.
             </p>
           </div>
 
@@ -289,13 +339,92 @@ export default function ProfilePage() {
         </div>
 
         {msg && (
-          <div className="mt-4 rounded-xl bg-slate-100 px-3 py-2 text-sm text-slate-800">
+          <div className="mt-4 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-800 shadow-sm">
             {msg}
           </div>
         )}
 
+        <div className="mt-6 rounded-3xl border bg-white p-6 shadow-sm">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="text-xl font-extrabold text-slate-900">
+                Security & 2FA Status
+              </h2>
+              <p className="mt-1 text-sm text-slate-600">
+                ReqGen uses authenticator app 2FA to protect logins and sensitive actions.
+              </p>
+            </div>
+
+            <span
+              className={`rounded-full border px-3 py-1 text-xs font-bold ${securityBadgeClass(
+                isSessionMfaVerified
+              )}`}
+            >
+              {isSessionMfaVerified ? "Secure Session" : "2FA Action Required"}
+            </span>
+          </div>
+
+          <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <SecurityLine
+              label="2FA Setup"
+              value={isMfaSetupComplete ? "Completed" : "Required"}
+              ok={isMfaSetupComplete}
+            />
+
+            <SecurityLine
+              label="Current Session"
+              value={isSessionMfaVerified ? "MFA Verified" : "Password Only"}
+              ok={isSessionMfaVerified}
+            />
+
+            <SecurityLine
+              label="Assurance Level"
+              value={`${security.currentLevel || "unknown"} → ${security.nextLevel || "unknown"}`}
+              ok={isSessionMfaVerified}
+            />
+
+            <SecurityLine
+              label="Authenticator Factors"
+              value={String(security.factorCount)}
+              ok={security.factorCount > 0}
+            />
+          </div>
+
+          <div className="mt-5 flex flex-wrap gap-2">
+            {!isMfaSetupComplete && (
+              <button
+                onClick={() => router.push("/mfa/setup")}
+                className="rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white hover:bg-blue-700"
+              >
+                Set Up 2FA
+              </button>
+            )}
+
+            {isMfaSetupComplete && !isSessionMfaVerified && (
+              <button
+                onClick={() => router.push("/mfa")}
+                className="rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white hover:bg-blue-700"
+              >
+                Verify 2FA
+              </button>
+            )}
+
+            <button
+              onClick={loadSecurityStatus}
+              className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 hover:bg-slate-100"
+            >
+              Refresh Security Status
+            </button>
+          </div>
+
+          <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-900">
+            <b>Important:</b> Do not share your password or authenticator code. Request submission,
+            approval, voucher actions and finance changes will require a verified 2FA session.
+          </div>
+        </div>
+
         <div className="mt-6 grid gap-6 md:grid-cols-2">
-          <div className="rounded-2xl border bg-white p-6 shadow-sm">
+          <div className="rounded-3xl border bg-white p-6 shadow-sm">
             <h2 className="text-lg font-bold text-slate-900">Profile Details</h2>
 
             <div className="mt-4">
@@ -303,7 +432,7 @@ export default function ProfilePage() {
               <input
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
+                className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 text-base text-slate-900 outline-none focus:border-blue-500"
               />
             </div>
 
@@ -312,7 +441,7 @@ export default function ProfilePage() {
               <input
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
+                className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 text-base text-slate-900 outline-none focus:border-blue-500"
               />
             </div>
 
@@ -321,7 +450,7 @@ export default function ProfilePage() {
               <select
                 value={gender}
                 onChange={(e) => setGender(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
+                className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 text-base text-slate-900 outline-none focus:border-blue-500"
               >
                 <option value="">-- Select --</option>
                 <option value="Male">Male</option>
@@ -334,7 +463,7 @@ export default function ProfilePage() {
               <input
                 value={deptName || "—"}
                 readOnly
-                className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-slate-900"
+                className="mt-1 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-base text-slate-900"
               />
             </div>
 
@@ -343,20 +472,20 @@ export default function ProfilePage() {
               <input
                 value={role || "—"}
                 readOnly
-                className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-slate-900"
+                className="mt-1 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-base text-slate-900"
               />
             </div>
 
             <button
               onClick={saveProfile}
               disabled={!canSaveProfile}
-              className="mt-5 w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:opacity-60"
+              className="mt-5 w-full rounded-2xl bg-blue-600 px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700 disabled:opacity-60"
             >
               Save Profile
             </button>
           </div>
 
-          <div className="rounded-2xl border bg-white p-6 shadow-sm">
+          <div className="rounded-3xl border bg-white p-6 shadow-sm">
             <h2 className="text-lg font-bold text-slate-900">Signature</h2>
             <p className="mt-1 text-sm text-slate-600">
               Required for request submission and approvals.
@@ -369,7 +498,7 @@ export default function ProfilePage() {
                 <img
                   src={sigPreview}
                   alt="Signature"
-                  className="mt-3 h-20 w-auto rounded-xl border bg-white p-2"
+                  className="mt-3 h-24 w-auto rounded-xl border bg-white p-2"
                 />
               ) : (
                 <div className="mt-3 text-sm text-slate-700">No signature uploaded yet.</div>
@@ -384,20 +513,20 @@ export default function ProfilePage() {
                 type="file"
                 accept="image/png,image/jpeg,image/jpg,image/webp"
                 onChange={(e) => setFile(e.target.files?.[0] || null)}
-                className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-slate-900"
+                className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900"
               />
             </div>
 
             <button
               onClick={uploadSignature}
               disabled={uploadingSig}
-              className="mt-4 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
+              className="mt-4 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
             >
               {uploadingSig ? "Saving Signature..." : "Save Signature"}
             </button>
 
             {!sigPath && (
-              <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+              <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
                 You must upload a signature before submitting any request.
               </div>
             )}
@@ -405,7 +534,7 @@ export default function ProfilePage() {
         </div>
 
         <div className="mt-6 grid gap-6 md:grid-cols-2">
-          <div className="rounded-2xl border bg-white p-6 shadow-sm">
+          <div className="rounded-3xl border bg-white p-6 shadow-sm">
             <h2 className="text-lg font-bold text-slate-900">Email</h2>
             <p className="mt-1 text-sm text-slate-600">
               Current: <b className="text-slate-900">{email || "—"}</b>
@@ -416,13 +545,13 @@ export default function ProfilePage() {
               <input
                 value={newEmail}
                 onChange={(e) => setNewEmail(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
+                className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 text-base text-slate-900 outline-none focus:border-blue-500"
               />
             </div>
 
             <button
               onClick={changeEmail}
-              className="mt-4 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 hover:bg-slate-100"
+              className="mt-4 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 hover:bg-slate-100"
             >
               Update Email
             </button>
@@ -432,7 +561,7 @@ export default function ProfilePage() {
             </p>
           </div>
 
-          <div className="rounded-2xl border bg-white p-6 shadow-sm">
+          <div className="rounded-3xl border bg-white p-6 shadow-sm">
             <h2 className="text-lg font-bold text-slate-900">Password</h2>
 
             <div className="mt-4">
@@ -441,7 +570,7 @@ export default function ProfilePage() {
                 type="password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
+                className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 text-base text-slate-900 outline-none focus:border-blue-500"
               />
             </div>
 
@@ -451,13 +580,13 @@ export default function ProfilePage() {
                 type="password"
                 value={confirmNewPassword}
                 onChange={(e) => setConfirmNewPassword(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
+                className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 text-base text-slate-900 outline-none focus:border-blue-500"
               />
             </div>
 
             <button
               onClick={changePassword}
-              className="mt-4 w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-blue-700"
+              className="mt-4 w-full rounded-2xl bg-blue-600 px-4 py-3 text-sm font-bold text-white shadow-sm hover:bg-blue-700"
             >
               Change Password
             </button>
@@ -465,5 +594,36 @@ export default function ProfilePage() {
         </div>
       </div>
     </main>
+  );
+}
+
+function SecurityLine({
+  label,
+  value,
+  ok,
+}: {
+  label: string;
+  value: string;
+  ok: boolean;
+}) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            {label}
+          </div>
+          <div className="mt-1 text-sm font-bold text-slate-900">{value}</div>
+        </div>
+
+        <span
+          className={`shrink-0 rounded-full border px-3 py-1 text-xs font-bold ${securityBadgeClass(
+            ok
+          )}`}
+        >
+          {ok ? "OK" : "Action"}
+        </span>
+      </div>
+    </div>
   );
 }

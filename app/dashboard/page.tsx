@@ -21,12 +21,25 @@ type QuickCard = {
   tone: "blue" | "emerald" | "purple" | "amber" | "red" | "slate";
 };
 
+type SecurityStatus = {
+  hasVerifiedTotp: boolean;
+  currentLevel: string | null;
+  nextLevel: string | null;
+  factorCount: number;
+};
+
 function roleKey(role: string | null | undefined) {
   return (role || "")
     .trim()
     .toLowerCase()
     .replace(/\s+/g, "")
     .replace(/_/g, "");
+}
+
+function securityBadgeClass(ok: boolean) {
+  return ok
+    ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+    : "border-red-200 bg-red-50 text-red-700";
 }
 
 export default function DashboardPage() {
@@ -36,6 +49,12 @@ export default function DashboardPage() {
   const [msg, setMsg] = useState<string | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [deptName, setDeptName] = useState<string>("");
+  const [security, setSecurity] = useState<SecurityStatus>({
+    hasVerifiedTotp: false,
+    currentLevel: null,
+    nextLevel: null,
+    factorCount: 0,
+  });
 
   const rk = roleKey(profile?.role);
 
@@ -43,49 +62,77 @@ export default function DashboardPage() {
   const canFinance = ["admin", "auditor", "account", "accounts", "accountofficer"].includes(rk);
   const canHR = ["admin", "auditor", "hr"].includes(rk);
 
-  useEffect(() => {
-    async function load() {
-      setLoading(true);
-      setMsg(null);
+  const isSessionMfaVerified = security.currentLevel === "aal2";
+  const isMfaSetupComplete = security.hasVerifiedTotp;
 
-      const { data: authData } = await supabase.auth.getUser();
-      const user = authData.user;
+  async function load() {
+    setLoading(true);
+    setMsg(null);
 
-      if (!user) {
-        router.push("/login");
-        return;
-      }
+    const { data: authData } = await supabase.auth.getUser();
+    const user = authData.user;
 
-      const { data: prof, error: profErr } = await supabase
+    if (!user) {
+      router.push("/login");
+      return;
+    }
+
+    const [profRes, factorsRes, aalRes] = await Promise.all([
+      supabase
         .from("profiles")
         .select("id,full_name,role,gender,phone,dept_id,signature_url")
         .eq("id", user.id)
-        .single();
+        .single(),
+      supabase.auth.mfa.listFactors(),
+      supabase.auth.mfa.getAuthenticatorAssuranceLevel(),
+    ]);
 
-      if (profErr) {
-        setMsg("Failed to load profile: " + profErr.message);
-        setLoading(false);
-        return;
-      }
-
-      const profileRow = prof as Profile;
-      setProfile(profileRow);
-
-      if (profileRow.dept_id) {
-        const { data: dept } = await supabase
-          .from("departments")
-          .select("name")
-          .eq("id", profileRow.dept_id)
-          .single();
-
-        if (dept?.name) setDeptName(dept.name);
-      }
-
+    if (profRes.error) {
+      setMsg("Failed to load profile: " + profRes.error.message);
       setLoading(false);
+      return;
     }
 
+    const profileRow = profRes.data as Profile;
+    setProfile(profileRow);
+
+    if (factorsRes.error) {
+      setSecurity({
+        hasVerifiedTotp: false,
+        currentLevel: aalRes.data?.currentLevel || null,
+        nextLevel: aalRes.data?.nextLevel || null,
+        factorCount: 0,
+      });
+    } else {
+      const verifiedTotpFactors = factorsRes.data.totp.filter(
+        (factor) => factor.status === "verified"
+      );
+
+      setSecurity({
+        hasVerifiedTotp: verifiedTotpFactors.length > 0,
+        currentLevel: aalRes.data?.currentLevel || null,
+        nextLevel: aalRes.data?.nextLevel || null,
+        factorCount: verifiedTotpFactors.length,
+      });
+    }
+
+    if (profileRow.dept_id) {
+      const { data: dept } = await supabase
+        .from("departments")
+        .select("name")
+        .eq("id", profileRow.dept_id)
+        .single();
+
+      if (dept?.name) setDeptName(dept.name);
+    }
+
+    setLoading(false);
+  }
+
+  useEffect(() => {
     load();
-  }, [router]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const quickCards = useMemo<QuickCard[]>(() => {
     const cards: QuickCard[] = [
@@ -111,6 +158,18 @@ export default function DashboardPage() {
 
     if (canFinance) {
       cards.push(
+        {
+          title: "Departments",
+          description: "Open department records and finance structure.",
+          href: "/finance/departments",
+          tone: "slate",
+        },
+        {
+          title: "Manage Accounts",
+          description: "Manage IET bank accounts, account officers and balances.",
+          href: "/finance/manage-accounts",
+          tone: "emerald",
+        },
         {
           title: "Subheads / Finance",
           description: "Manage subheads, allocations, reserves, expenditure and balances.",
@@ -145,6 +204,12 @@ export default function DashboardPage() {
           description: "Review finance records and reconciliation activities.",
           href: "/finance/audit",
           tone: "slate",
+        },
+        {
+          title: "Security Checklist",
+          description: "Review MFA, backup, RLS and production security controls.",
+          href: "/admin/security",
+          tone: "red",
         },
         {
           title: "Admin",
@@ -188,12 +253,23 @@ export default function DashboardPage() {
             </p>
           </div>
 
-          <button
-            onClick={() => router.push("/profile")}
-            className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
-          >
-            My Profile
-          </button>
+          <div className="flex flex-wrap gap-2">
+            {isAdmin && (
+              <button
+                onClick={() => router.push("/admin/security")}
+                className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-black"
+              >
+                Security Checklist
+              </button>
+            )}
+
+            <button
+              onClick={() => router.push("/profile")}
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
+            >
+              My Profile
+            </button>
+          </div>
         </div>
 
         {msg && (
@@ -204,40 +280,118 @@ export default function DashboardPage() {
 
         {profile && (
           <>
-            <div className="mt-6 rounded-3xl border bg-white p-6 shadow-sm">
-              <div className="flex flex-wrap items-start justify-between gap-4">
-                <div>
-                  <h2 className="text-xl font-extrabold text-slate-900">
-                    Profile Summary
-                  </h2>
-                  <p className="mt-1 text-sm text-slate-600">
-                    Your account, department and signature status.
-                  </p>
+            <div className="mt-6 grid gap-4 xl:grid-cols-3">
+              <div className="rounded-3xl border bg-white p-6 shadow-sm xl:col-span-2">
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div>
+                    <h2 className="text-xl font-extrabold text-slate-900">
+                      Profile Summary
+                    </h2>
+                    <p className="mt-1 text-sm text-slate-600">
+                      Your account, department and signature status.
+                    </p>
+                  </div>
+
+                  <span className="rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">
+                    {profile.role || "Staff"}
+                  </span>
                 </div>
 
-                <span className="rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">
-                  {profile.role || "Staff"}
-                </span>
-              </div>
-
-              <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                <Info label="Name" value={profile.full_name} />
-                <Info label="Role" value={profile.role} />
-                <Info label="Department" value={deptName || "—"} />
-                <Info label="Gender" value={profile.gender || "—"} />
-                <Info label="Phone" value={profile.phone || "—"} />
-                <Info
-                  label="Signature"
-                  value={profile.signature_url ? "Uploaded ✅" : "Not uploaded ❌"}
-                />
-              </div>
-
-              {!profile.signature_url && (
-                <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-                  You must upload your signature in <b>My Profile</b> before submitting or treating
-                  requests that require signatures.
+                <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                  <Info label="Name" value={profile.full_name} />
+                  <Info label="Role" value={profile.role} />
+                  <Info label="Department" value={deptName || "—"} />
+                  <Info label="Gender" value={profile.gender || "—"} />
+                  <Info label="Phone" value={profile.phone || "—"} />
+                  <Info
+                    label="Signature"
+                    value={profile.signature_url ? "Uploaded ✅" : "Not uploaded ❌"}
+                  />
                 </div>
-              )}
+
+                {!profile.signature_url && (
+                  <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                    You must upload your signature in <b>My Profile</b> before submitting or treating
+                    requests that require signatures.
+                  </div>
+                )}
+              </div>
+
+              <div className="rounded-3xl border bg-white p-6 shadow-sm">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <h2 className="text-xl font-extrabold text-slate-900">
+                      Security Status
+                    </h2>
+                    <p className="mt-1 text-sm text-slate-600">
+                      Your current login and 2FA protection status.
+                    </p>
+                  </div>
+
+                  <span
+                    className={`rounded-full border px-3 py-1 text-xs font-bold ${securityBadgeClass(
+                      isSessionMfaVerified
+                    )}`}
+                  >
+                    {isSessionMfaVerified ? "Secure Session" : "Not Verified"}
+                  </span>
+                </div>
+
+                <div className="mt-5 space-y-3">
+                  <SecurityLine
+                    label="2FA Setup"
+                    value={isMfaSetupComplete ? "Completed" : "Required"}
+                    ok={isMfaSetupComplete}
+                  />
+
+                  <SecurityLine
+                    label="Current Session"
+                    value={isSessionMfaVerified ? "MFA Verified" : "Password Only"}
+                    ok={isSessionMfaVerified}
+                  />
+
+                  <SecurityLine
+                    label="Assurance Level"
+                    value={`${security.currentLevel || "unknown"} → ${security.nextLevel || "unknown"}`}
+                    ok={isSessionMfaVerified}
+                  />
+
+                  <SecurityLine
+                    label="Authenticator Factors"
+                    value={String(security.factorCount)}
+                    ok={security.factorCount > 0}
+                  />
+                </div>
+
+                {!isMfaSetupComplete && (
+                  <button
+                    onClick={() => router.push("/mfa/setup")}
+                    className="mt-5 w-full rounded-2xl bg-blue-600 px-4 py-3 text-sm font-bold text-white hover:bg-blue-700"
+                  >
+                    Set Up 2FA
+                  </button>
+                )}
+
+                {isMfaSetupComplete && !isSessionMfaVerified && (
+                  <button
+                    onClick={() => router.push("/mfa")}
+                    className="mt-5 w-full rounded-2xl bg-blue-600 px-4 py-3 text-sm font-bold text-white hover:bg-blue-700"
+                  >
+                    Verify 2FA
+                  </button>
+                )}
+
+                {isMfaSetupComplete && isSessionMfaVerified && (
+                  <div className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">
+                    Your account is protected with authenticator app 2FA.
+                  </div>
+                )}
+
+                <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs leading-5 text-slate-700">
+                  Do not share your password or authenticator code. ReqGen will automatically log
+                  out inactive users.
+                </div>
+              </div>
             </div>
 
             <div className="mt-6 rounded-3xl border bg-white p-6 shadow-sm">
@@ -272,9 +426,9 @@ export default function DashboardPage() {
             <div className="mt-6 rounded-3xl border border-blue-100 bg-blue-50 p-5 text-sm text-blue-900">
               <div className="font-bold">Dashboard Note</div>
               <p className="mt-1">
-                ReqGen 1.2.0 now supports official requests, personal fund requests, personal
-                non-fund requests, HR filing, payment vouchers, cheque signing workflow, combined
-                vouchers and PV audit reports.
+                ReqGen 1.1.0 supports request workflow, role-based approvals, HR filing, finance
+                subheads, payment vouchers, cheque signing workflow, combined vouchers, audit reports,
+                2FA login protection and inactivity logout.
               </p>
             </div>
           </>
@@ -291,6 +445,37 @@ function Info({ label, value }: { label: string; value: string }) {
         {label}
       </div>
       <div className="mt-1 break-words text-sm font-semibold text-slate-900">{value}</div>
+    </div>
+  );
+}
+
+function SecurityLine({
+  label,
+  value,
+  ok,
+}: {
+  label: string;
+  value: string;
+  ok: boolean;
+}) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            {label}
+          </div>
+          <div className="mt-1 text-sm font-bold text-slate-900">{value}</div>
+        </div>
+
+        <span
+          className={`shrink-0 rounded-full border px-3 py-1 text-xs font-bold ${securityBadgeClass(
+            ok
+          )}`}
+        >
+          {ok ? "OK" : "Action"}
+        </span>
+      </div>
     </div>
   );
 }
