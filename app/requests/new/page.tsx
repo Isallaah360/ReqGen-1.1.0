@@ -48,9 +48,11 @@ export default function NewRequestPage() {
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [checkingMfa, setCheckingMfa] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
   const [me, setMe] = useState<ProfileMini | null>(null);
+  const [mfaVerified, setMfaVerified] = useState(false);
 
   const [requestType, setRequestType] = useState<"Official" | "Personal">("Official");
   const [personalCategory, setPersonalCategory] = useState<"Fund" | "NonFund">("Fund");
@@ -69,6 +71,45 @@ export default function NewRequestPage() {
   const isPersonalFund = requestType === "Personal" && personalCategory === "Fund";
   const isPersonalNonFund = requestType === "Personal" && personalCategory === "NonFund";
 
+  async function checkMfaStatus() {
+    const { data: auth } = await supabase.auth.getUser();
+
+    if (!auth.user) {
+      router.push("/login");
+      return false;
+    }
+
+    const { data, error } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+
+    if (error) {
+      setMfaVerified(false);
+      return false;
+    }
+
+    const ok = data.currentLevel === "aal2";
+    setMfaVerified(ok);
+    return ok;
+  }
+
+  async function requireMfaVerified(actionLabel: string) {
+    setCheckingMfa(true);
+    setMsg(null);
+
+    try {
+      const ok = await checkMfaStatus();
+
+      if (!ok) {
+        setMsg(`❌ 2FA verification is required before you can ${actionLabel}.`);
+        router.push("/mfa?next=/requests/new");
+        return false;
+      }
+
+      return true;
+    } finally {
+      setCheckingMfa(false);
+    }
+  }
+
   async function loadAll() {
     setLoading(true);
     setMsg(null);
@@ -76,6 +117,15 @@ export default function NewRequestPage() {
     const { data: auth } = await supabase.auth.getUser();
     if (!auth.user) {
       router.push("/login");
+      return;
+    }
+
+    const mfaOk = await checkMfaStatus();
+
+    if (!mfaOk) {
+      setMsg("❌ 2FA verification is required before creating a request.");
+      router.push("/mfa?next=/requests/new");
+      setLoading(false);
       return;
     }
 
@@ -176,6 +226,9 @@ export default function NewRequestPage() {
   async function createRequest() {
     setMsg(null);
 
+    const mfaOk = await requireMfaVerified("submit a request");
+    if (!mfaOk) return;
+
     if (!me) {
       return setMsg("❌ Your profile is not loaded.");
     }
@@ -257,7 +310,11 @@ export default function NewRequestPage() {
         throw new Error("Request was submitted but no request ID was returned.");
       }
 
-      setMsg(`✅ Request submitted successfully. Routed to ${(data as any)?.first_stage || "next officer"}.`);
+      setMsg(
+        `✅ Request submitted successfully. Routed to ${
+          (data as any)?.first_stage || "next officer"
+        }.`
+      );
 
       setTitle("");
       setAmount("");
@@ -286,14 +343,47 @@ export default function NewRequestPage() {
   return (
     <main className="min-h-screen bg-slate-50 px-4">
       <div className="mx-auto max-w-5xl py-10">
-        <div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">
-            New Request
-          </h1>
-          <p className="mt-2 text-sm text-slate-600">
-            Official requests are tied to subheads and reserve funds immediately.
-            Personal Fund requests do not affect subhead balances. Personal NonFund requests do not require amount or subhead.
-          </p>
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">
+              New Request
+            </h1>
+            <p className="mt-2 text-sm text-slate-600">
+              Official requests are tied to subheads and reserve funds immediately.
+              Personal Fund requests do not affect subhead balances. Personal NonFund requests do
+              not require amount or subhead.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => router.push("/requests")}
+            className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
+          >
+            Back to Requests
+          </button>
+        </div>
+
+        <div
+          className={`mt-4 rounded-2xl border px-4 py-3 text-sm font-semibold ${
+            mfaVerified
+              ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+              : "border-amber-200 bg-amber-50 text-amber-900"
+          }`}
+        >
+          {mfaVerified
+            ? "✅ 2FA verified. Request submission is enabled for this session."
+            : "⚠️ 2FA verification is required before submitting a request."}
+
+          {!mfaVerified && (
+            <button
+              type="button"
+              onClick={() => router.push("/mfa?next=/requests/new")}
+              className="ml-0 mt-3 block rounded-xl bg-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-blue-700 sm:ml-3 sm:mt-0 sm:inline-block"
+            >
+              Verify 2FA
+            </button>
+          )}
         </div>
 
         {msg && (
@@ -425,15 +515,16 @@ export default function NewRequestPage() {
 
             {isPersonalFund && (
               <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-900 md:col-span-2">
-                Personal Fund Request does not use a subhead and will not deduct from departmental allocation.
-                It will pass through HR, Registry, DG, and then the selected Account Officer for treatment.
+                Personal Fund Request does not use a subhead and will not deduct from departmental
+                allocation. It will pass through HR, Registry, DG, and then the selected Account
+                Officer for treatment.
               </div>
             )}
 
             {isPersonalNonFund && (
               <div className="rounded-xl border border-purple-100 bg-purple-50 px-4 py-3 text-sm text-purple-900 md:col-span-2">
-                Personal NonFund Request does not use subhead or amount. It will pass through HR, Registry,
-                DG, and then return to HR for final filing.
+                Personal NonFund Request does not use subhead or amount. It will pass through HR,
+                Registry, DG, and then return to HR for final filing.
               </div>
             )}
 
@@ -493,11 +584,23 @@ export default function NewRequestPage() {
 
           <button
             onClick={createRequest}
-            disabled={saving}
+            disabled={saving || checkingMfa || !mfaVerified}
             className="mt-5 w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
           >
-            {saving ? "Submitting..." : "Submit Request"}
+            {saving
+              ? "Submitting..."
+              : checkingMfa
+              ? "Checking 2FA..."
+              : mfaVerified
+              ? "Submit Request"
+              : "Verify 2FA Before Submit"}
           </button>
+
+          {!mfaVerified && (
+            <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+              Request submission is locked until 2FA is verified for this session.
+            </div>
+          )}
         </div>
       </div>
     </main>

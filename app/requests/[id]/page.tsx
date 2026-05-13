@@ -55,7 +55,7 @@ type OfficerMini = {
   role: string | null;
 };
 
-function roleKey(role: string) {
+function roleKey(role: string | null | undefined) {
   return (role || "")
     .trim()
     .toLowerCase()
@@ -94,6 +94,9 @@ export default function RequestDetailsPage() {
 
   const [accountOfficers, setAccountOfficers] = useState<OfficerMini[]>([]);
   const [selectedOfficerId, setSelectedOfficerId] = useState("");
+
+  const [mfaVerified, setMfaVerified] = useState(false);
+  const [checkingMfa, setCheckingMfa] = useState(false);
 
   const isMyRequest = useMemo(
     () => !!req && !!me && req.created_by === me.id,
@@ -142,6 +145,45 @@ export default function RequestDetailsPage() {
     return isRegistry && (isOfficial || isPersonalFund);
   }, [req, canAct, isOfficial, isPersonalFund]);
 
+  async function checkMfaStatus() {
+    const { data: auth } = await supabase.auth.getUser();
+
+    if (!auth.user) {
+      router.push("/login");
+      return false;
+    }
+
+    const { data, error } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+
+    if (error) {
+      setMfaVerified(false);
+      return false;
+    }
+
+    const ok = data.currentLevel === "aal2";
+    setMfaVerified(ok);
+    return ok;
+  }
+
+  async function requireMfaVerified(actionLabel: string) {
+    setCheckingMfa(true);
+    setMsg(null);
+
+    try {
+      const ok = await checkMfaStatus();
+
+      if (!ok) {
+        setMsg(`❌ 2FA verification is required before you can ${actionLabel}.`);
+        router.push(`/mfa?next=/requests/${id}`);
+        return false;
+      }
+
+      return true;
+    } finally {
+      setCheckingMfa(false);
+    }
+  }
+
   useEffect(() => {
     async function load() {
       setLoading(true);
@@ -158,6 +200,8 @@ export default function RequestDetailsPage() {
         router.push("/login");
         return;
       }
+
+      await checkMfaStatus();
 
       const { data: myProf, error: myErr } = await supabase
         .from("profiles")
@@ -233,10 +277,13 @@ export default function RequestDetailsPage() {
     }
 
     load();
-  }, [id, router]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
 
   async function reload() {
     if (!id) return;
+
+    await checkMfaStatus();
 
     const { data: r2 } = await supabase
       .from("requests")
@@ -270,8 +317,27 @@ export default function RequestDetailsPage() {
     }
   }
 
+  async function goToEdit() {
+    if (!req) return;
+
+    if (!canEditDelete) {
+      setMsg("❌ You can only edit while request is still at Director/HOD.");
+      return;
+    }
+
+    const ok = await requireMfaVerified("edit this request");
+    if (!ok) return;
+
+    router.push(`/requests/${req.id}/edit`);
+  }
+
   async function act(action: "Approve" | "Reject") {
     if (!req || !me) return;
+
+    const okMfa = await requireMfaVerified(
+      action === "Approve" ? "approve this request" : "reject this request"
+    );
+    if (!okMfa) return;
 
     if (!me.signature_url) {
       setMsg("❌ You must upload your signature in Profile before taking actions.");
@@ -351,6 +417,9 @@ export default function RequestDetailsPage() {
   async function deleteRequest() {
     if (!req) return;
 
+    const okMfa = await requireMfaVerified("delete this request");
+    if (!okMfa) return;
+
     if (!canEditDelete) {
       setMsg("❌ You can only delete while request is still at Director/HOD.");
       return;
@@ -379,12 +448,12 @@ export default function RequestDetailsPage() {
   }
 
   const approveButtonText = useMemo(() => {
-    if (saving) return "Processing...";
+    if (saving || checkingMfa) return "Processing...";
     if (needsAccountOfficerSelection) return "Send to DG";
     if (isHRFiling) return "Complete Filing";
     if ((req?.current_stage || "").toUpperCase() === "ACCOUNT") return "Treat / Pay";
     return "Approve";
-  }, [saving, needsAccountOfficerSelection, isHRFiling, req?.current_stage]);
+  }, [saving, checkingMfa, needsAccountOfficerSelection, isHRFiling, req?.current_stage]);
 
   if (loading) {
     return (
@@ -416,6 +485,18 @@ export default function RequestDetailsPage() {
               Back
             </button>
           </div>
+        </div>
+
+        <div
+          className={`mt-4 rounded-2xl border px-4 py-3 text-sm font-semibold ${
+            mfaVerified
+              ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+              : "border-amber-200 bg-amber-50 text-amber-900"
+          }`}
+        >
+          {mfaVerified
+            ? "✅ 2FA verified. Sensitive actions are enabled for this session."
+            : "⚠️ 2FA verification is required before approve, reject, edit, or delete actions."}
         </div>
 
         {msg && (
@@ -462,10 +543,7 @@ export default function RequestDetailsPage() {
               </div>
 
               <div className="mt-4 grid gap-4 md:grid-cols-2">
-                <Info
-                  label="Type"
-                  value={requestTypeLabel(req)}
-                />
+                <Info label="Type" value={requestTypeLabel(req)} />
 
                 <Info
                   label="Subhead"
@@ -512,17 +590,18 @@ export default function RequestDetailsPage() {
               {canEditDelete && (
                 <div className="mt-5 flex flex-col gap-2 sm:flex-row">
                   <button
-                    onClick={() => router.push(`/requests/${req.id}/edit`)}
-                    className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 hover:bg-slate-100"
+                    onClick={goToEdit}
+                    disabled={saving || checkingMfa}
+                    className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
                   >
-                    Edit
+                    {checkingMfa ? "Checking 2FA..." : "Edit"}
                   </button>
                   <button
                     onClick={deleteRequest}
-                    disabled={saving}
+                    disabled={saving || checkingMfa}
                     className="w-full rounded-xl bg-red-600 px-4 py-3 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-60"
                   >
-                    {saving ? "Working..." : "Delete"}
+                    {saving || checkingMfa ? "Working..." : "Delete"}
                   </button>
                 </div>
               )}
@@ -537,7 +616,7 @@ export default function RequestDetailsPage() {
             <div className="mt-6 rounded-2xl border bg-white p-6 shadow-sm">
               <h2 className="text-lg font-bold text-slate-900">Actions</h2>
               <p className="mt-1 text-sm text-slate-600">
-                Only the assigned officer can approve/reject. All actions require signature.
+                Only the assigned officer can approve/reject. All sensitive actions require signature and 2FA verification.
               </p>
 
               {!canAct ? (
@@ -546,6 +625,19 @@ export default function RequestDetailsPage() {
                 </div>
               ) : (
                 <>
+                  {!mfaVerified && (
+                    <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+                      2FA is required before approval or rejection.
+                      <button
+                        type="button"
+                        onClick={() => router.push(`/mfa?next=/requests/${id}`)}
+                        className="mt-3 rounded-xl bg-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-blue-700"
+                      >
+                        Verify 2FA
+                      </button>
+                    </div>
+                  )}
+
                   {needsAccountOfficerSelection && (
                     <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50 p-4">
                       <label className="text-sm font-semibold text-slate-800">
@@ -594,7 +686,7 @@ export default function RequestDetailsPage() {
                   <div className="mt-4 flex flex-col gap-2 sm:flex-row">
                     <button
                       onClick={() => act("Approve")}
-                      disabled={saving}
+                      disabled={saving || checkingMfa}
                       className="w-full rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 disabled:opacity-60"
                     >
                       {approveButtonText}
@@ -602,10 +694,10 @@ export default function RequestDetailsPage() {
 
                     <button
                       onClick={() => act("Reject")}
-                      disabled={saving}
+                      disabled={saving || checkingMfa}
                       className="w-full rounded-xl bg-red-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-red-700 disabled:opacity-60"
                     >
-                      {saving ? "Processing..." : "Reject"}
+                      {saving || checkingMfa ? "Processing..." : "Reject"}
                     </button>
                   </div>
                 </>

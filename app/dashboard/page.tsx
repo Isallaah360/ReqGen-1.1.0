@@ -256,16 +256,18 @@ export default function DashboardPage() {
           <div className="flex flex-wrap gap-2">
             {isAdmin && (
               <button
+                type="button"
                 onClick={() => router.push("/admin/security")}
-                className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-black"
+                className="inline-flex items-center justify-center rounded-xl bg-blue-600 px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700"
               >
                 Security Checklist
               </button>
             )}
 
             <button
+              type="button"
               onClick={() => router.push("/profile")}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-100"
             >
               My Profile
             </button>
@@ -352,7 +354,9 @@ export default function DashboardPage() {
 
                   <SecurityLine
                     label="Assurance Level"
-                    value={`${security.currentLevel || "unknown"} → ${security.nextLevel || "unknown"}`}
+                    value={`${security.currentLevel || "unknown"} → ${
+                      security.nextLevel || "unknown"
+                    }`}
                     ok={isSessionMfaVerified}
                   />
 
@@ -365,6 +369,7 @@ export default function DashboardPage() {
 
                 {!isMfaSetupComplete && (
                   <button
+                    type="button"
                     onClick={() => router.push("/mfa/setup")}
                     className="mt-5 w-full rounded-2xl bg-blue-600 px-4 py-3 text-sm font-bold text-white hover:bg-blue-700"
                   >
@@ -374,6 +379,7 @@ export default function DashboardPage() {
 
                 {isMfaSetupComplete && !isSessionMfaVerified && (
                   <button
+                    type="button"
                     onClick={() => router.push("/mfa")}
                     className="mt-5 w-full rounded-2xl bg-blue-600 px-4 py-3 text-sm font-bold text-white hover:bg-blue-700"
                   >
