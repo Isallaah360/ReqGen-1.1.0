@@ -48,11 +48,15 @@ export default function NewRequestPage() {
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [checkingMfa, setCheckingMfa] = useState(false);
+  const [verifyingCode, setVerifyingCode] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
   const [me, setMe] = useState<ProfileMini | null>(null);
-  const [mfaVerified, setMfaVerified] = useState(false);
+  const [hasVerifiedTotp, setHasVerifiedTotp] = useState(false);
+  const [totpFactorId, setTotpFactorId] = useState<string | null>(null);
+
+  const [showMfaModal, setShowMfaModal] = useState(false);
+  const [mfaCode, setMfaCode] = useState("");
 
   const [requestType, setRequestType] = useState<"Official" | "Personal">("Official");
   const [personalCategory, setPersonalCategory] = useState<"Fund" | "NonFund">("Fund");
@@ -71,7 +75,7 @@ export default function NewRequestPage() {
   const isPersonalFund = requestType === "Personal" && personalCategory === "Fund";
   const isPersonalNonFund = requestType === "Personal" && personalCategory === "NonFund";
 
-  async function checkMfaStatus() {
+  async function loadMfaFactors() {
     const { data: auth } = await supabase.auth.getUser();
 
     if (!auth.user) {
@@ -79,35 +83,20 @@ export default function NewRequestPage() {
       return false;
     }
 
-    const { data, error } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    const { data, error } = await supabase.auth.mfa.listFactors();
 
     if (error) {
-      setMfaVerified(false);
+      setHasVerifiedTotp(false);
+      setTotpFactorId(null);
       return false;
     }
 
-    const ok = data.currentLevel === "aal2";
-    setMfaVerified(ok);
-    return ok;
-  }
+    const verifiedFactor = data.totp.find((factor) => factor.status === "verified");
 
-  async function requireMfaVerified(actionLabel: string) {
-    setCheckingMfa(true);
-    setMsg(null);
+    setHasVerifiedTotp(Boolean(verifiedFactor));
+    setTotpFactorId(verifiedFactor?.id || null);
 
-    try {
-      const ok = await checkMfaStatus();
-
-      if (!ok) {
-        setMsg(`❌ 2FA verification is required before you can ${actionLabel}.`);
-        router.push("/mfa?next=/requests/new");
-        return false;
-      }
-
-      return true;
-    } finally {
-      setCheckingMfa(false);
-    }
+    return Boolean(verifiedFactor);
   }
 
   async function loadAll() {
@@ -120,11 +109,11 @@ export default function NewRequestPage() {
       return;
     }
 
-    const mfaOk = await checkMfaStatus();
+    const has2fa = await loadMfaFactors();
 
-    if (!mfaOk) {
-      setMsg("❌ 2FA verification is required before creating a request.");
-      router.push("/mfa?next=/requests/new");
+    if (!has2fa) {
+      setMsg("❌ You must set up 2FA before creating requests.");
+      router.push("/mfa/setup");
       setLoading(false);
       return;
     }
@@ -223,71 +212,146 @@ export default function NewRequestPage() {
     return allocation - reserved - expenditure;
   }, [selectedSubhead]);
 
-  async function createRequest() {
-    setMsg(null);
-
-    const mfaOk = await requireMfaVerified("submit a request");
-    if (!mfaOk) return;
+  function validateRequestForm() {
+    if (!hasVerifiedTotp || !totpFactorId) {
+      setMsg("❌ You must set up 2FA before submitting requests.");
+      router.push("/mfa/setup");
+      return false;
+    }
 
     if (!me) {
-      return setMsg("❌ Your profile is not loaded.");
+      setMsg("❌ Your profile is not loaded.");
+      return false;
     }
 
     if (!me.full_name || !me.full_name.trim()) {
-      return setMsg("❌ Please update your full name in Profile before creating request.");
+      setMsg("❌ Please update your full name in Profile before creating request.");
+      return false;
     }
 
     if (!me.signature_url || !me.signature_url.trim()) {
-      return setMsg("❌ Please upload your signature in Profile before creating request.");
+      setMsg("❌ Please upload your signature in Profile before creating request.");
+      return false;
     }
 
     if (!deptId) {
-      return setMsg("❌ Please select department.");
+      setMsg("❌ Please select department.");
+      return false;
     }
 
     if (!title.trim()) {
-      return setMsg("❌ Please enter title.");
+      setMsg("❌ Please enter title.");
+      return false;
     }
 
     if (!details.trim()) {
-      return setMsg("❌ Please enter details.");
+      setMsg("❌ Please enter details.");
+      return false;
     }
 
     const amt = isPersonalNonFund ? 0 : Number(amount || 0);
 
     if ((isOfficial || isPersonalFund) && (!amt || amt <= 0)) {
-      return setMsg("❌ Enter a valid amount.");
+      setMsg("❌ Enter a valid amount.");
+      return false;
     }
 
     if (isOfficial && !subheadId) {
-      return setMsg("❌ Please select subhead for Official Request.");
+      setMsg("❌ Please select subhead for Official Request.");
+      return false;
     }
 
     if (isOfficial && !selectedSubhead) {
-      return setMsg("❌ Selected subhead not found.");
+      setMsg("❌ Selected subhead not found.");
+      return false;
     }
 
     if (isOfficial && amt > availableBalance) {
-      return setMsg(`❌ Amount exceeds available balance (${naira(availableBalance)}).`);
+      setMsg(`❌ Amount exceeds available balance (${naira(availableBalance)}).`);
+      return false;
     }
 
     const dept = depts.find((d) => d.id === deptId);
     if (!dept) {
-      return setMsg("❌ Department not found.");
+      setMsg("❌ Department not found.");
+      return false;
     }
 
     const firstOwner = dept.director_user_id || dept.hod_user_id || null;
     const firstStage = dept.director_user_id ? "Director" : dept.hod_user_id ? "HOD" : null;
 
     if (!firstOwner || !firstStage) {
-      return setMsg("❌ This department does not have Director/HOD routing set yet in Admin Panel.");
+      setMsg("❌ This department does not have Director/HOD routing set yet in Admin Panel.");
+      return false;
     }
+
+    return true;
+  }
+
+  async function openSubmitVerification() {
+    setMsg(null);
+
+    const ok = validateRequestForm();
+    if (!ok) return;
+
+    setMfaCode("");
+    setShowMfaModal(true);
+  }
+
+  async function verifyCodeAndSubmit() {
+    setMsg(null);
+
+    if (!totpFactorId) {
+      setMsg("❌ No verified 2FA authenticator found. Please set up 2FA again.");
+      setShowMfaModal(false);
+      router.push("/mfa/setup");
+      return;
+    }
+
+    const code = mfaCode.trim().replace(/\s+/g, "");
+
+    if (!/^\d{6}$/.test(code)) {
+      setMsg("❌ Enter the 6-digit code from your authenticator app.");
+      return;
+    }
+
+    setVerifyingCode(true);
+
+    try {
+      const { error } = await supabase.auth.mfa.challengeAndVerify({
+        factorId: totpFactorId,
+        code,
+      });
+
+      if (error) throw new Error(error.message);
+
+      setShowMfaModal(false);
+      setMfaCode("");
+
+      await submitRequestAfterFresh2fa();
+    } catch (e: any) {
+      setMsg("❌ 2FA verification failed: " + (e?.message || "Invalid code."));
+    } finally {
+      setVerifyingCode(false);
+    }
+  }
+
+  async function submitRequestAfterFresh2fa() {
+    if (!me) {
+      setMsg("❌ Your profile is not loaded.");
+      return;
+    }
+
+    const stillValid = validateRequestForm();
+    if (!stillValid) return;
+
+    const amt = isPersonalNonFund ? 0 : Number(amount || 0);
 
     setSaving(true);
 
     try {
       const requestNo = buildRequestNo();
-      const requesterName = me.full_name.trim();
+      const requesterName = me.full_name!.trim();
 
       const { data, error } = await supabase.rpc("submit_request_with_reservation", {
         p_title: title.trim(),
@@ -311,7 +375,7 @@ export default function NewRequestPage() {
       }
 
       setMsg(
-        `✅ Request submitted successfully. Routed to ${
+        `✅ Request submitted successfully after 2FA verification. Routed to ${
           (data as any)?.first_stage || "next officer"
         }.`
       );
@@ -349,9 +413,7 @@ export default function NewRequestPage() {
               New Request
             </h1>
             <p className="mt-2 text-sm text-slate-600">
-              Official requests are tied to subheads and reserve funds immediately.
-              Personal Fund requests do not affect subhead balances. Personal NonFund requests do
-              not require amount or subhead.
+              Every request submission requires a fresh 2FA code before it can be saved and routed.
             </p>
           </div>
 
@@ -364,26 +426,9 @@ export default function NewRequestPage() {
           </button>
         </div>
 
-        <div
-          className={`mt-4 rounded-2xl border px-4 py-3 text-sm font-semibold ${
-            mfaVerified
-              ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-              : "border-amber-200 bg-amber-50 text-amber-900"
-          }`}
-        >
-          {mfaVerified
-            ? "✅ 2FA verified. Request submission is enabled for this session."
-            : "⚠️ 2FA verification is required before submitting a request."}
-
-          {!mfaVerified && (
-            <button
-              type="button"
-              onClick={() => router.push("/mfa?next=/requests/new")}
-              className="ml-0 mt-3 block rounded-xl bg-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-blue-700 sm:ml-3 sm:mt-0 sm:inline-block"
-            >
-              Verify 2FA
-            </button>
-          )}
+        <div className="mt-4 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-900">
+          2FA protection is active. You must enter your authenticator code when submitting this
+          request.
         </div>
 
         {msg && (
@@ -395,9 +440,7 @@ export default function NewRequestPage() {
         <div className="mt-6 rounded-2xl border bg-white p-6 shadow-sm">
           <div className="grid gap-4 md:grid-cols-2">
             <div>
-              <label className="text-sm font-semibold text-slate-800">
-                Request Type
-              </label>
+              <label className="text-sm font-semibold text-slate-800">Request Type</label>
               <select
                 value={requestType}
                 onChange={(e) => {
@@ -406,7 +449,6 @@ export default function NewRequestPage() {
 
                   if (v === "Official") {
                     setPersonalCategory("Fund");
-
                     const first = filteredSubs[0];
                     setSubheadId(first?.id || "");
                   } else {
@@ -444,9 +486,7 @@ export default function NewRequestPage() {
             )}
 
             <div>
-              <label className="text-sm font-semibold text-slate-800">
-                Department
-              </label>
+              <label className="text-sm font-semibold text-slate-800">Department</label>
               <select
                 value={deptId}
                 onChange={(e) => setDeptId(e.target.value)}
@@ -462,9 +502,7 @@ export default function NewRequestPage() {
 
             {isOfficial && (
               <div>
-                <label className="text-sm font-semibold text-slate-800">
-                  Subhead
-                </label>
+                <label className="text-sm font-semibold text-slate-800">Subhead</label>
                 <select
                   value={subheadId}
                   onChange={(e) => setSubheadId(e.target.value)}
@@ -529,9 +567,7 @@ export default function NewRequestPage() {
             )}
 
             <div>
-              <label className="text-sm font-semibold text-slate-800">
-                Title
-              </label>
+              <label className="text-sm font-semibold text-slate-800">Title</label>
               <input
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
@@ -542,9 +578,7 @@ export default function NewRequestPage() {
 
             {(isOfficial || isPersonalFund) && (
               <div>
-                <label className="text-sm font-semibold text-slate-800">
-                  Amount (₦)
-                </label>
+                <label className="text-sm font-semibold text-slate-800">Amount (₦)</label>
                 <input
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
@@ -557,9 +591,7 @@ export default function NewRequestPage() {
 
             {isPersonalNonFund && (
               <div>
-                <label className="text-sm font-semibold text-slate-800">
-                  Amount
-                </label>
+                <label className="text-sm font-semibold text-slate-800">Amount</label>
                 <input
                   value="Not Applicable"
                   readOnly
@@ -570,9 +602,7 @@ export default function NewRequestPage() {
             )}
 
             <div className="md:col-span-2">
-              <label className="text-sm font-semibold text-slate-800">
-                Details
-              </label>
+              <label className="text-sm font-semibold text-slate-800">Details</label>
               <textarea
                 value={details}
                 onChange={(e) => setDetails(e.target.value)}
@@ -583,26 +613,70 @@ export default function NewRequestPage() {
           </div>
 
           <button
-            onClick={createRequest}
-            disabled={saving || checkingMfa || !mfaVerified}
+            onClick={openSubmitVerification}
+            disabled={saving || verifyingCode}
             className="mt-5 w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
           >
             {saving
               ? "Submitting..."
-              : checkingMfa
-              ? "Checking 2FA..."
-              : mfaVerified
-              ? "Submit Request"
-              : "Verify 2FA Before Submit"}
+              : verifyingCode
+              ? "Verifying 2FA..."
+              : "Submit Request with 2FA"}
           </button>
-
-          {!mfaVerified && (
-            <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-              Request submission is locked until 2FA is verified for this session.
-            </div>
-          )}
         </div>
       </div>
+
+      {showMfaModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl">
+            <div className="text-xs font-black uppercase tracking-wide text-blue-700">
+              Required Security Verification
+            </div>
+
+            <h2 className="mt-1 text-2xl font-extrabold text-slate-900">
+              Enter 2FA Code
+            </h2>
+
+            <p className="mt-2 text-sm leading-6 text-slate-600">
+              Enter the 6-digit code from your authenticator app. This request will not be submitted
+              until the code is verified.
+            </p>
+
+            <input
+              value={mfaCode}
+              onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+              inputMode="numeric"
+              autoFocus
+              placeholder="123456"
+              className="mt-5 w-full rounded-2xl border border-slate-200 px-4 py-4 text-center text-2xl font-black tracking-[0.35em] text-slate-900 outline-none focus:border-blue-500"
+            />
+
+            <div className="mt-5 flex flex-col gap-2 sm:flex-row">
+              <button
+                type="button"
+                onClick={() => {
+                  if (verifyingCode || saving) return;
+                  setShowMfaModal(false);
+                  setMfaCode("");
+                }}
+                disabled={verifyingCode || saving}
+                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                onClick={verifyCodeAndSubmit}
+                disabled={verifyingCode || saving || mfaCode.trim().length !== 6}
+                className="w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white hover:bg-blue-700 disabled:opacity-60"
+              >
+                {verifyingCode || saving ? "Verifying..." : "Verify & Submit"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
