@@ -4,10 +4,10 @@ import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
-const INACTIVITY_LIMIT_MS = 30 * 60 * 1000;
-const WARNING_BEFORE_LOGOUT_MS = 2 * 60 * 1000;
+const INACTIVITY_LIMIT_MS = 3 * 60 * 1000;
+const WARNING_BEFORE_LOGOUT_MS = 30 * 1000;
 
-const PUBLIC_PATHS = ["/", "/login", "/signup", "/forgot-password", "/reset-password"];
+const PUBLIC_PATHS = ["/", "/login", "/signup", "/forgot-password", "/reset-password", "/mfa", "/mfa/setup"];
 
 function isPublicPath(pathname: string) {
   if (PUBLIC_PATHS.includes(pathname)) return true;
@@ -19,7 +19,7 @@ export default function SessionTimeout() {
   const pathname = usePathname();
 
   const [warningVisible, setWarningVisible] = useState(false);
-  const [secondsLeft, setSecondsLeft] = useState(120);
+  const [secondsLeft, setSecondsLeft] = useState(30);
 
   const lastActivityRef = useRef<number>(Date.now());
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -45,7 +45,7 @@ export default function SessionTimeout() {
 
     lastActivityRef.current = Date.now();
     setWarningVisible(false);
-    setSecondsLeft(120);
+    setSecondsLeft(30);
 
     if (countdownRef.current) {
       clearInterval(countdownRef.current);

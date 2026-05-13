@@ -1,11 +1,29 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
 
 export default function LoginPage() {
+  return (
+    <Suspense fallback={<LoginLoading />}>
+      <LoginPageContent />
+    </Suspense>
+  );
+}
+
+function LoginLoading() {
+  return (
+    <main className="min-h-screen bg-slate-50 px-4">
+      <div className="mx-auto max-w-md py-16 text-slate-600">
+        Loading secure login...
+      </div>
+    </main>
+  );
+}
+
+function LoginPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -120,9 +138,11 @@ export default function LoginPage() {
             <div className="text-xs font-black uppercase tracking-wide text-blue-700">
               ReqGen 1.1.0 Secure Access
             </div>
+
             <h1 className="mt-1 text-3xl font-extrabold tracking-tight text-slate-900">
               Login
             </h1>
+
             <p className="mt-2 text-sm leading-6 text-slate-600">
               Sign in with your email and password. If 2FA is enabled or required, you will be
               asked for your authenticator code before accessing the system.
