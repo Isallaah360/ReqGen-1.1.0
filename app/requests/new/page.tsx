@@ -12,10 +12,23 @@ type Dept = {
   is_active?: boolean | null;
 };
 
+type Subhead = {
+  id: string;
+  dept_id: string;
+  code: string | null;
+  name: string;
+  approved_allocation: number | null;
+  balance: number | null;
+  expenditure: number | null;
+  reserved_amount: number | null;
+  is_active: boolean | null;
+};
+
 type ProfileMini = {
   id: string;
   full_name: string | null;
   email: string | null;
+  role: string | null;
   signature_url: string | null;
 };
 
@@ -24,6 +37,18 @@ type RequestClass = "Financial" | "NonFinancial";
 const MAX_ATTACHMENTS = 50;
 const MAX_FILE_SIZE_MB = 10;
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
+
+function roleKey(role: string | null | undefined) {
+  return (role || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "")
+    .replace(/_/g, "");
+}
+
+function naira(n: number) {
+  return "₦" + Math.round(Number(n || 0)).toLocaleString();
+}
 
 function buildRequestNo() {
   const now = new Date();
@@ -80,7 +105,9 @@ export default function NewRequestPage() {
   const [requestClass, setRequestClass] = useState<RequestClass>("Financial");
 
   const [depts, setDepts] = useState<Dept[]>([]);
+  const [subs, setSubs] = useState<Subhead[]>([]);
   const [deptId, setDeptId] = useState("");
+  const [subheadId, setSubheadId] = useState("");
 
   const [title, setTitle] = useState("");
   const [amount, setAmount] = useState("");
@@ -90,12 +117,45 @@ export default function NewRequestPage() {
   const [signedRequest, setSignedRequest] = useState(false);
   const [signedAt, setSignedAt] = useState<string | null>(null);
 
+  const rk = roleKey(me?.role);
+
+  const canSeeSubheads = [
+    "admin",
+    "auditor",
+    "director",
+    "hod",
+    "hr",
+    "registry",
+    "dg",
+    "account",
+    "accounts",
+    "accountofficer",
+  ].includes(rk);
+
   const isFinancial = requestClass === "Financial";
   const isNonFinancial = requestClass === "NonFinancial";
+
+  const filteredSubs = useMemo(() => {
+    return subs.filter((s) => s.dept_id === deptId);
+  }, [subs, deptId]);
+
+  const selectedSubhead = useMemo(() => {
+    return subs.find((s) => s.id === subheadId) || null;
+  }, [subs, subheadId]);
 
   const totalAttachmentSize = useMemo(() => {
     return attachments.reduce((sum, file) => sum + file.size, 0);
   }, [attachments]);
+
+  const availableBalance = useMemo(() => {
+    if (!selectedSubhead) return 0;
+
+    const allocation = Number(selectedSubhead.approved_allocation || 0);
+    const reserved = Number(selectedSubhead.reserved_amount || 0);
+    const expenditure = Number(selectedSubhead.expenditure || 0);
+
+    return allocation - reserved - expenditure;
+  }, [selectedSubhead]);
 
   const canSubmit = useMemo(() => {
     return signedRequest && !saving && !verifyingCode && !uploadingAttachments;
@@ -147,7 +207,7 @@ export default function NewRequestPage() {
 
     const { data: prof, error: profErr } = await supabase
       .from("profiles")
-      .select("id,full_name,email,signature_url")
+      .select("id,full_name,email,role,signature_url")
       .eq("id", auth.user.id)
       .single();
 
@@ -174,8 +234,27 @@ export default function NewRequestPage() {
     const deptList = (deptRows || []) as Dept[];
     setDepts(deptList);
 
+    const { data: subRows, error: subErr } = await supabase
+      .from("subheads")
+      .select("id,dept_id,code,name,approved_allocation,balance,expenditure,reserved_amount,is_active")
+      .eq("is_active", true)
+      .order("name", { ascending: true });
+
+    if (subErr) {
+      setMsg("Failed to load subheads: " + subErr.message);
+      setLoading(false);
+      return;
+    }
+
+    const subList = (subRows || []) as Subhead[];
+    setSubs(subList);
+
     if (deptList.length > 0) {
-      setDeptId(deptList[0].id);
+      const firstDept = deptList[0];
+      setDeptId(firstDept.id);
+
+      const firstSub = subList.find((s) => s.dept_id === firstDept.id);
+      setSubheadId(firstSub?.id || "");
     }
 
     setLoading(false);
@@ -189,13 +268,20 @@ export default function NewRequestPage() {
   useEffect(() => {
     if (isNonFinancial) {
       setAmount("");
+      setSubheadId("");
+      return;
     }
-  }, [isNonFinancial]);
+
+    if (isFinancial && canSeeSubheads) {
+      const first = filteredSubs[0];
+      setSubheadId(first?.id || "");
+    }
+  }, [isNonFinancial, isFinancial, canSeeSubheads, filteredSubs]);
 
   useEffect(() => {
     setSignedRequest(false);
     setSignedAt(null);
-  }, [requestClass, deptId, title, amount, details, attachments.length]);
+  }, [requestClass, deptId, subheadId, title, amount, details, attachments.length]);
 
   function handleAttachmentSelect(files: FileList | null) {
     setMsg(null);
@@ -250,6 +336,12 @@ export default function NewRequestPage() {
     return "NonFund";
   }
 
+  function selectedSubheadForSubmission() {
+    if (!isFinancial) return null;
+    if (!canSeeSubheads) return null;
+    return subheadId || null;
+  }
+
   function validateRequestForm(showMessage = true) {
     if (!hasVerifiedTotp || !totpFactorId) {
       if (showMessage) {
@@ -293,6 +385,13 @@ export default function NewRequestPage() {
 
     if (isFinancial && (!amt || amt <= 0)) {
       if (showMessage) setMsg("❌ Enter a valid amount for this financial request.");
+      return false;
+    }
+
+    if (isFinancial && canSeeSubheads && subheadId && selectedSubhead && amt > availableBalance) {
+      if (showMessage) {
+        setMsg(`❌ Amount exceeds available balance for selected subhead (${naira(availableBalance)}).`);
+      }
       return false;
     }
 
@@ -459,6 +558,7 @@ export default function NewRequestPage() {
     const amt = isFinancial ? Number(amount || 0) : 0;
     const requestNo = buildRequestNo();
     const requesterName = me.full_name!.trim();
+    const submitSubheadId = selectedSubheadForSubmission();
 
     setSaving(true);
 
@@ -468,7 +568,7 @@ export default function NewRequestPage() {
         p_details: details.trim(),
         p_amount: amt,
         p_dept_id: deptId,
-        p_subhead_id: null,
+        p_subhead_id: submitSubheadId,
         p_request_type: getLegacyRequestType(),
         p_personal_category: getLegacyPersonalCategory(),
         p_created_by: me.id,
@@ -492,10 +592,18 @@ export default function NewRequestPage() {
         uploadedCount = result.uploaded;
       }
 
+      const fundsState = (data as any)?.funds_state || "";
+      const subheadNote =
+        isFinancial && !submitSubheadId
+          ? "Subhead assignment is pending Director/HOD review. "
+          : fundsState === "Reserved"
+          ? "Funds reserved from selected subhead. "
+          : "";
+
       setMsg(
         `✅ ${
           isFinancial ? "Financial request" : "Non-financial request"
-        } signed and submitted successfully after 2FA verification. ${
+        } signed and submitted successfully after 2FA verification. ${subheadNote}${
           uploadedCount > 0 ? `${uploadedCount} attachment(s) uploaded. ` : ""
         }Routed to ${(data as any)?.first_stage || "next officer"}.`
       );
@@ -538,8 +646,8 @@ export default function NewRequestPage() {
               New Request
             </h1>
             <p className="mt-2 text-sm text-slate-600">
-              Staff submit requests without seeing subheads or balances. Director/HOD will assign
-              the appropriate finance subhead where required.
+              Staff submit requests without seeing subheads or balances. Authorized finance and
+              approval roles may select subheads where required.
             </p>
           </div>
 
@@ -556,6 +664,19 @@ export default function NewRequestPage() {
           2FA protection is active. You must sign this request first, then enter your authenticator
           code to submit. Attachments will be checked individually by each approving officer.
         </div>
+
+        {!canSeeSubheads && (
+          <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
+            Your role is Staff. Financial subhead and balance information are hidden. Director/HOD
+            will assign the correct subhead during review.
+          </div>
+        )}
+
+        {canSeeSubheads && (
+          <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">
+            Your role permits finance visibility. You can select a subhead for Financial Requests.
+          </div>
+        )}
 
         {msg && (
           <div className="mt-4 rounded-xl bg-slate-100 px-3 py-2 text-sm text-slate-800">
@@ -575,6 +696,7 @@ export default function NewRequestPage() {
 
                   if (v === "NonFinancial") {
                     setAmount("");
+                    setSubheadId("");
                   }
                 }}
                 className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
@@ -601,8 +723,10 @@ export default function NewRequestPage() {
 
             {isFinancial && (
               <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-900 md:col-span-2">
-                Financial Request is money-related. The approving Director/HOD will review and
-                assign the appropriate subhead before the request continues.
+                Financial Request is money-related.{" "}
+                {canSeeSubheads
+                  ? "You may select the appropriate subhead now. If no subhead is selected, it will remain pending assignment."
+                  : "The approving Director/HOD will review and assign the appropriate subhead before the request continues."}
               </div>
             )}
 
@@ -610,6 +734,58 @@ export default function NewRequestPage() {
               <div className="rounded-xl border border-purple-100 bg-purple-50 px-4 py-3 text-sm text-purple-900 md:col-span-2">
                 Non-Financial Request does not require amount or subhead. It will follow the
                 administrative review and filing flow.
+              </div>
+            )}
+
+            {isFinancial && canSeeSubheads && (
+              <div className="md:col-span-2">
+                <label className="text-sm font-semibold text-slate-800">
+                  Subhead / Budget Line
+                </label>
+                <select
+                  value={subheadId}
+                  onChange={(e) => setSubheadId(e.target.value)}
+                  className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
+                >
+                  <option value="">No subhead now — assign later</option>
+                  {filteredSubs.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {(s.code ? `${s.code} — ` : "") + s.name}
+                    </option>
+                  ))}
+                </select>
+
+                {subheadId && selectedSubhead && (
+                  <div className="mt-3 grid gap-2 text-sm font-semibold text-slate-700 sm:grid-cols-4">
+                    <div className="rounded-xl bg-slate-50 p-3">
+                      <div className="text-xs text-slate-500">Allocation</div>
+                      <div className="mt-1 text-slate-900">
+                        {naira(Number(selectedSubhead.approved_allocation || 0))}
+                      </div>
+                    </div>
+
+                    <div className="rounded-xl bg-amber-50 p-3">
+                      <div className="text-xs text-amber-700">Reserved</div>
+                      <div className="mt-1 text-amber-800">
+                        {naira(Number(selectedSubhead.reserved_amount || 0))}
+                      </div>
+                    </div>
+
+                    <div className="rounded-xl bg-red-50 p-3">
+                      <div className="text-xs text-red-700">Expenditure</div>
+                      <div className="mt-1 text-red-800">
+                        {naira(Number(selectedSubhead.expenditure || 0))}
+                      </div>
+                    </div>
+
+                    <div className="rounded-xl bg-emerald-50 p-3">
+                      <div className="text-xs text-emerald-700">Available Balance</div>
+                      <div className="mt-1 text-emerald-800">
+                        {naira(availableBalance)}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
