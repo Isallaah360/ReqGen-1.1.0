@@ -31,6 +31,10 @@ type ProfileMini = {
   signature_url: string | null;
 };
 
+const MAX_ATTACHMENTS = 50;
+const MAX_FILE_SIZE_MB = 10;
+const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
+
 function naira(n: number) {
   return "₦" + Math.round(n || 0).toLocaleString();
 }
@@ -43,12 +47,41 @@ function buildRequestNo() {
   return `REQ-${y}${m}-${t}`;
 }
 
+function cleanFileName(name: string) {
+  const parts = name.split(".");
+  const ext = parts.length > 1 ? parts.pop() || "" : "";
+  const base = parts.join(".") || "attachment";
+
+  const safeBase = base
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9-_]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 80);
+
+  const safeExt = ext
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "")
+    .slice(0, 12);
+
+  return safeExt ? `${safeBase || "attachment"}.${safeExt}` : safeBase || "attachment";
+}
+
+function fileSizeLabel(bytes: number) {
+  if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+  if (bytes >= 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${bytes} B`;
+}
+
 export default function NewRequestPage() {
   const router = useRouter();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [verifyingCode, setVerifyingCode] = useState(false);
+  const [uploadingAttachments, setUploadingAttachments] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
   const [me, setMe] = useState<ProfileMini | null>(null);
@@ -69,6 +102,8 @@ export default function NewRequestPage() {
   const [title, setTitle] = useState("");
   const [amount, setAmount] = useState("");
   const [details, setDetails] = useState("");
+
+  const [attachments, setAttachments] = useState<File[]>([]);
 
   const isOfficial = requestType === "Official";
   const isPersonal = requestType === "Personal";
@@ -186,6 +221,10 @@ export default function NewRequestPage() {
     return subs.find((s) => s.id === subheadId) || null;
   }, [subs, subheadId]);
 
+  const totalAttachmentSize = useMemo(() => {
+    return attachments.reduce((sum, file) => sum + file.size, 0);
+  }, [attachments]);
+
   useEffect(() => {
     if (!isOfficial) {
       setSubheadId("");
@@ -211,6 +250,47 @@ export default function NewRequestPage() {
 
     return allocation - reserved - expenditure;
   }, [selectedSubhead]);
+
+  function handleAttachmentSelect(files: FileList | null) {
+    setMsg(null);
+
+    if (!files || files.length === 0) return;
+
+    const incoming = Array.from(files);
+    const combined = [...attachments, ...incoming];
+
+    if (combined.length > MAX_ATTACHMENTS) {
+      setMsg(`❌ Maximum ${MAX_ATTACHMENTS} attachments are allowed per request.`);
+      return;
+    }
+
+    const tooLarge = incoming.find((file) => file.size > MAX_FILE_SIZE_BYTES);
+    if (tooLarge) {
+      setMsg(`❌ "${tooLarge.name}" is too large. Maximum file size is ${MAX_FILE_SIZE_MB}MB.`);
+      return;
+    }
+
+    const unique: File[] = [];
+    const seen = new Set<string>();
+
+    for (const file of combined) {
+      const key = `${file.name}-${file.size}-${file.lastModified}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        unique.push(file);
+      }
+    }
+
+    setAttachments(unique);
+  }
+
+  function removeAttachment(index: number) {
+    setAttachments((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  function clearAttachments() {
+    setAttachments([]);
+  }
 
   function validateRequestForm() {
     if (!hasVerifiedTotp || !totpFactorId) {
@@ -246,6 +326,17 @@ export default function NewRequestPage() {
 
     if (!details.trim()) {
       setMsg("❌ Please enter details.");
+      return false;
+    }
+
+    if (attachments.length > MAX_ATTACHMENTS) {
+      setMsg(`❌ Maximum ${MAX_ATTACHMENTS} attachments are allowed per request.`);
+      return false;
+    }
+
+    const tooLarge = attachments.find((file) => file.size > MAX_FILE_SIZE_BYTES);
+    if (tooLarge) {
+      setMsg(`❌ "${tooLarge.name}" is too large. Maximum file size is ${MAX_FILE_SIZE_MB}MB.`);
       return false;
     }
 
@@ -336,6 +427,53 @@ export default function NewRequestPage() {
     }
   }
 
+  async function uploadAttachmentsForRequest(requestId: string) {
+    if (!me || attachments.length === 0) return { uploaded: 0 };
+
+    setUploadingAttachments(true);
+
+    try {
+      const rows = [];
+
+      for (let i = 0; i < attachments.length; i += 1) {
+        const file = attachments[i];
+        const safeName = cleanFileName(file.name);
+        const path = `${requestId}/${Date.now()}-${i + 1}-${safeName}`;
+
+        const { error: uploadErr } = await supabase.storage
+          .from("request-attachments")
+          .upload(path, file, {
+            upsert: false,
+            contentType: file.type || "application/octet-stream",
+          });
+
+        if (uploadErr) {
+          throw new Error(`Attachment upload failed for "${file.name}": ${uploadErr.message}`);
+        }
+
+        rows.push({
+          request_id: requestId,
+          uploaded_by: me.id,
+          file_name: file.name,
+          file_path: path,
+          file_type: file.type || null,
+          file_size: file.size,
+          verification_status: "Pending",
+        });
+      }
+
+      const { error: insertErr } = await supabase.from("request_attachments").insert(rows);
+
+      if (insertErr) {
+        throw new Error("Attachment records could not be saved: " + insertErr.message);
+      }
+
+      return { uploaded: rows.length };
+    } finally {
+      setUploadingAttachments(false);
+    }
+  }
+
   async function submitRequestAfterFresh2fa() {
     if (!me) {
       setMsg("❌ Your profile is not loaded.");
@@ -374,25 +512,34 @@ export default function NewRequestPage() {
         throw new Error("Request was submitted but no request ID was returned.");
       }
 
+      let uploadedCount = 0;
+
+      if (attachments.length > 0) {
+        const result = await uploadAttachmentsForRequest(requestId);
+        uploadedCount = result.uploaded;
+      }
+
       setMsg(
-        `✅ Request submitted successfully after 2FA verification. Routed to ${
-          (data as any)?.first_stage || "next officer"
-        }.`
+        `✅ Request submitted successfully after 2FA verification. ${
+          uploadedCount > 0 ? `${uploadedCount} attachment(s) uploaded. ` : ""
+        }Routed to ${(data as any)?.first_stage || "next officer"}.`
       );
 
       setTitle("");
       setAmount("");
       setDetails("");
+      setAttachments([]);
 
       await loadAll();
 
       setTimeout(() => {
         router.push(`/requests/${requestId}`);
-      }, 700);
+      }, 900);
     } catch (e: any) {
       setMsg("❌ Submit failed: " + (e?.message || "Unknown error"));
     } finally {
       setSaving(false);
+      setUploadingAttachments(false);
     }
   }
 
@@ -413,7 +560,8 @@ export default function NewRequestPage() {
               New Request
             </h1>
             <p className="mt-2 text-sm text-slate-600">
-              Every request submission requires a fresh 2FA code before it can be saved and routed.
+              Every request submission requires a fresh 2FA code. Attachments are optional and can
+              be verified during approval.
             </p>
           </div>
 
@@ -428,7 +576,8 @@ export default function NewRequestPage() {
 
         <div className="mt-4 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-900">
           2FA protection is active. You must enter your authenticator code when submitting this
-          request.
+          request. Attachments are optional, but any uploaded attachment will require officer
+          verification during the approval process.
         </div>
 
         {msg && (
@@ -610,15 +759,98 @@ export default function NewRequestPage() {
                 placeholder="Write request details..."
               />
             </div>
+
+            <div className="md:col-span-2">
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <label className="text-sm font-extrabold text-slate-900">
+                      Supporting Attachments
+                    </label>
+                    <p className="mt-1 text-sm text-slate-600">
+                      Optional. Upload up to {MAX_ATTACHMENTS} documents. Each file must be
+                      {` ${MAX_FILE_SIZE_MB}MB`} or below.
+                    </p>
+                  </div>
+
+                  {attachments.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={clearAttachments}
+                      className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-900 hover:bg-slate-100"
+                    >
+                      Clear All
+                    </button>
+                  )}
+                </div>
+
+                <input
+                  type="file"
+                  multiple
+                  accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.webp,.txt"
+                  onChange={(e) => {
+                    handleAttachmentSelect(e.target.files);
+                    e.target.value = "";
+                  }}
+                  className="mt-4 w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm text-slate-900"
+                />
+
+                <div className="mt-3 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-xs leading-5 text-blue-900">
+                  Accepted examples: PDF, Word, Excel, images and text files. Uploaded files will
+                  show as <b>Pending Verification</b> until an authorized officer reviews them.
+                </div>
+
+                {attachments.length > 0 && (
+                  <div className="mt-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="text-sm font-bold text-slate-900">
+                        Selected Files: {attachments.length}
+                      </div>
+                      <div className="text-xs font-semibold text-slate-500">
+                        Total size: {fileSizeLabel(totalAttachmentSize)}
+                      </div>
+                    </div>
+
+                    <div className="mt-3 space-y-2">
+                      {attachments.map((file, index) => (
+                        <div
+                          key={`${file.name}-${file.size}-${file.lastModified}`}
+                          className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-white px-4 py-3"
+                        >
+                          <div className="min-w-0">
+                            <div className="break-words text-sm font-bold text-slate-900">
+                              {index + 1}. {file.name}
+                            </div>
+                            <div className="mt-1 text-xs font-semibold text-slate-500">
+                              {file.type || "Unknown type"} • {fileSizeLabel(file.size)}
+                            </div>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => removeAttachment(index)}
+                            className="rounded-xl bg-red-600 px-3 py-2 text-xs font-bold text-white hover:bg-red-700"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
 
           <button
             onClick={openSubmitVerification}
-            disabled={saving || verifyingCode}
+            disabled={saving || verifyingCode || uploadingAttachments}
             className="mt-5 w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
           >
             {saving
-              ? "Submitting..."
+              ? uploadingAttachments
+                ? "Uploading Attachments..."
+                : "Submitting..."
               : verifyingCode
               ? "Verifying 2FA..."
               : "Submit Request with 2FA"}
@@ -641,6 +873,12 @@ export default function NewRequestPage() {
               Enter the 6-digit code from your authenticator app. This request will not be submitted
               until the code is verified.
             </p>
+
+            {attachments.length > 0 && (
+              <div className="mt-4 rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-900">
+                {attachments.length} attachment(s) will be uploaded after this 2FA verification.
+              </div>
+            )}
 
             <input
               value={mfaCode}
