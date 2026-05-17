@@ -72,6 +72,19 @@ type AttachmentRow = {
   signed_url?: string | null;
 };
 
+type AttachmentCheckRow = {
+  id: string;
+  request_id: string;
+  attachment_id: string;
+  checked_by: string;
+  checked_by_name: string | null;
+  checked_by_role: string | null;
+  check_status: string;
+  check_comment: string | null;
+  checked_at: string;
+  created_at: string;
+};
+
 type SensitiveAction = "Approve" | "Reject" | "Delete";
 
 function roleKey(role: string | null | undefined) {
@@ -115,10 +128,10 @@ function attachmentStatusClass(status: string | null | undefined) {
 function attachmentStatusLabel(status: string | null | undefined) {
   const s = (status || "").toLowerCase();
 
-  if (s === "verified") return "Verified ✅";
+  if (s === "verified") return "Verified Globally ✅";
   if (s === "rejected") return "Rejected ❌";
 
-  return "Pending Verification";
+  return "Pending General Review";
 }
 
 export default function RequestDetailsPage() {
@@ -133,13 +146,14 @@ export default function RequestDetailsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [verifyingCode, setVerifyingCode] = useState(false);
-  const [verifyingAttachmentId, setVerifyingAttachmentId] = useState<string | null>(null);
+  const [checkingAttachmentId, setCheckingAttachmentId] = useState<string | null>(null);
 
   const [msg, setMsg] = useState<string | null>(null);
   const [req, setReq] = useState<Req | null>(null);
   const [history, setHistory] = useState<Hist[]>([]);
   const [subhead, setSubhead] = useState<SubheadMini | null>(null);
   const [attachments, setAttachments] = useState<AttachmentRow[]>([]);
+  const [attachmentChecks, setAttachmentChecks] = useState<AttachmentCheckRow[]>([]);
 
   const [me, setMe] = useState<ProfileMini | null>(null);
   const [comment, setComment] = useState("");
@@ -190,7 +204,7 @@ export default function RequestDetailsPage() {
     return req.current_owner === me.id;
   }, [req, me]);
 
-  const canVerifyAttachments = useMemo(() => {
+  const canCheckAttachments = useMemo(() => {
     if (!req || !me) return false;
 
     if (req.current_owner === me.id) return true;
@@ -242,14 +256,34 @@ export default function RequestDetailsPage() {
 
   const hasAttachments = attachments.length > 0;
 
-  const pendingAttachments = useMemo(() => {
-    return attachments.filter((a) => (a.verification_status || "Pending") !== "Verified");
-  }, [attachments]);
+  const myCheckedAttachmentIds = useMemo(() => {
+    if (!me) return new Set<string>();
 
-  const allAttachmentsVerified = useMemo(() => {
+    return new Set(
+      attachmentChecks
+        .filter((c) => c.checked_by === me.id && (c.check_status || "") === "Checked")
+        .map((c) => c.attachment_id)
+    );
+  }, [attachmentChecks, me]);
+
+  const myPendingAttachments = useMemo(() => {
+    if (!me) return attachments;
+    return attachments.filter((a) => !myCheckedAttachmentIds.has(a.id));
+  }, [attachments, myCheckedAttachmentIds, me]);
+
+  const allAttachmentsCheckedByMe = useMemo(() => {
     if (attachments.length === 0) return true;
-    return pendingAttachments.length === 0;
-  }, [attachments.length, pendingAttachments.length]);
+    if (!me) return false;
+    return myPendingAttachments.length === 0;
+  }, [attachments.length, myPendingAttachments.length, me]);
+
+  function isAttachmentCheckedByMe(attachmentId: string) {
+    return myCheckedAttachmentIds.has(attachmentId);
+  }
+
+  function attachmentCheckCount(attachmentId: string) {
+    return attachmentChecks.filter((c) => c.attachment_id === attachmentId).length;
+  }
 
   async function checkMfaStatus() {
     const { data: auth } = await supabase.auth.getUser();
@@ -285,8 +319,8 @@ export default function RequestDetailsPage() {
     return verified?.id || null;
   }
 
-  async function loadAttachments(requestId: string) {
-    const { data, error } = await supabase
+  async function loadAttachmentsAndChecks(requestId: string) {
+    const { data: attachmentRows, error: attachmentErr } = await supabase
       .from("request_attachments")
       .select(
         "id,request_id,uploaded_by,file_name,file_path,file_type,file_size,verification_status,verified_by,verified_at,verifier_comment,created_at"
@@ -294,13 +328,14 @@ export default function RequestDetailsPage() {
       .eq("request_id", requestId)
       .order("created_at", { ascending: true });
 
-    if (error) {
+    if (attachmentErr) {
       setAttachments([]);
-      setMsg("Failed to load attachments: " + error.message);
+      setAttachmentChecks([]);
+      setMsg("Failed to load attachments: " + attachmentErr.message);
       return;
     }
 
-    const rows = (data || []) as AttachmentRow[];
+    const rows = (attachmentRows || []) as AttachmentRow[];
 
     const signedRows = await Promise.all(
       rows.map(async (row) => {
@@ -316,6 +351,22 @@ export default function RequestDetailsPage() {
     );
 
     setAttachments(signedRows);
+
+    const { data: checkRows, error: checkErr } = await supabase
+      .from("request_attachment_checks")
+      .select(
+        "id,request_id,attachment_id,checked_by,checked_by_name,checked_by_role,check_status,check_comment,checked_at,created_at"
+      )
+      .eq("request_id", requestId)
+      .order("checked_at", { ascending: true });
+
+    if (checkErr) {
+      setAttachmentChecks([]);
+      setMsg("Failed to load attachment checks: " + checkErr.message);
+      return;
+    }
+
+    setAttachmentChecks((checkRows || []) as AttachmentCheckRow[]);
   }
 
   useEffect(() => {
@@ -408,7 +459,7 @@ export default function RequestDetailsPage() {
         );
       }
 
-      await loadAttachments(id);
+      await loadAttachmentsAndChecks(id);
 
       setLoading(false);
     }
@@ -454,7 +505,7 @@ export default function RequestDetailsPage() {
       setSubhead(null);
     }
 
-    await loadAttachments(id);
+    await loadAttachmentsAndChecks(id);
   }
 
   function goToEdit() {
@@ -468,45 +519,56 @@ export default function RequestDetailsPage() {
     router.push(`/requests/${req.id}/edit`);
   }
 
-  async function verifyAttachment(attachment: AttachmentRow) {
+  async function checkAttachmentPersonally(attachment: AttachmentRow) {
     if (!req || !me) return;
 
-    if (!canVerifyAttachments) {
-      setMsg("❌ You are not allowed to verify attachments on this request.");
+    if (!canCheckAttachments) {
+      setMsg("❌ You are not allowed to check attachments on this request.");
       return;
     }
 
-    setVerifyingAttachmentId(attachment.id);
+    if (isAttachmentCheckedByMe(attachment.id)) {
+      setMsg("✅ You have already checked this attachment.");
+      return;
+    }
+
+    setCheckingAttachmentId(attachment.id);
     setMsg(null);
 
     try {
-      const { error } = await supabase
-        .from("request_attachments")
-        .update({
-          verification_status: "Verified",
-          verified_by: me.id,
-          verified_at: new Date().toISOString(),
-          verifier_comment: `Verified by ${me.full_name || "officer"}`,
-        })
-        .eq("id", attachment.id);
+      const { error } = await supabase.from("request_attachment_checks").upsert(
+        {
+          request_id: req.id,
+          attachment_id: attachment.id,
+          checked_by: me.id,
+          checked_by_name: me.full_name || null,
+          checked_by_role: me.role || null,
+          check_status: "Checked",
+          check_comment: `Checked by ${me.full_name || "officer"}`,
+          checked_at: new Date().toISOString(),
+        },
+        {
+          onConflict: "attachment_id,checked_by",
+        }
+      );
 
       if (error) throw new Error(error.message);
 
       await supabase.from("request_history").insert({
         request_id: req.id,
-        action_type: "Attachment Verified",
-        comment: `${attachment.file_name} was verified by ${me.full_name || "officer"}.`,
+        action_type: "Attachment Checked",
+        comment: `${attachment.file_name} was checked by ${me.full_name || "officer"} (${me.role || "Role not set"}).`,
         to_stage: req.current_stage,
         actor_name: me.full_name || null,
         actor_id: me.id,
       });
 
-      setMsg("✅ Attachment verified successfully.");
-      await loadAttachments(req.id);
+      setMsg("✅ Attachment checked successfully for your own approval stage.");
+      await loadAttachmentsAndChecks(req.id);
     } catch (e: any) {
-      setMsg("❌ Attachment verification failed: " + (e?.message || "Unknown error"));
+      setMsg("❌ Attachment check failed: " + (e?.message || "Unknown error"));
     } finally {
-      setVerifyingAttachmentId(null);
+      setCheckingAttachmentId(null);
     }
   }
 
@@ -538,9 +600,9 @@ export default function RequestDetailsPage() {
       return false;
     }
 
-    if (hasAttachments && !allAttachmentsVerified) {
+    if (hasAttachments && !allAttachmentsCheckedByMe) {
       setMsg(
-        `❌ This request has ${pendingAttachments.length} attachment(s) pending verification. Verify all attachments before you can ${action.toLowerCase()} this request.`
+        `❌ You still have ${myPendingAttachments.length} attachment(s) unchecked. Open and check every attachment personally before you can ${action.toLowerCase()} this request.`
       );
       return false;
     }
@@ -648,15 +710,15 @@ export default function RequestDetailsPage() {
         if (nextStage === "Completed") {
           setMsg(
             nextStatus === "Paid"
-              ? "✅ Request paid successfully and closed after attachment verification and 2FA."
-              : "✅ Request completed successfully after attachment verification and 2FA."
+              ? "✅ Request paid successfully and closed after your attachment checks and 2FA."
+              : "✅ Request completed successfully after your attachment checks and 2FA."
           );
         } else if (isHRFiling) {
-          setMsg("✅ HR filing completed successfully after attachment verification and 2FA.");
+          setMsg("✅ HR filing completed successfully after your attachment checks and 2FA.");
         } else if (needsAccountOfficerSelection && nextStage === "DG") {
-          setMsg("✅ Account Officer selected. Request sent to DG after attachment verification and 2FA.");
+          setMsg("✅ Account Officer selected. Request sent to DG after your attachment checks and 2FA.");
         } else {
-          setMsg(`✅ Approved after attachment verification and 2FA. Sent to ${nextStage}.`);
+          setMsg(`✅ Approved after your attachment checks and 2FA. Sent to ${nextStage}.`);
         }
       } else {
         const { error } = await supabase.rpc("reject_request_step", {
@@ -668,7 +730,7 @@ export default function RequestDetailsPage() {
 
         if (error) throw new Error(error.message);
 
-        setMsg("✅ Request rejected successfully after attachment verification and 2FA.");
+        setMsg("✅ Request rejected successfully after your attachment checks and 2FA.");
       }
 
       setComment("");
@@ -759,16 +821,16 @@ export default function RequestDetailsPage() {
             : "⚠️ 2FA is required. Fresh 2FA code is required before approve, reject, or delete."}
         </div>
 
-        {hasAttachments && !allAttachmentsVerified && (
+        {hasAttachments && !allAttachmentsCheckedByMe && canAct && (
           <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900">
-            ⚠️ This request has {pendingAttachments.length} attachment(s) pending verification.
-            The approval chain must open and verify every attachment before approving or rejecting.
+            ⚠️ You still have {myPendingAttachments.length} attachment(s) unchecked. You must open
+            and check every attachment personally before approving or rejecting.
           </div>
         )}
 
-        {hasAttachments && allAttachmentsVerified && (
+        {hasAttachments && allAttachmentsCheckedByMe && canAct && (
           <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">
-            ✅ All request attachments have been verified.
+            ✅ You have personally checked all attachments for your own approval stage.
           </div>
         )}
 
@@ -882,8 +944,8 @@ export default function RequestDetailsPage() {
                 <div>
                   <h2 className="text-lg font-bold text-slate-900">Supporting Attachments</h2>
                   <p className="mt-1 text-sm text-slate-600">
-                    Director, HOD, HR, Registry, DG, Auditor and Account Officers can review and
-                    verify attachments before approval/rejection.
+                    Every approving officer must personally open and check all attachments before
+                    approving or rejecting. One officer’s check does not count for another officer.
                   </p>
                 </div>
 
@@ -898,67 +960,92 @@ export default function RequestDetailsPage() {
                 </div>
               ) : (
                 <div className="mt-4 space-y-3">
-                  {attachments.map((a, index) => (
-                    <div key={a.id} className="rounded-2xl border bg-white p-4 shadow-sm">
-                      <div className="flex flex-wrap items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <div className="text-sm font-extrabold text-slate-900">
-                            {index + 1}. {a.file_name}
-                          </div>
-                          <div className="mt-1 text-xs font-semibold text-slate-500">
-                            {a.file_type || "Unknown type"} • {fileSizeLabel(a.file_size)}
-                          </div>
-                          {a.verified_at && (
-                            <div className="mt-1 text-xs font-semibold text-emerald-700">
-                              Verified: {new Date(a.verified_at).toLocaleString()}
+                  {attachments.map((a, index) => {
+                    const checkedByMe = isAttachmentCheckedByMe(a.id);
+                    const totalChecks = attachmentCheckCount(a.id);
+
+                    return (
+                      <div key={a.id} className="rounded-2xl border bg-white p-4 shadow-sm">
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="text-sm font-extrabold text-slate-900">
+                              {index + 1}. {a.file_name}
                             </div>
-                          )}
+                            <div className="mt-1 text-xs font-semibold text-slate-500">
+                              {a.file_type || "Unknown type"} • {fileSizeLabel(a.file_size)}
+                            </div>
+                            <div className="mt-1 text-xs font-semibold text-slate-500">
+                              Total officer checks: {totalChecks}
+                            </div>
+                          </div>
+
+                          <div className="flex flex-col items-end gap-2">
+                            <span
+                              className={`rounded-full border px-3 py-1 text-xs font-bold ${attachmentStatusClass(
+                                a.verification_status
+                              )}`}
+                            >
+                              {attachmentStatusLabel(a.verification_status)}
+                            </span>
+
+                            <span
+                              className={`rounded-full border px-3 py-1 text-xs font-bold ${
+                                checkedByMe
+                                  ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                                  : "border-amber-200 bg-amber-50 text-amber-800"
+                              }`}
+                            >
+                              {checkedByMe ? "Checked By You ✅" : "Not Checked By You"}
+                            </span>
+                          </div>
                         </div>
 
-                        <span
-                          className={`rounded-full border px-3 py-1 text-xs font-bold ${attachmentStatusClass(
-                            a.verification_status
-                          )}`}
-                        >
-                          {attachmentStatusLabel(a.verification_status)}
-                        </span>
-                      </div>
+                        <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+                          {a.signed_url ? (
+                            <a
+                              href={a.signed_url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-center text-sm font-bold text-slate-900 hover:bg-slate-100 sm:w-auto"
+                            >
+                              Open Attachment
+                            </a>
+                          ) : (
+                            <button
+                              type="button"
+                              disabled
+                              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-400 sm:w-auto"
+                            >
+                              File Link Unavailable
+                            </button>
+                          )}
 
-                      <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-                        {a.signed_url ? (
-                          <a
-                            href={a.signed_url}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-center text-sm font-bold text-slate-900 hover:bg-slate-100 sm:w-auto"
-                          >
-                            Open Attachment
-                          </a>
-                        ) : (
-                          <button
-                            type="button"
-                            disabled
-                            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-400 sm:w-auto"
-                          >
-                            File Link Unavailable
-                          </button>
-                        )}
+                          {canCheckAttachments && !checkedByMe && (
+                            <button
+                              type="button"
+                              onClick={() => checkAttachmentPersonally(a)}
+                              disabled={checkingAttachmentId === a.id}
+                              className="w-full rounded-xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white hover:bg-emerald-700 disabled:opacity-60 sm:w-auto"
+                            >
+                              {checkingAttachmentId === a.id
+                                ? "Checking..."
+                                : "I Have Checked This ✅"}
+                            </button>
+                          )}
 
-                        {canVerifyAttachments && a.verification_status !== "Verified" && (
-                          <button
-                            type="button"
-                            onClick={() => verifyAttachment(a)}
-                            disabled={verifyingAttachmentId === a.id}
-                            className="w-full rounded-xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white hover:bg-emerald-700 disabled:opacity-60 sm:w-auto"
-                          >
-                            {verifyingAttachmentId === a.id
-                              ? "Verifying..."
-                              : "Verify Attachment ✅"}
-                          </button>
-                        )}
+                          {canCheckAttachments && checkedByMe && (
+                            <button
+                              type="button"
+                              disabled
+                              className="w-full rounded-xl bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-700 sm:w-auto"
+                            >
+                              Checked By You ✅
+                            </button>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -967,7 +1054,7 @@ export default function RequestDetailsPage() {
               <h2 className="text-lg font-bold text-slate-900">Actions</h2>
               <p className="mt-1 text-sm text-slate-600">
                 Only the assigned officer can approve/reject. All actions require signature,
-                verified attachments and a fresh 2FA code.
+                your own attachment checks, and a fresh 2FA code.
               </p>
 
               {!canAct ? (
@@ -976,9 +1063,9 @@ export default function RequestDetailsPage() {
                 </div>
               ) : (
                 <>
-                  {hasAttachments && !allAttachmentsVerified && (
+                  {hasAttachments && !allAttachmentsCheckedByMe && (
                     <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-                      Approval/Rejection is locked until every attachment above is verified.
+                      Approval/Rejection is locked until you personally check every attachment above.
                     </div>
                   )}
 
@@ -1027,7 +1114,7 @@ export default function RequestDetailsPage() {
                   <div className="mt-4 flex flex-col gap-2 sm:flex-row">
                     <button
                       onClick={() => openFresh2faModal("Approve")}
-                      disabled={saving || verifyingCode || (hasAttachments && !allAttachmentsVerified)}
+                      disabled={saving || verifyingCode || (hasAttachments && !allAttachmentsCheckedByMe)}
                       className="w-full rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 disabled:opacity-60"
                     >
                       {approveButtonText}
@@ -1035,7 +1122,7 @@ export default function RequestDetailsPage() {
 
                     <button
                       onClick={() => openFresh2faModal("Reject")}
-                      disabled={saving || verifyingCode || (hasAttachments && !allAttachmentsVerified)}
+                      disabled={saving || verifyingCode || (hasAttachments && !allAttachmentsCheckedByMe)}
                       className="w-full rounded-xl bg-red-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-red-700 disabled:opacity-60"
                     >
                       {saving || verifyingCode ? "Processing..." : "Reject"}
@@ -1048,7 +1135,7 @@ export default function RequestDetailsPage() {
             <div className="mt-6 rounded-2xl border bg-white p-6 shadow-sm">
               <h2 className="text-lg font-bold text-slate-900">History</h2>
               <p className="mt-1 text-sm text-slate-600">
-                All actions, comments, signatures and attachment verifications are recorded.
+                All actions, comments, signatures and individual attachment checks are recorded.
               </p>
 
               {history.length === 0 ? (
