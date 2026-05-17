@@ -12,18 +12,6 @@ type Dept = {
   is_active?: boolean | null;
 };
 
-type Subhead = {
-  id: string;
-  dept_id: string;
-  code: string | null;
-  name: string;
-  approved_allocation: number | null;
-  balance: number | null;
-  expenditure: number | null;
-  reserved_amount: number | null;
-  is_active: boolean | null;
-};
-
 type ProfileMini = {
   id: string;
   full_name: string | null;
@@ -31,13 +19,11 @@ type ProfileMini = {
   signature_url: string | null;
 };
 
+type RequestClass = "Financial" | "NonFinancial";
+
 const MAX_ATTACHMENTS = 50;
 const MAX_FILE_SIZE_MB = 10;
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
-
-function naira(n: number) {
-  return "₦" + Math.round(n || 0).toLocaleString();
-}
 
 function buildRequestNo() {
   const now = new Date();
@@ -91,24 +77,23 @@ export default function NewRequestPage() {
   const [showMfaModal, setShowMfaModal] = useState(false);
   const [mfaCode, setMfaCode] = useState("");
 
-  const [requestType, setRequestType] = useState<"Official" | "Personal">("Official");
-  const [personalCategory, setPersonalCategory] = useState<"Fund" | "NonFund">("Fund");
+  const [requestClass, setRequestClass] = useState<RequestClass>("Financial");
 
   const [depts, setDepts] = useState<Dept[]>([]);
-  const [subs, setSubs] = useState<Subhead[]>([]);
-
   const [deptId, setDeptId] = useState("");
-  const [subheadId, setSubheadId] = useState("");
+
   const [title, setTitle] = useState("");
   const [amount, setAmount] = useState("");
   const [details, setDetails] = useState("");
 
   const [attachments, setAttachments] = useState<File[]>([]);
 
-  const isOfficial = requestType === "Official";
-  const isPersonal = requestType === "Personal";
-  const isPersonalFund = requestType === "Personal" && personalCategory === "Fund";
-  const isPersonalNonFund = requestType === "Personal" && personalCategory === "NonFund";
+  const isFinancial = requestClass === "Financial";
+  const isNonFinancial = requestClass === "NonFinancial";
+
+  const totalAttachmentSize = useMemo(() => {
+    return attachments.reduce((sum, file) => sum + file.size, 0);
+  }, [attachments]);
 
   async function loadMfaFactors() {
     const { data: auth } = await supabase.auth.getUser();
@@ -139,6 +124,7 @@ export default function NewRequestPage() {
     setMsg(null);
 
     const { data: auth } = await supabase.auth.getUser();
+
     if (!auth.user) {
       router.push("/login");
       return;
@@ -182,27 +168,8 @@ export default function NewRequestPage() {
     const deptList = (deptRows || []) as Dept[];
     setDepts(deptList);
 
-    const { data: subRows, error: subErr } = await supabase
-      .from("subheads")
-      .select("id,dept_id,code,name,approved_allocation,balance,expenditure,reserved_amount,is_active")
-      .eq("is_active", true)
-      .order("name", { ascending: true });
-
-    if (subErr) {
-      setMsg("Failed to load subheads: " + subErr.message);
-      setLoading(false);
-      return;
-    }
-
-    const subList = (subRows || []) as Subhead[];
-    setSubs(subList);
-
     if (deptList.length > 0) {
-      const firstDept = deptList[0];
-      setDeptId(firstDept.id);
-
-      const firstSub = subList.find((s) => s.dept_id === firstDept.id);
-      if (firstSub) setSubheadId(firstSub.id);
+      setDeptId(deptList[0].id);
     }
 
     setLoading(false);
@@ -213,43 +180,11 @@ export default function NewRequestPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const filteredSubs = useMemo(() => {
-    return subs.filter((s) => s.dept_id === deptId);
-  }, [subs, deptId]);
-
-  const selectedSubhead = useMemo(() => {
-    return subs.find((s) => s.id === subheadId) || null;
-  }, [subs, subheadId]);
-
-  const totalAttachmentSize = useMemo(() => {
-    return attachments.reduce((sum, file) => sum + file.size, 0);
-  }, [attachments]);
-
   useEffect(() => {
-    if (!isOfficial) {
-      setSubheadId("");
-      return;
-    }
-
-    const first = filteredSubs[0];
-    setSubheadId(first?.id || "");
-  }, [deptId, filteredSubs, isOfficial]);
-
-  useEffect(() => {
-    if (isPersonalNonFund) {
+    if (isNonFinancial) {
       setAmount("");
     }
-  }, [isPersonalNonFund]);
-
-  const availableBalance = useMemo(() => {
-    if (!selectedSubhead) return 0;
-
-    const allocation = Number(selectedSubhead.approved_allocation || 0);
-    const reserved = Number(selectedSubhead.reserved_amount || 0);
-    const expenditure = Number(selectedSubhead.expenditure || 0);
-
-    return allocation - reserved - expenditure;
-  }, [selectedSubhead]);
+  }, [isNonFinancial]);
 
   function handleAttachmentSelect(files: FileList | null) {
     setMsg(null);
@@ -265,6 +200,7 @@ export default function NewRequestPage() {
     }
 
     const tooLarge = incoming.find((file) => file.size > MAX_FILE_SIZE_BYTES);
+
     if (tooLarge) {
       setMsg(`❌ "${tooLarge.name}" is too large. Maximum file size is ${MAX_FILE_SIZE_MB}MB.`);
       return;
@@ -275,6 +211,7 @@ export default function NewRequestPage() {
 
     for (const file of combined) {
       const key = `${file.name}-${file.size}-${file.lastModified}`;
+
       if (!seen.has(key)) {
         seen.add(key);
         unique.push(file);
@@ -290,6 +227,16 @@ export default function NewRequestPage() {
 
   function clearAttachments() {
     setAttachments([]);
+  }
+
+  function getLegacyRequestType() {
+    if (isFinancial) return "Official";
+    return "Personal";
+  }
+
+  function getLegacyPersonalCategory() {
+    if (isFinancial) return null;
+    return "NonFund";
   }
 
   function validateRequestForm() {
@@ -320,12 +267,19 @@ export default function NewRequestPage() {
     }
 
     if (!title.trim()) {
-      setMsg("❌ Please enter title.");
+      setMsg("❌ Please enter request title.");
       return false;
     }
 
     if (!details.trim()) {
-      setMsg("❌ Please enter details.");
+      setMsg("❌ Please enter request details.");
+      return false;
+    }
+
+    const amt = isFinancial ? Number(amount || 0) : 0;
+
+    if (isFinancial && (!amt || amt <= 0)) {
+      setMsg("❌ Enter a valid amount for this financial request.");
       return false;
     }
 
@@ -335,34 +289,14 @@ export default function NewRequestPage() {
     }
 
     const tooLarge = attachments.find((file) => file.size > MAX_FILE_SIZE_BYTES);
+
     if (tooLarge) {
       setMsg(`❌ "${tooLarge.name}" is too large. Maximum file size is ${MAX_FILE_SIZE_MB}MB.`);
       return false;
     }
 
-    const amt = isPersonalNonFund ? 0 : Number(amount || 0);
-
-    if ((isOfficial || isPersonalFund) && (!amt || amt <= 0)) {
-      setMsg("❌ Enter a valid amount.");
-      return false;
-    }
-
-    if (isOfficial && !subheadId) {
-      setMsg("❌ Please select subhead for Official Request.");
-      return false;
-    }
-
-    if (isOfficial && !selectedSubhead) {
-      setMsg("❌ Selected subhead not found.");
-      return false;
-    }
-
-    if (isOfficial && amt > availableBalance) {
-      setMsg(`❌ Amount exceeds available balance (${naira(availableBalance)}).`);
-      return false;
-    }
-
     const dept = depts.find((d) => d.id === deptId);
+
     if (!dept) {
       setMsg("❌ Department not found.");
       return false;
@@ -481,24 +415,24 @@ export default function NewRequestPage() {
     }
 
     const stillValid = validateRequestForm();
+
     if (!stillValid) return;
 
-    const amt = isPersonalNonFund ? 0 : Number(amount || 0);
+    const amt = isFinancial ? Number(amount || 0) : 0;
+    const requestNo = buildRequestNo();
+    const requesterName = me.full_name!.trim();
 
     setSaving(true);
 
     try {
-      const requestNo = buildRequestNo();
-      const requesterName = me.full_name!.trim();
-
       const { data, error } = await supabase.rpc("submit_request_with_reservation", {
         p_title: title.trim(),
         p_details: details.trim(),
         p_amount: amt,
         p_dept_id: deptId,
-        p_subhead_id: isOfficial ? subheadId : null,
-        p_request_type: requestType,
-        p_personal_category: isPersonal ? personalCategory : null,
+        p_subhead_id: null,
+        p_request_type: getLegacyRequestType(),
+        p_personal_category: getLegacyPersonalCategory(),
         p_created_by: me.id,
         p_requester_name: requesterName,
         p_requester_signature: me.signature_url,
@@ -508,6 +442,7 @@ export default function NewRequestPage() {
       if (error) throw new Error(error.message);
 
       const requestId = (data as any)?.request_id;
+
       if (!requestId) {
         throw new Error("Request was submitted but no request ID was returned.");
       }
@@ -520,7 +455,9 @@ export default function NewRequestPage() {
       }
 
       setMsg(
-        `✅ Request submitted successfully after 2FA verification. ${
+        `✅ ${
+          isFinancial ? "Financial request" : "Non-financial request"
+        } submitted successfully after 2FA verification. ${
           uploadedCount > 0 ? `${uploadedCount} attachment(s) uploaded. ` : ""
         }Routed to ${(data as any)?.first_stage || "next officer"}.`
       );
@@ -529,6 +466,7 @@ export default function NewRequestPage() {
       setAmount("");
       setDetails("");
       setAttachments([]);
+      setRequestClass("Financial");
 
       await loadAll();
 
@@ -560,8 +498,8 @@ export default function NewRequestPage() {
               New Request
             </h1>
             <p className="mt-2 text-sm text-slate-600">
-              Every request submission requires a fresh 2FA code. Attachments are optional and can
-              be verified during approval.
+              Staff submit requests without seeing subheads or balances. Director/HOD will assign
+              the appropriate finance subhead during review where required.
             </p>
           </div>
 
@@ -576,8 +514,8 @@ export default function NewRequestPage() {
 
         <div className="mt-4 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-900">
           2FA protection is active. You must enter your authenticator code when submitting this
-          request. Attachments are optional, but any uploaded attachment will require officer
-          verification during the approval process.
+          request. Attachments are optional and will be checked individually by each approving
+          officer.
         </div>
 
         {msg && (
@@ -589,57 +527,30 @@ export default function NewRequestPage() {
         <div className="mt-6 rounded-2xl border bg-white p-6 shadow-sm">
           <div className="grid gap-4 md:grid-cols-2">
             <div>
-              <label className="text-sm font-semibold text-slate-800">Request Type</label>
+              <label className="text-sm font-semibold text-slate-800">Request Category</label>
               <select
-                value={requestType}
+                value={requestClass}
                 onChange={(e) => {
-                  const v = e.target.value as "Official" | "Personal";
-                  setRequestType(v);
+                  const v = e.target.value as RequestClass;
+                  setRequestClass(v);
 
-                  if (v === "Official") {
-                    setPersonalCategory("Fund");
-                    const first = filteredSubs[0];
-                    setSubheadId(first?.id || "");
-                  } else {
-                    setSubheadId("");
+                  if (v === "NonFinancial") {
+                    setAmount("");
                   }
                 }}
-                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
+                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
               >
-                <option value="Official">Official</option>
-                <option value="Personal">Personal</option>
+                <option value="Financial">Financial Request</option>
+                <option value="NonFinancial">Non-Financial Request</option>
               </select>
             </div>
-
-            {isPersonal && (
-              <div>
-                <label className="text-sm font-semibold text-slate-800">
-                  Personal Category
-                </label>
-                <select
-                  value={personalCategory}
-                  onChange={(e) => {
-                    const v = e.target.value as "Fund" | "NonFund";
-                    setPersonalCategory(v);
-
-                    if (v === "NonFund") {
-                      setAmount("");
-                    }
-                  }}
-                  className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
-                >
-                  <option value="Fund">Fund</option>
-                  <option value="NonFund">NonFund</option>
-                </select>
-              </div>
-            )}
 
             <div>
               <label className="text-sm font-semibold text-slate-800">Department</label>
               <select
                 value={deptId}
                 onChange={(e) => setDeptId(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
+                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
               >
                 {depts.map((d) => (
                   <option key={d.id} value={d.id}>
@@ -649,69 +560,17 @@ export default function NewRequestPage() {
               </select>
             </div>
 
-            {isOfficial && (
-              <div>
-                <label className="text-sm font-semibold text-slate-800">Subhead</label>
-                <select
-                  value={subheadId}
-                  onChange={(e) => setSubheadId(e.target.value)}
-                  className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
-                >
-                  {filteredSubs.length === 0 ? (
-                    <option value="">No active subhead for this department</option>
-                  ) : (
-                    filteredSubs.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {(s.code ? `${s.code} — ` : "") + s.name}
-                      </option>
-                    ))
-                  )}
-                </select>
-
-                <div className="mt-3 grid gap-2 text-sm font-semibold text-slate-700 sm:grid-cols-4">
-                  <div className="rounded-xl bg-slate-50 p-3">
-                    <div className="text-xs text-slate-500">Allocation</div>
-                    <div className="mt-1 text-slate-900">
-                      {naira(Number(selectedSubhead?.approved_allocation || 0))}
-                    </div>
-                  </div>
-
-                  <div className="rounded-xl bg-amber-50 p-3">
-                    <div className="text-xs text-amber-700">Reserved</div>
-                    <div className="mt-1 text-amber-800">
-                      {naira(Number(selectedSubhead?.reserved_amount || 0))}
-                    </div>
-                  </div>
-
-                  <div className="rounded-xl bg-red-50 p-3">
-                    <div className="text-xs text-red-700">Expenditure</div>
-                    <div className="mt-1 text-red-800">
-                      {naira(Number(selectedSubhead?.expenditure || 0))}
-                    </div>
-                  </div>
-
-                  <div className="rounded-xl bg-emerald-50 p-3">
-                    <div className="text-xs text-emerald-700">Balance</div>
-                    <div className="mt-1 text-emerald-800">
-                      {naira(Number(selectedSubhead?.balance || 0))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {isPersonalFund && (
+            {isFinancial && (
               <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-900 md:col-span-2">
-                Personal Fund Request does not use a subhead and will not deduct from departmental
-                allocation. It will pass through HR, Registry, DG, and then the selected Account
-                Officer for treatment.
+                Financial Request is money-related. The approving Director/HOD will review and
+                assign the appropriate subhead before the request continues.
               </div>
             )}
 
-            {isPersonalNonFund && (
+            {isNonFinancial && (
               <div className="rounded-xl border border-purple-100 bg-purple-50 px-4 py-3 text-sm text-purple-900 md:col-span-2">
-                Personal NonFund Request does not use subhead or amount. It will pass through HR,
-                Registry, DG, and then return to HR for final filing.
+                Non-Financial Request does not require amount or subhead. It will follow the
+                administrative review and filing flow.
               </div>
             )}
 
@@ -720,25 +579,25 @@ export default function NewRequestPage() {
               <input
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
+                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
                 placeholder="Request title"
               />
             </div>
 
-            {(isOfficial || isPersonalFund) && (
+            {isFinancial && (
               <div>
                 <label className="text-sm font-semibold text-slate-800">Amount (₦)</label>
                 <input
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
                   type="number"
-                  className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
+                  className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
                   placeholder="0"
                 />
               </div>
             )}
 
-            {isPersonalNonFund && (
+            {isNonFinancial && (
               <div>
                 <label className="text-sm font-semibold text-slate-800">Amount</label>
                 <input
@@ -755,7 +614,7 @@ export default function NewRequestPage() {
               <textarea
                 value={details}
                 onChange={(e) => setDetails(e.target.value)}
-                className="mt-1 min-h-[160px] w-full rounded-xl border border-slate-200 px-3 py-2"
+                className="mt-1 min-h-[160px] w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
                 placeholder="Write request details..."
               />
             </div>
@@ -768,8 +627,8 @@ export default function NewRequestPage() {
                       Supporting Attachments
                     </label>
                     <p className="mt-1 text-sm text-slate-600">
-                      Optional. Upload up to {MAX_ATTACHMENTS} documents. Each file must be
-                      {` ${MAX_FILE_SIZE_MB}MB`} or below.
+                      Optional. Upload up to {MAX_ATTACHMENTS} documents. Each file must be{" "}
+                      {MAX_FILE_SIZE_MB}MB or below.
                     </p>
                   </div>
 
@@ -796,8 +655,8 @@ export default function NewRequestPage() {
                 />
 
                 <div className="mt-3 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-xs leading-5 text-blue-900">
-                  Accepted examples: PDF, Word, Excel, images and text files. Uploaded files will
-                  show as <b>Pending Verification</b> until an authorized officer reviews them.
+                  Accepted examples: PDF, Word, Excel, images and text files. Every approving
+                  officer must open and check uploaded files personally before approval/rejection.
                 </div>
 
                 {attachments.length > 0 && (
