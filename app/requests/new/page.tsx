@@ -87,6 +87,8 @@ export default function NewRequestPage() {
   const [details, setDetails] = useState("");
 
   const [attachments, setAttachments] = useState<File[]>([]);
+  const [signedRequest, setSignedRequest] = useState(false);
+  const [signedAt, setSignedAt] = useState<string | null>(null);
 
   const isFinancial = requestClass === "Financial";
   const isNonFinancial = requestClass === "NonFinancial";
@@ -94,6 +96,10 @@ export default function NewRequestPage() {
   const totalAttachmentSize = useMemo(() => {
     return attachments.reduce((sum, file) => sum + file.size, 0);
   }, [attachments]);
+
+  const canSubmit = useMemo(() => {
+    return signedRequest && !saving && !verifyingCode && !uploadingAttachments;
+  }, [signedRequest, saving, verifyingCode, uploadingAttachments]);
 
   async function loadMfaFactors() {
     const { data: auth } = await supabase.auth.getUser();
@@ -186,6 +192,11 @@ export default function NewRequestPage() {
     }
   }, [isNonFinancial]);
 
+  useEffect(() => {
+    setSignedRequest(false);
+    setSignedAt(null);
+  }, [requestClass, deptId, title, amount, details, attachments.length]);
+
   function handleAttachmentSelect(files: FileList | null) {
     setMsg(null);
 
@@ -239,66 +250,70 @@ export default function NewRequestPage() {
     return "NonFund";
   }
 
-  function validateRequestForm() {
+  function validateRequestForm(showMessage = true) {
     if (!hasVerifiedTotp || !totpFactorId) {
-      setMsg("❌ You must set up 2FA before submitting requests.");
-      router.push("/mfa/setup");
+      if (showMessage) {
+        setMsg("❌ You must set up 2FA before submitting requests.");
+        router.push("/mfa/setup");
+      }
       return false;
     }
 
     if (!me) {
-      setMsg("❌ Your profile is not loaded.");
+      if (showMessage) setMsg("❌ Your profile is not loaded.");
       return false;
     }
 
     if (!me.full_name || !me.full_name.trim()) {
-      setMsg("❌ Please update your full name in Profile before creating request.");
+      if (showMessage) setMsg("❌ Please update your full name in Profile before creating request.");
       return false;
     }
 
     if (!me.signature_url || !me.signature_url.trim()) {
-      setMsg("❌ Please upload your signature in Profile before creating request.");
+      if (showMessage) setMsg("❌ Please upload your signature in Profile before signing this request.");
       return false;
     }
 
     if (!deptId) {
-      setMsg("❌ Please select department.");
+      if (showMessage) setMsg("❌ Please select department.");
       return false;
     }
 
     if (!title.trim()) {
-      setMsg("❌ Please enter request title.");
+      if (showMessage) setMsg("❌ Please enter request title.");
       return false;
     }
 
     if (!details.trim()) {
-      setMsg("❌ Please enter request details.");
+      if (showMessage) setMsg("❌ Please enter request details.");
       return false;
     }
 
     const amt = isFinancial ? Number(amount || 0) : 0;
 
     if (isFinancial && (!amt || amt <= 0)) {
-      setMsg("❌ Enter a valid amount for this financial request.");
+      if (showMessage) setMsg("❌ Enter a valid amount for this financial request.");
       return false;
     }
 
     if (attachments.length > MAX_ATTACHMENTS) {
-      setMsg(`❌ Maximum ${MAX_ATTACHMENTS} attachments are allowed per request.`);
+      if (showMessage) setMsg(`❌ Maximum ${MAX_ATTACHMENTS} attachments are allowed per request.`);
       return false;
     }
 
     const tooLarge = attachments.find((file) => file.size > MAX_FILE_SIZE_BYTES);
 
     if (tooLarge) {
-      setMsg(`❌ "${tooLarge.name}" is too large. Maximum file size is ${MAX_FILE_SIZE_MB}MB.`);
+      if (showMessage) {
+        setMsg(`❌ "${tooLarge.name}" is too large. Maximum file size is ${MAX_FILE_SIZE_MB}MB.`);
+      }
       return false;
     }
 
     const dept = depts.find((d) => d.id === deptId);
 
     if (!dept) {
-      setMsg("❌ Department not found.");
+      if (showMessage) setMsg("❌ Department not found.");
       return false;
     }
 
@@ -306,17 +321,35 @@ export default function NewRequestPage() {
     const firstStage = dept.director_user_id ? "Director" : dept.hod_user_id ? "HOD" : null;
 
     if (!firstOwner || !firstStage) {
-      setMsg("❌ This department does not have Director/HOD routing set yet in Admin Panel.");
+      if (showMessage) {
+        setMsg("❌ This department does not have Director/HOD routing set yet in Admin Panel.");
+      }
       return false;
     }
 
     return true;
   }
 
+  function signRequest() {
+    setMsg(null);
+
+    const ok = validateRequestForm(true);
+    if (!ok) return;
+
+    setSignedRequest(true);
+    setSignedAt(new Date().toISOString());
+    setMsg("✅ Request signed successfully. You can now submit with 2FA.");
+  }
+
   async function openSubmitVerification() {
     setMsg(null);
 
-    const ok = validateRequestForm();
+    if (!signedRequest) {
+      setMsg("❌ Please click Sign Request before submitting.");
+      return;
+    }
+
+    const ok = validateRequestForm(true);
     if (!ok) return;
 
     setMfaCode("");
@@ -414,7 +447,12 @@ export default function NewRequestPage() {
       return;
     }
 
-    const stillValid = validateRequestForm();
+    if (!signedRequest) {
+      setMsg("❌ Please sign the request before submitting.");
+      return;
+    }
+
+    const stillValid = validateRequestForm(true);
 
     if (!stillValid) return;
 
@@ -457,7 +495,7 @@ export default function NewRequestPage() {
       setMsg(
         `✅ ${
           isFinancial ? "Financial request" : "Non-financial request"
-        } submitted successfully after 2FA verification. ${
+        } signed and submitted successfully after 2FA verification. ${
           uploadedCount > 0 ? `${uploadedCount} attachment(s) uploaded. ` : ""
         }Routed to ${(data as any)?.first_stage || "next officer"}.`
       );
@@ -467,6 +505,8 @@ export default function NewRequestPage() {
       setDetails("");
       setAttachments([]);
       setRequestClass("Financial");
+      setSignedRequest(false);
+      setSignedAt(null);
 
       await loadAll();
 
@@ -499,7 +539,7 @@ export default function NewRequestPage() {
             </h1>
             <p className="mt-2 text-sm text-slate-600">
               Staff submit requests without seeing subheads or balances. Director/HOD will assign
-              the appropriate finance subhead during review where required.
+              the appropriate finance subhead where required.
             </p>
           </div>
 
@@ -513,9 +553,8 @@ export default function NewRequestPage() {
         </div>
 
         <div className="mt-4 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-900">
-          2FA protection is active. You must enter your authenticator code when submitting this
-          request. Attachments are optional and will be checked individually by each approving
-          officer.
+          2FA protection is active. You must sign this request first, then enter your authenticator
+          code to submit. Attachments will be checked individually by each approving officer.
         </div>
 
         {msg && (
@@ -654,57 +693,92 @@ export default function NewRequestPage() {
                   className="mt-4 w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm text-slate-900"
                 />
 
-                <div className="mt-3 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-xs leading-5 text-blue-900">
-                  Accepted examples: PDF, Word, Excel, images and text files. Every approving
-                  officer must open and check uploaded files personally before approval/rejection.
-                </div>
-
                 {attachments.length > 0 && (
-                  <div className="mt-4">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div className="text-sm font-bold text-slate-900">
-                        Selected Files: {attachments.length}
-                      </div>
-                      <div className="text-xs font-semibold text-slate-500">
-                        Total size: {fileSizeLabel(totalAttachmentSize)}
-                      </div>
-                    </div>
-
-                    <div className="mt-3 space-y-2">
-                      {attachments.map((file, index) => (
-                        <div
-                          key={`${file.name}-${file.size}-${file.lastModified}`}
-                          className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-white px-4 py-3"
-                        >
-                          <div className="min-w-0">
-                            <div className="break-words text-sm font-bold text-slate-900">
-                              {index + 1}. {file.name}
-                            </div>
-                            <div className="mt-1 text-xs font-semibold text-slate-500">
-                              {file.type || "Unknown type"} • {fileSizeLabel(file.size)}
-                            </div>
+                  <div className="mt-4 space-y-2">
+                    {attachments.map((file, index) => (
+                      <div
+                        key={`${file.name}-${file.size}-${file.lastModified}`}
+                        className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-white px-4 py-3"
+                      >
+                        <div className="min-w-0">
+                          <div className="break-words text-sm font-bold text-slate-900">
+                            {index + 1}. {file.name}
                           </div>
-
-                          <button
-                            type="button"
-                            onClick={() => removeAttachment(index)}
-                            className="rounded-xl bg-red-600 px-3 py-2 text-xs font-bold text-white hover:bg-red-700"
-                          >
-                            Remove
-                          </button>
+                          <div className="mt-1 text-xs font-semibold text-slate-500">
+                            {file.type || "Unknown type"} • {fileSizeLabel(file.size)}
+                          </div>
                         </div>
-                      ))}
+
+                        <button
+                          type="button"
+                          onClick={() => removeAttachment(index)}
+                          className="rounded-xl bg-red-600 px-3 py-2 text-xs font-bold text-white hover:bg-red-700"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ))}
+
+                    <div className="text-xs font-semibold text-slate-500">
+                      Total size: {fileSizeLabel(totalAttachmentSize)}
                     </div>
                   </div>
                 )}
+              </div>
+            </div>
+
+            <div className="md:col-span-2">
+              <div
+                className={`rounded-2xl border p-5 ${
+                  signedRequest
+                    ? "border-emerald-200 bg-emerald-50"
+                    : "border-amber-200 bg-amber-50"
+                }`}
+              >
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div>
+                    <h2 className="text-lg font-extrabold text-slate-900">
+                      Request Signature
+                    </h2>
+                    <p className="mt-1 text-sm text-slate-700">
+                      You must sign this request before the submit button will be enabled.
+                    </p>
+
+                    {signedRequest && signedAt && (
+                      <div className="mt-2 text-sm font-bold text-emerald-700">
+                        Signed by {me?.full_name || "Requester"} on{" "}
+                        {new Date(signedAt).toLocaleString()} ✅
+                      </div>
+                    )}
+
+                    {!me?.signature_url && (
+                      <div className="mt-2 text-sm font-bold text-red-700">
+                        No signature found. Upload your signature in Profile first.
+                      </div>
+                    )}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={signRequest}
+                    disabled={!me?.signature_url || saving || verifyingCode}
+                    className={`rounded-xl px-5 py-3 text-sm font-bold text-white disabled:opacity-60 ${
+                      signedRequest
+                        ? "bg-emerald-600 hover:bg-emerald-700"
+                        : "bg-blue-600 hover:bg-blue-700"
+                    }`}
+                  >
+                    {signedRequest ? "Signed ✅" : "Sign Request"}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
 
           <button
             onClick={openSubmitVerification}
-            disabled={saving || verifyingCode || uploadingAttachments}
-            className="mt-5 w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
+            disabled={!canSubmit}
+            className="mt-5 w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {saving
               ? uploadingAttachments
@@ -712,7 +786,9 @@ export default function NewRequestPage() {
                 : "Submitting..."
               : verifyingCode
               ? "Verifying 2FA..."
-              : "Submit Request with 2FA"}
+              : signedRequest
+              ? "Submit Request with 2FA"
+              : "Sign Request First"}
           </button>
         </div>
       </div>
@@ -729,8 +805,8 @@ export default function NewRequestPage() {
             </h2>
 
             <p className="mt-2 text-sm leading-6 text-slate-600">
-              Enter the 6-digit code from your authenticator app. This request will not be submitted
-              until the code is verified.
+              Enter the 6-digit code from your authenticator app. This signed request will not be
+              submitted until the code is verified.
             </p>
 
             {attachments.length > 0 && (
