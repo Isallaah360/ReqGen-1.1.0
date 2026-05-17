@@ -19,6 +19,7 @@ type Req = {
   subhead_id: string | null;
   request_type: "Personal" | "Official";
   personal_category: "Fund" | "NonFund" | null;
+  funds_state: string | null;
   created_at: string;
 
   assigned_account_officer_id: string | null;
@@ -55,12 +56,18 @@ type OfficerMini = {
   role: string | null;
 };
 
+type SensitiveAction = "Approve" | "Reject" | "Delete";
+
 function roleKey(role: string | null | undefined) {
   return (role || "")
     .trim()
     .toLowerCase()
     .replace(/\s+/g, "")
     .replace(/_/g, "");
+}
+
+function stageKey(stage: string | null | undefined) {
+  return (stage || "").trim().toUpperCase().replace(/\s+/g, "");
 }
 
 function officerLabel(o: OfficerMini) {
@@ -83,6 +90,7 @@ export default function RequestDetailsPage() {
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [verifyingCode, setVerifyingCode] = useState(false);
 
   const [msg, setMsg] = useState<string | null>(null);
   const [req, setReq] = useState<Req | null>(null);
@@ -96,18 +104,45 @@ export default function RequestDetailsPage() {
   const [selectedOfficerId, setSelectedOfficerId] = useState("");
 
   const [mfaVerified, setMfaVerified] = useState(false);
-  const [checkingMfa, setCheckingMfa] = useState(false);
+  const [totpFactorId, setTotpFactorId] = useState<string | null>(null);
+  const [showMfaModal, setShowMfaModal] = useState(false);
+  const [mfaCode, setMfaCode] = useState("");
+  const [pendingAction, setPendingAction] = useState<SensitiveAction | null>(null);
+
+  const rk = roleKey(me?.role);
+  const stg = stageKey(req?.current_stage);
 
   const isMyRequest = useMemo(
     () => !!req && !!me && req.created_by === me.id,
     [req, me]
   );
 
-  const canEditDelete = useMemo(() => {
+  const requesterCanEditDeleteEarly = useMemo(() => {
     if (!req || !me) return false;
-    const stage = (req.current_stage || "").trim().toUpperCase();
-    return req.created_by === me.id && (stage === "DIRECTOR" || stage === "HOD");
-  }, [req, me]);
+
+    return (
+      req.created_by === me.id &&
+      ["DIRECTOR", "HOD"].includes(stg) &&
+      (req.funds_state || "").toLowerCase() === "reserved"
+    );
+  }, [req, me, stg]);
+
+  const assignedDirectorHodHrCanEdit = useMemo(() => {
+    if (!req || !me) return false;
+
+    return (
+      ["director", "hod", "hr"].includes(rk) &&
+      req.current_owner === me.id
+    );
+  }, [req, me, rk]);
+
+  const canEditRequest = useMemo(() => {
+    return requesterCanEditDeleteEarly || assignedDirectorHodHrCanEdit;
+  }, [requesterCanEditDeleteEarly, assignedDirectorHodHrCanEdit]);
+
+  const canDeleteRequest = useMemo(() => {
+    return requesterCanEditDeleteEarly;
+  }, [requesterCanEditDeleteEarly]);
 
   const canAct = useMemo(() => {
     if (!req || !me) return false;
@@ -165,23 +200,18 @@ export default function RequestDetailsPage() {
     return ok;
   }
 
-  async function requireMfaVerified(actionLabel: string) {
-    setCheckingMfa(true);
-    setMsg(null);
+  async function loadMfaFactor() {
+    const { data, error } = await supabase.auth.mfa.listFactors();
 
-    try {
-      const ok = await checkMfaStatus();
-
-      if (!ok) {
-        setMsg(`❌ 2FA verification is required before you can ${actionLabel}.`);
-        router.push(`/mfa?next=/requests/${id}`);
-        return false;
-      }
-
-      return true;
-    } finally {
-      setCheckingMfa(false);
+    if (error) {
+      setTotpFactorId(null);
+      return null;
     }
+
+    const verified = data.totp.find((factor) => factor.status === "verified");
+    setTotpFactorId(verified?.id || null);
+
+    return verified?.id || null;
   }
 
   useEffect(() => {
@@ -202,6 +232,7 @@ export default function RequestDetailsPage() {
       }
 
       await checkMfaStatus();
+      await loadMfaFactor();
 
       const { data: myProf, error: myErr } = await supabase
         .from("profiles")
@@ -220,7 +251,7 @@ export default function RequestDetailsPage() {
       const { data: r, error: rErr } = await supabase
         .from("requests")
         .select(
-          "id,request_no,title,details,amount,status,current_stage,current_owner,created_by,dept_id,subhead_id,request_type,personal_category,created_at,assigned_account_officer_id,assigned_account_officer_name"
+          "id,request_no,title,details,amount,status,current_stage,current_owner,created_by,dept_id,subhead_id,request_type,personal_category,funds_state,created_at,assigned_account_officer_id,assigned_account_officer_name"
         )
         .eq("id", id)
         .single();
@@ -284,11 +315,12 @@ export default function RequestDetailsPage() {
     if (!id) return;
 
     await checkMfaStatus();
+    await loadMfaFactor();
 
     const { data: r2 } = await supabase
       .from("requests")
       .select(
-        "id,request_no,title,details,amount,status,current_stage,current_owner,created_by,dept_id,subhead_id,request_type,personal_category,created_at,assigned_account_officer_id,assigned_account_officer_name"
+        "id,request_no,title,details,amount,status,current_stage,current_owner,created_by,dept_id,subhead_id,request_type,personal_category,funds_state,created_at,assigned_account_officer_id,assigned_account_officer_name"
       )
       .eq("id", id)
       .single();
@@ -317,47 +349,124 @@ export default function RequestDetailsPage() {
     }
   }
 
-  async function goToEdit() {
+  function goToEdit() {
     if (!req) return;
 
-    if (!canEditDelete) {
-      setMsg("❌ You can only edit while request is still at Director/HOD.");
+    if (!canEditRequest) {
+      setMsg("❌ You cannot edit this request at its current stage.");
       return;
     }
-
-    const ok = await requireMfaVerified("edit this request");
-    if (!ok) return;
 
     router.push(`/requests/${req.id}/edit`);
   }
 
-  async function act(action: "Approve" | "Reject") {
-    if (!req || !me) return;
+  function validateBeforeSensitiveAction(action: SensitiveAction) {
+    if (!req || !me) return false;
 
-    const okMfa = await requireMfaVerified(
-      action === "Approve" ? "approve this request" : "reject this request"
-    );
-    if (!okMfa) return;
+    if (!totpFactorId) {
+      setMsg("❌ You must set up 2FA before performing this action.");
+      router.push("/mfa/setup");
+      return false;
+    }
+
+    if (action === "Delete") {
+      if (!canDeleteRequest) {
+        setMsg("❌ Only the requester can delete while the request is still at early Director/HOD stage.");
+        return false;
+      }
+
+      return true;
+    }
 
     if (!me.signature_url) {
       setMsg("❌ You must upload your signature in Profile before taking actions.");
-      return;
+      return false;
     }
 
     if (!canAct) {
       setMsg("❌ You cannot act on this request. It is not assigned to you.");
-      return;
+      return false;
     }
 
     if (action === "Reject" && comment.trim().length < 3) {
       setMsg("❌ Please write a reason/comment for rejection.");
-      return;
+      return false;
     }
 
     if (action === "Approve" && needsAccountOfficerSelection && !selectedOfficerId) {
       setMsg("❌ Registry must select an Account Officer before sending this request to DG.");
+      return false;
+    }
+
+    return true;
+  }
+
+  function openFresh2faModal(action: SensitiveAction) {
+    setMsg(null);
+
+    const ok = validateBeforeSensitiveAction(action);
+    if (!ok) return;
+
+    setPendingAction(action);
+    setMfaCode("");
+    setShowMfaModal(true);
+  }
+
+  async function verifyCodeAndContinue() {
+    setMsg(null);
+
+    if (!pendingAction) {
+      setShowMfaModal(false);
       return;
     }
+
+    if (!totpFactorId) {
+      setMsg("❌ No verified 2FA authenticator found. Please set up 2FA again.");
+      setShowMfaModal(false);
+      router.push("/mfa/setup");
+      return;
+    }
+
+    const code = mfaCode.trim().replace(/\s+/g, "");
+
+    if (!/^\d{6}$/.test(code)) {
+      setMsg("❌ Enter the 6-digit code from your authenticator app.");
+      return;
+    }
+
+    setVerifyingCode(true);
+
+    try {
+      const { error } = await supabase.auth.mfa.challengeAndVerify({
+        factorId: totpFactorId,
+        code,
+      });
+
+      if (error) throw new Error(error.message);
+
+      const actionToRun = pendingAction;
+
+      setShowMfaModal(false);
+      setMfaCode("");
+      setPendingAction(null);
+
+      if (actionToRun === "Delete") {
+        await deleteRequestAfterFresh2fa();
+      } else {
+        await actAfterFresh2fa(actionToRun);
+      }
+    } catch (e: any) {
+      setMsg("❌ 2FA verification failed: " + (e?.message || "Invalid code."));
+    } finally {
+      setVerifyingCode(false);
+    }
+  }
+
+  async function actAfterFresh2fa(action: "Approve" | "Reject") {
+    if (!req || !me) return;
+
+    const stillValid = validateBeforeSensitiveAction(action);
+    if (!stillValid) return;
 
     setSaving(true);
     setMsg(null);
@@ -382,15 +491,15 @@ export default function RequestDetailsPage() {
         if (nextStage === "Completed") {
           setMsg(
             nextStatus === "Paid"
-              ? "✅ Request paid successfully and closed."
-              : "✅ Request completed successfully."
+              ? "✅ Request paid successfully and closed after 2FA verification."
+              : "✅ Request completed successfully after 2FA verification."
           );
         } else if (isHRFiling) {
-          setMsg("✅ HR filing completed successfully.");
+          setMsg("✅ HR filing completed successfully after 2FA verification.");
         } else if (needsAccountOfficerSelection && nextStage === "DG") {
-          setMsg("✅ Account Officer selected. Request sent to DG.");
+          setMsg("✅ Account Officer selected. Request sent to DG after 2FA verification.");
         } else {
-          setMsg(`✅ Approved. Sent to ${nextStage}.`);
+          setMsg(`✅ Approved after 2FA verification. Sent to ${nextStage}.`);
         }
       } else {
         const { error } = await supabase.rpc("reject_request_step", {
@@ -402,7 +511,7 @@ export default function RequestDetailsPage() {
 
         if (error) throw new Error(error.message);
 
-        setMsg("✅ Request rejected successfully.");
+        setMsg("✅ Request rejected successfully after 2FA verification.");
       }
 
       setComment("");
@@ -414,16 +523,11 @@ export default function RequestDetailsPage() {
     }
   }
 
-  async function deleteRequest() {
+  async function deleteRequestAfterFresh2fa() {
     if (!req) return;
 
-    const okMfa = await requireMfaVerified("delete this request");
-    if (!okMfa) return;
-
-    if (!canEditDelete) {
-      setMsg("❌ You can only delete while request is still at Director/HOD.");
-      return;
-    }
+    const stillValid = validateBeforeSensitiveAction("Delete");
+    if (!stillValid) return;
 
     const ok = confirm("Delete this request? Any reserved funds will be restored if applicable.");
     if (!ok) return;
@@ -438,7 +542,7 @@ export default function RequestDetailsPage() {
 
       if (error) throw new Error(error.message);
 
-      setMsg("✅ Deleted successfully.");
+      setMsg("✅ Deleted successfully after 2FA verification.");
       setTimeout(() => router.push("/requests"), 700);
     } catch (e: any) {
       setMsg("❌ Delete failed: " + (e?.message || "Unknown error"));
@@ -448,12 +552,12 @@ export default function RequestDetailsPage() {
   }
 
   const approveButtonText = useMemo(() => {
-    if (saving || checkingMfa) return "Processing...";
+    if (saving || verifyingCode) return "Processing...";
     if (needsAccountOfficerSelection) return "Send to DG";
     if (isHRFiling) return "Complete Filing";
     if ((req?.current_stage || "").toUpperCase() === "ACCOUNT") return "Treat / Pay";
     return "Approve";
-  }, [saving, checkingMfa, needsAccountOfficerSelection, isHRFiling, req?.current_stage]);
+  }, [saving, verifyingCode, needsAccountOfficerSelection, isHRFiling, req?.current_stage]);
 
   if (loading) {
     return (
@@ -495,8 +599,8 @@ export default function RequestDetailsPage() {
           }`}
         >
           {mfaVerified
-            ? "✅ 2FA verified. Sensitive actions are enabled for this session."
-            : "⚠️ 2FA verification is required before approve, reject, edit, or delete actions."}
+            ? "✅ 2FA session is active. Fresh 2FA code is still required before approve, reject, or delete."
+            : "⚠️ 2FA is required. Fresh 2FA code is required before approve, reject, or delete."}
         </div>
 
         {msg && (
@@ -587,28 +691,33 @@ export default function RequestDetailsPage() {
                 </div>
               </div>
 
-              {canEditDelete && (
+              {(canEditRequest || canDeleteRequest) && (
                 <div className="mt-5 flex flex-col gap-2 sm:flex-row">
-                  <button
-                    onClick={goToEdit}
-                    disabled={saving || checkingMfa}
-                    className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
-                  >
-                    {checkingMfa ? "Checking 2FA..." : "Edit"}
-                  </button>
-                  <button
-                    onClick={deleteRequest}
-                    disabled={saving || checkingMfa}
-                    className="w-full rounded-xl bg-red-600 px-4 py-3 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-60"
-                  >
-                    {saving || checkingMfa ? "Working..." : "Delete"}
-                  </button>
+                  {canEditRequest && (
+                    <button
+                      onClick={goToEdit}
+                      disabled={saving || verifyingCode}
+                      className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
+                    >
+                      Edit
+                    </button>
+                  )}
+
+                  {canDeleteRequest && (
+                    <button
+                      onClick={() => openFresh2faModal("Delete")}
+                      disabled={saving || verifyingCode}
+                      className="w-full rounded-xl bg-red-600 px-4 py-3 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-60"
+                    >
+                      {saving || verifyingCode ? "Working..." : "Delete"}
+                    </button>
+                  )}
                 </div>
               )}
 
-              {!canEditDelete && isMyRequest && (
+              {!canEditRequest && !canDeleteRequest && isMyRequest && (
                 <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
-                  Edit/Delete is locked once the request leaves Director/HOD level.
+                  Edit/Delete is locked once the request leaves the allowed early stage.
                 </div>
               )}
             </div>
@@ -616,7 +725,7 @@ export default function RequestDetailsPage() {
             <div className="mt-6 rounded-2xl border bg-white p-6 shadow-sm">
               <h2 className="text-lg font-bold text-slate-900">Actions</h2>
               <p className="mt-1 text-sm text-slate-600">
-                Only the assigned officer can approve/reject. All sensitive actions require signature and 2FA verification.
+                Only the assigned officer can approve/reject. All actions require signature and a fresh 2FA code.
               </p>
 
               {!canAct ? (
@@ -625,19 +734,6 @@ export default function RequestDetailsPage() {
                 </div>
               ) : (
                 <>
-                  {!mfaVerified && (
-                    <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-                      2FA is required before approval or rejection.
-                      <button
-                        type="button"
-                        onClick={() => router.push(`/mfa?next=/requests/${id}`)}
-                        className="mt-3 rounded-xl bg-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-blue-700"
-                      >
-                        Verify 2FA
-                      </button>
-                    </div>
-                  )}
-
                   {needsAccountOfficerSelection && (
                     <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50 p-4">
                       <label className="text-sm font-semibold text-slate-800">
@@ -685,19 +781,19 @@ export default function RequestDetailsPage() {
 
                   <div className="mt-4 flex flex-col gap-2 sm:flex-row">
                     <button
-                      onClick={() => act("Approve")}
-                      disabled={saving || checkingMfa}
+                      onClick={() => openFresh2faModal("Approve")}
+                      disabled={saving || verifyingCode}
                       className="w-full rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 disabled:opacity-60"
                     >
                       {approveButtonText}
                     </button>
 
                     <button
-                      onClick={() => act("Reject")}
-                      disabled={saving || checkingMfa}
+                      onClick={() => openFresh2faModal("Reject")}
+                      disabled={saving || verifyingCode}
                       className="w-full rounded-xl bg-red-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-red-700 disabled:opacity-60"
                     >
-                      {saving || checkingMfa ? "Processing..." : "Reject"}
+                      {saving || verifyingCode ? "Processing..." : "Reject"}
                     </button>
                   </div>
                 </>
@@ -741,6 +837,59 @@ export default function RequestDetailsPage() {
           </>
         )}
       </div>
+
+      {showMfaModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl">
+            <div className="text-xs font-black uppercase tracking-wide text-blue-700">
+              Required Security Verification
+            </div>
+
+            <h2 className="mt-1 text-2xl font-extrabold text-slate-900">
+              Enter 2FA Code
+            </h2>
+
+            <p className="mt-2 text-sm leading-6 text-slate-600">
+              Enter the 6-digit code from your authenticator app. This action will not continue
+              until the code is verified.
+            </p>
+
+            <input
+              value={mfaCode}
+              onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+              inputMode="numeric"
+              autoFocus
+              placeholder="123456"
+              className="mt-5 w-full rounded-2xl border border-slate-200 px-4 py-4 text-center text-2xl font-black tracking-[0.35em] text-slate-900 outline-none focus:border-blue-500"
+            />
+
+            <div className="mt-5 flex flex-col gap-2 sm:flex-row">
+              <button
+                type="button"
+                onClick={() => {
+                  if (verifyingCode || saving) return;
+                  setShowMfaModal(false);
+                  setMfaCode("");
+                  setPendingAction(null);
+                }}
+                disabled={verifyingCode || saving}
+                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                onClick={verifyCodeAndContinue}
+                disabled={verifyingCode || saving || mfaCode.trim().length !== 6}
+                className="w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white hover:bg-blue-700 disabled:opacity-60"
+              >
+                {verifyingCode || saving ? "Verifying..." : "Verify & Continue"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
