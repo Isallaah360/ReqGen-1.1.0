@@ -540,6 +540,27 @@ export default function NewRequestPage() {
     }
   }
 
+  async function sendApprovalSms(requestId: string) {
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session?.access_token) return;
+
+      await fetch("/api/notifications/sms/request-approval", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ requestId }),
+      });
+    } catch (smsErr) {
+      console.warn("SMS notification failed:", smsErr);
+    }
+  }
+
   async function submitRequestAfterFresh2fa() {
     if (!me) {
       setMsg("❌ Your profile is not loaded.");
@@ -584,6 +605,8 @@ export default function NewRequestPage() {
       if (!requestId) {
         throw new Error("Request was submitted but no request ID was returned.");
       }
+
+      await sendApprovalSms(requestId);
 
       let uploadedCount = 0;
 
@@ -780,9 +803,7 @@ export default function NewRequestPage() {
 
                     <div className="rounded-xl bg-emerald-50 p-3">
                       <div className="text-xs text-emerald-700">Available Balance</div>
-                      <div className="mt-1 text-emerald-800">
-                        {naira(availableBalance)}
-                      </div>
+                      <div className="mt-1 text-emerald-800">{naira(availableBalance)}</div>
                     </div>
                   </div>
                 )}
