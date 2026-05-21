@@ -86,7 +86,7 @@ export async function POST(req: NextRequest) {
 
   if (insertErr) return jsonError("Could not create OTP: " + insertErr.message, 500);
 
-  const message = `Assalamu Alaikum. Your ReqGen request submission OTP is ${otp}. It expires in 5 minutes. Do not share it.`;
+  const message = `Your ReqGen OTP is ${otp}. It expires in 5 minutes. Do not share it.`;
 
   let smsResult: any = null;
 
