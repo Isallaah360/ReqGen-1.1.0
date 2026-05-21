@@ -29,6 +29,7 @@ type ProfileMini = {
   full_name: string | null;
   email: string | null;
   role: string | null;
+  phone: string | null;
   signature_url: string | null;
 };
 
@@ -86,21 +87,27 @@ function fileSizeLabel(bytes: number) {
   return `${bytes} B`;
 }
 
+function maskPhone(phone: string | null | undefined) {
+  const raw = String(phone || "").replace(/\D/g, "");
+  if (raw.length < 7) return phone || "—";
+  return `${raw.slice(0, 4)}***${raw.slice(-3)}`;
+}
+
 export default function NewRequestPage() {
   const router = useRouter();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [verifyingCode, setVerifyingCode] = useState(false);
+  const [sendingOtp, setSendingOtp] = useState(false);
+  const [verifyingOtp, setVerifyingOtp] = useState(false);
   const [uploadingAttachments, setUploadingAttachments] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
   const [me, setMe] = useState<ProfileMini | null>(null);
-  const [hasVerifiedTotp, setHasVerifiedTotp] = useState(false);
-  const [totpFactorId, setTotpFactorId] = useState<string | null>(null);
 
-  const [showMfaModal, setShowMfaModal] = useState(false);
-  const [mfaCode, setMfaCode] = useState("");
+  const [showOtpModal, setShowOtpModal] = useState(false);
+  const [otpCode, setOtpCode] = useState("");
+  const [otpSent, setOtpSent] = useState(false);
 
   const [requestClass, setRequestClass] = useState<RequestClass>("Financial");
 
@@ -158,32 +165,8 @@ export default function NewRequestPage() {
   }, [selectedSubhead]);
 
   const canSubmit = useMemo(() => {
-    return signedRequest && !saving && !verifyingCode && !uploadingAttachments;
-  }, [signedRequest, saving, verifyingCode, uploadingAttachments]);
-
-  async function loadMfaFactors() {
-    const { data: auth } = await supabase.auth.getUser();
-
-    if (!auth.user) {
-      router.push("/login");
-      return false;
-    }
-
-    const { data, error } = await supabase.auth.mfa.listFactors();
-
-    if (error) {
-      setHasVerifiedTotp(false);
-      setTotpFactorId(null);
-      return false;
-    }
-
-    const verifiedFactor = data.totp.find((factor) => factor.status === "verified");
-
-    setHasVerifiedTotp(Boolean(verifiedFactor));
-    setTotpFactorId(verifiedFactor?.id || null);
-
-    return Boolean(verifiedFactor);
-  }
+    return signedRequest && !saving && !sendingOtp && !verifyingOtp && !uploadingAttachments;
+  }, [signedRequest, saving, sendingOtp, verifyingOtp, uploadingAttachments]);
 
   async function loadAll() {
     setLoading(true);
@@ -196,18 +179,9 @@ export default function NewRequestPage() {
       return;
     }
 
-    const has2fa = await loadMfaFactors();
-
-    if (!has2fa) {
-      setMsg("❌ You must set up 2FA before creating requests.");
-      router.push("/mfa/setup");
-      setLoading(false);
-      return;
-    }
-
     const { data: prof, error: profErr } = await supabase
       .from("profiles")
-      .select("id,full_name,email,role,signature_url")
+      .select("id,full_name,email,role,phone,signature_url")
       .eq("id", auth.user.id)
       .single();
 
@@ -281,6 +255,8 @@ export default function NewRequestPage() {
   useEffect(() => {
     setSignedRequest(false);
     setSignedAt(null);
+    setOtpSent(false);
+    setOtpCode("");
   }, [requestClass, deptId, subheadId, title, amount, details, attachments.length]);
 
   function handleAttachmentSelect(files: FileList | null) {
@@ -343,14 +319,6 @@ export default function NewRequestPage() {
   }
 
   function validateRequestForm(showMessage = true) {
-    if (!hasVerifiedTotp || !totpFactorId) {
-      if (showMessage) {
-        setMsg("❌ You must set up 2FA before submitting requests.");
-        router.push("/mfa/setup");
-      }
-      return false;
-    }
-
     if (!me) {
       if (showMessage) setMsg("❌ Your profile is not loaded.");
       return false;
@@ -358,6 +326,11 @@ export default function NewRequestPage() {
 
     if (!me.full_name || !me.full_name.trim()) {
       if (showMessage) setMsg("❌ Please update your full name in Profile before creating request.");
+      return false;
+    }
+
+    if (!me.phone || !me.phone.trim()) {
+      if (showMessage) setMsg("❌ Please add your phone number in Profile before requesting SMS OTP.");
       return false;
     }
 
@@ -437,7 +410,35 @@ export default function NewRequestPage() {
 
     setSignedRequest(true);
     setSignedAt(new Date().toISOString());
-    setMsg("✅ Request signed successfully. You can now submit with 2FA.");
+    setOtpSent(false);
+    setOtpCode("");
+    setMsg("✅ Request signed successfully. You can now submit with SMS OTP.");
+  }
+
+  async function sendRequestSubmissionOtp() {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    if (!session?.access_token) {
+      throw new Error("Session expired. Please login again.");
+    }
+
+    const response = await fetch("/api/otp/request-submission/send", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session.access_token}`,
+      },
+    });
+
+    const result = await response.json().catch(() => null);
+
+    if (!response.ok || !result?.ok) {
+      throw new Error(result?.error || "Could not send SMS OTP.");
+    }
+
+    return result;
   }
 
   async function openSubmitVerification() {
@@ -451,45 +452,66 @@ export default function NewRequestPage() {
     const ok = validateRequestForm(true);
     if (!ok) return;
 
-    setMfaCode("");
-    setShowMfaModal(true);
-  }
-
-  async function verifyCodeAndSubmit() {
-    setMsg(null);
-
-    if (!totpFactorId) {
-      setMsg("❌ No verified 2FA authenticator found. Please set up 2FA again.");
-      setShowMfaModal(false);
-      router.push("/mfa/setup");
-      return;
-    }
-
-    const code = mfaCode.trim().replace(/\s+/g, "");
-
-    if (!/^\d{6}$/.test(code)) {
-      setMsg("❌ Enter the 6-digit code from your authenticator app.");
-      return;
-    }
-
-    setVerifyingCode(true);
+    setSendingOtp(true);
 
     try {
-      const { error } = await supabase.auth.mfa.challengeAndVerify({
-        factorId: totpFactorId,
-        code,
+      await sendRequestSubmissionOtp();
+
+      setOtpCode("");
+      setOtpSent(true);
+      setShowOtpModal(true);
+      setMsg("✅ SMS OTP sent to your registered phone number.");
+    } catch (e: any) {
+      setMsg("❌ Could not send SMS OTP: " + (e?.message || "Unknown error."));
+    } finally {
+      setSendingOtp(false);
+    }
+  }
+
+  async function verifyOtpAndSubmit() {
+    setMsg(null);
+
+    const code = otpCode.trim().replace(/\s+/g, "");
+
+    if (!/^\d{6}$/.test(code)) {
+      setMsg("❌ Enter the 6-digit SMS OTP.");
+      return;
+    }
+
+    setVerifyingOtp(true);
+
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session?.access_token) {
+        throw new Error("Session expired. Please login again.");
+      }
+
+      const response = await fetch("/api/otp/request-submission/verify", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ code }),
       });
 
-      if (error) throw new Error(error.message);
+      const result = await response.json().catch(() => null);
 
-      setShowMfaModal(false);
-      setMfaCode("");
+      if (!response.ok || !result?.ok) {
+        throw new Error(result?.error || "OTP verification failed.");
+      }
 
-      await submitRequestAfterFresh2fa();
+      setShowOtpModal(false);
+      setOtpCode("");
+
+      await submitRequestAfterSmsOtp();
     } catch (e: any) {
-      setMsg("❌ 2FA verification failed: " + (e?.message || "Invalid code."));
+      setMsg("❌ SMS OTP verification failed: " + (e?.message || "Invalid OTP."));
     } finally {
-      setVerifyingCode(false);
+      setVerifyingOtp(false);
     }
   }
 
@@ -540,7 +562,10 @@ export default function NewRequestPage() {
     }
   }
 
-  async function sendApprovalSms(requestId: string) {
+  async function sendRequestEventSms(
+    requestId: string,
+    event: "submission_success" | "approval_pending"
+  ) {
     try {
       const {
         data: { session },
@@ -548,20 +573,20 @@ export default function NewRequestPage() {
 
       if (!session?.access_token) return;
 
-      await fetch("/api/notifications/sms/request-approval", {
+      await fetch("/api/notifications/sms/request-event", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${session.access_token}`,
         },
-        body: JSON.stringify({ requestId }),
+        body: JSON.stringify({ requestId, event }),
       });
     } catch (smsErr) {
       console.warn("SMS notification failed:", smsErr);
     }
   }
 
-  async function submitRequestAfterFresh2fa() {
+  async function submitRequestAfterSmsOtp() {
     if (!me) {
       setMsg("❌ Your profile is not loaded.");
       return;
@@ -606,14 +631,15 @@ export default function NewRequestPage() {
         throw new Error("Request was submitted but no request ID was returned.");
       }
 
-      await sendApprovalSms(requestId);
-
       let uploadedCount = 0;
 
       if (attachments.length > 0) {
         const result = await uploadAttachmentsForRequest(requestId);
         uploadedCount = result.uploaded;
       }
+
+      await sendRequestEventSms(requestId, "submission_success");
+      await sendRequestEventSms(requestId, "approval_pending");
 
       const fundsState = (data as any)?.funds_state || "";
       const subheadNote =
@@ -626,7 +652,7 @@ export default function NewRequestPage() {
       setMsg(
         `✅ ${
           isFinancial ? "Financial request" : "Non-financial request"
-        } signed and submitted successfully after 2FA verification. ${subheadNote}${
+        } signed and submitted successfully after SMS OTP verification. ${subheadNote}${
           uploadedCount > 0 ? `${uploadedCount} attachment(s) uploaded. ` : ""
         }Routed to ${(data as any)?.first_stage || "next officer"}.`
       );
@@ -638,6 +664,8 @@ export default function NewRequestPage() {
       setRequestClass("Financial");
       setSignedRequest(false);
       setSignedAt(null);
+      setOtpSent(false);
+      setOtpCode("");
 
       await loadAll();
 
@@ -669,8 +697,8 @@ export default function NewRequestPage() {
               New Request
             </h1>
             <p className="mt-2 text-sm text-slate-600">
-              Staff submit requests without seeing subheads or balances. Authorized finance and
-              approval roles may select subheads where required.
+              Staff submit requests without seeing subheads or balances. Request submission now uses
+              SMS OTP verification.
             </p>
           </div>
 
@@ -684,9 +712,22 @@ export default function NewRequestPage() {
         </div>
 
         <div className="mt-4 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-900">
-          2FA protection is active. You must sign this request first, then enter your authenticator
-          code to submit. Attachments will be checked individually by each approving officer.
+          SMS OTP protection is active. Sign the request first, then receive an OTP on your
+          registered phone number to submit.
         </div>
+
+        {me?.phone && (
+          <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">
+            OTP will be sent to your registered phone number: {maskPhone(me.phone)}
+          </div>
+        )}
+
+        {!me?.phone && (
+          <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-800">
+            No phone number found on your profile. Please update your phone number before submitting
+            a request.
+          </div>
+        )}
 
         {!canSeeSubheads && (
           <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
@@ -938,7 +979,7 @@ export default function NewRequestPage() {
                       Request Signature
                     </h2>
                     <p className="mt-1 text-sm text-slate-700">
-                      You must sign this request before the submit button will be enabled.
+                      You must sign this request before SMS OTP can be sent.
                     </p>
 
                     {signedRequest && signedAt && (
@@ -958,7 +999,7 @@ export default function NewRequestPage() {
                   <button
                     type="button"
                     onClick={signRequest}
-                    disabled={!me?.signature_url || saving || verifyingCode}
+                    disabled={!me?.signature_url || saving || sendingOtp || verifyingOtp}
                     className={`rounded-xl px-5 py-3 text-sm font-bold text-white disabled:opacity-60 ${
                       signedRequest
                         ? "bg-emerald-600 hover:bg-emerald-700"
@@ -981,40 +1022,45 @@ export default function NewRequestPage() {
               ? uploadingAttachments
                 ? "Uploading Attachments..."
                 : "Submitting..."
-              : verifyingCode
-              ? "Verifying 2FA..."
+              : sendingOtp
+              ? "Sending SMS OTP..."
+              : verifyingOtp
+              ? "Verifying SMS OTP..."
               : signedRequest
-              ? "Submit Request with 2FA"
+              ? otpSent
+                ? "Resend SMS OTP / Continue"
+                : "Submit with SMS OTP"
               : "Sign Request First"}
           </button>
         </div>
       </div>
 
-      {showMfaModal && (
+      {showOtpModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
           <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl">
             <div className="text-xs font-black uppercase tracking-wide text-blue-700">
-              Required Security Verification
+              Required SMS Verification
             </div>
 
             <h2 className="mt-1 text-2xl font-extrabold text-slate-900">
-              Enter 2FA Code
+              Enter SMS OTP
             </h2>
 
             <p className="mt-2 text-sm leading-6 text-slate-600">
-              Enter the 6-digit code from your authenticator app. This signed request will not be
-              submitted until the code is verified.
+              Enter the 6-digit OTP sent to your registered phone number{" "}
+              <b>{maskPhone(me?.phone)}</b>. This signed request will not be submitted until the OTP
+              is verified.
             </p>
 
             {attachments.length > 0 && (
               <div className="mt-4 rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-900">
-                {attachments.length} attachment(s) will be uploaded after this 2FA verification.
+                {attachments.length} attachment(s) will be uploaded after OTP verification.
               </div>
             )}
 
             <input
-              value={mfaCode}
-              onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+              value={otpCode}
+              onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
               inputMode="numeric"
               autoFocus
               placeholder="123456"
@@ -1025,11 +1071,11 @@ export default function NewRequestPage() {
               <button
                 type="button"
                 onClick={() => {
-                  if (verifyingCode || saving) return;
-                  setShowMfaModal(false);
-                  setMfaCode("");
+                  if (verifyingOtp || saving) return;
+                  setShowOtpModal(false);
+                  setOtpCode("");
                 }}
-                disabled={verifyingCode || saving}
+                disabled={verifyingOtp || saving}
                 className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
               >
                 Cancel
@@ -1037,13 +1083,22 @@ export default function NewRequestPage() {
 
               <button
                 type="button"
-                onClick={verifyCodeAndSubmit}
-                disabled={verifyingCode || saving || mfaCode.trim().length !== 6}
+                onClick={verifyOtpAndSubmit}
+                disabled={verifyingOtp || saving || otpCode.trim().length !== 6}
                 className="w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white hover:bg-blue-700 disabled:opacity-60"
               >
-                {verifyingCode || saving ? "Verifying..." : "Verify & Submit"}
+                {verifyingOtp || saving ? "Verifying..." : "Verify OTP & Submit"}
               </button>
             </div>
+
+            <button
+              type="button"
+              onClick={openSubmitVerification}
+              disabled={sendingOtp || verifyingOtp || saving}
+              className="mt-3 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
+            >
+              {sendingOtp ? "Resending OTP..." : "Resend OTP"}
+            </button>
           </div>
         </div>
       )}

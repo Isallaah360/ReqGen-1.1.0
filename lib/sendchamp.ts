@@ -31,7 +31,7 @@ export function normalizeNigerianPhone(rawPhone: string | null | undefined) {
 
 export async function sendSendchampSms(input: SendSmsInput) {
   const apiKey = process.env.SENDCHAMP_API_KEY;
-  const senderName = input.senderName || process.env.SENDCHAMP_SENDER_NAME || "REQGEN";
+  const senderName = input.senderName || process.env.SENDCHAMP_SENDER_NAME || "Sendchamp";
   const route =
     input.route ||
     (process.env.SENDCHAMP_ROUTE as "dnd" | "non_dnd" | "international") ||
