@@ -87,6 +87,27 @@ function fileSizeLabel(bytes: number) {
   return `${bytes} B`;
 }
 
+function maskEmail(email: string | null | undefined) {
+  const clean = String(email || "").trim();
+
+  if (!clean || !clean.includes("@")) return "—";
+
+  const [name, domain] = clean.split("@");
+  const visibleName =
+    name.length <= 2 ? `${name.slice(0, 1)}***` : `${name.slice(0, 2)}***${name.slice(-1)}`;
+
+  const domainParts = domain.split(".");
+  const domainName = domainParts[0] || "";
+  const domainExt = domainParts.slice(1).join(".");
+
+  const visibleDomain =
+    domainName.length <= 2
+      ? `${domainName.slice(0, 1)}***`
+      : `${domainName.slice(0, 2)}***${domainName.slice(-1)}`;
+
+  return `${visibleName}@${visibleDomain}${domainExt ? `.${domainExt}` : ""}`;
+}
+
 function maskPhone(phone: string | null | undefined) {
   const raw = String(phone || "").replace(/\D/g, "");
   if (raw.length < 7) return phone || "—";
@@ -108,6 +129,7 @@ export default function NewRequestPage() {
   const [showOtpModal, setShowOtpModal] = useState(false);
   const [otpCode, setOtpCode] = useState("");
   const [otpSent, setOtpSent] = useState(false);
+  const [otpChannel, setOtpChannel] = useState<"email" | "email_sms" | "unknown">("unknown");
 
   const [requestClass, setRequestClass] = useState<RequestClass>("Financial");
 
@@ -191,7 +213,8 @@ export default function NewRequestPage() {
       return;
     }
 
-    setMe((prof || null) as ProfileMini);
+    const profileRow = (prof || null) as ProfileMini;
+    setMe(profileRow);
 
     const { data: deptRows, error: deptErr } = await supabase
       .from("departments")
@@ -257,6 +280,7 @@ export default function NewRequestPage() {
     setSignedAt(null);
     setOtpSent(false);
     setOtpCode("");
+    setOtpChannel("unknown");
   }, [requestClass, deptId, subheadId, title, amount, details, attachments.length]);
 
   function handleAttachmentSelect(files: FileList | null) {
@@ -329,8 +353,8 @@ export default function NewRequestPage() {
       return false;
     }
 
-    if (!me.phone || !me.phone.trim()) {
-      if (showMessage) setMsg("❌ Please add your phone number in Profile before requesting SMS OTP.");
+    if (!me.email || !me.email.trim() || !me.email.includes("@")) {
+      if (showMessage) setMsg("❌ Please add a valid registered email in Profile before requesting OTP.");
       return false;
     }
 
@@ -412,7 +436,8 @@ export default function NewRequestPage() {
     setSignedAt(new Date().toISOString());
     setOtpSent(false);
     setOtpCode("");
-    setMsg("✅ Request signed successfully. You can now submit with SMS OTP.");
+    setOtpChannel("unknown");
+    setMsg("✅ Request signed successfully. You can now submit with Email OTP.");
   }
 
   async function sendRequestSubmissionOtp() {
@@ -435,10 +460,17 @@ export default function NewRequestPage() {
     const result = await response.json().catch(() => null);
 
     if (!response.ok || !result?.ok) {
-      throw new Error(result?.error || "Could not send SMS OTP.");
+      throw new Error(result?.error || "Could not send Email OTP.");
     }
 
-    return result;
+    return result as {
+      ok: boolean;
+      message?: string;
+      channel?: "email" | "email_sms";
+      email?: string;
+      smsWarning?: string | null;
+      expiresInMinutes?: number;
+    };
   }
 
   async function openSubmitVerification() {
@@ -455,14 +487,24 @@ export default function NewRequestPage() {
     setSendingOtp(true);
 
     try {
-      await sendRequestSubmissionOtp();
+      const result = await sendRequestSubmissionOtp();
 
       setOtpCode("");
       setOtpSent(true);
+      setOtpChannel(result.channel || "email");
       setShowOtpModal(true);
-      setMsg("✅ SMS OTP sent to your registered phone number.");
+
+      if (result.smsWarning) {
+        setMsg("✅ Email OTP sent successfully. SMS fallback is not available yet pending Sender ID approval.");
+      } else {
+        setMsg(
+          result.channel === "email_sms"
+            ? "✅ OTP sent to your registered email. SMS fallback was also attempted."
+            : "✅ Email OTP sent to your registered email."
+        );
+      }
     } catch (e: any) {
-      setMsg("❌ Could not send SMS OTP: " + (e?.message || "Unknown error."));
+      setMsg("❌ Could not send Email OTP: " + (e?.message || "Unknown error."));
     } finally {
       setSendingOtp(false);
     }
@@ -474,7 +516,7 @@ export default function NewRequestPage() {
     const code = otpCode.trim().replace(/\s+/g, "");
 
     if (!/^\d{6}$/.test(code)) {
-      setMsg("❌ Enter the 6-digit SMS OTP.");
+      setMsg("❌ Enter the 6-digit Email OTP.");
       return;
     }
 
@@ -507,9 +549,9 @@ export default function NewRequestPage() {
       setShowOtpModal(false);
       setOtpCode("");
 
-      await submitRequestAfterSmsOtp();
+      await submitRequestAfterEmailOtp();
     } catch (e: any) {
-      setMsg("❌ SMS OTP verification failed: " + (e?.message || "Invalid OTP."));
+      setMsg("❌ Email OTP verification failed: " + (e?.message || "Invalid OTP."));
     } finally {
       setVerifyingOtp(false);
     }
@@ -562,7 +604,7 @@ export default function NewRequestPage() {
     }
   }
 
-  async function sendRequestEventSms(
+  async function sendRequestEventNotification(
     requestId: string,
     event: "submission_success" | "approval_pending"
   ) {
@@ -581,12 +623,12 @@ export default function NewRequestPage() {
         },
         body: JSON.stringify({ requestId, event }),
       });
-    } catch (smsErr) {
-      console.warn("SMS notification failed:", smsErr);
+    } catch (notifyErr) {
+      console.warn("Request notification failed:", notifyErr);
     }
   }
 
-  async function submitRequestAfterSmsOtp() {
+  async function submitRequestAfterEmailOtp() {
     if (!me) {
       setMsg("❌ Your profile is not loaded.");
       return;
@@ -638,8 +680,8 @@ export default function NewRequestPage() {
         uploadedCount = result.uploaded;
       }
 
-      await sendRequestEventSms(requestId, "submission_success");
-      await sendRequestEventSms(requestId, "approval_pending");
+      await sendRequestEventNotification(requestId, "submission_success");
+      await sendRequestEventNotification(requestId, "approval_pending");
 
       const fundsState = (data as any)?.funds_state || "";
       const subheadNote =
@@ -652,7 +694,7 @@ export default function NewRequestPage() {
       setMsg(
         `✅ ${
           isFinancial ? "Financial request" : "Non-financial request"
-        } signed and submitted successfully after SMS OTP verification. ${subheadNote}${
+        } signed and submitted successfully after Email OTP verification. ${subheadNote}${
           uploadedCount > 0 ? `${uploadedCount} attachment(s) uploaded. ` : ""
         }Routed to ${(data as any)?.first_stage || "next officer"}.`
       );
@@ -666,6 +708,7 @@ export default function NewRequestPage() {
       setSignedAt(null);
       setOtpSent(false);
       setOtpCode("");
+      setOtpChannel("unknown");
 
       await loadAll();
 
@@ -698,7 +741,7 @@ export default function NewRequestPage() {
             </h1>
             <p className="mt-2 text-sm text-slate-600">
               Staff submit requests without seeing subheads or balances. Request submission now uses
-              SMS OTP verification.
+              Email OTP verification, with SMS fallback pending official Sender ID approval.
             </p>
           </div>
 
@@ -712,20 +755,30 @@ export default function NewRequestPage() {
         </div>
 
         <div className="mt-4 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-900">
-          SMS OTP protection is active. Sign the request first, then receive an OTP on your
-          registered phone number to submit.
+          Email OTP protection is active. Sign the request first, then receive an OTP on your
+          registered email to submit. SMS fallback will remain available after IET REQGEN Sender ID
+          approval.
         </div>
 
-        {me?.phone && (
+        {me?.email && (
           <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">
-            OTP will be sent to your registered phone number: {maskPhone(me.phone)}
+            OTP will be sent to your registered email: {maskEmail(me.email)}
+            {me.phone ? (
+              <span className="block pt-1 text-xs font-semibold text-emerald-700">
+                Registered phone available for future SMS fallback: {maskPhone(me.phone)}
+              </span>
+            ) : (
+              <span className="block pt-1 text-xs font-semibold text-amber-700">
+                No phone number found for SMS fallback. Email OTP will still work.
+              </span>
+            )}
           </div>
         )}
 
-        {!me?.phone && (
+        {!me?.email && (
           <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-800">
-            No phone number found on your profile. Please update your phone number before submitting
-            a request.
+            No valid email found on your profile. Please update your registered email before
+            submitting a request.
           </div>
         )}
 
@@ -979,7 +1032,7 @@ export default function NewRequestPage() {
                       Request Signature
                     </h2>
                     <p className="mt-1 text-sm text-slate-700">
-                      You must sign this request before SMS OTP can be sent.
+                      You must sign this request before Email OTP can be sent.
                     </p>
 
                     {signedRequest && signedAt && (
@@ -1023,13 +1076,13 @@ export default function NewRequestPage() {
                 ? "Uploading Attachments..."
                 : "Submitting..."
               : sendingOtp
-              ? "Sending SMS OTP..."
+              ? "Sending Email OTP..."
               : verifyingOtp
-              ? "Verifying SMS OTP..."
+              ? "Verifying Email OTP..."
               : signedRequest
               ? otpSent
-                ? "Resend SMS OTP / Continue"
-                : "Submit with SMS OTP"
+                ? "Resend Email OTP / Continue"
+                : "Submit with Email OTP"
               : "Sign Request First"}
           </button>
         </div>
@@ -1039,18 +1092,24 @@ export default function NewRequestPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
           <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl">
             <div className="text-xs font-black uppercase tracking-wide text-blue-700">
-              Required SMS Verification
+              Required Email Verification
             </div>
 
             <h2 className="mt-1 text-2xl font-extrabold text-slate-900">
-              Enter SMS OTP
+              Enter Email OTP
             </h2>
 
             <p className="mt-2 text-sm leading-6 text-slate-600">
-              Enter the 6-digit OTP sent to your registered phone number{" "}
-              <b>{maskPhone(me?.phone)}</b>. This signed request will not be submitted until the OTP
+              Enter the 6-digit OTP sent to your registered email{" "}
+              <b>{maskEmail(me?.email)}</b>. This signed request will not be submitted until the OTP
               is verified.
             </p>
+
+            {otpChannel === "email_sms" && (
+              <div className="mt-4 rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-900">
+                OTP was sent by email. SMS fallback was also attempted where available.
+              </div>
+            )}
 
             {attachments.length > 0 && (
               <div className="mt-4 rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-900">
@@ -1097,7 +1156,7 @@ export default function NewRequestPage() {
               disabled={sendingOtp || verifyingOtp || saving}
               className="mt-3 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
             >
-              {sendingOtp ? "Resending OTP..." : "Resend OTP"}
+              {sendingOtp ? "Resending OTP..." : "Resend Email OTP"}
             </button>
           </div>
         </div>

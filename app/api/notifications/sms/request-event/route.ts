@@ -1,11 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { normalizeNigerianPhone, sendSendchampSms } from "@/lib/sendchamp";
+import { sendSendchampEmail } from "@/lib/sendchampEmail";
 
 export const runtime = "nodejs";
 
 function jsonError(message: string, status = 400) {
   return NextResponse.json({ ok: false, error: message }, { status });
+}
+
+function smsEnabled() {
+  return String(process.env.SENDCHAMP_SMS_ENABLED || "false").toLowerCase() === "true";
 }
 
 export async function POST(req: NextRequest) {
@@ -47,73 +52,153 @@ export async function POST(req: NextRequest) {
   if (reqErr || !requestRow) return jsonError("Request not found.", 404);
 
   let recipientUserId: string | null = null;
-  let message = "";
+  let subject = "";
+  let text = "";
 
   if (event === "submission_success") {
     recipientUserId = requestRow.created_by;
-    message = `Assalamu Alaikum. Your ReqGen request ${requestRow.request_no} was submitted successfully. Jazakumullahu Khairan.`;
+    subject = `ReqGen Request Submitted - ${requestRow.request_no}`;
+    text = `Assalamu Alaikum,
+
+Your ReqGen request ${requestRow.request_no} has been submitted successfully.
+
+Title: ${requestRow.title || "Request"}
+Current Stage: ${requestRow.current_stage || "Submitted"}
+
+IET REQGEN Notification`;
   } else if (event === "approval_pending") {
     recipientUserId = requestRow.current_owner;
-    message = `Assalamu Alaikum. A ReqGen request ${requestRow.request_no} awaits your approval. Kindly log in. Jazakumullahu Khairan.`;
+    subject = `ReqGen Approval Required - ${requestRow.request_no}`;
+    text = `Assalamu Alaikum,
+
+A ReqGen request ${requestRow.request_no} is awaiting your review and approval.
+
+Title: ${requestRow.title || "Request"}
+Current Stage: ${requestRow.current_stage || "Pending Review"}
+
+Kindly log in and take the required action.
+
+IET REQGEN Notification`;
   } else {
-    return jsonError("Invalid SMS event.");
+    return jsonError("Invalid notification event.");
   }
 
-  if (!recipientUserId) return jsonError("No recipient found for this SMS event.");
+  if (!recipientUserId) return jsonError("No recipient found for this notification event.");
 
   const { data: recipient, error: recErr } = await adminClient
     .from("profiles")
-    .select("id,full_name,phone")
+    .select("id,full_name,email,phone")
     .eq("id", recipientUserId)
     .single();
 
   if (recErr || !recipient) return jsonError("Recipient profile not found.", 404);
 
+  const recipientEmail = String(recipient.email || "").trim().toLowerCase();
   const phone = normalizeNigerianPhone(recipient.phone);
 
-  if (!phone) return jsonError("Recipient phone number is missing or invalid.");
+  if (!recipientEmail || !recipientEmail.includes("@")) {
+    return jsonError("Recipient email is missing or invalid.");
+  }
 
+  const html = `
+    <div style="font-family:Arial,sans-serif;line-height:1.6;color:#0f172a">
+      <h2 style="margin:0 0 12px;color:#1d4ed8">${subject}</h2>
+      <pre style="font-family:Arial,sans-serif;white-space:pre-wrap">${text}</pre>
+    </div>
+  `;
+
+  let emailResult: any = null;
   let smsResult: any = null;
 
   try {
-    smsResult = await sendSendchampSms({
-      to: phone,
-      message,
-      route: "dnd",
+    emailResult = await sendSendchampEmail({
+      toEmail: recipientEmail,
+      toName: recipient.full_name,
+      subject,
+      text,
+      html,
     });
 
     await adminClient.from("sms_logs").insert({
       request_id: requestRow.id,
       recipient_user_id: recipient.id,
       phone,
-      message,
-      provider: "sendchamp",
-      route: "dnd",
+      email: recipientEmail,
+      channel: "email",
+      message: text,
+      provider: "sendchamp-email",
+      route: null,
       status: "sent",
-      provider_response: smsResult,
+      provider_response: emailResult,
       sent_by: user.id,
-    });
-
-    return NextResponse.json({
-      ok: true,
-      message: "SMS sent successfully.",
-      event,
-      recipient: recipient.full_name,
     });
   } catch (e: any) {
     await adminClient.from("sms_logs").insert({
       request_id: requestRow.id,
       recipient_user_id: recipient.id,
       phone,
-      message,
-      provider: "sendchamp",
-      route: "dnd",
+      email: recipientEmail,
+      channel: "email",
+      message: text,
+      provider: "sendchamp-email",
+      route: null,
       status: "failed",
-      error: e?.message || "SMS failed.",
-      provider_response: smsResult,
+      error: e?.message || "Email notification failed.",
+      provider_response: emailResult,
       sent_by: user.id,
     });
 
-    return jsonError("SMS failed: " + (e?.message || "Unknown SMS error."), 500);
+    return jsonError("Email notification failed: " + (e?.message || "Unknown email error."), 500);
   }
+
+  if (smsEnabled() && phone) {
+    const smsMessage =
+      event === "submission_success"
+        ? `Your ReqGen request ${requestRow.request_no} was submitted successfully.`
+        : `A ReqGen request ${requestRow.request_no} awaits your approval. Kindly log in.`;
+
+    try {
+      smsResult = await sendSendchampSms({
+        to: phone,
+        message: smsMessage,
+        route: (process.env.SENDCHAMP_ROUTE as any) || "dnd",
+      });
+
+      await adminClient.from("sms_logs").insert({
+        request_id: requestRow.id,
+        recipient_user_id: recipient.id,
+        phone,
+        email: recipientEmail,
+        channel: "sms",
+        message: smsMessage,
+        provider: "sendchamp-sms",
+        route: process.env.SENDCHAMP_ROUTE || "dnd",
+        status: "sent",
+        provider_response: smsResult,
+        sent_by: user.id,
+      });
+    } catch (e: any) {
+      await adminClient.from("sms_logs").insert({
+        request_id: requestRow.id,
+        recipient_user_id: recipient.id,
+        phone,
+        email: recipientEmail,
+        channel: "sms",
+        message: smsMessage,
+        provider: "sendchamp-sms",
+        route: process.env.SENDCHAMP_ROUTE || "dnd",
+        status: "failed",
+        error: e?.message || "SMS notification failed.",
+        provider_response: smsResult,
+        sent_by: user.id,
+      });
+    }
+  }
+
+  return NextResponse.json({
+    ok: true,
+    message: smsEnabled() && phone ? "Email notification sent. SMS attempted." : "Email notification sent.",
+    event,
+    recipient: recipient.full_name,
+  });
 }
