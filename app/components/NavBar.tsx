@@ -13,6 +13,16 @@ type Notif = {
   created_at: string;
 };
 
+type PendingApproval = {
+  id: string;
+  request_no: string | null;
+  title: string | null;
+  status: string | null;
+  current_stage: string | null;
+  amount: number | null;
+  created_at: string;
+};
+
 type NavItem = {
   href: string;
   label: string;
@@ -39,6 +49,15 @@ function isMfaPath(pathname: string) {
   return MFA_PATHS.includes(pathname);
 }
 
+function formatNaira(value: number | null | undefined) {
+  return "₦" + Math.round(Number(value || 0)).toLocaleString();
+}
+
+function compactCount(value: number) {
+  if (value > 99) return "99+";
+  return String(value);
+}
+
 export default function NavBar() {
   const router = useRouter();
   const pathname = usePathname();
@@ -53,8 +72,10 @@ export default function NavBar() {
   const [openHR, setOpenHR] = useState(false);
   const [openMobileMenu, setOpenMobileMenu] = useState(false);
 
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [items, setItems] = useState<Notif[]>([]);
+  const [pendingApprovalCount, setPendingApprovalCount] = useState(0);
+  const [pendingApprovals, setPendingApprovals] = useState<PendingApproval[]>([]);
+  const [notificationItems, setNotificationItems] = useState<Notif[]>([]);
+  const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
   const [userId, setUserId] = useState<string | null>(null);
 
   const bellRef = useRef<HTMLDivElement | null>(null);
@@ -211,6 +232,60 @@ export default function NavBar() {
     return aalData.currentLevel === "aal2";
   }
 
+  async function loadPendingApprovalCount(uid: string) {
+    const { data, error } = await supabase.rpc("get_my_pending_approval_count");
+
+    if (!error && typeof data === "number") {
+      setPendingApprovalCount(data);
+      return;
+    }
+
+    const { count } = await supabase
+      .from("requests")
+      .select("*", { count: "exact", head: true })
+      .eq("current_owner", uid)
+      .not("status", "in", '("Approved","Rejected","Cancelled","Deleted","Paid","Closed")');
+
+    setPendingApprovalCount(count || 0);
+  }
+
+  async function loadPendingApprovalPreview(uid: string) {
+    const { data, error } = await supabase
+      .from("requests")
+      .select("id,request_no,title,status,current_stage,amount,created_at")
+      .eq("current_owner", uid)
+      .not("status", "in", '("Approved","Rejected","Cancelled","Deleted","Paid","Closed")')
+      .order("created_at", { ascending: false })
+      .limit(8);
+
+    if (error) {
+      setPendingApprovals([]);
+      return;
+    }
+
+    setPendingApprovals((data || []) as PendingApproval[]);
+  }
+
+  async function loadNotifications(uid: string) {
+    const { data: n } = await supabase
+      .from("notifications")
+      .select("id,title,link,is_read,created_at")
+      .eq("user_id", uid)
+      .order("created_at", { ascending: false })
+      .limit(5);
+
+    const list = (n || []) as Notif[];
+    setNotificationItems(list);
+
+    const { count: unreadNotifCount } = await supabase
+      .from("notifications")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", uid)
+      .eq("is_read", false);
+
+    setUnreadNotificationCount(unreadNotifCount || 0);
+  }
+
   async function refreshAll() {
     setCheckingSecurity(true);
 
@@ -221,8 +296,10 @@ export default function NavBar() {
       setMfaVerified(false);
       setUserId(null);
       setMyRole("Staff");
-      setUnreadCount(0);
-      setItems([]);
+      setPendingApprovalCount(0);
+      setPendingApprovals([]);
+      setNotificationItems([]);
+      setUnreadNotificationCount(0);
       setCheckingSecurity(false);
       return;
     }
@@ -236,8 +313,10 @@ export default function NavBar() {
 
     if (!verified) {
       setMyRole("Staff");
-      setUnreadCount(0);
-      setItems([]);
+      setPendingApprovalCount(0);
+      setPendingApprovals([]);
+      setNotificationItems([]);
+      setUnreadNotificationCount(0);
       setCheckingSecurity(false);
       return;
     }
@@ -254,28 +333,12 @@ export default function NavBar() {
       setMyRole("Staff");
     }
 
-    const { data: n } = await supabase
-      .from("notifications")
-      .select("id,title,link,is_read,created_at")
-      .eq("user_id", uid)
-      .order("created_at", { ascending: false })
-      .limit(8);
+    await Promise.all([
+      loadPendingApprovalCount(uid),
+      loadPendingApprovalPreview(uid),
+      loadNotifications(uid),
+    ]);
 
-    const list = (n || []) as Notif[];
-    setItems(list);
-
-    const { count: unreadNotifCount } = await supabase
-      .from("notifications")
-      .select("*", { count: "exact", head: true })
-      .eq("user_id", uid)
-      .eq("is_read", false);
-
-    const { count: pendingApprovalCount } = await supabase
-      .from("requests")
-      .select("*", { count: "exact", head: true })
-      .eq("current_owner", uid);
-
-    setUnreadCount(Number(unreadNotifCount || 0) + Number(pendingApprovalCount || 0));
     setCheckingSecurity(false);
   }
 
@@ -370,13 +433,15 @@ export default function NavBar() {
     setMfaVerified(false);
     setUserId(null);
     setMyRole("Staff");
-    setUnreadCount(0);
-    setItems([]);
+    setPendingApprovalCount(0);
+    setPendingApprovals([]);
+    setNotificationItems([]);
+    setUnreadNotificationCount(0);
     router.push("/");
     router.refresh();
   }
 
-  async function markAllRead() {
+  async function markAllNotificationsRead() {
     if (!userId || !mfaVerified) return;
 
     await supabase
@@ -397,6 +462,11 @@ export default function NavBar() {
     router.push(n.link || "/approvals");
   }
 
+  function openApprovalRequest(id: string) {
+    setOpenBell(false);
+    router.push(`/requests/${id}`);
+  }
+
   function goTo(href: string) {
     setOpenFinance(false);
     setOpenHR(false);
@@ -405,7 +475,9 @@ export default function NavBar() {
     router.push(href);
   }
 
-  const showFullNavigation = signedIn && mfaVerified && !isPublicPath(pathname) && !isMfaPath(pathname);
+  const showFullNavigation =
+    signedIn && mfaVerified && !isPublicPath(pathname) && !isMfaPath(pathname);
+
   const showLockedMfaNavigation = signedIn && !mfaVerified && !isPublicPath(pathname);
 
   return (
@@ -449,7 +521,14 @@ export default function NavBar() {
           <div className="flex min-w-0 items-center gap-2">
             <nav className="hidden items-center gap-2 md:flex">
               <Link className={topLinkClass("/approvals")} href="/approvals">
-                Approvals
+                <span className="inline-flex items-center gap-2">
+                  Approvals
+                  {pendingApprovalCount > 0 && (
+                    <span className="rounded-full bg-red-600 px-2 py-0.5 text-xs font-black text-white">
+                      {compactCount(pendingApprovalCount)}
+                    </span>
+                  )}
+                </span>
               </Link>
 
               <Link className={topLinkClass("/dashboard")} href="/dashboard">
@@ -609,7 +688,14 @@ export default function NavBar() {
                     onClick={() => goTo("/approvals")}
                     className={mobileItemClass("/approvals")}
                   >
-                    Approvals
+                    <span className="inline-flex items-center gap-2">
+                      Approvals
+                      {pendingApprovalCount > 0 && (
+                        <span className="rounded-full bg-red-600 px-2 py-0.5 text-xs font-black text-white">
+                          {compactCount(pendingApprovalCount)}
+                        </span>
+                      )}
+                    </span>
                   </button>
 
                   <button
@@ -717,50 +803,135 @@ export default function NavBar() {
                 className={`relative rounded-xl border px-3 py-2 text-sm font-semibold transition ${
                   openBell
                     ? "border-blue-600 bg-blue-600 text-white shadow-sm"
+                    : pendingApprovalCount > 0
+                    ? "border-red-200 bg-red-50 text-red-700 hover:bg-red-100"
                     : "border-slate-200 bg-white text-slate-900 hover:bg-slate-100"
                 }`}
-                title="Notifications"
+                title="Pending approvals"
               >
-                🔔
-                {unreadCount > 0 && (
-                  <span className="absolute -right-2 -top-2 rounded-full bg-red-600 px-2 py-0.5 text-xs font-bold text-white">
-                    {unreadCount}
+                <span className="inline-flex items-center gap-1">
+                  📌
+                  <span className="hidden sm:inline">Approvals</span>
+                </span>
+
+                {pendingApprovalCount > 0 && (
+                  <span className="absolute -right-2 -top-2 rounded-full bg-red-600 px-2 py-0.5 text-xs font-black text-white">
+                    {compactCount(pendingApprovalCount)}
                   </span>
                 )}
               </button>
 
               {openBell && (
-                <div className="absolute right-0 top-12 z-50 w-80 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
-                  <div className="flex items-center justify-between bg-slate-50 px-4 py-3">
-                    <div className="font-bold text-slate-900">Notifications</div>
-                    <button
-                      type="button"
-                      onClick={markAllRead}
-                      className="text-xs font-semibold text-blue-700 hover:underline"
-                    >
-                      Mark all read
-                    </button>
+                <div className="absolute right-0 top-12 z-50 w-[360px] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
+                  <div className="border-b bg-slate-50 px-4 py-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <div className="font-extrabold text-slate-900">
+                          Pending Approvals
+                        </div>
+                        <div className="mt-0.5 text-xs font-semibold text-slate-500">
+                          Exact requests currently assigned to you
+                        </div>
+                      </div>
+
+                      <span
+                        className={`rounded-full px-2.5 py-1 text-xs font-black ${
+                          pendingApprovalCount > 0
+                            ? "bg-red-600 text-white"
+                            : "bg-slate-200 text-slate-700"
+                        }`}
+                      >
+                        {pendingApprovalCount}
+                      </span>
+                    </div>
                   </div>
 
-                  {items.length === 0 ? (
-                    <div className="p-4 text-sm text-slate-600">No notifications yet.</div>
+                  {pendingApprovals.length === 0 ? (
+                    <div className="p-4 text-sm text-slate-600">
+                      No request is currently awaiting your approval.
+                    </div>
                   ) : (
-                    <div className="max-h-96 overflow-auto">
-                      {items.map((n) => (
+                    <div className="max-h-80 overflow-auto">
+                      {pendingApprovals.map((r) => (
                         <button
                           type="button"
-                          key={n.id}
-                          onClick={() => openNotif(n)}
-                          className={`w-full border-t px-4 py-3 text-left hover:bg-slate-50 ${
-                            n.is_read ? "bg-white" : "bg-blue-50"
-                          }`}
+                          key={r.id}
+                          onClick={() => openApprovalRequest(r.id)}
+                          className="w-full border-t px-4 py-3 text-left hover:bg-slate-50"
                         >
-                          <div className="text-sm font-semibold text-slate-900">{n.title}</div>
-                          <div className="text-xs text-slate-500">
-                            {new Date(n.created_at).toLocaleString()}
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <div className="truncate text-sm font-black text-slate-900">
+                                {r.request_no || "No Request No"}
+                              </div>
+                              <div className="mt-1 line-clamp-2 text-sm font-semibold text-slate-700">
+                                {r.title || "Untitled Request"}
+                              </div>
+                              <div className="mt-1 text-xs font-semibold text-slate-500">
+                                Stage: {r.current_stage || "Pending"} •{" "}
+                                {new Date(r.created_at).toLocaleString()}
+                              </div>
+                            </div>
+
+                            <div className="shrink-0 text-right text-xs font-black text-slate-900">
+                              {formatNaira(r.amount)}
+                            </div>
                           </div>
                         </button>
                       ))}
+                    </div>
+                  )}
+
+                  <div className="border-t bg-slate-50 p-3">
+                    <button
+                      type="button"
+                      onClick={() => goTo("/approvals")}
+                      className="w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-black text-white hover:bg-blue-700"
+                    >
+                      Open Approvals Inbox
+                    </button>
+                  </div>
+
+                  {notificationItems.length > 0 && (
+                    <div className="border-t">
+                      <div className="flex items-center justify-between bg-white px-4 py-3">
+                        <div className="text-sm font-extrabold text-slate-900">
+                          Recent Notifications
+                          {unreadNotificationCount > 0 && (
+                            <span className="ml-2 rounded-full bg-blue-600 px-2 py-0.5 text-xs font-black text-white">
+                              {unreadNotificationCount}
+                            </span>
+                          )}
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={markAllNotificationsRead}
+                          className="text-xs font-bold text-blue-700 hover:underline"
+                        >
+                          Mark read
+                        </button>
+                      </div>
+
+                      <div className="max-h-52 overflow-auto">
+                        {notificationItems.map((n) => (
+                          <button
+                            type="button"
+                            key={n.id}
+                            onClick={() => openNotif(n)}
+                            className={`w-full border-t px-4 py-3 text-left hover:bg-slate-50 ${
+                              n.is_read ? "bg-white" : "bg-blue-50"
+                            }`}
+                          >
+                            <div className="text-sm font-semibold text-slate-900">
+                              {n.title}
+                            </div>
+                            <div className="text-xs text-slate-500">
+                              {new Date(n.created_at).toLocaleString()}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
