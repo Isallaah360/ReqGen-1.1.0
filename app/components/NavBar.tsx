@@ -29,8 +29,11 @@ type NavItem = {
   description?: string;
 };
 
-const PUBLIC_PATHS = ["/", "/login", "/signup", "/forgot-password", "/reset-password"];
+type IconProps = {
+  className?: string;
+};
 
+const PUBLIC_PATHS = ["/", "/login", "/signup", "/forgot-password", "/reset-password"];
 const MFA_PATHS = ["/mfa", "/mfa/setup"];
 
 function roleKey(role: string | null | undefined) {
@@ -58,6 +61,139 @@ function compactCount(value: number) {
   return String(value);
 }
 
+function IconApprovals({ className = "h-5 w-5" }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M9 11.5 11 13.5 15.5 9"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M8 4h8a2 2 0 0 1 2 2v14l-6-3-6 3V6a2 2 0 0 1 2-2Z"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function IconDashboard({ className = "h-5 w-5" }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M4 13h7V4H4v9ZM13 20h7v-9h-7v9ZM4 20h7v-5H4v5ZM13 9h7V4h-7v5Z"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function IconRequests({ className = "h-5 w-5" }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M8 6h10M8 12h10M8 18h7"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <path
+        d="M4.5 6h.01M4.5 12h.01M4.5 18h.01"
+        stroke="currentColor"
+        strokeWidth="4"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function IconFinance({ className = "h-5 w-5" }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M4 10h16M6 10v9M10 10v9M14 10v9M18 10v9M4 19h16M12 4 4 8h16l-8-4Z"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function IconHR({ className = "h-5 w-5" }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M16 11a4 4 0 1 0-8 0M4 20a8 8 0 0 1 16 0"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <path
+        d="M17.5 5.5v3M19 7h-3"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function IconAdmin({ className = "h-5 w-5" }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M12 3 5 6v5c0 5 3.5 8.5 7 10 3.5-1.5 7-5 7-10V6l-7-3Z"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M9.5 12 11.5 14 15 10"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function IconLogout({ className = "h-5 w-5" }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M10 6H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h4"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <path
+        d="M14 8 18 12 14 16M18 12H9"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function IconButtonTooltip({ label }: { label: string }) {
+  return (
+    <span className="pointer-events-none absolute left-1/2 top-full z-[70] mt-2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-slate-900 px-2.5 py-1 text-xs font-bold text-white opacity-0 shadow-lg transition group-hover:opacity-100">
+      {label}
+    </span>
+  );
+}
+
 export default function NavBar() {
   const router = useRouter();
   const pathname = usePathname();
@@ -67,7 +203,7 @@ export default function NavBar() {
   const [checkingSecurity, setCheckingSecurity] = useState(true);
   const [myRole, setMyRole] = useState<string>("Staff");
 
-  const [openBell, setOpenBell] = useState(false);
+  const [openApprovalPanel, setOpenApprovalPanel] = useState(false);
   const [openFinance, setOpenFinance] = useState(false);
   const [openHR, setOpenHR] = useState(false);
   const [openMobileMenu, setOpenMobileMenu] = useState(false);
@@ -78,7 +214,7 @@ export default function NavBar() {
   const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
   const [userId, setUserId] = useState<string | null>(null);
 
-  const bellRef = useRef<HTMLDivElement | null>(null);
+  const approvalRef = useRef<HTMLDivElement | null>(null);
   const financeRef = useRef<HTMLDivElement | null>(null);
   const hrRef = useRef<HTMLDivElement | null>(null);
   const mobileRef = useRef<HTMLDivElement | null>(null);
@@ -185,18 +321,18 @@ export default function NavBar() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hrLinks, pathname]);
 
-  const topLinkClass = (href: string) =>
-    `rounded-xl px-3 py-2 text-sm font-semibold transition ${
+  const iconLinkClass = (href: string) =>
+    `group relative inline-flex h-11 w-11 items-center justify-center rounded-2xl border text-sm font-semibold transition ${
       isActiveLink(href)
-        ? "bg-blue-600 text-white shadow-sm"
-        : "text-slate-700 hover:bg-slate-100"
+        ? "border-blue-600 bg-blue-600 text-white shadow-sm"
+        : "border-slate-200 bg-white text-slate-700 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
     }`;
 
-  const dropdownButtonClass = (active: boolean) =>
-    `inline-flex items-center gap-1 rounded-xl px-3 py-2 text-sm font-semibold transition ${
+  const dropdownIconButtonClass = (active: boolean) =>
+    `group relative inline-flex h-11 w-11 items-center justify-center rounded-2xl border text-sm font-semibold transition ${
       active
-        ? "bg-blue-600 text-white shadow-sm"
-        : "text-slate-700 hover:bg-slate-100"
+        ? "border-blue-600 bg-blue-600 text-white shadow-sm"
+        : "border-slate-200 bg-white text-slate-700 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
     }`;
 
   const dropdownItemClass = (href: string) =>
@@ -399,8 +535,8 @@ export default function NavBar() {
     function onClick(e: MouseEvent) {
       const t = e.target as Node;
 
-      if (openBell && bellRef.current && !bellRef.current.contains(t)) {
-        setOpenBell(false);
+      if (openApprovalPanel && approvalRef.current && !approvalRef.current.contains(t)) {
+        setOpenApprovalPanel(false);
       }
 
       if (openFinance && financeRef.current && !financeRef.current.contains(t)) {
@@ -418,10 +554,10 @@ export default function NavBar() {
 
     document.addEventListener("mousedown", onClick);
     return () => document.removeEventListener("mousedown", onClick);
-  }, [openBell, openFinance, openHR, openMobileMenu]);
+  }, [openApprovalPanel, openFinance, openHR, openMobileMenu]);
 
   useEffect(() => {
-    setOpenBell(false);
+    setOpenApprovalPanel(false);
     setOpenFinance(false);
     setOpenHR(false);
     setOpenMobileMenu(false);
@@ -458,12 +594,12 @@ export default function NavBar() {
 
     await supabase.from("notifications").update({ is_read: true }).eq("id", n.id);
 
-    setOpenBell(false);
+    setOpenApprovalPanel(false);
     router.push(n.link || "/approvals");
   }
 
   function openApprovalRequest(id: string) {
-    setOpenBell(false);
+    setOpenApprovalPanel(false);
     router.push(`/requests/${id}`);
   }
 
@@ -471,7 +607,7 @@ export default function NavBar() {
     setOpenFinance(false);
     setOpenHR(false);
     setOpenMobileMenu(false);
-    setOpenBell(false);
+    setOpenApprovalPanel(false);
     router.push(href);
   }
 
@@ -520,23 +656,158 @@ export default function NavBar() {
         {showFullNavigation && (
           <div className="flex min-w-0 items-center gap-2">
             <nav className="hidden items-center gap-2 md:flex">
-              <Link className={topLinkClass("/approvals")} href="/approvals">
-                <span className="inline-flex items-center gap-2">
-                  Approvals
+              <div className="relative" ref={approvalRef}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOpenApprovalPanel((v) => !v);
+                    setOpenFinance(false);
+                    setOpenHR(false);
+                    setOpenMobileMenu(false);
+                  }}
+                  className={`group relative inline-flex h-11 w-11 items-center justify-center rounded-2xl border transition ${
+                    isActiveLink("/approvals")
+                      ? "border-blue-600 bg-blue-600 text-white shadow-sm"
+                      : pendingApprovalCount > 0
+                      ? "border-red-200 bg-red-50 text-red-700 hover:bg-red-100"
+                      : "border-slate-200 bg-white text-slate-700 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+                  }`}
+                >
+                  <IconApprovals />
+                  <IconButtonTooltip label="Approvals" />
+
                   {pendingApprovalCount > 0 && (
-                    <span className="rounded-full bg-red-600 px-2 py-0.5 text-xs font-black text-white">
+                    <span className="absolute -right-2 -top-2 rounded-full bg-red-600 px-2 py-0.5 text-xs font-black text-white">
                       {compactCount(pendingApprovalCount)}
                     </span>
                   )}
-                </span>
+                </button>
+
+                {openApprovalPanel && (
+                  <div className="absolute left-0 top-12 z-50 w-[370px] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
+                    <div className="border-b bg-slate-50 px-4 py-3">
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <div className="font-extrabold text-slate-900">
+                            Pending Approvals
+                          </div>
+                          <div className="mt-0.5 text-xs font-semibold text-slate-500">
+                            Exact requests currently assigned to you
+                          </div>
+                        </div>
+
+                        <span
+                          className={`rounded-full px-2.5 py-1 text-xs font-black ${
+                            pendingApprovalCount > 0
+                              ? "bg-red-600 text-white"
+                              : "bg-slate-200 text-slate-700"
+                          }`}
+                        >
+                          {pendingApprovalCount}
+                        </span>
+                      </div>
+                    </div>
+
+                    {pendingApprovals.length === 0 ? (
+                      <div className="p-4 text-sm text-slate-600">
+                        No request is currently awaiting your approval.
+                      </div>
+                    ) : (
+                      <div className="max-h-80 overflow-auto">
+                        {pendingApprovals.map((r) => (
+                          <button
+                            type="button"
+                            key={r.id}
+                            onClick={() => openApprovalRequest(r.id)}
+                            className="w-full border-t px-4 py-3 text-left hover:bg-slate-50"
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <div className="truncate text-sm font-black text-slate-900">
+                                  {r.request_no || "No Request No"}
+                                </div>
+                                <div className="mt-1 text-sm font-semibold text-slate-700">
+                                  {r.title || "Untitled Request"}
+                                </div>
+                                <div className="mt-1 text-xs font-semibold text-slate-500">
+                                  Stage: {r.current_stage || "Pending"} •{" "}
+                                  {new Date(r.created_at).toLocaleString()}
+                                </div>
+                              </div>
+
+                              <div className="shrink-0 text-right text-xs font-black text-slate-900">
+                                {formatNaira(r.amount)}
+                              </div>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    <div className="border-t bg-slate-50 p-3">
+                      <button
+                        type="button"
+                        onClick={() => goTo("/approvals")}
+                        className="w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-black text-white hover:bg-blue-700"
+                      >
+                        Open Approvals Inbox
+                      </button>
+                    </div>
+
+                    {notificationItems.length > 0 && (
+                      <div className="border-t">
+                        <div className="flex items-center justify-between bg-white px-4 py-3">
+                          <div className="text-sm font-extrabold text-slate-900">
+                            Recent Notifications
+                            {unreadNotificationCount > 0 && (
+                              <span className="ml-2 rounded-full bg-blue-600 px-2 py-0.5 text-xs font-black text-white">
+                                {unreadNotificationCount}
+                              </span>
+                            )}
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={markAllNotificationsRead}
+                            className="text-xs font-bold text-blue-700 hover:underline"
+                          >
+                            Mark read
+                          </button>
+                        </div>
+
+                        <div className="max-h-52 overflow-auto">
+                          {notificationItems.map((n) => (
+                            <button
+                              type="button"
+                              key={n.id}
+                              onClick={() => openNotif(n)}
+                              className={`w-full border-t px-4 py-3 text-left hover:bg-slate-50 ${
+                                n.is_read ? "bg-white" : "bg-blue-50"
+                              }`}
+                            >
+                              <div className="text-sm font-semibold text-slate-900">
+                                {n.title}
+                              </div>
+                              <div className="text-xs text-slate-500">
+                                {new Date(n.created_at).toLocaleString()}
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <Link className={iconLinkClass("/dashboard")} href="/dashboard">
+                <IconDashboard />
+                <IconButtonTooltip label="Dashboard" />
               </Link>
 
-              <Link className={topLinkClass("/dashboard")} href="/dashboard">
-                Dashboard
-              </Link>
-
-              <Link className={topLinkClass("/requests")} href="/requests">
-                My Requests
+              <Link className={iconLinkClass("/requests")} href="/requests">
+                <IconRequests />
+                <IconButtonTooltip label="My Requests" />
               </Link>
 
               {canFinance && (
@@ -546,19 +817,13 @@ export default function NavBar() {
                     onClick={() => {
                       setOpenFinance((v) => !v);
                       setOpenHR(false);
-                      setOpenBell(false);
+                      setOpenApprovalPanel(false);
                       setOpenMobileMenu(false);
                     }}
-                    className={dropdownButtonClass(financeActive)}
+                    className={dropdownIconButtonClass(financeActive)}
                   >
-                    Finance
-                    <span
-                      className={`inline-block text-xs transition-transform ${
-                        openFinance ? "rotate-180" : ""
-                      }`}
-                    >
-                      ▾
-                    </span>
+                    <IconFinance />
+                    <IconButtonTooltip label="Finance" />
                   </button>
 
                   {openFinance && (
@@ -601,19 +866,13 @@ export default function NavBar() {
                     onClick={() => {
                       setOpenHR((v) => !v);
                       setOpenFinance(false);
-                      setOpenBell(false);
+                      setOpenApprovalPanel(false);
                       setOpenMobileMenu(false);
                     }}
-                    className={dropdownButtonClass(hrActive)}
+                    className={dropdownIconButtonClass(hrActive)}
                   >
-                    HR
-                    <span
-                      className={`inline-block text-xs transition-transform ${
-                        openHR ? "rotate-180" : ""
-                      }`}
-                    >
-                      ▾
-                    </span>
+                    <IconHR />
+                    <IconButtonTooltip label="HR" />
                   </button>
 
                   {openHR && (
@@ -650,8 +909,9 @@ export default function NavBar() {
               )}
 
               {isAdmin && (
-                <Link className={topLinkClass("/admin")} href="/admin">
-                  Admin
+                <Link className={iconLinkClass("/admin")} href="/admin">
+                  <IconAdmin />
+                  <IconButtonTooltip label="Admin" />
                 </Link>
               )}
             </nav>
@@ -663,7 +923,7 @@ export default function NavBar() {
                   setOpenMobileMenu((v) => !v);
                   setOpenFinance(false);
                   setOpenHR(false);
-                  setOpenBell(false);
+                  setOpenApprovalPanel(false);
                 }}
                 className={`rounded-xl border px-3 py-2 text-sm font-bold transition ${
                   openMobileMenu
@@ -679,7 +939,7 @@ export default function NavBar() {
                   <div className="mb-2 rounded-2xl bg-slate-50 px-4 py-3">
                     <div className="font-extrabold text-slate-900">Navigation</div>
                     <div className="mt-1 text-xs font-semibold text-slate-500">
-                      ReqGen government-style modules
+                      ReqGen modules
                     </div>
                   </div>
 
@@ -689,6 +949,7 @@ export default function NavBar() {
                     className={mobileItemClass("/approvals")}
                   >
                     <span className="inline-flex items-center gap-2">
+                      <IconApprovals className="h-4 w-4" />
                       Approvals
                       {pendingApprovalCount > 0 && (
                         <span className="rounded-full bg-red-600 px-2 py-0.5 text-xs font-black text-white">
@@ -703,7 +964,10 @@ export default function NavBar() {
                     onClick={() => goTo("/dashboard")}
                     className={mobileItemClass("/dashboard")}
                   >
-                    Dashboard
+                    <span className="inline-flex items-center gap-2">
+                      <IconDashboard className="h-4 w-4" />
+                      Dashboard
+                    </span>
                   </button>
 
                   <button
@@ -711,7 +975,10 @@ export default function NavBar() {
                     onClick={() => goTo("/requests")}
                     className={mobileItemClass("/requests")}
                   >
-                    My Requests
+                    <span className="inline-flex items-center gap-2">
+                      <IconRequests className="h-4 w-4" />
+                      My Requests
+                    </span>
                   </button>
 
                   {canFinance && (
@@ -727,7 +994,10 @@ export default function NavBar() {
                           onClick={() => goTo(item.href)}
                           className={mobileItemClass(item.href)}
                         >
-                          <div>{item.label}</div>
+                          <div className="inline-flex items-center gap-2">
+                            <IconFinance className="h-4 w-4" />
+                            {item.label}
+                          </div>
                           {item.description && (
                             <div className={mobileItemDescriptionClass(item.href)}>
                               {item.description}
@@ -751,7 +1021,10 @@ export default function NavBar() {
                           onClick={() => goTo(item.href)}
                           className={mobileItemClass(item.href)}
                         >
-                          <div>{item.label}</div>
+                          <div className="inline-flex items-center gap-2">
+                            <IconHR className="h-4 w-4" />
+                            {item.label}
+                          </div>
                           {item.description && (
                             <div className={mobileItemDescriptionClass(item.href)}>
                               {item.description}
@@ -773,7 +1046,10 @@ export default function NavBar() {
                         onClick={() => goTo("/admin")}
                         className={mobileItemClass("/admin")}
                       >
-                        Admin
+                        <span className="inline-flex items-center gap-2">
+                          <IconAdmin className="h-4 w-4" />
+                          Admin
+                        </span>
                       </button>
                     </>
                   )}
@@ -784,156 +1060,12 @@ export default function NavBar() {
                       onClick={logout}
                       className="w-full rounded-xl bg-red-600 px-4 py-3 text-left text-sm font-bold text-white hover:bg-red-700"
                     >
-                      Logout
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="relative" ref={bellRef}>
-              <button
-                type="button"
-                onClick={() => {
-                  setOpenBell((v) => !v);
-                  setOpenFinance(false);
-                  setOpenHR(false);
-                  setOpenMobileMenu(false);
-                }}
-                className={`relative rounded-xl border px-3 py-2 text-sm font-semibold transition ${
-                  openBell
-                    ? "border-blue-600 bg-blue-600 text-white shadow-sm"
-                    : pendingApprovalCount > 0
-                    ? "border-red-200 bg-red-50 text-red-700 hover:bg-red-100"
-                    : "border-slate-200 bg-white text-slate-900 hover:bg-slate-100"
-                }`}
-                title="Pending approvals"
-              >
-                <span className="inline-flex items-center gap-1">
-                  📌
-                  <span className="hidden sm:inline">Approvals</span>
-                </span>
-
-                {pendingApprovalCount > 0 && (
-                  <span className="absolute -right-2 -top-2 rounded-full bg-red-600 px-2 py-0.5 text-xs font-black text-white">
-                    {compactCount(pendingApprovalCount)}
-                  </span>
-                )}
-              </button>
-
-              {openBell && (
-                <div className="absolute right-0 top-12 z-50 w-[360px] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
-                  <div className="border-b bg-slate-50 px-4 py-3">
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <div className="font-extrabold text-slate-900">
-                          Pending Approvals
-                        </div>
-                        <div className="mt-0.5 text-xs font-semibold text-slate-500">
-                          Exact requests currently assigned to you
-                        </div>
-                      </div>
-
-                      <span
-                        className={`rounded-full px-2.5 py-1 text-xs font-black ${
-                          pendingApprovalCount > 0
-                            ? "bg-red-600 text-white"
-                            : "bg-slate-200 text-slate-700"
-                        }`}
-                      >
-                        {pendingApprovalCount}
+                      <span className="inline-flex items-center gap-2">
+                        <IconLogout className="h-4 w-4" />
+                        Logout
                       </span>
-                    </div>
-                  </div>
-
-                  {pendingApprovals.length === 0 ? (
-                    <div className="p-4 text-sm text-slate-600">
-                      No request is currently awaiting your approval.
-                    </div>
-                  ) : (
-                    <div className="max-h-80 overflow-auto">
-                      {pendingApprovals.map((r) => (
-                        <button
-                          type="button"
-                          key={r.id}
-                          onClick={() => openApprovalRequest(r.id)}
-                          className="w-full border-t px-4 py-3 text-left hover:bg-slate-50"
-                        >
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0">
-                              <div className="truncate text-sm font-black text-slate-900">
-                                {r.request_no || "No Request No"}
-                              </div>
-                              <div className="mt-1 line-clamp-2 text-sm font-semibold text-slate-700">
-                                {r.title || "Untitled Request"}
-                              </div>
-                              <div className="mt-1 text-xs font-semibold text-slate-500">
-                                Stage: {r.current_stage || "Pending"} •{" "}
-                                {new Date(r.created_at).toLocaleString()}
-                              </div>
-                            </div>
-
-                            <div className="shrink-0 text-right text-xs font-black text-slate-900">
-                              {formatNaira(r.amount)}
-                            </div>
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-
-                  <div className="border-t bg-slate-50 p-3">
-                    <button
-                      type="button"
-                      onClick={() => goTo("/approvals")}
-                      className="w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-black text-white hover:bg-blue-700"
-                    >
-                      Open Approvals Inbox
                     </button>
                   </div>
-
-                  {notificationItems.length > 0 && (
-                    <div className="border-t">
-                      <div className="flex items-center justify-between bg-white px-4 py-3">
-                        <div className="text-sm font-extrabold text-slate-900">
-                          Recent Notifications
-                          {unreadNotificationCount > 0 && (
-                            <span className="ml-2 rounded-full bg-blue-600 px-2 py-0.5 text-xs font-black text-white">
-                              {unreadNotificationCount}
-                            </span>
-                          )}
-                        </div>
-
-                        <button
-                          type="button"
-                          onClick={markAllNotificationsRead}
-                          className="text-xs font-bold text-blue-700 hover:underline"
-                        >
-                          Mark read
-                        </button>
-                      </div>
-
-                      <div className="max-h-52 overflow-auto">
-                        {notificationItems.map((n) => (
-                          <button
-                            type="button"
-                            key={n.id}
-                            onClick={() => openNotif(n)}
-                            className={`w-full border-t px-4 py-3 text-left hover:bg-slate-50 ${
-                              n.is_read ? "bg-white" : "bg-blue-50"
-                            }`}
-                          >
-                            <div className="text-sm font-semibold text-slate-900">
-                              {n.title}
-                            </div>
-                            <div className="text-xs text-slate-500">
-                              {new Date(n.created_at).toLocaleString()}
-                            </div>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                 </div>
               )}
             </div>
@@ -941,9 +1073,10 @@ export default function NavBar() {
             <button
               type="button"
               onClick={logout}
-              className="hidden rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700 sm:inline-flex"
+              className="group relative hidden h-11 w-11 items-center justify-center rounded-2xl bg-red-600 text-white transition hover:bg-red-700 sm:inline-flex"
             >
-              Logout
+              <IconLogout />
+              <IconButtonTooltip label="Logout" />
             </button>
           </div>
         )}
