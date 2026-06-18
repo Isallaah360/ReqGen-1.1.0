@@ -42,6 +42,18 @@ type SubheadMini = {
   name: string;
 };
 
+type AssignableSubhead = {
+  id: string;
+  dept_id: string;
+  code: string | null;
+  name: string;
+  approved_allocation: number | null;
+  reserved_amount: number | null;
+  expenditure: number | null;
+  balance: number | null;
+  is_active: boolean | null;
+};
+
 type ProfileMini = {
   id: string;
   role: string;
@@ -116,6 +128,20 @@ function fileSizeLabel(bytes: number | null | undefined) {
   return `${n} B`;
 }
 
+function formatNaira(value: number | null | undefined) {
+  return "₦" + Math.round(Number(value || 0)).toLocaleString();
+}
+
+function availableBalanceForSubhead(subhead: AssignableSubhead | null) {
+  if (!subhead) return 0;
+
+  return (
+    Number(subhead.approved_allocation || 0) -
+    Number(subhead.reserved_amount || 0) -
+    Number(subhead.expenditure || 0)
+  );
+}
+
 function attachmentStatusClass(status: string | null | undefined) {
   const s = (status || "").toLowerCase();
 
@@ -147,11 +173,14 @@ export default function RequestDetailsPage() {
   const [saving, setSaving] = useState(false);
   const [verifyingCode, setVerifyingCode] = useState(false);
   const [checkingAttachmentId, setCheckingAttachmentId] = useState<string | null>(null);
+  const [assigningSubhead, setAssigningSubhead] = useState(false);
 
   const [msg, setMsg] = useState<string | null>(null);
   const [req, setReq] = useState<Req | null>(null);
   const [history, setHistory] = useState<Hist[]>([]);
   const [subhead, setSubhead] = useState<SubheadMini | null>(null);
+  const [assignableSubheads, setAssignableSubheads] = useState<AssignableSubhead[]>([]);
+  const [selectedSubheadId, setSelectedSubheadId] = useState("");
   const [attachments, setAttachments] = useState<AttachmentRow[]>([]);
   const [attachmentChecks, setAttachmentChecks] = useState<AttachmentCheckRow[]>([]);
 
@@ -246,6 +275,42 @@ export default function RequestDetailsPage() {
     return stage === "HRFILING";
   }, [req?.current_stage]);
 
+  const needsSubheadAssignment = useMemo(() => {
+    if (!req) return false;
+
+    return (
+      isOfficial &&
+      !req.subhead_id &&
+      ["DIRECTOR", "HOD"].includes(stg) &&
+      !["Approved", "Rejected", "Cancelled", "Deleted", "Paid", "Closed"].includes(
+        req.status || ""
+      )
+    );
+  }, [req, isOfficial, stg]);
+
+  const canAssignSubhead = useMemo(() => {
+    if (!req || !me) return false;
+
+    const roleAllowed = ["director", "hod", "admin", "auditor"].includes(rk);
+    const isAssignedOfficer = req.current_owner === me.id;
+    const isAdminAuditor = ["admin", "auditor"].includes(rk);
+
+    return needsSubheadAssignment && roleAllowed && (isAssignedOfficer || isAdminAuditor);
+  }, [req, me, rk, needsSubheadAssignment]);
+
+  const selectedAssignableSubhead = useMemo(() => {
+    return assignableSubheads.find((s) => s.id === selectedSubheadId) || null;
+  }, [assignableSubheads, selectedSubheadId]);
+
+  const selectedSubheadAvailableBalance = useMemo(() => {
+    return availableBalanceForSubhead(selectedAssignableSubhead);
+  }, [selectedAssignableSubhead]);
+
+  const selectedSubheadCanCoverAmount = useMemo(() => {
+    if (!req || !selectedAssignableSubhead) return false;
+    return Number(req.amount || 0) <= selectedSubheadAvailableBalance;
+  }, [req, selectedAssignableSubhead, selectedSubheadAvailableBalance]);
+
   const needsAccountOfficerSelection = useMemo(() => {
     if (!req || !canAct) return false;
 
@@ -319,6 +384,29 @@ export default function RequestDetailsPage() {
     return verified?.id || null;
   }
 
+  async function loadAssignableSubheads(deptId: string) {
+    const { data, error } = await supabase
+      .from("subheads")
+      .select(
+        "id,dept_id,code,name,approved_allocation,reserved_amount,expenditure,balance,is_active"
+      )
+      .eq("dept_id", deptId)
+      .eq("is_active", true)
+      .order("name", { ascending: true });
+
+    if (error) {
+      setAssignableSubheads([]);
+      return;
+    }
+
+    const rows = (data || []) as AssignableSubhead[];
+    setAssignableSubheads(rows);
+
+    if (rows.length > 0) {
+      setSelectedSubheadId((current) => current || rows[0].id);
+    }
+  }
+
   async function loadAttachmentsAndChecks(requestId: string) {
     const { data: attachmentRows, error: attachmentErr } = await supabase
       .from("request_attachments")
@@ -369,102 +457,106 @@ export default function RequestDetailsPage() {
     setAttachmentChecks((checkRows || []) as AttachmentCheckRow[]);
   }
 
-  useEffect(() => {
-    async function load() {
-      setLoading(true);
-      setMsg(null);
+  async function loadRequestPage() {
+    setLoading(true);
+    setMsg(null);
 
-      if (!id) {
-        setMsg("Invalid request id.");
-        setLoading(false);
-        return;
-      }
-
-      const { data: auth } = await supabase.auth.getUser();
-      if (!auth.user) {
-        router.push("/login");
-        return;
-      }
-
-      await checkMfaStatus();
-      await loadMfaFactor();
-
-      const { data: myProf, error: myErr } = await supabase
-        .from("profiles")
-        .select("id,role,signature_url,full_name")
-        .eq("id", auth.user.id)
-        .single();
-
-      if (myErr) {
-        setMsg("Failed to load your profile: " + myErr.message);
-        setLoading(false);
-        return;
-      }
-
-      setMe(myProf as ProfileMini);
-
-      const { data: r, error: rErr } = await supabase
-        .from("requests")
-        .select(
-          "id,request_no,title,details,amount,status,current_stage,current_owner,created_by,dept_id,subhead_id,request_type,personal_category,funds_state,created_at,assigned_account_officer_id,assigned_account_officer_name"
-        )
-        .eq("id", id)
-        .single();
-
-      if (rErr) {
-        setMsg("Failed to load request: " + rErr.message);
-        setLoading(false);
-        return;
-      }
-
-      const requestRow = r as Req;
-      setReq(requestRow);
-      setSelectedOfficerId(requestRow.assigned_account_officer_id || "");
-
-      if ((r as any)?.subhead_id) {
-        const { data: sh } = await supabase
-          .from("subheads")
-          .select("id,code,name")
-          .eq("id", (r as any).subhead_id)
-          .single();
-
-        if (sh) setSubhead(sh as SubheadMini);
-      } else {
-        setSubhead(null);
-      }
-
-      const { data: h, error: hErr } = await supabase
-        .from("request_history")
-        .select("id,action_type,comment,to_stage,created_at,signature_url,actor_name")
-        .eq("request_id", id)
-        .order("created_at", { ascending: false });
-
-      if (hErr) {
-        setMsg("Failed to load history: " + hErr.message);
-      } else {
-        setHistory((h || []) as Hist[]);
-      }
-
-      const { data: officers, error: officerErr } = await supabase
-        .from("profiles")
-        .select("id,full_name,email,role")
-        .order("full_name", { ascending: true });
-
-      if (!officerErr) {
-        const rows = (officers || []) as OfficerMini[];
-        setAccountOfficers(
-          rows.filter((o) =>
-            ["accountofficer", "account", "accounts"].includes(roleKey(o.role || ""))
-          )
-        );
-      }
-
-      await loadAttachmentsAndChecks(id);
-
+    if (!id) {
+      setMsg("Invalid request id.");
       setLoading(false);
+      return;
     }
 
-    load();
+    const { data: auth } = await supabase.auth.getUser();
+    if (!auth.user) {
+      router.push("/login");
+      return;
+    }
+
+    await checkMfaStatus();
+    await loadMfaFactor();
+
+    const { data: myProf, error: myErr } = await supabase
+      .from("profiles")
+      .select("id,role,signature_url,full_name")
+      .eq("id", auth.user.id)
+      .single();
+
+    if (myErr) {
+      setMsg("Failed to load your profile: " + myErr.message);
+      setLoading(false);
+      return;
+    }
+
+    setMe(myProf as ProfileMini);
+
+    const { data: r, error: rErr } = await supabase
+      .from("requests")
+      .select(
+        "id,request_no,title,details,amount,status,current_stage,current_owner,created_by,dept_id,subhead_id,request_type,personal_category,funds_state,created_at,assigned_account_officer_id,assigned_account_officer_name"
+      )
+      .eq("id", id)
+      .single();
+
+    if (rErr) {
+      setMsg("Failed to load request: " + rErr.message);
+      setLoading(false);
+      return;
+    }
+
+    const requestRow = r as Req;
+    setReq(requestRow);
+    setSelectedOfficerId(requestRow.assigned_account_officer_id || "");
+
+    if ((r as any)?.subhead_id) {
+      const { data: sh } = await supabase
+        .from("subheads")
+        .select("id,code,name")
+        .eq("id", (r as any).subhead_id)
+        .single();
+
+      if (sh) setSubhead(sh as SubheadMini);
+    } else {
+      setSubhead(null);
+    }
+
+    if ((r as Req).dept_id) {
+      await loadAssignableSubheads((r as Req).dept_id);
+    }
+
+    const { data: h, error: hErr } = await supabase
+      .from("request_history")
+      .select("id,action_type,comment,to_stage,created_at,signature_url,actor_name")
+      .eq("request_id", id)
+      .order("created_at", { ascending: false });
+
+    if (hErr) {
+      setMsg("Failed to load history: " + hErr.message);
+    } else {
+      setHistory((h || []) as Hist[]);
+    }
+
+    const { data: officers, error: officerErr } = await supabase
+      .from("profiles")
+      .select("id,full_name,email,role")
+      .order("full_name", { ascending: true });
+
+    if (!officerErr) {
+      const rows = (officers || []) as OfficerMini[];
+      setAccountOfficers(
+        rows.filter((o) =>
+          ["accountofficer", "account", "accounts"].includes(roleKey(o.role || ""))
+        )
+      );
+    }
+
+    await loadAttachmentsAndChecks(id);
+
+    setLoading(false);
+  }
+
+  useEffect(() => {
+    loadRequestPage();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
@@ -505,6 +597,10 @@ export default function RequestDetailsPage() {
       setSubhead(null);
     }
 
+    if ((r2 as any)?.dept_id) {
+      await loadAssignableSubheads((r2 as any).dept_id);
+    }
+
     await loadAttachmentsAndChecks(id);
   }
 
@@ -517,6 +613,67 @@ export default function RequestDetailsPage() {
     }
 
     router.push(`/requests/${req.id}/edit`);
+  }
+
+  async function assignSubheadAndReserve() {
+    if (!req || !me) return;
+
+    if (!canAssignSubhead) {
+      setMsg("❌ You are not allowed to assign a subhead for this request.");
+      return;
+    }
+
+    if (!selectedSubheadId) {
+      setMsg("❌ Please select a subhead before assigning.");
+      return;
+    }
+
+    if (!selectedAssignableSubhead) {
+      setMsg("❌ Selected subhead could not be found.");
+      return;
+    }
+
+    if (!selectedSubheadCanCoverAmount) {
+      setMsg(
+        `❌ Insufficient balance. Available balance is ${formatNaira(
+          selectedSubheadAvailableBalance
+        )}, but request amount is ${formatNaira(req.amount)}.`
+      );
+      return;
+    }
+
+    const ok = confirm(
+      `Assign "${selectedAssignableSubhead.code ? `${selectedAssignableSubhead.code} — ` : ""}${
+        selectedAssignableSubhead.name
+      }" and reserve ${formatNaira(req.amount)} for this request?`
+    );
+
+    if (!ok) return;
+
+    setAssigningSubhead(true);
+    setMsg(null);
+
+    try {
+      const { data, error } = await supabase.rpc("assign_request_subhead_and_reserve", {
+        p_request_id: req.id,
+        p_subhead_id: selectedSubheadId,
+        p_actor_id: me.id,
+      });
+
+      if (error) throw new Error(error.message);
+
+      setMsg(
+        `✅ ${
+          (data as any)?.message || "Subhead assigned and funds reserved successfully."
+        }`
+      );
+
+      await reload();
+    } catch (e: any) {
+      setMsg("❌ Subhead assignment failed: " + (e?.message || "Unknown error"));
+    } finally {
+      setAssigningSubhead(false);
+    }
   }
 
   async function checkAttachmentPersonally(attachment: AttachmentRow) {
@@ -597,6 +754,13 @@ export default function RequestDetailsPage() {
 
     if (!canAct) {
       setMsg("❌ You cannot act on this request. It is not assigned to you.");
+      return false;
+    }
+
+    if (action === "Approve" && needsSubheadAssignment) {
+      setMsg(
+        "❌ This financial request has no subhead yet. Assign a subhead and reserve funds before approving."
+      );
       return false;
     }
 
@@ -772,11 +936,19 @@ export default function RequestDetailsPage() {
 
   const approveButtonText = useMemo(() => {
     if (saving || verifyingCode) return "Processing...";
+    if (needsSubheadAssignment) return "Assign Subhead First";
     if (needsAccountOfficerSelection) return "Send to DG";
     if (isHRFiling) return "Complete Filing";
     if ((req?.current_stage || "").toUpperCase() === "ACCOUNT") return "Treat / Pay";
     return "Approve";
-  }, [saving, verifyingCode, needsAccountOfficerSelection, isHRFiling, req?.current_stage]);
+  }, [
+    saving,
+    verifyingCode,
+    needsSubheadAssignment,
+    needsAccountOfficerSelection,
+    isHRFiling,
+    req?.current_stage,
+  ]);
 
   if (loading) {
     return (
@@ -820,6 +992,13 @@ export default function RequestDetailsPage() {
             ? "✅ 2FA session is active. Fresh 2FA code is still required before approve, reject, or delete."
             : "⚠️ 2FA is required. Fresh 2FA code is required before approve, reject, or delete."}
         </div>
+
+        {needsSubheadAssignment && (
+          <div className="mt-4 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-900">
+            ⚠️ This financial request has no subhead yet. Director/HOD must assign a subhead and
+            reserve funds before approval can continue.
+          </div>
+        )}
 
         {hasAttachments && !allAttachmentsCheckedByMe && canAct && (
           <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900">
@@ -886,9 +1065,17 @@ export default function RequestDetailsPage() {
                     isOfficial
                       ? subhead
                         ? `${subhead.code ? `${subhead.code} — ` : ""}${subhead.name}`
-                        : "—"
+                        : "Pending Assignment"
                       : "Not Applicable"
                   }
+                />
+              </div>
+
+              <div className="mt-4 grid gap-4 md:grid-cols-2">
+                <Info label="Funds State" value={req.funds_state || "—"} />
+                <Info
+                  label="Request Date"
+                  value={new Date(req.created_at).toLocaleString()}
                 />
               </div>
 
@@ -913,7 +1100,7 @@ export default function RequestDetailsPage() {
                   {canEditRequest && (
                     <button
                       onClick={goToEdit}
-                      disabled={saving || verifyingCode}
+                      disabled={saving || verifyingCode || assigningSubhead}
                       className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
                     >
                       Edit
@@ -923,7 +1110,7 @@ export default function RequestDetailsPage() {
                   {canDeleteRequest && (
                     <button
                       onClick={() => openFresh2faModal("Delete")}
-                      disabled={saving || verifyingCode}
+                      disabled={saving || verifyingCode || assigningSubhead}
                       className="w-full rounded-xl bg-red-600 px-4 py-3 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-60"
                     >
                       {saving || verifyingCode ? "Working..." : "Delete"}
@@ -938,6 +1125,106 @@ export default function RequestDetailsPage() {
                 </div>
               )}
             </div>
+
+            {needsSubheadAssignment && (
+              <div className="mt-6 rounded-2xl border border-blue-200 bg-white p-6 shadow-sm">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <h2 className="text-lg font-extrabold text-slate-900">
+                      Director/HOD Subhead Assignment
+                    </h2>
+                    <p className="mt-1 text-sm text-slate-600">
+                      This request is financial and has no budget line yet. Select the correct
+                      subhead and reserve funds before approving.
+                    </p>
+                  </div>
+
+                  <span className="rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-black text-blue-800">
+                    Required Before Approval
+                  </span>
+                </div>
+
+                {!canAssignSubhead ? (
+                  <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+                    View only. Only the assigned Director/HOD, Admin, or Auditor can assign the
+                    subhead at this stage.
+                  </div>
+                ) : (
+                  <>
+                    <div className="mt-4">
+                      <label className="text-sm font-semibold text-slate-800">
+                        Select Subhead / Budget Line
+                      </label>
+                      <select
+                        value={selectedSubheadId}
+                        onChange={(e) => setSelectedSubheadId(e.target.value)}
+                        className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-slate-900 outline-none focus:border-blue-500"
+                      >
+                        <option value="">-- Select Subhead --</option>
+                        {assignableSubheads.map((s) => (
+                          <option key={s.id} value={s.id}>
+                            {(s.code ? `${s.code} — ` : "") + s.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {selectedAssignableSubhead && (
+                      <div className="mt-4 grid gap-3 sm:grid-cols-4">
+                        <FinanceBox
+                          label="Allocation"
+                          value={formatNaira(selectedAssignableSubhead.approved_allocation)}
+                        />
+                        <FinanceBox
+                          label="Reserved"
+                          value={formatNaira(selectedAssignableSubhead.reserved_amount)}
+                          tone="amber"
+                        />
+                        <FinanceBox
+                          label="Expenditure"
+                          value={formatNaira(selectedAssignableSubhead.expenditure)}
+                          tone="red"
+                        />
+                        <FinanceBox
+                          label="Available"
+                          value={formatNaira(selectedSubheadAvailableBalance)}
+                          tone={selectedSubheadCanCoverAmount ? "emerald" : "red"}
+                        />
+                      </div>
+                    )}
+
+                    {selectedAssignableSubhead && !selectedSubheadCanCoverAmount && (
+                      <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-800">
+                        ❌ This subhead cannot cover the request amount. Available:{" "}
+                        {formatNaira(selectedSubheadAvailableBalance)}. Required:{" "}
+                        {formatNaira(req.amount)}.
+                      </div>
+                    )}
+
+                    {selectedAssignableSubhead && selectedSubheadCanCoverAmount && (
+                      <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-800">
+                        ✅ This subhead can cover the request amount of {formatNaira(req.amount)}.
+                      </div>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={assignSubheadAndReserve}
+                      disabled={
+                        assigningSubhead ||
+                        saving ||
+                        verifyingCode ||
+                        !selectedSubheadId ||
+                        !selectedSubheadCanCoverAmount
+                      }
+                      className="mt-4 w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-black text-white hover:bg-blue-700 disabled:opacity-60"
+                    >
+                      {assigningSubhead ? "Assigning & Reserving..." : "Assign Subhead & Reserve Funds"}
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
 
             <div className="mt-6 rounded-2xl border bg-white p-6 shadow-sm">
               <div className="flex flex-wrap items-start justify-between gap-3">
@@ -1063,6 +1350,12 @@ export default function RequestDetailsPage() {
                 </div>
               ) : (
                 <>
+                  {needsSubheadAssignment && (
+                    <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm font-semibold text-blue-900">
+                      Approval is locked until a subhead is assigned and funds are reserved.
+                    </div>
+                  )}
+
                   {hasAttachments && !allAttachmentsCheckedByMe && (
                     <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
                       Approval/Rejection is locked until you personally check every attachment above.
@@ -1114,7 +1407,13 @@ export default function RequestDetailsPage() {
                   <div className="mt-4 flex flex-col gap-2 sm:flex-row">
                     <button
                       onClick={() => openFresh2faModal("Approve")}
-                      disabled={saving || verifyingCode || (hasAttachments && !allAttachmentsCheckedByMe)}
+                      disabled={
+                        saving ||
+                        verifyingCode ||
+                        assigningSubhead ||
+                        needsSubheadAssignment ||
+                        (hasAttachments && !allAttachmentsCheckedByMe)
+                      }
                       className="w-full rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 disabled:opacity-60"
                     >
                       {approveButtonText}
@@ -1122,7 +1421,7 @@ export default function RequestDetailsPage() {
 
                     <button
                       onClick={() => openFresh2faModal("Reject")}
-                      disabled={saving || verifyingCode || (hasAttachments && !allAttachmentsCheckedByMe)}
+                      disabled={saving || verifyingCode || assigningSubhead || (hasAttachments && !allAttachmentsCheckedByMe)}
                       className="w-full rounded-xl bg-red-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-red-700 disabled:opacity-60"
                     >
                       {saving || verifyingCode ? "Processing..." : "Reject"}
@@ -1231,6 +1530,32 @@ function Info({ label, value }: { label: string; value: string }) {
     <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
       <div className="text-xs font-semibold text-slate-500">{label}</div>
       <div className="mt-1 text-sm font-semibold text-slate-900">{value}</div>
+    </div>
+  );
+}
+
+function FinanceBox({
+  label,
+  value,
+  tone = "slate",
+}: {
+  label: string;
+  value: string;
+  tone?: "slate" | "emerald" | "amber" | "red";
+}) {
+  const cls =
+    tone === "emerald"
+      ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+      : tone === "amber"
+      ? "border-amber-200 bg-amber-50 text-amber-800"
+      : tone === "red"
+      ? "border-red-200 bg-red-50 text-red-800"
+      : "border-slate-200 bg-slate-50 text-slate-800";
+
+  return (
+    <div className={`rounded-xl border p-3 ${cls}`}>
+      <div className="text-xs font-semibold opacity-80">{label}</div>
+      <div className="mt-1 text-sm font-black">{value}</div>
     </div>
   );
 }
