@@ -6,12 +6,18 @@ import { sendSendchampEmail } from "@/lib/sendchampEmail";
 
 export const runtime = "nodejs";
 
+type OtpChannel = "sms" | "email" | "email_sms";
+
 function jsonError(message: string, status = 400) {
   return NextResponse.json({ ok: false, error: message }, { status });
 }
 
 function hashOtp(code: string) {
-  const secret = process.env.OTP_HASH_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY || "reqgen";
+  const secret =
+    process.env.OTP_HASH_SECRET ||
+    process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    "reqgen";
+
   return crypto.createHmac("sha256", secret).update(code).digest("hex");
 }
 
@@ -21,6 +27,26 @@ function makeOtp() {
 
 function smsEnabled() {
   return String(process.env.SENDCHAMP_SMS_ENABLED || "false").toLowerCase() === "true";
+}
+
+function emailEnabled() {
+  return String(process.env.SENDCHAMP_EMAIL_ENABLED || "false").toLowerCase() === "true";
+}
+
+function requestedOtpChannel(): OtpChannel {
+  const raw = String(
+    process.env.NEXT_PUBLIC_REQGEN_REQUEST_OTP_CHANNEL || "sms"
+  )
+    .trim()
+    .toLowerCase();
+
+  if (raw === "email") return "email";
+  if (raw === "email_sms") return "email_sms";
+  return "sms";
+}
+
+function safeEmail(value: unknown) {
+  return String(value || "").trim().toLowerCase();
 }
 
 export async function POST(req: NextRequest) {
@@ -55,11 +81,30 @@ export async function POST(req: NextRequest) {
 
   if (profErr || !profile) return jsonError("Profile not found.", 404);
 
-  const recipientEmail = String(profile.email || user.email || "").trim().toLowerCase();
+  const channel = requestedOtpChannel();
+  const recipientEmail = safeEmail(profile.email || user.email);
   const phone = normalizeNigerianPhone(profile.phone);
 
-  if (!recipientEmail || !recipientEmail.includes("@")) {
-    return jsonError("Your registered email is missing or invalid. Update Profile first.");
+  const canSendSms = smsEnabled() && !!phone;
+  const canSendEmail =
+    emailEnabled() && !!recipientEmail && recipientEmail.includes("@");
+
+  if (channel === "sms" && !canSendSms) {
+    return jsonError(
+      "SMS OTP is enabled, but your registered phone number is missing or invalid. Update Profile first."
+    );
+  }
+
+  if (channel === "email" && !canSendEmail) {
+    return jsonError(
+      "Email OTP is enabled, but email sending is disabled or your registered email is invalid."
+    );
+  }
+
+  if (channel === "email_sms" && !canSendSms && !canSendEmail) {
+    return jsonError(
+      "No valid OTP delivery channel is available. Update your phone/email or contact Admin."
+    );
   }
 
   const { data: recent } = await adminClient
@@ -72,7 +117,8 @@ export async function POST(req: NextRequest) {
     .maybeSingle();
 
   if (recent?.created_at) {
-    const secondsAgo = (Date.now() - new Date(recent.created_at).getTime()) / 1000;
+    const secondsAgo =
+      (Date.now() - new Date(recent.created_at).getTime()) / 1000;
 
     if (secondsAgo < 60) {
       return jsonError("Please wait at least 60 seconds before requesting another OTP.");
@@ -82,15 +128,28 @@ export async function POST(req: NextRequest) {
   const otp = makeOtp();
   const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
 
-  const { error: insertErr } = await adminClient.from("sms_otps").insert({
-    user_id: user.id,
-    purpose: "request_submission",
-    phone,
-    email: recipientEmail,
-    channel: smsEnabled() && phone ? "email_sms" : "email",
-    otp_hash: hashOtp(otp),
-    expires_at: expiresAt,
-  });
+  const otpChannelToStore: OtpChannel =
+    channel === "email_sms"
+      ? canSendSms && canSendEmail
+        ? "email_sms"
+        : canSendSms
+        ? "sms"
+        : "email"
+      : channel;
+
+  const { data: insertedOtp, error: insertErr } = await adminClient
+    .from("sms_otps")
+    .insert({
+      user_id: user.id,
+      purpose: "request_submission",
+      phone,
+      email: recipientEmail || null,
+      channel: otpChannelToStore,
+      otp_hash: hashOtp(otp),
+      expires_at: expiresAt,
+    })
+    .select("id")
+    .single();
 
   if (insertErr) return jsonError("Could not create OTP: " + insertErr.message, 500);
 
@@ -117,52 +176,18 @@ IET REQGEN Security Notification`;
     </div>
   `;
 
-  let emailResult: any = null;
+  const smsMessage = `Your ReqGen OTP is ${otp}. It expires in 5 minutes. Do not share it.`;
+
   let smsResult: any = null;
-  let smsWarning: string | null = null;
+  let emailResult: any = null;
 
-  try {
-    emailResult = await sendSendchampEmail({
-      toEmail: recipientEmail,
-      toName: profile.full_name,
-      subject,
-      text,
-      html,
-    });
+  let smsSent = false;
+  let emailSent = false;
 
-    await adminClient.from("sms_logs").insert({
-      recipient_user_id: user.id,
-      phone,
-      email: recipientEmail,
-      channel: "email",
-      message: text,
-      provider: "sendchamp-email",
-      route: null,
-      status: "sent",
-      provider_response: emailResult,
-      sent_by: user.id,
-    });
-  } catch (e: any) {
-    await adminClient.from("sms_logs").insert({
-      recipient_user_id: user.id,
-      phone,
-      email: recipientEmail,
-      channel: "email",
-      message: text,
-      provider: "sendchamp-email",
-      route: null,
-      status: "failed",
-      error: e?.message || "Email OTP failed.",
-      provider_response: emailResult,
-      sent_by: user.id,
-    });
+  let smsError: string | null = null;
+  let emailError: string | null = null;
 
-    return jsonError("Email OTP failed: " + (e?.message || "Unknown email error."), 500);
-  }
-
-  if (smsEnabled() && phone) {
-    const smsMessage = `Your ReqGen OTP is ${otp}. It expires in 5 minutes. Do not share it.`;
-
+  if ((channel === "sms" || channel === "email_sms") && canSendSms) {
     try {
       smsResult = await sendSendchampSms({
         to: phone,
@@ -170,10 +195,12 @@ IET REQGEN Security Notification`;
         route: (process.env.SENDCHAMP_ROUTE as any) || "dnd",
       });
 
+      smsSent = true;
+
       await adminClient.from("sms_logs").insert({
         recipient_user_id: user.id,
         phone,
-        email: recipientEmail,
+        email: recipientEmail || null,
         channel: "sms",
         message: smsMessage,
         provider: "sendchamp-sms",
@@ -183,34 +210,95 @@ IET REQGEN Security Notification`;
         sent_by: user.id,
       });
     } catch (e: any) {
-      smsWarning = e?.message || "SMS failed.";
+      smsError = e?.message || "SMS OTP failed.";
 
       await adminClient.from("sms_logs").insert({
         recipient_user_id: user.id,
         phone,
-        email: recipientEmail,
+        email: recipientEmail || null,
         channel: "sms",
         message: smsMessage,
         provider: "sendchamp-sms",
         route: process.env.SENDCHAMP_ROUTE || "dnd",
         status: "failed",
-        error: smsWarning,
+        error: smsError,
         provider_response: smsResult,
         sent_by: user.id,
       });
     }
   }
 
+  if ((channel === "email" || channel === "email_sms") && canSendEmail) {
+    try {
+      emailResult = await sendSendchampEmail({
+        toEmail: recipientEmail,
+        toName: profile.full_name,
+        subject,
+        text,
+        html,
+      });
+
+      emailSent = true;
+
+      await adminClient.from("sms_logs").insert({
+        recipient_user_id: user.id,
+        phone,
+        email: recipientEmail,
+        channel: "email",
+        message: text,
+        provider: "sendchamp-email",
+        route: null,
+        status: "sent",
+        provider_response: emailResult,
+        sent_by: user.id,
+      });
+    } catch (e: any) {
+      emailError = e?.message || "Email OTP failed.";
+
+      await adminClient.from("sms_logs").insert({
+        recipient_user_id: user.id,
+        phone,
+        email: recipientEmail,
+        channel: "email",
+        message: text,
+        provider: "sendchamp-email",
+        route: null,
+        status: "failed",
+        error: emailError,
+        provider_response: emailResult,
+        sent_by: user.id,
+      });
+    }
+  }
+
+  const delivered = smsSent || emailSent;
+
+  if (!delivered) {
+    if (insertedOtp?.id) {
+      await adminClient.from("sms_otps").delete().eq("id", insertedOtp.id);
+    }
+
+    return jsonError(
+      smsError || emailError || "OTP could not be delivered through the selected channel.",
+      500
+    );
+  }
+
+  const deliveryLabel =
+    smsSent && emailSent
+      ? "SMS and email"
+      : smsSent
+      ? "SMS"
+      : "email";
+
   return NextResponse.json({
     ok: true,
-    message: smsWarning
-      ? "Email OTP sent successfully. SMS fallback failed but request can continue with email OTP."
-      : smsEnabled() && phone
-      ? "OTP sent successfully by email and SMS."
-      : "Email OTP sent successfully.",
-    channel: smsEnabled() && phone ? "email_sms" : "email",
-    email: recipientEmail,
-    smsWarning,
+    message: `OTP sent successfully by ${deliveryLabel}.`,
+    channel: smsSent && emailSent ? "email_sms" : smsSent ? "sms" : "email",
+    phone: smsSent ? phone : null,
+    email: emailSent ? recipientEmail : null,
+    smsWarning: !smsSent && smsError ? smsError : null,
+    emailWarning: !emailSent && emailError ? emailError : null,
     expiresInMinutes: 5,
   });
 }
