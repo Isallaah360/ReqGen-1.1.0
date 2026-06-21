@@ -34,6 +34,7 @@ type ProfileMini = {
 };
 
 type RequestClass = "Financial" | "NonFinancial";
+type RequestOtpChannel = "sms" | "email" | "email_sms";
 
 const MAX_ATTACHMENTS = 50;
 const MAX_FILE_SIZE_MB = 10;
@@ -45,8 +46,17 @@ const requestOtpEnabled =
 const requestNotificationsEnabled =
   process.env.NEXT_PUBLIC_REQGEN_NOTIFICATIONS_ENABLED === "true";
 
-const requestOtpChannel =
-  process.env.NEXT_PUBLIC_REQGEN_REQUEST_OTP_CHANNEL || "email";
+function configuredOtpChannel(): RequestOtpChannel {
+  const raw = String(process.env.NEXT_PUBLIC_REQGEN_REQUEST_OTP_CHANNEL || "sms")
+    .trim()
+    .toLowerCase();
+
+  if (raw === "email") return "email";
+  if (raw === "email_sms") return "email_sms";
+  return "sms";
+}
+
+const requestOtpChannel = configuredOtpChannel();
 
 function roleKey(role: string | null | undefined) {
   return (role || "")
@@ -123,6 +133,16 @@ function maskPhone(phone: string | null | undefined) {
   return `${raw.slice(0, 4)}***${raw.slice(-3)}`;
 }
 
+function hasValidEmail(email: string | null | undefined) {
+  const clean = String(email || "").trim();
+  return !!clean && clean.includes("@");
+}
+
+function hasLikelyPhone(phone: string | null | undefined) {
+  const raw = String(phone || "").replace(/\D/g, "");
+  return raw.length >= 10;
+}
+
 export default function NewRequestPage() {
   const router = useRouter();
 
@@ -138,7 +158,7 @@ export default function NewRequestPage() {
   const [showOtpModal, setShowOtpModal] = useState(false);
   const [otpCode, setOtpCode] = useState("");
   const [otpSent, setOtpSent] = useState(false);
-  const [otpChannel, setOtpChannel] = useState<"email" | "email_sms" | "unknown">("unknown");
+  const [otpChannel, setOtpChannel] = useState<RequestOtpChannel | "unknown">("unknown");
 
   const [requestClass, setRequestClass] = useState<RequestClass>("Financial");
 
@@ -173,7 +193,19 @@ export default function NewRequestPage() {
   const isFinancial = requestClass === "Financial";
   const isNonFinancial = requestClass === "NonFinancial";
 
-  const otpLabel = requestOtpChannel === "sms" ? "SMS OTP" : "Email OTP";
+  const otpLabel =
+    requestOtpChannel === "sms"
+      ? "SMS OTP"
+      : requestOtpChannel === "email_sms"
+      ? "SMS/Email OTP"
+      : "Email OTP";
+
+  const otpDestinationLabel =
+    requestOtpChannel === "sms"
+      ? `your registered phone: ${maskPhone(me?.phone)}`
+      : requestOtpChannel === "email_sms"
+      ? `your registered phone: ${maskPhone(me?.phone)} and email: ${maskEmail(me?.email)}`
+      : `your registered email: ${maskEmail(me?.email)}`;
 
   const filteredSubs = useMemo(() => {
     return subs.filter((s) => s.dept_id === deptId);
@@ -363,11 +395,31 @@ export default function NewRequestPage() {
       return false;
     }
 
-    if (requestOtpEnabled && (!me.email || !me.email.trim() || !me.email.includes("@"))) {
-      if (showMessage) {
-        setMsg("❌ Please add a valid registered email in Profile before requesting OTP.");
+    if (requestOtpEnabled) {
+      if (requestOtpChannel === "sms" && !hasLikelyPhone(me.phone)) {
+        if (showMessage) {
+          setMsg("❌ Please add a valid registered phone number in Profile before requesting SMS OTP.");
+        }
+        return false;
       }
-      return false;
+
+      if (requestOtpChannel === "email" && !hasValidEmail(me.email)) {
+        if (showMessage) {
+          setMsg("❌ Please add a valid registered email in Profile before requesting Email OTP.");
+        }
+        return false;
+      }
+
+      if (
+        requestOtpChannel === "email_sms" &&
+        !hasLikelyPhone(me.phone) &&
+        !hasValidEmail(me.email)
+      ) {
+        if (showMessage) {
+          setMsg("❌ Please add a valid phone number or email in Profile before requesting OTP.");
+        }
+        return false;
+      }
     }
 
     if (!me.signature_url || !me.signature_url.trim()) {
@@ -485,9 +537,11 @@ export default function NewRequestPage() {
     return result as {
       ok: boolean;
       message?: string;
-      channel?: "email" | "email_sms";
-      email?: string;
+      channel?: RequestOtpChannel;
+      phone?: string | null;
+      email?: string | null;
       smsWarning?: string | null;
+      emailWarning?: string | null;
       expiresInMinutes?: number;
     };
   }
@@ -515,17 +569,15 @@ export default function NewRequestPage() {
 
       setOtpCode("");
       setOtpSent(true);
-      setOtpChannel(result.channel || "email");
+      setOtpChannel(result.channel || requestOtpChannel);
       setShowOtpModal(true);
 
-      if (result.smsWarning) {
-        setMsg("✅ Email OTP sent successfully. SMS fallback is pending Sender ID approval.");
+      if (result.channel === "sms") {
+        setMsg("✅ SMS OTP sent to your registered phone number.");
+      } else if (result.channel === "email_sms") {
+        setMsg("✅ OTP sent by SMS and email.");
       } else {
-        setMsg(
-          result.channel === "email_sms"
-            ? "✅ OTP sent to your registered email. SMS fallback was also attempted."
-            : "✅ Email OTP sent to your registered email."
-        );
+        setMsg("✅ Email OTP sent to your registered email.");
       }
     } catch (e: any) {
       setMsg(`❌ Could not send ${otpLabel}: ` + (e?.message || "Unknown error."));
@@ -720,7 +772,7 @@ export default function NewRequestPage() {
       setMsg(
         `✅ ${
           isFinancial ? "Financial request" : "Non-financial request"
-        } signed and submitted successfully. ${subheadNote}${
+        } signed, OTP-verified and submitted successfully. ${subheadNote}${
           uploadedCount > 0 ? `${uploadedCount} attachment(s) uploaded. ` : ""
         }Routed to ${(data as any)?.first_stage || "next officer"}.`
       );
@@ -766,8 +818,8 @@ export default function NewRequestPage() {
               New Request
             </h1>
             <p className="mt-2 text-sm text-slate-600">
-              Staff submit requests without seeing subheads or balances. Request OTP and notifications
-              are prepared but currently disabled pending IET REQGEN Sender ID approval.
+              Staff submit requests without seeing subheads or balances. SMS OTP protection is now
+              active using the approved IET REQGEN Sender ID.
             </p>
           </div>
 
@@ -787,23 +839,24 @@ export default function NewRequestPage() {
           </div>
         ) : (
           <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900">
-            OTP submission is currently disabled pending Sendchamp approval. Signature is required
-            before request submission.
+            OTP submission is currently disabled. Signature is required before request submission.
           </div>
         )}
 
-        {requestOtpEnabled && me?.email && (
+        {requestOtpEnabled && (
           <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">
-            OTP will be sent to your registered email: {maskEmail(me.email)}
-            {me.phone ? (
+            OTP will be sent to {otpDestinationLabel}.
+            {requestOtpChannel === "sms" && me?.email ? (
               <span className="block pt-1 text-xs font-semibold text-emerald-700">
-                Registered phone available for future SMS fallback: {maskPhone(me.phone)}
+                Registered email on file: {maskEmail(me.email)}. SMS is the primary OTP channel.
               </span>
-            ) : (
-              <span className="block pt-1 text-xs font-semibold text-amber-700">
-                No phone number found for SMS fallback. Email OTP can still work when enabled.
+            ) : null}
+
+            {requestOtpChannel === "sms" && !hasLikelyPhone(me?.phone) ? (
+              <span className="block pt-1 text-xs font-semibold text-red-700">
+                No valid phone number found. Update Profile before submitting with SMS OTP.
               </span>
-            )}
+            ) : null}
           </div>
         )}
 
@@ -867,7 +920,7 @@ export default function NewRequestPage() {
               <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-900 md:col-span-2">
                 Financial Request is money-related.{" "}
                 {canSeeSubheads
-                  ? "You may select the appropriate subhead now. If no subhead is selected, it will remain pending assignment."
+                  ? "You may select the appropriate subhead now. If no subhead is selected, it will remain pending Director/HOD assignment."
                   : "The approving Director/HOD will review and assign the appropriate subhead before the request continues."}
               </div>
             )}
@@ -1127,14 +1180,26 @@ export default function NewRequestPage() {
             </h2>
 
             <p className="mt-2 text-sm leading-6 text-slate-600">
-              Enter the 6-digit OTP sent to your registered email{" "}
-              <b>{maskEmail(me?.email)}</b>. This signed request will not be submitted until the OTP
-              is verified.
+              Enter the 6-digit OTP sent to{" "}
+              <b>
+                {otpChannel === "sms"
+                  ? `your registered phone ${maskPhone(me?.phone)}`
+                  : otpChannel === "email_sms"
+                  ? `your registered phone ${maskPhone(me?.phone)} and email ${maskEmail(me?.email)}`
+                  : `your registered email ${maskEmail(me?.email)}`}
+              </b>
+              . This signed request will not be submitted until the OTP is verified.
             </p>
+
+            {otpChannel === "sms" && (
+              <div className="mt-4 rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-900">
+                SMS OTP was sent using the approved IET REQGEN Sender ID.
+              </div>
+            )}
 
             {otpChannel === "email_sms" && (
               <div className="mt-4 rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-900">
-                OTP was sent by email. SMS fallback was also attempted where available.
+                OTP was sent by SMS and email.
               </div>
             )}
 

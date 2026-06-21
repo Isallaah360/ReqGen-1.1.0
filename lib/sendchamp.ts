@@ -29,9 +29,27 @@ export function normalizeNigerianPhone(rawPhone: string | null | undefined) {
   return null;
 }
 
+function cleanSmsMessage(message: string, senderName: string) {
+  let cleaned = String(message || "").trim();
+
+  const escapedSender = senderName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+  cleaned = cleaned.replace(
+    new RegExp(`^${escapedSender}\\s*:\\s*`, "i"),
+    ""
+  );
+
+  cleaned = cleaned.replace(/^IET\s+REQGEN\s*:\s*/i, "");
+  cleaned = cleaned.replace(/^REQGEN\s*:\s*/i, "");
+
+  return cleaned.trim();
+}
+
 export async function sendSendchampSms(input: SendSmsInput) {
   const apiKey = process.env.SENDCHAMP_API_KEY;
-  const senderName = input.senderName || process.env.SENDCHAMP_SENDER_NAME || "Sendchamp";
+  const senderName =
+    input.senderName || process.env.SENDCHAMP_SENDER_NAME || "IET REQGEN";
+
   const route =
     input.route ||
     (process.env.SENDCHAMP_ROUTE as "dnd" | "non_dnd" | "international") ||
@@ -51,7 +69,7 @@ export async function sendSendchampSms(input: SendSmsInput) {
     throw new Error("No valid recipient phone number supplied.");
   }
 
-  const message = input.message.trim();
+  const message = cleanSmsMessage(input.message, senderName);
 
   if (!message) {
     throw new Error("SMS message cannot be empty.");
@@ -78,7 +96,7 @@ export async function sendSendchampSms(input: SendSmsInput) {
     throw new Error(
       result?.message ||
         result?.error ||
-        `Sendchamp SMS failed with status ${response.status}`
+        `SendChamp SMS failed with status ${response.status}`
     );
   }
 
