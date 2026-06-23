@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -159,6 +159,8 @@ export default function NewRequestPage() {
   const [otpCode, setOtpCode] = useState("");
   const [otpSent, setOtpSent] = useState(false);
   const [otpChannel, setOtpChannel] = useState<RequestOtpChannel | "unknown">("unknown");
+
+  const otpAutoSubmittingRef = useRef(false);
 
   const [requestClass, setRequestClass] = useState<RequestClass>("Financial");
 
@@ -323,6 +325,7 @@ export default function NewRequestPage() {
     setOtpSent(false);
     setOtpCode("");
     setOtpChannel("unknown");
+    otpAutoSubmittingRef.current = false;
   }, [requestClass, deptId, subheadId, title, amount, details, attachments.length]);
 
   function handleAttachmentSelect(files: FileList | null) {
@@ -503,6 +506,7 @@ export default function NewRequestPage() {
     setOtpSent(false);
     setOtpCode("");
     setOtpChannel("unknown");
+    otpAutoSubmittingRef.current = false;
 
     setMsg(
       requestOtpEnabled
@@ -571,6 +575,7 @@ export default function NewRequestPage() {
       setOtpSent(true);
       setOtpChannel(result.channel || requestOtpChannel);
       setShowOtpModal(true);
+      otpAutoSubmittingRef.current = false;
 
       if (result.channel === "sms") {
         setMsg("✅ SMS OTP sent to your registered phone number.");
@@ -586,16 +591,22 @@ export default function NewRequestPage() {
     }
   }
 
-  async function verifyOtpAndSubmit() {
+  async function verifyOtpAndSubmit(codeOverride?: string) {
+    if (otpAutoSubmittingRef.current || verifyingOtp || saving) return;
+
     setMsg(null);
 
-    const code = otpCode.trim().replace(/\s+/g, "");
+    const code = String(codeOverride || otpCode || "")
+      .trim()
+      .replace(/\D/g, "")
+      .slice(0, 6);
 
     if (!/^\d{6}$/.test(code)) {
       setMsg(`❌ Enter the 6-digit ${otpLabel}.`);
       return;
     }
 
+    otpAutoSubmittingRef.current = true;
     setVerifyingOtp(true);
 
     try {
@@ -628,8 +639,13 @@ export default function NewRequestPage() {
       await submitSignedRequest();
     } catch (e: any) {
       setMsg(`❌ ${otpLabel} verification failed: ` + (e?.message || "Invalid OTP."));
+      setOtpCode("");
     } finally {
       setVerifyingOtp(false);
+
+      setTimeout(() => {
+        otpAutoSubmittingRef.current = false;
+      }, 800);
     }
   }
 
@@ -787,12 +803,14 @@ export default function NewRequestPage() {
       setOtpSent(false);
       setOtpCode("");
       setOtpChannel("unknown");
+      otpAutoSubmittingRef.current = false;
 
       await loadAll();
 
       setTimeout(() => {
-        router.push(`/requests/${requestId}`);
-      }, 900);
+        router.push(`/requests/${requestId}?updated=${Date.now()}`);
+        router.refresh();
+      }, 500);
     } catch (e: any) {
       setMsg("❌ Submit failed: " + (e?.message || "Unknown error"));
     } finally {
@@ -1188,7 +1206,7 @@ export default function NewRequestPage() {
                   ? `your registered phone ${maskPhone(me?.phone)} and email ${maskEmail(me?.email)}`
                   : `your registered email ${maskEmail(me?.email)}`}
               </b>
-              . This signed request will not be submitted until the OTP is verified.
+              . This signed request will be submitted automatically after the 6th digit is entered.
             </p>
 
             {otpChannel === "sms" && (
@@ -1211,12 +1229,29 @@ export default function NewRequestPage() {
 
             <input
               value={otpCode}
-              onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+              onChange={(e) => {
+                const nextCode = e.target.value.replace(/\D/g, "").slice(0, 6);
+                setOtpCode(nextCode);
+
+                if (nextCode.length === 6 && !verifyingOtp && !saving) {
+                  setTimeout(() => {
+                    verifyOtpAndSubmit(nextCode);
+                  }, 150);
+                }
+              }}
               inputMode="numeric"
+              autoComplete="one-time-code"
               autoFocus
+              disabled={verifyingOtp || saving}
               placeholder="123456"
-              className="mt-5 w-full rounded-2xl border border-slate-200 px-4 py-4 text-center text-2xl font-black tracking-[0.35em] text-slate-900 outline-none focus:border-blue-500"
+              className="mt-5 w-full rounded-2xl border border-slate-200 px-4 py-4 text-center text-2xl font-black tracking-[0.35em] text-slate-900 outline-none focus:border-blue-500 disabled:bg-slate-100 disabled:text-slate-500"
             />
+
+            <div className="mt-3 text-center text-xs font-semibold text-slate-500">
+              {verifyingOtp || saving
+                ? "Verifying automatically, please wait..."
+                : "Auto-submit activates immediately after 6 digits."}
+            </div>
 
             <div className="mt-5 flex flex-col gap-2 sm:flex-row">
               <button
@@ -1225,6 +1260,7 @@ export default function NewRequestPage() {
                   if (verifyingOtp || saving) return;
                   setShowOtpModal(false);
                   setOtpCode("");
+                  otpAutoSubmittingRef.current = false;
                 }}
                 disabled={verifyingOtp || saving}
                 className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
@@ -1234,11 +1270,11 @@ export default function NewRequestPage() {
 
               <button
                 type="button"
-                onClick={verifyOtpAndSubmit}
+                onClick={() => verifyOtpAndSubmit()}
                 disabled={verifyingOtp || saving || otpCode.trim().length !== 6}
                 className="w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white hover:bg-blue-700 disabled:opacity-60"
               >
-                {verifyingOtp || saving ? "Verifying..." : "Verify OTP & Submit"}
+                {verifyingOtp || saving ? "Verifying automatically..." : "Verify OTP & Submit"}
               </button>
             </div>
 
