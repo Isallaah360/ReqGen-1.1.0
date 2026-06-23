@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { RequestProgress } from "../../components/RequestProgress";
@@ -196,22 +196,19 @@ export default function RequestDetailsPage() {
   const [mfaCode, setMfaCode] = useState("");
   const [pendingAction, setPendingAction] = useState<SensitiveAction | null>(null);
 
+  const mfaAutoSubmittingRef = useRef(false);
+
   const rk = roleKey(me?.role);
   const stg = stageKey(req?.current_stage);
 
-  const isMyRequest = useMemo(
-    () => !!req && !!me && req.created_by === me.id,
-    [req, me]
-  );
+  const isMyRequest = useMemo(() => {
+    return !!req && !!me && req.created_by === me.id;
+  }, [req, me]);
 
   const requesterCanEditDeleteEarly = useMemo(() => {
     if (!req || !me) return false;
 
-    return (
-      req.created_by === me.id &&
-      ["DIRECTOR", "HOD"].includes(stg) &&
-      (req.funds_state || "").toLowerCase() === "reserved"
-    );
+    return req.created_by === me.id && ["DIRECTOR", "HOD"].includes(stg);
   }, [req, me, stg]);
 
   const assignedDirectorHodHrCanEdit = useMemo(() => {
@@ -468,6 +465,7 @@ export default function RequestDetailsPage() {
     }
 
     const { data: auth } = await supabase.auth.getUser();
+
     if (!auth.user) {
       router.push("/login");
       return;
@@ -586,12 +584,14 @@ export default function RequestDetailsPage() {
     setHistory((h2 || []) as Hist[]);
 
     const subId = (r2 as any)?.subhead_id as string | null;
+
     if (subId) {
       const { data: sh } = await supabase
         .from("subheads")
         .select("id,code,name")
         .eq("id", subId)
         .single();
+
       setSubhead((sh as any) || null);
     } else {
       setSubhead(null);
@@ -602,6 +602,7 @@ export default function RequestDetailsPage() {
     }
 
     await loadAttachmentsAndChecks(id);
+    router.refresh();
   }
 
   function goToEdit() {
@@ -717,11 +718,12 @@ export default function RequestDetailsPage() {
         comment: `${attachment.file_name} was checked by ${me.full_name || "officer"} (${me.role || "Role not set"}).`,
         to_stage: req.current_stage,
         actor_name: me.full_name || null,
-        actor_id: me.id,
+        action_by: me.id,
       });
 
       setMsg("✅ Attachment checked successfully for your own approval stage.");
       await loadAttachmentsAndChecks(req.id);
+      router.refresh();
     } catch (e: any) {
       setMsg("❌ Attachment check failed: " + (e?.message || "Unknown error"));
     } finally {
@@ -793,9 +795,12 @@ export default function RequestDetailsPage() {
     setPendingAction(action);
     setMfaCode("");
     setShowMfaModal(true);
+    mfaAutoSubmittingRef.current = false;
   }
 
-  async function verifyCodeAndContinue() {
+  async function verifyCodeAndContinue(codeOverride?: string) {
+    if (mfaAutoSubmittingRef.current || verifyingCode || saving) return;
+
     setMsg(null);
 
     if (!pendingAction) {
@@ -810,13 +815,17 @@ export default function RequestDetailsPage() {
       return;
     }
 
-    const code = mfaCode.trim().replace(/\s+/g, "");
+    const code = String(codeOverride || mfaCode || "")
+      .trim()
+      .replace(/\D/g, "")
+      .slice(0, 6);
 
     if (!/^\d{6}$/.test(code)) {
       setMsg("❌ Enter the 6-digit code from your authenticator app.");
       return;
     }
 
+    mfaAutoSubmittingRef.current = true;
     setVerifyingCode(true);
 
     try {
@@ -840,8 +849,13 @@ export default function RequestDetailsPage() {
       }
     } catch (e: any) {
       setMsg("❌ 2FA verification failed: " + (e?.message || "Invalid code."));
+      setMfaCode("");
     } finally {
       setVerifyingCode(false);
+
+      setTimeout(() => {
+        mfaAutoSubmittingRef.current = false;
+      }, 800);
     }
   }
 
@@ -926,7 +940,13 @@ export default function RequestDetailsPage() {
       if (error) throw new Error(error.message);
 
       setMsg("✅ Deleted successfully after 2FA verification.");
-      setTimeout(() => router.push("/requests"), 700);
+
+      await reload();
+
+      setTimeout(() => {
+        router.push(`/requests?updated=${Date.now()}`);
+        router.refresh();
+      }, 500);
     } catch (e: any) {
       setMsg("❌ Delete failed: " + (e?.message || "Unknown error"));
     } finally {
@@ -1421,7 +1441,12 @@ export default function RequestDetailsPage() {
 
                     <button
                       onClick={() => openFresh2faModal("Reject")}
-                      disabled={saving || verifyingCode || assigningSubhead || (hasAttachments && !allAttachmentsCheckedByMe)}
+                      disabled={
+                        saving ||
+                        verifyingCode ||
+                        assigningSubhead ||
+                        (hasAttachments && !allAttachmentsCheckedByMe)
+                      }
                       className="w-full rounded-xl bg-red-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-red-700 disabled:opacity-60"
                     >
                       {saving || verifyingCode ? "Processing..." : "Reject"}
@@ -1481,18 +1506,35 @@ export default function RequestDetailsPage() {
             </h2>
 
             <p className="mt-2 text-sm leading-6 text-slate-600">
-              Enter the 6-digit code from your authenticator app. This action will not continue
-              until the code is verified.
+              Enter the 6-digit code from your authenticator app. The action will continue
+              automatically after the 6th digit is entered.
             </p>
 
             <input
               value={mfaCode}
-              onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+              onChange={(e) => {
+                const nextCode = e.target.value.replace(/\D/g, "").slice(0, 6);
+                setMfaCode(nextCode);
+
+                if (nextCode.length === 6 && !verifyingCode && !saving) {
+                  setTimeout(() => {
+                    verifyCodeAndContinue(nextCode);
+                  }, 150);
+                }
+              }}
               inputMode="numeric"
+              autoComplete="one-time-code"
               autoFocus
+              disabled={verifyingCode || saving}
               placeholder="123456"
-              className="mt-5 w-full rounded-2xl border border-slate-200 px-4 py-4 text-center text-2xl font-black tracking-[0.35em] text-slate-900 outline-none focus:border-blue-500"
+              className="mt-5 w-full rounded-2xl border border-slate-200 px-4 py-4 text-center text-2xl font-black tracking-[0.35em] text-slate-900 outline-none focus:border-blue-500 disabled:bg-slate-100 disabled:text-slate-500"
             />
+
+            <div className="mt-3 text-center text-xs font-semibold text-slate-500">
+              {verifyingCode || saving
+                ? "Verifying automatically, please wait..."
+                : "Auto-submit activates immediately after 6 digits."}
+            </div>
 
             <div className="mt-5 flex flex-col gap-2 sm:flex-row">
               <button
@@ -1502,6 +1544,7 @@ export default function RequestDetailsPage() {
                   setShowMfaModal(false);
                   setMfaCode("");
                   setPendingAction(null);
+                  mfaAutoSubmittingRef.current = false;
                 }}
                 disabled={verifyingCode || saving}
                 className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
@@ -1511,11 +1554,11 @@ export default function RequestDetailsPage() {
 
               <button
                 type="button"
-                onClick={verifyCodeAndContinue}
+                onClick={() => verifyCodeAndContinue()}
                 disabled={verifyingCode || saving || mfaCode.trim().length !== 6}
                 className="w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white hover:bg-blue-700 disabled:opacity-60"
               >
-                {verifyingCode || saving ? "Verifying..." : "Verify & Continue"}
+                {verifyingCode || saving ? "Verifying automatically..." : "Verify & Continue"}
               </button>
             </div>
           </div>
@@ -1570,6 +1613,7 @@ function StageBadge({ stage }: { stage: string }) {
 
 function StatusBadge({ status }: { status: string }) {
   const s = (status || "").toLowerCase();
+
   const cls =
     s.includes("submit")
       ? "bg-blue-50 text-blue-700 border-blue-200"
@@ -1579,7 +1623,7 @@ function StatusBadge({ status }: { status: string }) {
         s.includes("paid") ||
         s.includes("filing")
       ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-      : s.includes("reject")
+      : s.includes("reject") || s.includes("delete")
       ? "bg-red-50 text-red-700 border-red-200"
       : "bg-slate-50 text-slate-700 border-slate-200";
 
