@@ -25,6 +25,9 @@ type Subhead = {
   id: string;
   code: string | null;
   name: string;
+  approved_allocation: number | null;
+  reserved_amount: number | null;
+  expenditure: number | null;
   balance: number | null;
   is_active: boolean | null;
 };
@@ -63,6 +66,26 @@ function requestTypeLabel(req: Req) {
   return req.request_type || "—";
 }
 
+function isClosed(status: string | null | undefined, stage: string | null | undefined) {
+  const s = String(status || "");
+  const stg = stageKey(stage);
+
+  return (
+    ["Rejected", "Cancelled", "Deleted", "Paid", "Closed"].includes(s) ||
+    ["REGISTRY", "DG", "ACCOUNT", "COMPLETED", "REJECTED", "DELETED"].includes(stg)
+  );
+}
+
+function availableBalance(s: Subhead | null) {
+  if (!s) return 0;
+
+  return (
+    Number(s.approved_allocation || 0) -
+    Number(s.reserved_amount || 0) -
+    Number(s.expenditure || 0)
+  );
+}
+
 export default function EditRequestPage() {
   const router = useRouter();
   const params = useParams();
@@ -96,34 +119,67 @@ export default function EditRequestPage() {
 
   const isFinancialRequest = Boolean(isOfficial || isPersonalFund);
 
+  const requestIsClosed = useMemo(() => {
+    return isClosed(req?.status, req?.current_stage);
+  }, [req?.status, req?.current_stage]);
+
   const isRequesterEarlyEdit = useMemo(() => {
     if (!req || !me) return false;
 
-    return (
-      req.created_by === me.id &&
-      ["DIRECTOR", "HOD"].includes(stg) &&
-      (req.funds_state || "").toLowerCase() === "reserved"
-    );
-  }, [req, me, stg]);
+    return req.created_by === me.id && ["DIRECTOR", "HOD"].includes(stg) && !requestIsClosed;
+  }, [req, me, stg, requestIsClosed]);
 
-  const isDirectorHodHrCurrentOwnerEdit = useMemo(() => {
+  const isAssignedOfficerEdit = useMemo(() => {
     if (!req || !me) return false;
 
     const allowedRole = ["director", "hod", "hr"].includes(rk);
     const ownsCurrentStage = req.current_owner === me.id;
 
-    return allowedRole && ownsCurrentStage;
-  }, [req, me, rk]);
+    return allowedRole && ownsCurrentStage && ["DIRECTOR", "HOD", "HR"].includes(stg) && !requestIsClosed;
+  }, [req, me, rk, stg, requestIsClosed]);
+
+  const isAdminAuditorEdit = useMemo(() => {
+    if (!req || !me) return false;
+    return ["admin", "auditor"].includes(rk) && !requestIsClosed;
+  }, [req, me, rk, requestIsClosed]);
 
   const canEdit = useMemo(() => {
-    return isRequesterEarlyEdit || isDirectorHodHrCurrentOwnerEdit;
-  }, [isRequesterEarlyEdit, isDirectorHodHrCurrentOwnerEdit]);
+    return isRequesterEarlyEdit || isAssignedOfficerEdit || isAdminAuditorEdit;
+  }, [isRequesterEarlyEdit, isAssignedOfficerEdit, isAdminAuditorEdit]);
+
+  const canEditFinanceFields = useMemo(() => {
+    if (!req || !me) return false;
+
+    return isOfficial && (isAssignedOfficerEdit || isAdminAuditorEdit);
+  }, [req, me, isOfficial, isAssignedOfficerEdit, isAdminAuditorEdit]);
+
+  const requesterEditingReservedFinancial = useMemo(() => {
+    if (!req || !me) return false;
+
+    return (
+      isRequesterEarlyEdit &&
+      isOfficial &&
+      String(req.funds_state || "").toLowerCase() === "reserved" &&
+      !canEditFinanceFields
+    );
+  }, [req, me, isRequesterEarlyEdit, isOfficial, canEditFinanceFields]);
+
+  const canEditAmount = useMemo(() => {
+    if (isPersonalNonFund) return false;
+    if (requesterEditingReservedFinancial) return false;
+    return canEdit;
+  }, [isPersonalNonFund, requesterEditingReservedFinancial, canEdit]);
 
   const editModeLabel = useMemo(() => {
     if (isRequesterEarlyEdit) return "Requester Early-Stage Edit";
-    if (isDirectorHodHrCurrentOwnerEdit) return "Assigned Officer Edit";
+    if (isAssignedOfficerEdit) return "Assigned Officer Edit";
+    if (isAdminAuditorEdit) return "Admin/Auditor Edit";
     return "Locked";
-  }, [isRequesterEarlyEdit, isDirectorHodHrCurrentOwnerEdit]);
+  }, [isRequesterEarlyEdit, isAssignedOfficerEdit, isAdminAuditorEdit]);
+
+  const selectedSubhead = useMemo(() => {
+    return subheads.find((s) => s.id === subheadId) || null;
+  }, [subheads, subheadId]);
 
   async function loadMfaFactor() {
     const { data, error } = await supabase.auth.mfa.listFactors();
@@ -154,50 +210,47 @@ export default function EditRequestPage() {
       return;
     }
 
-    const [profileRes, reqRes] = await Promise.all([
-      supabase
-        .from("profiles")
-        .select("id,role,full_name")
-        .eq("id", auth.user.id)
-        .single(),
-      supabase
-        .from("requests")
-        .select(
-          "id,request_no,title,details,amount,status,current_stage,current_owner,created_by,dept_id,subhead_id,funds_state,request_type,personal_category"
-        )
-        .eq("id", id)
-        .single(),
-      loadMfaFactor(),
-    ]);
+    await loadMfaFactor();
 
-    if (profileRes.error) {
-      setMsg("Failed to load your profile: " + profileRes.error.message);
+    const { data: profileRow, error: profileErr } = await supabase
+      .from("profiles")
+      .select("id,role,full_name")
+      .eq("id", auth.user.id)
+      .single();
+
+    if (profileErr) {
+      setMsg("Failed to load your profile: " + profileErr.message);
       setLoading(false);
       return;
     }
 
-    if (reqRes.error) {
-      setMsg("Failed to load request: " + reqRes.error.message);
+    const { data: requestRow, error: reqErr } = await supabase
+      .from("requests")
+      .select(
+        "id,request_no,title,details,amount,status,current_stage,current_owner,created_by,dept_id,subhead_id,funds_state,request_type,personal_category"
+      )
+      .eq("id", id)
+      .single();
+
+    if (reqErr) {
+      setMsg("Failed to load request: " + reqErr.message);
       setLoading(false);
       return;
     }
 
-    const profileRow = profileRes.data as Me;
-    const requestRow = reqRes.data as Req;
+    setMe(profileRow as Me);
+    setReq(requestRow as Req);
 
-    setMe(profileRow);
-    setReq(requestRow);
+    setSubheadId((requestRow as Req).subhead_id || "");
+    setTitle((requestRow as Req).title || "");
+    setDetails((requestRow as Req).details || "");
+    setAmount(String((requestRow as Req).amount || 0));
 
-    setSubheadId(requestRow.subhead_id || "");
-    setTitle(requestRow.title || "");
-    setDetails(requestRow.details || "");
-    setAmount(String(requestRow.amount || 0));
-
-    if (requestRow.dept_id) {
+    if ((requestRow as Req).dept_id) {
       const { data: sh } = await supabase
         .from("subheads")
-        .select("id,code,name,balance,is_active")
-        .eq("dept_id", requestRow.dept_id)
+        .select("id,code,name,approved_allocation,reserved_amount,expenditure,balance,is_active")
+        .eq("dept_id", (requestRow as Req).dept_id)
         .eq("is_active", true)
         .order("code", { ascending: true });
 
@@ -241,16 +294,25 @@ export default function EditRequestPage() {
       return false;
     }
 
-    if (isOfficial && !subheadId) {
-      setMsg("❌ Select subhead for this official request.");
-      return false;
-    }
-
     if (isFinancialRequest) {
       const amt = Number(amount || 0);
 
       if (!amt || amt <= 0) {
         setMsg("❌ Amount must be greater than zero.");
+        return false;
+      }
+    }
+
+    if (canEditFinanceFields && isOfficial && String(req.funds_state || "").toLowerCase() === "reserved") {
+      if (!subheadId) {
+        setMsg("❌ Reserved financial request must have a subhead.");
+        return false;
+      }
+
+      const amt = Number(amount || 0);
+
+      if (selectedSubhead && subheadId !== req.subhead_id && amt > availableBalance(selectedSubhead)) {
+        setMsg(`❌ Amount exceeds selected subhead available balance (${naira(availableBalance(selectedSubhead))}).`);
         return false;
       }
     }
@@ -318,43 +380,15 @@ export default function EditRequestPage() {
     setMsg(null);
 
     try {
-      if (isOfficial && (req.funds_state || "").toLowerCase() === "reserved") {
-        const { error } = await supabase.rpc("update_request_adjust_reservation", {
-          p_request_id: req.id,
-          p_new_subhead_id: subheadId,
-          p_new_amount: amt,
-          p_new_title: title.trim(),
-          p_new_details: details.trim(),
-        });
+      const { error } = await supabase.rpc("update_request_adjust_reservation", {
+        p_request_id: req.id,
+        p_new_subhead_id: canEditFinanceFields ? subheadId || req.subhead_id : req.subhead_id,
+        p_new_amount: canEditAmount ? amt : req.amount || 0,
+        p_new_title: title.trim(),
+        p_new_details: details.trim(),
+      });
 
-        if (error) throw new Error(error.message);
-      } else {
-        const updatePayload: Record<string, any> = {
-          title: title.trim(),
-          details: details.trim(),
-          amount: amt,
-        };
-
-        if (isOfficial) {
-          updatePayload.subhead_id = subheadId;
-        }
-
-        const { error } = await supabase
-          .from("requests")
-          .update(updatePayload)
-          .eq("id", req.id);
-
-        if (error) throw new Error(error.message);
-
-        await supabase.from("request_history").insert({
-          request_id: req.id,
-          action_type: "Edited",
-          comment: `Request edited by ${me?.full_name || "user"} with fresh 2FA verification.`,
-          to_stage: req.current_stage,
-          actor_name: me?.full_name || null,
-          actor_id: me?.id || null,
-        });
-      }
+      if (error) throw new Error(error.message);
 
       setMsg("✅ Request updated successfully after 2FA verification.");
 
@@ -367,10 +401,6 @@ export default function EditRequestPage() {
       setSaving(false);
     }
   }
-
-  const selectedSubhead = useMemo(() => {
-    return subheads.find((s) => s.id === subheadId) || null;
-  }, [subheads, subheadId]);
 
   if (loading) {
     return (
@@ -424,6 +454,19 @@ export default function EditRequestPage() {
           A fresh 2FA code is required before changes can be saved.
         </div>
 
+        {requesterEditingReservedFinancial && (
+          <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900">
+            Funds are already reserved. As requester, you can update title/details only. Amount and
+            subhead changes are locked to protect finance records.
+          </div>
+        )}
+
+        {canEditFinanceFields && isOfficial && (
+          <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">
+            Assigned officer finance edit is active. Reserved amount/subhead changes will be adjusted safely.
+          </div>
+        )}
+
         {msg && (
           <div className="mt-4 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-800 shadow-sm">
             {msg}
@@ -446,9 +489,9 @@ export default function EditRequestPage() {
             </div>
 
             <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-700">
-              Requester can edit only at early Director/HOD level while reserved. Director, HOD and
-              HR can edit only while the request is currently assigned to them. Account Officers
-              cannot edit requests from this page.
+              Requester can edit only at early Director/HOD level. Assigned Director/HOD/HR can edit
+              only while the request is assigned to them. Editing is locked after Registry, DG,
+              Account, Paid, Completed, Rejected or Deleted stage.
             </div>
           </div>
         ) : (
@@ -467,7 +510,7 @@ export default function EditRequestPage() {
             </div>
 
             <div className="mt-6 space-y-4">
-              {isOfficial && (
+              {isOfficial && canEditFinanceFields && (
                 <div>
                   <label className="text-sm font-semibold text-slate-800">Subhead</label>
                   <select
@@ -475,19 +518,26 @@ export default function EditRequestPage() {
                     onChange={(e) => setSubheadId(e.target.value)}
                     className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 text-base text-slate-900 outline-none focus:border-blue-500"
                   >
-                    <option value="">-- Select subhead --</option>
+                    <option value="">-- No subhead selected --</option>
                     {subheads.map((s) => (
                       <option key={s.id} value={s.id}>
-                        {(s.code ? `${s.code} — ` : "") + s.name} ({naira(s.balance)})
+                        {(s.code ? `${s.code} — ` : "") + s.name} ({naira(availableBalance(s))} available)
                       </option>
                     ))}
                   </select>
 
                   {selectedSubhead && (
                     <div className="mt-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
-                      Selected balance: {naira(selectedSubhead.balance)}
+                      Selected available balance: {naira(availableBalance(selectedSubhead))}
                     </div>
                   )}
+                </div>
+              )}
+
+              {isOfficial && !canEditFinanceFields && (
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+                  Subhead information is handled by the assigned Director/HOD and is not shown to
+                  ordinary requesters.
                 </div>
               )}
 
@@ -522,7 +572,8 @@ export default function EditRequestPage() {
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
                     type="number"
-                    className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 text-base text-slate-900 outline-none focus:border-blue-500"
+                    disabled={!canEditAmount}
+                    className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 text-base text-slate-900 outline-none focus:border-blue-500 disabled:bg-slate-50 disabled:text-slate-500"
                   />
                 </div>
               )}
