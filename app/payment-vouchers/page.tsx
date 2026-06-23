@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -95,6 +95,11 @@ function categoryKey(v: { request_type: string | null; personal_category: string
   return "unknown";
 }
 
+function isVoucherEligible(v: { request_type: string | null; personal_category: string | null }) {
+  const key = categoryKey(v);
+  return key === "official" || key === "personalfund";
+}
+
 function categoryLabel(v: { request_type: string | null; personal_category: string | null }) {
   const key = categoryKey(v);
 
@@ -138,6 +143,7 @@ export default function PaymentVouchersPage() {
   const router = useRouter();
 
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
@@ -222,6 +228,13 @@ export default function PaymentVouchersPage() {
     const firstCategory = categoryKey(selectedRequests[0]);
     const firstPayee = personKey(selectedRequests[0].requester_name);
 
+    if (!["official", "personalfund"].includes(firstCategory)) {
+      return {
+        valid: false,
+        message: "Only Official and Personal Fund requests can generate payment vouchers.",
+      };
+    }
+
     const badCategory = selectedRequests.find((r) => categoryKey(r) !== firstCategory);
     if (badCategory) {
       return {
@@ -255,102 +268,150 @@ export default function PaymentVouchersPage() {
     };
   }, [selectedRequests, selectedTotal]);
 
-  async function load() {
-    setLoading(true);
-    setMsg(null);
-
-    const { data: auth } = await supabase.auth.getUser();
-
-    if (!auth.user) {
-      router.push("/login");
-      return;
-    }
-
-    const { data: prof, error: profErr } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", auth.user.id)
-      .maybeSingle();
-
-    if (profErr) {
-      setMsg("Failed to load your profile: " + profErr.message);
-      setLoading(false);
-      return;
-    }
-
-    const role = (prof?.role || "Staff") as string;
-    setMyRole(role);
-
-    if (!["admin", "auditor", "account", "accounts", "accountofficer"].includes(roleKey(role))) {
-      setMsg("Access denied. Only Admin, Auditor and Account Officers can view payment vouchers.");
-      setRows([]);
-      setReadyRows([]);
-      setPvSignatories([]);
-      setLoading(false);
-      return;
-    }
-
-    const [voucherRes, readyRes, signatoryRes] = await Promise.all([
-      supabase.rpc("get_payment_vouchers"),
-      supabase.rpc("get_requests_ready_for_payment_voucher"),
-      supabase
-        .from("payment_voucher_counter_signatories")
-        .select("id,full_name,signatory_type")
-        .eq("is_active", true)
-        .order("full_name", { ascending: true }),
-    ]);
-
-    if (voucherRes.error) {
-      setMsg("Failed to load payment vouchers: " + voucherRes.error.message);
-      setRows([]);
-    } else {
-      setRows((voucherRes.data || []) as VoucherRow[]);
-    }
-
-    if (readyRes.error) {
-      setMsg("Failed to load voucher-ready requests: " + readyRes.error.message);
-      setReadyRows([]);
-      setSelectedIds([]);
-    } else {
-      const ready = (readyRes.data || []) as ReadyRequest[];
-      setReadyRows(ready);
-      setSelectedIds((prev) => prev.filter((id) => ready.some((r) => r.id === id)));
-    }
-
-    if (signatoryRes.error) {
-      setMsg("Failed to load PV signatories: " + signatoryRes.error.message);
-      setPvSignatories([]);
-    } else {
-      const list = (signatoryRes.data || []) as PVSignatory[];
-      setPvSignatories(list);
-
-      const firstChequeSigner = list.find(
-        (x) => x.signatory_type === "ChequeSigner" || x.signatory_type === "Both"
-      );
-
-      const firstCounterSigner = list.find(
-        (x) => x.signatory_type === "CounterSigner" || x.signatory_type === "Both"
-      );
-
-      if (!chequeSignedByName && firstChequeSigner) {
-        setChequeSignedByName(firstChequeSigner.full_name);
+  const load = useCallback(
+    async (options?: { silent?: boolean }) => {
+      if (options?.silent) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
       }
 
-      if (!counterSignatoryName && firstCounterSigner) {
-        setCounterSignatoryName(firstCounterSigner.full_name);
-      }
-    }
+      setMsg(null);
 
-    setLoading(false);
-  }
+      const { data: auth } = await supabase.auth.getUser();
+
+      if (!auth.user) {
+        router.push("/login");
+        return;
+      }
+
+      const { data: prof, error: profErr } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", auth.user.id)
+        .maybeSingle();
+
+      if (profErr) {
+        setMsg("Failed to load your profile: " + profErr.message);
+        setLoading(false);
+        setRefreshing(false);
+        return;
+      }
+
+      const role = (prof?.role || "Staff") as string;
+      setMyRole(role);
+
+      if (!["admin", "auditor", "account", "accounts", "accountofficer"].includes(roleKey(role))) {
+        setMsg("Access denied. Only Admin, Auditor and Account Officers can view payment vouchers.");
+        setRows([]);
+        setReadyRows([]);
+        setPvSignatories([]);
+        setLoading(false);
+        setRefreshing(false);
+        return;
+      }
+
+      const [voucherRes, readyRes, signatoryRes] = await Promise.all([
+        supabase.rpc("get_payment_vouchers"),
+        supabase.rpc("get_requests_ready_for_payment_voucher"),
+        supabase
+          .from("payment_voucher_counter_signatories")
+          .select("id,full_name,signatory_type")
+          .eq("is_active", true)
+          .order("full_name", { ascending: true }),
+      ]);
+
+      if (voucherRes.error) {
+        setMsg("Failed to load payment vouchers: " + voucherRes.error.message);
+        setRows([]);
+      } else {
+        setRows((voucherRes.data || []) as VoucherRow[]);
+      }
+
+      if (readyRes.error) {
+        setMsg("Failed to load voucher-ready requests: " + readyRes.error.message);
+        setReadyRows([]);
+        setSelectedIds([]);
+      } else {
+        const ready = ((readyRes.data || []) as ReadyRequest[]).filter(isVoucherEligible);
+        setReadyRows(ready);
+        setSelectedIds((prev) => prev.filter((id) => ready.some((r) => r.id === id)));
+      }
+
+      if (signatoryRes.error) {
+        setMsg("Failed to load PV signatories: " + signatoryRes.error.message);
+        setPvSignatories([]);
+      } else {
+        const list = (signatoryRes.data || []) as PVSignatory[];
+        setPvSignatories(list);
+
+        const firstChequeSigner = list.find(
+          (x) => x.signatory_type === "ChequeSigner" || x.signatory_type === "Both"
+        );
+
+        const firstCounterSigner = list.find(
+          (x) => x.signatory_type === "CounterSigner" || x.signatory_type === "Both"
+        );
+
+        if (!chequeSignedByName && firstChequeSigner) {
+          setChequeSignedByName(firstChequeSigner.full_name);
+        }
+
+        if (!counterSignatoryName && firstCounterSigner) {
+          setCounterSignatoryName(firstCounterSigner.full_name);
+        }
+      }
+
+      setLoading(false);
+      setRefreshing(false);
+    },
+    [router, chequeSignedByName, counterSignatoryName]
+  );
 
   useEffect(() => {
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+
+    const refreshOnFocus = () => {
+      load({ silent: true });
+    };
+
+    const refreshOnVisible = () => {
+      if (document.visibilityState === "visible") {
+        load({ silent: true });
+      }
+    };
+
+    window.addEventListener("focus", refreshOnFocus);
+    document.addEventListener("visibilitychange", refreshOnVisible);
+
+    return () => {
+      window.removeEventListener("focus", refreshOnFocus);
+      document.removeEventListener("visibilitychange", refreshOnVisible);
+    };
+  }, [load]);
+
+  function openRequest(requestId: string) {
+    router.push(`/requests/${requestId}?updated=${Date.now()}`);
+    router.refresh();
+  }
+
+  function openVoucher(voucherId: string) {
+    router.push(`/payment-vouchers/${voucherId}?updated=${Date.now()}`);
+    router.refresh();
+  }
+
+  function printVoucher(voucherId: string) {
+    router.push(`/payment-vouchers/${voucherId}/print?updated=${Date.now()}`);
+    router.refresh();
+  }
 
   function toggleSelectRequest(r: ReadyRequest) {
     setMsg(null);
+
+    if (!isVoucherEligible(r)) {
+      setMsg("❌ Only Official and Personal Fund requests can generate payment vouchers.");
+      return;
+    }
 
     setSelectedIds((prev) => {
       const exists = prev.includes(r.id);
@@ -417,6 +478,11 @@ export default function PaymentVouchersPage() {
   }
 
   function openGenerateModalSingle(r: ReadyRequest) {
+    if (!isVoucherEligible(r)) {
+      setMsg("❌ Only Official and Personal Fund requests can generate payment vouchers.");
+      return;
+    }
+
     setSelectedIds([r.id]);
     setSelectedRequest(r);
     setMode("Transfer");
@@ -473,6 +539,7 @@ export default function PaymentVouchersPage() {
 
   async function generateVoucher() {
     const validation = validateDisbursement();
+
     if (validation) {
       setMsg("❌ " + validation);
       return;
@@ -522,12 +589,12 @@ export default function PaymentVouchersPage() {
       setSelectedRequest(null);
       setSelectedIds([]);
 
-      await load();
+      await load({ silent: true });
 
       if (voucherId) {
         setTimeout(() => {
-          router.push(`/payment-vouchers/${voucherId}/print`);
-        }, 600);
+          printVoucher(voucherId);
+        }, 500);
       }
     } catch (e: any) {
       setMsg("❌ Failed to generate voucher: " + (e?.message || "Unknown error"));
@@ -561,7 +628,8 @@ export default function PaymentVouchersPage() {
       const deletedVoucherNo = (data as any)?.deleted_voucher_no || v.voucher_no;
 
       setMsg(`✅ ${deletedVoucherNo} deleted. Linked request(s) can now generate a new PV.`);
-      await load();
+      await load({ silent: true });
+      router.refresh();
     } catch (e: any) {
       setMsg("❌ Failed to delete voucher: " + (e?.message || "Unknown error"));
     } finally {
@@ -573,6 +641,8 @@ export default function PaymentVouchersPage() {
     const s = readySearch.trim().toLowerCase();
 
     return readyRows.filter((r) => {
+      if (!isVoucherEligible(r)) return false;
+
       if (!s) return true;
 
       const haystack = [
@@ -601,7 +671,9 @@ export default function PaymentVouchersPage() {
       if (typeFilter === "Official" && normalize(v.request_type) !== "official") return false;
 
       if (typeFilter === "PersonalFund") {
-        if (!(normalize(v.request_type) === "personal" && normalize(v.personal_category) === "fund")) return false;
+        if (!(normalize(v.request_type) === "personal" && normalize(v.personal_category) === "fund")) {
+          return false;
+        }
       }
 
       if (typeFilter === "Single" && normalize(v.voucher_scope) !== "single") return false;
@@ -648,6 +720,10 @@ export default function PaymentVouchersPage() {
       .filter((x) => (x.status || "") !== "Cancelled")
       .reduce((a, x) => a + Number(x.total_amount || x.amount || 0), 0);
 
+    const readyOfficial = readyRows.filter((r) => categoryKey(r) === "official").length;
+    const readyPersonalFund = readyRows.filter((r) => categoryKey(r) === "personalfund").length;
+    const readyTotalAmount = readyRows.reduce((a, r) => a + Number(r.amount || 0), 0);
+
     return {
       total,
       single,
@@ -657,8 +733,11 @@ export default function PaymentVouchersPage() {
       paid,
       cancelled,
       totalAmount,
+      readyOfficial,
+      readyPersonalFund,
+      readyTotalAmount,
     };
-  }, [rows]);
+  }, [rows, readyRows]);
 
   if (loading) {
     return (
@@ -708,11 +787,11 @@ export default function PaymentVouchersPage() {
 
           <div className="flex flex-wrap gap-2">
             <button
-              onClick={load}
-              disabled={Boolean(deletingId) || generating}
+              onClick={() => load({ silent: true })}
+              disabled={Boolean(deletingId) || generating || refreshing}
               className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-100 disabled:opacity-60"
             >
-              Refresh
+              {refreshing ? "Refreshing..." : "Refresh"}
             </button>
 
             <button
@@ -747,13 +826,13 @@ export default function PaymentVouchersPage() {
         )}
 
         <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-8">
+          <StatCard title="Ready Requests" value={String(readyRows.length)} tone="emerald" />
+          <StatCard title="Ready Official" value={String(stats.readyOfficial)} tone="blue" />
+          <StatCard title="Ready Personal" value={String(stats.readyPersonalFund)} tone="purple" />
+          <StatCard title="Ready Value" value={naira(stats.readyTotalAmount)} tone="amber" />
           <StatCard title="Total Vouchers" value={String(stats.total)} tone="blue" />
-          <StatCard title="Single PVs" value={String(stats.single)} tone="slate" />
           <StatCard title="Combined PVs" value={String(stats.multiple)} tone="purple" />
-          <StatCard title="Authorized" value={String(stats.authorized)} tone="blue" />
-          <StatCard title="Cheque Prep." value={String(stats.chequePrepared)} tone="amber" />
           <StatCard title="Paid" value={String(stats.paid)} tone="emerald" />
-          <StatCard title="Cancelled" value={String(stats.cancelled)} tone="red" />
           <StatCard title="Total Value" value={naira(stats.totalAmount)} tone="amber" />
         </div>
 
@@ -762,7 +841,7 @@ export default function PaymentVouchersPage() {
             <div>
               <h2 className="text-lg font-bold text-slate-900">Requests Ready for Voucher</h2>
               <p className="mt-1 text-sm text-slate-600">
-                Select 1 to 10 compatible requests to generate one payment voucher.
+                Select 1 to 10 compatible Official or Personal Fund requests to generate one payment voucher.
               </p>
             </div>
 
@@ -905,7 +984,7 @@ export default function PaymentVouchersPage() {
 
                       <div className="col-span-3 flex justify-end gap-2">
                         <button
-                          onClick={() => router.push(`/requests/${r.id}`)}
+                          onClick={() => openRequest(r.id)}
                           className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-900 hover:bg-slate-100"
                         >
                           Request
@@ -1070,14 +1149,14 @@ export default function PaymentVouchersPage() {
 
                     <div className="col-span-4 flex justify-end gap-2">
                       <button
-                        onClick={() => router.push(`/payment-vouchers/${v.id}`)}
+                        onClick={() => openVoucher(v.id)}
                         className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-900 hover:bg-slate-100"
                       >
                         View
                       </button>
 
                       <button
-                        onClick={() => router.push(`/payment-vouchers/${v.id}/print`)}
+                        onClick={() => printVoucher(v.id)}
                         className="rounded-xl bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-700"
                       >
                         Print
@@ -1152,14 +1231,14 @@ export default function PaymentVouchersPage() {
 
                 <div className="mt-4 flex flex-wrap justify-end gap-2">
                   <button
-                    onClick={() => router.push(`/payment-vouchers/${v.id}`)}
+                    onClick={() => openVoucher(v.id)}
                     className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
                   >
                     View
                   </button>
 
                   <button
-                    onClick={() => router.push(`/payment-vouchers/${v.id}/print`)}
+                    onClick={() => printVoucher(v.id)}
                     className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
                   >
                     Print
