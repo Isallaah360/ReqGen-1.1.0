@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -109,6 +109,8 @@ export default function EditRequestPage() {
   const [showMfaModal, setShowMfaModal] = useState(false);
   const [mfaCode, setMfaCode] = useState("");
 
+  const mfaAutoSubmittingRef = useRef(false);
+
   const rk = roleKey(me?.role);
   const stg = stageKey(req?.current_stage);
 
@@ -135,7 +137,12 @@ export default function EditRequestPage() {
     const allowedRole = ["director", "hod", "hr"].includes(rk);
     const ownsCurrentStage = req.current_owner === me.id;
 
-    return allowedRole && ownsCurrentStage && ["DIRECTOR", "HOD", "HR"].includes(stg) && !requestIsClosed;
+    return (
+      allowedRole &&
+      ownsCurrentStage &&
+      ["DIRECTOR", "HOD", "HR"].includes(stg) &&
+      !requestIsClosed
+    );
   }, [req, me, rk, stg, requestIsClosed]);
 
   const isAdminAuditorEdit = useMemo(() => {
@@ -150,7 +157,7 @@ export default function EditRequestPage() {
   const canEditFinanceFields = useMemo(() => {
     if (!req || !me) return false;
 
-    return isOfficial && (isAssignedOfficerEdit || isAdminAuditorEdit);
+    return Boolean(isOfficial && (isAssignedOfficerEdit || isAdminAuditorEdit));
   }, [req, me, isOfficial, isAssignedOfficerEdit, isAdminAuditorEdit]);
 
   const requesterEditingReservedFinancial = useMemo(() => {
@@ -158,7 +165,7 @@ export default function EditRequestPage() {
 
     return (
       isRequesterEarlyEdit &&
-      isOfficial &&
+      Boolean(isOfficial) &&
       String(req.funds_state || "").toLowerCase() === "reserved" &&
       !canEditFinanceFields
     );
@@ -303,7 +310,11 @@ export default function EditRequestPage() {
       }
     }
 
-    if (canEditFinanceFields && isOfficial && String(req.funds_state || "").toLowerCase() === "reserved") {
+    if (
+      canEditFinanceFields &&
+      isOfficial &&
+      String(req.funds_state || "").toLowerCase() === "reserved"
+    ) {
       if (!subheadId) {
         setMsg("❌ Reserved financial request must have a subhead.");
         return false;
@@ -312,7 +323,11 @@ export default function EditRequestPage() {
       const amt = Number(amount || 0);
 
       if (selectedSubhead && subheadId !== req.subhead_id && amt > availableBalance(selectedSubhead)) {
-        setMsg(`❌ Amount exceeds selected subhead available balance (${naira(availableBalance(selectedSubhead))}).`);
+        setMsg(
+          `❌ Amount exceeds selected subhead available balance (${naira(
+            availableBalance(selectedSubhead)
+          )}).`
+        );
         return false;
       }
     }
@@ -328,9 +343,12 @@ export default function EditRequestPage() {
 
     setMfaCode("");
     setShowMfaModal(true);
+    mfaAutoSubmittingRef.current = false;
   }
 
-  async function verifyCodeAndSave() {
+  async function verifyCodeAndSave(codeOverride?: string) {
+    if (mfaAutoSubmittingRef.current || verifyingCode || saving) return;
+
     setMsg(null);
 
     if (!totpFactorId) {
@@ -340,13 +358,17 @@ export default function EditRequestPage() {
       return;
     }
 
-    const code = mfaCode.trim().replace(/\s+/g, "");
+    const code = String(codeOverride || mfaCode || "")
+      .trim()
+      .replace(/\D/g, "")
+      .slice(0, 6);
 
     if (!/^\d{6}$/.test(code)) {
       setMsg("❌ Enter the 6-digit code from your authenticator app.");
       return;
     }
 
+    mfaAutoSubmittingRef.current = true;
     setVerifyingCode(true);
 
     try {
@@ -363,8 +385,13 @@ export default function EditRequestPage() {
       await saveAfterFresh2fa();
     } catch (e: any) {
       setMsg("❌ 2FA verification failed: " + (e?.message || "Invalid code."));
+      setMfaCode("");
     } finally {
       setVerifyingCode(false);
+
+      setTimeout(() => {
+        mfaAutoSubmittingRef.current = false;
+      }, 800);
     }
   }
 
@@ -392,9 +419,12 @@ export default function EditRequestPage() {
 
       setMsg("✅ Request updated successfully after 2FA verification.");
 
+      await load();
+
       setTimeout(() => {
-        router.push(`/requests/${req.id}`);
-      }, 700);
+        router.push(`/requests/${req.id}?updated=${Date.now()}`);
+        router.refresh();
+      }, 500);
     } catch (e: any) {
       setMsg("❌ Update failed: " + (e?.message || "Unknown error"));
     } finally {
@@ -451,7 +481,8 @@ export default function EditRequestPage() {
         </div>
 
         <div className="mt-4 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-900">
-          A fresh 2FA code is required before changes can be saved.
+          A fresh 2FA code is required before changes can be saved. The code will verify
+          automatically after the 6th digit is entered.
         </div>
 
         {requesterEditingReservedFinancial && (
@@ -599,7 +630,7 @@ export default function EditRequestPage() {
                 {saving
                   ? "Saving..."
                   : verifyingCode
-                  ? "Verifying 2FA..."
+                  ? "Verifying automatically..."
                   : "Save Changes with 2FA"}
               </button>
             </div>
@@ -619,18 +650,35 @@ export default function EditRequestPage() {
             </h2>
 
             <p className="mt-2 text-sm leading-6 text-slate-600">
-              Enter the 6-digit code from your authenticator app. The request changes will not be
-              saved until this code is verified.
+              Enter the 6-digit code from your authenticator app. The request changes will save
+              automatically after the 6th digit is entered.
             </p>
 
             <input
               value={mfaCode}
-              onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+              onChange={(e) => {
+                const nextCode = e.target.value.replace(/\D/g, "").slice(0, 6);
+                setMfaCode(nextCode);
+
+                if (nextCode.length === 6 && !verifyingCode && !saving) {
+                  setTimeout(() => {
+                    verifyCodeAndSave(nextCode);
+                  }, 150);
+                }
+              }}
               inputMode="numeric"
+              autoComplete="one-time-code"
               autoFocus
+              disabled={verifyingCode || saving}
               placeholder="123456"
-              className="mt-5 w-full rounded-2xl border border-slate-200 px-4 py-4 text-center text-2xl font-black tracking-[0.35em] text-slate-900 outline-none focus:border-blue-500"
+              className="mt-5 w-full rounded-2xl border border-slate-200 px-4 py-4 text-center text-2xl font-black tracking-[0.35em] text-slate-900 outline-none focus:border-blue-500 disabled:bg-slate-100 disabled:text-slate-500"
             />
+
+            <div className="mt-3 text-center text-xs font-semibold text-slate-500">
+              {verifyingCode || saving
+                ? "Verifying automatically, please wait..."
+                : "Auto-submit activates immediately after 6 digits."}
+            </div>
 
             <div className="mt-5 flex flex-col gap-2 sm:flex-row">
               <button
@@ -639,6 +687,7 @@ export default function EditRequestPage() {
                   if (verifyingCode || saving) return;
                   setShowMfaModal(false);
                   setMfaCode("");
+                  mfaAutoSubmittingRef.current = false;
                 }}
                 disabled={verifyingCode || saving}
                 className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
@@ -648,11 +697,11 @@ export default function EditRequestPage() {
 
               <button
                 type="button"
-                onClick={verifyCodeAndSave}
+                onClick={() => verifyCodeAndSave()}
                 disabled={verifyingCode || saving || mfaCode.trim().length !== 6}
                 className="w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white hover:bg-blue-700 disabled:opacity-60"
               >
-                {verifyingCode || saving ? "Verifying..." : "Verify & Save"}
+                {verifyingCode || saving ? "Verifying automatically..." : "Verify & Save"}
               </button>
             </div>
           </div>
