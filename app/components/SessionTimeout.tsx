@@ -7,11 +7,26 @@ import { supabase } from "@/lib/supabaseClient";
 const INACTIVITY_LIMIT_MS = 3 * 60 * 1000;
 const WARNING_BEFORE_LOGOUT_MS = 30 * 1000;
 
-const PUBLIC_PATHS = ["/", "/login", "/signup", "/forgot-password", "/reset-password", "/mfa", "/mfa/setup"];
+const PUBLIC_PATHS = [
+  "/",
+  "/login",
+  "/signup",
+  "/forgot-password",
+  "/reset-password",
+  "/mfa",
+  "/mfa/setup",
+];
 
 function isPublicPath(pathname: string) {
-  if (PUBLIC_PATHS.includes(pathname)) return true;
-  return false;
+  return PUBLIC_PATHS.includes(pathname);
+}
+
+function formatCountdown(secondsLeft: number) {
+  const safeSeconds = Math.max(0, Number(secondsLeft || 0));
+  const minutes = Math.floor(safeSeconds / 60);
+  const seconds = safeSeconds % 60;
+
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
 }
 
 export default function SessionTimeout() {
@@ -22,19 +37,26 @@ export default function SessionTimeout() {
   const [secondsLeft, setSecondsLeft] = useState(30);
 
   const lastActivityRef = useRef<number>(Date.now());
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const loggingOutRef = useRef(false);
+  const warningVisibleRef = useRef(false);
 
   async function logoutDueToInactivity() {
     if (loggingOutRef.current) return;
 
     loggingOutRef.current = true;
 
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+
     try {
       await supabase.auth.signOut();
     } finally {
+      warningVisibleRef.current = false;
       setWarningVisible(false);
+      setSecondsLeft(30);
       router.push("/login?reason=session-timeout");
       router.refresh();
     }
@@ -44,13 +66,9 @@ export default function SessionTimeout() {
     if (loggingOutRef.current) return;
 
     lastActivityRef.current = Date.now();
+    warningVisibleRef.current = false;
     setWarningVisible(false);
-    setSecondsLeft(30);
-
-    if (countdownRef.current) {
-      clearInterval(countdownRef.current);
-      countdownRef.current = null;
-    }
+    setSecondsLeft(Math.ceil(WARNING_BEFORE_LOGOUT_MS / 1000));
   }
 
   function stayLoggedIn() {
@@ -59,9 +77,23 @@ export default function SessionTimeout() {
 
   useEffect(() => {
     if (isPublicPath(pathname)) {
+      warningVisibleRef.current = false;
       setWarningVisible(false);
+      setSecondsLeft(Math.ceil(WARNING_BEFORE_LOGOUT_MS / 1000));
+
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+
       return;
     }
+
+    loggingOutRef.current = false;
+    lastActivityRef.current = Date.now();
+    warningVisibleRef.current = false;
+    setWarningVisible(false);
+    setSecondsLeft(Math.ceil(WARNING_BEFORE_LOGOUT_MS / 1000));
 
     const activityEvents: Array<keyof WindowEventMap> = [
       "mousemove",
@@ -76,32 +108,34 @@ export default function SessionTimeout() {
       window.addEventListener(eventName, resetActivityTimer, { passive: true });
     });
 
-    intervalRef.current = setInterval(() => {
-      const now = Date.now();
-      const inactiveFor = now - lastActivityRef.current;
-      const timeLeft = INACTIVITY_LIMIT_MS - inactiveFor;
+    timerRef.current = setInterval(() => {
+      if (loggingOutRef.current) return;
 
-      if (timeLeft <= 0) {
+      const inactiveFor = Date.now() - lastActivityRef.current;
+      const timeLeftMs = INACTIVITY_LIMIT_MS - inactiveFor;
+
+      if (timeLeftMs <= 0) {
+        setSecondsLeft(0);
         logoutDueToInactivity();
         return;
       }
 
-      if (timeLeft <= WARNING_BEFORE_LOGOUT_MS && !warningVisible) {
-        setWarningVisible(true);
-        setSecondsLeft(Math.max(1, Math.ceil(timeLeft / 1000)));
+      if (timeLeftMs <= WARNING_BEFORE_LOGOUT_MS) {
+        const nextSecondsLeft = Math.max(1, Math.ceil(timeLeftMs / 1000));
 
-        if (!countdownRef.current) {
-          countdownRef.current = setInterval(() => {
-            const currentTimeLeft = INACTIVITY_LIMIT_MS - (Date.now() - lastActivityRef.current);
-
-            if (currentTimeLeft <= 0) {
-              logoutDueToInactivity();
-              return;
-            }
-
-            setSecondsLeft(Math.max(1, Math.ceil(currentTimeLeft / 1000)));
-          }, 1000);
+        if (!warningVisibleRef.current) {
+          warningVisibleRef.current = true;
+          setWarningVisible(true);
         }
+
+        setSecondsLeft(nextSecondsLeft);
+      } else {
+        if (warningVisibleRef.current) {
+          warningVisibleRef.current = false;
+          setWarningVisible(false);
+        }
+
+        setSecondsLeft(Math.ceil(WARNING_BEFORE_LOGOUT_MS / 1000));
       }
     }, 1000);
 
@@ -110,37 +144,35 @@ export default function SessionTimeout() {
         window.removeEventListener(eventName, resetActivityTimer);
       });
 
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-
-      if (countdownRef.current) {
-        clearInterval(countdownRef.current);
-        countdownRef.current = null;
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathname, warningVisible]);
+  }, [pathname]);
 
   if (isPublicPath(pathname)) return null;
-
   if (!warningVisible) return null;
-
-  const minutes = Math.floor(secondsLeft / 60);
-  const seconds = secondsLeft % 60;
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 px-4">
       <div className="w-full max-w-md rounded-3xl border bg-white p-6 shadow-2xl">
-        <div className="text-xl font-extrabold text-slate-900">Session Timeout Warning</div>
+        <div className="text-xl font-extrabold text-slate-900">
+          Session Timeout Warning
+        </div>
 
         <p className="mt-3 text-base leading-7 text-slate-700">
           For security reasons, you will be logged out soon because your account has been inactive.
         </p>
 
-        <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-center text-lg font-extrabold text-amber-900">
-          Logging out in {minutes}:{String(seconds).padStart(2, "0")}
+        <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-center">
+          <div className="text-xs font-black uppercase tracking-wide text-amber-700">
+            Logging out in
+          </div>
+          <div className="mt-1 text-4xl font-black tabular-nums text-amber-900">
+            {formatCountdown(secondsLeft)}
+          </div>
         </div>
 
         <div className="mt-5 flex flex-wrap justify-end gap-2">
