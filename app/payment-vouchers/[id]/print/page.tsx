@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -246,68 +246,108 @@ export default function PaymentVoucherPrintPage() {
   const id = String((params as any)?.id || "");
 
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [printing, setPrinting] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [voucher, setVoucher] = useState<VoucherDetail | null>(null);
   const [items, setItems] = useState<VoucherItem[]>([]);
 
-  async function load() {
-    setLoading(true);
-    setMsg(null);
+  const load = useCallback(
+    async (options?: { silent?: boolean }) => {
+      if (options?.silent) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
 
-    if (!id) {
-      setMsg("Invalid voucher ID.");
+      setMsg(null);
+
+      if (!id) {
+        setMsg("Invalid voucher ID.");
+        setLoading(false);
+        setRefreshing(false);
+        return null;
+      }
+
+      const { data: auth } = await supabase.auth.getUser();
+
+      if (!auth.user) {
+        router.push("/login");
+        return null;
+      }
+
+      const [detailRes, itemRes] = await Promise.all([
+        supabase.rpc("get_payment_voucher_detail", {
+          p_voucher_id: id,
+        }),
+        supabase.rpc("get_payment_voucher_items", {
+          p_voucher_id: id,
+        }),
+      ]);
+
+      if (detailRes.error) {
+        setMsg("Failed to load voucher: " + detailRes.error.message);
+        setVoucher(null);
+        setItems([]);
+        setLoading(false);
+        setRefreshing(false);
+        return null;
+      }
+
+      const row = Array.isArray(detailRes.data)
+        ? (detailRes.data[0] as VoucherDetail | undefined)
+        : (detailRes.data as VoucherDetail | undefined);
+
+      if (!row) {
+        setMsg("Payment voucher not found.");
+        setVoucher(null);
+        setItems([]);
+        setLoading(false);
+        setRefreshing(false);
+        return null;
+      }
+
+      setVoucher(row);
+
+      if (itemRes.error) {
+        setMsg("Failed to load voucher items: " + itemRes.error.message);
+        setItems([]);
+      } else {
+        setItems((itemRes.data || []) as VoucherItem[]);
+      }
+
       setLoading(false);
-      return;
-    }
+      setRefreshing(false);
 
-    const { data: auth } = await supabase.auth.getUser();
-
-    if (!auth.user) {
-      router.push("/login");
-      return;
-    }
-
-    const [detailRes, itemRes] = await Promise.all([
-      supabase.rpc("get_payment_voucher_detail", {
-        p_voucher_id: id,
-      }),
-      supabase.rpc("get_payment_voucher_items", {
-        p_voucher_id: id,
-      }),
-    ]);
-
-    if (detailRes.error) {
-      setMsg("Failed to load voucher: " + detailRes.error.message);
-      setLoading(false);
-      return;
-    }
-
-    const row = Array.isArray(detailRes.data)
-      ? (detailRes.data[0] as VoucherDetail | undefined)
-      : (detailRes.data as VoucherDetail | undefined);
-
-    if (!row) {
-      setMsg("Payment voucher not found.");
-      setLoading(false);
-      return;
-    }
-
-    setVoucher(row);
-
-    if (itemRes.error) {
-      setMsg("Failed to load voucher items: " + itemRes.error.message);
-      setItems([]);
-    } else {
-      setItems((itemRes.data || []) as VoucherItem[]);
-    }
-
-    setLoading(false);
-  }
+      return {
+        voucher: row,
+        items: itemRes.error ? [] : ((itemRes.data || []) as VoucherItem[]),
+      };
+    },
+    [id, router]
+  );
 
   useEffect(() => {
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
+
+    const refreshOnFocus = () => {
+      load({ silent: true });
+    };
+
+    const refreshOnVisible = () => {
+      if (document.visibilityState === "visible") {
+        load({ silent: true });
+      }
+    };
+
+    window.addEventListener("focus", refreshOnFocus);
+    document.addEventListener("visibilitychange", refreshOnVisible);
+
+    return () => {
+      window.removeEventListener("focus", refreshOnFocus);
+      document.removeEventListener("visibilitychange", refreshOnVisible);
+    };
+  }, [load]);
 
   useEffect(() => {
     document.title = voucher?.voucher_no || "payment-voucher";
@@ -399,18 +439,60 @@ export default function PaymentVoucherPrintPage() {
     );
   }, [voucher, isCheque]);
 
-  function handlePrint() {
-    if (!ready) {
+  async function handlePrint() {
+    setPrinting(true);
+    setMsg(null);
+
+    const latest = await load({ silent: true });
+
+    const latestVoucher = latest?.voucher || voucher;
+    const latestItems = latest?.items || items;
+
+    const latestIsCheque = normalize(latestVoucher?.disbursement_mode) === "cheque";
+
+    const latestTotal =
+      latestItems.length > 0
+        ? latestItems.reduce((a, item) => a + Number(item.amount || 0), 0)
+        : Number(latestVoucher?.total_amount || latestVoucher?.amount || 0);
+
+    const latestReady =
+      !!latestVoucher && !!latestVoucher.voucher_no && !!latestVoucher.payee_name && latestTotal > 0;
+
+    const latestFinalPrintReady =
+      !!latestVoucher &&
+      (!latestIsCheque ||
+        latestVoucher.status === "Counter Signed" ||
+        latestVoucher.status === "Paid" ||
+        (!!latestVoucher.cheque_signed_signature_url &&
+          !!latestVoucher.cheque_counter_signed_signature_url));
+
+    if (!latestReady) {
       setMsg("Voucher is not ready for printing. Please confirm voucher data.");
+      setPrinting(false);
       return;
     }
 
-    if (isCheque && !finalPrintReady) {
+    if (latestIsCheque && !latestFinalPrintReady) {
       setMsg("Final printing is blocked until Cheque Signed and Counter Signed are completed.");
+      setPrinting(false);
       return;
     }
 
-    window.print();
+    setTimeout(() => {
+      window.print();
+      setPrinting(false);
+    }, 250);
+  }
+
+  function backToVouchers() {
+    router.push(`/payment-vouchers?updated=${Date.now()}`);
+    router.refresh();
+  }
+
+  function manageVoucher() {
+    if (!voucher?.id) return;
+    router.push(`/payment-vouchers/${voucher.id}?updated=${Date.now()}`);
+    router.refresh();
   }
 
   if (loading) {
@@ -434,7 +516,7 @@ export default function PaymentVoucherPrintPage() {
           </div>
 
           <button
-            onClick={() => router.push("/payment-vouchers")}
+            onClick={backToVouchers}
             className="mt-5 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
           >
             Back to Vouchers
@@ -475,28 +557,38 @@ export default function PaymentVoucherPrintPage() {
       `}</style>
 
       <div className="mx-auto max-w-[820px]">
-        <div className="no-print mb-3 flex items-center justify-between">
+        <div className="no-print mb-3 flex flex-wrap items-center justify-between gap-2">
           <button
-            onClick={() => router.push("/payment-vouchers")}
-            className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
+            onClick={backToVouchers}
+            disabled={refreshing || printing}
+            className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
           >
             Back to Vouchers
           </button>
 
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <button
-              onClick={() => router.push(`/payment-vouchers/${voucher.id}`)}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
+              onClick={() => load({ silent: true })}
+              disabled={refreshing || printing}
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
+            >
+              {refreshing ? "Refreshing..." : "Refresh"}
+            </button>
+
+            <button
+              onClick={manageVoucher}
+              disabled={refreshing || printing}
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
             >
               Manage
             </button>
 
             <button
               onClick={handlePrint}
-              disabled={!ready || (isCheque && !finalPrintReady)}
+              disabled={!ready || (isCheque && !finalPrintReady) || refreshing || printing}
               className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
             >
-              Print
+              {printing ? "Preparing Print..." : "Print"}
             </button>
           </div>
         </div>
@@ -512,6 +604,10 @@ export default function PaymentVoucherPrintPage() {
             Final printing is blocked until Cheque Signed and Counter Signed are completed.
           </div>
         )}
+
+        <div className="no-print mb-3 rounded-xl border border-blue-100 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-900">
+          This print page refreshes before printing so the latest signatures and status are used.
+        </div>
 
         <div className="voucher-sheet mx-auto w-full border-2 border-black bg-white px-[15px] py-[11px] text-black shadow-sm">
           <div className="grid grid-cols-[70px_1fr_188px] items-start gap-3">
