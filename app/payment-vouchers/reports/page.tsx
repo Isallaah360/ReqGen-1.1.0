@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { exportTableToExcel, printReport } from "@/lib/reportExport";
@@ -142,10 +142,13 @@ function isWithinDateRange(createdAt: string | null | undefined, from: string, t
 export default function PaymentVoucherReportsPage() {
   const router = useRouter();
 
-  const today = new Date();
-  const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+  const today = useMemo(() => new Date(), []);
+  const firstDay = useMemo(() => new Date(today.getFullYear(), today.getMonth(), 1), [today]);
 
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [printing, setPrinting] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
   const [me, setMe] = useState<ProfileMini | null>(null);
@@ -163,56 +166,89 @@ export default function PaymentVoucherReportsPage() {
   const [fromDate, setFromDate] = useState(inputDateValue(firstDay));
   const [toDate, setToDate] = useState(inputDateValue(today));
 
-  async function load() {
-    setLoading(true);
-    setMsg(null);
+  const load = useCallback(
+    async (options?: { silent?: boolean }) => {
+      if (options?.silent) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
 
-    const { data: auth } = await supabase.auth.getUser();
+      setMsg(null);
 
-    if (!auth.user) {
-      router.push("/login");
-      return;
-    }
+      const { data: auth } = await supabase.auth.getUser();
 
-    const { data: prof, error: profErr } = await supabase
-      .from("profiles")
-      .select("id,role")
-      .eq("id", auth.user.id)
-      .maybeSingle();
+      if (!auth.user) {
+        router.push("/login");
+        return null;
+      }
 
-    if (profErr || !prof) {
-      setMsg("Failed to load your profile: " + (profErr?.message || "Profile not found."));
+      const { data: prof, error: profErr } = await supabase
+        .from("profiles")
+        .select("id,role")
+        .eq("id", auth.user.id)
+        .maybeSingle();
+
+      if (profErr || !prof) {
+        setMsg("Failed to load your profile: " + (profErr?.message || "Profile not found."));
+        setLoading(false);
+        setRefreshing(false);
+        return null;
+      }
+
+      setMe(prof as ProfileMini);
+
+      const role = roleKey(prof.role);
+      if (!["admin", "auditor", "account", "accounts", "accountofficer"].includes(role)) {
+        setMsg("Access denied. Only Admin, Auditor and Account Officers can access PV Reports.");
+        setRows([]);
+        setLoading(false);
+        setRefreshing(false);
+        return [];
+      }
+
+      const { data, error } = await supabase.rpc("get_payment_vouchers");
+
+      if (error) {
+        setMsg("Failed to load payment vouchers: " + error.message);
+        setRows([]);
+        setLoading(false);
+        setRefreshing(false);
+        return [];
+      }
+
+      const freshRows = (data || []) as VoucherRow[];
+      setRows(freshRows);
+
       setLoading(false);
-      return;
-    }
+      setRefreshing(false);
 
-    setMe(prof as ProfileMini);
-
-    const role = roleKey(prof.role);
-    if (!["admin", "auditor", "account", "accounts", "accountofficer"].includes(role)) {
-      setMsg("Access denied. Only Admin, Auditor and Account Officers can access PV Reports.");
-      setRows([]);
-      setLoading(false);
-      return;
-    }
-
-    const { data, error } = await supabase.rpc("get_payment_vouchers");
-
-    if (error) {
-      setMsg("Failed to load payment vouchers: " + error.message);
-      setRows([]);
-      setLoading(false);
-      return;
-    }
-
-    setRows((data || []) as VoucherRow[]);
-    setLoading(false);
-  }
+      return freshRows;
+    },
+    [router]
+  );
 
   useEffect(() => {
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+
+    const refreshOnFocus = () => {
+      load({ silent: true });
+    };
+
+    const refreshOnVisible = () => {
+      if (document.visibilityState === "visible") {
+        load({ silent: true });
+      }
+    };
+
+    window.addEventListener("focus", refreshOnFocus);
+    document.addEventListener("visibilitychange", refreshOnVisible);
+
+    return () => {
+      window.removeEventListener("focus", refreshOnFocus);
+      document.removeEventListener("visibilitychange", refreshOnVisible);
+    };
+  }, [load]);
 
   const filteredRows = useMemo(() => {
     const s = search.trim().toLowerCase();
@@ -325,11 +361,20 @@ export default function PaymentVoucherReportsPage() {
     setToDate(inputDateValue(today));
   }
 
-  function handlePrintReport() {
-    printReport();
+  async function handlePrintReport() {
+    setPrinting(true);
+    await load({ silent: true });
+
+    setTimeout(() => {
+      printReport();
+      setPrinting(false);
+    }, 250);
   }
 
-  function handleExportExcel() {
+  async function handleExportExcel() {
+    setExporting(true);
+    await load({ silent: true });
+
     exportTableToExcel<VoucherRow>({
       fileName: `payment_voucher_report_${fromDate}_to_${toDate}`,
       sheetName: "PV Report",
@@ -375,6 +420,23 @@ export default function PaymentVoucherReportsPage() {
         ],
       ],
     });
+
+    setExporting(false);
+  }
+
+  function openVoucher(voucherId: string) {
+    router.push(`/payment-vouchers/${voucherId}?updated=${Date.now()}`);
+    router.refresh();
+  }
+
+  function printVoucher(voucherId: string) {
+    router.push(`/payment-vouchers/${voucherId}/print?updated=${Date.now()}`);
+    router.refresh();
+  }
+
+  function backToVouchers() {
+    router.push(`/payment-vouchers?updated=${Date.now()}`);
+    router.refresh();
   }
 
   if (loading) {
@@ -475,29 +537,33 @@ export default function PaymentVoucherReportsPage() {
 
           <div className="no-print flex flex-wrap gap-2">
             <button
-              onClick={load}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-100"
+              onClick={() => load({ silent: true })}
+              disabled={refreshing || printing || exporting}
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-100 disabled:opacity-60"
             >
-              Refresh
+              {refreshing ? "Refreshing..." : "Refresh"}
             </button>
 
             <button
               onClick={handlePrintReport}
-              className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700"
+              disabled={refreshing || printing || exporting}
+              className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:opacity-60"
             >
-              Print / Save PDF
+              {printing ? "Preparing..." : "Print / Save PDF"}
             </button>
 
             <button
               onClick={handleExportExcel}
-              className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700"
+              disabled={refreshing || printing || exporting}
+              className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 disabled:opacity-60"
             >
-              Export Excel
+              {exporting ? "Exporting..." : "Export Excel"}
             </button>
 
             <button
-              onClick={() => router.push("/payment-vouchers")}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-100"
+              onClick={backToVouchers}
+              disabled={refreshing || printing || exporting}
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-100 disabled:opacity-60"
             >
               Back to Vouchers
             </button>
@@ -509,6 +575,10 @@ export default function PaymentVoucherReportsPage() {
             {msg}
           </div>
         )}
+
+        <div className="no-print mt-4 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-xs font-semibold text-blue-900">
+          This report refreshes automatically when you return to it. Print and Excel export also reload fresh data first.
+        </div>
 
         <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-6 print:grid-cols-6">
           <StatCard title="Total PVs" value={String(stats.total)} tone="blue" />
@@ -678,19 +748,31 @@ export default function PaymentVoucherReportsPage() {
                     </div>
 
                     <div className="col-span-1">
-                      <span className={`rounded-full border px-2 py-1 text-[11px] font-bold print:border-0 print:p-0 print:text-[9px] ${categoryBadgeClass(v)}`}>
+                      <span
+                        className={`rounded-full border px-2 py-1 text-[11px] font-bold print:border-0 print:p-0 print:text-[9px] ${categoryBadgeClass(
+                          v
+                        )}`}
+                      >
                         {categoryLabel(v)}
                       </span>
                     </div>
 
                     <div className="col-span-1">
-                      <span className={`rounded-full border px-2 py-1 text-[11px] font-bold print:border-0 print:p-0 print:text-[9px] ${modeBadgeClass(v.disbursement_mode)}`}>
+                      <span
+                        className={`rounded-full border px-2 py-1 text-[11px] font-bold print:border-0 print:p-0 print:text-[9px] ${modeBadgeClass(
+                          v.disbursement_mode
+                        )}`}
+                      >
                         {v.disbursement_mode || "—"}
                       </span>
                     </div>
 
                     <div className="col-span-1">
-                      <span className={`rounded-full border px-2 py-1 text-[11px] font-bold print:border-0 print:p-0 print:text-[9px] ${scopeBadgeClass(v.voucher_scope)}`}>
+                      <span
+                        className={`rounded-full border px-2 py-1 text-[11px] font-bold print:border-0 print:p-0 print:text-[9px] ${scopeBadgeClass(
+                          v.voucher_scope
+                        )}`}
+                      >
                         {v.voucher_scope || "Single"}
                       </span>
                     </div>
@@ -700,7 +782,11 @@ export default function PaymentVoucherReportsPage() {
                     </div>
 
                     <div className="col-span-1">
-                      <span className={`rounded-full border px-2 py-1 text-[11px] font-bold print:border-0 print:p-0 print:text-[9px] ${statusBadgeClass(v.status)}`}>
+                      <span
+                        className={`rounded-full border px-2 py-1 text-[11px] font-bold print:border-0 print:p-0 print:text-[9px] ${statusBadgeClass(
+                          v.status
+                        )}`}
+                      >
                         {v.status || "—"}
                       </span>
                     </div>
@@ -715,14 +801,14 @@ export default function PaymentVoucherReportsPage() {
 
                     <div className="col-span-3 flex justify-end gap-2 no-print">
                       <button
-                        onClick={() => router.push(`/payment-vouchers/${v.id}`)}
+                        onClick={() => openVoucher(v.id)}
                         className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-900 hover:bg-slate-100"
                       >
                         View
                       </button>
 
                       <button
-                        onClick={() => router.push(`/payment-vouchers/${v.id}/print`)}
+                        onClick={() => printVoucher(v.id)}
                         className="rounded-xl bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-700"
                       >
                         Print
@@ -765,11 +851,19 @@ export default function PaymentVoucherReportsPage() {
                   </div>
 
                   <div className="flex flex-col items-end gap-1">
-                    <span className={`rounded-full border px-3 py-1 text-xs font-bold ${statusBadgeClass(v.status)}`}>
+                    <span
+                      className={`rounded-full border px-3 py-1 text-xs font-bold ${statusBadgeClass(
+                        v.status
+                      )}`}
+                    >
                       {v.status || "—"}
                     </span>
 
-                    <span className={`rounded-full border px-3 py-1 text-xs font-bold ${scopeBadgeClass(v.voucher_scope)}`}>
+                    <span
+                      className={`rounded-full border px-3 py-1 text-xs font-bold ${scopeBadgeClass(
+                        v.voucher_scope
+                      )}`}
+                    >
                       {v.voucher_scope || "Single"} • {v.item_count || 1}
                     </span>
                   </div>
@@ -786,14 +880,14 @@ export default function PaymentVoucherReportsPage() {
 
                 <div className="no-print mt-4 flex flex-wrap justify-end gap-2">
                   <button
-                    onClick={() => router.push(`/payment-vouchers/${v.id}`)}
+                    onClick={() => openVoucher(v.id)}
                     className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
                   >
                     View
                   </button>
 
                   <button
-                    onClick={() => router.push(`/payment-vouchers/${v.id}/print`)}
+                    onClick={() => printVoucher(v.id)}
                     className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
                   >
                     Print
@@ -841,7 +935,9 @@ function StatCard({
   return (
     <div className="print-card rounded-3xl border bg-white p-5 shadow-sm print:rounded-none print:border-black print:p-2 print:shadow-none">
       <div className="text-sm font-semibold text-slate-500 print:text-[9px]">{title}</div>
-      <div className={`mt-3 inline-flex rounded-2xl px-3 py-2 text-xl font-extrabold print:mt-1 print:p-0 print:text-[11px] ${cls}`}>
+      <div
+        className={`mt-3 inline-flex rounded-2xl px-3 py-2 text-xl font-extrabold print:mt-1 print:p-0 print:text-[11px] ${cls}`}
+      >
         {value}
       </div>
     </div>
