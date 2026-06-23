@@ -28,6 +28,16 @@ type SecurityStatus = {
   factorCount: number;
 };
 
+type DashboardCounts = {
+  pendingMyApproval: number;
+  mySubmittedRequests: number;
+  myCompletedRequests: number;
+  myRejectedRequests: number;
+  accountStageAssignedToMe: number;
+  paymentPrintReady: number;
+  unreadNotifications: number;
+};
+
 function roleKey(role: string | null | undefined) {
   return (role || "")
     .trim()
@@ -40,6 +50,10 @@ function securityBadgeClass(ok: boolean) {
   return ok
     ? "border-emerald-200 bg-emerald-50 text-emerald-700"
     : "border-red-200 bg-red-50 text-red-700";
+}
+
+function countValue(value: number | null | undefined) {
+  return Number(value || 0).toLocaleString();
 }
 
 export default function DashboardPage() {
@@ -56,14 +70,99 @@ export default function DashboardPage() {
     factorCount: 0,
   });
 
+  const [counts, setCounts] = useState<DashboardCounts>({
+    pendingMyApproval: 0,
+    mySubmittedRequests: 0,
+    myCompletedRequests: 0,
+    myRejectedRequests: 0,
+    accountStageAssignedToMe: 0,
+    paymentPrintReady: 0,
+    unreadNotifications: 0,
+  });
+
   const rk = roleKey(profile?.role);
 
   const isAdmin = ["admin", "auditor"].includes(rk);
   const canFinance = ["admin", "auditor", "account", "accounts", "accountofficer"].includes(rk);
   const canHR = ["admin", "auditor", "hr"].includes(rk);
+  const isAccountRole = ["account", "accounts", "accountofficer"].includes(rk);
 
   const isSessionMfaVerified = security.currentLevel === "aal2";
   const isMfaSetupComplete = security.hasVerifiedTotp;
+
+  async function loadCounts(userId: string, role: string) {
+    const normalizedRole = roleKey(role);
+    const financeRole = ["admin", "auditor", "account", "accounts", "accountofficer"].includes(
+      normalizedRole
+    );
+
+    const [
+      pendingApprovalRes,
+      submittedRes,
+      completedRes,
+      rejectedRes,
+      accountStageRes,
+      unreadNotifRes,
+    ] = await Promise.all([
+      supabase
+        .from("requests")
+        .select("*", { count: "exact", head: true })
+        .eq("current_owner", userId)
+        .not("status", "in", '("Rejected","Deleted","Cancelled","Paid","Closed")'),
+
+      supabase
+        .from("requests")
+        .select("*", { count: "exact", head: true })
+        .eq("created_by", userId),
+
+      supabase
+        .from("requests")
+        .select("*", { count: "exact", head: true })
+        .eq("created_by", userId)
+        .in("status", ["Completed", "Paid"]),
+
+      supabase
+        .from("requests")
+        .select("*", { count: "exact", head: true })
+        .eq("created_by", userId)
+        .eq("status", "Rejected"),
+
+      supabase
+        .from("requests")
+        .select("*", { count: "exact", head: true })
+        .eq("current_owner", userId)
+        .eq("current_stage", "Account")
+        .not("status", "in", '("Rejected","Deleted","Cancelled","Paid","Closed")'),
+
+      supabase
+        .from("notifications")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", userId)
+        .eq("is_read", false),
+    ]);
+
+    let paymentPrintReady = 0;
+
+    if (financeRole) {
+      const { count } = await supabase
+        .from("requests")
+        .select("*", { count: "exact", head: true })
+        .in("status", ["Paid", "Completed"])
+        .or("request_type.eq.Official,and(request_type.eq.Personal,personal_category.eq.Fund)");
+
+      paymentPrintReady = Number(count || 0);
+    }
+
+    setCounts({
+      pendingMyApproval: Number(pendingApprovalRes.count || 0),
+      mySubmittedRequests: Number(submittedRes.count || 0),
+      myCompletedRequests: Number(completedRes.count || 0),
+      myRejectedRequests: Number(rejectedRes.count || 0),
+      accountStageAssignedToMe: Number(accountStageRes.count || 0),
+      paymentPrintReady,
+      unreadNotifications: Number(unreadNotifRes.count || 0),
+    });
+  }
 
   async function load() {
     setLoading(true);
@@ -124,7 +223,11 @@ export default function DashboardPage() {
         .single();
 
       if (dept?.name) setDeptName(dept.name);
+    } else {
+      setDeptName("");
     }
+
+    await loadCounts(user.id, profileRow.role || "Staff");
 
     setLoading(false);
   }
@@ -149,10 +252,13 @@ export default function DashboardPage() {
         tone: "slate",
       },
       {
-        title: "Approvals",
+        title:
+          counts.pendingMyApproval > 0
+            ? `Approvals (${counts.pendingMyApproval})`
+            : "Approvals",
         description: "Review requests currently assigned to you for action.",
         href: "/approvals",
-        tone: "emerald",
+        tone: counts.pendingMyApproval > 0 ? "red" : "emerald",
       },
     ];
 
@@ -177,7 +283,10 @@ export default function DashboardPage() {
           tone: "blue",
         },
         {
-          title: "Payment Vouchers",
+          title:
+            counts.paymentPrintReady > 0
+              ? `Payment Vouchers (${counts.paymentPrintReady})`
+              : "Payment Vouchers",
           description: "Generate, manage, sign, print and track payment vouchers.",
           href: "/payment-vouchers",
           tone: "purple",
@@ -230,7 +339,7 @@ export default function DashboardPage() {
     }
 
     return cards;
-  }, [canFinance, canHR, isAdmin]);
+  }, [canFinance, canHR, isAdmin, counts.pendingMyApproval, counts.paymentPrintReady]);
 
   if (loading) {
     return (
@@ -254,6 +363,14 @@ export default function DashboardPage() {
           </div>
 
           <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={load}
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-100"
+            >
+              Refresh
+            </button>
+
             {isAdmin && (
               <button
                 type="button"
@@ -282,6 +399,60 @@ export default function DashboardPage() {
 
         {profile && (
           <>
+            <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              <ActionStatCard
+                title="Pending My Approval"
+                value={countValue(counts.pendingMyApproval)}
+                description="Requests currently assigned to you."
+                tone={counts.pendingMyApproval > 0 ? "red" : "emerald"}
+                onClick={() => router.push("/approvals")}
+              />
+
+              <ActionStatCard
+                title="My Submitted Requests"
+                value={countValue(counts.mySubmittedRequests)}
+                description="All requests created by you."
+                tone="blue"
+                onClick={() => router.push("/requests")}
+              />
+
+              <ActionStatCard
+                title="Completed / Paid"
+                value={countValue(counts.myCompletedRequests)}
+                description="Your requests completed or paid."
+                tone="emerald"
+                onClick={() => router.push("/requests")}
+              />
+
+              <ActionStatCard
+                title="Unread Notifications"
+                value={countValue(counts.unreadNotifications)}
+                description="Unread in-app workflow notices."
+                tone={counts.unreadNotifications > 0 ? "amber" : "slate"}
+                onClick={() => router.push("/approvals")}
+              />
+            </div>
+
+            {isAccountRole && (
+              <div className="mt-4 grid gap-4 md:grid-cols-2">
+                <ActionStatCard
+                  title="Account Stage Assigned to Me"
+                  value={countValue(counts.accountStageAssignedToMe)}
+                  description="Requests awaiting Account treatment/payment."
+                  tone={counts.accountStageAssignedToMe > 0 ? "red" : "slate"}
+                  onClick={() => router.push("/approvals")}
+                />
+
+                <ActionStatCard
+                  title="Payment/PV Ready"
+                  value={countValue(counts.paymentPrintReady)}
+                  description="Payment-related paid/completed requests for voucher/print work."
+                  tone="purple"
+                  onClick={() => router.push("/payment-vouchers")}
+                />
+              </div>
+            )}
+
             <div className="mt-6 grid gap-4 xl:grid-cols-3">
               <div className="rounded-3xl border bg-white p-6 shadow-sm xl:col-span-2">
                 <div className="flex flex-wrap items-start justify-between gap-4">
@@ -434,7 +605,7 @@ export default function DashboardPage() {
               <p className="mt-1">
                 ReqGen 1.1.0 supports request workflow, role-based approvals, HR filing, finance
                 subheads, payment vouchers, cheque signing workflow, combined vouchers, audit reports,
-                2FA login protection and inactivity logout.
+                SMS OTP request submission, 2FA approval protection and inactivity logout.
               </p>
             </div>
           </>
@@ -483,6 +654,45 @@ function SecurityLine({
         </span>
       </div>
     </div>
+  );
+}
+
+function ActionStatCard({
+  title,
+  value,
+  description,
+  tone,
+  onClick,
+}: {
+  title: string;
+  value: string;
+  description: string;
+  tone: "blue" | "emerald" | "purple" | "amber" | "red" | "slate";
+  onClick: () => void;
+}) {
+  const toneClass =
+    tone === "emerald"
+      ? "border-emerald-100 bg-emerald-50 text-emerald-800 hover:bg-emerald-100"
+      : tone === "purple"
+      ? "border-purple-100 bg-purple-50 text-purple-800 hover:bg-purple-100"
+      : tone === "amber"
+      ? "border-amber-100 bg-amber-50 text-amber-900 hover:bg-amber-100"
+      : tone === "red"
+      ? "border-red-100 bg-red-50 text-red-800 hover:bg-red-100"
+      : tone === "slate"
+      ? "border-slate-200 bg-slate-50 text-slate-800 hover:bg-slate-100"
+      : "border-blue-100 bg-blue-50 text-blue-800 hover:bg-blue-100";
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`rounded-3xl border p-5 text-left shadow-sm transition ${toneClass}`}
+    >
+      <div className="text-sm font-black uppercase tracking-wide opacity-80">{title}</div>
+      <div className="mt-3 text-3xl font-extrabold">{value}</div>
+      <div className="mt-2 text-sm font-semibold leading-relaxed opacity-90">{description}</div>
+    </button>
   );
 }
 
