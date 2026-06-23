@@ -60,6 +60,7 @@ export default function DashboardPage() {
   const router = useRouter();
 
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [deptName, setDeptName] = useState<string>("");
@@ -164,8 +165,13 @@ export default function DashboardPage() {
     });
   }
 
-  async function load() {
-    setLoading(true);
+  async function load(options?: { silent?: boolean }) {
+    if (options?.silent) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+    }
+
     setMsg(null);
 
     const { data: authData } = await supabase.auth.getUser();
@@ -189,6 +195,7 @@ export default function DashboardPage() {
     if (profRes.error) {
       setMsg("Failed to load profile: " + profRes.error.message);
       setLoading(false);
+      setRefreshing(false);
       return;
     }
 
@@ -222,7 +229,7 @@ export default function DashboardPage() {
         .eq("id", profileRow.dept_id)
         .single();
 
-      if (dept?.name) setDeptName(dept.name);
+      setDeptName(dept?.name || "");
     } else {
       setDeptName("");
     }
@@ -230,10 +237,21 @@ export default function DashboardPage() {
     await loadCounts(user.id, profileRow.role || "Staff");
 
     setLoading(false);
+    setRefreshing(false);
   }
 
   useEffect(() => {
     load();
+
+    const refreshOnFocus = () => {
+      load({ silent: true });
+    };
+
+    window.addEventListener("focus", refreshOnFocus);
+
+    return () => {
+      window.removeEventListener("focus", refreshOnFocus);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -252,10 +270,7 @@ export default function DashboardPage() {
         tone: "slate",
       },
       {
-        title:
-          counts.pendingMyApproval > 0
-            ? `Approvals (${counts.pendingMyApproval})`
-            : "Approvals",
+        title: "Approvals",
         description: "Review requests currently assigned to you for action.",
         href: "/approvals",
         tone: counts.pendingMyApproval > 0 ? "red" : "emerald",
@@ -283,10 +298,7 @@ export default function DashboardPage() {
           tone: "blue",
         },
         {
-          title:
-            counts.paymentPrintReady > 0
-              ? `Payment Vouchers (${counts.paymentPrintReady})`
-              : "Payment Vouchers",
+          title: "Payment Vouchers",
           description: "Generate, manage, sign, print and track payment vouchers.",
           href: "/payment-vouchers",
           tone: "purple",
@@ -339,7 +351,7 @@ export default function DashboardPage() {
     }
 
     return cards;
-  }, [canFinance, canHR, isAdmin, counts.pendingMyApproval, counts.paymentPrintReady]);
+  }, [canFinance, canHR, isAdmin, counts.pendingMyApproval]);
 
   if (loading) {
     return (
@@ -358,17 +370,18 @@ export default function DashboardPage() {
               Dashboard
             </h1>
             <p className="mt-2 text-sm text-slate-600">
-              Welcome back. Use your role-based shortcuts to continue work quickly.
+              Welcome back. Your live request counts and role-based shortcuts are shown below.
             </p>
           </div>
 
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
-              onClick={load}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-100"
+              onClick={() => load({ silent: true })}
+              disabled={refreshing}
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-100 disabled:opacity-60"
             >
-              Refresh
+              {refreshing ? "Refreshing..." : "Refresh"}
             </button>
 
             {isAdmin && (
@@ -399,59 +412,84 @@ export default function DashboardPage() {
 
         {profile && (
           <>
-            <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-              <ActionStatCard
-                title="Pending My Approval"
-                value={countValue(counts.pendingMyApproval)}
-                description="Requests currently assigned to you."
-                tone={counts.pendingMyApproval > 0 ? "red" : "emerald"}
-                onClick={() => router.push("/approvals")}
-              />
+            <div className="mt-6 rounded-3xl border bg-white p-6 shadow-sm">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <h2 className="text-xl font-extrabold text-slate-900">
+                    Live Request Counts
+                  </h2>
+                  <p className="mt-1 text-sm text-slate-600">
+                    These numbers update from live workflow records. Click Pending My Approval to
+                    take action.
+                  </p>
+                </div>
 
-              <ActionStatCard
-                title="My Submitted Requests"
-                value={countValue(counts.mySubmittedRequests)}
-                description="All requests created by you."
-                tone="blue"
-                onClick={() => router.push("/requests")}
-              />
+                <span className="rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">
+                  {profile.role || "Staff"}
+                </span>
+              </div>
 
-              <ActionStatCard
-                title="Completed / Paid"
-                value={countValue(counts.myCompletedRequests)}
-                description="Your requests completed or paid."
-                tone="emerald"
-                onClick={() => router.push("/requests")}
-              />
-
-              <ActionStatCard
-                title="Unread Notifications"
-                value={countValue(counts.unreadNotifications)}
-                description="Unread in-app workflow notices."
-                tone={counts.unreadNotifications > 0 ? "amber" : "slate"}
-                onClick={() => router.push("/approvals")}
-              />
-            </div>
-
-            {isAccountRole && (
-              <div className="mt-4 grid gap-4 md:grid-cols-2">
-                <ActionStatCard
-                  title="Account Stage Assigned to Me"
-                  value={countValue(counts.accountStageAssignedToMe)}
-                  description="Requests awaiting Account treatment/payment."
-                  tone={counts.accountStageAssignedToMe > 0 ? "red" : "slate"}
+              <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <NumberCountCard
+                  label="Pending My Approval"
+                  value={counts.pendingMyApproval}
+                  helper="Assigned to you now"
+                  tone={counts.pendingMyApproval > 0 ? "red" : "emerald"}
                   onClick={() => router.push("/approvals")}
                 />
 
-                <ActionStatCard
-                  title="Payment/PV Ready"
-                  value={countValue(counts.paymentPrintReady)}
-                  description="Payment-related paid/completed requests for voucher/print work."
-                  tone="purple"
-                  onClick={() => router.push("/payment-vouchers")}
+                <NumberCountCard
+                  label="My Submitted Requests"
+                  value={counts.mySubmittedRequests}
+                  helper="Total created by you"
+                  tone="blue"
+                  onClick={() => router.push("/requests")}
+                />
+
+                <NumberCountCard
+                  label="Completed / Paid"
+                  value={counts.myCompletedRequests}
+                  helper="Your successful requests"
+                  tone="emerald"
+                  onClick={() => router.push("/requests")}
+                />
+
+                <NumberCountCard
+                  label="Unread Notifications"
+                  value={counts.unreadNotifications}
+                  helper="Unread workflow alerts"
+                  tone={counts.unreadNotifications > 0 ? "amber" : "slate"}
+                  onClick={() => router.push("/approvals")}
                 />
               </div>
-            )}
+
+              {isAccountRole && (
+                <div className="mt-4 grid gap-4 md:grid-cols-2">
+                  <NumberCountCard
+                    label="Account Stage Assigned"
+                    value={counts.accountStageAssignedToMe}
+                    helper="Awaiting Account treatment/payment"
+                    tone={counts.accountStageAssignedToMe > 0 ? "red" : "slate"}
+                    onClick={() => router.push("/approvals")}
+                  />
+
+                  <NumberCountCard
+                    label="Payment / PV Ready"
+                    value={counts.paymentPrintReady}
+                    helper="Paid/completed payment records"
+                    tone="purple"
+                    onClick={() => router.push("/payment-vouchers")}
+                  />
+                </div>
+              )}
+
+              {counts.pendingMyApproval > 0 && (
+                <div className="mt-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-800">
+                  You have {countValue(counts.pendingMyApproval)} request(s) waiting for your
+                  action. Open Approvals to treat them.
+                </div>
+              )}
+            </div>
 
             <div className="mt-6 grid gap-4 xl:grid-cols-3">
               <div className="rounded-3xl border bg-white p-6 shadow-sm xl:col-span-2">
@@ -657,41 +695,41 @@ function SecurityLine({
   );
 }
 
-function ActionStatCard({
-  title,
+function NumberCountCard({
+  label,
   value,
-  description,
+  helper,
   tone,
   onClick,
 }: {
-  title: string;
-  value: string;
-  description: string;
+  label: string;
+  value: number;
+  helper: string;
   tone: "blue" | "emerald" | "purple" | "amber" | "red" | "slate";
-  onClick: () => void;
+  onClick?: () => void;
 }) {
   const toneClass =
     tone === "emerald"
-      ? "border-emerald-100 bg-emerald-50 text-emerald-800 hover:bg-emerald-100"
+      ? "border-emerald-200 bg-emerald-50 text-emerald-800"
       : tone === "purple"
-      ? "border-purple-100 bg-purple-50 text-purple-800 hover:bg-purple-100"
+      ? "border-purple-200 bg-purple-50 text-purple-800"
       : tone === "amber"
-      ? "border-amber-100 bg-amber-50 text-amber-900 hover:bg-amber-100"
+      ? "border-amber-200 bg-amber-50 text-amber-900"
       : tone === "red"
-      ? "border-red-100 bg-red-50 text-red-800 hover:bg-red-100"
+      ? "border-red-200 bg-red-50 text-red-800"
       : tone === "slate"
-      ? "border-slate-200 bg-slate-50 text-slate-800 hover:bg-slate-100"
-      : "border-blue-100 bg-blue-50 text-blue-800 hover:bg-blue-100";
+      ? "border-slate-200 bg-slate-50 text-slate-800"
+      : "border-blue-200 bg-blue-50 text-blue-800";
 
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-3xl border p-5 text-left shadow-sm transition ${toneClass}`}
+      className={`rounded-3xl border p-5 text-left shadow-sm transition hover:shadow-md ${toneClass}`}
     >
-      <div className="text-sm font-black uppercase tracking-wide opacity-80">{title}</div>
-      <div className="mt-3 text-3xl font-extrabold">{value}</div>
-      <div className="mt-2 text-sm font-semibold leading-relaxed opacity-90">{description}</div>
+      <div className="text-xs font-black uppercase tracking-wide opacity-75">{label}</div>
+      <div className="mt-3 text-4xl font-black leading-none">{countValue(value)}</div>
+      <div className="mt-2 text-sm font-semibold opacity-90">{helper}</div>
     </button>
   );
 }
