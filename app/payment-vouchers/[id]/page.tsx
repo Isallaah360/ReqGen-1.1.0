@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -145,6 +145,7 @@ function categoryLabel(v: VoucherDetail | VoucherItem | null) {
   if (rt === "official") return "Official";
   if (rt === "personal" && pc === "fund") return "Personal Fund";
   if (rt === "personal" && pc === "nonfund") return "Personal NonFund";
+
   return v?.request_type || "—";
 }
 
@@ -199,6 +200,7 @@ export default function PaymentVoucherDetailPage() {
   const id = String((params as any)?.id || "");
 
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
@@ -218,7 +220,9 @@ export default function PaymentVoucherDetailPage() {
   const isTransfer = normalize(voucher?.disbursement_mode) === "transfer";
   const isCash = normalize(voucher?.disbursement_mode) === "cash";
 
-  const isSelectedChequeSigner = !!me?.id && !!voucher?.cheque_signed_by && me.id === voucher.cheque_signed_by;
+  const isSelectedChequeSigner =
+    !!me?.id && !!voucher?.cheque_signed_by && me.id === voucher.cheque_signed_by;
+
   const isSelectedCounterSigner =
     !!me?.id && !!voucher?.cheque_counter_signed_by && me.id === voucher.cheque_counter_signed_by;
 
@@ -257,7 +261,8 @@ export default function PaymentVoucherDetailPage() {
     isSelectedCounterSigner &&
     isCurrentSigningOwner;
 
-  const canCancelVoucher = isFinanceRole && voucher?.status !== "Paid" && voucher?.status !== "Cancelled";
+  const canCancelVoucher =
+    isFinanceRole && voucher?.status !== "Paid" && voucher?.status !== "Cancelled";
 
   const voucherTotal = useMemo(() => {
     if (items.length > 0) {
@@ -278,86 +283,135 @@ export default function PaymentVoucherDetailPage() {
     return Number(voucher?.item_count || 1);
   }, [items.length, voucher?.item_count]);
 
-  async function load() {
-    setLoading(true);
-    setMsg(null);
+  const load = useCallback(
+    async (options?: { silent?: boolean }) => {
+      if (options?.silent) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
 
-    if (!id) {
-      setMsg("Invalid voucher ID.");
+      setMsg(null);
+
+      if (!id) {
+        setMsg("Invalid voucher ID.");
+        setLoading(false);
+        setRefreshing(false);
+        return;
+      }
+
+      const { data: auth } = await supabase.auth.getUser();
+
+      if (!auth.user) {
+        router.push("/login");
+        return;
+      }
+
+      const { data: prof, error: profErr } = await supabase
+        .from("profiles")
+        .select("id,role")
+        .eq("id", auth.user.id)
+        .maybeSingle();
+
+      if (profErr || !prof) {
+        setMsg("Failed to load your profile: " + (profErr?.message || "Profile not found."));
+        setLoading(false);
+        setRefreshing(false);
+        return;
+      }
+
+      setMe(prof as ProfileMini);
+
+      const [detailRes, itemRes, histRes] = await Promise.all([
+        supabase.rpc("get_payment_voucher_detail", { p_voucher_id: id }),
+        supabase.rpc("get_payment_voucher_items", { p_voucher_id: id }),
+        supabase.rpc("get_payment_voucher_history", { p_voucher_id: id }),
+      ]);
+
+      if (detailRes.error) {
+        setMsg("Failed to load voucher: " + detailRes.error.message);
+        setVoucher(null);
+        setItems([]);
+        setHistory([]);
+        setLoading(false);
+        setRefreshing(false);
+        return;
+      }
+
+      const row = Array.isArray(detailRes.data)
+        ? (detailRes.data[0] as VoucherDetail | undefined)
+        : (detailRes.data as VoucherDetail | undefined);
+
+      if (!row) {
+        setMsg("Payment voucher not found.");
+        setVoucher(null);
+        setItems([]);
+        setHistory([]);
+        setLoading(false);
+        setRefreshing(false);
+        return;
+      }
+
+      setVoucher(row);
+
+      if (itemRes.error) {
+        setMsg("Failed to load voucher items: " + itemRes.error.message);
+        setItems([]);
+      } else {
+        setItems((itemRes.data || []) as VoucherItem[]);
+      }
+
+      if (histRes.error) {
+        setMsg("Failed to load voucher history: " + histRes.error.message);
+        setHistory([]);
+      } else {
+        setHistory((histRes.data || []) as Hist[]);
+      }
+
       setLoading(false);
-      return;
-    }
-
-    const { data: auth } = await supabase.auth.getUser();
-
-    if (!auth.user) {
-      router.push("/login");
-      return;
-    }
-
-    const { data: prof, error: profErr } = await supabase
-      .from("profiles")
-      .select("id,role")
-      .eq("id", auth.user.id)
-      .maybeSingle();
-
-    if (profErr || !prof) {
-      setMsg("Failed to load your profile: " + (profErr?.message || "Profile not found."));
-      setLoading(false);
-      return;
-    }
-
-    setMe(prof as ProfileMini);
-
-    const [detailRes, itemRes, histRes] = await Promise.all([
-      supabase.rpc("get_payment_voucher_detail", { p_voucher_id: id }),
-      supabase.rpc("get_payment_voucher_items", { p_voucher_id: id }),
-      supabase.rpc("get_payment_voucher_history", { p_voucher_id: id }),
-    ]);
-
-    if (detailRes.error) {
-      setMsg("Failed to load voucher: " + detailRes.error.message);
-      setVoucher(null);
-      setItems([]);
-      setLoading(false);
-      return;
-    }
-
-    const row = Array.isArray(detailRes.data)
-      ? (detailRes.data[0] as VoucherDetail | undefined)
-      : (detailRes.data as VoucherDetail | undefined);
-
-    if (!row) {
-      setMsg("Payment voucher not found.");
-      setVoucher(null);
-      setItems([]);
-      setLoading(false);
-      return;
-    }
-
-    setVoucher(row);
-
-    if (itemRes.error) {
-      setMsg("Failed to load voucher items: " + itemRes.error.message);
-      setItems([]);
-    } else {
-      setItems((itemRes.data || []) as VoucherItem[]);
-    }
-
-    if (histRes.error) {
-      setMsg("Failed to load voucher history: " + histRes.error.message);
-      setHistory([]);
-    } else {
-      setHistory((histRes.data || []) as Hist[]);
-    }
-
-    setLoading(false);
-  }
+      setRefreshing(false);
+    },
+    [id, router]
+  );
 
   useEffect(() => {
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
+
+    const refreshOnFocus = () => {
+      load({ silent: true });
+    };
+
+    const refreshOnVisible = () => {
+      if (document.visibilityState === "visible") {
+        load({ silent: true });
+      }
+    };
+
+    window.addEventListener("focus", refreshOnFocus);
+    document.addEventListener("visibilitychange", refreshOnVisible);
+
+    return () => {
+      window.removeEventListener("focus", refreshOnFocus);
+      document.removeEventListener("visibilitychange", refreshOnVisible);
+    };
+  }, [load]);
+
+  function goBackToVouchers() {
+    router.push(`/payment-vouchers?updated=${Date.now()}`);
+    router.refresh();
+  }
+
+  function openPrimaryRequest() {
+    if (!voucher?.request_id) return;
+    router.push(`/requests/${voucher.request_id}?updated=${Date.now()}`);
+    router.refresh();
+  }
+
+  function printVoucher() {
+    if (!voucher?.id) return;
+    router.push(`/payment-vouchers/${voucher.id}/print?updated=${Date.now()}`);
+    router.refresh();
+  }
 
   async function runFinanceAction(actionType: string) {
     if (!voucher) return;
@@ -387,7 +441,9 @@ export default function PaymentVoucherDetailPage() {
 
       setMsg(`✅ Voucher action completed: ${actionType}`);
       setComment("");
-      await load();
+
+      await load({ silent: true });
+      router.refresh();
     } catch (e: any) {
       setMsg("❌ Action failed: " + (e?.message || "Unknown error"));
     } finally {
@@ -421,7 +477,9 @@ export default function PaymentVoucherDetailPage() {
 
       setMsg("✅ Cheque signed successfully. It has now been sent for counter signature.");
       setComment("");
-      await load();
+
+      await load({ silent: true });
+      router.refresh();
     } catch (e: any) {
       setMsg("❌ Cheque signing failed: " + (e?.message || "Unknown error"));
     } finally {
@@ -455,7 +513,9 @@ export default function PaymentVoucherDetailPage() {
 
       setMsg("✅ Cheque counter-signed successfully. The voucher is now ready for payment.");
       setComment("");
-      await load();
+
+      await load({ silent: true });
+      router.refresh();
     } catch (e: any) {
       setMsg("❌ Counter-signing failed: " + (e?.message || "Unknown error"));
     } finally {
@@ -487,7 +547,12 @@ export default function PaymentVoucherDetailPage() {
 
       if (error) throw new Error(error.message);
 
-      router.push("/payment-vouchers");
+      setMsg("✅ Payment voucher deleted successfully. Linked request(s) can generate a new PV.");
+
+      setTimeout(() => {
+        router.push(`/payment-vouchers?updated=${Date.now()}`);
+        router.refresh();
+      }, 500);
     } catch (e: any) {
       setMsg("❌ Failed to delete voucher: " + (e?.message || "Unknown error"));
       setSaving(false);
@@ -534,6 +599,7 @@ export default function PaymentVoucherDetailPage() {
         <div className="mx-auto max-w-3xl py-10">
           <div className="rounded-2xl border bg-white p-6 shadow-sm">
             <h1 className="text-xl font-extrabold text-slate-900">Payment Voucher</h1>
+
             <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
               {msg || "Access denied or voucher not found."}
             </div>
@@ -564,25 +630,40 @@ export default function PaymentVoucherDetailPage() {
           </div>
 
           <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => load({ silent: true })}
+              disabled={saving || refreshing}
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
+            >
+              {refreshing ? "Refreshing..." : "Refresh"}
+            </button>
+
             {isFinanceRole && (
               <button
-                onClick={() => router.push("/payment-vouchers")}
-                className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
+                type="button"
+                onClick={goBackToVouchers}
+                disabled={saving}
+                className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
               >
                 Back to Vouchers
               </button>
             )}
 
             <button
-              onClick={() => router.push(`/requests/${voucher.request_id}`)}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
+              type="button"
+              onClick={openPrimaryRequest}
+              disabled={saving}
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
             >
               Open Primary Request
             </button>
 
             <button
-              onClick={() => router.push(`/payment-vouchers/${voucher.id}/print`)}
-              className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+              type="button"
+              onClick={printVoucher}
+              disabled={saving}
+              className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
             >
               Print Voucher
             </button>
@@ -598,10 +679,15 @@ export default function PaymentVoucherDetailPage() {
         {isCheque && voucher.status !== "Paid" && voucher.status !== "Cancelled" && (
           <div className="mt-6 rounded-3xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-950">
             <div className="font-extrabold">Cheque Signing Status</div>
+
             <div className="mt-2 grid gap-3 md:grid-cols-3">
               <div>
                 <span className="font-semibold">Current Stage:</span>{" "}
-                <span className={`rounded-full border px-3 py-1 text-xs font-bold ${signingStageBadgeClass(voucher.signing_stage)}`}>
+                <span
+                  className={`rounded-full border px-3 py-1 text-xs font-bold ${signingStageBadgeClass(
+                    voucher.signing_stage
+                  )}`}
+                >
                   {voucher.signing_stage || "—"}
                 </span>
               </div>
@@ -635,7 +721,11 @@ export default function PaymentVoucherDetailPage() {
 
         <div className="mt-6 grid gap-4 md:grid-cols-4">
           <InfoCard title="Voucher No" value={voucher.voucher_no} />
-          <InfoCard title="Scope" value={`${voucherScope} • ${effectiveItemCount} item(s)`} scope={voucherScope} />
+          <InfoCard
+            title="Scope"
+            value={`${voucherScope} • ${effectiveItemCount} item(s)`}
+            scope={voucherScope}
+          />
           <InfoCard title="Total Amount" value={naira(voucherTotal)} />
           <InfoCard title="Status" value={voucher.status || "—"} badge />
         </div>
@@ -650,20 +740,36 @@ export default function PaymentVoucherDetailPage() {
             </div>
 
             <div className="flex flex-wrap gap-2">
-              <span className={`rounded-full border px-3 py-1 text-xs font-bold ${modeBadgeClass(voucher.disbursement_mode)}`}>
+              <span
+                className={`rounded-full border px-3 py-1 text-xs font-bold ${modeBadgeClass(
+                  voucher.disbursement_mode
+                )}`}
+              >
                 {voucher.disbursement_mode || "No Mode"}
               </span>
 
-              <span className={`rounded-full border px-3 py-1 text-xs font-bold ${scopeBadgeClass(voucherScope)}`}>
+              <span
+                className={`rounded-full border px-3 py-1 text-xs font-bold ${scopeBadgeClass(
+                  voucherScope
+                )}`}
+              >
                 {voucherScope}
               </span>
 
-              <span className={`rounded-full border px-3 py-1 text-xs font-bold ${statusBadgeClass(voucher.status)}`}>
+              <span
+                className={`rounded-full border px-3 py-1 text-xs font-bold ${statusBadgeClass(
+                  voucher.status
+                )}`}
+              >
                 {voucher.status || "—"}
               </span>
 
               {voucher.signing_stage && (
-                <span className={`rounded-full border px-3 py-1 text-xs font-bold ${signingStageBadgeClass(voucher.signing_stage)}`}>
+                <span
+                  className={`rounded-full border px-3 py-1 text-xs font-bold ${signingStageBadgeClass(
+                    voucher.signing_stage
+                  )}`}
+                >
                   {voucher.signing_stage}
                 </span>
               )}
@@ -738,9 +844,7 @@ export default function PaymentVoucherDetailPage() {
                       key={item.id}
                       className="grid grid-cols-15 items-center border-t px-6 py-4 text-sm hover:bg-slate-50"
                     >
-                      <div className="col-span-1 font-bold text-slate-600">
-                        {index + 1}
-                      </div>
+                      <div className="col-span-1 font-bold text-slate-600">{index + 1}</div>
 
                       <div className="col-span-2 font-extrabold text-slate-900">
                         {item.request_no || "—"}
@@ -849,7 +953,10 @@ export default function PaymentVoucherDetailPage() {
 
             {isCash && (
               <>
-                <InfoLine label="Cash Payee Name" value={voucher.cash_payee_name || voucher.payee_name || "—"} />
+                <InfoLine
+                  label="Cash Payee Name"
+                  value={voucher.cash_payee_name || voucher.payee_name || "—"}
+                />
                 <InfoLine label="Received By" value={voucher.payee_signed_name || "—"} />
                 <InfoLine label="Received Date" value={shortDate(voucher.payee_signed_at)} />
               </>
@@ -862,8 +969,14 @@ export default function PaymentVoucherDetailPage() {
                 <InfoLine label="Bank Name" value={voucher.bank_name || "—"} />
                 <InfoLine label="Cheque Signed By" value={voucher.cheque_signed_by_name || "—"} />
                 <InfoLine label="Cheque Signed At" value={shortDateTime(voucher.cheque_signed_at)} />
-                <InfoLine label="Counter Signed By" value={voucher.cheque_counter_signed_by_name || "—"} />
-                <InfoLine label="Counter Signed At" value={shortDateTime(voucher.cheque_counter_signed_at)} />
+                <InfoLine
+                  label="Counter Signed By"
+                  value={voucher.cheque_counter_signed_by_name || "—"}
+                />
+                <InfoLine
+                  label="Counter Signed At"
+                  value={shortDateTime(voucher.cheque_counter_signed_at)}
+                />
               </>
             )}
 
@@ -897,8 +1010,9 @@ export default function PaymentVoucherDetailPage() {
           <div className="mt-4 flex flex-wrap gap-2">
             {canSignCheque && (
               <button
+                type="button"
                 onClick={signCheque}
-                disabled={saving}
+                disabled={saving || refreshing}
                 className="rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
               >
                 {saving ? "Signing..." : "Sign Cheque"}
@@ -907,8 +1021,9 @@ export default function PaymentVoucherDetailPage() {
 
             {canCounterSignCheque && (
               <button
+                type="button"
                 onClick={counterSignCheque}
-                disabled={saving}
+                disabled={saving || refreshing}
                 className="rounded-xl bg-purple-600 px-4 py-3 text-sm font-semibold text-white hover:bg-purple-700 disabled:opacity-60"
               >
                 {saving ? "Counter Signing..." : "Counter Sign Cheque"}
@@ -918,8 +1033,9 @@ export default function PaymentVoucherDetailPage() {
             {financeActionButtons.map((a) => (
               <button
                 key={a.action}
+                type="button"
                 onClick={() => runFinanceAction(a.action)}
-                disabled={saving}
+                disabled={saving || refreshing}
                 className={`rounded-xl px-4 py-3 text-sm font-semibold text-white disabled:opacity-60 ${
                   a.tone === "emerald"
                     ? "bg-emerald-600 hover:bg-emerald-700"
@@ -936,8 +1052,9 @@ export default function PaymentVoucherDetailPage() {
 
             {canCancelVoucher && (
               <button
+                type="button"
                 onClick={() => runFinanceAction("Cancel")}
-                disabled={saving}
+                disabled={saving || refreshing}
                 className="rounded-xl bg-red-600 px-4 py-3 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-60"
               >
                 Cancel Voucher
@@ -946,8 +1063,9 @@ export default function PaymentVoucherDetailPage() {
 
             {isAdminOrAuditor && (
               <button
+                type="button"
                 onClick={deleteVoucher}
-                disabled={saving}
+                disabled={saving || refreshing}
                 className="rounded-xl bg-red-800 px-4 py-3 text-sm font-semibold text-white hover:bg-red-900 disabled:opacity-60"
               >
                 Delete PV for Regeneration
@@ -995,6 +1113,11 @@ export default function PaymentVoucherDetailPage() {
               ))}
             </div>
           )}
+        </div>
+
+        <div className="mt-5 rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-900">
+          This voucher page refreshes automatically when you return to it. Use Refresh if another
+          officer has just signed or updated the voucher.
         </div>
       </div>
     </main>
