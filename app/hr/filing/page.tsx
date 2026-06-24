@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -70,11 +70,7 @@ function isReadyForHR(r: ReqRow) {
   const stage = normalize(r.current_stage);
   const status = (r.status || "").toLowerCase();
 
-  return (
-    stage === "hr" ||
-    stage === "hrfiling" ||
-    status.includes("filing")
-  );
+  return stage === "hr" || stage === "hrfiling" || status.includes("filing");
 }
 
 function categoryLabel(r: ReqRow) {
@@ -151,6 +147,7 @@ export default function HRFilingPage() {
   const router = useRouter();
 
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
   const [myRole, setMyRole] = useState<string>("Staff");
@@ -165,63 +162,99 @@ export default function HRFilingPage() {
   const [statusFilter, setStatusFilter] = useState("ALL");
 
   function openWorkflow(id: string) {
-    router.push(`/requests/${id}`);
+    router.push(`/requests/${id}?updated=${Date.now()}`);
+    router.refresh();
   }
 
   function openTemplate(id: string) {
-    router.push(`/requests/${id}/print`);
+    router.push(`/requests/${id}/print?updated=${Date.now()}`);
+    router.refresh();
   }
 
-  async function load() {
-    setLoading(true);
-    setMsg(null);
-
-    const { data: auth } = await supabase.auth.getUser();
-
-    if (!auth.user) {
-      router.push("/login");
-      return;
-    }
-
-    const { data: prof, error: profErr } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", auth.user.id)
-      .maybeSingle();
-
-    if (profErr) {
-      setMsg("Failed to load your profile: " + profErr.message);
-      setLoading(false);
-      return;
-    }
-
-    const role = (prof?.role || "Staff") as string;
-    setMyRole(role);
-
-    if (!["admin", "auditor", "hr"].includes(roleKey(role))) {
-      setMsg("Access denied. Only HR, Admin and Auditor can access HR Office Requests.");
-      setRows([]);
-      setLoading(false);
-      return;
-    }
-
-    const { data, error } = await supabase.rpc("get_hr_filing_requests");
-
-    if (error) {
-      setMsg("Failed to load HR office requests: " + error.message);
-      setRows([]);
-      setLoading(false);
-      return;
-    }
-
-    setRows(((data || []) as ReqRow[]).filter(isPersonal));
-    setLoading(false);
+  function goDashboard() {
+    router.push(`/dashboard?updated=${Date.now()}`);
+    router.refresh();
   }
+
+  const load = useCallback(
+    async (options?: { silent?: boolean }) => {
+      if (options?.silent) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
+
+      setMsg(null);
+
+      const { data: auth } = await supabase.auth.getUser();
+
+      if (!auth.user) {
+        router.push("/login");
+        return;
+      }
+
+      const { data: prof, error: profErr } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", auth.user.id)
+        .maybeSingle();
+
+      if (profErr) {
+        setMsg("Failed to load your profile: " + profErr.message);
+        setLoading(false);
+        setRefreshing(false);
+        return;
+      }
+
+      const role = (prof?.role || "Staff") as string;
+      setMyRole(role);
+
+      if (!["admin", "auditor", "hr"].includes(roleKey(role))) {
+        setMsg("Access denied. Only HR, Admin and Auditor can access HR Office Requests.");
+        setRows([]);
+        setLoading(false);
+        setRefreshing(false);
+        return;
+      }
+
+      const { data, error } = await supabase.rpc("get_hr_filing_requests");
+
+      if (error) {
+        setMsg("Failed to load HR office requests: " + error.message);
+        setRows([]);
+        setLoading(false);
+        setRefreshing(false);
+        return;
+      }
+
+      setRows(((data || []) as ReqRow[]).filter(isPersonal));
+      setLoading(false);
+      setRefreshing(false);
+    },
+    [router]
+  );
 
   useEffect(() => {
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+
+    const refreshOnFocus = () => {
+      load({ silent: true });
+    };
+
+    const refreshOnVisible = () => {
+      if (document.visibilityState === "visible") {
+        load({ silent: true });
+      }
+    };
+
+    window.addEventListener("focus", refreshOnFocus);
+    document.addEventListener("visibilitychange", refreshOnVisible);
+
+    return () => {
+      window.removeEventListener("focus", refreshOnFocus);
+      document.removeEventListener("visibilitychange", refreshOnVisible);
+    };
+  }, [load]);
 
   const departments = useMemo(() => {
     const map = new Map<string, string>();
@@ -324,7 +357,7 @@ export default function HRFilingPage() {
             </div>
 
             <button
-              onClick={() => router.push("/dashboard")}
+              onClick={goDashboard}
               className="mt-5 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
             >
               Back to Dashboard
@@ -350,15 +383,17 @@ export default function HRFilingPage() {
 
           <div className="flex flex-wrap gap-2">
             <button
-              onClick={load}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-100"
+              onClick={() => load({ silent: true })}
+              disabled={refreshing}
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-100 disabled:opacity-60"
             >
-              Refresh
+              {refreshing ? "Refreshing..." : "Refresh"}
             </button>
 
             <button
-              onClick={() => router.push("/dashboard")}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-100"
+              onClick={goDashboard}
+              disabled={refreshing}
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-100 disabled:opacity-60"
             >
               Dashboard
             </button>
@@ -370,6 +405,10 @@ export default function HRFilingPage() {
             {msg}
           </div>
         )}
+
+        <div className="mt-4 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-xs font-semibold text-blue-900">
+          This HR Office page refreshes automatically when you return to it, so completed requests and filing-ready items stay current.
+        </div>
 
         <div className="mt-6 grid gap-4 md:grid-cols-3 xl:grid-cols-6">
           <StatCard title="Total Personal" value={String(stats.total)} tone="blue" />
