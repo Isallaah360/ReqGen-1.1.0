@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -44,6 +44,10 @@ export default function ProfilePage() {
   const router = useRouter();
 
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [savingEmail, setSavingEmail] = useState(false);
+  const [savingPassword, setSavingPassword] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
   const [fullName, setFullName] = useState("");
@@ -79,7 +83,7 @@ export default function ProfilePage() {
   const isSessionMfaVerified = security.currentLevel === "aal2";
   const isMfaSetupComplete = security.hasVerifiedTotp;
 
-  async function loadSecurityStatus() {
+  const loadSecurityStatus = useCallback(async () => {
     const [factorsRes, aalRes] = await Promise.all([
       supabase.auth.mfa.listFactors(),
       supabase.auth.mfa.getAuthenticatorAssuranceLevel(),
@@ -105,15 +109,21 @@ export default function ProfilePage() {
       nextLevel: aalRes.data?.nextLevel || null,
       factorCount: verifiedTotpFactors.length,
     });
-  }
+  }, []);
 
-  useEffect(() => {
-    async function load() {
-      setLoading(true);
+  const load = useCallback(
+    async (options?: { silent?: boolean }) => {
+      if (options?.silent) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
+
       setMsg(null);
 
       const { data: authData } = await supabase.auth.getUser();
       const user = authData.user;
+
       if (!user) {
         router.push("/login");
         return;
@@ -134,6 +144,7 @@ export default function ProfilePage() {
       if (profileRes.error) {
         setMsg("Failed to load profile: " + profileRes.error.message);
         setLoading(false);
+        setRefreshing(false);
         return;
       }
 
@@ -149,21 +160,49 @@ export default function ProfilePage() {
       setSigPath(savedSigPath);
       setSigPreview(getPublicSignatureUrl(savedSigPath));
 
+      setDeptName("");
+
       if (prof?.dept_id) {
-        const { data: dept } = await supabase
+        const { data: dept, error: deptErr } = await supabase
           .from("departments")
           .select("id,name")
           .eq("id", prof.dept_id)
           .single();
 
-        if (dept) setDeptName((dept as Dept).name);
+        if (deptErr) {
+          setDeptName("—");
+        } else if (dept) {
+          setDeptName((dept as Dept).name);
+        }
       }
 
       setLoading(false);
-    }
+      setRefreshing(false);
+    },
+    [router, loadSecurityStatus]
+  );
 
+  useEffect(() => {
     load();
-  }, [router]);
+
+    const refreshOnFocus = () => {
+      load({ silent: true });
+    };
+
+    const refreshOnVisible = () => {
+      if (document.visibilityState === "visible") {
+        load({ silent: true });
+      }
+    };
+
+    window.addEventListener("focus", refreshOnFocus);
+    document.addEventListener("visibilitychange", refreshOnVisible);
+
+    return () => {
+      window.removeEventListener("focus", refreshOnFocus);
+      document.removeEventListener("visibilitychange", refreshOnVisible);
+    };
+  }, [load]);
 
   async function saveProfile() {
     setMsg(null);
@@ -175,24 +214,33 @@ export default function ProfilePage() {
 
     const { data: authData } = await supabase.auth.getUser();
     const user = authData.user;
+
     if (!user) {
       router.push("/login");
       return;
     }
 
-    const { error } = await supabase
-      .from("profiles")
-      .update({
-        full_name: fullName.trim(),
-        phone: phone.trim() || null,
-        gender,
-      })
-      .eq("id", user.id);
+    setSavingProfile(true);
 
-    if (error) {
-      setMsg("❌ Save failed: " + error.message);
-    } else {
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          full_name: fullName.trim(),
+          phone: phone.trim() || null,
+          gender,
+        })
+        .eq("id", user.id);
+
+      if (error) throw new Error(error.message);
+
       setMsg("✅ Profile saved successfully.");
+      await load({ silent: true });
+      router.refresh();
+    } catch (e: any) {
+      setMsg("❌ Save failed: " + (e?.message || "Unknown error"));
+    } finally {
+      setSavingProfile(false);
     }
   }
 
@@ -218,6 +266,7 @@ export default function ProfilePage() {
 
     const { data: authData } = await supabase.auth.getUser();
     const user = authData.user;
+
     if (!user) {
       router.push("/login");
       return;
@@ -251,6 +300,9 @@ export default function ProfilePage() {
       setSigPreview(getPublicSignatureUrl(path));
       setFile(null);
       setMsg("✅ Signature saved successfully.");
+
+      await load({ silent: true });
+      router.refresh();
     } catch (e: any) {
       setMsg("❌ Signature upload failed: " + (e?.message || "Unknown error"));
     } finally {
@@ -262,10 +314,18 @@ export default function ProfilePage() {
     setMsg(null);
 
     const clean = newEmail.trim().toLowerCase();
+
     if (!clean.includes("@")) {
       setMsg("❌ Please enter a valid email.");
       return;
     }
+
+    if (clean === email.trim().toLowerCase()) {
+      setMsg("ℹ️ This is already your current email.");
+      return;
+    }
+
+    setSavingEmail(true);
 
     try {
       const { error } = await supabase.auth.updateUser({ email: clean });
@@ -273,13 +333,18 @@ export default function ProfilePage() {
 
       const { data: authData } = await supabase.auth.getUser();
       const user = authData.user;
+
       if (user) {
         await supabase.from("profiles").update({ email: clean }).eq("id", user.id);
       }
 
       setMsg("✅ Email update started. Check email if confirmation is required.");
+      await load({ silent: true });
+      router.refresh();
     } catch (e: any) {
       setMsg("❌ Email change failed: " + (e?.message || "Unknown error"));
+    } finally {
+      setSavingEmail(false);
     }
   }
 
@@ -296,6 +361,8 @@ export default function ProfilePage() {
       return;
     }
 
+    setSavingPassword(true);
+
     try {
       const { error } = await supabase.auth.updateUser({ password: newPassword });
       if (error) throw new Error(error.message);
@@ -303,8 +370,41 @@ export default function ProfilePage() {
       setNewPassword("");
       setConfirmNewPassword("");
       setMsg("✅ Password updated successfully.");
+      await loadSecurityStatus();
+      router.refresh();
     } catch (e: any) {
       setMsg("❌ Password change failed: " + (e?.message || "Unknown error"));
+    } finally {
+      setSavingPassword(false);
+    }
+  }
+
+  function goDashboard() {
+    router.push(`/dashboard?updated=${Date.now()}`);
+    router.refresh();
+  }
+
+  function goMfaSetup() {
+    router.push(`/mfa/setup?updated=${Date.now()}`);
+    router.refresh();
+  }
+
+  function goMfaVerify() {
+    router.push(`/mfa?updated=${Date.now()}`);
+    router.refresh();
+  }
+
+  async function refreshSecurity() {
+    setRefreshing(true);
+    setMsg(null);
+
+    try {
+      await loadSecurityStatus();
+      setMsg("✅ Security status refreshed.");
+    } catch (e: any) {
+      setMsg("❌ Failed to refresh security status: " + (e?.message || "Unknown error"));
+    } finally {
+      setRefreshing(false);
     }
   }
 
@@ -330,12 +430,23 @@ export default function ProfilePage() {
             </p>
           </div>
 
-          <button
-            onClick={() => router.push("/dashboard")}
-            className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
-          >
-            Back
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => load({ silent: true })}
+              disabled={refreshing || savingProfile || savingEmail || savingPassword || uploadingSig}
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
+            >
+              {refreshing ? "Refreshing..." : "Refresh"}
+            </button>
+
+            <button
+              onClick={goDashboard}
+              disabled={refreshing || savingProfile || savingEmail || savingPassword || uploadingSig}
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
+            >
+              Back
+            </button>
+          </div>
         </div>
 
         {msg && (
@@ -343,6 +454,10 @@ export default function ProfilePage() {
             {msg}
           </div>
         )}
+
+        <div className="mt-4 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-xs font-semibold text-blue-900">
+          This profile page refreshes automatically when you return to it. Signature and 2FA changes are reloaded immediately.
+        </div>
 
         <div className="mt-6 rounded-3xl border bg-white p-6 shadow-sm">
           <div className="flex flex-wrap items-start justify-between gap-3">
@@ -393,7 +508,7 @@ export default function ProfilePage() {
           <div className="mt-5 flex flex-wrap gap-2">
             {!isMfaSetupComplete && (
               <button
-                onClick={() => router.push("/mfa/setup")}
+                onClick={goMfaSetup}
                 className="rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white hover:bg-blue-700"
               >
                 Set Up 2FA
@@ -402,7 +517,7 @@ export default function ProfilePage() {
 
             {isMfaSetupComplete && !isSessionMfaVerified && (
               <button
-                onClick={() => router.push("/mfa")}
+                onClick={goMfaVerify}
                 className="rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white hover:bg-blue-700"
               >
                 Verify 2FA
@@ -410,10 +525,11 @@ export default function ProfilePage() {
             )}
 
             <button
-              onClick={loadSecurityStatus}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 hover:bg-slate-100"
+              onClick={refreshSecurity}
+              disabled={refreshing}
+              className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
             >
-              Refresh Security Status
+              {refreshing ? "Refreshing..." : "Refresh Security Status"}
             </button>
           </div>
 
@@ -432,7 +548,8 @@ export default function ProfilePage() {
               <input
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
-                className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 text-base text-slate-900 outline-none focus:border-blue-500"
+                disabled={savingProfile}
+                className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 text-base text-slate-900 outline-none focus:border-blue-500 disabled:bg-slate-50"
               />
             </div>
 
@@ -441,7 +558,8 @@ export default function ProfilePage() {
               <input
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 text-base text-slate-900 outline-none focus:border-blue-500"
+                disabled={savingProfile}
+                className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 text-base text-slate-900 outline-none focus:border-blue-500 disabled:bg-slate-50"
               />
             </div>
 
@@ -450,7 +568,8 @@ export default function ProfilePage() {
               <select
                 value={gender}
                 onChange={(e) => setGender(e.target.value)}
-                className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 text-base text-slate-900 outline-none focus:border-blue-500"
+                disabled={savingProfile}
+                className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 text-base text-slate-900 outline-none focus:border-blue-500 disabled:bg-slate-50"
               >
                 <option value="">-- Select --</option>
                 <option value="Male">Male</option>
@@ -478,10 +597,10 @@ export default function ProfilePage() {
 
             <button
               onClick={saveProfile}
-              disabled={!canSaveProfile}
+              disabled={!canSaveProfile || savingProfile}
               className="mt-5 w-full rounded-2xl bg-blue-600 px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700 disabled:opacity-60"
             >
-              Save Profile
+              {savingProfile ? "Saving..." : "Save Profile"}
             </button>
           </div>
 
@@ -512,8 +631,9 @@ export default function ProfilePage() {
               <input
                 type="file"
                 accept="image/png,image/jpeg,image/jpg,image/webp"
+                disabled={uploadingSig}
                 onChange={(e) => setFile(e.target.files?.[0] || null)}
-                className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900"
+                className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 disabled:bg-slate-50"
               />
             </div>
 
@@ -545,15 +665,17 @@ export default function ProfilePage() {
               <input
                 value={newEmail}
                 onChange={(e) => setNewEmail(e.target.value)}
-                className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 text-base text-slate-900 outline-none focus:border-blue-500"
+                disabled={savingEmail}
+                className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 text-base text-slate-900 outline-none focus:border-blue-500 disabled:bg-slate-50"
               />
             </div>
 
             <button
               onClick={changeEmail}
-              className="mt-4 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 hover:bg-slate-100"
+              disabled={savingEmail}
+              className="mt-4 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
             >
-              Update Email
+              {savingEmail ? "Updating Email..." : "Update Email"}
             </button>
 
             <p className="mt-3 text-xs text-slate-500">
@@ -570,7 +692,8 @@ export default function ProfilePage() {
                 type="password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 text-base text-slate-900 outline-none focus:border-blue-500"
+                disabled={savingPassword}
+                className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 text-base text-slate-900 outline-none focus:border-blue-500 disabled:bg-slate-50"
               />
             </div>
 
@@ -580,15 +703,17 @@ export default function ProfilePage() {
                 type="password"
                 value={confirmNewPassword}
                 onChange={(e) => setConfirmNewPassword(e.target.value)}
-                className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 text-base text-slate-900 outline-none focus:border-blue-500"
+                disabled={savingPassword}
+                className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 text-base text-slate-900 outline-none focus:border-blue-500 disabled:bg-slate-50"
               />
             </div>
 
             <button
               onClick={changePassword}
-              className="mt-4 w-full rounded-2xl bg-blue-600 px-4 py-3 text-sm font-bold text-white shadow-sm hover:bg-blue-700"
+              disabled={savingPassword}
+              className="mt-4 w-full rounded-2xl bg-blue-600 px-4 py-3 text-sm font-bold text-white shadow-sm hover:bg-blue-700 disabled:opacity-60"
             >
-              Change Password
+              {savingPassword ? "Changing Password..." : "Change Password"}
             </button>
           </div>
         </div>
