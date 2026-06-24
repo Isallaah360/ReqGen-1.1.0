@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { exportTableToExcel, printReport } from "@/lib/reportExport";
@@ -175,13 +175,286 @@ function isWithinDateRange(createdAt: string | null | undefined, from: string, t
   return true;
 }
 
+function filterVouchers(
+  vouchers: VoucherRow[],
+  search: string,
+  fromDate: string,
+  toDate: string,
+  statusFilter: string,
+  modeFilter: string
+) {
+  const s = search.trim().toLowerCase();
+
+  return vouchers.filter((v) => {
+    if (!isWithinDateRange(v.created_at, fromDate, toDate)) return false;
+
+    if (statusFilter !== "ALL" && (v.status || "") !== statusFilter) return false;
+
+    if (modeFilter !== "ALL" && normalize(v.disbursement_mode) !== normalize(modeFilter)) {
+      return false;
+    }
+
+    if (s) {
+      const haystack = [
+        v.voucher_no,
+        v.request_no,
+        v.payee_name,
+        v.narration,
+        v.dept_name,
+        v.subhead_code,
+        v.subhead_name,
+        v.prepared_by_name,
+        v.checked_by_name,
+        v.authorized_by_name,
+        v.status,
+        v.disbursement_mode,
+        v.voucher_scope,
+        v.request_type,
+        v.personal_category,
+      ]
+        .join(" ")
+        .toLowerCase();
+
+      if (!haystack.includes(s)) return false;
+    }
+
+    return true;
+  });
+}
+
+function buildSubheadExceptions(subheads: SubheadRow[]) {
+  return subheads
+    .map((s) => {
+      const approved = Number(s.approved_allocation || 0);
+      const reserved = Number(s.reserved_amount || 0);
+      const expenditure = Number(s.expenditure || 0);
+      const balance = Number(s.balance || 0);
+
+      let risk: "Low" | "Medium" | "High" = "Low";
+      let note = "Healthy";
+
+      if (balance < 0) {
+        risk = "High";
+        note = "Negative balance";
+      } else if (approved > 0 && balance / approved <= 0.1) {
+        risk = "Medium";
+        note = "Low balance";
+      } else if (reserved > balance && balance > 0) {
+        risk = "Medium";
+        note = "Reserved amount is high against balance";
+      }
+
+      return {
+        ...s,
+        approved,
+        reserved,
+        expenditure,
+        balance,
+        risk,
+        note,
+      };
+    })
+    .filter((s) => s.risk !== "Low")
+    .sort((a, b) => {
+      if (a.risk === b.risk) return a.name.localeCompare(b.name);
+      return a.risk === "High" ? -1 : 1;
+    });
+}
+
+function buildAuditFindings(
+  filteredVouchers: VoucherRow[],
+  subheads: SubheadRow[],
+  riskFilter: string
+) {
+  const findings: AuditFinding[] = [];
+
+  const cancelled = filteredVouchers.filter((v) => (v.status || "") === "Cancelled");
+
+  const unpaidOld = filteredVouchers.filter((v) => {
+    const s = v.status || "";
+    return s !== "Paid" && s !== "Cancelled" && daysOld(v.created_at) >= 7;
+  });
+
+  const chequeAwaiting = filteredVouchers.filter((v) => {
+    const s = v.status || "";
+    return ["Cheque Prepared", "Cheque Signed", "Counter Signed"].includes(s);
+  });
+
+  const missingPayee = filteredVouchers.filter((v) => !(v.payee_name || "").trim());
+  const missingAmount = filteredVouchers.filter((v) => Number(v.total_amount || v.amount || 0) <= 0);
+
+  const overdrawnSubheads = subheads.filter((s) => Number(s.balance || 0) < 0);
+
+  const lowBalanceSubheads = subheads.filter((s) => {
+    const approved = Number(s.approved_allocation || 0);
+    const balance = Number(s.balance || 0);
+    if (approved <= 0) return false;
+    return balance >= 0 && balance / approved <= 0.1;
+  });
+
+  if (cancelled.length > 0) {
+    findings.push({
+      id: "cancelled",
+      title: "Cancelled Payment Vouchers",
+      description:
+        "Cancelled vouchers should be reviewed to confirm why they were voided and whether linked requests were regenerated correctly.",
+      level: cancelled.length >= 5 ? "High" : "Medium",
+      count: cancelled.length,
+      action: "Review cancelled PVs and confirm no duplicate payment occurred.",
+    });
+  }
+
+  if (unpaidOld.length > 0) {
+    findings.push({
+      id: "old-pending",
+      title: "Pending Vouchers Older Than 7 Days",
+      description: "Vouchers that remain unpaid or unsigned for too long should be followed up.",
+      level: unpaidOld.length >= 5 ? "High" : "Medium",
+      count: unpaidOld.length,
+      action: "Follow up with Account, Cheque Signer or Counter Signer depending on stage.",
+    });
+  }
+
+  if (chequeAwaiting.length > 0) {
+    findings.push({
+      id: "cheque-workflow",
+      title: "Cheque Workflow Items Awaiting Completion",
+      description:
+        "Cheque vouchers should pass through cheque signature, counter signature and final payment promptly.",
+      level: chequeAwaiting.length >= 5 ? "High" : "Medium",
+      count: chequeAwaiting.length,
+      action: "Check assigned signers and pending cheque approvals.",
+    });
+  }
+
+  if (missingPayee.length > 0) {
+    findings.push({
+      id: "missing-payee",
+      title: "Voucher Records Missing Payee",
+      description: "Every PV should have a clear payee name for accountability.",
+      level: "High",
+      count: missingPayee.length,
+      action: "Inspect PV generation data and correct affected records.",
+    });
+  }
+
+  if (missingAmount.length > 0) {
+    findings.push({
+      id: "missing-amount",
+      title: "Voucher Records With Zero or Invalid Amount",
+      description: "Every payment voucher must have a valid amount greater than zero.",
+      level: "High",
+      count: missingAmount.length,
+      action: "Investigate affected PVs before printing or payment.",
+    });
+  }
+
+  if (overdrawnSubheads.length > 0) {
+    findings.push({
+      id: "overdrawn-subheads",
+      title: "Overdrawn Subheads",
+      description: "One or more budget subheads have negative balances.",
+      level: "High",
+      count: overdrawnSubheads.length,
+      action: "Reconcile allocation, reserved amount, expenditure and payment postings.",
+    });
+  }
+
+  if (lowBalanceSubheads.length > 0) {
+    findings.push({
+      id: "low-balance-subheads",
+      title: "Low Balance Subheads",
+      description: "Some subheads have 10% or less of approved allocation remaining.",
+      level: "Medium",
+      count: lowBalanceSubheads.length,
+      action: "Review spending pressure before approving more requests.",
+    });
+  }
+
+  if (findings.length === 0) {
+    findings.push({
+      id: "clean",
+      title: "No Major Audit Exceptions Found",
+      description: "No critical exception was detected for the selected period.",
+      level: "Low",
+      count: 0,
+      action: "Continue routine monitoring.",
+    });
+  }
+
+  if (riskFilter === "ALL") return findings;
+  return findings.filter((f) => f.level === riskFilter);
+}
+
+function buildStats(
+  filteredVouchers: VoucherRow[],
+  subheads: SubheadRow[],
+  requests: RequestRow[],
+  auditFindings: AuditFinding[]
+) {
+  const activeVouchers = filteredVouchers.filter((v) => (v.status || "") !== "Cancelled");
+
+  const totalVoucherValue = activeVouchers.reduce(
+    (a, v) => a + Number(v.total_amount || v.amount || 0),
+    0
+  );
+
+  const paidVoucherValue = filteredVouchers
+    .filter((v) => (v.status || "") === "Paid")
+    .reduce((a, v) => a + Number(v.total_amount || v.amount || 0), 0);
+
+  const pendingVoucherValue = filteredVouchers
+    .filter((v) => {
+      const s = v.status || "";
+      return s !== "Paid" && s !== "Cancelled";
+    })
+    .reduce((a, v) => a + Number(v.total_amount || v.amount || 0), 0);
+
+  const allocationTotal = subheads.reduce((a, s) => a + Number(s.approved_allocation || 0), 0);
+  const reservedTotal = subheads.reduce((a, s) => a + Number(s.reserved_amount || 0), 0);
+  const expenditureTotal = subheads.reduce((a, s) => a + Number(s.expenditure || 0), 0);
+  const balanceTotal = subheads.reduce((a, s) => a + Number(s.balance || 0), 0);
+
+  const officialRequests = requests.filter((r) => categoryKey(r) === "official").length;
+  const personalFundRequests = requests.filter((r) => categoryKey(r) === "personalfund").length;
+  const personalNonFundRequests = requests.filter((r) => categoryKey(r) === "personalnonfund").length;
+
+  const openRequests = requests.filter((r) => {
+    const s = (r.status || "").toLowerCase();
+    return !s.includes("complete") && !s.includes("paid") && !s.includes("reject");
+  }).length;
+
+  const highFindings = auditFindings.filter((f) => f.level === "High").length;
+  const mediumFindings = auditFindings.filter((f) => f.level === "Medium").length;
+
+  return {
+    totalVouchers: filteredVouchers.length,
+    totalVoucherValue,
+    paidVoucherValue,
+    pendingVoucherValue,
+    allocationTotal,
+    reservedTotal,
+    expenditureTotal,
+    balanceTotal,
+    officialRequests,
+    personalFundRequests,
+    personalNonFundRequests,
+    openRequests,
+    highFindings,
+    mediumFindings,
+  };
+}
+
 export default function FinanceAuditPage() {
   const router = useRouter();
 
-  const today = new Date();
-  const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+  const today = useMemo(() => new Date(), []);
+  const firstDay = useMemo(() => new Date(today.getFullYear(), today.getMonth(), 1), [today]);
 
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [printing, setPrinting] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
   const [me, setMe] = useState<ProfileMini | null>(null);
@@ -201,331 +474,145 @@ export default function FinanceAuditPage() {
   const [modeFilter, setModeFilter] = useState("ALL");
   const [riskFilter, setRiskFilter] = useState("ALL");
 
-  async function load() {
-    setLoading(true);
-    setMsg(null);
+  const load = useCallback(
+    async (options?: { silent?: boolean }) => {
+      if (options?.silent) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
 
-    const { data: auth } = await supabase.auth.getUser();
+      setMsg(null);
 
-    if (!auth.user) {
-      router.push("/login");
-      return;
-    }
+      const { data: auth } = await supabase.auth.getUser();
 
-    const { data: prof, error: profErr } = await supabase
-      .from("profiles")
-      .select("id,role")
-      .eq("id", auth.user.id)
-      .maybeSingle();
+      if (!auth.user) {
+        router.push("/login");
+        return null;
+      }
 
-    if (profErr || !prof) {
-      setMsg("Failed to load your profile: " + (profErr?.message || "Profile not found."));
+      const { data: prof, error: profErr } = await supabase
+        .from("profiles")
+        .select("id,role")
+        .eq("id", auth.user.id)
+        .maybeSingle();
+
+      if (profErr || !prof) {
+        setMsg("Failed to load your profile: " + (profErr?.message || "Profile not found."));
+        setLoading(false);
+        setRefreshing(false);
+        return null;
+      }
+
+      setMe(prof as ProfileMini);
+
+      const role = roleKey(prof.role);
+      if (!["admin", "auditor", "account", "accounts", "accountofficer"].includes(role)) {
+        setMsg(
+          "Access denied. Only Finance, Account, Auditor and Admin roles can access Audit & Reconciliation."
+        );
+        setVouchers([]);
+        setSubheads([]);
+        setRequests([]);
+        setLoading(false);
+        setRefreshing(false);
+
+        return {
+          vouchers: [] as VoucherRow[],
+          subheads: [] as SubheadRow[],
+          requests: [] as RequestRow[],
+        };
+      }
+
+      const [voucherRes, subheadRes, requestRes] = await Promise.all([
+        supabase.rpc("get_payment_vouchers"),
+        supabase
+          .from("subheads")
+          .select("id,code,name,approved_allocation,reserved_amount,expenditure,balance,is_active")
+          .order("code", { ascending: true }),
+        supabase
+          .from("requests")
+          .select("id,request_no,title,amount,status,current_stage,request_type,personal_category,created_at")
+          .order("created_at", { ascending: false })
+          .limit(300),
+      ]);
+
+      let freshVouchers: VoucherRow[] = [];
+      let freshSubheads: SubheadRow[] = [];
+      let freshRequests: RequestRow[] = [];
+
+      if (voucherRes.error) {
+        setMsg("Failed to load payment vouchers: " + voucherRes.error.message);
+        setVouchers([]);
+      } else {
+        freshVouchers = (voucherRes.data || []) as VoucherRow[];
+        setVouchers(freshVouchers);
+      }
+
+      if (subheadRes.error) {
+        setMsg("Failed to load subheads: " + subheadRes.error.message);
+        setSubheads([]);
+      } else {
+        freshSubheads = (subheadRes.data || []) as SubheadRow[];
+        setSubheads(freshSubheads);
+      }
+
+      if (requestRes.error) {
+        setMsg("Failed to load requests: " + requestRes.error.message);
+        setRequests([]);
+      } else {
+        freshRequests = (requestRes.data || []) as RequestRow[];
+        setRequests(freshRequests);
+      }
+
       setLoading(false);
-      return;
-    }
+      setRefreshing(false);
 
-    setMe(prof as ProfileMini);
-
-    const role = roleKey(prof.role);
-    if (!["admin", "auditor", "account", "accounts", "accountofficer"].includes(role)) {
-      setMsg("Access denied. Only Finance, Account, Auditor and Admin roles can access Audit & Reconciliation.");
-      setVouchers([]);
-      setSubheads([]);
-      setRequests([]);
-      setLoading(false);
-      return;
-    }
-
-    const [voucherRes, subheadRes, requestRes] = await Promise.all([
-      supabase.rpc("get_payment_vouchers"),
-      supabase
-        .from("subheads")
-        .select("id,code,name,approved_allocation,reserved_amount,expenditure,balance,is_active")
-        .order("code", { ascending: true }),
-      supabase
-        .from("requests")
-        .select("id,request_no,title,amount,status,current_stage,request_type,personal_category,created_at")
-        .order("created_at", { ascending: false })
-        .limit(300),
-    ]);
-
-    if (voucherRes.error) {
-      setMsg("Failed to load payment vouchers: " + voucherRes.error.message);
-      setVouchers([]);
-    } else {
-      setVouchers((voucherRes.data || []) as VoucherRow[]);
-    }
-
-    if (subheadRes.error) {
-      setMsg("Failed to load subheads: " + subheadRes.error.message);
-      setSubheads([]);
-    } else {
-      setSubheads((subheadRes.data || []) as SubheadRow[]);
-    }
-
-    if (requestRes.error) {
-      setMsg("Failed to load requests: " + requestRes.error.message);
-      setRequests([]);
-    } else {
-      setRequests((requestRes.data || []) as RequestRow[]);
-    }
-
-    setLoading(false);
-  }
+      return {
+        vouchers: freshVouchers,
+        subheads: freshSubheads,
+        requests: freshRequests,
+      };
+    },
+    [router]
+  );
 
   useEffect(() => {
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+
+    const refreshOnFocus = () => {
+      load({ silent: true });
+    };
+
+    const refreshOnVisible = () => {
+      if (document.visibilityState === "visible") {
+        load({ silent: true });
+      }
+    };
+
+    window.addEventListener("focus", refreshOnFocus);
+    document.addEventListener("visibilitychange", refreshOnVisible);
+
+    return () => {
+      window.removeEventListener("focus", refreshOnFocus);
+      document.removeEventListener("visibilitychange", refreshOnVisible);
+    };
+  }, [load]);
 
   const filteredVouchers = useMemo(() => {
-    const s = search.trim().toLowerCase();
-
-    return vouchers.filter((v) => {
-      if (!isWithinDateRange(v.created_at, fromDate, toDate)) return false;
-
-      if (statusFilter !== "ALL" && (v.status || "") !== statusFilter) return false;
-
-      if (modeFilter !== "ALL" && normalize(v.disbursement_mode) !== normalize(modeFilter)) {
-        return false;
-      }
-
-      if (s) {
-        const haystack = [
-          v.voucher_no,
-          v.request_no,
-          v.payee_name,
-          v.narration,
-          v.dept_name,
-          v.subhead_code,
-          v.subhead_name,
-          v.prepared_by_name,
-          v.checked_by_name,
-          v.authorized_by_name,
-          v.status,
-          v.disbursement_mode,
-          v.voucher_scope,
-          v.request_type,
-          v.personal_category,
-        ]
-          .join(" ")
-          .toLowerCase();
-
-        if (!haystack.includes(s)) return false;
-      }
-
-      return true;
-    });
+    return filterVouchers(vouchers, search, fromDate, toDate, statusFilter, modeFilter);
   }, [vouchers, search, fromDate, toDate, statusFilter, modeFilter]);
 
   const auditFindings = useMemo<AuditFinding[]>(() => {
-    const findings: AuditFinding[] = [];
-
-    const cancelled = filteredVouchers.filter((v) => (v.status || "") === "Cancelled");
-    const unpaidOld = filteredVouchers.filter((v) => {
-      const s = v.status || "";
-      return s !== "Paid" && s !== "Cancelled" && daysOld(v.created_at) >= 7;
-    });
-
-    const chequeAwaiting = filteredVouchers.filter((v) => {
-      const s = v.status || "";
-      return ["Cheque Prepared", "Cheque Signed", "Counter Signed"].includes(s);
-    });
-
-    const missingPayee = filteredVouchers.filter((v) => !(v.payee_name || "").trim());
-    const missingAmount = filteredVouchers.filter((v) => Number(v.total_amount || v.amount || 0) <= 0);
-
-    const overdrawnSubheads = subheads.filter((s) => Number(s.balance || 0) < 0);
-    const lowBalanceSubheads = subheads.filter((s) => {
-      const approved = Number(s.approved_allocation || 0);
-      const balance = Number(s.balance || 0);
-      if (approved <= 0) return false;
-      return balance >= 0 && balance / approved <= 0.1;
-    });
-
-    if (cancelled.length > 0) {
-      findings.push({
-        id: "cancelled",
-        title: "Cancelled Payment Vouchers",
-        description: "Cancelled vouchers should be reviewed to confirm why they were voided and whether linked requests were regenerated correctly.",
-        level: cancelled.length >= 5 ? "High" : "Medium",
-        count: cancelled.length,
-        action: "Review cancelled PVs and confirm no duplicate payment occurred.",
-      });
-    }
-
-    if (unpaidOld.length > 0) {
-      findings.push({
-        id: "old-pending",
-        title: "Pending Vouchers Older Than 7 Days",
-        description: "Vouchers that remain unpaid or unsigned for too long should be followed up.",
-        level: unpaidOld.length >= 5 ? "High" : "Medium",
-        count: unpaidOld.length,
-        action: "Follow up with Account, Cheque Signer or Counter Signer depending on stage.",
-      });
-    }
-
-    if (chequeAwaiting.length > 0) {
-      findings.push({
-        id: "cheque-workflow",
-        title: "Cheque Workflow Items Awaiting Completion",
-        description: "Cheque vouchers should pass through cheque signature, counter signature and final payment promptly.",
-        level: chequeAwaiting.length >= 5 ? "High" : "Medium",
-        count: chequeAwaiting.length,
-        action: "Check assigned signers and pending cheque approvals.",
-      });
-    }
-
-    if (missingPayee.length > 0) {
-      findings.push({
-        id: "missing-payee",
-        title: "Voucher Records Missing Payee",
-        description: "Every PV should have a clear payee name for accountability.",
-        level: "High",
-        count: missingPayee.length,
-        action: "Inspect PV generation data and correct affected records.",
-      });
-    }
-
-    if (missingAmount.length > 0) {
-      findings.push({
-        id: "missing-amount",
-        title: "Voucher Records With Zero or Invalid Amount",
-        description: "Every payment voucher must have a valid amount greater than zero.",
-        level: "High",
-        count: missingAmount.length,
-        action: "Investigate affected PVs before printing or payment.",
-      });
-    }
-
-    if (overdrawnSubheads.length > 0) {
-      findings.push({
-        id: "overdrawn-subheads",
-        title: "Overdrawn Subheads",
-        description: "One or more budget subheads have negative balances.",
-        level: "High",
-        count: overdrawnSubheads.length,
-        action: "Reconcile allocation, reserved amount, expenditure and payment postings.",
-      });
-    }
-
-    if (lowBalanceSubheads.length > 0) {
-      findings.push({
-        id: "low-balance-subheads",
-        title: "Low Balance Subheads",
-        description: "Some subheads have 10% or less of approved allocation remaining.",
-        level: "Medium",
-        count: lowBalanceSubheads.length,
-        action: "Review spending pressure before approving more requests.",
-      });
-    }
-
-    if (findings.length === 0) {
-      findings.push({
-        id: "clean",
-        title: "No Major Audit Exceptions Found",
-        description: "No critical exception was detected for the selected period.",
-        level: "Low",
-        count: 0,
-        action: "Continue routine monitoring.",
-      });
-    }
-
-    if (riskFilter === "ALL") return findings;
-    return findings.filter((f) => f.level === riskFilter);
+    return buildAuditFindings(filteredVouchers, subheads, riskFilter);
   }, [filteredVouchers, subheads, riskFilter]);
 
   const stats = useMemo(() => {
-    const activeVouchers = filteredVouchers.filter((v) => (v.status || "") !== "Cancelled");
-
-    const totalVoucherValue = activeVouchers.reduce(
-      (a, v) => a + Number(v.total_amount || v.amount || 0),
-      0
-    );
-
-    const paidVoucherValue = filteredVouchers
-      .filter((v) => (v.status || "") === "Paid")
-      .reduce((a, v) => a + Number(v.total_amount || v.amount || 0), 0);
-
-    const pendingVoucherValue = filteredVouchers
-      .filter((v) => {
-        const s = v.status || "";
-        return s !== "Paid" && s !== "Cancelled";
-      })
-      .reduce((a, v) => a + Number(v.total_amount || v.amount || 0), 0);
-
-    const allocationTotal = subheads.reduce((a, s) => a + Number(s.approved_allocation || 0), 0);
-    const reservedTotal = subheads.reduce((a, s) => a + Number(s.reserved_amount || 0), 0);
-    const expenditureTotal = subheads.reduce((a, s) => a + Number(s.expenditure || 0), 0);
-    const balanceTotal = subheads.reduce((a, s) => a + Number(s.balance || 0), 0);
-
-    const officialRequests = requests.filter((r) => categoryKey(r) === "official").length;
-    const personalFundRequests = requests.filter((r) => categoryKey(r) === "personalfund").length;
-    const personalNonFundRequests = requests.filter((r) => categoryKey(r) === "personalnonfund").length;
-
-    const openRequests = requests.filter((r) => {
-      const s = (r.status || "").toLowerCase();
-      return !s.includes("complete") && !s.includes("paid") && !s.includes("reject");
-    }).length;
-
-    const highFindings = auditFindings.filter((f) => f.level === "High").length;
-    const mediumFindings = auditFindings.filter((f) => f.level === "Medium").length;
-
-    return {
-      totalVouchers: filteredVouchers.length,
-      totalVoucherValue,
-      paidVoucherValue,
-      pendingVoucherValue,
-      allocationTotal,
-      reservedTotal,
-      expenditureTotal,
-      balanceTotal,
-      officialRequests,
-      personalFundRequests,
-      personalNonFundRequests,
-      openRequests,
-      highFindings,
-      mediumFindings,
-    };
+    return buildStats(filteredVouchers, subheads, requests, auditFindings);
   }, [filteredVouchers, subheads, requests, auditFindings]);
 
   const subheadExceptions = useMemo<SubheadException[]>(() => {
-    return subheads
-      .map((s) => {
-        const approved = Number(s.approved_allocation || 0);
-        const reserved = Number(s.reserved_amount || 0);
-        const expenditure = Number(s.expenditure || 0);
-        const balance = Number(s.balance || 0);
-
-        let risk: "Low" | "Medium" | "High" = "Low";
-        let note = "Healthy";
-
-        if (balance < 0) {
-          risk = "High";
-          note = "Negative balance";
-        } else if (approved > 0 && balance / approved <= 0.1) {
-          risk = "Medium";
-          note = "Low balance";
-        } else if (reserved > balance && balance > 0) {
-          risk = "Medium";
-          note = "Reserved amount is high against balance";
-        }
-
-        return {
-          ...s,
-          approved,
-          reserved,
-          expenditure,
-          balance,
-          risk,
-          note,
-        };
-      })
-      .filter((s) => s.risk !== "Low")
-      .sort((a, b) => {
-        if (a.risk === b.risk) return a.name.localeCompare(b.name);
-        return a.risk === "High" ? -1 : 1;
-      });
+    return buildSubheadExceptions(subheads);
   }, [subheads]);
 
   const pendingVouchers = useMemo(() => {
@@ -547,11 +634,38 @@ export default function FinanceAuditPage() {
     setRiskFilter("ALL");
   }
 
-  function printAuditReport() {
-    printReport();
+  async function printAuditReport() {
+    setPrinting(true);
+    await load({ silent: true });
+
+    setTimeout(() => {
+      printReport();
+      setPrinting(false);
+    }, 250);
   }
 
-  function exportAuditExcel() {
+  async function exportAuditExcel() {
+    setExporting(true);
+
+    const fresh = await load({ silent: true });
+
+    const exportVouchers = fresh?.vouchers || vouchers;
+    const exportSubheads = fresh?.subheads || subheads;
+    const exportRequests = fresh?.requests || requests;
+
+    const exportFilteredVouchers = filterVouchers(
+      exportVouchers,
+      search,
+      fromDate,
+      toDate,
+      statusFilter,
+      modeFilter
+    );
+
+    const exportFindings = buildAuditFindings(exportFilteredVouchers, exportSubheads, riskFilter);
+    const exportStats = buildStats(exportFilteredVouchers, exportSubheads, exportRequests, exportFindings);
+    const exportSubheadExceptions = buildSubheadExceptions(exportSubheads);
+
     type AuditExportRow = {
       section: string;
       sn: number | string;
@@ -573,7 +687,7 @@ export default function FinanceAuditPage() {
         description: "Total active voucher value excluding cancelled vouchers",
         category: "Finance",
         status: "Summary",
-        amount: plainAmount(stats.totalVoucherValue),
+        amount: plainAmount(exportStats.totalVoucherValue),
         risk: "",
         action: "",
         date: "",
@@ -585,7 +699,7 @@ export default function FinanceAuditPage() {
         description: "Total value of paid vouchers",
         category: "Finance",
         status: "Summary",
-        amount: plainAmount(stats.paidVoucherValue),
+        amount: plainAmount(exportStats.paidVoucherValue),
         risk: "",
         action: "",
         date: "",
@@ -597,7 +711,7 @@ export default function FinanceAuditPage() {
         description: "Total value of vouchers not paid and not cancelled",
         category: "Finance",
         status: "Summary",
-        amount: plainAmount(stats.pendingVoucherValue),
+        amount: plainAmount(exportStats.pendingVoucherValue),
         risk: "",
         action: "",
         date: "",
@@ -609,7 +723,7 @@ export default function FinanceAuditPage() {
         description: "Total approved allocation across subheads",
         category: "Subheads",
         status: "Summary",
-        amount: plainAmount(stats.allocationTotal),
+        amount: plainAmount(exportStats.allocationTotal),
         risk: "",
         action: "",
         date: "",
@@ -621,14 +735,14 @@ export default function FinanceAuditPage() {
         description: "Total subhead balance",
         category: "Subheads",
         status: "Summary",
-        amount: plainAmount(stats.balanceTotal),
+        amount: plainAmount(exportStats.balanceTotal),
         risk: "",
         action: "",
         date: "",
       },
     ];
 
-    const findingRows: AuditExportRow[] = auditFindings.map((f, index) => ({
+    const findingRows: AuditExportRow[] = exportFindings.map((f, index) => ({
       section: "Audit Finding",
       sn: index + 1,
       reference: f.title,
@@ -641,7 +755,7 @@ export default function FinanceAuditPage() {
       date: "",
     }));
 
-    const subheadRows: AuditExportRow[] = subheadExceptions.map((s, index) => ({
+    const subheadRows: AuditExportRow[] = exportSubheadExceptions.map((s, index) => ({
       section: "Subhead Exception",
       sn: index + 1,
       reference: `${s.code || ""} ${s.name}`.trim(),
@@ -656,7 +770,7 @@ export default function FinanceAuditPage() {
       date: "",
     }));
 
-    const voucherRows: AuditExportRow[] = filteredVouchers.map((v, index) => ({
+    const voucherRows: AuditExportRow[] = exportFilteredVouchers.map((v, index) => ({
       section: "Voucher Register",
       sn: index + 1,
       reference: v.voucher_no,
@@ -684,10 +798,10 @@ export default function FinanceAuditPage() {
       sheetName: "Audit Report",
       title: "AUDIT AND RECONCILIATION REPORT",
       subtitle: `Period: ${fromDate || "Beginning"} to ${toDate || "Today"} | Total PVs: ${
-        stats.totalVouchers
-      } | Voucher Value: ${naira(stats.totalVoucherValue)} | Alerts: ${
-        stats.highFindings
-      } High / ${stats.mediumFindings} Medium`,
+        exportStats.totalVouchers
+      } | Voucher Value: ${naira(exportStats.totalVoucherValue)} | Alerts: ${
+        exportStats.highFindings
+      } High / ${exportStats.mediumFindings} Medium`,
       rows,
       columns: [
         { header: "Section", value: (row) => row.section },
@@ -709,13 +823,40 @@ export default function FinanceAuditPage() {
           "Excludes cancelled vouchers",
           "",
           "",
-          plainAmount(stats.totalVoucherValue),
+          plainAmount(exportStats.totalVoucherValue),
           "",
           "",
           "",
         ],
       ],
     });
+
+    setExporting(false);
+  }
+
+  function openVoucher(voucherId: string) {
+    router.push(`/payment-vouchers/${voucherId}?updated=${Date.now()}`);
+    router.refresh();
+  }
+
+  function printVoucher(voucherId: string) {
+    router.push(`/payment-vouchers/${voucherId}/print?updated=${Date.now()}`);
+    router.refresh();
+  }
+
+  function openPvReports() {
+    router.push(`/payment-vouchers/reports?updated=${Date.now()}`);
+    router.refresh();
+  }
+
+  function openSubheads() {
+    router.push(`/finance/subheads?updated=${Date.now()}`);
+    router.refresh();
+  }
+
+  function goDashboard() {
+    router.push(`/dashboard?updated=${Date.now()}`);
+    router.refresh();
   }
 
   if (loading) {
@@ -742,7 +883,7 @@ export default function FinanceAuditPage() {
             </div>
 
             <button
-              onClick={() => router.push("/dashboard")}
+              onClick={goDashboard}
               className="mt-5 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
             >
               Back to Dashboard
@@ -818,36 +959,41 @@ export default function FinanceAuditPage() {
 
           <div className="no-print flex flex-wrap gap-2">
             <button
-              onClick={load}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-100"
+              onClick={() => load({ silent: true })}
+              disabled={refreshing || printing || exporting}
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-100 disabled:opacity-60"
             >
-              Refresh
+              {refreshing ? "Refreshing..." : "Refresh"}
             </button>
 
             <button
               onClick={printAuditReport}
-              className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700"
+              disabled={refreshing || printing || exporting}
+              className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:opacity-60"
             >
-              Print / Save PDF
+              {printing ? "Preparing..." : "Print / Save PDF"}
             </button>
 
             <button
               onClick={exportAuditExcel}
-              className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700"
+              disabled={refreshing || printing || exporting}
+              className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 disabled:opacity-60"
             >
-              Export Excel
+              {exporting ? "Exporting..." : "Export Excel"}
             </button>
 
             <button
-              onClick={() => router.push("/payment-vouchers/reports")}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-100"
+              onClick={openPvReports}
+              disabled={refreshing || printing || exporting}
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-100 disabled:opacity-60"
             >
               PV Reports
             </button>
 
             <button
-              onClick={() => router.push("/finance/subheads")}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-100"
+              onClick={openSubheads}
+              disabled={refreshing || printing || exporting}
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-100 disabled:opacity-60"
             >
               Subheads
             </button>
@@ -859,6 +1005,10 @@ export default function FinanceAuditPage() {
             {msg}
           </div>
         )}
+
+        <div className="no-print mt-4 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-xs font-semibold text-blue-900">
+          This audit page refreshes automatically when you return to it. Print and Excel export also reload fresh reconciliation data first.
+        </div>
 
         {!canSensitiveAudit && (
           <div className="mt-4 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
@@ -987,10 +1137,17 @@ export default function FinanceAuditPage() {
 
           <div className="grid gap-4 p-5 md:grid-cols-2 xl:grid-cols-3 print:grid-cols-3 print:p-2">
             {auditFindings.map((f) => (
-              <div key={f.id} className="print-card rounded-3xl border bg-white p-5 shadow-sm print:rounded-none print:border-black print:p-2 print:shadow-none">
+              <div
+                key={f.id}
+                className="print-card rounded-3xl border bg-white p-5 shadow-sm print:rounded-none print:border-black print:p-2 print:shadow-none"
+              >
                 <div className="flex items-start justify-between gap-3">
                   <div className="font-extrabold text-slate-900 print:text-[10px]">{f.title}</div>
-                  <span className={`shrink-0 rounded-full border px-3 py-1 text-xs font-bold print:p-0 print:text-[9px] ${riskBadgeClass(f.level)}`}>
+                  <span
+                    className={`shrink-0 rounded-full border px-3 py-1 text-xs font-bold print:p-0 print:text-[9px] ${riskBadgeClass(
+                      f.level
+                    )}`}
+                  >
                     {f.level}
                   </span>
                 </div>
@@ -1033,7 +1190,11 @@ export default function FinanceAuditPage() {
                       </div>
 
                       <div className="flex flex-col items-end gap-1">
-                        <span className={`rounded-full border px-3 py-1 text-xs font-bold print:border-0 print:p-0 print:text-[8px] ${statusBadgeClass(v.status)}`}>
+                        <span
+                          className={`rounded-full border px-3 py-1 text-xs font-bold print:border-0 print:p-0 print:text-[8px] ${statusBadgeClass(
+                            v.status
+                          )}`}
+                        >
                           {v.status || "—"}
                         </span>
                         <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-700 print:border-0 print:bg-white print:p-0 print:text-[8px]">
@@ -1051,14 +1212,14 @@ export default function FinanceAuditPage() {
 
                     <div className="no-print mt-3 flex justify-end gap-2">
                       <button
-                        onClick={() => router.push(`/payment-vouchers/${v.id}`)}
+                        onClick={() => openVoucher(v.id)}
                         className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-900 hover:bg-slate-100"
                       >
                         View
                       </button>
 
                       <button
-                        onClick={() => router.push(`/payment-vouchers/${v.id}/print`)}
+                        onClick={() => printVoucher(v.id)}
                         className="rounded-xl bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-700"
                       >
                         Print
@@ -1095,7 +1256,11 @@ export default function FinanceAuditPage() {
                         </div>
                       </div>
 
-                      <span className={`rounded-full border px-3 py-1 text-xs font-bold print:border-0 print:p-0 print:text-[8px] ${riskBadgeClass(s.risk)}`}>
+                      <span
+                        className={`rounded-full border px-3 py-1 text-xs font-bold print:border-0 print:p-0 print:text-[8px] ${riskBadgeClass(
+                          s.risk
+                        )}`}
+                      >
                         {s.risk}
                       </span>
                     </div>
@@ -1109,7 +1274,7 @@ export default function FinanceAuditPage() {
 
                     <div className="no-print mt-3 flex justify-end">
                       <button
-                        onClick={() => router.push("/finance/subheads")}
+                        onClick={openSubheads}
                         className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-900 hover:bg-slate-100"
                       >
                         Open Subheads
@@ -1167,7 +1332,11 @@ export default function FinanceAuditPage() {
                     <div className="col-span-2 text-slate-700">{v.dept_name || "—"}</div>
 
                     <div className="col-span-1">
-                      <span className={`rounded-full border px-2 py-1 text-[11px] font-bold print:border-0 print:p-0 print:text-[8px] ${categoryBadgeClass(v)}`}>
+                      <span
+                        className={`rounded-full border px-2 py-1 text-[11px] font-bold print:border-0 print:p-0 print:text-[8px] ${categoryBadgeClass(
+                          v
+                        )}`}
+                      >
                         {categoryLabel(v)}
                       </span>
                     </div>
@@ -1181,7 +1350,11 @@ export default function FinanceAuditPage() {
                     </div>
 
                     <div className="col-span-1">
-                      <span className={`rounded-full border px-2 py-1 text-[11px] font-bold print:border-0 print:p-0 print:text-[8px] ${statusBadgeClass(v.status)}`}>
+                      <span
+                        className={`rounded-full border px-2 py-1 text-[11px] font-bold print:border-0 print:p-0 print:text-[8px] ${statusBadgeClass(
+                          v.status
+                        )}`}
+                      >
                         {v.status || "—"}
                       </span>
                     </div>
@@ -1196,14 +1369,14 @@ export default function FinanceAuditPage() {
 
                     <div className="col-span-3 flex justify-end gap-2 no-print">
                       <button
-                        onClick={() => router.push(`/payment-vouchers/${v.id}`)}
+                        onClick={() => openVoucher(v.id)}
                         className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-900 hover:bg-slate-100"
                       >
                         View
                       </button>
 
                       <button
-                        onClick={() => router.push(`/payment-vouchers/${v.id}/print`)}
+                        onClick={() => printVoucher(v.id)}
                         className="rounded-xl bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-700"
                       >
                         Print
