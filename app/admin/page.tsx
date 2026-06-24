@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -25,11 +25,7 @@ type SettingRow = {
   value: string | null;
 };
 
-const GLOBAL_KEYS = [
-  "REGISTRY_USER_ID",
-  "DG_USER_ID",
-  "HR_USER_ID",
-] as const;
+const GLOBAL_KEYS = ["REGISTRY_USER_ID", "DG_USER_ID", "HR_USER_ID"] as const;
 
 const ROLE_OPTIONS = [
   "Staff",
@@ -43,7 +39,7 @@ const ROLE_OPTIONS = [
   "HOD",
 ];
 
-function roleKey(role: string) {
+function roleKey(role: string | null | undefined) {
   return (role || "")
     .trim()
     .toLowerCase()
@@ -65,11 +61,38 @@ function requiresSignature(role: string) {
   ].includes(rk);
 }
 
+function officerLabel(key: string) {
+  if (key === "REGISTRY_USER_ID") return "Registry Officer";
+  if (key === "DG_USER_ID") return "Director General";
+  if (key === "HR_USER_ID") return "HR Officer";
+  return key;
+}
+
+function roleBadgeClass(role: string | null | undefined) {
+  const rk = roleKey(role);
+
+  if (rk === "admin") return "border-red-200 bg-red-50 text-red-700";
+  if (rk === "auditor") return "border-purple-200 bg-purple-50 text-purple-700";
+  if (["account", "accounts", "accountofficer"].includes(rk)) {
+    return "border-emerald-200 bg-emerald-50 text-emerald-700";
+  }
+  if (["director", "hod", "dg"].includes(rk)) {
+    return "border-blue-200 bg-blue-50 text-blue-700";
+  }
+  if (["hr", "registry"].includes(rk)) {
+    return "border-amber-200 bg-amber-50 text-amber-700";
+  }
+
+  return "border-slate-200 bg-slate-50 text-slate-700";
+}
+
 export default function AdminPage() {
   const router = useRouter();
 
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [savingTarget, setSavingTarget] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
 
   const [meEmail, setMeEmail] = useState("");
@@ -88,86 +111,144 @@ export default function AdminPage() {
     return m;
   }, [users]);
 
-  async function loadAll() {
-    setLoading(true);
-    setMsg(null);
+  const signatureReadyUsers = useMemo(() => {
+    return users.filter((u) => !!u.signature_url);
+  }, [users]);
 
-    const { data: authData, error: authErr } = await supabase.auth.getUser();
-    if (authErr) {
-      setMsg("Auth error: " + authErr.message);
-      setLoading(false);
-      return;
-    }
+  const stats = useMemo(() => {
+    const totalUsers = users.length;
+    const signatureReadyCount = users.filter((u) => !!u.signature_url).length;
+    const needsSignature = Math.max(totalUsers - signatureReadyCount, 0);
+    const departments = depts.length;
+    const activeDepartments = depts.filter((d) => d.is_active !== false).length;
+    const routedDepartments = depts.filter((d) => d.hod_user_id || d.director_user_id).length;
 
-    const user = authData.user;
-    if (!user) {
-      router.push("/login");
-      return;
-    }
+    return {
+      totalUsers,
+      signatureReadyCount,
+      needsSignature,
+      departments,
+      activeDepartments,
+      routedDepartments,
+    };
+  }, [users, depts]);
 
-    setMeEmail(user.email || "");
+  const loadAll = useCallback(
+    async (options?: { silent?: boolean }) => {
+      if (options?.silent) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
 
-    const { data: me, error: meErr } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .single();
+      setMsg(null);
 
-    if (meErr) {
-      setMsg("Failed to verify admin: " + meErr.message);
-      setLoading(false);
-      return;
-    }
+      const { data: authData, error: authErr } = await supabase.auth.getUser();
 
-    const role = (me?.role || "Staff") as string;
-    setMeRole(role);
+      if (authErr) {
+        setMsg("Auth error: " + authErr.message);
+        setLoading(false);
+        setRefreshing(false);
+        return;
+      }
 
-    if (roleKey(role) !== "admin") {
-      router.push("/dashboard");
-      return;
-    }
+      const user = authData.user;
 
-    const [usersRes, deptsRes, settingsRes] = await Promise.all([
-      supabase
+      if (!user) {
+        router.push("/login");
+        return;
+      }
+
+      setMeEmail(user.email || "");
+
+      const { data: me, error: meErr } = await supabase
         .from("profiles")
-        .select("id,email,full_name,role,signature_url")
-        .order("full_name", { ascending: true }),
+        .select("role")
+        .eq("id", user.id)
+        .single();
 
-      supabase
-        .from("departments")
-        .select("id,name,hod_user_id,director_user_id,is_active")
-        .order("name", { ascending: true }),
+      if (meErr) {
+        setMsg("Failed to verify admin: " + meErr.message);
+        setLoading(false);
+        setRefreshing(false);
+        return;
+      }
 
-      supabase.from("app_settings").select("key,value"),
-    ]);
+      const role = (me?.role || "Staff") as string;
+      setMeRole(role);
 
-    if (usersRes.error) {
-      setMsg("Failed to load users: " + usersRes.error.message);
-    } else {
-      setUsers((usersRes.data || []) as UserRow[]);
-    }
+      if (roleKey(role) !== "admin") {
+        router.push(`/dashboard?updated=${Date.now()}`);
+        router.refresh();
+        return;
+      }
 
-    if (deptsRes.error) {
-      setMsg("Failed to load departments: " + deptsRes.error.message);
-    } else {
-      setDepts((deptsRes.data || []) as DeptRow[]);
-    }
+      const [usersRes, deptsRes, settingsRes] = await Promise.all([
+        supabase
+          .from("profiles")
+          .select("id,email,full_name,role,signature_url")
+          .order("full_name", { ascending: true }),
 
-    if (!settingsRes.error && settingsRes.data) {
-      const map: Record<string, string> = {};
-      (settingsRes.data as SettingRow[]).forEach((r) => {
-        map[r.key] = r.value || "";
-      });
-      setSettings(map);
-    }
+        supabase
+          .from("departments")
+          .select("id,name,hod_user_id,director_user_id,is_active")
+          .order("name", { ascending: true }),
 
-    setLoading(false);
-  }
+        supabase.from("app_settings").select("key,value"),
+      ]);
+
+      if (usersRes.error) {
+        setMsg("Failed to load users: " + usersRes.error.message);
+        setUsers([]);
+      } else {
+        setUsers((usersRes.data || []) as UserRow[]);
+      }
+
+      if (deptsRes.error) {
+        setMsg("Failed to load departments: " + deptsRes.error.message);
+        setDepts([]);
+      } else {
+        setDepts((deptsRes.data || []) as DeptRow[]);
+      }
+
+      if (settingsRes.error) {
+        setMsg("Failed to load app settings: " + settingsRes.error.message);
+        setSettings({});
+      } else {
+        const map: Record<string, string> = {};
+        ((settingsRes.data || []) as SettingRow[]).forEach((r) => {
+          map[r.key] = r.value || "";
+        });
+        setSettings(map);
+      }
+
+      setLoading(false);
+      setRefreshing(false);
+    },
+    [router]
+  );
 
   useEffect(() => {
     loadAll();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+
+    const refreshOnFocus = () => {
+      loadAll({ silent: true });
+    };
+
+    const refreshOnVisible = () => {
+      if (document.visibilityState === "visible") {
+        loadAll({ silent: true });
+      }
+    };
+
+    window.addEventListener("focus", refreshOnFocus);
+    document.addEventListener("visibilitychange", refreshOnVisible);
+
+    return () => {
+      window.removeEventListener("focus", refreshOnFocus);
+      document.removeEventListener("visibilitychange", refreshOnVisible);
+    };
+  }, [loadAll]);
 
   useEffect(() => {
     if (!selectedUserId) return;
@@ -184,6 +265,7 @@ export default function AdminPage() {
     }
 
     const user = usersById.get(selectedUserId);
+
     if (!user) {
       setMsg("❌ Selected user not found.");
       return;
@@ -195,6 +277,8 @@ export default function AdminPage() {
     }
 
     setSaving(true);
+    setSavingTarget("role");
+
     try {
       const { error } = await supabase
         .from("profiles")
@@ -204,11 +288,13 @@ export default function AdminPage() {
       if (error) throw new Error(error.message);
 
       setMsg("✅ User role updated successfully.");
-      await loadAll();
+      await loadAll({ silent: true });
+      router.refresh();
     } catch (e: any) {
       setMsg("❌ Role update failed: " + (e?.message || "Unknown error"));
     } finally {
       setSaving(false);
+      setSavingTarget(null);
     }
   }
 
@@ -217,6 +303,7 @@ export default function AdminPage() {
 
     if (hodId) {
       const hodUser = usersById.get(hodId);
+
       if (hodUser && !hodUser.signature_url) {
         setMsg("❌ HOD must have a signature before assignment.");
         return;
@@ -225,6 +312,7 @@ export default function AdminPage() {
 
     if (directorId) {
       const directorUser = usersById.get(directorId);
+
       if (directorUser && !directorUser.signature_url) {
         setMsg("❌ Director must have a signature before assignment.");
         return;
@@ -232,6 +320,8 @@ export default function AdminPage() {
     }
 
     setSaving(true);
+    setSavingTarget(`dept-${deptId}`);
+
     try {
       const { error } = await supabase
         .from("departments")
@@ -244,11 +334,13 @@ export default function AdminPage() {
       if (error) throw new Error(error.message);
 
       setMsg("✅ Department routing saved.");
-      await loadAll();
+      await loadAll({ silent: true });
+      router.refresh();
     } catch (e: any) {
       setMsg("❌ Department save failed: " + (e?.message || "Unknown error"));
     } finally {
       setSaving(false);
+      setSavingTarget(null);
     }
   }
 
@@ -261,6 +353,7 @@ export default function AdminPage() {
     }
 
     const user = usersById.get(value);
+
     if (!user) {
       setMsg("❌ Selected user not found.");
       return;
@@ -272,24 +365,39 @@ export default function AdminPage() {
     }
 
     setSaving(true);
+    setSavingTarget(key);
+
     try {
-      const { error } = await supabase
-        .from("app_settings")
-        .upsert({ key, value });
+      const { error } = await supabase.from("app_settings").upsert({ key, value });
 
       if (error) throw new Error(error.message);
 
       setMsg("✅ Global officer saved.");
-      await loadAll();
+      await loadAll({ silent: true });
+      router.refresh();
     } catch (e: any) {
       setMsg("❌ Global officer save failed: " + (e?.message || "Unknown error"));
     } finally {
       setSaving(false);
+      setSavingTarget(null);
     }
   }
 
-  const signatureReadyCount = users.filter((u) => !!u.signature_url).length;
-  const totalUsers = users.length;
+  function goDashboard() {
+    router.push(`/dashboard?updated=${Date.now()}`);
+    router.refresh();
+  }
+
+  function goUsersRoles() {
+    router.push(`/admin/users?updated=${Date.now()}`);
+    router.refresh();
+  }
+
+  function officerName(id: string | null | undefined) {
+    if (!id) return "Not assigned";
+    const u = usersById.get(id);
+    return u?.full_name || u?.email || "Unknown user";
+  }
 
   if (loading) {
     return (
@@ -313,34 +421,69 @@ export default function AdminPage() {
             </p>
           </div>
 
-          <button
-            onClick={() => router.push("/dashboard")}
-            className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
-          >
-            Back
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => loadAll({ silent: true })}
+              disabled={refreshing || saving}
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
+            >
+              {refreshing ? "Refreshing..." : "Refresh"}
+            </button>
+
+            <button
+              onClick={goUsersRoles}
+              disabled={refreshing || saving}
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
+            >
+              Users & Roles
+            </button>
+
+            <button
+              onClick={goDashboard}
+              disabled={refreshing || saving}
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
+            >
+              Back
+            </button>
+          </div>
         </div>
 
         {msg && (
-          <div className="mt-4 rounded-xl bg-slate-100 px-3 py-2 text-sm text-slate-800">
+          <div className="mt-4 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-800 shadow-sm">
             {msg}
           </div>
         )}
 
-        <div className="mt-6 grid gap-4 md:grid-cols-3">
-          <StatCard title="Total Users" value={String(totalUsers)} />
-          <StatCard title="Signature Ready" value={String(signatureReadyCount)} />
-          <StatCard
-            title="Needs Signature"
-            value={String(Math.max(totalUsers - signatureReadyCount, 0))}
-          />
+        <div className="mt-4 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-xs font-semibold text-blue-900">
+          This Admin Panel refreshes automatically when you return to it. Role, routing and global officer changes are reloaded immediately.
+        </div>
+
+        <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-6">
+          <StatCard title="Total Users" value={String(stats.totalUsers)} tone="blue" />
+          <StatCard title="Signature Ready" value={String(stats.signatureReadyCount)} tone="emerald" />
+          <StatCard title="Needs Signature" value={String(stats.needsSignature)} tone="amber" />
+          <StatCard title="Departments" value={String(stats.departments)} tone="slate" />
+          <StatCard title="Active Depts" value={String(stats.activeDepartments)} tone="blue" />
+          <StatCard title="Routed Depts" value={String(stats.routedDepartments)} tone="purple" />
         </div>
 
         <div className="mt-6 rounded-2xl border bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-bold text-slate-900">Quick Role Assignment</h2>
-          <p className="mt-1 text-sm text-slate-600">
-            Critical workflow roles require signature readiness before assignment.
-          </p>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-bold text-slate-900">Quick Role Assignment</h2>
+              <p className="mt-1 text-sm text-slate-600">
+                Critical workflow roles require signature readiness before assignment.
+              </p>
+            </div>
+
+            <button
+              onClick={goUsersRoles}
+              disabled={saving || refreshing}
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
+            >
+              Advanced Users Page
+            </button>
+          </div>
 
           <div className="mt-4 grid gap-4 md:grid-cols-3">
             <div className="md:col-span-2">
@@ -348,7 +491,8 @@ export default function AdminPage() {
               <select
                 value={selectedUserId}
                 onChange={(e) => setSelectedUserId(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900"
+                disabled={saving}
+                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 disabled:bg-slate-50"
               >
                 <option value="">-- Select user --</option>
                 {users.map((u) => (
@@ -366,7 +510,8 @@ export default function AdminPage() {
               <select
                 value={selectedRole}
                 onChange={(e) => setSelectedRole(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900"
+                disabled={saving}
+                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 disabled:bg-slate-50"
               >
                 {ROLE_OPTIONS.map((r) => (
                   <option key={r} value={r}>
@@ -374,6 +519,14 @@ export default function AdminPage() {
                   </option>
                 ))}
               </select>
+
+              <span
+                className={`mt-2 inline-flex rounded-full border px-3 py-1 text-xs font-bold ${roleBadgeClass(
+                  selectedRole
+                )}`}
+              >
+                {selectedRole}
+              </span>
             </div>
           </div>
 
@@ -382,7 +535,7 @@ export default function AdminPage() {
             disabled={saving}
             className="mt-4 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
           >
-            {saving ? "Saving..." : "Save Role"}
+            {savingTarget === "role" ? "Saving Role..." : "Save Role"}
           </button>
         </div>
 
@@ -392,36 +545,40 @@ export default function AdminPage() {
             Registry, DG and HR must always be assigned to signature-ready users.
           </p>
 
-          {GLOBAL_KEYS.map((k) => (
-            <div key={k} className="mt-4">
-              <div className="text-sm font-semibold text-slate-800">{k}</div>
+          <div className="mt-4 grid gap-4 md:grid-cols-3">
+            {GLOBAL_KEYS.map((k) => (
+              <div key={k} className="rounded-2xl border border-slate-200 p-4">
+                <div className="text-sm font-bold text-slate-900">{officerLabel(k)}</div>
+                <div className="mt-1 text-xs text-slate-500">
+                  Current: {officerName(settings[k])}
+                </div>
 
-              <div className="mt-2 flex flex-col gap-2 md:flex-row">
-                <select
-                  value={settings[k] || ""}
-                  onChange={(e) => setSettings((s) => ({ ...s, [k]: e.target.value }))}
-                  className="w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900"
-                >
-                  <option value="">-- Select user --</option>
-                  {users
-                    .filter((u) => !!u.signature_url)
-                    .map((u) => (
+                <div className="mt-3 flex flex-col gap-2">
+                  <select
+                    value={settings[k] || ""}
+                    onChange={(e) => setSettings((s) => ({ ...s, [k]: e.target.value }))}
+                    disabled={saving}
+                    className="w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 disabled:bg-slate-50"
+                  >
+                    <option value="">-- Select user --</option>
+                    {signatureReadyUsers.map((u) => (
                       <option key={u.id} value={u.id}>
                         {u.full_name || u.email || u.id}
                       </option>
                     ))}
-                </select>
+                  </select>
 
-                <button
-                  onClick={() => saveSetting(k, settings[k] || "")}
-                  disabled={saving}
-                  className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
-                >
-                  Save
-                </button>
+                  <button
+                    onClick={() => saveSetting(k, settings[k] || "")}
+                    disabled={saving}
+                    className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
+                  >
+                    {savingTarget === k ? "Saving..." : "Save"}
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
 
         <div className="mt-6 rounded-2xl border bg-white p-6 shadow-sm">
@@ -431,72 +588,94 @@ export default function AdminPage() {
             If no Director is assigned, request starts at HOD.
           </p>
 
-          <div className="mt-4 space-y-4">
-            {depts.map((d) => (
-              <div key={d.id} className="rounded-2xl border border-slate-200 p-5">
-                <div className="font-bold text-slate-900">{d.name}</div>
-
-                <div className="mt-4 grid gap-4 md:grid-cols-2">
-                  <div>
-                    <label className="text-sm font-semibold text-slate-800">Director</label>
-                    <select
-                      value={d.director_user_id || ""}
-                      onChange={(e) =>
-                        setDepts((prev) =>
-                          prev.map((x) =>
-                            x.id === d.id
-                              ? { ...x, director_user_id: e.target.value || null }
-                              : x
-                          )
-                        )
-                      }
-                      className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900"
-                    >
-                      <option value="">-- None --</option>
-                      {users
-                        .filter((u) => !!u.signature_url)
-                        .map((u) => (
-                          <option key={u.id} value={u.id}>
-                            {u.full_name || u.email || u.id}
-                          </option>
-                        ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-semibold text-slate-800">HOD</label>
-                    <select
-                      value={d.hod_user_id || ""}
-                      onChange={(e) =>
-                        setDepts((prev) =>
-                          prev.map((x) =>
-                            x.id === d.id ? { ...x, hod_user_id: e.target.value || null } : x
-                          )
-                        )
-                      }
-                      className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900"
-                    >
-                      <option value="">-- None --</option>
-                      {users
-                        .filter((u) => !!u.signature_url)
-                        .map((u) => (
-                          <option key={u.id} value={u.id}>
-                            {u.full_name || u.email || u.id}
-                          </option>
-                        ))}
-                    </select>
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => saveDept(d.id, d.hod_user_id, d.director_user_id)}
-                  disabled={saving}
-                  className="mt-4 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
-                >
-                  Save Department Routing
-                </button>
+          <div className="mt-4 grid gap-4">
+            {depts.length === 0 ? (
+              <div className="rounded-2xl border border-slate-200 p-5 text-sm text-slate-600">
+                No departments found.
               </div>
-            ))}
+            ) : (
+              depts.map((d) => (
+                <div key={d.id} className="rounded-2xl border border-slate-200 p-5">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div>
+                      <div className="font-bold text-slate-900">{d.name}</div>
+                      <div className="mt-1 text-xs text-slate-500">
+                        Director: {officerName(d.director_user_id)} • HOD:{" "}
+                        {officerName(d.hod_user_id)}
+                      </div>
+                    </div>
+
+                    <span
+                      className={`rounded-full border px-3 py-1 text-xs font-bold ${
+                        d.is_active === false
+                          ? "border-red-200 bg-red-50 text-red-700"
+                          : "border-emerald-200 bg-emerald-50 text-emerald-700"
+                      }`}
+                    >
+                      {d.is_active === false ? "Inactive" : "Active"}
+                    </span>
+                  </div>
+
+                  <div className="mt-4 grid gap-4 md:grid-cols-2">
+                    <div>
+                      <label className="text-sm font-semibold text-slate-800">Director</label>
+                      <select
+                        value={d.director_user_id || ""}
+                        disabled={saving}
+                        onChange={(e) =>
+                          setDepts((prev) =>
+                            prev.map((x) =>
+                              x.id === d.id
+                                ? { ...x, director_user_id: e.target.value || null }
+                                : x
+                            )
+                          )
+                        }
+                        className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 disabled:bg-slate-50"
+                      >
+                        <option value="">-- None --</option>
+                        {signatureReadyUsers.map((u) => (
+                          <option key={u.id} value={u.id}>
+                            {u.full_name || u.email || u.id}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-semibold text-slate-800">HOD</label>
+                      <select
+                        value={d.hod_user_id || ""}
+                        disabled={saving}
+                        onChange={(e) =>
+                          setDepts((prev) =>
+                            prev.map((x) =>
+                              x.id === d.id ? { ...x, hod_user_id: e.target.value || null } : x
+                            )
+                          )
+                        }
+                        className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 disabled:bg-slate-50"
+                      >
+                        <option value="">-- None --</option>
+                        {signatureReadyUsers.map((u) => (
+                          <option key={u.id} value={u.id}>
+                            {u.full_name || u.email || u.id}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => saveDept(d.id, d.hod_user_id, d.director_user_id)}
+                    disabled={saving}
+                    className="mt-4 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
+                  >
+                    {savingTarget === `dept-${d.id}` ? "Saving..." : "Save Department Routing"}
+                  </button>
+                </div>
+              ))
+            )}
           </div>
         </div>
 
@@ -506,7 +685,40 @@ export default function AdminPage() {
             Users without signature should not handle workflow-sensitive roles.
           </p>
 
-          <div className="mt-4 overflow-x-auto">
+          <div className="mt-4 grid gap-3 xl:hidden">
+            {users.map((u) => {
+              const ready = !!u.signature_url;
+
+              return (
+                <div key={u.id} className="rounded-2xl border border-slate-200 p-4">
+                  <div className="font-bold text-slate-900">{u.full_name || "—"}</div>
+                  <div className="mt-1 text-sm text-slate-600">{u.email || "—"}</div>
+
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <span
+                      className={`rounded-full border px-3 py-1 text-xs font-bold ${roleBadgeClass(
+                        u.role || "Staff"
+                      )}`}
+                    >
+                      {u.role || "Staff"}
+                    </span>
+
+                    {ready ? (
+                      <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
+                        Signature Ready
+                      </span>
+                    ) : (
+                      <span className="rounded-full border border-red-200 bg-red-50 px-3 py-1 text-xs font-bold text-red-700">
+                        No Signature
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="mt-4 hidden overflow-x-auto xl:block">
             <table className="min-w-full border-collapse">
               <thead>
                 <tr className="border-b border-slate-200 text-left text-sm text-slate-600">
@@ -517,17 +729,25 @@ export default function AdminPage() {
                   <th className="py-2 pr-4">Ready</th>
                 </tr>
               </thead>
+
               <tbody>
                 {users.map((u) => {
                   const ready = !!u.signature_url;
+
                   return (
                     <tr key={u.id} className="border-b border-slate-100 text-sm text-slate-800">
                       <td className="py-2 pr-4 font-semibold">{u.full_name || "—"}</td>
                       <td className="py-2 pr-4">{u.email || "—"}</td>
-                      <td className="py-2 pr-4">{u.role || "Staff"}</td>
                       <td className="py-2 pr-4">
-                        {u.signature_url ? "✅ Present" : "❌ Missing"}
+                        <span
+                          className={`rounded-full border px-3 py-1 text-xs font-bold ${roleBadgeClass(
+                            u.role || "Staff"
+                          )}`}
+                        >
+                          {u.role || "Staff"}
+                        </span>
                       </td>
+                      <td className="py-2 pr-4">{u.signature_url ? "✅ Present" : "❌ Missing"}</td>
                       <td className="py-2 pr-4">
                         {ready ? (
                           <span className="rounded-lg bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-700">
@@ -546,16 +766,45 @@ export default function AdminPage() {
             </table>
           </div>
         </div>
+
+        <div className="mt-6 rounded-3xl border border-amber-100 bg-amber-50 p-5 text-sm text-amber-900">
+          <div className="font-bold">Admin Control Note</div>
+          <p className="mt-1">
+            Signature readiness protects workflow integrity. Assign Registry, HR, DG, HOD, Director,
+            AccountOfficer, Admin and Auditor roles only to users with uploaded signatures and verified operational responsibility.
+          </p>
+        </div>
       </div>
     </main>
   );
 }
 
-function StatCard({ title, value }: { title: string; value: string }) {
+function StatCard({
+  title,
+  value,
+  tone,
+}: {
+  title: string;
+  value: string;
+  tone: "blue" | "emerald" | "amber" | "slate" | "purple";
+}) {
+  const cls =
+    tone === "emerald"
+      ? "bg-emerald-50 text-emerald-700"
+      : tone === "amber"
+      ? "bg-amber-50 text-amber-700"
+      : tone === "purple"
+      ? "bg-purple-50 text-purple-700"
+      : tone === "slate"
+      ? "bg-slate-50 text-slate-700"
+      : "bg-blue-50 text-blue-700";
+
   return (
     <div className="rounded-2xl border bg-white p-5 shadow-sm">
       <div className="text-sm font-semibold text-slate-500">{title}</div>
-      <div className="mt-2 text-2xl font-extrabold text-slate-900">{value}</div>
+      <div className={`mt-2 inline-flex rounded-2xl px-3 py-2 text-2xl font-extrabold ${cls}`}>
+        {value}
+      </div>
     </div>
   );
 }
