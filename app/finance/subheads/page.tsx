@@ -17,7 +17,7 @@ type Sub = {
   expenditure: number;
   balance: number;
   is_active: boolean;
-  updated_at: string;
+  updated_at: string | null;
   request_count?: number;
 };
 
@@ -32,22 +32,22 @@ type PrintableRequest = {
   requester_name: string | null;
   account_name: string | null;
   subhead_id: string | null;
-  request_type: "Official" | "Personal";
-  personal_category: "Fund" | "NonFund" | null;
+  request_type: "Official" | "Personal" | string;
+  personal_category: "Fund" | "NonFund" | string | null;
 };
 
 type TabKey = "overview" | "active" | "inactive" | "form" | "print";
 
-function roleKey(role: string) {
+function roleKey(role: string | null | undefined) {
   return (role || "").trim().toLowerCase().replace(/\s+/g, "").replace(/_/g, "");
 }
 
-function naira(n: number) {
-  return "₦" + Math.round(n || 0).toLocaleString();
+function naira(n: number | null | undefined) {
+  return "₦" + Math.round(Number(n || 0)).toLocaleString();
 }
 
-function plainAmount(n: number) {
-  return Math.round(n || 0).toLocaleString();
+function plainAmount(n: number | null | undefined) {
+  return Math.round(Number(n || 0)).toLocaleString();
 }
 
 function shortDate(d: string | null | undefined) {
@@ -116,7 +116,7 @@ export default function SubheadsPage() {
   const [activeTab, setActiveTab] = useState<TabKey>("overview");
   const [search, setSearch] = useState("");
 
-  const [myRole, setMyRole] = useState("staff");
+  const [myRole, setMyRole] = useState("Staff");
   const rk = roleKey(myRole);
 
   const canManage = rk === "admin" || rk === "auditor";
@@ -128,7 +128,7 @@ export default function SubheadsPage() {
   const [printableRequests, setPrintableRequests] = useState<PrintableRequest[]>([]);
 
   const [editId, setEditId] = useState<string | null>(null);
-  const [deptId, setDeptId] = useState<string>("");
+  const [deptId, setDeptId] = useState("");
   const [code, setCode] = useState("");
   const [name, setName] = useState("");
   const [allocation, setAllocation] = useState<number>(0);
@@ -136,11 +136,8 @@ export default function SubheadsPage() {
 
   const load = useCallback(
     async (options?: { silent?: boolean }) => {
-      if (options?.silent) {
-        setRefreshing(true);
-      } else {
-        setLoading(true);
-      }
+      if (options?.silent) setRefreshing(true);
+      else setLoading(true);
 
       setMsg(null);
 
@@ -161,7 +158,7 @@ export default function SubheadsPage() {
       const role = roleKey(roleText);
       setMyRole(roleText);
 
-      const [deptRes, subRes, linkedReqRes] = await Promise.all([
+      const [deptRes, subRes] = await Promise.all([
         supabase.from("departments").select("id,name").order("name", { ascending: true }),
 
         supabase
@@ -170,37 +167,50 @@ export default function SubheadsPage() {
             "id,dept_id,code,name,approved_allocation,reserved_amount,expenditure,balance,is_active,updated_at"
           )
           .order("name", { ascending: true }),
-
-        supabase.from("requests").select("id,subhead_id").not("subhead_id", "is", null).limit(10000),
       ]);
 
-      if (deptRes.error) setMsg("Failed to load departments: " + deptRes.error.message);
-      if (subRes.error) setMsg("Failed to load subheads: " + subRes.error.message);
+      if (deptRes.error) {
+        setMsg("Failed to load departments: " + deptRes.error.message);
+      }
+
+      if (subRes.error) {
+        setMsg("Failed to load subheads: " + subRes.error.message);
+        setSubs([]);
+        setLoading(false);
+        setRefreshing(false);
+        return null;
+      }
 
       const freshDepts = (deptRes.data || []) as Dept[];
+      const baseSubs = (subRes.data || []) as Sub[];
+
       setDepts(freshDepts);
 
-      const requestCountBySubhead: Record<string, number> = {};
-      if (!linkedReqRes.error) {
-        (linkedReqRes.data || []).forEach((r: any) => {
+      let requestCountBySubhead: Record<string, number> = {};
+
+      if (baseSubs.length > 0) {
+        const { data: linkedRows } = await supabase
+          .from("requests")
+          .select("subhead_id")
+          .not("subhead_id", "is", null);
+
+        (linkedRows || []).forEach((r: any) => {
           if (r.subhead_id) {
             requestCountBySubhead[r.subhead_id] = (requestCountBySubhead[r.subhead_id] || 0) + 1;
           }
         });
       }
 
-      const freshSubs = ((subRes.data || []) as Sub[]).map((s) => ({
+      const freshSubs = baseSubs.map((s) => ({
         ...s,
         request_count: requestCountBySubhead[s.id] || 0,
       }));
 
       setSubs(freshSubs);
 
-      const allowedPrint = ["admin", "auditor", "account", "accounts", "accountofficer"].includes(role);
-
       let freshPrintable: PrintableRequest[] = [];
 
-      if (allowedPrint) {
+      if (["admin", "auditor", "account", "accounts", "accountofficer"].includes(role)) {
         const [officialRes, personalFundRes] = await Promise.all([
           supabase
             .from("requests")
@@ -224,12 +234,7 @@ export default function SubheadsPage() {
             .limit(50),
         ]);
 
-        if (officialRes.error || personalFundRes.error) {
-          setMsg(
-            "Failed to load printable requests: " +
-              (officialRes.error?.message || personalFundRes.error?.message || "Unknown error")
-          );
-        } else {
+        if (!officialRes.error && !personalFundRes.error) {
           freshPrintable = [
             ...((officialRes.data || []) as PrintableRequest[]),
             ...((personalFundRes.data || []) as PrintableRequest[]),
@@ -256,14 +261,10 @@ export default function SubheadsPage() {
   useEffect(() => {
     load();
 
-    const refreshOnFocus = () => {
-      load({ silent: true });
-    };
+    const refreshOnFocus = () => load({ silent: true });
 
     const refreshOnVisible = () => {
-      if (document.visibilityState === "visible") {
-        load({ silent: true });
-      }
+      if (document.visibilityState === "visible") load({ silent: true });
     };
 
     window.addEventListener("focus", refreshOnFocus);
@@ -277,7 +278,9 @@ export default function SubheadsPage() {
 
   const deptMap = useMemo(() => {
     const m: Record<string, string> = {};
-    depts.forEach((d) => (m[d.id] = d.name));
+    depts.forEach((d) => {
+      m[d.id] = d.name;
+    });
     return m;
   }, [depts]);
 
@@ -354,7 +357,7 @@ export default function SubheadsPage() {
 
     const current = editId ? subs.find((x) => x.id === editId) : null;
     const reserved = Number(current?.reserved_amount || 0);
-    const exp = Number(current?.expenditure || 0);
+    const expenditure = Number(current?.expenditure || 0);
     const alloc = Number(allocation || 0);
 
     const payload: any = {
@@ -376,7 +379,7 @@ export default function SubheadsPage() {
 
         setMsg("✅ Subhead created successfully.");
       } else {
-        payload.balance = alloc - reserved - exp;
+        payload.balance = alloc - reserved - expenditure;
 
         const { error } = await supabase.from("subheads").update(payload).eq("id", editId);
         if (error) throw new Error(error.message);
@@ -433,7 +436,7 @@ export default function SubheadsPage() {
     if (linked) {
       if (
         !confirm(
-          "This subhead is already linked to one or more requests, so it cannot be safely deleted. Do you want to deactivate it instead?"
+          "This subhead is already linked to request records, so it cannot be safely deleted. Do you want to deactivate it instead?"
         )
       ) {
         return;
@@ -461,9 +464,22 @@ export default function SubheadsPage() {
     } catch (e: any) {
       const text = e?.message || "Failed";
 
-      if (text.toLowerCase().includes("foreign key") || text.toLowerCase().includes("requests_subhead_id")) {
-        await toggleActive(s, false);
-        setMsg("✅ Subhead was linked to requests, so it has been deactivated instead of deleted.");
+      if (
+        text.toLowerCase().includes("foreign key") ||
+        text.toLowerCase().includes("requests_subhead_id")
+      ) {
+        const { error } = await supabase
+          .from("subheads")
+          .update({ is_active: false })
+          .eq("id", s.id);
+
+        if (error) {
+          setMsg("❌ Delete failed and deactivate also failed: " + error.message);
+        } else {
+          setMsg("✅ Subhead was linked to requests, so it has been deactivated instead of deleted.");
+          await load({ silent: true });
+          router.refresh();
+        }
       } else {
         setMsg("❌ " + text);
       }
@@ -490,7 +506,9 @@ export default function SubheadsPage() {
     const exportDepts = fresh?.depts || depts;
 
     const exportDeptMap: Record<string, string> = {};
-    exportDepts.forEach((d) => (exportDeptMap[d.id] = d.name));
+    exportDepts.forEach((d) => {
+      exportDeptMap[d.id] = d.name;
+    });
 
     const exportTotals = computeTotals(exportSubs);
 
@@ -510,10 +528,10 @@ export default function SubheadsPage() {
         { header: "Code", value: (row) => row.code || "—" },
         { header: "Subhead", value: (row) => row.name },
         { header: "Linked Requests", value: (row) => Number(row.request_count || 0) },
-        { header: "Allocation", value: (row) => plainAmount(Number(row.approved_allocation || 0)) },
-        { header: "Reserved", value: (row) => plainAmount(Number(row.reserved_amount || 0)) },
-        { header: "Expenditure", value: (row) => plainAmount(Number(row.expenditure || 0)) },
-        { header: "Balance", value: (row) => plainAmount(Number(row.balance || 0)) },
+        { header: "Allocation", value: (row) => plainAmount(row.approved_allocation) },
+        { header: "Reserved", value: (row) => plainAmount(row.reserved_amount) },
+        { header: "Expenditure", value: (row) => plainAmount(row.expenditure) },
+        { header: "Balance", value: (row) => plainAmount(row.balance) },
         { header: "Status", value: (row) => (row.is_active ? "Active" : "Inactive") },
         { header: "Updated", value: (row) => shortDate(row.updated_at) },
       ],
@@ -555,7 +573,7 @@ export default function SubheadsPage() {
   if (loading) {
     return (
       <main className="min-h-screen bg-slate-50 px-4">
-        <div className="mx-auto max-w-7xl py-10 text-slate-600">Loading...</div>
+        <div className="mx-auto max-w-7xl py-10 text-slate-600">Loading Subheads...</div>
       </main>
     );
   }
@@ -565,11 +583,8 @@ export default function SubheadsPage() {
       <style>{`
         @media print {
           @page { size: A4 landscape; margin: 10mm; }
-
           body { background: white !important; }
-
           .no-print { display: none !important; }
-
           .print-sheet {
             box-shadow: none !important;
             border: none !important;
@@ -578,9 +593,7 @@ export default function SubheadsPage() {
             width: 100% !important;
             max-width: none !important;
           }
-
           .print-card { break-inside: avoid !important; }
-
           .print-title { text-align: center !important; }
         }
       `}</style>
@@ -631,7 +644,7 @@ export default function SubheadsPage() {
             <button
               onClick={printSubheadsReport}
               disabled={refreshing || printing || exporting || saving}
-              className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-slate-800 disabled:opacity-60"
+              className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:opacity-60"
             >
               {printing ? "Preparing..." : "Print / Save PDF"}
             </button>
@@ -761,7 +774,7 @@ export default function SubheadsPage() {
                   <SubheadMobileCard
                     key={s.id}
                     s={s}
-                    deptName={s.dept_id ? deptMap[s.dept_id] : "No department"}
+                    deptName={s.dept_id ? deptMap[s.dept_id] || "Unknown Department" : "No department"}
                     canManage={canManage}
                     saving={saving}
                     onEdit={() => startEdit(s)}
@@ -850,7 +863,7 @@ function SubheadForm({
             {editId ? "Edit Subhead" : "Add New Subhead"}
           </h2>
           <p className="mt-1 text-sm text-slate-600">
-            Enter the department, code, name, approved allocation and active status.
+            Enter department, code, name, approved allocation and active status.
           </p>
         </div>
 
@@ -967,107 +980,114 @@ function SubheadTable({
 }) {
   return (
     <div className="overflow-x-auto">
-      <div className="min-w-[1450px] print:min-w-0">
-        <div className="grid grid-cols-19 bg-slate-100 px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600 print:border-b print:border-black print:bg-white print:px-2 print:text-[8px]">
-          <div className="col-span-3">Department</div>
-          <div className="col-span-2">Code</div>
-          <div className="col-span-3">Subhead</div>
-          <div className="col-span-1 text-center">Links</div>
-          <div className="col-span-2 text-right">Allocation</div>
-          <div className="col-span-2 text-right">Reserved</div>
-          <div className="col-span-2 text-right">Expenditure</div>
-          <div className="col-span-2 text-right">Balance</div>
-          <div className="col-span-2 text-right no-print">Actions</div>
-        </div>
+      <table className="min-w-[1320px] w-full border-collapse text-sm print:min-w-0 print:text-[8px]">
+        <thead>
+          <tr className="bg-slate-100 text-xs uppercase tracking-wide text-slate-600 print:border-b print:border-black print:bg-white print:text-[8px]">
+            <th className="px-4 py-3 text-left">Department</th>
+            <th className="px-4 py-3 text-left">Code</th>
+            <th className="px-4 py-3 text-left">Subhead</th>
+            <th className="px-4 py-3 text-center">Links</th>
+            <th className="px-4 py-3 text-right">Allocation</th>
+            <th className="px-4 py-3 text-right">Reserved</th>
+            <th className="px-4 py-3 text-right">Expenditure</th>
+            <th className="px-4 py-3 text-right">Balance</th>
+            <th className="no-print px-4 py-3 text-right">Actions</th>
+          </tr>
+        </thead>
 
-        {subs.length === 0 ? (
-          <div className="px-6 py-6 text-sm text-slate-700">No subheads found.</div>
-        ) : (
-          subs.map((s) => (
-            <div
-              key={s.id}
-              className="grid grid-cols-19 items-center border-t px-6 py-4 text-sm hover:bg-slate-50 print:px-2 print:py-2 print:text-[8px]"
-            >
-              <div className="col-span-3">
-                <div className="font-semibold text-slate-900">
-                  {s.dept_id ? deptMap[s.dept_id] : "—"}
-                </div>
-                <div className="mt-1 text-xs text-slate-500 print:text-[7px]">
-                  {s.is_active ? "Active" : "Inactive"}
-                </div>
-              </div>
+        <tbody>
+          {subs.length === 0 ? (
+            <tr>
+              <td colSpan={9} className="px-6 py-6 text-sm text-slate-700">
+                No subheads found.
+              </td>
+            </tr>
+          ) : (
+            subs.map((s) => (
+              <tr key={s.id} className="border-t hover:bg-slate-50">
+                <td className="px-4 py-4">
+                  <div className="font-semibold text-slate-900">
+                    {s.dept_id ? deptMap[s.dept_id] || "Unknown Department" : "—"}
+                  </div>
+                  <div className="mt-1 text-xs text-slate-500">{s.is_active ? "Active" : "Inactive"}</div>
+                </td>
 
-              <div className="col-span-2 font-semibold text-slate-900">{s.code || "—"}</div>
+                <td className="px-4 py-4 font-semibold text-slate-900">{s.code || "—"}</td>
 
-              <div className="col-span-3">
-                <div className="font-semibold text-slate-900">{s.name}</div>
-                <div className="mt-1 text-xs text-slate-500 print:text-[7px]">
-                  Updated {shortDate(s.updated_at)}
-                </div>
-              </div>
+                <td className="px-4 py-4">
+                  <div className="font-semibold text-slate-900">{s.name}</div>
+                  <div className="mt-1 text-xs text-slate-500">Updated {shortDate(s.updated_at)}</div>
+                </td>
 
-              <div className="col-span-1 text-center">
-                <span className="rounded-full bg-slate-50 px-3 py-1 text-xs font-bold text-slate-700">
-                  {Number(s.request_count || 0)}
-                </span>
-              </div>
+                <td className="px-4 py-4 text-center">
+                  <span className="rounded-full bg-slate-50 px-3 py-1 text-xs font-bold text-slate-700">
+                    {Number(s.request_count || 0)}
+                  </span>
+                </td>
 
-              <div className="col-span-2 text-right font-semibold text-blue-700">
-                {naira(Number(s.approved_allocation || 0))}
-              </div>
+                <td className="px-4 py-4 text-right font-semibold text-blue-700">
+                  {naira(s.approved_allocation)}
+                </td>
 
-              <div className="col-span-2 text-right font-semibold text-amber-700">
-                {naira(Number(s.reserved_amount || 0))}
-              </div>
+                <td className="px-4 py-4 text-right font-semibold text-amber-700">
+                  {naira(s.reserved_amount)}
+                </td>
 
-              <div className="col-span-2 text-right font-semibold text-red-600">
-                {naira(Number(s.expenditure || 0))}
-              </div>
+                <td className="px-4 py-4 text-right font-semibold text-red-600">
+                  {naira(s.expenditure)}
+                </td>
 
-              <div className="col-span-2 text-right font-bold text-emerald-700">
-                {naira(Number(s.balance || 0))}
-              </div>
+                <td className="px-4 py-4 text-right font-bold text-emerald-700">
+                  {naira(s.balance)}
+                </td>
 
-              <div className="col-span-2 flex justify-end gap-2 no-print">
-                <button
-                  disabled={!canManage || saving}
-                  onClick={() => onEdit(s)}
-                  className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-50"
-                >
-                  Edit
-                </button>
+                <td className="no-print px-4 py-4">
+                  <div className="flex justify-end gap-2">
+                    <button
+                      disabled={!canManage || saving}
+                      onClick={() => onEdit(s)}
+                      className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-50"
+                    >
+                      Edit
+                    </button>
 
-                <button
-                  disabled={!canManage || saving}
-                  onClick={() => onToggle(s, !s.is_active)}
-                  className={`rounded-xl px-3 py-2 text-xs font-semibold text-white disabled:opacity-50 ${
-                    s.is_active ? "bg-amber-600 hover:bg-amber-700" : "bg-emerald-600 hover:bg-emerald-700"
-                  }`}
-                >
-                  {s.is_active ? "Deactivate" : "Activate"}
-                </button>
+                    <button
+                      disabled={!canManage || saving}
+                      onClick={() => onToggle(s, !s.is_active)}
+                      className={`rounded-xl px-3 py-2 text-xs font-semibold text-white disabled:opacity-50 ${
+                        s.is_active ? "bg-amber-600 hover:bg-amber-700" : "bg-emerald-600 hover:bg-emerald-700"
+                      }`}
+                    >
+                      {s.is_active ? "Deactivate" : "Activate"}
+                    </button>
 
-                <button
-                  disabled={!canManage || saving}
-                  onClick={() => onDelete(s)}
-                  className="rounded-xl bg-red-600 px-3 py-2 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-50"
-                >
-                  {Number(s.request_count || 0) > 0 ? "Deactivate" : "Delete"}
-                </button>
-              </div>
-            </div>
-          ))
-        )}
+                    <button
+                      disabled={!canManage || saving}
+                      onClick={() => onDelete(s)}
+                      className="rounded-xl bg-red-600 px-3 py-2 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+                    >
+                      {Number(s.request_count || 0) > 0 ? "Deactivate" : "Delete"}
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))
+          )}
+        </tbody>
 
-        <div className="grid grid-cols-19 border-t bg-slate-50 px-6 py-4 text-sm print:bg-white print:px-2 print:text-[9px]">
-          <div className="col-span-9 font-black uppercase text-slate-900">Total</div>
-          <div className="col-span-2 text-right font-black text-blue-700">{naira(totals.allocationTotal)}</div>
-          <div className="col-span-2 text-right font-black text-amber-700">{naira(totals.reservedTotal)}</div>
-          <div className="col-span-2 text-right font-black text-red-700">{naira(totals.expenditureTotal)}</div>
-          <div className="col-span-2 text-right font-black text-emerald-700">{naira(totals.balanceTotal)}</div>
-          <div className="col-span-2 no-print" />
-        </div>
-      </div>
+        <tfoot>
+          <tr className="border-t bg-slate-50 font-black print:bg-white">
+            <td className="px-4 py-4 uppercase" colSpan={4}>
+              Total
+            </td>
+            <td className="px-4 py-4 text-right text-blue-700">{naira(totals.allocationTotal)}</td>
+            <td className="px-4 py-4 text-right text-amber-700">{naira(totals.reservedTotal)}</td>
+            <td className="px-4 py-4 text-right text-red-700">{naira(totals.expenditureTotal)}</td>
+            <td className="px-4 py-4 text-right text-emerald-700">{naira(totals.balanceTotal)}</td>
+            <td className="no-print px-4 py-4" />
+          </tr>
+        </tfoot>
+      </table>
     </div>
   );
 }
@@ -1112,10 +1132,10 @@ function SubheadMobileCard({
       </div>
 
       <div className="mt-4 grid gap-3 sm:grid-cols-4">
-        <MiniMetric title="Allocation" value={naira(Number(s.approved_allocation || 0))} tone="blue" />
-        <MiniMetric title="Reserved" value={naira(Number(s.reserved_amount || 0))} tone="amber" />
-        <MiniMetric title="Expenditure" value={naira(Number(s.expenditure || 0))} tone="red" />
-        <MiniMetric title="Balance" value={naira(Number(s.balance || 0))} tone="emerald" />
+        <MiniMetric title="Allocation" value={naira(s.approved_allocation)} tone="blue" />
+        <MiniMetric title="Reserved" value={naira(s.reserved_amount)} tone="amber" />
+        <MiniMetric title="Expenditure" value={naira(s.expenditure)} tone="red" />
+        <MiniMetric title="Balance" value={naira(s.balance)} tone="emerald" />
       </div>
 
       <div className="mt-4 flex flex-wrap justify-end gap-2">
@@ -1195,64 +1215,65 @@ function CompletedRequestsPanel({
         </div>
       ) : (
         <div className="overflow-x-auto">
-          <div className="min-w-[1180px]">
-            <div className="grid grid-cols-13 bg-slate-100 px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600">
-              <div className="col-span-2">Request No</div>
-              <div className="col-span-3">Title</div>
-              <div className="col-span-2">Type / Source</div>
-              <div className="col-span-1 text-right">Amount</div>
-              <div className="col-span-1">Status</div>
-              <div className="col-span-1">Requester</div>
-              <div className="col-span-1">Account</div>
-              <div className="col-span-1">Date</div>
-              <div className="col-span-1 text-right">Action</div>
-            </div>
+          <table className="min-w-[1180px] w-full border-collapse text-sm">
+            <thead>
+              <tr className="bg-slate-100 text-xs uppercase tracking-wide text-slate-600">
+                <th className="px-4 py-3 text-left">Request No</th>
+                <th className="px-4 py-3 text-left">Title</th>
+                <th className="px-4 py-3 text-left">Type / Source</th>
+                <th className="px-4 py-3 text-right">Amount</th>
+                <th className="px-4 py-3 text-left">Status</th>
+                <th className="px-4 py-3 text-left">Requester</th>
+                <th className="px-4 py-3 text-left">Account</th>
+                <th className="px-4 py-3 text-left">Date</th>
+                <th className="px-4 py-3 text-right">Action</th>
+              </tr>
+            </thead>
 
-            {printableRequests.map((r) => (
-              <div
-                key={r.id}
-                className="grid grid-cols-13 items-center border-t px-6 py-4 text-sm hover:bg-slate-50"
-              >
-                <div className="col-span-2 font-extrabold text-slate-900">{r.request_no}</div>
+            <tbody>
+              {printableRequests.map((r) => (
+                <tr key={r.id} className="border-t hover:bg-slate-50">
+                  <td className="px-4 py-4 font-extrabold text-slate-900">{r.request_no}</td>
 
-                <div className="col-span-3">
-                  <div className="font-semibold text-slate-900">{r.title}</div>
-                  <div className="mt-1 text-xs text-slate-500">
-                    {requestPrintSource(r, subheadMap)}
-                  </div>
-                </div>
+                  <td className="px-4 py-4">
+                    <div className="font-semibold text-slate-900">{r.title}</div>
+                    <div className="mt-1 text-xs text-slate-500">
+                      {requestPrintSource(r, subheadMap)}
+                    </div>
+                  </td>
 
-                <div className="col-span-2">
-                  <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">
-                    {requestTypeLabel(r)}
-                  </span>
-                </div>
+                  <td className="px-4 py-4">
+                    <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">
+                      {requestTypeLabel(r)}
+                    </span>
+                  </td>
 
-                <div className="col-span-1 text-right font-bold text-slate-900">
-                  {naira(Number(r.amount || 0))}
-                </div>
+                  <td className="px-4 py-4 text-right font-bold text-slate-900">
+                    {naira(r.amount)}
+                  </td>
 
-                <div className="col-span-1">
-                  <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
-                    {r.status}
-                  </span>
-                </div>
+                  <td className="px-4 py-4">
+                    <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
+                      {r.status}
+                    </span>
+                  </td>
 
-                <div className="col-span-1 text-slate-700">{r.requester_name || "—"}</div>
-                <div className="col-span-1 text-slate-700">{r.account_name || "—"}</div>
-                <div className="col-span-1 text-slate-600">{shortDate(r.created_at)}</div>
+                  <td className="px-4 py-4 text-slate-700">{r.requester_name || "—"}</td>
+                  <td className="px-4 py-4 text-slate-700">{r.account_name || "—"}</td>
+                  <td className="px-4 py-4 text-slate-600">{shortDate(r.created_at)}</td>
 
-                <div className="col-span-1 flex justify-end">
-                  <button
-                    onClick={() => onPrint(r.id)}
-                    className="rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700"
-                  >
-                    Print
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
+                  <td className="px-4 py-4 text-right">
+                    <button
+                      onClick={() => onPrint(r.id)}
+                      className="rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700"
+                    >
+                      Print
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </div>
