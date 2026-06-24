@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -125,8 +125,10 @@ function canRolePrintRequest(rk: string, req: Req | null) {
   if (!req) return false;
 
   const isOfficial = normalize(req.request_type) === "official";
-  const isPersonalFund = normalize(req.request_type) === "personal" && normalize(req.personal_category) === "fund";
-  const isPersonalNonFund = normalize(req.request_type) === "personal" && normalize(req.personal_category) === "nonfund";
+  const isPersonalFund =
+    normalize(req.request_type) === "personal" && normalize(req.personal_category) === "fund";
+  const isPersonalNonFund =
+    normalize(req.request_type) === "personal" && normalize(req.personal_category) === "nonfund";
 
   if (["admin", "auditor"].includes(rk)) return true;
 
@@ -143,6 +145,8 @@ export default function PrintRequestPage() {
   const id = String((params as any)?.id || "");
 
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [printing, setPrinting] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
   const [me, setMe] = useState<ProfileMini | null>(null);
@@ -192,21 +196,28 @@ export default function PrintRequestPage() {
     });
   }, [history]);
 
-  useEffect(() => {
-    async function load() {
-      setLoading(true);
+  const load = useCallback(
+    async (options?: { silent?: boolean }) => {
+      if (options?.silent) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
+
       setMsg(null);
 
       if (!id) {
         setMsg("Invalid request ID.");
         setLoading(false);
-        return;
+        setRefreshing(false);
+        return null;
       }
 
       const { data: auth } = await supabase.auth.getUser();
+
       if (!auth.user) {
         router.push("/login");
-        return;
+        return null;
       }
 
       const { data: prof, error: profErr } = await supabase
@@ -218,7 +229,8 @@ export default function PrintRequestPage() {
       if (profErr || !prof) {
         setMsg("Failed to load your profile: " + (profErr?.message || "Profile not found."));
         setLoading(false);
-        return;
+        setRefreshing(false);
+        return null;
       }
 
       const myProfile = prof as ProfileMini;
@@ -230,31 +242,48 @@ export default function PrintRequestPage() {
 
       if (rErr) {
         setMsg("Failed to load request: " + rErr.message);
+        setReq(null);
+        setHistory([]);
         setLoading(false);
-        return;
+        setRefreshing(false);
+        return null;
       }
 
-      const reqRow = Array.isArray(printRows) ? (printRows[0] as Req | undefined) : (printRows as Req | undefined);
+      const reqRow = Array.isArray(printRows)
+        ? (printRows[0] as Req | undefined)
+        : (printRows as Req | undefined);
 
       if (!reqRow) {
         setMsg("Request not found or you do not have access.");
+        setReq(null);
+        setHistory([]);
         setLoading(false);
-        return;
+        setRefreshing(false);
+        return null;
       }
 
       setReq(reqRow);
 
       const myRole = roleKey(myProfile.role);
+
       if (!canRolePrintRequest(myRole, reqRow)) {
         setMsg("Access denied. You do not have permission to print this request type.");
         setLoading(false);
-        return;
+        setRefreshing(false);
+        return {
+          req: reqRow,
+          history: [] as Hist[],
+        };
       }
 
       if (!isCompletedOrPaid(reqRow.status)) {
         setMsg("Printing is allowed only after the request has been completed or paid.");
         setLoading(false);
-        return;
+        setRefreshing(false);
+        return {
+          req: reqRow,
+          history: [] as Hist[],
+        };
       }
 
       const { data: histRows, error: histErr } = await supabase.rpc("get_print_request_history", {
@@ -264,7 +293,11 @@ export default function PrintRequestPage() {
       if (histErr) {
         setMsg("Failed to load request history: " + histErr.message);
         setLoading(false);
-        return;
+        setRefreshing(false);
+        return {
+          req: reqRow,
+          history: [] as Hist[],
+        };
       }
 
       const historyRows = (histRows || []) as Hist[];
@@ -286,10 +319,37 @@ export default function PrintRequestPage() {
       setSigHRFiling(getPublicSignatureUrl(filingHist?.signature_url));
 
       setLoading(false);
-    }
+      setRefreshing(false);
 
+      return {
+        req: reqRow,
+        history: historyRows,
+      };
+    },
+    [id, router]
+  );
+
+  useEffect(() => {
     load();
-  }, [id, router]);
+
+    const refreshOnFocus = () => {
+      load({ silent: true });
+    };
+
+    const refreshOnVisible = () => {
+      if (document.visibilityState === "visible") {
+        load({ silent: true });
+      }
+    };
+
+    window.addEventListener("focus", refreshOnFocus);
+    document.addEventListener("visibilitychange", refreshOnVisible);
+
+    return () => {
+      window.removeEventListener("focus", refreshOnFocus);
+      document.removeEventListener("visibilitychange", refreshOnVisible);
+    };
+  }, [load]);
 
   useEffect(() => {
     document.title = req?.request_no || "request-print";
@@ -356,23 +416,92 @@ export default function PrintRequestPage() {
     isPersonalNonFund,
   ]);
 
-  function handlePrint() {
-    if (!canOpenPrintPage) {
+  async function handlePrint() {
+    setPrinting(true);
+    setMsg(null);
+
+    const latest = await load({ silent: true });
+    const latestReq = latest?.req || req;
+    const latestHistory = latest?.history || history;
+
+    const latestRole = rk;
+    const latestCanPrint = canRolePrintRequest(latestRole, latestReq);
+    const latestCompleted = isCompletedOrPaid(latestReq?.status);
+
+    if (!latestCanPrint) {
       setMsg("Access denied. You do not have permission to print this request type.");
+      setPrinting(false);
       return;
     }
 
-    if (!requestIsCompletedForPrint) {
+    if (!latestCompleted) {
       setMsg("Printing is allowed only after the request has been completed or paid.");
+      setPrinting(false);
       return;
     }
 
-    if (!ready) {
+    const latestIsPersonalFund =
+      normalize(latestReq?.request_type) === "personal" &&
+      normalize(latestReq?.personal_category) === "fund";
+
+    const latestIsPersonalNonFund =
+      normalize(latestReq?.request_type) === "personal" &&
+      normalize(latestReq?.personal_category) === "nonfund";
+
+    const latestRequiresAccountLine =
+      normalize(latestReq?.request_type) === "official" || latestIsPersonalFund;
+
+    const latestFilingHistory = latestHistory.find((h) => {
+      const from = normalize(h.from_stage);
+      const to = normalize(h.to_stage);
+      const action = normalize(h.action_type);
+
+      return action === "approve" && (from === "hrfiling" || to === "completed");
+    });
+
+    const latestSigRequester = getPublicSignatureUrl(latestReq?.requester_signature_snapshot);
+    const latestSigChecked = getPublicSignatureUrl(latestReq?.checked_signature_snapshot);
+    const latestSigHR = getPublicSignatureUrl(latestReq?.hr_signature_snapshot);
+    const latestSigDG = getPublicSignatureUrl(latestReq?.dg_signature_snapshot);
+    const latestSigAccount = getPublicSignatureUrl(latestReq?.account_signature_snapshot);
+    const latestSigHRFiling = getPublicSignatureUrl(latestFilingHistory?.signature_url);
+
+    const latestReady =
+      !!latestReq &&
+      !!latestReq.requester_name &&
+      !!latestSigRequester &&
+      !!latestReq.checked_by_name &&
+      !!latestSigChecked &&
+      !!latestReq.dg_name &&
+      !!latestSigDG &&
+      (latestIsPersonalFund || latestIsPersonalNonFund
+        ? !!latestReq.hr_name && !!latestSigHR
+        : true) &&
+      (latestRequiresAccountLine ? !!latestReq.account_name && !!latestSigAccount : true) &&
+      (latestIsPersonalNonFund
+        ? !!latestFilingHistory?.actor_name && !!latestSigHRFiling
+        : true);
+
+    if (!latestReady) {
       setMsg("Printing is blocked until the required request signatures are fully available.");
+      setPrinting(false);
       return;
     }
 
-    window.print();
+    setTimeout(() => {
+      window.print();
+      setPrinting(false);
+    }, 250);
+  }
+
+  function goBack() {
+    router.push(`${backPath}?updated=${Date.now()}`);
+    router.refresh();
+  }
+
+  function goDashboard() {
+    router.push(`/dashboard?updated=${Date.now()}`);
+    router.refresh();
   }
 
   const commentTrail = useMemo(() => {
@@ -401,14 +530,14 @@ export default function PrintRequestPage() {
 
           <div className="mt-5 flex flex-wrap gap-2">
             <button
-              onClick={() => router.push(backPath)}
+              onClick={goBack}
               className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
             >
               {backLabel}
             </button>
 
             <button
-              onClick={() => router.push("/dashboard")}
+              onClick={goDashboard}
               className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
             >
               Dashboard
@@ -454,21 +583,32 @@ export default function PrintRequestPage() {
       `}</style>
 
       <div className="mx-auto max-w-[820px]">
-        <div className="no-print mb-3 flex items-center justify-between">
+        <div className="no-print mb-3 flex flex-wrap items-center justify-between gap-2">
           <button
-            onClick={() => router.push(backPath)}
-            className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
+            onClick={goBack}
+            disabled={refreshing || printing}
+            className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
           >
             {backLabel}
           </button>
 
-          <button
-            onClick={handlePrint}
-            disabled={!ready}
-            className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
-          >
-            Print
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => load({ silent: true })}
+              disabled={refreshing || printing}
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
+            >
+              {refreshing ? "Refreshing..." : "Refresh"}
+            </button>
+
+            <button
+              onClick={handlePrint}
+              disabled={!ready || refreshing || printing}
+              className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+            >
+              {printing ? "Preparing Print..." : "Print"}
+            </button>
+          </div>
         </div>
 
         {msg && (
@@ -482,6 +622,10 @@ export default function PrintRequestPage() {
             Printing is blocked until the required request signatures are fully available.
           </div>
         )}
+
+        <div className="no-print mb-3 rounded-xl border border-blue-100 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-900">
+          This print page refreshes before printing so the latest approval signatures and status are used.
+        </div>
 
         <div className="sheet mx-auto w-full bg-white px-[18px] py-[12px] text-black">
           <div className="text-center">
