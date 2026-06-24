@@ -18,6 +18,7 @@ type Sub = {
   balance: number;
   is_active: boolean;
   updated_at: string;
+  request_count?: number;
 };
 
 type PrintableRequest = {
@@ -34,6 +35,8 @@ type PrintableRequest = {
   request_type: "Official" | "Personal";
   personal_category: "Fund" | "NonFund" | null;
 };
+
+type TabKey = "overview" | "active" | "inactive" | "form" | "print";
 
 function roleKey(role: string) {
   return (role || "").trim().toLowerCase().replace(/\s+/g, "").replace(/_/g, "");
@@ -78,6 +81,7 @@ function computeTotals(subs: Sub[]) {
   const balanceTotal = subs.reduce((a, s) => a + Number(s.balance || 0), 0);
   const activeCount = subs.filter((s) => s.is_active).length;
   const inactiveCount = subs.filter((s) => !s.is_active).length;
+  const linkedCount = subs.filter((s) => Number(s.request_count || 0) > 0).length;
   const negativeBalanceCount = subs.filter((s) => Number(s.balance || 0) < 0).length;
   const lowBalanceCount = subs.filter((s) => {
     const allocation = Number(s.approved_allocation || 0);
@@ -92,6 +96,7 @@ function computeTotals(subs: Sub[]) {
     balanceTotal,
     activeCount,
     inactiveCount,
+    linkedCount,
     negativeBalanceCount,
     lowBalanceCount,
     totalCount: subs.length,
@@ -107,6 +112,9 @@ export default function SubheadsPage() {
   const [exporting, setExporting] = useState(false);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+
+  const [activeTab, setActiveTab] = useState<TabKey>("overview");
+  const [search, setSearch] = useState("");
 
   const [myRole, setMyRole] = useState("staff");
   const rk = roleKey(myRole);
@@ -153,30 +161,39 @@ export default function SubheadsPage() {
       const role = roleKey(roleText);
       setMyRole(roleText);
 
-      const { data: drows, error: dErr } = await supabase
-        .from("departments")
-        .select("id,name")
-        .order("name", { ascending: true });
+      const [deptRes, subRes, linkedReqRes] = await Promise.all([
+        supabase.from("departments").select("id,name").order("name", { ascending: true }),
 
-      if (dErr) {
-        setMsg("Failed to load departments: " + dErr.message);
-      }
+        supabase
+          .from("subheads")
+          .select(
+            "id,dept_id,code,name,approved_allocation,reserved_amount,expenditure,balance,is_active,updated_at"
+          )
+          .order("name", { ascending: true }),
 
-      const freshDepts = (drows || []) as Dept[];
+        supabase.from("requests").select("id,subhead_id").not("subhead_id", "is", null).limit(10000),
+      ]);
+
+      if (deptRes.error) setMsg("Failed to load departments: " + deptRes.error.message);
+      if (subRes.error) setMsg("Failed to load subheads: " + subRes.error.message);
+
+      const freshDepts = (deptRes.data || []) as Dept[];
       setDepts(freshDepts);
 
-      const { data: srows, error: sErr } = await supabase
-        .from("subheads")
-        .select(
-          "id,dept_id,code,name,approved_allocation,reserved_amount,expenditure,balance,is_active,updated_at"
-        )
-        .order("name", { ascending: true });
-
-      if (sErr) {
-        setMsg("Failed to load subheads: " + sErr.message);
+      const requestCountBySubhead: Record<string, number> = {};
+      if (!linkedReqRes.error) {
+        (linkedReqRes.data || []).forEach((r: any) => {
+          if (r.subhead_id) {
+            requestCountBySubhead[r.subhead_id] = (requestCountBySubhead[r.subhead_id] || 0) + 1;
+          }
+        });
       }
 
-      const freshSubs = (srows || []) as Sub[];
+      const freshSubs = ((subRes.data || []) as Sub[]).map((s) => ({
+        ...s,
+        request_count: requestCountBySubhead[s.id] || 0,
+      }));
+
       setSubs(freshSubs);
 
       const allowedPrint = ["admin", "auditor", "account", "accounts", "accountofficer"].includes(role);
@@ -212,15 +229,12 @@ export default function SubheadsPage() {
             "Failed to load printable requests: " +
               (officialRes.error?.message || personalFundRes.error?.message || "Unknown error")
           );
-          freshPrintable = [];
         } else {
           freshPrintable = [
             ...((officialRes.data || []) as PrintableRequest[]),
             ...((personalFundRes.data || []) as PrintableRequest[]),
           ]
-            .sort((a, b) => {
-              return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-            })
+            .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
             .slice(0, 50);
         }
       }
@@ -277,6 +291,28 @@ export default function SubheadsPage() {
 
   const totals = useMemo(() => computeTotals(subs), [subs]);
 
+  const filteredSubs = useMemo(() => {
+    const s = search.trim().toLowerCase();
+
+    return subs.filter((sub) => {
+      if (activeTab === "active" && !sub.is_active) return false;
+      if (activeTab === "inactive" && sub.is_active) return false;
+
+      if (!s) return true;
+
+      const haystack = [
+        sub.name,
+        sub.code,
+        sub.dept_id ? deptMap[sub.dept_id] : "",
+        sub.is_active ? "active" : "inactive",
+      ]
+        .join(" ")
+        .toLowerCase();
+
+      return haystack.includes(s);
+    });
+  }, [subs, search, activeTab, deptMap]);
+
   function resetForm() {
     setEditId(null);
     setDeptId("");
@@ -284,6 +320,22 @@ export default function SubheadsPage() {
     setName("");
     setAllocation(0);
     setActive(true);
+  }
+
+  function startCreate() {
+    resetForm();
+    setActiveTab("form");
+  }
+
+  function startEdit(s: Sub) {
+    setEditId(s.id);
+    setDeptId(s.dept_id || "");
+    setCode(s.code || "");
+    setName(s.name);
+    setAllocation(Number(s.approved_allocation || 0));
+    setActive(Boolean(s.is_active));
+    setActiveTab("form");
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   async function save() {
@@ -322,17 +374,18 @@ export default function SubheadsPage() {
         const { error } = await supabase.from("subheads").insert(payload);
         if (error) throw new Error(error.message);
 
-        setMsg("✅ Subhead created.");
+        setMsg("✅ Subhead created successfully.");
       } else {
         payload.balance = alloc - reserved - exp;
 
         const { error } = await supabase.from("subheads").update(payload).eq("id", editId);
         if (error) throw new Error(error.message);
 
-        setMsg("✅ Subhead updated.");
+        setMsg("✅ Subhead updated successfully.");
       }
 
       resetForm();
+      setActiveTab(active ? "active" : "inactive");
       await load({ silent: true });
       router.refresh();
     } catch (e: any) {
@@ -342,31 +395,78 @@ export default function SubheadsPage() {
     }
   }
 
-  async function del(id: string) {
+  async function toggleActive(s: Sub, nextActive: boolean) {
     if (!canManage) {
       setMsg("Not allowed.");
       return;
     }
 
-    if (!confirm("Delete this subhead?")) return;
+    setSaving(true);
+    setMsg(null);
+
+    try {
+      const { error } = await supabase
+        .from("subheads")
+        .update({ is_active: nextActive })
+        .eq("id", s.id);
+
+      if (error) throw new Error(error.message);
+
+      setMsg(nextActive ? "✅ Subhead activated." : "✅ Subhead deactivated.");
+      await load({ silent: true });
+      router.refresh();
+    } catch (e: any) {
+      setMsg("❌ " + (e?.message || "Failed"));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function deleteOrDeactivate(s: Sub) {
+    if (!canManage) {
+      setMsg("Not allowed.");
+      return;
+    }
+
+    const linked = Number(s.request_count || 0) > 0;
+
+    if (linked) {
+      if (
+        !confirm(
+          "This subhead is already linked to one or more requests, so it cannot be safely deleted. Do you want to deactivate it instead?"
+        )
+      ) {
+        return;
+      }
+
+      await toggleActive(s, false);
+      return;
+    }
+
+    if (!confirm("Delete this unused subhead permanently?")) return;
 
     setSaving(true);
     setMsg(null);
 
     try {
-      const { error } = await supabase.from("subheads").delete().eq("id", id);
+      const { error } = await supabase.from("subheads").delete().eq("id", s.id);
       if (error) throw new Error(error.message);
 
-      setMsg("✅ Deleted.");
+      setMsg("✅ Unused subhead deleted.");
 
-      if (editId === id) {
-        resetForm();
-      }
+      if (editId === s.id) resetForm();
 
       await load({ silent: true });
       router.refresh();
     } catch (e: any) {
-      setMsg("❌ " + (e?.message || "Failed"));
+      const text = e?.message || "Failed";
+
+      if (text.toLowerCase().includes("foreign key") || text.toLowerCase().includes("requests_subhead_id")) {
+        await toggleActive(s, false);
+        setMsg("✅ Subhead was linked to requests, so it has been deactivated instead of deleted.");
+      } else {
+        setMsg("❌ " + text);
+      }
     } finally {
       setSaving(false);
     }
@@ -409,6 +509,7 @@ export default function SubheadsPage() {
         { header: "Department", value: (row) => (row.dept_id ? exportDeptMap[row.dept_id] : "—") },
         { header: "Code", value: (row) => row.code || "—" },
         { header: "Subhead", value: (row) => row.name },
+        { header: "Linked Requests", value: (row) => Number(row.request_count || 0) },
         { header: "Allocation", value: (row) => plainAmount(Number(row.approved_allocation || 0)) },
         { header: "Reserved", value: (row) => plainAmount(Number(row.reserved_amount || 0)) },
         { header: "Expenditure", value: (row) => plainAmount(Number(row.expenditure || 0)) },
@@ -419,6 +520,7 @@ export default function SubheadsPage() {
       footerRows: [
         [
           "Report Total",
+          "",
           "",
           "",
           "",
@@ -462,18 +564,11 @@ export default function SubheadsPage() {
     <main className="min-h-screen bg-slate-50 px-4">
       <style>{`
         @media print {
-          @page {
-            size: A4 landscape;
-            margin: 10mm;
-          }
+          @page { size: A4 landscape; margin: 10mm; }
 
-          body {
-            background: white !important;
-          }
+          body { background: white !important; }
 
-          .no-print {
-            display: none !important;
-          }
+          .no-print { display: none !important; }
 
           .print-sheet {
             box-shadow: none !important;
@@ -484,13 +579,9 @@ export default function SubheadsPage() {
             max-width: none !important;
           }
 
-          .print-card {
-            break-inside: avoid !important;
-          }
+          .print-card { break-inside: avoid !important; }
 
-          .print-title {
-            text-align: center !important;
-          }
+          .print-title { text-align: center !important; }
         }
       `}</style>
 
@@ -513,7 +604,7 @@ export default function SubheadsPage() {
               Finance • Subheads
             </h1>
             <p className="mt-2 text-sm text-slate-600">
-              Manage allocations, commitments, expenditures, balances and payment-related completed request printouts.
+              Add, edit, activate, deactivate and safely delete unused finance subheads.
             </p>
             <p className="mt-1 hidden text-xs font-semibold text-slate-500 print:block">
               Generated: {new Date().toLocaleString()}
@@ -530,9 +621,17 @@ export default function SubheadsPage() {
             </button>
 
             <button
+              onClick={startCreate}
+              disabled={!canManage || refreshing || printing || exporting || saving}
+              className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:opacity-60"
+            >
+              Add Subhead
+            </button>
+
+            <button
               onClick={printSubheadsReport}
               disabled={refreshing || printing || exporting || saving}
-              className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:opacity-60"
+              className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-slate-800 disabled:opacity-60"
             >
               {printing ? "Preparing..." : "Print / Save PDF"}
             </button>
@@ -566,13 +665,13 @@ export default function SubheadsPage() {
         </div>
 
         {msg && (
-          <div className="mt-4 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 shadow-sm">
+          <div className="mt-4 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-800 shadow-sm">
             {msg}
           </div>
         )}
 
         <div className="no-print mt-4 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-xs font-semibold text-blue-900">
-          This page refreshes automatically when you return to it. Print and Excel export also reload fresh finance data first.
+          Used subheads cannot be hard-deleted because request records depend on them. Deactivate used subheads instead.
         </div>
 
         <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-6 print:grid-cols-6">
@@ -584,459 +683,593 @@ export default function SubheadsPage() {
           <StatCard title="Balance" value={naira(totals.balanceTotal)} tone="emerald" />
         </div>
 
-        <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4 print:grid-cols-4">
+        <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-5 print:grid-cols-5">
           <SmallStat title="Inactive Subheads" value={String(totals.inactiveCount)} />
+          <SmallStat title="Linked to Requests" value={String(totals.linkedCount)} />
           <SmallStat title="Negative Balance" value={String(totals.negativeBalanceCount)} />
           <SmallStat title="Low Balance" value={String(totals.lowBalanceCount)} />
           <SmallStat title="Departments" value={String(depts.length)} />
         </div>
 
-        {canPrintCompleted && (
-          <div className="no-print mt-6 rounded-3xl border bg-white shadow-sm overflow-hidden">
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b bg-slate-50 px-6 py-4">
-              <div>
-                <h2 className="text-lg font-bold text-slate-900">
-                  Payment-Related Completed Requests Ready for Print
-                </h2>
-                <p className="mt-1 text-sm text-slate-600">
-                  Shows Official requests and Personal Fund requests only. Personal NonFund requests are handled by HR Filing.
-                </p>
-              </div>
-
-              <button
-                onClick={() => load({ silent: true })}
-                disabled={refreshing || printing || exporting || saving}
-                className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
-              >
-                {refreshing ? "Refreshing..." : "Refresh"}
-              </button>
-            </div>
-
-            {printableRequests.length === 0 ? (
-              <div className="p-6 text-sm text-slate-700">
-                No payment-related completed or paid request is ready for printing yet.
-              </div>
-            ) : (
-              <>
-                <div className="grid gap-3 p-4 xl:hidden">
-                  {printableRequests.map((r) => (
-                    <div key={r.id} className="rounded-2xl border bg-white p-4">
-                      <div className="flex flex-wrap items-start justify-between gap-2">
-                        <div>
-                          <div className="font-extrabold text-slate-900">{r.request_no}</div>
-                          <div className="mt-1 text-sm font-semibold text-slate-800">
-                            {r.title}
-                          </div>
-                          <div className="mt-1 text-xs text-slate-500">
-                            {requestPrintSource(r, subheadMap)}
-                          </div>
-                        </div>
-
-                        <div className="flex flex-col items-end gap-1">
-                          <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">
-                            {requestTypeLabel(r)}
-                          </span>
-                          <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
-                            {r.status}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="mt-3 grid gap-2 text-sm sm:grid-cols-3">
-                        <div>
-                          <span className="text-slate-500">Amount:</span>{" "}
-                          <b>{naira(Number(r.amount || 0))}</b>
-                        </div>
-                        <div>
-                          <span className="text-slate-500">Requester:</span>{" "}
-                          <b>{r.requester_name || "—"}</b>
-                        </div>
-                        <div>
-                          <span className="text-slate-500">Date:</span>{" "}
-                          <b>{shortDate(r.created_at)}</b>
-                        </div>
-                      </div>
-
-                      <div className="mt-4 flex justify-end">
-                        <button
-                          onClick={() => printCompletedRequest(r.id)}
-                          className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
-                        >
-                          Print
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="hidden xl:block overflow-x-auto">
-                  <div className="min-w-[1180px]">
-                    <div className="grid grid-cols-13 bg-slate-100 px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600">
-                      <div className="col-span-2">Request No</div>
-                      <div className="col-span-3">Title</div>
-                      <div className="col-span-2">Type / Source</div>
-                      <div className="col-span-1 text-right">Amount</div>
-                      <div className="col-span-1">Status</div>
-                      <div className="col-span-1">Requester</div>
-                      <div className="col-span-1">Account</div>
-                      <div className="col-span-1">Date</div>
-                      <div className="col-span-1 text-right">Action</div>
-                    </div>
-
-                    {printableRequests.map((r) => (
-                      <div
-                        key={r.id}
-                        className="grid grid-cols-13 items-center border-t px-6 py-4 text-sm hover:bg-slate-50"
-                      >
-                        <div className="col-span-2 font-extrabold text-slate-900">
-                          {r.request_no}
-                        </div>
-
-                        <div className="col-span-3">
-                          <div className="font-semibold text-slate-900">{r.title}</div>
-                          <div className="mt-1 text-xs text-slate-500">
-                            {requestPrintSource(r, subheadMap)}
-                          </div>
-                        </div>
-
-                        <div className="col-span-2">
-                          <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">
-                            {requestTypeLabel(r)}
-                          </span>
-                        </div>
-
-                        <div className="col-span-1 text-right font-bold text-slate-900">
-                          {naira(Number(r.amount || 0))}
-                        </div>
-
-                        <div className="col-span-1">
-                          <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
-                            {r.status}
-                          </span>
-                        </div>
-
-                        <div className="col-span-1 text-slate-700">
-                          {r.requester_name || "—"}
-                        </div>
-
-                        <div className="col-span-1 text-slate-700">
-                          {r.account_name || "—"}
-                        </div>
-
-                        <div className="col-span-1 text-slate-600">
-                          {shortDate(r.created_at)}
-                        </div>
-
-                        <div className="col-span-1 flex justify-end">
-                          <button
-                            onClick={() => printCompletedRequest(r.id)}
-                            className="rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700"
-                          >
-                            Print
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </>
+        <div className="no-print mt-6 rounded-3xl border bg-white p-2 shadow-sm">
+          <div className="flex flex-wrap gap-2">
+            <TabButton label="Overview" active={activeTab === "overview"} onClick={() => setActiveTab("overview")} />
+            <TabButton label="Active Subheads" active={activeTab === "active"} onClick={() => setActiveTab("active")} />
+            <TabButton label="Inactive Subheads" active={activeTab === "inactive"} onClick={() => setActiveTab("inactive")} />
+            <TabButton label={editId ? "Edit Subhead" : "Add Subhead"} active={activeTab === "form"} onClick={() => setActiveTab("form")} />
+            {canPrintCompleted && (
+              <TabButton label="Completed Requests" active={activeTab === "print"} onClick={() => setActiveTab("print")} />
             )}
+          </div>
+        </div>
+
+        {(activeTab === "overview" || activeTab === "active" || activeTab === "inactive") && (
+          <div className="no-print mt-6 rounded-3xl border bg-white p-5 shadow-sm">
+            <label className="text-sm font-semibold text-slate-800">Search Subheads</label>
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search by subhead, code, department or status..."
+              className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 text-slate-900 outline-none focus:border-blue-500"
+            />
           </div>
         )}
 
-        <div className="no-print mt-6 rounded-3xl border bg-white p-6 shadow-sm">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h2 className="text-lg font-bold text-slate-900">
-                {editId ? "Edit Subhead" : "Create Subhead"}
-              </h2>
-              <p className="mt-1 text-sm text-slate-600">
-                Create and manage departmental budget lines.
-              </p>
-            </div>
+        {activeTab === "print" && canPrintCompleted && (
+          <CompletedRequestsPanel
+            printableRequests={printableRequests}
+            subheadMap={subheadMap}
+            refreshing={refreshing}
+            saving={saving}
+            printing={printing}
+            exporting={exporting}
+            onRefresh={() => load({ silent: true })}
+            onPrint={printCompletedRequest}
+          />
+        )}
 
-            {editId && (
-              <button
-                onClick={resetForm}
-                disabled={saving}
-                className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
-              >
-                Cancel Edit
-              </button>
-            )}
-          </div>
+        {activeTab === "form" && (
+          <SubheadForm
+            canManage={canManage}
+            saving={saving}
+            editId={editId}
+            depts={depts}
+            deptId={deptId}
+            code={code}
+            name={name}
+            allocation={allocation}
+            active={active}
+            onCancel={resetForm}
+            onSave={save}
+            setDeptId={setDeptId}
+            setCode={setCode}
+            setName={setName}
+            setAllocation={setAllocation}
+            setActive={setActive}
+          />
+        )}
 
-          {!canManage && (
-            <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
-              View only. Only Admin and Auditor can create, edit or delete subheads.
-            </div>
-          )}
-
-          <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            <div className="xl:col-span-2">
-              <label className="text-sm font-semibold text-slate-800">Department</label>
-              <select
-                value={deptId}
-                onChange={(e) => setDeptId(e.target.value)}
-                disabled={!canManage}
-                className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-3 text-slate-900 outline-none focus:border-blue-500 disabled:bg-slate-50"
-              >
-                <option value="">— Not assigned —</option>
-                {depts.map((d) => (
-                  <option key={d.id} value={d.id}>
-                    {d.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="text-sm font-semibold text-slate-800">Code</label>
-              <input
-                value={code}
-                onChange={(e) => setCode(e.target.value)}
-                disabled={!canManage}
-                placeholder="e.g. GA-004"
-                className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-3 text-slate-900 outline-none focus:border-blue-500 disabled:bg-slate-50"
-              />
-            </div>
-
-            <div>
-              <label className="text-sm font-semibold text-slate-800">Allocation (₦)</label>
-              <input
-                value={allocation}
-                onChange={(e) => setAllocation(Number(e.target.value || 0))}
-                disabled={!canManage}
-                type="number"
-                className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-3 text-slate-900 outline-none focus:border-blue-500 disabled:bg-slate-50"
-              />
-            </div>
-
-            <div className="md:col-span-2 xl:col-span-3">
-              <label className="text-sm font-semibold text-slate-800">Subhead Name</label>
-              <input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                disabled={!canManage}
-                placeholder="e.g. Vehicles Maintenance"
-                className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-3 text-slate-900 outline-none focus:border-blue-500 disabled:bg-slate-50"
-              />
-            </div>
-
-            <div className="flex items-end gap-3">
-              <label className="inline-flex items-center gap-2 text-sm font-semibold text-slate-800">
-                <input
-                  type="checkbox"
-                  checked={active}
-                  onChange={(e) => setActive(e.target.checked)}
-                  disabled={!canManage}
-                />
-                Active
-              </label>
-
-              <button
-                onClick={save}
-                disabled={!canManage || saving}
-                className="ml-auto rounded-2xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:opacity-60"
-              >
-                {saving ? "Saving..." : editId ? "Update" : "Create"}
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-6 grid gap-4 xl:hidden print:hidden">
-          {subs.length === 0 ? (
-            <div className="rounded-2xl border bg-white p-5 text-sm text-slate-700 shadow-sm">
-              No subheads yet.
-            </div>
-          ) : (
-            subs.map((s) => (
-              <div key={s.id} className="rounded-3xl border bg-white p-5 shadow-sm">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <div className="text-lg font-bold text-slate-900">{s.name}</div>
-                    <div className="mt-1 text-sm text-slate-500">
-                      {s.dept_id ? deptMap[s.dept_id] : "No department"}
-                    </div>
-                  </div>
-
-                  <span
-                    className={`rounded-full px-3 py-1 text-xs font-bold ${
-                      s.is_active
-                        ? "bg-emerald-50 text-emerald-700"
-                        : "bg-red-50 text-red-700"
-                    }`}
-                  >
-                    {s.is_active ? "Active" : "Inactive"}
-                  </span>
+        {(activeTab === "overview" || activeTab === "active" || activeTab === "inactive") && (
+          <>
+            <div className="mt-6 grid gap-4 xl:hidden print:hidden">
+              {filteredSubs.length === 0 ? (
+                <div className="rounded-2xl border bg-white p-5 text-sm text-slate-700 shadow-sm">
+                  No subheads found.
                 </div>
-
-                <div className="mt-3 text-sm text-slate-700">
-                  <span className="font-semibold">Code:</span> {s.code || "—"}
-                </div>
-
-                <div className="mt-4 grid gap-3 sm:grid-cols-4">
-                  <MiniMetric title="Allocation" value={naira(Number(s.approved_allocation || 0))} tone="blue" />
-                  <MiniMetric title="Reserved" value={naira(Number(s.reserved_amount || 0))} tone="amber" />
-                  <MiniMetric title="Expenditure" value={naira(Number(s.expenditure || 0))} tone="red" />
-                  <MiniMetric title="Balance" value={naira(Number(s.balance || 0))} tone="emerald" />
-                </div>
-
-                <div className="mt-4 flex flex-wrap justify-end gap-2">
-                  <button
-                    disabled={!canManage}
-                    onClick={() => {
-                      setEditId(s.id);
-                      setDeptId(s.dept_id || "");
-                      setCode(s.code || "");
-                      setName(s.name);
-                      setAllocation(Number(s.approved_allocation || 0));
-                      setActive(Boolean(s.is_active));
-                    }}
-                    className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-50"
-                  >
-                    Edit
-                  </button>
-
-                  <button
-                    disabled={!canManage || saving}
-                    onClick={() => del(s.id)}
-                    className="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
-                  >
-                    Delete
-                  </button>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-
-        <div className="mt-6 hidden xl:block rounded-3xl border bg-white shadow-sm overflow-hidden print:block print:rounded-none print:border-black print:shadow-none">
-          <div className="border-b bg-slate-50 px-6 py-4 print:bg-white print:px-2">
-            <h3 className="text-base font-bold text-slate-900 print:text-sm">Subheads Register</h3>
-            <p className="mt-1 text-sm text-slate-600 print:text-[9px]">
-              Allocation, reserved commitments, actual expenditure and remaining balance.
-            </p>
-          </div>
-
-          <div className="overflow-x-auto">
-            <div className="min-w-[1320px] print:min-w-0">
-              <div className="grid grid-cols-17 bg-slate-100 px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600 print:border-b print:border-black print:bg-white print:px-2 print:text-[8px]">
-                <div className="col-span-3">Department</div>
-                <div className="col-span-2">Code</div>
-                <div className="col-span-3">Subhead</div>
-                <div className="col-span-2 text-right">Allocation</div>
-                <div className="col-span-2 text-right">Reserved</div>
-                <div className="col-span-2 text-right">Expenditure</div>
-                <div className="col-span-2 text-right">Balance</div>
-                <div className="col-span-1 text-right no-print">Actions</div>
-              </div>
-
-              {subs.length === 0 ? (
-                <div className="px-6 py-6 text-sm text-slate-700">No subheads yet.</div>
               ) : (
-                subs.map((s) => (
-                  <div
+                filteredSubs.map((s) => (
+                  <SubheadMobileCard
                     key={s.id}
-                    className="grid grid-cols-17 items-center border-t px-6 py-4 text-sm hover:bg-slate-50 print:px-2 print:py-2 print:text-[8px]"
-                  >
-                    <div className="col-span-3">
-                      <div className="font-semibold text-slate-900">
-                        {s.dept_id ? deptMap[s.dept_id] : "—"}
-                      </div>
-                      <div className="mt-1 text-xs text-slate-500 print:text-[7px]">
-                        {s.is_active ? "Active" : "Inactive"}
-                      </div>
-                    </div>
-
-                    <div className="col-span-2 font-semibold text-slate-900">
-                      {s.code || "—"}
-                    </div>
-
-                    <div className="col-span-3">
-                      <div className="font-semibold text-slate-900">{s.name}</div>
-                      <div className="mt-1 text-xs text-slate-500 print:text-[7px]">
-                        Updated {shortDate(s.updated_at)}
-                      </div>
-                    </div>
-
-                    <div className="col-span-2 text-right font-semibold text-blue-700">
-                      {naira(Number(s.approved_allocation || 0))}
-                    </div>
-
-                    <div className="col-span-2 text-right font-semibold text-amber-700">
-                      {naira(Number(s.reserved_amount || 0))}
-                    </div>
-
-                    <div className="col-span-2 text-right font-semibold text-red-600">
-                      {naira(Number(s.expenditure || 0))}
-                    </div>
-
-                    <div className="col-span-2 text-right font-bold text-emerald-700">
-                      {naira(Number(s.balance || 0))}
-                    </div>
-
-                    <div className="col-span-1 flex justify-end gap-2 no-print">
-                      <button
-                        disabled={!canManage}
-                        onClick={() => {
-                          setEditId(s.id);
-                          setDeptId(s.dept_id || "");
-                          setCode(s.code || "");
-                          setName(s.name);
-                          setAllocation(Number(s.approved_allocation || 0));
-                          setActive(Boolean(s.is_active));
-                        }}
-                        className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-50"
-                      >
-                        Edit
-                      </button>
-
-                      <button
-                        disabled={!canManage || saving}
-                        onClick={() => del(s.id)}
-                        className="rounded-xl bg-red-600 px-3 py-2 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-50"
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </div>
+                    s={s}
+                    deptName={s.dept_id ? deptMap[s.dept_id] : "No department"}
+                    canManage={canManage}
+                    saving={saving}
+                    onEdit={() => startEdit(s)}
+                    onToggle={() => toggleActive(s, !s.is_active)}
+                    onDelete={() => deleteOrDeactivate(s)}
+                  />
                 ))
               )}
-
-              <div className="grid grid-cols-17 border-t bg-slate-50 px-6 py-4 text-sm print:bg-white print:px-2 print:text-[9px]">
-                <div className="col-span-8 font-black uppercase text-slate-900">
-                  Total
-                </div>
-                <div className="col-span-2 text-right font-black text-blue-700">
-                  {naira(totals.allocationTotal)}
-                </div>
-                <div className="col-span-2 text-right font-black text-amber-700">
-                  {naira(totals.reservedTotal)}
-                </div>
-                <div className="col-span-2 text-right font-black text-red-700">
-                  {naira(totals.expenditureTotal)}
-                </div>
-                <div className="col-span-2 text-right font-black text-emerald-700">
-                  {naira(totals.balanceTotal)}
-                </div>
-                <div className="col-span-1 no-print" />
-              </div>
             </div>
-          </div>
-        </div>
+
+            <div className="mt-6 hidden xl:block rounded-3xl border bg-white shadow-sm overflow-hidden print:block print:rounded-none print:border-black print:shadow-none">
+              <div className="border-b bg-slate-50 px-6 py-4 print:bg-white print:px-2">
+                <h3 className="text-base font-bold text-slate-900 print:text-sm">Subheads Register</h3>
+                <p className="mt-1 text-sm text-slate-600 print:text-[9px]">
+                  Allocation, reserved commitments, actual expenditure and remaining balance.
+                </p>
+              </div>
+
+              <SubheadTable
+                subs={filteredSubs}
+                deptMap={deptMap}
+                totals={computeTotals(filteredSubs)}
+                canManage={canManage}
+                saving={saving}
+                onEdit={startEdit}
+                onToggle={toggleActive}
+                onDelete={deleteOrDeactivate}
+              />
+            </div>
+          </>
+        )}
 
         <div className="mt-6 rounded-3xl border border-blue-100 bg-blue-50 p-5 text-sm text-blue-900 print:border-t print:border-black print:bg-white print:text-black">
-          <div className="font-bold">Subheads Report Note</div>
+          <div className="font-bold">Subheads Management Note</div>
           <p className="mt-1">
-            This report summarizes all finance subheads, approved allocations, reserved commitments,
-            expenditure and remaining balances. It is intended for internal finance control,
-            reconciliation and management review.
+            Subheads with linked request records are preserved for audit integrity. Deactivation should
+            be used when a subhead is no longer operational, while permanent deletion is reserved for
+            unused subheads only.
           </p>
         </div>
       </div>
     </main>
+  );
+}
+
+function SubheadForm({
+  canManage,
+  saving,
+  editId,
+  depts,
+  deptId,
+  code,
+  name,
+  allocation,
+  active,
+  onCancel,
+  onSave,
+  setDeptId,
+  setCode,
+  setName,
+  setAllocation,
+  setActive,
+}: {
+  canManage: boolean;
+  saving: boolean;
+  editId: string | null;
+  depts: Dept[];
+  deptId: string;
+  code: string;
+  name: string;
+  allocation: number;
+  active: boolean;
+  onCancel: () => void;
+  onSave: () => void;
+  setDeptId: (v: string) => void;
+  setCode: (v: string) => void;
+  setName: (v: string) => void;
+  setAllocation: (v: number) => void;
+  setActive: (v: boolean) => void;
+}) {
+  return (
+    <div className="no-print mt-6 rounded-3xl border bg-white p-6 shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-bold text-slate-900">
+            {editId ? "Edit Subhead" : "Add New Subhead"}
+          </h2>
+          <p className="mt-1 text-sm text-slate-600">
+            Enter the department, code, name, approved allocation and active status.
+          </p>
+        </div>
+
+        {editId && (
+          <button
+            onClick={onCancel}
+            disabled={saving}
+            className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
+          >
+            Cancel Edit
+          </button>
+        )}
+      </div>
+
+      {!canManage && (
+        <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+          View only. Only Admin and Auditor can create, edit, activate, deactivate or delete subheads.
+        </div>
+      )}
+
+      <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div className="xl:col-span-2">
+          <label className="text-sm font-semibold text-slate-800">Department</label>
+          <select
+            value={deptId}
+            onChange={(e) => setDeptId(e.target.value)}
+            disabled={!canManage || saving}
+            className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-3 text-slate-900 outline-none focus:border-blue-500 disabled:bg-slate-50"
+          >
+            <option value="">— Not assigned —</option>
+            {depts.map((d) => (
+              <option key={d.id} value={d.id}>
+                {d.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="text-sm font-semibold text-slate-800">Code</label>
+          <input
+            value={code}
+            onChange={(e) => setCode(e.target.value)}
+            disabled={!canManage || saving}
+            placeholder="e.g. GA-004"
+            className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-3 text-slate-900 outline-none focus:border-blue-500 disabled:bg-slate-50"
+          />
+        </div>
+
+        <div>
+          <label className="text-sm font-semibold text-slate-800">Allocation (₦)</label>
+          <input
+            value={allocation}
+            onChange={(e) => setAllocation(Number(e.target.value || 0))}
+            disabled={!canManage || saving}
+            type="number"
+            className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-3 text-slate-900 outline-none focus:border-blue-500 disabled:bg-slate-50"
+          />
+        </div>
+
+        <div className="md:col-span-2 xl:col-span-3">
+          <label className="text-sm font-semibold text-slate-800">Subhead Name</label>
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            disabled={!canManage || saving}
+            placeholder="e.g. Vehicles Maintenance"
+            className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-3 text-slate-900 outline-none focus:border-blue-500 disabled:bg-slate-50"
+          />
+        </div>
+
+        <div className="flex items-end gap-3">
+          <label className="inline-flex items-center gap-2 text-sm font-semibold text-slate-800">
+            <input
+              type="checkbox"
+              checked={active}
+              onChange={(e) => setActive(e.target.checked)}
+              disabled={!canManage || saving}
+            />
+            Active
+          </label>
+
+          <button
+            onClick={onSave}
+            disabled={!canManage || saving}
+            className="ml-auto rounded-2xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:opacity-60"
+          >
+            {saving ? "Saving..." : editId ? "Update Subhead" : "Create Subhead"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SubheadTable({
+  subs,
+  deptMap,
+  totals,
+  canManage,
+  saving,
+  onEdit,
+  onToggle,
+  onDelete,
+}: {
+  subs: Sub[];
+  deptMap: Record<string, string>;
+  totals: ReturnType<typeof computeTotals>;
+  canManage: boolean;
+  saving: boolean;
+  onEdit: (s: Sub) => void;
+  onToggle: (s: Sub, nextActive: boolean) => void;
+  onDelete: (s: Sub) => void;
+}) {
+  return (
+    <div className="overflow-x-auto">
+      <div className="min-w-[1450px] print:min-w-0">
+        <div className="grid grid-cols-19 bg-slate-100 px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600 print:border-b print:border-black print:bg-white print:px-2 print:text-[8px]">
+          <div className="col-span-3">Department</div>
+          <div className="col-span-2">Code</div>
+          <div className="col-span-3">Subhead</div>
+          <div className="col-span-1 text-center">Links</div>
+          <div className="col-span-2 text-right">Allocation</div>
+          <div className="col-span-2 text-right">Reserved</div>
+          <div className="col-span-2 text-right">Expenditure</div>
+          <div className="col-span-2 text-right">Balance</div>
+          <div className="col-span-2 text-right no-print">Actions</div>
+        </div>
+
+        {subs.length === 0 ? (
+          <div className="px-6 py-6 text-sm text-slate-700">No subheads found.</div>
+        ) : (
+          subs.map((s) => (
+            <div
+              key={s.id}
+              className="grid grid-cols-19 items-center border-t px-6 py-4 text-sm hover:bg-slate-50 print:px-2 print:py-2 print:text-[8px]"
+            >
+              <div className="col-span-3">
+                <div className="font-semibold text-slate-900">
+                  {s.dept_id ? deptMap[s.dept_id] : "—"}
+                </div>
+                <div className="mt-1 text-xs text-slate-500 print:text-[7px]">
+                  {s.is_active ? "Active" : "Inactive"}
+                </div>
+              </div>
+
+              <div className="col-span-2 font-semibold text-slate-900">{s.code || "—"}</div>
+
+              <div className="col-span-3">
+                <div className="font-semibold text-slate-900">{s.name}</div>
+                <div className="mt-1 text-xs text-slate-500 print:text-[7px]">
+                  Updated {shortDate(s.updated_at)}
+                </div>
+              </div>
+
+              <div className="col-span-1 text-center">
+                <span className="rounded-full bg-slate-50 px-3 py-1 text-xs font-bold text-slate-700">
+                  {Number(s.request_count || 0)}
+                </span>
+              </div>
+
+              <div className="col-span-2 text-right font-semibold text-blue-700">
+                {naira(Number(s.approved_allocation || 0))}
+              </div>
+
+              <div className="col-span-2 text-right font-semibold text-amber-700">
+                {naira(Number(s.reserved_amount || 0))}
+              </div>
+
+              <div className="col-span-2 text-right font-semibold text-red-600">
+                {naira(Number(s.expenditure || 0))}
+              </div>
+
+              <div className="col-span-2 text-right font-bold text-emerald-700">
+                {naira(Number(s.balance || 0))}
+              </div>
+
+              <div className="col-span-2 flex justify-end gap-2 no-print">
+                <button
+                  disabled={!canManage || saving}
+                  onClick={() => onEdit(s)}
+                  className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-50"
+                >
+                  Edit
+                </button>
+
+                <button
+                  disabled={!canManage || saving}
+                  onClick={() => onToggle(s, !s.is_active)}
+                  className={`rounded-xl px-3 py-2 text-xs font-semibold text-white disabled:opacity-50 ${
+                    s.is_active ? "bg-amber-600 hover:bg-amber-700" : "bg-emerald-600 hover:bg-emerald-700"
+                  }`}
+                >
+                  {s.is_active ? "Deactivate" : "Activate"}
+                </button>
+
+                <button
+                  disabled={!canManage || saving}
+                  onClick={() => onDelete(s)}
+                  className="rounded-xl bg-red-600 px-3 py-2 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+                >
+                  {Number(s.request_count || 0) > 0 ? "Deactivate" : "Delete"}
+                </button>
+              </div>
+            </div>
+          ))
+        )}
+
+        <div className="grid grid-cols-19 border-t bg-slate-50 px-6 py-4 text-sm print:bg-white print:px-2 print:text-[9px]">
+          <div className="col-span-9 font-black uppercase text-slate-900">Total</div>
+          <div className="col-span-2 text-right font-black text-blue-700">{naira(totals.allocationTotal)}</div>
+          <div className="col-span-2 text-right font-black text-amber-700">{naira(totals.reservedTotal)}</div>
+          <div className="col-span-2 text-right font-black text-red-700">{naira(totals.expenditureTotal)}</div>
+          <div className="col-span-2 text-right font-black text-emerald-700">{naira(totals.balanceTotal)}</div>
+          <div className="col-span-2 no-print" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SubheadMobileCard({
+  s,
+  deptName,
+  canManage,
+  saving,
+  onEdit,
+  onToggle,
+  onDelete,
+}: {
+  s: Sub;
+  deptName: string;
+  canManage: boolean;
+  saving: boolean;
+  onEdit: () => void;
+  onToggle: () => void;
+  onDelete: () => void;
+}) {
+  return (
+    <div className="rounded-3xl border bg-white p-5 shadow-sm">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <div className="text-lg font-bold text-slate-900">{s.name}</div>
+          <div className="mt-1 text-sm text-slate-500">{deptName}</div>
+          <div className="mt-1 text-xs text-slate-500">Code: {s.code || "—"}</div>
+        </div>
+
+        <span
+          className={`rounded-full px-3 py-1 text-xs font-bold ${
+            s.is_active ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"
+          }`}
+        >
+          {s.is_active ? "Active" : "Inactive"}
+        </span>
+      </div>
+
+      <div className="mt-3 text-xs font-bold text-slate-600">
+        Linked Requests: {Number(s.request_count || 0)}
+      </div>
+
+      <div className="mt-4 grid gap-3 sm:grid-cols-4">
+        <MiniMetric title="Allocation" value={naira(Number(s.approved_allocation || 0))} tone="blue" />
+        <MiniMetric title="Reserved" value={naira(Number(s.reserved_amount || 0))} tone="amber" />
+        <MiniMetric title="Expenditure" value={naira(Number(s.expenditure || 0))} tone="red" />
+        <MiniMetric title="Balance" value={naira(Number(s.balance || 0))} tone="emerald" />
+      </div>
+
+      <div className="mt-4 flex flex-wrap justify-end gap-2">
+        <button
+          disabled={!canManage || saving}
+          onClick={onEdit}
+          className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-50"
+        >
+          Edit
+        </button>
+
+        <button
+          disabled={!canManage || saving}
+          onClick={onToggle}
+          className={`rounded-xl px-4 py-2 text-sm font-semibold text-white disabled:opacity-50 ${
+            s.is_active ? "bg-amber-600 hover:bg-amber-700" : "bg-emerald-600 hover:bg-emerald-700"
+          }`}
+        >
+          {s.is_active ? "Deactivate" : "Activate"}
+        </button>
+
+        <button
+          disabled={!canManage || saving}
+          onClick={onDelete}
+          className="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+        >
+          {Number(s.request_count || 0) > 0 ? "Deactivate" : "Delete"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function CompletedRequestsPanel({
+  printableRequests,
+  subheadMap,
+  refreshing,
+  saving,
+  printing,
+  exporting,
+  onRefresh,
+  onPrint,
+}: {
+  printableRequests: PrintableRequest[];
+  subheadMap: Record<string, string>;
+  refreshing: boolean;
+  saving: boolean;
+  printing: boolean;
+  exporting: boolean;
+  onRefresh: () => void;
+  onPrint: (requestId: string) => void;
+}) {
+  return (
+    <div className="no-print mt-6 rounded-3xl border bg-white shadow-sm overflow-hidden">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b bg-slate-50 px-6 py-4">
+        <div>
+          <h2 className="text-lg font-bold text-slate-900">
+            Payment-Related Completed Requests Ready for Print
+          </h2>
+          <p className="mt-1 text-sm text-slate-600">
+            Shows Official requests and Personal Fund requests only. Personal NonFund requests are handled by HR Filing.
+          </p>
+        </div>
+
+        <button
+          onClick={onRefresh}
+          disabled={refreshing || printing || exporting || saving}
+          className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
+        >
+          {refreshing ? "Refreshing..." : "Refresh"}
+        </button>
+      </div>
+
+      {printableRequests.length === 0 ? (
+        <div className="p-6 text-sm text-slate-700">
+          No payment-related completed or paid request is ready for printing yet.
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <div className="min-w-[1180px]">
+            <div className="grid grid-cols-13 bg-slate-100 px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600">
+              <div className="col-span-2">Request No</div>
+              <div className="col-span-3">Title</div>
+              <div className="col-span-2">Type / Source</div>
+              <div className="col-span-1 text-right">Amount</div>
+              <div className="col-span-1">Status</div>
+              <div className="col-span-1">Requester</div>
+              <div className="col-span-1">Account</div>
+              <div className="col-span-1">Date</div>
+              <div className="col-span-1 text-right">Action</div>
+            </div>
+
+            {printableRequests.map((r) => (
+              <div
+                key={r.id}
+                className="grid grid-cols-13 items-center border-t px-6 py-4 text-sm hover:bg-slate-50"
+              >
+                <div className="col-span-2 font-extrabold text-slate-900">{r.request_no}</div>
+
+                <div className="col-span-3">
+                  <div className="font-semibold text-slate-900">{r.title}</div>
+                  <div className="mt-1 text-xs text-slate-500">
+                    {requestPrintSource(r, subheadMap)}
+                  </div>
+                </div>
+
+                <div className="col-span-2">
+                  <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">
+                    {requestTypeLabel(r)}
+                  </span>
+                </div>
+
+                <div className="col-span-1 text-right font-bold text-slate-900">
+                  {naira(Number(r.amount || 0))}
+                </div>
+
+                <div className="col-span-1">
+                  <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
+                    {r.status}
+                  </span>
+                </div>
+
+                <div className="col-span-1 text-slate-700">{r.requester_name || "—"}</div>
+                <div className="col-span-1 text-slate-700">{r.account_name || "—"}</div>
+                <div className="col-span-1 text-slate-600">{shortDate(r.created_at)}</div>
+
+                <div className="col-span-1 flex justify-end">
+                  <button
+                    onClick={() => onPrint(r.id)}
+                    className="rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700"
+                  >
+                    Print
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TabButton({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`rounded-2xl px-4 py-3 text-sm font-bold transition ${
+        active ? "bg-blue-600 text-white shadow-sm" : "bg-white text-slate-700 hover:bg-slate-100"
+      }`}
+    >
+      {label}
+    </button>
   );
 }
 
