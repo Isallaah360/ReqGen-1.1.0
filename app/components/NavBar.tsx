@@ -204,7 +204,6 @@ export default function NavBar() {
   const [myRole, setMyRole] = useState<string>("Staff");
 
   const [openApprovalPanel, setOpenApprovalPanel] = useState(false);
-  const [openFinance, setOpenFinance] = useState(false);
   const [openHR, setOpenHR] = useState(false);
   const [openMobileMenu, setOpenMobileMenu] = useState(false);
 
@@ -215,7 +214,6 @@ export default function NavBar() {
   const [userId, setUserId] = useState<string | null>(null);
 
   const approvalRef = useRef<HTMLDivElement | null>(null);
-  const financeRef = useRef<HTMLDivElement | null>(null);
   const hrRef = useRef<HTMLDivElement | null>(null);
   const mobileRef = useRef<HTMLDivElement | null>(null);
 
@@ -223,7 +221,6 @@ export default function NavBar() {
 
   const isAdmin = ["admin", "auditor"].includes(rk);
   const canFinance = ["admin", "auditor", "account", "accounts", "accountofficer"].includes(rk);
-  const canAuditView = ["admin", "auditor", "account", "accounts", "accountofficer"].includes(rk);
   const canHR = ["admin", "auditor", "hr"].includes(rk);
 
   function isActiveLink(href: string) {
@@ -237,70 +234,6 @@ export default function NavBar() {
     return pathname.startsWith(href + "/");
   }
 
-  const financeLinks = useMemo<NavItem[]>(() => {
-    const list: NavItem[] = [
-      {
-        href: "/finance/departments",
-        label: "Departments",
-        description: "Department records and finance structure",
-      },
-      {
-        href: "/finance/manage-accounts",
-        label: "Manage Accounts",
-        description: "IET bank accounts and account balances",
-      },
-      {
-        href: "/finance/manage-accounts/assign",
-        label: "Assign Accounts",
-        description: "Assign account officers and account funding",
-      },
-      {
-        href: "/finance/subheads",
-        label: "Subheads / Finance",
-        description: "Budget lines, allocations and balances",
-      },
-      {
-        href: "/finance/reports",
-        label: "Monthly / Yearly Reports",
-        description: "Finance summaries, PDF and Excel exports",
-      },
-      {
-        href: "/payment-vouchers",
-        label: "Payment Vouchers",
-        description: "Generate and manage PVs",
-      },
-      {
-        href: "/payment-vouchers/reports",
-        label: "PV Reports",
-        description: "Payment voucher report register",
-      },
-    ];
-
-    if (["admin", "auditor"].includes(rk)) {
-      list.push({
-        href: "/payment-vouchers/settings",
-        label: "PV Settings",
-        description: "Cheque signers and counter signers",
-      });
-
-      list.push({
-        href: "/admin/security",
-        label: "Security Checklist",
-        description: "MFA, backup and RLS audit checklist",
-      });
-    }
-
-    if (canAuditView) {
-      list.push({
-        href: "/finance/audit",
-        label: "Audit & Reconciliation",
-        description: "Control room, exceptions and reconciliation",
-      });
-    }
-
-    return list;
-  }, [canAuditView, rk]);
-
   const hrLinks = useMemo<NavItem[]>(() => {
     return [
       {
@@ -310,11 +243,6 @@ export default function NavBar() {
       },
     ];
   }, []);
-
-  const financeActive = useMemo(() => {
-    return financeLinks.some((item) => isActiveLink(item.href));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [financeLinks, pathname]);
 
   const hrActive = useMemo(() => {
     return hrLinks.some((item) => isActiveLink(item.href));
@@ -343,9 +271,7 @@ export default function NavBar() {
     }`;
 
   const dropdownItemDescriptionClass = (href: string) =>
-    `mt-0.5 text-xs font-semibold ${
-      isActiveLink(href) ? "text-blue-100" : "text-slate-500"
-    }`;
+    `mt-0.5 text-xs font-semibold ${isActiveLink(href) ? "text-blue-100" : "text-slate-500"}`;
 
   const mobileItemClass = (href: string) =>
     `block w-full rounded-xl px-4 py-3 text-left text-sm font-bold transition ${
@@ -355,9 +281,7 @@ export default function NavBar() {
     }`;
 
   const mobileItemDescriptionClass = (href: string) =>
-    `mt-0.5 text-xs font-semibold ${
-      isActiveLink(href) ? "text-blue-100" : "text-slate-500"
-    }`;
+    `mt-0.5 text-xs font-semibold ${isActiveLink(href) ? "text-blue-100" : "text-slate-500"}`;
 
   async function checkMfaVerified() {
     const { data: aalData, error: aalErr } =
@@ -539,10 +463,6 @@ export default function NavBar() {
         setOpenApprovalPanel(false);
       }
 
-      if (openFinance && financeRef.current && !financeRef.current.contains(t)) {
-        setOpenFinance(false);
-      }
-
       if (openHR && hrRef.current && !hrRef.current.contains(t)) {
         setOpenHR(false);
       }
@@ -554,11 +474,10 @@ export default function NavBar() {
 
     document.addEventListener("mousedown", onClick);
     return () => document.removeEventListener("mousedown", onClick);
-  }, [openApprovalPanel, openFinance, openHR, openMobileMenu]);
+  }, [openApprovalPanel, openHR, openMobileMenu]);
 
   useEffect(() => {
     setOpenApprovalPanel(false);
-    setOpenFinance(false);
     setOpenHR(false);
     setOpenMobileMenu(false);
   }, [pathname]);
@@ -596,19 +515,21 @@ export default function NavBar() {
 
     setOpenApprovalPanel(false);
     router.push(n.link || "/approvals");
+    router.refresh();
   }
 
   function openApprovalRequest(id: string) {
     setOpenApprovalPanel(false);
-    router.push(`/requests/${id}`);
+    router.push(`/requests/${id}?updated=${Date.now()}`);
+    router.refresh();
   }
 
   function goTo(href: string) {
-    setOpenFinance(false);
     setOpenHR(false);
     setOpenMobileMenu(false);
     setOpenApprovalPanel(false);
-    router.push(href);
+    router.push(`${href}?updated=${Date.now()}`);
+    router.refresh();
   }
 
   const showFullNavigation =
@@ -661,7 +582,6 @@ export default function NavBar() {
                   type="button"
                   onClick={() => {
                     setOpenApprovalPanel((v) => !v);
-                    setOpenFinance(false);
                     setOpenHR(false);
                     setOpenMobileMenu(false);
                   }}
@@ -811,52 +731,14 @@ export default function NavBar() {
               </Link>
 
               {canFinance && (
-                <div className="relative" ref={financeRef}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setOpenFinance((v) => !v);
-                      setOpenHR(false);
-                      setOpenApprovalPanel(false);
-                      setOpenMobileMenu(false);
-                    }}
-                    className={dropdownIconButtonClass(financeActive)}
-                  >
-                    <IconFinance />
-                    <IconButtonTooltip label="Finance" />
-                  </button>
-
-                  {openFinance && (
-                    <div className="absolute left-0 top-12 z-50 w-[390px] overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl">
-                      <div className="border-b bg-slate-50 px-5 py-4">
-                        <div className="text-base font-extrabold text-slate-900">
-                          Finance Directorate
-                        </div>
-                        <div className="mt-1 text-sm font-semibold text-slate-500">
-                          Departments, accounts, budgets, vouchers, reports and audit tools
-                        </div>
-                      </div>
-
-                      <div className="max-h-[70vh] space-y-1 overflow-auto p-3">
-                        {financeLinks.map((item) => (
-                          <button
-                            key={item.href}
-                            type="button"
-                            onClick={() => goTo(item.href)}
-                            className={dropdownItemClass(item.href)}
-                          >
-                            <div className="text-sm font-extrabold">{item.label}</div>
-                            {item.description && (
-                              <div className={dropdownItemDescriptionClass(item.href)}>
-                                {item.description}
-                              </div>
-                            )}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
+                <button
+                  type="button"
+                  onClick={() => goTo("/finance")}
+                  className={iconLinkClass("/finance")}
+                >
+                  <IconFinance />
+                  <IconButtonTooltip label="Finance" />
+                </button>
               )}
 
               {canHR && (
@@ -865,7 +747,6 @@ export default function NavBar() {
                     type="button"
                     onClick={() => {
                       setOpenHR((v) => !v);
-                      setOpenFinance(false);
                       setOpenApprovalPanel(false);
                       setOpenMobileMenu(false);
                     }}
@@ -921,7 +802,6 @@ export default function NavBar() {
                 type="button"
                 onClick={() => {
                   setOpenMobileMenu((v) => !v);
-                  setOpenFinance(false);
                   setOpenHR(false);
                   setOpenApprovalPanel(false);
                 }}
@@ -982,30 +862,19 @@ export default function NavBar() {
                   </button>
 
                   {canFinance && (
-                    <>
-                      <div className="mt-3 border-t pt-3 text-xs font-black uppercase tracking-wide text-slate-500">
+                    <button
+                      type="button"
+                      onClick={() => goTo("/finance")}
+                      className={mobileItemClass("/finance")}
+                    >
+                      <div className="inline-flex items-center gap-2">
+                        <IconFinance className="h-4 w-4" />
                         Finance
                       </div>
-
-                      {financeLinks.map((item) => (
-                        <button
-                          key={item.href}
-                          type="button"
-                          onClick={() => goTo(item.href)}
-                          className={mobileItemClass(item.href)}
-                        >
-                          <div className="inline-flex items-center gap-2">
-                            <IconFinance className="h-4 w-4" />
-                            {item.label}
-                          </div>
-                          {item.description && (
-                            <div className={mobileItemDescriptionClass(item.href)}>
-                              {item.description}
-                            </div>
-                          )}
-                        </button>
-                      ))}
-                    </>
+                      <div className={mobileItemDescriptionClass("/finance")}>
+                        Departments, subheads, accounts, vouchers, reports and audit tabs
+                      </div>
+                    </button>
                   )}
 
                   {canHR && (
