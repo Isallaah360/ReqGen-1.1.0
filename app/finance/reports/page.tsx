@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { exportTableToExcel, printReport } from "@/lib/reportExport";
@@ -9,7 +9,7 @@ type Dept = { id: string; name: string };
 
 type Subhead = {
   id: string;
-  dept_id: string;
+  dept_id: string | null;
   code: string | null;
   name: string;
   approved_allocation: number | null;
@@ -25,6 +25,7 @@ type ReqMini = {
   amount: number | null;
   status: string | null;
   created_at: string;
+  dept_id: string | null;
 };
 
 type MonthlyRow = {
@@ -45,7 +46,9 @@ type ExportRow = {
   status: string;
 };
 
-function roleKey(role: string) {
+type TabKey = "overview" | "departments" | "subheads" | "monthly";
+
+function roleKey(role: string | null | undefined) {
   return (role || "")
     .trim()
     .toLowerCase()
@@ -53,12 +56,12 @@ function roleKey(role: string) {
     .replace(/_/g, "");
 }
 
-function naira(n: number) {
-  return "₦ " + Math.round(n || 0).toLocaleString();
+function naira(n: number | null | undefined) {
+  return "₦ " + Math.round(Number(n || 0)).toLocaleString();
 }
 
-function plainAmount(n: number) {
-  return Math.round(n || 0).toLocaleString();
+function plainAmount(n: number | null | undefined) {
+  return Math.round(Number(n || 0)).toLocaleString();
 }
 
 function ymd(d: Date) {
@@ -73,13 +76,130 @@ function shortDate(d: string | null | undefined) {
   return new Date(d).toLocaleDateString();
 }
 
+function buildDeptMap(depts: Dept[]) {
+  const m: Record<string, Dept> = {};
+  depts.forEach((d) => {
+    m[d.id] = d;
+  });
+  return m;
+}
+
+function getSelectedDepartmentName(deptFilter: string, deptMap: Record<string, Dept>) {
+  if (deptFilter === "ALL") return "All Departments";
+  return deptMap[deptFilter]?.name || "Selected Department";
+}
+
+function getFilteredSubs(subs: Subhead[], deptFilter: string) {
+  if (deptFilter === "ALL") return subs;
+  return subs.filter((s) => s.dept_id === deptFilter);
+}
+
+function getBudgetTotals(filteredSubs: Subhead[]) {
+  const annualBudget = filteredSubs.reduce(
+    (a, s) => a + Number(s.approved_allocation || 0),
+    0
+  );
+  const reserved = filteredSubs.reduce(
+    (a, s) => a + Number(s.reserved_amount || 0),
+    0
+  );
+  const totalExp = filteredSubs.reduce(
+    (a, s) => a + Number(s.expenditure || 0),
+    0
+  );
+  const remaining = filteredSubs.reduce(
+    (a, s) => a + Number(s.balance || 0),
+    0
+  );
+
+  const active = filteredSubs.filter((s) => s.is_active !== false).length;
+  const inactive = filteredSubs.filter((s) => s.is_active === false).length;
+  const negative = filteredSubs.filter((s) => Number(s.balance || 0) < 0).length;
+  const lowBalance = filteredSubs.filter((s) => {
+    const allocation = Number(s.approved_allocation || 0);
+    const balance = Number(s.balance || 0);
+    return allocation > 0 && balance >= 0 && balance / allocation <= 0.1;
+  }).length;
+
+  return {
+    annualBudget,
+    reserved,
+    totalExp,
+    remaining,
+    active,
+    inactive,
+    negative,
+    lowBalance,
+    totalSubheads: filteredSubs.length,
+  };
+}
+
+function getTotalsByDept(filteredSubs: Subhead[], deptMap: Record<string, Dept>) {
+  const acc: Record<
+    string,
+    { allocation: number; reserved: number; expenditure: number; balance: number }
+  > = {};
+
+  filteredSubs.forEach((s) => {
+    const k = s.dept_id || "NO_DEPARTMENT";
+
+    if (!acc[k]) {
+      acc[k] = { allocation: 0, reserved: 0, expenditure: 0, balance: 0 };
+    }
+
+    acc[k].allocation += Number(s.approved_allocation || 0);
+    acc[k].reserved += Number(s.reserved_amount || 0);
+    acc[k].expenditure += Number(s.expenditure || 0);
+    acc[k].balance += Number(s.balance || 0);
+  });
+
+  return Object.keys(acc)
+    .sort((a, b) => (deptMap[a]?.name || a).localeCompare(deptMap[b]?.name || b))
+    .map((deptId) => ({
+      dept_id: deptId,
+      dept_name: deptMap[deptId]?.name || (deptId === "NO_DEPARTMENT" ? "No Department" : deptId),
+      allocation: acc[deptId].allocation,
+      reserved: acc[deptId].reserved,
+      expenditure: acc[deptId].expenditure,
+      balance: acc[deptId].balance,
+    }));
+}
+
+function getMonthlyRows(requests: ReqMini[]) {
+  const labels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+  const arr: MonthlyRow[] = Array.from({ length: 12 }, (_, i) => ({
+    month: labels[i],
+    total: 0,
+  }));
+
+  requests.forEach((r) => {
+    const dt = new Date(r.created_at);
+    const m = dt.getMonth();
+
+    if (m >= 0 && m <= 11) {
+      arr[m].total += Number(r.amount || 0);
+    }
+  });
+
+  const max = Math.max(1, ...arr.map((x) => x.total));
+  const total = arr.reduce((a, x) => a + x.total, 0);
+
+  return { arr, max, total };
+}
+
 export default function FinanceReportsPage() {
   const router = useRouter();
 
+  const currentDate = new Date();
+
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [printing, setPrinting] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
-  const [myRole, setMyRole] = useState<string>("");
+  const [myRole, setMyRole] = useState<string>("Staff");
   const rk = roleKey(myRole);
   const canFinance = ["admin", "auditor", "account", "accounts", "accountofficer"].includes(rk);
 
@@ -87,259 +207,250 @@ export default function FinanceReportsPage() {
   const [subs, setSubs] = useState<Subhead[]>([]);
   const [approvedReqs, setApprovedReqs] = useState<ReqMini[]>([]);
 
-  const now = new Date();
-  const [year, setYear] = useState<number>(now.getFullYear());
+  const [activeTab, setActiveTab] = useState<TabKey>("overview");
+  const [search, setSearch] = useState("");
+
+  const [year, setYear] = useState<number>(currentDate.getFullYear());
   const [deptFilter, setDeptFilter] = useState<string>("ALL");
-  const [dateFrom, setDateFrom] = useState<string>(`${now.getFullYear()}-01-01`);
-  const [dateTo, setDateTo] = useState<string>(`${now.getFullYear()}-12-31`);
+  const [dateFrom, setDateFrom] = useState<string>(`${currentDate.getFullYear()}-01-01`);
+  const [dateTo, setDateTo] = useState<string>(`${currentDate.getFullYear()}-12-31`);
 
   useEffect(() => {
     setDateFrom(`${year}-01-01`);
     setDateTo(`${year}-12-31`);
   }, [year]);
 
-  async function loadBaseData() {
-    setLoading(true);
-    setMsg(null);
+  const loadBaseData = useCallback(
+    async (options?: { silent?: boolean }) => {
+      if (options?.silent) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
 
-    const { data: auth } = await supabase.auth.getUser();
-    if (!auth.user) {
-      router.push("/login");
-      return;
-    }
+      setMsg(null);
 
-    const { data: prof, error: profErr } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", auth.user.id)
-      .single();
+      const { data: auth } = await supabase.auth.getUser();
 
-    if (profErr) {
-      setMsg("Failed to load role: " + profErr.message);
+      if (!auth.user) {
+        router.push("/login");
+        return null;
+      }
+
+      const { data: prof, error: profErr } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", auth.user.id)
+        .maybeSingle();
+
+      if (profErr) {
+        setMsg("Failed to load role: " + profErr.message);
+        setLoading(false);
+        setRefreshing(false);
+        return null;
+      }
+
+      const role = (prof?.role || "Staff") as string;
+      setMyRole(role);
+
+      if (!["admin", "auditor", "account", "accounts", "accountofficer"].includes(roleKey(role))) {
+        router.push(`/dashboard?updated=${Date.now()}`);
+        router.refresh();
+        return null;
+      }
+
+      const [deptRes, subheadRes] = await Promise.all([
+        supabase.from("departments").select("id,name").order("name", { ascending: true }),
+
+        supabase
+          .from("subheads")
+          .select("id,dept_id,code,name,approved_allocation,reserved_amount,expenditure,balance,is_active,updated_at")
+          .order("name", { ascending: true }),
+      ]);
+
+      if (deptRes.error) {
+        setMsg("Failed to load departments: " + deptRes.error.message);
+        setLoading(false);
+        setRefreshing(false);
+        return null;
+      }
+
+      if (subheadRes.error) {
+        setMsg("Failed to load subheads: " + subheadRes.error.message);
+        setLoading(false);
+        setRefreshing(false);
+        return null;
+      }
+
+      const freshDepts = (deptRes.data || []) as Dept[];
+      const freshSubs = (subheadRes.data || []) as Subhead[];
+
+      setDepts(freshDepts);
+      setSubs(freshSubs);
+
       setLoading(false);
-      return;
-    }
+      setRefreshing(false);
 
-    const r = (prof?.role || "Staff") as string;
-    setMyRole(r);
+      return { depts: freshDepts, subs: freshSubs };
+    },
+    [router]
+  );
 
-    if (!["admin", "auditor", "account", "accounts", "accountofficer"].includes(roleKey(r))) {
-      router.push("/dashboard");
-      return;
-    }
+  const loadApprovedRequests = useCallback(
+    async (options?: { silent?: boolean }) => {
+      if (!canFinance) return [];
 
-    const { data: drows, error: dErr } = await supabase
-      .from("departments")
-      .select("id,name")
-      .order("name", { ascending: true });
+      if (options?.silent) {
+        setRefreshing(true);
+      }
 
-    if (dErr) {
-      setMsg("Failed to load departments: " + dErr.message);
-      setLoading(false);
-      return;
-    }
+      setMsg(null);
 
-    setDepts((drows || []) as Dept[]);
+      const toPlusOne = ymd(new Date(new Date(dateTo).getTime() + 24 * 60 * 60 * 1000));
 
-    const { data: srows, error: sErr } = await supabase
-      .from("subheads")
-      .select("id,dept_id,code,name,approved_allocation,reserved_amount,expenditure,balance,is_active,updated_at")
-      .order("name", { ascending: true });
+      let q = supabase
+        .from("requests")
+        .select("id,amount,status,created_at,dept_id")
+        .or("status.ilike.%approve%,status.ilike.%paid%,status.ilike.%completed%")
+        .gte("created_at", dateFrom)
+        .lt("created_at", toPlusOne)
+        .order("created_at", { ascending: true });
 
-    if (sErr) {
-      setMsg("Failed to load subheads: " + sErr.message);
-      setLoading(false);
-      return;
-    }
+      if (deptFilter !== "ALL") {
+        q = q.eq("dept_id", deptFilter);
+      }
 
-    setSubs((srows || []) as Subhead[]);
-    setLoading(false);
-  }
+      const { data, error } = await q;
 
-  async function loadApprovedRequests() {
-    if (!canFinance) return;
+      if (error) {
+        setMsg("Failed to load approved/paid requests: " + error.message);
+        setApprovedReqs([]);
+        setRefreshing(false);
+        return [];
+      }
 
-    setMsg(null);
+      const freshRequests = (data || []) as ReqMini[];
+      setApprovedReqs(freshRequests);
+      setRefreshing(false);
 
-    const from = dateFrom;
-    const toPlusOne = ymd(new Date(new Date(dateTo).getTime() + 24 * 60 * 60 * 1000));
-
-    let q = supabase
-      .from("requests")
-      .select("id,amount,status,created_at")
-      .or("status.ilike.%approve%,status.ilike.%paid%,status.ilike.%completed%")
-      .gte("created_at", from)
-      .lt("created_at", toPlusOne)
-      .order("created_at", { ascending: true });
-
-    if (deptFilter !== "ALL") {
-      q = (q as any).eq("dept_id", deptFilter);
-    }
-
-    const { data, error } = await q;
-
-    if (error) {
-      setMsg("Failed to load approved/paid requests: " + error.message);
-      setApprovedReqs([]);
-      return;
-    }
-
-    setApprovedReqs((data || []) as ReqMini[]);
-  }
+      return freshRequests;
+    },
+    [canFinance, dateFrom, dateTo, deptFilter]
+  );
 
   useEffect(() => {
     loadBaseData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [loadBaseData]);
 
   useEffect(() => {
     loadApprovedRequests();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [canFinance, dateFrom, dateTo, deptFilter]);
+  }, [loadApprovedRequests]);
 
-  const deptMap = useMemo(() => {
-    const m: Record<string, Dept> = {};
-    depts.forEach((d) => (m[d.id] = d));
-    return m;
-  }, [depts]);
+  useEffect(() => {
+    const refreshOnFocus = () => {
+      refreshReports();
+    };
+
+    const refreshOnVisible = () => {
+      if (document.visibilityState === "visible") {
+        refreshReports();
+      }
+    };
+
+    window.addEventListener("focus", refreshOnFocus);
+    document.addEventListener("visibilitychange", refreshOnVisible);
+
+    return () => {
+      window.removeEventListener("focus", refreshOnFocus);
+      document.removeEventListener("visibilitychange", refreshOnVisible);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loadBaseData, loadApprovedRequests]);
+
+  const deptMap = useMemo(() => buildDeptMap(depts), [depts]);
 
   const selectedDepartmentName = useMemo(() => {
-    if (deptFilter === "ALL") return "All Departments";
-    return deptMap[deptFilter]?.name || "Selected Department";
+    return getSelectedDepartmentName(deptFilter, deptMap);
   }, [deptFilter, deptMap]);
 
   const filteredSubs = useMemo(() => {
-    if (deptFilter === "ALL") return subs;
-    return subs.filter((s) => s.dept_id === deptFilter);
+    return getFilteredSubs(subs, deptFilter);
   }, [subs, deptFilter]);
 
-  const budgetTotals = useMemo(() => {
-    const annualBudget = filteredSubs.reduce(
-      (a, s) => a + Number(s.approved_allocation || 0),
-      0
-    );
-    const reserved = filteredSubs.reduce(
-      (a, s) => a + Number(s.reserved_amount || 0),
-      0
-    );
-    const totalExp = filteredSubs.reduce(
-      (a, s) => a + Number(s.expenditure || 0),
-      0
-    );
-    const remaining = filteredSubs.reduce(
-      (a, s) => a + Number(s.balance || 0),
-      0
-    );
+  const searchedSubs = useMemo(() => {
+    const s = search.trim().toLowerCase();
 
-    const active = filteredSubs.filter((s) => s.is_active).length;
-    const inactive = filteredSubs.filter((s) => !s.is_active).length;
-    const negative = filteredSubs.filter((s) => Number(s.balance || 0) < 0).length;
+    if (!s) return filteredSubs;
 
-    return { annualBudget, reserved, totalExp, remaining, active, inactive, negative };
-  }, [filteredSubs]);
+    return filteredSubs.filter((x) => {
+      const haystack = [
+        deptMap[x.dept_id || ""]?.name,
+        x.code,
+        x.name,
+        x.is_active === false ? "inactive" : "active",
+      ]
+        .join(" ")
+        .toLowerCase();
 
-  const totalsByDept = useMemo(() => {
-    const rows: Array<{
-      dept_id: string;
-      dept_name: string;
-      allocation: number;
-      reserved: number;
-      expenditure: number;
-      balance: number;
-    }> = [];
-
-    const acc: Record<
-      string,
-      { allocation: number; reserved: number; expenditure: number; balance: number }
-    > = {};
-
-    filteredSubs.forEach((s) => {
-      const k = s.dept_id || "NO_DEPARTMENT";
-      if (!acc[k]) {
-        acc[k] = { allocation: 0, reserved: 0, expenditure: 0, balance: 0 };
-      }
-
-      acc[k].allocation += Number(s.approved_allocation || 0);
-      acc[k].reserved += Number(s.reserved_amount || 0);
-      acc[k].expenditure += Number(s.expenditure || 0);
-      acc[k].balance += Number(s.balance || 0);
+      return haystack.includes(s);
     });
+  }, [filteredSubs, search, deptMap]);
 
-    Object.keys(acc)
-      .sort((a, b) => (deptMap[a]?.name || a).localeCompare(deptMap[b]?.name || b))
-      .forEach((deptId) => {
-        rows.push({
-          dept_id: deptId,
-          dept_name: deptMap[deptId]?.name || (deptId === "NO_DEPARTMENT" ? "No Department" : deptId),
-          allocation: acc[deptId].allocation,
-          reserved: acc[deptId].reserved,
-          expenditure: acc[deptId].expenditure,
-          balance: acc[deptId].balance,
-        });
-      });
+  const budgetTotals = useMemo(() => getBudgetTotals(filteredSubs), [filteredSubs]);
 
-    return rows;
-  }, [filteredSubs, deptMap]);
+  const totalsByDept = useMemo(() => getTotalsByDept(filteredSubs, deptMap), [filteredSubs, deptMap]);
 
   const expenditureBySubhead = useMemo(() => {
-    return [...filteredSubs].sort((a, b) => {
-      const ea = Number(b.expenditure || 0) - Number(a.expenditure || 0);
-      if (ea !== 0) return ea;
+    return [...searchedSubs].sort((a, b) => {
+      const diff = Number(b.expenditure || 0) - Number(a.expenditure || 0);
+      if (diff !== 0) return diff;
       return (a.name || "").localeCompare(b.name || "");
     });
-  }, [filteredSubs]);
+  }, [searchedSubs]);
 
-  const monthly = useMemo(() => {
-    const labels = [
-      "Jan",
-      "Feb",
-      "Mar",
-      "Apr",
-      "May",
-      "Jun",
-      "Jul",
-      "Aug",
-      "Sep",
-      "Oct",
-      "Nov",
-      "Dec",
-    ];
+  const monthly = useMemo(() => getMonthlyRows(approvedReqs), [approvedReqs]);
 
-    const arr: MonthlyRow[] = Array.from({ length: 12 }, (_, i) => ({
-      month: labels[i],
-      total: 0,
-    }));
-
-    approvedReqs.forEach((r) => {
-      const dt = new Date(r.created_at);
-      const m = dt.getMonth();
-      arr[m].total += Number(r.amount || 0);
-    });
-
-    const max = Math.max(1, ...arr.map((x) => x.total));
-    const total = arr.reduce((a, x) => a + x.total, 0);
-
-    return { arr, max, total };
-  }, [approvedReqs]);
-
-  function refreshReports() {
-    loadBaseData();
-    loadApprovedRequests();
+  async function refreshReports() {
+    setRefreshing(true);
+    await loadBaseData({ silent: true });
+    await loadApprovedRequests({ silent: true });
+    setRefreshing(false);
+    router.refresh();
   }
 
-  function printFinanceReport() {
-    printReport();
+  async function printFinanceReport() {
+    setPrinting(true);
+    await refreshReports();
+
+    setTimeout(() => {
+      printReport();
+      setPrinting(false);
+    }, 250);
   }
 
-  function exportExcel() {
+  async function exportExcel() {
+    setExporting(true);
+
+    const freshBase = await loadBaseData({ silent: true });
+    const freshRequests = await loadApprovedRequests({ silent: true });
+
+    const exportDepts = freshBase?.depts || depts;
+    const exportSubsAll = freshBase?.subs || subs;
+    const exportDeptMap = buildDeptMap(exportDepts);
+    const exportFilteredSubs = getFilteredSubs(exportSubsAll, deptFilter);
+    const exportBudgetTotals = getBudgetTotals(exportFilteredSubs);
+    const exportTotalsByDept = getTotalsByDept(exportFilteredSubs, exportDeptMap);
+    const exportMonthly = getMonthlyRows(freshRequests || approvedReqs);
+    const exportSelectedDepartmentName = getSelectedDepartmentName(deptFilter, exportDeptMap);
+
     const summaryRows: ExportRow[] = [
       {
         section: "Summary",
         sn: 1,
-        department: selectedDepartmentName,
+        department: exportSelectedDepartmentName,
         code: "",
         description: "Annual Budget / Approved Allocation",
-        allocation: plainAmount(budgetTotals.annualBudget),
+        allocation: plainAmount(exportBudgetTotals.annualBudget),
         reserved: "",
         expenditure: "",
         balance: "",
@@ -348,11 +459,11 @@ export default function FinanceReportsPage() {
       {
         section: "Summary",
         sn: 2,
-        department: selectedDepartmentName,
+        department: exportSelectedDepartmentName,
         code: "",
         description: "Reserved Commitments",
         allocation: "",
-        reserved: plainAmount(budgetTotals.reserved),
+        reserved: plainAmount(exportBudgetTotals.reserved),
         expenditure: "",
         balance: "",
         status: "",
@@ -360,33 +471,33 @@ export default function FinanceReportsPage() {
       {
         section: "Summary",
         sn: 3,
-        department: selectedDepartmentName,
+        department: exportSelectedDepartmentName,
         code: "",
         description: "Total Expenditure",
         allocation: "",
         reserved: "",
-        expenditure: plainAmount(budgetTotals.totalExp),
+        expenditure: plainAmount(exportBudgetTotals.totalExp),
         balance: "",
         status: "",
       },
       {
         section: "Summary",
         sn: 4,
-        department: selectedDepartmentName,
+        department: exportSelectedDepartmentName,
         code: "",
         description: "Remaining Balance",
         allocation: "",
         reserved: "",
         expenditure: "",
-        balance: plainAmount(budgetTotals.remaining),
+        balance: plainAmount(exportBudgetTotals.remaining),
         status: "",
       },
     ];
 
-    const monthlyRows: ExportRow[] = monthly.arr.map((m, index) => ({
+    const monthlyRows: ExportRow[] = exportMonthly.arr.map((m, index) => ({
       section: "Monthly Expenditure",
       sn: index + 1,
-      department: selectedDepartmentName,
+      department: exportSelectedDepartmentName,
       code: "",
       description: `${m.month} ${year}`,
       allocation: "",
@@ -396,7 +507,7 @@ export default function FinanceReportsPage() {
       status: "",
     }));
 
-    const deptRows: ExportRow[] = totalsByDept.map((d, index) => ({
+    const deptRows: ExportRow[] = exportTotalsByDept.map((d, index) => ({
       section: "Department Summary",
       sn: index + 1,
       department: d.dept_name,
@@ -409,26 +520,26 @@ export default function FinanceReportsPage() {
       status: "",
     }));
 
-    const subheadRows: ExportRow[] = expenditureBySubhead.map((s, index) => ({
+    const subheadRows: ExportRow[] = exportFilteredSubs.map((s, index) => ({
       section: "Subhead Breakdown",
       sn: index + 1,
-      department: deptMap[s.dept_id]?.name || s.dept_id || "—",
+      department: exportDeptMap[s.dept_id || ""]?.name || s.dept_id || "—",
       code: s.code || "—",
       description: s.name || "—",
-      allocation: plainAmount(Number(s.approved_allocation || 0)),
-      reserved: plainAmount(Number(s.reserved_amount || 0)),
-      expenditure: plainAmount(Number(s.expenditure || 0)),
-      balance: plainAmount(Number(s.balance || 0)),
-      status: s.is_active ? "Active" : "Inactive",
+      allocation: plainAmount(s.approved_allocation),
+      reserved: plainAmount(s.reserved_amount),
+      expenditure: plainAmount(s.expenditure),
+      balance: plainAmount(s.balance),
+      status: s.is_active === false ? "Inactive" : "Active",
     }));
 
     const rows = [...summaryRows, ...monthlyRows, ...deptRows, ...subheadRows];
 
     exportTableToExcel<ExportRow>({
-      fileName: `monthly_yearly_finance_report_${selectedDepartmentName}_${dateFrom}_to_${dateTo}`,
+      fileName: `monthly_yearly_finance_report_${exportSelectedDepartmentName}_${dateFrom}_to_${dateTo}`,
       sheetName: "Finance Report",
       title: "MONTHLY AND YEARLY FINANCE REPORT",
-      subtitle: `Department: ${selectedDepartmentName} | Year: ${year} | Period: ${dateFrom} to ${dateTo}`,
+      subtitle: `Department: ${exportSelectedDepartmentName} | Year: ${year} | Period: ${dateFrom} to ${dateTo}`,
       rows,
       columns: [
         { header: "Section", value: (row) => row.section },
@@ -446,23 +557,40 @@ export default function FinanceReportsPage() {
         [
           "Report Total",
           "",
-          selectedDepartmentName,
+          exportSelectedDepartmentName,
           "",
           "",
-          plainAmount(budgetTotals.annualBudget),
-          plainAmount(budgetTotals.reserved),
-          plainAmount(budgetTotals.totalExp),
-          plainAmount(budgetTotals.remaining),
+          plainAmount(exportBudgetTotals.annualBudget),
+          plainAmount(exportBudgetTotals.reserved),
+          plainAmount(exportBudgetTotals.totalExp),
+          plainAmount(exportBudgetTotals.remaining),
           "",
         ],
       ],
     });
+
+    setExporting(false);
+  }
+
+  function backToFinance() {
+    router.push(`/finance?updated=${Date.now()}`);
+    router.refresh();
+  }
+
+  function openSubheads() {
+    router.push(`/finance/subheads?updated=${Date.now()}`);
+    router.refresh();
+  }
+
+  function openAudit() {
+    router.push(`/finance/audit?updated=${Date.now()}`);
+    router.refresh();
   }
 
   if (loading) {
     return (
       <main className="min-h-screen bg-slate-50 px-4">
-        <div className="mx-auto max-w-7xl py-10 text-slate-600">Loading...</div>
+        <div className="mx-auto max-w-7xl py-10 text-slate-600">Loading Finance Reports...</div>
       </main>
     );
   }
@@ -477,7 +605,7 @@ export default function FinanceReportsPage() {
               Access denied. Only Finance, Account, Auditor and Admin roles can access reports.
             </div>
             <button
-              onClick={() => router.push("/dashboard")}
+              onClick={() => router.push(`/dashboard?updated=${Date.now()}`)}
               className="mt-5 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
             >
               Back to Dashboard
@@ -492,18 +620,11 @@ export default function FinanceReportsPage() {
     <main className="min-h-screen bg-slate-50 px-4">
       <style>{`
         @media print {
-          @page {
-            size: A4 landscape;
-            margin: 10mm;
-          }
+          @page { size: A4 landscape; margin: 10mm; }
 
-          body {
-            background: white !important;
-          }
+          body { background: white !important; }
 
-          .no-print {
-            display: none !important;
-          }
+          .no-print { display: none !important; }
 
           .print-sheet {
             box-shadow: none !important;
@@ -514,13 +635,9 @@ export default function FinanceReportsPage() {
             max-width: none !important;
           }
 
-          .print-card {
-            break-inside: avoid !important;
-          }
+          .print-card { break-inside: avoid !important; }
 
-          .print-title {
-            text-align: center !important;
-          }
+          .print-title { text-align: center !important; }
         }
       `}</style>
 
@@ -543,7 +660,7 @@ export default function FinanceReportsPage() {
               Finance Reports Dashboard
             </h1>
             <p className="mt-2 text-sm text-slate-600">
-              Allocation, reserved commitments, expenditure, balances, and monthly spending.
+              Allocation, reserved commitments, expenditure, balances and monthly spending.
             </p>
             <p className="mt-1 text-xs font-semibold text-slate-500">
               Department: {selectedDepartmentName} • Year: {year} • Period: {dateFrom} to {dateTo} • Generated:{" "}
@@ -554,28 +671,48 @@ export default function FinanceReportsPage() {
           <div className="no-print flex flex-wrap gap-2">
             <button
               onClick={refreshReports}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-100"
+              disabled={refreshing || printing || exporting}
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-100 disabled:opacity-60"
             >
-              Refresh
+              {refreshing ? "Refreshing..." : "Refresh"}
             </button>
 
             <button
               onClick={printFinanceReport}
-              className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700"
+              disabled={refreshing || printing || exporting}
+              className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:opacity-60"
             >
-              Print / Save PDF
+              {printing ? "Preparing..." : "Print / Save PDF"}
             </button>
 
             <button
               onClick={exportExcel}
-              className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700"
+              disabled={refreshing || printing || exporting}
+              className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 disabled:opacity-60"
             >
-              Export Excel
+              {exporting ? "Exporting..." : "Export Excel"}
             </button>
 
             <button
-              onClick={() => router.push("/finance/subheads")}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
+              onClick={openSubheads}
+              disabled={refreshing || printing || exporting}
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
+            >
+              Subheads
+            </button>
+
+            <button
+              onClick={openAudit}
+              disabled={refreshing || printing || exporting}
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
+            >
+              Audit
+            </button>
+
+            <button
+              onClick={backToFinance}
+              disabled={refreshing || printing || exporting}
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
             >
               Back to Finance
             </button>
@@ -588,6 +725,10 @@ export default function FinanceReportsPage() {
           </div>
         )}
 
+        <div className="no-print mt-4 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-xs font-semibold text-blue-900">
+          This report page refreshes automatically when you return to it. Print and Excel export reload fresh finance data first.
+        </div>
+
         <div className="no-print mt-6 rounded-3xl border bg-white p-5 shadow-sm">
           <div className="grid gap-4 md:grid-cols-4">
             <div>
@@ -597,7 +738,7 @@ export default function FinanceReportsPage() {
                 onChange={(e) => setYear(Number(e.target.value))}
                 className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-3 text-slate-900 outline-none focus:border-blue-500"
               >
-                {Array.from({ length: 6 }, (_, i) => now.getFullYear() - 2 + i).map((y) => (
+                {Array.from({ length: 7 }, (_, i) => currentDate.getFullYear() - 3 + i).map((y) => (
                   <option key={y} value={y}>
                     {y}
                   </option>
@@ -642,210 +783,60 @@ export default function FinanceReportsPage() {
             </div>
           </div>
 
+          <div className="mt-4">
+            <label className="text-sm font-semibold text-slate-800">Search Subheads</label>
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search by department, code, subhead name or status..."
+              className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 text-slate-900 outline-none focus:border-blue-500"
+            />
+          </div>
+
           <div className="mt-3 text-xs text-slate-500">
             Monthly chart uses <b>Approved/Paid/Completed</b> requests within the selected date range.
           </div>
         </div>
 
         <div className="mt-6 grid gap-4 md:grid-cols-4 print:grid-cols-4">
-          <KpiCard title="Annual Budget" value={naira(budgetTotals.annualBudget)} />
-          <KpiCard title="Reserved" value={naira(budgetTotals.reserved)} />
-          <KpiCard title="Total Expenditure" value={naira(budgetTotals.totalExp)} />
-          <KpiCard title="Remaining Balance" value={naira(budgetTotals.remaining)} />
+          <KpiCard title="Annual Budget" value={naira(budgetTotals.annualBudget)} tone="blue" />
+          <KpiCard title="Reserved" value={naira(budgetTotals.reserved)} tone="amber" />
+          <KpiCard title="Total Expenditure" value={naira(budgetTotals.totalExp)} tone="red" />
+          <KpiCard title="Remaining Balance" value={naira(budgetTotals.remaining)} tone="emerald" />
         </div>
 
-        <div className="mt-4 grid gap-4 md:grid-cols-4 print:grid-cols-4">
+        <div className="mt-4 grid gap-4 md:grid-cols-5 print:grid-cols-5">
+          <SmallCard title="Total Subheads" value={String(budgetTotals.totalSubheads)} />
           <SmallCard title="Active Subheads" value={String(budgetTotals.active)} />
           <SmallCard title="Inactive Subheads" value={String(budgetTotals.inactive)} />
           <SmallCard title="Negative Balances" value={String(budgetTotals.negative)} />
           <SmallCard title="Monthly Request Value" value={naira(monthly.total)} />
         </div>
 
-        <div className="mt-6 rounded-3xl border bg-white p-6 shadow-sm print:rounded-none print:border-black print:shadow-none">
-          <div className="flex flex-wrap items-end justify-between gap-2">
-            <div>
-              <h2 className="text-lg font-bold text-slate-900">Monthly Expenditure</h2>
-              <p className="mt-1 text-sm text-slate-600">
-                Approved/Paid/Completed requests totals per month ({year})
-              </p>
-            </div>
-            <div className="text-xs text-slate-500">
-              Range: {dateFrom} → {dateTo}
-            </div>
-          </div>
-
-          <div className="mt-4 grid grid-cols-12 items-end gap-2 h-40 print:hidden">
-            {monthly.arr.map((m) => {
-              const h = Math.round((m.total / monthly.max) * 100);
-
-              return (
-                <div key={m.month} className="flex flex-col items-center gap-2">
-                  <div className="flex h-32 w-full items-end overflow-hidden rounded-lg bg-slate-100">
-                    <div
-                      className="w-full bg-blue-600"
-                      style={{ height: `${h}%` }}
-                      title={`${m.month}: ${naira(m.total)}`}
-                    />
-                  </div>
-                  <div className="text-[11px] text-slate-600">{m.month}</div>
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="mt-5 overflow-x-auto rounded-2xl border border-slate-200">
-            <div className="min-w-[720px]">
-              <div className="grid grid-cols-12 bg-slate-100 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600 print:bg-white print:text-[8px]">
-                {monthly.arr.map((m) => (
-                  <div key={m.month} className="text-center">
-                    {m.month}
-                  </div>
-                ))}
-              </div>
-
-              <div className="grid grid-cols-12 border-t px-4 py-3 text-xs font-bold text-slate-900 print:text-[8px]">
-                {monthly.arr.map((m) => (
-                  <div key={m.month} className="text-center">
-                    {naira(m.total)}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-3 text-sm text-slate-700">
-            Total request value in range:{" "}
-            <b className="text-slate-900">{naira(monthly.total)}</b>
+        <div className="no-print mt-6 rounded-3xl border bg-white p-2 shadow-sm">
+          <div className="flex flex-wrap gap-2">
+            <TabButton label="Overview" active={activeTab === "overview"} onClick={() => setActiveTab("overview")} />
+            <TabButton label="Monthly" active={activeTab === "monthly"} onClick={() => setActiveTab("monthly")} />
+            <TabButton label="Departments" active={activeTab === "departments"} onClick={() => setActiveTab("departments")} />
+            <TabButton label="Subheads" active={activeTab === "subheads"} onClick={() => setActiveTab("subheads")} />
           </div>
         </div>
 
-        <div className="mt-6 rounded-3xl border bg-white p-6 shadow-sm print:rounded-none print:border-black print:shadow-none">
-          <h2 className="text-lg font-bold text-slate-900">Total Allocation by Department</h2>
-          <p className="mt-1 text-sm text-slate-600">
-            Government-style summary by department.
-          </p>
+        {(activeTab === "overview" || activeTab === "monthly") && (
+          <MonthlyPanel monthly={monthly} year={year} dateFrom={dateFrom} dateTo={dateTo} />
+        )}
 
-          {totalsByDept.length === 0 ? (
-            <div className="mt-4 text-sm text-slate-700">No records.</div>
-          ) : (
-            <div className="mt-4 overflow-x-auto rounded-xl border border-slate-200">
-              <div className="min-w-[900px] print:min-w-0">
-                <div className="grid grid-cols-14 bg-slate-100 px-4 py-3 text-xs font-semibold text-slate-600 print:bg-white print:text-[8px]">
-                  <div className="col-span-4">Department</div>
-                  <div className="col-span-3 text-right">Allocation</div>
-                  <div className="col-span-2 text-right">Reserved</div>
-                  <div className="col-span-3 text-right">Expenditure</div>
-                  <div className="col-span-2 text-right">Balance</div>
-                </div>
+        {(activeTab === "overview" || activeTab === "departments") && (
+          <DepartmentSummaryPanel rows={totalsByDept} totals={budgetTotals} />
+        )}
 
-                {totalsByDept.map((r) => (
-                  <div key={r.dept_id} className="grid grid-cols-14 border-t px-4 py-3 text-sm print:text-[8px]">
-                    <div className="col-span-4 font-semibold text-slate-900">{r.dept_name}</div>
-                    <div className="col-span-3 text-right font-semibold text-slate-900">
-                      {naira(r.allocation)}
-                    </div>
-                    <div className="col-span-2 text-right font-semibold text-amber-700">
-                      {naira(r.reserved)}
-                    </div>
-                    <div className="col-span-3 text-right text-red-700">
-                      {naira(r.expenditure)}
-                    </div>
-                    <div className="col-span-2 text-right font-semibold text-emerald-700">
-                      {naira(r.balance)}
-                    </div>
-                  </div>
-                ))}
-
-                <div className="grid grid-cols-14 border-t bg-slate-50 px-4 py-3 text-sm font-black print:bg-white print:text-[8px]">
-                  <div className="col-span-4 uppercase text-slate-900">Total</div>
-                  <div className="col-span-3 text-right text-slate-900">
-                    {naira(budgetTotals.annualBudget)}
-                  </div>
-                  <div className="col-span-2 text-right text-amber-700">
-                    {naira(budgetTotals.reserved)}
-                  </div>
-                  <div className="col-span-3 text-right text-red-700">
-                    {naira(budgetTotals.totalExp)}
-                  </div>
-                  <div className="col-span-2 text-right text-emerald-700">
-                    {naira(budgetTotals.remaining)}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className="mt-6 rounded-3xl border bg-white p-6 shadow-sm print:rounded-none print:border-black print:shadow-none">
-          <h2 className="text-lg font-bold text-slate-900">Total Expenditure by Subhead</h2>
-          <p className="mt-1 text-sm text-slate-600">
-            Detailed breakdown by subhead code.
-          </p>
-
-          {expenditureBySubhead.length === 0 ? (
-            <div className="mt-4 text-sm text-slate-700">No subheads.</div>
-          ) : (
-            <div className="mt-4 overflow-x-auto rounded-xl border border-slate-200">
-              <div className="min-w-[1100px] print:min-w-0">
-                <div className="grid grid-cols-17 bg-slate-100 px-4 py-3 text-xs font-semibold text-slate-600 print:bg-white print:text-[8px]">
-                  <div className="col-span-3">Dept</div>
-                  <div className="col-span-2">Code</div>
-                  <div className="col-span-4">Subhead</div>
-                  <div className="col-span-2 text-right">Allocation</div>
-                  <div className="col-span-2 text-right">Reserved</div>
-                  <div className="col-span-2 text-right">Expenditure</div>
-                  <div className="col-span-2 text-right">Balance</div>
-                </div>
-
-                {expenditureBySubhead.slice(0, 80).map((s) => (
-                  <div key={s.id} className="grid grid-cols-17 border-t px-4 py-3 text-sm print:text-[8px]">
-                    <div className="col-span-3 text-slate-800">
-                      {deptMap[s.dept_id]?.name || s.dept_id}
-                    </div>
-                    <div className="col-span-2 font-semibold text-slate-900">
-                      {s.code || "—"}
-                    </div>
-                    <div className="col-span-4 text-slate-900">{s.name}</div>
-                    <div className="col-span-2 text-right font-semibold text-blue-700">
-                      {naira(Number(s.approved_allocation || 0))}
-                    </div>
-                    <div className="col-span-2 text-right font-semibold text-amber-700">
-                      {naira(Number(s.reserved_amount || 0))}
-                    </div>
-                    <div className="col-span-2 text-right text-red-700">
-                      {naira(Number(s.expenditure || 0))}
-                    </div>
-                    <div className="col-span-2 text-right font-semibold text-emerald-700">
-                      {naira(Number(s.balance || 0))}
-                    </div>
-                  </div>
-                ))}
-
-                <div className="grid grid-cols-17 border-t bg-slate-50 px-4 py-3 text-sm font-black print:bg-white print:text-[8px]">
-                  <div className="col-span-9 uppercase text-slate-900">Total</div>
-                  <div className="col-span-2 text-right text-blue-700">
-                    {naira(budgetTotals.annualBudget)}
-                  </div>
-                  <div className="col-span-2 text-right text-amber-700">
-                    {naira(budgetTotals.reserved)}
-                  </div>
-                  <div className="col-span-2 text-right text-red-700">
-                    {naira(budgetTotals.totalExp)}
-                  </div>
-                  <div className="col-span-2 text-right text-emerald-700">
-                    {naira(budgetTotals.remaining)}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {expenditureBySubhead.length > 80 && (
-            <div className="mt-3 text-xs text-slate-500 print:hidden">
-              Showing first 80 rows on screen. Use Export Excel for the full list.
-            </div>
-          )}
-        </div>
+        {(activeTab === "overview" || activeTab === "subheads") && (
+          <SubheadBreakdownPanel
+            rows={expenditureBySubhead}
+            deptMap={deptMap}
+            totals={budgetTotals}
+          />
+        )}
 
         <div className="mt-6 rounded-3xl border border-blue-100 bg-blue-50 p-5 text-sm text-blue-900 print:border-t print:border-black print:bg-white print:text-black">
           <div className="font-bold">Monthly and Yearly Reports Note</div>
@@ -860,11 +851,238 @@ export default function FinanceReportsPage() {
   );
 }
 
-function KpiCard({ title, value }: { title: string; value: string }) {
+function MonthlyPanel({
+  monthly,
+  year,
+  dateFrom,
+  dateTo,
+}: {
+  monthly: { arr: MonthlyRow[]; max: number; total: number };
+  year: number;
+  dateFrom: string;
+  dateTo: string;
+}) {
+  return (
+    <div className="mt-6 rounded-3xl border bg-white p-6 shadow-sm print:rounded-none print:border-black print:shadow-none">
+      <div className="flex flex-wrap items-end justify-between gap-2">
+        <div>
+          <h2 className="text-lg font-bold text-slate-900">Monthly Expenditure</h2>
+          <p className="mt-1 text-sm text-slate-600">
+            Approved/Paid/Completed requests totals per month ({year})
+          </p>
+        </div>
+        <div className="text-xs text-slate-500">
+          Range: {dateFrom} → {dateTo}
+        </div>
+      </div>
+
+      <div className="mt-4 grid h-40 grid-cols-12 items-end gap-2 print:hidden">
+        {monthly.arr.map((m) => {
+          const h = Math.round((m.total / monthly.max) * 100);
+
+          return (
+            <div key={m.month} className="flex flex-col items-center gap-2">
+              <div className="flex h-32 w-full items-end overflow-hidden rounded-lg bg-slate-100">
+                <div
+                  className="w-full bg-blue-600"
+                  style={{ height: `${h}%` }}
+                  title={`${m.month}: ${naira(m.total)}`}
+                />
+              </div>
+              <div className="text-[11px] text-slate-600">{m.month}</div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="mt-5 overflow-x-auto rounded-2xl border border-slate-200">
+        <table className="min-w-[720px] w-full border-collapse text-xs">
+          <thead>
+            <tr className="bg-slate-100 uppercase tracking-wide text-slate-600 print:bg-white print:text-[8px]">
+              {monthly.arr.map((m) => (
+                <th key={m.month} className="px-3 py-3 text-center">
+                  {m.month}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            <tr className="border-t font-bold text-slate-900 print:text-[8px]">
+              {monthly.arr.map((m) => (
+                <td key={m.month} className="px-3 py-3 text-center">
+                  {naira(m.total)}
+                </td>
+              ))}
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div className="mt-3 text-sm text-slate-700">
+        Total request value in range: <b className="text-slate-900">{naira(monthly.total)}</b>
+      </div>
+    </div>
+  );
+}
+
+function DepartmentSummaryPanel({
+  rows,
+  totals,
+}: {
+  rows: Array<{
+    dept_id: string;
+    dept_name: string;
+    allocation: number;
+    reserved: number;
+    expenditure: number;
+    balance: number;
+  }>;
+  totals: ReturnType<typeof getBudgetTotals>;
+}) {
+  return (
+    <div className="mt-6 rounded-3xl border bg-white p-6 shadow-sm print:rounded-none print:border-black print:shadow-none">
+      <h2 className="text-lg font-bold text-slate-900">Total Allocation by Department</h2>
+      <p className="mt-1 text-sm text-slate-600">Government-style summary by department.</p>
+
+      {rows.length === 0 ? (
+        <div className="mt-4 text-sm text-slate-700">No records.</div>
+      ) : (
+        <div className="mt-4 overflow-x-auto rounded-xl border border-slate-200">
+          <table className="min-w-[900px] w-full border-collapse text-sm print:min-w-0 print:text-[8px]">
+            <thead>
+              <tr className="bg-slate-100 text-xs uppercase tracking-wide text-slate-600 print:bg-white print:text-[8px]">
+                <th className="px-4 py-3 text-left">Department</th>
+                <th className="px-4 py-3 text-right">Allocation</th>
+                <th className="px-4 py-3 text-right">Reserved</th>
+                <th className="px-4 py-3 text-right">Expenditure</th>
+                <th className="px-4 py-3 text-right">Balance</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {rows.map((r) => (
+                <tr key={r.dept_id} className="border-t">
+                  <td className="px-4 py-3 font-semibold text-slate-900">{r.dept_name}</td>
+                  <td className="px-4 py-3 text-right font-semibold text-slate-900">{naira(r.allocation)}</td>
+                  <td className="px-4 py-3 text-right font-semibold text-amber-700">{naira(r.reserved)}</td>
+                  <td className="px-4 py-3 text-right font-semibold text-red-700">{naira(r.expenditure)}</td>
+                  <td className="px-4 py-3 text-right font-semibold text-emerald-700">{naira(r.balance)}</td>
+                </tr>
+              ))}
+            </tbody>
+
+            <tfoot>
+              <tr className="border-t bg-slate-50 font-black print:bg-white">
+                <td className="px-4 py-3 uppercase text-slate-900">Total</td>
+                <td className="px-4 py-3 text-right text-slate-900">{naira(totals.annualBudget)}</td>
+                <td className="px-4 py-3 text-right text-amber-700">{naira(totals.reserved)}</td>
+                <td className="px-4 py-3 text-right text-red-700">{naira(totals.totalExp)}</td>
+                <td className="px-4 py-3 text-right text-emerald-700">{naira(totals.remaining)}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SubheadBreakdownPanel({
+  rows,
+  deptMap,
+  totals,
+}: {
+  rows: Subhead[];
+  deptMap: Record<string, Dept>;
+  totals: ReturnType<typeof getBudgetTotals>;
+}) {
+  return (
+    <div className="mt-6 rounded-3xl border bg-white p-6 shadow-sm print:rounded-none print:border-black print:shadow-none">
+      <h2 className="text-lg font-bold text-slate-900">Total Expenditure by Subhead</h2>
+      <p className="mt-1 text-sm text-slate-600">Detailed breakdown by subhead code.</p>
+
+      {rows.length === 0 ? (
+        <div className="mt-4 text-sm text-slate-700">No subheads.</div>
+      ) : (
+        <div className="mt-4 overflow-x-auto rounded-xl border border-slate-200">
+          <table className="min-w-[1100px] w-full border-collapse text-sm print:min-w-0 print:text-[8px]">
+            <thead>
+              <tr className="bg-slate-100 text-xs uppercase tracking-wide text-slate-600 print:bg-white print:text-[8px]">
+                <th className="px-4 py-3 text-left">Dept</th>
+                <th className="px-4 py-3 text-left">Code</th>
+                <th className="px-4 py-3 text-left">Subhead</th>
+                <th className="px-4 py-3 text-right">Allocation</th>
+                <th className="px-4 py-3 text-right">Reserved</th>
+                <th className="px-4 py-3 text-right">Expenditure</th>
+                <th className="px-4 py-3 text-right">Balance</th>
+                <th className="px-4 py-3 text-left">Status</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {rows.slice(0, 100).map((s) => (
+                <tr key={s.id} className="border-t">
+                  <td className="px-4 py-3 text-slate-800">
+                    {deptMap[s.dept_id || ""]?.name || s.dept_id || "—"}
+                  </td>
+                  <td className="px-4 py-3 font-semibold text-slate-900">{s.code || "—"}</td>
+                  <td className="px-4 py-3 text-slate-900">{s.name}</td>
+                  <td className="px-4 py-3 text-right font-semibold text-blue-700">{naira(s.approved_allocation)}</td>
+                  <td className="px-4 py-3 text-right font-semibold text-amber-700">{naira(s.reserved_amount)}</td>
+                  <td className="px-4 py-3 text-right font-semibold text-red-700">{naira(s.expenditure)}</td>
+                  <td className="px-4 py-3 text-right font-semibold text-emerald-700">{naira(s.balance)}</td>
+                  <td className="px-4 py-3 text-slate-700">{s.is_active === false ? "Inactive" : "Active"}</td>
+                </tr>
+              ))}
+            </tbody>
+
+            <tfoot>
+              <tr className="border-t bg-slate-50 font-black print:bg-white">
+                <td className="px-4 py-3 uppercase text-slate-900" colSpan={3}>
+                  Total
+                </td>
+                <td className="px-4 py-3 text-right text-blue-700">{naira(totals.annualBudget)}</td>
+                <td className="px-4 py-3 text-right text-amber-700">{naira(totals.reserved)}</td>
+                <td className="px-4 py-3 text-right text-red-700">{naira(totals.totalExp)}</td>
+                <td className="px-4 py-3 text-right text-emerald-700">{naira(totals.remaining)}</td>
+                <td className="px-4 py-3" />
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      )}
+
+      {rows.length > 100 && (
+        <div className="mt-3 text-xs text-slate-500 print:hidden">
+          Showing first 100 rows on screen. Use Export Excel for the full list.
+        </div>
+      )}
+    </div>
+  );
+}
+
+function KpiCard({
+  title,
+  value,
+  tone,
+}: {
+  title: string;
+  value: string;
+  tone: "blue" | "amber" | "red" | "emerald";
+}) {
+  const cls =
+    tone === "amber"
+      ? "bg-amber-50 text-amber-700"
+      : tone === "red"
+      ? "bg-red-50 text-red-700"
+      : tone === "emerald"
+      ? "bg-emerald-50 text-emerald-700"
+      : "bg-blue-50 text-blue-700";
+
   return (
     <div className="print-card rounded-3xl border bg-white p-6 shadow-sm print:rounded-none print:border-black print:p-2 print:shadow-none">
       <div className="text-sm font-semibold text-slate-600 print:text-[9px]">{title}</div>
-      <div className="mt-2 text-2xl font-extrabold tracking-tight text-slate-900 print:text-[11px]">
+      <div className={`mt-2 inline-flex rounded-2xl px-3 py-2 text-xl font-extrabold tracking-tight print:p-0 print:text-[11px] ${cls}`}>
         {value}
       </div>
       <div className="mt-1 text-xs text-slate-500 print:text-[8px]">NGN</div>
@@ -882,5 +1100,27 @@ function SmallCard({ title, value }: { title: string; value: string }) {
         {value}
       </div>
     </div>
+  );
+}
+
+function TabButton({
+  label,
+  active,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`rounded-2xl px-4 py-3 text-sm font-bold transition ${
+        active ? "bg-blue-600 text-white shadow-sm" : "bg-white text-slate-700 hover:bg-slate-100"
+      }`}
+    >
+      {label}
+    </button>
   );
 }
