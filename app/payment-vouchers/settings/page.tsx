@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -66,6 +66,7 @@ export default function PaymentVoucherSettingsPage() {
   const router = useRouter();
 
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
@@ -82,61 +83,88 @@ export default function PaymentVoucherSettingsPage() {
   const [active, setActive] = useState(true);
   const [search, setSearch] = useState("");
 
-  async function load() {
-    setLoading(true);
-    setMsg(null);
+  const load = useCallback(
+    async (options?: { silent?: boolean }) => {
+      if (options?.silent) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
 
-    const { data: auth } = await supabase.auth.getUser();
+      setMsg(null);
 
-    if (!auth.user) {
-      router.push("/login");
-      return;
-    }
+      const { data: auth } = await supabase.auth.getUser();
 
-    const { data: prof, error: profErr } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", auth.user.id)
-      .maybeSingle();
+      if (!auth.user) {
+        router.push("/login");
+        return;
+      }
 
-    if (profErr) {
-      setMsg("Failed to load your profile: " + profErr.message);
+      const { data: prof, error: profErr } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", auth.user.id)
+        .maybeSingle();
+
+      if (profErr) {
+        setMsg("Failed to load your profile: " + profErr.message);
+        setLoading(false);
+        setRefreshing(false);
+        return;
+      }
+
+      const role = (prof?.role || "Staff") as string;
+      setMyRole(role);
+
+      if (!["admin", "auditor"].includes(roleKey(role))) {
+        setMsg("Access denied. Only Admin and Auditor can manage Payment Voucher signatories.");
+        setRows([]);
+        setLoading(false);
+        setRefreshing(false);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("payment_voucher_counter_signatories")
+        .select("id,full_name,signatory_type,is_active,created_at,updated_at")
+        .order("full_name", { ascending: true });
+
+      if (error) {
+        setMsg("Failed to load PV signatories: " + error.message);
+        setRows([]);
+        setLoading(false);
+        setRefreshing(false);
+        return;
+      }
+
+      setRows((data || []) as CounterSignatory[]);
       setLoading(false);
-      return;
-    }
-
-    const role = (prof?.role || "Staff") as string;
-    setMyRole(role);
-
-    if (!["admin", "auditor"].includes(roleKey(role))) {
-      setMsg(
-        "Access denied. Only Admin and Auditor can manage Payment Voucher signatories."
-      );
-      setRows([]);
-      setLoading(false);
-      return;
-    }
-
-    const { data, error } = await supabase
-      .from("payment_voucher_counter_signatories")
-      .select("id,full_name,signatory_type,is_active,created_at,updated_at")
-      .order("full_name", { ascending: true });
-
-    if (error) {
-      setMsg("Failed to load PV signatories: " + error.message);
-      setRows([]);
-      setLoading(false);
-      return;
-    }
-
-    setRows((data || []) as CounterSignatory[]);
-    setLoading(false);
-  }
+      setRefreshing(false);
+    },
+    [router]
+  );
 
   useEffect(() => {
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+
+    const refreshOnFocus = () => {
+      load({ silent: true });
+    };
+
+    const refreshOnVisible = () => {
+      if (document.visibilityState === "visible") {
+        load({ silent: true });
+      }
+    };
+
+    window.addEventListener("focus", refreshOnFocus);
+    document.addEventListener("visibilitychange", refreshOnVisible);
+
+    return () => {
+      window.removeEventListener("focus", refreshOnFocus);
+      document.removeEventListener("visibilitychange", refreshOnVisible);
+    };
+  }, [load]);
 
   const filteredRows = useMemo(() => {
     const s = search.trim().toLowerCase();
@@ -253,7 +281,8 @@ export default function PaymentVoucherSettingsPage() {
       }
 
       resetForm();
-      await load();
+      await load({ silent: true });
+      router.refresh();
     } catch (e: any) {
       setMsg("❌ " + (e?.message || "Failed to save PV signatory."));
     } finally {
@@ -291,7 +320,8 @@ export default function PaymentVoucherSettingsPage() {
       if (error) throw new Error(error.message);
 
       setMsg(nextStatus ? "✅ Signatory activated." : "✅ Signatory deactivated.");
-      await load();
+      await load({ silent: true });
+      router.refresh();
     } catch (e: any) {
       setMsg("❌ " + (e?.message || "Failed to update signatory."));
     } finally {
@@ -325,12 +355,28 @@ export default function PaymentVoucherSettingsPage() {
       if (error) throw new Error(error.message);
 
       setMsg("✅ PV signatory deleted.");
-      await load();
+
+      if (editId === row.id) {
+        resetForm();
+      }
+
+      await load({ silent: true });
+      router.refresh();
     } catch (e: any) {
       setMsg("❌ " + (e?.message || "Failed to delete PV signatory."));
     } finally {
       setSaving(false);
     }
+  }
+
+  function backToVouchers() {
+    router.push(`/payment-vouchers?updated=${Date.now()}`);
+    router.refresh();
+  }
+
+  function goDashboard() {
+    router.push(`/dashboard?updated=${Date.now()}`);
+    router.refresh();
   }
 
   if (loading) {
@@ -359,14 +405,14 @@ export default function PaymentVoucherSettingsPage() {
 
             <div className="mt-5 flex flex-wrap gap-2">
               <button
-                onClick={() => router.push("/payment-vouchers")}
+                onClick={backToVouchers}
                 className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
               >
                 Back to Vouchers
               </button>
 
               <button
-                onClick={() => router.push("/dashboard")}
+                onClick={goDashboard}
                 className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
               >
                 Dashboard
@@ -393,16 +439,17 @@ export default function PaymentVoucherSettingsPage() {
 
           <div className="flex flex-wrap gap-2">
             <button
-              onClick={load}
-              disabled={saving}
+              onClick={() => load({ silent: true })}
+              disabled={saving || refreshing}
               className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-100 disabled:opacity-60"
             >
-              Refresh
+              {refreshing ? "Refreshing..." : "Refresh"}
             </button>
 
             <button
-              onClick={() => router.push("/payment-vouchers")}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-100"
+              onClick={backToVouchers}
+              disabled={saving || refreshing}
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-100 disabled:opacity-60"
             >
               Back to Vouchers
             </button>
@@ -414,6 +461,10 @@ export default function PaymentVoucherSettingsPage() {
             {msg}
           </div>
         )}
+
+        <div className="mt-4 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-xs font-semibold text-blue-900">
+          This settings page refreshes automatically when you return to it. Changes are reloaded immediately after every save.
+        </div>
 
         <div className="mt-6 rounded-3xl border border-red-100 bg-red-50 p-5 text-sm text-red-900">
           <div className="font-extrabold">Restricted Authority Setting</div>
@@ -540,7 +591,11 @@ export default function PaymentVoucherSettingsPage() {
                   </div>
 
                   <div className="flex flex-col items-end gap-1">
-                    <span className={`rounded-full px-3 py-1 text-xs font-bold ${typeBadgeClass(row.signatory_type)}`}>
+                    <span
+                      className={`rounded-full px-3 py-1 text-xs font-bold ${typeBadgeClass(
+                        row.signatory_type
+                      )}`}
+                    >
                       {typeLabel(row.signatory_type)}
                     </span>
 
@@ -629,7 +684,11 @@ export default function PaymentVoucherSettingsPage() {
                     </div>
 
                     <div className="col-span-2">
-                      <span className={`rounded-full px-3 py-1 text-xs font-bold ${typeBadgeClass(row.signatory_type)}`}>
+                      <span
+                        className={`rounded-full px-3 py-1 text-xs font-bold ${typeBadgeClass(
+                          row.signatory_type
+                        )}`}
+                      >
                         {typeLabel(row.signatory_type)}
                       </span>
                     </div>
