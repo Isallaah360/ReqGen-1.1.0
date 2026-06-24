@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { exportTableToExcel, printReport } from "@/lib/reportExport";
@@ -71,10 +71,40 @@ function requestPrintSource(r: PrintableRequest, subheadMap: Record<string, stri
   return "Not applicable";
 }
 
+function computeTotals(subs: Sub[]) {
+  const allocationTotal = subs.reduce((a, s) => a + Number(s.approved_allocation || 0), 0);
+  const reservedTotal = subs.reduce((a, s) => a + Number(s.reserved_amount || 0), 0);
+  const expenditureTotal = subs.reduce((a, s) => a + Number(s.expenditure || 0), 0);
+  const balanceTotal = subs.reduce((a, s) => a + Number(s.balance || 0), 0);
+  const activeCount = subs.filter((s) => s.is_active).length;
+  const inactiveCount = subs.filter((s) => !s.is_active).length;
+  const negativeBalanceCount = subs.filter((s) => Number(s.balance || 0) < 0).length;
+  const lowBalanceCount = subs.filter((s) => {
+    const allocation = Number(s.approved_allocation || 0);
+    const balance = Number(s.balance || 0);
+    return allocation > 0 && balance >= 0 && balance / allocation <= 0.1;
+  }).length;
+
+  return {
+    allocationTotal,
+    reservedTotal,
+    expenditureTotal,
+    balanceTotal,
+    activeCount,
+    inactiveCount,
+    negativeBalanceCount,
+    lowBalanceCount,
+    totalCount: subs.length,
+  };
+}
+
 export default function SubheadsPage() {
   const router = useRouter();
 
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [printing, setPrinting] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
@@ -96,69 +126,140 @@ export default function SubheadsPage() {
   const [allocation, setAllocation] = useState<number>(0);
   const [active, setActive] = useState(true);
 
-  async function load() {
-    setLoading(true);
-    setMsg(null);
-
-    const { data: auth } = await supabase.auth.getUser();
-    if (!auth.user) {
-      router.push("/login");
-      return;
-    }
-
-    const { data: prof } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", auth.user.id)
-      .maybeSingle();
-
-    setMyRole((prof?.role || "Staff") as string);
-
-    const { data: drows } = await supabase
-      .from("departments")
-      .select("id,name")
-      .order("name", { ascending: true });
-
-    setDepts((drows || []) as Dept[]);
-
-    const { data: srows, error: sErr } = await supabase
-      .from("subheads")
-      .select("id,dept_id,code,name,approved_allocation,reserved_amount,expenditure,balance,is_active,updated_at")
-      .order("name", { ascending: true });
-
-    if (sErr) setMsg(sErr.message);
-    setSubs((srows || []) as Sub[]);
-
-    const role = roleKey((prof?.role || "Staff") as string);
-    const allowedPrint = ["admin", "auditor", "account", "accounts", "accountofficer"].includes(role);
-
-    if (allowedPrint) {
-      const { data: reqRows, error: reqErr } = await supabase
-        .from("requests")
-        .select(
-          "id,request_no,title,amount,status,current_stage,created_at,requester_name,account_name,subhead_id,request_type,personal_category"
-        )
-        .in("status", ["Paid", "Completed"])
-        .or("request_type.eq.Official,and(request_type.eq.Personal,personal_category.eq.Fund)")
-        .order("created_at", { ascending: false })
-        .limit(50);
-
-      if (reqErr) {
-        setMsg("Failed to load printable requests: " + reqErr.message);
+  const load = useCallback(
+    async (options?: { silent?: boolean }) => {
+      if (options?.silent) {
+        setRefreshing(true);
       } else {
-        setPrintableRequests((reqRows || []) as PrintableRequest[]);
+        setLoading(true);
       }
-    } else {
-      setPrintableRequests([]);
-    }
 
-    setLoading(false);
-  }
+      setMsg(null);
+
+      const { data: auth } = await supabase.auth.getUser();
+
+      if (!auth.user) {
+        router.push("/login");
+        return null;
+      }
+
+      const { data: prof } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", auth.user.id)
+        .maybeSingle();
+
+      const roleText = (prof?.role || "Staff") as string;
+      const role = roleKey(roleText);
+      setMyRole(roleText);
+
+      const { data: drows, error: dErr } = await supabase
+        .from("departments")
+        .select("id,name")
+        .order("name", { ascending: true });
+
+      if (dErr) {
+        setMsg("Failed to load departments: " + dErr.message);
+      }
+
+      const freshDepts = (drows || []) as Dept[];
+      setDepts(freshDepts);
+
+      const { data: srows, error: sErr } = await supabase
+        .from("subheads")
+        .select(
+          "id,dept_id,code,name,approved_allocation,reserved_amount,expenditure,balance,is_active,updated_at"
+        )
+        .order("name", { ascending: true });
+
+      if (sErr) {
+        setMsg("Failed to load subheads: " + sErr.message);
+      }
+
+      const freshSubs = (srows || []) as Sub[];
+      setSubs(freshSubs);
+
+      const allowedPrint = ["admin", "auditor", "account", "accounts", "accountofficer"].includes(role);
+
+      let freshPrintable: PrintableRequest[] = [];
+
+      if (allowedPrint) {
+        const [officialRes, personalFundRes] = await Promise.all([
+          supabase
+            .from("requests")
+            .select(
+              "id,request_no,title,amount,status,current_stage,created_at,requester_name,account_name,subhead_id,request_type,personal_category"
+            )
+            .in("status", ["Paid", "Completed"])
+            .eq("request_type", "Official")
+            .order("created_at", { ascending: false })
+            .limit(50),
+
+          supabase
+            .from("requests")
+            .select(
+              "id,request_no,title,amount,status,current_stage,created_at,requester_name,account_name,subhead_id,request_type,personal_category"
+            )
+            .in("status", ["Paid", "Completed"])
+            .eq("request_type", "Personal")
+            .eq("personal_category", "Fund")
+            .order("created_at", { ascending: false })
+            .limit(50),
+        ]);
+
+        if (officialRes.error || personalFundRes.error) {
+          setMsg(
+            "Failed to load printable requests: " +
+              (officialRes.error?.message || personalFundRes.error?.message || "Unknown error")
+          );
+          freshPrintable = [];
+        } else {
+          freshPrintable = [
+            ...((officialRes.data || []) as PrintableRequest[]),
+            ...((personalFundRes.data || []) as PrintableRequest[]),
+          ]
+            .sort((a, b) => {
+              return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+            })
+            .slice(0, 50);
+        }
+      }
+
+      setPrintableRequests(freshPrintable);
+
+      setLoading(false);
+      setRefreshing(false);
+
+      return {
+        depts: freshDepts,
+        subs: freshSubs,
+        printableRequests: freshPrintable,
+      };
+    },
+    [router]
+  );
 
   useEffect(() => {
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+
+    const refreshOnFocus = () => {
+      load({ silent: true });
+    };
+
+    const refreshOnVisible = () => {
+      if (document.visibilityState === "visible") {
+        load({ silent: true });
+      }
+    };
+
+    window.addEventListener("focus", refreshOnFocus);
+    document.addEventListener("visibilitychange", refreshOnVisible);
+
+    return () => {
+      window.removeEventListener("focus", refreshOnFocus);
+      document.removeEventListener("visibilitychange", refreshOnVisible);
+    };
+  }, [load]);
 
   const deptMap = useMemo(() => {
     const m: Record<string, string> = {};
@@ -174,32 +275,7 @@ export default function SubheadsPage() {
     return m;
   }, [subs]);
 
-  const totals = useMemo(() => {
-    const allocationTotal = subs.reduce((a, s) => a + Number(s.approved_allocation || 0), 0);
-    const reservedTotal = subs.reduce((a, s) => a + Number(s.reserved_amount || 0), 0);
-    const expenditureTotal = subs.reduce((a, s) => a + Number(s.expenditure || 0), 0);
-    const balanceTotal = subs.reduce((a, s) => a + Number(s.balance || 0), 0);
-    const activeCount = subs.filter((s) => s.is_active).length;
-    const inactiveCount = subs.filter((s) => !s.is_active).length;
-    const negativeBalanceCount = subs.filter((s) => Number(s.balance || 0) < 0).length;
-    const lowBalanceCount = subs.filter((s) => {
-      const allocation = Number(s.approved_allocation || 0);
-      const balance = Number(s.balance || 0);
-      return allocation > 0 && balance >= 0 && balance / allocation <= 0.1;
-    }).length;
-
-    return {
-      allocationTotal,
-      reservedTotal,
-      expenditureTotal,
-      balanceTotal,
-      activeCount,
-      inactiveCount,
-      negativeBalanceCount,
-      lowBalanceCount,
-      totalCount: subs.length,
-    };
-  }, [subs]);
+  const totals = useMemo(() => computeTotals(subs), [subs]);
 
   function resetForm() {
     setEditId(null);
@@ -250,18 +326,15 @@ export default function SubheadsPage() {
       } else {
         payload.balance = alloc - reserved - exp;
 
-        const { error } = await supabase
-          .from("subheads")
-          .update(payload)
-          .eq("id", editId);
-
+        const { error } = await supabase.from("subheads").update(payload).eq("id", editId);
         if (error) throw new Error(error.message);
 
         setMsg("✅ Subhead updated.");
       }
 
       resetForm();
-      await load();
+      await load({ silent: true });
+      router.refresh();
     } catch (e: any) {
       setMsg("❌ " + (e?.message || "Failed"));
     } finally {
@@ -285,7 +358,13 @@ export default function SubheadsPage() {
       if (error) throw new Error(error.message);
 
       setMsg("✅ Deleted.");
-      await load();
+
+      if (editId === id) {
+        resetForm();
+      }
+
+      await load({ silent: true });
+      router.refresh();
     } catch (e: any) {
       setMsg("❌ " + (e?.message || "Failed"));
     } finally {
@@ -293,24 +372,41 @@ export default function SubheadsPage() {
     }
   }
 
-  function printSubheadsReport() {
-    printReport();
+  async function printSubheadsReport() {
+    setPrinting(true);
+    await load({ silent: true });
+
+    setTimeout(() => {
+      printReport();
+      setPrinting(false);
+    }, 250);
   }
 
-  function exportSubheadsExcel() {
+  async function exportSubheadsExcel() {
+    setExporting(true);
+
+    const fresh = await load({ silent: true });
+    const exportSubs = fresh?.subs || subs;
+    const exportDepts = fresh?.depts || depts;
+
+    const exportDeptMap: Record<string, string> = {};
+    exportDepts.forEach((d) => (exportDeptMap[d.id] = d.name));
+
+    const exportTotals = computeTotals(exportSubs);
+
     exportTableToExcel<Sub>({
       fileName: `total_subheads_report_${new Date().toISOString().slice(0, 10)}`,
       sheetName: "Total Subheads",
       title: "TOTAL SUBHEADS REPORT",
-      subtitle: `Total Subheads: ${totals.totalCount} | Active: ${
-        totals.activeCount
-      } | Allocation: ${naira(totals.allocationTotal)} | Balance: ${naira(
-        totals.balanceTotal
+      subtitle: `Total Subheads: ${exportTotals.totalCount} | Active: ${
+        exportTotals.activeCount
+      } | Allocation: ${naira(exportTotals.allocationTotal)} | Balance: ${naira(
+        exportTotals.balanceTotal
       )}`,
-      rows: subs,
+      rows: exportSubs,
       columns: [
         { header: "S/N", value: (_row, index) => index + 1 },
-        { header: "Department", value: (row) => (row.dept_id ? deptMap[row.dept_id] : "—") },
+        { header: "Department", value: (row) => (row.dept_id ? exportDeptMap[row.dept_id] : "—") },
         { header: "Code", value: (row) => row.code || "—" },
         { header: "Subhead", value: (row) => row.name },
         { header: "Allocation", value: (row) => plainAmount(Number(row.approved_allocation || 0)) },
@@ -326,15 +422,32 @@ export default function SubheadsPage() {
           "",
           "",
           "",
-          plainAmount(totals.allocationTotal),
-          plainAmount(totals.reservedTotal),
-          plainAmount(totals.expenditureTotal),
-          plainAmount(totals.balanceTotal),
+          plainAmount(exportTotals.allocationTotal),
+          plainAmount(exportTotals.reservedTotal),
+          plainAmount(exportTotals.expenditureTotal),
+          plainAmount(exportTotals.balanceTotal),
           "",
           "",
         ],
       ],
     });
+
+    setExporting(false);
+  }
+
+  function openFinanceAudit() {
+    router.push(`/finance/audit?updated=${Date.now()}`);
+    router.refresh();
+  }
+
+  function backToFinance() {
+    router.push(`/finance?updated=${Date.now()}`);
+    router.refresh();
+  }
+
+  function printCompletedRequest(requestId: string) {
+    router.push(`/requests/${requestId}/print?updated=${Date.now()}`);
+    router.refresh();
   }
 
   if (loading) {
@@ -409,38 +522,43 @@ export default function SubheadsPage() {
 
           <div className="no-print flex flex-wrap gap-2">
             <button
-              onClick={load}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-100"
+              onClick={() => load({ silent: true })}
+              disabled={refreshing || printing || exporting || saving}
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-100 disabled:opacity-60"
             >
-              Refresh
+              {refreshing ? "Refreshing..." : "Refresh"}
             </button>
 
             <button
               onClick={printSubheadsReport}
-              className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700"
+              disabled={refreshing || printing || exporting || saving}
+              className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:opacity-60"
             >
-              Print / Save PDF
+              {printing ? "Preparing..." : "Print / Save PDF"}
             </button>
 
             <button
               onClick={exportSubheadsExcel}
-              className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700"
+              disabled={refreshing || printing || exporting || saving}
+              className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 disabled:opacity-60"
             >
-              Export Excel
+              {exporting ? "Exporting..." : "Export Excel"}
             </button>
 
             {canAuditView && (
               <button
-                onClick={() => router.push("/finance/audit")}
-                className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-100"
+                onClick={openFinanceAudit}
+                disabled={refreshing || printing || exporting || saving}
+                className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-100 disabled:opacity-60"
               >
                 Audit & Reconciliation
               </button>
             )}
 
             <button
-              onClick={() => router.push("/finance")}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-100"
+              onClick={backToFinance}
+              disabled={refreshing || printing || exporting || saving}
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-100 disabled:opacity-60"
             >
               Back to Finance
             </button>
@@ -452,6 +570,10 @@ export default function SubheadsPage() {
             {msg}
           </div>
         )}
+
+        <div className="no-print mt-4 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-xs font-semibold text-blue-900">
+          This page refreshes automatically when you return to it. Print and Excel export also reload fresh finance data first.
+        </div>
 
         <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-6 print:grid-cols-6">
           <StatCard title="Total Subheads" value={String(totals.totalCount)} tone="slate" />
@@ -482,10 +604,11 @@ export default function SubheadsPage() {
               </div>
 
               <button
-                onClick={load}
-                className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
+                onClick={() => load({ silent: true })}
+                disabled={refreshing || printing || exporting || saving}
+                className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
               >
-                Refresh
+                {refreshing ? "Refreshing..." : "Refresh"}
               </button>
             </div>
 
@@ -536,7 +659,7 @@ export default function SubheadsPage() {
 
                       <div className="mt-4 flex justify-end">
                         <button
-                          onClick={() => router.push(`/requests/${r.id}/print`)}
+                          onClick={() => printCompletedRequest(r.id)}
                           className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
                         >
                           Print
@@ -606,7 +729,7 @@ export default function SubheadsPage() {
 
                         <div className="col-span-1 flex justify-end">
                           <button
-                            onClick={() => router.push(`/requests/${r.id}/print`)}
+                            onClick={() => printCompletedRequest(r.id)}
                             className="rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700"
                           >
                             Print
@@ -635,7 +758,8 @@ export default function SubheadsPage() {
             {editId && (
               <button
                 onClick={resetForm}
-                className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
+                disabled={saving}
+                className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
               >
                 Cancel Edit
               </button>
