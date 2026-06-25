@@ -368,7 +368,7 @@ export default function PrintRequestPage() {
 
   const backPath = useMemo(() => {
     if (rk === "hr" && (isPersonalFund || isPersonalNonFund)) return "/hr/filing";
-    return "/finance/subheads";
+    return "/finance";
   }, [rk, isPersonalFund, isPersonalNonFund]);
 
   const backLabel = useMemo(() => {
@@ -880,13 +880,7 @@ function TopLineField({
   );
 }
 
-function SmallFieldRow({
-  label,
-  value,
-}: {
-  label: string;
-  value: string;
-}) {
+function SmallFieldRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center justify-end gap-2">
       <div className="w-[128px] text-right text-[8.8px] font-black">{label}</div>
