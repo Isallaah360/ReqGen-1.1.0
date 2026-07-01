@@ -53,7 +53,7 @@ function requestedOtpChannel(): OtpChannel {
     - sms_email
     - email_sms
   */
-  if (raw === "email_sms" || raw === "sms_email") return "sms_email";
+  if (raw === "sms_email" || raw === "email_sms") return "sms_email";
 
   return "sms_email";
 }
@@ -63,7 +63,7 @@ function safeName(value: unknown) {
 }
 
 async function insertSmsLog(
-  adminClient: ReturnType<typeof createClient>,
+  adminClient: any,
   input: {
     recipientUserId: string;
     phone: string | null;
@@ -78,6 +78,12 @@ async function insertSmsLog(
     sentBy: string;
   }
 ) {
+  /*
+    Cast is intentional:
+    Some generated Supabase table typings do not include sms_logs yet,
+    so TypeScript treats insert as never during Vercel build.
+    Runtime table exists in Supabase, so we keep logging safely here.
+  */
   await adminClient.from("sms_logs").insert({
     recipient_user_id: input.recipientUserId,
     phone: input.phone,
@@ -105,7 +111,9 @@ export async function POST(req: NextRequest) {
   const authHeader = req.headers.get("authorization") || "";
   const token = authHeader.replace(/^Bearer\s+/i, "").trim();
 
-  if (!token) return jsonError("Unauthorized.", 401);
+  if (!token) {
+    return jsonError("Unauthorized.", 401);
+  }
 
   const userClient = createClient(supabaseUrl, anonKey);
   const adminClient = createClient(supabaseUrl, serviceKey);
@@ -115,7 +123,9 @@ export async function POST(req: NextRequest) {
     error: userErr,
   } = await userClient.auth.getUser(token);
 
-  if (userErr || !user) return jsonError("Invalid session.", 401);
+  if (userErr || !user) {
+    return jsonError("Invalid session.", 401);
+  }
 
   const { data: profile, error: profErr } = await adminClient
     .from("profiles")
@@ -123,7 +133,9 @@ export async function POST(req: NextRequest) {
     .eq("id", user.id)
     .single();
 
-  if (profErr || !profile) return jsonError("Profile not found.", 404);
+  if (profErr || !profile) {
+    return jsonError("Profile not found.", 404);
+  }
 
   const channel = requestedOtpChannel();
 
@@ -240,7 +252,7 @@ export async function POST(req: NextRequest) {
 
       smsSent = true;
 
-      await insertSmsLog(adminClient, {
+      await insertSmsLog(adminClient as any, {
         recipientUserId: user.id,
         phone,
         email: recipientEmail,
@@ -255,7 +267,7 @@ export async function POST(req: NextRequest) {
     } catch (e: any) {
       smsError = e?.message || "SMS OTP failed.";
 
-      await insertSmsLog(adminClient, {
+      await insertSmsLog(adminClient as any, {
         recipientUserId: user.id,
         phone,
         email: recipientEmail,
@@ -285,7 +297,7 @@ export async function POST(req: NextRequest) {
 
       emailSent = true;
 
-      await insertSmsLog(adminClient, {
+      await insertSmsLog(adminClient as any, {
         recipientUserId: user.id,
         phone,
         email: recipientEmail,
@@ -300,7 +312,7 @@ export async function POST(req: NextRequest) {
     } catch (e: any) {
       emailError = e?.message || "Email OTP failed.";
 
-      await insertSmsLog(adminClient, {
+      await insertSmsLog(adminClient as any, {
         recipientUserId: user.id,
         phone,
         email: recipientEmail,
