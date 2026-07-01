@@ -14,7 +14,7 @@ export const runtime = "nodejs";
 
 type OtpChannel = "sms" | "email" | "sms_email";
 type LogChannel = "sms" | "email";
-type LogStatus = "pending" | "sent" | "failed" | "skipped";
+type LogStatus = "sent" | "failed";
 
 function jsonError(message: string, status = 400, extra?: Record<string, unknown>) {
   return NextResponse.json({ ok: false, error: message, ...(extra || {}) }, { status });
@@ -33,32 +33,72 @@ function makeOtp() {
   return String(Math.floor(100000 + Math.random() * 900000));
 }
 
+function boolEnv(name: string) {
+  return String(process.env[name] || "false").trim().toLowerCase() === "true";
+}
+
 function smsEnabled() {
-  return String(process.env.SENDCHAMP_SMS_ENABLED || "false").toLowerCase() === "true";
+  return boolEnv("SENDCHAMP_SMS_ENABLED");
 }
 
 function emailEnabled() {
-  return String(process.env.SENDCHAMP_EMAIL_ENABLED || "false").toLowerCase() === "true";
+  return boolEnv("SENDCHAMP_EMAIL_ENABLED");
 }
 
-function requestedOtpChannel(): OtpChannel {
-  const raw = String(process.env.NEXT_PUBLIC_REQGEN_REQUEST_OTP_CHANNEL || "sms_email")
+function normalizeOtpChannel(value: unknown): OtpChannel {
+  const raw = String(value || "")
     .trim()
     .toLowerCase()
-    .replace(/-/g, "_");
+    .replace(/-/g, "_")
+    .replace(/\s+/g, "_");
 
   if (raw === "sms") return "sms";
   if (raw === "email") return "email";
-  if (raw === "sms_email" || raw === "email_sms") return "sms_email";
+
+  if (
+    raw === "sms_email" ||
+    raw === "email_sms" ||
+    raw === "smsemail" ||
+    raw === "emailsms"
+  ) {
+    return "sms_email";
+  }
 
   return "sms_email";
+}
+
+function requestedOtpChannel(): OtpChannel {
+  return normalizeOtpChannel(process.env.NEXT_PUBLIC_REQGEN_REQUEST_OTP_CHANNEL || "sms_email");
+}
+
+function wantsSms(channel: OtpChannel) {
+  return channel === "sms" || channel === "sms_email";
+}
+
+function wantsEmail(channel: OtpChannel) {
+  return channel === "email" || channel === "sms_email";
 }
 
 function safeName(value: unknown) {
   return String(value || "").trim() || "Staff";
 }
 
-async function createLog(
+function emailHtmlTemplate(input: { otp: string; recipientName: string }) {
+  return `
+    <div style="font-family:Arial,sans-serif;line-height:1.6;color:#0f172a;max-width:620px;margin:0 auto">
+      <h2 style="margin:0 0 12px;color:#1d4ed8">IET ReqGen Verification Code</h2>
+      <p>Dear ${input.recipientName},</p>
+      <p>Your IET ReqGen verification code is:</p>
+      <div style="font-size:30px;font-weight:800;letter-spacing:6px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:16px 18px;text-align:center;color:#1e3a8a">
+        ${input.otp}
+      </div>
+      <p>This code expires shortly. Do not share it with anyone.</p>
+      <p style="margin-top:18px;color:#475569">Thank you.<br />Islamic Education Trust</p>
+    </div>
+  `;
+}
+
+async function insertLog(
   adminClient: any,
   input: {
     recipientUserId: string;
@@ -74,54 +114,26 @@ async function createLog(
     sentBy: string;
   }
 ) {
-  const { data, error } = await adminClient
-    .from("sms_logs")
-    .insert({
-      recipient_user_id: input.recipientUserId,
-      phone: input.phone,
-      email: input.email,
+  const { error } = await adminClient.from("sms_logs").insert({
+    recipient_user_id: input.recipientUserId,
+    phone: input.phone,
+    email: input.email,
+    channel: input.channel,
+    message: input.message,
+    provider: input.provider,
+    route: input.route || null,
+    status: input.status,
+    error: input.error || null,
+    provider_response: input.providerResponse || null,
+    sent_by: input.sentBy,
+  });
+
+  if (error) {
+    console.error("ReqGen OTP log insert failed:", {
       channel: input.channel,
-      message: input.message,
-      provider: input.provider,
-      route: input.route || null,
       status: input.status,
-      error: input.error || null,
-      provider_response: input.providerResponse || null,
-      sent_by: input.sentBy,
-    })
-    .select("id")
-    .single();
-
-  if (error) {
-    console.error("OTP log insert failed:", error.message);
-    return null;
-  }
-
-  return data?.id || null;
-}
-
-async function updateLog(
-  adminClient: any,
-  id: string | null,
-  patch: {
-    status: LogStatus;
-    error?: string | null;
-    providerResponse?: unknown;
-  }
-) {
-  if (!id) return;
-
-  const { error } = await adminClient
-    .from("sms_logs")
-    .update({
-      status: patch.status,
-      error: patch.error || null,
-      provider_response: patch.providerResponse || null,
-    })
-    .eq("id", id);
-
-  if (error) {
-    console.error("OTP log update failed:", error.message);
+      error: error.message,
+    });
   }
 }
 
@@ -164,24 +176,34 @@ export async function POST(req: NextRequest) {
   }
 
   const channel = requestedOtpChannel();
+
   const recipientName = safeName(profile.full_name);
   const recipientEmail = normalizeEmail(profile.email || user.email);
   const phone = normalizeNigerianPhone(profile.phone);
 
-  const canSendSms = smsEnabled() && !!phone;
-  const canSendEmail = emailEnabled() && !!recipientEmail;
+  const smsIsEnabled = smsEnabled();
+  const emailIsEnabled = emailEnabled();
+
+  const shouldSendSms = wantsSms(channel);
+  const shouldSendEmail = wantsEmail(channel);
+
+  const canSendSms = shouldSendSms && smsIsEnabled && !!phone;
+  const canSendEmail = shouldSendEmail && emailIsEnabled && !!recipientEmail;
 
   const debug = {
-    configuredChannel: channel,
-    smsEnabled: smsEnabled(),
-    emailEnabled: emailEnabled(),
+    rawConfiguredChannel: process.env.NEXT_PUBLIC_REQGEN_REQUEST_OTP_CHANNEL || null,
+    normalizedChannel: channel,
+    shouldSendSms,
+    shouldSendEmail,
+    smsEnabled: smsIsEnabled,
+    emailEnabled: emailIsEnabled,
     hasValidPhone: !!phone,
     hasValidEmail: !!recipientEmail,
     canSendSms,
     canSendEmail,
   };
 
-  if (channel === "sms" && !canSendSms) {
+  if (shouldSendSms && !canSendSms && !shouldSendEmail) {
     return jsonError(
       "SMS OTP is enabled, but your registered phone number is missing or invalid. Update Profile first.",
       400,
@@ -189,7 +211,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  if (channel === "email" && !canSendEmail) {
+  if (shouldSendEmail && !canSendEmail && !shouldSendSms) {
     return jsonError(
       "Email OTP is enabled, but email sending is disabled or your registered email is invalid.",
       400,
@@ -197,7 +219,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  if (channel === "sms_email" && !canSendSms && !canSendEmail) {
+  if (shouldSendSms && shouldSendEmail && !canSendSms && !canSendEmail) {
     return jsonError(
       "No valid OTP delivery channel is available. Update your phone/email or contact Admin.",
       400,
@@ -228,13 +250,11 @@ export async function POST(req: NextRequest) {
   const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
 
   const otpChannelToStore: OtpChannel =
-    channel === "sms_email"
-      ? canSendSms && canSendEmail
-        ? "sms_email"
-        : canSendSms
-        ? "sms"
-        : "email"
-      : channel;
+    shouldSendSms && shouldSendEmail
+      ? "sms_email"
+      : shouldSendSms
+      ? "sms"
+      : "email";
 
   const { data: insertedOtp, error: insertErr } = await adminClient
     .from("sms_otps")
@@ -262,19 +282,7 @@ export async function POST(req: NextRequest) {
     name: recipientName,
     appName: "IET ReqGen",
   });
-
-  const emailHtml = `
-    <div style="font-family:Arial,sans-serif;line-height:1.6;color:#0f172a;max-width:620px;margin:0 auto">
-      <h2 style="margin:0 0 12px;color:#1d4ed8">IET ReqGen Verification Code</h2>
-      <p>Dear ${recipientName},</p>
-      <p>Your IET ReqGen verification code is:</p>
-      <div style="font-size:30px;font-weight:800;letter-spacing:6px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:16px 18px;text-align:center;color:#1e3a8a">
-        ${otp}
-      </div>
-      <p>This code expires shortly. Do not share it with anyone.</p>
-      <p style="margin-top:18px;color:#475569">Thank you.<br />Islamic Education Trust</p>
-    </div>
-  `;
+  const emailHtml = emailHtmlTemplate({ otp, recipientName });
 
   let smsResult: unknown = null;
   let emailResult: unknown = null;
@@ -285,30 +293,24 @@ export async function POST(req: NextRequest) {
   let smsError: string | null = null;
   let emailError: string | null = null;
 
-  let smsLogId: string | null = null;
-  let emailLogId: string | null = null;
-
-  if (channel === "sms" || channel === "sms_email") {
-    smsLogId = await createLog(adminClient as any, {
-      recipientUserId: user.id,
-      phone,
-      email: recipientEmail,
-      channel: "sms",
-      message: smsMessage,
-      provider: "sendchamp-sms",
-      route: process.env.SENDCHAMP_ROUTE || "dnd",
-      status: "pending",
-      providerResponse: debug,
-      sentBy: user.id,
-    });
-
+  if (shouldSendSms) {
     if (!canSendSms || !phone) {
-      smsError = "SMS channel skipped because phone number is invalid or SMS is disabled.";
+      smsError = !smsIsEnabled
+        ? "SENDCHAMP_SMS_ENABLED is not true."
+        : "No valid recipient phone number.";
 
-      await updateLog(adminClient as any, smsLogId, {
-        status: "skipped",
+      await insertLog(adminClient as any, {
+        recipientUserId: user.id,
+        phone,
+        email: recipientEmail,
+        channel: "sms",
+        message: smsMessage,
+        provider: "sendchamp-sms",
+        route: process.env.SENDCHAMP_ROUTE || "dnd",
+        status: "failed",
         error: smsError,
         providerResponse: debug,
+        sentBy: user.id,
       });
     } else {
       try {
@@ -320,51 +322,56 @@ export async function POST(req: NextRequest) {
 
         smsSent = true;
 
-        await updateLog(adminClient as any, smsLogId, {
+        await insertLog(adminClient as any, {
+          recipientUserId: user.id,
+          phone,
+          email: recipientEmail,
+          channel: "sms",
+          message: smsMessage,
+          provider: "sendchamp-sms",
+          route: process.env.SENDCHAMP_ROUTE || "dnd",
           status: "sent",
           providerResponse: smsResult,
+          sentBy: user.id,
         });
       } catch (e: any) {
         smsError = e?.message || "SMS OTP failed.";
 
-        await updateLog(adminClient as any, smsLogId, {
+        await insertLog(adminClient as any, {
+          recipientUserId: user.id,
+          phone,
+          email: recipientEmail,
+          channel: "sms",
+          message: smsMessage,
+          provider: "sendchamp-sms",
+          route: process.env.SENDCHAMP_ROUTE || "dnd",
           status: "failed",
           error: smsError,
           providerResponse: smsResult,
+          sentBy: user.id,
         });
       }
     }
   }
 
-  if (channel === "email" || channel === "sms_email") {
-    emailLogId = await createLog(adminClient as any, {
-      recipientUserId: user.id,
-      phone,
-      email: recipientEmail,
-      channel: "email",
-      message: emailText,
-      provider: "sendchamp-email",
-      route: null,
-      status: "pending",
-      providerResponse: debug,
-      sentBy: user.id,
-    });
+  if (shouldSendEmail) {
+    if (!canSendEmail || !recipientEmail) {
+      emailError = !emailIsEnabled
+        ? "SENDCHAMP_EMAIL_ENABLED is not true."
+        : "No valid recipient email address.";
 
-    if (!emailEnabled()) {
-      emailError = "SENDCHAMP_EMAIL_ENABLED is not true.";
-
-      await updateLog(adminClient as any, emailLogId, {
-        status: "skipped",
+      await insertLog(adminClient as any, {
+        recipientUserId: user.id,
+        phone,
+        email: recipientEmail,
+        channel: "email",
+        message: emailText,
+        provider: "sendchamp-email",
+        route: null,
+        status: "failed",
         error: emailError,
         providerResponse: debug,
-      });
-    } else if (!recipientEmail) {
-      emailError = "No valid recipient email address.";
-
-      await updateLog(adminClient as any, emailLogId, {
-        status: "skipped",
-        error: emailError,
-        providerResponse: debug,
+        sentBy: user.id,
       });
     } else {
       try {
@@ -380,17 +387,33 @@ export async function POST(req: NextRequest) {
 
         emailSent = true;
 
-        await updateLog(adminClient as any, emailLogId, {
+        await insertLog(adminClient as any, {
+          recipientUserId: user.id,
+          phone,
+          email: recipientEmail,
+          channel: "email",
+          message: emailText,
+          provider: "sendchamp-email",
+          route: null,
           status: "sent",
           providerResponse: emailResult,
+          sentBy: user.id,
         });
       } catch (e: any) {
         emailError = e?.message || "Email OTP failed.";
 
-        await updateLog(adminClient as any, emailLogId, {
+        await insertLog(adminClient as any, {
+          recipientUserId: user.id,
+          phone,
+          email: recipientEmail,
+          channel: "email",
+          message: emailText,
+          provider: "sendchamp-email",
+          route: null,
           status: "failed",
           error: emailError,
           providerResponse: emailResult,
+          sentBy: user.id,
         });
       }
     }
@@ -413,8 +436,6 @@ export async function POST(req: NextRequest) {
           emailSent,
           smsError,
           emailError,
-          smsLogId,
-          emailLogId,
         },
       }
     );
@@ -438,8 +459,6 @@ export async function POST(req: NextRequest) {
       emailSent,
       smsError,
       emailError,
-      smsLogId,
-      emailLogId,
     },
   });
 }
