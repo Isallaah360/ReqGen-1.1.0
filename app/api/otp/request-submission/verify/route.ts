@@ -21,6 +21,20 @@ function cleanOtp(value: unknown) {
   return String(value || "").replace(/\D/g, "").slice(0, 6);
 }
 
+function normalizeChannel(value: unknown) {
+  const raw = String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/-/g, "_");
+
+  if (raw === "email_sms") return "sms_email";
+  if (raw === "sms_email") return "sms_email";
+  if (raw === "email") return "email";
+  if (raw === "sms") return "sms";
+
+  return raw || null;
+}
+
 export async function POST(req: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -122,6 +136,6 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({
     ok: true,
     message: "OTP verified successfully.",
-    channel: row.channel || null,
+    channel: normalizeChannel(row.channel),
   });
 }
