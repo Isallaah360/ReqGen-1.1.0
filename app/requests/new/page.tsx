@@ -34,7 +34,7 @@ type ProfileMini = {
 };
 
 type RequestClass = "Financial" | "NonFinancial";
-type RequestOtpChannel = "sms" | "email" | "email_sms";
+type RequestOtpChannel = "sms" | "email" | "sms_email";
 
 const MAX_ATTACHMENTS = 50;
 const MAX_FILE_SIZE_MB = 10;
@@ -47,13 +47,16 @@ const requestNotificationsEnabled =
   process.env.NEXT_PUBLIC_REQGEN_NOTIFICATIONS_ENABLED === "true";
 
 function configuredOtpChannel(): RequestOtpChannel {
-  const raw = String(process.env.NEXT_PUBLIC_REQGEN_REQUEST_OTP_CHANNEL || "sms")
+  const raw = String(process.env.NEXT_PUBLIC_REQGEN_REQUEST_OTP_CHANNEL || "sms_email")
     .trim()
-    .toLowerCase();
+    .toLowerCase()
+    .replace(/-/g, "_");
 
+  if (raw === "sms") return "sms";
   if (raw === "email") return "email";
-  if (raw === "email_sms") return "email_sms";
-  return "sms";
+  if (raw === "email_sms" || raw === "sms_email") return "sms_email";
+
+  return "sms_email";
 }
 
 const requestOtpChannel = configuredOtpChannel();
@@ -143,6 +146,13 @@ function hasLikelyPhone(phone: string | null | undefined) {
   return raw.length >= 10;
 }
 
+function otpChannelLabel(channel: RequestOtpChannel | "unknown") {
+  if (channel === "sms") return "SMS OTP";
+  if (channel === "email") return "Email OTP";
+  if (channel === "sms_email") return "SMS/Email OTP";
+  return "OTP";
+}
+
 export default function NewRequestPage() {
   const router = useRouter();
 
@@ -190,22 +200,18 @@ export default function NewRequestPage() {
     "account",
     "accounts",
     "accountofficer",
+    "dinadmin",
   ].includes(rk);
 
   const isFinancial = requestClass === "Financial";
   const isNonFinancial = requestClass === "NonFinancial";
 
-  const otpLabel =
-    requestOtpChannel === "sms"
-      ? "SMS OTP"
-      : requestOtpChannel === "email_sms"
-      ? "SMS/Email OTP"
-      : "Email OTP";
+  const otpLabel = otpChannelLabel(requestOtpChannel);
 
   const otpDestinationLabel =
     requestOtpChannel === "sms"
       ? `your registered phone: ${maskPhone(me?.phone)}`
-      : requestOtpChannel === "email_sms"
+      : requestOtpChannel === "sms_email"
       ? `your registered phone: ${maskPhone(me?.phone)} and email: ${maskEmail(me?.email)}`
       : `your registered email: ${maskEmail(me?.email)}`;
 
@@ -414,7 +420,7 @@ export default function NewRequestPage() {
       }
 
       if (
-        requestOtpChannel === "email_sms" &&
+        requestOtpChannel === "sms_email" &&
         !hasLikelyPhone(me.phone) &&
         !hasValidEmail(me.email)
       ) {
@@ -579,7 +585,7 @@ export default function NewRequestPage() {
 
       if (result.channel === "sms") {
         setMsg("✅ SMS OTP sent to your registered phone number.");
-      } else if (result.channel === "email_sms") {
+      } else if (result.channel === "sms_email") {
         setMsg("✅ OTP sent by SMS and email.");
       } else {
         setMsg("✅ Email OTP sent to your registered email.");
@@ -836,8 +842,8 @@ export default function NewRequestPage() {
               New Request
             </h1>
             <p className="mt-2 text-sm text-slate-600">
-              Staff submit requests without seeing subheads or balances. SMS OTP protection is now
-              active using the approved IET REQGEN Sender ID.
+              Staff can submit Financial and Non-Financial requests securely. OTP protection is
+              active through the configured SMS and Email channels.
             </p>
           </div>
 
@@ -864,6 +870,13 @@ export default function NewRequestPage() {
         {requestOtpEnabled && (
           <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">
             OTP will be sent to {otpDestinationLabel}.
+
+            {requestOtpChannel === "sms_email" && (
+              <span className="block pt-1 text-xs font-semibold text-emerald-700">
+                SMS and Email are both enabled for stronger OTP delivery.
+              </span>
+            )}
+
             {requestOtpChannel === "sms" && me?.email ? (
               <span className="block pt-1 text-xs font-semibold text-emerald-700">
                 Registered email on file: {maskEmail(me.email)}. SMS is the primary OTP channel.
@@ -875,6 +888,20 @@ export default function NewRequestPage() {
                 No valid phone number found. Update Profile before submitting with SMS OTP.
               </span>
             ) : null}
+
+            {requestOtpChannel === "email" && !hasValidEmail(me?.email) ? (
+              <span className="block pt-1 text-xs font-semibold text-red-700">
+                No valid email found. Update Profile before submitting with Email OTP.
+              </span>
+            ) : null}
+
+            {requestOtpChannel === "sms_email" &&
+              !hasLikelyPhone(me?.phone) &&
+              !hasValidEmail(me?.email) && (
+                <span className="block pt-1 text-xs font-semibold text-red-700">
+                  No valid phone number or email found. Update Profile before submitting with OTP.
+                </span>
+              )}
           </div>
         )}
 
@@ -1194,7 +1221,7 @@ export default function NewRequestPage() {
             </div>
 
             <h2 className="mt-1 text-2xl font-extrabold text-slate-900">
-              Enter {otpLabel}
+              Enter {otpChannelLabel(otpChannel)}
             </h2>
 
             <p className="mt-2 text-sm leading-6 text-slate-600">
@@ -1202,7 +1229,7 @@ export default function NewRequestPage() {
               <b>
                 {otpChannel === "sms"
                   ? `your registered phone ${maskPhone(me?.phone)}`
-                  : otpChannel === "email_sms"
+                  : otpChannel === "sms_email"
                   ? `your registered phone ${maskPhone(me?.phone)} and email ${maskEmail(me?.email)}`
                   : `your registered email ${maskEmail(me?.email)}`}
               </b>
@@ -1215,9 +1242,15 @@ export default function NewRequestPage() {
               </div>
             )}
 
-            {otpChannel === "email_sms" && (
+            {otpChannel === "sms_email" && (
               <div className="mt-4 rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-900">
-                OTP was sent by SMS and email.
+                OTP was sent by SMS and email for stronger delivery.
+              </div>
+            )}
+
+            {otpChannel === "email" && (
+              <div className="mt-4 rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-900">
+                Email OTP was sent to your registered email address.
               </div>
             )}
 
