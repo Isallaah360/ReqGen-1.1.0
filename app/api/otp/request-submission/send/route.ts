@@ -14,8 +14,8 @@ export const runtime = "nodejs";
 
 type OtpChannel = "sms" | "email" | "sms_email";
 
-function jsonError(message: string, status = 400) {
-  return NextResponse.json({ ok: false, error: message }, { status });
+function jsonError(message: string, status = 400, extra?: Record<string, unknown>) {
+  return NextResponse.json({ ok: false, error: message, ...(extra || {}) }, { status });
 }
 
 function hashOtp(code: string) {
@@ -47,12 +47,6 @@ function requestedOtpChannel(): OtpChannel {
 
   if (raw === "sms") return "sms";
   if (raw === "email") return "email";
-
-  /*
-    Accept both names for compatibility:
-    - sms_email
-    - email_sms
-  */
   if (raw === "sms_email" || raw === "email_sms") return "sms_email";
 
   return "sms_email";
@@ -72,18 +66,12 @@ async function insertSmsLog(
     message: string;
     provider: string;
     route?: string | null;
-    status: "sent" | "failed";
+    status: "sent" | "failed" | "skipped";
     error?: string | null;
     providerResponse?: unknown;
     sentBy: string;
   }
 ) {
-  /*
-    Cast is intentional:
-    Some generated Supabase table typings do not include sms_logs yet,
-    so TypeScript treats insert as never during Vercel build.
-    Runtime table exists in Supabase, so we keep logging safely here.
-  */
   await adminClient.from("sms_logs").insert({
     recipient_user_id: input.recipientUserId,
     phone: input.phone,
@@ -138,7 +126,6 @@ export async function POST(req: NextRequest) {
   }
 
   const channel = requestedOtpChannel();
-
   const recipientName = safeName(profile.full_name);
   const recipientEmail = normalizeEmail(profile.email || user.email);
   const phone = normalizeNigerianPhone(profile.phone);
@@ -146,21 +133,37 @@ export async function POST(req: NextRequest) {
   const canSendSms = smsEnabled() && !!phone;
   const canSendEmail = emailEnabled() && !!recipientEmail;
 
+  const debug = {
+    configuredChannel: channel,
+    smsEnabled: smsEnabled(),
+    emailEnabled: emailEnabled(),
+    hasValidPhone: !!phone,
+    hasValidEmail: !!recipientEmail,
+    canSendSms,
+    canSendEmail,
+  };
+
   if (channel === "sms" && !canSendSms) {
     return jsonError(
-      "SMS OTP is enabled, but your registered phone number is missing or invalid. Update Profile first."
+      "SMS OTP is enabled, but your registered phone number is missing or invalid. Update Profile first.",
+      400,
+      { debug }
     );
   }
 
   if (channel === "email" && !canSendEmail) {
     return jsonError(
-      "Email OTP is enabled, but email sending is disabled or your registered email is invalid."
+      "Email OTP is enabled, but email sending is disabled or your registered email is invalid.",
+      400,
+      { debug }
     );
   }
 
   if (channel === "sms_email" && !canSendSms && !canSendEmail) {
     return jsonError(
-      "No valid OTP delivery channel is available. Update your phone/email or contact Admin."
+      "No valid OTP delivery channel is available. Update your phone/email or contact Admin.",
+      400,
+      { debug }
     );
   }
 
@@ -177,7 +180,9 @@ export async function POST(req: NextRequest) {
     const secondsAgo = (Date.now() - new Date(recent.created_at).getTime()) / 1000;
 
     if (secondsAgo < 60) {
-      return jsonError("Please wait at least 60 seconds before requesting another OTP.");
+      return jsonError("Please wait at least 60 seconds before requesting another OTP.", 400, {
+        debug,
+      });
     }
   }
 
@@ -208,7 +213,7 @@ export async function POST(req: NextRequest) {
     .single();
 
   if (insertErr) {
-    return jsonError("Could not create OTP: " + insertErr.message, 500);
+    return jsonError("Could not create OTP: " + insertErr.message, 500, { debug });
   }
 
   const smsMessage = buildOtpSmsMessage(otp);
@@ -283,7 +288,39 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  if ((channel === "email" || channel === "sms_email") && canSendEmail && recipientEmail) {
+  if ((channel === "email" || channel === "sms_email") && !emailEnabled()) {
+    emailError = "SENDCHAMP_EMAIL_ENABLED is not true.";
+
+    await insertSmsLog(adminClient as any, {
+      recipientUserId: user.id,
+      phone,
+      email: recipientEmail,
+      channel: "email",
+      message: emailText,
+      provider: "sendchamp-email",
+      route: null,
+      status: "skipped",
+      error: emailError,
+      providerResponse: debug,
+      sentBy: user.id,
+    });
+  } else if ((channel === "email" || channel === "sms_email") && !recipientEmail) {
+    emailError = "No valid recipient email address.";
+
+    await insertSmsLog(adminClient as any, {
+      recipientUserId: user.id,
+      phone,
+      email: null,
+      channel: "email",
+      message: emailText,
+      provider: "sendchamp-email",
+      route: null,
+      status: "skipped",
+      error: emailError,
+      providerResponse: debug,
+      sentBy: user.id,
+    });
+  } else if ((channel === "email" || channel === "sms_email") && canSendEmail && recipientEmail) {
     try {
       emailResult = await sendSendchampEmail({
         to: {
@@ -337,7 +374,16 @@ export async function POST(req: NextRequest) {
 
     return jsonError(
       smsError || emailError || "OTP could not be delivered through the selected channel.",
-      500
+      500,
+      {
+        debug: {
+          ...debug,
+          smsSent,
+          emailSent,
+          smsError,
+          emailError,
+        },
+      }
     );
   }
 
@@ -353,5 +399,12 @@ export async function POST(req: NextRequest) {
     smsWarning: !smsSent && smsError ? smsError : null,
     emailWarning: !emailSent && emailError ? emailError : null,
     expiresInMinutes: 5,
+    debug: {
+      ...debug,
+      smsSent,
+      emailSent,
+      smsError,
+      emailError,
+    },
   });
 }
