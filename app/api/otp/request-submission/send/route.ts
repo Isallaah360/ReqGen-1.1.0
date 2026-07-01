@@ -13,6 +13,8 @@ import {
 export const runtime = "nodejs";
 
 type OtpChannel = "sms" | "email" | "sms_email";
+type LogChannel = "sms" | "email";
+type LogStatus = "pending" | "sent" | "failed" | "skipped";
 
 function jsonError(message: string, status = 400, extra?: Record<string, unknown>) {
   return NextResponse.json({ ok: false, error: message, ...(extra || {}) }, { status });
@@ -56,35 +58,71 @@ function safeName(value: unknown) {
   return String(value || "").trim() || "Staff";
 }
 
-async function insertSmsLog(
+async function createLog(
   adminClient: any,
   input: {
     recipientUserId: string;
     phone: string | null;
     email: string | null;
-    channel: "sms" | "email";
+    channel: LogChannel;
     message: string;
     provider: string;
     route?: string | null;
-    status: "sent" | "failed" | "skipped";
+    status: LogStatus;
     error?: string | null;
     providerResponse?: unknown;
     sentBy: string;
   }
 ) {
-  await adminClient.from("sms_logs").insert({
-    recipient_user_id: input.recipientUserId,
-    phone: input.phone,
-    email: input.email,
-    channel: input.channel,
-    message: input.message,
-    provider: input.provider,
-    route: input.route || null,
-    status: input.status,
-    error: input.error || null,
-    provider_response: input.providerResponse || null,
-    sent_by: input.sentBy,
-  });
+  const { data, error } = await adminClient
+    .from("sms_logs")
+    .insert({
+      recipient_user_id: input.recipientUserId,
+      phone: input.phone,
+      email: input.email,
+      channel: input.channel,
+      message: input.message,
+      provider: input.provider,
+      route: input.route || null,
+      status: input.status,
+      error: input.error || null,
+      provider_response: input.providerResponse || null,
+      sent_by: input.sentBy,
+    })
+    .select("id")
+    .single();
+
+  if (error) {
+    console.error("OTP log insert failed:", error.message);
+    return null;
+  }
+
+  return data?.id || null;
+}
+
+async function updateLog(
+  adminClient: any,
+  id: string | null,
+  patch: {
+    status: LogStatus;
+    error?: string | null;
+    providerResponse?: unknown;
+  }
+) {
+  if (!id) return;
+
+  const { error } = await adminClient
+    .from("sms_logs")
+    .update({
+      status: patch.status,
+      error: patch.error || null,
+      provider_response: patch.providerResponse || null,
+    })
+    .eq("id", id);
+
+  if (error) {
+    console.error("OTP log update failed:", error.message);
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -247,51 +285,59 @@ export async function POST(req: NextRequest) {
   let smsError: string | null = null;
   let emailError: string | null = null;
 
-  if ((channel === "sms" || channel === "sms_email") && canSendSms && phone) {
-    try {
-      smsResult = await sendSendchampSms({
-        to: phone,
-        message: smsMessage,
-        route: (process.env.SENDCHAMP_ROUTE as any) || "dnd",
-      });
+  let smsLogId: string | null = null;
+  let emailLogId: string | null = null;
 
-      smsSent = true;
+  if (channel === "sms" || channel === "sms_email") {
+    smsLogId = await createLog(adminClient as any, {
+      recipientUserId: user.id,
+      phone,
+      email: recipientEmail,
+      channel: "sms",
+      message: smsMessage,
+      provider: "sendchamp-sms",
+      route: process.env.SENDCHAMP_ROUTE || "dnd",
+      status: "pending",
+      providerResponse: debug,
+      sentBy: user.id,
+    });
 
-      await insertSmsLog(adminClient as any, {
-        recipientUserId: user.id,
-        phone,
-        email: recipientEmail,
-        channel: "sms",
-        message: smsMessage,
-        provider: "sendchamp-sms",
-        route: process.env.SENDCHAMP_ROUTE || "dnd",
-        status: "sent",
-        providerResponse: smsResult,
-        sentBy: user.id,
-      });
-    } catch (e: any) {
-      smsError = e?.message || "SMS OTP failed.";
+    if (!canSendSms || !phone) {
+      smsError = "SMS channel skipped because phone number is invalid or SMS is disabled.";
 
-      await insertSmsLog(adminClient as any, {
-        recipientUserId: user.id,
-        phone,
-        email: recipientEmail,
-        channel: "sms",
-        message: smsMessage,
-        provider: "sendchamp-sms",
-        route: process.env.SENDCHAMP_ROUTE || "dnd",
-        status: "failed",
+      await updateLog(adminClient as any, smsLogId, {
+        status: "skipped",
         error: smsError,
-        providerResponse: smsResult,
-        sentBy: user.id,
+        providerResponse: debug,
       });
+    } else {
+      try {
+        smsResult = await sendSendchampSms({
+          to: phone,
+          message: smsMessage,
+          route: (process.env.SENDCHAMP_ROUTE as any) || "dnd",
+        });
+
+        smsSent = true;
+
+        await updateLog(adminClient as any, smsLogId, {
+          status: "sent",
+          providerResponse: smsResult,
+        });
+      } catch (e: any) {
+        smsError = e?.message || "SMS OTP failed.";
+
+        await updateLog(adminClient as any, smsLogId, {
+          status: "failed",
+          error: smsError,
+          providerResponse: smsResult,
+        });
+      }
     }
   }
 
-  if ((channel === "email" || channel === "sms_email") && !emailEnabled()) {
-    emailError = "SENDCHAMP_EMAIL_ENABLED is not true.";
-
-    await insertSmsLog(adminClient as any, {
+  if (channel === "email" || channel === "sms_email") {
+    emailLogId = await createLog(adminClient as any, {
       recipientUserId: user.id,
       phone,
       email: recipientEmail,
@@ -299,69 +345,54 @@ export async function POST(req: NextRequest) {
       message: emailText,
       provider: "sendchamp-email",
       route: null,
-      status: "skipped",
-      error: emailError,
+      status: "pending",
       providerResponse: debug,
       sentBy: user.id,
     });
-  } else if ((channel === "email" || channel === "sms_email") && !recipientEmail) {
-    emailError = "No valid recipient email address.";
 
-    await insertSmsLog(adminClient as any, {
-      recipientUserId: user.id,
-      phone,
-      email: null,
-      channel: "email",
-      message: emailText,
-      provider: "sendchamp-email",
-      route: null,
-      status: "skipped",
-      error: emailError,
-      providerResponse: debug,
-      sentBy: user.id,
-    });
-  } else if ((channel === "email" || channel === "sms_email") && canSendEmail && recipientEmail) {
-    try {
-      emailResult = await sendSendchampEmail({
-        to: {
-          email: recipientEmail,
-          name: recipientName,
-        },
-        subject: emailSubject,
-        text: emailText,
-        html: emailHtml,
-      });
+    if (!emailEnabled()) {
+      emailError = "SENDCHAMP_EMAIL_ENABLED is not true.";
 
-      emailSent = true;
-
-      await insertSmsLog(adminClient as any, {
-        recipientUserId: user.id,
-        phone,
-        email: recipientEmail,
-        channel: "email",
-        message: emailText,
-        provider: "sendchamp-email",
-        route: null,
-        status: "sent",
-        providerResponse: emailResult,
-        sentBy: user.id,
-      });
-    } catch (e: any) {
-      emailError = e?.message || "Email OTP failed.";
-
-      await insertSmsLog(adminClient as any, {
-        recipientUserId: user.id,
-        phone,
-        email: recipientEmail,
-        channel: "email",
-        message: emailText,
-        provider: "sendchamp-email",
-        route: null,
-        status: "failed",
+      await updateLog(adminClient as any, emailLogId, {
+        status: "skipped",
         error: emailError,
-        providerResponse: emailResult,
-        sentBy: user.id,
+        providerResponse: debug,
       });
+    } else if (!recipientEmail) {
+      emailError = "No valid recipient email address.";
+
+      await updateLog(adminClient as any, emailLogId, {
+        status: "skipped",
+        error: emailError,
+        providerResponse: debug,
+      });
+    } else {
+      try {
+        emailResult = await sendSendchampEmail({
+          to: {
+            email: recipientEmail,
+            name: recipientName,
+          },
+          subject: emailSubject,
+          text: emailText,
+          html: emailHtml,
+        });
+
+        emailSent = true;
+
+        await updateLog(adminClient as any, emailLogId, {
+          status: "sent",
+          providerResponse: emailResult,
+        });
+      } catch (e: any) {
+        emailError = e?.message || "Email OTP failed.";
+
+        await updateLog(adminClient as any, emailLogId, {
+          status: "failed",
+          error: emailError,
+          providerResponse: emailResult,
+        });
+      }
     }
   }
 
@@ -382,6 +413,8 @@ export async function POST(req: NextRequest) {
           emailSent,
           smsError,
           emailError,
+          smsLogId,
+          emailLogId,
         },
       }
     );
@@ -405,6 +438,8 @@ export async function POST(req: NextRequest) {
       emailSent,
       smsError,
       emailError,
+      smsLogId,
+      emailLogId,
     },
   });
 }

@@ -21,14 +21,6 @@ type SendEmailInput = {
   fromName?: string;
 };
 
-type SendOtpInput = {
-  code: string;
-  phone?: string | null;
-  email?: string | null;
-  name?: string | null;
-  appName?: string;
-};
-
 type SendApprovalNotificationInput = {
   phone?: string | null;
   email?: string | null;
@@ -100,6 +92,7 @@ function plainTextToHtml(text: string) {
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;");
+
       return escaped.trim() ? escaped : "&nbsp;";
     })
     .join("<br />");
@@ -257,7 +250,7 @@ export async function sendSendchampEmail(input: SendEmailInput) {
     subject,
     to: recipients,
     message_body: {
-      type: "html",
+      type: "text/html",
       value: html || plainTextToHtml(text),
     },
   };
@@ -265,10 +258,6 @@ export async function sendSendchampEmail(input: SendEmailInput) {
   if (fromEmail) {
     payload.from = {
       email: fromEmail,
-      name: fromName,
-    };
-  } else if (fromName) {
-    payload.from = {
       name: fromName,
     };
   }
@@ -289,6 +278,7 @@ export async function sendSendchampEmail(input: SendEmailInput) {
     throw new Error(
       (result as any)?.message ||
         (result as any)?.error ||
+        (result as any)?.raw ||
         `SendChamp Email failed with status ${response.status}`
     );
   }
@@ -325,7 +315,10 @@ export function buildApprovalSmsMessage(input: SendApprovalNotificationInput) {
     return "IET ReqGen: DG has a pending approval awaiting attention. Please remind DG to review pending ReqGen approvals.";
   }
 
-  const appUrl = input.appUrl || process.env.NEXT_PUBLIC_APP_URL || "https://req-gen-1-1-0.vercel.app";
+  const appUrl =
+    input.appUrl ||
+    process.env.NEXT_PUBLIC_APP_URL ||
+    "https://req-gen-1-1-0.vercel.app";
 
   return `IET ReqGen: You have a pending approval.
 
@@ -337,7 +330,11 @@ Login: ${appUrl}`;
 
 export function buildApprovalEmailText(input: SendApprovalNotificationInput) {
   const name = String(input.name || "").trim() || "Staff";
-  const appUrl = input.appUrl || process.env.NEXT_PUBLIC_APP_URL || "https://req-gen-1-1-0.vercel.app";
+
+  const appUrl =
+    input.appUrl ||
+    process.env.NEXT_PUBLIC_APP_URL ||
+    "https://req-gen-1-1-0.vercel.app";
 
   if (input.registryReminderOnly) {
     return `Dear ${name},
@@ -362,90 +359,6 @@ ${appUrl}
 
 Thank you.
 Islamic Education Trust`;
-}
-
-export async function sendOtpBySms(input: SendOtpInput) {
-  const phone = normalizeNigerianPhone(input.phone);
-
-  if (!phone) {
-    return {
-      channel: "sms",
-      ok: false,
-      skipped: true,
-      reason: "No valid phone number",
-    } satisfies ChannelResult;
-  }
-
-  try {
-    const result = await sendSendchampSms({
-      to: phone,
-      message: buildOtpSmsMessage(input.code),
-    });
-
-    return {
-      channel: "sms",
-      ok: true,
-      result,
-    } satisfies ChannelResult;
-  } catch (e: any) {
-    return {
-      channel: "sms",
-      ok: false,
-      error: e?.message || "SMS OTP failed",
-    } satisfies ChannelResult;
-  }
-}
-
-export async function sendOtpByEmail(input: SendOtpInput) {
-  const email = normalizeEmail(input.email);
-
-  if (!email) {
-    return {
-      channel: "email",
-      ok: false,
-      skipped: true,
-      reason: "No valid email address",
-    } satisfies ChannelResult;
-  }
-
-  try {
-    const text = buildOtpEmailText({
-      code: input.code,
-      name: input.name,
-      appName: input.appName,
-    });
-
-    const result = await sendSendchampEmail({
-      to: {
-        email,
-        name: input.name || undefined,
-      },
-      subject: "IET ReqGen Verification Code",
-      text,
-    });
-
-    return {
-      channel: "email",
-      ok: true,
-      result,
-    } satisfies ChannelResult;
-  } catch (e: any) {
-    return {
-      channel: "email",
-      ok: false,
-      error: e?.message || "Email OTP failed",
-    } satisfies ChannelResult;
-  }
-}
-
-export async function sendOtpBySmsAndEmail(input: SendOtpInput) {
-  const [sms, email] = await Promise.all([sendOtpBySms(input), sendOtpByEmail(input)]);
-
-  return {
-    ok: sms.ok || email.ok,
-    sms,
-    email,
-  };
 }
 
 export async function sendApprovalNotificationBySms(input: SendApprovalNotificationInput) {
