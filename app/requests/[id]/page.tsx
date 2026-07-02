@@ -5,6 +5,8 @@ import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { RequestProgress } from "../../components/RequestProgress";
 
+type PersonalCategory = "Fund" | "Leave" | "Contract Renewal" | "Resignation" | "Others" | "NonFund" | null;
+
 type Req = {
   id: string;
   request_no: string;
@@ -18,7 +20,7 @@ type Req = {
   dept_id: string;
   subhead_id: string | null;
   request_type: "Personal" | "Official";
-  personal_category: "Fund" | "NonFund" | null;
+  personal_category: PersonalCategory;
   funds_state: string | null;
   created_at: string;
 
@@ -111,13 +113,21 @@ function stageKey(stage: string | null | undefined) {
   return (stage || "").trim().toUpperCase().replace(/\s+/g, "");
 }
 
+function categoryKey(category: string | null | undefined) {
+  return (category || "").trim().toUpperCase().replace(/\s+/g, "");
+}
+
 function officerLabel(o: OfficerMini) {
   return o.full_name?.trim() || o.email?.trim() || o.id;
 }
 
 function requestTypeLabel(req: Req) {
   if (req.request_type === "Official") return "Official";
-  return `Personal • ${req.personal_category || "—"}`;
+
+  const category = req.personal_category || "—";
+  if (category === "NonFund") return "Personal • Non-Fund";
+
+  return `Personal • ${category}`;
 }
 
 function fileSizeLabel(bytes: number | null | undefined) {
@@ -158,6 +168,36 @@ function attachmentStatusLabel(status: string | null | undefined) {
   if (s === "rejected") return "Rejected ❌";
 
   return "Pending General Review";
+}
+
+function stageHelpText(req: Req | null) {
+  if (!req) return "";
+
+  const stage = stageKey(req.current_stage);
+  const reqType = String(req.request_type || "").toUpperCase();
+  const cat = categoryKey(req.personal_category);
+
+  if (reqType === "OFFICIAL") {
+    if (stage === "DIRECTOR") return "Official request is awaiting Director review.";
+    if (stage === "DINADMIN") return "Official DIN request is awaiting DIN Admin review before HOD.";
+    if (stage === "HOD") return "Official request is awaiting HOD review. Subhead must be assigned before it can move to DG.";
+    if (stage === "DG") return "Official request is awaiting DG approval and AccountOfficer designation.";
+    if (stage === "ACCOUNT") return "Official request is awaiting AccountOfficer treatment/payment.";
+    if (stage === "COMPLETED") return "Official request is completed.";
+  }
+
+  if (reqType === "PERSONAL") {
+    if (stage === "HR") return "Personal request is awaiting HR review.";
+    if (stage === "DG") {
+      if (cat === "FUND") return "Personal Fund request is awaiting DG approval and AccountOfficer designation.";
+      return "Personal request is awaiting DG approval before HR filing.";
+    }
+    if (stage === "ACCOUNT") return "Personal Fund request is awaiting AccountOfficer payment before HR filing.";
+    if (stage === "HRFILING") return "Personal request is awaiting final HR filing.";
+    if (stage === "COMPLETED") return "Personal request is completed and filed.";
+  }
+
+  return "Request is awaiting the assigned officer.";
 }
 
 export default function RequestDetailsPage() {
@@ -205,21 +245,49 @@ export default function RequestDetailsPage() {
     return !!req && !!me && req.created_by === me.id;
   }, [req, me]);
 
+  const isOfficial = useMemo(() => {
+    return (req?.request_type || "").trim().toUpperCase() === "OFFICIAL";
+  }, [req?.request_type]);
+
+  const isPersonal = useMemo(() => {
+    return (req?.request_type || "").trim().toUpperCase() === "PERSONAL";
+  }, [req?.request_type]);
+
+  const isPersonalFund = useMemo(() => {
+    return isPersonal && categoryKey(req?.personal_category) === "FUND";
+  }, [isPersonal, req?.personal_category]);
+
+  const isPersonalNonFund = useMemo(() => {
+    return isPersonal && !isPersonalFund;
+  }, [isPersonal, isPersonalFund]);
+
+  const isHRFiling = useMemo(() => {
+    return stageKey(req?.current_stage) === "HRFILING";
+  }, [req?.current_stage]);
+
+  const isAccountStage = useMemo(() => {
+    return stageKey(req?.current_stage) === "ACCOUNT";
+  }, [req?.current_stage]);
+
+  const isDgStage = useMemo(() => {
+    return stageKey(req?.current_stage) === "DG";
+  }, [req?.current_stage]);
+
   const requesterCanEditDeleteEarly = useMemo(() => {
     if (!req || !me) return false;
 
-    return req.created_by === me.id && ["DIRECTOR", "HOD"].includes(stg);
+    return req.created_by === me.id && ["DIRECTOR", "DINADMIN", "HOD", "HR"].includes(stg);
   }, [req, me, stg]);
 
-  const assignedDirectorHodHrCanEdit = useMemo(() => {
+  const assignedWorkflowOfficerCanEdit = useMemo(() => {
     if (!req || !me) return false;
 
-    return ["director", "hod", "hr"].includes(rk) && req.current_owner === me.id;
+    return ["director", "dinadmin", "hod", "hr"].includes(rk) && req.current_owner === me.id;
   }, [req, me, rk]);
 
   const canEditRequest = useMemo(() => {
-    return requesterCanEditDeleteEarly || assignedDirectorHodHrCanEdit;
-  }, [requesterCanEditDeleteEarly, assignedDirectorHodHrCanEdit]);
+    return requesterCanEditDeleteEarly || assignedWorkflowOfficerCanEdit;
+  }, [requesterCanEditDeleteEarly, assignedWorkflowOfficerCanEdit]);
 
   const canDeleteRequest = useMemo(() => {
     return requesterCanEditDeleteEarly;
@@ -239,9 +307,9 @@ export default function RequestDetailsPage() {
       "admin",
       "auditor",
       "director",
+      "dinadmin",
       "hod",
       "hr",
-      "registry",
       "dg",
       "account",
       "accounts",
@@ -249,37 +317,14 @@ export default function RequestDetailsPage() {
     ].includes(rk);
   }, [req, me, rk]);
 
-  const isOfficial = useMemo(() => {
-    return (req?.request_type || "").trim().toUpperCase() === "OFFICIAL";
-  }, [req?.request_type]);
-
-  const isPersonalFund = useMemo(() => {
-    return (
-      (req?.request_type || "").trim().toUpperCase() === "PERSONAL" &&
-      (req?.personal_category || "").trim().toUpperCase() === "FUND"
-    );
-  }, [req?.request_type, req?.personal_category]);
-
-  const isPersonalNonFund = useMemo(() => {
-    return (
-      (req?.request_type || "").trim().toUpperCase() === "PERSONAL" &&
-      (req?.personal_category || "").trim().toUpperCase() === "NONFUND"
-    );
-  }, [req?.request_type, req?.personal_category]);
-
-  const isHRFiling = useMemo(() => {
-    const stage = (req?.current_stage || "").trim().toUpperCase().replace(/\s+/g, "");
-    return stage === "HRFILING";
-  }, [req?.current_stage]);
-
   const needsSubheadAssignment = useMemo(() => {
     if (!req) return false;
 
     return (
       isOfficial &&
       !req.subhead_id &&
-      ["DIRECTOR", "HOD"].includes(stg) &&
-      !["Approved", "Rejected", "Cancelled", "Deleted", "Paid", "Closed"].includes(
+      ["HOD"].includes(stg) &&
+      !["Approved", "Rejected", "Cancelled", "Deleted", "Paid", "Closed", "Completed"].includes(
         req.status || ""
       )
     );
@@ -288,7 +333,7 @@ export default function RequestDetailsPage() {
   const canAssignSubhead = useMemo(() => {
     if (!req || !me) return false;
 
-    const roleAllowed = ["director", "hod", "admin", "auditor"].includes(rk);
+    const roleAllowed = ["hod", "admin", "auditor"].includes(rk);
     const isAssignedOfficer = req.current_owner === me.id;
     const isAdminAuditor = ["admin", "auditor"].includes(rk);
 
@@ -311,10 +356,8 @@ export default function RequestDetailsPage() {
   const needsAccountOfficerSelection = useMemo(() => {
     if (!req || !canAct) return false;
 
-    const isRegistry = (req.current_stage || "").trim().toUpperCase() === "REGISTRY";
-
-    return isRegistry && (isOfficial || isPersonalFund);
-  }, [req, canAct, isOfficial, isPersonalFund]);
+    return isDgStage && (isOfficial || isPersonalFund);
+  }, [req, canAct, isDgStage, isOfficial, isPersonalFund]);
 
   const hasAttachments = attachments.length > 0;
 
@@ -616,6 +659,29 @@ export default function RequestDetailsPage() {
     router.push(`/requests/${req.id}/edit`);
   }
 
+  async function sendRequestApprovalNotification(requestId: string) {
+    if (process.env.NEXT_PUBLIC_REQGEN_NOTIFICATIONS_ENABLED !== "true") return;
+
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session?.access_token) return;
+
+      await fetch("/api/notifications/sms/request-approval", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ requestId }),
+      });
+    } catch (notifyErr) {
+      console.warn("Approval notification failed:", notifyErr);
+    }
+  }
+
   async function assignSubheadAndReserve() {
     if (!req || !me) return;
 
@@ -664,9 +730,7 @@ export default function RequestDetailsPage() {
       if (error) throw new Error(error.message);
 
       setMsg(
-        `✅ ${
-          (data as any)?.message || "Subhead assigned and funds reserved successfully."
-        }`
+        `✅ ${(data as any)?.message || "Subhead assigned and funds reserved successfully."}`
       );
 
       await reload();
@@ -742,7 +806,7 @@ export default function RequestDetailsPage() {
 
     if (action === "Delete") {
       if (!canDeleteRequest) {
-        setMsg("❌ Only the requester can delete while the request is still at early Director/HOD stage.");
+        setMsg("❌ Only the requester can delete while the request is still at an allowed early stage.");
         return false;
       }
 
@@ -761,7 +825,7 @@ export default function RequestDetailsPage() {
 
     if (action === "Approve" && needsSubheadAssignment) {
       setMsg(
-        "❌ This financial request has no subhead yet. Assign a subhead and reserve funds before approving."
+        "❌ This official request has no subhead yet. Assign a subhead and reserve funds before approving."
       );
       return false;
     }
@@ -779,7 +843,7 @@ export default function RequestDetailsPage() {
     }
 
     if (action === "Approve" && needsAccountOfficerSelection && !selectedOfficerId) {
-      setMsg("❌ Registry must select an Account Officer before sending this request to DG.");
+      setMsg("❌ DG must select an AccountOfficer before approving this request.");
       return false;
     }
 
@@ -885,6 +949,8 @@ export default function RequestDetailsPage() {
         const nextStage = (data as any)?.next_stage;
         const nextStatus = (data as any)?.next_status;
 
+        await sendRequestApprovalNotification(req.id);
+
         if (nextStage === "Completed") {
           setMsg(
             nextStatus === "Paid"
@@ -893,8 +959,10 @@ export default function RequestDetailsPage() {
           );
         } else if (isHRFiling) {
           setMsg("✅ HR filing completed successfully after your attachment checks and 2FA.");
-        } else if (needsAccountOfficerSelection && nextStage === "DG") {
-          setMsg("✅ Account Officer selected. Request sent to DG after your attachment checks and 2FA.");
+        } else if (isAccountStage && nextStage === "HR Filing") {
+          setMsg("✅ Payment treated. Request sent back to HR for final filing.");
+        } else if (needsAccountOfficerSelection && nextStage === "Account") {
+          setMsg("✅ AccountOfficer selected. Request sent for treatment/payment.");
         } else {
           setMsg(`✅ Approved after your attachment checks and 2FA. Sent to ${nextStage}.`);
         }
@@ -957,9 +1025,10 @@ export default function RequestDetailsPage() {
   const approveButtonText = useMemo(() => {
     if (saving || verifyingCode) return "Processing...";
     if (needsSubheadAssignment) return "Assign Subhead First";
-    if (needsAccountOfficerSelection) return "Send to DG";
-    if (isHRFiling) return "Complete Filing";
-    if ((req?.current_stage || "").toUpperCase() === "ACCOUNT") return "Treat / Pay";
+    if (needsAccountOfficerSelection) return "Approve & Send to AccountOfficer";
+    if (isHRFiling) return "Complete HR Filing";
+    if (isAccountStage && isPersonalFund) return "Treat / Pay & Send to HR Filing";
+    if (isAccountStage) return "Treat / Pay";
     return "Approve";
   }, [
     saving,
@@ -967,7 +1036,8 @@ export default function RequestDetailsPage() {
     needsSubheadAssignment,
     needsAccountOfficerSelection,
     isHRFiling,
-    req?.current_stage,
+    isAccountStage,
+    isPersonalFund,
   ]);
 
   if (loading) {
@@ -989,6 +1059,11 @@ export default function RequestDetailsPage() {
             <p className="mt-2 text-sm text-slate-600">
               Current stage: <b className="text-slate-900">{req?.current_stage || "—"}</b>
             </p>
+            {req && (
+              <p className="mt-1 text-xs font-semibold text-slate-500">
+                {stageHelpText(req)}
+              </p>
+            )}
           </div>
 
           <div className="flex gap-2">
@@ -1013,10 +1088,24 @@ export default function RequestDetailsPage() {
             : "⚠️ 2FA is required. Fresh 2FA code is required before approve, reject, or delete."}
         </div>
 
+        {isOfficial && stg === "DINADMIN" && (
+          <div className="mt-4 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-900">
+            DIN Official routing is active. This request must pass through DIN Admin before HOD.
+          </div>
+        )}
+
+        {isPersonal && (
+          <div className="mt-4 rounded-2xl border border-purple-200 bg-purple-50 px-4 py-3 text-sm font-semibold text-purple-900">
+            Personal request workflow is active. Personal requests do not pass through DIN Admin.
+            {isPersonalFund
+              ? " This Personal Fund request moves HR → DG → AccountOfficer → HR Filing."
+              : " This request moves HR → DG → HR Filing."}
+          </div>
+        )}
+
         {needsSubheadAssignment && (
           <div className="mt-4 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-900">
-            ⚠️ This financial request has no subhead yet. Director/HOD must assign a subhead and
-            reserve funds before approval can continue.
+            ⚠️ This Official request has no subhead yet. HOD must assign a subhead and reserve funds before approval can continue.
           </div>
         )}
 
@@ -1102,7 +1191,7 @@ export default function RequestDetailsPage() {
               {req.assigned_account_officer_name && (
                 <div className="mt-4">
                   <Info
-                    label="Selected Account Officer"
+                    label="Selected AccountOfficer"
                     value={req.assigned_account_officer_name}
                   />
                 </div>
@@ -1151,11 +1240,10 @@ export default function RequestDetailsPage() {
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <h2 className="text-lg font-extrabold text-slate-900">
-                      Director/HOD Subhead Assignment
+                      HOD Subhead Assignment
                     </h2>
                     <p className="mt-1 text-sm text-slate-600">
-                      This request is financial and has no budget line yet. Select the correct
-                      subhead and reserve funds before approving.
+                      This Official request has no budget line yet. Select the correct subhead and reserve funds before approving.
                     </p>
                   </div>
 
@@ -1166,8 +1254,7 @@ export default function RequestDetailsPage() {
 
                 {!canAssignSubhead ? (
                   <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
-                    View only. Only the assigned Director/HOD, Admin, or Auditor can assign the
-                    subhead at this stage.
+                    View only. Only the assigned HOD, Admin, or Auditor can assign the subhead at this stage.
                   </div>
                 ) : (
                   <>
@@ -1385,27 +1472,35 @@ export default function RequestDetailsPage() {
                   {needsAccountOfficerSelection && (
                     <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50 p-4">
                       <label className="text-sm font-semibold text-slate-800">
-                        Registry: Select Account Officer before sending to DG
+                        DG: Select AccountOfficer
                       </label>
                       <select
                         value={selectedOfficerId}
                         onChange={(e) => setSelectedOfficerId(e.target.value)}
                         className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
                       >
-                        <option value="">-- Select Account Officer --</option>
+                        <option value="">-- Select AccountOfficer --</option>
                         {accountOfficers.map((o) => (
                           <option key={o.id} value={o.id}>
                             {officerLabel(o)}
                           </option>
                         ))}
                       </select>
+                      <p className="mt-2 text-xs font-semibold text-blue-900">
+                        Required for Official requests and Personal Fund requests before moving to AccountOfficer.
+                      </p>
                     </div>
                   )}
 
                   {isHRFiling && (
                     <div className="mt-4 rounded-xl border border-purple-200 bg-purple-50 p-4 text-sm text-purple-900">
-                      HR Filing stage: review the approved Personal NonFund request and complete it
-                      for filing.
+                      HR Filing stage: review the treated/approved Personal request and complete it for filing.
+                    </div>
+                  )}
+
+                  {isAccountStage && isPersonalFund && (
+                    <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
+                      Personal Fund payment stage: after treatment/payment, the request will return to HR for final filing.
                     </div>
                   )}
 
