@@ -1,11 +1,146 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { normalizeNigerianPhone, sendSendchampSms } from "@/lib/sendchamp";
+import {
+  normalizeEmail,
+  normalizeNigerianPhone,
+  sendSendchampEmail,
+  sendSendchampSms,
+} from "@/lib/sendchamp";
 
 export const runtime = "nodejs";
 
+type RequestRow = {
+  id: string;
+  request_no: string | null;
+  title: string | null;
+  current_owner: string | null;
+  created_by: string | null;
+  current_stage: string | null;
+};
+
+type RecipientRow = {
+  id: string;
+  full_name: string | null;
+  email: string | null;
+  phone: string | null;
+};
+
+type LogChannel = "sms" | "email";
+type LogStatus = "sent" | "failed";
+
 function jsonError(message: string, status = 400) {
   return NextResponse.json({ ok: false, error: message }, { status });
+}
+
+function smsEnabled() {
+  return String(process.env.SENDCHAMP_SMS_ENABLED || "false").toLowerCase() === "true";
+}
+
+function emailEnabled() {
+  return String(process.env.SENDCHAMP_EMAIL_ENABLED || "false").toLowerCase() === "true";
+}
+
+function appUrl() {
+  return process.env.NEXT_PUBLIC_APP_URL || "https://req-gen-1-1-0.vercel.app";
+}
+
+function safeText(value: string | null | undefined, fallback = "—") {
+  const clean = String(value || "").trim();
+  return clean || fallback;
+}
+
+function safeName(value: string | null | undefined) {
+  return safeText(value, "Staff");
+}
+
+function requestLink(requestId: string) {
+  return `${appUrl()}/requests/${requestId}`;
+}
+
+function buildApprovalSubject(requestNo: string) {
+  return `IET REQGEN | Approval Required - ${requestNo}`;
+}
+
+function buildApprovalEmailText(input: {
+  recipientName: string;
+  requestNo: string;
+  title: string;
+  stage: string;
+  link: string;
+}) {
+  return `ISLAMIC EDUCATION TRUST
+IET REQGEN WORKFLOW SYSTEM
+
+Assalamu Alaikum ${input.recipientName},
+
+A request is awaiting your review and approval on IET REQGEN.
+
+REQUEST DETAILS
+Request No: ${input.requestNo}
+Title: ${input.title}
+Current Stage: ${input.stage}
+
+ACTION REQUIRED
+Please log in to IET REQGEN and take the required action.
+
+Request Link:
+${input.link}
+
+This is an automated approval notification from IET REQGEN.
+
+Thank you.
+
+ISLAMIC EDUCATION TRUST
+IET REQGEN Notification`;
+}
+
+function buildApprovalSmsText(input: {
+  requestNo: string;
+  stage: string;
+  link: string;
+}) {
+  return `IET REQGEN: Request ${input.requestNo} awaits your approval. Stage: ${input.stage}. Please log in: ${input.link}`;
+}
+
+async function insertLog(
+  adminClient: any,
+  input: {
+    requestId: string;
+    recipientUserId: string;
+    phone: string | null;
+    email: string | null;
+    channel: LogChannel;
+    message: string;
+    provider: string;
+    route?: string | null;
+    status: LogStatus;
+    error?: string | null;
+    providerResponse?: unknown;
+    sentBy: string;
+  }
+) {
+  const { error } = await adminClient.from("sms_logs").insert({
+    request_id: input.requestId,
+    recipient_user_id: input.recipientUserId,
+    phone: input.phone,
+    email: input.email,
+    channel: input.channel,
+    message: input.message,
+    provider: input.provider,
+    route: input.route || null,
+    status: input.status,
+    error: input.error || null,
+    provider_response: input.providerResponse || null,
+    sent_by: input.sentBy,
+  });
+
+  if (error) {
+    console.error("ReqGen approval notification log insert failed:", {
+      channel: input.channel,
+      status: input.status,
+      error: error.message,
+    });
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -38,7 +173,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json().catch(() => null);
-    const requestId = body?.requestId as string | undefined;
+    const requestId = String(body?.requestId || "").trim();
 
     if (!requestId) {
       return jsonError("requestId is required.");
@@ -46,7 +181,7 @@ export async function POST(req: NextRequest) {
 
     const { data: requestRow, error: requestErr } = await adminClient
       .from("requests")
-      .select("id, request_no, title, current_owner, created_by, current_stage")
+      .select("id,request_no,title,current_owner,created_by,current_stage")
       .eq("id", requestId)
       .single();
 
@@ -54,74 +189,206 @@ export async function POST(req: NextRequest) {
       return jsonError("Request not found.", 404);
     }
 
-    if (requestRow.created_by !== user.id && requestRow.current_owner !== user.id) {
-      return jsonError("You are not allowed to send SMS for this request.", 403);
+    const requestData = requestRow as RequestRow;
+
+    if (requestData.created_by !== user.id && requestData.current_owner !== user.id) {
+      return jsonError("You are not allowed to send notifications for this request.", 403);
     }
 
-    if (!requestRow.current_owner) {
+    if (!requestData.current_owner) {
       return jsonError("This request has no current approval officer.");
     }
 
-    const { data: recipient, error: recipientErr } = await adminClient
+    const { data: recipientRow, error: recipientErr } = await adminClient
       .from("profiles")
-      .select("id, full_name, phone")
-      .eq("id", requestRow.current_owner)
+      .select("id,full_name,email,phone")
+      .eq("id", requestData.current_owner)
       .single();
 
-    if (recipientErr || !recipient) {
+    if (recipientErr || !recipientRow) {
       return jsonError("Recipient profile not found.", 404);
     }
 
+    const recipient = recipientRow as RecipientRow;
+
+    const recipientName = safeName(recipient.full_name);
+    const recipientEmail = normalizeEmail(recipient.email);
     const phone = normalizeNigerianPhone(recipient.phone);
 
-    if (!phone) {
-      return jsonError("Recipient phone number is missing or invalid.");
-    }
+    const requestNo = safeText(requestData.request_no, "Request");
+    const title = safeText(requestData.title, "Request");
+    const stage = safeText(requestData.current_stage, "Pending Review");
+    const link = requestLink(requestData.id);
 
-    const message = `Assalamu Alaikum. A Request ${requestRow.request_no} awaits your approval. Kindly log in and process it. Jazakumullahu Khairan.`;
+    const subject = buildApprovalSubject(requestNo);
 
-    let smsResult: any = null;
+    const emailText = buildApprovalEmailText({
+      recipientName,
+      requestNo,
+      title,
+      stage,
+      link,
+    });
 
-    try {
-      smsResult = await sendSendchampSms({
-        to: phone,
-        message,
-        route: "dnd",
-      });
+    const smsText = buildApprovalSmsText({
+      requestNo,
+      stage,
+      link,
+    });
 
-      await adminClient.from("sms_logs").insert({
-        request_id: requestRow.id,
-        recipient_user_id: recipient.id,
+    let emailResult: unknown = null;
+    let smsResult: unknown = null;
+
+    let emailSent = false;
+    let smsSent = false;
+
+    let emailError: string | null = null;
+    let smsError: string | null = null;
+
+    if (emailEnabled() && recipientEmail) {
+      try {
+        emailResult = await sendSendchampEmail({
+          to: {
+            email: recipientEmail,
+            name: recipientName,
+          },
+          subject,
+          text: emailText,
+        });
+
+        emailSent = true;
+
+        await insertLog(adminClient as any, {
+          requestId: requestData.id,
+          recipientUserId: recipient.id,
+          phone,
+          email: recipientEmail,
+          channel: "email",
+          message: emailText,
+          provider: "sendchamp-email",
+          route: null,
+          status: "sent",
+          providerResponse: emailResult,
+          sentBy: user.id,
+        });
+      } catch (emailErr: any) {
+        emailError = emailErr?.message || "Email notification failed.";
+
+        await insertLog(adminClient as any, {
+          requestId: requestData.id,
+          recipientUserId: recipient.id,
+          phone,
+          email: recipientEmail,
+          channel: "email",
+          message: emailText,
+          provider: "sendchamp-email",
+          route: null,
+          status: "failed",
+          error: emailError,
+          providerResponse: emailResult,
+          sentBy: user.id,
+        });
+      }
+    } else if (emailEnabled() && !recipientEmail) {
+      emailError = "Recipient email is missing or invalid.";
+
+      await insertLog(adminClient as any, {
+        requestId: requestData.id,
+        recipientUserId: recipient.id,
         phone,
-        message,
-        provider: "sendchamp",
-        route: "dnd",
-        status: "sent",
-        provider_response: smsResult,
-        sent_by: user.id,
-      });
-
-      return NextResponse.json({
-        ok: true,
-        message: "SMS sent successfully.",
-        recipient: recipient.full_name,
-      });
-    } catch (smsErr: any) {
-      await adminClient.from("sms_logs").insert({
-        request_id: requestRow.id,
-        recipient_user_id: recipient.id,
-        phone,
-        message,
-        provider: "sendchamp",
-        route: "dnd",
+        email: recipient.email || null,
+        channel: "email",
+        message: emailText,
+        provider: "sendchamp-email",
+        route: null,
         status: "failed",
-        error: smsErr?.message || "SMS failed.",
-        provider_response: smsResult,
-        sent_by: user.id,
+        error: emailError,
+        providerResponse: null,
+        sentBy: user.id,
       });
-
-      return jsonError("SMS failed: " + (smsErr?.message || "Unknown SMS error."), 500);
     }
+
+    if (smsEnabled() && phone) {
+      try {
+        smsResult = await sendSendchampSms({
+          to: phone,
+          message: smsText,
+          route: (process.env.SENDCHAMP_ROUTE as any) || "dnd",
+        });
+
+        smsSent = true;
+
+        await insertLog(adminClient as any, {
+          requestId: requestData.id,
+          recipientUserId: recipient.id,
+          phone,
+          email: recipientEmail,
+          channel: "sms",
+          message: smsText,
+          provider: "sendchamp-sms",
+          route: process.env.SENDCHAMP_ROUTE || "dnd",
+          status: "sent",
+          providerResponse: smsResult,
+          sentBy: user.id,
+        });
+      } catch (smsErr: any) {
+        smsError = smsErr?.message || "SMS notification failed.";
+
+        await insertLog(adminClient as any, {
+          requestId: requestData.id,
+          recipientUserId: recipient.id,
+          phone,
+          email: recipientEmail,
+          channel: "sms",
+          message: smsText,
+          provider: "sendchamp-sms",
+          route: process.env.SENDCHAMP_ROUTE || "dnd",
+          status: "failed",
+          error: smsError,
+          providerResponse: smsResult,
+          sentBy: user.id,
+        });
+      }
+    } else if (smsEnabled() && !phone) {
+      smsError = "Recipient phone number is missing or invalid.";
+
+      await insertLog(adminClient as any, {
+        requestId: requestData.id,
+        recipientUserId: recipient.id,
+        phone: recipient.phone || null,
+        email: recipientEmail,
+        channel: "sms",
+        message: smsText,
+        provider: "sendchamp-sms",
+        route: process.env.SENDCHAMP_ROUTE || "dnd",
+        status: "failed",
+        error: smsError,
+        providerResponse: null,
+        sentBy: user.id,
+      });
+    }
+
+    if (!emailSent && !smsSent) {
+      return jsonError(
+        emailError || smsError || "Approval notification could not be delivered through SMS or Email.",
+        500
+      );
+    }
+
+    return NextResponse.json({
+      ok: true,
+      message:
+        emailSent && smsSent
+          ? "Email and SMS approval notifications sent."
+          : emailSent
+          ? "Email approval notification sent."
+          : "SMS approval notification sent.",
+      recipient: recipientName,
+      emailSent,
+      smsSent,
+      emailError,
+      smsError,
+    });
   } catch (e: any) {
     return jsonError(e?.message || "Unexpected server error.", 500);
   }
