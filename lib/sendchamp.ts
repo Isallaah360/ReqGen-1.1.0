@@ -80,6 +80,9 @@ function cleanSmsMessage(message: string, senderName: string) {
   cleaned = cleaned.replace(new RegExp(`^${escapedSender}\\s*:\\s*`, "i"), "");
   cleaned = cleaned.replace(/^IET\s+REQGEN\s*:\s*/i, "");
   cleaned = cleaned.replace(/^REQGEN\s*:\s*/i, "");
+  cleaned = cleaned.replace(/^IET\s+REQGEN\s+OTP\s*:\s*/i, "");
+  cleaned = cleaned.replace(/^IET\s+ReqGen\s+OTP\s*:\s*/i, "");
+  cleaned = cleaned.replace(/^ReqGen\s+OTP\s*:\s*/i, "");
 
   return cleaned.trim();
 }
@@ -228,7 +231,7 @@ export async function sendSendchampEmail(input: SendEmailInput) {
   }
 
   const text = String(input.text || "").trim();
-  const html = String(input.html || "").trim() || plainTextToHtml(text);
+  const html = String(input.html || "").trim();
 
   if (!html && !text) {
     throw new Error("Email message cannot be empty.");
@@ -244,16 +247,24 @@ export async function sendSendchampEmail(input: SendEmailInput) {
     input.fromName ||
     process.env.SENDCHAMP_EMAIL_FROM_NAME ||
     process.env.SENDCHAMP_FROM_NAME ||
-    "IET ReqGen";
+    "ISLAMIC EDUCATION TRUST";
 
   const payload: any = {
     subject,
     to: recipients,
-    message_body: {
-      type: "text/html",
-      value: html || plainTextToHtml(text),
-    },
   };
+
+  if (html) {
+    payload.message_body = {
+      type: "text/html",
+      value: html,
+    };
+  } else {
+    payload.message_body = {
+      type: "text/plain",
+      value: text,
+    };
+  }
 
   if (fromEmail) {
     payload.from = {
@@ -287,7 +298,7 @@ export async function sendSendchampEmail(input: SendEmailInput) {
 }
 
 export function buildOtpSmsMessage(code: string) {
-  return `IET ReqGen OTP: Your verification code is ${code}. It expires shortly. Do not share it with anyone.`;
+  return `Your ReqGen OTP is ${code}. It expires shortly. Do not share it with anyone.`;
 }
 
 export function buildOtpEmailText(input: {
@@ -298,21 +309,29 @@ export function buildOtpEmailText(input: {
   const name = String(input.name || "").trim() || "Staff";
   const appName = input.appName || "IET ReqGen";
 
-  return `Dear ${name},
+  return `ISLAMIC EDUCATION TRUST
+${appName.toUpperCase()} WORKFLOW SYSTEM
 
-Your ${appName} verification code is:
+Dear ${name},
 
-${input.code}
+Your OTP verification code is: ${input.code}
 
-This code expires shortly. Do not share it with anyone.
+This code is required to complete your request submission on ${appName}.
+
+For your security:
+- Do not share this code with anyone.
+- This code expires shortly.
+- If you did not initiate this request, please ignore this message and report to Admin.
 
 Thank you.
+
+IET ReqGen Security Notification
 Islamic Education Trust`;
 }
 
 export function buildApprovalSmsMessage(input: SendApprovalNotificationInput) {
   if (input.registryReminderOnly) {
-    return "IET ReqGen: DG has a pending approval awaiting attention. Please remind DG to review pending ReqGen approvals.";
+    return "DG has a pending ReqGen approval. Please remind DG to review pending approvals.";
   }
 
   const appUrl =
@@ -320,7 +339,7 @@ export function buildApprovalSmsMessage(input: SendApprovalNotificationInput) {
     process.env.NEXT_PUBLIC_APP_URL ||
     "https://req-gen-1-1-0.vercel.app";
 
-  return `IET ReqGen: You have a pending approval.
+  return `You have a pending ReqGen approval.
 
 Stage: ${input.stage}
 Request No: ${input.requestNo}
@@ -337,27 +356,37 @@ export function buildApprovalEmailText(input: SendApprovalNotificationInput) {
     "https://req-gen-1-1-0.vercel.app";
 
   if (input.registryReminderOnly) {
-    return `Dear ${name},
+    return `ISLAMIC EDUCATION TRUST
+IET REQGEN WORKFLOW SYSTEM
+
+Dear ${name},
 
 DG has a pending approval awaiting attention on IET ReqGen.
 
 Please remind DG to review pending ReqGen approvals.
 
 Thank you.
+
+IET ReqGen Notification
 Islamic Education Trust`;
   }
 
-  return `Dear ${name},
+  return `ISLAMIC EDUCATION TRUST
+IET REQGEN WORKFLOW SYSTEM
+
+Dear ${name},
 
 A request is awaiting your action on IET ReqGen.
 
-Stage: ${input.stage}
 Request No: ${input.requestNo}
+Current Stage: ${input.stage}
 
 Please log in to review and take action:
 ${appUrl}
 
 Thank you.
+
+IET ReqGen Notification
 Islamic Education Trust`;
 }
 

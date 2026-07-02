@@ -83,21 +83,6 @@ function safeName(value: unknown) {
   return String(value || "").trim() || "Staff";
 }
 
-function emailHtmlTemplate(input: { otp: string; recipientName: string }) {
-  return `
-    <div style="font-family:Arial,sans-serif;line-height:1.6;color:#0f172a;max-width:620px;margin:0 auto">
-      <h2 style="margin:0 0 12px;color:#1d4ed8">IET ReqGen Verification Code</h2>
-      <p>Dear ${input.recipientName},</p>
-      <p>Your IET ReqGen verification code is:</p>
-      <div style="font-size:30px;font-weight:800;letter-spacing:6px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:16px 18px;text-align:center;color:#1e3a8a">
-        ${input.otp}
-      </div>
-      <p>This code expires shortly. Do not share it with anyone.</p>
-      <p style="margin-top:18px;color:#475569">Thank you.<br />Islamic Education Trust</p>
-    </div>
-  `;
-}
-
 async function insertLog(
   adminClient: any,
   input: {
@@ -276,13 +261,12 @@ export async function POST(req: NextRequest) {
 
   const smsMessage = buildOtpSmsMessage(otp);
 
-  const emailSubject = "IET ReqGen Verification Code";
+  const emailSubject = "IET ReqGen OTP Verification Code";
   const emailText = buildOtpEmailText({
     code: otp,
     name: recipientName,
     appName: "IET ReqGen",
   });
-  const emailHtml = emailHtmlTemplate({ otp, recipientName });
 
   let smsResult: unknown = null;
   let emailResult: unknown = null;
@@ -382,7 +366,6 @@ export async function POST(req: NextRequest) {
           },
           subject: emailSubject,
           text: emailText,
-          html: emailHtml,
         });
 
         emailSent = true;
