@@ -7,7 +7,17 @@ import { supabase } from "@/lib/supabaseClient";
 type Dept = {
   id: string;
   name: string;
-  is_active?: boolean | null;
+};
+
+type ReqgenRole = {
+  id: string;
+  role_key: string;
+  role_name: string;
+  description: string | null;
+  is_system: boolean;
+  is_active: boolean;
+  requires_signature: boolean;
+  sort_order: number;
 };
 
 type ProfileRow = {
@@ -16,38 +26,12 @@ type ProfileRow = {
   email: string | null;
   role: string | null;
   dept_id: string | null;
-  signature_url: string | null;
+  signature_url?: string | null;
   created_at?: string | null;
 };
 
-type TabKey = "overview" | "users" | "sensitive" | "signature";
-
-const ROLES = [
-  "Staff",
-  "Admin",
-  "Auditor",
-  "Account",
-  "Accounts",
-  "AccountOfficer",
-  "Director",
-  "HOD",
-  "HR",
-  "Registry",
-  "DG",
-] as const;
-
-const SENSITIVE_ROLE_KEYS = [
-  "admin",
-  "auditor",
-  "account",
-  "accounts",
-  "accountofficer",
-  "director",
-  "hod",
-  "hr",
-  "registry",
-  "dg",
-];
+type RoleFilter = "ALL" | string;
+type DeptFilter = "ALL" | string;
 
 function roleKey(role: string | null | undefined) {
   return (role || "")
@@ -55,10 +39,6 @@ function roleKey(role: string | null | undefined) {
     .toLowerCase()
     .replace(/\s+/g, "")
     .replace(/_/g, "");
-}
-
-function requiresSignature(role: string | null | undefined) {
-  return SENSITIVE_ROLE_KEYS.includes(roleKey(role));
 }
 
 function shortDate(d: string | null | undefined) {
@@ -74,7 +54,7 @@ function roleBadgeClass(role: string | null | undefined) {
   if (["account", "accounts", "accountofficer"].includes(rk)) {
     return "bg-emerald-50 text-emerald-700 border-emerald-200";
   }
-  if (["director", "hod", "dg"].includes(rk)) {
+  if (["director", "hod", "dg", "dinadmin"].includes(rk)) {
     return "bg-blue-50 text-blue-700 border-blue-200";
   }
   if (["hr", "registry"].includes(rk)) {
@@ -90,14 +70,6 @@ function signatureBadgeClass(ready: boolean) {
     : "border-red-200 bg-red-50 text-red-700";
 }
 
-function roleLabel(role: string | null | undefined) {
-  return role || "Staff";
-}
-
-function userLabel(u: ProfileRow) {
-  return u.full_name || u.email || u.id;
-}
-
 export default function AdminUsersPage() {
   const router = useRouter();
 
@@ -105,7 +77,6 @@ export default function AdminUsersPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
-  const [authUserId, setAuthUserId] = useState<string | null>(null);
   const [meRole, setMeRole] = useState<string>("Staff");
 
   const canAdmin = useMemo(() => {
@@ -113,18 +84,14 @@ export default function AdminUsersPage() {
     return rk === "admin" || rk === "auditor";
   }, [meRole]);
 
-  const canEditRoles = useMemo(() => {
-    return roleKey(meRole) === "admin" || roleKey(meRole) === "auditor";
-  }, [meRole]);
-
   const [depts, setDepts] = useState<Dept[]>([]);
+  const [roles, setRoles] = useState<ReqgenRole[]>([]);
   const [rows, setRows] = useState<ProfileRow[]>([]);
 
-  const [activeTab, setActiveTab] = useState<TabKey>("overview");
   const [q, setQ] = useState("");
-  const [roleFilter, setRoleFilter] = useState("ALL");
-  const [deptFilter, setDeptFilter] = useState("ALL");
-  const [signatureFilter, setSignatureFilter] = useState("ALL");
+  const [roleFilter, setRoleFilter] = useState<RoleFilter>("ALL");
+  const [deptFilter, setDeptFilter] = useState<DeptFilter>("ALL");
+  const [signatureFilter, setSignatureFilter] = useState<"ALL" | "READY" | "MISSING">("ALL");
 
   const [savingId, setSavingId] = useState<string | null>(null);
 
@@ -145,8 +112,6 @@ export default function AdminUsersPage() {
         return;
       }
 
-      setAuthUserId(auth.user.id);
-
       const { data: me, error: meErr } = await supabase
         .from("profiles")
         .select("role")
@@ -166,17 +131,25 @@ export default function AdminUsersPage() {
       if (!["admin", "auditor"].includes(roleKey(role))) {
         setMsg("Access denied. Only Admin/Auditor can manage users and roles.");
         setDepts([]);
+        setRoles([]);
         setRows([]);
         setLoading(false);
         setRefreshing(false);
         return;
       }
 
-      const [deptRes, profileRes] = await Promise.all([
+      const [deptRes, rolesRes, profileRes] = await Promise.all([
         supabase
           .from("departments")
-          .select("id,name,is_active")
+          .select("id,name")
           .order("name", { ascending: true }),
+
+        supabase
+          .from("reqgen_roles")
+          .select("id,role_key,role_name,description,is_system,is_active,requires_signature,sort_order")
+          .eq("is_active", true)
+          .order("sort_order", { ascending: true })
+          .order("role_name", { ascending: true }),
 
         supabase
           .from("profiles")
@@ -189,6 +162,13 @@ export default function AdminUsersPage() {
         setDepts([]);
       } else {
         setDepts((deptRes.data || []) as Dept[]);
+      }
+
+      if (rolesRes.error) {
+        setMsg("Failed to load roles: " + rolesRes.error.message);
+        setRoles([]);
+      } else {
+        setRoles((rolesRes.data || []) as ReqgenRole[]);
       }
 
       if (profileRes.error) {
@@ -234,21 +214,27 @@ export default function AdminUsersPage() {
     return m;
   }, [depts]);
 
+  const roleMap = useMemo(() => {
+    const m: Record<string, ReqgenRole> = {};
+    roles.forEach((r) => {
+      m[roleKey(r.role_name)] = r;
+      m[roleKey(r.role_key)] = r;
+    });
+    return m;
+  }, [roles]);
+
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase();
 
     return rows.filter((r) => {
+      const rk = roleKey(r.role || "Staff");
       const deptName = r.dept_id ? deptMap[r.dept_id] || "" : "";
-      const rk = roleKey(r.role);
-      const signatureReady = !!r.signature_url;
+      const ready = !!r.signature_url;
 
       if (roleFilter !== "ALL" && rk !== roleKey(roleFilter)) return false;
-      if (deptFilter !== "ALL" && (r.dept_id || "") !== deptFilter) return false;
-      if (signatureFilter === "READY" && !signatureReady) return false;
-      if (signatureFilter === "MISSING" && signatureReady) return false;
-      if (signatureFilter === "SENSITIVE_MISSING" && (!requiresSignature(r.role) || signatureReady)) {
-        return false;
-      }
+      if (deptFilter !== "ALL" && r.dept_id !== deptFilter) return false;
+      if (signatureFilter === "READY" && !ready) return false;
+      if (signatureFilter === "MISSING" && ready) return false;
 
       if (!s) return true;
 
@@ -256,19 +242,10 @@ export default function AdminUsersPage() {
         (r.full_name || "").toLowerCase().includes(s) ||
         (r.email || "").toLowerCase().includes(s) ||
         (r.role || "").toLowerCase().includes(s) ||
-        deptName.toLowerCase().includes(s) ||
-        (signatureReady ? "signature ready" : "no signature").includes(s)
+        deptName.toLowerCase().includes(s)
       );
     });
   }, [rows, q, deptMap, roleFilter, deptFilter, signatureFilter]);
-
-  const sensitiveUsers = useMemo(() => {
-    return rows.filter((r) => requiresSignature(r.role));
-  }, [rows]);
-
-  const missingSensitiveSignatures = useMemo(() => {
-    return rows.filter((r) => requiresSignature(r.role) && !r.signature_url);
-  }, [rows]);
 
   const stats = useMemo(() => {
     const total = rows.length;
@@ -279,18 +256,13 @@ export default function AdminUsersPage() {
       ["account", "accounts", "accountofficer"].includes(roleKey(r.role))
     ).length;
     const leadership = rows.filter((r) =>
-      ["director", "hod", "dg"].includes(roleKey(r.role))
+      ["director", "hod", "dg", "dinadmin"].includes(roleKey(r.role))
     ).length;
     const hrRegistry = rows.filter((r) =>
       ["hr", "registry"].includes(roleKey(r.role))
     ).length;
     const signatureReady = rows.filter((r) => !!r.signature_url).length;
-    const signatureMissing = rows.filter((r) => !r.signature_url).length;
-    const noDepartment = rows.filter((r) => !r.dept_id).length;
-    const sensitive = rows.filter((r) => requiresSignature(r.role)).length;
-    const sensitiveMissingSignature = rows.filter(
-      (r) => requiresSignature(r.role) && !r.signature_url
-    ).length;
+    const signatureMissing = Math.max(total - signatureReady, 0);
 
     return {
       total,
@@ -302,46 +274,28 @@ export default function AdminUsersPage() {
       hrRegistry,
       signatureReady,
       signatureMissing,
-      noDepartment,
-      sensitive,
-      sensitiveMissingSignature,
     };
   }, [rows]);
 
   async function updateUser(id: string, patch: Partial<ProfileRow>) {
-    if (!canEditRoles) {
-      setMsg("❌ Only Admin/Auditor can update users.");
+    if (!canAdmin) {
+      setMsg("❌ Only Admin/Auditor can update users and roles.");
       return;
     }
 
-    const currentUser = rows.find((r) => r.id === id);
+    const targetUser = rows.find((r) => r.id === id);
 
-    if (!currentUser) {
+    if (!targetUser) {
       setMsg("❌ User not found.");
       return;
     }
 
     const nextRole = patch.role || "Staff";
-    const nextDeptId = patch.dept_id || null;
+    const roleInfo = roleMap[roleKey(nextRole)];
+    const requiresSignature = !!roleInfo?.requires_signature;
 
-    if (requiresSignature(nextRole) && !currentUser.signature_url) {
-      setMsg(
-        `❌ ${nextRole} is a signature-sensitive role. ${userLabel(
-          currentUser
-        )} must upload a signature before this role can be assigned.`
-      );
-      return;
-    }
-
-    if (id === authUserId && roleKey(currentUser.role) === "admin" && roleKey(nextRole) !== "admin") {
-      setMsg("❌ You cannot remove your own Admin role from this page.");
-      return;
-    }
-
-    const adminCount = rows.filter((r) => roleKey(r.role) === "admin").length;
-
-    if (roleKey(currentUser.role) === "admin" && roleKey(nextRole) !== "admin" && adminCount <= 1) {
-      setMsg("❌ At least one Admin user must remain in the system.");
+    if (requiresSignature && !targetUser.signature_url) {
+      setMsg(`❌ ${nextRole} requires signature readiness. Ask the user to upload signature first.`);
       return;
     }
 
@@ -356,18 +310,23 @@ export default function AdminUsersPage() {
         return;
       }
 
-      const cleanPatch = {
+      const cleanPatch: Partial<ProfileRow> = {
         role: nextRole,
-        dept_id: nextDeptId,
+        dept_id: patch.dept_id || null,
       };
 
-      const { error } = await supabase.from("profiles").update(cleanPatch).eq("id", id);
+      const { error } = await supabase
+        .from("profiles")
+        .update(cleanPatch)
+        .eq("id", id);
 
       if (error) throw new Error(error.message);
 
-      setRows((prev) => prev.map((r) => (r.id === id ? { ...r, ...cleanPatch } : r)));
+      setRows((prev) =>
+        prev.map((r) => (r.id === id ? { ...r, ...cleanPatch } : r))
+      );
 
-      setMsg("✅ User role/department routing updated.");
+      setMsg("✅ User role/routing updated successfully.");
       await load({ silent: true });
       router.refresh();
     } catch (e: any) {
@@ -375,13 +334,6 @@ export default function AdminUsersPage() {
     } finally {
       setSavingId(null);
     }
-  }
-
-  function resetFilters() {
-    setQ("");
-    setRoleFilter("ALL");
-    setDeptFilter("ALL");
-    setSignatureFilter("ALL");
   }
 
   function goDashboard() {
@@ -394,10 +346,22 @@ export default function AdminUsersPage() {
     router.refresh();
   }
 
+  function goRoles() {
+    router.push(`/admin/roles?updated=${Date.now()}`);
+    router.refresh();
+  }
+
+  function resetFilters() {
+    setQ("");
+    setRoleFilter("ALL");
+    setDeptFilter("ALL");
+    setSignatureFilter("ALL");
+  }
+
   if (loading) {
     return (
       <main className="min-h-screen bg-slate-50 px-4">
-        <div className="mx-auto max-w-7xl py-10 text-slate-600">Loading Users & Roles...</div>
+        <div className="mx-auto max-w-7xl py-10 text-slate-600">Loading users and roles...</div>
       </main>
     );
   }
@@ -439,10 +403,10 @@ export default function AdminUsersPage() {
               Users & Roles
             </h1>
             <p className="mt-2 text-sm text-slate-600">
-              Assign global roles, department routing and signature-sensitive workflow access.
+              Assign user roles, route users to departments and verify signature readiness for workflow-sensitive roles.
             </p>
             <p className="mt-1 text-xs font-semibold text-slate-500">
-              Current role: {meRole || "—"}
+              Roles are now loaded from the ReqGen roles catalogue.
             </p>
           </div>
 
@@ -456,19 +420,19 @@ export default function AdminUsersPage() {
             </button>
 
             <button
+              onClick={goRoles}
+              disabled={refreshing || !!savingId}
+              className="rounded-xl bg-purple-600 px-4 py-2 text-sm font-semibold text-white hover:bg-purple-700 disabled:opacity-60"
+            >
+              Roles & Permissions
+            </button>
+
+            <button
               onClick={goAdmin}
               disabled={refreshing || !!savingId}
               className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
             >
-              Admin Panel
-            </button>
-
-            <button
-              onClick={goDashboard}
-              disabled={refreshing || !!savingId}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
-            >
-              Dashboard
+              Back
             </button>
           </div>
         </div>
@@ -480,11 +444,10 @@ export default function AdminUsersPage() {
         )}
 
         <div className="mt-4 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-xs font-semibold text-blue-900">
-          Signature-sensitive roles include Admin, Auditor, Account/Accounts/AccountOfficer, Director,
-          HOD, HR, Registry and DG. Users should upload signature before receiving these roles.
+          Admin and Auditor can assign roles from the database-managed role list. Roles marked as signature-required cannot be assigned until the user uploads a signature.
         </div>
 
-        <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-7">
+        <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-8">
           <StatCard title="Total Users" value={String(stats.total)} tone="blue" />
           <StatCard title="Staff" value={String(stats.staff)} tone="slate" />
           <StatCard title="Admin" value={String(stats.admin)} tone="red" />
@@ -492,37 +455,18 @@ export default function AdminUsersPage() {
           <StatCard title="Finance" value={String(stats.finance)} tone="emerald" />
           <StatCard title="Leadership" value={String(stats.leadership)} tone="blue" />
           <StatCard title="HR/Registry" value={String(stats.hrRegistry)} tone="amber" />
+          <StatCard title="No Signature" value={String(stats.signatureMissing)} tone="red" />
         </div>
 
-        <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <WideStat title="Signature Ready" value={String(stats.signatureReady)} tone="emerald" />
-          <WideStat title="Signature Missing" value={String(stats.signatureMissing)} tone="red" />
-          <WideStat title="Sensitive Roles" value={String(stats.sensitive)} tone="purple" />
-          <WideStat
-            title="Sensitive Missing Signature"
-            value={String(stats.sensitiveMissingSignature)}
-            tone="amber"
-          />
-        </div>
-
-        <div className="mt-6 rounded-3xl border bg-white p-2 shadow-sm">
-          <div className="flex flex-wrap gap-2">
-            <TabButton label="Overview" active={activeTab === "overview"} onClick={() => setActiveTab("overview")} />
-            <TabButton label="All Users" active={activeTab === "users"} onClick={() => setActiveTab("users")} />
-            <TabButton label="Sensitive Roles" active={activeTab === "sensitive"} onClick={() => setActiveTab("sensitive")} />
-            <TabButton label="Signature Readiness" active={activeTab === "signature"} onClick={() => setActiveTab("signature")} />
-          </div>
-        </div>
-
-        <div className="mt-6 rounded-2xl border bg-white p-5 shadow-sm">
+        <div className="mt-6 rounded-3xl border bg-white p-5 shadow-sm">
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
             <div className="xl:col-span-2">
               <label className="text-sm font-semibold text-slate-800">Search</label>
               <input
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-3 text-slate-900 outline-none focus:border-blue-500"
-                placeholder="Search name, email, role, department or signature..."
+                className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-3 text-slate-900 outline-none focus:border-blue-500"
+                placeholder="Search name, email, role, department..."
               />
             </div>
 
@@ -531,12 +475,12 @@ export default function AdminUsersPage() {
               <select
                 value={roleFilter}
                 onChange={(e) => setRoleFilter(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-3 text-slate-900 outline-none focus:border-blue-500"
+                className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-3 text-slate-900 outline-none focus:border-blue-500"
               >
                 <option value="ALL">All Roles</option>
-                {ROLES.map((r) => (
-                  <option key={r} value={r}>
-                    {r}
+                {roles.map((r) => (
+                  <option key={r.id} value={r.role_name}>
+                    {r.role_name}
                   </option>
                 ))}
               </select>
@@ -547,10 +491,9 @@ export default function AdminUsersPage() {
               <select
                 value={deptFilter}
                 onChange={(e) => setDeptFilter(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-3 text-slate-900 outline-none focus:border-blue-500"
+                className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-3 text-slate-900 outline-none focus:border-blue-500"
               >
                 <option value="ALL">All Departments</option>
-                <option value="">No Department</option>
                 {depts.map((d) => (
                   <option key={d.id} value={d.id}>
                     {d.name}
@@ -563,76 +506,97 @@ export default function AdminUsersPage() {
               <label className="text-sm font-semibold text-slate-800">Signature</label>
               <select
                 value={signatureFilter}
-                onChange={(e) => setSignatureFilter(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-3 text-slate-900 outline-none focus:border-blue-500"
+                onChange={(e) => setSignatureFilter(e.target.value as "ALL" | "READY" | "MISSING")}
+                className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-3 text-slate-900 outline-none focus:border-blue-500"
               >
-                <option value="ALL">All Signature Status</option>
+                <option value="ALL">All</option>
                 <option value="READY">Signature Ready</option>
-                <option value="MISSING">Signature Missing</option>
-                <option value="SENSITIVE_MISSING">Sensitive Role Missing Signature</option>
+                <option value="MISSING">No Signature</option>
               </select>
             </div>
+          </div>
 
-            <div className="flex items-end xl:col-span-5">
-              <button
-                onClick={resetFilters}
-                disabled={refreshing || !!savingId}
-                className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
-              >
-                Reset Filters
-              </button>
-            </div>
+          <div className="mt-4 flex justify-end">
+            <button
+              onClick={resetFilters}
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
+            >
+              Reset Filters
+            </button>
           </div>
         </div>
 
-        {activeTab === "overview" && (
-          <OverviewPanel
-            rows={rows}
-            sensitiveUsers={sensitiveUsers}
-            missingSensitiveSignatures={missingSensitiveSignatures}
-            deptMap={deptMap}
-          />
-        )}
+        <div className="mt-6 grid gap-4 xl:hidden">
+          {filtered.length === 0 ? (
+            <EmptyState />
+          ) : (
+            filtered.map((u) => (
+              <UserCard
+                key={u.id}
+                u={u}
+                roles={roles}
+                depts={depts}
+                deptMap={deptMap}
+                roleMap={roleMap}
+                saving={savingId === u.id}
+                disabled={!!savingId || refreshing}
+                onSave={updateUser}
+              />
+            ))
+          )}
+        </div>
 
-        {activeTab === "sensitive" && (
-          <SensitivePanel
-            rows={sensitiveUsers}
-            depts={depts}
-            deptMap={deptMap}
-            savingId={savingId}
-            refreshing={refreshing}
-            onSave={updateUser}
-          />
-        )}
+        <div className="mt-6 hidden overflow-hidden rounded-3xl border bg-white shadow-sm xl:block">
+          <div className="border-b bg-slate-50 px-6 py-4">
+            <h2 className="text-lg font-bold text-slate-900">User Role Register</h2>
+            <p className="mt-1 text-sm text-slate-600">
+              Assign primary role and department routing for each staff member.
+            </p>
+          </div>
 
-        {activeTab === "signature" && (
-          <SignaturePanel
-            rows={rows}
-            depts={depts}
-            deptMap={deptMap}
-            savingId={savingId}
-            refreshing={refreshing}
-            onSave={updateUser}
-          />
-        )}
+          {filtered.length === 0 ? (
+            <EmptyState />
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-[1180px] w-full border-collapse text-sm">
+                <thead>
+                  <tr className="bg-slate-100 text-xs uppercase tracking-wide text-slate-600">
+                    <th className="px-4 py-3 text-left">Name</th>
+                    <th className="px-4 py-3 text-left">Email</th>
+                    <th className="px-4 py-3 text-left">Role</th>
+                    <th className="px-4 py-3 text-left">Department Routing</th>
+                    <th className="px-4 py-3 text-left">Signature</th>
+                    <th className="px-4 py-3 text-left">Joined</th>
+                    <th className="px-4 py-3 text-right">Action</th>
+                  </tr>
+                </thead>
 
-        {(activeTab === "users" || activeTab === "overview") && (
-          <UsersRegister
-            rows={filtered}
-            depts={depts}
-            deptMap={deptMap}
-            savingId={savingId}
-            refreshing={refreshing}
-            onSave={updateUser}
-          />
-        )}
+                <tbody>
+                  {filtered.map((u) => (
+                    <UserTableRow
+                      key={u.id}
+                      u={u}
+                      roles={roles}
+                      depts={depts}
+                      deptMap={deptMap}
+                      roleMap={roleMap}
+                      saving={savingId === u.id}
+                      disabled={!!savingId || refreshing}
+                      onSave={updateUser}
+                    />
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
 
         <div className="mt-6 rounded-3xl border border-amber-100 bg-amber-50 p-5 text-sm text-amber-900">
           <div className="font-bold">Role & Routing Note</div>
           <p className="mt-1">
-            Use department routing mainly for HOD and Director workflow ownership. Admin and Auditor
-            should be controlled carefully because they can access sensitive management and finance
-            sections. AccountOfficer is used for finance/account payment-stage ownership.
+            Use department routing mainly for HOD, Director and DIN Admin workflow ownership. Admin,
+            Auditor, DG, HR, Registry and AccountOfficer are workflow-sensitive roles and should be assigned
+            only to verified staff with clear operational responsibility.
           </p>
         </div>
       </div>
@@ -640,251 +604,21 @@ export default function AdminUsersPage() {
   );
 }
 
-function OverviewPanel({
-  rows,
-  sensitiveUsers,
-  missingSensitiveSignatures,
-  deptMap,
-}: {
-  rows: ProfileRow[];
-  sensitiveUsers: ProfileRow[];
-  missingSensitiveSignatures: ProfileRow[];
-  deptMap: Record<string, string>;
-}) {
-  const recentUsers = rows.slice(0, 8);
-
-  return (
-    <div className="mt-6 grid gap-6 xl:grid-cols-2">
-      <div className="rounded-3xl border bg-white p-6 shadow-sm">
-        <h2 className="text-lg font-bold text-slate-900">Sensitive Role Readiness</h2>
-        <p className="mt-1 text-sm text-slate-600">
-          These are users occupying workflow-sensitive roles.
-        </p>
-
-        <div className="mt-4 grid gap-3">
-          {sensitiveUsers.length === 0 ? (
-            <div className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-600">
-              No sensitive role user found.
-            </div>
-          ) : (
-            sensitiveUsers.slice(0, 8).map((u) => (
-              <div key={u.id} className="rounded-2xl border border-slate-200 p-4">
-                <div className="flex flex-wrap items-start justify-between gap-2">
-                  <div>
-                    <div className="font-extrabold text-slate-900">{userLabel(u)}</div>
-                    <div className="mt-1 text-xs text-slate-500">
-                      {u.email || "—"} • {u.dept_id ? deptMap[u.dept_id] || "Unknown Department" : "No Department"}
-                    </div>
-                  </div>
-
-                  <div className="flex flex-wrap gap-2">
-                    <RoleBadge role={u.role} />
-                    <SignatureBadge ready={!!u.signature_url} />
-                  </div>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      </div>
-
-      <div className="rounded-3xl border bg-white p-6 shadow-sm">
-        <h2 className="text-lg font-bold text-slate-900">Attention Required</h2>
-        <p className="mt-1 text-sm text-slate-600">
-          Sensitive users without signature should be fixed before production pilot.
-        </p>
-
-        <div className="mt-4 grid gap-3">
-          {missingSensitiveSignatures.length === 0 ? (
-            <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4 text-sm font-semibold text-emerald-800">
-              All sensitive-role users have signatures.
-            </div>
-          ) : (
-            missingSensitiveSignatures.map((u) => (
-              <div key={u.id} className="rounded-2xl border border-red-100 bg-red-50 p-4">
-                <div className="font-extrabold text-red-900">{userLabel(u)}</div>
-                <div className="mt-1 text-xs text-red-700">
-                  {u.email || "—"} • Role: {roleLabel(u.role)}
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-
-        <h3 className="mt-6 text-sm font-black uppercase tracking-wide text-slate-500">
-          Recently Added Users
-        </h3>
-
-        <div className="mt-3 grid gap-2">
-          {recentUsers.map((u) => (
-            <div key={u.id} className="flex items-center justify-between rounded-2xl bg-slate-50 p-3">
-              <div>
-                <div className="text-sm font-bold text-slate-900">{userLabel(u)}</div>
-                <div className="text-xs text-slate-500">Joined {shortDate(u.created_at)}</div>
-              </div>
-              <RoleBadge role={u.role} />
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function SensitivePanel({
-  rows,
-  depts,
-  deptMap,
-  savingId,
-  refreshing,
-  onSave,
-}: {
-  rows: ProfileRow[];
-  depts: Dept[];
-  deptMap: Record<string, string>;
-  savingId: string | null;
-  refreshing: boolean;
-  onSave: (id: string, patch: Partial<ProfileRow>) => Promise<void>;
-}) {
-  return (
-    <UsersRegister
-      rows={rows}
-      depts={depts}
-      deptMap={deptMap}
-      savingId={savingId}
-      refreshing={refreshing}
-      onSave={onSave}
-      title="Sensitive Role Users"
-      subtitle="Users with workflow-sensitive roles requiring signature readiness."
-    />
-  );
-}
-
-function SignaturePanel({
-  rows,
-  depts,
-  deptMap,
-  savingId,
-  refreshing,
-  onSave,
-}: {
-  rows: ProfileRow[];
-  depts: Dept[];
-  deptMap: Record<string, string>;
-  savingId: string | null;
-  refreshing: boolean;
-  onSave: (id: string, patch: Partial<ProfileRow>) => Promise<void>;
-}) {
-  const sorted = [...rows].sort((a, b) => Number(!!a.signature_url) - Number(!!b.signature_url));
-
-  return (
-    <UsersRegister
-      rows={sorted}
-      depts={depts}
-      deptMap={deptMap}
-      savingId={savingId}
-      refreshing={refreshing}
-      onSave={onSave}
-      title="Signature Readiness"
-      subtitle="Review which users have uploaded signature images."
-    />
-  );
-}
-
-function UsersRegister({
-  rows,
-  depts,
-  deptMap,
-  savingId,
-  refreshing,
-  onSave,
-  title = "Users Register",
-  subtitle = "Update user role and optional department routing.",
-}: {
-  rows: ProfileRow[];
-  depts: Dept[];
-  deptMap: Record<string, string>;
-  savingId: string | null;
-  refreshing: boolean;
-  onSave: (id: string, patch: Partial<ProfileRow>) => Promise<void>;
-  title?: string;
-  subtitle?: string;
-}) {
-  return (
-    <>
-      <div className="mt-6 grid gap-4 xl:hidden">
-        {rows.length === 0 ? (
-          <EmptyState />
-        ) : (
-          rows.map((u) => (
-            <UserCard
-              key={u.id}
-              u={u}
-              depts={depts}
-              deptMap={deptMap}
-              saving={savingId === u.id}
-              disabled={!!savingId || refreshing}
-              onSave={onSave}
-            />
-          ))
-        )}
-      </div>
-
-      <div className="mt-6 hidden overflow-hidden rounded-3xl border bg-white shadow-sm xl:block">
-        <div className="border-b bg-slate-50 px-5 py-4">
-          <h2 className="text-lg font-bold text-slate-900">{title}</h2>
-          <p className="mt-1 text-sm text-slate-600">{subtitle}</p>
-        </div>
-
-        {rows.length === 0 ? (
-          <EmptyState />
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-[1250px] w-full border-collapse text-sm">
-              <thead>
-                <tr className="bg-slate-100 text-xs uppercase tracking-wide text-slate-600">
-                  <th className="px-4 py-3 text-left">Name</th>
-                  <th className="px-4 py-3 text-left">Email</th>
-                  <th className="px-4 py-3 text-left">Role</th>
-                  <th className="px-4 py-3 text-left">Department Routing</th>
-                  <th className="px-4 py-3 text-left">Signature</th>
-                  <th className="px-4 py-3 text-left">Joined</th>
-                  <th className="px-4 py-3 text-right">Save</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {rows.map((u) => (
-                  <UserTableRow
-                    key={u.id}
-                    u={u}
-                    depts={depts}
-                    deptMap={deptMap}
-                    saving={savingId === u.id}
-                    disabled={!!savingId || refreshing}
-                    onSave={onSave}
-                  />
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-    </>
-  );
-}
-
 function UserTableRow({
   u,
+  roles,
   depts,
   deptMap,
+  roleMap,
   saving,
   disabled,
   onSave,
 }: {
   u: ProfileRow;
+  roles: ReqgenRole[];
   depts: Dept[];
   deptMap: Record<string, string>;
+  roleMap: Record<string, ReqgenRole>;
   saving: boolean;
   disabled: boolean;
   onSave: (id: string, patch: Partial<ProfileRow>) => Promise<void>;
@@ -898,6 +632,9 @@ function UserTableRow({
   }, [u.id, u.role, u.dept_id]);
 
   const changed = role !== (u.role || "Staff") || deptId !== (u.dept_id || "");
+  const ready = !!u.signature_url;
+  const currentRoleInfo = roleMap[roleKey(role)];
+  const signatureRequired = !!currentRoleInfo?.requires_signature;
 
   return (
     <tr className="border-t hover:bg-slate-50">
@@ -915,16 +652,23 @@ function UserTableRow({
           value={role}
           onChange={(e) => setRole(e.target.value)}
           disabled={disabled}
-          className="w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500 disabled:bg-slate-50"
+          className="w-full min-w-[170px] rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500 disabled:bg-slate-50"
         >
-          {ROLES.map((r) => (
-            <option key={r} value={r}>
-              {r}
+          {roles.map((r) => (
+            <option key={r.id} value={r.role_name}>
+              {r.role_name}
+              {r.requires_signature ? " • Signature" : ""}
             </option>
           ))}
         </select>
 
-        <RoleBadge role={role} />
+        <span
+          className={`mt-2 inline-flex rounded-full border px-2 py-1 text-[11px] font-bold ${roleBadgeClass(
+            role
+          )}`}
+        >
+          {role}
+        </span>
       </td>
 
       <td className="px-4 py-4">
@@ -932,7 +676,7 @@ function UserTableRow({
           value={deptId}
           onChange={(e) => setDeptId(e.target.value)}
           disabled={disabled}
-          className="w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500 disabled:bg-slate-50"
+          className="w-full min-w-[220px] rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500 disabled:bg-slate-50"
         >
           <option value="">— None —</option>
           {depts.map((d) => (
@@ -942,14 +686,23 @@ function UserTableRow({
           ))}
         </select>
 
-        <div className="mt-1 text-[11px] text-slate-500">Use mainly for HOD/Director routing.</div>
+        <div className="mt-1 text-[11px] text-slate-500">
+          Use for department-based routing.
+        </div>
       </td>
 
       <td className="px-4 py-4">
-        <SignatureBadge ready={!!u.signature_url} />
-        {requiresSignature(role) && !u.signature_url && (
-          <div className="mt-2 text-[11px] font-semibold text-red-700">
-            Required for selected role
+        <span
+          className={`inline-flex rounded-full border px-3 py-1 text-xs font-bold ${signatureBadgeClass(
+            ready
+          )}`}
+        >
+          {ready ? "Signature Ready" : "No Signature"}
+        </span>
+
+        {signatureRequired && !ready && (
+          <div className="mt-1 text-[11px] font-semibold text-red-600">
+            Required for {role}
           </div>
         )}
       </td>
@@ -960,7 +713,7 @@ function UserTableRow({
         <button
           disabled={!changed || saving || disabled}
           onClick={() => onSave(u.id, { role, dept_id: deptId || null })}
-          className="rounded-xl bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+          className="rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
         >
           {saving ? "Saving..." : "Save"}
         </button>
@@ -971,15 +724,19 @@ function UserTableRow({
 
 function UserCard({
   u,
+  roles,
   depts,
   deptMap,
+  roleMap,
   saving,
   disabled,
   onSave,
 }: {
   u: ProfileRow;
+  roles: ReqgenRole[];
   depts: Dept[];
   deptMap: Record<string, string>;
+  roleMap: Record<string, ReqgenRole>;
   saving: boolean;
   disabled: boolean;
   onSave: (id: string, patch: Partial<ProfileRow>) => Promise<void>;
@@ -993,6 +750,9 @@ function UserCard({
   }, [u.id, u.role, u.dept_id]);
 
   const changed = role !== (u.role || "Staff") || deptId !== (u.dept_id || "");
+  const ready = !!u.signature_url;
+  const currentRoleInfo = roleMap[roleKey(role)];
+  const signatureRequired = !!currentRoleInfo?.requires_signature;
 
   return (
     <div className="rounded-3xl border bg-white p-5 shadow-sm">
@@ -1003,10 +763,25 @@ function UserCard({
           <div className="mt-1 text-xs text-slate-500">Joined {shortDate(u.created_at)}</div>
         </div>
 
-        <div className="flex flex-wrap justify-end gap-2">
-          <RoleBadge role={role} />
-          <SignatureBadge ready={!!u.signature_url} />
-        </div>
+        <span className={`rounded-full border px-3 py-1 text-xs font-bold ${roleBadgeClass(role)}`}>
+          {role}
+        </span>
+      </div>
+
+      <div className="mt-3">
+        <span
+          className={`inline-flex rounded-full border px-3 py-1 text-xs font-bold ${signatureBadgeClass(
+            ready
+          )}`}
+        >
+          {ready ? "Signature Ready" : "No Signature"}
+        </span>
+
+        {signatureRequired && !ready && (
+          <div className="mt-2 text-xs font-semibold text-red-600">
+            This selected role requires signature readiness.
+          </div>
+        )}
       </div>
 
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
@@ -1018,18 +793,13 @@ function UserCard({
             disabled={disabled}
             className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500 disabled:bg-slate-50"
           >
-            {ROLES.map((r) => (
-              <option key={r} value={r}>
-                {r}
+            {roles.map((r) => (
+              <option key={r.id} value={r.role_name}>
+                {r.role_name}
+                {r.requires_signature ? " • Signature" : ""}
               </option>
             ))}
           </select>
-
-          {requiresSignature(role) && !u.signature_url && (
-            <div className="mt-2 text-xs font-semibold text-red-700">
-              This selected role requires signature.
-            </div>
-          )}
         </div>
 
         <div>
@@ -1067,30 +837,6 @@ function UserCard({
   );
 }
 
-function RoleBadge({ role }: { role: string | null | undefined }) {
-  return (
-    <span
-      className={`mt-2 inline-flex rounded-full border px-2 py-1 text-[11px] font-bold ${roleBadgeClass(
-        role || "Staff"
-      )}`}
-    >
-      {role || "Staff"}
-    </span>
-  );
-}
-
-function SignatureBadge({ ready }: { ready: boolean }) {
-  return (
-    <span
-      className={`inline-flex rounded-full border px-3 py-1 text-xs font-bold ${signatureBadgeClass(
-        ready
-      )}`}
-    >
-      {ready ? "Signature Ready" : "No Signature"}
-    </span>
-  );
-}
-
 function StatCard({
   title,
   value,
@@ -1120,40 +866,6 @@ function StatCard({
         {value}
       </div>
     </div>
-  );
-}
-
-function WideStat({
-  title,
-  value,
-  tone,
-}: {
-  title: string;
-  value: string;
-  tone: "blue" | "slate" | "red" | "purple" | "emerald" | "amber";
-}) {
-  return <StatCard title={title} value={value} tone={tone} />;
-}
-
-function TabButton({
-  label,
-  active,
-  onClick,
-}: {
-  label: string;
-  active: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`rounded-2xl px-4 py-3 text-sm font-bold transition ${
-        active ? "bg-blue-600 text-white shadow-sm" : "bg-white text-slate-700 hover:bg-slate-100"
-      }`}
-    >
-      {label}
-    </button>
   );
 }
 
