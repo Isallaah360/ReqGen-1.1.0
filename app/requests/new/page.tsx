@@ -33,12 +33,21 @@ type ProfileMini = {
   signature_url: string | null;
 };
 
-type RequestClass = "Financial" | "NonFinancial";
-type RequestOtpChannel = "sms" | "email" | "sms_email";
+type RequestType = "Official" | "Personal";
+type PersonalCategory = "Fund" | "Leave" | "Contract Renewal" | "Resignation" | "Others";
+type RequestOtpChannel = "sms" | "email" | "email_sms";
 
 const MAX_ATTACHMENTS = 50;
 const MAX_FILE_SIZE_MB = 10;
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
+
+const PERSONAL_CATEGORIES: PersonalCategory[] = [
+  "Fund",
+  "Leave",
+  "Contract Renewal",
+  "Resignation",
+  "Others",
+];
 
 const requestOtpEnabled =
   process.env.NEXT_PUBLIC_REQGEN_REQUEST_OTP_ENABLED === "true";
@@ -47,16 +56,13 @@ const requestNotificationsEnabled =
   process.env.NEXT_PUBLIC_REQGEN_NOTIFICATIONS_ENABLED === "true";
 
 function configuredOtpChannel(): RequestOtpChannel {
-  const raw = String(process.env.NEXT_PUBLIC_REQGEN_REQUEST_OTP_CHANNEL || "sms_email")
+  const raw = String(process.env.NEXT_PUBLIC_REQGEN_REQUEST_OTP_CHANNEL || "sms")
     .trim()
-    .toLowerCase()
-    .replace(/-/g, "_");
+    .toLowerCase();
 
-  if (raw === "sms") return "sms";
   if (raw === "email") return "email";
-  if (raw === "email_sms" || raw === "sms_email") return "sms_email";
-
-  return "sms_email";
+  if (raw === "email_sms") return "email_sms";
+  return "sms";
 }
 
 const requestOtpChannel = configuredOtpChannel();
@@ -146,11 +152,8 @@ function hasLikelyPhone(phone: string | null | undefined) {
   return raw.length >= 10;
 }
 
-function otpChannelLabel(channel: RequestOtpChannel | "unknown") {
-  if (channel === "sms") return "SMS OTP";
-  if (channel === "email") return "Email OTP";
-  if (channel === "sms_email") return "SMS/Email OTP";
-  return "OTP";
+function isDinDepartment(name: string | null | undefined) {
+  return String(name || "").toUpperCase().includes("DIN");
 }
 
 export default function NewRequestPage() {
@@ -172,7 +175,8 @@ export default function NewRequestPage() {
 
   const otpAutoSubmittingRef = useRef(false);
 
-  const [requestClass, setRequestClass] = useState<RequestClass>("Financial");
+  const [requestType, setRequestType] = useState<RequestType>("Official");
+  const [personalCategory, setPersonalCategory] = useState<PersonalCategory>("Fund");
 
   const [depts, setDepts] = useState<Dept[]>([]);
   const [subs, setSubs] = useState<Subhead[]>([]);
@@ -194,26 +198,39 @@ export default function NewRequestPage() {
     "auditor",
     "director",
     "hod",
+    "dinadmin",
     "hr",
     "registry",
     "dg",
     "account",
     "accounts",
     "accountofficer",
-    "dinadmin",
   ].includes(rk);
 
-  const isFinancial = requestClass === "Financial";
-  const isNonFinancial = requestClass === "NonFinancial";
+  const isOfficial = requestType === "Official";
+  const isPersonal = requestType === "Personal";
+  const isPersonalFund = isPersonal && personalCategory === "Fund";
+  const requiresAmount = isOfficial || isPersonalFund;
 
-  const otpLabel = otpChannelLabel(requestOtpChannel);
+  const otpLabel =
+    requestOtpChannel === "sms"
+      ? "SMS OTP"
+      : requestOtpChannel === "email_sms"
+      ? "SMS/Email OTP"
+      : "Email OTP";
 
   const otpDestinationLabel =
     requestOtpChannel === "sms"
       ? `your registered phone: ${maskPhone(me?.phone)}`
-      : requestOtpChannel === "sms_email"
+      : requestOtpChannel === "email_sms"
       ? `your registered phone: ${maskPhone(me?.phone)} and email: ${maskEmail(me?.email)}`
       : `your registered email: ${maskEmail(me?.email)}`;
+
+  const selectedDept = useMemo(() => {
+    return depts.find((d) => d.id === deptId) || null;
+  }, [depts, deptId]);
+
+  const selectedDeptIsDin = isDinDepartment(selectedDept?.name);
 
   const filteredSubs = useMemo(() => {
     return subs.filter((s) => s.dept_id === deptId);
@@ -313,17 +330,22 @@ export default function NewRequestPage() {
   }, []);
 
   useEffect(() => {
-    if (isNonFinancial) {
-      setAmount("");
+    if (!isOfficial) {
       setSubheadId("");
       return;
     }
 
-    if (isFinancial && canSeeSubheads) {
+    if (isOfficial && canSeeSubheads) {
       const first = filteredSubs[0];
       setSubheadId(first?.id || "");
     }
-  }, [isNonFinancial, isFinancial, canSeeSubheads, filteredSubs]);
+  }, [isOfficial, canSeeSubheads, filteredSubs]);
+
+  useEffect(() => {
+    if (!requiresAmount) {
+      setAmount("");
+    }
+  }, [requiresAmount]);
 
   useEffect(() => {
     setSignedRequest(false);
@@ -332,7 +354,16 @@ export default function NewRequestPage() {
     setOtpCode("");
     setOtpChannel("unknown");
     otpAutoSubmittingRef.current = false;
-  }, [requestClass, deptId, subheadId, title, amount, details, attachments.length]);
+  }, [
+    requestType,
+    personalCategory,
+    deptId,
+    subheadId,
+    title,
+    amount,
+    details,
+    attachments.length,
+  ]);
 
   function handleAttachmentSelect(files: FileList | null) {
     setMsg(null);
@@ -377,20 +408,15 @@ export default function NewRequestPage() {
     setAttachments([]);
   }
 
-  function getLegacyRequestType() {
-    if (isFinancial) return "Official";
-    return "Personal";
-  }
-
-  function getLegacyPersonalCategory() {
-    if (isFinancial) return null;
-    return "NonFund";
-  }
-
   function selectedSubheadForSubmission() {
-    if (!isFinancial) return null;
+    if (!isOfficial) return null;
     if (!canSeeSubheads) return null;
     return subheadId || null;
+  }
+
+  function submissionAmount() {
+    if (!requiresAmount) return 0;
+    return Number(amount || 0);
   }
 
   function validateRequestForm(showMessage = true) {
@@ -420,7 +446,7 @@ export default function NewRequestPage() {
       }
 
       if (
-        requestOtpChannel === "sms_email" &&
+        requestOtpChannel === "email_sms" &&
         !hasLikelyPhone(me.phone) &&
         !hasValidEmail(me.email)
       ) {
@@ -435,6 +461,16 @@ export default function NewRequestPage() {
       if (showMessage) {
         setMsg("❌ Please upload your signature in Profile before signing this request.");
       }
+      return false;
+    }
+
+    if (!requestType) {
+      if (showMessage) setMsg("❌ Please select request type.");
+      return false;
+    }
+
+    if (isPersonal && !personalCategory) {
+      if (showMessage) setMsg("❌ Please select personal request category.");
       return false;
     }
 
@@ -453,14 +489,20 @@ export default function NewRequestPage() {
       return false;
     }
 
-    const amt = isFinancial ? Number(amount || 0) : 0;
+    const amt = submissionAmount();
 
-    if (isFinancial && (!amt || amt <= 0)) {
-      if (showMessage) setMsg("❌ Enter a valid amount for this financial request.");
+    if (requiresAmount && (!amt || amt <= 0)) {
+      if (showMessage) {
+        setMsg(
+          isOfficial
+            ? "❌ Enter a valid amount for this Official request."
+            : "❌ Enter a valid amount for this Personal Fund request."
+        );
+      }
       return false;
     }
 
-    if (isFinancial && canSeeSubheads && subheadId && selectedSubhead && amt > availableBalance) {
+    if (isOfficial && canSeeSubheads && subheadId && selectedSubhead && amt > availableBalance) {
       if (showMessage) {
         setMsg(`❌ Amount exceeds available balance for selected subhead (${naira(availableBalance)}).`);
       }
@@ -488,14 +530,15 @@ export default function NewRequestPage() {
       return false;
     }
 
-    const firstOwner = dept.director_user_id || dept.hod_user_id || null;
-    const firstStage = dept.director_user_id ? "Director" : dept.hod_user_id ? "HOD" : null;
+    if (isOfficial) {
+      const hasRouting = !!dept.director_user_id || !!dept.hod_user_id;
 
-    if (!firstOwner || !firstStage) {
-      if (showMessage) {
-        setMsg("❌ This department does not have Director/HOD routing set yet in Admin Panel.");
+      if (!hasRouting) {
+        if (showMessage) {
+          setMsg("❌ This department does not have Director/HOD routing set yet in Admin Panel.");
+        }
+        return false;
       }
-      return false;
     }
 
     return true;
@@ -585,7 +628,7 @@ export default function NewRequestPage() {
 
       if (result.channel === "sms") {
         setMsg("✅ SMS OTP sent to your registered phone number.");
-      } else if (result.channel === "sms_email") {
+      } else if (result.channel === "email_sms") {
         setMsg("✅ OTP sent by SMS and email.");
       } else {
         setMsg("✅ Email OTP sent to your registered email.");
@@ -743,7 +786,7 @@ export default function NewRequestPage() {
 
     if (!stillValid) return;
 
-    const amt = isFinancial ? Number(amount || 0) : 0;
+    const amt = submissionAmount();
     const requestNo = buildRequestNo();
     const requesterName = me.full_name!.trim();
     const submitSubheadId = selectedSubheadForSubmission();
@@ -757,8 +800,8 @@ export default function NewRequestPage() {
         p_amount: amt,
         p_dept_id: deptId,
         p_subhead_id: submitSubheadId,
-        p_request_type: getLegacyRequestType(),
-        p_personal_category: getLegacyPersonalCategory(),
+        p_request_type: requestType,
+        p_personal_category: isPersonal ? personalCategory : null,
         p_created_by: me.id,
         p_requester_name: requesterName,
         p_requester_signature: me.signature_url,
@@ -785,16 +828,21 @@ export default function NewRequestPage() {
 
       const fundsState = (data as any)?.funds_state || "";
       const subheadNote =
-        isFinancial && !submitSubheadId
-          ? "Subhead assignment is pending Director/HOD review. "
+        isOfficial && !submitSubheadId
+          ? "Subhead assignment is pending approval review. "
           : fundsState === "Reserved"
           ? "Funds reserved from selected subhead. "
           : "";
 
+      const dinNote =
+        isOfficial && selectedDeptIsDin
+          ? "DIN Official routing is active for this request. "
+          : "";
+
+      const categoryLabel = isPersonal ? `Personal ${personalCategory}` : "Official";
+
       setMsg(
-        `✅ ${
-          isFinancial ? "Financial request" : "Non-financial request"
-        } signed, OTP-verified and submitted successfully. ${subheadNote}${
+        `✅ ${categoryLabel} request signed, OTP-verified and submitted successfully. ${dinNote}${subheadNote}${
           uploadedCount > 0 ? `${uploadedCount} attachment(s) uploaded. ` : ""
         }Routed to ${(data as any)?.first_stage || "next officer"}.`
       );
@@ -803,7 +851,8 @@ export default function NewRequestPage() {
       setAmount("");
       setDetails("");
       setAttachments([]);
-      setRequestClass("Financial");
+      setRequestType("Official");
+      setPersonalCategory("Fund");
       setSignedRequest(false);
       setSignedAt(null);
       setOtpSent(false);
@@ -842,14 +891,16 @@ export default function NewRequestPage() {
               New Request
             </h1>
             <p className="mt-2 text-sm text-slate-600">
-              Staff can submit Financial and Non-Financial requests securely. OTP protection is
-              active through the configured SMS and Email channels.
+              Submit Official or Personal requests with signature and OTP verification.
+            </p>
+            <p className="mt-1 text-xs font-semibold text-slate-500">
+              Official DIN requests pass through DIN Admin. Personal requests go directly through HR workflow.
             </p>
           </div>
 
           <button
             type="button"
-            onClick={() => router.push("/requests")}
+            onClick={() => router.push(`/requests?updated=${Date.now()}`)}
             className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
           >
             Back to Requests
@@ -858,8 +909,7 @@ export default function NewRequestPage() {
 
         {requestOtpEnabled ? (
           <div className="mt-4 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-900">
-            {otpLabel} protection is active. Sign the request first, then verify OTP before
-            submission.
+            {otpLabel} protection is active. Sign the request first, then verify OTP before submission.
           </div>
         ) : (
           <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900">
@@ -870,12 +920,6 @@ export default function NewRequestPage() {
         {requestOtpEnabled && (
           <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">
             OTP will be sent to {otpDestinationLabel}.
-
-            {requestOtpChannel === "sms_email" && (
-              <span className="block pt-1 text-xs font-semibold text-emerald-700">
-                SMS and Email are both enabled for stronger OTP delivery.
-              </span>
-            )}
 
             {requestOtpChannel === "sms" && me?.email ? (
               <span className="block pt-1 text-xs font-semibold text-emerald-700">
@@ -888,33 +932,19 @@ export default function NewRequestPage() {
                 No valid phone number found. Update Profile before submitting with SMS OTP.
               </span>
             ) : null}
-
-            {requestOtpChannel === "email" && !hasValidEmail(me?.email) ? (
-              <span className="block pt-1 text-xs font-semibold text-red-700">
-                No valid email found. Update Profile before submitting with Email OTP.
-              </span>
-            ) : null}
-
-            {requestOtpChannel === "sms_email" &&
-              !hasLikelyPhone(me?.phone) &&
-              !hasValidEmail(me?.email) && (
-                <span className="block pt-1 text-xs font-semibold text-red-700">
-                  No valid phone number or email found. Update Profile before submitting with OTP.
-                </span>
-              )}
           </div>
         )}
 
         {!canSeeSubheads && (
           <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
-            Your role is Staff. Financial subhead and balance information are hidden. Director/HOD
-            will assign the correct subhead during review.
+            Your role is Staff. Official request subhead and balance information are hidden.
+            Director/DIN Admin/HOD will assign the correct subhead where required.
           </div>
         )}
 
         {canSeeSubheads && (
           <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">
-            Your role permits finance visibility. You can select a subhead for Financial Requests.
+            Your role permits finance visibility. You can select a subhead for Official Requests.
           </div>
         )}
 
@@ -927,57 +957,95 @@ export default function NewRequestPage() {
         <div className="mt-6 rounded-2xl border bg-white p-6 shadow-sm">
           <div className="grid gap-4 md:grid-cols-2">
             <div>
-              <label className="text-sm font-semibold text-slate-800">Request Category</label>
+              <label className="text-sm font-semibold text-slate-800">Request Type</label>
               <select
-                value={requestClass}
+                value={requestType}
                 onChange={(e) => {
-                  const v = e.target.value as RequestClass;
-                  setRequestClass(v);
+                  const v = e.target.value as RequestType;
+                  setRequestType(v);
 
-                  if (v === "NonFinancial") {
-                    setAmount("");
+                  if (v === "Personal") {
                     setSubheadId("");
                   }
                 }}
                 className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
               >
-                <option value="Financial">Financial Request</option>
-                <option value="NonFinancial">Non-Financial Request</option>
+                <option value="Official">Official Request</option>
+                <option value="Personal">Personal Request</option>
               </select>
             </div>
 
-            <div>
-              <label className="text-sm font-semibold text-slate-800">Department</label>
-              <select
-                value={deptId}
-                onChange={(e) => setDeptId(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
-              >
-                {depts.map((d) => (
-                  <option key={d.id} value={d.id}>
-                    {d.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {isPersonal ? (
+              <div>
+                <label className="text-sm font-semibold text-slate-800">
+                  Personal Request Category
+                </label>
+                <select
+                  value={personalCategory}
+                  onChange={(e) => setPersonalCategory(e.target.value as PersonalCategory)}
+                  className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
+                >
+                  {PERSONAL_CATEGORIES.map((cat) => (
+                    <option key={cat} value={cat}>
+                      {cat}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : (
+              <div>
+                <label className="text-sm font-semibold text-slate-800">Department</label>
+                <select
+                  value={deptId}
+                  onChange={(e) => setDeptId(e.target.value)}
+                  className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
+                >
+                  {depts.map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
 
-            {isFinancial && (
+            {isPersonal && (
+              <div>
+                <label className="text-sm font-semibold text-slate-800">Department</label>
+                <select
+                  value={deptId}
+                  onChange={(e) => setDeptId(e.target.value)}
+                  className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
+                >
+                  {depts.map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {isOfficial && (
               <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-900 md:col-span-2">
-                Financial Request is money-related.{" "}
-                {canSeeSubheads
-                  ? "You may select the appropriate subhead now. If no subhead is selected, it will remain pending Director/HOD assignment."
-                  : "The approving Director/HOD will review and assign the appropriate subhead before the request continues."}
+                <b>Official Request:</b> This is an institutional/work-related request. Amount is required.
+                {selectedDeptIsDin
+                  ? " Because this is a DIN department, the request will pass through DIN Admin before HOD."
+                  : " It will follow the normal Director/HOD to DG and AccountOfficer approval flow."}
               </div>
             )}
 
-            {isNonFinancial && (
+            {isPersonal && (
               <div className="rounded-xl border border-purple-100 bg-purple-50 px-4 py-3 text-sm text-purple-900 md:col-span-2">
-                Non-Financial Request does not require amount or subhead. It will follow the
-                administrative review and filing flow.
+                <b>Personal Request:</b>{" "}
+                {isPersonalFund
+                  ? "Fund request requires amount. It goes HR → DG → AccountOfficer → HR Filing."
+                  : `${personalCategory} request does not require amount. It goes HR → DG → HR Filing.`}
+                {" "}Personal requests never pass through DIN Admin.
               </div>
             )}
 
-            {isFinancial && canSeeSubheads && (
+            {isOfficial && canSeeSubheads && (
               <div className="md:col-span-2">
                 <label className="text-sm font-semibold text-slate-800">
                   Subhead / Budget Line
@@ -1037,7 +1105,7 @@ export default function NewRequestPage() {
               />
             </div>
 
-            {isFinancial && (
+            {requiresAmount ? (
               <div>
                 <label className="text-sm font-semibold text-slate-800">Amount (₦)</label>
                 <input
@@ -1048,9 +1116,7 @@ export default function NewRequestPage() {
                   placeholder="0"
                 />
               </div>
-            )}
-
-            {isNonFinancial && (
+            ) : (
               <div>
                 <label className="text-sm font-semibold text-slate-800">Amount</label>
                 <input
@@ -1221,7 +1287,7 @@ export default function NewRequestPage() {
             </div>
 
             <h2 className="mt-1 text-2xl font-extrabold text-slate-900">
-              Enter {otpChannelLabel(otpChannel)}
+              Enter {otpLabel}
             </h2>
 
             <p className="mt-2 text-sm leading-6 text-slate-600">
@@ -1229,7 +1295,7 @@ export default function NewRequestPage() {
               <b>
                 {otpChannel === "sms"
                   ? `your registered phone ${maskPhone(me?.phone)}`
-                  : otpChannel === "sms_email"
+                  : otpChannel === "email_sms"
                   ? `your registered phone ${maskPhone(me?.phone)} and email ${maskEmail(me?.email)}`
                   : `your registered email ${maskEmail(me?.email)}`}
               </b>
@@ -1242,14 +1308,14 @@ export default function NewRequestPage() {
               </div>
             )}
 
-            {otpChannel === "sms_email" && (
+            {otpChannel === "email_sms" && (
               <div className="mt-4 rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-900">
                 OTP was sent by SMS and email for stronger delivery.
               </div>
             )}
 
             {otpChannel === "email" && (
-              <div className="mt-4 rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-900">
+              <div className="mt-4 rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-900">
                 Email OTP was sent to your registered email address.
               </div>
             )}
