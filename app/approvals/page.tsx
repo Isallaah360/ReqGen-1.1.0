@@ -16,8 +16,38 @@ type RequestRow = {
   personal_category: string | null;
 };
 
+type StageFilter =
+  | "ALL"
+  | "DIRECTOR"
+  | "DINADMIN"
+  | "HOD"
+  | "HR"
+  | "DG"
+  | "ACCOUNT"
+  | "HRFILING";
+
+type TypeFilter =
+  | "ALL"
+  | "OFFICIAL"
+  | "PERSONAL_FUND"
+  | "PERSONAL_NONFUND";
+
 function naira(value: number | null | undefined) {
   return "₦" + Math.round(Number(value || 0)).toLocaleString();
+}
+
+function stageKey(stage: string | null | undefined) {
+  return String(stage || "")
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, "");
+}
+
+function categoryKey(category: string | null | undefined) {
+  return String(category || "")
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, "");
 }
 
 function statusClass(status: string | null | undefined) {
@@ -31,6 +61,10 @@ function statusClass(status: string | null | undefined) {
     return "border-emerald-200 bg-emerald-50 text-emerald-700";
   }
 
+  if (s.includes("filing")) {
+    return "border-purple-200 bg-purple-50 text-purple-700";
+  }
+
   if (s.includes("submit") || s.includes("review") || s.includes("pending")) {
     return "border-blue-200 bg-blue-50 text-blue-700";
   }
@@ -39,32 +73,48 @@ function statusClass(status: string | null | undefined) {
 }
 
 function stageClass(stage: string | null | undefined) {
-  const s = String(stage || "").toLowerCase();
+  const s = stageKey(stage);
 
-  if (s.includes("account")) return "border-purple-200 bg-purple-50 text-purple-700";
-  if (s.includes("dg")) return "border-amber-200 bg-amber-50 text-amber-800";
-  if (s.includes("registry")) return "border-blue-200 bg-blue-50 text-blue-700";
-  if (s.includes("director") || s.includes("hod")) {
+  if (s === "DINADMIN") return "border-blue-200 bg-blue-50 text-blue-700";
+  if (s === "ACCOUNT") return "border-purple-200 bg-purple-50 text-purple-700";
+  if (s === "DG") return "border-amber-200 bg-amber-50 text-amber-800";
+  if (s === "DIRECTOR" || s === "HOD") {
     return "border-emerald-200 bg-emerald-50 text-emerald-700";
   }
-  if (s.includes("hr")) return "border-pink-200 bg-pink-50 text-pink-700";
-  if (s.includes("reject") || s.includes("delete")) return "border-red-200 bg-red-50 text-red-700";
+  if (s === "HR" || s === "HRFILING") {
+    return "border-pink-200 bg-pink-50 text-pink-700";
+  }
+  if (s.includes("REJECT") || s.includes("DELETE")) {
+    return "border-red-200 bg-red-50 text-red-700";
+  }
 
   return "border-slate-200 bg-slate-50 text-slate-700";
 }
 
 function requestTypeLabel(row: RequestRow) {
-  if (row.request_type === "Official") return "Official";
+  const rt = String(row.request_type || "").trim();
+  const cat = String(row.personal_category || "").trim();
 
-  if (row.request_type === "Personal" && row.personal_category === "Fund") {
-    return "Personal Fund";
+  if (rt === "Official") return "Official";
+
+  if (rt === "Personal") {
+    if (categoryKey(cat) === "FUND") return "Personal Fund";
+    if (cat) return `Personal ${cat}`;
+    return "Personal";
   }
 
-  if (row.request_type === "Personal" && row.personal_category === "NonFund") {
-    return "Personal NonFund";
-  }
+  return rt || "—";
+}
 
-  return row.request_type || "—";
+function requestGroup(row: RequestRow): TypeFilter {
+  const rt = String(row.request_type || "").trim().toUpperCase();
+  const cat = categoryKey(row.personal_category);
+
+  if (rt === "OFFICIAL") return "OFFICIAL";
+  if (rt === "PERSONAL" && cat === "FUND") return "PERSONAL_FUND";
+  if (rt === "PERSONAL") return "PERSONAL_NONFUND";
+
+  return "ALL";
 }
 
 function isActiveApproval(row: RequestRow) {
@@ -80,6 +130,60 @@ function isActiveApproval(row: RequestRow) {
   );
 }
 
+function workflowNote(row: RequestRow) {
+  const rt = String(row.request_type || "").trim().toUpperCase();
+  const cat = categoryKey(row.personal_category);
+  const st = stageKey(row.current_stage);
+
+  if (rt === "OFFICIAL") {
+    if (st === "DINADMIN") {
+      return "Official DIN review before HOD.";
+    }
+
+    if (st === "HOD") {
+      return "HOD review. Subhead must be assigned before DG approval.";
+    }
+
+    if (st === "DG") {
+      return "DG approval. Select AccountOfficer before approving.";
+    }
+
+    if (st === "ACCOUNT") {
+      return "AccountOfficer treatment/payment stage.";
+    }
+
+    return "Official workflow approval.";
+  }
+
+  if (rt === "PERSONAL" && cat === "FUND") {
+    if (st === "HR") return "Personal Fund HR review.";
+    if (st === "DG") return "Personal Fund DG approval. Select AccountOfficer before approving.";
+    if (st === "ACCOUNT") return "Treat/pay, then send back to HR Filing.";
+    if (st === "HRFILING") return "Final HR Filing after payment.";
+
+    return "Personal Fund workflow.";
+  }
+
+  if (rt === "PERSONAL") {
+    if (st === "HR") return "Personal request HR review.";
+    if (st === "DG") return "DG approval before HR Filing.";
+    if (st === "HRFILING") return "Final HR Filing.";
+
+    return "Personal request workflow.";
+  }
+
+  return "Request awaiting your action.";
+}
+
+function amountLabel(row: RequestRow) {
+  const rt = String(row.request_type || "").trim().toUpperCase();
+  const cat = categoryKey(row.personal_category);
+
+  if (rt === "PERSONAL" && cat !== "FUND") return "Not Applicable";
+
+  return naira(row.amount);
+}
+
 export default function ApprovalsPage() {
   const router = useRouter();
 
@@ -88,6 +192,10 @@ export default function ApprovalsPage() {
   const [msg, setMsg] = useState<string | null>(null);
   const [rows, setRows] = useState<RequestRow[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+
+  const [search, setSearch] = useState("");
+  const [typeFilter, setTypeFilter] = useState<TypeFilter>("ALL");
+  const [stageFilter, setStageFilter] = useState<StageFilter>("ALL");
 
   const load = useCallback(
     async (options?: { silent?: boolean }) => {
@@ -161,30 +269,72 @@ export default function ApprovalsPage() {
     };
   }, [load]);
 
+  const filteredRows = useMemo(() => {
+    const q = search.trim().toLowerCase();
+
+    return rows.filter((row) => {
+      const rowGroup = requestGroup(row);
+      const rowStage = stageKey(row.current_stage);
+
+      if (typeFilter !== "ALL" && rowGroup !== typeFilter) return false;
+      if (stageFilter !== "ALL" && rowStage !== stageFilter) return false;
+
+      if (!q) return true;
+
+      const haystack = [
+        row.request_no,
+        row.title,
+        row.status,
+        row.current_stage,
+        row.request_type,
+        row.personal_category,
+        workflowNote(row),
+      ]
+        .join(" ")
+        .toLowerCase();
+
+      return haystack.includes(q);
+    });
+  }, [rows, search, typeFilter, stageFilter]);
+
   const counts = useMemo(() => {
     const total = rows.length;
 
-    const financial = rows.filter((r) => {
-      return r.request_type === "Official" || r.personal_category === "Fund";
-    }).length;
+    const official = rows.filter((r) => requestGroup(r) === "OFFICIAL").length;
+    const personalFund = rows.filter((r) => requestGroup(r) === "PERSONAL_FUND").length;
+    const personalNonFund = rows.filter((r) => requestGroup(r) === "PERSONAL_NONFUND").length;
 
-    const nonFinancial = rows.filter((r) => {
-      return r.request_type === "Personal" && r.personal_category === "NonFund";
-    }).length;
+    const totalAmount = rows.reduce((sum, r) => {
+      const group = requestGroup(r);
 
-    const totalAmount = rows.reduce((sum, r) => sum + Number(r.amount || 0), 0);
+      if (group === "PERSONAL_NONFUND") return sum;
+
+      return sum + Number(r.amount || 0);
+    }, 0);
+
+    const dinAdmin = rows.filter((r) => stageKey(r.current_stage) === "DINADMIN").length;
+    const hrFiling = rows.filter((r) => stageKey(r.current_stage) === "HRFILING").length;
 
     return {
       total,
-      financial,
-      nonFinancial,
+      official,
+      personalFund,
+      personalNonFund,
       totalAmount,
+      dinAdmin,
+      hrFiling,
     };
   }, [rows]);
 
   function openRequest(requestId: string) {
     router.push(`/requests/${requestId}?updated=${Date.now()}`);
     router.refresh();
+  }
+
+  function resetFilters() {
+    setSearch("");
+    setTypeFilter("ALL");
+    setStageFilter("ALL");
   }
 
   return (
@@ -204,6 +354,10 @@ export default function ApprovalsPage() {
                 </span>
               )}
             </p>
+
+            <p className="mt-1 text-xs font-semibold text-slate-500">
+              Official DIN, Official General, Personal Fund, and Personal HR Filing workflows are supported.
+            </p>
           </div>
 
           <div className="flex flex-wrap gap-2">
@@ -218,7 +372,7 @@ export default function ApprovalsPage() {
 
             <button
               type="button"
-              onClick={() => router.push("/dashboard")}
+              onClick={() => router.push(`/dashboard?updated=${Date.now()}`)}
               className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-900 shadow-sm hover:bg-slate-100"
             >
               Dashboard
@@ -226,11 +380,70 @@ export default function ApprovalsPage() {
           </div>
         </div>
 
-        <div className="mt-5 grid gap-3 md:grid-cols-4">
-          <CountCard label="Pending My Approval" value={counts.total} tone="red" />
-          <CountCard label="Financial / Fund" value={counts.financial} tone="blue" />
-          <CountCard label="Non-Financial" value={counts.nonFinancial} tone="emerald" />
+        <div className="mt-5 grid gap-3 md:grid-cols-4 xl:grid-cols-7">
+          <CountCard label="My Pending" value={counts.total} tone="red" />
+          <CountCard label="Official" value={counts.official} tone="blue" />
+          <CountCard label="Personal Fund" value={counts.personalFund} tone="purple" />
+          <CountCard label="Personal Other" value={counts.personalNonFund} tone="emerald" />
+          <CountCard label="DIN Admin" value={counts.dinAdmin} tone="blue" />
+          <CountCard label="HR Filing" value={counts.hrFiling} tone="emerald" />
           <CountCard label="Total Amount" value={naira(counts.totalAmount)} tone="purple" />
+        </div>
+
+        <div className="mt-5 rounded-2xl border bg-white p-4 shadow-sm">
+          <div className="grid gap-3 md:grid-cols-4">
+            <div className="md:col-span-2">
+              <label className="text-sm font-bold text-slate-800">Search</label>
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search request no, title, stage, type..."
+                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-bold text-slate-800">Request Type</label>
+              <select
+                value={typeFilter}
+                onChange={(e) => setTypeFilter(e.target.value as TypeFilter)}
+                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
+              >
+                <option value="ALL">All Types</option>
+                <option value="OFFICIAL">Official</option>
+                <option value="PERSONAL_FUND">Personal Fund</option>
+                <option value="PERSONAL_NONFUND">Personal Leave/Contract/Resignation/Others</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="text-sm font-bold text-slate-800">Stage</label>
+              <select
+                value={stageFilter}
+                onChange={(e) => setStageFilter(e.target.value as StageFilter)}
+                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
+              >
+                <option value="ALL">All Stages</option>
+                <option value="DIRECTOR">Director</option>
+                <option value="DINADMIN">DIN Admin</option>
+                <option value="HOD">HOD</option>
+                <option value="HR">HR</option>
+                <option value="DG">DG</option>
+                <option value="ACCOUNT">AccountOfficer</option>
+                <option value="HRFILING">HR Filing</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="mt-3 flex justify-end">
+            <button
+              type="button"
+              onClick={resetFilters}
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-900 hover:bg-slate-100"
+            >
+              Reset Filters
+            </button>
+          </div>
         </div>
 
         {msg && (
@@ -243,11 +456,11 @@ export default function ApprovalsPage() {
           <div className="mt-6 rounded-2xl border bg-white p-6 text-slate-600 shadow-sm">
             Loading approvals...
           </div>
-        ) : rows.length === 0 ? (
+        ) : filteredRows.length === 0 ? (
           <div className="mt-6 rounded-2xl border bg-white p-6 shadow-sm">
             <div className="text-base font-bold text-slate-900">No pending approvals.</div>
             <p className="mt-1 text-sm text-slate-600">
-              There is currently no request assigned to you for action.
+              There is currently no request assigned to you for action using the selected filters.
             </p>
           </div>
         ) : (
@@ -261,7 +474,7 @@ export default function ApprovalsPage() {
               <div className="col-span-1 text-right">Amount</div>
             </div>
 
-            {rows.map((r) => (
+            {filteredRows.map((r) => (
               <button
                 key={r.id}
                 type="button"
@@ -302,11 +515,15 @@ export default function ApprovalsPage() {
                   </div>
 
                   <div className="text-sm font-extrabold text-slate-900 md:col-span-1 md:text-right">
-                    {naira(r.amount)}
+                    {amountLabel(r)}
                   </div>
                 </div>
 
                 <div className="mt-2 text-xs font-semibold text-slate-500">
+                  {workflowNote(r)}
+                </div>
+
+                <div className="mt-1 text-xs font-semibold text-slate-500">
                   Created: {new Date(r.created_at).toLocaleString()}
                 </div>
               </button>
@@ -336,12 +553,12 @@ function CountCard({
     tone === "blue"
       ? "border-blue-200 bg-blue-50 text-blue-800"
       : tone === "emerald"
-      ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-      : tone === "red"
-      ? "border-red-200 bg-red-50 text-red-800"
-      : tone === "purple"
-      ? "border-purple-200 bg-purple-50 text-purple-800"
-      : "border-slate-200 bg-white text-slate-800";
+        ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+        : tone === "red"
+          ? "border-red-200 bg-red-50 text-red-800"
+          : tone === "purple"
+            ? "border-purple-200 bg-purple-50 text-purple-800"
+            : "border-slate-200 bg-white text-slate-800";
 
   return (
     <div className={`rounded-2xl border p-4 shadow-sm ${cls}`}>
