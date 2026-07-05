@@ -34,6 +34,8 @@ type DashboardCounts = {
   myCompletedRequests: number;
   myRejectedRequests: number;
   accountStageAssignedToMe: number;
+  hrFilingAssignedToMe: number;
+  dinAdminAssignedToMe: number;
   paymentPrintReady: number;
   unreadNotifications: number;
 };
@@ -77,6 +79,8 @@ export default function DashboardPage() {
     myCompletedRequests: 0,
     myRejectedRequests: 0,
     accountStageAssignedToMe: 0,
+    hrFilingAssignedToMe: 0,
+    dinAdminAssignedToMe: 0,
     paymentPrintReady: 0,
     unreadNotifications: 0,
   });
@@ -87,6 +91,8 @@ export default function DashboardPage() {
   const canFinance = ["admin", "auditor", "account", "accounts", "accountofficer"].includes(rk);
   const canHR = ["admin", "auditor", "hr"].includes(rk);
   const isAccountRole = ["account", "accounts", "accountofficer"].includes(rk);
+  const isDinAdminRole = rk === "dinadmin";
+  const isHrRole = rk === "hr";
 
   const isSessionMfaVerified = security.currentLevel === "aal2";
   const isMfaSetupComplete = security.hasVerifiedTotp;
@@ -103,13 +109,15 @@ export default function DashboardPage() {
       completedRes,
       rejectedRes,
       accountStageRes,
+      hrFilingRes,
+      dinAdminRes,
       unreadNotifRes,
     ] = await Promise.all([
       supabase
         .from("requests")
         .select("*", { count: "exact", head: true })
         .eq("current_owner", userId)
-        .not("status", "in", '("Rejected","Deleted","Cancelled","Paid","Closed")'),
+        .not("status", "in", '("Rejected","Deleted","Cancelled","Paid","Closed","Completed")'),
 
       supabase
         .from("requests")
@@ -126,14 +134,28 @@ export default function DashboardPage() {
         .from("requests")
         .select("*", { count: "exact", head: true })
         .eq("created_by", userId)
-        .eq("status", "Rejected"),
+        .in("status", ["Rejected", "Deleted", "Cancelled"]),
 
       supabase
         .from("requests")
         .select("*", { count: "exact", head: true })
         .eq("current_owner", userId)
         .eq("current_stage", "Account")
-        .not("status", "in", '("Rejected","Deleted","Cancelled","Paid","Closed")'),
+        .not("status", "in", '("Rejected","Deleted","Cancelled","Paid","Closed","Completed")'),
+
+      supabase
+        .from("requests")
+        .select("*", { count: "exact", head: true })
+        .eq("current_owner", userId)
+        .eq("current_stage", "HR Filing")
+        .not("status", "in", '("Rejected","Deleted","Cancelled","Paid","Closed","Completed")'),
+
+      supabase
+        .from("requests")
+        .select("*", { count: "exact", head: true })
+        .eq("current_owner", userId)
+        .eq("current_stage", "DIN Admin")
+        .not("status", "in", '("Rejected","Deleted","Cancelled","Paid","Closed","Completed")'),
 
       supabase
         .from("notifications")
@@ -149,7 +171,7 @@ export default function DashboardPage() {
         .from("requests")
         .select("*", { count: "exact", head: true })
         .in("status", ["Paid", "Completed"])
-        .or("request_type.eq.Official,and(request_type.eq.Personal,personal_category.eq.Fund)");
+        .or("request_type.eq.Official,personal_category.eq.Fund");
 
       paymentPrintReady = Number(count || 0);
     }
@@ -160,6 +182,8 @@ export default function DashboardPage() {
       myCompletedRequests: Number(completedRes.count || 0),
       myRejectedRequests: Number(rejectedRes.count || 0),
       accountStageAssignedToMe: Number(accountStageRes.count || 0),
+      hrFilingAssignedToMe: Number(hrFilingRes.count || 0),
+      dinAdminAssignedToMe: Number(dinAdminRes.count || 0),
       paymentPrintReady,
       unreadNotifications: Number(unreadNotifRes.count || 0),
     });
@@ -247,10 +271,18 @@ export default function DashboardPage() {
       load({ silent: true });
     };
 
+    const refreshOnVisible = () => {
+      if (document.visibilityState === "visible") {
+        load({ silent: true });
+      }
+    };
+
     window.addEventListener("focus", refreshOnFocus);
+    document.addEventListener("visibilitychange", refreshOnVisible);
 
     return () => {
       window.removeEventListener("focus", refreshOnFocus);
+      document.removeEventListener("visibilitychange", refreshOnVisible);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -259,19 +291,20 @@ export default function DashboardPage() {
     const cards: QuickCard[] = [
       {
         title: "Create New Request",
-        description: "Start an official, personal fund, or personal non-fund request.",
+        description:
+          "Start an Official request or a Personal request such as Fund, Leave, Contract Renewal, Resignation or Others.",
         href: "/requests/new",
         tone: "blue",
       },
       {
         title: "My Requests",
-        description: "Track requests you have submitted and review their progress.",
+        description: "Track all requests you have submitted and review their workflow progress.",
         href: "/requests",
         tone: "slate",
       },
       {
         title: "Approvals",
-        description: "Review requests currently assigned to you for action.",
+        description: "Review requests currently assigned to you for approval, payment or filing action.",
         href: "/approvals",
         tone: counts.pendingMyApproval > 0 ? "red" : "emerald",
       },
@@ -279,6 +312,12 @@ export default function DashboardPage() {
 
     if (canFinance) {
       cards.push(
+        {
+          title: "Finance Control Center",
+          description: "Open the central finance dashboard for setup, subheads, vouchers and reports.",
+          href: "/finance",
+          tone: "blue",
+        },
         {
           title: "Departments",
           description: "Open department records and finance structure.",
@@ -315,6 +354,18 @@ export default function DashboardPage() {
     if (isAdmin) {
       cards.push(
         {
+          title: "Users & Roles",
+          description: "Manage users, signatures, role assignment and access control.",
+          href: "/admin/users",
+          tone: "red",
+        },
+        {
+          title: "Roles & Permissions",
+          description: "Manage system roles including DIN Admin, HR, DG and AccountOfficer roles.",
+          href: "/admin/roles",
+          tone: "purple",
+        },
+        {
           title: "PV Settings",
           description: "Manage authorized cheque signers and counter signers.",
           href: "/payment-vouchers/settings",
@@ -334,7 +385,7 @@ export default function DashboardPage() {
         },
         {
           title: "Admin",
-          description: "Manage users, departments and system administration.",
+          description: "Manage users, departments, routing officers and system administration.",
           href: "/admin",
           tone: "red",
         }
@@ -344,7 +395,8 @@ export default function DashboardPage() {
     if (canHR) {
       cards.push({
         title: "HR Filing",
-        description: "Handle personal request records, filing and HR finalization.",
+        description:
+          "Handle final HR filing for Personal Fund, Leave, Contract Renewal, Resignation and Others.",
         href: "/hr/filing",
         tone: "emerald",
       });
@@ -371,6 +423,9 @@ export default function DashboardPage() {
             </h1>
             <p className="mt-2 text-sm text-slate-600">
               Welcome back. Your live request counts and role-based shortcuts are shown below.
+            </p>
+            <p className="mt-1 text-xs font-semibold text-slate-500">
+              Workflow supports Official DIN, Official General, Personal Fund, and Personal HR Filing routes.
             </p>
           </div>
 
@@ -463,23 +518,47 @@ export default function DashboardPage() {
                 />
               </div>
 
-              {isAccountRole && (
-                <div className="mt-4 grid gap-4 md:grid-cols-2">
-                  <NumberCountCard
-                    label="Account Stage Assigned"
-                    value={counts.accountStageAssignedToMe}
-                    helper="Awaiting Account treatment/payment"
-                    tone={counts.accountStageAssignedToMe > 0 ? "red" : "slate"}
-                    onClick={() => router.push("/approvals")}
-                  />
+              {(isAccountRole || isHrRole || isDinAdminRole) && (
+                <div className="mt-4 grid gap-4 md:grid-cols-3">
+                  {isAccountRole && (
+                    <NumberCountCard
+                      label="Account Stage"
+                      value={counts.accountStageAssignedToMe}
+                      helper="Awaiting AccountOfficer treatment/payment"
+                      tone={counts.accountStageAssignedToMe > 0 ? "red" : "slate"}
+                      onClick={() => router.push("/approvals")}
+                    />
+                  )}
 
-                  <NumberCountCard
-                    label="Payment / PV Ready"
-                    value={counts.paymentPrintReady}
-                    helper="Paid/completed payment records"
-                    tone="purple"
-                    onClick={() => router.push("/payment-vouchers")}
-                  />
+                  {isHrRole && (
+                    <NumberCountCard
+                      label="HR Filing Stage"
+                      value={counts.hrFilingAssignedToMe}
+                      helper="Awaiting final HR filing"
+                      tone={counts.hrFilingAssignedToMe > 0 ? "red" : "slate"}
+                      onClick={() => router.push("/approvals")}
+                    />
+                  )}
+
+                  {isDinAdminRole && (
+                    <NumberCountCard
+                      label="DIN Admin Stage"
+                      value={counts.dinAdminAssignedToMe}
+                      helper="Official DIN requests awaiting DIN Admin review"
+                      tone={counts.dinAdminAssignedToMe > 0 ? "red" : "slate"}
+                      onClick={() => router.push("/approvals")}
+                    />
+                  )}
+
+                  {isAccountRole && (
+                    <NumberCountCard
+                      label="Payment / PV Ready"
+                      value={counts.paymentPrintReady}
+                      helper="Paid/completed payment records"
+                      tone="purple"
+                      onClick={() => router.push("/payment-vouchers")}
+                    />
+                  )}
                 </div>
               )}
 
@@ -563,9 +642,8 @@ export default function DashboardPage() {
 
                   <SecurityLine
                     label="Assurance Level"
-                    value={`${security.currentLevel || "unknown"} → ${
-                      security.nextLevel || "unknown"
-                    }`}
+                    value={`${security.currentLevel || "unknown"} → ${security.nextLevel || "unknown"
+                      }`}
                     ok={isSessionMfaVerified}
                   />
 
@@ -641,9 +719,10 @@ export default function DashboardPage() {
             <div className="mt-6 rounded-3xl border border-blue-100 bg-blue-50 p-5 text-sm text-blue-900">
               <div className="font-bold">Dashboard Note</div>
               <p className="mt-1">
-                ReqGen 1.1.0 supports request workflow, role-based approvals, HR filing, finance
-                subheads, payment vouchers, cheque signing workflow, combined vouchers, audit reports,
-                SMS OTP request submission, 2FA approval protection and inactivity logout.
+                ReqGen supports Official DIN routing, Official General routing, Personal Fund
+                routing, Personal HR Filing, role-based approvals, finance subheads, payment
+                vouchers, cheque signing workflow, audit reports, SMS/Email OTP request submission,
+                2FA approval protection and inactivity logout.
               </p>
             </div>
           </>
@@ -712,14 +791,14 @@ function NumberCountCard({
     tone === "emerald"
       ? "border-emerald-200 bg-emerald-50 text-emerald-800"
       : tone === "purple"
-      ? "border-purple-200 bg-purple-50 text-purple-800"
-      : tone === "amber"
-      ? "border-amber-200 bg-amber-50 text-amber-900"
-      : tone === "red"
-      ? "border-red-200 bg-red-50 text-red-800"
-      : tone === "slate"
-      ? "border-slate-200 bg-slate-50 text-slate-800"
-      : "border-blue-200 bg-blue-50 text-blue-800";
+        ? "border-purple-200 bg-purple-50 text-purple-800"
+        : tone === "amber"
+          ? "border-amber-200 bg-amber-50 text-amber-900"
+          : tone === "red"
+            ? "border-red-200 bg-red-50 text-red-800"
+            : tone === "slate"
+              ? "border-slate-200 bg-slate-50 text-slate-800"
+              : "border-blue-200 bg-blue-50 text-blue-800";
 
   return (
     <button
@@ -749,14 +828,14 @@ function QuickAccessCard({
     tone === "emerald"
       ? "border-emerald-100 bg-emerald-50 text-emerald-800 hover:bg-emerald-100"
       : tone === "purple"
-      ? "border-purple-100 bg-purple-50 text-purple-800 hover:bg-purple-100"
-      : tone === "amber"
-      ? "border-amber-100 bg-amber-50 text-amber-900 hover:bg-amber-100"
-      : tone === "red"
-      ? "border-red-100 bg-red-50 text-red-800 hover:bg-red-100"
-      : tone === "slate"
-      ? "border-slate-200 bg-slate-50 text-slate-800 hover:bg-slate-100"
-      : "border-blue-100 bg-blue-50 text-blue-800 hover:bg-blue-100";
+        ? "border-purple-100 bg-purple-50 text-purple-800 hover:bg-purple-100"
+        : tone === "amber"
+          ? "border-amber-100 bg-amber-50 text-amber-900 hover:bg-amber-100"
+          : tone === "red"
+            ? "border-red-100 bg-red-50 text-red-800 hover:bg-red-100"
+            : tone === "slate"
+              ? "border-slate-200 bg-slate-50 text-slate-800 hover:bg-slate-100"
+              : "border-blue-100 bg-blue-50 text-blue-800 hover:bg-blue-100";
 
   return (
     <button
