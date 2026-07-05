@@ -710,8 +710,7 @@ export default function RequestDetailsPage() {
     }
 
     const ok = confirm(
-      `Assign "${selectedAssignableSubhead.code ? `${selectedAssignableSubhead.code} — ` : ""}${
-        selectedAssignableSubhead.name
+      `Assign "${selectedAssignableSubhead.code ? `${selectedAssignableSubhead.code} — ` : ""}${selectedAssignableSubhead.name
       }" and reserve ${formatNaira(req.amount)} for this request?`
     );
 
@@ -1077,11 +1076,10 @@ export default function RequestDetailsPage() {
         </div>
 
         <div
-          className={`mt-4 rounded-2xl border px-4 py-3 text-sm font-semibold ${
-            mfaVerified
+          className={`mt-4 rounded-2xl border px-4 py-3 text-sm font-semibold ${mfaVerified
               ? "border-emerald-200 bg-emerald-50 text-emerald-800"
               : "border-amber-200 bg-amber-50 text-amber-900"
-          }`}
+            }`}
         >
           {mfaVerified
             ? "✅ 2FA session is active. Fresh 2FA code is still required before approve, reject, or delete."
@@ -1150,7 +1148,12 @@ export default function RequestDetailsPage() {
               </div>
 
               <div className="mt-6">
-                <RequestProgress stage={req.current_stage} status={req.status} />
+                <RequestProgress
+                  stage={req.current_stage}
+                  status={req.status}
+                  requestType={req.request_type}
+                  personalCategory={req.personal_category}
+                />
               </div>
 
               <div className="mt-5 grid gap-4 md:grid-cols-2">
@@ -1383,11 +1386,10 @@ export default function RequestDetailsPage() {
                             </span>
 
                             <span
-                              className={`rounded-full border px-3 py-1 text-xs font-bold ${
-                                checkedByMe
+                              className={`rounded-full border px-3 py-1 text-xs font-bold ${checkedByMe
                                   ? "border-emerald-200 bg-emerald-50 text-emerald-700"
                                   : "border-amber-200 bg-amber-50 text-amber-800"
-                              }`}
+                                }`}
                             >
                               {checkedByMe ? "Checked By You ✅" : "Not Checked By You"}
                             </span>
@@ -1685,10 +1687,10 @@ function FinanceBox({
     tone === "emerald"
       ? "border-emerald-200 bg-emerald-50 text-emerald-800"
       : tone === "amber"
-      ? "border-amber-200 bg-amber-50 text-amber-800"
-      : tone === "red"
-      ? "border-red-200 bg-red-50 text-red-800"
-      : "border-slate-200 bg-slate-50 text-slate-800";
+        ? "border-amber-200 bg-amber-50 text-amber-800"
+        : tone === "red"
+          ? "border-red-200 bg-red-50 text-red-800"
+          : "border-slate-200 bg-slate-50 text-slate-800";
 
   return (
     <div className={`rounded-xl border p-3 ${cls}`}>
@@ -1717,10 +1719,10 @@ function StatusBadge({ status }: { status: string }) {
         s.includes("complete") ||
         s.includes("paid") ||
         s.includes("filing")
-      ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-      : s.includes("reject") || s.includes("delete")
-      ? "bg-red-50 text-red-700 border-red-200"
-      : "bg-slate-50 text-slate-700 border-slate-200";
+        ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+        : s.includes("reject") || s.includes("delete")
+          ? "bg-red-50 text-red-700 border-red-200"
+          : "bg-slate-50 text-slate-700 border-slate-200";
 
   return (
     <span className={`inline-flex rounded-lg border px-2 py-1 text-xs font-semibold ${cls}`}>
