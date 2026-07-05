@@ -24,6 +24,14 @@ type ReqRow = {
   personal_category: string | null;
 };
 
+type CategoryFilter =
+  | "ALL"
+  | "Fund"
+  | "Leave"
+  | "Contract Renewal"
+  | "Resignation"
+  | "Others";
+
 function roleKey(role: string | null | undefined) {
   return (role || "")
     .trim()
@@ -34,6 +42,10 @@ function roleKey(role: string | null | undefined) {
 
 function normalize(v: string | null | undefined) {
   return (v || "").toLowerCase().replace(/[^a-z]/g, "");
+}
+
+function categoryKey(v: string | null | undefined) {
+  return (v || "").trim().toUpperCase().replace(/\s+/g, "");
 }
 
 function shortDate(d: string | null | undefined) {
@@ -50,47 +62,63 @@ function isPersonal(r: ReqRow) {
 }
 
 function isPersonalFund(r: ReqRow) {
-  return isPersonal(r) && normalize(r.personal_category) === "fund";
+  return isPersonal(r) && categoryKey(r.personal_category) === "FUND";
 }
 
-function isPersonalNonFund(r: ReqRow) {
-  return isPersonal(r) && normalize(r.personal_category) === "nonfund";
+function isPersonalOther(r: ReqRow) {
+  return isPersonal(r) && !isPersonalFund(r);
 }
 
 function isCompleted(r: ReqRow) {
   const s = (r.status || "").toLowerCase();
-  return s.includes("complete") || s.includes("paid");
+  return s.includes("complete") || s.includes("paid") || s.includes("closed");
 }
 
 function isRejected(r: ReqRow) {
-  return (r.status || "").toLowerCase().includes("reject");
+  const s = (r.status || "").toLowerCase();
+  return s.includes("reject") || s.includes("delete") || s.includes("cancel");
 }
 
-function isReadyForHR(r: ReqRow) {
+function isReadyForHRFiling(r: ReqRow) {
   const stage = normalize(r.current_stage);
   const status = (r.status || "").toLowerCase();
 
-  return stage === "hr" || stage === "hrfiling" || status.includes("filing");
+  return stage === "hrfiling" || status.includes("filing");
+}
+
+function isAtInitialHRReview(r: ReqRow) {
+  const stage = normalize(r.current_stage);
+  return stage === "hr";
 }
 
 function categoryLabel(r: ReqRow) {
   if (isPersonalFund(r)) return "Personal Fund";
-  if (isPersonalNonFund(r)) return "Personal NonFund";
-  return "Personal";
+
+  const cat = String(r.personal_category || "").trim();
+
+  if (!cat || categoryKey(cat) === "NONFUND") return "Personal Other";
+
+  return `Personal ${cat}`;
+}
+
+function categoryShortLabel(r: ReqRow) {
+  if (isPersonalFund(r)) return "Fund";
+
+  const cat = String(r.personal_category || "").trim();
+
+  if (!cat || categoryKey(cat) === "NONFUND") return "Other";
+
+  return cat;
 }
 
 function statusBadgeClass(status: string | null | undefined) {
   const s = (status || "").toLowerCase();
 
-  if (s.includes("paid")) {
+  if (s.includes("paid") || s.includes("complete") || s.includes("closed")) {
     return "border-emerald-200 bg-emerald-50 text-emerald-700";
   }
 
-  if (s.includes("complete")) {
-    return "border-emerald-200 bg-emerald-50 text-emerald-700";
-  }
-
-  if (s.includes("reject")) {
+  if (s.includes("reject") || s.includes("delete") || s.includes("cancel")) {
     return "border-red-200 bg-red-50 text-red-700";
   }
 
@@ -98,7 +126,7 @@ function statusBadgeClass(status: string | null | undefined) {
     return "border-purple-200 bg-purple-50 text-purple-700";
   }
 
-  if (s.includes("review") || s.includes("approve")) {
+  if (s.includes("review") || s.includes("approve") || s.includes("pending")) {
     return "border-blue-200 bg-blue-50 text-blue-700";
   }
 
@@ -106,7 +134,7 @@ function statusBadgeClass(status: string | null | undefined) {
 }
 
 function stageBadgeClass(stage: string | null | undefined) {
-  const s = (stage || "").toLowerCase();
+  const s = normalize(stage);
 
   if (s.includes("completed")) {
     return "border-emerald-200 bg-emerald-50 text-emerald-700";
@@ -116,7 +144,7 @@ function stageBadgeClass(stage: string | null | undefined) {
     return "border-amber-200 bg-amber-50 text-amber-700";
   }
 
-  if (s.includes("hr filing")) {
+  if (s.includes("hrfiling")) {
     return "border-purple-200 bg-purple-50 text-purple-700";
   }
 
@@ -124,7 +152,7 @@ function stageBadgeClass(stage: string | null | undefined) {
     return "border-indigo-200 bg-indigo-50 text-indigo-700";
   }
 
-  if (s.includes("hr")) {
+  if (s === "hr") {
     return "border-blue-200 bg-blue-50 text-blue-700";
   }
 
@@ -132,15 +160,28 @@ function stageBadgeClass(stage: string | null | undefined) {
 }
 
 function categoryBadgeClass(r: ReqRow) {
-  if (isPersonalFund(r)) {
-    return "border-blue-200 bg-blue-50 text-blue-700";
-  }
+  const cat = categoryKey(r.personal_category);
 
-  if (isPersonalNonFund(r)) {
-    return "border-purple-200 bg-purple-50 text-purple-700";
-  }
+  if (cat === "FUND") return "border-blue-200 bg-blue-50 text-blue-700";
+  if (cat === "LEAVE") return "border-emerald-200 bg-emerald-50 text-emerald-700";
+  if (cat === "CONTRACTRENEWAL") return "border-purple-200 bg-purple-50 text-purple-700";
+  if (cat === "RESIGNATION") return "border-red-200 bg-red-50 text-red-700";
+  if (cat === "OTHERS") return "border-amber-200 bg-amber-50 text-amber-800";
 
   return "border-slate-200 bg-slate-50 text-slate-700";
+}
+
+function workflowNote(r: ReqRow) {
+  if (isPersonalFund(r)) {
+    return "Personal Fund route: HR → DG → AccountOfficer → HR Filing → Completed.";
+  }
+
+  return "Personal route: HR → DG → HR Filing → Completed.";
+}
+
+function amountLabel(r: ReqRow) {
+  if (!isPersonalFund(r)) return "Not Applicable";
+  return naira(r.amount);
 }
 
 export default function HRFilingPage() {
@@ -158,7 +199,7 @@ export default function HRFilingPage() {
 
   const [search, setSearch] = useState("");
   const [deptFilter, setDeptFilter] = useState("ALL");
-  const [categoryFilter, setCategoryFilter] = useState("ALL");
+  const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("ALL");
   const [statusFilter, setStatusFilter] = useState("ALL");
 
   function openWorkflow(id: string) {
@@ -210,7 +251,7 @@ export default function HRFilingPage() {
       setMyRole(role);
 
       if (!["admin", "auditor", "hr"].includes(roleKey(role))) {
-        setMsg("Access denied. Only HR, Admin and Auditor can access HR Office Requests.");
+        setMsg("Access denied. Only HR, Admin and Auditor can access HR Filing.");
         setRows([]);
         setLoading(false);
         setRefreshing(false);
@@ -220,7 +261,7 @@ export default function HRFilingPage() {
       const { data, error } = await supabase.rpc("get_hr_filing_requests");
 
       if (error) {
-        setMsg("Failed to load HR office requests: " + error.message);
+        setMsg("Failed to load HR filing requests: " + error.message);
         setRows([]);
         setLoading(false);
         setRefreshing(false);
@@ -278,11 +319,13 @@ export default function HRFilingPage() {
 
       if (deptFilter !== "ALL" && r.dept_id !== deptFilter) return false;
 
-      if (categoryFilter === "Fund" && !isPersonalFund(r)) return false;
-      if (categoryFilter === "NonFund" && !isPersonalNonFund(r)) return false;
+      if (categoryFilter !== "ALL") {
+        if (categoryKey(r.personal_category) !== categoryKey(categoryFilter)) return false;
+      }
 
       if (statusFilter === "Completed" && !isCompleted(r)) return false;
-      if (statusFilter === "ReadyForHR" && !isReadyForHR(r)) return false;
+      if (statusFilter === "ReadyForHRFiling" && !isReadyForHRFiling(r)) return false;
+      if (statusFilter === "InitialHRReview" && !isAtInitialHRReview(r)) return false;
 
       if (statusFilter === "InProgress") {
         if (isCompleted(r) || isRejected(r)) return false;
@@ -304,6 +347,7 @@ export default function HRFilingPage() {
           r.status,
           r.current_stage,
           r.personal_category,
+          workflowNote(r),
         ]
           .join(" ")
           .toLowerCase();
@@ -320,8 +364,16 @@ export default function HRFilingPage() {
 
     const total = personalRows.length;
     const fund = personalRows.filter(isPersonalFund).length;
-    const nonFund = personalRows.filter(isPersonalNonFund).length;
-    const readyForHR = personalRows.filter(isReadyForHR).length;
+    const leave = personalRows.filter((r) => categoryKey(r.personal_category) === "LEAVE").length;
+    const contractRenewal = personalRows.filter(
+      (r) => categoryKey(r.personal_category) === "CONTRACTRENEWAL"
+    ).length;
+    const resignation = personalRows.filter(
+      (r) => categoryKey(r.personal_category) === "RESIGNATION"
+    ).length;
+    const others = personalRows.filter((r) => categoryKey(r.personal_category) === "OTHERS").length;
+    const readyForHRFiling = personalRows.filter(isReadyForHRFiling).length;
+    const initialHRReview = personalRows.filter(isAtInitialHRReview).length;
     const completed = personalRows.filter(isCompleted).length;
 
     const thisMonth = personalRows.filter((r) => {
@@ -330,14 +382,25 @@ export default function HRFilingPage() {
       return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
     }).length;
 
-    return { total, fund, nonFund, readyForHR, completed, thisMonth };
+    return {
+      total,
+      fund,
+      leave,
+      contractRenewal,
+      resignation,
+      others,
+      readyForHRFiling,
+      initialHRReview,
+      completed,
+      thisMonth,
+    };
   }, [rows]);
 
   if (loading) {
     return (
       <main className="min-h-screen bg-slate-50 px-4">
         <div className="mx-auto max-w-7xl py-10 text-slate-600">
-          Loading HR office requests...
+          Loading HR filing requests...
         </div>
       </main>
     );
@@ -349,7 +412,7 @@ export default function HRFilingPage() {
         <div className="mx-auto max-w-3xl py-10">
           <div className="rounded-2xl border bg-white p-6 shadow-sm">
             <h1 className="text-xl font-extrabold text-slate-900">
-              HR Office Access
+              HR Filing Access
             </h1>
 
             <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
@@ -374,10 +437,13 @@ export default function HRFilingPage() {
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">
-              HR Office
+              HR Filing
             </h1>
             <p className="mt-2 text-sm text-slate-600">
-              All IET Staff Personal Fund and Personal NonFund requests that pass through HR.
+              HR register for Staff Personal Fund, Leave, Contract Renewal, Resignation and Others.
+            </p>
+            <p className="mt-1 text-xs font-semibold text-slate-500">
+              Personal Fund returns to HR Filing after AccountOfficer treatment. Other Personal requests return to HR Filing after DG approval.
             </p>
           </div>
 
@@ -407,15 +473,19 @@ export default function HRFilingPage() {
         )}
 
         <div className="mt-4 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-xs font-semibold text-blue-900">
-          This HR Office page refreshes automatically when you return to it, so completed requests and filing-ready items stay current.
+          This HR Filing page refreshes automatically when you return to it, so completed requests and filing-ready items stay current.
         </div>
 
-        <div className="mt-6 grid gap-4 md:grid-cols-3 xl:grid-cols-6">
+        <div className="mt-6 grid gap-4 md:grid-cols-3 xl:grid-cols-10">
           <StatCard title="Total Personal" value={String(stats.total)} tone="blue" />
-          <StatCard title="Personal Fund" value={String(stats.fund)} tone="blue" />
-          <StatCard title="Personal NonFund" value={String(stats.nonFund)} tone="purple" />
-          <StatCard title="Ready for HR" value={String(stats.readyForHR)} tone="amber" />
-          <StatCard title="Completed / Paid" value={String(stats.completed)} tone="emerald" />
+          <StatCard title="Fund" value={String(stats.fund)} tone="blue" />
+          <StatCard title="Leave" value={String(stats.leave)} tone="emerald" />
+          <StatCard title="Contract" value={String(stats.contractRenewal)} tone="purple" />
+          <StatCard title="Resignation" value={String(stats.resignation)} tone="red" />
+          <StatCard title="Others" value={String(stats.others)} tone="amber" />
+          <StatCard title="HR Review" value={String(stats.initialHRReview)} tone="blue" />
+          <StatCard title="HR Filing" value={String(stats.readyForHRFiling)} tone="amber" />
+          <StatCard title="Completed" value={String(stats.completed)} tone="emerald" />
           <StatCard title="This Month" value={String(stats.thisMonth)} tone="slate" />
         </div>
 
@@ -451,12 +521,15 @@ export default function HRFilingPage() {
               <label className="text-sm font-semibold text-slate-800">Category</label>
               <select
                 value={categoryFilter}
-                onChange={(e) => setCategoryFilter(e.target.value)}
+                onChange={(e) => setCategoryFilter(e.target.value as CategoryFilter)}
                 className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-3 text-slate-900 outline-none focus:border-blue-500"
               >
-                <option value="ALL">All Personal</option>
+                <option value="ALL">All Personal Categories</option>
                 <option value="Fund">Personal Fund</option>
-                <option value="NonFund">Personal NonFund</option>
+                <option value="Leave">Leave</option>
+                <option value="Contract Renewal">Contract Renewal</option>
+                <option value="Resignation">Resignation</option>
+                <option value="Others">Others</option>
               </select>
             </div>
 
@@ -469,7 +542,8 @@ export default function HRFilingPage() {
               >
                 <option value="ALL">All Statuses</option>
                 <option value="InProgress">In Progress</option>
-                <option value="ReadyForHR">Ready for HR</option>
+                <option value="InitialHRReview">Initial HR Review</option>
+                <option value="ReadyForHRFiling">Ready for HR Filing</option>
                 <option value="Completed">Completed / Paid</option>
                 <option value="Rejected">Rejected</option>
               </select>
@@ -521,13 +595,20 @@ export default function HRFilingPage() {
                   </div>
                 </div>
 
+                <div className="mt-3 rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 text-xs font-semibold text-blue-900">
+                  {workflowNote(r)}
+                </div>
+
                 <div className="mt-4 grid gap-2 text-sm sm:grid-cols-2">
                   <InfoLine label="Requester" value={r.requester_name || "—"} />
-                  <InfoLine label="Amount" value={isPersonalFund(r) ? naira(r.amount) : "Not Applicable"} />
+                  <InfoLine label="Amount" value={amountLabel(r)} />
                   <InfoLine label="HOD/Director" value={r.checked_by_name || "—"} />
                   <InfoLine label="HR Review" value={r.hr_name || "—"} />
                   <InfoLine label="DG" value={r.dg_name || "—"} />
-                  <InfoLine label="Account" value={isPersonalFund(r) ? r.account_name || "—" : "Not Applicable"} />
+                  <InfoLine
+                    label="Account"
+                    value={isPersonalFund(r) ? r.account_name || "—" : "Not Applicable"}
+                  />
                   <InfoLine label="Created" value={shortDate(r.created_at)} />
                   <InfoLine label="Stage" value={r.current_stage || "—"} />
                 </div>
@@ -559,13 +640,13 @@ export default function HRFilingPage() {
           )}
         </div>
 
-        <div className="mt-6 hidden xl:block rounded-3xl border bg-white shadow-sm overflow-hidden">
+        <div className="mt-6 hidden overflow-hidden rounded-3xl border bg-white shadow-sm xl:block">
           <div className="border-b bg-slate-50 px-6 py-4">
             <h2 className="text-lg font-bold text-slate-900">
               Personal Requests Register
             </h2>
             <p className="mt-1 text-sm text-slate-600">
-              HR register for Personal Fund and Personal NonFund requests.
+              HR register for Personal Fund, Leave, Contract Renewal, Resignation and Others.
             </p>
           </div>
 
@@ -614,12 +695,12 @@ export default function HRFilingPage() {
                           r
                         )}`}
                       >
-                        {isPersonalFund(r) ? "Fund" : "NonFund"}
+                        {categoryShortLabel(r)}
                       </span>
                     </div>
 
                     <div className="col-span-1 font-semibold text-slate-900">
-                      {isPersonalFund(r) ? naira(r.amount) : "—"}
+                      {amountLabel(r)}
                     </div>
 
                     <div className="col-span-1">
@@ -679,11 +760,11 @@ export default function HRFilingPage() {
         </div>
 
         <div className="mt-6 rounded-3xl border border-blue-100 bg-blue-50 p-5 text-sm text-blue-900">
-          <div className="font-bold">HR Staff Personal Requests Note</div>
+          <div className="font-bold">HR Personal Requests Note</div>
           <p className="mt-1">
-            This page shows both Staff Personal Fund and Personal NonFund requests because both categories
-            pass through HR. Personal Fund requests are paid by Account after DG approval, while
-            Personal NonFund requests return to HR for final filing.
+            This page shows Staff Personal requests because every Personal request passes through HR.
+            Personal Fund requests move to AccountOfficer after DG approval before returning to HR Filing.
+            Leave, Contract Renewal, Resignation and Others move from DG directly to HR Filing.
           </p>
         </div>
       </div>
@@ -698,18 +779,20 @@ function StatCard({
 }: {
   title: string;
   value: string;
-  tone: "blue" | "emerald" | "purple" | "slate" | "amber";
+  tone: "blue" | "emerald" | "purple" | "slate" | "amber" | "red";
 }) {
   const cls =
     tone === "emerald"
       ? "bg-emerald-50 text-emerald-700"
       : tone === "purple"
-      ? "bg-purple-50 text-purple-700"
-      : tone === "amber"
-      ? "bg-amber-50 text-amber-700"
-      : tone === "slate"
-      ? "bg-slate-50 text-slate-700"
-      : "bg-blue-50 text-blue-700";
+        ? "bg-purple-50 text-purple-700"
+        : tone === "amber"
+          ? "bg-amber-50 text-amber-700"
+          : tone === "red"
+            ? "bg-red-50 text-red-700"
+            : tone === "slate"
+              ? "bg-slate-50 text-slate-700"
+              : "bg-blue-50 text-blue-700";
 
   return (
     <div className="rounded-3xl border bg-white p-5 shadow-sm">
@@ -733,7 +816,7 @@ function InfoLine({ label, value }: { label: string; value: string }) {
 function EmptyState() {
   return (
     <div className="rounded-2xl border bg-white p-6 text-sm text-slate-700 shadow-sm xl:rounded-none xl:border-0 xl:shadow-none">
-      No Personal Request found for the selected filter.
+      No Personal request found for the selected filter.
     </div>
   );
 }
