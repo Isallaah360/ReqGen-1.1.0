@@ -16,8 +16,34 @@ type Row = {
   personal_category?: string | null;
 };
 
+type TypeFilter =
+  | "ALL"
+  | "OFFICIAL"
+  | "PERSONAL_FUND"
+  | "PERSONAL_OTHER";
+
+type StatusFilter =
+  | "ALL"
+  | "ACTIVE"
+  | "COMPLETED"
+  | "REJECTED";
+
 function naira(value: number | null | undefined) {
   return "₦" + Math.round(Number(value || 0)).toLocaleString();
+}
+
+function stageKey(stage: string | null | undefined) {
+  return String(stage || "")
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, "");
+}
+
+function categoryKey(category: string | null | undefined) {
+  return String(category || "")
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, "");
 }
 
 function statusClass(status: string | null | undefined) {
@@ -31,6 +57,10 @@ function statusClass(status: string | null | undefined) {
     return "border-emerald-200 bg-emerald-50 text-emerald-700";
   }
 
+  if (s.includes("filing")) {
+    return "border-purple-200 bg-purple-50 text-purple-700";
+  }
+
   if (s.includes("submit") || s.includes("review") || s.includes("pending")) {
     return "border-blue-200 bg-blue-50 text-blue-700";
   }
@@ -39,27 +69,113 @@ function statusClass(status: string | null | undefined) {
 }
 
 function stageClass(stage: string | null | undefined) {
-  const s = String(stage || "").toLowerCase();
+  const s = stageKey(stage);
 
-  if (s.includes("account")) return "border-purple-200 bg-purple-50 text-purple-700";
-  if (s.includes("dg")) return "border-amber-200 bg-amber-50 text-amber-800";
-  if (s.includes("registry")) return "border-blue-200 bg-blue-50 text-blue-700";
-  if (s.includes("director") || s.includes("hod")) {
+  if (s === "DINADMIN") return "border-blue-200 bg-blue-50 text-blue-700";
+  if (s === "ACCOUNT") return "border-purple-200 bg-purple-50 text-purple-700";
+  if (s === "DG") return "border-amber-200 bg-amber-50 text-amber-800";
+  if (s === "DIRECTOR" || s === "HOD") {
     return "border-emerald-200 bg-emerald-50 text-emerald-700";
   }
-  if (s.includes("reject") || s.includes("delete")) return "border-red-200 bg-red-50 text-red-700";
+  if (s === "HR" || s === "HRFILING") {
+    return "border-pink-200 bg-pink-50 text-pink-700";
+  }
+  if (s.includes("REJECT") || s.includes("DELETE")) {
+    return "border-red-200 bg-red-50 text-red-700";
+  }
 
   return "border-slate-200 bg-slate-50 text-slate-700";
 }
 
 function requestTypeLabel(row: Row) {
-  if (row.request_type === "Official") return "Official";
-  if (row.request_type === "Personal" && row.personal_category === "Fund") return "Personal Fund";
-  if (row.request_type === "Personal" && row.personal_category === "NonFund") {
-    return "Personal NonFund";
+  const rt = String(row.request_type || "").trim();
+  const cat = String(row.personal_category || "").trim();
+
+  if (rt === "Official") return "Official";
+
+  if (rt === "Personal") {
+    if (categoryKey(cat) === "FUND") return "Personal Fund";
+    if (cat && categoryKey(cat) !== "NONFUND") return `Personal ${cat}`;
+    if (categoryKey(cat) === "NONFUND") return "Personal Other";
+    return "Personal";
   }
 
-  return row.request_type || "—";
+  return rt || "—";
+}
+
+function requestGroup(row: Row): TypeFilter {
+  const rt = String(row.request_type || "").trim().toUpperCase();
+  const cat = categoryKey(row.personal_category);
+
+  if (rt === "OFFICIAL") return "OFFICIAL";
+  if (rt === "PERSONAL" && cat === "FUND") return "PERSONAL_FUND";
+  if (rt === "PERSONAL") return "PERSONAL_OTHER";
+
+  return "ALL";
+}
+
+function isActiveRequest(row: Row) {
+  const s = String(row.status || "").toLowerCase();
+
+  return (
+    !s.includes("reject") &&
+    !s.includes("delete") &&
+    !s.includes("cancel") &&
+    !s.includes("paid") &&
+    !s.includes("complete") &&
+    !s.includes("closed")
+  );
+}
+
+function isCompletedRequest(row: Row) {
+  const s = String(row.status || "").toLowerCase();
+  return s.includes("paid") || s.includes("complete") || s.includes("closed");
+}
+
+function isRejectedOrDeletedRequest(row: Row) {
+  const s = String(row.status || "").toLowerCase();
+  return s.includes("reject") || s.includes("delete") || s.includes("cancel");
+}
+
+function amountLabel(row: Row) {
+  const group = requestGroup(row);
+
+  if (group === "PERSONAL_OTHER") return "Not Applicable";
+
+  return naira(row.amount);
+}
+
+function workflowNote(row: Row) {
+  const group = requestGroup(row);
+  const stage = stageKey(row.current_stage);
+
+  if (group === "OFFICIAL") {
+    if (stage === "DINADMIN") return "Official DIN request is with DIN Admin before HOD.";
+    if (stage === "HOD") return "Official request is with HOD. Subhead may be assigned at this stage.";
+    if (stage === "DG") return "Official request is with DG for approval.";
+    if (stage === "ACCOUNT") return "Official request is with AccountOfficer for treatment/payment.";
+    if (stage === "COMPLETED") return "Official request is completed.";
+    return "Official request workflow.";
+  }
+
+  if (group === "PERSONAL_FUND") {
+    if (stage === "HR") return "Personal Fund request is with HR.";
+    if (stage === "DG") return "Personal Fund request is with DG.";
+    if (stage === "ACCOUNT") return "Personal Fund request is with AccountOfficer for payment.";
+    if (stage === "HRFILING") return "Personal Fund request is back with HR for final filing.";
+    if (stage === "COMPLETED") return "Personal Fund request is completed and filed.";
+    return "Personal Fund workflow.";
+  }
+
+  if (group === "PERSONAL_OTHER") {
+    if (stage === "HR") return "Personal request is with HR.";
+    if (stage === "DG") return "Personal request is with DG.";
+    if (stage === "HRFILING") return "Personal request is with HR for final filing.";
+    if (stage === "COMPLETED") return "Personal request is completed and filed.";
+    return "Personal request workflow.";
+  }
+
+  return "Request workflow.";
 }
 
 export default function MyRequestsPage() {
@@ -69,6 +185,10 @@ export default function MyRequestsPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [rows, setRows] = useState<Row[]>([]);
+
+  const [search, setSearch] = useState("");
+  const [typeFilter, setTypeFilter] = useState<TypeFilter>("ALL");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
 
   const load = useCallback(
     async (options?: { silent?: boolean }) => {
@@ -130,36 +250,55 @@ export default function MyRequestsPage() {
     };
   }, [load]);
 
+  const filteredRows = useMemo(() => {
+    const q = search.trim().toLowerCase();
+
+    return rows.filter((row) => {
+      const group = requestGroup(row);
+
+      if (typeFilter !== "ALL" && group !== typeFilter) return false;
+
+      if (statusFilter === "ACTIVE" && !isActiveRequest(row)) return false;
+      if (statusFilter === "COMPLETED" && !isCompletedRequest(row)) return false;
+      if (statusFilter === "REJECTED" && !isRejectedOrDeletedRequest(row)) return false;
+
+      if (!q) return true;
+
+      const haystack = [
+        row.request_no,
+        row.title,
+        row.status,
+        row.current_stage,
+        row.request_type,
+        row.personal_category,
+        workflowNote(row),
+      ]
+        .join(" ")
+        .toLowerCase();
+
+      return haystack.includes(q);
+    });
+  }, [rows, search, typeFilter, statusFilter]);
+
   const counts = useMemo(() => {
     const total = rows.length;
 
-    const active = rows.filter((r) => {
-      const s = String(r.status || "").toLowerCase();
-      return (
-        !s.includes("reject") &&
-        !s.includes("delete") &&
-        !s.includes("cancel") &&
-        !s.includes("paid") &&
-        !s.includes("complete") &&
-        !s.includes("closed")
-      );
-    }).length;
+    const active = rows.filter(isActiveRequest).length;
+    const completed = rows.filter(isCompletedRequest).length;
+    const rejectedOrDeleted = rows.filter(isRejectedOrDeletedRequest).length;
 
-    const completed = rows.filter((r) => {
-      const s = String(r.status || "").toLowerCase();
-      return s.includes("paid") || s.includes("complete");
-    }).length;
-
-    const rejectedOrDeleted = rows.filter((r) => {
-      const s = String(r.status || "").toLowerCase();
-      return s.includes("reject") || s.includes("delete") || s.includes("cancel");
-    }).length;
+    const official = rows.filter((r) => requestGroup(r) === "OFFICIAL").length;
+    const personalFund = rows.filter((r) => requestGroup(r) === "PERSONAL_FUND").length;
+    const personalOther = rows.filter((r) => requestGroup(r) === "PERSONAL_OTHER").length;
 
     return {
       total,
       active,
       completed,
       rejectedOrDeleted,
+      official,
+      personalFund,
+      personalOther,
     };
   }, [rows]);
 
@@ -173,6 +312,12 @@ export default function MyRequestsPage() {
     router.refresh();
   }
 
+  function resetFilters() {
+    setSearch("");
+    setTypeFilter("ALL");
+    setStatusFilter("ALL");
+  }
+
   return (
     <main className="min-h-screen bg-slate-50 px-4">
       <div className="mx-auto max-w-6xl py-10">
@@ -183,6 +328,9 @@ export default function MyRequestsPage() {
             </h1>
             <p className="mt-2 text-sm text-slate-600">
               All requests you created. This page refreshes automatically when you return to it.
+            </p>
+            <p className="mt-1 text-xs font-semibold text-slate-500">
+              Official, Personal Fund, Leave, Contract Renewal, Resignation and Others are supported.
             </p>
           </div>
 
@@ -198,7 +346,7 @@ export default function MyRequestsPage() {
 
             <button
               type="button"
-              onClick={() => router.push("/requests/new")}
+              onClick={() => router.push(`/requests/new?updated=${Date.now()}`)}
               className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700"
             >
               New Request
@@ -206,11 +354,66 @@ export default function MyRequestsPage() {
           </div>
         </div>
 
-        <div className="mt-5 grid gap-3 md:grid-cols-4">
+        <div className="mt-5 grid gap-3 md:grid-cols-4 xl:grid-cols-7">
           <CountCard label="Total Requests" value={counts.total} tone="slate" />
-          <CountCard label="Active / In Progress" value={counts.active} tone="blue" />
+          <CountCard label="Active" value={counts.active} tone="blue" />
           <CountCard label="Completed / Paid" value={counts.completed} tone="emerald" />
           <CountCard label="Rejected / Deleted" value={counts.rejectedOrDeleted} tone="red" />
+          <CountCard label="Official" value={counts.official} tone="blue" />
+          <CountCard label="Personal Fund" value={counts.personalFund} tone="purple" />
+          <CountCard label="Personal Other" value={counts.personalOther} tone="emerald" />
+        </div>
+
+        <div className="mt-5 rounded-2xl border bg-white p-4 shadow-sm">
+          <div className="grid gap-3 md:grid-cols-4">
+            <div className="md:col-span-2">
+              <label className="text-sm font-bold text-slate-800">Search</label>
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search request no, title, stage, type..."
+                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-bold text-slate-800">Request Type</label>
+              <select
+                value={typeFilter}
+                onChange={(e) => setTypeFilter(e.target.value as TypeFilter)}
+                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
+              >
+                <option value="ALL">All Types</option>
+                <option value="OFFICIAL">Official</option>
+                <option value="PERSONAL_FUND">Personal Fund</option>
+                <option value="PERSONAL_OTHER">Personal Leave/Contract/Resignation/Others</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="text-sm font-bold text-slate-800">Status</label>
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
+                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
+              >
+                <option value="ALL">All Statuses</option>
+                <option value="ACTIVE">Active / In Progress</option>
+                <option value="COMPLETED">Completed / Paid</option>
+                <option value="REJECTED">Rejected / Deleted</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="mt-3 flex justify-end">
+            <button
+              type="button"
+              onClick={resetFilters}
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-900 hover:bg-slate-100"
+            >
+              Reset Filters
+            </button>
+          </div>
         </div>
 
         {msg && (
@@ -223,9 +426,9 @@ export default function MyRequestsPage() {
           <div className="mt-6 rounded-2xl border bg-white p-6 text-slate-600 shadow-sm">
             Loading requests...
           </div>
-        ) : rows.length === 0 ? (
+        ) : filteredRows.length === 0 ? (
           <div className="mt-6 rounded-2xl border bg-white p-6 text-slate-700 shadow-sm">
-            No requests yet.
+            No requests found using the selected filters.
           </div>
         ) : (
           <div className="mt-6 overflow-hidden rounded-2xl border bg-white shadow-sm">
@@ -238,7 +441,7 @@ export default function MyRequestsPage() {
               <div className="col-span-1 text-right">Amount</div>
             </div>
 
-            {rows.map((r) => (
+            {filteredRows.map((r) => (
               <div key={r.id} className="border-t px-4 py-4">
                 <div className="grid gap-3 md:grid-cols-12 md:items-center">
                   <button
@@ -278,8 +481,12 @@ export default function MyRequestsPage() {
                   </div>
 
                   <div className="text-sm font-extrabold text-slate-900 md:col-span-1 md:text-right">
-                    {naira(r.amount)}
+                    {amountLabel(r)}
                   </div>
+                </div>
+
+                <div className="mt-2 text-xs font-semibold text-slate-500">
+                  {workflowNote(r)}
                 </div>
 
                 <div className="mt-3 flex flex-wrap gap-2">
@@ -319,16 +526,18 @@ function CountCard({
 }: {
   label: string;
   value: number;
-  tone: "slate" | "blue" | "emerald" | "red";
+  tone: "slate" | "blue" | "emerald" | "red" | "purple";
 }) {
   const cls =
     tone === "blue"
       ? "border-blue-200 bg-blue-50 text-blue-800"
       : tone === "emerald"
-      ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-      : tone === "red"
-      ? "border-red-200 bg-red-50 text-red-800"
-      : "border-slate-200 bg-white text-slate-800";
+        ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+        : tone === "red"
+          ? "border-red-200 bg-red-50 text-red-800"
+          : tone === "purple"
+            ? "border-purple-200 bg-purple-50 text-purple-800"
+            : "border-slate-200 bg-white text-slate-800";
 
   return (
     <div className={`rounded-2xl border p-4 shadow-sm ${cls}`}>
