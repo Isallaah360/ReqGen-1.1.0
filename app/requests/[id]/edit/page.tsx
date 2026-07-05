@@ -4,6 +4,15 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
+type PersonalCategory =
+  | "Fund"
+  | "Leave"
+  | "Contract Renewal"
+  | "Resignation"
+  | "Others"
+  | "NonFund"
+  | null;
+
 type Req = {
   id: string;
   request_no: string | null;
@@ -18,7 +27,7 @@ type Req = {
   subhead_id: string | null;
   funds_state: string | null;
   request_type: "Personal" | "Official" | null;
-  personal_category: "Fund" | "NonFund" | null;
+  personal_category: PersonalCategory;
 };
 
 type Subhead = {
@@ -55,24 +64,37 @@ function stageKey(stage: string | null | undefined) {
   return (stage || "").trim().toUpperCase().replace(/\s+/g, "");
 }
 
+function categoryKey(category: string | null | undefined) {
+  return (category || "").trim().toUpperCase().replace(/\s+/g, "");
+}
+
 function naira(n: number | null | undefined) {
   return "₦" + Math.round(Number(n || 0)).toLocaleString();
 }
 
 function requestTypeLabel(req: Req) {
   if (req.request_type === "Official") return "Official";
-  if (req.personal_category === "Fund") return "Personal Fund";
-  if (req.personal_category === "NonFund") return "Personal NonFund";
-  return req.request_type || "—";
+
+  if (req.request_type === "Personal") {
+    const cat = req.personal_category || "—";
+
+    if (categoryKey(cat) === "FUND") return "Personal Fund";
+    if (categoryKey(cat) === "NONFUND") return "Personal Other";
+    if (cat && cat !== "—") return `Personal ${cat}`;
+
+    return "Personal";
+  }
+
+  return "—";
 }
 
 function isClosed(status: string | null | undefined, stage: string | null | undefined) {
-  const s = String(status || "");
+  const s = String(status || "").trim();
   const stg = stageKey(stage);
 
   return (
-    ["Rejected", "Cancelled", "Deleted", "Paid", "Closed"].includes(s) ||
-    ["REGISTRY", "DG", "ACCOUNT", "COMPLETED", "REJECTED", "DELETED"].includes(stg)
+    ["Rejected", "Cancelled", "Deleted", "Paid", "Closed", "Completed"].includes(s) ||
+    ["DG", "ACCOUNT", "HRFILING", "COMPLETED", "REJECTED", "DELETED"].includes(stg)
   );
 }
 
@@ -84,6 +106,38 @@ function availableBalance(s: Subhead | null) {
     Number(s.reserved_amount || 0) -
     Number(s.expenditure || 0)
   );
+}
+
+function amountIsApplicable(req: Req | null) {
+  if (!req) return false;
+
+  if (req.request_type === "Official") return true;
+
+  if (req.request_type === "Personal" && categoryKey(req.personal_category) === "FUND") {
+    return true;
+  }
+
+  return false;
+}
+
+function editStageNote(req: Req | null) {
+  if (!req) return "";
+
+  const stage = stageKey(req.current_stage);
+
+  if (req.request_type === "Official") {
+    if (stage === "DIRECTOR") return "Official request is still at Director review stage.";
+    if (stage === "DINADMIN") return "Official DIN request is still at DIN Admin review stage.";
+    if (stage === "HOD") return "Official request is still at HOD review stage.";
+    return "Official request editing is locked after HOD approval.";
+  }
+
+  if (req.request_type === "Personal") {
+    if (stage === "HR") return "Personal request is still at HR review stage.";
+    return "Personal request editing is locked after HR review.";
+  }
+
+  return "Request editing depends on current stage and ownership.";
 }
 
 export default function EditRequestPage() {
@@ -115,9 +169,9 @@ export default function EditRequestPage() {
   const stg = stageKey(req?.current_stage);
 
   const isOfficial = req?.request_type === "Official";
-  const isPersonalFund = req?.request_type === "Personal" && req?.personal_category === "Fund";
-  const isPersonalNonFund =
-    req?.request_type === "Personal" && req?.personal_category === "NonFund";
+  const isPersonal = req?.request_type === "Personal";
+  const isPersonalFund = isPersonal && categoryKey(req?.personal_category) === "FUND";
+  const isPersonalOther = isPersonal && !isPersonalFund;
 
   const isFinancialRequest = Boolean(isOfficial || isPersonalFund);
 
@@ -128,21 +182,33 @@ export default function EditRequestPage() {
   const isRequesterEarlyEdit = useMemo(() => {
     if (!req || !me) return false;
 
-    return req.created_by === me.id && ["DIRECTOR", "HOD"].includes(stg) && !requestIsClosed;
+    const allowedOfficialStages = ["DIRECTOR", "DINADMIN", "HOD"];
+    const allowedPersonalStages = ["HR"];
+
+    const allowedStage =
+      req.request_type === "Official"
+        ? allowedOfficialStages.includes(stg)
+        : req.request_type === "Personal"
+          ? allowedPersonalStages.includes(stg)
+          : false;
+
+    return req.created_by === me.id && allowedStage && !requestIsClosed;
   }, [req, me, stg, requestIsClosed]);
 
   const isAssignedOfficerEdit = useMemo(() => {
     if (!req || !me) return false;
 
-    const allowedRole = ["director", "hod", "hr"].includes(rk);
+    const allowedRole = ["director", "dinadmin", "hod", "hr"].includes(rk);
     const ownsCurrentStage = req.current_owner === me.id;
 
-    return (
-      allowedRole &&
-      ownsCurrentStage &&
-      ["DIRECTOR", "HOD", "HR"].includes(stg) &&
-      !requestIsClosed
-    );
+    const allowedStage =
+      req.request_type === "Official"
+        ? ["DIRECTOR", "DINADMIN", "HOD"].includes(stg)
+        : req.request_type === "Personal"
+          ? ["HR"].includes(stg)
+          : false;
+
+    return allowedRole && ownsCurrentStage && allowedStage && !requestIsClosed;
   }, [req, me, rk, stg, requestIsClosed]);
 
   const isAdminAuditorEdit = useMemo(() => {
@@ -172,10 +238,10 @@ export default function EditRequestPage() {
   }, [req, me, isRequesterEarlyEdit, isOfficial, canEditFinanceFields]);
 
   const canEditAmount = useMemo(() => {
-    if (isPersonalNonFund) return false;
+    if (isPersonalOther) return false;
     if (requesterEditingReservedFinancial) return false;
     return canEdit;
-  }, [isPersonalNonFund, requesterEditingReservedFinancial, canEdit]);
+  }, [isPersonalOther, requesterEditingReservedFinancial, canEdit]);
 
   const editModeLabel = useMemo(() => {
     if (isRequesterEarlyEdit) return "Requester Early-Stage Edit";
@@ -245,19 +311,21 @@ export default function EditRequestPage() {
       return;
     }
 
+    const loadedReq = requestRow as Req;
+
     setMe(profileRow as Me);
-    setReq(requestRow as Req);
+    setReq(loadedReq);
 
-    setSubheadId((requestRow as Req).subhead_id || "");
-    setTitle((requestRow as Req).title || "");
-    setDetails((requestRow as Req).details || "");
-    setAmount(String((requestRow as Req).amount || 0));
+    setSubheadId(loadedReq.subhead_id || "");
+    setTitle(loadedReq.title || "");
+    setDetails(loadedReq.details || "");
+    setAmount(String(loadedReq.amount || 0));
 
-    if ((requestRow as Req).dept_id) {
+    if (loadedReq.dept_id) {
       const { data: sh } = await supabase
         .from("subheads")
         .select("id,code,name,approved_allocation,reserved_amount,expenditure,balance,is_active")
-        .eq("dept_id", (requestRow as Req).dept_id)
+        .eq("dept_id", loadedReq.dept_id)
         .eq("is_active", true)
         .order("code", { ascending: true });
 
@@ -305,7 +373,7 @@ export default function EditRequestPage() {
       const amt = Number(amount || 0);
 
       if (!amt || amt <= 0) {
-        setMsg("❌ Amount must be greater than zero.");
+        setMsg("❌ Amount must be greater than zero for Official and Personal Fund requests.");
         return false;
       }
     }
@@ -316,7 +384,7 @@ export default function EditRequestPage() {
       String(req.funds_state || "").toLowerCase() === "reserved"
     ) {
       if (!subheadId) {
-        setMsg("❌ Reserved financial request must have a subhead.");
+        setMsg("❌ Reserved official request must have a subhead.");
         return false;
       }
 
@@ -401,7 +469,7 @@ export default function EditRequestPage() {
     const stillValid = validateForm();
     if (!stillValid) return;
 
-    const amt = isPersonalNonFund ? 0 : Number(amount || 0);
+    const amt = amountIsApplicable(req) ? Number(amount || 0) : 0;
 
     setSaving(true);
     setMsg(null);
@@ -463,11 +531,14 @@ export default function EditRequestPage() {
             <p className="mt-2 text-sm text-slate-600">
               Editing is controlled by role, current stage and fresh 2FA verification.
             </p>
+            <p className="mt-1 text-xs font-semibold text-slate-500">
+              {editStageNote(req)}
+            </p>
           </div>
 
           <button
             type="button"
-            onClick={() => router.push(`/requests/${req.id}`)}
+            onClick={() => router.push(`/requests/${req.id}?updated=${Date.now()}`)}
             className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-900 shadow-sm hover:bg-slate-100"
           >
             Back
@@ -484,6 +555,18 @@ export default function EditRequestPage() {
           A fresh 2FA code is required before changes can be saved. The code will verify
           automatically after the 6th digit is entered.
         </div>
+
+        {isOfficial && stg === "DINADMIN" && (
+          <div className="mt-4 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-900">
+            DIN Admin stage is active. This is still an early Official DIN approval stage.
+          </div>
+        )}
+
+        {isPersonal && (
+          <div className="mt-4 rounded-2xl border border-purple-200 bg-purple-50 px-4 py-3 text-sm font-semibold text-purple-900">
+            Personal request editing is allowed only while the request is still at HR stage, or by Admin/Auditor before closure.
+          </div>
+        )}
 
         {requesterEditingReservedFinancial && (
           <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900">
@@ -520,9 +603,9 @@ export default function EditRequestPage() {
             </div>
 
             <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-700">
-              Requester can edit only at early Director/HOD level. Assigned Director/HOD/HR can edit
-              only while the request is assigned to them. Editing is locked after Registry, DG,
-              Account, Paid, Completed, Rejected or Deleted stage.
+              Requester can edit Official requests only at early Director/DIN Admin/HOD level.
+              Personal requests can be edited only at HR level. Editing is locked after DG,
+              AccountOfficer, HR Filing, Paid, Completed, Rejected or Deleted stage.
             </div>
           </div>
         ) : (
@@ -567,14 +650,13 @@ export default function EditRequestPage() {
 
               {isOfficial && !canEditFinanceFields && (
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
-                  Subhead information is handled by the assigned Director/HOD and is not shown to
-                  ordinary requesters.
+                  Subhead information is handled by assigned finance-visible officers and is not editable here.
                 </div>
               )}
 
               {!isOfficial && (
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
-                  Subhead is not applicable for this request type.
+                  Subhead is not applicable for Personal requests.
                 </div>
               )}
 
@@ -609,7 +691,7 @@ export default function EditRequestPage() {
                 </div>
               )}
 
-              {isPersonalNonFund && (
+              {isPersonalOther && (
                 <div>
                   <label className="text-sm font-semibold text-slate-800">Amount</label>
                   <input
@@ -630,8 +712,8 @@ export default function EditRequestPage() {
                 {saving
                   ? "Saving..."
                   : verifyingCode
-                  ? "Verifying automatically..."
-                  : "Save Changes with 2FA"}
+                    ? "Verifying automatically..."
+                    : "Save Changes with 2FA"}
               </button>
             </div>
           </div>
