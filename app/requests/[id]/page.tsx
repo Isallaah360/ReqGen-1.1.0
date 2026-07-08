@@ -5,7 +5,14 @@ import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { RequestProgress } from "../../components/RequestProgress";
 
-type PersonalCategory = "Fund" | "Leave" | "Contract Renewal" | "Resignation" | "Others" | "NonFund" | null;
+type PersonalCategory =
+  | "Fund"
+  | "Leave"
+  | "Contract Renewal"
+  | "Resignation"
+  | "Others"
+  | "NonFund"
+  | null;
 
 type Req = {
   id: string;
@@ -23,7 +30,6 @@ type Req = {
   personal_category: PersonalCategory;
   funds_state: string | null;
   created_at: string;
-
   assigned_account_officer_id: string | null;
   assigned_account_officer_name: string | null;
 };
@@ -36,6 +42,8 @@ type Hist = {
   created_at: string;
   signature_url: string | null;
   actor_name: string | null;
+  actor_role_key: string | null;
+  actor_role_name: string | null;
 };
 
 type SubheadMini = {
@@ -61,6 +69,15 @@ type ProfileMini = {
   role: string;
   signature_url: string | null;
   full_name?: string | null;
+};
+
+type ProfileRole = {
+  id: string;
+  profile_id: string;
+  role_key: string;
+  role_name: string;
+  is_primary: boolean;
+  is_active: boolean;
 };
 
 type OfficerMini = {
@@ -124,7 +141,7 @@ function officerLabel(o: OfficerMini) {
 function requestTypeLabel(req: Req) {
   if (req.request_type === "Official") return "Official";
 
-  const category = req.personal_category || "—";
+  const category = req.personal_category || "Others";
   if (category === "NonFund") return "Personal • Non-Fund";
 
   return `Personal • ${category}`;
@@ -170,6 +187,23 @@ function attachmentStatusLabel(status: string | null | undefined) {
   return "Pending General Review";
 }
 
+function stageBadgeClass(stage: string | null | undefined) {
+  const s = stageKey(stage);
+
+  if (["COMPLETED", "PAID"].includes(s)) return "border-emerald-200 bg-emerald-50 text-emerald-700";
+  if (["REJECTED", "DELETED", "CANCELLED"].includes(s)) return "border-red-200 bg-red-50 text-red-700";
+  if (s === "ACCOUNT") return "border-purple-200 bg-purple-50 text-purple-700";
+  if (s === "DG") return "border-amber-200 bg-amber-50 text-amber-800";
+  if (s === "HR" || s === "HRFILING") return "border-pink-200 bg-pink-50 text-pink-700";
+  if (s === "DINADMIN") return "border-blue-200 bg-blue-50 text-blue-700";
+
+  if (["DOD", "HOD", "REGISTRAR", "PO"].includes(s)) {
+    return "border-emerald-200 bg-emerald-50 text-emerald-700";
+  }
+
+  return "border-slate-200 bg-white text-slate-700";
+}
+
 function stageHelpText(req: Req | null) {
   if (!req) return "";
 
@@ -178,8 +212,10 @@ function stageHelpText(req: Req | null) {
   const cat = categoryKey(req.personal_category);
 
   if (reqType === "OFFICIAL") {
-    if (stage === "DIRECTOR") return "Official request is awaiting Director review.";
-    if (stage === "DINADMIN") return "Official DIN request is awaiting DIN Admin review before HOD.";
+    if (stage === "PO") return "Official ASAP-ALLI request is awaiting Programme Officer review.";
+    if (stage === "DOD") return "Official request is awaiting Director of Department review.";
+    if (stage === "DINADMIN") return "DIN Official request is awaiting DIN Admin review before Registrar.";
+    if (stage === "REGISTRAR") return "DIN Official request is awaiting Registrar review as HOD of all DIN Departments.";
     if (stage === "HOD") return "Official request is awaiting HOD review. Subhead must be assigned before it can move to DG.";
     if (stage === "DG") return "Official request is awaiting DG approval and AccountOfficer designation.";
     if (stage === "ACCOUNT") return "Official request is awaiting AccountOfficer treatment/payment.";
@@ -187,17 +223,27 @@ function stageHelpText(req: Req | null) {
   }
 
   if (reqType === "PERSONAL") {
+    if (stage === "DOD") return "Personal request is awaiting Director of Department review.";
+    if (stage === "HOD") return "Personal ASAP-ALLI request is awaiting HOD review before HR.";
     if (stage === "HR") return "Personal request is awaiting HR review.";
+
     if (stage === "DG") {
       if (cat === "FUND") return "Personal Fund request is awaiting DG approval and AccountOfficer designation.";
-      return "Personal request is awaiting DG approval before HR filing.";
+      return "Personal request is awaiting DG approval before HR Filing.";
     }
-    if (stage === "ACCOUNT") return "Personal Fund request is awaiting AccountOfficer payment before HR filing.";
-    if (stage === "HRFILING") return "Personal request is awaiting final HR filing.";
+
+    if (stage === "ACCOUNT") return "Personal Fund request is awaiting AccountOfficer payment before HR Filing.";
+    if (stage === "HRFILING") return "Personal request is awaiting final HR Filing.";
     if (stage === "COMPLETED") return "Personal request is completed and filed.";
   }
 
   return "Request is awaiting the assigned officer.";
+}
+
+function roleDisplay(h: Hist) {
+  if (h.actor_role_name) return `as ${h.actor_role_name}`;
+  if (h.actor_role_key) return `as ${h.actor_role_key}`;
+  return "";
 }
 
 export default function RequestDetailsPage() {
@@ -225,6 +271,7 @@ export default function RequestDetailsPage() {
   const [attachmentChecks, setAttachmentChecks] = useState<AttachmentCheckRow[]>([]);
 
   const [me, setMe] = useState<ProfileMini | null>(null);
+  const [myRoles, setMyRoles] = useState<ProfileRole[]>([]);
   const [comment, setComment] = useState("");
 
   const [accountOfficers, setAccountOfficers] = useState<OfficerMini[]>([]);
@@ -238,7 +285,18 @@ export default function RequestDetailsPage() {
 
   const mfaAutoSubmittingRef = useRef(false);
 
-  const rk = roleKey(me?.role);
+  const activeRoleKeys = useMemo(() => {
+    const keys = new Set<string>();
+
+    if (me?.role) keys.add(roleKey(me.role));
+
+    myRoles.forEach((r) => {
+      if (r.is_active) keys.add(roleKey(r.role_key));
+    });
+
+    return keys;
+  }, [me?.role, myRoles]);
+
   const stg = stageKey(req?.current_stage);
 
   const isMyRequest = useMemo(() => {
@@ -276,14 +334,35 @@ export default function RequestDetailsPage() {
   const requesterCanEditDeleteEarly = useMemo(() => {
     if (!req || !me) return false;
 
-    return req.created_by === me.id && ["DIRECTOR", "DINADMIN", "HOD", "HR"].includes(stg);
+    return (
+      req.created_by === me.id &&
+      ["PO", "DOD", "DIRECTOR", "DINADMIN", "REGISTRAR", "HOD", "HR"].includes(stg)
+    );
   }, [req, me, stg]);
 
   const assignedWorkflowOfficerCanEdit = useMemo(() => {
     if (!req || !me) return false;
 
-    return ["director", "dinadmin", "hod", "hr"].includes(rk) && req.current_owner === me.id;
-  }, [req, me, rk]);
+    const editableRoles = [
+      "po",
+      "dod",
+      "director",
+      "dinadmin",
+      "dinadmin1",
+      "dinadmin2",
+      "dinadmin3",
+      "registrar",
+      "hod",
+      "hr",
+      "hrofficer1",
+      "hrofficer2",
+      "hrofficer3",
+    ];
+
+    const hasEditableRole = editableRoles.some((r) => activeRoleKeys.has(r));
+
+    return hasEditableRole && req.current_owner === me.id;
+  }, [req, me, activeRoleKeys]);
 
   const canEditRequest = useMemo(() => {
     return requesterCanEditDeleteEarly || assignedWorkflowOfficerCanEdit;
@@ -300,22 +379,32 @@ export default function RequestDetailsPage() {
 
   const canCheckAttachments = useMemo(() => {
     if (!req || !me) return false;
-
     if (req.current_owner === me.id) return true;
 
-    return [
+    const allowed = [
       "admin",
       "auditor",
+      "po",
+      "dod",
       "director",
       "dinadmin",
+      "dinadmin1",
+      "dinadmin2",
+      "dinadmin3",
+      "registrar",
       "hod",
       "hr",
+      "hrofficer1",
+      "hrofficer2",
+      "hrofficer3",
       "dg",
       "account",
       "accounts",
       "accountofficer",
-    ].includes(rk);
-  }, [req, me, rk]);
+    ];
+
+    return allowed.some((r) => activeRoleKeys.has(r));
+  }, [req, me, activeRoleKeys]);
 
   const needsSubheadAssignment = useMemo(() => {
     if (!req) return false;
@@ -323,7 +412,7 @@ export default function RequestDetailsPage() {
     return (
       isOfficial &&
       !req.subhead_id &&
-      ["HOD"].includes(stg) &&
+      ["HOD", "REGISTRAR"].includes(stg) &&
       !["Approved", "Rejected", "Cancelled", "Deleted", "Paid", "Closed", "Completed"].includes(
         req.status || ""
       )
@@ -333,12 +422,17 @@ export default function RequestDetailsPage() {
   const canAssignSubhead = useMemo(() => {
     if (!req || !me) return false;
 
-    const roleAllowed = ["hod", "admin", "auditor"].includes(rk);
+    const roleAllowed =
+      activeRoleKeys.has("hod") ||
+      activeRoleKeys.has("registrar") ||
+      activeRoleKeys.has("admin") ||
+      activeRoleKeys.has("auditor");
+
     const isAssignedOfficer = req.current_owner === me.id;
-    const isAdminAuditor = ["admin", "auditor"].includes(rk);
+    const isAdminAuditor = activeRoleKeys.has("admin") || activeRoleKeys.has("auditor");
 
     return needsSubheadAssignment && roleAllowed && (isAssignedOfficer || isAdminAuditor);
-  }, [req, me, rk, needsSubheadAssignment]);
+  }, [req, me, activeRoleKeys, needsSubheadAssignment]);
 
   const selectedAssignableSubhead = useMemo(() => {
     return assignableSubheads.find((s) => s.id === selectedSubheadId) || null;
@@ -355,7 +449,6 @@ export default function RequestDetailsPage() {
 
   const needsAccountOfficerSelection = useMemo(() => {
     if (!req || !canAct) return false;
-
     return isDgStage && (isOfficial || isPersonalFund);
   }, [req, canAct, isDgStage, isOfficial, isPersonalFund]);
 
@@ -497,6 +590,43 @@ export default function RequestDetailsPage() {
     setAttachmentChecks((checkRows || []) as AttachmentCheckRow[]);
   }
 
+  async function loadMyRoles(userId: string) {
+    const { data } = await supabase
+      .from("profile_roles")
+      .select("id,profile_id,role_key,role_name,is_primary,is_active")
+      .eq("profile_id", userId)
+      .eq("is_active", true);
+
+    setMyRoles((data || []) as ProfileRole[]);
+  }
+
+  async function loadAccountOfficers() {
+    const [{ data: profileRows }, { data: roleRows }] = await Promise.all([
+      supabase
+        .from("profiles")
+        .select("id,full_name,email,role")
+        .order("full_name", { ascending: true }),
+
+      supabase
+        .from("profile_roles")
+        .select("profile_id,role_key")
+        .eq("is_active", true)
+        .in("role_key", ["accountofficer", "account", "accounts"]),
+    ]);
+
+    const profiles = (profileRows || []) as OfficerMini[];
+    const roleOwnerIds = new Set((roleRows || []).map((r: any) => r.profile_id));
+
+    setAccountOfficers(
+      profiles.filter((o) => {
+        return (
+          ["accountofficer", "account", "accounts"].includes(roleKey(o.role || "")) ||
+          roleOwnerIds.has(o.id)
+        );
+      })
+    );
+  }
+
   async function loadRequestPage() {
     setLoading(true);
     setMsg(null);
@@ -530,6 +660,7 @@ export default function RequestDetailsPage() {
     }
 
     setMe(myProf as ProfileMini);
+    await loadMyRoles(auth.user.id);
 
     const { data: r, error: rErr } = await supabase
       .from("requests")
@@ -567,7 +698,9 @@ export default function RequestDetailsPage() {
 
     const { data: h, error: hErr } = await supabase
       .from("request_history")
-      .select("id,action_type,comment,to_stage,created_at,signature_url,actor_name")
+      .select(
+        "id,action_type,comment,to_stage,created_at,signature_url,actor_name,actor_role_key,actor_role_name"
+      )
       .eq("request_id", id)
       .order("created_at", { ascending: false });
 
@@ -577,20 +710,7 @@ export default function RequestDetailsPage() {
       setHistory((h || []) as Hist[]);
     }
 
-    const { data: officers, error: officerErr } = await supabase
-      .from("profiles")
-      .select("id,full_name,email,role")
-      .order("full_name", { ascending: true });
-
-    if (!officerErr) {
-      const rows = (officers || []) as OfficerMini[];
-      setAccountOfficers(
-        rows.filter((o) =>
-          ["accountofficer", "account", "accounts"].includes(roleKey(o.role || ""))
-        )
-      );
-    }
-
+    await loadAccountOfficers();
     await loadAttachmentsAndChecks(id);
 
     setLoading(false);
@@ -607,6 +727,10 @@ export default function RequestDetailsPage() {
     await checkMfaStatus();
     await loadMfaFactor();
 
+    if (me?.id) {
+      await loadMyRoles(me.id);
+    }
+
     const { data: r2 } = await supabase
       .from("requests")
       .select(
@@ -620,7 +744,9 @@ export default function RequestDetailsPage() {
 
     const { data: h2 } = await supabase
       .from("request_history")
-      .select("id,action_type,comment,to_stage,created_at,signature_url,actor_name")
+      .select(
+        "id,action_type,comment,to_stage,created_at,signature_url,actor_name,actor_role_key,actor_role_name"
+      )
       .eq("request_id", id)
       .order("created_at", { ascending: false });
 
@@ -644,6 +770,7 @@ export default function RequestDetailsPage() {
       await loadAssignableSubheads((r2 as any).dept_id);
     }
 
+    await loadAccountOfficers();
     await loadAttachmentsAndChecks(id);
     router.refresh();
   }
@@ -710,8 +837,8 @@ export default function RequestDetailsPage() {
     }
 
     const ok = confirm(
-      `Assign "${selectedAssignableSubhead.code ? `${selectedAssignableSubhead.code} — ` : ""}${selectedAssignableSubhead.name
-      }" and reserve ${formatNaira(req.amount)} for this request?`
+      `Assign "${selectedAssignableSubhead.code ? `${selectedAssignableSubhead.code} — ` : ""
+      }${selectedAssignableSubhead.name}" and reserve ${formatNaira(req.amount)} for this request?`
     );
 
     if (!ok) return;
@@ -728,9 +855,7 @@ export default function RequestDetailsPage() {
 
       if (error) throw new Error(error.message);
 
-      setMsg(
-        `✅ ${(data as any)?.message || "Subhead assigned and funds reserved successfully."}`
-      );
+      setMsg(`✅ ${(data as any)?.message || "Subhead assigned and funds reserved successfully."}`);
 
       await reload();
     } catch (e: any) {
@@ -778,9 +903,12 @@ export default function RequestDetailsPage() {
       await supabase.from("request_history").insert({
         request_id: req.id,
         action_type: "Attachment Checked",
-        comment: `${attachment.file_name} was checked by ${me.full_name || "officer"} (${me.role || "Role not set"}).`,
+        comment: `${attachment.file_name} was checked by ${me.full_name || "officer"} (${me.role || "Role not set"
+          }).`,
         to_stage: req.current_stage,
         actor_name: me.full_name || null,
+        actor_role_key: me.role ? roleKey(me.role) : null,
+        actor_role_name: me.role || null,
         action_by: me.id,
       });
 
@@ -831,7 +959,8 @@ export default function RequestDetailsPage() {
 
     if (hasAttachments && !allAttachmentsCheckedByMe) {
       setMsg(
-        `❌ You still have ${myPendingAttachments.length} attachment(s) unchecked. Open and check every attachment personally before you can ${action.toLowerCase()} this request.`
+        `❌ You still have ${myPendingAttachments.length
+        } attachment(s) unchecked. Open and check every attachment personally before you can ${action.toLowerCase()} this request.`
       );
       return false;
     }
@@ -935,18 +1064,17 @@ export default function RequestDetailsPage() {
       if (action === "Approve") {
         const { data, error } = await supabase.rpc("approve_request_step", {
           p_request_id: req.id,
-          p_action_by: me.id,
+          p_actor_id: me.id,
           p_comment: comment.trim(),
           p_signature_url: me.signature_url,
-          p_assigned_account_officer_id: needsAccountOfficerSelection
-            ? selectedOfficerId
-            : null,
+          p_assigned_account_officer_id: needsAccountOfficerSelection ? selectedOfficerId : null,
         });
 
         if (error) throw new Error(error.message);
 
-        const nextStage = (data as any)?.next_stage;
-        const nextStatus = (data as any)?.next_status;
+        const result = Array.isArray(data) ? data[0] : data;
+        const nextStage = (result as any)?.new_stage;
+        const nextStatus = (result as any)?.new_status;
 
         await sendRequestApprovalNotification(req.id);
 
@@ -957,13 +1085,13 @@ export default function RequestDetailsPage() {
               : "✅ Request completed successfully after your attachment checks and 2FA."
           );
         } else if (isHRFiling) {
-          setMsg("✅ HR filing completed successfully after your attachment checks and 2FA.");
+          setMsg("✅ HR Filing completed successfully after your attachment checks and 2FA.");
         } else if (isAccountStage && nextStage === "HR Filing") {
           setMsg("✅ Payment treated. Request sent back to HR for final filing.");
         } else if (needsAccountOfficerSelection && nextStage === "Account") {
           setMsg("✅ AccountOfficer selected. Request sent for treatment/payment.");
         } else {
-          setMsg(`✅ Approved after your attachment checks and 2FA. Sent to ${nextStage}.`);
+          setMsg(`✅ Approved after your attachment checks and 2FA. Sent to ${nextStage || "next stage"}.`);
         }
       } else {
         const { error } = await supabase.rpc("reject_request_step", {
@@ -1028,6 +1156,10 @@ export default function RequestDetailsPage() {
     if (isHRFiling) return "Complete HR Filing";
     if (isAccountStage && isPersonalFund) return "Treat / Pay & Send to HR Filing";
     if (isAccountStage) return "Treat / Pay";
+    if (stg === "DOD") return "Approve as DOD";
+    if (stg === "PO") return "Approve as PO";
+    if (stg === "REGISTRAR") return "Approve as Registrar";
+    if (stg === "DINADMIN") return "Approve as DIN Admin";
     return "Approve";
   }, [
     saving,
@@ -1037,6 +1169,7 @@ export default function RequestDetailsPage() {
     isHRFiling,
     isAccountStage,
     isPersonalFund,
+    stg,
   ]);
 
   if (loading) {
@@ -1058,11 +1191,7 @@ export default function RequestDetailsPage() {
             <p className="mt-2 text-sm text-slate-600">
               Current stage: <b className="text-slate-900">{req?.current_stage || "—"}</b>
             </p>
-            {req && (
-              <p className="mt-1 text-xs font-semibold text-slate-500">
-                {stageHelpText(req)}
-              </p>
-            )}
+            {req && <p className="mt-1 text-xs font-semibold text-slate-500">{stageHelpText(req)}</p>}
           </div>
 
           <div className="flex gap-2">
@@ -1086,24 +1215,24 @@ export default function RequestDetailsPage() {
             : "⚠️ 2FA is required. Fresh 2FA code is required before approve, reject, or delete."}
         </div>
 
-        {isOfficial && stg === "DINADMIN" && (
+        {isOfficial && ["PO", "DOD", "DINADMIN", "REGISTRAR", "HOD"].includes(stg) && (
           <div className="mt-4 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-900">
-            DIN Official routing is active. This request must pass through DIN Admin before HOD.
+            Official routing is active. This request will continue through the configured department chain until DG and AccountOfficer.
           </div>
         )}
 
         {isPersonal && (
           <div className="mt-4 rounded-2xl border border-purple-200 bg-purple-50 px-4 py-3 text-sm font-semibold text-purple-900">
-            Personal request workflow is active. Personal requests do not pass through DIN Admin.
+            Personal request workflow is active.
             {isPersonalFund
-              ? " This Personal Fund request moves HR → DG → AccountOfficer → HR Filing."
-              : " This request moves HR → DG → HR Filing."}
+              ? " This Personal Fund request moves through HR/DG/AccountOfficer and returns to HR Filing."
+              : " This Personal request moves through HR/DG and then HR Filing."}
           </div>
         )}
 
         {needsSubheadAssignment && (
           <div className="mt-4 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-900">
-            ⚠️ This Official request has no subhead yet. HOD must assign a subhead and reserve funds before approval can continue.
+            ⚠️ This Official request has no subhead yet. The assigned budget authority must assign a subhead and reserve funds before approval can continue.
           </div>
         )}
 
@@ -1127,7 +1256,7 @@ export default function RequestDetailsPage() {
         )}
 
         {!req ? (
-          <div className="mt-6 rounded-2xl border bg-white p-6 shadow-sm text-slate-700">
+          <div className="mt-6 rounded-2xl border bg-white p-6 text-slate-700 shadow-sm">
             Request not found.
           </div>
         ) : (
@@ -1136,9 +1265,7 @@ export default function RequestDetailsPage() {
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <div className="text-sm text-slate-600">Request No</div>
-                  <div className="text-lg font-extrabold text-slate-900">
-                    {req.request_no}
-                  </div>
+                  <div className="text-lg font-extrabold text-slate-900">{req.request_no}</div>
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -1160,17 +1287,12 @@ export default function RequestDetailsPage() {
                 <Info label="Title" value={req.title} />
                 <Info
                   label="Amount (₦)"
-                  value={
-                    isPersonalNonFund
-                      ? "Not Applicable"
-                      : Number(req.amount || 0).toLocaleString()
-                  }
+                  value={isPersonalNonFund ? "Not Applicable" : Number(req.amount || 0).toLocaleString()}
                 />
               </div>
 
               <div className="mt-4 grid gap-4 md:grid-cols-2">
                 <Info label="Type" value={requestTypeLabel(req)} />
-
                 <Info
                   label="Subhead"
                   value={
@@ -1185,18 +1307,12 @@ export default function RequestDetailsPage() {
 
               <div className="mt-4 grid gap-4 md:grid-cols-2">
                 <Info label="Funds State" value={req.funds_state || "—"} />
-                <Info
-                  label="Request Date"
-                  value={new Date(req.created_at).toLocaleString()}
-                />
+                <Info label="Request Date" value={new Date(req.created_at).toLocaleString()} />
               </div>
 
               {req.assigned_account_officer_name && (
                 <div className="mt-4">
-                  <Info
-                    label="Selected AccountOfficer"
-                    value={req.assigned_account_officer_name}
-                  />
+                  <Info label="Selected AccountOfficer" value={req.assigned_account_officer_name} />
                 </div>
               )}
 
@@ -1243,10 +1359,11 @@ export default function RequestDetailsPage() {
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <h2 className="text-lg font-extrabold text-slate-900">
-                      HOD Subhead Assignment
+                      Budget Subhead Assignment
                     </h2>
                     <p className="mt-1 text-sm text-slate-600">
-                      This Official request has no budget line yet. Select the correct subhead and reserve funds before approving.
+                      This Official request has no budget line yet. Select the correct subhead and
+                      reserve funds before approving.
                     </p>
                   </div>
 
@@ -1257,7 +1374,8 @@ export default function RequestDetailsPage() {
 
                 {!canAssignSubhead ? (
                   <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
-                    View only. Only the assigned HOD, Admin, or Auditor can assign the subhead at this stage.
+                    View only. Only the assigned budget authority, Admin, or Auditor can assign the
+                    subhead at this stage.
                   </div>
                 ) : (
                   <>
@@ -1281,20 +1399,9 @@ export default function RequestDetailsPage() {
 
                     {selectedAssignableSubhead && (
                       <div className="mt-4 grid gap-3 sm:grid-cols-4">
-                        <FinanceBox
-                          label="Allocation"
-                          value={formatNaira(selectedAssignableSubhead.approved_allocation)}
-                        />
-                        <FinanceBox
-                          label="Reserved"
-                          value={formatNaira(selectedAssignableSubhead.reserved_amount)}
-                          tone="amber"
-                        />
-                        <FinanceBox
-                          label="Expenditure"
-                          value={formatNaira(selectedAssignableSubhead.expenditure)}
-                          tone="red"
-                        />
+                        <FinanceBox label="Allocation" value={formatNaira(selectedAssignableSubhead.approved_allocation)} />
+                        <FinanceBox label="Reserved" value={formatNaira(selectedAssignableSubhead.reserved_amount)} tone="amber" />
+                        <FinanceBox label="Expenditure" value={formatNaira(selectedAssignableSubhead.expenditure)} tone="red" />
                         <FinanceBox
                           label="Available"
                           value={formatNaira(selectedSubheadAvailableBalance)}
@@ -1342,7 +1449,7 @@ export default function RequestDetailsPage() {
                   <h2 className="text-lg font-bold text-slate-900">Supporting Attachments</h2>
                   <p className="mt-1 text-sm text-slate-600">
                     Every approving officer must personally open and check all attachments before
-                    approving or rejecting. One officer’s check does not count for another officer.
+                    approving or rejecting.
                   </p>
                 </div>
 
@@ -1423,9 +1530,7 @@ export default function RequestDetailsPage() {
                               disabled={checkingAttachmentId === a.id}
                               className="w-full rounded-xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white hover:bg-emerald-700 disabled:opacity-60 sm:w-auto"
                             >
-                              {checkingAttachmentId === a.id
-                                ? "Checking..."
-                                : "I Have Checked This ✅"}
+                              {checkingAttachmentId === a.id ? "Checking..." : "I Have Checked This ✅"}
                             </button>
                           )}
 
@@ -1449,8 +1554,8 @@ export default function RequestDetailsPage() {
             <div className="mt-6 rounded-2xl border bg-white p-6 shadow-sm">
               <h2 className="text-lg font-bold text-slate-900">Actions</h2>
               <p className="mt-1 text-sm text-slate-600">
-                Only the assigned officer can approve/reject. All actions require signature,
-                your own attachment checks, and a fresh 2FA code.
+                Only the assigned officer can approve/reject. All actions require signature, your
+                own attachment checks, and a fresh 2FA code.
               </p>
 
               {!canAct ? (
@@ -1556,7 +1661,7 @@ export default function RequestDetailsPage() {
             <div className="mt-6 rounded-2xl border bg-white p-6 shadow-sm">
               <h2 className="text-lg font-bold text-slate-900">History</h2>
               <p className="mt-1 text-sm text-slate-600">
-                All actions, comments, signatures and individual attachment checks are recorded.
+                All actions, comments, signatures, exact role used and individual attachment checks are recorded.
               </p>
 
               {history.length === 0 ? (
@@ -1568,6 +1673,11 @@ export default function RequestDetailsPage() {
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <div className="text-sm font-bold text-slate-900">
                           {h.actor_name || "Officer"} • {h.action_type}
+                          {roleDisplay(h) && (
+                            <span className="ml-2 rounded-full border border-blue-200 bg-blue-50 px-2 py-1 text-[11px] font-black text-blue-700">
+                              {roleDisplay(h)}
+                            </span>
+                          )}
                         </div>
                         {h.to_stage && <StageBadge stage={h.to_stage} />}
                       </div>
@@ -1598,9 +1708,7 @@ export default function RequestDetailsPage() {
               Required Security Verification
             </div>
 
-            <h2 className="mt-1 text-2xl font-extrabold text-slate-900">
-              Enter 2FA Code
-            </h2>
+            <h2 className="mt-1 text-2xl font-extrabold text-slate-900">Enter 2FA Code</h2>
 
             <p className="mt-2 text-sm leading-6 text-slate-600">
               Enter the 6-digit code from your authenticator app. The action will continue
@@ -1702,7 +1810,11 @@ function FinanceBox({
 
 function StageBadge({ stage }: { stage: string }) {
   return (
-    <span className="inline-flex rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-700">
+    <span
+      className={`inline-flex rounded-lg border px-2 py-1 text-xs font-semibold ${stageBadgeClass(
+        stage
+      )}`}
+    >
       {stage || "—"}
     </span>
   );
