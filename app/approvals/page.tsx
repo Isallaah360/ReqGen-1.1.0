@@ -10,37 +10,56 @@ type RequestRow = {
   title: string;
   status: string;
   current_stage: string;
+  current_owner: string | null;
   amount: number;
   created_at: string;
   request_type: string | null;
   personal_category: string | null;
+  funds_state: string | null;
+  assigned_account_officer_name: string | null;
+};
+
+type ProfileRole = {
+  id: string;
+  profile_id: string;
+  role_key: string;
+  role_name: string;
+  is_primary: boolean;
+  is_active: boolean;
 };
 
 type StageFilter =
   | "ALL"
-  | "DIRECTOR"
+  | "PO"
+  | "DOD"
   | "DINADMIN"
+  | "REGISTRAR"
   | "HOD"
   | "HR"
   | "DG"
   | "ACCOUNT"
   | "HRFILING";
 
-type TypeFilter =
-  | "ALL"
-  | "OFFICIAL"
-  | "PERSONAL_FUND"
-  | "PERSONAL_NONFUND";
+type TypeFilter = "ALL" | "OFFICIAL" | "PERSONAL_FUND" | "PERSONAL_NONFUND";
 
 function naira(value: number | null | undefined) {
   return "₦" + Math.round(Number(value || 0)).toLocaleString();
+}
+
+function roleKey(role: string | null | undefined) {
+  return String(role || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "")
+    .replace(/_/g, "");
 }
 
 function stageKey(stage: string | null | undefined) {
   return String(stage || "")
     .trim()
     .toUpperCase()
-    .replace(/\s+/g, "");
+    .replace(/\s+/g, "")
+    .replace(/_/g, "");
 }
 
 function categoryKey(category: string | null | undefined) {
@@ -75,20 +94,38 @@ function statusClass(status: string | null | undefined) {
 function stageClass(stage: string | null | undefined) {
   const s = stageKey(stage);
 
+  if (s === "PO") return "border-indigo-200 bg-indigo-50 text-indigo-700";
+  if (s === "DOD") return "border-emerald-200 bg-emerald-50 text-emerald-700";
   if (s === "DINADMIN") return "border-blue-200 bg-blue-50 text-blue-700";
+  if (s === "REGISTRAR") return "border-cyan-200 bg-cyan-50 text-cyan-700";
+  if (s === "HOD") return "border-emerald-200 bg-emerald-50 text-emerald-700";
   if (s === "ACCOUNT") return "border-purple-200 bg-purple-50 text-purple-700";
   if (s === "DG") return "border-amber-200 bg-amber-50 text-amber-800";
-  if (s === "DIRECTOR" || s === "HOD") {
-    return "border-emerald-200 bg-emerald-50 text-emerald-700";
-  }
   if (s === "HR" || s === "HRFILING") {
     return "border-pink-200 bg-pink-50 text-pink-700";
   }
-  if (s.includes("REJECT") || s.includes("DELETE")) {
+
+  if (s.includes("REJECT") || s.includes("DELETE") || s.includes("CANCEL")) {
     return "border-red-200 bg-red-50 text-red-700";
   }
 
   return "border-slate-200 bg-slate-50 text-slate-700";
+}
+
+function stageLabel(stage: string | null | undefined) {
+  const s = stageKey(stage);
+
+  if (s === "PO") return "PO";
+  if (s === "DOD") return "DOD";
+  if (s === "DINADMIN") return "DIN Admin";
+  if (s === "REGISTRAR") return "Registrar";
+  if (s === "HOD") return "HOD";
+  if (s === "HR") return "HR";
+  if (s === "DG") return "DG";
+  if (s === "ACCOUNT") return "AccountOfficer";
+  if (s === "HRFILING") return "HR Filing";
+
+  return stage || "—";
 }
 
 function requestTypeLabel(row: RequestRow) {
@@ -99,8 +136,9 @@ function requestTypeLabel(row: RequestRow) {
 
   if (rt === "Personal") {
     if (categoryKey(cat) === "FUND") return "Personal Fund";
+    if (cat === "NonFund") return "Personal Other";
     if (cat) return `Personal ${cat}`;
-    return "Personal";
+    return "Personal Other";
   }
 
   return rt || "—";
@@ -119,8 +157,14 @@ function requestGroup(row: RequestRow): TypeFilter {
 
 function isActiveApproval(row: RequestRow) {
   const status = String(row.status || "").toLowerCase();
+  const stage = stageKey(row.current_stage);
 
   return (
+    !!row.current_owner &&
+    stage !== "COMPLETED" &&
+    stage !== "REJECTED" &&
+    stage !== "DELETED" &&
+    stage !== "CANCELLED" &&
     !status.includes("reject") &&
     !status.includes("delete") &&
     !status.includes("cancel") &&
@@ -136,39 +180,32 @@ function workflowNote(row: RequestRow) {
   const st = stageKey(row.current_stage);
 
   if (rt === "OFFICIAL") {
-    if (st === "DINADMIN") {
-      return "Official DIN review before HOD.";
-    }
-
-    if (st === "HOD") {
-      return "HOD review. Subhead must be assigned before DG approval.";
-    }
-
-    if (st === "DG") {
-      return "DG approval. Select AccountOfficer before approving.";
-    }
-
-    if (st === "ACCOUNT") {
-      return "AccountOfficer treatment/payment stage.";
-    }
-
+    if (st === "PO") return "ASAP-ALLI Official review by Programme Officer.";
+    if (st === "DOD") return "Official request awaiting Director of Department review.";
+    if (st === "DINADMIN") return "DIN Official review before Registrar.";
+    if (st === "REGISTRAR") return "DIN Official review by Registrar as HOD of all DIN Departments.";
+    if (st === "HOD") return "HOD review. Subhead must be assigned before DG approval.";
+    if (st === "DG") return "DG approval. Select AccountOfficer before approving.";
+    if (st === "ACCOUNT") return "AccountOfficer treatment/payment stage.";
     return "Official workflow approval.";
   }
 
   if (rt === "PERSONAL" && cat === "FUND") {
+    if (st === "DOD") return "Personal Fund awaiting Director of Department review.";
+    if (st === "HOD") return "ASAP-ALLI Personal Fund awaiting HOD review before HR.";
     if (st === "HR") return "Personal Fund HR review.";
     if (st === "DG") return "Personal Fund DG approval. Select AccountOfficer before approving.";
     if (st === "ACCOUNT") return "Treat/pay, then send back to HR Filing.";
     if (st === "HRFILING") return "Final HR Filing after payment.";
-
     return "Personal Fund workflow.";
   }
 
   if (rt === "PERSONAL") {
+    if (st === "DOD") return "Personal request awaiting Director of Department review.";
+    if (st === "HOD") return "ASAP-ALLI Personal request awaiting HOD review before HR.";
     if (st === "HR") return "Personal request HR review.";
     if (st === "DG") return "DG approval before HR Filing.";
     if (st === "HRFILING") return "Final HR Filing.";
-
     return "Personal request workflow.";
   }
 
@@ -184,6 +221,22 @@ function amountLabel(row: RequestRow) {
   return naira(row.amount);
 }
 
+function roleSummary(profileRole: string | null, roles: ProfileRole[]) {
+  const active = roles.filter((r) => r.is_active);
+
+  if (active.length === 0) return profileRole || "Staff";
+
+  return active
+    .slice()
+    .sort((a, b) => {
+      if (a.is_primary && !b.is_primary) return -1;
+      if (!a.is_primary && b.is_primary) return 1;
+      return a.role_name.localeCompare(b.role_name);
+    })
+    .map((r) => r.role_name)
+    .join(", ");
+}
+
 export default function ApprovalsPage() {
   const router = useRouter();
 
@@ -192,6 +245,9 @@ export default function ApprovalsPage() {
   const [msg, setMsg] = useState<string | null>(null);
   const [rows, setRows] = useState<RequestRow[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+
+  const [meRole, setMeRole] = useState<string | null>(null);
+  const [meRoles, setMeRoles] = useState<ProfileRole[]>([]);
 
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("ALL");
@@ -215,30 +271,52 @@ export default function ApprovalsPage() {
         return;
       }
 
-      const { data, error } = await supabase
-        .from("requests")
-        .select(
-          "id,request_no,title,status,current_stage,amount,created_at,request_type,personal_category"
-        )
-        .eq("current_owner", user.id)
-        .not("status", "in", '("Rejected","Deleted","Cancelled","Paid","Closed","Completed")')
-        .order("created_at", { ascending: false });
+      const [profileRes, rolesRes, requestRes, notificationRes] = await Promise.all([
+        supabase.from("profiles").select("role").eq("id", user.id).maybeSingle(),
 
-      if (error) {
-        setMsg("Failed to load approvals: " + error.message);
-        setRows([]);
+        supabase
+          .from("profile_roles")
+          .select("id,profile_id,role_key,role_name,is_primary,is_active")
+          .eq("profile_id", user.id)
+          .eq("is_active", true),
+
+        supabase
+          .from("requests")
+          .select(
+            "id,request_no,title,status,current_stage,current_owner,amount,created_at,request_type,personal_category,funds_state,assigned_account_officer_name"
+          )
+          .eq("current_owner", user.id)
+          .order("created_at", { ascending: false }),
+
+        supabase
+          .from("notifications")
+          .select("*", { count: "exact", head: true })
+          .eq("user_id", user.id)
+          .eq("is_read", false),
+      ]);
+
+      if (profileRes.error) {
+        setMsg("Failed to load your profile: " + profileRes.error.message);
+        setMeRole(null);
       } else {
-        setRows(((data || []) as RequestRow[]).filter(isActiveApproval));
+        setMeRole((profileRes.data?.role as string) || "Staff");
       }
 
-      const { count, error: nErr } = await supabase
-        .from("notifications")
-        .select("*", { count: "exact", head: true })
-        .eq("user_id", user.id)
-        .eq("is_read", false);
+      if (rolesRes.error) {
+        setMeRoles([]);
+      } else {
+        setMeRoles((rolesRes.data || []) as ProfileRole[]);
+      }
 
-      if (!nErr) {
-        setUnreadCount(count || 0);
+      if (requestRes.error) {
+        setMsg("Failed to load approvals: " + requestRes.error.message);
+        setRows([]);
+      } else {
+        setRows(((requestRes.data || []) as RequestRow[]).filter(isActiveApproval));
+      }
+
+      if (!notificationRes.error) {
+        setUnreadCount(notificationRes.count || 0);
       }
 
       setLoading(false);
@@ -288,6 +366,8 @@ export default function ApprovalsPage() {
         row.current_stage,
         row.request_type,
         row.personal_category,
+        row.funds_state,
+        row.assigned_account_officer_name,
         workflowNote(row),
       ]
         .join(" ")
@@ -312,7 +392,14 @@ export default function ApprovalsPage() {
       return sum + Number(r.amount || 0);
     }, 0);
 
+    const po = rows.filter((r) => stageKey(r.current_stage) === "PO").length;
+    const dod = rows.filter((r) => stageKey(r.current_stage) === "DOD").length;
     const dinAdmin = rows.filter((r) => stageKey(r.current_stage) === "DINADMIN").length;
+    const registrar = rows.filter((r) => stageKey(r.current_stage) === "REGISTRAR").length;
+    const hod = rows.filter((r) => stageKey(r.current_stage) === "HOD").length;
+    const hr = rows.filter((r) => stageKey(r.current_stage) === "HR").length;
+    const dg = rows.filter((r) => stageKey(r.current_stage) === "DG").length;
+    const account = rows.filter((r) => stageKey(r.current_stage) === "ACCOUNT").length;
     const hrFiling = rows.filter((r) => stageKey(r.current_stage) === "HRFILING").length;
 
     return {
@@ -321,7 +408,14 @@ export default function ApprovalsPage() {
       personalFund,
       personalNonFund,
       totalAmount,
+      po,
+      dod,
       dinAdmin,
+      registrar,
+      hod,
+      hr,
+      dg,
+      account,
       hrFiling,
     };
   }, [rows]);
@@ -339,7 +433,7 @@ export default function ApprovalsPage() {
 
   return (
     <main className="min-h-screen bg-slate-50 px-4">
-      <div className="mx-auto max-w-6xl py-10">
+      <div className="mx-auto max-w-7xl py-10">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">
@@ -356,7 +450,13 @@ export default function ApprovalsPage() {
             </p>
 
             <p className="mt-1 text-xs font-semibold text-slate-500">
-              Official DIN, Official General, Personal Fund, and Personal HR Filing workflows are supported.
+              Active capacity:{" "}
+              <b className="text-slate-800">{roleSummary(meRole, meRoles)}</b>
+            </p>
+
+            <p className="mt-1 text-xs font-semibold text-slate-500">
+              Final workflows supported: PO, DOD, DIN Admin, Registrar, HOD, HR, DG,
+              AccountOfficer and HR Filing.
             </p>
           </div>
 
@@ -385,9 +485,21 @@ export default function ApprovalsPage() {
           <CountCard label="Official" value={counts.official} tone="blue" />
           <CountCard label="Personal Fund" value={counts.personalFund} tone="purple" />
           <CountCard label="Personal Other" value={counts.personalNonFund} tone="emerald" />
-          <CountCard label="DIN Admin" value={counts.dinAdmin} tone="blue" />
+          <CountCard label="Account" value={counts.account} tone="purple" />
           <CountCard label="HR Filing" value={counts.hrFiling} tone="emerald" />
           <CountCard label="Total Amount" value={naira(counts.totalAmount)} tone="purple" />
+        </div>
+
+        <div className="mt-4 grid gap-3 md:grid-cols-3 xl:grid-cols-9">
+          <MiniStageCard label="PO" value={counts.po} />
+          <MiniStageCard label="DOD" value={counts.dod} />
+          <MiniStageCard label="DIN Admin" value={counts.dinAdmin} />
+          <MiniStageCard label="Registrar" value={counts.registrar} />
+          <MiniStageCard label="HOD" value={counts.hod} />
+          <MiniStageCard label="HR" value={counts.hr} />
+          <MiniStageCard label="DG" value={counts.dg} />
+          <MiniStageCard label="Account" value={counts.account} />
+          <MiniStageCard label="HR Filing" value={counts.hrFiling} />
         </div>
 
         <div className="mt-5 rounded-2xl border bg-white p-4 shadow-sm">
@@ -412,7 +524,9 @@ export default function ApprovalsPage() {
                 <option value="ALL">All Types</option>
                 <option value="OFFICIAL">Official</option>
                 <option value="PERSONAL_FUND">Personal Fund</option>
-                <option value="PERSONAL_NONFUND">Personal Leave/Contract/Resignation/Others</option>
+                <option value="PERSONAL_NONFUND">
+                  Personal Leave/Contract/Resignation/Others
+                </option>
               </select>
             </div>
 
@@ -424,8 +538,10 @@ export default function ApprovalsPage() {
                 className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
               >
                 <option value="ALL">All Stages</option>
-                <option value="DIRECTOR">Director</option>
+                <option value="PO">PO</option>
+                <option value="DOD">DOD</option>
                 <option value="DINADMIN">DIN Admin</option>
+                <option value="REGISTRAR">Registrar</option>
                 <option value="HOD">HOD</option>
                 <option value="HR">HR</option>
                 <option value="DG">DG</option>
@@ -500,7 +616,7 @@ export default function ApprovalsPage() {
                         r.current_stage
                       )}`}
                     >
-                      {r.current_stage || "—"}
+                      {stageLabel(r.current_stage)}
                     </span>
                   </div>
 
@@ -522,6 +638,18 @@ export default function ApprovalsPage() {
                 <div className="mt-2 text-xs font-semibold text-slate-500">
                   {workflowNote(r)}
                 </div>
+
+                {r.funds_state && (
+                  <div className="mt-1 text-xs font-semibold text-slate-500">
+                    Funds State: {r.funds_state}
+                  </div>
+                )}
+
+                {r.assigned_account_officer_name && (
+                  <div className="mt-1 text-xs font-semibold text-slate-500">
+                    Selected AccountOfficer: {r.assigned_account_officer_name}
+                  </div>
+                )}
 
                 <div className="mt-1 text-xs font-semibold text-slate-500">
                   Created: {new Date(r.created_at).toLocaleString()}
@@ -565,6 +693,17 @@ function CountCard({
       <div className="text-xs font-black uppercase tracking-wide opacity-75">{label}</div>
       <div className="mt-2 text-3xl font-black leading-none">
         {typeof value === "number" ? Number(value || 0).toLocaleString() : value}
+      </div>
+    </div>
+  );
+}
+
+function MiniStageCard({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+      <div className="text-[11px] font-black uppercase tracking-wide text-slate-500">{label}</div>
+      <div className="mt-1 text-xl font-black text-slate-900">
+        {Number(value || 0).toLocaleString()}
       </div>
     </div>
   );
