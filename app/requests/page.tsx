@@ -14,19 +14,26 @@ type Row = {
   created_at: string;
   request_type?: string | null;
   personal_category?: string | null;
+  funds_state?: string | null;
+  assigned_account_officer_name?: string | null;
 };
 
-type TypeFilter =
-  | "ALL"
-  | "OFFICIAL"
-  | "PERSONAL_FUND"
-  | "PERSONAL_OTHER";
+type TypeFilter = "ALL" | "OFFICIAL" | "PERSONAL_FUND" | "PERSONAL_OTHER";
 
-type StatusFilter =
+type StatusFilter = "ALL" | "ACTIVE" | "COMPLETED" | "REJECTED";
+
+type StageFilter =
   | "ALL"
-  | "ACTIVE"
-  | "COMPLETED"
-  | "REJECTED";
+  | "PO"
+  | "DOD"
+  | "DINADMIN"
+  | "REGISTRAR"
+  | "HOD"
+  | "HR"
+  | "DG"
+  | "ACCOUNT"
+  | "HRFILING"
+  | "COMPLETED";
 
 function naira(value: number | null | undefined) {
   return "₦" + Math.round(Number(value || 0)).toLocaleString();
@@ -36,14 +43,16 @@ function stageKey(stage: string | null | undefined) {
   return String(stage || "")
     .trim()
     .toUpperCase()
-    .replace(/\s+/g, "");
+    .replace(/\s+/g, "")
+    .replace(/_/g, "");
 }
 
 function categoryKey(category: string | null | undefined) {
   return String(category || "")
     .trim()
     .toUpperCase()
-    .replace(/\s+/g, "");
+    .replace(/\s+/g, "")
+    .replace(/_/g, "");
 }
 
 function statusClass(status: string | null | undefined) {
@@ -53,7 +62,11 @@ function statusClass(status: string | null | undefined) {
     return "border-red-200 bg-red-50 text-red-700";
   }
 
-  if (s.includes("paid") || s.includes("complete") || s.includes("approved")) {
+  if (s.includes("paid") || s.includes("complete") || s.includes("closed")) {
+    return "border-emerald-200 bg-emerald-50 text-emerald-700";
+  }
+
+  if (s.includes("approved")) {
     return "border-emerald-200 bg-emerald-50 text-emerald-700";
   }
 
@@ -71,20 +84,44 @@ function statusClass(status: string | null | undefined) {
 function stageClass(stage: string | null | undefined) {
   const s = stageKey(stage);
 
+  if (s === "PO") return "border-indigo-200 bg-indigo-50 text-indigo-700";
+  if (s === "DOD") return "border-emerald-200 bg-emerald-50 text-emerald-700";
   if (s === "DINADMIN") return "border-blue-200 bg-blue-50 text-blue-700";
+  if (s === "REGISTRAR") return "border-cyan-200 bg-cyan-50 text-cyan-700";
+  if (s === "HOD") return "border-emerald-200 bg-emerald-50 text-emerald-700";
   if (s === "ACCOUNT") return "border-purple-200 bg-purple-50 text-purple-700";
   if (s === "DG") return "border-amber-200 bg-amber-50 text-amber-800";
-  if (s === "DIRECTOR" || s === "HOD") {
-    return "border-emerald-200 bg-emerald-50 text-emerald-700";
-  }
+
   if (s === "HR" || s === "HRFILING") {
     return "border-pink-200 bg-pink-50 text-pink-700";
   }
-  if (s.includes("REJECT") || s.includes("DELETE")) {
+
+  if (s === "COMPLETED") {
+    return "border-emerald-200 bg-emerald-50 text-emerald-700";
+  }
+
+  if (s.includes("REJECT") || s.includes("DELETE") || s.includes("CANCEL")) {
     return "border-red-200 bg-red-50 text-red-700";
   }
 
   return "border-slate-200 bg-slate-50 text-slate-700";
+}
+
+function stageLabel(stage: string | null | undefined) {
+  const s = stageKey(stage);
+
+  if (s === "PO") return "PO";
+  if (s === "DOD") return "DOD";
+  if (s === "DINADMIN") return "DIN Admin";
+  if (s === "REGISTRAR") return "Registrar";
+  if (s === "HOD") return "HOD";
+  if (s === "HR") return "HR";
+  if (s === "DG") return "DG";
+  if (s === "ACCOUNT") return "AccountOfficer";
+  if (s === "HRFILING") return "HR Filing";
+  if (s === "COMPLETED") return "Completed";
+
+  return stage || "—";
 }
 
 function requestTypeLabel(row: Row) {
@@ -95,9 +132,9 @@ function requestTypeLabel(row: Row) {
 
   if (rt === "Personal") {
     if (categoryKey(cat) === "FUND") return "Personal Fund";
-    if (cat && categoryKey(cat) !== "NONFUND") return `Personal ${cat}`;
     if (categoryKey(cat) === "NONFUND") return "Personal Other";
-    return "Personal";
+    if (cat) return `Personal ${cat}`;
+    return "Personal Other";
   }
 
   return rt || "—";
@@ -116,8 +153,13 @@ function requestGroup(row: Row): TypeFilter {
 
 function isActiveRequest(row: Row) {
   const s = String(row.status || "").toLowerCase();
+  const st = stageKey(row.current_stage);
 
   return (
+    st !== "COMPLETED" &&
+    st !== "REJECTED" &&
+    st !== "DELETED" &&
+    st !== "CANCELLED" &&
     !s.includes("reject") &&
     !s.includes("delete") &&
     !s.includes("cancel") &&
@@ -129,12 +171,28 @@ function isActiveRequest(row: Row) {
 
 function isCompletedRequest(row: Row) {
   const s = String(row.status || "").toLowerCase();
-  return s.includes("paid") || s.includes("complete") || s.includes("closed");
+  const st = stageKey(row.current_stage);
+
+  return (
+    st === "COMPLETED" ||
+    s.includes("paid") ||
+    s.includes("complete") ||
+    s.includes("closed")
+  );
 }
 
 function isRejectedOrDeletedRequest(row: Row) {
   const s = String(row.status || "").toLowerCase();
-  return s.includes("reject") || s.includes("delete") || s.includes("cancel");
+  const st = stageKey(row.current_stage);
+
+  return (
+    st === "REJECTED" ||
+    st === "DELETED" ||
+    st === "CANCELLED" ||
+    s.includes("reject") ||
+    s.includes("delete") ||
+    s.includes("cancel")
+  );
 }
 
 function amountLabel(row: Row) {
@@ -150,17 +208,22 @@ function workflowNote(row: Row) {
   const stage = stageKey(row.current_stage);
 
   if (group === "OFFICIAL") {
-    if (stage === "DINADMIN") return "Official DIN request is with DIN Admin before HOD.";
+    if (stage === "PO") return "Official ASAP-ALLI request is with Programme Officer.";
+    if (stage === "DOD") return "Official request is with Director of Department.";
+    if (stage === "DINADMIN") return "Official DIN request is with DIN Admin before Registrar.";
+    if (stage === "REGISTRAR") return "DIN Official request is with Registrar as HOD of all DIN Departments.";
     if (stage === "HOD") return "Official request is with HOD. Subhead may be assigned at this stage.";
-    if (stage === "DG") return "Official request is with DG for approval.";
+    if (stage === "DG") return "Official request is with DG for approval and AccountOfficer selection.";
     if (stage === "ACCOUNT") return "Official request is with AccountOfficer for treatment/payment.";
     if (stage === "COMPLETED") return "Official request is completed.";
     return "Official request workflow.";
   }
 
   if (group === "PERSONAL_FUND") {
+    if (stage === "DOD") return "Personal Fund request is with Director of Department.";
+    if (stage === "HOD") return "ASAP-ALLI Personal Fund request is with HOD before HR.";
     if (stage === "HR") return "Personal Fund request is with HR.";
-    if (stage === "DG") return "Personal Fund request is with DG.";
+    if (stage === "DG") return "Personal Fund request is with DG for approval and AccountOfficer selection.";
     if (stage === "ACCOUNT") return "Personal Fund request is with AccountOfficer for payment.";
     if (stage === "HRFILING") return "Personal Fund request is back with HR for final filing.";
     if (stage === "COMPLETED") return "Personal Fund request is completed and filed.";
@@ -168,8 +231,10 @@ function workflowNote(row: Row) {
   }
 
   if (group === "PERSONAL_OTHER") {
+    if (stage === "DOD") return "Personal request is with Director of Department.";
+    if (stage === "HOD") return "ASAP-ALLI Personal request is with HOD before HR.";
     if (stage === "HR") return "Personal request is with HR.";
-    if (stage === "DG") return "Personal request is with DG.";
+    if (stage === "DG") return "Personal request is with DG before HR Filing.";
     if (stage === "HRFILING") return "Personal request is with HR for final filing.";
     if (stage === "COMPLETED") return "Personal request is completed and filed.";
     return "Personal request workflow.";
@@ -189,6 +254,7 @@ export default function MyRequestsPage() {
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("ALL");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
+  const [stageFilter, setStageFilter] = useState<StageFilter>("ALL");
 
   const load = useCallback(
     async (options?: { silent?: boolean }) => {
@@ -210,7 +276,7 @@ export default function MyRequestsPage() {
       const { data, error } = await supabase
         .from("requests")
         .select(
-          "id,request_no,title,amount,status,current_stage,created_at,request_type,personal_category"
+          "id,request_no,title,amount,status,current_stage,created_at,request_type,personal_category,funds_state,assigned_account_officer_name"
         )
         .eq("created_by", auth.user.id)
         .order("created_at", { ascending: false });
@@ -255,8 +321,10 @@ export default function MyRequestsPage() {
 
     return rows.filter((row) => {
       const group = requestGroup(row);
+      const st = stageKey(row.current_stage);
 
       if (typeFilter !== "ALL" && group !== typeFilter) return false;
+      if (stageFilter !== "ALL" && st !== stageFilter) return false;
 
       if (statusFilter === "ACTIVE" && !isActiveRequest(row)) return false;
       if (statusFilter === "COMPLETED" && !isCompletedRequest(row)) return false;
@@ -271,6 +339,8 @@ export default function MyRequestsPage() {
         row.current_stage,
         row.request_type,
         row.personal_category,
+        row.funds_state,
+        row.assigned_account_officer_name,
         workflowNote(row),
       ]
         .join(" ")
@@ -278,7 +348,7 @@ export default function MyRequestsPage() {
 
       return haystack.includes(q);
     });
-  }, [rows, search, typeFilter, statusFilter]);
+  }, [rows, search, typeFilter, statusFilter, stageFilter]);
 
   const counts = useMemo(() => {
     const total = rows.length;
@@ -291,6 +361,16 @@ export default function MyRequestsPage() {
     const personalFund = rows.filter((r) => requestGroup(r) === "PERSONAL_FUND").length;
     const personalOther = rows.filter((r) => requestGroup(r) === "PERSONAL_OTHER").length;
 
+    const po = rows.filter((r) => stageKey(r.current_stage) === "PO").length;
+    const dod = rows.filter((r) => stageKey(r.current_stage) === "DOD").length;
+    const dinAdmin = rows.filter((r) => stageKey(r.current_stage) === "DINADMIN").length;
+    const registrar = rows.filter((r) => stageKey(r.current_stage) === "REGISTRAR").length;
+    const hod = rows.filter((r) => stageKey(r.current_stage) === "HOD").length;
+    const hr = rows.filter((r) => stageKey(r.current_stage) === "HR").length;
+    const dg = rows.filter((r) => stageKey(r.current_stage) === "DG").length;
+    const account = rows.filter((r) => stageKey(r.current_stage) === "ACCOUNT").length;
+    const hrFiling = rows.filter((r) => stageKey(r.current_stage) === "HRFILING").length;
+
     return {
       total,
       active,
@@ -299,6 +379,15 @@ export default function MyRequestsPage() {
       official,
       personalFund,
       personalOther,
+      po,
+      dod,
+      dinAdmin,
+      registrar,
+      hod,
+      hr,
+      dg,
+      account,
+      hrFiling,
     };
   }, [rows]);
 
@@ -316,11 +405,12 @@ export default function MyRequestsPage() {
     setSearch("");
     setTypeFilter("ALL");
     setStatusFilter("ALL");
+    setStageFilter("ALL");
   }
 
   return (
     <main className="min-h-screen bg-slate-50 px-4">
-      <div className="mx-auto max-w-6xl py-10">
+      <div className="mx-auto max-w-7xl py-10">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">
@@ -330,7 +420,7 @@ export default function MyRequestsPage() {
               All requests you created. This page refreshes automatically when you return to it.
             </p>
             <p className="mt-1 text-xs font-semibold text-slate-500">
-              Official, Personal Fund, Leave, Contract Renewal, Resignation and Others are supported.
+              Final routing supports PO, DOD, DIN Admin, Registrar, HOD, HR, DG, AccountOfficer and HR Filing.
             </p>
           </div>
 
@@ -362,6 +452,18 @@ export default function MyRequestsPage() {
           <CountCard label="Official" value={counts.official} tone="blue" />
           <CountCard label="Personal Fund" value={counts.personalFund} tone="purple" />
           <CountCard label="Personal Other" value={counts.personalOther} tone="emerald" />
+        </div>
+
+        <div className="mt-4 grid gap-3 md:grid-cols-3 xl:grid-cols-9">
+          <MiniStageCard label="PO" value={counts.po} />
+          <MiniStageCard label="DOD" value={counts.dod} />
+          <MiniStageCard label="DIN Admin" value={counts.dinAdmin} />
+          <MiniStageCard label="Registrar" value={counts.registrar} />
+          <MiniStageCard label="HOD" value={counts.hod} />
+          <MiniStageCard label="HR" value={counts.hr} />
+          <MiniStageCard label="DG" value={counts.dg} />
+          <MiniStageCard label="Account" value={counts.account} />
+          <MiniStageCard label="HR Filing" value={counts.hrFiling} />
         </div>
 
         <div className="mt-5 rounded-2xl border bg-white p-4 shadow-sm">
@@ -405,7 +507,28 @@ export default function MyRequestsPage() {
             </div>
           </div>
 
-          <div className="mt-3 flex justify-end">
+          <div className="mt-3 grid gap-3 md:grid-cols-[1fr_auto] md:items-end">
+            <div>
+              <label className="text-sm font-bold text-slate-800">Stage</label>
+              <select
+                value={stageFilter}
+                onChange={(e) => setStageFilter(e.target.value as StageFilter)}
+                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
+              >
+                <option value="ALL">All Stages</option>
+                <option value="PO">PO</option>
+                <option value="DOD">DOD</option>
+                <option value="DINADMIN">DIN Admin</option>
+                <option value="REGISTRAR">Registrar</option>
+                <option value="HOD">HOD</option>
+                <option value="HR">HR</option>
+                <option value="DG">DG</option>
+                <option value="ACCOUNT">AccountOfficer</option>
+                <option value="HRFILING">HR Filing</option>
+                <option value="COMPLETED">Completed</option>
+              </select>
+            </div>
+
             <button
               type="button"
               onClick={resetFilters}
@@ -466,7 +589,7 @@ export default function MyRequestsPage() {
                         r.current_stage
                       )}`}
                     >
-                      {r.current_stage || "—"}
+                      {stageLabel(r.current_stage)}
                     </span>
                   </div>
 
@@ -488,6 +611,18 @@ export default function MyRequestsPage() {
                 <div className="mt-2 text-xs font-semibold text-slate-500">
                   {workflowNote(r)}
                 </div>
+
+                {r.funds_state && (
+                  <div className="mt-1 text-xs font-semibold text-slate-500">
+                    Funds State: {r.funds_state}
+                  </div>
+                )}
+
+                {r.assigned_account_officer_name && (
+                  <div className="mt-1 text-xs font-semibold text-slate-500">
+                    Selected AccountOfficer: {r.assigned_account_officer_name}
+                  </div>
+                )}
 
                 <div className="mt-3 flex flex-wrap gap-2">
                   <button
@@ -543,6 +678,17 @@ function CountCard({
     <div className={`rounded-2xl border p-4 shadow-sm ${cls}`}>
       <div className="text-xs font-black uppercase tracking-wide opacity-75">{label}</div>
       <div className="mt-2 text-3xl font-black leading-none">
+        {Number(value || 0).toLocaleString()}
+      </div>
+    </div>
+  );
+}
+
+function MiniStageCard({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+      <div className="text-[11px] font-black uppercase tracking-wide text-slate-500">{label}</div>
+      <div className="mt-1 text-xl font-black text-slate-900">
         {Number(value || 0).toLocaleString()}
       </div>
     </div>
