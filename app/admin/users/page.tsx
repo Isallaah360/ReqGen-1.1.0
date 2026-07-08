@@ -61,12 +61,29 @@ function roleBadgeClass(role: string | null | undefined) {
 
   if (rk === "admin") return "bg-red-50 text-red-700 border-red-200";
   if (rk === "auditor") return "bg-purple-50 text-purple-700 border-purple-200";
+
   if (["account", "accounts", "accountofficer", "pvsigner", "pvcountersigner"].includes(rk)) {
     return "bg-emerald-50 text-emerald-700 border-emerald-200";
   }
-  if (["dod", "hod", "dg", "registrar", "dinadmin", "dinadmin1", "dinadmin2", "dinadmin3", "po"].includes(rk)) {
+
+  if (
+    [
+      "director",
+      "dod",
+      "hod",
+      "dg",
+      "registrar",
+      "dinadmin",
+      "dinadmin1",
+      "dinadmin2",
+      "dinadmin3",
+      "po",
+      "gensec",
+    ].includes(rk)
+  ) {
     return "bg-blue-50 text-blue-700 border-blue-200";
   }
+
   if (["hr", "hrofficer1", "hrofficer2", "hrofficer3", "registry"].includes(rk)) {
     return "bg-amber-50 text-amber-700 border-amber-200";
   }
@@ -183,7 +200,9 @@ export default function AdminUsersPage() {
 
         supabase
           .from("reqgen_roles")
-          .select("id,role_key,role_name,description,is_system,is_active,requires_signature,sort_order")
+          .select(
+            "id,role_key,role_name,description,is_system,is_active,requires_signature,sort_order"
+          )
           .eq("is_active", true)
           .order("sort_order", { ascending: true })
           .order("role_name", { ascending: true }),
@@ -350,7 +369,13 @@ export default function AdminUsersPage() {
     const staff = usersWithRole(["staff"]);
     const admin = usersWithRole(["admin"]);
     const auditor = usersWithRole(["auditor"]);
-    const finance = usersWithRole(["account", "accounts", "accountofficer", "pvsigner", "pvcountersigner"]);
+    const finance = usersWithRole([
+      "account",
+      "accounts",
+      "accountofficer",
+      "pvsigner",
+      "pvcountersigner",
+    ]);
     const leadership = usersWithRole([
       "dod",
       "hod",
@@ -361,6 +386,7 @@ export default function AdminUsersPage() {
       "dinadmin2",
       "dinadmin3",
       "po",
+      "gensec",
     ]);
     const hrRegistry = usersWithRole(["hr", "hrofficer1", "hrofficer2", "hrofficer3", "registry"]);
     const signatureReady = rows.filter((r) => !!r.signature_url).length;
@@ -390,10 +416,7 @@ export default function AdminUsersPage() {
     setMsg(null);
 
     try {
-      const { error } = await supabase
-        .from("profiles")
-        .update({ dept_id: deptId })
-        .eq("id", id);
+      const { error } = await supabase.from("profiles").update({ dept_id: deptId }).eq("id", id);
 
       if (error) throw new Error(error.message);
 
@@ -430,7 +453,8 @@ export default function AdminUsersPage() {
 
     if (roleRequiresSignature(roleInfo) && !targetUser.signature_url) {
       setMsg(
-        `❌ ${roleInfo.role_name} requires a signature. Ask ${targetUser.full_name || "the user"} to upload signature first.`
+        `❌ ${roleInfo.role_name} requires a signature. Ask ${targetUser.full_name || "the user"
+        } to upload signature first.`
       );
       return;
     }
@@ -439,7 +463,7 @@ export default function AdminUsersPage() {
     setMsg(null);
 
     try {
-      const { error } = await supabase.rpc("assign_profile_role", {
+      const { error } = await supabase.rpc("reqgen_assign_profile_role", {
         p_profile_id: profileId,
         p_role_key: roleInfo.role_key,
         p_is_primary: makePrimary,
@@ -474,7 +498,7 @@ export default function AdminUsersPage() {
     setMsg(null);
 
     try {
-      const { error } = await supabase.rpc("set_primary_profile_role", {
+      const { error } = await supabase.rpc("reqgen_set_primary_profile_role", {
         p_profile_id: profileId,
         p_role_key: roleKeyToSet,
       });
@@ -522,7 +546,7 @@ export default function AdminUsersPage() {
     setMsg(null);
 
     try {
-      const { error } = await supabase.rpc("deactivate_profile_role", {
+      const { error } = await supabase.rpc("reqgen_deactivate_profile_role", {
         p_profile_id: profileId,
         p_role_key: roleKeyToDeactivate,
       });
@@ -607,10 +631,12 @@ export default function AdminUsersPage() {
               Users & Multiple Roles
             </h1>
             <p className="mt-2 text-sm text-slate-600">
-              Assign multiple official roles, set primary fallback role, manage department routing and verify signature readiness.
+              Assign multiple official roles, set primary fallback role, manage department routing
+              and verify signature readiness.
             </p>
             <p className="mt-1 text-xs font-semibold text-slate-500">
-              The primary role keeps older screens compatible, while active multiple roles control the final ReqGen workflow.
+              The primary role keeps older screens compatible, while active multiple roles control
+              the final ReqGen workflow.
             </p>
           </div>
 
@@ -648,7 +674,8 @@ export default function AdminUsersPage() {
         )}
 
         <div className="mt-4 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-xs font-semibold text-blue-900">
-          Admin and Auditor can assign multiple roles. Any role marked signature-required cannot be assigned until the user has uploaded a signature.
+          Admin and Auditor can assign multiple roles. Any role marked signature-required cannot be
+          assigned until the user has uploaded a signature.
         </div>
 
         <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-9">
@@ -758,7 +785,9 @@ export default function AdminUsersPage() {
         <div className="mt-6 rounded-3xl border border-amber-100 bg-amber-50 p-5 text-sm text-amber-900">
           <div className="font-bold">Role Assignment Note</div>
           <p className="mt-1">
-            One user can now hold multiple official capacities. When a request is treated later, the system will record the exact role used, such as Registrar, HR Boss, DOD, HOD, PO, DG or AccountOfficer, for display in request history and print templates.
+            One user can now hold multiple official capacities. When a request is treated later, the
+            system will record the exact role used, such as Registrar, HR Boss, DOD, HOD, PO, DG or
+            AccountOfficer, for display in request history and print templates.
           </p>
         </div>
       </div>
@@ -805,7 +834,6 @@ function UserRolePanel({
   const deptChanged = deptId !== (u.dept_id || "");
   const selectedRole = roleMap[roleKey(newRoleKey)];
   const activeRoleKeys = userRoles.map((r) => roleKey(r.role_key));
-
   const assignableRoles = roles.filter((r) => !activeRoleKeys.includes(roleKey(r.role_key)));
 
   function handleAssign() {
@@ -826,7 +854,8 @@ function UserRolePanel({
             Joined {shortDate(u.created_at)} • Primary fallback: <b>{u.role || "Staff"}</b>
           </div>
           <div className="mt-1 text-xs text-slate-500">
-            Department: {u.dept_id ? deptMap[u.dept_id] || "Unknown Department" : "No department routing"}
+            Department:{" "}
+            {u.dept_id ? deptMap[u.dept_id] || "Unknown Department" : "No department routing"}
           </div>
         </div>
 
@@ -975,7 +1004,8 @@ function UserRolePanel({
             </select>
 
             <div className="mt-1 text-[11px] text-slate-500">
-              This is the user’s own department/routing group. DOD/HOD/PO assignment to departments will be handled in the Admin routing panel.
+              This is the user’s own department/routing group. DOD/HOD/PO assignment to departments
+              is handled in the Admin routing panel.
             </div>
           </div>
 

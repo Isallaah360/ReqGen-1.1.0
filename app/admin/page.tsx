@@ -111,9 +111,11 @@ function roleBadgeClass(role: string | null | undefined) {
 
   if (rk === "admin") return "border-red-200 bg-red-50 text-red-700";
   if (rk === "auditor") return "border-purple-200 bg-purple-50 text-purple-700";
+
   if (["account", "accounts", "accountofficer", "pvsigner", "pvcountersigner"].includes(rk)) {
     return "border-emerald-200 bg-emerald-50 text-emerald-700";
   }
+
   if (
     [
       "director",
@@ -131,6 +133,7 @@ function roleBadgeClass(role: string | null | undefined) {
   ) {
     return "border-blue-200 bg-blue-50 text-blue-700";
   }
+
   if (["hr", "hrofficer1", "hrofficer2", "hrofficer3", "registry"].includes(rk)) {
     return "border-amber-200 bg-amber-50 text-amber-700";
   }
@@ -272,11 +275,7 @@ export default function AdminPage() {
       setMeEmail(user.email || "");
 
       const [meRes, meRolesRes] = await Promise.all([
-        supabase
-          .from("profiles")
-          .select("role")
-          .eq("id", user.id)
-          .single(),
+        supabase.from("profiles").select("role").eq("id", user.id).single(),
 
         supabase
           .from("profile_roles")
@@ -325,7 +324,9 @@ export default function AdminPage() {
 
         supabase
           .from("reqgen_roles")
-          .select("id,role_key,role_name,description,is_system,is_active,requires_signature,sort_order")
+          .select(
+            "id,role_key,role_name,description,is_system,is_active,requires_signature,sort_order"
+          )
           .eq("is_active", true)
           .order("sort_order", { ascending: true })
           .order("role_name", { ascending: true }),
@@ -439,7 +440,7 @@ export default function AdminPage() {
     setSavingTarget("role");
 
     try {
-      const { error } = await supabase.rpc("assign_profile_role", {
+      const { error } = await supabase.rpc("reqgen_assign_profile_role", {
         p_profile_id: selectedUserId,
         p_role_key: roleInfo.role_key,
         p_is_primary: makePrimaryRole,
@@ -887,7 +888,8 @@ export default function AdminPage() {
         <div className="mt-6 rounded-2xl border bg-white p-6 shadow-sm">
           <h2 className="text-lg font-bold text-slate-900">Department Routing</h2>
           <p className="mt-1 text-sm text-slate-600">
-            DOD is stored as department Director. PO is used mainly for ASAP-ALLI Official route. HOD is used for General Admin and ASAP-ALLI route stages.
+            DOD is stored as department Director. PO is used mainly for ASAP-ALLI Official route.
+            HOD is used for General Admin and ASAP-ALLI route stages.
           </p>
 
           <div className="mt-4 grid gap-4">
@@ -936,8 +938,8 @@ export default function AdminPage() {
                         </div>
 
                         <div className="mt-1 text-xs text-slate-500">
-                          DOD: {officerName(d.director_user_id)} • HOD: {officerName(d.hod_user_id)} • PO:{" "}
-                          {officerName(d.po_id)}
+                          DOD: {officerName(d.director_user_id)} • HOD:{" "}
+                          {officerName(d.hod_user_id)} • PO: {officerName(d.po_id)}
                         </div>
 
                         {isDin && (
@@ -956,7 +958,8 @@ export default function AdminPage() {
 
                         {(isWelfare || isLiaison) && (
                           <div className="mt-2 rounded-xl bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800">
-                            Official flow: DOD → DG → AccountOfficer. Personal flow: DOD → HR → DG → AccountOfficer/HR Filing.
+                            Official flow: DOD → DG → AccountOfficer. Personal flow: DOD → HR → DG
+                            → AccountOfficer/HR Filing.
                           </div>
                         )}
                       </div>
@@ -1036,7 +1039,8 @@ export default function AdminPage() {
         <div className="mt-6 rounded-2xl border bg-white p-6 shadow-sm">
           <h2 className="text-lg font-bold text-slate-900">Signature Readiness</h2>
           <p className="mt-1 text-sm text-slate-600">
-            Users without signature should not hold workflow-sensitive roles because their signatures must appear in approvals and print templates.
+            Users without signature should not hold workflow-sensitive roles because their signatures
+            must appear in approvals and print templates.
           </p>
 
           <div className="mt-4 hidden overflow-x-auto xl:block">
@@ -1155,8 +1159,9 @@ export default function AdminPage() {
         <div className="mt-6 rounded-3xl border border-amber-100 bg-amber-50 p-5 text-sm text-amber-900">
           <div className="font-bold">Admin Control Note</div>
           <p className="mt-1">
-            Assign workflow-sensitive roles only to users with uploaded signatures and verified operational responsibility.
-            Registrar is used for DIN Official requests. HR Boss is used for Personal requests. Registry is for monitoring and DG reminders, not approval.
+            Assign workflow-sensitive roles only to users with uploaded signatures and verified
+            operational responsibility. Registrar is used for DIN Official requests. HR Boss is used
+            for Personal requests. Registry is for monitoring and DG reminders, not approval.
           </p>
         </div>
       </div>
