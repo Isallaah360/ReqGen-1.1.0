@@ -44,18 +44,22 @@ function normalizeStage(stage: string | null | undefined): Stage {
   if (s === "PO" || s === "PROGRAMMEOFFICER" || s === "PROGRAMOFFICER") return "PO";
   if (s === "DOD" || s === "DIRECTOROFDEPARTMENT") return "DOD";
   if (s === "DIRECTOR") return "Director";
+
   if (s === "DINADMIN" || s === "DINADMIN1" || s === "DINADMIN2" || s === "DINADMIN3") {
     return "DIN Admin";
   }
+
   if (s === "REGISTRAR") return "Registrar";
   if (s === "HOD") return "HOD";
   if (s === "HR" || s === "HRBOSS" || s === "HROFFICER") return "HR";
   if (s === "DG" || s === "DIRECTORGENERAL") return "DG";
   if (s === "ACCOUNT" || s === "ACCOUNTS" || s === "ACCOUNTOFFICER") return "Account";
   if (s === "HRFILING" || s === "FILING") return "HR Filing";
+
   if (s === "COMPLETED" || s === "COMPLETE" || s === "PAID" || s === "CLOSED") {
     return "Completed";
   }
+
   if (s === "REJECTED" || s === "REJECT" || s === "DELETED" || s === "CANCELLED") {
     return "Rejected";
   }
@@ -287,7 +291,8 @@ function buildWorkflow({
   if (resolvedWorkflow === "personal-fund-asap-alli") {
     return {
       title: "ASAP-ALLI Personal Fund Workflow",
-      description: "ASAP-ALLI Personal Fund route: DOD → HOD → HR → DG → AccountOfficer → HR Filing.",
+      description:
+        "ASAP-ALLI Personal Fund route: DOD → HOD → HR → DG → AccountOfficer → HR Filing.",
       steps: ["Submitted", "DOD", "HOD", "HR", "DG", "Account", "HR Filing", "Completed"],
     };
   }
@@ -382,7 +387,7 @@ export function RequestProgress({
     statusKey.includes("DELETE") ||
     statusKey.includes("CANCEL");
 
-  const effectiveStage = isRejected ? "Rejected" : normalizedStage;
+  const effectiveStage: Stage = isRejected ? "Rejected" : normalizedStage;
 
   const meta = buildWorkflow({
     workflow,
@@ -396,12 +401,12 @@ export function RequestProgress({
     currentStage: effectiveStage,
   });
 
-  const steps = isRejected ? [...meta.steps.filter((s) => s !== "Completed"), "Rejected"] : meta.steps;
+  const steps: Stage[] = isRejected
+    ? ([...meta.steps.filter((s) => s !== "Completed"), "Rejected"] as Stage[])
+    : meta.steps;
 
-  const currentIndex = Math.max(
-    steps.findIndex((s) => s === effectiveStage),
-    0
-  );
+  const foundIndex = steps.findIndex((s) => s === effectiveStage);
+  const currentIndex = foundIndex >= 0 ? foundIndex : 0;
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
