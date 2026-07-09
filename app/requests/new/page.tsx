@@ -9,6 +9,7 @@ type Dept = {
   name: string;
   hod_user_id: string | null;
   director_user_id: string | null;
+  po_id?: string | null;
   is_active?: boolean | null;
 };
 
@@ -33,9 +34,18 @@ type ProfileMini = {
   signature_url: string | null;
 };
 
+type ProfileRole = {
+  id: string;
+  profile_id: string;
+  role_key: string;
+  role_name: string;
+  is_primary: boolean;
+  is_active: boolean;
+};
+
 type RequestType = "Official" | "Personal";
 type PersonalCategory = "Fund" | "Leave" | "Contract Renewal" | "Resignation" | "Others";
-type RequestOtpChannel = "sms" | "email" | "email_sms";
+type RequestOtpChannel = "sms" | "email" | "sms_email" | "email_sms";
 
 const MAX_ATTACHMENTS = 50;
 const MAX_FILE_SIZE_MB = 10;
@@ -49,8 +59,30 @@ const PERSONAL_CATEGORIES: PersonalCategory[] = [
   "Others",
 ];
 
-const requestOtpEnabled =
-  process.env.NEXT_PUBLIC_REQGEN_REQUEST_OTP_ENABLED === "true";
+const FINANCE_VISIBLE_ROLES = [
+  "admin",
+  "auditor",
+  "director",
+  "dod",
+  "hod",
+  "hr",
+  "hrofficer1",
+  "hrofficer2",
+  "hrofficer3",
+  "registry",
+  "dg",
+  "account",
+  "accounts",
+  "accountofficer",
+  "registrar",
+  "dinadmin",
+  "dinadmin1",
+  "dinadmin2",
+  "dinadmin3",
+  "po",
+];
+
+const requestOtpEnabled = process.env.NEXT_PUBLIC_REQGEN_REQUEST_OTP_ENABLED === "true";
 
 const requestNotificationsEnabled =
   process.env.NEXT_PUBLIC_REQGEN_NOTIFICATIONS_ENABLED === "true";
@@ -61,11 +93,16 @@ function configuredOtpChannel(): RequestOtpChannel {
     .toLowerCase();
 
   if (raw === "email") return "email";
-  if (raw === "email_sms") return "email_sms";
+  if (raw === "sms_email") return "sms_email";
+  if (raw === "email_sms") return "sms_email";
   return "sms";
 }
 
 const requestOtpChannel = configuredOtpChannel();
+
+function isDualOtpChannel(channel: RequestOtpChannel | "unknown") {
+  return channel === "sms_email" || channel === "email_sms";
+}
 
 function roleKey(role: string | null | undefined) {
   return (role || "")
@@ -73,6 +110,10 @@ function roleKey(role: string | null | undefined) {
     .toLowerCase()
     .replace(/\s+/g, "")
     .replace(/_/g, "");
+}
+
+function hasAnyRole(roleSet: Set<string>, roles: string[]) {
+  return roles.some((r) => roleSet.has(roleKey(r)));
 }
 
 function naira(n: number) {
@@ -152,8 +193,81 @@ function hasLikelyPhone(phone: string | null | undefined) {
   return raw.length >= 10;
 }
 
+function deptGroupName(name: string | null | undefined) {
+  const clean = String(name || "").toUpperCase();
+
+  if (clean.includes("DIN")) return "DIN";
+  if (clean.includes("ASAP") || clean.includes("ALLI")) return "ASAP-ALLI";
+  if (clean.includes("WELFARE")) return "Welfare";
+  if (clean.includes("LIAISON")) return "Liaison";
+
+  return "General Admin";
+}
+
 function isDinDepartment(name: string | null | undefined) {
-  return String(name || "").toUpperCase().includes("DIN");
+  return deptGroupName(name) === "DIN";
+}
+
+function isAsapAlliDepartment(name: string | null | undefined) {
+  return deptGroupName(name) === "ASAP-ALLI";
+}
+
+function routingNoteFor(type: RequestType, category: PersonalCategory, dept: Dept | null) {
+  const group = deptGroupName(dept?.name);
+
+  if (type === "Official") {
+    if (group === "DIN") {
+      return "DIN Official route: Staff → DOD → DIN Admin → Registrar → DG → AccountOfficer.";
+    }
+
+    if (group === "ASAP-ALLI") {
+      return "ASAP-ALLI Official route: Staff → PO → DOD → HOD → DG → AccountOfficer.";
+    }
+
+    if (group === "Welfare" || group === "Liaison") {
+      return `${group} Official route: Staff → DOD → DG → AccountOfficer.`;
+    }
+
+    return "General Admin Official route: Staff → HOD → DG → AccountOfficer.";
+  }
+
+  if (category === "Fund") {
+    if (group === "ASAP-ALLI") {
+      return "ASAP-ALLI Personal Fund route: Staff → DOD → HOD → HR → DG → AccountOfficer → HR Filing → Staff & DOD/HOD.";
+    }
+
+    if (group === "General Admin") {
+      return "General Admin Personal Fund route: Staff → HOD → HR → DG → AccountOfficer → HR Filing → Staff & HOD.";
+    }
+
+    return `${group} Personal Fund route: Staff → DOD → HR → DG → AccountOfficer → HR Filing → Staff & DOD.`;
+  }
+
+  if (group === "ASAP-ALLI") {
+    return "ASAP-ALLI Personal Other route: Staff → DOD → HOD → HR → DG → HR Filing → Staff & DOD/HOD.";
+  }
+
+  if (group === "General Admin") {
+    return "General Admin Personal Other route: Staff → HOD → HR → DG → HR Filing → Staff & HOD.";
+  }
+
+  return `${group} Personal Other route: Staff → DOD → HR → DG → HR Filing → Staff & DOD.`;
+}
+
+function roleSummary(fallbackRole: string | null | undefined, roles: ProfileRole[]) {
+  const active = roles.filter((r) => r.is_active);
+
+  if (active.length === 0) return fallbackRole || "Staff";
+
+  return active
+    .slice()
+    .sort((a, b) => {
+      if (a.is_primary && !b.is_primary) return -1;
+      if (!a.is_primary && b.is_primary) return 1;
+      return a.role_name.localeCompare(b.role_name);
+    })
+    .map((r) => r.role_name)
+    .join(", ");
 }
 
 export default function NewRequestPage() {
@@ -167,6 +281,7 @@ export default function NewRequestPage() {
   const [msg, setMsg] = useState<string | null>(null);
 
   const [me, setMe] = useState<ProfileMini | null>(null);
+  const [myRoles, setMyRoles] = useState<ProfileRole[]>([]);
 
   const [showOtpModal, setShowOtpModal] = useState(false);
   const [otpCode, setOtpCode] = useState("");
@@ -191,21 +306,19 @@ export default function NewRequestPage() {
   const [signedRequest, setSignedRequest] = useState(false);
   const [signedAt, setSignedAt] = useState<string | null>(null);
 
-  const rk = roleKey(me?.role);
+  const roleSet = useMemo(() => {
+    const set = new Set<string>();
 
-  const canSeeSubheads = [
-    "admin",
-    "auditor",
-    "director",
-    "hod",
-    "dinadmin",
-    "hr",
-    "registry",
-    "dg",
-    "account",
-    "accounts",
-    "accountofficer",
-  ].includes(rk);
+    if (me?.role) set.add(roleKey(me.role));
+
+    myRoles.forEach((r) => {
+      if (r.is_active) set.add(roleKey(r.role_key));
+    });
+
+    return set;
+  }, [me?.role, myRoles]);
+
+  const canSeeSubheads = hasAnyRole(roleSet, FINANCE_VISIBLE_ROLES);
 
   const isOfficial = requestType === "Official";
   const isPersonal = requestType === "Personal";
@@ -215,22 +328,23 @@ export default function NewRequestPage() {
   const otpLabel =
     requestOtpChannel === "sms"
       ? "SMS OTP"
-      : requestOtpChannel === "email_sms"
-      ? "SMS/Email OTP"
-      : "Email OTP";
+      : isDualOtpChannel(requestOtpChannel)
+        ? "SMS/Email OTP"
+        : "Email OTP";
 
   const otpDestinationLabel =
     requestOtpChannel === "sms"
       ? `your registered phone: ${maskPhone(me?.phone)}`
-      : requestOtpChannel === "email_sms"
-      ? `your registered phone: ${maskPhone(me?.phone)} and email: ${maskEmail(me?.email)}`
-      : `your registered email: ${maskEmail(me?.email)}`;
+      : isDualOtpChannel(requestOtpChannel)
+        ? `your registered phone: ${maskPhone(me?.phone)} and email: ${maskEmail(me?.email)}`
+        : `your registered email: ${maskEmail(me?.email)}`;
 
   const selectedDept = useMemo(() => {
     return depts.find((d) => d.id === deptId) || null;
   }, [depts, deptId]);
 
   const selectedDeptIsDin = isDinDepartment(selectedDept?.name);
+  const selectedDeptIsAsapAlli = isAsapAlliDepartment(selectedDept?.name);
 
   const filteredSubs = useMemo(() => {
     return subs.filter((s) => s.dept_id === deptId);
@@ -269,23 +383,32 @@ export default function NewRequestPage() {
       return;
     }
 
-    const { data: prof, error: profErr } = await supabase
-      .from("profiles")
-      .select("id,full_name,email,role,phone,signature_url")
-      .eq("id", auth.user.id)
-      .single();
+    const [profRes, rolesRes] = await Promise.all([
+      supabase
+        .from("profiles")
+        .select("id,full_name,email,role,phone,signature_url")
+        .eq("id", auth.user.id)
+        .single(),
 
-    if (profErr) {
-      setMsg("Failed to load your profile: " + profErr.message);
+      supabase
+        .from("profile_roles")
+        .select("id,profile_id,role_key,role_name,is_primary,is_active")
+        .eq("profile_id", auth.user.id)
+        .eq("is_active", true),
+    ]);
+
+    if (profRes.error) {
+      setMsg("Failed to load your profile: " + profRes.error.message);
       setLoading(false);
       return;
     }
 
-    setMe((prof || null) as ProfileMini);
+    setMe((profRes.data || null) as ProfileMini);
+    setMyRoles((rolesRes.data || []) as ProfileRole[]);
 
     const { data: deptRows, error: deptErr } = await supabase
       .from("departments")
-      .select("id,name,hod_user_id,director_user_id,is_active")
+      .select("id,name,hod_user_id,director_user_id,po_id,is_active")
       .eq("is_active", true)
       .order("name", { ascending: true });
 
@@ -313,7 +436,7 @@ export default function NewRequestPage() {
     const subList = (subRows || []) as Subhead[];
     setSubs(subList);
 
-    if (deptList.length > 0) {
+    if (deptList.length > 0 && !deptId) {
       const firstDept = deptList[0];
       setDeptId(firstDept.id);
 
@@ -445,11 +568,7 @@ export default function NewRequestPage() {
         return false;
       }
 
-      if (
-        requestOtpChannel === "email_sms" &&
-        !hasLikelyPhone(me.phone) &&
-        !hasValidEmail(me.email)
-      ) {
+      if (isDualOtpChannel(requestOtpChannel) && !hasLikelyPhone(me.phone) && !hasValidEmail(me.email)) {
         if (showMessage) {
           setMsg("❌ Please add a valid phone number or email in Profile before requesting OTP.");
         }
@@ -528,17 +647,6 @@ export default function NewRequestPage() {
     if (!dept) {
       if (showMessage) setMsg("❌ Department not found.");
       return false;
-    }
-
-    if (isOfficial) {
-      const hasRouting = !!dept.director_user_id || !!dept.hod_user_id;
-
-      if (!hasRouting) {
-        if (showMessage) {
-          setMsg("❌ This department does not have Director/HOD routing set yet in Admin Panel.");
-        }
-        return false;
-      }
     }
 
     return true;
@@ -628,7 +736,7 @@ export default function NewRequestPage() {
 
       if (result.channel === "sms") {
         setMsg("✅ SMS OTP sent to your registered phone number.");
-      } else if (result.channel === "email_sms") {
+      } else if (isDualOtpChannel(result.channel || requestOtpChannel)) {
         setMsg("✅ OTP sent by SMS and email.");
       } else {
         setMsg("✅ Email OTP sent to your registered email.");
@@ -810,7 +918,8 @@ export default function NewRequestPage() {
 
       if (error) throw new Error(error.message);
 
-      const requestId = (data as any)?.request_id;
+      const result = Array.isArray(data) ? (data[0] as any) : (data as any);
+      const requestId = result?.request_id;
 
       if (!requestId) {
         throw new Error("Request was submitted but no request ID was returned.");
@@ -819,32 +928,27 @@ export default function NewRequestPage() {
       let uploadedCount = 0;
 
       if (attachments.length > 0) {
-        const result = await uploadAttachmentsForRequest(requestId);
-        uploadedCount = result.uploaded;
+        const uploadResult = await uploadAttachmentsForRequest(requestId);
+        uploadedCount = uploadResult.uploaded;
       }
 
       await sendRequestEventNotification(requestId, "submission_success");
       await sendRequestEventNotification(requestId, "approval_pending");
 
-      const fundsState = (data as any)?.funds_state || "";
+      const fundsState = result?.funds_state || "";
       const subheadNote =
         isOfficial && !submitSubheadId
           ? "Subhead assignment is pending approval review. "
           : fundsState === "Reserved"
-          ? "Funds reserved from selected subhead. "
-          : "";
+            ? "Funds reserved from selected subhead. "
+            : "";
 
-      const dinNote =
-        isOfficial && selectedDeptIsDin
-          ? "DIN Official routing is active for this request. "
-          : "";
-
+      const routeNote = routingNoteFor(requestType, personalCategory, selectedDept);
       const categoryLabel = isPersonal ? `Personal ${personalCategory}` : "Official";
 
       setMsg(
-        `✅ ${categoryLabel} request signed, OTP-verified and submitted successfully. ${dinNote}${subheadNote}${
-          uploadedCount > 0 ? `${uploadedCount} attachment(s) uploaded. ` : ""
-        }Routed to ${(data as any)?.first_stage || "next officer"}.`
+        `✅ ${categoryLabel} request signed, OTP-verified and submitted successfully. ${subheadNote}${uploadedCount > 0 ? `${uploadedCount} attachment(s) uploaded. ` : ""
+        }Routed to ${result?.first_stage || "next officer"}. ${routeNote}`
       );
 
       setTitle("");
@@ -891,10 +995,13 @@ export default function NewRequestPage() {
               New Request
             </h1>
             <p className="mt-2 text-sm text-slate-600">
-              Submit Official or Personal requests with signature and OTP verification.
+              Submit Official or Personal requests with staff signature and OTP verification.
             </p>
             <p className="mt-1 text-xs font-semibold text-slate-500">
-              Official DIN requests pass through DIN Admin. Personal requests go directly through HR workflow.
+              Active capacity: <b className="text-slate-800">{roleSummary(me?.role, myRoles)}</b>
+            </p>
+            <p className="mt-1 text-xs font-semibold text-slate-500">
+              {routingNoteFor(requestType, personalCategory, selectedDept)}
             </p>
           </div>
 
@@ -937,14 +1044,15 @@ export default function NewRequestPage() {
 
         {!canSeeSubheads && (
           <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
-            Your role is Staff. Official request subhead and balance information are hidden.
-            Director/DIN Admin/HOD will assign the correct subhead where required.
+            Your current role does not permit finance visibility. Official request subhead and
+            balance information are hidden. HOD/Registrar or another finance-visible officer will
+            assign the correct subhead where required.
           </div>
         )}
 
         {canSeeSubheads && (
           <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">
-            Your role permits finance visibility. You can select a subhead for Official Requests.
+            Your active role permits finance visibility. You can select a subhead for Official Requests.
           </div>
         )}
 
@@ -1028,10 +1136,12 @@ export default function NewRequestPage() {
 
             {isOfficial && (
               <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-900 md:col-span-2">
-                <b>Official Request:</b> This is an institutional/work-related request. Amount is required.
+                <b>Official Request:</b>{" "}
                 {selectedDeptIsDin
-                  ? " Because this is a DIN department, the request will pass through DIN Admin before HOD."
-                  : " It will follow the normal Director/HOD to DG and AccountOfficer approval flow."}
+                  ? "This DIN Official request will route through DOD, DIN Admin, Registrar, DG and AccountOfficer."
+                  : selectedDeptIsAsapAlli
+                    ? "This ASAP-ALLI Official request will route through PO, DOD, HOD, DG and AccountOfficer."
+                    : "This Official request will follow the department route to DG and AccountOfficer."}
               </div>
             )}
 
@@ -1039,9 +1149,9 @@ export default function NewRequestPage() {
               <div className="rounded-xl border border-purple-100 bg-purple-50 px-4 py-3 text-sm text-purple-900 md:col-span-2">
                 <b>Personal Request:</b>{" "}
                 {isPersonalFund
-                  ? "Fund request requires amount. It goes HR → DG → AccountOfficer → HR Filing."
-                  : `${personalCategory} request does not require amount. It goes HR → DG → HR Filing.`}
-                {" "}Personal requests never pass through DIN Admin.
+                  ? "Fund request requires amount. It routes through HR, DG, AccountOfficer and HR Filing after DOD/HOD where applicable."
+                  : `${personalCategory} request does not require amount. It routes through HR, DG and HR Filing after DOD/HOD where applicable.`}{" "}
+                Personal DIN requests use HR, not Registrar.
               </div>
             )}
 
@@ -1209,16 +1319,15 @@ export default function NewRequestPage() {
 
             <div className="md:col-span-2">
               <div
-                className={`rounded-2xl border p-5 ${
-                  signedRequest
-                    ? "border-emerald-200 bg-emerald-50"
-                    : "border-amber-200 bg-amber-50"
-                }`}
+                className={`rounded-2xl border p-5 ${signedRequest
+                  ? "border-emerald-200 bg-emerald-50"
+                  : "border-amber-200 bg-amber-50"
+                  }`}
               >
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div>
                     <h2 className="text-lg font-extrabold text-slate-900">
-                      Request Signature
+                      Staff / Requester Signature
                     </h2>
                     <p className="mt-1 text-sm text-slate-700">
                       You must sign this request before submission.
@@ -1242,11 +1351,10 @@ export default function NewRequestPage() {
                     type="button"
                     onClick={signRequest}
                     disabled={!me?.signature_url || saving || sendingOtp || verifyingOtp}
-                    className={`rounded-xl px-5 py-3 text-sm font-bold text-white disabled:opacity-60 ${
-                      signedRequest
-                        ? "bg-emerald-600 hover:bg-emerald-700"
-                        : "bg-blue-600 hover:bg-blue-700"
-                    }`}
+                    className={`rounded-xl px-5 py-3 text-sm font-bold text-white disabled:opacity-60 ${signedRequest
+                      ? "bg-emerald-600 hover:bg-emerald-700"
+                      : "bg-blue-600 hover:bg-blue-700"
+                      }`}
                   >
                     {signedRequest ? "Signed ✅" : "Sign Request"}
                   </button>
@@ -1265,20 +1373,19 @@ export default function NewRequestPage() {
                 ? "Uploading Attachments..."
                 : "Submitting..."
               : sendingOtp
-              ? `Sending ${otpLabel}...`
-              : verifyingOtp
-              ? `Verifying ${otpLabel}...`
-              : signedRequest
-              ? requestOtpEnabled
-                ? otpSent
-                  ? `Resend ${otpLabel} / Continue`
-                  : `Submit with ${otpLabel}`
-                : "Submit Signed Request"
-              : "Sign Request First"}
+                ? `Sending ${otpLabel}...`
+                : verifyingOtp
+                  ? `Verifying ${otpLabel}...`
+                  : signedRequest
+                    ? requestOtpEnabled
+                      ? otpSent
+                        ? `Resend ${otpLabel} / Continue`
+                        : `Submit with ${otpLabel}`
+                      : "Submit Signed Request"
+                    : "Sign Request First"}
           </button>
         </div>
       </div>
-
       {showOtpModal && requestOtpEnabled && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
           <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl">
@@ -1295,9 +1402,11 @@ export default function NewRequestPage() {
               <b>
                 {otpChannel === "sms"
                   ? `your registered phone ${maskPhone(me?.phone)}`
-                  : otpChannel === "email_sms"
-                  ? `your registered phone ${maskPhone(me?.phone)} and email ${maskEmail(me?.email)}`
-                  : `your registered email ${maskEmail(me?.email)}`}
+                  : isDualOtpChannel(otpChannel)
+                    ? `your registered phone ${maskPhone(me?.phone)} and email ${maskEmail(
+                      me?.email
+                    )}`
+                    : `your registered email ${maskEmail(me?.email)}`}
               </b>
               . This signed request will be submitted automatically after the 6th digit is entered.
             </p>
@@ -1308,7 +1417,7 @@ export default function NewRequestPage() {
               </div>
             )}
 
-            {otpChannel === "email_sms" && (
+            {isDualOtpChannel(otpChannel) && (
               <div className="mt-4 rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-900">
                 OTP was sent by SMS and email for stronger delivery.
               </div>
