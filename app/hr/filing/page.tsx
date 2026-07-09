@@ -24,13 +24,31 @@ type ReqRow = {
   personal_category: string | null;
 };
 
+type ProfileRole = {
+  id: string;
+  profile_id: string;
+  role_key: string;
+  role_name: string;
+  is_primary: boolean;
+  is_active: boolean;
+};
+
 type CategoryFilter =
   | "ALL"
   | "Fund"
   | "Leave"
   | "Contract Renewal"
   | "Resignation"
-  | "Others";
+  | "Others"
+  | "NonFund";
+
+type StatusFilter =
+  | "ALL"
+  | "InProgress"
+  | "InitialHRReview"
+  | "ReadyForHRFiling"
+  | "Completed"
+  | "Rejected";
 
 function roleKey(role: string | null | undefined) {
   return (role || "")
@@ -44,8 +62,20 @@ function normalize(v: string | null | undefined) {
   return (v || "").toLowerCase().replace(/[^a-z]/g, "");
 }
 
+function stageKey(stage: string | null | undefined) {
+  return (stage || "")
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, "")
+    .replace(/_/g, "");
+}
+
 function categoryKey(v: string | null | undefined) {
-  return (v || "").trim().toUpperCase().replace(/\s+/g, "");
+  return (v || "")
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, "")
+    .replace(/_/g, "");
 }
 
 function shortDate(d: string | null | undefined) {
@@ -57,6 +87,10 @@ function naira(n: number | null | undefined) {
   return "₦" + Math.round(Number(n || 0)).toLocaleString();
 }
 
+function hasAnyRole(roleSet: Set<string>, roles: string[]) {
+  return roles.some((r) => roleSet.has(roleKey(r)));
+}
+
 function isPersonal(r: ReqRow) {
   return normalize(r.request_type) === "personal";
 }
@@ -65,30 +99,41 @@ function isPersonalFund(r: ReqRow) {
   return isPersonal(r) && categoryKey(r.personal_category) === "FUND";
 }
 
-function isPersonalOther(r: ReqRow) {
-  return isPersonal(r) && !isPersonalFund(r);
-}
-
 function isCompleted(r: ReqRow) {
   const s = (r.status || "").toLowerCase();
-  return s.includes("complete") || s.includes("paid") || s.includes("closed");
+  const stg = stageKey(r.current_stage);
+
+  return (
+    stg === "COMPLETED" ||
+    s.includes("complete") ||
+    s.includes("paid") ||
+    s.includes("closed")
+  );
 }
 
 function isRejected(r: ReqRow) {
   const s = (r.status || "").toLowerCase();
-  return s.includes("reject") || s.includes("delete") || s.includes("cancel");
+  const stg = stageKey(r.current_stage);
+
+  return (
+    stg === "REJECTED" ||
+    stg === "DELETED" ||
+    stg === "CANCELLED" ||
+    s.includes("reject") ||
+    s.includes("delete") ||
+    s.includes("cancel")
+  );
 }
 
 function isReadyForHRFiling(r: ReqRow) {
-  const stage = normalize(r.current_stage);
+  const stage = stageKey(r.current_stage);
   const status = (r.status || "").toLowerCase();
 
-  return stage === "hrfiling" || status.includes("filing");
+  return stage === "HRFILING" || status.includes("filing");
 }
 
 function isAtInitialHRReview(r: ReqRow) {
-  const stage = normalize(r.current_stage);
-  return stage === "hr";
+  return stageKey(r.current_stage) === "HR";
 }
 
 function categoryLabel(r: ReqRow) {
@@ -134,29 +179,35 @@ function statusBadgeClass(status: string | null | undefined) {
 }
 
 function stageBadgeClass(stage: string | null | undefined) {
-  const s = normalize(stage);
+  const s = stageKey(stage);
 
-  if (s.includes("completed")) {
-    return "border-emerald-200 bg-emerald-50 text-emerald-700";
-  }
+  if (s === "COMPLETED") return "border-emerald-200 bg-emerald-50 text-emerald-700";
+  if (s === "ACCOUNT") return "border-amber-200 bg-amber-50 text-amber-700";
+  if (s === "HRFILING") return "border-purple-200 bg-purple-50 text-purple-700";
+  if (s === "DG") return "border-indigo-200 bg-indigo-50 text-indigo-700";
+  if (s === "HR") return "border-blue-200 bg-blue-50 text-blue-700";
+  if (s === "DOD") return "border-emerald-200 bg-emerald-50 text-emerald-700";
+  if (s === "HOD") return "border-cyan-200 bg-cyan-50 text-cyan-700";
 
-  if (s.includes("account")) {
-    return "border-amber-200 bg-amber-50 text-amber-700";
-  }
-
-  if (s.includes("hrfiling")) {
-    return "border-purple-200 bg-purple-50 text-purple-700";
-  }
-
-  if (s.includes("dg")) {
-    return "border-indigo-200 bg-indigo-50 text-indigo-700";
-  }
-
-  if (s === "hr") {
-    return "border-blue-200 bg-blue-50 text-blue-700";
+  if (["REJECTED", "DELETED", "CANCELLED"].includes(s)) {
+    return "border-red-200 bg-red-50 text-red-700";
   }
 
   return "border-slate-200 bg-slate-50 text-slate-700";
+}
+
+function stageLabel(stage: string | null | undefined) {
+  const s = stageKey(stage);
+
+  if (s === "HRFILING") return "HR Filing";
+  if (s === "ACCOUNT") return "AccountOfficer";
+  if (s === "DOD") return "DOD";
+  if (s === "HOD") return "HOD";
+  if (s === "HR") return "HR";
+  if (s === "DG") return "DG";
+  if (s === "COMPLETED") return "Completed";
+
+  return stage || "—";
 }
 
 function categoryBadgeClass(r: ReqRow) {
@@ -172,16 +223,49 @@ function categoryBadgeClass(r: ReqRow) {
 }
 
 function workflowNote(r: ReqRow) {
+  const stg = stageKey(r.current_stage);
+
   if (isPersonalFund(r)) {
-    return "Personal Fund route: HR → DG → AccountOfficer → HR Filing → Completed.";
+    if (stg === "DOD") return "Personal Fund is with DOD before HR.";
+    if (stg === "HOD") return "ASAP-ALLI Personal Fund is with HOD before HR.";
+    if (stg === "HR") return "Personal Fund is at initial HR review.";
+    if (stg === "DG") return "Personal Fund is with DG before AccountOfficer.";
+    if (stg === "ACCOUNT") return "Personal Fund is with AccountOfficer for payment.";
+    if (stg === "HRFILING") return "Personal Fund has returned to HR for final filing.";
+    if (stg === "COMPLETED") return "Personal Fund request is completed and filed.";
+
+    return "Personal Fund route: DOD/HOD → HR → DG → AccountOfficer → HR Filing → Completed.";
   }
 
-  return "Personal route: HR → DG → HR Filing → Completed.";
+  if (stg === "DOD") return "Personal request is with DOD before HR.";
+  if (stg === "HOD") return "ASAP-ALLI Personal request is with HOD before HR.";
+  if (stg === "HR") return "Personal request is at initial HR review.";
+  if (stg === "DG") return "Personal request is with DG before HR Filing.";
+  if (stg === "HRFILING") return "Personal request has returned to HR for final filing.";
+  if (stg === "COMPLETED") return "Personal request is completed and filed.";
+
+  return "Personal route: DOD/HOD → HR → DG → HR Filing → Completed.";
 }
 
 function amountLabel(r: ReqRow) {
   if (!isPersonalFund(r)) return "Not Applicable";
   return naira(r.amount);
+}
+
+function roleSummary(fallbackRole: string, roles: ProfileRole[]) {
+  const active = roles.filter((r) => r.is_active);
+
+  if (active.length === 0) return fallbackRole || "Staff";
+
+  return active
+    .slice()
+    .sort((a, b) => {
+      if (a.is_primary && !b.is_primary) return -1;
+      if (!a.is_primary && b.is_primary) return 1;
+      return a.role_name.localeCompare(b.role_name);
+    })
+    .map((r) => r.role_name)
+    .join(", ");
 }
 
 export default function HRFilingPage() {
@@ -192,15 +276,36 @@ export default function HRFilingPage() {
   const [msg, setMsg] = useState<string | null>(null);
 
   const [myRole, setMyRole] = useState<string>("Staff");
-  const rk = roleKey(myRole);
-  const canAccess = ["admin", "auditor", "hr"].includes(rk);
-
+  const [myRoles, setMyRoles] = useState<ProfileRole[]>([]);
   const [rows, setRows] = useState<ReqRow[]>([]);
 
   const [search, setSearch] = useState("");
   const [deptFilter, setDeptFilter] = useState("ALL");
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("ALL");
-  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
+
+  const roleSet = useMemo(() => {
+    const set = new Set<string>();
+
+    if (myRole) set.add(roleKey(myRole));
+
+    myRoles.forEach((r) => {
+      if (r.is_active) set.add(roleKey(r.role_key));
+    });
+
+    return set;
+  }, [myRole, myRoles]);
+
+  const canAccess = useMemo(() => {
+    return hasAnyRole(roleSet, [
+      "admin",
+      "auditor",
+      "hr",
+      "hrofficer1",
+      "hrofficer2",
+      "hrofficer3",
+    ]);
+  }, [roleSet]);
 
   function openWorkflow(id: string) {
     router.push(`/requests/${id}?updated=${Date.now()}`);
@@ -234,24 +339,48 @@ export default function HRFilingPage() {
         return;
       }
 
-      const { data: prof, error: profErr } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", auth.user.id)
-        .maybeSingle();
+      const [profRes, rolesRes] = await Promise.all([
+        supabase.from("profiles").select("role").eq("id", auth.user.id).maybeSingle(),
 
-      if (profErr) {
-        setMsg("Failed to load your profile: " + profErr.message);
+        supabase
+          .from("profile_roles")
+          .select("id,profile_id,role_key,role_name,is_primary,is_active")
+          .eq("profile_id", auth.user.id)
+          .eq("is_active", true),
+      ]);
+
+      if (profRes.error) {
+        setMsg("Failed to load your profile: " + profRes.error.message);
         setLoading(false);
         setRefreshing(false);
         return;
       }
 
-      const role = (prof?.role || "Staff") as string;
-      setMyRole(role);
+      const fallbackRole = (profRes.data?.role || "Staff") as string;
+      const activeRoles = (rolesRes.data || []) as ProfileRole[];
 
-      if (!["admin", "auditor", "hr"].includes(roleKey(role))) {
-        setMsg("Access denied. Only HR, Admin and Auditor can access HR Filing.");
+      setMyRole(fallbackRole);
+      setMyRoles(activeRoles);
+
+      const nextRoleSet = new Set<string>();
+
+      if (fallbackRole) nextRoleSet.add(roleKey(fallbackRole));
+
+      activeRoles.forEach((r) => {
+        if (r.is_active) nextRoleSet.add(roleKey(r.role_key));
+      });
+
+      const allowed = hasAnyRole(nextRoleSet, [
+        "admin",
+        "auditor",
+        "hr",
+        "hrofficer1",
+        "hrofficer2",
+        "hrofficer3",
+      ]);
+
+      if (!allowed) {
+        setMsg("Access denied. Only HR, HR Officers, Admin and Auditor can access HR Filing.");
         setRows([]);
         setLoading(false);
         setRefreshing(false);
@@ -372,6 +501,10 @@ export default function HRFilingPage() {
       (r) => categoryKey(r.personal_category) === "RESIGNATION"
     ).length;
     const others = personalRows.filter((r) => categoryKey(r.personal_category) === "OTHERS").length;
+    const legacyOther = personalRows.filter(
+      (r) => !r.personal_category || categoryKey(r.personal_category) === "NONFUND"
+    ).length;
+
     const readyForHRFiling = personalRows.filter(isReadyForHRFiling).length;
     const initialHRReview = personalRows.filter(isAtInitialHRReview).length;
     const completed = personalRows.filter(isCompleted).length;
@@ -379,6 +512,7 @@ export default function HRFilingPage() {
     const thisMonth = personalRows.filter((r) => {
       const d = new Date(r.created_at);
       const now = new Date();
+
       return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
     }).length;
 
@@ -389,6 +523,7 @@ export default function HRFilingPage() {
       contractRenewal,
       resignation,
       others,
+      legacyOther,
       readyForHRFiling,
       initialHRReview,
       completed,
@@ -411,9 +546,7 @@ export default function HRFilingPage() {
       <main className="min-h-screen bg-slate-50 px-4">
         <div className="mx-auto max-w-3xl py-10">
           <div className="rounded-2xl border bg-white p-6 shadow-sm">
-            <h1 className="text-xl font-extrabold text-slate-900">
-              HR Filing Access
-            </h1>
+            <h1 className="text-xl font-extrabold text-slate-900">HR Filing Access</h1>
 
             <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
               {msg || "Access denied."}
@@ -436,14 +569,16 @@ export default function HRFilingPage() {
       <div className="mx-auto max-w-7xl py-8">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">
-              HR Filing
-            </h1>
+            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">HR Filing</h1>
             <p className="mt-2 text-sm text-slate-600">
               HR register for Staff Personal Fund, Leave, Contract Renewal, Resignation and Others.
             </p>
             <p className="mt-1 text-xs font-semibold text-slate-500">
-              Personal Fund returns to HR Filing after AccountOfficer treatment. Other Personal requests return to HR Filing after DG approval.
+              Active capacity: <b className="text-slate-800">{roleSummary(myRole, myRoles)}</b>
+            </p>
+            <p className="mt-1 text-xs font-semibold text-slate-500">
+              Personal Fund returns to HR Filing after AccountOfficer treatment. Other Personal
+              requests return to HR Filing after DG approval.
             </p>
           </div>
 
@@ -473,16 +608,18 @@ export default function HRFilingPage() {
         )}
 
         <div className="mt-4 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-xs font-semibold text-blue-900">
-          This HR Filing page refreshes automatically when you return to it, so completed requests and filing-ready items stay current.
+          This HR Filing page refreshes automatically when you return to it, so completed requests
+          and filing-ready items stay current.
         </div>
 
-        <div className="mt-6 grid gap-4 md:grid-cols-3 xl:grid-cols-10">
+        <div className="mt-6 grid gap-4 md:grid-cols-3 xl:grid-cols-11">
           <StatCard title="Total Personal" value={String(stats.total)} tone="blue" />
           <StatCard title="Fund" value={String(stats.fund)} tone="blue" />
           <StatCard title="Leave" value={String(stats.leave)} tone="emerald" />
           <StatCard title="Contract" value={String(stats.contractRenewal)} tone="purple" />
           <StatCard title="Resignation" value={String(stats.resignation)} tone="red" />
           <StatCard title="Others" value={String(stats.others)} tone="amber" />
+          <StatCard title="Legacy Other" value={String(stats.legacyOther)} tone="slate" />
           <StatCard title="HR Review" value={String(stats.initialHRReview)} tone="blue" />
           <StatCard title="HR Filing" value={String(stats.readyForHRFiling)} tone="amber" />
           <StatCard title="Completed" value={String(stats.completed)} tone="emerald" />
@@ -530,6 +667,7 @@ export default function HRFilingPage() {
                 <option value="Contract Renewal">Contract Renewal</option>
                 <option value="Resignation">Resignation</option>
                 <option value="Others">Others</option>
+                <option value="NonFund">Legacy Personal Other</option>
               </select>
             </div>
 
@@ -537,7 +675,7 @@ export default function HRFilingPage() {
               <label className="text-sm font-semibold text-slate-800">Status</label>
               <select
                 value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
+                onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
                 className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-3 text-slate-900 outline-none focus:border-blue-500"
               >
                 <option value="ALL">All Statuses</option>
@@ -559,13 +697,9 @@ export default function HRFilingPage() {
               <div key={r.id} className="rounded-3xl border bg-white p-5 shadow-sm">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <div className="text-lg font-extrabold text-slate-900">
-                      {r.request_no}
-                    </div>
+                    <div className="text-lg font-extrabold text-slate-900">{r.request_no}</div>
                     <div className="mt-1 font-semibold text-slate-800">{r.title}</div>
-                    <div className="mt-1 text-sm text-slate-500">
-                      {r.dept_name || "—"}
-                    </div>
+                    <div className="mt-1 text-sm text-slate-500">{r.dept_name || "—"}</div>
                   </div>
 
                   <div className="flex flex-col items-end gap-1">
@@ -590,7 +724,7 @@ export default function HRFilingPage() {
                         r.current_stage
                       )}`}
                     >
-                      {r.current_stage || "—"}
+                      {stageLabel(r.current_stage)}
                     </span>
                   </div>
                 </div>
@@ -602,7 +736,7 @@ export default function HRFilingPage() {
                 <div className="mt-4 grid gap-2 text-sm sm:grid-cols-2">
                   <InfoLine label="Requester" value={r.requester_name || "—"} />
                   <InfoLine label="Amount" value={amountLabel(r)} />
-                  <InfoLine label="HOD/Director" value={r.checked_by_name || "—"} />
+                  <InfoLine label="DOD/HOD" value={r.checked_by_name || "—"} />
                   <InfoLine label="HR Review" value={r.hr_name || "—"} />
                   <InfoLine label="DG" value={r.dg_name || "—"} />
                   <InfoLine
@@ -610,7 +744,7 @@ export default function HRFilingPage() {
                     value={isPersonalFund(r) ? r.account_name || "—" : "Not Applicable"}
                   />
                   <InfoLine label="Created" value={shortDate(r.created_at)} />
-                  <InfoLine label="Stage" value={r.current_stage || "—"} />
+                  <InfoLine label="Stage" value={stageLabel(r.current_stage)} />
                 </div>
 
                 <div className="mt-4 rounded-2xl bg-slate-50 p-4 text-sm text-slate-700">
@@ -642,9 +776,7 @@ export default function HRFilingPage() {
 
         <div className="mt-6 hidden overflow-hidden rounded-3xl border bg-white shadow-sm xl:block">
           <div className="border-b bg-slate-50 px-6 py-4">
-            <h2 className="text-lg font-bold text-slate-900">
-              Personal Requests Register
-            </h2>
+            <h2 className="text-lg font-bold text-slate-900">Personal Requests Register</h2>
             <p className="mt-1 text-sm text-slate-600">
               HR register for Personal Fund, Leave, Contract Renewal, Resignation and Others.
             </p>
@@ -655,41 +787,35 @@ export default function HRFilingPage() {
           ) : (
             <div className="overflow-x-auto">
               <div className="min-w-[1320px]">
-                <div className="grid grid-cols-16 bg-slate-100 px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600">
-                  <div className="col-span-2">Request No</div>
-                  <div className="col-span-3">Title</div>
-                  <div className="col-span-2">Department</div>
-                  <div className="col-span-1">Category</div>
-                  <div className="col-span-1">Amount</div>
-                  <div className="col-span-1">Status</div>
-                  <div className="col-span-1">Stage</div>
-                  <div className="col-span-2">Requester</div>
-                  <div className="col-span-1">HR</div>
-                  <div className="col-span-1">Date</div>
-                  <div className="col-span-1 text-right">Action</div>
+                <div className="grid grid-cols-[1.25fr_2fr_1.45fr_1fr_1fr_1fr_1fr_1.45fr_1fr_0.85fr_1fr] bg-slate-100 px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600">
+                  <div>Request No</div>
+                  <div>Title</div>
+                  <div>Department</div>
+                  <div>Category</div>
+                  <div>Amount</div>
+                  <div>Status</div>
+                  <div>Stage</div>
+                  <div>Requester</div>
+                  <div>HR</div>
+                  <div>Date</div>
+                  <div className="text-right">Action</div>
                 </div>
 
                 {filteredRows.map((r) => (
                   <div
                     key={r.id}
-                    className="grid grid-cols-16 items-center border-t px-6 py-4 text-sm hover:bg-slate-50"
+                    className="grid grid-cols-[1.25fr_2fr_1.45fr_1fr_1fr_1fr_1fr_1.45fr_1fr_0.85fr_1fr] items-center border-t px-6 py-4 text-sm hover:bg-slate-50"
                   >
-                    <div className="col-span-2 font-extrabold text-slate-900">
-                      {r.request_no}
-                    </div>
+                    <div className="font-extrabold text-slate-900">{r.request_no}</div>
 
-                    <div className="col-span-3">
+                    <div>
                       <div className="font-semibold text-slate-900">{r.title}</div>
-                      <div className="mt-1 line-clamp-1 text-xs text-slate-500">
-                        {r.details}
-                      </div>
+                      <div className="mt-1 line-clamp-1 text-xs text-slate-500">{r.details}</div>
                     </div>
 
-                    <div className="col-span-2 text-slate-700">
-                      {r.dept_name || "—"}
-                    </div>
+                    <div className="text-slate-700">{r.dept_name || "—"}</div>
 
-                    <div className="col-span-1">
+                    <div>
                       <span
                         className={`rounded-full border px-2 py-1 text-[11px] font-bold ${categoryBadgeClass(
                           r
@@ -699,11 +825,9 @@ export default function HRFilingPage() {
                       </span>
                     </div>
 
-                    <div className="col-span-1 font-semibold text-slate-900">
-                      {amountLabel(r)}
-                    </div>
+                    <div className="font-semibold text-slate-900">{amountLabel(r)}</div>
 
-                    <div className="col-span-1">
+                    <div>
                       <span
                         className={`rounded-full border px-2 py-1 text-[11px] font-bold ${statusBadgeClass(
                           r.status
@@ -713,29 +837,23 @@ export default function HRFilingPage() {
                       </span>
                     </div>
 
-                    <div className="col-span-1">
+                    <div>
                       <span
                         className={`rounded-full border px-2 py-1 text-[11px] font-bold ${stageBadgeClass(
                           r.current_stage
                         )}`}
                       >
-                        {r.current_stage || "—"}
+                        {stageLabel(r.current_stage)}
                       </span>
                     </div>
 
-                    <div className="col-span-2 text-slate-700">
-                      {r.requester_name || "—"}
-                    </div>
+                    <div className="text-slate-700">{r.requester_name || "—"}</div>
 
-                    <div className="col-span-1 text-slate-700">
-                      {r.hr_name || "—"}
-                    </div>
+                    <div className="text-slate-700">{r.hr_name || "—"}</div>
 
-                    <div className="col-span-1 text-slate-600">
-                      {shortDate(r.created_at)}
-                    </div>
+                    <div className="text-slate-600">{shortDate(r.created_at)}</div>
 
-                    <div className="col-span-1 flex justify-end gap-2">
+                    <div className="flex justify-end gap-2">
                       <button
                         onClick={() => openWorkflow(r.id)}
                         className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-900 hover:bg-slate-100"
@@ -762,9 +880,10 @@ export default function HRFilingPage() {
         <div className="mt-6 rounded-3xl border border-blue-100 bg-blue-50 p-5 text-sm text-blue-900">
           <div className="font-bold">HR Personal Requests Note</div>
           <p className="mt-1">
-            This page shows Staff Personal requests because every Personal request passes through HR.
-            Personal Fund requests move to AccountOfficer after DG approval before returning to HR Filing.
-            Leave, Contract Renewal, Resignation and Others move from DG directly to HR Filing.
+            This page shows Staff Personal requests because every Personal request passes through
+            HR. Personal Fund requests move to AccountOfficer after DG approval before returning to
+            HR Filing. Leave, Contract Renewal, Resignation and Others move from DG directly to HR
+            Filing.
           </p>
         </div>
       </div>
