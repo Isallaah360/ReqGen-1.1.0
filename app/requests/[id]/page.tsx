@@ -127,11 +127,19 @@ function roleKey(role: string | null | undefined) {
 }
 
 function stageKey(stage: string | null | undefined) {
-  return (stage || "").trim().toUpperCase().replace(/\s+/g, "");
+  return (stage || "")
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, "")
+    .replace(/_/g, "");
 }
 
 function categoryKey(category: string | null | undefined) {
-  return (category || "").trim().toUpperCase().replace(/\s+/g, "");
+  return (category || "")
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, "")
+    .replace(/_/g, "");
 }
 
 function officerLabel(o: OfficerMini) {
@@ -142,7 +150,7 @@ function requestTypeLabel(req: Req) {
   if (req.request_type === "Official") return "Official";
 
   const category = req.personal_category || "Others";
-  if (category === "NonFund") return "Personal • Non-Fund";
+  if (category === "NonFund") return "Personal • Other";
 
   return `Personal • ${category}`;
 }
@@ -152,6 +160,7 @@ function fileSizeLabel(bytes: number | null | undefined) {
 
   if (n >= 1024 * 1024) return `${(n / (1024 * 1024)).toFixed(2)} MB`;
   if (n >= 1024) return `${(n / 1024).toFixed(1)} KB`;
+
   return `${n} B`;
 }
 
@@ -244,6 +253,18 @@ function roleDisplay(h: Hist) {
   if (h.actor_role_name) return `as ${h.actor_role_name}`;
   if (h.actor_role_key) return `as ${h.actor_role_key}`;
   return "";
+}
+
+function primaryOrFirstRole(roles: ProfileRole[], fallbackRole?: string | null) {
+  const active = roles.filter((r) => r.is_active);
+
+  const primary = active.find((r) => r.is_primary);
+  const first = active[0];
+
+  return {
+    role_key: primary?.role_key || first?.role_key || (fallbackRole ? roleKey(fallbackRole) : null),
+    role_name: primary?.role_name || first?.role_name || fallbackRole || null,
+  };
 }
 
 export default function RequestDetailsPage() {
@@ -413,8 +434,8 @@ export default function RequestDetailsPage() {
       isOfficial &&
       !req.subhead_id &&
       ["HOD", "REGISTRAR"].includes(stg) &&
-      !["Approved", "Rejected", "Cancelled", "Deleted", "Paid", "Closed", "Completed"].includes(
-        req.status || ""
+      !["APPROVED", "REJECTED", "CANCELLED", "DELETED", "PAID", "CLOSED", "COMPLETED"].includes(
+        stageKey(req.status)
       )
     );
   }, [req, isOfficial, stg]);
@@ -878,6 +899,8 @@ export default function RequestDetailsPage() {
       return;
     }
 
+    const roleInfo = primaryOrFirstRole(myRoles, me.role);
+
     setCheckingAttachmentId(attachment.id);
     setMsg(null);
 
@@ -888,7 +911,7 @@ export default function RequestDetailsPage() {
           attachment_id: attachment.id,
           checked_by: me.id,
           checked_by_name: me.full_name || null,
-          checked_by_role: me.role || null,
+          checked_by_role: roleInfo.role_name,
           check_status: "Checked",
           check_comment: `Checked by ${me.full_name || "officer"}`,
           checked_at: new Date().toISOString(),
@@ -903,12 +926,12 @@ export default function RequestDetailsPage() {
       await supabase.from("request_history").insert({
         request_id: req.id,
         action_type: "Attachment Checked",
-        comment: `${attachment.file_name} was checked by ${me.full_name || "officer"} (${me.role || "Role not set"
+        comment: `${attachment.file_name} was checked by ${me.full_name || "officer"} (${roleInfo.role_name || "Role not set"
           }).`,
         to_stage: req.current_stage,
         actor_name: me.full_name || null,
-        actor_role_key: me.role ? roleKey(me.role) : null,
-        actor_role_name: me.role || null,
+        actor_role_key: roleInfo.role_key,
+        actor_role_name: roleInfo.role_name,
         action_by: me.id,
       });
 
@@ -1094,16 +1117,19 @@ export default function RequestDetailsPage() {
           setMsg(`✅ Approved after your attachment checks and 2FA. Sent to ${nextStage || "next stage"}.`);
         }
       } else {
-        const { error } = await supabase.rpc("reject_request_step", {
+        const { data, error } = await supabase.rpc("reject_request_step", {
           p_request_id: req.id,
-          p_action_by: me.id,
+          p_actor_id: me.id,
           p_comment: comment.trim(),
           p_signature_url: me.signature_url,
         });
 
         if (error) throw new Error(error.message);
 
-        setMsg("✅ Request rejected successfully after your attachment checks and 2FA.");
+        const result = Array.isArray(data) ? data[0] : data;
+        const nextStage = (result as any)?.new_stage || "Rejected";
+
+        setMsg(`✅ Request ${String(nextStage).toLowerCase()} successfully after your attachment checks and 2FA.`);
       }
 
       setComment("");
@@ -1160,6 +1186,10 @@ export default function RequestDetailsPage() {
     if (stg === "PO") return "Approve as PO";
     if (stg === "REGISTRAR") return "Approve as Registrar";
     if (stg === "DINADMIN") return "Approve as DIN Admin";
+    if (stg === "HOD") return "Approve as HOD";
+    if (stg === "HR") return "Approve as HR";
+    if (stg === "DG") return "Approve as DG";
+
     return "Approve";
   }, [
     saving,
