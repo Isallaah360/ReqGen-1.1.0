@@ -53,7 +53,6 @@ export default function ProfilePage() {
   const [phone, setPhone] = useState("");
   const [gender, setGender] = useState<string>("");
 
-  const [deptId, setDeptId] = useState<string | null>(null);
   const [deptName, setDeptName] = useState<string>("");
   const [role, setRole] = useState<string>("Staff");
 
@@ -151,7 +150,6 @@ export default function ProfilePage() {
       setFullName(prof?.full_name || "");
       setPhone(prof?.phone || "");
       setGender(prof?.gender || "");
-      setDeptId(prof?.dept_id || null);
       setRole(prof?.role || "Staff");
 
       const savedSigPath = prof?.signature_url || null;
@@ -508,7 +506,7 @@ export default function ProfilePage() {
             <button
               type="button"
               onClick={goChangePassword}
-              className="rounded-xl bg-slate-900 px-4 py-3 text-sm font-bold text-white hover:bg-slate-800"
+              className="rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700"
             >
               Change Password Securely
             </button>
@@ -680,14 +678,14 @@ export default function ProfilePage() {
           <div className="rounded-3xl border bg-white p-6 shadow-sm">
             <h2 className="text-lg font-bold text-slate-900">Password</h2>
             <p className="mt-2 text-sm leading-6 text-slate-600">
-              Password changes are now handled through the secure password page. You will confirm
-              your current password and verify 2FA where required.
+              Password changes are handled through the secure password page. You will confirm your
+              current password and verify 2FA where required.
             </p>
 
             <button
               type="button"
               onClick={goChangePassword}
-              className="mt-5 w-full rounded-2xl bg-slate-900 px-4 py-3 text-sm font-bold text-white shadow-sm hover:bg-slate-800"
+              className="mt-5 w-full rounded-2xl bg-blue-600 px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700"
             >
               Change Password Securely
             </button>
