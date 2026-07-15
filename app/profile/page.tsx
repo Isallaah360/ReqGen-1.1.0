@@ -47,7 +47,6 @@ export default function ProfilePage() {
   const [refreshing, setRefreshing] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingEmail, setSavingEmail] = useState(false);
-  const [savingPassword, setSavingPassword] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
   const [fullName, setFullName] = useState("");
@@ -66,9 +65,6 @@ export default function ProfilePage() {
   const [file, setFile] = useState<File | null>(null);
   const [uploadingSig, setUploadingSig] = useState(false);
 
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmNewPassword, setConfirmNewPassword] = useState("");
-
   const [security, setSecurity] = useState<SecurityStatus>({
     hasVerifiedTotp: false,
     currentLevel: null,
@@ -82,6 +78,8 @@ export default function ProfilePage() {
 
   const isSessionMfaVerified = security.currentLevel === "aal2";
   const isMfaSetupComplete = security.hasVerifiedTotp;
+
+  const busy = refreshing || savingProfile || savingEmail || uploadingSig;
 
   const loadSecurityStatus = useCallback(async () => {
     const [factorsRes, aalRes] = await Promise.all([
@@ -237,8 +235,9 @@ export default function ProfilePage() {
       setMsg("✅ Profile saved successfully.");
       await load({ silent: true });
       router.refresh();
-    } catch (e: any) {
-      setMsg("❌ Save failed: " + (e?.message || "Unknown error"));
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Unknown error";
+      setMsg("❌ Save failed: " + message);
     } finally {
       setSavingProfile(false);
     }
@@ -303,8 +302,9 @@ export default function ProfilePage() {
 
       await load({ silent: true });
       router.refresh();
-    } catch (e: any) {
-      setMsg("❌ Signature upload failed: " + (e?.message || "Unknown error"));
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Unknown error";
+      setMsg("❌ Signature upload failed: " + message);
     } finally {
       setUploadingSig(false);
     }
@@ -341,41 +341,11 @@ export default function ProfilePage() {
       setMsg("✅ Email update started. Check email if confirmation is required.");
       await load({ silent: true });
       router.refresh();
-    } catch (e: any) {
-      setMsg("❌ Email change failed: " + (e?.message || "Unknown error"));
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Unknown error";
+      setMsg("❌ Email change failed: " + message);
     } finally {
       setSavingEmail(false);
-    }
-  }
-
-  async function changePassword() {
-    setMsg(null);
-
-    if (newPassword.length < 6) {
-      setMsg("❌ Password must be at least 6 characters.");
-      return;
-    }
-
-    if (newPassword !== confirmNewPassword) {
-      setMsg("❌ Passwords do not match.");
-      return;
-    }
-
-    setSavingPassword(true);
-
-    try {
-      const { error } = await supabase.auth.updateUser({ password: newPassword });
-      if (error) throw new Error(error.message);
-
-      setNewPassword("");
-      setConfirmNewPassword("");
-      setMsg("✅ Password updated successfully.");
-      await loadSecurityStatus();
-      router.refresh();
-    } catch (e: any) {
-      setMsg("❌ Password change failed: " + (e?.message || "Unknown error"));
-    } finally {
-      setSavingPassword(false);
     }
   }
 
@@ -394,6 +364,11 @@ export default function ProfilePage() {
     router.refresh();
   }
 
+  function goChangePassword() {
+    router.push(`/change-password?updated=${Date.now()}`);
+    router.refresh();
+  }
+
   async function refreshSecurity() {
     setRefreshing(true);
     setMsg(null);
@@ -401,8 +376,9 @@ export default function ProfilePage() {
     try {
       await loadSecurityStatus();
       setMsg("✅ Security status refreshed.");
-    } catch (e: any) {
-      setMsg("❌ Failed to refresh security status: " + (e?.message || "Unknown error"));
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Unknown error";
+      setMsg("❌ Failed to refresh security status: " + message);
     } finally {
       setRefreshing(false);
     }
@@ -432,16 +408,18 @@ export default function ProfilePage() {
 
           <div className="flex flex-wrap gap-2">
             <button
+              type="button"
               onClick={() => load({ silent: true })}
-              disabled={refreshing || savingProfile || savingEmail || savingPassword || uploadingSig}
+              disabled={busy}
               className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
             >
               {refreshing ? "Refreshing..." : "Refresh"}
             </button>
 
             <button
+              type="button"
               onClick={goDashboard}
-              disabled={refreshing || savingProfile || savingEmail || savingPassword || uploadingSig}
+              disabled={busy}
               className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
             >
               Back
@@ -456,7 +434,8 @@ export default function ProfilePage() {
         )}
 
         <div className="mt-4 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-xs font-semibold text-blue-900">
-          This profile page refreshes automatically when you return to it. Signature and 2FA changes are reloaded immediately.
+          This profile page refreshes automatically when you return to it. Signature and 2FA changes
+          are reloaded immediately.
         </div>
 
         <div className="mt-6 rounded-3xl border bg-white p-6 shadow-sm">
@@ -508,6 +487,7 @@ export default function ProfilePage() {
           <div className="mt-5 flex flex-wrap gap-2">
             {!isMfaSetupComplete && (
               <button
+                type="button"
                 onClick={goMfaSetup}
                 className="rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white hover:bg-blue-700"
               >
@@ -517,6 +497,7 @@ export default function ProfilePage() {
 
             {isMfaSetupComplete && !isSessionMfaVerified && (
               <button
+                type="button"
                 onClick={goMfaVerify}
                 className="rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white hover:bg-blue-700"
               >
@@ -525,6 +506,15 @@ export default function ProfilePage() {
             )}
 
             <button
+              type="button"
+              onClick={goChangePassword}
+              className="rounded-xl bg-slate-900 px-4 py-3 text-sm font-bold text-white hover:bg-slate-800"
+            >
+              Change Password Securely
+            </button>
+
+            <button
+              type="button"
               onClick={refreshSecurity}
               disabled={refreshing}
               className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
@@ -534,8 +524,9 @@ export default function ProfilePage() {
           </div>
 
           <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-900">
-            <b>Important:</b> Do not share your password or authenticator code. Request submission,
-            approval, voucher actions and finance changes will require a verified 2FA session.
+            <b>Important:</b> Do not share your password, reset link or authenticator code. Request
+            submission, approval, voucher actions and finance changes will require a verified 2FA
+            session.
           </div>
         </div>
 
@@ -596,6 +587,7 @@ export default function ProfilePage() {
             </div>
 
             <button
+              type="button"
               onClick={saveProfile}
               disabled={!canSaveProfile || savingProfile}
               className="mt-5 w-full rounded-2xl bg-blue-600 px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700 disabled:opacity-60"
@@ -638,6 +630,7 @@ export default function ProfilePage() {
             </div>
 
             <button
+              type="button"
               onClick={uploadSignature}
               disabled={uploadingSig}
               className="mt-4 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
@@ -647,7 +640,7 @@ export default function ProfilePage() {
 
             {!sigPath && (
               <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-                You must upload a signature before submitting any request.
+                You must upload a signature before submitting or treating requests.
               </div>
             )}
           </div>
@@ -671,6 +664,7 @@ export default function ProfilePage() {
             </div>
 
             <button
+              type="button"
               onClick={changeEmail}
               disabled={savingEmail}
               className="mt-4 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
@@ -685,36 +679,23 @@ export default function ProfilePage() {
 
           <div className="rounded-3xl border bg-white p-6 shadow-sm">
             <h2 className="text-lg font-bold text-slate-900">Password</h2>
-
-            <div className="mt-4">
-              <label className="text-sm font-semibold text-slate-800">New Password</label>
-              <input
-                type="password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                disabled={savingPassword}
-                className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 text-base text-slate-900 outline-none focus:border-blue-500 disabled:bg-slate-50"
-              />
-            </div>
-
-            <div className="mt-4">
-              <label className="text-sm font-semibold text-slate-800">Confirm New Password</label>
-              <input
-                type="password"
-                value={confirmNewPassword}
-                onChange={(e) => setConfirmNewPassword(e.target.value)}
-                disabled={savingPassword}
-                className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 text-base text-slate-900 outline-none focus:border-blue-500 disabled:bg-slate-50"
-              />
-            </div>
+            <p className="mt-2 text-sm leading-6 text-slate-600">
+              Password changes are now handled through the secure password page. You will confirm
+              your current password and verify 2FA where required.
+            </p>
 
             <button
-              onClick={changePassword}
-              disabled={savingPassword}
-              className="mt-4 w-full rounded-2xl bg-blue-600 px-4 py-3 text-sm font-bold text-white shadow-sm hover:bg-blue-700 disabled:opacity-60"
+              type="button"
+              onClick={goChangePassword}
+              className="mt-5 w-full rounded-2xl bg-slate-900 px-4 py-3 text-sm font-bold text-white shadow-sm hover:bg-slate-800"
             >
-              {savingPassword ? "Changing Password..." : "Change Password"}
+              Change Password Securely
             </button>
+
+            <div className="mt-4 rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 text-xs leading-5 text-blue-900">
+              For account protection, password change signs you out after success so you can log in
+              again with the new password.
+            </div>
           </div>
         </div>
       </div>

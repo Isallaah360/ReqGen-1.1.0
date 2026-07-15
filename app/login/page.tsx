@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
@@ -28,16 +28,30 @@ function LoginPageContent() {
   const searchParams = useSearchParams();
 
   const timeoutReason = searchParams.get("reason") === "session-timeout";
+  const passwordResetSuccess = searchParams.get("password_reset") === "success";
+  const passwordChangedSuccess = searchParams.get("password_changed") === "success";
+
+  const initialMessage = useMemo(() => {
+    if (timeoutReason) {
+      return "For security reasons, your session timed out. Please login again.";
+    }
+
+    if (passwordResetSuccess) {
+      return "✅ Password reset successful. Please login with your new password.";
+    }
+
+    if (passwordChangedSuccess) {
+      return "✅ Password changed successfully. Please login again with your new password.";
+    }
+
+    return null;
+  }, [timeoutReason, passwordResetSuccess, passwordChangedSuccess]);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const [msg, setMsg] = useState<string | null>(
-    timeoutReason ? "For security reasons, your session timed out. Please login again." : null
-  );
-
+  const [msg, setMsg] = useState<string | null>(initialMessage);
   const [saving, setSaving] = useState(false);
-  const [sendingReset, setSendingReset] = useState(false);
 
   async function decideNextSecurityStep() {
     const { data: factorsData, error: factorsErr } = await supabase.auth.mfa.listFactors();
@@ -74,7 +88,7 @@ function LoginPageContent() {
   async function login() {
     setMsg(null);
 
-    const cleanEmail = email.trim();
+    const cleanEmail = email.trim().toLowerCase();
 
     if (!cleanEmail) {
       setMsg("❌ Enter your email address.");
@@ -98,36 +112,23 @@ function LoginPageContent() {
 
       setMsg("✅ Password accepted. Checking 2FA security...");
       await decideNextSecurityStep();
-    } catch (e: any) {
-      setMsg("❌ Login failed: " + (e?.message || "Unknown error"));
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Unknown error";
+      setMsg("❌ Login failed: " + message);
     } finally {
       setSaving(false);
     }
   }
 
-  async function forgotPassword() {
-    setMsg(null);
+  function goForgotPassword() {
+    const cleanEmail = email.trim().toLowerCase();
 
-    if (!email.trim()) {
-      setMsg("❌ Enter your email first, then click Reset Password.");
+    if (cleanEmail) {
+      router.push(`/forgot-password?email=${encodeURIComponent(cleanEmail)}`);
       return;
     }
 
-    setSendingReset(true);
-
-    try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-        redirectTo: `${window.location.origin}/reset-password`,
-      });
-
-      if (error) throw new Error(error.message);
-
-      setMsg("✅ Password reset link has been sent to your email.");
-    } catch (e: any) {
-      setMsg("❌ Reset failed: " + (e?.message || "Unknown error"));
-    } finally {
-      setSendingReset(false);
-    }
+    router.push("/forgot-password");
   }
 
   return (
@@ -171,7 +172,18 @@ function LoginPageContent() {
           </div>
 
           <div className="mt-4">
-            <label className="text-sm font-bold text-slate-800">Password</label>
+            <div className="flex items-center justify-between gap-3">
+              <label className="text-sm font-bold text-slate-800">Password</label>
+
+              <button
+                type="button"
+                onClick={goForgotPassword}
+                className="text-xs font-black text-blue-700 hover:underline"
+              >
+                Forgot Password?
+              </button>
+            </div>
+
             <input
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -186,6 +198,7 @@ function LoginPageContent() {
           </div>
 
           <button
+            type="button"
             onClick={login}
             disabled={saving}
             className="mt-5 w-full rounded-2xl bg-blue-600 px-4 py-3 text-base font-bold text-white hover:bg-blue-700 disabled:opacity-60"
@@ -194,22 +207,28 @@ function LoginPageContent() {
           </button>
 
           <button
-            onClick={forgotPassword}
-            disabled={sendingReset}
-            className="mt-3 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
+            type="button"
+            onClick={goForgotPassword}
+            className="mt-3 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 hover:bg-slate-100"
           >
-            {sendingReset ? "Sending reset link..." : "Forgot Password?"}
+            Reset Forgotten Password
           </button>
 
           <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-5 text-amber-900">
-            <b>Security notice:</b> Do not share your password or leave ReqGen open on a public
-            computer. The system will automatically log out inactive users.
+            <b>Security notice:</b> Do not share your password, reset link, or authenticator code.
+            ReqGen will automatically log out inactive users.
           </div>
 
           <div className="mt-4 text-center text-sm text-slate-600">
             Don’t have an account?{" "}
             <Link href="/signup" className="font-bold text-blue-700 hover:underline">
               Sign up
+            </Link>
+          </div>
+
+          <div className="mt-3 text-center text-sm">
+            <Link href="/" className="font-bold text-slate-600 hover:text-slate-900">
+              Back to Homepage
             </Link>
           </div>
         </div>
