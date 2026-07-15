@@ -1,7 +1,8 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
 function getAppOrigin() {
@@ -9,11 +10,18 @@ function getAppOrigin() {
     return window.location.origin;
 }
 
+function getResetRedirectUrl() {
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || getAppOrigin();
+    return `${appUrl.replace(/\/$/, "")}/reset-password`;
+}
+
 function cleanEmail(email: string) {
     return email.trim().toLowerCase();
 }
 
-export default function ForgotPasswordPage() {
+function ForgotPasswordContent() {
+    const searchParams = useSearchParams();
+
     const [email, setEmail] = useState("");
     const [sending, setSending] = useState(false);
     const [sent, setSent] = useState(false);
@@ -23,6 +31,14 @@ export default function ForgotPasswordPage() {
     const validEmail = useMemo(() => {
         return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail(email));
     }, [email]);
+
+    useEffect(() => {
+        const emailFromUrl = searchParams.get("email");
+
+        if (emailFromUrl) {
+            setEmail(cleanEmail(emailFromUrl));
+        }
+    }, [searchParams]);
 
     async function submit(e: FormEvent) {
         e.preventDefault();
@@ -44,7 +60,7 @@ export default function ForgotPasswordPage() {
 
         setSending(true);
 
-        const redirectTo = `${getAppOrigin()}/reset-password`;
+        const redirectTo = getResetRedirectUrl();
 
         const { error } = await supabase.auth.resetPasswordForEmail(finalEmail, {
             redirectTo,
@@ -125,6 +141,10 @@ export default function ForgotPasswordPage() {
                                 possible. The link will take you to the secure password reset page.
                             </p>
 
+                            <div className="mt-4 rounded-xl border border-blue-200 bg-white px-4 py-3 text-xs font-semibold text-blue-900">
+                                Reset page: {getResetRedirectUrl()}
+                            </div>
+
                             <button
                                 type="button"
                                 onClick={() => {
@@ -157,4 +177,8 @@ export default function ForgotPasswordPage() {
             </div>
         </main>
     );
+}
+
+export default function ForgotPasswordPage() {
+    return <ForgotPasswordContent />;
 }
