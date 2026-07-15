@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
@@ -179,6 +179,22 @@ function ForgotPasswordContent() {
     );
 }
 
+function ForgotPasswordLoading() {
+    return (
+        <main className="min-h-screen bg-slate-50 px-4">
+            <div className="mx-auto flex min-h-screen max-w-lg items-center justify-center py-10">
+                <div className="w-full rounded-3xl border bg-white p-6 text-center text-sm font-semibold text-slate-600 shadow-sm">
+                    Loading password recovery...
+                </div>
+            </div>
+        </main>
+    );
+}
+
 export default function ForgotPasswordPage() {
-    return <ForgotPasswordContent />;
+    return (
+        <Suspense fallback={<ForgotPasswordLoading />}>
+            <ForgotPasswordContent />
+        </Suspense>
+    );
 }
