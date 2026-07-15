@@ -7,7 +7,8 @@ import { supabase } from "@/lib/supabaseClient";
 
 type Notif = {
   id: string;
-  title: string;
+  title: string | null;
+  message: string | null;
   link: string | null;
   is_read: boolean;
   created_at: string;
@@ -21,6 +22,15 @@ type PendingApproval = {
   current_stage: string | null;
   amount: number | null;
   created_at: string;
+};
+
+type ProfileRole = {
+  id: string;
+  profile_id: string;
+  role_key: string;
+  role_name: string;
+  is_primary: boolean;
+  is_active: boolean;
 };
 
 type NavItem = {
@@ -59,6 +69,26 @@ function formatNaira(value: number | null | undefined) {
 function compactCount(value: number) {
   if (value > 99) return "99+";
   return String(value);
+}
+
+function hasAnyRole(roleSet: Set<string>, roles: string[]) {
+  return roles.some((role) => roleSet.has(roleKey(role)));
+}
+
+function roleSummary(fallbackRole: string | null | undefined, profileRoles: ProfileRole[]) {
+  const active = profileRoles.filter((r) => r.is_active);
+
+  if (active.length === 0) return fallbackRole || "Staff";
+
+  return active
+    .slice()
+    .sort((a, b) => {
+      if (a.is_primary && !b.is_primary) return -1;
+      if (!a.is_primary && b.is_primary) return 1;
+      return a.role_name.localeCompare(b.role_name);
+    })
+    .map((r) => r.role_name)
+    .join(", ");
 }
 
 function IconApprovals({ className = "h-5 w-5" }: IconProps) {
@@ -146,6 +176,25 @@ function IconHR({ className = "h-5 w-5" }: IconProps) {
   );
 }
 
+function IconRegistry({ className = "h-5 w-5" }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M5 4h14v16H5V4Z"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M8 8h8M8 12h8M8 16h5"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
 function IconAdmin({ className = "h-5 w-5" }: IconProps) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -161,6 +210,25 @@ function IconAdmin({ className = "h-5 w-5" }: IconProps) {
         strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function IconNotifications({ className = "h-5 w-5" }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M18 8a6 6 0 1 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9Z"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M10 21h4"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
       />
     </svg>
   );
@@ -201,7 +269,9 @@ export default function NavBar() {
   const [signedIn, setSignedIn] = useState(false);
   const [mfaVerified, setMfaVerified] = useState(false);
   const [checkingSecurity, setCheckingSecurity] = useState(true);
+
   const [myRole, setMyRole] = useState<string>("Staff");
+  const [myRoles, setMyRoles] = useState<ProfileRole[]>([]);
 
   const [openApprovalPanel, setOpenApprovalPanel] = useState(false);
   const [openHR, setOpenHR] = useState(false);
@@ -217,11 +287,40 @@ export default function NavBar() {
   const hrRef = useRef<HTMLDivElement | null>(null);
   const mobileRef = useRef<HTMLDivElement | null>(null);
 
-  const rk = roleKey(myRole);
+  const roleSet = useMemo(() => {
+    const set = new Set<string>();
 
-  const isAdmin = ["admin", "auditor"].includes(rk);
-  const canFinance = ["admin", "auditor", "account", "accounts", "accountofficer"].includes(rk);
-  const canHR = ["admin", "auditor", "hr"].includes(rk);
+    if (myRole) set.add(roleKey(myRole));
+
+    myRoles.forEach((r) => {
+      if (r.is_active) set.add(roleKey(r.role_key));
+    });
+
+    return set;
+  }, [myRole, myRoles]);
+
+  const isAdmin = hasAnyRole(roleSet, ["admin", "auditor"]);
+
+  const canFinance = hasAnyRole(roleSet, [
+    "admin",
+    "auditor",
+    "account",
+    "accounts",
+    "accountofficer",
+    "pvsigner",
+    "pvcountersigner",
+  ]);
+
+  const canHR = hasAnyRole(roleSet, [
+    "admin",
+    "auditor",
+    "hr",
+    "hrofficer1",
+    "hrofficer2",
+    "hrofficer3",
+  ]);
+
+  const canRegistry = hasAnyRole(roleSet, ["admin", "auditor", "registry"]);
 
   function isActiveLink(href: string) {
     if (href === "/") return pathname === "/";
@@ -250,34 +349,30 @@ export default function NavBar() {
   }, [hrLinks, pathname]);
 
   const iconLinkClass = (href: string) =>
-    `group relative inline-flex h-11 w-11 items-center justify-center rounded-2xl border text-sm font-semibold transition ${
-      isActiveLink(href)
-        ? "border-blue-600 bg-blue-600 text-white shadow-sm"
-        : "border-slate-200 bg-white text-slate-700 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+    `group relative inline-flex h-11 w-11 items-center justify-center rounded-2xl border text-sm font-semibold transition ${isActiveLink(href)
+      ? "border-blue-600 bg-blue-600 text-white shadow-sm"
+      : "border-slate-200 bg-white text-slate-700 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
     }`;
 
   const dropdownIconButtonClass = (active: boolean) =>
-    `group relative inline-flex h-11 w-11 items-center justify-center rounded-2xl border text-sm font-semibold transition ${
-      active
-        ? "border-blue-600 bg-blue-600 text-white shadow-sm"
-        : "border-slate-200 bg-white text-slate-700 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+    `group relative inline-flex h-11 w-11 items-center justify-center rounded-2xl border text-sm font-semibold transition ${active
+      ? "border-blue-600 bg-blue-600 text-white shadow-sm"
+      : "border-slate-200 bg-white text-slate-700 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
     }`;
 
   const dropdownItemClass = (href: string) =>
-    `block w-full rounded-2xl px-4 py-3 text-left transition ${
-      isActiveLink(href)
-        ? "bg-blue-600 text-white shadow-sm"
-        : "text-slate-800 hover:bg-slate-100"
+    `block w-full rounded-2xl px-4 py-3 text-left transition ${isActiveLink(href)
+      ? "bg-blue-600 text-white shadow-sm"
+      : "text-slate-800 hover:bg-slate-100"
     }`;
 
   const dropdownItemDescriptionClass = (href: string) =>
     `mt-0.5 text-xs font-semibold ${isActiveLink(href) ? "text-blue-100" : "text-slate-500"}`;
 
   const mobileItemClass = (href: string) =>
-    `block w-full rounded-xl px-4 py-3 text-left text-sm font-bold transition ${
-      isActiveLink(href)
-        ? "bg-blue-600 text-white shadow-sm"
-        : "text-slate-800 hover:bg-slate-100"
+    `block w-full rounded-xl px-4 py-3 text-left text-sm font-bold transition ${isActiveLink(href)
+      ? "bg-blue-600 text-white shadow-sm"
+      : "text-slate-800 hover:bg-slate-100"
     }`;
 
   const mobileItemDescriptionClass = (href: string) =>
@@ -304,7 +399,7 @@ export default function NavBar() {
       .from("requests")
       .select("*", { count: "exact", head: true })
       .eq("current_owner", uid)
-      .not("status", "in", '("Approved","Rejected","Cancelled","Deleted","Paid","Closed")');
+      .not("status", "in", '("Approved","Rejected","Cancelled","Deleted","Paid","Closed","Completed")');
 
     setPendingApprovalCount(count || 0);
   }
@@ -314,7 +409,7 @@ export default function NavBar() {
       .from("requests")
       .select("id,request_no,title,status,current_stage,amount,created_at")
       .eq("current_owner", uid)
-      .not("status", "in", '("Approved","Rejected","Cancelled","Deleted","Paid","Closed")')
+      .not("status", "in", '("Approved","Rejected","Cancelled","Deleted","Paid","Closed","Completed")')
       .order("created_at", { ascending: false })
       .limit(8);
 
@@ -329,7 +424,7 @@ export default function NavBar() {
   async function loadNotifications(uid: string) {
     const { data: n } = await supabase
       .from("notifications")
-      .select("id,title,link,is_read,created_at")
+      .select("id,title,message,link,is_read,created_at")
       .eq("user_id", uid)
       .order("created_at", { ascending: false })
       .limit(5);
@@ -346,6 +441,30 @@ export default function NavBar() {
     setUnreadNotificationCount(unreadNotifCount || 0);
   }
 
+  async function loadRoleContext(uid: string) {
+    const [profRes, rolesRes] = await Promise.all([
+      supabase.from("profiles").select("role").eq("id", uid).maybeSingle(),
+
+      supabase
+        .from("profile_roles")
+        .select("id,profile_id,role_key,role_name,is_primary,is_active")
+        .eq("profile_id", uid)
+        .eq("is_active", true),
+    ]);
+
+    if (!profRes.error && profRes.data?.role) {
+      setMyRole(profRes.data.role);
+    } else {
+      setMyRole("Staff");
+    }
+
+    if (!rolesRes.error) {
+      setMyRoles((rolesRes.data || []) as ProfileRole[]);
+    } else {
+      setMyRoles([]);
+    }
+  }
+
   async function refreshAll() {
     setCheckingSecurity(true);
 
@@ -356,6 +475,7 @@ export default function NavBar() {
       setMfaVerified(false);
       setUserId(null);
       setMyRole("Staff");
+      setMyRoles([]);
       setPendingApprovalCount(0);
       setPendingApprovals([]);
       setNotificationItems([]);
@@ -373,6 +493,7 @@ export default function NavBar() {
 
     if (!verified) {
       setMyRole("Staff");
+      setMyRoles([]);
       setPendingApprovalCount(0);
       setPendingApprovals([]);
       setNotificationItems([]);
@@ -381,17 +502,7 @@ export default function NavBar() {
       return;
     }
 
-    const { data: prof, error: profErr } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", uid)
-      .maybeSingle();
-
-    if (!profErr && prof?.role) {
-      setMyRole(prof.role);
-    } else {
-      setMyRole("Staff");
-    }
+    await loadRoleContext(uid);
 
     await Promise.all([
       loadPendingApprovalCount(uid),
@@ -448,9 +559,24 @@ export default function NavBar() {
       )
       .subscribe();
 
+    const roleChannel = supabase
+      .channel(`roles-${userId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "profile_roles",
+          filter: `profile_id=eq.${userId}`,
+        },
+        refreshAll
+      )
+      .subscribe();
+
     return () => {
       supabase.removeChannel(notifChannel);
       supabase.removeChannel(requestChannel);
+      supabase.removeChannel(roleChannel);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, mfaVerified]);
@@ -488,6 +614,7 @@ export default function NavBar() {
     setMfaVerified(false);
     setUserId(null);
     setMyRole("Staff");
+    setMyRoles([]);
     setPendingApprovalCount(0);
     setPendingApprovals([]);
     setNotificationItems([]);
@@ -514,7 +641,7 @@ export default function NavBar() {
     await supabase.from("notifications").update({ is_read: true }).eq("id", n.id);
 
     setOpenApprovalPanel(false);
-    router.push(n.link || "/approvals");
+    router.push(n.link || "/notifications");
     router.refresh();
   }
 
@@ -585,13 +712,12 @@ export default function NavBar() {
                     setOpenHR(false);
                     setOpenMobileMenu(false);
                   }}
-                  className={`group relative inline-flex h-11 w-11 items-center justify-center rounded-2xl border transition ${
-                    isActiveLink("/approvals")
+                  className={`group relative inline-flex h-11 w-11 items-center justify-center rounded-2xl border transition ${isActiveLink("/approvals")
                       ? "border-blue-600 bg-blue-600 text-white shadow-sm"
                       : pendingApprovalCount > 0
-                      ? "border-red-200 bg-red-50 text-red-700 hover:bg-red-100"
-                      : "border-slate-200 bg-white text-slate-700 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
-                  }`}
+                        ? "border-red-200 bg-red-50 text-red-700 hover:bg-red-100"
+                        : "border-slate-200 bg-white text-slate-700 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+                    }`}
                 >
                   <IconApprovals />
                   <IconButtonTooltip label="Approvals" />
@@ -604,7 +730,7 @@ export default function NavBar() {
                 </button>
 
                 {openApprovalPanel && (
-                  <div className="absolute left-0 top-12 z-50 w-[370px] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
+                  <div className="absolute left-0 top-12 z-50 w-[390px] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
                     <div className="border-b bg-slate-50 px-4 py-3">
                       <div className="flex items-center justify-between gap-3">
                         <div>
@@ -617,11 +743,10 @@ export default function NavBar() {
                         </div>
 
                         <span
-                          className={`rounded-full px-2.5 py-1 text-xs font-black ${
-                            pendingApprovalCount > 0
+                          className={`rounded-full px-2.5 py-1 text-xs font-black ${pendingApprovalCount > 0
                               ? "bg-red-600 text-white"
                               : "bg-slate-200 text-slate-700"
-                          }`}
+                            }`}
                         >
                           {pendingApprovalCount}
                         </span>
@@ -674,48 +799,69 @@ export default function NavBar() {
                       </button>
                     </div>
 
-                    {notificationItems.length > 0 && (
-                      <div className="border-t">
-                        <div className="flex items-center justify-between bg-white px-4 py-3">
-                          <div className="text-sm font-extrabold text-slate-900">
-                            Recent Notifications
-                            {unreadNotificationCount > 0 && (
-                              <span className="ml-2 rounded-full bg-blue-600 px-2 py-0.5 text-xs font-black text-white">
-                                {unreadNotificationCount}
-                              </span>
-                            )}
-                          </div>
-
-                          <button
-                            type="button"
-                            onClick={markAllNotificationsRead}
-                            className="text-xs font-bold text-blue-700 hover:underline"
-                          >
-                            Mark read
-                          </button>
+                    <div className="border-t">
+                      <div className="flex items-center justify-between bg-white px-4 py-3">
+                        <div className="text-sm font-extrabold text-slate-900">
+                          Recent Notifications
+                          {unreadNotificationCount > 0 && (
+                            <span className="ml-2 rounded-full bg-blue-600 px-2 py-0.5 text-xs font-black text-white">
+                              {unreadNotificationCount}
+                            </span>
+                          )}
                         </div>
 
+                        <button
+                          type="button"
+                          onClick={markAllNotificationsRead}
+                          disabled={unreadNotificationCount === 0}
+                          className="text-xs font-bold text-blue-700 hover:underline disabled:text-slate-400"
+                        >
+                          Mark read
+                        </button>
+                      </div>
+
+                      {notificationItems.length === 0 ? (
+                        <div className="border-t px-4 py-3 text-sm text-slate-500">
+                          No notification yet.
+                        </div>
+                      ) : (
                         <div className="max-h-52 overflow-auto">
                           {notificationItems.map((n) => (
                             <button
                               type="button"
                               key={n.id}
                               onClick={() => openNotif(n)}
-                              className={`w-full border-t px-4 py-3 text-left hover:bg-slate-50 ${
-                                n.is_read ? "bg-white" : "bg-blue-50"
-                              }`}
+                              className={`w-full border-t px-4 py-3 text-left hover:bg-slate-50 ${n.is_read ? "bg-white" : "bg-blue-50"
+                                }`}
                             >
-                              <div className="text-sm font-semibold text-slate-900">
-                                {n.title}
+                              <div className="text-sm font-black text-slate-900">
+                                {n.title || "Notification"}
                               </div>
-                              <div className="text-xs text-slate-500">
+
+                              {n.message && (
+                                <div className="mt-1 line-clamp-2 text-xs font-semibold text-slate-600">
+                                  {n.message}
+                                </div>
+                              )}
+
+                              <div className="mt-1 text-xs text-slate-500">
                                 {new Date(n.created_at).toLocaleString()}
                               </div>
                             </button>
                           ))}
                         </div>
+                      )}
+
+                      <div className="border-t bg-slate-50 p-3">
+                        <button
+                          type="button"
+                          onClick={() => goTo("/notifications")}
+                          className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-900 hover:bg-slate-100"
+                        >
+                          Open Notifications
+                        </button>
                       </div>
-                    )}
+                    </div>
                   </div>
                 )}
               </div>
@@ -729,6 +875,26 @@ export default function NavBar() {
                 <IconRequests />
                 <IconButtonTooltip label="My Requests" />
               </Link>
+
+              <button
+                type="button"
+                onClick={() => goTo("/notifications")}
+                className={`group relative inline-flex h-11 w-11 items-center justify-center rounded-2xl border transition ${isActiveLink("/notifications")
+                    ? "border-blue-600 bg-blue-600 text-white shadow-sm"
+                    : unreadNotificationCount > 0
+                      ? "border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100"
+                      : "border-slate-200 bg-white text-slate-700 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+                  }`}
+              >
+                <IconNotifications />
+                <IconButtonTooltip label="Notifications" />
+
+                {unreadNotificationCount > 0 && (
+                  <span className="absolute -right-2 -top-2 rounded-full bg-amber-600 px-2 py-0.5 text-xs font-black text-white">
+                    {compactCount(unreadNotificationCount)}
+                  </span>
+                )}
+              </button>
 
               {canFinance && (
                 <button
@@ -789,6 +955,17 @@ export default function NavBar() {
                 </div>
               )}
 
+              {canRegistry && (
+                <button
+                  type="button"
+                  onClick={() => goTo("/registry")}
+                  className={iconLinkClass("/registry")}
+                >
+                  <IconRegistry />
+                  <IconButtonTooltip label="Registry Desk" />
+                </button>
+              )}
+
               {isAdmin && (
                 <Link className={iconLinkClass("/admin")} href="/admin">
                   <IconAdmin />
@@ -805,11 +982,10 @@ export default function NavBar() {
                   setOpenHR(false);
                   setOpenApprovalPanel(false);
                 }}
-                className={`rounded-xl border px-3 py-2 text-sm font-bold transition ${
-                  openMobileMenu
+                className={`rounded-xl border px-3 py-2 text-sm font-bold transition ${openMobileMenu
                     ? "border-blue-600 bg-blue-600 text-white shadow-sm"
                     : "border-slate-200 bg-white text-slate-900 hover:bg-slate-100"
-                }`}
+                  }`}
               >
                 Menu ▾
               </button>
@@ -819,7 +995,7 @@ export default function NavBar() {
                   <div className="mb-2 rounded-2xl bg-slate-50 px-4 py-3">
                     <div className="font-extrabold text-slate-900">Navigation</div>
                     <div className="mt-1 text-xs font-semibold text-slate-500">
-                      ReqGen modules
+                      {roleSummary(myRole, myRoles)}
                     </div>
                   </div>
 
@@ -858,6 +1034,22 @@ export default function NavBar() {
                     <span className="inline-flex items-center gap-2">
                       <IconRequests className="h-4 w-4" />
                       My Requests
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => goTo("/notifications")}
+                    className={mobileItemClass("/notifications")}
+                  >
+                    <span className="inline-flex items-center gap-2">
+                      <IconNotifications className="h-4 w-4" />
+                      Notifications
+                      {unreadNotificationCount > 0 && (
+                        <span className="rounded-full bg-amber-600 px-2 py-0.5 text-xs font-black text-white">
+                          {compactCount(unreadNotificationCount)}
+                        </span>
+                      )}
                     </span>
                   </button>
 
@@ -901,6 +1093,28 @@ export default function NavBar() {
                           )}
                         </button>
                       ))}
+                    </>
+                  )}
+
+                  {canRegistry && (
+                    <>
+                      <div className="mt-3 border-t pt-3 text-xs font-black uppercase tracking-wide text-slate-500">
+                        Registry
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => goTo("/registry")}
+                        className={mobileItemClass("/registry")}
+                      >
+                        <span className="inline-flex items-center gap-2">
+                          <IconRegistry className="h-4 w-4" />
+                          Registry Desk
+                        </span>
+                        <div className={mobileItemDescriptionClass("/registry")}>
+                          Department movement, DG reminders and daily submission summaries
+                        </div>
+                      </button>
                     </>
                   )}
 
