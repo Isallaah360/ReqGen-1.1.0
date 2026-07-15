@@ -259,10 +259,7 @@ export default function DashboardPage() {
         .eq("current_owner", userId)
         .not("status", "in", '("Rejected","Deleted","Cancelled","Paid","Closed","Completed")'),
 
-      supabase
-        .from("requests")
-        .select("*", { count: "exact", head: true })
-        .eq("created_by", userId),
+      supabase.from("requests").select("*", { count: "exact", head: true }).eq("created_by", userId),
 
       supabase
         .from("requests")
@@ -465,6 +462,13 @@ export default function DashboardPage() {
         href: "/approvals",
         tone: counts.pendingMyApproval > 0 ? "red" : "emerald",
       },
+      {
+        title: "Notifications",
+        description:
+          "Open your workflow alerts, approvals, routing updates and request status notifications.",
+        href: "/notifications",
+        tone: counts.unreadNotifications > 0 ? "amber" : "slate",
+      },
     ];
 
     if (canFinance) {
@@ -522,7 +526,7 @@ export default function DashboardPage() {
       cards.push({
         title: "Registry Desk",
         description:
-          "Monitor department submissions, DG pending requests and reminder activity. Registry is not an approval stage.",
+          "Monitor department submissions, DG pending requests, department movement and reminder activity.",
         href: "/registry",
         tone: "amber",
       });
@@ -578,6 +582,7 @@ export default function DashboardPage() {
     isAdmin,
     counts.pendingMyApproval,
     counts.hrFilingAssignedToMe,
+    counts.unreadNotifications,
   ]);
 
   if (loading) {
@@ -690,7 +695,7 @@ export default function DashboardPage() {
                   value={counts.unreadNotifications}
                   helper="Unread workflow alerts"
                   tone={counts.unreadNotifications > 0 ? "amber" : "slate"}
-                  onClick={() => router.push("/approvals")}
+                  onClick={() => router.push("/notifications")}
                 />
               </div>
 
@@ -819,7 +824,7 @@ export default function DashboardPage() {
                       profile.role || "Staff"
                     )}`}
                   >
-                    {profile.role || "Staff"}
+                    {roleSummary(profile.role, profileRoles)}
                   </span>
                 </div>
 
@@ -927,7 +932,7 @@ export default function DashboardPage() {
                 <div>
                   <h2 className="text-xl font-extrabold text-slate-900">Quick Access</h2>
                   <p className="mt-1 text-sm text-slate-600">
-                    Shortcuts are shown based on your active multiple roles.
+                    Shortcuts are shown based on all your active multiple roles.
                   </p>
                 </div>
 
