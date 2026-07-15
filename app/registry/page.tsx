@@ -42,9 +42,32 @@ type ProfileRole = {
     is_active: boolean;
 };
 
+type DepartmentMovement = {
+    dept_id: string;
+    dept_name: string;
+    total: number;
+    today: number;
+    po: number;
+    dod: number;
+    dinAdmin: number;
+    registrar: number;
+    hod: number;
+    hr: number;
+    dg: number;
+    account: number;
+    hrFiling: number;
+    completed: number;
+    rejected: number;
+};
+
 type StageFilter =
     | "ALL"
     | "TODAY"
+    | "PO"
+    | "DOD"
+    | "DINADMIN"
+    | "REGISTRAR"
+    | "HOD"
     | "DG"
     | "HRFILING"
     | "HR"
@@ -364,7 +387,7 @@ export default function RegistryPage() {
                         "id,request_no,title,details,amount,status,current_stage,current_owner,created_by,dept_id,request_type,personal_category,created_at,requester_name,assigned_account_officer_name"
                     )
                     .order("created_at", { ascending: false })
-                    .limit(300),
+                    .limit(1000),
 
                 supabase.from("profiles").select("id,full_name,role"),
 
@@ -422,9 +445,9 @@ export default function RegistryPage() {
         const total = requests.length;
         const today = requests.filter((r) => isToday(r.created_at)).length;
         const dgPending = requests.filter((r) => stageKey(r.current_stage) === "DG" && !isClosed(r)).length;
-        const hrFiling = requests.filter((r) => stageKey(r.current_stage) === "HRFILING").length;
-        const account = requests.filter((r) => stageKey(r.current_stage) === "ACCOUNT").length;
-        const hr = requests.filter((r) => stageKey(r.current_stage) === "HR").length;
+        const hrFiling = requests.filter((r) => stageKey(r.current_stage) === "HRFILING" && !isClosed(r)).length;
+        const account = requests.filter((r) => stageKey(r.current_stage) === "ACCOUNT" && !isClosed(r)).length;
+        const hr = requests.filter((r) => stageKey(r.current_stage) === "HR" && !isClosed(r)).length;
         const completed = requests.filter(isCompleted).length;
         const rejected = requests.filter(isRejected).length;
 
@@ -453,6 +476,33 @@ export default function RegistryPage() {
         };
     }, [requests]);
 
+    const departmentMovements = useMemo<DepartmentMovement[]>(() => {
+        return departments
+            .map((dept) => {
+                const rows = requests.filter((r) => r.dept_id === dept.id);
+
+                return {
+                    dept_id: dept.id,
+                    dept_name: dept.name,
+                    total: rows.length,
+                    today: rows.filter((r) => isToday(r.created_at)).length,
+                    po: rows.filter((r) => stageKey(r.current_stage) === "PO" && !isClosed(r)).length,
+                    dod: rows.filter((r) => stageKey(r.current_stage) === "DOD" && !isClosed(r)).length,
+                    dinAdmin: rows.filter((r) => stageKey(r.current_stage) === "DINADMIN" && !isClosed(r)).length,
+                    registrar: rows.filter((r) => stageKey(r.current_stage) === "REGISTRAR" && !isClosed(r)).length,
+                    hod: rows.filter((r) => stageKey(r.current_stage) === "HOD" && !isClosed(r)).length,
+                    hr: rows.filter((r) => stageKey(r.current_stage) === "HR" && !isClosed(r)).length,
+                    dg: rows.filter((r) => stageKey(r.current_stage) === "DG" && !isClosed(r)).length,
+                    account: rows.filter((r) => stageKey(r.current_stage) === "ACCOUNT" && !isClosed(r)).length,
+                    hrFiling: rows.filter((r) => stageKey(r.current_stage) === "HRFILING" && !isClosed(r)).length,
+                    completed: rows.filter(isCompleted).length,
+                    rejected: rows.filter(isRejected).length,
+                };
+            })
+            .filter((row) => row.total > 0)
+            .sort((a, b) => b.total - a.total || a.dept_name.localeCompare(b.dept_name));
+    }, [departments, requests]);
+
     const filteredRows = useMemo(() => {
         const s = search.trim().toLowerCase();
 
@@ -460,6 +510,11 @@ export default function RegistryPage() {
             if (deptFilter !== "ALL" && r.dept_id !== deptFilter) return false;
 
             if (stageFilter === "TODAY" && !isToday(r.created_at)) return false;
+            if (stageFilter === "PO" && stageKey(r.current_stage) !== "PO") return false;
+            if (stageFilter === "DOD" && stageKey(r.current_stage) !== "DOD") return false;
+            if (stageFilter === "DINADMIN" && stageKey(r.current_stage) !== "DINADMIN") return false;
+            if (stageFilter === "REGISTRAR" && stageKey(r.current_stage) !== "REGISTRAR") return false;
+            if (stageFilter === "HOD" && stageKey(r.current_stage) !== "HOD") return false;
             if (stageFilter === "DG" && stageKey(r.current_stage) !== "DG") return false;
             if (stageFilter === "HRFILING" && stageKey(r.current_stage) !== "HRFILING") return false;
             if (stageFilter === "HR" && stageKey(r.current_stage) !== "HR") return false;
@@ -502,11 +557,11 @@ export default function RegistryPage() {
     }, [requests]);
 
     const hrFilingRows = useMemo(() => {
-        return requests.filter((r) => stageKey(r.current_stage) === "HRFILING");
+        return requests.filter((r) => stageKey(r.current_stage) === "HRFILING" && !isClosed(r));
     }, [requests]);
 
-    function openRequest(id: string) {
-        router.push(`/requests/${id}?updated=${Date.now()}`);
+    function openRequest(requestId: string) {
+        router.push(`/requests/${requestId}?updated=${Date.now()}`);
         router.refresh();
     }
 
@@ -684,6 +739,80 @@ export default function RegistryPage() {
                     <StatCard title="Rejected/Deleted" value={String(stats.rejected)} tone="red" />
                 </div>
 
+                <div className="mt-6 rounded-3xl border bg-white p-5 shadow-sm">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                            <h2 className="text-lg font-extrabold text-slate-900">
+                                Department Movement Summary
+                            </h2>
+                            <p className="mt-1 text-sm text-slate-600">
+                                Registry overview of request movement by department and current workflow stage.
+                            </p>
+                        </div>
+
+                        <span className="rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-xs font-black text-blue-700">
+                            {departmentMovements.length} active department(s)
+                        </span>
+                    </div>
+
+                    {departmentMovements.length === 0 ? (
+                        <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+                            No department movement found yet.
+                        </div>
+                    ) : (
+                        <div className="mt-4 overflow-x-auto">
+                            <div className="min-w-[1180px] overflow-hidden rounded-2xl border">
+                                <div className="grid grid-cols-[2fr_0.8fr_0.8fr_0.8fr_0.8fr_0.9fr_0.9fr_0.8fr_0.8fr_0.8fr_0.9fr_1fr_1fr] bg-slate-100 px-4 py-3 text-xs font-black uppercase tracking-wide text-slate-600">
+                                    <div>Department</div>
+                                    <div>Total</div>
+                                    <div>Today</div>
+                                    <div>PO</div>
+                                    <div>DOD</div>
+                                    <div>DIN Admin</div>
+                                    <div>Registrar</div>
+                                    <div>HOD</div>
+                                    <div>HR</div>
+                                    <div>DG</div>
+                                    <div>Account</div>
+                                    <div>HR Filing</div>
+                                    <div>Completed</div>
+                                </div>
+
+                                {departmentMovements.map((row) => (
+                                    <div
+                                        key={row.dept_id}
+                                        className="grid grid-cols-[2fr_0.8fr_0.8fr_0.8fr_0.8fr_0.9fr_0.9fr_0.8fr_0.8fr_0.8fr_0.9fr_1fr_1fr] items-center border-t px-4 py-3 text-sm hover:bg-slate-50"
+                                    >
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setDeptFilter(row.dept_id);
+                                                setStageFilter("ALL");
+                                            }}
+                                            className="text-left font-extrabold text-blue-700 hover:underline"
+                                        >
+                                            {row.dept_name}
+                                        </button>
+
+                                        <MovementNumber value={row.total} tone="slate" />
+                                        <MovementNumber value={row.today} tone={row.today > 0 ? "blue" : "slate"} />
+                                        <MovementNumber value={row.po} tone={row.po > 0 ? "red" : "slate"} />
+                                        <MovementNumber value={row.dod} tone={row.dod > 0 ? "red" : "slate"} />
+                                        <MovementNumber value={row.dinAdmin} tone={row.dinAdmin > 0 ? "red" : "slate"} />
+                                        <MovementNumber value={row.registrar} tone={row.registrar > 0 ? "red" : "slate"} />
+                                        <MovementNumber value={row.hod} tone={row.hod > 0 ? "red" : "slate"} />
+                                        <MovementNumber value={row.hr} tone={row.hr > 0 ? "amber" : "slate"} />
+                                        <MovementNumber value={row.dg} tone={row.dg > 0 ? "indigo" : "slate"} />
+                                        <MovementNumber value={row.account} tone={row.account > 0 ? "amber" : "slate"} />
+                                        <MovementNumber value={row.hrFiling} tone={row.hrFiling > 0 ? "purple" : "slate"} />
+                                        <MovementNumber value={row.completed} tone={row.completed > 0 ? "emerald" : "slate"} />
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </div>
+
                 <div className="mt-6 grid gap-4 lg:grid-cols-3">
                     <ReminderCard
                         title="DG Pending Reminder"
@@ -744,6 +873,11 @@ export default function RegistryPage() {
                             >
                                 <option value="ALL">All Requests</option>
                                 <option value="TODAY">Submitted Today</option>
+                                <option value="PO">PO Stage</option>
+                                <option value="DOD">DOD Stage</option>
+                                <option value="DINADMIN">DIN Admin Stage</option>
+                                <option value="REGISTRAR">Registrar Stage</option>
+                                <option value="HOD">HOD Stage</option>
                                 <option value="DG">Pending at DG</option>
                                 <option value="HR">Initial HR Review</option>
                                 <option value="ACCOUNT">Account Stage</option>
@@ -775,11 +909,7 @@ export default function RegistryPage() {
                                         </div>
 
                                         <div className="flex flex-col items-end gap-1">
-                                            <span
-                                                className={`rounded-full border px-3 py-1 text-xs font-bold ${typeBadgeClass(
-                                                    r
-                                                )}`}
-                                            >
+                                            <span className={`rounded-full border px-3 py-1 text-xs font-bold ${typeBadgeClass(r)}`}>
                                                 {requestTypeLabel(r)}
                                             </span>
 
@@ -852,9 +982,7 @@ export default function RegistryPage() {
                                 </div>
 
                                 {filteredRows.map((r) => {
-                                    const owner = r.current_owner
-                                        ? profileMap.get(r.current_owner)?.full_name || "—"
-                                        : "—";
+                                    const owner = r.current_owner ? profileMap.get(r.current_owner)?.full_name || "—" : "—";
                                     const dept = r.dept_id ? deptMap.get(r.dept_id) || "—" : "—";
 
                                     return (
@@ -876,11 +1004,7 @@ export default function RegistryPage() {
                                             <div className="text-slate-700">{dept}</div>
 
                                             <div>
-                                                <span
-                                                    className={`rounded-full border px-2 py-1 text-[11px] font-bold ${typeBadgeClass(
-                                                        r
-                                                    )}`}
-                                                >
+                                                <span className={`rounded-full border px-2 py-1 text-[11px] font-bold ${typeBadgeClass(r)}`}>
                                                     {requestTypeLabel(r)}
                                                 </span>
                                             </div>
@@ -1008,5 +1132,34 @@ function EmptyState() {
         <div className="rounded-2xl border bg-white p-6 text-sm text-slate-700 shadow-sm xl:rounded-none xl:border-0 xl:shadow-none">
             No request found for the selected filter.
         </div>
+    );
+}
+
+function MovementNumber({
+    value,
+    tone,
+}: {
+    value: number;
+    tone: "blue" | "emerald" | "purple" | "slate" | "amber" | "red" | "indigo";
+}) {
+    const cls =
+        tone === "emerald"
+            ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+            : tone === "purple"
+                ? "border-purple-200 bg-purple-50 text-purple-700"
+                : tone === "amber"
+                    ? "border-amber-200 bg-amber-50 text-amber-800"
+                    : tone === "red"
+                        ? "border-red-200 bg-red-50 text-red-700"
+                        : tone === "indigo"
+                            ? "border-indigo-200 bg-indigo-50 text-indigo-700"
+                            : tone === "blue"
+                                ? "border-blue-200 bg-blue-50 text-blue-700"
+                                : "border-slate-200 bg-slate-50 text-slate-700";
+
+    return (
+        <span className={`inline-flex w-fit rounded-full border px-2.5 py-1 text-xs font-black ${cls}`}>
+            {value}
+        </span>
     );
 }
