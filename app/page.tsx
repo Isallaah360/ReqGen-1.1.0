@@ -6,11 +6,12 @@ export default function HomePage() {
       <section className="relative mx-auto flex min-h-screen max-w-6xl items-center justify-center py-10">
         <div className="absolute left-0 top-10 h-72 w-72 rounded-full bg-blue-200/40 blur-3xl" />
         <div className="absolute bottom-10 right-0 h-72 w-72 rounded-full bg-emerald-200/40 blur-3xl" />
+        <div className="absolute left-1/2 top-1/2 h-96 w-96 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/70 blur-3xl" />
 
         <div className="relative w-full overflow-hidden rounded-[2.5rem] border border-white bg-white/90 shadow-2xl shadow-slate-200/70 backdrop-blur">
           <div className="grid min-h-[660px] items-center gap-10 px-6 py-10 md:px-12 lg:grid-cols-[0.95fr_1.05fr] lg:px-16">
             <div className="flex flex-col items-center text-center lg:items-start lg:text-left">
-              <div className="flex h-52 w-52 items-center justify-center rounded-[2.25rem] border border-blue-100 bg-white p-5 shadow-xl shadow-blue-100/70 md:h-64 md:w-64">
+              <div className="animate-soft-float flex h-52 w-52 items-center justify-center rounded-[2.25rem] border border-blue-100 bg-white p-5 shadow-xl shadow-blue-100/70 md:h-64 md:w-64">
                 <img
                   src="/iet-logo.png"
                   alt="Islamic Education Trust Logo"
@@ -31,8 +32,8 @@ export default function HomePage() {
               </p>
 
               <p className="mt-5 max-w-2xl text-base font-semibold leading-8 text-slate-600">
-                A secure digital platform for request submission, approval workflow, finance
-                processing, records and institutional request management.
+                Welcome to IET’s secure digital platform for request submission, approval workflow,
+                finance processing, records and institutional request management.
               </p>
 
               <div className="mt-8 flex w-full flex-col justify-center gap-3 sm:w-auto sm:flex-row lg:justify-start">
@@ -82,10 +83,10 @@ export default function HomePage() {
                 </div>
 
                 <div className="mt-4 flex flex-wrap items-center gap-4">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white p-2 shadow-sm">
+                  <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-white p-2 shadow-sm">
                     <img
                       src="/be-logo.png"
-                      alt="Barderian Enterprises Logo"
+                      alt="BELogo"
                       className="h-full w-full object-contain"
                     />
                   </div>
@@ -122,11 +123,25 @@ export default function HomePage() {
           </div>
 
           <footer className="border-t border-slate-100 bg-white/80 px-6 py-5 text-center text-xs font-bold text-slate-500">
-            © 2026 Islamic Education Trust (IET) ReqGen 1.1.0. Powered by Barderian
-            Enterprises.
+            © 2026 Islamic Education Trust (IET) ReqGen. Powered by Barderian Enterprises.
           </footer>
         </div>
       </section>
+
+      <style>{`
+        @keyframes softFloat {
+          0%, 100% {
+            transform: translateY(0);
+          }
+          50% {
+            transform: translateY(-10px);
+          }
+        }
+
+        .animate-soft-float {
+          animation: softFloat 4s ease-in-out infinite;
+        }
+      `}</style>
     </main>
   );
 }
