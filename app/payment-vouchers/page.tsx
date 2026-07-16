@@ -7,24 +7,31 @@ import { supabase } from "@/lib/supabaseClient";
 type VoucherRow = {
   id: string;
   voucher_no: string;
-  request_id: string;
+  request_id: string | null;
   request_no: string | null;
   request_type: string | null;
   personal_category: string | null;
   payee_name: string | null;
   narration: string | null;
   amount: number | null;
+  dept_id?: string | null;
   dept_name: string | null;
+  subhead_id?: string | null;
   subhead_code: string | null;
   subhead_name: string | null;
+  bank_account_id?: string | null;
+  bank_account_name?: string | null;
   prepared_by_name: string | null;
   checked_by_name: string | null;
   authorized_by_name: string | null;
   disbursement_mode: string | null;
+  payment_reference?: string | null;
   is_multi_request: boolean | null;
   item_count: number | null;
   total_amount: number | null;
   voucher_scope: string | null;
+  voucher_origin?: string | null;
+  manual_voucher_reason?: string | null;
   status: string | null;
   created_at: string;
 };
@@ -49,12 +56,43 @@ type ReadyRequest = {
   account_name: string | null;
 };
 
+type ProfileRole = {
+  id: string;
+  profile_id: string;
+  role_key: string;
+  role_name: string;
+  is_primary: boolean;
+  is_active: boolean;
+};
+
 type SignatoryType = "ChequeSigner" | "CounterSigner" | "Both";
 
 type PVSignatory = {
   id: string;
   full_name: string;
   signatory_type: SignatoryType | null;
+};
+
+type DepartmentRow = {
+  id: string;
+  name: string;
+};
+
+type SubheadRow = {
+  id: string;
+  dept_id: string | null;
+  code: string | null;
+  name: string;
+  balance: number | null;
+  expenditure: number | null;
+  approved_allocation?: number | null;
+};
+
+type BankAccountRow = {
+  id: string;
+  account_name: string;
+  balance: number | null;
+  source_table: "bank_accounts" | "finance_accounts" | "accounts";
 };
 
 type DisbursementMode = "Transfer" | "Cash" | "Cheque";
@@ -90,7 +128,9 @@ function categoryKey(v: { request_type: string | null; personal_category: string
 
   if (rt === "official") return "official";
   if (rt === "personal" && pc === "fund") return "personalfund";
-  if (rt === "personal" && pc === "nonfund") return "personalnonfund";
+  if (rt === "personal" && (pc === "nonfund" || pc === "others" || pc === "leave")) {
+    return "personalnonfund";
+  }
 
   return "unknown";
 }
@@ -105,7 +145,7 @@ function categoryLabel(v: { request_type: string | null; personal_category: stri
 
   if (key === "official") return "Official";
   if (key === "personalfund") return "Personal Fund";
-  if (key === "personalnonfund") return "Personal NonFund";
+  if (key === "personalnonfund") return "Personal Other";
 
   return v.request_type || "—";
 }
@@ -125,7 +165,9 @@ function statusBadgeClass(status: string | null | undefined) {
   if (s.includes("paid")) return "border-emerald-200 bg-emerald-50 text-emerald-700";
   if (s.includes("cancel")) return "border-red-200 bg-red-50 text-red-700";
   if (s.includes("counter")) return "border-purple-200 bg-purple-50 text-purple-700";
-  if (s.includes("authorized") || s.includes("checked")) return "border-blue-200 bg-blue-50 text-blue-700";
+  if (s.includes("authorized") || s.includes("checked")) {
+    return "border-blue-200 bg-blue-50 text-blue-700";
+  }
   if (s.includes("cheque")) return "border-amber-200 bg-amber-50 text-amber-700";
   if (s.includes("complete")) return "border-emerald-200 bg-emerald-50 text-emerald-700";
 
@@ -136,7 +178,29 @@ function scopeBadgeClass(scope: string | null | undefined) {
   const s = normalize(scope);
 
   if (s === "multiple") return "border-indigo-200 bg-indigo-50 text-indigo-700";
+  if (s === "manual") return "border-amber-200 bg-amber-50 text-amber-700";
+
   return "border-slate-200 bg-slate-50 text-slate-700";
+}
+
+function hasAnyRole(roleSet: Set<string>, keys: string[]) {
+  return keys.some((key) => roleSet.has(roleKey(key)));
+}
+
+function mapBankAccount(row: any, source: BankAccountRow["source_table"]): BankAccountRow {
+  return {
+    id: String(row.id),
+    account_name:
+      row.account_name ||
+      row.bank_name ||
+      row.name ||
+      row.title ||
+      row.account_no ||
+      row.account_number ||
+      "Finance Account",
+    balance: Number(row.balance ?? row.current_balance ?? row.available_balance ?? 0),
+    source_table: source,
+  };
 }
 
 export default function PaymentVouchersPage() {
@@ -145,17 +209,53 @@ export default function PaymentVouchersPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [manualSaving, setManualSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
 
+  const [userId, setUserId] = useState<string | null>(null);
   const [myRole, setMyRole] = useState("Staff");
-  const rk = roleKey(myRole);
-  const canAccess = ["admin", "auditor", "account", "accounts", "accountofficer"].includes(rk);
-  const canDeleteVoucher = ["admin", "auditor"].includes(rk);
+  const [myRoles, setMyRoles] = useState<ProfileRole[]>([]);
+
+  const roleSet = useMemo(() => {
+    const set = new Set<string>();
+
+    if (myRole) set.add(roleKey(myRole));
+
+    myRoles.forEach((r) => {
+      if (r.is_active) set.add(roleKey(r.role_key));
+    });
+
+    return set;
+  }, [myRole, myRoles]);
+
+  const canAccess = hasAnyRole(roleSet, [
+    "admin",
+    "auditor",
+    "account",
+    "accounts",
+    "accountofficer",
+    "pvsigner",
+    "pvcountersigner",
+  ]);
+
+  const canManualVoucher = hasAnyRole(roleSet, [
+    "admin",
+    "auditor",
+    "account",
+    "accounts",
+    "accountofficer",
+  ]);
+
+  const canDeleteVoucher = hasAnyRole(roleSet, ["admin", "auditor"]);
 
   const [rows, setRows] = useState<VoucherRow[]>([]);
   const [readyRows, setReadyRows] = useState<ReadyRequest[]>([]);
   const [pvSignatories, setPvSignatories] = useState<PVSignatory[]>([]);
+
+  const [departments, setDepartments] = useState<DepartmentRow[]>([]);
+  const [subheads, setSubheads] = useState<SubheadRow[]>([]);
+  const [bankAccounts, setBankAccounts] = useState<BankAccountRow[]>([]);
 
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [selectedRequest, setSelectedRequest] = useState<ReadyRequest | null>(null);
@@ -178,6 +278,17 @@ export default function PaymentVouchersPage() {
   const [chequeBankName, setChequeBankName] = useState("");
   const [chequeSignedByName, setChequeSignedByName] = useState("");
   const [counterSignatoryName, setCounterSignatoryName] = useState("");
+
+  const [showManualModal, setShowManualModal] = useState(false);
+  const [manualDeptId, setManualDeptId] = useState("");
+  const [manualSubheadId, setManualSubheadId] = useState("");
+  const [manualBankAccountId, setManualBankAccountId] = useState("");
+  const [manualPayeeName, setManualPayeeName] = useState("");
+  const [manualNarration, setManualNarration] = useState("");
+  const [manualReason, setManualReason] = useState("");
+  const [manualAmount, setManualAmount] = useState("");
+  const [manualMode, setManualMode] = useState<DisbursementMode>("Transfer");
+  const [manualReference, setManualReference] = useState("");
 
   const chequeSigners = useMemo(() => {
     return pvSignatories.filter(
@@ -209,6 +320,23 @@ export default function PaymentVouchersPage() {
     if (selectedRequests.length === 0) return null;
     return selectedRequests[0].requester_name || "";
   }, [selectedRequests]);
+
+  const manualSubheads = useMemo(() => {
+    if (!manualDeptId) return subheads;
+    return subheads.filter((s) => s.dept_id === manualDeptId || !s.dept_id);
+  }, [subheads, manualDeptId]);
+
+  const selectedManualSubhead = useMemo(() => {
+    return subheads.find((s) => s.id === manualSubheadId) || null;
+  }, [subheads, manualSubheadId]);
+
+  const selectedManualBank = useMemo(() => {
+    return bankAccounts.find((a) => a.id === manualBankAccountId) || null;
+  }, [bankAccounts, manualBankAccountId]);
+
+  const manualAmountNumber = useMemo(() => {
+    return Number(manualAmount || 0);
+  }, [manualAmount]);
 
   const selectionSummary = useMemo(() => {
     if (selectedRequests.length === 0) {
@@ -268,6 +396,24 @@ export default function PaymentVouchersPage() {
     };
   }, [selectedRequests, selectedTotal]);
 
+  async function loadBankAccounts() {
+    const sources: BankAccountRow["source_table"][] = [
+      "bank_accounts",
+      "finance_accounts",
+      "accounts",
+    ];
+
+    for (const source of sources) {
+      const { data, error } = await supabase.from(source).select("*").limit(100);
+
+      if (!error && data) {
+        return (data as any[]).map((row) => mapBankAccount(row, source));
+      }
+    }
+
+    return [];
+  }
+
   const load = useCallback(
     async (options?: { silent?: boolean }) => {
       if (options?.silent) {
@@ -285,41 +431,76 @@ export default function PaymentVouchersPage() {
         return;
       }
 
-      const { data: prof, error: profErr } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", auth.user.id)
-        .maybeSingle();
+      setUserId(auth.user.id);
 
-      if (profErr) {
-        setMsg("Failed to load your profile: " + profErr.message);
+      const [profRes, rolesRes] = await Promise.all([
+        supabase.from("profiles").select("role").eq("id", auth.user.id).maybeSingle(),
+
+        supabase
+          .from("profile_roles")
+          .select("id,profile_id,role_key,role_name,is_primary,is_active")
+          .eq("profile_id", auth.user.id)
+          .eq("is_active", true),
+      ]);
+
+      if (profRes.error) {
+        setMsg("Failed to load your profile: " + profRes.error.message);
         setLoading(false);
         setRefreshing(false);
         return;
       }
 
-      const role = (prof?.role || "Staff") as string;
-      setMyRole(role);
+      const fallbackRole = (profRes.data?.role || "Staff") as string;
+      const activeRoles = (rolesRes.data || []) as ProfileRole[];
 
-      if (!["admin", "auditor", "account", "accounts", "accountofficer"].includes(roleKey(role))) {
+      setMyRole(fallbackRole);
+      setMyRoles(activeRoles);
+
+      const nextRoleSet = new Set<string>();
+      if (fallbackRole) nextRoleSet.add(roleKey(fallbackRole));
+      activeRoles.forEach((r) => {
+        if (r.is_active) nextRoleSet.add(roleKey(r.role_key));
+      });
+
+      if (
+        !hasAnyRole(nextRoleSet, [
+          "admin",
+          "auditor",
+          "account",
+          "accounts",
+          "accountofficer",
+          "pvsigner",
+          "pvcountersigner",
+        ])
+      ) {
         setMsg("Access denied. Only Admin, Auditor and Account Officers can view payment vouchers.");
         setRows([]);
         setReadyRows([]);
         setPvSignatories([]);
+        setDepartments([]);
+        setSubheads([]);
+        setBankAccounts([]);
         setLoading(false);
         setRefreshing(false);
         return;
       }
 
-      const [voucherRes, readyRes, signatoryRes] = await Promise.all([
-        supabase.rpc("get_payment_vouchers"),
-        supabase.rpc("get_requests_ready_for_payment_voucher"),
-        supabase
-          .from("payment_voucher_counter_signatories")
-          .select("id,full_name,signatory_type")
-          .eq("is_active", true)
-          .order("full_name", { ascending: true }),
-      ]);
+      const [voucherRes, readyRes, signatoryRes, deptRes, subheadRes, bankRows] =
+        await Promise.all([
+          supabase.rpc("get_payment_vouchers"),
+          supabase.rpc("get_requests_ready_for_payment_voucher"),
+          supabase
+            .from("payment_voucher_counter_signatories")
+            .select("id,full_name,signatory_type")
+            .eq("is_active", true)
+            .order("full_name", { ascending: true }),
+          supabase.from("departments").select("id,name").order("name", { ascending: true }),
+          supabase
+            .from("subheads")
+            .select("id,dept_id,code,name,balance,expenditure,approved_allocation")
+            .order("name", { ascending: true }),
+          loadBankAccounts(),
+        ]);
 
       if (voucherRes.error) {
         setMsg("Failed to load payment vouchers: " + voucherRes.error.message);
@@ -339,7 +520,6 @@ export default function PaymentVouchersPage() {
       }
 
       if (signatoryRes.error) {
-        setMsg("Failed to load PV signatories: " + signatoryRes.error.message);
         setPvSignatories([]);
       } else {
         const list = (signatoryRes.data || []) as PVSignatory[];
@@ -361,6 +541,20 @@ export default function PaymentVouchersPage() {
           setCounterSignatoryName(firstCounterSigner.full_name);
         }
       }
+
+      if (deptRes.error) {
+        setDepartments([]);
+      } else {
+        setDepartments((deptRes.data || []) as DepartmentRow[]);
+      }
+
+      if (subheadRes.error) {
+        setSubheads([]);
+      } else {
+        setSubheads((subheadRes.data || []) as SubheadRow[]);
+      }
+
+      setBankAccounts(bankRows);
 
       setLoading(false);
       setRefreshing(false);
@@ -449,6 +643,105 @@ export default function PaymentVouchersPage() {
     setSelectedIds([]);
     setSelectedRequest(null);
     setMsg(null);
+  }
+
+  function openManualVoucher() {
+    setMsg(null);
+    setShowManualModal(true);
+    setManualDeptId("");
+    setManualSubheadId("");
+    setManualBankAccountId("");
+    setManualPayeeName("");
+    setManualNarration("");
+    setManualReason("");
+    setManualAmount("");
+    setManualMode("Transfer");
+    setManualReference("");
+  }
+
+  function closeManualVoucher() {
+    if (manualSaving) return;
+    setShowManualModal(false);
+  }
+
+  function validateManualVoucher() {
+    if (!manualDeptId) return "Select a department.";
+    if (!manualSubheadId) return "Select a subhead.";
+    if (!manualPayeeName.trim()) return "Enter payee name.";
+    if (manualNarration.trim().length < 5) return "Enter a clear purpose / narration.";
+    if (!manualAmountNumber || manualAmountNumber <= 0) return "Amount must be greater than zero.";
+
+    if (selectedManualSubhead && Number(selectedManualSubhead.balance || 0) < manualAmountNumber) {
+      return `Insufficient subhead balance. Available: ${naira(selectedManualSubhead.balance)}.`;
+    }
+
+    if (
+      manualBankAccountId &&
+      selectedManualBank &&
+      Number(selectedManualBank.balance || 0) < manualAmountNumber
+    ) {
+      return `Insufficient bank account balance. Available: ${naira(selectedManualBank.balance)}.`;
+    }
+
+    return null;
+  }
+
+  async function createManualVoucher() {
+    const validation = validateManualVoucher();
+
+    if (validation) {
+      setMsg("❌ " + validation);
+      return;
+    }
+
+    const ok = confirm(
+      `Create manual payment voucher for ${manualPayeeName.trim()}?\n\nAmount: ${naira(
+        manualAmountNumber
+      )}\n\nThis will deduct the amount from the selected subhead${manualBankAccountId ? " and selected bank account" : ""
+      }.`
+    );
+
+    if (!ok) return;
+
+    setManualSaving(true);
+    setMsg(null);
+
+    try {
+      const { data, error } = await supabase.rpc("create_manual_payment_voucher", {
+        p_dept_id: manualDeptId,
+        p_subhead_id: manualSubheadId,
+        p_bank_account_id: manualBankAccountId || null,
+        p_payee_name: manualPayeeName.trim(),
+        p_narration: manualNarration.trim(),
+        p_amount: manualAmountNumber,
+        p_disbursement_mode: manualMode,
+        p_payment_reference: manualReference.trim() || null,
+        p_manual_voucher_reason: manualReason.trim() || null,
+        p_actor_id: userId,
+      });
+
+      if (error) throw new Error(error.message);
+
+      const result = Array.isArray(data) ? data[0] : data;
+      const voucherNo = result?.voucher_no || "Manual Voucher";
+      const voucherId = result?.voucher_id;
+
+      setMsg(`✅ ${voucherNo} created successfully.`);
+      setShowManualModal(false);
+
+      await load({ silent: true });
+
+      if (voucherId) {
+        setTimeout(() => {
+          printVoucher(voucherId);
+        }, 500);
+      }
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Unknown error";
+      setMsg("❌ Failed to create manual voucher: " + message);
+    } finally {
+      setManualSaving(false);
+    }
   }
 
   function openGenerateModalFromSelection() {
@@ -596,8 +889,9 @@ export default function PaymentVouchersPage() {
           printVoucher(voucherId);
         }, 500);
       }
-    } catch (e: any) {
-      setMsg("❌ Failed to generate voucher: " + (e?.message || "Unknown error"));
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Unknown error";
+      setMsg("❌ Failed to generate voucher: " + message);
     } finally {
       setGenerating(false);
     }
@@ -630,8 +924,9 @@ export default function PaymentVouchersPage() {
       setMsg(`✅ ${deletedVoucherNo} deleted. Linked request(s) can now generate a new PV.`);
       await load({ silent: true });
       router.refresh();
-    } catch (e: any) {
-      setMsg("❌ Failed to delete voucher: " + (e?.message || "Unknown error"));
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Unknown error";
+      setMsg("❌ Failed to delete voucher: " + message);
     } finally {
       setDeletingId(null);
     }
@@ -678,6 +973,7 @@ export default function PaymentVouchersPage() {
 
       if (typeFilter === "Single" && normalize(v.voucher_scope) !== "single") return false;
       if (typeFilter === "Multiple" && normalize(v.voucher_scope) !== "multiple") return false;
+      if (typeFilter === "Manual" && normalize(v.voucher_scope) !== "manual") return false;
 
       if (s) {
         const haystack = [
@@ -688,6 +984,7 @@ export default function PaymentVouchersPage() {
           v.dept_name,
           v.subhead_code,
           v.subhead_name,
+          v.bank_account_name,
           v.prepared_by_name,
           v.checked_by_name,
           v.authorized_by_name,
@@ -696,6 +993,8 @@ export default function PaymentVouchersPage() {
           v.personal_category,
           v.disbursement_mode,
           v.voucher_scope,
+          v.voucher_origin,
+          v.manual_voucher_reason,
         ]
           .join(" ")
           .toLowerCase();
@@ -711,10 +1010,8 @@ export default function PaymentVouchersPage() {
     const total = rows.length;
     const single = rows.filter((x) => normalize(x.voucher_scope) === "single").length;
     const multiple = rows.filter((x) => normalize(x.voucher_scope) === "multiple").length;
-    const authorized = rows.filter((x) => (x.status || "") === "Authorized").length;
-    const chequePrepared = rows.filter((x) => (x.status || "") === "Cheque Prepared").length;
+    const manual = rows.filter((x) => normalize(x.voucher_scope) === "manual").length;
     const paid = rows.filter((x) => (x.status || "") === "Paid").length;
-    const cancelled = rows.filter((x) => (x.status || "") === "Cancelled").length;
 
     const totalAmount = rows
       .filter((x) => (x.status || "") !== "Cancelled")
@@ -728,10 +1025,8 @@ export default function PaymentVouchersPage() {
       total,
       single,
       multiple,
-      authorized,
-      chequePrepared,
+      manual,
       paid,
-      cancelled,
       totalAmount,
       readyOfficial,
       readyPersonalFund,
@@ -761,6 +1056,7 @@ export default function PaymentVouchersPage() {
             </div>
 
             <button
+              type="button"
               onClick={() => router.push("/dashboard")}
               className="mt-5 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
             >
@@ -781,12 +1077,24 @@ export default function PaymentVouchersPage() {
               Payment Vouchers
             </h1>
             <p className="mt-2 text-sm text-slate-600">
-              Official IET payment voucher register for single and combined financial requests.
+              Official IET payment voucher register for request-based and manual finance payments.
             </p>
           </div>
 
           <div className="flex flex-wrap gap-2">
+            {canManualVoucher && (
+              <button
+                type="button"
+                onClick={openManualVoucher}
+                disabled={Boolean(deletingId) || generating || refreshing}
+                className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 disabled:opacity-60"
+              >
+                Manual Voucher
+              </button>
+            )}
+
             <button
+              type="button"
               onClick={() => load({ silent: true })}
               disabled={Boolean(deletingId) || generating || refreshing}
               className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-100 disabled:opacity-60"
@@ -795,15 +1103,16 @@ export default function PaymentVouchersPage() {
             </button>
 
             <button
+              type="button"
               onClick={() => router.push("/payment-vouchers/reports")}
               disabled={Boolean(deletingId) || generating}
-              style={{ color: "#ffffff" }}
               className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:opacity-60"
             >
               PV Reports
             </button>
 
             <button
+              type="button"
               onClick={() => router.push("/payment-vouchers/settings")}
               className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-100"
             >
@@ -811,6 +1120,7 @@ export default function PaymentVouchersPage() {
             </button>
 
             <button
+              type="button"
               onClick={() => router.push("/finance/subheads")}
               className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-100"
             >
@@ -832,7 +1142,7 @@ export default function PaymentVouchersPage() {
           <StatCard title="Ready Value" value={naira(stats.readyTotalAmount)} tone="amber" />
           <StatCard title="Total Vouchers" value={String(stats.total)} tone="blue" />
           <StatCard title="Combined PVs" value={String(stats.multiple)} tone="purple" />
-          <StatCard title="Paid" value={String(stats.paid)} tone="emerald" />
+          <StatCard title="Manual PVs" value={String(stats.manual)} tone="emerald" />
           <StatCard title="Total Value" value={naira(stats.totalAmount)} tone="amber" />
         </div>
 
@@ -870,6 +1180,7 @@ export default function PaymentVouchersPage() {
 
               <div className="flex flex-wrap gap-2">
                 <button
+                  type="button"
                   onClick={clearSelection}
                   disabled={selectedRequests.length === 0 || generating}
                   className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-50"
@@ -878,6 +1189,7 @@ export default function PaymentVouchersPage() {
                 </button>
 
                 <button
+                  type="button"
                   onClick={openGenerateModalFromSelection}
                   disabled={!selectionSummary.valid || generating}
                   className="rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
@@ -888,11 +1200,10 @@ export default function PaymentVouchersPage() {
             </div>
 
             <div
-              className={`mt-4 rounded-2xl border px-4 py-3 text-sm font-semibold ${
-                selectionSummary.valid
+              className={`mt-4 rounded-2xl border px-4 py-3 text-sm font-semibold ${selectionSummary.valid
                   ? "border-emerald-200 bg-emerald-50 text-emerald-800"
                   : "border-amber-200 bg-amber-50 text-amber-900"
-              }`}
+                }`}
             >
               {selectionSummary.message}
               {selectedRequests.length > 0 && (
@@ -901,8 +1212,8 @@ export default function PaymentVouchersPage() {
                   {selectionCategory === "official"
                     ? "Official"
                     : selectionCategory === "personalfund"
-                    ? "Personal Fund"
-                    : "—"}{" "}
+                      ? "Personal Fund"
+                      : "—"}{" "}
                   • Total: {naira(selectedTotal)}
                 </div>
               )}
@@ -934,9 +1245,8 @@ export default function PaymentVouchersPage() {
                   return (
                     <div
                       key={r.id}
-                      className={`grid grid-cols-16 items-center border-t px-6 py-4 text-sm hover:bg-slate-50 ${
-                        checked ? "bg-blue-50/50" : ""
-                      }`}
+                      className={`grid grid-cols-16 items-center border-t px-6 py-4 text-sm hover:bg-slate-50 ${checked ? "bg-blue-50/50" : ""
+                        }`}
                     >
                       <div className="col-span-1">
                         <input
@@ -984,6 +1294,7 @@ export default function PaymentVouchersPage() {
 
                       <div className="col-span-3 flex justify-end gap-2">
                         <button
+                          type="button"
                           onClick={() => openRequest(r.id)}
                           className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-900 hover:bg-slate-100"
                         >
@@ -991,6 +1302,7 @@ export default function PaymentVouchersPage() {
                         </button>
 
                         <button
+                          type="button"
                           onClick={() => openGenerateModalSingle(r)}
                           disabled={generating || Boolean(deletingId)}
                           className="rounded-xl bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
@@ -999,13 +1311,13 @@ export default function PaymentVouchersPage() {
                         </button>
 
                         <button
+                          type="button"
                           onClick={() => toggleSelectRequest(r)}
                           disabled={generating}
-                          className={`rounded-xl px-3 py-2 text-xs font-semibold text-white disabled:opacity-50 ${
-                            checked
+                          className={`rounded-xl px-3 py-2 text-xs font-semibold text-white disabled:opacity-50 ${checked
                               ? "bg-red-600 hover:bg-red-700"
                               : "bg-purple-600 hover:bg-purple-700"
-                          }`}
+                            }`}
                         >
                           {checked ? "Remove" : "Add"}
                         </button>
@@ -1042,6 +1354,7 @@ export default function PaymentVouchersPage() {
                 <option value="PersonalFund">Personal Fund</option>
                 <option value="Single">Single PV</option>
                 <option value="Multiple">Combined PV</option>
+                <option value="Manual">Manual PV</option>
               </select>
             </div>
 
@@ -1070,7 +1383,7 @@ export default function PaymentVouchersPage() {
           <div className="border-b bg-slate-50 px-6 py-4">
             <h2 className="text-lg font-bold text-slate-900">Voucher Register</h2>
             <p className="mt-1 text-sm text-slate-600">
-              Generated payment vouchers linked to approved payment requests.
+              Generated payment vouchers linked to approved requests and manual finance entries.
             </p>
           </div>
 
@@ -1102,7 +1415,7 @@ export default function PaymentVouchersPage() {
                       {v.voucher_no}
                     </div>
 
-                    <div className="col-span-2 text-slate-700">{v.request_no || "—"}</div>
+                    <div className="col-span-2 text-slate-700">{v.request_no || "Manual"}</div>
 
                     <div className="col-span-2 font-semibold text-slate-900">
                       {v.payee_name || "—"}
@@ -1122,11 +1435,17 @@ export default function PaymentVouchersPage() {
                     <div className="col-span-2 text-slate-700">{v.dept_name || "—"}</div>
 
                     <div className="col-span-1">
-                      <span
-                        className={`rounded-full border px-2 py-1 text-[11px] font-bold ${categoryBadgeClass(v)}`}
-                      >
-                        {categoryLabel(v)}
-                      </span>
+                      {normalize(v.voucher_scope) === "manual" ? (
+                        <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-1 text-[11px] font-bold text-amber-700">
+                          Manual
+                        </span>
+                      ) : (
+                        <span
+                          className={`rounded-full border px-2 py-1 text-[11px] font-bold ${categoryBadgeClass(v)}`}
+                        >
+                          {categoryLabel(v)}
+                        </span>
+                      )}
                     </div>
 
                     <div className="col-span-1">
@@ -1149,6 +1468,7 @@ export default function PaymentVouchersPage() {
 
                     <div className="col-span-4 flex justify-end gap-2">
                       <button
+                        type="button"
                         onClick={() => openVoucher(v.id)}
                         className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-900 hover:bg-slate-100"
                       >
@@ -1156,6 +1476,7 @@ export default function PaymentVouchersPage() {
                       </button>
 
                       <button
+                        type="button"
                         onClick={() => printVoucher(v.id)}
                         className="rounded-xl bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-700"
                       >
@@ -1164,6 +1485,7 @@ export default function PaymentVouchersPage() {
 
                       {canDeleteVoucher && (
                         <button
+                          type="button"
                           onClick={() => deleteVoucher(v)}
                           disabled={deletingId === v.id || generating}
                           className="rounded-xl bg-red-600 px-3 py-2 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-50"
@@ -1189,18 +1511,12 @@ export default function PaymentVouchersPage() {
                   <div>
                     <div className="text-lg font-extrabold text-slate-900">{v.voucher_no}</div>
                     <div className="mt-1 text-sm font-semibold text-slate-800">
-                      Request: {v.request_no || "—"}
+                      Request: {v.request_no || "Manual"}
                     </div>
                     <div className="mt-1 text-sm text-slate-500">{v.dept_name || "—"}</div>
                   </div>
 
                   <div className="flex flex-col items-end gap-1">
-                    <span
-                      className={`rounded-full border px-3 py-1 text-xs font-bold ${categoryBadgeClass(v)}`}
-                    >
-                      {categoryLabel(v)}
-                    </span>
-
                     <span
                       className={`rounded-full border px-3 py-1 text-xs font-bold ${scopeBadgeClass(v.voucher_scope)}`}
                     >
@@ -1219,8 +1535,8 @@ export default function PaymentVouchersPage() {
                   <InfoLine label="Payee" value={v.payee_name || "—"} />
                   <InfoLine label="Amount" value={naira(v.total_amount || v.amount)} />
                   <InfoLine label="Prepared By" value={v.prepared_by_name || "—"} />
-                  <InfoLine label="Checked By" value={v.checked_by_name || "—"} />
-                  <InfoLine label="Authorized By" value={v.authorized_by_name || "—"} />
+                  <InfoLine label="Mode" value={v.disbursement_mode || "—"} />
+                  <InfoLine label="Bank Account" value={v.bank_account_name || "—"} />
                   <InfoLine label="Date" value={shortDate(v.created_at)} />
                 </div>
 
@@ -1231,6 +1547,7 @@ export default function PaymentVouchersPage() {
 
                 <div className="mt-4 flex flex-wrap justify-end gap-2">
                   <button
+                    type="button"
                     onClick={() => openVoucher(v.id)}
                     className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
                   >
@@ -1238,6 +1555,7 @@ export default function PaymentVouchersPage() {
                   </button>
 
                   <button
+                    type="button"
                     onClick={() => printVoucher(v.id)}
                     className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
                   >
@@ -1246,6 +1564,7 @@ export default function PaymentVouchersPage() {
 
                   {canDeleteVoucher && (
                     <button
+                      type="button"
                       onClick={() => deleteVoucher(v)}
                       disabled={deletingId === v.id || generating}
                       className="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
@@ -1258,6 +1577,179 @@ export default function PaymentVouchersPage() {
             ))
           )}
         </div>
+
+        {showManualModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+            <div className="max-h-[92vh] w-full max-w-3xl overflow-auto rounded-3xl bg-white p-6 shadow-2xl">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h2 className="text-xl font-extrabold text-slate-900">
+                    Create Manual Payment Voucher
+                  </h2>
+                  <p className="mt-1 text-sm text-slate-600">
+                    Use this for controlled finance entries not generated from a request.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={closeManualVoucher}
+                  className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold hover:bg-slate-100"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="mt-5 grid gap-4 md:grid-cols-2">
+                <div>
+                  <label className="text-sm font-semibold text-slate-800">Department</label>
+                  <select
+                    value={manualDeptId}
+                    onChange={(e) => {
+                      setManualDeptId(e.target.value);
+                      setManualSubheadId("");
+                    }}
+                    className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-3 text-slate-900 outline-none focus:border-blue-500"
+                  >
+                    <option value="">Select Department</option>
+                    {departments.map((d) => (
+                      <option key={d.id} value={d.id}>
+                        {d.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-sm font-semibold text-slate-800">Subhead</label>
+                  <select
+                    value={manualSubheadId}
+                    onChange={(e) => setManualSubheadId(e.target.value)}
+                    className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-3 text-slate-900 outline-none focus:border-blue-500"
+                  >
+                    <option value="">Select Subhead</option>
+                    {manualSubheads.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.code ? `${s.code} - ` : ""}
+                        {s.name} | Balance: {naira(s.balance)}
+                      </option>
+                    ))}
+                  </select>
+
+                  {selectedManualSubhead && (
+                    <div className="mt-2 rounded-xl border border-blue-100 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-900">
+                      Available Subhead Balance: {naira(selectedManualSubhead.balance)}
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="text-sm font-semibold text-slate-800">
+                    Bank / Finance Account
+                  </label>
+                  <select
+                    value={manualBankAccountId}
+                    onChange={(e) => setManualBankAccountId(e.target.value)}
+                    className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-3 text-slate-900 outline-none focus:border-blue-500"
+                  >
+                    <option value="">No bank account selected</option>
+                    {bankAccounts.map((a) => (
+                      <option key={`${a.source_table}-${a.id}`} value={a.id}>
+                        {a.account_name} | Balance: {naira(a.balance)}
+                      </option>
+                    ))}
+                  </select>
+
+                  {bankAccounts.length === 0 && (
+                    <div className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-900">
+                      No finance account table was readable. Manual PV can still deduct subhead only.
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="text-sm font-semibold text-slate-800">Disbursement Mode</label>
+                  <select
+                    value={manualMode}
+                    onChange={(e) => setManualMode(e.target.value as DisbursementMode)}
+                    className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-3 text-slate-900 outline-none focus:border-blue-500"
+                  >
+                    <option value="Transfer">Transfer</option>
+                    <option value="Cash">Cash</option>
+                    <option value="Cheque">Cheque</option>
+                  </select>
+                </div>
+
+                <Field
+                  label="Payee Name"
+                  value={manualPayeeName}
+                  onChange={setManualPayeeName}
+                  placeholder="Who is receiving the payment?"
+                />
+
+                <Field
+                  label="Amount"
+                  value={manualAmount}
+                  onChange={(v) => setManualAmount(v.replace(/[^\d.]/g, ""))}
+                  placeholder="0"
+                />
+
+                <div className="md:col-span-2">
+                  <Field
+                    label="Payment Reference"
+                    value={manualReference}
+                    onChange={setManualReference}
+                    placeholder="Transfer ref, cheque no, cash note, etc. optional"
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <TextArea
+                    label="Narration / Purpose"
+                    value={manualNarration}
+                    onChange={setManualNarration}
+                    placeholder="Clearly describe the purpose of this manual voucher"
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <TextArea
+                    label="Manual Voucher Reason"
+                    value={manualReason}
+                    onChange={setManualReason}
+                    placeholder="Why is this voucher being entered manually? optional but recommended"
+                  />
+                </div>
+              </div>
+
+              <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-900">
+                <b>Important:</b> Creating this voucher will deduct the amount from the selected
+                subhead balance. If a bank/finance account is selected, it will also deduct from that
+                account balance.
+              </div>
+
+              <div className="mt-6 flex flex-wrap justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={closeManualVoucher}
+                  disabled={manualSaving}
+                  className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="button"
+                  onClick={createManualVoucher}
+                  disabled={manualSaving}
+                  className="rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-60"
+                >
+                  {manualSaving ? "Creating..." : "Create Manual Voucher"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {selectedRequest && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
@@ -1275,6 +1767,7 @@ export default function PaymentVouchersPage() {
                 </div>
 
                 <button
+                  type="button"
                   onClick={closeGenerateModal}
                   className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold hover:bg-slate-100"
                 >
@@ -1408,12 +1901,6 @@ export default function PaymentVouchersPage() {
                         ))
                       )}
                     </select>
-
-                    {chequeSigners.length === 0 && (
-                      <div className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-900">
-                        Add an active Cheque Signer or Both in Finance ▾ → PV Settings.
-                      </div>
-                    )}
                   </div>
 
                   <div>
@@ -1433,18 +1920,13 @@ export default function PaymentVouchersPage() {
                         ))
                       )}
                     </select>
-
-                    {counterSigners.length === 0 && (
-                      <div className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-900">
-                        Add an active Counter Signer or Both in Finance ▾ → PV Settings.
-                      </div>
-                    )}
                   </div>
                 </div>
               )}
 
               <div className="mt-6 flex flex-wrap justify-end gap-2">
                 <button
+                  type="button"
                   onClick={closeGenerateModal}
                   disabled={generating}
                   className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
@@ -1453,6 +1935,7 @@ export default function PaymentVouchersPage() {
                 </button>
 
                 <button
+                  type="button"
                   onClick={generateVoucher}
                   disabled={generating}
                   className="rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
@@ -1467,9 +1950,9 @@ export default function PaymentVouchersPage() {
         <div className="mt-6 rounded-3xl border border-blue-100 bg-blue-50 p-5 text-sm text-blue-900">
           <div className="font-bold">Payment Voucher Note</div>
           <p className="mt-1">
-            You can generate one PV for a single request or combine 1 to 10 compatible requests
-            into one PV. Combined requests must have the same requester/payee and the same category.
-            Personal NonFund requests do not require payment vouchers.
+            You can generate PVs from approved requests or create manual PVs for controlled finance
+            entries. Manual PVs deduct from the selected subhead and selected bank/finance account
+            where applicable.
           </p>
         </div>
       </div>
@@ -1490,14 +1973,14 @@ function StatCard({
     tone === "emerald"
       ? "bg-emerald-50 text-emerald-700"
       : tone === "purple"
-      ? "bg-purple-50 text-purple-700"
-      : tone === "amber"
-      ? "bg-amber-50 text-amber-700"
-      : tone === "red"
-      ? "bg-red-50 text-red-700"
-      : tone === "slate"
-      ? "bg-slate-50 text-slate-700"
-      : "bg-blue-50 text-blue-700";
+        ? "bg-purple-50 text-purple-700"
+        : tone === "amber"
+          ? "bg-amber-50 text-amber-700"
+          : tone === "red"
+            ? "bg-red-50 text-red-700"
+            : tone === "slate"
+              ? "bg-slate-50 text-slate-700"
+              : "bg-blue-50 text-blue-700";
 
   return (
     <div className="rounded-3xl border bg-white p-5 shadow-sm">
@@ -1536,6 +2019,31 @@ function Field({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
+        className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-3 outline-none focus:border-blue-500"
+      />
+    </div>
+  );
+}
+
+function TextArea({
+  label,
+  value,
+  onChange,
+  placeholder,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+}) {
+  return (
+    <div>
+      <label className="text-sm font-semibold text-slate-800">{label}</label>
+      <textarea
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        rows={3}
         className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-3 outline-none focus:border-blue-500"
       />
     </div>
