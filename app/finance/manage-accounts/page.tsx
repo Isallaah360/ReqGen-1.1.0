@@ -11,73 +11,50 @@ type Account = {
   bank_name: string | null;
   account_number: string | null;
   is_active: boolean | null;
+  opening_balance: number | null;
+  balance: number | null;
+  total_income: number | null;
+  total_expenditure: number | null;
+  balance_last_updated_at: string | null;
+  created_at: string | null;
   updated_at: string | null;
-
-  total_fund: number | null;
-  allocated_amount: number | null;
-  reserved_amount: number | null;
-  expenditure: number | null;
-  unallocated_balance: number | null;
-  available_balance: number | null;
-  last_recalculated_at: string | null;
 };
 
-type ProfileMini = {
+type LedgerRow = {
   id: string;
-  role: string | null;
+  account_id: string;
+  transaction_type: "Opening Balance" | "Credit" | "Debit" | "Adjustment";
+  amount: number;
+  balance_before: number;
+  balance_after: number;
+  reference_type: string | null;
+  reference_no: string | null;
+  narration: string | null;
+  actor_name: string | null;
+  created_at: string;
 };
 
-type TabKey = "overview" | "active" | "inactive" | "form" | "funding";
+type ProfileMini = { id: string; role: string | null };
+type Tab = "overview" | "active" | "inactive" | "form" | "balance" | "ledger";
 
-function roleKey(role: string | null | undefined) {
-  return (role || "")
-    .trim()
-    .toLowerCase()
-    .replace(/\s+/g, "")
-    .replace(/_/g, "");
-}
+const roleKey = (v?: string | null) =>
+  (v || "").trim().toLowerCase().replace(/\s+/g, "").replace(/_/g, "");
 
-function shortDate(d: string | null | undefined) {
-  if (!d) return "—";
-  return new Date(d).toLocaleDateString();
-}
+const naira = (v?: number | null) =>
+  `₦${Math.round(Number(v || 0)).toLocaleString()}`;
 
-function shortDateTime(d: string | null | undefined) {
-  if (!d) return "—";
-  return new Date(d).toLocaleString();
-}
+const dateTime = (v?: string | null) => (v ? new Date(v).toLocaleString() : "—");
 
-function naira(n: number | null | undefined) {
-  return "₦" + Math.round(Number(n || 0)).toLocaleString();
-}
+const mask = (v?: string | null) => {
+  const s = (v || "").trim();
+  if (!s) return "—";
+  return s.length <= 4 ? s : `${"*".repeat(s.length - 4)}${s.slice(-4)}`;
+};
 
-function plainAmount(n: number | null | undefined) {
-  return Math.round(Number(n || 0)).toLocaleString();
-}
-
-function maskAccountNumber(value: string | null | undefined) {
-  const raw = (value || "").trim();
-
-  if (!raw) return "—";
-  if (raw.length <= 4) return raw;
-
-  return `${"*".repeat(Math.max(raw.length - 4, 0))}${raw.slice(-4)}`;
-}
-
-function cleanAccountNumber(value: string) {
-  return value.replace(/[^\d]/g, "").slice(0, 20);
-}
-
-function amountInputValue(n: number | null | undefined) {
-  const v = Number(n || 0);
-  if (!v) return "";
-  return String(v);
-}
-
-function accountLabel(account: Account | null | undefined) {
-  if (!account) return "—";
-  return `${account.code ? `${account.code} — ` : ""}${account.name}`;
-}
+const cleanNumber = (v: string) => v.replace(/[^\d]/g, "").slice(0, 20);
+const cleanAmount = (v: string) => v.replace(/[^\d.]/g, "");
+const accountLabel = (a?: Account | null) =>
+  a ? `${a.code ? `${a.code} — ` : ""}${a.name}` : "—";
 
 export default function ManageAccountsPage() {
   const router = useRouter();
@@ -85,514 +62,297 @@ export default function ManageAccountsPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [fundingSaving, setFundingSaving] = useState(false);
+  const [balanceSaving, setBalanceSaving] = useState(false);
+  const [ledgerLoading, setLedgerLoading] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
   const [me, setMe] = useState<ProfileMini | null>(null);
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [ledger, setLedger] = useState<LedgerRow[]>([]);
+  const [tab, setTab] = useState<Tab>("overview");
+  const [search, setSearch] = useState("");
 
   const [editId, setEditId] = useState<string | null>(null);
   const [code, setCode] = useState("");
   const [name, setName] = useState("");
   const [bankName, setBankName] = useState("");
-  const [acctNo, setAcctNo] = useState("");
+  const [accountNumber, setAccountNumber] = useState("");
   const [active, setActive] = useState(true);
 
-  const [fundingAccountId, setFundingAccountId] = useState<string>("");
-  const [totalFund, setTotalFund] = useState<string>("");
-  const [fundingNote, setFundingNote] = useState("");
+  const [balanceAccountId, setBalanceAccountId] = useState("");
+  const [newBalance, setNewBalance] = useState("");
+  const [balanceReason, setBalanceReason] = useState("");
 
-  const [accounts, setAccounts] = useState<Account[]>([]);
-  const [activeTab, setActiveTab] = useState<TabKey>("overview");
-  const [search, setSearch] = useState("");
+  const [ledgerAccountId, setLedgerAccountId] = useState("");
 
-  const rk = roleKey(me?.role);
-  const canManage = rk === "admin" || rk === "auditor";
+  const canManage = ["admin", "auditor"].includes(roleKey(me?.role));
+  const selectedBalanceAccount = accounts.find((a) => a.id === balanceAccountId) || null;
+  const selectedLedgerAccount = accounts.find((a) => a.id === ledgerAccountId) || null;
 
-  const loadAll = useCallback(
-    async (options?: { silent?: boolean }) => {
-      if (options?.silent) {
-        setRefreshing(true);
-      } else {
-        setLoading(true);
-      }
+  const loadAccounts = useCallback(async (silent = false) => {
+    silent ? setRefreshing(true) : setLoading(true);
+    setMsg(null);
 
-      setMsg(null);
+    const { data: auth, error: authError } = await supabase.auth.getUser();
+    if (authError || !auth.user) {
+      router.push("/login");
+      return;
+    }
 
-      const { data: auth } = await supabase.auth.getUser();
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("id,role")
+      .eq("id", auth.user.id)
+      .maybeSingle();
 
-      if (!auth.user) {
-        router.push("/login");
-        return null;
-      }
-
-      const { data: prof, error: profileErr } = await supabase
-        .from("profiles")
-        .select("id,role")
-        .eq("id", auth.user.id)
-        .maybeSingle();
-
-      if (profileErr) {
-        setMsg("Failed to load profile: " + profileErr.message);
-        setLoading(false);
-        setRefreshing(false);
-        return null;
-      }
-
-      const myProfile = (prof as ProfileMini | null) || null;
-      setMe(myProfile);
-
-      const role = roleKey(myProfile?.role);
-
-      if (!(role === "admin" || role === "auditor")) {
-        router.push(`/dashboard?updated=${Date.now()}`);
-        router.refresh();
-        return null;
-      }
-
-      await supabase.rpc("reqgen_recalculate_all_iet_accounts");
-
-      const { data, error } = await supabase
-        .from("iet_accounts")
-        .select(
-          "id,code,name,bank_name,account_number,is_active,updated_at,total_fund,allocated_amount,reserved_amount,expenditure,unallocated_balance,available_balance,last_recalculated_at"
-        )
-        .order("updated_at", { ascending: false });
-
-      if (error) {
-        setMsg("Failed to load accounts: " + error.message);
-        setAccounts([]);
-        setLoading(false);
-        setRefreshing(false);
-        return null;
-      }
-
-      const freshAccounts = ((data || []) as Account[]).map((a) => ({
-        ...a,
-        is_active: a.is_active !== false,
-        total_fund: Number(a.total_fund || 0),
-        allocated_amount: Number(a.allocated_amount || 0),
-        reserved_amount: Number(a.reserved_amount || 0),
-        expenditure: Number(a.expenditure || 0),
-        unallocated_balance: Number(a.unallocated_balance || 0),
-        available_balance: Number(a.available_balance || 0),
-      }));
-
-      setAccounts(freshAccounts);
+    if (profileError) {
+      setMsg(`❌ Failed to load profile: ${profileError.message}`);
       setLoading(false);
       setRefreshing(false);
+      return;
+    }
 
-      return freshAccounts;
-    },
-    [router]
-  );
+    const p = (profile as ProfileMini | null) || null;
+    setMe(p);
+
+    if (!["admin", "auditor"].includes(roleKey(p?.role))) {
+      router.push(`/dashboard?updated=${Date.now()}`);
+      router.refresh();
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("iet_accounts")
+      .select("id,code,name,bank_name,account_number,is_active,opening_balance,balance,total_income,total_expenditure,balance_last_updated_at,created_at,updated_at")
+      .order("name");
+
+    if (error) {
+      setAccounts([]);
+      setMsg(`❌ Failed to load accounts: ${error.message}`);
+    } else {
+      setAccounts(
+        ((data || []) as Account[]).map((a) => ({
+          ...a,
+          is_active: a.is_active !== false,
+          opening_balance: Number(a.opening_balance || 0),
+          balance: Number(a.balance || 0),
+          total_income: Number(a.total_income || 0),
+          total_expenditure: Number(a.total_expenditure || 0),
+        }))
+      );
+    }
+
+    setLoading(false);
+    setRefreshing(false);
+  }, [router]);
+
+  const loadLedger = useCallback(async (accountId: string) => {
+    if (!accountId) {
+      setLedger([]);
+      return;
+    }
+
+    setLedgerLoading(true);
+    const { data, error } = await supabase
+      .from("iet_account_transactions")
+      .select("id,account_id,transaction_type,amount,balance_before,balance_after,reference_type,reference_no,narration,actor_name,created_at")
+      .eq("account_id", accountId)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      setLedger([]);
+      setMsg(`❌ Failed to load ledger: ${error.message}`);
+    } else {
+      setLedger((data || []) as LedgerRow[]);
+    }
+    setLedgerLoading(false);
+  }, []);
 
   useEffect(() => {
-    loadAll();
+    loadAccounts();
+  }, [loadAccounts]);
 
-    const refreshOnFocus = () => {
-      loadAll({ silent: true });
-    };
+  useEffect(() => {
+    if (tab === "ledger" && ledgerAccountId) loadLedger(ledgerAccountId);
+  }, [tab, ledgerAccountId, loadLedger]);
 
-    const refreshOnVisible = () => {
-      if (document.visibilityState === "visible") {
-        loadAll({ silent: true });
-      }
-    };
+  const stats = useMemo(() => ({
+    opening: accounts.reduce((s, a) => s + Number(a.opening_balance || 0), 0),
+    balance: accounts.reduce((s, a) => s + Number(a.balance || 0), 0),
+    income: accounts.reduce((s, a) => s + Number(a.total_income || 0), 0),
+    expenditure: accounts.reduce((s, a) => s + Number(a.total_expenditure || 0), 0),
+    active: accounts.filter((a) => a.is_active !== false).length,
+    inactive: accounts.filter((a) => a.is_active === false).length,
+  }), [accounts]);
 
-    window.addEventListener("focus", refreshOnFocus);
-    document.addEventListener("visibilitychange", refreshOnVisible);
-
-    return () => {
-      window.removeEventListener("focus", refreshOnFocus);
-      document.removeEventListener("visibilitychange", refreshOnVisible);
-    };
-  }, [loadAll]);
-
-  const stats = useMemo(() => {
-    const total = accounts.length;
-    const activeCount = accounts.filter((a) => a.is_active !== false).length;
-    const inactiveCount = accounts.filter((a) => a.is_active === false).length;
-    const bankCount = new Set(
-      accounts
-        .map((a) => (a.bank_name || "").trim().toLowerCase())
-        .filter(Boolean)
-    ).size;
-
-    const totalFundValue = accounts.reduce((sum, a) => sum + Number(a.total_fund || 0), 0);
-    const allocatedValue = accounts.reduce((sum, a) => sum + Number(a.allocated_amount || 0), 0);
-    const unallocatedValue = accounts.reduce(
-      (sum, a) => sum + Number(a.unallocated_balance || 0),
-      0
-    );
-    const reservedValue = accounts.reduce((sum, a) => sum + Number(a.reserved_amount || 0), 0);
-    const expenditureValue = accounts.reduce((sum, a) => sum + Number(a.expenditure || 0), 0);
-    const availableValue = accounts.reduce((sum, a) => sum + Number(a.available_balance || 0), 0);
-    const negativeAvailable = accounts.filter((a) => Number(a.available_balance || 0) < 0).length;
-    const overAllocated = accounts.filter((a) => Number(a.unallocated_balance || 0) < 0).length;
-
-    return {
-      total,
-      activeCount,
-      inactiveCount,
-      bankCount,
-      totalFundValue,
-      allocatedValue,
-      unallocatedValue,
-      reservedValue,
-      expenditureValue,
-      availableValue,
-      negativeAvailable,
-      overAllocated,
-    };
-  }, [accounts]);
-
-  const filteredAccounts = useMemo(() => {
-    const s = search.trim().toLowerCase();
-
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
     return accounts.filter((a) => {
-      if (activeTab === "active" && a.is_active === false) return false;
-      if (activeTab === "inactive" && a.is_active !== false) return false;
-
-      if (!s) return true;
-
-      const haystack = [
-        a.code,
-        a.name,
-        a.bank_name,
-        a.account_number,
-        a.is_active === false ? "inactive" : "active",
-        a.total_fund,
-        a.allocated_amount,
-        a.unallocated_balance,
-        a.reserved_amount,
-        a.expenditure,
-        a.available_balance,
-      ]
-        .join(" ")
-        .toLowerCase();
-
-      return haystack.includes(s);
+      if (tab === "active" && a.is_active === false) return false;
+      if (tab === "inactive" && a.is_active !== false) return false;
+      if (!q) return true;
+      return [a.code, a.name, a.bank_name, a.account_number, a.balance, a.total_income, a.total_expenditure]
+        .join(" ").toLowerCase().includes(q);
     });
-  }, [accounts, search, activeTab]);
-
-  const selectedFundingAccount = useMemo(() => {
-    return accounts.find((a) => a.id === fundingAccountId) || null;
-  }, [accounts, fundingAccountId]);
+  }, [accounts, search, tab]);
 
   function resetForm() {
     setEditId(null);
     setCode("");
     setName("");
     setBankName("");
-    setAcctNo("");
+    setAccountNumber("");
     setActive(true);
   }
 
-  function resetFundingForm() {
-    setFundingAccountId("");
-    setTotalFund("");
-    setFundingNote("");
-  }
-
-  function startCreate() {
-    resetForm();
-    setActiveTab("form");
-  }
-
-  function startEdit(account: Account) {
-    setEditId(account.id);
-    setCode(account.code || "");
-    setName(account.name || "");
-    setBankName(account.bank_name || "");
-    setAcctNo(account.account_number || "");
-    setActive(account.is_active !== false);
+  function startEdit(a: Account) {
+    setEditId(a.id);
+    setCode(a.code || "");
+    setName(a.name);
+    setBankName(a.bank_name || "");
+    setAccountNumber(a.account_number || "");
+    setActive(a.is_active !== false);
+    setTab("form");
     setMsg(null);
-    setActiveTab("form");
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  function startFunding(account: Account) {
-    setFundingAccountId(account.id);
-    setTotalFund(amountInputValue(account.total_fund));
-    setFundingNote("");
+  function startBalance(a: Account) {
+    setBalanceAccountId(a.id);
+    setNewBalance(String(Number(a.balance || 0)));
+    setBalanceReason("");
+    setTab("balance");
     setMsg(null);
-    setActiveTab("funding");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function startLedger(a: Account) {
+    setLedgerAccountId(a.id);
+    setTab("ledger");
+    setMsg(null);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   async function saveAccount() {
-    if (!canManage) {
-      setMsg("Not allowed.");
-      return;
-    }
+    if (!canManage) return setMsg("❌ Not allowed.");
 
-    const c = code.trim().toUpperCase();
-    const n = name.trim();
-    const b = bankName.trim();
-    const a = cleanAccountNumber(acctNo);
+    const payload = {
+      code: code.trim().toUpperCase(),
+      name: name.trim(),
+      bank_name: bankName.trim(),
+      account_number: cleanNumber(accountNumber),
+      is_active: active,
+    };
 
-    if (!c || c.length < 2) {
-      setMsg("❌ Code is required, for example GENADMIN.");
-      return;
-    }
-
-    if (!n || n.length < 2) {
-      setMsg("❌ Account name is required.");
-      return;
-    }
-
-    if (!b || b.length < 2) {
-      setMsg("❌ Bank name is required.");
-      return;
-    }
-
-    if (!a || a.length < 6) {
-      setMsg("❌ Enter a valid account number.");
-      return;
-    }
+    if (payload.code.length < 2) return setMsg("❌ Account code is required.");
+    if (payload.name.length < 2) return setMsg("❌ Account name is required.");
+    if (payload.bank_name.length < 2) return setMsg("❌ Bank name is required.");
+    if (payload.account_number.length < 6) return setMsg("❌ Enter a valid account number.");
 
     setSaving(true);
     setMsg(null);
 
-    try {
-      const payload = {
-        code: c,
-        name: n,
-        bank_name: b,
-        account_number: a,
-        is_active: active,
-      };
+    const result = editId
+      ? await supabase.from("iet_accounts").update(payload).eq("id", editId)
+      : await supabase.from("iet_accounts").insert(payload);
 
-      if (!editId) {
-        const { error } = await supabase.from("iet_accounts").insert(payload);
-
-        if (error) throw new Error(error.message);
-
-        setMsg("✅ IET bank account created successfully. You can now set its total fund.");
-      } else {
-        const { error } = await supabase
-          .from("iet_accounts")
-          .update(payload)
-          .eq("id", editId);
-
-        if (error) throw new Error(error.message);
-
-        setMsg("✅ IET bank account updated successfully.");
-      }
-
+    if (result.error) {
+      setMsg(`❌ Save failed: ${result.error.message}`);
+    } else {
+      setMsg(editId ? "✅ Account updated." : "✅ Account created. Set its opening balance next.");
       resetForm();
-      setActiveTab(active ? "active" : "inactive");
-      await loadAll({ silent: true });
+      setTab(active ? "active" : "inactive");
+      await loadAccounts(true);
       router.refresh();
-    } catch (e: any) {
-      setMsg("❌ Save failed: " + (e?.message || "Unknown error"));
-    } finally {
-      setSaving(false);
     }
+    setSaving(false);
   }
 
-  async function saveFunding() {
-    if (!canManage) {
-      setMsg("Not allowed.");
-      return;
-    }
+  async function saveBalance() {
+    if (!canManage) return setMsg("❌ Not allowed.");
+    if (!balanceAccountId) return setMsg("❌ Select an account.");
 
-    if (!fundingAccountId) {
-      setMsg("❌ Please select an IET bank account.");
-      return;
-    }
-
-    const value = Number(totalFund || 0);
-
-    if (Number.isNaN(value) || value < 0) {
-      setMsg("❌ Total fund must be a valid non-negative amount.");
-      return;
-    }
-
-    const oldValue = Number(selectedFundingAccount?.total_fund || 0);
+    const amount = Number(newBalance || 0);
+    if (!Number.isFinite(amount) || amount < 0) return setMsg("❌ Enter a valid non-negative balance.");
+    if (balanceReason.trim().length < 5) return setMsg("❌ Enter a clear reason.");
 
     const ok = confirm(
-      `Update total fund for "${accountLabel(selectedFundingAccount)}" from ${naira(
-        oldValue
-      )} to ${naira(value)}?\n\nThis will be recorded in the bank ledger.`
+      `Update "${accountLabel(selectedBalanceAccount)}" from ${naira(selectedBalanceAccount?.balance)} to ${naira(amount)}?\n\nA permanent ledger entry will be created.`
     );
-
     if (!ok) return;
 
-    setFundingSaving(true);
+    setBalanceSaving(true);
     setMsg(null);
 
-    try {
-      const { data: auth } = await supabase.auth.getUser();
+    const { data: auth } = await supabase.auth.getUser();
+    const { error } = await supabase.rpc("set_iet_account_balance", {
+      p_account_id: balanceAccountId,
+      p_new_balance: amount,
+      p_reason: balanceReason.trim(),
+      p_actor_id: auth.user?.id || null,
+    });
 
-      const { error } = await supabase.rpc("reqgen_set_iet_account_fund", {
-        p_bank_account_id: fundingAccountId,
-        p_total_fund: value,
-        p_actor_id: auth.user?.id || null,
-        p_note: fundingNote.trim() || "IET bank total fund updated from Manage Accounts page.",
-      });
-
-      if (error) throw new Error(error.message);
-
-      setMsg("✅ IET bank total fund updated and ledger entry recorded.");
-      resetFundingForm();
-      setActiveTab("overview");
-      await loadAll({ silent: true });
+    if (error) {
+      setMsg(`❌ Balance update failed: ${error.message}`);
+    } else {
+      const id = balanceAccountId;
+      setMsg("✅ Balance updated and ledger entry recorded.");
+      await loadAccounts(true);
+      setLedgerAccountId(id);
+      setTab("ledger");
+      await loadLedger(id);
       router.refresh();
-    } catch (e: any) {
-      setMsg("❌ Fund update failed: " + (e?.message || "Unknown error"));
-    } finally {
-      setFundingSaving(false);
     }
+    setBalanceSaving(false);
   }
 
-  async function toggleActive(account: Account, nextActive: boolean) {
-    if (!canManage) {
-      setMsg("Not allowed.");
+  async function toggleActive(a: Account) {
+    if (!canManage) return;
+    const next = a.is_active === false;
+    if (!confirm(`Set "${a.name}" to ${next ? "Active" : "Inactive"}?`)) return;
+
+    setSaving(true);
+    const { error } = await supabase.from("iet_accounts").update({ is_active: next }).eq("id", a.id);
+    setMsg(error ? `❌ Status update failed: ${error.message}` : next ? "✅ Account activated." : "✅ Account deactivated.");
+    await loadAccounts(true);
+    setSaving(false);
+  }
+
+  async function deleteOrDeactivate(a: Account) {
+    const hasActivity =
+      Number(a.opening_balance || 0) > 0 ||
+      Number(a.total_income || 0) > 0 ||
+      Number(a.total_expenditure || 0) > 0;
+
+    if (hasActivity) {
+      if (confirm("This account has financial activity. Deactivate it instead?")) await toggleActive(a);
       return;
     }
 
-    const ok = confirm(`Set "${account.name}" to ${nextActive ? "Active" : "Inactive"}?`);
-
-    if (!ok) return;
+    if (!confirm(`Delete unused account "${a.name}"?`)) return;
 
     setSaving(true);
-    setMsg(null);
+    const { error } = await supabase.from("iet_accounts").delete().eq("id", a.id);
 
-    try {
-      const { error } = await supabase
+    if (!error) {
+      setMsg("✅ Account deleted.");
+    } else {
+      const { error: deactivationError } = await supabase
         .from("iet_accounts")
-        .update({ is_active: nextActive })
-        .eq("id", account.id);
+        .update({ is_active: false })
+        .eq("id", a.id);
 
-      if (error) throw new Error(error.message);
-
-      setMsg(nextActive ? "✅ Account activated." : "✅ Account deactivated.");
-      await loadAll({ silent: true });
-      router.refresh();
-    } catch (e: any) {
-      setMsg("❌ Failed: " + (e?.message || "Unknown error"));
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function deleteOrDeactivate(account: Account) {
-    if (!canManage) {
-      setMsg("Not allowed.");
-      return;
+      setMsg(deactivationError
+        ? `❌ Delete failed: ${error.message}`
+        : "✅ Linked account was deactivated instead.");
     }
 
-    const linked =
-      Number(account.allocated_amount || 0) > 0 ||
-      Number(account.reserved_amount || 0) > 0 ||
-      Number(account.expenditure || 0) > 0;
-
-    if (linked) {
-      const ok = confirm(
-        `This IET bank account already has allocation or finance activity.\n\nIt cannot be safely deleted. Do you want to deactivate it instead?`
-      );
-
-      if (!ok) return;
-
-      await toggleActive(account, false);
-      return;
-    }
-
-    const ok = confirm(
-      `Delete bank account "${account.name}"?\n\nIf this account is linked to assignments or records, it will be deactivated instead.`
-    );
-
-    if (!ok) return;
-
-    setSaving(true);
-    setMsg(null);
-
-    try {
-      const { error } = await supabase.from("iet_accounts").delete().eq("id", account.id);
-
-      if (error) throw new Error(error.message);
-
-      setMsg("✅ Unused account deleted.");
-
-      if (editId === account.id) {
-        resetForm();
-      }
-
-      await loadAll({ silent: true });
-      router.refresh();
-    } catch (e: any) {
-      const text = e?.message || "Unknown error";
-
-      if (
-        text.toLowerCase().includes("foreign key") ||
-        text.toLowerCase().includes("violates foreign key")
-      ) {
-        const { error } = await supabase
-          .from("iet_accounts")
-          .update({ is_active: false })
-          .eq("id", account.id);
-
-        if (error) {
-          setMsg("❌ Delete failed and deactivate also failed: " + error.message);
-        } else {
-          setMsg("✅ Account is linked to records, so it has been deactivated instead of deleted.");
-          await loadAll({ silent: true });
-          router.refresh();
-        }
-      } else {
-        setMsg("❌ Delete failed: " + text);
-      }
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function recalculateAccounts() {
-    setRefreshing(true);
-    setMsg(null);
-
-    try {
-      const { error } = await supabase.rpc("reqgen_recalculate_all_iet_accounts");
-
-      if (error) throw new Error(error.message);
-
-      setMsg("✅ IET bank account balances recalculated.");
-      await loadAll({ silent: true });
-      router.refresh();
-    } catch (e: any) {
-      setMsg("❌ Recalculation failed: " + (e?.message || "Unknown error"));
-    } finally {
-      setRefreshing(false);
-    }
-  }
-
-  function backToFinance() {
-    router.push(`/finance?updated=${Date.now()}`);
-    router.refresh();
-  }
-
-  function openAssignPage() {
-    router.push(`/finance/manage-accounts/assign?updated=${Date.now()}`);
-    router.refresh();
-  }
-
-  function openSubheads() {
-    router.push(`/finance/subheads?updated=${Date.now()}`);
-    router.refresh();
-  }
-
-  function openAudit() {
-    router.push(`/finance/audit?updated=${Date.now()}`);
-    router.refresh();
+    await loadAccounts(true);
+    setSaving(false);
   }
 
   if (loading) {
-    return (
-      <main className="min-h-screen bg-slate-50 px-4">
-        <div className="mx-auto max-w-7xl py-10 text-slate-600">Loading IET Bank Accounts...</div>
-      </main>
-    );
+    return <main className="min-h-screen bg-slate-50 p-10 text-slate-600">Loading IET Bank Accounts...</main>;
   }
 
   return (
@@ -600,683 +360,245 @@ export default function ManageAccountsPage() {
       <div className="mx-auto max-w-7xl py-10">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">
-              Finance • IET Bank Accounts
-            </h1>
-            <p className="mt-2 text-sm text-slate-600">
-              Manage IET bank accounts, total funds, allocations, reservations, expenditures and
-              available balances.
-            </p>
-            <p className="mt-1 text-xs font-semibold text-slate-500">
-              Role: {me?.role || "—"}
-            </p>
+            <h1 className="text-3xl font-extrabold text-slate-900">Finance • IET Bank Accounts</h1>
+            <p className="mt-2 text-sm text-slate-600">Real balances, income, expenditure and permanent transaction ledgers.</p>
+            <p className="mt-1 text-xs font-semibold text-slate-500">Role: {me?.role || "—"}</p>
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <button
-              onClick={() => loadAll({ silent: true })}
-              disabled={refreshing || saving || fundingSaving}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
-            >
+            <Button onClick={() => loadAccounts(true)} disabled={refreshing || saving || balanceSaving}>
               {refreshing ? "Refreshing..." : "Refresh"}
-            </button>
-
-            <button
-              onClick={recalculateAccounts}
-              disabled={refreshing || saving || fundingSaving}
-              className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-800 hover:bg-blue-100 disabled:opacity-60"
-            >
-              Recalculate
-            </button>
-
-            <button
-              onClick={startCreate}
-              disabled={!canManage || refreshing || saving || fundingSaving}
-              className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
-            >
-              Add Account
-            </button>
-
-            <button
-              onClick={openAssignPage}
-              disabled={refreshing || saving || fundingSaving}
-              className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-60"
-            >
-              Assign to Officer
-            </button>
-
-            <button
-              onClick={openAudit}
-              disabled={refreshing || saving || fundingSaving}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
-            >
-              Audit
-            </button>
-
-            <button
-              onClick={backToFinance}
-              disabled={refreshing || saving || fundingSaving}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
-            >
-              Back to Finance
-            </button>
+            </Button>
+            <Button primary onClick={() => { resetForm(); setTab("form"); }}>Add Account</Button>
+            <Button onClick={() => router.push("/finance/manage-accounts/assign")}>Assign to Officer</Button>
+            <Button onClick={() => router.push("/finance/subheads")}>Subheads</Button>
+            <Button onClick={() => router.push("/finance/audit")}>Audit</Button>
+            <Button onClick={() => router.push("/finance")}>Back to Finance</Button>
           </div>
         </div>
 
-        {msg && (
-          <div className="mt-4 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-800 shadow-sm">
-            {msg}
-          </div>
-        )}
+        {msg && <div className="mt-4 rounded-2xl border bg-white px-4 py-3 text-sm font-semibold text-slate-800 shadow-sm">{msg}</div>}
 
         <div className="mt-4 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-xs font-semibold text-blue-900">
-          IET Banks now serve as the funding source. Subhead allocations are drawn from bank total
-          fund, while reservations and expenditures are recalculated back to the linked bank account.
+          Phase 18B uses real account balances. Manual Payment Vouchers now debit the selected IET account automatically.
         </div>
 
         <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <StatCard title="Total Fund" value={naira(stats.totalFundValue)} tone="blue" />
-          <StatCard title="Allocated to Subheads" value={naira(stats.allocatedValue)} tone="purple" />
-          <StatCard title="Unallocated Balance" value={naira(stats.unallocatedValue)} tone="emerald" />
-          <StatCard title="Available Balance" value={naira(stats.availableValue)} tone="emerald" />
+          <Stat title="Current Balance" value={naira(stats.balance)} tone="emerald" />
+          <Stat title="Opening Balance" value={naira(stats.opening)} tone="blue" />
+          <Stat title="Total Income" value={naira(stats.income)} tone="purple" />
+          <Stat title="Total Expenditure" value={naira(stats.expenditure)} tone="red" />
         </div>
 
-        <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <SmallStat title="Reserved" value={naira(stats.reservedValue)} tone="amber" />
-          <SmallStat title="Expenditure" value={naira(stats.expenditureValue)} tone="red" />
-          <SmallStat title="Active Accounts" value={String(stats.activeCount)} tone="emerald" />
-          <SmallStat title="Warnings" value={String(stats.negativeAvailable + stats.overAllocated)} tone="red" />
+        <div className="mt-4 grid gap-4 md:grid-cols-2">
+          <Stat title="Active Accounts" value={String(stats.active)} tone="emerald" />
+          <Stat title="Inactive Accounts" value={String(stats.inactive)} tone="amber" />
         </div>
 
-        <div className="mt-6 rounded-3xl border bg-white p-2 shadow-sm">
-          <div className="flex flex-wrap gap-2">
-            <TabButton label="Overview" active={activeTab === "overview"} onClick={() => setActiveTab("overview")} />
-            <TabButton label="Active Accounts" active={activeTab === "active"} onClick={() => setActiveTab("active")} />
-            <TabButton label="Inactive Accounts" active={activeTab === "inactive"} onClick={() => setActiveTab("inactive")} />
-            <TabButton label={editId ? "Edit Account" : "Add Account"} active={activeTab === "form"} onClick={() => setActiveTab("form")} />
-            <TabButton label="Set Bank Fund" active={activeTab === "funding"} onClick={() => setActiveTab("funding")} />
-          </div>
-        </div>
-
-        {(activeTab === "overview" || activeTab === "active" || activeTab === "inactive") && (
-          <div className="mt-6 rounded-3xl border bg-white p-5 shadow-sm">
-            <label className="text-sm font-semibold text-slate-800">Search Accounts</label>
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by code, account name, bank, account number, amount or status..."
-              className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 text-slate-900 outline-none focus:border-blue-500"
-            />
-          </div>
-        )}
-
-        {activeTab === "funding" && (
-          <div className="mt-6 rounded-3xl border bg-white p-6 shadow-sm">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <h2 className="text-lg font-bold text-slate-900">Set IET Bank Total Fund</h2>
-                <p className="mt-1 text-sm text-slate-600">
-                  This is the lump sum amount available in the selected IET bank account. Changes are
-                  recorded in the bank ledger.
-                </p>
-              </div>
-
-              {fundingAccountId && (
-                <button
-                  onClick={resetFundingForm}
-                  disabled={fundingSaving}
-                  className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
-                >
-                  Clear
-                </button>
-              )}
-            </div>
-
-            <div className="mt-5 grid gap-4 md:grid-cols-2">
-              <div>
-                <label className="text-sm font-semibold text-slate-800">IET Bank Account</label>
-                <select
-                  value={fundingAccountId}
-                  onChange={(e) => {
-                    const id = e.target.value;
-                    const found = accounts.find((a) => a.id === id) || null;
-                    setFundingAccountId(id);
-                    setTotalFund(amountInputValue(found?.total_fund));
-                    setFundingNote("");
-                  }}
-                  disabled={!canManage || fundingSaving}
-                  className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 text-slate-900 outline-none focus:border-blue-500 disabled:bg-slate-50"
-                >
-                  <option value="">-- Select Bank Account --</option>
-                  {accounts.map((account) => (
-                    <option key={account.id} value={account.id}>
-                      {accountLabel(account)} • {account.bank_name || "Bank"} •{" "}
-                      {maskAccountNumber(account.account_number)}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="text-sm font-semibold text-slate-800">Total Fund</label>
-                <input
-                  value={totalFund}
-                  onChange={(e) => setTotalFund(e.target.value.replace(/[^\d.]/g, ""))}
-                  disabled={!canManage || fundingSaving}
-                  placeholder="e.g. 50000000"
-                  type="text"
-                  inputMode="decimal"
-                  className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 text-slate-900 outline-none focus:border-blue-500 disabled:bg-slate-50"
-                />
-              </div>
-
-              <div className="md:col-span-2">
-                <label className="text-sm font-semibold text-slate-800">Funding Note</label>
-                <textarea
-                  value={fundingNote}
-                  onChange={(e) => setFundingNote(e.target.value)}
-                  disabled={!canManage || fundingSaving}
-                  placeholder="Example: 2026 institutional allocation entered by Admin."
-                  className="mt-1 h-24 w-full rounded-2xl border border-slate-200 px-4 py-3 text-slate-900 outline-none focus:border-blue-500 disabled:bg-slate-50"
-                />
-              </div>
-            </div>
-
-            {selectedFundingAccount && (
-              <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-                <InfoMetric title="Current Total Fund" value={naira(selectedFundingAccount.total_fund)} />
-                <InfoMetric title="Allocated" value={naira(selectedFundingAccount.allocated_amount)} />
-                <InfoMetric title="Unallocated" value={naira(selectedFundingAccount.unallocated_balance)} />
-                <InfoMetric title="Reserved" value={naira(selectedFundingAccount.reserved_amount)} />
-                <InfoMetric title="Available" value={naira(selectedFundingAccount.available_balance)} />
-              </div>
-            )}
-
-            <button
-              onClick={saveFunding}
-              disabled={!canManage || fundingSaving}
-              className="mt-5 w-full rounded-2xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
-            >
-              {fundingSaving ? "Updating Fund..." : "Update Bank Total Fund"}
+        <div className="mt-6 flex flex-wrap gap-2 rounded-3xl border bg-white p-2 shadow-sm">
+          {(["overview", "active", "inactive", "form", "balance", "ledger"] as Tab[]).map((t) => (
+            <button key={t} onClick={() => setTab(t)}
+              className={`rounded-2xl px-4 py-3 text-sm font-bold ${tab === t ? "bg-blue-600 text-white" : "text-slate-700 hover:bg-slate-100"}`}>
+              {t === "form" ? (editId ? "Edit Account" : "Add Account") :
+                t === "balance" ? "Set Balance" :
+                  t === "ledger" ? "Account Ledger" :
+                    t.charAt(0).toUpperCase() + t.slice(1)}
             </button>
-          </div>
+          ))}
+        </div>
+
+        {["overview", "active", "inactive"].includes(tab) && (
+          <>
+            <div className="mt-6 rounded-3xl border bg-white p-5 shadow-sm">
+              <input value={search} onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search accounts..."
+                className="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-blue-500" />
+            </div>
+
+            <div className="mt-6 grid gap-4">
+              {filtered.map((a) => (
+                <div key={a.id} className="rounded-3xl border bg-white p-5 shadow-sm">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <div className="text-lg font-extrabold text-slate-900">{a.code || "—"} — {a.name}</div>
+                      <div className="mt-1 text-sm text-slate-600">{a.bank_name || "—"} • {mask(a.account_number)}</div>
+                    </div>
+                    <span className={`rounded-full px-3 py-1 text-xs font-bold ${a.is_active !== false ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"}`}>
+                      {a.is_active !== false ? "Active" : "Inactive"}
+                    </span>
+                  </div>
+
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                    <Metric title="Opening" value={naira(a.opening_balance)} />
+                    <Metric title="Income" value={naira(a.total_income)} />
+                    <Metric title="Expenditure" value={naira(a.total_expenditure)} />
+                    <Metric title="Current Balance" value={naira(a.balance)} />
+                  </div>
+
+                  <div className="mt-3 text-xs text-slate-500">Last balance update: {dateTime(a.balance_last_updated_at || a.updated_at)}</div>
+
+                  <div className="mt-4 flex flex-wrap justify-end gap-2">
+                    <Button primary onClick={() => startBalance(a)}>Balance</Button>
+                    <Button onClick={() => startLedger(a)}>Ledger</Button>
+                    <Button onClick={() => startEdit(a)}>Edit</Button>
+                    <Button onClick={() => toggleActive(a)}>{a.is_active === false ? "Activate" : "Deactivate"}</Button>
+                    <button onClick={() => deleteOrDeactivate(a)} disabled={saving}
+                      className="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50">
+                      {Number(a.opening_balance || 0) > 0 || Number(a.total_income || 0) > 0 || Number(a.total_expenditure || 0) > 0 ? "Deactivate" : "Delete"}
+                    </button>
+                  </div>
+                </div>
+              ))}
+              {filtered.length === 0 && <div className="rounded-3xl border bg-white p-6 text-sm text-slate-600">No accounts found.</div>}
+            </div>
+          </>
         )}
 
-        {activeTab === "form" && (
-          <div className="mt-6 rounded-3xl border bg-white p-6 shadow-sm">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div>
-                <h2 className="text-lg font-bold text-slate-900">
-                  {editId ? "Edit IET Bank Account" : "Add New IET Bank Account"}
-                </h2>
-                <p className="mt-1 text-sm text-slate-600">
-                  Enter account code, title, bank name, account number and active status.
-                </p>
-              </div>
-
-              {editId && (
-                <button
-                  onClick={resetForm}
-                  disabled={saving}
-                  className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
-                >
-                  Cancel Edit
-                </button>
-              )}
+        {tab === "form" && (
+          <Panel title={editId ? "Edit IET Bank Account" : "Add IET Bank Account"}>
+            <div className="grid gap-4 md:grid-cols-2">
+              <Input label="Account Code" value={code} onChange={setCode} placeholder="GENADMIN" />
+              <Input label="Account Name" value={name} onChange={setName} placeholder="General Administration Account" />
+              <Input label="Bank Name" value={bankName} onChange={setBankName} placeholder="Jaiz Bank" />
+              <Input label="Account Number" value={accountNumber} onChange={(v) => setAccountNumber(cleanNumber(v))} placeholder="0123456789" />
             </div>
-
-            {!canManage && (
-              <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
-                View only. Only Admin and Auditor can create, edit, activate, deactivate or delete accounts.
-              </div>
-            )}
-
-            <div className="mt-5 grid gap-4 md:grid-cols-2">
-              <div>
-                <label className="text-sm font-semibold text-slate-800">Code</label>
-                <input
-                  value={code}
-                  onChange={(e) => setCode(e.target.value)}
-                  disabled={!canManage || saving}
-                  placeholder="e.g. GENADMIN"
-                  className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 text-slate-900 outline-none focus:border-blue-500 disabled:bg-slate-50"
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-semibold text-slate-800">Account Name</label>
-                <input
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  disabled={!canManage || saving}
-                  placeholder="e.g. General Admin Account"
-                  className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 text-slate-900 outline-none focus:border-blue-500 disabled:bg-slate-50"
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-semibold text-slate-800">Bank Name</label>
-                <input
-                  value={bankName}
-                  onChange={(e) => setBankName(e.target.value)}
-                  disabled={!canManage || saving}
-                  placeholder="e.g. Jaiz Bank"
-                  className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 text-slate-900 outline-none focus:border-blue-500 disabled:bg-slate-50"
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-semibold text-slate-800">Account Number</label>
-                <input
-                  value={acctNo}
-                  onChange={(e) => setAcctNo(cleanAccountNumber(e.target.value))}
-                  disabled={!canManage || saving}
-                  placeholder="e.g. 0123456789"
-                  className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 text-slate-900 outline-none focus:border-blue-500 disabled:bg-slate-50"
-                />
-              </div>
-            </div>
-
-            <div className="mt-4 flex items-center gap-2">
-              <input
-                id="active"
-                type="checkbox"
-                checked={active}
-                onChange={(e) => setActive(e.target.checked)}
-                disabled={!canManage || saving}
-              />
-              <label htmlFor="active" className="text-sm font-semibold text-slate-800">
-                Active
-              </label>
-            </div>
-
-            <button
-              onClick={saveAccount}
-              disabled={!canManage || saving}
-              className="mt-5 w-full rounded-2xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
-            >
+            <label className="mt-4 flex items-center gap-2 text-sm font-semibold text-slate-800">
+              <input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} /> Active
+            </label>
+            <button onClick={saveAccount} disabled={saving} className="mt-5 w-full rounded-2xl bg-blue-600 px-4 py-3 font-semibold text-white disabled:opacity-60">
               {saving ? "Saving..." : editId ? "Update Account" : "Create Account"}
             </button>
-          </div>
+          </Panel>
         )}
 
-        {(activeTab === "overview" || activeTab === "active" || activeTab === "inactive") && (
-          <div className="mt-6 overflow-hidden rounded-3xl border bg-white shadow-sm">
-            <div className="border-b bg-slate-50 px-6 py-4">
-              <h2 className="text-lg font-bold text-slate-900">IET Bank Accounts Register</h2>
-              <p className="mt-1 text-sm text-slate-600">
-                Bank accounts, total funds, subhead allocations, reservations, expenditures and balances.
-              </p>
+        {tab === "balance" && (
+          <Panel title="Set Opening or Current Balance">
+            <div className="grid gap-4 md:grid-cols-2">
+              <label className="text-sm font-semibold text-slate-800">
+                IET Bank Account
+                <select value={balanceAccountId}
+                  onChange={(e) => {
+                    const id = e.target.value;
+                    const a = accounts.find((x) => x.id === id);
+                    setBalanceAccountId(id);
+                    setNewBalance(a ? String(Number(a.balance || 0)) : "");
+                    setBalanceReason("");
+                  }}
+                  className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3">
+                  <option value="">-- Select Account --</option>
+                  {accounts.map((a) => <option key={a.id} value={a.id}>{accountLabel(a)} • {naira(a.balance)}</option>)}
+                </select>
+              </label>
+              <Input label="New Balance" value={newBalance} onChange={(v) => setNewBalance(cleanAmount(v))} placeholder="50000000" />
             </div>
 
-            {filteredAccounts.length === 0 ? (
-              <div className="p-6 text-sm text-slate-700">No bank accounts found.</div>
-            ) : (
-              <>
-                <div className="grid gap-4 p-4 xl:hidden">
-                  {filteredAccounts.map((account) => (
-                    <AccountCard
-                      key={account.id}
-                      account={account}
-                      canManage={canManage}
-                      saving={saving || fundingSaving}
-                      onEdit={() => startEdit(account)}
-                      onFunding={() => startFunding(account)}
-                      onToggle={() => toggleActive(account, account.is_active === false)}
-                      onDelete={() => deleteOrDeactivate(account)}
-                    />
-                  ))}
-                </div>
+            <label className="mt-4 block text-sm font-semibold text-slate-800">
+              Reason
+              <textarea value={balanceReason} onChange={(e) => setBalanceReason(e.target.value)}
+                placeholder="Opening balance confirmed from bank statement."
+                className="mt-1 h-28 w-full rounded-2xl border border-slate-200 px-4 py-3" />
+            </label>
 
-                <div className="hidden overflow-x-auto xl:block">
-                  <table className="min-w-[1500px] w-full border-collapse text-sm">
-                    <thead>
-                      <tr className="bg-slate-100 text-xs uppercase tracking-wide text-slate-600">
-                        <th className="px-4 py-3 text-left">Account</th>
-                        <th className="px-4 py-3 text-left">Bank / Number</th>
-                        <th className="px-4 py-3 text-right">Total Fund</th>
-                        <th className="px-4 py-3 text-right">Allocated</th>
-                        <th className="px-4 py-3 text-right">Unallocated</th>
-                        <th className="px-4 py-3 text-right">Reserved</th>
-                        <th className="px-4 py-3 text-right">Expenditure</th>
-                        <th className="px-4 py-3 text-right">Available</th>
-                        <th className="px-4 py-3 text-left">Status</th>
-                        <th className="px-4 py-3 text-right">Actions</th>
-                      </tr>
-                    </thead>
-
-                    <tbody>
-                      {filteredAccounts.map((account) => (
-                        <tr key={account.id} className="border-t hover:bg-slate-50">
-                          <td className="px-4 py-4">
-                            <div className="font-extrabold text-slate-900">
-                              {account.code || "—"}
-                            </div>
-                            <div className="mt-1 text-sm font-semibold text-slate-800">
-                              {account.name}
-                            </div>
-                            <div className="mt-1 text-xs text-slate-500">
-                              Recalculated {shortDateTime(account.last_recalculated_at)}
-                            </div>
-                          </td>
-
-                          <td className="px-4 py-4 text-slate-800">
-                            <div className="font-semibold">{account.bank_name || "—"}</div>
-                            <div className="mt-1 text-xs text-slate-500">
-                              {maskAccountNumber(account.account_number)}
-                            </div>
-                          </td>
-
-                          <td className="px-4 py-4 text-right font-bold text-blue-700">
-                            {naira(account.total_fund)}
-                          </td>
-
-                          <td className="px-4 py-4 text-right font-bold text-purple-700">
-                            {naira(account.allocated_amount)}
-                          </td>
-
-                          <td
-                            className={`px-4 py-4 text-right font-bold ${
-                              Number(account.unallocated_balance || 0) < 0
-                                ? "text-red-700"
-                                : "text-emerald-700"
-                            }`}
-                          >
-                            {naira(account.unallocated_balance)}
-                          </td>
-
-                          <td className="px-4 py-4 text-right font-bold text-amber-700">
-                            {naira(account.reserved_amount)}
-                          </td>
-
-                          <td className="px-4 py-4 text-right font-bold text-red-700">
-                            {naira(account.expenditure)}
-                          </td>
-
-                          <td
-                            className={`px-4 py-4 text-right font-black ${
-                              Number(account.available_balance || 0) < 0
-                                ? "text-red-700"
-                                : "text-emerald-700"
-                            }`}
-                          >
-                            {naira(account.available_balance)}
-                          </td>
-
-                          <td className="px-4 py-4">
-                            <StatusBadge active={account.is_active !== false} />
-                          </td>
-
-                          <td className="px-4 py-4">
-                            <div className="flex justify-end gap-2">
-                              <button
-                                onClick={() => startFunding(account)}
-                                disabled={!canManage || saving || fundingSaving}
-                                className="rounded-xl bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
-                              >
-                                Fund
-                              </button>
-
-                              <button
-                                onClick={() => startEdit(account)}
-                                disabled={!canManage || saving || fundingSaving}
-                                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-50"
-                              >
-                                Edit
-                              </button>
-
-                              <button
-                                onClick={() => toggleActive(account, account.is_active === false)}
-                                disabled={!canManage || saving || fundingSaving}
-                                className={`rounded-xl px-3 py-2 text-xs font-semibold text-white disabled:opacity-50 ${
-                                  account.is_active === false
-                                    ? "bg-emerald-600 hover:bg-emerald-700"
-                                    : "bg-amber-600 hover:bg-amber-700"
-                                }`}
-                              >
-                                {account.is_active === false ? "Activate" : "Deactivate"}
-                              </button>
-
-                              <button
-                                onClick={() => deleteOrDeactivate(account)}
-                                disabled={!canManage || saving || fundingSaving}
-                                className="rounded-xl bg-red-600 px-3 py-2 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-50"
-                              >
-                                {Number(account.allocated_amount || 0) > 0 ||
-                                Number(account.expenditure || 0) > 0 ||
-                                Number(account.reserved_amount || 0) > 0
-                                  ? "Deactivate"
-                                  : "Delete"}
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-
-                    <tfoot>
-                      <tr className="border-t bg-slate-50 font-black">
-                        <td className="px-4 py-4 uppercase text-slate-900" colSpan={2}>
-                          Total
-                        </td>
-                        <td className="px-4 py-4 text-right text-blue-700">
-                          {naira(stats.totalFundValue)}
-                        </td>
-                        <td className="px-4 py-4 text-right text-purple-700">
-                          {naira(stats.allocatedValue)}
-                        </td>
-                        <td className="px-4 py-4 text-right text-emerald-700">
-                          {naira(stats.unallocatedValue)}
-                        </td>
-                        <td className="px-4 py-4 text-right text-amber-700">
-                          {naira(stats.reservedValue)}
-                        </td>
-                        <td className="px-4 py-4 text-right text-red-700">
-                          {naira(stats.expenditureValue)}
-                        </td>
-                        <td className="px-4 py-4 text-right text-emerald-700">
-                          {naira(stats.availableValue)}
-                        </td>
-                        <td className="px-4 py-4" />
-                        <td className="px-4 py-4" />
-                      </tr>
-                    </tfoot>
-                  </table>
-                </div>
-              </>
+            {selectedBalanceAccount && (
+              <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <Metric title="Opening" value={naira(selectedBalanceAccount.opening_balance)} />
+                <Metric title="Current" value={naira(selectedBalanceAccount.balance)} />
+                <Metric title="Income" value={naira(selectedBalanceAccount.total_income)} />
+                <Metric title="Expenditure" value={naira(selectedBalanceAccount.total_expenditure)} />
+              </div>
             )}
-          </div>
+
+            <button onClick={saveBalance} disabled={balanceSaving}
+              className="mt-5 w-full rounded-2xl bg-emerald-600 px-4 py-3 font-semibold text-white disabled:opacity-60">
+              {balanceSaving ? "Updating..." : "Update Account Balance"}
+            </button>
+          </Panel>
         )}
 
-        <div className="mt-6 rounded-3xl border border-blue-100 bg-blue-50 p-5 text-sm text-blue-900">
-          <div className="font-bold">IET Bank Funding Note</div>
-          <p className="mt-1">
-            Bank total fund is the lump sum amount available in an IET bank account. Subheads draw
-            allocations from this fund. Reserved amounts and expenditures are then rolled back to the
-            bank account for reconciliation. Use the Audit page for deeper review.
-          </p>
-        </div>
+        {tab === "ledger" && (
+          <Panel title="IET Account Transaction Ledger">
+            <select value={ledgerAccountId} onChange={(e) => setLedgerAccountId(e.target.value)}
+              className="w-full rounded-2xl border border-slate-200 px-4 py-3">
+              <option value="">-- Select Account --</option>
+              {accounts.map((a) => <option key={a.id} value={a.id}>{accountLabel(a)} • {naira(a.balance)}</option>)}
+            </select>
+
+            {selectedLedgerAccount && (
+              <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <Metric title="Account" value={accountLabel(selectedLedgerAccount)} />
+                <Metric title="Balance" value={naira(selectedLedgerAccount.balance)} />
+                <Metric title="Income" value={naira(selectedLedgerAccount.total_income)} />
+                <Metric title="Expenditure" value={naira(selectedLedgerAccount.total_expenditure)} />
+              </div>
+            )}
+
+            <div className="mt-6 grid gap-3">
+              {ledgerLoading && <div className="text-sm text-slate-600">Loading ledger...</div>}
+              {!ledgerLoading && ledgerAccountId && ledger.length === 0 && <div className="text-sm text-slate-600">No ledger entries found.</div>}
+              {ledger.map((r) => (
+                <div key={r.id} className="rounded-2xl border p-4">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <span className={`rounded-full px-3 py-1 text-xs font-bold ${r.transaction_type === "Debit" ? "bg-red-50 text-red-700" :
+                          r.transaction_type === "Credit" ? "bg-emerald-50 text-emerald-700" :
+                            r.transaction_type === "Opening Balance" ? "bg-blue-50 text-blue-700" :
+                              "bg-amber-50 text-amber-700"
+                        }`}>{r.transaction_type}</span>
+                      <div className="mt-2 text-xs text-slate-500">{dateTime(r.created_at)}</div>
+                    </div>
+                    <div className="text-lg font-black">{naira(r.amount)}</div>
+                  </div>
+                  <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                    <Metric title="Before" value={naira(r.balance_before)} />
+                    <Metric title="After" value={naira(r.balance_after)} />
+                  </div>
+                  <div className="mt-3 text-sm text-slate-700">{r.reference_type || "—"} {r.reference_no ? `• ${r.reference_no}` : ""}</div>
+                  <div className="mt-1 text-sm text-slate-600">{r.narration || "—"}</div>
+                  <div className="mt-2 text-xs text-slate-500">Actor: {r.actor_name || "System"}</div>
+                </div>
+              ))}
+            </div>
+          </Panel>
+        )}
       </div>
     </main>
   );
 }
 
-function AccountCard({
-  account,
-  canManage,
-  saving,
-  onEdit,
-  onFunding,
-  onToggle,
-  onDelete,
-}: {
-  account: Account;
-  canManage: boolean;
-  saving: boolean;
-  onEdit: () => void;
-  onFunding: () => void;
-  onToggle: () => void;
-  onDelete: () => void;
-}) {
-  return (
-    <div className="rounded-3xl border bg-white p-5 shadow-sm">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <div className="text-lg font-extrabold text-slate-900">{account.code || "—"}</div>
-          <div className="mt-1 text-sm font-semibold text-slate-800">{account.name}</div>
-          <div className="mt-1 text-xs text-slate-500">
-            {account.bank_name || "—"} • {maskAccountNumber(account.account_number)}
-          </div>
-        </div>
-
-        <StatusBadge active={account.is_active !== false} />
-      </div>
-
-      <div className="mt-4 grid gap-3 sm:grid-cols-2">
-        <InfoMetric title="Total Fund" value={naira(account.total_fund)} />
-        <InfoMetric title="Allocated" value={naira(account.allocated_amount)} />
-        <InfoMetric title="Unallocated" value={naira(account.unallocated_balance)} />
-        <InfoMetric title="Reserved" value={naira(account.reserved_amount)} />
-        <InfoMetric title="Expenditure" value={naira(account.expenditure)} />
-        <InfoMetric title="Available" value={naira(account.available_balance)} />
-      </div>
-
-      <div className="mt-4 text-xs text-slate-500">
-        Recalculated {shortDateTime(account.last_recalculated_at)}
-      </div>
-
-      <div className="mt-4 flex flex-wrap justify-end gap-2">
-        <button
-          onClick={onFunding}
-          disabled={!canManage || saving}
-          className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
-        >
-          Fund
-        </button>
-
-        <button
-          onClick={onEdit}
-          disabled={!canManage || saving}
-          className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-50"
-        >
-          Edit
-        </button>
-
-        <button
-          onClick={onToggle}
-          disabled={!canManage || saving}
-          className={`rounded-xl px-4 py-2 text-sm font-semibold text-white disabled:opacity-50 ${
-            account.is_active === false
-              ? "bg-emerald-600 hover:bg-emerald-700"
-              : "bg-amber-600 hover:bg-amber-700"
-          }`}
-        >
-          {account.is_active === false ? "Activate" : "Deactivate"}
-        </button>
-
-        <button
-          onClick={onDelete}
-          disabled={!canManage || saving}
-          className="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
-        >
-          {Number(account.allocated_amount || 0) > 0 ||
-          Number(account.expenditure || 0) > 0 ||
-          Number(account.reserved_amount || 0) > 0
-            ? "Deactivate"
-            : "Delete"}
-        </button>
-      </div>
-    </div>
-  );
+function Panel({ title, children }: { title: string; children: React.ReactNode }) {
+  return <div className="mt-6 rounded-3xl border bg-white p-6 shadow-sm">
+    <h2 className="text-lg font-bold text-slate-900">{title}</h2>
+    <div className="mt-5">{children}</div>
+  </div>;
 }
 
-function StatusBadge({ active }: { active: boolean }) {
-  return (
-    <span
-      className={`rounded-full border px-3 py-1 text-xs font-bold ${
-        active
-          ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-          : "border-red-200 bg-red-50 text-red-700"
-      }`}
-    >
-      {active ? "Active" : "Inactive"}
-    </span>
-  );
+function Input({ label, value, onChange, placeholder }: { label: string; value: string; onChange: (v: string) => void; placeholder?: string }) {
+  return <label className="text-sm font-semibold text-slate-800">{label}
+    <input value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder}
+      className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-blue-500" />
+  </label>;
 }
 
-function TabButton({
-  label,
-  active,
-  onClick,
-}: {
-  label: string;
-  active: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`rounded-2xl px-4 py-3 text-sm font-bold transition ${
-        active ? "bg-blue-600 text-white shadow-sm" : "bg-white text-slate-700 hover:bg-slate-100"
-      }`}
-    >
-      {label}
-    </button>
-  );
+function Button({ children, onClick, disabled, primary }: { children: React.ReactNode; onClick: () => void; disabled?: boolean; primary?: boolean }) {
+  return <button onClick={onClick} disabled={disabled}
+    className={`rounded-xl px-4 py-2 text-sm font-semibold disabled:opacity-60 ${primary ? "bg-blue-600 text-white hover:bg-blue-700" : "border border-slate-200 bg-white text-slate-900 hover:bg-slate-100"
+      }`}>{children}</button>;
 }
 
-function StatCard({
-  title,
-  value,
-  tone,
-}: {
-  title: string;
-  value: string;
-  tone: "blue" | "emerald" | "amber" | "purple" | "red";
-}) {
-  const cls =
-    tone === "emerald"
-      ? "bg-emerald-50 text-emerald-700"
-      : tone === "amber"
-      ? "bg-amber-50 text-amber-700"
-      : tone === "purple"
-      ? "bg-purple-50 text-purple-700"
-      : tone === "red"
-      ? "bg-red-50 text-red-700"
-      : "bg-blue-50 text-blue-700";
-
-  return (
-    <div className="rounded-3xl border bg-white p-5 shadow-sm">
-      <div className="text-sm font-semibold text-slate-500">{title}</div>
-      <div className={`mt-3 inline-flex rounded-2xl px-3 py-2 text-xl font-extrabold ${cls}`}>
-        {value}
-      </div>
-    </div>
-  );
+function Stat({ title, value, tone }: { title: string; value: string; tone: "blue" | "emerald" | "amber" | "purple" | "red" }) {
+  const cls = tone === "emerald" ? "bg-emerald-50 text-emerald-700" :
+    tone === "amber" ? "bg-amber-50 text-amber-700" :
+      tone === "purple" ? "bg-purple-50 text-purple-700" :
+        tone === "red" ? "bg-red-50 text-red-700" : "bg-blue-50 text-blue-700";
+  return <div className="rounded-3xl border bg-white p-5 shadow-sm">
+    <div className="text-sm font-semibold text-slate-500">{title}</div>
+    <div className={`mt-3 inline-flex rounded-2xl px-3 py-2 text-xl font-extrabold ${cls}`}>{value}</div>
+  </div>;
 }
 
-function SmallStat({
-  title,
-  value,
-  tone,
-}: {
-  title: string;
-  value: string;
-  tone: "blue" | "emerald" | "amber" | "purple" | "red";
-}) {
-  return (
-    <StatCard title={title} value={value} tone={tone} />
-  );
-}
-
-function InfoMetric({ title, value }: { title: string; value: string }) {
-  return (
-    <div className="rounded-2xl bg-slate-50 p-3">
-      <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-        {title}
-      </div>
-      <div className="mt-2 text-sm font-extrabold text-slate-900">{value}</div>
-    </div>
-  );
+function Metric({ title, value }: { title: string; value: string }) {
+  return <div className="rounded-2xl bg-slate-50 p-3">
+    <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">{title}</div>
+    <div className="mt-2 text-sm font-extrabold text-slate-900">{value}</div>
+  </div>;
 }
