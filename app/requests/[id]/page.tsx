@@ -80,13 +80,6 @@ type ProfileRole = {
   is_active: boolean;
 };
 
-type OfficerMini = {
-  id: string;
-  full_name: string | null;
-  email: string | null;
-  role: string | null;
-};
-
 type AttachmentRow = {
   id: string;
   request_id: string;
@@ -140,10 +133,6 @@ function categoryKey(category: string | null | undefined) {
     .toUpperCase()
     .replace(/\s+/g, "")
     .replace(/_/g, "");
-}
-
-function officerLabel(o: OfficerMini) {
-  return o.full_name?.trim() || o.email?.trim() || o.id;
 }
 
 function requestTypeLabel(req: Req) {
@@ -226,7 +215,7 @@ function stageHelpText(req: Req | null) {
     if (stage === "DINADMIN") return "DIN Official request is awaiting DIN Admin review before Registrar.";
     if (stage === "REGISTRAR") return "DIN Official request is awaiting Registrar review as HOD of all DIN Departments.";
     if (stage === "HOD") return "Official request is awaiting HOD review. Subhead must be assigned before it can move to DG.";
-    if (stage === "DG") return "Official request is awaiting DG approval and AccountOfficer designation.";
+    if (stage === "DG") return "Official request is awaiting DG approval and automatic routing to the department AccountOfficer.";
     if (stage === "ACCOUNT") return "Official request is awaiting AccountOfficer treatment/payment.";
     if (stage === "COMPLETED") return "Official request is completed.";
   }
@@ -237,7 +226,7 @@ function stageHelpText(req: Req | null) {
     if (stage === "HR") return "Personal request is awaiting HR review.";
 
     if (stage === "DG") {
-      if (cat === "FUND") return "Personal Fund request is awaiting DG approval and AccountOfficer designation.";
+      if (cat === "FUND") return "Personal Fund request is awaiting DG approval and automatic routing to the department AccountOfficer.";
       return "Personal request is awaiting DG approval before HR Filing.";
     }
 
@@ -294,9 +283,6 @@ export default function RequestDetailsPage() {
   const [me, setMe] = useState<ProfileMini | null>(null);
   const [myRoles, setMyRoles] = useState<ProfileRole[]>([]);
   const [comment, setComment] = useState("");
-
-  const [accountOfficers, setAccountOfficers] = useState<OfficerMini[]>([]);
-  const [selectedOfficerId, setSelectedOfficerId] = useState("");
 
   const [mfaVerified, setMfaVerified] = useState(false);
   const [totpFactorId, setTotpFactorId] = useState<string | null>(null);
@@ -364,26 +350,25 @@ export default function RequestDetailsPage() {
   const assignedWorkflowOfficerCanEdit = useMemo(() => {
     if (!req || !me) return false;
 
-    const editableRoles = [
-      "po",
-      "dod",
-      "director",
-      "dinadmin",
-      "dinadmin1",
-      "dinadmin2",
-      "dinadmin3",
-      "registrar",
-      "hod",
-      "hr",
-      "hrofficer1",
-      "hrofficer2",
-      "hrofficer3",
+    const editableOfficialStages = [
+      "PO",
+      "DOD",
+      "DIRECTOR",
+      "DINADMIN",
+      "REGISTRAR",
+      "HOD",
     ];
+    const editablePersonalStages = ["DOD", "HOD", "HR"];
 
-    const hasEditableRole = editableRoles.some((r) => activeRoleKeys.has(r));
+    const stageIsEditable =
+      isOfficial
+        ? editableOfficialStages.includes(stg)
+        : isPersonal
+          ? editablePersonalStages.includes(stg)
+          : false;
 
-    return hasEditableRole && req.current_owner === me.id;
-  }, [req, me, activeRoleKeys]);
+    return req.current_owner === me.id && stageIsEditable;
+  }, [req, me, isOfficial, isPersonal, stg]);
 
   const canEditRequest = useMemo(() => {
     return requesterCanEditDeleteEarly || assignedWorkflowOfficerCanEdit;
@@ -468,7 +453,7 @@ export default function RequestDetailsPage() {
     return Number(req.amount || 0) <= selectedSubheadAvailableBalance;
   }, [req, selectedAssignableSubhead, selectedSubheadAvailableBalance]);
 
-  const needsAccountOfficerSelection = useMemo(() => {
+  const usesAutomaticAccountOfficerRouting = useMemo(() => {
     if (!req || !canAct) return false;
     return isDgStage && (isOfficial || isPersonalFund);
   }, [req, canAct, isDgStage, isOfficial, isPersonalFund]);
@@ -621,33 +606,6 @@ export default function RequestDetailsPage() {
     setMyRoles((data || []) as ProfileRole[]);
   }
 
-  async function loadAccountOfficers() {
-    const [{ data: profileRows }, { data: roleRows }] = await Promise.all([
-      supabase
-        .from("profiles")
-        .select("id,full_name,email,role")
-        .order("full_name", { ascending: true }),
-
-      supabase
-        .from("profile_roles")
-        .select("profile_id,role_key")
-        .eq("is_active", true)
-        .in("role_key", ["accountofficer", "account", "accounts"]),
-    ]);
-
-    const profiles = (profileRows || []) as OfficerMini[];
-    const roleOwnerIds = new Set((roleRows || []).map((r: any) => r.profile_id));
-
-    setAccountOfficers(
-      profiles.filter((o) => {
-        return (
-          ["accountofficer", "account", "accounts"].includes(roleKey(o.role || "")) ||
-          roleOwnerIds.has(o.id)
-        );
-      })
-    );
-  }
-
   async function loadRequestPage() {
     setLoading(true);
     setMsg(null);
@@ -731,7 +689,6 @@ export default function RequestDetailsPage() {
       setHistory((h || []) as Hist[]);
     }
 
-    await loadAccountOfficers();
     await loadAttachmentsAndChecks(id);
 
     setLoading(false);
@@ -761,7 +718,6 @@ export default function RequestDetailsPage() {
       .single();
 
     setReq((r2 as Req) || null);
-    setSelectedOfficerId((r2 as any)?.assigned_account_officer_id || "");
 
     const { data: h2 } = await supabase
       .from("request_history")
@@ -791,7 +747,6 @@ export default function RequestDetailsPage() {
       await loadAssignableSubheads((r2 as any).dept_id);
     }
 
-    await loadAccountOfficers();
     await loadAttachmentsAndChecks(id);
     router.refresh();
   }
@@ -993,11 +948,6 @@ export default function RequestDetailsPage() {
       return false;
     }
 
-    if (action === "Approve" && needsAccountOfficerSelection && !selectedOfficerId) {
-      setMsg("❌ DG must select an AccountOfficer before approving this request.");
-      return false;
-    }
-
     return true;
   }
 
@@ -1090,7 +1040,6 @@ export default function RequestDetailsPage() {
           p_actor_id: me.id,
           p_comment: comment.trim(),
           p_signature_url: me.signature_url,
-          p_assigned_account_officer_id: needsAccountOfficerSelection ? selectedOfficerId : null,
         });
 
         if (error) throw new Error(error.message);
@@ -1111,8 +1060,8 @@ export default function RequestDetailsPage() {
           setMsg("✅ HR Filing completed successfully after your attachment checks and 2FA.");
         } else if (isAccountStage && nextStage === "HR Filing") {
           setMsg("✅ Payment treated. Request sent back to HR for final filing.");
-        } else if (needsAccountOfficerSelection && nextStage === "Account") {
-          setMsg("✅ AccountOfficer selected. Request sent for treatment/payment.");
+        } else if (usesAutomaticAccountOfficerRouting && nextStage === "Account") {
+          setMsg("✅ Approved by DG. The request was automatically routed to the department AccountOfficer.");
         } else {
           setMsg(`✅ Approved after your attachment checks and 2FA. Sent to ${nextStage || "next stage"}.`);
         }
@@ -1178,7 +1127,7 @@ export default function RequestDetailsPage() {
   const approveButtonText = useMemo(() => {
     if (saving || verifyingCode) return "Processing...";
     if (needsSubheadAssignment) return "Assign Subhead First";
-    if (needsAccountOfficerSelection) return "Approve & Send to AccountOfficer";
+    if (usesAutomaticAccountOfficerRouting) return "Approve & Auto-Route to AccountOfficer";
     if (isHRFiling) return "Complete HR Filing";
     if (isAccountStage && isPersonalFund) return "Treat / Pay & Send to HR Filing";
     if (isAccountStage) return "Treat / Pay";
@@ -1195,7 +1144,7 @@ export default function RequestDetailsPage() {
     saving,
     verifyingCode,
     needsSubheadAssignment,
-    needsAccountOfficerSelection,
+    usesAutomaticAccountOfficerRouting,
     isHRFiling,
     isAccountStage,
     isPersonalFund,
@@ -1236,8 +1185,8 @@ export default function RequestDetailsPage() {
 
         <div
           className={`mt-4 rounded-2xl border px-4 py-3 text-sm font-semibold ${mfaVerified
-              ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-              : "border-amber-200 bg-amber-50 text-amber-900"
+            ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+            : "border-amber-200 bg-amber-50 text-amber-900"
             }`}
         >
           {mfaVerified
@@ -1524,8 +1473,8 @@ export default function RequestDetailsPage() {
 
                             <span
                               className={`rounded-full border px-3 py-1 text-xs font-bold ${checkedByMe
-                                  ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                                  : "border-amber-200 bg-amber-50 text-amber-800"
+                                ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                                : "border-amber-200 bg-amber-50 text-amber-800"
                                 }`}
                             >
                               {checkedByMe ? "Checked By You ✅" : "Not Checked By You"}
@@ -1606,26 +1555,9 @@ export default function RequestDetailsPage() {
                     </div>
                   )}
 
-                  {needsAccountOfficerSelection && (
-                    <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50 p-4">
-                      <label className="text-sm font-semibold text-slate-800">
-                        DG: Select AccountOfficer
-                      </label>
-                      <select
-                        value={selectedOfficerId}
-                        onChange={(e) => setSelectedOfficerId(e.target.value)}
-                        className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
-                      >
-                        <option value="">-- Select AccountOfficer --</option>
-                        {accountOfficers.map((o) => (
-                          <option key={o.id} value={o.id}>
-                            {officerLabel(o)}
-                          </option>
-                        ))}
-                      </select>
-                      <p className="mt-2 text-xs font-semibold text-blue-900">
-                        Required for Official requests and Personal Fund requests before moving to AccountOfficer.
-                      </p>
+                  {usesAutomaticAccountOfficerRouting && (
+                    <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-900">
+                      DG approval will automatically route this request to the active AccountOfficer configured for the request department. No manual AccountOfficer selection is required.
                     </div>
                   )}
 
@@ -1644,7 +1576,7 @@ export default function RequestDetailsPage() {
                   <div className="mt-4">
                     <label className="text-sm font-semibold text-slate-800">
                       Comment{" "}
-                      {needsAccountOfficerSelection || isHRFiling
+                      {usesAutomaticAccountOfficerRouting || isHRFiling
                         ? "(optional, but recommended)"
                         : "(required for Reject)"}
                     </label>
