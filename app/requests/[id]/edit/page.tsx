@@ -145,6 +145,22 @@ function isClosed(status: string | null | undefined, stage: string | null | unde
   );
 }
 
+function isEditableStage(req: Req | null) {
+  if (!req) return false;
+
+  const stage = stageKey(req.current_stage);
+
+  if (req.request_type === "Official") {
+    return ["PO", "DOD", "DIRECTOR", "DINADMIN", "REGISTRAR", "HOD"].includes(stage);
+  }
+
+  if (req.request_type === "Personal") {
+    return ["DOD", "HOD", "HR"].includes(stage);
+  }
+
+  return false;
+}
+
 function availableBalance(s: Subhead | null) {
   if (!s) return 0;
 
@@ -177,7 +193,7 @@ function editStageNote(req: Req | null) {
     if (stage === "DOD") return "Official request is still at DOD review stage.";
     if (stage === "DIRECTOR") return "Official request is still at Director review stage.";
     if (stage === "DINADMIN") return "Official DIN request is still at DIN Admin review stage.";
-    if (stage === "REGISTRAR") return "DIN Official request is still at Registrar review stage.";
+    if (stage === "REGISTRAR") return "DIN Official request is assigned to the Registrar and remains editable.";
     if (stage === "HOD") return "Official request is still at HOD review stage.";
     return "Official request editing is locked after DG, Account, Paid, Completed, Rejected or Deleted stage.";
   }
@@ -252,59 +268,46 @@ export default function EditRequestPage() {
   const isPersonal = req?.request_type === "Personal";
   const isPersonalFund = isPersonal && categoryKey(req?.personal_category) === "FUND";
   const isPersonalOther = isPersonal && !isPersonalFund;
-
   const isFinancialRequest = Boolean(isOfficial || isPersonalFund);
 
   const requestIsClosed = useMemo(() => {
     return isClosed(req?.status, req?.current_stage);
   }, [req?.status, req?.current_stage]);
 
+  const requestIsAtEditableStage = useMemo(() => {
+    return isEditableStage(req);
+  }, [req]);
+
   const isRequesterEarlyEdit = useMemo(() => {
     if (!req || !me) return false;
 
-    const allowedOfficialStages = ["PO", "DOD", "DIRECTOR", "DINADMIN", "REGISTRAR", "HOD"];
-    const allowedPersonalStages = ["DOD", "HOD", "HR"];
-
-    const allowedStage =
-      req.request_type === "Official"
-        ? allowedOfficialStages.includes(stg)
-        : req.request_type === "Personal"
-          ? allowedPersonalStages.includes(stg)
-          : false;
-
-    return req.created_by === me.id && allowedStage && !requestIsClosed;
-  }, [req, me, stg, requestIsClosed]);
+    return (
+      req.created_by === me.id &&
+      requestIsAtEditableStage &&
+      !requestIsClosed
+    );
+  }, [req, me, requestIsAtEditableStage, requestIsClosed]);
 
   const isAssignedOfficerEdit = useMemo(() => {
     if (!req || !me) return false;
 
-    const allowedStage =
-      req.request_type === "Official"
-        ? ["PO", "DOD", "DIRECTOR", "DINADMIN", "REGISTRAR", "HOD"].includes(stg)
-        : req.request_type === "Personal"
-          ? ["DOD", "HOD", "HR"].includes(stg)
-          : false;
+    return (
+      req.current_owner === me.id &&
+      requestIsAtEditableStage &&
+      !requestIsClosed
+    );
+  }, [req, me, requestIsAtEditableStage, requestIsClosed]);
 
-    const allowedRole = hasAnyRole(roleSet, [
-      "po",
-      "dod",
-      "director",
-      "dinadmin",
-      "dinadmin1",
-      "dinadmin2",
-      "dinadmin3",
-      "registrar",
-      "hod",
-      "hr",
-      "hrofficer1",
-      "hrofficer2",
-      "hrofficer3",
-    ]);
+  const isRegistrarAssignedEdit = useMemo(() => {
+    if (!req || !me) return false;
 
-    const ownsCurrentStage = req.current_owner === me.id;
-
-    return allowedRole && ownsCurrentStage && allowedStage && !requestIsClosed;
-  }, [req, me, roleSet, stg, requestIsClosed]);
+    return (
+      stg === "REGISTRAR" &&
+      req.current_owner === me.id &&
+      hasAnyRole(roleSet, ["registrar"]) &&
+      !requestIsClosed
+    );
+  }, [req, me, stg, roleSet, requestIsClosed]);
 
   const isAdminAuditorEdit = useMemo(() => {
     if (!req || !me) return false;
@@ -312,17 +315,31 @@ export default function EditRequestPage() {
   }, [req, me, roleSet, requestIsClosed]);
 
   const canEdit = useMemo(() => {
-    return isRequesterEarlyEdit || isAssignedOfficerEdit || isAdminAuditorEdit;
-  }, [isRequesterEarlyEdit, isAssignedOfficerEdit, isAdminAuditorEdit]);
+    return (
+      isRequesterEarlyEdit ||
+      isAssignedOfficerEdit ||
+      isRegistrarAssignedEdit ||
+      isAdminAuditorEdit
+    );
+  }, [
+    isRequesterEarlyEdit,
+    isAssignedOfficerEdit,
+    isRegistrarAssignedEdit,
+    isAdminAuditorEdit,
+  ]);
 
   const canEditFinanceFields = useMemo(() => {
     if (!req || !me) return false;
 
     return Boolean(
       isOfficial &&
-      (isAdminAuditorEdit ||
-        (isAssignedOfficerEdit &&
-          hasAnyRole(roleSet, ["hod", "registrar", "admin", "auditor"])))
+      (
+        isAdminAuditorEdit ||
+        (
+          isAssignedOfficerEdit &&
+          hasAnyRole(roleSet, ["hod", "registrar", "admin", "auditor"])
+        )
+      )
     );
   }, [req, me, isOfficial, isAssignedOfficerEdit, isAdminAuditorEdit, roleSet]);
 
@@ -344,11 +361,17 @@ export default function EditRequestPage() {
   }, [isPersonalOther, requesterEditingReservedFinancial, canEdit]);
 
   const editModeLabel = useMemo(() => {
+    if (isRegistrarAssignedEdit) return "Assigned Registrar Edit";
     if (isRequesterEarlyEdit) return "Requester Early-Stage Edit";
     if (isAssignedOfficerEdit) return "Assigned Officer Edit";
     if (isAdminAuditorEdit) return "Admin/Auditor Edit";
     return "Locked";
-  }, [isRequesterEarlyEdit, isAssignedOfficerEdit, isAdminAuditorEdit]);
+  }, [
+    isRegistrarAssignedEdit,
+    isRequesterEarlyEdit,
+    isAssignedOfficerEdit,
+    isAdminAuditorEdit,
+  ]);
 
   const selectedSubhead = useMemo(() => {
     return subheads.find((s) => s.id === subheadId) || null;
@@ -362,7 +385,10 @@ export default function EditRequestPage() {
       return;
     }
 
-    const verified = (data.totp || []).find((factor: TotpFactor) => factor.status === "verified");
+    const verified = (data.totp || []).find(
+      (factor: TotpFactor) => factor.status === "verified"
+    );
+
     setTotpFactorId(verified?.id || null);
   }
 
@@ -502,7 +528,11 @@ export default function EditRequestPage() {
 
       const amt = Number(amount || 0);
 
-      if (selectedSubhead && subheadId !== req.subhead_id && amt > availableBalance(selectedSubhead)) {
+      if (
+        selectedSubhead &&
+        subheadId !== req.subhead_id &&
+        amt > availableBalance(selectedSubhead)
+      ) {
         setMsg(
           `❌ Amount exceeds selected subhead available balance (${naira(
             availableBalance(selectedSubhead)
@@ -589,7 +619,9 @@ export default function EditRequestPage() {
     try {
       const { error } = await supabase.rpc("update_request_adjust_reservation", {
         p_request_id: req.id,
-        p_new_subhead_id: canEditFinanceFields ? subheadId || req.subhead_id : req.subhead_id,
+        p_new_subhead_id: canEditFinanceFields
+          ? subheadId || req.subhead_id
+          : req.subhead_id,
         p_new_amount: canEditAmount ? amt : req.amount || 0,
         p_new_title: title.trim(),
         p_new_details: details.trim(),
@@ -615,7 +647,9 @@ export default function EditRequestPage() {
   if (loading) {
     return (
       <main className="min-h-screen bg-slate-50 px-4">
-        <div className="mx-auto max-w-4xl py-10 text-slate-600">Loading request editor...</div>
+        <div className="mx-auto max-w-4xl py-10 text-slate-600">
+          Loading request editor...
+        </div>
       </main>
     );
   }
@@ -641,10 +675,12 @@ export default function EditRequestPage() {
               Edit Request
             </h1>
             <p className="mt-2 text-sm text-slate-600">
-              Editing is controlled by active roles, current stage, ownership and fresh 2FA
+              Editing is controlled by current assignment, stage, active roles and fresh 2FA
               verification.
             </p>
-            <p className="mt-1 text-xs font-semibold text-slate-500">{editStageNote(req)}</p>
+            <p className="mt-1 text-xs font-semibold text-slate-500">
+              {editStageNote(req)}
+            </p>
           </div>
 
           <button
@@ -667,23 +703,31 @@ export default function EditRequestPage() {
           automatically after the 6th digit is entered.
         </div>
 
-        {isOfficial && ["PO", "DOD", "DIRECTOR", "DINADMIN", "REGISTRAR", "HOD"].includes(stg) && (
-          <div className="mt-4 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-900">
-            Official early-stage editing is active. Editing is locked after DG/Account treatment.
+        {isRegistrarAssignedEdit && (
+          <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-900">
+            Registrar editing is active because this request is currently assigned to you.
           </div>
         )}
 
+        {isOfficial &&
+          ["PO", "DOD", "DIRECTOR", "DINADMIN", "REGISTRAR", "HOD"].includes(stg) && (
+            <div className="mt-4 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-900">
+              Official early-stage editing is active. Editing is locked after DG/Account
+              treatment.
+            </div>
+          )}
+
         {isPersonal && (
           <div className="mt-4 rounded-2xl border border-purple-200 bg-purple-50 px-4 py-3 text-sm font-semibold text-purple-900">
-            Personal request editing is allowed only at DOD/HOD/HR early stages, or by Admin/Auditor
-            before closure.
+            Personal request editing is allowed only at DOD/HOD/HR early stages, or by
+            Admin/Auditor before closure.
           </div>
         )}
 
         {requesterEditingReservedFinancial && (
           <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900">
-            Funds are already reserved. As requester, you can update title/details only. Amount and
-            subhead changes are locked to protect finance records.
+            Funds are already reserved. As requester, you can update title/details only. Amount
+            and subhead changes are locked to protect finance records.
           </div>
         )}
 
@@ -717,17 +761,19 @@ export default function EditRequestPage() {
             </div>
 
             <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-700">
-              Requester can edit Official requests only at PO/DOD/DIN Admin/Registrar/HOD early
-              routing levels. Personal requests can be edited only at DOD/HOD/HR early routing
-              levels. Editing is locked after DG, AccountOfficer, HR Filing, Paid, Completed,
-              Rejected or Deleted stage.
+              The requester or the currently assigned officer can edit an Official request at
+              PO/DOD/Director/DIN Admin/Registrar/HOD stages. Personal requests can be edited at
+              DOD/HOD/HR stages. Editing is locked after DG, AccountOfficer, HR Filing, Paid,
+              Completed, Rejected or Deleted stage.
             </div>
           </div>
         ) : (
           <div className="mt-6 rounded-3xl border bg-white p-6 shadow-sm">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <h2 className="text-xl font-extrabold text-slate-900">Request Information</h2>
+                <h2 className="text-xl font-extrabold text-slate-900">
+                  Request Information
+                </h2>
                 <p className="mt-1 text-sm text-slate-600">
                   Type: <b>{requestTypeLabel(req)}</b>
                 </p>
@@ -744,7 +790,9 @@ export default function EditRequestPage() {
             <div className="mt-6 space-y-4">
               {isOfficial && canEditFinanceFields && (
                 <div>
-                  <label className="text-sm font-semibold text-slate-800">Subhead</label>
+                  <label className="text-sm font-semibold text-slate-800">
+                    Subhead
+                  </label>
                   <select
                     value={subheadId}
                     onChange={(e) => setSubheadId(e.target.value)}
@@ -769,8 +817,8 @@ export default function EditRequestPage() {
 
               {isOfficial && !canEditFinanceFields && (
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
-                  Subhead information is handled by assigned HOD/Registrar/Admin/Auditor and is not
-                  editable here.
+                  Subhead information is handled by assigned HOD/Registrar/Admin/Auditor and is
+                  not editable here.
                 </div>
               )}
 
@@ -800,7 +848,9 @@ export default function EditRequestPage() {
 
               {isFinancialRequest && (
                 <div>
-                  <label className="text-sm font-semibold text-slate-800">Amount (₦)</label>
+                  <label className="text-sm font-semibold text-slate-800">
+                    Amount (₦)
+                  </label>
                   <input
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
@@ -847,7 +897,9 @@ export default function EditRequestPage() {
               Required Security Verification
             </div>
 
-            <h2 className="mt-1 text-2xl font-extrabold text-slate-900">Enter 2FA Code</h2>
+            <h2 className="mt-1 text-2xl font-extrabold text-slate-900">
+              Enter 2FA Code
+            </h2>
 
             <p className="mt-2 text-sm leading-6 text-slate-600">
               Enter the 6-digit code from your authenticator app. The request changes will save
@@ -901,7 +953,9 @@ export default function EditRequestPage() {
                 disabled={verifyingCode || saving || mfaCode.trim().length !== 6}
                 className="w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white hover:bg-blue-700 disabled:opacity-60"
               >
-                {verifyingCode || saving ? "Verifying automatically..." : "Verify & Save"}
+                {verifyingCode || saving
+                  ? "Verifying automatically..."
+                  : "Verify & Save"}
               </button>
             </div>
           </div>
@@ -914,8 +968,12 @@ export default function EditRequestPage() {
 function StatusCard({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-2xl border bg-white px-4 py-3 shadow-sm">
-      <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</div>
-      <div className="mt-1 break-words text-sm font-extrabold text-slate-900">{value}</div>
+      <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+        {label}
+      </div>
+      <div className="mt-1 break-words text-sm font-extrabold text-slate-900">
+        {value}
+      </div>
     </div>
   );
 }
@@ -923,8 +981,12 @@ function StatusCard({ label, value }: { label: string; value: string }) {
 function Info({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
-      <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</div>
-      <div className="mt-1 break-words text-sm font-bold text-slate-900">{value}</div>
+      <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+        {label}
+      </div>
+      <div className="mt-1 break-words text-sm font-bold text-slate-900">
+        {value}
+      </div>
     </div>
   );
 }
