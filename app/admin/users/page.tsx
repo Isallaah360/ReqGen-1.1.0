@@ -531,7 +531,7 @@ export default function AdminUsersPage() {
       return;
     }
 
-    if (activeCount <= 1 && roleKey(roleKeyToDeactivate) === "staff") {
+    if (activeCount <= 1) {
       setMsg("❌ A user must keep at least one active role.");
       return;
     }
