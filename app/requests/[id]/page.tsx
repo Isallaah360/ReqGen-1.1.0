@@ -657,7 +657,6 @@ export default function RequestDetailsPage() {
 
     const requestRow = r as Req;
     setReq(requestRow);
-    setSelectedOfficerId(requestRow.assigned_account_officer_id || "");
 
     if ((r as any)?.subhead_id) {
       const { data: sh } = await supabase
