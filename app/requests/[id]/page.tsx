@@ -215,9 +215,7 @@ function stageHelpText(req: Req | null) {
     if (stage === "DINADMIN") return "DIN Official request is awaiting DIN Admin review before Registrar.";
     if (stage === "REGISTRAR") return "DIN Official request is awaiting Registrar review as HOD of all DIN Departments.";
     if (stage === "HOD") return "Official request is awaiting HOD review. Subhead must be assigned before it can move to DG.";
-    if (stage === "DG") {
-      return "Official request is awaiting DG approval and automatic routing to the department AccountOfficer.";
-    }
+    if (stage === "DG") return "Official request is awaiting DG approval and automatic forwarding to the AccountOfficer attached from the selected subhead.";
     if (stage === "ACCOUNT") return "Official request is awaiting AccountOfficer treatment/payment.";
     if (stage === "COMPLETED") return "Official request is completed.";
   }
@@ -228,9 +226,7 @@ function stageHelpText(req: Req | null) {
     if (stage === "HR") return "Personal request is awaiting HR review.";
 
     if (stage === "DG") {
-      if (cat === "FUND") {
-        return "Personal Fund request is awaiting DG approval and automatic routing to the department AccountOfficer.";
-      }
+      if (cat === "FUND") return "Personal Fund request is awaiting DG approval and automatic department AccountOfficer routing.";
       return "Personal request is awaiting DG approval before HR Filing.";
     }
 
@@ -1066,7 +1062,7 @@ export default function RequestDetailsPage() {
           setMsg("✅ Payment treated. Request sent back to HR for final filing.");
         } else if (usesAutomaticAccountOfficerRouting && nextStage === "Account") {
           setMsg(
-            "✅ Approved by DG. The request was automatically routed to the active AccountOfficer assigned to this department."
+            "✅ Approved by DG. The request was automatically sent to the AccountOfficer already attached from the selected subhead."
           );
         } else {
           setMsg(`✅ Approved after your attachment checks and 2FA. Sent to ${nextStage || "next stage"}.`);
@@ -1134,7 +1130,7 @@ export default function RequestDetailsPage() {
     if (saving || verifyingCode) return "Processing...";
     if (needsSubheadAssignment) return "Assign Subhead First";
     if (usesAutomaticAccountOfficerRouting) {
-      return "Approve & Auto-Route to AccountOfficer";
+      return "Approve & Send to Attached AccountOfficer";
     }
     if (isHRFiling) return "Complete HR Filing";
     if (isAccountStage && isPersonalFund) return "Treat / Pay & Send to HR Filing";
@@ -1566,12 +1562,11 @@ export default function RequestDetailsPage() {
                   {usesAutomaticAccountOfficerRouting && (
                     <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
                       <div className="text-sm font-extrabold text-emerald-900">
-                        Automatic Department AccountOfficer Routing
+                        AccountOfficer Already Attached Automatically
                       </div>
                       <p className="mt-1 text-sm font-semibold leading-6 text-emerald-800">
-                        DG approval will automatically route this request to the active
-                        AccountOfficer configured for the request department. No manual
-                        AccountOfficer selection is required.
+                        This request will go to the AccountOfficer linked to the selected
+                        subhead's IET bank account. DG does not need to select an officer.
                       </p>
                     </div>
                   )}
