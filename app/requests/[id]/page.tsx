@@ -5,6 +5,8 @@ import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { RequestProgress } from "../../components/RequestProgress";
 
+const REQUEST_PAGE_BUILD = "2026-07-24-subhead-routing-v2";
+
 type PersonalCategory =
   | "Fund"
   | "Leave"
@@ -419,7 +421,7 @@ export default function RequestDetailsPage() {
     return (
       isOfficial &&
       !req.subhead_id &&
-      ["HOD", "REGISTRAR"].includes(stg) &&
+      ["DIRECTOR", "DINADMIN", "HOD", "REGISTRAR"].includes(stg) &&
       !["APPROVED", "REJECTED", "CANCELLED", "DELETED", "PAID", "CLOSED", "COMPLETED"].includes(
         stageKey(req.status)
       )
@@ -430,6 +432,11 @@ export default function RequestDetailsPage() {
     if (!req || !me) return false;
 
     const roleAllowed =
+      activeRoleKeys.has("director") ||
+      activeRoleKeys.has("dinadmin") ||
+      activeRoleKeys.has("dinadmin1") ||
+      activeRoleKeys.has("dinadmin2") ||
+      activeRoleKeys.has("dinadmin3") ||
       activeRoleKeys.has("hod") ||
       activeRoleKeys.has("registrar") ||
       activeRoleKeys.has("admin") ||
@@ -455,9 +462,20 @@ export default function RequestDetailsPage() {
   }, [req, selectedAssignableSubhead, selectedSubheadAvailableBalance]);
 
   const usesAutomaticAccountOfficerRouting = useMemo(() => {
-    if (!req || !canAct) return false;
-    return isDgStage && (isOfficial || isPersonalFund);
-  }, [req, canAct, isDgStage, isOfficial, isPersonalFund]);
+    if (!req || !canAct || !isDgStage) return false;
+
+    if (isOfficial) {
+      return Boolean(req.subhead_id && req.assigned_account_officer_id);
+    }
+
+    return isPersonalFund;
+  }, [
+    req,
+    canAct,
+    isDgStage,
+    isOfficial,
+    isPersonalFund,
+  ]);
 
   const hasAttachments = attachments.length > 0;
 
@@ -1175,6 +1193,9 @@ export default function RequestDetailsPage() {
               Current stage: <b className="text-slate-900">{req?.current_stage || "—"}</b>
             </p>
             {req && <p className="mt-1 text-xs font-semibold text-slate-500">{stageHelpText(req)}</p>}
+            <p className="mt-1 text-[11px] font-semibold text-slate-400">
+              Workflow build: {REQUEST_PAGE_BUILD}
+            </p>
           </div>
 
           <div className="flex gap-2">
@@ -1295,7 +1316,7 @@ export default function RequestDetailsPage() {
 
               {req.assigned_account_officer_name && (
                 <div className="mt-4">
-                  <Info label="Selected AccountOfficer" value={req.assigned_account_officer_name} />
+                  <Info label="Automatically Attached AccountOfficer" value={req.assigned_account_officer_name} />
                 </div>
               )}
 
@@ -1562,11 +1583,19 @@ export default function RequestDetailsPage() {
                   {usesAutomaticAccountOfficerRouting && (
                     <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
                       <div className="text-sm font-extrabold text-emerald-900">
-                        AccountOfficer Already Attached Automatically
+                        AccountOfficer Attached Automatically
                       </div>
-                      <p className="mt-1 text-sm font-semibold leading-6 text-emerald-800">
-                        This request will go to the AccountOfficer linked to the selected
-                        subhead's IET bank account. DG does not need to select an officer.
+                      <div className="mt-2 rounded-lg border border-emerald-200 bg-white px-3 py-2">
+                        <div className="text-xs font-bold uppercase tracking-wide text-emerald-700">
+                          Assigned AccountOfficer
+                        </div>
+                        <div className="mt-1 text-sm font-extrabold text-slate-900">
+                          {req.assigned_account_officer_name || "Not configured"}
+                        </div>
+                      </div>
+                      <p className="mt-2 text-sm font-semibold leading-6 text-emerald-800">
+                        This officer was resolved from the selected subhead's linked IET bank
+                        account. DG only approves or rejects; no manual officer selection is used.
                       </p>
                     </div>
                   )}
