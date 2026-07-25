@@ -480,7 +480,6 @@ export default function FinanceDashboardPage() {
             title="Payment Vouchers"
             description="The consolidated register for request-based and manual payment vouchers."
             accent="violet"
-            disabled
           />
           <NavigationCard
             href="/finance/manual-voucher"
