@@ -14,7 +14,6 @@ type RequestRow = {
   current_owner: string | null;
   assigned_account_officer_id: string | null;
   assigned_account_officer_name: string | null;
-  department_name?: string | null;
   created_at: string;
 };
 
@@ -49,7 +48,8 @@ function normalizeRole(value: string | null | undefined) {
 
 function money(value: number | string | null | undefined) {
   const amount = Number(value || 0);
-  return new Intl.NumberFormat("en-NG", {
+
+  return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "NGN",
     maximumFractionDigits: 2,
@@ -58,7 +58,9 @@ function money(value: number | string | null | undefined) {
 
 function sameLocalDay(dateValue: string | null | undefined, target: Date) {
   if (!dateValue) return false;
+
   const date = new Date(dateValue);
+
   return (
     date.getFullYear() === target.getFullYear() &&
     date.getMonth() === target.getMonth() &&
@@ -68,12 +70,18 @@ function sameLocalDay(dateValue: string | null | undefined, target: Date) {
 
 function sameLocalMonth(dateValue: string | null | undefined, target: Date) {
   if (!dateValue) return false;
+
   const date = new Date(dateValue);
-  return date.getFullYear() === target.getFullYear() && date.getMonth() === target.getMonth();
+
+  return (
+    date.getFullYear() === target.getFullYear() &&
+    date.getMonth() === target.getMonth()
+  );
 }
 
 function StatusBadge({ request }: { request: RequestRow }) {
   const status = (request.status || "").toLowerCase();
+
   let label = "Pending Payment";
   let classes = "border-blue-200 bg-blue-50 text-blue-800";
 
@@ -83,16 +91,15 @@ function StatusBadge({ request }: { request: RequestRow }) {
   } else if (status.includes("voucher")) {
     label = "Voucher Ready";
     classes = "border-violet-200 bg-violet-50 text-violet-800";
-  } else if (status.includes("evidence")) {
-    label = "Awaiting Evidence";
-    classes = "border-amber-200 bg-amber-50 text-amber-800";
   } else if (request.assigned_account_officer_id) {
     label = "Assigned";
     classes = "border-cyan-200 bg-cyan-50 text-cyan-800";
   }
 
   return (
-    <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-black ${classes}`}>
+    <span
+      className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-black ${classes}`}
+    >
       {label}
     </span>
   );
@@ -102,18 +109,70 @@ function SummaryCard({
   label,
   value,
   hint,
+  tone,
 }: {
   label: string;
   value: string;
   hint: string;
+  tone: "blue" | "emerald" | "violet" | "amber";
 }) {
+  const toneClasses = {
+    blue: "border-blue-100 bg-gradient-to-br from-white to-blue-50 text-blue-700",
+    emerald:
+      "border-emerald-100 bg-gradient-to-br from-white to-emerald-50 text-emerald-700",
+    violet:
+      "border-violet-100 bg-gradient-to-br from-white to-violet-50 text-violet-700",
+    amber:
+      "border-amber-100 bg-gradient-to-br from-white to-amber-50 text-amber-700",
+  };
+
   return (
-    <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-      <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">{label}</p>
-      <p className="mt-3 break-words text-3xl font-black tracking-tight text-slate-950">{value}</p>
+    <section className={`rounded-3xl border p-5 shadow-sm ${toneClasses[tone]}`}>
+      <p className="text-xs font-black uppercase tracking-[0.16em]">{label}</p>
+      <p className="mt-3 break-words text-3xl font-black tracking-tight text-slate-950">
+        {value}
+      </p>
       <p className="mt-2 text-sm font-semibold text-slate-500">{hint}</p>
     </section>
   );
+}
+
+function NavigationCard({
+  href,
+  title,
+  description,
+  accent,
+  disabled = false,
+}: {
+  href: string;
+  title: string;
+  description: string;
+  accent: "blue" | "violet" | "emerald" | "amber";
+  disabled?: boolean;
+}) {
+  const styles = {
+    blue: "border-blue-200 bg-blue-50 text-blue-900",
+    violet: "border-violet-200 bg-violet-50 text-violet-900",
+    emerald: "border-emerald-200 bg-emerald-50 text-emerald-900",
+    amber: "border-amber-200 bg-amber-50 text-amber-900",
+  };
+
+  const content = (
+    <article
+      className={`h-full rounded-3xl border p-5 shadow-sm transition ${styles[accent]} ${disabled ? "cursor-not-allowed opacity-70" : "hover:-translate-y-0.5 hover:shadow-md"
+        }`}
+    >
+      <h3 className="text-lg font-black">{title}</h3>
+      <p className="mt-2 text-sm font-semibold leading-6 opacity-80">{description}</p>
+      <p className="mt-4 text-sm font-black">
+        {disabled ? "Coming in this phase" : "Open workspace →"}
+      </p>
+    </article>
+  );
+
+  if (disabled) return content;
+
+  return <Link href={href}>{content}</Link>;
 }
 
 export default function FinanceDashboardPage() {
@@ -138,7 +197,11 @@ export default function FinanceDashboardPage() {
       }
 
       const [profileResult, rolesResult] = await Promise.all([
-        supabase.from("profiles").select("role,full_name").eq("id", user.id).maybeSingle(),
+        supabase
+          .from("profiles")
+          .select("role,full_name")
+          .eq("id", user.id)
+          .maybeSingle(),
         supabase
           .from("profile_roles")
           .select("role_key,is_active")
@@ -148,11 +211,15 @@ export default function FinanceDashboardPage() {
 
       const roleKeys = new Set<string>();
       roleKeys.add(normalizeRole(profileResult.data?.role));
+
       ((rolesResult.data || []) as ProfileRole[]).forEach((item) => {
         if (item.is_active) roleKeys.add(normalizeRole(item.role_key));
       });
 
-      const hasFinanceRole = [...roleKeys].some((role) => FINANCE_ROLES.has(role));
+      const hasFinanceRole = [...roleKeys].some((role) =>
+        FINANCE_ROLES.has(role)
+      );
+
       setAuthorized(hasFinanceRole);
 
       if (!hasFinanceRole) {
@@ -163,36 +230,43 @@ export default function FinanceDashboardPage() {
 
       setOfficerName(
         profileResult.data?.full_name ||
-          user.user_metadata?.full_name ||
-          user.email ||
-          "AccountOfficer"
+        user.user_metadata?.full_name ||
+        user.email ||
+        "AccountOfficer"
       );
 
-      const requestResult = await supabase
-        .from("requests")
-        .select(
-          "id,request_no,title,amount,status,current_stage,current_owner,assigned_account_officer_id,assigned_account_officer_name,created_at"
-        )
-        .eq("assigned_account_officer_id", user.id)
-        .eq("current_stage", "Account")
-        .not("status", "in", '("Paid","Closed","Completed","Cancelled","Deleted","Rejected")')
-        .order("created_at", { ascending: false });
+      const [requestResult, transactionResult] = await Promise.all([
+        supabase
+          .from("requests")
+          .select(
+            "id,request_no,title,amount,status,current_stage,current_owner,assigned_account_officer_id,assigned_account_officer_name,created_at"
+          )
+          .eq("assigned_account_officer_id", user.id)
+          .eq("current_stage", "Account")
+          .not(
+            "status",
+            "in",
+            '("Paid","Closed","Completed","Cancelled","Deleted","Rejected")'
+          )
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("finance_transactions")
+          .select("amount,transaction_date,transaction_type")
+          .eq("posted_by", user.id)
+          .order("transaction_date", { ascending: false }),
+      ]);
 
       if (requestResult.error) throw requestResult.error;
-
-      const transactionResult = await supabase
-        .from("finance_transactions")
-        .select("amount,transaction_date,transaction_type")
-        .eq("posted_by", user.id)
-        .order("transaction_date", { ascending: false });
-
       if (transactionResult.error) throw transactionResult.error;
 
       setRequests((requestResult.data || []) as RequestRow[]);
       setTransactions((transactionResult.data || []) as TransactionRow[]);
     } catch (caught) {
-      const message = caught instanceof Error ? caught.message : "Unable to load the Finance Dashboard.";
-      setError(message);
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "Unable to load the Finance Dashboard."
+      );
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -204,6 +278,10 @@ export default function FinanceDashboardPage() {
   }, [loadDashboard]);
 
   useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      loadDashboard(true);
+    }, 30_000);
+
     const channel = supabase
       .channel("finance-dashboard-live")
       .on(
@@ -216,14 +294,20 @@ export default function FinanceDashboardPage() {
         { event: "*", schema: "public", table: "finance_transactions" },
         () => loadDashboard(true)
       )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "payment_vouchers" },
+        () => loadDashboard(true)
+      )
       .subscribe();
 
     return () => {
+      window.clearInterval(intervalId);
       supabase.removeChannel(channel);
     };
   }, [loadDashboard]);
 
-  const now = new Date();
+  const now = useMemo(() => new Date(), [transactions]);
 
   const pendingAmount = useMemo(
     () => requests.reduce((sum, item) => sum + Number(item.amount || 0), 0),
@@ -250,7 +334,7 @@ export default function FinanceDashboardPage() {
     return (
       <main className="mx-auto max-w-7xl px-4 py-8">
         <div className="animate-pulse space-y-6">
-          <div className="h-28 rounded-3xl bg-slate-200" />
+          <div className="h-32 rounded-3xl bg-slate-200" />
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {[0, 1, 2, 3].map((item) => (
               <div key={item} className="h-36 rounded-3xl bg-slate-200" />
@@ -266,9 +350,12 @@ export default function FinanceDashboardPage() {
     return (
       <main className="mx-auto max-w-3xl px-4 py-12">
         <section className="rounded-3xl border border-amber-200 bg-amber-50 p-7 shadow-sm">
-          <h1 className="text-2xl font-black text-amber-950">Finance access required</h1>
+          <h1 className="text-2xl font-black text-amber-950">
+            Finance access required
+          </h1>
           <p className="mt-3 font-semibold leading-7 text-amber-900">
-            Your active roles do not currently permit access to the Finance workspace.
+            Your active roles do not currently permit access to the Finance
+            workspace.
           </p>
           <Link
             href="/dashboard"
@@ -283,7 +370,38 @@ export default function FinanceDashboardPage() {
 
   return (
     <main className="mx-auto max-w-7xl px-4 py-8">
-      <section className="overflow-hidden rounded-3xl border border-slate-200 bg-slate-950 p-6 text-white shadow-sm sm:p-8">
+      <nav className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-3xl border border-slate-200 bg-white p-3 shadow-sm">
+        <div className="flex flex-wrap gap-2">
+          <Link
+            href="/dashboard"
+            className="rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-black text-white transition hover:bg-slate-800"
+          >
+            Main Dashboard
+          </Link>
+          <Link
+            href="/finance/transactions"
+            className="rounded-xl bg-blue-700 px-4 py-2.5 text-sm font-black text-white transition hover:bg-blue-800"
+          >
+            Transactions Register
+          </Link>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-800">
+            Auto-refresh: 30 seconds
+          </span>
+          <button
+            type="button"
+            onClick={() => loadDashboard(true)}
+            disabled={refreshing}
+            className="rounded-xl border border-cyan-200 bg-cyan-50 px-4 py-2.5 text-sm font-black text-cyan-800 transition hover:bg-cyan-100 disabled:opacity-60"
+          >
+            {refreshing ? "Refreshing…" : "Refresh Now"}
+          </button>
+        </div>
+      </nav>
+
+      <section className="overflow-hidden rounded-3xl border border-blue-200 bg-gradient-to-br from-slate-950 via-blue-950 to-violet-950 p-6 text-white shadow-xl sm:p-8">
         <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
           <div>
             <p className="text-xs font-black uppercase tracking-[0.2em] text-emerald-300">
@@ -293,18 +411,17 @@ export default function FinanceDashboardPage() {
               AccountOfficer Dashboard
             </h1>
             <p className="mt-3 max-w-2xl font-semibold leading-7 text-slate-300">
-              Welcome, {officerName}. Review and process only the payment requests assigned to you.
+              Welcome, {officerName}. Process assigned requests and review
+              complete finance records from one workspace.
             </p>
           </div>
 
-          <button
-            type="button"
-            onClick={() => loadDashboard(true)}
-            disabled={refreshing}
-            className="rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm font-black text-white transition hover:bg-white/20 disabled:opacity-60"
-          >
-            {refreshing ? "Refreshing…" : "Refresh Dashboard"}
-          </button>
+          <div className="rounded-2xl border border-white/20 bg-white/10 px-5 py-4 backdrop-blur">
+            <p className="text-xs font-black uppercase tracking-wide text-blue-200">
+              Phase 2C
+            </p>
+            <p className="mt-1 text-lg font-black">Finance Records & Reports</p>
+          </div>
         </div>
       </section>
 
@@ -319,28 +436,80 @@ export default function FinanceDashboardPage() {
           label="Pending Payments"
           value={String(requests.length)}
           hint="Requests assigned to you"
+          tone="blue"
         />
         <SummaryCard
           label="Total Pending Amount"
           value={money(pendingAmount)}
           hint="Combined value awaiting action"
+          tone="amber"
         />
-        <SummaryCard label="Paid Today" value={money(paidToday)} hint="Payments posted today" />
+        <SummaryCard
+          label="Paid Today"
+          value={money(paidToday)}
+          hint="Payments posted today"
+          tone="emerald"
+        />
         <SummaryCard
           label="This Month"
           value={money(paidThisMonth)}
           hint="Payments posted this month"
+          tone="violet"
         />
+      </section>
+
+      <section className="mt-6">
+        <div className="mb-4">
+          <p className="text-xs font-black uppercase tracking-[0.16em] text-violet-700">
+            Finance Navigation
+          </p>
+          <h2 className="mt-1 text-2xl font-black text-slate-950">
+            Records, Vouchers and Reports
+          </h2>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <NavigationCard
+            href="/finance/transactions"
+            title="Transactions Register"
+            description="Review all posted finance transactions with search, filters and live updates."
+            accent="blue"
+          />
+          <NavigationCard
+            href="/finance/vouchers"
+            title="Payment Vouchers"
+            description="The consolidated register for request-based and manual payment vouchers."
+            accent="violet"
+            disabled
+          />
+          <NavigationCard
+            href="/finance/manual-voucher"
+            title="Manual Voucher Saga"
+            description="Complete direct finance entries, approvals, posting and audit history."
+            accent="amber"
+            disabled
+          />
+          <NavigationCard
+            href="/finance/reports"
+            title="Finance Reports"
+            description="Account ledgers, subhead reports, printing, PDF and Excel export."
+            accent="emerald"
+            disabled
+          />
+        </div>
       </section>
 
       <section className="mt-6 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
         <div className="flex flex-col justify-between gap-3 border-b border-slate-200 px-5 py-5 sm:flex-row sm:items-center sm:px-6">
           <div>
-            <h2 className="text-xl font-black text-slate-950">Pending Payments</h2>
+            <h2 className="text-xl font-black text-slate-950">
+              Pending Payments
+            </h2>
             <p className="mt-1 text-sm font-semibold text-slate-500">
               Requests routed to your linked IET accounts
             </p>
           </div>
+
           <span className="w-fit rounded-full bg-slate-100 px-3 py-1.5 text-xs font-black text-slate-700">
             {requests.length} request{requests.length === 1 ? "" : "s"}
           </span>
@@ -348,9 +517,12 @@ export default function FinanceDashboardPage() {
 
         {requests.length === 0 ? (
           <div className="px-6 py-16 text-center">
-            <div className="text-lg font-black text-slate-900">No pending payment request</div>
+            <div className="text-lg font-black text-slate-900">
+              No pending payment request
+            </div>
             <p className="mt-2 text-sm font-semibold text-slate-500">
-              New DG-approved requests assigned to you will appear here automatically.
+              New DG-approved requests assigned to you will appear here
+              automatically.
             </p>
           </div>
         ) : (
@@ -386,7 +558,7 @@ export default function FinanceDashboardPage() {
                       <StatusBadge request={request} />
                     </td>
                     <td className="whitespace-nowrap px-5 py-5 text-sm font-semibold text-slate-600">
-                      {new Date(request.created_at).toLocaleDateString("en-NG", {
+                      {new Date(request.created_at).toLocaleDateString("en-US", {
                         day: "2-digit",
                         month: "short",
                         year: "numeric",
@@ -395,7 +567,7 @@ export default function FinanceDashboardPage() {
                     <td className="whitespace-nowrap px-5 py-5 text-right sm:px-6">
                       <Link
                         href={`/finance/request/${request.id}`}
-                        className="inline-flex rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-black text-white transition hover:bg-blue-700"
+                        className="inline-flex rounded-xl bg-blue-700 px-4 py-2.5 text-sm font-black text-white transition hover:bg-blue-800"
                       >
                         Open Request
                       </Link>
