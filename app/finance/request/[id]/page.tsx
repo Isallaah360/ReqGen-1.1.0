@@ -1,663 +1,1816 @@
 "use client";
 
-import Link from "next/link";
-import { useParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import { RequestProgress } from "../../components/RequestProgress";
 
-type FinanceRequest = {
+type PersonalCategory =
+  | "Fund"
+  | "Leave"
+  | "Contract Renewal"
+  | "Resignation"
+  | "Others"
+  | "NonFund"
+  | null;
+
+type Req = {
   id: string;
-  request_no: string | null;
-  title: string | null;
-  description: string | null;
-  amount: number | string | null;
-  status: string | null;
-  current_stage: string | null;
+  request_no: string;
+  title: string;
+  details: string;
+  amount: number;
+  status: string;
+  current_stage: string;
   current_owner: string | null;
+  created_by: string;
+  dept_id: string;
+  subhead_id: string | null;
+  request_type: "Personal" | "Official";
+  personal_category: PersonalCategory;
+  funds_state: string | null;
+  created_at: string;
   assigned_account_officer_id: string | null;
   assigned_account_officer_name: string | null;
-  subhead_id: string | null;
+};
+
+type Hist = {
+  id: string;
+  action_type: string;
+  comment: string | null;
+  to_stage: string | null;
+  created_at: string;
+  signature_url: string | null;
+  actor_name: string | null;
+  actor_role_key: string | null;
+  actor_role_name: string | null;
+};
+
+type SubheadMini = {
+  id: string;
+  code: string | null;
+  name: string;
+};
+
+type AssignableSubhead = {
+  id: string;
+  dept_id: string;
+  code: string | null;
+  name: string;
+  approved_allocation: number | null;
+  reserved_amount: number | null;
+  expenditure: number | null;
+  balance: number | null;
+  is_active: boolean | null;
+};
+
+type ProfileMini = {
+  id: string;
+  role: string;
+  signature_url: string | null;
+  full_name?: string | null;
+};
+
+type ProfileRole = {
+  id: string;
+  profile_id: string;
+  role_key: string;
+  role_name: string;
+  is_primary: boolean;
+  is_active: boolean;
+};
+
+type AttachmentRow = {
+  id: string;
+  request_id: string;
+  uploaded_by: string;
+  file_name: string;
+  file_path: string;
+  file_type: string | null;
+  file_size: number | null;
+  verification_status: string;
+  verified_by: string | null;
+  verified_at: string | null;
+  verifier_comment: string | null;
+  created_at: string;
+  signed_url?: string | null;
+};
+
+type AttachmentCheckRow = {
+  id: string;
+  request_id: string;
+  attachment_id: string;
+  checked_by: string;
+  checked_by_name: string | null;
+  checked_by_role: string | null;
+  check_status: string;
+  check_comment: string | null;
+  checked_at: string;
   created_at: string;
 };
 
-type SubheadRow = {
-  id: string;
-  name?: string | null;
-  title?: string | null;
-  subhead_name?: string | null;
-  code?: string | null;
-  subhead_code?: string | null;
-  account_id?: string | null;
-  bank_account_id?: string | null;
-  approved_allocation?: number | string | null;
-  reserved_amount?: number | string | null;
-  expenditure?: number | string | null;
-  balance?: number | string | null;
-};
+type SensitiveAction = "Approve" | "Reject" | "Delete";
 
-type AccountRow = {
-  id: string;
-  account_name?: string | null;
-  name?: string | null;
-  bank_name?: string | null;
-  account_number?: string | null;
-  current_balance?: number | string | null;
-  balance?: number | string | null;
-  is_active?: boolean | null;
-};
-
-type VoucherRow = {
-  id: string;
-  voucher_no?: string | null;
-  payment_voucher_no?: string | null;
-  request_id?: string | null;
-  account_id?: string | null;
-  amount?: number | string | null;
-  status?: string | null;
-  created_at?: string | null;
-};
-
-function money(value: number | string | null | undefined) {
-  const amount = Number(value || 0);
-
-  return new Intl.NumberFormat("en-NG", {
-    style: "currency",
-    currency: "NGN",
-    maximumFractionDigits: 2,
-  }).format(Number.isFinite(amount) ? amount : 0);
+function roleKey(role: string | null | undefined) {
+  return (role || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "")
+    .replace(/_/g, "");
 }
 
-function readableDate(value: string | null | undefined) {
-  if (!value) return "Not available";
-
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) return "Not available";
-
-  return date.toLocaleDateString("en-NG", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
+function stageKey(stage: string | null | undefined) {
+  return (stage || "")
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, "")
+    .replace(/_/g, "");
 }
 
-function getSubheadName(subhead: SubheadRow | null) {
-  if (!subhead) return "Not linked";
+function categoryKey(category: string | null | undefined) {
+  return (category || "")
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, "")
+    .replace(/_/g, "");
+}
+
+function requestTypeLabel(req: Req) {
+  if (req.request_type === "Official") return "Official";
+
+  const category = req.personal_category || "Others";
+  if (category === "NonFund") return "Personal • Other";
+
+  return `Personal • ${category}`;
+}
+
+function fileSizeLabel(bytes: number | null | undefined) {
+  const n = Number(bytes || 0);
+
+  if (n >= 1024 * 1024) return `${(n / (1024 * 1024)).toFixed(2)} MB`;
+  if (n >= 1024) return `${(n / 1024).toFixed(1)} KB`;
+
+  return `${n} B`;
+}
+
+function formatNaira(value: number | null | undefined) {
+  return "₦" + Math.round(Number(value || 0)).toLocaleString();
+}
+
+function availableBalanceForSubhead(subhead: AssignableSubhead | null) {
+  if (!subhead) return 0;
 
   return (
-    subhead.subhead_name ||
-    subhead.name ||
-    subhead.title ||
-    subhead.subhead_code ||
-    subhead.code ||
-    "Linked subhead"
+    Number(subhead.approved_allocation || 0) -
+    Number(subhead.reserved_amount || 0) -
+    Number(subhead.expenditure || 0)
   );
 }
 
-function getAccountName(account: AccountRow | null) {
-  if (!account) return "Not linked";
+function attachmentStatusClass(status: string | null | undefined) {
+  const s = (status || "").toLowerCase();
 
-  return account.account_name || account.name || account.bank_name || "Linked IET account";
+  if (s === "verified") return "border-emerald-200 bg-emerald-50 text-emerald-700";
+  if (s === "rejected") return "border-red-200 bg-red-50 text-red-700";
+
+  return "border-amber-200 bg-amber-50 text-amber-800";
 }
 
-function getVoucherNumber(voucher: VoucherRow | null) {
-  if (!voucher) return null;
+function attachmentStatusLabel(status: string | null | undefined) {
+  const s = (status || "").toLowerCase();
 
-  return voucher.voucher_no || voucher.payment_voucher_no || null;
+  if (s === "verified") return "Verified Globally ✅";
+  if (s === "rejected") return "Rejected ❌";
+
+  return "Pending General Review";
 }
 
-function InformationBox({
-  label,
-  value,
-  valueClassName = "text-slate-950",
-}: {
-  label: string;
-  value: string;
-  valueClassName?: string;
-}) {
+function stageBadgeClass(stage: string | null | undefined) {
+  const s = stageKey(stage);
+
+  if (["COMPLETED", "PAID"].includes(s)) return "border-emerald-200 bg-emerald-50 text-emerald-700";
+  if (["REJECTED", "DELETED", "CANCELLED"].includes(s)) return "border-red-200 bg-red-50 text-red-700";
+  if (s === "ACCOUNT") return "border-purple-200 bg-purple-50 text-purple-700";
+  if (s === "DG") return "border-amber-200 bg-amber-50 text-amber-800";
+  if (s === "HR" || s === "HRFILING") return "border-pink-200 bg-pink-50 text-pink-700";
+  if (s === "DINADMIN") return "border-blue-200 bg-blue-50 text-blue-700";
+
+  if (["DOD", "HOD", "REGISTRAR", "PO"].includes(s)) {
+    return "border-emerald-200 bg-emerald-50 text-emerald-700";
+  }
+
+  return "border-slate-200 bg-white text-slate-700";
+}
+
+function stageHelpText(req: Req | null) {
+  if (!req) return "";
+
+  const stage = stageKey(req.current_stage);
+  const reqType = String(req.request_type || "").toUpperCase();
+  const cat = categoryKey(req.personal_category);
+
+  if (reqType === "OFFICIAL") {
+    if (stage === "PO") return "Official ASAP-ALLI request is awaiting Programme Officer review.";
+    if (stage === "DOD") return "Official request is awaiting Director of Department review.";
+    if (stage === "DINADMIN") return "DIN Official request is awaiting DIN Admin review before Registrar.";
+    if (stage === "REGISTRAR") return "DIN Official request is awaiting Registrar review as HOD of all DIN Departments.";
+    if (stage === "HOD") return "Official request is awaiting HOD review. Subhead must be assigned before it can move to DG.";
+    if (stage === "DG") return "Official request is awaiting DG approval and automatic forwarding to the AccountOfficer attached from the selected subhead.";
+    if (stage === "ACCOUNT") return "Official request is awaiting AccountOfficer treatment/payment.";
+    if (stage === "COMPLETED") return "Official request is completed.";
+  }
+
+  if (reqType === "PERSONAL") {
+    if (stage === "DOD") return "Personal request is awaiting Director of Department review.";
+    if (stage === "HOD") return "Personal ASAP-ALLI request is awaiting HOD review before HR.";
+    if (stage === "HR") return "Personal request is awaiting HR review.";
+
+    if (stage === "DG") {
+      if (cat === "FUND") return "Personal Fund request is awaiting DG approval and automatic department AccountOfficer routing.";
+      return "Personal request is awaiting DG approval before HR Filing.";
+    }
+
+    if (stage === "ACCOUNT") return "Personal Fund request is awaiting AccountOfficer payment before HR Filing.";
+    if (stage === "HRFILING") return "Personal request is awaiting final HR Filing.";
+    if (stage === "COMPLETED") return "Personal request is completed and filed.";
+  }
+
+  return "Request is awaiting the assigned officer.";
+}
+
+function roleDisplay(h: Hist) {
+  if (h.actor_role_name) return `as ${h.actor_role_name}`;
+  if (h.actor_role_key) return `as ${h.actor_role_key}`;
+  return "";
+}
+
+function primaryOrFirstRole(roles: ProfileRole[], fallbackRole?: string | null) {
+  const active = roles.filter((r) => r.is_active);
+
+  const primary = active.find((r) => r.is_primary);
+  const first = active[0];
+
+  return {
+    role_key: primary?.role_key || first?.role_key || (fallbackRole ? roleKey(fallbackRole) : null),
+    role_name: primary?.role_name || first?.role_name || fallbackRole || null,
+  };
+}
+
+export default function RequestDetailsPage() {
+  const router = useRouter();
+  const params = useParams();
+
+  const id =
+    typeof (params as any)?.id === "string"
+      ? ((params as any).id as string)
+      : String((params as any)?.id || "");
+
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [verifyingCode, setVerifyingCode] = useState(false);
+  const [checkingAttachmentId, setCheckingAttachmentId] = useState<string | null>(null);
+  const [assigningSubhead, setAssigningSubhead] = useState(false);
+
+  const [msg, setMsg] = useState<string | null>(null);
+  const [req, setReq] = useState<Req | null>(null);
+  const [history, setHistory] = useState<Hist[]>([]);
+  const [subhead, setSubhead] = useState<SubheadMini | null>(null);
+  const [assignableSubheads, setAssignableSubheads] = useState<AssignableSubhead[]>([]);
+  const [selectedSubheadId, setSelectedSubheadId] = useState("");
+  const [attachments, setAttachments] = useState<AttachmentRow[]>([]);
+  const [attachmentChecks, setAttachmentChecks] = useState<AttachmentCheckRow[]>([]);
+
+  const [me, setMe] = useState<ProfileMini | null>(null);
+  const [myRoles, setMyRoles] = useState<ProfileRole[]>([]);
+  const [comment, setComment] = useState("");
+
+  const [mfaVerified, setMfaVerified] = useState(false);
+  const [totpFactorId, setTotpFactorId] = useState<string | null>(null);
+  const [showMfaModal, setShowMfaModal] = useState(false);
+  const [mfaCode, setMfaCode] = useState("");
+  const [pendingAction, setPendingAction] = useState<SensitiveAction | null>(null);
+
+  const mfaAutoSubmittingRef = useRef(false);
+
+  const activeRoleKeys = useMemo(() => {
+    const keys = new Set<string>();
+
+    if (me?.role) keys.add(roleKey(me.role));
+
+    myRoles.forEach((r) => {
+      if (r.is_active) keys.add(roleKey(r.role_key));
+    });
+
+    return keys;
+  }, [me?.role, myRoles]);
+
+  const stg = stageKey(req?.current_stage);
+
+  const isMyRequest = useMemo(() => {
+    return !!req && !!me && req.created_by === me.id;
+  }, [req, me]);
+
+  const isOfficial = useMemo(() => {
+    return (req?.request_type || "").trim().toUpperCase() === "OFFICIAL";
+  }, [req?.request_type]);
+
+  const isPersonal = useMemo(() => {
+    return (req?.request_type || "").trim().toUpperCase() === "PERSONAL";
+  }, [req?.request_type]);
+
+  const isPersonalFund = useMemo(() => {
+    return isPersonal && categoryKey(req?.personal_category) === "FUND";
+  }, [isPersonal, req?.personal_category]);
+
+  const isPersonalNonFund = useMemo(() => {
+    return isPersonal && !isPersonalFund;
+  }, [isPersonal, isPersonalFund]);
+
+  const isHRFiling = useMemo(() => {
+    return stageKey(req?.current_stage) === "HRFILING";
+  }, [req?.current_stage]);
+
+  const isAccountStage = useMemo(() => {
+    return stageKey(req?.current_stage) === "ACCOUNT";
+  }, [req?.current_stage]);
+
+  const isDgStage = useMemo(() => {
+    return stageKey(req?.current_stage) === "DG";
+  }, [req?.current_stage]);
+
+  const requesterCanEditDeleteEarly = useMemo(() => {
+    if (!req || !me) return false;
+
+    return (
+      req.created_by === me.id &&
+      ["PO", "DOD", "DIRECTOR", "DINADMIN", "REGISTRAR", "HOD", "HR"].includes(stg)
+    );
+  }, [req, me, stg]);
+
+  const assignedWorkflowOfficerCanEdit = useMemo(() => {
+    if (!req || !me) return false;
+
+    const editableOfficialStages = [
+      "PO",
+      "DOD",
+      "DIRECTOR",
+      "DINADMIN",
+      "REGISTRAR",
+      "HOD",
+    ];
+
+    const editablePersonalStages = ["DOD", "HOD", "HR"];
+
+    const stageIsEditable =
+      isOfficial
+        ? editableOfficialStages.includes(stg)
+        : isPersonal
+          ? editablePersonalStages.includes(stg)
+          : false;
+
+    return req.current_owner === me.id && stageIsEditable;
+  }, [req, me, isOfficial, isPersonal, stg]);
+
+  const canEditRequest = useMemo(() => {
+    return requesterCanEditDeleteEarly || assignedWorkflowOfficerCanEdit;
+  }, [requesterCanEditDeleteEarly, assignedWorkflowOfficerCanEdit]);
+
+  const canDeleteRequest = useMemo(() => {
+    return requesterCanEditDeleteEarly;
+  }, [requesterCanEditDeleteEarly]);
+
+  const canAct = useMemo(() => {
+    if (!req || !me) return false;
+    return req.current_owner === me.id;
+  }, [req, me]);
+
+  const canCheckAttachments = useMemo(() => {
+    if (!req || !me) return false;
+    if (req.current_owner === me.id) return true;
+
+    const allowed = [
+      "admin",
+      "auditor",
+      "po",
+      "dod",
+      "director",
+      "dinadmin",
+      "dinadmin1",
+      "dinadmin2",
+      "dinadmin3",
+      "registrar",
+      "hod",
+      "hr",
+      "hrofficer1",
+      "hrofficer2",
+      "hrofficer3",
+      "dg",
+      "account",
+      "accounts",
+      "accountofficer",
+    ];
+
+    return allowed.some((r) => activeRoleKeys.has(r));
+  }, [req, me, activeRoleKeys]);
+
+  const needsSubheadAssignment = useMemo(() => {
+    if (!req) return false;
+
+    return (
+      isOfficial &&
+      !req.subhead_id &&
+      ["HOD", "REGISTRAR"].includes(stg) &&
+      !["APPROVED", "REJECTED", "CANCELLED", "DELETED", "PAID", "CLOSED", "COMPLETED"].includes(
+        stageKey(req.status)
+      )
+    );
+  }, [req, isOfficial, stg]);
+
+  const canAssignSubhead = useMemo(() => {
+    if (!req || !me) return false;
+
+    const roleAllowed =
+      activeRoleKeys.has("hod") ||
+      activeRoleKeys.has("registrar") ||
+      activeRoleKeys.has("admin") ||
+      activeRoleKeys.has("auditor");
+
+    const isAssignedOfficer = req.current_owner === me.id;
+    const isAdminAuditor = activeRoleKeys.has("admin") || activeRoleKeys.has("auditor");
+
+    return needsSubheadAssignment && roleAllowed && (isAssignedOfficer || isAdminAuditor);
+  }, [req, me, activeRoleKeys, needsSubheadAssignment]);
+
+  const selectedAssignableSubhead = useMemo(() => {
+    return assignableSubheads.find((s) => s.id === selectedSubheadId) || null;
+  }, [assignableSubheads, selectedSubheadId]);
+
+  const selectedSubheadAvailableBalance = useMemo(() => {
+    return availableBalanceForSubhead(selectedAssignableSubhead);
+  }, [selectedAssignableSubhead]);
+
+  const selectedSubheadCanCoverAmount = useMemo(() => {
+    if (!req || !selectedAssignableSubhead) return false;
+    return Number(req.amount || 0) <= selectedSubheadAvailableBalance;
+  }, [req, selectedAssignableSubhead, selectedSubheadAvailableBalance]);
+
+  const usesAutomaticAccountOfficerRouting = useMemo(() => {
+    if (!req || !canAct) return false;
+    return isDgStage && (isOfficial || isPersonalFund);
+  }, [req, canAct, isDgStage, isOfficial, isPersonalFund]);
+
+  const hasAttachments = attachments.length > 0;
+
+  const myCheckedAttachmentIds = useMemo(() => {
+    if (!me) return new Set<string>();
+
+    return new Set(
+      attachmentChecks
+        .filter((c) => c.checked_by === me.id && (c.check_status || "") === "Checked")
+        .map((c) => c.attachment_id)
+    );
+  }, [attachmentChecks, me]);
+
+  const myPendingAttachments = useMemo(() => {
+    if (!me) return attachments;
+    return attachments.filter((a) => !myCheckedAttachmentIds.has(a.id));
+  }, [attachments, myCheckedAttachmentIds, me]);
+
+  const allAttachmentsCheckedByMe = useMemo(() => {
+    if (attachments.length === 0) return true;
+    if (!me) return false;
+    return myPendingAttachments.length === 0;
+  }, [attachments.length, myPendingAttachments.length, me]);
+
+  function isAttachmentCheckedByMe(attachmentId: string) {
+    return myCheckedAttachmentIds.has(attachmentId);
+  }
+
+  function attachmentCheckCount(attachmentId: string) {
+    return attachmentChecks.filter((c) => c.attachment_id === attachmentId).length;
+  }
+
+  async function checkMfaStatus() {
+    const { data: auth } = await supabase.auth.getUser();
+
+    if (!auth.user) {
+      router.push("/login");
+      return false;
+    }
+
+    const { data, error } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+
+    if (error) {
+      setMfaVerified(false);
+      return false;
+    }
+
+    const ok = data.currentLevel === "aal2";
+    setMfaVerified(ok);
+    return ok;
+  }
+
+  async function loadMfaFactor() {
+    const { data, error } = await supabase.auth.mfa.listFactors();
+
+    if (error) {
+      setTotpFactorId(null);
+      return null;
+    }
+
+    const verified = data.totp.find((factor) => factor.status === "verified");
+    setTotpFactorId(verified?.id || null);
+
+    return verified?.id || null;
+  }
+
+  async function loadAssignableSubheads(deptId: string) {
+    const { data, error } = await supabase
+      .from("subheads")
+      .select(
+        "id,dept_id,code,name,approved_allocation,reserved_amount,expenditure,balance,is_active"
+      )
+      .eq("dept_id", deptId)
+      .eq("is_active", true)
+      .order("name", { ascending: true });
+
+    if (error) {
+      setAssignableSubheads([]);
+      return;
+    }
+
+    const rows = (data || []) as AssignableSubhead[];
+    setAssignableSubheads(rows);
+
+    if (rows.length > 0) {
+      setSelectedSubheadId((current) => current || rows[0].id);
+    }
+  }
+
+  async function loadAttachmentsAndChecks(requestId: string) {
+    const { data: attachmentRows, error: attachmentErr } = await supabase
+      .from("request_attachments")
+      .select(
+        "id,request_id,uploaded_by,file_name,file_path,file_type,file_size,verification_status,verified_by,verified_at,verifier_comment,created_at"
+      )
+      .eq("request_id", requestId)
+      .order("created_at", { ascending: true });
+
+    if (attachmentErr) {
+      setAttachments([]);
+      setAttachmentChecks([]);
+      setMsg("Failed to load attachments: " + attachmentErr.message);
+      return;
+    }
+
+    const rows = (attachmentRows || []) as AttachmentRow[];
+
+    const signedRows = await Promise.all(
+      rows.map(async (row) => {
+        const { data: signed } = await supabase.storage
+          .from("request-attachments")
+          .createSignedUrl(row.file_path, 60 * 10);
+
+        return {
+          ...row,
+          signed_url: signed?.signedUrl || null,
+        };
+      })
+    );
+
+    setAttachments(signedRows);
+
+    const { data: checkRows, error: checkErr } = await supabase
+      .from("request_attachment_checks")
+      .select(
+        "id,request_id,attachment_id,checked_by,checked_by_name,checked_by_role,check_status,check_comment,checked_at,created_at"
+      )
+      .eq("request_id", requestId)
+      .order("checked_at", { ascending: true });
+
+    if (checkErr) {
+      setAttachmentChecks([]);
+      setMsg("Failed to load attachment checks: " + checkErr.message);
+      return;
+    }
+
+    setAttachmentChecks((checkRows || []) as AttachmentCheckRow[]);
+  }
+
+  async function loadMyRoles(userId: string) {
+    const { data } = await supabase
+      .from("profile_roles")
+      .select("id,profile_id,role_key,role_name,is_primary,is_active")
+      .eq("profile_id", userId)
+      .eq("is_active", true);
+
+    setMyRoles((data || []) as ProfileRole[]);
+  }
+
+  async function loadRequestPage() {
+    setLoading(true);
+    setMsg(null);
+
+    if (!id) {
+      setMsg("Invalid request id.");
+      setLoading(false);
+      return;
+    }
+
+    const { data: auth } = await supabase.auth.getUser();
+
+    if (!auth.user) {
+      router.push("/login");
+      return;
+    }
+
+    await checkMfaStatus();
+    await loadMfaFactor();
+
+    const { data: myProf, error: myErr } = await supabase
+      .from("profiles")
+      .select("id,role,signature_url,full_name")
+      .eq("id", auth.user.id)
+      .single();
+
+    if (myErr) {
+      setMsg("Failed to load your profile: " + myErr.message);
+      setLoading(false);
+      return;
+    }
+
+    setMe(myProf as ProfileMini);
+    await loadMyRoles(auth.user.id);
+
+    const { data: r, error: rErr } = await supabase
+      .from("requests")
+      .select(
+        "id,request_no,title,details,amount,status,current_stage,current_owner,created_by,dept_id,subhead_id,request_type,personal_category,funds_state,created_at,assigned_account_officer_id,assigned_account_officer_name"
+      )
+      .eq("id", id)
+      .single();
+
+    if (rErr) {
+      setMsg("Failed to load request: " + rErr.message);
+      setLoading(false);
+      return;
+    }
+
+    const requestRow = r as Req;
+    setReq(requestRow);
+
+    if ((r as any)?.subhead_id) {
+      const { data: sh } = await supabase
+        .from("subheads")
+        .select("id,code,name")
+        .eq("id", (r as any).subhead_id)
+        .single();
+
+      if (sh) setSubhead(sh as SubheadMini);
+    } else {
+      setSubhead(null);
+    }
+
+    if ((r as Req).dept_id) {
+      await loadAssignableSubheads((r as Req).dept_id);
+    }
+
+    const { data: h, error: hErr } = await supabase
+      .from("request_history")
+      .select(
+        "id,action_type,comment,to_stage,created_at,signature_url,actor_name,actor_role_key,actor_role_name"
+      )
+      .eq("request_id", id)
+      .order("created_at", { ascending: false });
+
+    if (hErr) {
+      setMsg("Failed to load history: " + hErr.message);
+    } else {
+      setHistory((h || []) as Hist[]);
+    }
+
+    await loadAttachmentsAndChecks(id);
+
+    setLoading(false);
+  }
+
+  useEffect(() => {
+    loadRequestPage();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
+
+  async function reload() {
+    if (!id) return;
+
+    await checkMfaStatus();
+    await loadMfaFactor();
+
+    if (me?.id) {
+      await loadMyRoles(me.id);
+    }
+
+    const { data: r2 } = await supabase
+      .from("requests")
+      .select(
+        "id,request_no,title,details,amount,status,current_stage,current_owner,created_by,dept_id,subhead_id,request_type,personal_category,funds_state,created_at,assigned_account_officer_id,assigned_account_officer_name"
+      )
+      .eq("id", id)
+      .single();
+
+    setReq((r2 as Req) || null);
+
+    const { data: h2 } = await supabase
+      .from("request_history")
+      .select(
+        "id,action_type,comment,to_stage,created_at,signature_url,actor_name,actor_role_key,actor_role_name"
+      )
+      .eq("request_id", id)
+      .order("created_at", { ascending: false });
+
+    setHistory((h2 || []) as Hist[]);
+
+    const subId = (r2 as any)?.subhead_id as string | null;
+
+    if (subId) {
+      const { data: sh } = await supabase
+        .from("subheads")
+        .select("id,code,name")
+        .eq("id", subId)
+        .single();
+
+      setSubhead((sh as any) || null);
+    } else {
+      setSubhead(null);
+    }
+
+    if ((r2 as any)?.dept_id) {
+      await loadAssignableSubheads((r2 as any).dept_id);
+    }
+
+    await loadAttachmentsAndChecks(id);
+    router.refresh();
+  }
+
+  function goToEdit() {
+    if (!req) return;
+
+    if (!canEditRequest) {
+      setMsg("❌ You cannot edit this request at its current stage.");
+      return;
+    }
+
+    router.push(`/requests/${req.id}/edit`);
+  }
+
+  async function sendRequestApprovalNotification(requestId: string) {
+    if (process.env.NEXT_PUBLIC_REQGEN_NOTIFICATIONS_ENABLED !== "true") return;
+
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session?.access_token) return;
+
+      await fetch("/api/notifications/sms/request-approval", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ requestId }),
+      });
+    } catch (notifyErr) {
+      console.warn("Approval notification failed:", notifyErr);
+    }
+  }
+
+  async function assignSubheadAndReserve() {
+    if (!req || !me) return;
+
+    if (!canAssignSubhead) {
+      setMsg("❌ You are not allowed to assign a subhead for this request.");
+      return;
+    }
+
+    if (!selectedSubheadId) {
+      setMsg("❌ Please select a subhead before assigning.");
+      return;
+    }
+
+    if (!selectedAssignableSubhead) {
+      setMsg("❌ Selected subhead could not be found.");
+      return;
+    }
+
+    if (!selectedSubheadCanCoverAmount) {
+      setMsg(
+        `❌ Insufficient balance. Available balance is ${formatNaira(
+          selectedSubheadAvailableBalance
+        )}, but request amount is ${formatNaira(req.amount)}.`
+      );
+      return;
+    }
+
+    const ok = confirm(
+      `Assign "${selectedAssignableSubhead.code ? `${selectedAssignableSubhead.code} — ` : ""
+      }${selectedAssignableSubhead.name}" and reserve ${formatNaira(req.amount)} for this request?`
+    );
+
+    if (!ok) return;
+
+    setAssigningSubhead(true);
+    setMsg(null);
+
+    try {
+      const { data, error } = await supabase.rpc("assign_request_subhead_and_reserve", {
+        p_request_id: req.id,
+        p_subhead_id: selectedSubheadId,
+        p_actor_id: me.id,
+      });
+
+      if (error) throw new Error(error.message);
+
+      setMsg(`✅ ${(data as any)?.message || "Subhead assigned and funds reserved successfully."}`);
+
+      await reload();
+    } catch (e: any) {
+      setMsg("❌ Subhead assignment failed: " + (e?.message || "Unknown error"));
+    } finally {
+      setAssigningSubhead(false);
+    }
+  }
+
+  async function checkAttachmentPersonally(attachment: AttachmentRow) {
+    if (!req || !me) return;
+
+    if (!canCheckAttachments) {
+      setMsg("❌ You are not allowed to check attachments on this request.");
+      return;
+    }
+
+    if (isAttachmentCheckedByMe(attachment.id)) {
+      setMsg("✅ You have already checked this attachment.");
+      return;
+    }
+
+    const roleInfo = primaryOrFirstRole(myRoles, me.role);
+
+    setCheckingAttachmentId(attachment.id);
+    setMsg(null);
+
+    try {
+      const { error } = await supabase.from("request_attachment_checks").upsert(
+        {
+          request_id: req.id,
+          attachment_id: attachment.id,
+          checked_by: me.id,
+          checked_by_name: me.full_name || null,
+          checked_by_role: roleInfo.role_name,
+          check_status: "Checked",
+          check_comment: `Checked by ${me.full_name || "officer"}`,
+          checked_at: new Date().toISOString(),
+        },
+        {
+          onConflict: "attachment_id,checked_by",
+        }
+      );
+
+      if (error) throw new Error(error.message);
+
+      await supabase.from("request_history").insert({
+        request_id: req.id,
+        action_type: "Attachment Checked",
+        comment: `${attachment.file_name} was checked by ${me.full_name || "officer"} (${roleInfo.role_name || "Role not set"
+          }).`,
+        to_stage: req.current_stage,
+        actor_name: me.full_name || null,
+        actor_role_key: roleInfo.role_key,
+        actor_role_name: roleInfo.role_name,
+        action_by: me.id,
+      });
+
+      setMsg("✅ Attachment checked successfully for your own approval stage.");
+      await loadAttachmentsAndChecks(req.id);
+      router.refresh();
+    } catch (e: any) {
+      setMsg("❌ Attachment check failed: " + (e?.message || "Unknown error"));
+    } finally {
+      setCheckingAttachmentId(null);
+    }
+  }
+
+  function validateBeforeSensitiveAction(action: SensitiveAction) {
+    if (!req || !me) return false;
+
+    if (!totpFactorId) {
+      setMsg("❌ You must set up 2FA before performing this action.");
+      router.push("/mfa/setup");
+      return false;
+    }
+
+    if (action === "Delete") {
+      if (!canDeleteRequest) {
+        setMsg("❌ Only the requester can delete while the request is still at an allowed early stage.");
+        return false;
+      }
+
+      return true;
+    }
+
+    if (!me.signature_url) {
+      setMsg("❌ You must upload your signature in Profile before taking actions.");
+      return false;
+    }
+
+    if (!canAct) {
+      setMsg("❌ You cannot act on this request. It is not assigned to you.");
+      return false;
+    }
+
+    if (action === "Approve" && needsSubheadAssignment) {
+      setMsg(
+        "❌ This official request has no subhead yet. Assign a subhead and reserve funds before approving."
+      );
+      return false;
+    }
+
+    if (hasAttachments && !allAttachmentsCheckedByMe) {
+      setMsg(
+        `❌ You still have ${myPendingAttachments.length
+        } attachment(s) unchecked. Open and check every attachment personally before you can ${action.toLowerCase()} this request.`
+      );
+      return false;
+    }
+
+    if (action === "Reject" && comment.trim().length < 3) {
+      setMsg("❌ Please write a reason/comment for rejection.");
+      return false;
+    }
+
+    return true;
+  }
+
+  function openFresh2faModal(action: SensitiveAction) {
+    setMsg(null);
+
+    const ok = validateBeforeSensitiveAction(action);
+    if (!ok) return;
+
+    setPendingAction(action);
+    setMfaCode("");
+    setShowMfaModal(true);
+    mfaAutoSubmittingRef.current = false;
+  }
+
+  async function verifyCodeAndContinue(codeOverride?: string) {
+    if (mfaAutoSubmittingRef.current || verifyingCode || saving) return;
+
+    setMsg(null);
+
+    if (!pendingAction) {
+      setShowMfaModal(false);
+      return;
+    }
+
+    if (!totpFactorId) {
+      setMsg("❌ No verified 2FA authenticator found. Please set up 2FA again.");
+      setShowMfaModal(false);
+      router.push("/mfa/setup");
+      return;
+    }
+
+    const code = String(codeOverride || mfaCode || "")
+      .trim()
+      .replace(/\D/g, "")
+      .slice(0, 6);
+
+    if (!/^\d{6}$/.test(code)) {
+      setMsg("❌ Enter the 6-digit code from your authenticator app.");
+      return;
+    }
+
+    mfaAutoSubmittingRef.current = true;
+    setVerifyingCode(true);
+
+    try {
+      const { error } = await supabase.auth.mfa.challengeAndVerify({
+        factorId: totpFactorId,
+        code,
+      });
+
+      if (error) throw new Error(error.message);
+
+      const actionToRun = pendingAction;
+
+      setShowMfaModal(false);
+      setMfaCode("");
+      setPendingAction(null);
+
+      if (actionToRun === "Delete") {
+        await deleteRequestAfterFresh2fa();
+      } else {
+        await actAfterFresh2fa(actionToRun);
+      }
+    } catch (e: any) {
+      setMsg("❌ 2FA verification failed: " + (e?.message || "Invalid code."));
+      setMfaCode("");
+    } finally {
+      setVerifyingCode(false);
+
+      setTimeout(() => {
+        mfaAutoSubmittingRef.current = false;
+      }, 800);
+    }
+  }
+
+  async function actAfterFresh2fa(action: "Approve" | "Reject") {
+    if (!req || !me) return;
+
+    const stillValid = validateBeforeSensitiveAction(action);
+    if (!stillValid) return;
+
+    setSaving(true);
+    setMsg(null);
+
+    try {
+      if (action === "Approve") {
+        const { data, error } = await supabase.rpc("approve_request_step", {
+          p_request_id: req.id,
+          p_actor_id: me.id,
+          p_comment: comment.trim(),
+          p_signature_url: me.signature_url,
+        });
+
+        if (error) throw new Error(error.message);
+
+        const result = Array.isArray(data) ? data[0] : data;
+        const nextStage = (result as any)?.new_stage;
+        const nextStatus = (result as any)?.new_status;
+
+        await sendRequestApprovalNotification(req.id);
+
+        if (nextStage === "Completed") {
+          setMsg(
+            nextStatus === "Paid"
+              ? "✅ Request paid successfully and closed after your attachment checks and 2FA."
+              : "✅ Request completed successfully after your attachment checks and 2FA."
+          );
+        } else if (isHRFiling) {
+          setMsg("✅ HR Filing completed successfully after your attachment checks and 2FA.");
+        } else if (isAccountStage && nextStage === "HR Filing") {
+          setMsg("✅ Payment treated. Request sent back to HR for final filing.");
+        } else if (usesAutomaticAccountOfficerRouting && nextStage === "Account") {
+          setMsg(
+            "✅ Approved by DG. The request was automatically sent to the AccountOfficer already attached from the selected subhead."
+          );
+        } else {
+          setMsg(`✅ Approved after your attachment checks and 2FA. Sent to ${nextStage || "next stage"}.`);
+        }
+      } else {
+        const { data, error } = await supabase.rpc("reject_request_step", {
+          p_request_id: req.id,
+          p_actor_id: me.id,
+          p_comment: comment.trim(),
+          p_signature_url: me.signature_url,
+        });
+
+        if (error) throw new Error(error.message);
+
+        const result = Array.isArray(data) ? data[0] : data;
+        const nextStage = (result as any)?.new_stage || "Rejected";
+
+        setMsg(`✅ Request ${String(nextStage).toLowerCase()} successfully after your attachment checks and 2FA.`);
+      }
+
+      setComment("");
+      await reload();
+    } catch (e: any) {
+      setMsg("❌ Action failed: " + (e?.message || "Unknown error"));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function deleteRequestAfterFresh2fa() {
+    if (!req) return;
+
+    const stillValid = validateBeforeSensitiveAction("Delete");
+    if (!stillValid) return;
+
+    const ok = confirm("Delete this request? Any reserved funds will be restored if applicable.");
+    if (!ok) return;
+
+    setSaving(true);
+    setMsg(null);
+
+    try {
+      const { error } = await supabase.rpc("delete_request_restore", {
+        p_request_id: req.id,
+      });
+
+      if (error) throw new Error(error.message);
+
+      setMsg("✅ Deleted successfully after 2FA verification.");
+
+      await reload();
+
+      setTimeout(() => {
+        router.push(`/requests?updated=${Date.now()}`);
+        router.refresh();
+      }, 500);
+    } catch (e: any) {
+      setMsg("❌ Delete failed: " + (e?.message || "Unknown error"));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const approveButtonText = useMemo(() => {
+    if (saving || verifyingCode) return "Processing...";
+    if (needsSubheadAssignment) return "Assign Subhead First";
+    if (usesAutomaticAccountOfficerRouting) {
+      return "Approve & Send to Attached AccountOfficer";
+    }
+    if (isHRFiling) return "Complete HR Filing";
+    if (isAccountStage && isPersonalFund) return "Treat / Pay & Send to HR Filing";
+    if (isAccountStage) return "Treat / Pay";
+    if (stg === "DOD") return "Approve as DOD";
+    if (stg === "PO") return "Approve as PO";
+    if (stg === "REGISTRAR") return "Approve as Registrar";
+    if (stg === "DINADMIN") return "Approve as DIN Admin";
+    if (stg === "HOD") return "Approve as HOD";
+    if (stg === "HR") return "Approve as HR";
+    if (stg === "DG") return "Approve as DG";
+
+    return "Approve";
+  }, [
+    saving,
+    verifyingCode,
+    needsSubheadAssignment,
+    usesAutomaticAccountOfficerRouting,
+    isHRFiling,
+    isAccountStage,
+    isPersonalFund,
+    stg,
+  ]);
+
+  if (loading) {
+    return (
+      <main className="min-h-screen bg-slate-50 px-4">
+        <div className="mx-auto max-w-4xl py-10 text-slate-600">Loading...</div>
+      </main>
+    );
+  }
+
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4">
-      <dt className="text-xs font-black uppercase tracking-wide text-slate-500">{label}</dt>
-      <dd className={`mt-2 break-words font-black ${valueClassName}`}>{value}</dd>
+    <main className="min-h-screen bg-slate-50 px-4">
+      <div className="mx-auto max-w-4xl py-10">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">
+              Request Details
+            </h1>
+            <p className="mt-2 text-sm text-slate-600">
+              Current stage: <b className="text-slate-900">{req?.current_stage || "—"}</b>
+            </p>
+            {req && <p className="mt-1 text-xs font-semibold text-slate-500">{stageHelpText(req)}</p>}
+          </div>
+
+          <div className="flex gap-2">
+            <button
+              onClick={() => router.push("/requests")}
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
+            >
+              Back
+            </button>
+          </div>
+        </div>
+
+        <div
+          className={`mt-4 rounded-2xl border px-4 py-3 text-sm font-semibold ${mfaVerified
+            ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+            : "border-amber-200 bg-amber-50 text-amber-900"
+            }`}
+        >
+          {mfaVerified
+            ? "✅ 2FA session is active. Fresh 2FA code is still required before approve, reject, or delete."
+            : "⚠️ 2FA is required. Fresh 2FA code is required before approve, reject, or delete."}
+        </div>
+
+        {isOfficial && ["PO", "DOD", "DINADMIN", "REGISTRAR", "HOD"].includes(stg) && (
+          <div className="mt-4 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-900">
+            Official routing is active. This request will continue through the configured department chain until DG and AccountOfficer.
+          </div>
+        )}
+
+        {isPersonal && (
+          <div className="mt-4 rounded-2xl border border-purple-200 bg-purple-50 px-4 py-3 text-sm font-semibold text-purple-900">
+            Personal request workflow is active.
+            {isPersonalFund
+              ? " This Personal Fund request moves through HR/DG/AccountOfficer and returns to HR Filing."
+              : " This Personal request moves through HR/DG and then HR Filing."}
+          </div>
+        )}
+
+        {needsSubheadAssignment && (
+          <div className="mt-4 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-900">
+            ⚠️ This Official request has no subhead yet. The assigned budget authority must assign a subhead and reserve funds before approval can continue.
+          </div>
+        )}
+
+        {hasAttachments && !allAttachmentsCheckedByMe && canAct && (
+          <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900">
+            ⚠️ You still have {myPendingAttachments.length} attachment(s) unchecked. You must open
+            and check every attachment personally before approving or rejecting.
+          </div>
+        )}
+
+        {hasAttachments && allAttachmentsCheckedByMe && canAct && (
+          <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">
+            ✅ You have personally checked all attachments for your own approval stage.
+          </div>
+        )}
+
+        {msg && (
+          <div className="mt-4 rounded-xl bg-slate-100 px-3 py-2 text-sm text-slate-800">
+            {msg}
+          </div>
+        )}
+
+        {!req ? (
+          <div className="mt-6 rounded-2xl border bg-white p-6 text-slate-700 shadow-sm">
+            Request not found.
+          </div>
+        ) : (
+          <>
+            <div className="mt-6 rounded-2xl border bg-white p-6 shadow-sm">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <div className="text-sm text-slate-600">Request No</div>
+                  <div className="text-lg font-extrabold text-slate-900">{req.request_no}</div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <StageBadge stage={req.current_stage} />
+                  <StatusBadge status={req.status} />
+                </div>
+              </div>
+
+              <div className="mt-6">
+                <RequestProgress
+                  stage={req.current_stage}
+                  status={req.status}
+                  requestType={req.request_type}
+                  personalCategory={req.personal_category}
+                />
+              </div>
+
+              <div className="mt-5 grid gap-4 md:grid-cols-2">
+                <Info label="Title" value={req.title} />
+                <Info
+                  label="Amount (₦)"
+                  value={isPersonalNonFund ? "Not Applicable" : Number(req.amount || 0).toLocaleString()}
+                />
+              </div>
+
+              <div className="mt-4 grid gap-4 md:grid-cols-2">
+                <Info label="Type" value={requestTypeLabel(req)} />
+                <Info
+                  label="Subhead"
+                  value={
+                    isOfficial
+                      ? subhead
+                        ? `${subhead.code ? `${subhead.code} — ` : ""}${subhead.name}`
+                        : "Pending Assignment"
+                      : "Not Applicable"
+                  }
+                />
+              </div>
+
+              <div className="mt-4 grid gap-4 md:grid-cols-2">
+                <Info label="Funds State" value={req.funds_state || "—"} />
+                <Info label="Request Date" value={new Date(req.created_at).toLocaleString()} />
+              </div>
+
+              {req.assigned_account_officer_name && (
+                <div className="mt-4">
+                  <Info label="Selected AccountOfficer" value={req.assigned_account_officer_name} />
+                </div>
+              )}
+
+              <div className="mt-5">
+                <div className="text-xs font-semibold text-slate-500">Details</div>
+                <div className="mt-2 whitespace-pre-wrap rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-800">
+                  {req.details}
+                </div>
+              </div>
+
+              {(canEditRequest || canDeleteRequest) && (
+                <div className="mt-5 flex flex-col gap-2 sm:flex-row">
+                  {canEditRequest && (
+                    <button
+                      onClick={goToEdit}
+                      disabled={saving || verifyingCode || assigningSubhead}
+                      className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
+                    >
+                      Edit
+                    </button>
+                  )}
+
+                  {canDeleteRequest && (
+                    <button
+                      onClick={() => openFresh2faModal("Delete")}
+                      disabled={saving || verifyingCode || assigningSubhead}
+                      className="w-full rounded-xl bg-red-600 px-4 py-3 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-60"
+                    >
+                      {saving || verifyingCode ? "Working..." : "Delete"}
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {!canEditRequest && !canDeleteRequest && isMyRequest && (
+                <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+                  Edit/Delete is locked once the request leaves the allowed early stage.
+                </div>
+              )}
+            </div>
+
+            {needsSubheadAssignment && (
+              <div className="mt-6 rounded-2xl border border-blue-200 bg-white p-6 shadow-sm">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <h2 className="text-lg font-extrabold text-slate-900">
+                      Budget Subhead Assignment
+                    </h2>
+                    <p className="mt-1 text-sm text-slate-600">
+                      This Official request has no budget line yet. Select the correct subhead and
+                      reserve funds before approving.
+                    </p>
+                  </div>
+
+                  <span className="rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-black text-blue-800">
+                    Required Before Approval
+                  </span>
+                </div>
+
+                {!canAssignSubhead ? (
+                  <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+                    View only. Only the assigned budget authority, Admin, or Auditor can assign the
+                    subhead at this stage.
+                  </div>
+                ) : (
+                  <>
+                    <div className="mt-4">
+                      <label className="text-sm font-semibold text-slate-800">
+                        Select Subhead / Budget Line
+                      </label>
+                      <select
+                        value={selectedSubheadId}
+                        onChange={(e) => setSelectedSubheadId(e.target.value)}
+                        className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-slate-900 outline-none focus:border-blue-500"
+                      >
+                        <option value="">-- Select Subhead --</option>
+                        {assignableSubheads.map((s) => (
+                          <option key={s.id} value={s.id}>
+                            {(s.code ? `${s.code} — ` : "") + s.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {selectedAssignableSubhead && (
+                      <div className="mt-4 grid gap-3 sm:grid-cols-4">
+                        <FinanceBox label="Allocation" value={formatNaira(selectedAssignableSubhead.approved_allocation)} />
+                        <FinanceBox label="Reserved" value={formatNaira(selectedAssignableSubhead.reserved_amount)} tone="amber" />
+                        <FinanceBox label="Expenditure" value={formatNaira(selectedAssignableSubhead.expenditure)} tone="red" />
+                        <FinanceBox
+                          label="Available"
+                          value={formatNaira(selectedSubheadAvailableBalance)}
+                          tone={selectedSubheadCanCoverAmount ? "emerald" : "red"}
+                        />
+                      </div>
+                    )}
+
+                    {selectedAssignableSubhead && !selectedSubheadCanCoverAmount && (
+                      <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-800">
+                        ❌ This subhead cannot cover the request amount. Available:{" "}
+                        {formatNaira(selectedSubheadAvailableBalance)}. Required:{" "}
+                        {formatNaira(req.amount)}.
+                      </div>
+                    )}
+
+                    {selectedAssignableSubhead && selectedSubheadCanCoverAmount && (
+                      <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-800">
+                        ✅ This subhead can cover the request amount of {formatNaira(req.amount)}.
+                      </div>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={assignSubheadAndReserve}
+                      disabled={
+                        assigningSubhead ||
+                        saving ||
+                        verifyingCode ||
+                        !selectedSubheadId ||
+                        !selectedSubheadCanCoverAmount
+                      }
+                      className="mt-4 w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-black text-white hover:bg-blue-700 disabled:opacity-60"
+                    >
+                      {assigningSubhead ? "Assigning & Reserving..." : "Assign Subhead & Reserve Funds"}
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
+
+            <div className="mt-6 rounded-2xl border bg-white p-6 shadow-sm">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <h2 className="text-lg font-bold text-slate-900">Supporting Attachments</h2>
+                  <p className="mt-1 text-sm text-slate-600">
+                    Every approving officer must personally open and check all attachments before
+                    approving or rejecting.
+                  </p>
+                </div>
+
+                <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-700">
+                  {attachments.length} file(s)
+                </span>
+              </div>
+
+              {attachments.length === 0 ? (
+                <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+                  No attachment was uploaded for this request.
+                </div>
+              ) : (
+                <div className="mt-4 space-y-3">
+                  {attachments.map((a, index) => {
+                    const checkedByMe = isAttachmentCheckedByMe(a.id);
+                    const totalChecks = attachmentCheckCount(a.id);
+
+                    return (
+                      <div key={a.id} className="rounded-2xl border bg-white p-4 shadow-sm">
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="text-sm font-extrabold text-slate-900">
+                              {index + 1}. {a.file_name}
+                            </div>
+                            <div className="mt-1 text-xs font-semibold text-slate-500">
+                              {a.file_type || "Unknown type"} • {fileSizeLabel(a.file_size)}
+                            </div>
+                            <div className="mt-1 text-xs font-semibold text-slate-500">
+                              Total officer checks: {totalChecks}
+                            </div>
+                          </div>
+
+                          <div className="flex flex-col items-end gap-2">
+                            <span
+                              className={`rounded-full border px-3 py-1 text-xs font-bold ${attachmentStatusClass(
+                                a.verification_status
+                              )}`}
+                            >
+                              {attachmentStatusLabel(a.verification_status)}
+                            </span>
+
+                            <span
+                              className={`rounded-full border px-3 py-1 text-xs font-bold ${checkedByMe
+                                ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                                : "border-amber-200 bg-amber-50 text-amber-800"
+                                }`}
+                            >
+                              {checkedByMe ? "Checked By You ✅" : "Not Checked By You"}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+                          {a.signed_url ? (
+                            <a
+                              href={a.signed_url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-center text-sm font-bold text-slate-900 hover:bg-slate-100 sm:w-auto"
+                            >
+                              Open Attachment
+                            </a>
+                          ) : (
+                            <button
+                              type="button"
+                              disabled
+                              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-400 sm:w-auto"
+                            >
+                              File Link Unavailable
+                            </button>
+                          )}
+
+                          {canCheckAttachments && !checkedByMe && (
+                            <button
+                              type="button"
+                              onClick={() => checkAttachmentPersonally(a)}
+                              disabled={checkingAttachmentId === a.id}
+                              className="w-full rounded-xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white hover:bg-emerald-700 disabled:opacity-60 sm:w-auto"
+                            >
+                              {checkingAttachmentId === a.id ? "Checking..." : "I Have Checked This ✅"}
+                            </button>
+                          )}
+
+                          {canCheckAttachments && checkedByMe && (
+                            <button
+                              type="button"
+                              disabled
+                              className="w-full rounded-xl bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-700 sm:w-auto"
+                            >
+                              Checked By You ✅
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            <div className="mt-6 rounded-2xl border bg-white p-6 shadow-sm">
+              <h2 className="text-lg font-bold text-slate-900">Actions</h2>
+              <p className="mt-1 text-sm text-slate-600">
+                Only the assigned officer can approve/reject. All actions require signature, your
+                own attachment checks, and a fresh 2FA code.
+              </p>
+
+              {!canAct ? (
+                <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+                  View only.
+                </div>
+              ) : (
+                <>
+                  {needsSubheadAssignment && (
+                    <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm font-semibold text-blue-900">
+                      Approval is locked until a subhead is assigned and funds are reserved.
+                    </div>
+                  )}
+
+                  {hasAttachments && !allAttachmentsCheckedByMe && (
+                    <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+                      Approval/Rejection is locked until you personally check every attachment above.
+                    </div>
+                  )}
+
+                  {usesAutomaticAccountOfficerRouting && (
+                    <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+                      <div className="text-sm font-extrabold text-emerald-900">
+                        AccountOfficer Already Attached Automatically
+                      </div>
+                      <p className="mt-1 text-sm font-semibold leading-6 text-emerald-800">
+                        This request will go to the AccountOfficer linked to the selected
+                        subhead's IET bank account. DG does not need to select an officer.
+                      </p>
+                    </div>
+                  )}
+
+                  {isHRFiling && (
+                    <div className="mt-4 rounded-xl border border-purple-200 bg-purple-50 p-4 text-sm text-purple-900">
+                      HR Filing stage: review the treated/approved Personal request and complete it for filing.
+                    </div>
+                  )}
+
+                  {isAccountStage && isPersonalFund && (
+                    <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
+                      Personal Fund payment stage: after treatment/payment, the request will return to HR for final filing.
+                    </div>
+                  )}
+
+                  <div className="mt-4">
+                    <label className="text-sm font-semibold text-slate-800">
+                      Comment{" "}
+                      {usesAutomaticAccountOfficerRouting || isHRFiling
+                        ? "(optional, but recommended)"
+                        : "(required for Reject)"}
+                    </label>
+                    <textarea
+                      value={comment}
+                      onChange={(e) => setComment(e.target.value)}
+                      className="mt-1 min-h-[90px] w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
+                      placeholder="Write your comment..."
+                    />
+                  </div>
+
+                  <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+                    <button
+                      onClick={() => openFresh2faModal("Approve")}
+                      disabled={
+                        saving ||
+                        verifyingCode ||
+                        assigningSubhead ||
+                        needsSubheadAssignment ||
+                        (hasAttachments && !allAttachmentsCheckedByMe)
+                      }
+                      className="w-full rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 disabled:opacity-60"
+                    >
+                      {approveButtonText}
+                    </button>
+
+                    <button
+                      onClick={() => openFresh2faModal("Reject")}
+                      disabled={
+                        saving ||
+                        verifyingCode ||
+                        assigningSubhead ||
+                        (hasAttachments && !allAttachmentsCheckedByMe)
+                      }
+                      className="w-full rounded-xl bg-red-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-red-700 disabled:opacity-60"
+                    >
+                      {saving || verifyingCode ? "Processing..." : "Reject"}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+
+            <div className="mt-6 rounded-2xl border bg-white p-6 shadow-sm">
+              <h2 className="text-lg font-bold text-slate-900">History</h2>
+              <p className="mt-1 text-sm text-slate-600">
+                All actions, comments, signatures, exact role used and individual attachment checks are recorded.
+              </p>
+
+              {history.length === 0 ? (
+                <div className="mt-4 text-sm text-slate-700">No history yet.</div>
+              ) : (
+                <div className="mt-4 space-y-3">
+                  {history.map((h) => (
+                    <div key={h.id} className="rounded-xl border border-slate-200 bg-white p-4">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="text-sm font-bold text-slate-900">
+                          {h.actor_name || "Officer"} • {h.action_type}
+                          {roleDisplay(h) && (
+                            <span className="ml-2 rounded-full border border-blue-200 bg-blue-50 px-2 py-1 text-[11px] font-black text-blue-700">
+                              {roleDisplay(h)}
+                            </span>
+                          )}
+                        </div>
+                        {h.to_stage && <StageBadge stage={h.to_stage} />}
+                      </div>
+
+                      {h.comment && (
+                        <div className="mt-2 whitespace-pre-wrap text-sm text-slate-800">
+                          {h.comment}
+                        </div>
+                      )}
+
+                      <div className="mt-2 text-xs text-slate-500">
+                        {new Date(h.created_at).toLocaleString()}
+                        {h.signature_url ? " • Signed ✅" : " • Signature missing ⚠️"}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+
+      {showMfaModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl">
+            <div className="text-xs font-black uppercase tracking-wide text-blue-700">
+              Required Security Verification
+            </div>
+
+            <h2 className="mt-1 text-2xl font-extrabold text-slate-900">Enter 2FA Code</h2>
+
+            <p className="mt-2 text-sm leading-6 text-slate-600">
+              Enter the 6-digit code from your authenticator app. The action will continue
+              automatically after the 6th digit is entered.
+            </p>
+
+            <input
+              value={mfaCode}
+              onChange={(e) => {
+                const nextCode = e.target.value.replace(/\D/g, "").slice(0, 6);
+                setMfaCode(nextCode);
+
+                if (nextCode.length === 6 && !verifyingCode && !saving) {
+                  setTimeout(() => {
+                    verifyCodeAndContinue(nextCode);
+                  }, 150);
+                }
+              }}
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              autoFocus
+              disabled={verifyingCode || saving}
+              placeholder="123456"
+              className="mt-5 w-full rounded-2xl border border-slate-200 px-4 py-4 text-center text-2xl font-black tracking-[0.35em] text-slate-900 outline-none focus:border-blue-500 disabled:bg-slate-100 disabled:text-slate-500"
+            />
+
+            <div className="mt-3 text-center text-xs font-semibold text-slate-500">
+              {verifyingCode || saving
+                ? "Verifying automatically, please wait..."
+                : "Auto-submit activates immediately after 6 digits."}
+            </div>
+
+            <div className="mt-5 flex flex-col gap-2 sm:flex-row">
+              <button
+                type="button"
+                onClick={() => {
+                  if (verifyingCode || saving) return;
+                  setShowMfaModal(false);
+                  setMfaCode("");
+                  setPendingAction(null);
+                  mfaAutoSubmittingRef.current = false;
+                }}
+                disabled={verifyingCode || saving}
+                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                onClick={() => verifyCodeAndContinue()}
+                disabled={verifyingCode || saving || mfaCode.trim().length !== 6}
+                className="w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white hover:bg-blue-700 disabled:opacity-60"
+              >
+                {verifyingCode || saving ? "Verifying automatically..." : "Verify & Continue"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </main>
+  );
+}
+
+function Info({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
+      <div className="text-xs font-semibold text-slate-500">{label}</div>
+      <div className="mt-1 text-sm font-semibold text-slate-900">{value}</div>
     </div>
   );
 }
 
-export default function FinanceRequestPage() {
-  const params = useParams<{ id: string }>();
-  const requestId = params?.id;
-
-  const [request, setRequest] = useState<FinanceRequest | null>(null);
-  const [subhead, setSubhead] = useState<SubheadRow | null>(null);
-  const [account, setAccount] = useState<AccountRow | null>(null);
-  const [voucher, setVoucher] = useState<VoucherRow | null>(null);
-
-  const [userId, setUserId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [generatingVoucher, setGeneratingVoucher] = useState(false);
-
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
-
-  const loadFinanceRequest = useCallback(async () => {
-    if (!requestId) return;
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const { data: authData, error: authError } = await supabase.auth.getUser();
-      const user = authData.user;
-
-      if (authError || !user) {
-        throw new Error("Your session has expired. Please sign in again.");
-      }
-
-      setUserId(user.id);
-
-      const { data: requestData, error: requestError } = await supabase
-        .from("requests")
-        .select(
-          "id,request_no,title,description,amount,status,current_stage,current_owner,assigned_account_officer_id,assigned_account_officer_name,subhead_id,created_at"
-        )
-        .eq("id", requestId)
-        .eq("assigned_account_officer_id", user.id)
-        .maybeSingle();
-
-      if (requestError) throw requestError;
-
-      if (!requestData) {
-        throw new Error(
-          "This finance request is not assigned to your AccountOfficer profile."
-        );
-      }
-
-      const loadedRequest = requestData as FinanceRequest;
-      setRequest(loadedRequest);
-
-      let loadedSubhead: SubheadRow | null = null;
-      let loadedAccount: AccountRow | null = null;
-
-      if (loadedRequest.subhead_id) {
-        const { data: subheadData, error: subheadError } = await supabase
-          .from("subheads")
-          .select("*")
-          .eq("id", loadedRequest.subhead_id)
-          .maybeSingle();
-
-        if (subheadError) throw subheadError;
-
-        loadedSubhead = (subheadData || null) as SubheadRow | null;
-        setSubhead(loadedSubhead);
-
-        const accountId =
-          loadedSubhead?.bank_account_id || loadedSubhead?.account_id || null;
-
-        if (accountId) {
-          const { data: accountData, error: accountError } = await supabase
-            .from("iet_accounts")
-            .select("*")
-            .eq("id", accountId)
-            .maybeSingle();
-
-          if (accountError) throw accountError;
-
-          loadedAccount = (accountData || null) as AccountRow | null;
-          setAccount(loadedAccount);
-        } else {
-          setAccount(null);
-        }
-      } else {
-        setSubhead(null);
-        setAccount(null);
-      }
-
-      const { data: voucherData, error: voucherError } = await supabase
-        .from("payment_vouchers")
-        .select("*")
-        .eq("request_id", loadedRequest.id)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (voucherError) throw voucherError;
-
-      setVoucher((voucherData || null) as VoucherRow | null);
-    } catch (caught) {
-      const message =
-        caught instanceof Error
-          ? caught.message
-          : "Unable to load this finance request.";
-
-      setError(message);
-    } finally {
-      setLoading(false);
-    }
-  }, [requestId]);
-
-  useEffect(() => {
-    loadFinanceRequest();
-  }, [loadFinanceRequest]);
-
-  const linkedAccountId = useMemo(() => {
-    return subhead?.bank_account_id || subhead?.account_id || null;
-  }, [subhead]);
-
-  const approvedAllocation = Number(subhead?.approved_allocation || 0);
-  const reservedAmount = Number(subhead?.reserved_amount || 0);
-  const expenditure = Number(subhead?.expenditure || 0);
-
-  const availableBalance = useMemo(() => {
-    if (subhead?.balance !== null && subhead?.balance !== undefined) {
-      return Number(subhead.balance || 0);
-    }
-
-    return approvedAllocation - reservedAmount - expenditure;
-  }, [
-    approvedAllocation,
-    expenditure,
-    reservedAmount,
-    subhead?.balance,
-  ]);
-
-  async function generatePaymentVoucher() {
-    if (!request || !userId) return;
-
-    setGeneratingVoucher(true);
-    setError(null);
-    setSuccess(null);
-
-    try {
-      if (voucher) {
-        setSuccess(
-          `Payment Voucher ${getVoucherNumber(voucher) || ""} already exists for this request.`
-        );
-        return;
-      }
-
-      if (!request.subhead_id) {
-        throw new Error(
-          "This request has no linked subhead. A Payment Voucher cannot be generated."
-        );
-      }
-
-      if (!linkedAccountId) {
-        throw new Error(
-          "The selected subhead has no linked IET bank account. Please link an account first."
-        );
-      }
-
-      const voucherPayload = {
-        request_id: request.id,
-        account_id: linkedAccountId,
-        amount: Number(request.amount || 0),
-        status: "Draft",
-        created_by: userId,
-      };
-
-      const { data: createdVoucher, error: createError } = await supabase
-        .from("payment_vouchers")
-        .insert(voucherPayload)
-        .select("*")
-        .single();
-
-      if (createError) throw createError;
-
-      const newVoucher = createdVoucher as VoucherRow;
-      setVoucher(newVoucher);
-
-      setSuccess(
-        `Payment Voucher ${getVoucherNumber(newVoucher) || ""
-        } generated successfully.`
-      );
-    } catch (caught) {
-      const message =
-        caught instanceof Error
-          ? caught.message
-          : "Unable to generate the Payment Voucher.";
-
-      setError(message);
-    } finally {
-      setGeneratingVoucher(false);
-    }
-  }
-
-  if (loading) {
-    return (
-      <main className="mx-auto max-w-6xl px-4 py-8">
-        <div className="animate-pulse space-y-5">
-          <div className="h-6 w-44 rounded bg-slate-200" />
-          <div className="h-52 rounded-3xl bg-slate-200" />
-          <div className="grid gap-5 lg:grid-cols-2">
-            <div className="h-80 rounded-3xl bg-slate-200" />
-            <div className="h-80 rounded-3xl bg-slate-200" />
-          </div>
-        </div>
-      </main>
-    );
-  }
-
-  if (error && !request) {
-    return (
-      <main className="mx-auto max-w-3xl px-4 py-12">
-        <section className="rounded-3xl border border-red-200 bg-red-50 p-7 shadow-sm">
-          <h1 className="text-2xl font-black text-red-950">
-            Unable to open finance request
-          </h1>
-
-          <p className="mt-3 font-semibold leading-7 text-red-800">
-            {error}
-          </p>
-
-          <Link
-            href="/finance"
-            className="mt-5 inline-flex rounded-xl bg-slate-950 px-4 py-3 text-sm font-black text-white"
-          >
-            Return to Finance
-          </Link>
-        </section>
-      </main>
-    );
-  }
-
-  if (!request) return null;
-
-  const voucherNumber = getVoucherNumber(voucher);
+function FinanceBox({
+  label,
+  value,
+  tone = "slate",
+}: {
+  label: string;
+  value: string;
+  tone?: "slate" | "emerald" | "amber" | "red";
+}) {
+  const cls =
+    tone === "emerald"
+      ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+      : tone === "amber"
+        ? "border-amber-200 bg-amber-50 text-amber-800"
+        : tone === "red"
+          ? "border-red-200 bg-red-50 text-red-800"
+          : "border-slate-200 bg-slate-50 text-slate-800";
 
   return (
-    <main className="mx-auto max-w-6xl px-4 py-8">
-      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-        <Link
-          href="/finance"
-          className="text-sm font-black text-blue-700 hover:underline"
-        >
-          ← Finance Dashboard
-        </Link>
+    <div className={`rounded-xl border p-3 ${cls}`}>
+      <div className="text-xs font-semibold opacity-80">{label}</div>
+      <div className="mt-1 text-sm font-black">{value}</div>
+    </div>
+  );
+}
 
-        <button
-          type="button"
-          onClick={loadFinanceRequest}
-          className="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-black text-slate-800 transition hover:bg-slate-50"
-        >
-          Refresh
-        </button>
-      </div>
+function StageBadge({ stage }: { stage: string }) {
+  return (
+    <span
+      className={`inline-flex rounded-lg border px-2 py-1 text-xs font-semibold ${stageBadgeClass(
+        stage
+      )}`}
+    >
+      {stage || "—"}
+    </span>
+  );
+}
 
-      <section className="overflow-hidden rounded-3xl border border-slate-200 bg-slate-950 p-6 text-white shadow-sm sm:p-8">
-        <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-start">
-          <div>
-            <p className="text-xs font-black uppercase tracking-[0.2em] text-emerald-300">
-              Finance Request Workspace
-            </p>
+function StatusBadge({ status }: { status: string }) {
+  const s = (status || "").toLowerCase();
 
-            <h1 className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">
-              {request.request_no || "Request"}
-            </h1>
+  const cls =
+    s.includes("submit")
+      ? "bg-blue-50 text-blue-700 border-blue-200"
+      : s.includes("approve") ||
+        s.includes("review") ||
+        s.includes("complete") ||
+        s.includes("paid") ||
+        s.includes("filing")
+        ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+        : s.includes("reject") || s.includes("delete")
+          ? "bg-red-50 text-red-700 border-red-200"
+          : "bg-slate-50 text-slate-700 border-slate-200";
 
-            <p className="mt-3 max-w-3xl text-lg font-bold text-slate-300">
-              {request.title || "Untitled request"}
-            </p>
-          </div>
-
-          <div className="rounded-2xl border border-emerald-400/30 bg-emerald-400/10 px-5 py-4 sm:text-right">
-            <div className="text-xs font-black uppercase tracking-wide text-emerald-300">
-              Approved Amount
-            </div>
-
-            <div className="mt-1 text-2xl font-black text-white sm:text-3xl">
-              {money(request.amount)}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {error && (
-        <div className="mt-5 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 font-semibold text-red-800">
-          {error}
-        </div>
-      )}
-
-      {success && (
-        <div className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 font-semibold text-emerald-800">
-          {success}
-        </div>
-      )}
-
-      <section className="mt-6 grid gap-6 lg:grid-cols-2">
-        <article className="rounded-3xl border border-slate-200 bg-slate-50 p-5 shadow-sm sm:p-6">
-          <div>
-            <p className="text-xs font-black uppercase tracking-[0.16em] text-blue-700">
-              Section 1
-            </p>
-
-            <h2 className="mt-1 text-xl font-black text-slate-950">
-              Request Summary
-            </h2>
-          </div>
-
-          <dl className="mt-5 grid gap-4 sm:grid-cols-2">
-            <InformationBox
-              label="Request Number"
-              value={request.request_no || "Not available"}
-            />
-
-            <InformationBox
-              label="Status"
-              value={request.status || "Pending Payment"}
-              valueClassName="text-blue-800"
-            />
-
-            <InformationBox
-              label="Current Stage"
-              value={request.current_stage || "Account"}
-            />
-
-            <InformationBox
-              label="Assigned AccountOfficer"
-              value={
-                request.assigned_account_officer_name || "Not available"
-              }
-            />
-
-            <InformationBox
-              label="Date Created"
-              value={readableDate(request.created_at)}
-            />
-
-            <InformationBox
-              label="Amount"
-              value={money(request.amount)}
-              valueClassName="text-emerald-800"
-            />
-
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 sm:col-span-2">
-              <dt className="text-xs font-black uppercase tracking-wide text-slate-500">
-                Purpose / Description
-              </dt>
-
-              <dd className="mt-2 whitespace-pre-wrap font-semibold leading-7 text-slate-700">
-                {request.description || "No description supplied."}
-              </dd>
-            </div>
-          </dl>
-        </article>
-
-        <article className="rounded-3xl border border-slate-200 bg-slate-50 p-5 shadow-sm sm:p-6">
-          <div>
-            <p className="text-xs font-black uppercase tracking-[0.16em] text-violet-700">
-              Section 2
-            </p>
-
-            <h2 className="mt-1 text-xl font-black text-slate-950">
-              Budget and Account Information
-            </h2>
-          </div>
-
-          <dl className="mt-5 grid gap-4 sm:grid-cols-2">
-            <InformationBox
-              label="Subhead"
-              value={getSubheadName(subhead)}
-            />
-
-            <InformationBox
-              label="Linked IET Account"
-              value={getAccountName(account)}
-            />
-
-            <InformationBox
-              label="Approved Allocation"
-              value={money(approvedAllocation)}
-              valueClassName="text-blue-800"
-            />
-
-            <InformationBox
-              label="Reserved Amount"
-              value={money(reservedAmount)}
-              valueClassName="text-amber-800"
-            />
-
-            <InformationBox
-              label="Expenditure"
-              value={money(expenditure)}
-              valueClassName="text-red-800"
-            />
-
-            <InformationBox
-              label="Available Balance"
-              value={money(availableBalance)}
-              valueClassName={
-                availableBalance >= Number(request.amount || 0)
-                  ? "text-emerald-800"
-                  : "text-red-800"
-              }
-            />
-
-            <InformationBox
-              label="Bank Name"
-              value={account?.bank_name || "Not available"}
-            />
-
-            <InformationBox
-              label="Account Number"
-              value={account?.account_number || "Not available"}
-            />
-          </dl>
-
-          {availableBalance < Number(request.amount || 0) && (
-            <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold leading-6 text-red-800">
-              Warning: the available subhead balance appears lower than the
-              request amount. Do not post payment until the allocation is
-              confirmed.
-            </div>
-          )}
-        </article>
-      </section>
-
-      <section className="mt-6 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
-        <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-start">
-          <div>
-            <p className="text-xs font-black uppercase tracking-[0.16em] text-emerald-700">
-              Section 3
-            </p>
-
-            <h2 className="mt-1 text-2xl font-black text-slate-950">
-              Payment Voucher
-            </h2>
-
-            <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-slate-600">
-              Generate one draft Payment Voucher for this approved request.
-              The official voucher number is created automatically by ReqGen.
-            </p>
-          </div>
-
-          {voucher ? (
-            <span className="w-fit rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-black text-emerald-800">
-              Voucher Generated
-            </span>
-          ) : (
-            <span className="w-fit rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-black text-amber-800">
-              Voucher Not Generated
-            </span>
-          )}
-        </div>
-
-        {voucher ? (
-          <div className="mt-6 grid gap-4 rounded-3xl border border-emerald-200 bg-emerald-50 p-5 sm:grid-cols-3">
-            <div>
-              <p className="text-xs font-black uppercase tracking-wide text-emerald-700">
-                Voucher Number
-              </p>
-
-              <p className="mt-2 text-xl font-black text-emerald-950">
-                {voucherNumber || "Generated"}
-              </p>
-            </div>
-
-            <div>
-              <p className="text-xs font-black uppercase tracking-wide text-emerald-700">
-                Amount
-              </p>
-
-              <p className="mt-2 text-xl font-black text-emerald-950">
-                {money(voucher.amount ?? request.amount)}
-              </p>
-            </div>
-
-            <div>
-              <p className="text-xs font-black uppercase tracking-wide text-emerald-700">
-                Status
-              </p>
-
-              <p className="mt-2 text-xl font-black text-emerald-950">
-                {voucher.status || "Draft"}
-              </p>
-            </div>
-          </div>
-        ) : (
-          <div className="mt-6 rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center">
-            <p className="font-bold text-slate-700">
-              No Payment Voucher has been generated for this request.
-            </p>
-
-            <button
-              type="button"
-              onClick={generatePaymentVoucher}
-              disabled={
-                generatingVoucher ||
-                !request.subhead_id ||
-                !linkedAccountId
-              }
-              className="mt-5 inline-flex rounded-xl bg-emerald-700 px-5 py-3 text-sm font-black text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-400"
-            >
-              {generatingVoucher
-                ? "Generating Voucher…"
-                : "Generate Payment Voucher"}
-            </button>
-
-            {!request.subhead_id && (
-              <p className="mt-3 text-sm font-bold text-red-700">
-                This request has no linked subhead.
-              </p>
-            )}
-
-            {request.subhead_id && !linkedAccountId && (
-              <p className="mt-3 text-sm font-bold text-red-700">
-                The linked subhead has no IET bank account.
-              </p>
-            )}
-          </div>
-        )}
-      </section>
-
-      <section className="mt-6 rounded-3xl border border-blue-200 bg-blue-50 p-5 sm:p-6">
-        <h2 className="font-black text-blue-950">Next Sprint</h2>
-
-        <p className="mt-2 text-sm font-semibold leading-6 text-blue-800">
-          Payment method, reference number, narration, evidence upload and
-          final payment posting will be added after voucher generation is
-          successfully tested.
-        </p>
-      </section>
-    </main>
+  return (
+    <span className={`inline-flex rounded-lg border px-2 py-1 text-xs font-semibold ${cls}`}>
+      {status || "—"}
+    </span>
   );
 }
