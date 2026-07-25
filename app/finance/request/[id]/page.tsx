@@ -67,7 +67,16 @@ type VoucherRow = {
   payment_reference: string | null;
   payment_date: string | null;
   created_at: string | null;
+  posted_by: string | null;
+  posted_at: string | null;
   updated_at: string | null;
+};
+
+type PostPaymentResult = {
+  success?: boolean;
+  message?: string;
+  transaction_no?: string;
+  balance_after?: number;
 };
 
 const PAYMENT_METHODS = ["Bank Transfer", "Cash", "Cheque", "POS"] as const;
@@ -171,12 +180,15 @@ export default function FinanceRequestPage() {
   const [loading, setLoading] = useState(true);
   const [generatingVoucher, setGeneratingVoucher] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
+  const [postingPayment, setPostingPayment] = useState(false);
 
   const [paymentMethod, setPaymentMethod] = useState("");
   const [paymentDate, setPaymentDate] = useState(todayInputValue());
   const [paymentReference, setPaymentReference] = useState("");
   const [narration, setNarration] = useState("");
   const [hardcopyConfirmed, setHardcopyConfirmed] = useState(true);
+  const [confirmPost, setConfirmPost] = useState(false);
+  const [postResult, setPostResult] = useState<PostPaymentResult | null>(null);
 
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -257,7 +269,7 @@ export default function FinanceRequestPage() {
       const { data: voucherData, error: voucherError } = await supabase
         .from("payment_vouchers")
         .select(
-          "id,voucher_no,request_id,request_no,narration,amount,subhead_id,subhead_code,subhead_name,prepared_by,prepared_by_name,status,bank_account_id,bank_account_name,account_id,payment_method,disbursement_mode,payment_reference,payment_date,created_at,updated_at"
+          "id,voucher_no,request_id,request_no,narration,amount,subhead_id,subhead_code,subhead_name,prepared_by,prepared_by_name,status,bank_account_id,bank_account_name,account_id,payment_method,disbursement_mode,payment_reference,payment_date,posted_by,posted_at,created_at,updated_at"
         )
         .eq("request_id", loadedRequest.id)
         .order("created_at", { ascending: false })
@@ -306,6 +318,51 @@ export default function FinanceRequestPage() {
   useEffect(() => {
     loadFinanceRequest();
   }, [loadFinanceRequest]);
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      loadFinanceRequest();
+    }, 30_000);
+
+    const channel = supabase
+      .channel(`finance-request-${requestId || "unknown"}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "requests",
+          filter: requestId ? `id=eq.${requestId}` : undefined,
+        },
+        () => loadFinanceRequest()
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "payment_vouchers",
+          filter: requestId ? `request_id=eq.${requestId}` : undefined,
+        },
+        () => loadFinanceRequest()
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "finance_transactions",
+          filter: requestId ? `request_id=eq.${requestId}` : undefined,
+        },
+        () => loadFinanceRequest()
+      )
+      .subscribe();
+
+    return () => {
+      window.clearInterval(intervalId);
+      supabase.removeChannel(channel);
+    };
+  }, [loadFinanceRequest, requestId]);
 
   const linkedAccountId = useMemo(() => {
     return subhead?.bank_account_id || subhead?.account_id || null;
@@ -387,7 +444,7 @@ export default function FinanceRequestPage() {
           .from("payment_vouchers")
           .insert(voucherPayload)
           .select(
-            "id,voucher_no,request_id,request_no,narration,amount,subhead_id,subhead_code,subhead_name,prepared_by,prepared_by_name,status,bank_account_id,bank_account_name,account_id,payment_method,disbursement_mode,payment_reference,payment_date,created_at,updated_at"
+            "id,voucher_no,request_id,request_no,narration,amount,subhead_id,subhead_code,subhead_name,prepared_by,prepared_by_name,status,bank_account_id,bank_account_name,account_id,payment_method,disbursement_mode,payment_reference,payment_date,posted_by,posted_at,created_at,updated_at"
           )
           .single();
 
@@ -463,7 +520,7 @@ export default function FinanceRequestPage() {
           .eq("id", voucher.id)
           .eq("request_id", request.id)
           .select(
-            "id,voucher_no,request_id,request_no,narration,amount,subhead_id,subhead_code,subhead_name,prepared_by,prepared_by_name,status,bank_account_id,bank_account_name,account_id,payment_method,disbursement_mode,payment_reference,payment_date,created_at,updated_at"
+            "id,voucher_no,request_id,request_no,narration,amount,subhead_id,subhead_code,subhead_name,prepared_by,prepared_by_name,status,bank_account_id,bank_account_name,account_id,payment_method,disbursement_mode,payment_reference,payment_date,posted_by,posted_at,created_at,updated_at"
           )
           .single();
 
@@ -487,6 +544,74 @@ export default function FinanceRequestPage() {
       );
     } finally {
       setSavingDraft(false);
+    }
+  }
+
+
+  const isPosted =
+    voucher?.status?.toLowerCase() === "posted" ||
+    request?.status?.toLowerCase() === "paid";
+
+  const paymentDetailsReady =
+    Boolean(voucher) &&
+    Boolean(paymentMethod) &&
+    Boolean(paymentDate) &&
+    Boolean(narration.trim());
+
+  async function postPayment() {
+    if (!voucher || !request) {
+      setError("Generate and save the Payment Voucher before posting.");
+      return;
+    }
+
+    if (isPosted) {
+      setError("This payment has already been posted.");
+      return;
+    }
+
+    if (!paymentDetailsReady) {
+      setError(
+        "Complete and save the payment method, payment date and narration before posting."
+      );
+      return;
+    }
+
+    if (!confirmPost) {
+      setError(
+        "Please confirm that you understand this action will post the payment permanently."
+      );
+      return;
+    }
+
+    setPostingPayment(true);
+    setError(null);
+    setSuccess(null);
+    setPostResult(null);
+
+    try {
+      const { data, error: rpcError } = await supabase.rpc(
+        "post_finance_payment",
+        { p_voucher_id: voucher.id }
+      );
+
+      if (rpcError) throw rpcError;
+
+      const result = (data || {}) as PostPaymentResult;
+      setPostResult(result);
+      setSuccess(
+        result.message ||
+        `Payment posted successfully for Voucher ${voucher.voucher_no || ""}.`
+      );
+      setConfirmPost(false);
+      await loadFinanceRequest();
+    } catch (caught) {
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "Unable to post the payment."
+      );
+    } finally {
+      setPostingPayment(false);
     }
   }
 
@@ -530,24 +655,48 @@ export default function FinanceRequestPage() {
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-8">
-      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-        <Link
-          href="/finance"
-          className="text-sm font-black text-blue-700 hover:underline"
-        >
-          ← Finance Dashboard
-        </Link>
+      <nav className="mb-6 rounded-3xl border border-slate-200 bg-white p-3 shadow-sm">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-wrap gap-2">
+            <Link
+              href="/finance"
+              className="inline-flex items-center rounded-xl bg-blue-700 px-4 py-2.5 text-sm font-black text-white transition hover:bg-blue-800"
+            >
+              ← Finance Dashboard
+            </Link>
 
-        <button
-          type="button"
-          onClick={loadFinanceRequest}
-          className="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-black text-slate-800 transition hover:bg-slate-50"
-        >
-          Refresh
-        </button>
-      </div>
+            <Link
+              href="/dashboard"
+              className="inline-flex items-center rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-black text-white transition hover:bg-slate-800"
+            >
+              Main Dashboard
+            </Link>
 
-      <section className="overflow-hidden rounded-3xl border border-slate-200 bg-slate-950 p-6 text-white shadow-sm sm:p-8">
+            <Link
+              href="/requests"
+              className="inline-flex items-center rounded-xl border border-violet-200 bg-violet-50 px-4 py-2.5 text-sm font-black text-violet-800 transition hover:bg-violet-100"
+            >
+              All Requests
+            </Link>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-800">
+              Auto-refresh: 30 seconds
+            </span>
+
+            <button
+              type="button"
+              onClick={loadFinanceRequest}
+              className="rounded-xl border border-cyan-200 bg-cyan-50 px-4 py-2.5 text-sm font-black text-cyan-800 transition hover:bg-cyan-100"
+            >
+              Refresh Now
+            </button>
+          </div>
+        </div>
+      </nav>
+
+      <section className="overflow-hidden rounded-3xl border border-blue-200 bg-gradient-to-br from-slate-950 via-blue-950 to-violet-950 p-6 text-white shadow-xl sm:p-8">
         <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-start">
           <div>
             <p className="text-xs font-black uppercase tracking-[0.2em] text-emerald-300">
@@ -561,7 +710,7 @@ export default function FinanceRequestPage() {
             </p>
           </div>
 
-          <div className="rounded-2xl border border-emerald-400/30 bg-emerald-400/10 px-5 py-4 sm:text-right">
+          <div className="rounded-2xl border border-emerald-300/40 bg-emerald-300/10 px-5 py-4 shadow-lg backdrop-blur sm:text-right">
             <div className="text-xs font-black uppercase tracking-wide text-emerald-300">
               Approved Amount
             </div>
@@ -585,7 +734,7 @@ export default function FinanceRequestPage() {
       )}
 
       <section className="mt-6 grid gap-6 lg:grid-cols-2">
-        <article className="rounded-3xl border border-slate-200 bg-slate-50 p-5 shadow-sm sm:p-6">
+        <article className="rounded-3xl border border-blue-100 bg-gradient-to-br from-white to-blue-50 p-5 shadow-sm sm:p-6">
           <p className="text-xs font-black uppercase tracking-[0.16em] text-blue-700">
             Section 1
           </p>
@@ -636,7 +785,7 @@ export default function FinanceRequestPage() {
           </dl>
         </article>
 
-        <article className="rounded-3xl border border-slate-200 bg-slate-50 p-5 shadow-sm sm:p-6">
+        <article className="rounded-3xl border border-violet-100 bg-gradient-to-br from-white to-violet-50 p-5 shadow-sm sm:p-6">
           <p className="text-xs font-black uppercase tracking-[0.16em] text-violet-700">
             Section 2
           </p>
@@ -701,7 +850,7 @@ export default function FinanceRequestPage() {
         </article>
       </section>
 
-      <section className="mt-6 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
+      <section className="mt-6 rounded-3xl border border-emerald-100 bg-gradient-to-br from-white to-emerald-50 p-5 shadow-sm sm:p-7">
         <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-start">
           <div>
             <p className="text-xs font-black uppercase tracking-[0.16em] text-emerald-700">
@@ -794,7 +943,7 @@ export default function FinanceRequestPage() {
         )}
       </section>
 
-      <section className="mt-6 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
+      <section className="mt-6 rounded-3xl border border-cyan-100 bg-gradient-to-br from-white to-cyan-50 p-5 shadow-sm sm:p-7">
         <p className="text-xs font-black uppercase tracking-[0.16em] text-blue-700">
           Section 4
         </p>
@@ -817,7 +966,7 @@ export default function FinanceRequestPage() {
               onChange={(event) =>
                 setPaymentMethod(event.target.value)
               }
-              disabled={!voucher}
+              disabled={!voucher || isPosted}
               className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 font-semibold text-slate-900 outline-none focus:border-blue-500 disabled:bg-slate-100"
             >
               <option value="">Select payment method</option>
@@ -839,7 +988,7 @@ export default function FinanceRequestPage() {
               onChange={(event) =>
                 setPaymentDate(event.target.value)
               }
-              disabled={!voucher}
+              disabled={!voucher || isPosted}
               className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 font-semibold text-slate-900 outline-none focus:border-blue-500 disabled:bg-slate-100"
             />
           </label>
@@ -854,7 +1003,7 @@ export default function FinanceRequestPage() {
               onChange={(event) =>
                 setPaymentReference(event.target.value)
               }
-              disabled={!voucher}
+              disabled={!voucher || isPosted}
               placeholder="Transfer reference, cheque number or POS reference — optional"
               className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 font-semibold text-slate-900 outline-none focus:border-blue-500 disabled:bg-slate-100"
             />
@@ -869,7 +1018,7 @@ export default function FinanceRequestPage() {
               onChange={(event) =>
                 setNarration(event.target.value)
               }
-              disabled={!voucher}
+              disabled={!voucher || isPosted}
               rows={5}
               placeholder="Briefly describe the payment."
               className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 font-semibold leading-6 text-slate-900 outline-none focus:border-blue-500 disabled:bg-slate-100"
@@ -883,7 +1032,7 @@ export default function FinanceRequestPage() {
               onChange={(event) =>
                 setHardcopyConfirmed(event.target.checked)
               }
-              disabled={!voucher}
+              disabled={!voucher || isPosted}
               className="mt-1 h-4 w-4"
             />
             <span className="text-sm font-semibold leading-6 text-slate-700">
@@ -898,7 +1047,7 @@ export default function FinanceRequestPage() {
           <button
             type="button"
             onClick={savePaymentDraft}
-            disabled={!voucher || savingDraft}
+            disabled={!voucher || savingDraft || isPosted}
             className="rounded-xl bg-blue-700 px-5 py-3 text-sm font-black text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-slate-400"
           >
             {savingDraft
@@ -915,16 +1064,104 @@ export default function FinanceRequestPage() {
         </div>
       </section>
 
-      <section className="mt-6 rounded-3xl border border-blue-200 bg-blue-50 p-5 sm:p-6">
-        <h2 className="font-black text-blue-950">
-          Next Sprint
-        </h2>
-        <p className="mt-2 text-sm font-semibold leading-6 text-blue-800">
-          The next update will add the final Post Payment action,
-          finance transaction creation, account and subhead ledger
-          updates, request closure and audit history.
+      {postResult?.transaction_no && (
+        <section className="mt-6 rounded-3xl border border-blue-200 bg-blue-50 p-5 sm:p-6">
+          <h2 className="font-black text-blue-950">
+            Transaction Posted
+          </h2>
+          <p className="mt-2 text-sm font-semibold text-blue-800">
+            Transaction No: {postResult.transaction_no}
+          </p>
+          <p className="mt-1 text-sm font-semibold text-blue-800">
+            New Account Balance: {money(postResult.balance_after)}
+          </p>
+        </section>
+      )}
+
+      <section className="mt-6 rounded-3xl border border-red-200 bg-red-50 p-5 shadow-sm sm:p-7">
+        <p className="text-xs font-black uppercase tracking-[0.16em] text-red-700">
+          Section 5
         </p>
+        <h2 className="mt-1 text-2xl font-black text-red-950">
+          Final Payment Posting
+        </h2>
+
+        {isPosted ? (
+          <div className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
+            <p className="font-black text-emerald-950">
+              This payment has been posted successfully.
+            </p>
+            <p className="mt-2 text-sm font-semibold text-emerald-800">
+              Voucher: {voucher?.voucher_no || "Not available"}
+            </p>
+            <p className="mt-1 text-sm font-semibold text-emerald-800">
+              Posted: {readableDate(voucher?.posted_at)}
+            </p>
+          </div>
+        ) : (
+          <>
+            <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-red-800">
+              This action is permanent. It will create the finance transaction,
+              update the IET account and subhead balances, mark the voucher as
+              Posted, and mark the request as Paid.
+            </p>
+
+            <label className="mt-5 flex items-start gap-3 rounded-2xl border border-red-200 bg-white p-4">
+              <input
+                type="checkbox"
+                checked={confirmPost}
+                onChange={(event) => setConfirmPost(event.target.checked)}
+                disabled={!paymentDetailsReady}
+                className="mt-1 h-4 w-4"
+              />
+              <span className="text-sm font-semibold leading-6 text-slate-700">
+                I have reviewed the voucher and payment details and confirm that
+                this payment is ready to be posted permanently.
+              </span>
+            </label>
+
+            <button
+              type="button"
+              onClick={postPayment}
+              disabled={!paymentDetailsReady || !confirmPost || postingPayment}
+              className="mt-5 rounded-xl bg-red-700 px-5 py-3 text-sm font-black text-white transition hover:bg-red-800 disabled:cursor-not-allowed disabled:bg-slate-400"
+            >
+              {postingPayment
+                ? "Posting Payment…"
+                : "Post Payment Permanently"}
+            </button>
+
+            {!paymentDetailsReady && (
+              <p className="mt-3 text-sm font-bold text-red-800">
+                Complete and save the payment details before posting.
+              </p>
+            )}
+          </>
+        )}
       </section>
+      <footer className="mt-8 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm font-semibold text-slate-600">
+            ReqGen Finance Workspace • Data refreshes automatically every 30 seconds.
+          </p>
+
+          <div className="flex flex-wrap gap-2">
+            <Link
+              href="/finance"
+              className="rounded-xl bg-blue-700 px-4 py-2.5 text-sm font-black text-white transition hover:bg-blue-800"
+            >
+              Finance Home
+            </Link>
+
+            <Link
+              href="/dashboard"
+              className="rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-black text-white transition hover:bg-slate-800"
+            >
+              Main Dashboard
+            </Link>
+          </div>
+        </div>
+      </footer>
     </main>
   );
 }
