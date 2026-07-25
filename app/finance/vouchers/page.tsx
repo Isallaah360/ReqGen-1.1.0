@@ -706,8 +706,8 @@ export default function PaymentVouchersRegisterPage() {
                                             </div>
                                             <span
                                                 className={`mt-2 inline-flex rounded-full border px-2.5 py-1 text-xs font-black ${voucherKind(voucher) === "Manual Voucher"
-                                                        ? "border-amber-200 bg-amber-50 text-amber-800"
-                                                        : "border-blue-200 bg-blue-50 text-blue-800"
+                                                    ? "border-amber-200 bg-amber-50 text-amber-800"
+                                                    : "border-blue-200 bg-blue-50 text-blue-800"
                                                     }`}
                                             >
                                                 {voucherKind(voucher)}
@@ -769,9 +769,12 @@ export default function PaymentVouchersRegisterPage() {
                                                     Open Voucher
                                                 </Link>
                                             ) : (
-                                                <span className="inline-flex rounded-xl border border-slate-200 bg-slate-100 px-4 py-2.5 text-sm font-black text-slate-500">
-                                                    Manual view pending
-                                                </span>
+                                                <Link
+                                                    href={`/finance/manual-voucher?voucher=${voucher.id}`}
+                                                    className="inline-flex rounded-xl bg-amber-600 px-4 py-2.5 text-sm font-black text-white transition hover:bg-amber-700"
+                                                >
+                                                    Open Manual Voucher
+                                                </Link>
                                             )}
                                         </td>
                                     </tr>

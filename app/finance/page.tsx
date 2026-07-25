@@ -486,14 +486,12 @@ export default function FinanceDashboardPage() {
             title="Manual Voucher Saga"
             description="Complete direct finance entries, approvals, posting and audit history."
             accent="amber"
-            disabled
           />
           <NavigationCard
             href="/finance/reports"
             title="Finance Reports"
             description="Account ledgers, subhead reports, printing, PDF and Excel export."
             accent="emerald"
-            disabled
           />
         </div>
       </section>
