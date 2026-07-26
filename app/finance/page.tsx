@@ -12,7 +12,7 @@ export default function FinancePage() {
         fontWeight: "bold",
       }}
     >
-      🚨 THIS IS THE NEW FINANCE PAGE 🚨
+      🚨 THIS IS THE NEW FINANCE TEST PAGE 777 🚨
     </main>
   );
 }
