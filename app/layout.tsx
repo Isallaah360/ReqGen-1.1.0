@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+// @ts-expect-error - Next.js global stylesheet import
 import "./globals.css";
 import NavBar from "./components/NavBar";
 import SessionTimeout from "./components/SessionTimeout";
