@@ -1,7 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import {
+    FormEvent,
+    useCallback,
+    useEffect,
+    useMemo,
+    useState,
+} from "react";
 import { supabase } from "@/lib/supabaseClient";
 
 type ProfileRole = {
@@ -74,6 +80,15 @@ const FINANCE_ROLES = new Set([
     "pvcountersigner",
 ]);
 
+const PAYMENT_METHODS = [
+    "Bank Transfer",
+    "Cheque",
+    "Cash",
+    "POS",
+    "Mobile Transfer",
+    "Other",
+];
+
 function normalizeRole(value: string | null | undefined) {
     return (value || "")
         .trim()
@@ -112,8 +127,18 @@ function subheadLabel(subhead: SubheadRow) {
     );
 }
 
+function subheadCode(subhead: SubheadRow) {
+    return subhead.subhead_code || subhead.code || "";
+}
+
 function accountLabel(account: AccountRow) {
     return account.name || account.bank_name || "Unnamed IET account";
+}
+
+function accountBalance(account: AccountRow | undefined) {
+    if (!account) return 0;
+
+    return Number(account.available_balance ?? account.balance ?? 0);
 }
 
 function readableDate(value: string | null | undefined) {
@@ -144,6 +169,20 @@ function statusClasses(statusValue: string | null | undefined) {
     return "border-amber-200 bg-amber-50 text-amber-800";
 }
 
+function isPostedStatus(statusValue: string | null | undefined) {
+    const status = (statusValue || "").toLowerCase();
+
+    return status.includes("posted") || status.includes("paid");
+}
+
+function firstRpcRecord<T>(data: unknown): T {
+    if (Array.isArray(data)) {
+        return data[0] as T;
+    }
+
+    return data as T;
+}
+
 export default function ManualVoucherPage() {
     const [loading, setLoading] = useState(true);
     const [authorized, setAuthorized] = useState(false);
@@ -156,7 +195,9 @@ export default function ManualVoucherPage() {
 
     const [accounts, setAccounts] = useState<AccountRow[]>([]);
     const [subheads, setSubheads] = useState<SubheadRow[]>([]);
-    const [manualVouchers, setManualVouchers] = useState<ManualVoucherRow[]>([]);
+    const [manualVouchers, setManualVouchers] = useState<ManualVoucherRow[]>(
+        []
+    );
 
     const [voucherId, setVoucherId] = useState<string | null>(null);
     const [voucherNo, setVoucherNo] = useState<string | null>(null);
@@ -165,25 +206,40 @@ export default function ManualVoucherPage() {
     const [payeeName, setPayeeName] = useState("");
     const [narration, setNarration] = useState("");
     const [amount, setAmount] = useState("");
-    const [paymentMethod, setPaymentMethod] = useState("Bank Transfer");
+    const [paymentMethod, setPaymentMethod] =
+        useState("Bank Transfer");
     const [paymentReference, setPaymentReference] = useState("");
     const [paymentDate, setPaymentDate] = useState(todayInput());
     const [confirmPosting, setConfirmPosting] = useState(false);
 
     const loadPage = useCallback(async (manual = false) => {
-        manual ? setRefreshing(true) : setLoading(true);
+        if (manual) {
+            setRefreshing(true);
+        } else {
+            setLoading(true);
+        }
+
         setError(null);
 
         try {
-            const { data: authData, error: authError } = await supabase.auth.getUser();
+            const { data: authData, error: authError } =
+                await supabase.auth.getUser();
+
             const user = authData.user;
 
             if (authError || !user) {
-                throw new Error("Your session has expired. Please sign in again.");
+                throw new Error(
+                    "Your session has expired. Please sign in again."
+                );
             }
 
             const [profileResult, rolesResult] = await Promise.all([
-                supabase.from("profiles").select("role").eq("id", user.id).maybeSingle(),
+                supabase
+                    .from("profiles")
+                    .select("role")
+                    .eq("id", user.id)
+                    .maybeSingle(),
+
                 supabase
                     .from("profile_roles")
                     .select("role_key,is_active")
@@ -191,11 +247,36 @@ export default function ManualVoucherPage() {
                     .eq("is_active", true),
             ]);
 
+            if (profileResult.error) {
+                console.warn(
+                    "Unable to read primary profile role:",
+                    profileResult.error
+                );
+            }
+
+            if (rolesResult.error) {
+                console.warn(
+                    "Unable to read assigned profile roles:",
+                    rolesResult.error
+                );
+            }
+
             const roleKeys = new Set<string>();
-            roleKeys.add(normalizeRole(profileResult.data?.role));
+
+            const primaryRole = normalizeRole(profileResult.data?.role);
+
+            if (primaryRole) {
+                roleKeys.add(primaryRole);
+            }
 
             ((rolesResult.data || []) as ProfileRole[]).forEach((item) => {
-                if (item.is_active) roleKeys.add(normalizeRole(item.role_key));
+                if (item.is_active) {
+                    const normalized = normalizeRole(item.role_key);
+
+                    if (normalized) {
+                        roleKeys.add(normalized);
+                    }
+                }
             });
 
             const hasFinanceRole = [...roleKeys].some((role) =>
@@ -208,19 +289,31 @@ export default function ManualVoucherPage() {
                 return;
             }
 
-            const [accountResult, subheadResult, voucherResult] = await Promise.all([
+            const [
+                accountResult,
+                subheadResult,
+                voucherResult,
+            ] = await Promise.all([
                 supabase
                     .from("iet_accounts")
                     .select(
                         "id,name,bank_name,account_number,available_balance,balance"
                     )
-                    .order("name", { ascending: true }),
+                    .order("name", {
+                        ascending: true,
+                        nullsFirst: false,
+                    }),
+
                 supabase
                     .from("subheads")
                     .select(
                         "id,name,title,subhead_name,code,subhead_code,account_id,bank_account_id,balance"
                     )
-                    .order("name", { ascending: true }),
+                    .order("name", {
+                        ascending: true,
+                        nullsFirst: false,
+                    }),
+
                 supabase
                     .from("payment_vouchers")
                     .select(
@@ -231,13 +324,23 @@ export default function ManualVoucherPage() {
                     .limit(50),
             ]);
 
-            if (accountResult.error) throw accountResult.error;
-            if (subheadResult.error) throw subheadResult.error;
-            if (voucherResult.error) throw voucherResult.error;
+            if (accountResult.error) {
+                throw accountResult.error;
+            }
+
+            if (subheadResult.error) {
+                throw subheadResult.error;
+            }
+
+            if (voucherResult.error) {
+                throw voucherResult.error;
+            }
 
             setAccounts((accountResult.data || []) as AccountRow[]);
             setSubheads((subheadResult.data || []) as SubheadRow[]);
-            setManualVouchers((voucherResult.data || []) as ManualVoucherRow[]);
+            setManualVouchers(
+                (voucherResult.data || []) as ManualVoucherRow[]
+            );
         } catch (caught) {
             setError(
                 caught instanceof Error
@@ -259,12 +362,20 @@ export default function ManualVoucherPage() {
             .channel("manual-voucher-centre-live")
             .on(
                 "postgres_changes",
-                { event: "*", schema: "public", table: "payment_vouchers" },
+                {
+                    event: "*",
+                    schema: "public",
+                    table: "payment_vouchers",
+                },
                 () => loadPage(true)
             )
             .on(
                 "postgres_changes",
-                { event: "*", schema: "public", table: "finance_transactions" },
+                {
+                    event: "*",
+                    schema: "public",
+                    table: "finance_transactions",
+                },
                 () => loadPage(true)
             )
             .subscribe();
@@ -279,24 +390,71 @@ export default function ManualVoucherPage() {
         [accountId, accounts]
     );
 
-    const availableSubheads = useMemo(
-        () =>
-            subheads.filter(
-                (item) =>
-                    !accountId ||
-                    item.account_id === accountId ||
-                    item.bank_account_id === accountId ||
-                    (!item.account_id && !item.bank_account_id)
-            ),
-        [accountId, subheads]
-    );
+    const availableSubheads = useMemo(() => {
+        return subheads.filter((item) => {
+            if (!accountId) return true;
+
+            return (
+                item.account_id === accountId ||
+                item.bank_account_id === accountId ||
+                (!item.account_id && !item.bank_account_id)
+            );
+        });
+    }, [accountId, subheads]);
 
     const selectedSubhead = useMemo(
         () => subheads.find((item) => item.id === subheadId),
         [subheadId, subheads]
     );
 
-    function clearForm() {
+    const numericAmount = Number(amount || 0);
+    const currentAccountBalance = accountBalance(selectedAccount);
+    const currentSubheadBalance = Number(
+        selectedSubhead?.balance || 0
+    );
+
+    const accountBalanceAfterPayment =
+        currentAccountBalance -
+        (Number.isFinite(numericAmount) ? numericAmount : 0);
+
+    const subheadBalanceAfterPayment =
+        currentSubheadBalance -
+        (Number.isFinite(numericAmount) ? numericAmount : 0);
+
+    const draftCount = useMemo(
+        () =>
+            manualVouchers.filter(
+                (voucher) => !isPostedStatus(voucher.status)
+            ).length,
+        [manualVouchers]
+    );
+
+    const postedCount = useMemo(
+        () =>
+            manualVouchers.filter((voucher) =>
+                isPostedStatus(voucher.status)
+            ).length,
+        [manualVouchers]
+    );
+
+    const postedValue = useMemo(
+        () =>
+            manualVouchers
+                .filter((voucher) => isPostedStatus(voucher.status))
+                .reduce(
+                    (total, voucher) =>
+                        total +
+                        Number(
+                            voucher.total_amount ??
+                            voucher.amount ??
+                            0
+                        ),
+                    0
+                ),
+        [manualVouchers]
+    );
+
+    function clearForm(preserveMessage = false) {
         setVoucherId(null);
         setVoucherNo(null);
         setAccountId("");
@@ -309,14 +467,25 @@ export default function ManualVoucherPage() {
         setPaymentDate(todayInput());
         setConfirmPosting(false);
         setError(null);
+
+        if (!preserveMessage) {
+            setSuccess(null);
+        }
+    }
+
+    function handleAccountChange(value: string) {
+        setAccountId(value);
+        setSubheadId("");
+        setError(null);
         setSuccess(null);
     }
 
     function openDraft(voucher: ManualVoucherRow) {
-        const status = (voucher.status || "").toLowerCase();
-
-        if (status.includes("posted") || status.includes("paid")) {
-            setError("Posted vouchers are read-only and cannot be edited.");
+        if (isPostedStatus(voucher.status)) {
+            setSuccess(null);
+            setError(
+                "Posted vouchers are read-only and cannot be edited."
+            );
             return;
         }
 
@@ -326,32 +495,67 @@ export default function ManualVoucherPage() {
         setSubheadId(voucher.subhead_id || "");
         setPayeeName(voucher.payee_name || "");
         setNarration(voucher.narration || "");
-        setAmount(String(voucher.total_amount || voucher.amount || ""));
-        setPaymentMethod(voucher.payment_method || "Bank Transfer");
+        setAmount(
+            String(voucher.total_amount ?? voucher.amount ?? "")
+        );
+        setPaymentMethod(
+            voucher.payment_method || "Bank Transfer"
+        );
         setPaymentReference(voucher.payment_reference || "");
         setPaymentDate(voucher.payment_date || todayInput());
         setConfirmPosting(false);
         setError(null);
-        setSuccess(`Draft ${voucher.voucher_no || ""} loaded for editing.`);
-        window.scrollTo({ top: 0, behavior: "smooth" });
+        setSuccess(
+            `Draft ${voucher.voucher_no || ""} loaded for editing.`
+        );
+
+        window.scrollTo({
+            top: 0,
+            behavior: "smooth",
+        });
+    }
+
+    function validateVoucher() {
+        const value = Number(amount);
+
+        if (!accountId) {
+            throw new Error("Select an IET account.");
+        }
+
+        if (!subheadId) {
+            throw new Error("Select a subhead.");
+        }
+
+        if (!payeeName.trim()) {
+            throw new Error("Enter the payee or beneficiary.");
+        }
+
+        if (!narration.trim()) {
+            throw new Error("Enter the payment narration.");
+        }
+
+        if (!Number.isFinite(value) || value <= 0) {
+            throw new Error(
+                "Enter a valid amount greater than zero."
+            );
+        }
+
+        if (!paymentDate) {
+            throw new Error("Select the payment date.");
+        }
+
+        return value;
     }
 
     async function saveDraft(event?: FormEvent) {
         event?.preventDefault();
+
         setSaving(true);
         setError(null);
         setSuccess(null);
 
         try {
-            const numericAmount = Number(amount);
-
-            if (!accountId) throw new Error("Select an IET account.");
-            if (!subheadId) throw new Error("Select a subhead.");
-            if (!payeeName.trim()) throw new Error("Enter the payee or beneficiary.");
-            if (!narration.trim()) throw new Error("Enter the payment narration.");
-            if (!Number.isFinite(numericAmount) || numericAmount <= 0) {
-                throw new Error("Enter a valid amount greater than zero.");
-            }
+            const validatedAmount = validateVoucher();
 
             const { data, error: rpcError } = await supabase.rpc(
                 "save_manual_payment_voucher",
@@ -361,19 +565,32 @@ export default function ManualVoucherPage() {
                     p_subhead_id: subheadId,
                     p_payee_name: payeeName.trim(),
                     p_narration: narration.trim(),
-                    p_amount: numericAmount,
+                    p_amount: validatedAmount,
                     p_payment_method: paymentMethod,
-                    p_payment_reference: paymentReference.trim() || null,
+                    p_payment_reference:
+                        paymentReference.trim() || null,
                     p_payment_date: paymentDate,
                 }
             );
 
-            if (rpcError) throw rpcError;
+            if (rpcError) {
+                throw rpcError;
+            }
 
-            const result = data as SaveResult;
+            const result = firstRpcRecord<SaveResult>(data);
+
+            if (!result?.voucher_id) {
+                throw new Error(
+                    "The voucher was processed, but Supabase did not return a voucher ID."
+                );
+            }
+
             setVoucherId(result.voucher_id);
             setVoucherNo(result.voucher_no);
-            setSuccess(`Draft ${result.voucher_no} saved successfully.`);
+            setSuccess(
+                `Draft ${result.voucher_no} saved successfully.`
+            );
+
             await loadPage(true);
 
             return result;
@@ -383,6 +600,7 @@ export default function ManualVoucherPage() {
                     ? caught.message
                     : "Unable to save the manual voucher."
             );
+
             return null;
         } finally {
             setSaving(false);
@@ -395,6 +613,8 @@ export default function ManualVoucherPage() {
         setSuccess(null);
 
         try {
+            validateVoucher();
+
             if (!confirmPosting) {
                 throw new Error(
                     "Confirm that the voucher details and supporting physical documents have been verified."
@@ -409,7 +629,9 @@ export default function ManualVoucherPage() {
             }
 
             if (!activeVoucherId) {
-                throw new Error("The voucher must be saved before posting.");
+                throw new Error(
+                    "The voucher must be saved before posting."
+                );
             }
 
             const { data, error: rpcError } = await supabase.rpc(
@@ -419,20 +641,28 @@ export default function ManualVoucherPage() {
                 }
             );
 
-            if (rpcError) throw rpcError;
+            if (rpcError) {
+                throw rpcError;
+            }
 
-            const result = data as PostResult;
+            const result = firstRpcRecord<PostResult>(data);
 
-            setSuccess(
-                `${result.voucher_no} posted successfully as ${result.transaction_no}. Updated account balance: ${money(
-                    result.account_balance
-                )}; subhead balance: ${money(result.subhead_balance)}.`
-            );
+            if (!result?.voucher_no) {
+                throw new Error(
+                    "Supabase did not return the posted voucher details."
+                );
+            }
 
             await loadPage(true);
-            clearForm();
+            clearForm(true);
+
             setSuccess(
-                `${result.voucher_no} posted successfully as ${result.transaction_no}.`
+                `${result.voucher_no} posted successfully as ${result.transaction_no
+                }. Account balance: ${money(
+                    result.account_balance
+                )}. Subhead balance: ${money(
+                    result.subhead_balance
+                )}.`
             );
         } catch (caught) {
             setError(
@@ -449,9 +679,10 @@ export default function ManualVoucherPage() {
         return (
             <main className="mx-auto max-w-7xl px-4 py-8">
                 <div className="animate-pulse space-y-6">
-                    <div className="h-32 rounded-3xl bg-slate-200" />
+                    <div className="h-20 rounded-3xl bg-slate-200" />
+                    <div className="h-64 rounded-3xl bg-slate-200" />
+                    <div className="h-[620px] rounded-3xl bg-slate-200" />
                     <div className="h-96 rounded-3xl bg-slate-200" />
-                    <div className="h-80 rounded-3xl bg-slate-200" />
                 </div>
             </main>
         );
@@ -461,16 +692,22 @@ export default function ManualVoucherPage() {
         return (
             <main className="mx-auto max-w-3xl px-4 py-12">
                 <section className="rounded-3xl border border-amber-200 bg-amber-50 p-7 shadow-sm">
-                    <h1 className="text-2xl font-black text-amber-950">
+                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-100 text-2xl">
+                        🔐
+                    </div>
+
+                    <h1 className="mt-5 text-2xl font-black text-amber-950">
                         Finance access required
                     </h1>
+
                     <p className="mt-3 font-semibold leading-7 text-amber-900">
-                        Your active roles do not permit access to the Manual Voucher
-                        Centre.
+                        Your active roles do not permit access to the
+                        Manual Voucher Centre.
                     </p>
+
                     <Link
                         href="/dashboard"
-                        className="mt-5 inline-flex rounded-xl bg-slate-950 px-4 py-3 text-sm font-black text-white"
+                        className="mt-5 inline-flex rounded-xl bg-slate-950 px-4 py-3 text-sm font-black text-white transition hover:bg-slate-800"
                     >
                         Return to Dashboard
                     </Link>
@@ -485,21 +722,23 @@ export default function ManualVoucherPage() {
                 <div className="flex flex-wrap gap-2">
                     <Link
                         href="/finance"
-                        className="rounded-xl bg-blue-700 px-4 py-2.5 text-sm font-black text-white transition hover:bg-blue-800"
+                        className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-black text-slate-800 transition hover:bg-slate-100"
                     >
                         ← Finance Dashboard
                     </Link>
+
                     <Link
                         href="/finance/vouchers"
                         className="rounded-xl bg-violet-700 px-4 py-2.5 text-sm font-black text-white transition hover:bg-violet-800"
                     >
-                        Vouchers Register
+                        Voucher Register
                     </Link>
+
                     <Link
                         href="/finance/transactions"
                         className="rounded-xl bg-emerald-700 px-4 py-2.5 text-sm font-black text-white transition hover:bg-emerald-800"
                     >
-                        Transactions Register
+                        Transactions
                     </Link>
                 </div>
 
@@ -507,352 +746,881 @@ export default function ManualVoucherPage() {
                     type="button"
                     onClick={() => loadPage(true)}
                     disabled={refreshing}
-                    className="rounded-xl border border-cyan-200 bg-cyan-50 px-4 py-2.5 text-sm font-black text-cyan-800 transition hover:bg-cyan-100 disabled:opacity-60"
+                    className="rounded-xl border border-cyan-200 bg-cyan-50 px-4 py-2.5 text-sm font-black text-cyan-800 transition hover:bg-cyan-100 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                    {refreshing ? "Refreshing…" : "Refresh Centre"}
+                    {refreshing
+                        ? "Refreshing…"
+                        : "Refresh Voucher Data"}
                 </button>
             </nav>
 
-            <section className="overflow-hidden rounded-3xl border border-amber-200 bg-gradient-to-br from-slate-950 via-amber-950 to-violet-950 p-6 text-white shadow-xl sm:p-8">
-                <p className="text-xs font-black uppercase tracking-[0.2em] text-amber-300">
-                    Phase 2C • Manual Voucher Saga
-                </p>
-                <h1 className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">
-                    Manual Voucher Centre
-                </h1>
-                <p className="mt-3 max-w-3xl font-semibold leading-7 text-slate-300">
-                    Create direct finance vouchers, save drafts, post approved payments
-                    and update the same ledgers used by request-based payments.
-                </p>
+            <section className="overflow-hidden rounded-[32px] border border-violet-800/40 bg-gradient-to-br from-slate-950 via-violet-950 to-amber-950 p-6 text-white shadow-xl sm:p-8">
+                <div className="grid gap-7 lg:grid-cols-[1fr_340px] lg:items-center">
+                    <div>
+                        <p className="text-xs font-black uppercase tracking-[0.22em] text-amber-300">
+                            Finance Management
+                        </p>
+
+                        <h1 className="mt-3 text-3xl font-black tracking-tight sm:text-4xl">
+                            Manual Voucher Centre
+                        </h1>
+
+                        <p className="mt-4 max-w-3xl font-semibold leading-7 text-slate-300">
+                            Create direct payment vouchers, retain
+                            unfinished vouchers as drafts and post verified
+                            payments into the central finance transaction
+                            register.
+                        </p>
+
+                        <div className="mt-6 flex flex-wrap gap-3">
+                            <button
+                                type="button"
+                                onClick={() => clearForm()}
+                                className="rounded-xl bg-amber-400 px-5 py-3 text-sm font-black text-slate-950 transition hover:bg-amber-300"
+                            >
+                                + Start New Voucher
+                            </button>
+
+                            <Link
+                                href="/finance/vouchers"
+                                className="rounded-xl border border-white/20 bg-white/10 px-5 py-3 text-sm font-black text-white transition hover:bg-white/15"
+                            >
+                                View Voucher Register
+                            </Link>
+                        </div>
+                    </div>
+
+                    <div className="rounded-3xl border border-white/10 bg-white/10 p-5 backdrop-blur">
+                        <p className="text-xs font-black uppercase tracking-[0.17em] text-slate-300">
+                            Manual voucher activity
+                        </p>
+
+                        <p className="mt-3 text-3xl font-black">
+                            {money(postedValue)}
+                        </p>
+
+                        <p className="mt-2 text-sm font-semibold leading-6 text-slate-300">
+                            Total value of posted manual vouchers among the
+                            latest records.
+                        </p>
+
+                        <div className="mt-5 grid grid-cols-3 gap-2">
+                            <div className="rounded-xl bg-amber-300/15 px-3 py-2 text-center">
+                                <p className="text-lg font-black text-amber-200">
+                                    {draftCount}
+                                </p>
+                                <p className="text-[10px] font-black uppercase tracking-wide text-slate-300">
+                                    Drafts
+                                </p>
+                            </div>
+
+                            <div className="rounded-xl bg-emerald-300/15 px-3 py-2 text-center">
+                                <p className="text-lg font-black text-emerald-200">
+                                    {postedCount}
+                                </p>
+                                <p className="text-[10px] font-black uppercase tracking-wide text-slate-300">
+                                    Posted
+                                </p>
+                            </div>
+
+                            <div className="rounded-xl bg-violet-300/15 px-3 py-2 text-center">
+                                <p className="text-lg font-black text-violet-200">
+                                    {manualVouchers.length}
+                                </p>
+                                <p className="text-[10px] font-black uppercase tracking-wide text-slate-300">
+                                    Records
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </section>
 
             {error && (
-                <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 font-semibold text-red-800">
-                    {error}
+                <div className="mt-6 flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-4 font-semibold text-red-800 shadow-sm">
+                    <span className="text-lg">⚠️</span>
+                    <p>{error}</p>
                 </div>
             )}
 
             {success && (
-                <div className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 font-semibold text-emerald-800">
-                    {success}
+                <div className="mt-6 flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4 font-semibold text-emerald-800 shadow-sm">
+                    <span className="text-lg">✅</span>
+                    <p>{success}</p>
                 </div>
             )}
 
-            <section className="mt-6 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
-                <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+            <section className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                <article className="rounded-3xl border border-amber-200 bg-amber-50 p-5 shadow-sm">
+                    <p className="text-xs font-black uppercase tracking-[0.14em] text-amber-700">
+                        Draft vouchers
+                    </p>
+                    <p className="mt-2 text-3xl font-black text-amber-950">
+                        {draftCount}
+                    </p>
+                    <p className="mt-2 text-sm font-semibold text-amber-800">
+                        Saved vouchers awaiting posting
+                    </p>
+                </article>
+
+                <article className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm">
+                    <p className="text-xs font-black uppercase tracking-[0.14em] text-emerald-700">
+                        Posted vouchers
+                    </p>
+                    <p className="mt-2 text-3xl font-black text-emerald-950">
+                        {postedCount}
+                    </p>
+                    <p className="mt-2 text-sm font-semibold text-emerald-800">
+                        Completed manual payments
+                    </p>
+                </article>
+
+                <article className="rounded-3xl border border-blue-200 bg-blue-50 p-5 shadow-sm">
+                    <p className="text-xs font-black uppercase tracking-[0.14em] text-blue-700">
+                        IET accounts
+                    </p>
+                    <p className="mt-2 text-3xl font-black text-blue-950">
+                        {accounts.length}
+                    </p>
+                    <p className="mt-2 text-sm font-semibold text-blue-800">
+                        Available finance accounts
+                    </p>
+                </article>
+
+                <article className="rounded-3xl border border-violet-200 bg-violet-50 p-5 shadow-sm">
+                    <p className="text-xs font-black uppercase tracking-[0.14em] text-violet-700">
+                        Finance subheads
+                    </p>
+                    <p className="mt-2 text-3xl font-black text-violet-950">
+                        {subheads.length}
+                    </p>
+                    <p className="mt-2 text-sm font-semibold text-violet-800">
+                        Available budget classifications
+                    </p>
+                </article>
+            </section>
+
+            <section className="mt-6 rounded-[32px] border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
+                <div className="flex flex-col justify-between gap-4 border-b border-slate-200 pb-5 sm:flex-row sm:items-center">
                     <div>
-                        <p className="text-xs font-black uppercase tracking-[0.16em] text-amber-700">
-                            {voucherId ? "Edit Manual Voucher" : "New Manual Voucher"}
+                        <p className="text-xs font-black uppercase tracking-[0.18em] text-amber-700">
+                            {voucherId
+                                ? "Edit Manual Voucher"
+                                : "New Manual Voucher"}
                         </p>
-                        <h2 className="mt-1 text-2xl font-black text-slate-950">
-                            {voucherNo || "Voucher number generated on first save"}
+
+                        <h2 className="mt-2 text-2xl font-black text-slate-950">
+                            {voucherNo ||
+                                "Voucher number generated on first save"}
                         </h2>
+
+                        <p className="mt-2 text-sm font-semibold text-slate-500">
+                            Fields marked with an asterisk are required.
+                        </p>
                     </div>
 
                     {voucherId && (
                         <button
                             type="button"
-                            onClick={clearForm}
-                            className="w-fit rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm font-black text-slate-700"
+                            onClick={() => clearForm()}
+                            className="w-fit rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm font-black text-slate-700 transition hover:bg-slate-100"
                         >
                             Start New Voucher
                         </button>
                     )}
                 </div>
 
-                <form onSubmit={saveDraft} className="mt-6 grid gap-5 lg:grid-cols-2">
-                    <label>
-                        <span className="text-sm font-black text-slate-800">
-                            IET Account
-                        </span>
-                        <select
-                            required
-                            value={accountId}
-                            onChange={(event) => {
-                                setAccountId(event.target.value);
-                                setSubheadId("");
-                            }}
-                            className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 font-semibold text-slate-900 outline-none focus:border-amber-500"
-                        >
-                            <option value="">Select account</option>
-                            {accounts.map((account) => (
-                                <option key={account.id} value={account.id}>
-                                    {accountLabel(account)}
-                                    {account.account_number
-                                        ? ` • ${account.account_number}`
-                                        : ""}
-                                </option>
-                            ))}
-                        </select>
-                        {selectedAccount && (
-                            <p className="mt-2 text-xs font-bold text-emerald-700">
-                                Available balance:{" "}
-                                {money(
-                                    selectedAccount.available_balance ??
-                                    selectedAccount.balance
-                                )}
-                            </p>
-                        )}
-                    </label>
-
-                    <label>
-                        <span className="text-sm font-black text-slate-800">Subhead</span>
-                        <select
-                            required
-                            value={subheadId}
-                            onChange={(event) => setSubheadId(event.target.value)}
-                            disabled={!accountId}
-                            className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 font-semibold text-slate-900 outline-none focus:border-amber-500 disabled:bg-slate-100"
-                        >
-                            <option value="">
-                                {accountId ? "Select subhead" : "Select account first"}
-                            </option>
-                            {availableSubheads.map((subhead) => (
-                                <option key={subhead.id} value={subhead.id}>
-                                    {subheadLabel(subhead)}
-                                </option>
-                            ))}
-                        </select>
-                        {selectedSubhead && (
-                            <p className="mt-2 text-xs font-bold text-violet-700">
-                                Subhead balance: {money(selectedSubhead.balance)}
-                            </p>
-                        )}
-                    </label>
-
-                    <label>
-                        <span className="text-sm font-black text-slate-800">
-                            Payee / Beneficiary
-                        </span>
-                        <input
-                            required
-                            value={payeeName}
-                            onChange={(event) => setPayeeName(event.target.value)}
-                            placeholder="Person or organisation receiving payment"
-                            className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 font-semibold text-slate-900 outline-none focus:border-amber-500"
-                        />
-                    </label>
-
-                    <label>
-                        <span className="text-sm font-black text-slate-800">Amount</span>
-                        <input
-                            required
-                            min="0.01"
-                            step="0.01"
-                            type="number"
-                            value={amount}
-                            onChange={(event) => setAmount(event.target.value)}
-                            placeholder="0.00"
-                            className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 font-semibold text-slate-900 outline-none focus:border-amber-500"
-                        />
-                    </label>
-
-                    <label className="lg:col-span-2">
-                        <span className="text-sm font-black text-slate-800">
-                            Payment Narration
-                        </span>
-                        <textarea
-                            required
-                            rows={4}
-                            value={narration}
-                            onChange={(event) => setNarration(event.target.value)}
-                            placeholder="Describe exactly what the payment is for"
-                            className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 font-semibold text-slate-900 outline-none focus:border-amber-500"
-                        />
-                    </label>
-
-                    <label>
-                        <span className="text-sm font-black text-slate-800">
-                            Payment Method
-                        </span>
-                        <select
-                            value={paymentMethod}
-                            onChange={(event) => setPaymentMethod(event.target.value)}
-                            className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 font-semibold text-slate-900 outline-none focus:border-amber-500"
-                        >
-                            <option>Bank Transfer</option>
-                            <option>Cheque</option>
-                            <option>Cash</option>
-                            <option>Direct Debit</option>
-                            <option>Other</option>
-                        </select>
-                    </label>
-
-                    <label>
-                        <span className="text-sm font-black text-slate-800">
-                            Payment Date
-                        </span>
-                        <input
-                            required
-                            type="date"
-                            value={paymentDate}
-                            onChange={(event) => setPaymentDate(event.target.value)}
-                            className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 font-semibold text-slate-900 outline-none focus:border-amber-500"
-                        />
-                    </label>
-
-                    <label className="lg:col-span-2">
-                        <span className="text-sm font-black text-slate-800">
-                            Payment Reference
-                        </span>
-                        <input
-                            value={paymentReference}
-                            onChange={(event) => setPaymentReference(event.target.value)}
-                            placeholder="Transfer reference, cheque number or supporting reference"
-                            className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 font-semibold text-slate-900 outline-none focus:border-amber-500"
-                        />
-                    </label>
-
-                    <div className="lg:col-span-2 rounded-2xl border border-amber-200 bg-amber-50 p-4">
-                        <label className="flex items-start gap-3">
-                            <input
-                                type="checkbox"
-                                checked={confirmPosting}
-                                onChange={(event) => setConfirmPosting(event.target.checked)}
-                                className="mt-1 h-5 w-5 rounded border-amber-400"
-                            />
-                            <span className="text-sm font-bold leading-6 text-amber-950">
-                                I confirm that the voucher details are correct, the physical
-                                supporting documents have been verified and this payment is
-                                ready for final ledger posting.
+                <form
+                    onSubmit={saveDraft}
+                    className="mt-6 grid gap-6 xl:grid-cols-[1fr_340px]"
+                >
+                    <div className="grid gap-5 lg:grid-cols-2">
+                        <label className="block">
+                            <span className="text-sm font-black text-slate-800">
+                                IET Account *
                             </span>
+
+                            <select
+                                value={accountId}
+                                onChange={(event) =>
+                                    handleAccountChange(
+                                        event.target.value
+                                    )
+                                }
+                                disabled={saving || posting}
+                                className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 font-semibold text-slate-900 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:bg-slate-100"
+                            >
+                                <option value="">
+                                    Select an IET account
+                                </option>
+
+                                {accounts.map((account) => (
+                                    <option
+                                        key={account.id}
+                                        value={account.id}
+                                    >
+                                        {accountLabel(account)}
+                                        {account.account_number
+                                            ? ` • ${account.account_number}`
+                                            : ""}
+                                    </option>
+                                ))}
+                            </select>
                         </label>
+
+                        <label className="block">
+                            <span className="text-sm font-black text-slate-800">
+                                Finance Subhead *
+                            </span>
+
+                            <select
+                                value={subheadId}
+                                onChange={(event) => {
+                                    setSubheadId(event.target.value);
+                                    setError(null);
+                                    setSuccess(null);
+                                }}
+                                disabled={
+                                    saving ||
+                                    posting ||
+                                    !accountId
+                                }
+                                className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 font-semibold text-slate-900 outline-none transition focus:border-violet-500 focus:ring-4 focus:ring-violet-100 disabled:bg-slate-100"
+                            >
+                                <option value="">
+                                    {accountId
+                                        ? "Select a finance subhead"
+                                        : "Select an account first"}
+                                </option>
+
+                                {availableSubheads.map((subhead) => (
+                                    <option
+                                        key={subhead.id}
+                                        value={subhead.id}
+                                    >
+                                        {subheadCode(subhead)
+                                            ? `${subheadCode(
+                                                subhead
+                                            )} • `
+                                            : ""}
+                                        {subheadLabel(subhead)}
+                                    </option>
+                                ))}
+                            </select>
+                        </label>
+
+                        <label className="block lg:col-span-2">
+                            <span className="text-sm font-black text-slate-800">
+                                Payee or Beneficiary *
+                            </span>
+
+                            <input
+                                type="text"
+                                value={payeeName}
+                                onChange={(event) =>
+                                    setPayeeName(event.target.value)
+                                }
+                                disabled={saving || posting}
+                                placeholder="Enter the full name of the payee"
+                                className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 font-semibold text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:bg-slate-100"
+                            />
+                        </label>
+
+                        <label className="block lg:col-span-2">
+                            <span className="text-sm font-black text-slate-800">
+                                Payment Narration *
+                            </span>
+
+                            <textarea
+                                value={narration}
+                                onChange={(event) =>
+                                    setNarration(event.target.value)
+                                }
+                                disabled={saving || posting}
+                                rows={4}
+                                placeholder="Clearly describe the purpose of this payment"
+                                className="mt-2 w-full resize-y rounded-xl border border-slate-300 bg-white px-4 py-3 font-semibold leading-7 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:bg-slate-100"
+                            />
+                        </label>
+
+                        <label className="block">
+                            <span className="text-sm font-black text-slate-800">
+                                Amount *
+                            </span>
+
+                            <div className="mt-2 flex overflow-hidden rounded-xl border border-slate-300 bg-white transition focus-within:border-emerald-500 focus-within:ring-4 focus-within:ring-emerald-100">
+                                <span className="flex items-center border-r border-slate-200 bg-slate-50 px-4 font-black text-slate-600">
+                                    NGN
+                                </span>
+
+                                <input
+                                    type="number"
+                                    min="0.01"
+                                    step="0.01"
+                                    value={amount}
+                                    onChange={(event) =>
+                                        setAmount(event.target.value)
+                                    }
+                                    disabled={saving || posting}
+                                    placeholder="0.00"
+                                    className="w-full px-4 py-3 font-black text-slate-950 outline-none disabled:bg-slate-100"
+                                />
+                            </div>
+                        </label>
+
+                        <label className="block">
+                            <span className="text-sm font-black text-slate-800">
+                                Payment Date *
+                            </span>
+
+                            <input
+                                type="date"
+                                value={paymentDate}
+                                onChange={(event) =>
+                                    setPaymentDate(event.target.value)
+                                }
+                                disabled={saving || posting}
+                                className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 font-semibold text-slate-900 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:bg-slate-100"
+                            />
+                        </label>
+
+                        <label className="block">
+                            <span className="text-sm font-black text-slate-800">
+                                Payment Method
+                            </span>
+
+                            <select
+                                value={paymentMethod}
+                                onChange={(event) =>
+                                    setPaymentMethod(
+                                        event.target.value
+                                    )
+                                }
+                                disabled={saving || posting}
+                                className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 font-semibold text-slate-900 outline-none transition focus:border-violet-500 focus:ring-4 focus:ring-violet-100 disabled:bg-slate-100"
+                            >
+                                {PAYMENT_METHODS.map((method) => (
+                                    <option
+                                        key={method}
+                                        value={method}
+                                    >
+                                        {method}
+                                    </option>
+                                ))}
+                            </select>
+                        </label>
+
+                        <label className="block">
+                            <span className="text-sm font-black text-slate-800">
+                                Payment Reference
+                            </span>
+
+                            <input
+                                type="text"
+                                value={paymentReference}
+                                onChange={(event) =>
+                                    setPaymentReference(
+                                        event.target.value
+                                    )
+                                }
+                                disabled={saving || posting}
+                                placeholder="Cheque, transfer or receipt reference"
+                                className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 font-semibold text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:bg-slate-100"
+                            />
+                        </label>
+
+                        <div className="lg:col-span-2">
+                            <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                                <input
+                                    type="checkbox"
+                                    checked={confirmPosting}
+                                    onChange={(event) =>
+                                        setConfirmPosting(
+                                            event.target.checked
+                                        )
+                                    }
+                                    disabled={saving || posting}
+                                    className="mt-1 h-5 w-5 rounded border-amber-400 text-amber-600 focus:ring-amber-500"
+                                />
+
+                                <span>
+                                    <span className="block text-sm font-black text-amber-950">
+                                        Final posting confirmation
+                                    </span>
+
+                                    <span className="mt-1 block text-sm font-semibold leading-6 text-amber-800">
+                                        I confirm that the voucher
+                                        information, available balance and
+                                        supporting physical documents have
+                                        been properly verified.
+                                    </span>
+                                </span>
+                            </label>
+                        </div>
+
+                        <div className="flex flex-col gap-3 border-t border-slate-200 pt-5 sm:flex-row lg:col-span-2">
+                            <button
+                                type="submit"
+                                disabled={saving || posting}
+                                className="rounded-xl bg-amber-500 px-6 py-3.5 text-sm font-black text-slate-950 shadow-sm transition hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                                {saving
+                                    ? "Saving Draft…"
+                                    : voucherId
+                                        ? "Update Draft Voucher"
+                                        : "Save as Draft"}
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={postVoucher}
+                                disabled={saving || posting}
+                                className="rounded-xl bg-emerald-700 px-6 py-3.5 text-sm font-black text-white shadow-sm transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                                {posting
+                                    ? "Posting Voucher…"
+                                    : "Post Voucher & Record Transaction"}
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => clearForm()}
+                                disabled={saving || posting}
+                                className="rounded-xl border border-slate-300 bg-slate-50 px-6 py-3.5 text-sm font-black text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                                Clear Form
+                            </button>
+                        </div>
                     </div>
 
-                    <div className="flex flex-wrap gap-3 lg:col-span-2">
-                        <button
-                            type="submit"
-                            disabled={saving || posting}
-                            className="rounded-xl bg-violet-700 px-5 py-3 text-sm font-black text-white transition hover:bg-violet-800 disabled:opacity-60"
-                        >
-                            {saving ? "Saving Draft…" : voucherId ? "Update Draft" : "Save Draft"}
-                        </button>
+                    <aside className="space-y-4">
+                        <div className="rounded-3xl border border-blue-200 bg-blue-50 p-5">
+                            <p className="text-xs font-black uppercase tracking-[0.15em] text-blue-700">
+                                Selected account
+                            </p>
 
-                        <button
-                            type="button"
-                            onClick={postVoucher}
-                            disabled={saving || posting || !confirmPosting}
-                            className="rounded-xl bg-emerald-700 px-5 py-3 text-sm font-black text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                            {posting ? "Posting Payment…" : "Final Post Payment"}
-                        </button>
-                    </div>
+                            <h3 className="mt-2 text-lg font-black text-blue-950">
+                                {selectedAccount
+                                    ? accountLabel(selectedAccount)
+                                    : "No account selected"}
+                            </h3>
+
+                            {selectedAccount?.account_number && (
+                                <p className="mt-1 text-sm font-semibold text-blue-800">
+                                    Account number:{" "}
+                                    {selectedAccount.account_number}
+                                </p>
+                            )}
+
+                            <div className="mt-4 rounded-2xl bg-white/80 p-4">
+                                <p className="text-xs font-black uppercase tracking-wide text-slate-500">
+                                    Current balance
+                                </p>
+
+                                <p className="mt-1 text-2xl font-black text-slate-950">
+                                    {money(currentAccountBalance)}
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="rounded-3xl border border-violet-200 bg-violet-50 p-5">
+                            <p className="text-xs font-black uppercase tracking-[0.15em] text-violet-700">
+                                Selected subhead
+                            </p>
+
+                            <h3 className="mt-2 text-lg font-black text-violet-950">
+                                {selectedSubhead
+                                    ? subheadLabel(selectedSubhead)
+                                    : "No subhead selected"}
+                            </h3>
+
+                            {selectedSubhead &&
+                                subheadCode(selectedSubhead) && (
+                                    <p className="mt-1 text-sm font-semibold text-violet-800">
+                                        Code:{" "}
+                                        {subheadCode(selectedSubhead)}
+                                    </p>
+                                )}
+
+                            <div className="mt-4 rounded-2xl bg-white/80 p-4">
+                                <p className="text-xs font-black uppercase tracking-wide text-slate-500">
+                                    Current balance
+                                </p>
+
+                                <p className="mt-1 text-2xl font-black text-slate-950">
+                                    {money(currentSubheadBalance)}
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5">
+                            <p className="text-xs font-black uppercase tracking-[0.15em] text-emerald-700">
+                                Posting preview
+                            </p>
+
+                            <div className="mt-4 space-y-3">
+                                <div className="flex items-center justify-between gap-3 border-b border-emerald-200 pb-3">
+                                    <span className="text-sm font-bold text-emerald-900">
+                                        Voucher amount
+                                    </span>
+
+                                    <span className="font-black text-emerald-950">
+                                        {money(numericAmount)}
+                                    </span>
+                                </div>
+
+                                <div className="flex items-center justify-between gap-3 border-b border-emerald-200 pb-3">
+                                    <span className="text-sm font-bold text-emerald-900">
+                                        Account after posting
+                                    </span>
+
+                                    <span
+                                        className={`font-black ${accountBalanceAfterPayment <
+                                                0
+                                                ? "text-red-700"
+                                                : "text-emerald-950"
+                                            }`}
+                                    >
+                                        {money(
+                                            accountBalanceAfterPayment
+                                        )}
+                                    </span>
+                                </div>
+
+                                <div className="flex items-center justify-between gap-3">
+                                    <span className="text-sm font-bold text-emerald-900">
+                                        Subhead after posting
+                                    </span>
+
+                                    <span
+                                        className={`font-black ${subheadBalanceAfterPayment <
+                                                0
+                                                ? "text-red-700"
+                                                : "text-emerald-950"
+                                            }`}
+                                    >
+                                        {money(
+                                            subheadBalanceAfterPayment
+                                        )}
+                                    </span>
+                                </div>
+                            </div>
+
+                            {(accountBalanceAfterPayment < 0 ||
+                                subheadBalanceAfterPayment < 0) &&
+                                numericAmount > 0 && (
+                                    <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-bold leading-6 text-red-800">
+                                        The entered amount may exceed an
+                                        available account or subhead
+                                        balance. The posting RPC should
+                                        perform the final authoritative
+                                        balance validation.
+                                    </div>
+                                )}
+                        </div>
+                    </aside>
                 </form>
             </section>
 
-            <section className="mt-6 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-                <div className="flex flex-col justify-between gap-3 border-b border-slate-200 px-5 py-5 sm:flex-row sm:items-center sm:px-6">
+            <section className="mt-6 overflow-hidden rounded-[32px] border border-slate-200 bg-white shadow-sm">
+                <div className="flex flex-col justify-between gap-4 border-b border-slate-200 p-5 sm:flex-row sm:items-center sm:p-7">
                     <div>
-                        <h2 className="text-xl font-black text-slate-950">
-                            Manual Voucher Records
+                        <p className="text-xs font-black uppercase tracking-[0.18em] text-violet-700">
+                            Voucher Records
+                        </p>
+
+                        <h2 className="mt-2 text-2xl font-black text-slate-950">
+                            Recent Manual Vouchers
                         </h2>
-                        <p className="mt-1 text-sm font-semibold text-slate-500">
-                            Recent drafts and posted manual vouchers.
+
+                        <p className="mt-2 text-sm font-semibold text-slate-500">
+                            The latest 50 manual vouchers are displayed.
+                            Drafts can be reopened and edited.
                         </p>
                     </div>
 
-                    <span className="w-fit rounded-full bg-amber-50 px-3 py-1.5 text-xs font-black text-amber-800">
-                        {manualVouchers.length} voucher
+                    <div className="rounded-xl bg-slate-100 px-4 py-2 text-sm font-black text-slate-700">
+                        {manualVouchers.length} record
                         {manualVouchers.length === 1 ? "" : "s"}
-                    </span>
+                    </div>
                 </div>
 
                 {manualVouchers.length === 0 ? (
-                    <div className="px-6 py-16 text-center">
-                        <div className="text-lg font-black text-slate-900">
-                            No manual voucher yet
+                    <div className="p-8 text-center sm:p-12">
+                        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-amber-100 text-3xl">
+                            🧾
                         </div>
-                        <p className="mt-2 text-sm font-semibold text-slate-500">
-                            Your first saved manual voucher will appear here.
+
+                        <h3 className="mt-5 text-xl font-black text-slate-950">
+                            No manual vouchers recorded
+                        </h3>
+
+                        <p className="mx-auto mt-2 max-w-xl font-semibold leading-7 text-slate-500">
+                            Create and save the first manual payment
+                            voucher using the form above.
                         </p>
                     </div>
                 ) : (
-                    <div className="overflow-x-auto">
-                        <table className="min-w-[1050px] divide-y divide-slate-200">
-                            <thead className="bg-slate-50">
-                                <tr className="text-left text-xs font-black uppercase tracking-wide text-slate-500">
-                                    <th className="px-5 py-3 sm:px-6">Voucher</th>
-                                    <th className="px-5 py-3">Payee</th>
-                                    <th className="px-5 py-3">Narration</th>
-                                    <th className="px-5 py-3">Date</th>
-                                    <th className="px-5 py-3">Status</th>
-                                    <th className="px-5 py-3 text-right">Amount</th>
-                                    <th className="px-5 py-3 text-right sm:px-6">Action</th>
-                                </tr>
-                            </thead>
+                    <>
+                        <div className="grid gap-4 p-4 md:hidden">
+                            {manualVouchers.map((voucher) => {
+                                const posted = isPostedStatus(
+                                    voucher.status
+                                );
 
-                            <tbody className="divide-y divide-slate-100">
-                                {manualVouchers.map((voucher) => {
-                                    const posted =
-                                        Boolean(voucher.posted_at) ||
-                                        (voucher.status || "").toLowerCase().includes("posted") ||
-                                        (voucher.status || "").toLowerCase().includes("paid");
+                                return (
+                                    <article
+                                        key={voucher.id}
+                                        className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+                                    >
+                                        <div className="flex items-start justify-between gap-3">
+                                            <div>
+                                                <p className="text-xs font-black uppercase tracking-wide text-slate-500">
+                                                    Voucher number
+                                                </p>
 
-                                    return (
-                                        <tr key={voucher.id} className="align-top hover:bg-slate-50/80">
-                                            <td className="px-5 py-5 sm:px-6">
-                                                <div className="font-black text-amber-800">
-                                                    {voucher.voucher_no || "Number pending"}
+                                                <p className="mt-1 font-black text-slate-950">
+                                                    {voucher.voucher_no ||
+                                                        "Pending number"}
+                                                </p>
+                                            </div>
+
+                                            <span
+                                                className={`rounded-full border px-3 py-1 text-xs font-black ${statusClasses(
+                                                    voucher.status
+                                                )}`}
+                                            >
+                                                {voucher.status ||
+                                                    "Draft"}
+                                            </span>
+                                        </div>
+
+                                        <div className="mt-4 space-y-3 text-sm">
+                                            <div>
+                                                <p className="font-black text-slate-500">
+                                                    Payee
+                                                </p>
+                                                <p className="mt-1 font-bold text-slate-900">
+                                                    {voucher.payee_name ||
+                                                        "Not recorded"}
+                                                </p>
+                                            </div>
+
+                                            <div>
+                                                <p className="font-black text-slate-500">
+                                                    Narration
+                                                </p>
+                                                <p className="mt-1 font-semibold leading-6 text-slate-700">
+                                                    {voucher.narration ||
+                                                        "Not recorded"}
+                                                </p>
+                                            </div>
+
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <div>
+                                                    <p className="font-black text-slate-500">
+                                                        Amount
+                                                    </p>
+                                                    <p className="mt-1 font-black text-slate-950">
+                                                        {money(
+                                                            voucher.total_amount ??
+                                                            voucher.amount
+                                                        )}
+                                                    </p>
                                                 </div>
-                                                <div className="mt-1 text-xs font-bold text-slate-500">
-                                                    {voucher.prepared_by_name || "Finance Officer"}
+
+                                                <div>
+                                                    <p className="font-black text-slate-500">
+                                                        Date
+                                                    </p>
+                                                    <p className="mt-1 font-bold text-slate-800">
+                                                        {readableDate(
+                                                            voucher.payment_date ||
+                                                            voucher.created_at
+                                                        )}
+                                                    </p>
                                                 </div>
-                                            </td>
+                                            </div>
+                                        </div>
 
-                                            <td className="px-5 py-5 font-semibold text-slate-800">
-                                                {voucher.payee_name || "Not recorded"}
-                                            </td>
-
-                                            <td className="px-5 py-5">
-                                                <div className="max-w-sm text-sm font-semibold leading-6 text-slate-700">
-                                                    {voucher.narration || "No narration"}
-                                                </div>
-                                            </td>
-
-                                            <td className="whitespace-nowrap px-5 py-5 text-sm font-semibold text-slate-700">
-                                                {readableDate(
-                                                    voucher.payment_date || voucher.created_at
-                                                )}
-                                            </td>
-
-                                            <td className="whitespace-nowrap px-5 py-5">
-                                                <span
-                                                    className={`inline-flex rounded-full border px-3 py-1 text-xs font-black ${statusClasses(
-                                                        voucher.status
-                                                    )}`}
+                                        <div className="mt-4 border-t border-slate-200 pt-4">
+                                            {posted ? (
+                                                <Link
+                                                    href="/finance/vouchers"
+                                                    className="inline-flex rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-black text-emerald-800"
                                                 >
-                                                    {voucher.status || "Prepared"}
-                                                </span>
-                                            </td>
+                                                    View in Register
+                                                </Link>
+                                            ) : (
+                                                <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        openDraft(
+                                                            voucher
+                                                        )
+                                                    }
+                                                    className="rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-black text-slate-950"
+                                                >
+                                                    Open Draft
+                                                </button>
+                                            )}
+                                        </div>
+                                    </article>
+                                );
+                            })}
+                        </div>
 
-                                            <td className="whitespace-nowrap px-5 py-5 text-right text-base font-black text-emerald-800">
-                                                {money(voucher.total_amount || voucher.amount)}
-                                            </td>
+                        <div className="hidden overflow-x-auto md:block">
+                            <table className="min-w-full">
+                                <thead className="bg-slate-50">
+                                    <tr>
+                                        <th className="px-5 py-4 text-left text-xs font-black uppercase tracking-wide text-slate-500">
+                                            Voucher
+                                        </th>
+                                        <th className="px-5 py-4 text-left text-xs font-black uppercase tracking-wide text-slate-500">
+                                            Payee and narration
+                                        </th>
+                                        <th className="px-5 py-4 text-left text-xs font-black uppercase tracking-wide text-slate-500">
+                                            Amount
+                                        </th>
+                                        <th className="px-5 py-4 text-left text-xs font-black uppercase tracking-wide text-slate-500">
+                                            Payment
+                                        </th>
+                                        <th className="px-5 py-4 text-left text-xs font-black uppercase tracking-wide text-slate-500">
+                                            Status
+                                        </th>
+                                        <th className="px-5 py-4 text-right text-xs font-black uppercase tracking-wide text-slate-500">
+                                            Action
+                                        </th>
+                                    </tr>
+                                </thead>
 
-                                            <td className="whitespace-nowrap px-5 py-5 text-right sm:px-6">
-                                                {posted ? (
-                                                    <Link
-                                                        href="/finance/vouchers"
-                                                        className="inline-flex rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-black text-white"
+                                <tbody className="divide-y divide-slate-200">
+                                    {manualVouchers.map((voucher) => {
+                                        const posted = isPostedStatus(
+                                            voucher.status
+                                        );
+
+                                        return (
+                                            <tr
+                                                key={voucher.id}
+                                                className="align-top transition hover:bg-slate-50"
+                                            >
+                                                <td className="px-5 py-5">
+                                                    <p className="font-black text-slate-950">
+                                                        {voucher.voucher_no ||
+                                                            "Pending number"}
+                                                    </p>
+
+                                                    <p className="mt-1 text-xs font-semibold text-slate-500">
+                                                        Created{" "}
+                                                        {readableDate(
+                                                            voucher.created_at
+                                                        )}
+                                                    </p>
+
+                                                    {voucher.prepared_by_name && (
+                                                        <p className="mt-1 text-xs font-semibold text-slate-500">
+                                                            By{" "}
+                                                            {
+                                                                voucher.prepared_by_name
+                                                            }
+                                                        </p>
+                                                    )}
+                                                </td>
+
+                                                <td className="max-w-md px-5 py-5">
+                                                    <p className="font-black text-slate-950">
+                                                        {voucher.payee_name ||
+                                                            "Unnamed payee"}
+                                                    </p>
+
+                                                    <p className="mt-1 line-clamp-2 text-sm font-semibold leading-6 text-slate-600">
+                                                        {voucher.narration ||
+                                                            "No narration recorded"}
+                                                    </p>
+                                                </td>
+
+                                                <td className="whitespace-nowrap px-5 py-5">
+                                                    <p className="font-black text-slate-950">
+                                                        {money(
+                                                            voucher.total_amount ??
+                                                            voucher.amount
+                                                        )}
+                                                    </p>
+                                                </td>
+
+                                                <td className="px-5 py-5">
+                                                    <p className="font-bold text-slate-800">
+                                                        {voucher.payment_method ||
+                                                            "Not specified"}
+                                                    </p>
+
+                                                    <p className="mt-1 text-xs font-semibold text-slate-500">
+                                                        {readableDate(
+                                                            voucher.payment_date
+                                                        )}
+                                                    </p>
+
+                                                    {voucher.payment_reference && (
+                                                        <p className="mt-1 text-xs font-semibold text-slate-500">
+                                                            Ref:{" "}
+                                                            {
+                                                                voucher.payment_reference
+                                                            }
+                                                        </p>
+                                                    )}
+                                                </td>
+
+                                                <td className="px-5 py-5">
+                                                    <span
+                                                        className={`inline-flex rounded-full border px-3 py-1.5 text-xs font-black ${statusClasses(
+                                                            voucher.status
+                                                        )}`}
                                                     >
-                                                        View Register
-                                                    </Link>
-                                                ) : (
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => openDraft(voucher)}
-                                                        className="rounded-xl bg-amber-600 px-4 py-2.5 text-sm font-black text-white transition hover:bg-amber-700"
-                                                    >
-                                                        Edit Draft
-                                                    </button>
-                                                )}
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
-                    </div>
+                                                        {voucher.status ||
+                                                            "Draft"}
+                                                    </span>
+
+                                                    {voucher.posted_at && (
+                                                        <p className="mt-2 text-xs font-semibold text-slate-500">
+                                                            Posted{" "}
+                                                            {readableDate(
+                                                                voucher.posted_at
+                                                            )}
+                                                        </p>
+                                                    )}
+                                                </td>
+
+                                                <td className="px-5 py-5 text-right">
+                                                    {posted ? (
+                                                        <Link
+                                                            href="/finance/vouchers"
+                                                            className="inline-flex rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-black text-emerald-800 transition hover:bg-emerald-100"
+                                                        >
+                                                            View Register
+                                                        </Link>
+                                                    ) : (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() =>
+                                                                openDraft(
+                                                                    voucher
+                                                                )
+                                                            }
+                                                            className="rounded-xl bg-amber-500 px-4 py-2 text-sm font-black text-slate-950 transition hover:bg-amber-400"
+                                                        >
+                                                            Open Draft
+                                                        </button>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+                    </>
                 )}
             </section>
         </main>

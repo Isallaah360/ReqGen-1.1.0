@@ -619,7 +619,7 @@ export default function FinancePage() {
         <div className="grid gap-7 lg:grid-cols-[1.45fr_0.75fr] lg:items-end">
           <div>
             <p className="text-xs font-black uppercase tracking-[0.22em] text-cyan-300">
-              ReqGen 1.1.0 · Finance Management
+              Finance Management
             </p>
 
             <h1 className="mt-3 text-3xl font-black tracking-tight sm:text-5xl">
