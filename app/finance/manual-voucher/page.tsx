@@ -181,6 +181,35 @@ function isCancelledStatus(statusValue: string | null | undefined) {
     return status.includes("cancel") || status.includes("reverse");
 }
 
+
+function supabaseErrorMessage(caught: unknown, fallback: string) {
+    if (caught instanceof Error) {
+        return caught.message;
+    }
+
+    if (caught && typeof caught === "object") {
+        const value = caught as {
+            message?: unknown;
+            details?: unknown;
+            hint?: unknown;
+            code?: unknown;
+        };
+
+        const parts = [
+            typeof value.message === "string" ? value.message : "",
+            typeof value.details === "string" ? value.details : "",
+            typeof value.hint === "string" ? `Hint: ${value.hint}` : "",
+            typeof value.code === "string" ? `Code: ${value.code}` : "",
+        ].filter(Boolean);
+
+        if (parts.length > 0) {
+            return parts.join(" — ");
+        }
+    }
+
+    return fallback;
+}
+
 function firstRpcRecord<T>(data: unknown): T {
     if (Array.isArray(data)) {
         return data[0] as T;
@@ -349,9 +378,10 @@ export default function ManualVoucherPage() {
         } catch (caught) {
             console.error("Manual Voucher Centre load error:", caught);
             setError(
-                caught instanceof Error
-                    ? caught.message
-                    : "Unable to load the Manual Voucher Centre."
+                supabaseErrorMessage(
+                    caught,
+                    "Unable to load the Manual Voucher Centre."
+                )
             );
         } finally {
             setLoading(false);
@@ -607,10 +637,12 @@ export default function ManualVoucherPage() {
 
             return result;
         } catch (caught) {
+            console.error("Manual voucher save error:", caught);
             setError(
-                caught instanceof Error
-                    ? caught.message
-                    : "Unable to save the manual voucher."
+                supabaseErrorMessage(
+                    caught,
+                    "Unable to save the manual voucher."
+                )
             );
 
             return null;
@@ -750,10 +782,12 @@ export default function ManualVoucherPage() {
                 )}.`
             );
         } catch (caught) {
+            console.error("Manual voucher posting error:", caught);
             setError(
-                caught instanceof Error
-                    ? caught.message
-                    : "Unable to post the manual voucher."
+                supabaseErrorMessage(
+                    caught,
+                    "Unable to post the manual voucher."
+                )
             );
         } finally {
             setPosting(false);
