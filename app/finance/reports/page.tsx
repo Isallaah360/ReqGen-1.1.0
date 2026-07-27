@@ -57,7 +57,7 @@ function roleKey(role: string | null | undefined) {
 }
 
 function naira(n: number | null | undefined) {
-  return "₦ " + Math.round(Number(n || 0)).toLocaleString();
+  return "NGN " + Math.round(Number(n || 0)).toLocaleString("en-NG");
 }
 
 function plainAmount(n: number | null | undefined) {
@@ -578,18 +578,18 @@ export default function FinanceReportsPage() {
   }
 
   function openSubheads() {
-    router.push(`/finance/subheads?updated=${Date.now()}`);
+    router.push(`/finance/subhead-ledger?updated=${Date.now()}`);
     router.refresh();
   }
 
   function openAudit() {
-    router.push(`/finance/audit?updated=${Date.now()}`);
+    router.push(`/finance/audit-trail?updated=${Date.now()}`);
     router.refresh();
   }
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-slate-50 px-4">
+      <main className="finance-reports min-h-screen bg-[radial-gradient(circle_at_top_left,_#eff6ff_0,_#f8fafc_36%,_#f8fafc_100%)] px-4 font-[inherit] text-slate-900">
         <div className="mx-auto max-w-7xl py-10 text-slate-600">Loading Finance Reports...</div>
       </main>
     );
@@ -597,9 +597,9 @@ export default function FinanceReportsPage() {
 
   if (!canFinance) {
     return (
-      <main className="min-h-screen bg-slate-50 px-4">
+      <main className="finance-reports min-h-screen bg-[radial-gradient(circle_at_top_left,_#eff6ff_0,_#f8fafc_36%,_#f8fafc_100%)] px-4 font-[inherit] text-slate-900">
         <div className="mx-auto max-w-3xl py-10">
-          <div className="rounded-3xl border bg-white p-6 shadow-sm">
+          <div className="finance-panel rounded-3xl border border-slate-200/80 bg-white/95 p-6 shadow-[0_14px_45px_rgba(15,23,42,.07)]">
             <h1 className="text-xl font-extrabold text-slate-900">Finance Reports Access</h1>
             <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
               Access denied. Only Finance, Account, Auditor and Admin roles can access reports.
@@ -617,8 +617,31 @@ export default function FinanceReportsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4">
+    <main className="finance-reports min-h-screen bg-[radial-gradient(circle_at_top_left,_#eff6ff_0,_#f8fafc_36%,_#f8fafc_100%)] px-4 font-[inherit] text-slate-900">
       <style>{`
+        .finance-reports { font-family: inherit; }
+        .finance-hero {
+          position: relative;
+          overflow: hidden;
+          border-radius: 2rem;
+          background: linear-gradient(118deg, #071a43 0%, #083aa7 40%, #06a9ef 68%, #160d1b 100%);
+          box-shadow: 0 24px 70px rgba(15, 23, 42, .24);
+          animation: reportRise .55s ease-out both;
+        }
+        .finance-hero::before {
+          content: ""; position: absolute; inset: -55%;
+          background: radial-gradient(circle, rgba(255,255,255,.24), transparent 34%);
+          animation: reportGlow 9s ease-in-out infinite alternate;
+        }
+        .finance-panel { animation: reportRise .5s ease-out both; }
+        .finance-card { transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease; }
+        .finance-card:hover { transform: translateY(-3px); box-shadow: 0 18px 40px rgba(15,23,42,.10); border-color: rgba(59,130,246,.25); }
+        .finance-action { display:inline-flex; align-items:center; justify-content:center; gap:.55rem; transition:transform .18s ease, box-shadow .18s ease, background .18s ease; }
+        .finance-action:hover:not(:disabled) { transform: translateY(-1px); }
+        .finance-table tbody tr { transition: background .18s ease; }
+        .finance-table tbody tr:hover { background: #f8fbff; }
+        @keyframes reportRise { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:translateY(0); } }
+        @keyframes reportGlow { from { transform:translate3d(-5%,0,0) scale(.95); } to { transform:translate3d(8%,4%,0) scale(1.08); } }
         @media print {
           @page { size: A4 landscape; margin: 10mm; }
 
@@ -642,81 +665,49 @@ export default function FinanceReportsPage() {
       `}</style>
 
       <div className="print-sheet mx-auto max-w-7xl py-8">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="print-title">
-            <div className="hidden text-center print:block">
-              <div className="text-lg font-black uppercase text-slate-900">
-                Islamic Education Trust
-              </div>
-              <div className="text-xs font-semibold text-slate-600">
-                IW2, Ilmi Avenue Intermediate Housing Estate, PMB 229, Minna, Niger State - Nigeria
-              </div>
-              <div className="mt-3 border-y border-black py-2 text-base font-black uppercase">
-                Monthly and Yearly Finance Report
+        <section className="finance-hero no-print p-6 text-white sm:p-8 lg:p-10">
+          <div className="relative z-10 grid gap-8 lg:grid-cols-[1fr_310px] lg:items-center">
+            <div>
+              <div className="text-xs font-black uppercase tracking-[0.28em] text-amber-300">Finance Intelligence</div>
+              <h1 className="mt-3 text-4xl font-black tracking-tight sm:text-5xl">Finance Reports Centre</h1>
+              <p className="mt-4 max-w-3xl text-sm font-medium leading-7 text-blue-100 sm:text-base">
+                Review monthly expenditure, annual allocations, department performance, subhead utilisation and balances from one controlled reporting workspace.
+              </p>
+              <div className="mt-6 flex flex-wrap gap-3">
+                <button onClick={backToFinance} className="finance-action rounded-2xl border border-white/25 bg-white/10 px-5 py-3 text-sm font-extrabold text-white shadow-lg backdrop-blur hover:bg-white/20">
+                  <span aria-hidden>🏦</span> Finance Control Centre
+                </button>
+                <button onClick={openSubheads} className="finance-action rounded-2xl bg-cyan-400 px-5 py-3 text-sm font-extrabold text-slate-950 shadow-lg shadow-cyan-950/20 hover:bg-cyan-300">
+                  <span aria-hidden>📚</span> Subhead Ledger
+                </button>
               </div>
             </div>
 
-            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 print:mt-3 print:text-xl">
-              Finance Reports Dashboard
-            </h1>
-            <p className="mt-2 text-sm text-slate-600">
-              Allocation, reserved commitments, expenditure, balances and monthly spending.
-            </p>
-            <p className="mt-1 text-xs font-semibold text-slate-500">
-              Department: {selectedDepartmentName} • Year: {year} • Period: {dateFrom} to {dateTo} • Generated:{" "}
-              {new Date().toLocaleString()}
-            </p>
+            <div className="rounded-3xl border border-white/15 bg-white/10 p-5 shadow-2xl backdrop-blur-md">
+              <div className="text-xs font-black uppercase tracking-[0.18em] text-blue-100">Reporting Scope</div>
+              <div className="mt-3 text-2xl font-black">{selectedDepartmentName}</div>
+              <div className="mt-1 text-sm text-blue-100">{dateFrom} to {dateTo}</div>
+              <div className="mt-5 grid grid-cols-3 gap-2 text-center">
+                <div className="rounded-2xl bg-white/10 px-2 py-3"><div className="text-lg font-black">{budgetTotals.totalSubheads}</div><div className="text-[10px] font-bold uppercase text-blue-100">Subheads</div></div>
+                <div className="rounded-2xl bg-white/10 px-2 py-3"><div className="text-lg font-black">{totalsByDept.length}</div><div className="text-[10px] font-bold uppercase text-blue-100">Departments</div></div>
+                <div className="rounded-2xl bg-white/10 px-2 py-3"><div className="text-lg font-black">{year}</div><div className="text-[10px] font-bold uppercase text-blue-100">Fiscal Year</div></div>
+              </div>
+            </div>
           </div>
+        </section>
 
-          <div className="no-print flex flex-wrap gap-2">
-            <button
-              onClick={refreshReports}
-              disabled={refreshing || printing || exporting}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-100 disabled:opacity-60"
-            >
-              {refreshing ? "Refreshing..." : "Refresh"}
-            </button>
+        <div className="hidden print:block print-title">
+          <div className="text-center text-lg font-black uppercase text-slate-900">Islamic Education Trust</div>
+          <div className="text-center text-xs font-semibold text-slate-600">IW2, Ilmi Avenue Intermediate Housing Estate, PMB 229, Minna, Niger State - Nigeria</div>
+          <div className="mt-3 border-y border-black py-2 text-center text-base font-black uppercase">Monthly and Annual Finance Report</div>
+          <p className="mt-2 text-center text-xs">Department: {selectedDepartmentName} • Year: {year} • Period: {dateFrom} to {dateTo}</p>
+        </div>
 
-            <button
-              onClick={printFinanceReport}
-              disabled={refreshing || printing || exporting}
-              className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:opacity-60"
-            >
-              {printing ? "Preparing..." : "Print / Save PDF"}
-            </button>
-
-            <button
-              onClick={exportExcel}
-              disabled={refreshing || printing || exporting}
-              className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 disabled:opacity-60"
-            >
-              {exporting ? "Exporting..." : "Export Excel"}
-            </button>
-
-            <button
-              onClick={openSubheads}
-              disabled={refreshing || printing || exporting}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
-            >
-              Subheads
-            </button>
-
-            <button
-              onClick={openAudit}
-              disabled={refreshing || printing || exporting}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
-            >
-              Audit
-            </button>
-
-            <button
-              onClick={backToFinance}
-              disabled={refreshing || printing || exporting}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
-            >
-              Back to Finance
-            </button>
-          </div>
+        <div className="no-print finance-panel mt-5 flex flex-wrap gap-2 rounded-3xl border border-slate-200/80 bg-white/90 p-3 shadow-sm backdrop-blur">
+          <button onClick={refreshReports} disabled={refreshing || printing || exporting} className="finance-action rounded-2xl bg-sky-500 px-4 py-3 text-sm font-extrabold text-white shadow-md hover:bg-sky-600 disabled:cursor-not-allowed disabled:opacity-50"><span aria-hidden>↻</span>{refreshing ? "Refreshing..." : "Refresh Reports"}</button>
+          <button onClick={printFinanceReport} disabled={refreshing || printing || exporting} className="finance-action rounded-2xl bg-slate-900 px-4 py-3 text-sm font-extrabold text-white shadow-md hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"><span aria-hidden>🖨️</span>{printing ? "Preparing..." : "Print / Save PDF"}</button>
+          <button onClick={exportExcel} disabled={refreshing || printing || exporting} className="finance-action rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-extrabold text-white shadow-md hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"><span aria-hidden>📊</span>{exporting ? "Exporting..." : "Export Excel"}</button>
+          <button onClick={openAudit} disabled={refreshing || printing || exporting} className="finance-action rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-extrabold text-slate-800 hover:bg-slate-50 disabled:opacity-50"><span aria-hidden>🧾</span>Audit Trail</button>
         </div>
 
         {msg && (
@@ -729,7 +720,7 @@ export default function FinanceReportsPage() {
           This report page refreshes automatically when you return to it. Print and Excel export reload fresh finance data first.
         </div>
 
-        <div className="no-print mt-6 rounded-3xl border bg-white p-5 shadow-sm">
+        <div className="no-print mt-6 finance-panel rounded-3xl border border-slate-200/80 bg-white/95 p-5 shadow-[0_14px_45px_rgba(15,23,42,.07)] backdrop-blur">
           <div className="grid gap-4 md:grid-cols-4">
             <div>
               <label className="text-sm font-semibold text-slate-800">Year</label>
@@ -863,7 +854,7 @@ function MonthlyPanel({
   dateTo: string;
 }) {
   return (
-    <div className="mt-6 rounded-3xl border bg-white p-6 shadow-sm print:rounded-none print:border-black print:shadow-none">
+    <div className="mt-6 finance-panel rounded-3xl border border-slate-200/80 bg-white/95 p-6 shadow-[0_14px_45px_rgba(15,23,42,.07)] print:rounded-none print:border-black print:shadow-none">
       <div className="flex flex-wrap items-end justify-between gap-2">
         <div>
           <h2 className="text-lg font-bold text-slate-900">Monthly Expenditure</h2>
@@ -896,7 +887,7 @@ function MonthlyPanel({
       </div>
 
       <div className="mt-5 overflow-x-auto rounded-2xl border border-slate-200">
-        <table className="min-w-[720px] w-full border-collapse text-xs">
+        <table className="finance-table min-w-[720px] w-full border-collapse text-xs">
           <thead>
             <tr className="bg-slate-100 uppercase tracking-wide text-slate-600 print:bg-white print:text-[8px]">
               {monthly.arr.map((m) => (
@@ -940,7 +931,7 @@ function DepartmentSummaryPanel({
   totals: ReturnType<typeof getBudgetTotals>;
 }) {
   return (
-    <div className="mt-6 rounded-3xl border bg-white p-6 shadow-sm print:rounded-none print:border-black print:shadow-none">
+    <div className="mt-6 finance-panel rounded-3xl border border-slate-200/80 bg-white/95 p-6 shadow-[0_14px_45px_rgba(15,23,42,.07)] print:rounded-none print:border-black print:shadow-none">
       <h2 className="text-lg font-bold text-slate-900">Total Allocation by Department</h2>
       <p className="mt-1 text-sm text-slate-600">Government-style summary by department.</p>
 
@@ -948,7 +939,7 @@ function DepartmentSummaryPanel({
         <div className="mt-4 text-sm text-slate-700">No records.</div>
       ) : (
         <div className="mt-4 overflow-x-auto rounded-xl border border-slate-200">
-          <table className="min-w-[900px] w-full border-collapse text-sm print:min-w-0 print:text-[8px]">
+          <table className="finance-table min-w-[900px] w-full border-collapse text-sm print:min-w-0 print:text-[8px]">
             <thead>
               <tr className="bg-slate-100 text-xs uppercase tracking-wide text-slate-600 print:bg-white print:text-[8px]">
                 <th className="px-4 py-3 text-left">Department</th>
@@ -997,7 +988,7 @@ function SubheadBreakdownPanel({
   totals: ReturnType<typeof getBudgetTotals>;
 }) {
   return (
-    <div className="mt-6 rounded-3xl border bg-white p-6 shadow-sm print:rounded-none print:border-black print:shadow-none">
+    <div className="mt-6 finance-panel rounded-3xl border border-slate-200/80 bg-white/95 p-6 shadow-[0_14px_45px_rgba(15,23,42,.07)] print:rounded-none print:border-black print:shadow-none">
       <h2 className="text-lg font-bold text-slate-900">Total Expenditure by Subhead</h2>
       <p className="mt-1 text-sm text-slate-600">Detailed breakdown by subhead code.</p>
 
@@ -1005,7 +996,7 @@ function SubheadBreakdownPanel({
         <div className="mt-4 text-sm text-slate-700">No subheads.</div>
       ) : (
         <div className="mt-4 overflow-x-auto rounded-xl border border-slate-200">
-          <table className="min-w-[1100px] w-full border-collapse text-sm print:min-w-0 print:text-[8px]">
+          <table className="finance-table min-w-[1100px] w-full border-collapse text-sm print:min-w-0 print:text-[8px]">
             <thead>
               <tr className="bg-slate-100 text-xs uppercase tracking-wide text-slate-600 print:bg-white print:text-[8px]">
                 <th className="px-4 py-3 text-left">Dept</th>
@@ -1074,25 +1065,25 @@ function KpiCard({
     tone === "amber"
       ? "bg-amber-50 text-amber-700"
       : tone === "red"
-      ? "bg-red-50 text-red-700"
-      : tone === "emerald"
-      ? "bg-emerald-50 text-emerald-700"
-      : "bg-blue-50 text-blue-700";
+        ? "bg-red-50 text-red-700"
+        : tone === "emerald"
+          ? "bg-emerald-50 text-emerald-700"
+          : "bg-blue-50 text-blue-700";
 
   return (
-    <div className="print-card rounded-3xl border bg-white p-6 shadow-sm print:rounded-none print:border-black print:p-2 print:shadow-none">
+    <div className="print-card finance-panel rounded-3xl border border-slate-200/80 bg-white/95 p-6 shadow-[0_14px_45px_rgba(15,23,42,.07)] print:rounded-none print:border-black print:p-2 print:shadow-none">
       <div className="text-sm font-semibold text-slate-600 print:text-[9px]">{title}</div>
-      <div className={`mt-2 inline-flex rounded-2xl px-3 py-2 text-xl font-extrabold tracking-tight print:p-0 print:text-[11px] ${cls}`}>
+      <div className={`mt-3 inline-flex rounded-2xl px-3 py-2 text-2xl font-black tracking-tight print:p-0 print:text-[11px] ${cls}`}>
         {value}
       </div>
-      <div className="mt-1 text-xs text-slate-500 print:text-[8px]">NGN</div>
+      <div className="mt-2 text-xs font-semibold text-slate-500 print:text-[8px]">Current reporting scope</div>
     </div>
   );
 }
 
 function SmallCard({ title, value }: { title: string; value: string }) {
   return (
-    <div className="print-card rounded-2xl border bg-white p-4 shadow-sm print:rounded-none print:border-black print:p-2 print:shadow-none">
+    <div className="finance-card print-card rounded-2xl border border-slate-200/80 bg-white/95 p-4 shadow-sm print:rounded-none print:border-black print:p-2 print:shadow-none">
       <div className="text-xs font-semibold uppercase tracking-wide text-slate-500 print:text-[8px]">
         {title}
       </div>
@@ -1116,9 +1107,8 @@ function TabButton({
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-2xl px-4 py-3 text-sm font-bold transition ${
-        active ? "bg-blue-600 text-white shadow-sm" : "bg-white text-slate-700 hover:bg-slate-100"
-      }`}
+      className={`rounded-2xl px-4 py-3 text-sm font-bold transition ${active ? "bg-blue-600 text-white shadow-sm" : "bg-white text-slate-700 hover:bg-slate-100"
+        }`}
     >
       {label}
     </button>
