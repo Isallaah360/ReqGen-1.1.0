@@ -57,7 +57,7 @@ type AccountRow = {
 };
 
 type DepartmentRow = { id: string; name?: string | null; dept_name?: string | null };
-type ProfileRow = { id: string; full_name?: string | null; name?: string | null; email?: string | null };
+type ProfileRow = { id: string; full_name?: string | null; email?: string | null };
 
 type LedgerView = FinanceTransactionRow & {
   voucher_no: string | null;
@@ -120,7 +120,7 @@ function departmentName(department: DepartmentRow | undefined) {
 }
 
 function profileName(profile: ProfileRow | undefined) {
-  return profile?.full_name || profile?.name || profile?.email || "System user";
+  return profile?.full_name || profile?.email || "System user";
 }
 
 function csvCell(value: unknown) {
@@ -154,7 +154,7 @@ export default function SubheadLedgerPage() {
           supabase.from("payment_vouchers").select("id,voucher_no,request_no,payee_name,status").limit(3000),
           supabase.from("iet_accounts").select("*"),
           supabase.from("departments").select("*"),
-          supabase.from("profiles").select("id,full_name,name,email"),
+          supabase.from("profiles").select("id,full_name,email"),
         ]);
 
       const firstError = [subheadResult, transactionResult, voucherResult, accountResult, departmentResult, profileResult]
