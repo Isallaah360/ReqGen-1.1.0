@@ -142,6 +142,17 @@ function subheadLabel(subhead: SubheadRow | undefined) {
     );
 }
 
+function csvCell(value: string | number | null | undefined) {
+    const text = String(value ?? "");
+    return `"${text.replace(/"/g, '""')}"`;
+}
+
+function transactionLink(item: TransactionView) {
+    if (item.voucher_id) return `/finance/vouchers?open=${item.voucher_id}`;
+    if (item.request_id) return `/requests/${item.request_id}`;
+    return null;
+}
+
 function SummaryCard({
     label,
     value,
@@ -185,6 +196,8 @@ export default function FinanceTransactionsPage() {
     const [transactionType, setTransactionType] = useState("all");
     const [dateFrom, setDateFrom] = useState(beginningOfMonth());
     const [dateTo, setDateTo] = useState(dateInputValue(new Date()));
+    const [selectedTransaction, setSelectedTransaction] =
+        useState<TransactionView | null>(null);
 
     const loadTransactions = useCallback(async (manual = false) => {
         manual ? setRefreshing(true) : setLoading(true);
@@ -486,6 +499,60 @@ export default function FinanceTransactionsPage() {
         [transactions]
     );
 
+    function exportCsv() {
+        const headers = [
+            "Transaction Number",
+            "Transaction Type",
+            "Voucher Number",
+            "Request Number",
+            "Account",
+            "Account Number",
+            "Subhead",
+            "Amount",
+            "Transaction Date",
+            "Posted By",
+            "Payment Method",
+            "External Reference",
+            "Narration",
+        ];
+
+        const rows = filteredTransactions.map((item) => [
+            item.transaction_no,
+            item.transaction_type,
+            item.voucher_no,
+            item.request_no,
+            item.account_name,
+            item.account_number,
+            item.subhead_name,
+            Number(item.amount || 0),
+            item.transaction_date || item.posted_at,
+            item.officer_name || item.posted_by,
+            item.payment_method,
+            item.external_reference,
+            item.narration,
+        ]);
+
+        const csv = [headers, ...rows]
+            .map((row) => row.map((value) => csvCell(value)).join(","))
+            .join("\n");
+
+        const blob = new Blob([`\uFEFF${csv}`], {
+            type: "text/csv;charset=utf-8",
+        });
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        anchor.download = `finance-transactions-${dateInputValue(new Date())}.csv`;
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+        URL.revokeObjectURL(url);
+    }
+
+    function printRegister() {
+        window.print();
+    }
+
     function resetFilters() {
         setSearchTerm("");
         setPaymentMethod("all");
@@ -534,7 +601,7 @@ export default function FinanceTransactionsPage() {
 
     return (
         <main className="mx-auto max-w-7xl px-4 py-8">
-            <nav className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-3xl border border-slate-200 bg-white p-3 shadow-sm">
+            <nav className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-3xl border border-slate-200 bg-white p-3 shadow-sm print:hidden">
                 <div className="flex flex-wrap gap-2">
                     <Link
                         href="/finance"
@@ -567,14 +634,14 @@ export default function FinanceTransactionsPage() {
 
             <section className="overflow-hidden rounded-3xl border border-blue-200 bg-gradient-to-br from-slate-950 via-blue-950 to-violet-950 p-6 text-white shadow-xl sm:p-8">
                 <p className="text-xs font-black uppercase tracking-[0.2em] text-emerald-300">
-                    Phase 2C • Finance Records
+                    Finance Records
                 </p>
                 <h1 className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">
                     Finance Transactions Register
                 </h1>
                 <p className="mt-3 max-w-3xl font-semibold leading-7 text-slate-300">
-                    Search and review posted transactions, vouchers, accounts, subheads,
-                    payment methods and posting references.
+                    Review every posted finance movement with its transaction number, linked
+                    voucher or request, account, subhead, posting officer and external reference.
                 </p>
             </section>
 
@@ -611,7 +678,7 @@ export default function FinanceTransactionsPage() {
                 />
             </section>
 
-            <section className="mt-6 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+            <section className="mt-6 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6 print:hidden">
                 <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
                     <div>
                         <p className="text-xs font-black uppercase tracking-[0.16em] text-blue-700">
@@ -622,13 +689,31 @@ export default function FinanceTransactionsPage() {
                         </h2>
                     </div>
 
-                    <button
-                        type="button"
-                        onClick={resetFilters}
-                        className="w-fit rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm font-black text-slate-700 transition hover:bg-slate-100"
-                    >
-                        Reset Filters
-                    </button>
+                    <div className="flex flex-wrap gap-2 print:hidden">
+                        <button
+                            type="button"
+                            onClick={exportCsv}
+                            disabled={filteredTransactions.length === 0}
+                            className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-black text-emerald-800 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                            Export Excel / CSV
+                        </button>
+                        <button
+                            type="button"
+                            onClick={printRegister}
+                            disabled={filteredTransactions.length === 0}
+                            className="rounded-xl border border-violet-200 bg-violet-50 px-4 py-2.5 text-sm font-black text-violet-800 transition hover:bg-violet-100 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                            Print / Save PDF
+                        </button>
+                        <button
+                            type="button"
+                            onClick={resetFilters}
+                            className="rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm font-black text-slate-700 transition hover:bg-slate-100"
+                        >
+                            Reset Filters
+                        </button>
+                    </div>
                 </div>
 
                 <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
@@ -710,8 +795,8 @@ export default function FinanceTransactionsPage() {
                             Posted Transactions
                         </h2>
                         <p className="mt-1 text-sm font-semibold text-slate-500">
-                            Request-based transactions now; manual vouchers will join this
-                            register when the Manual Voucher Saga is completed.
+                            Consolidated request-based and manual-voucher transactions with
+                            traceable links to their source records.
                         </p>
                     </div>
 
@@ -742,7 +827,8 @@ export default function FinanceTransactionsPage() {
                                     <th className="px-5 py-3">Method</th>
                                     <th className="px-5 py-3">Date</th>
                                     <th className="px-5 py-3">Officer</th>
-                                    <th className="px-5 py-3 text-right sm:px-6">Amount</th>
+                                    <th className="px-5 py-3 text-right">Amount</th>
+                                    <th className="px-5 py-3 text-right sm:px-6 print:hidden">Actions</th>
                                 </tr>
                             </thead>
 
@@ -798,11 +884,31 @@ export default function FinanceTransactionsPage() {
                                         </td>
 
                                         <td className="px-5 py-5 text-sm font-semibold text-slate-700">
-                                            {item.officer_name || "AccountOfficer"}
+                                            {item.officer_name || item.posted_by || "Not recorded"}
                                         </td>
 
-                                        <td className="whitespace-nowrap px-5 py-5 text-right text-base font-black text-emerald-800 sm:px-6">
+                                        <td className="whitespace-nowrap px-5 py-5 text-right text-base font-black text-emerald-800">
                                             {money(item.amount)}
+                                        </td>
+
+                                        <td className="whitespace-nowrap px-5 py-5 text-right sm:px-6 print:hidden">
+                                            <div className="flex justify-end gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setSelectedTransaction(item)}
+                                                    className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-black text-blue-800 hover:bg-blue-100"
+                                                >
+                                                    Details
+                                                </button>
+                                                {transactionLink(item) && (
+                                                    <Link
+                                                        href={transactionLink(item) as string}
+                                                        className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-50"
+                                                    >
+                                                        Open Source
+                                                    </Link>
+                                                )}
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}
@@ -811,6 +917,106 @@ export default function FinanceTransactionsPage() {
                     </div>
                 )}
             </section>
+
+            {selectedTransaction && (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4 print:hidden"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label="Transaction details"
+                    onMouseDown={(event) => {
+                        if (event.currentTarget === event.target) {
+                            setSelectedTransaction(null);
+                        }
+                    }}
+                >
+                    <section className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-3xl bg-white shadow-2xl">
+                        <div className="flex items-start justify-between gap-4 border-b border-slate-200 p-6">
+                            <div>
+                                <p className="text-xs font-black uppercase tracking-[0.16em] text-blue-700">
+                                    Transaction Details
+                                </p>
+                                <h2 className="mt-1 text-2xl font-black text-slate-950">
+                                    {selectedTransaction.transaction_no || "Unnumbered transaction"}
+                                </h2>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setSelectedTransaction(null)}
+                                className="rounded-xl border border-slate-300 px-3 py-2 text-sm font-black text-slate-700"
+                            >
+                                Close
+                            </button>
+                        </div>
+
+                        <div className="grid gap-4 p-6 sm:grid-cols-2">
+                            {[
+                                ["Transaction Type", selectedTransaction.transaction_type || "Not recorded"],
+                                ["Amount", money(selectedTransaction.amount)],
+                                ["Voucher", selectedTransaction.voucher_no || "Not linked"],
+                                ["Request", selectedTransaction.request_no || "Not linked"],
+                                ["Account", selectedTransaction.account_name],
+                                ["Account Number", selectedTransaction.account_number || "Not recorded"],
+                                ["Subhead", selectedTransaction.subhead_name],
+                                ["Payment Method", selectedTransaction.payment_method || "Not recorded"],
+                                ["Transaction Date", readableDate(selectedTransaction.transaction_date || selectedTransaction.posted_at)],
+                                ["Posted By", selectedTransaction.officer_name || selectedTransaction.posted_by || "Not recorded"],
+                                ["External Reference", selectedTransaction.external_reference || "Not recorded"],
+                                ["Narration", selectedTransaction.narration || "Not recorded"],
+                            ].map(([label, value]) => (
+                                <div key={label} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                                    <p className="text-xs font-black uppercase tracking-wide text-slate-500">
+                                        {label}
+                                    </p>
+                                    <p className="mt-2 break-words font-bold text-slate-900">
+                                        {value}
+                                    </p>
+                                </div>
+                            ))}
+                        </div>
+
+                        <div className="flex flex-wrap justify-end gap-2 border-t border-slate-200 p-6">
+                            {transactionLink(selectedTransaction) && (
+                                <Link
+                                    href={transactionLink(selectedTransaction) as string}
+                                    className="rounded-xl bg-blue-700 px-4 py-3 text-sm font-black text-white hover:bg-blue-800"
+                                >
+                                    Open Linked Source
+                                </Link>
+                            )}
+                            <button
+                                type="button"
+                                onClick={() => setSelectedTransaction(null)}
+                                className="rounded-xl bg-slate-950 px-4 py-3 text-sm font-black text-white"
+                            >
+                                Done
+                            </button>
+                        </div>
+                    </section>
+                </div>
+            )}
+
+            <style jsx global>{`
+                @media print {
+                    body {
+                        background: white !important;
+                    }
+
+                    main {
+                        max-width: none !important;
+                        padding: 0 !important;
+                    }
+
+                    table {
+                        min-width: 100% !important;
+                        font-size: 10px;
+                    }
+
+                    section {
+                        box-shadow: none !important;
+                    }
+                }
+            `}</style>
         </main>
     );
 }
