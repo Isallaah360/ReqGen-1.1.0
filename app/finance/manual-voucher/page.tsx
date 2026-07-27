@@ -175,6 +175,12 @@ function isPostedStatus(statusValue: string | null | undefined) {
     return status.includes("posted") || status.includes("paid");
 }
 
+function isCancelledStatus(statusValue: string | null | undefined) {
+    const status = (statusValue || "").toLowerCase();
+
+    return status.includes("cancel") || status.includes("reverse");
+}
+
 function firstRpcRecord<T>(data: unknown): T {
     if (Array.isArray(data)) {
         return data[0] as T;
@@ -188,6 +194,7 @@ export default function ManualVoucherPage() {
     const [authorized, setAuthorized] = useState(false);
     const [saving, setSaving] = useState(false);
     const [posting, setPosting] = useState(false);
+    const [cancelling, setCancelling] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
 
     const [error, setError] = useState<string | null>(null);
@@ -296,29 +303,15 @@ export default function ManualVoucherPage() {
             ] = await Promise.all([
                 supabase
                     .from("iet_accounts")
-                    .select(
-                        "id,name,bank_name,account_number,available_balance,balance"
-                    )
-                    .order("name", {
-                        ascending: true,
-                        nullsFirst: false,
-                    }),
+                    .select("*"),
 
                 supabase
                     .from("subheads")
-                    .select(
-                        "id,name,title,subhead_name,code,subhead_code,account_id,bank_account_id,balance"
-                    )
-                    .order("name", {
-                        ascending: true,
-                        nullsFirst: false,
-                    }),
+                    .select("*"),
 
                 supabase
                     .from("payment_vouchers")
-                    .select(
-                        "id,voucher_no,account_id,subhead_id,payee_name,narration,amount,total_amount,payment_method,payment_reference,payment_date,prepared_by_name,status,posted_at,created_at"
-                    )
+                    .select("*")
                     .eq("voucher_type", "Manual")
                     .order("created_at", { ascending: false })
                     .limit(50),
@@ -336,12 +329,25 @@ export default function ManualVoucherPage() {
                 throw voucherResult.error;
             }
 
-            setAccounts((accountResult.data || []) as AccountRow[]);
-            setSubheads((subheadResult.data || []) as SubheadRow[]);
+            const accountRows = ((accountResult.data || []) as AccountRow[])
+                .slice()
+                .sort((left, right) =>
+                    accountLabel(left).localeCompare(accountLabel(right))
+                );
+
+            const subheadRows = ((subheadResult.data || []) as SubheadRow[])
+                .slice()
+                .sort((left, right) =>
+                    subheadLabel(left).localeCompare(subheadLabel(right))
+                );
+
+            setAccounts(accountRows);
+            setSubheads(subheadRows);
             setManualVouchers(
                 (voucherResult.data || []) as ManualVoucherRow[]
             );
         } catch (caught) {
+            console.error("Manual Voucher Centre load error:", caught);
             setError(
                 caught instanceof Error
                     ? caught.message
@@ -424,7 +430,9 @@ export default function ManualVoucherPage() {
     const draftCount = useMemo(
         () =>
             manualVouchers.filter(
-                (voucher) => !isPostedStatus(voucher.status)
+                (voucher) =>
+                    !isPostedStatus(voucher.status) &&
+                    !isCancelledStatus(voucher.status)
             ).length,
         [manualVouchers]
     );
@@ -489,6 +497,14 @@ export default function ManualVoucherPage() {
             return;
         }
 
+        if (isCancelledStatus(voucher.status)) {
+            setSuccess(null);
+            setError(
+                "Cancelled vouchers are read-only and cannot be edited."
+            );
+            return;
+        }
+
         setVoucherId(voucher.id);
         setVoucherNo(voucher.voucher_no);
         setAccountId(voucher.account_id || "");
@@ -520,10 +536,6 @@ export default function ManualVoucherPage() {
 
         if (!accountId) {
             throw new Error("Select an IET account.");
-        }
-
-        if (!subheadId) {
-            throw new Error("Select a subhead.");
         }
 
         if (!payeeName.trim()) {
@@ -562,7 +574,7 @@ export default function ManualVoucherPage() {
                 {
                     p_voucher_id: voucherId,
                     p_account_id: accountId,
-                    p_subhead_id: subheadId,
+                    p_subhead_id: subheadId || null,
                     p_payee_name: payeeName.trim(),
                     p_narration: narration.trim(),
                     p_amount: validatedAmount,
@@ -607,6 +619,65 @@ export default function ManualVoucherPage() {
         }
     }
 
+    async function cancelDraft() {
+        if (!voucherId) {
+            setError("Save the voucher as a draft before cancelling it.");
+            return;
+        }
+
+        const currentVoucher = manualVouchers.find(
+            (voucher) => voucher.id === voucherId
+        );
+
+        if (isPostedStatus(currentVoucher?.status)) {
+            setError("A posted voucher cannot be cancelled from the draft form.");
+            return;
+        }
+
+        if (isCancelledStatus(currentVoucher?.status)) {
+            setError("This voucher has already been cancelled.");
+            return;
+        }
+
+        const confirmed = window.confirm(
+            `Cancel ${voucherNo || "this draft voucher"}? This action will make the draft read-only.`
+        );
+
+        if (!confirmed) return;
+
+        setCancelling(true);
+        setError(null);
+        setSuccess(null);
+
+        try {
+            const { error: cancelError } = await supabase
+                .from("payment_vouchers")
+                .update({ status: "Cancelled" })
+                .eq("id", voucherId)
+                .not("status", "ilike", "%posted%")
+                .not("status", "ilike", "%paid%");
+
+            if (cancelError) {
+                throw cancelError;
+            }
+
+            const cancelledVoucherNo = voucherNo || "Draft voucher";
+
+            await loadPage(true);
+            clearForm(true);
+            setSuccess(`${cancelledVoucherNo} cancelled successfully.`);
+        } catch (caught) {
+            console.error("Manual voucher cancellation error:", caught);
+            setError(
+                caught instanceof Error
+                    ? caught.message
+                    : "Unable to cancel the draft voucher."
+            );
+        } finally {
+            setCancelling(false);
+        }
+    }
+
     async function postVoucher() {
         setPosting(true);
         setError(null);
@@ -614,6 +685,20 @@ export default function ManualVoucherPage() {
 
         try {
             validateVoucher();
+
+            const currentVoucher = manualVouchers.find(
+                (voucher) => voucher.id === voucherId
+            );
+
+            if (isPostedStatus(currentVoucher?.status)) {
+                throw new Error(
+                    "This voucher has already been posted. Duplicate posting was prevented."
+                );
+            }
+
+            if (isCancelledStatus(currentVoucher?.status)) {
+                throw new Error("A cancelled voucher cannot be posted.");
+            }
 
             if (!confirmPosting) {
                 throw new Error(
@@ -947,7 +1032,7 @@ export default function ManualVoucherPage() {
                                         event.target.value
                                     )
                                 }
-                                disabled={saving || posting}
+                                disabled={saving || posting || cancelling}
                                 className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 font-semibold text-slate-900 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:bg-slate-100"
                             >
                                 <option value="">
@@ -970,7 +1055,7 @@ export default function ManualVoucherPage() {
 
                         <label className="block">
                             <span className="text-sm font-black text-slate-800">
-                                Finance Subhead *
+                                Finance Subhead (where applicable)
                             </span>
 
                             <select
@@ -989,7 +1074,7 @@ export default function ManualVoucherPage() {
                             >
                                 <option value="">
                                     {accountId
-                                        ? "Select a finance subhead"
+                                        ? "Select a finance subhead (optional)"
                                         : "Select an account first"}
                                 </option>
 
@@ -1020,7 +1105,7 @@ export default function ManualVoucherPage() {
                                 onChange={(event) =>
                                     setPayeeName(event.target.value)
                                 }
-                                disabled={saving || posting}
+                                disabled={saving || posting || cancelling}
                                 placeholder="Enter the full name of the payee"
                                 className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 font-semibold text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:bg-slate-100"
                             />
@@ -1036,7 +1121,7 @@ export default function ManualVoucherPage() {
                                 onChange={(event) =>
                                     setNarration(event.target.value)
                                 }
-                                disabled={saving || posting}
+                                disabled={saving || posting || cancelling}
                                 rows={4}
                                 placeholder="Clearly describe the purpose of this payment"
                                 className="mt-2 w-full resize-y rounded-xl border border-slate-300 bg-white px-4 py-3 font-semibold leading-7 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:bg-slate-100"
@@ -1061,7 +1146,7 @@ export default function ManualVoucherPage() {
                                     onChange={(event) =>
                                         setAmount(event.target.value)
                                     }
-                                    disabled={saving || posting}
+                                    disabled={saving || posting || cancelling}
                                     placeholder="0.00"
                                     className="w-full px-4 py-3 font-black text-slate-950 outline-none disabled:bg-slate-100"
                                 />
@@ -1079,7 +1164,7 @@ export default function ManualVoucherPage() {
                                 onChange={(event) =>
                                     setPaymentDate(event.target.value)
                                 }
-                                disabled={saving || posting}
+                                disabled={saving || posting || cancelling}
                                 className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 font-semibold text-slate-900 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:bg-slate-100"
                             />
                         </label>
@@ -1096,7 +1181,7 @@ export default function ManualVoucherPage() {
                                         event.target.value
                                     )
                                 }
-                                disabled={saving || posting}
+                                disabled={saving || posting || cancelling}
                                 className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 font-semibold text-slate-900 outline-none transition focus:border-violet-500 focus:ring-4 focus:ring-violet-100 disabled:bg-slate-100"
                             >
                                 {PAYMENT_METHODS.map((method) => (
@@ -1123,7 +1208,7 @@ export default function ManualVoucherPage() {
                                         event.target.value
                                     )
                                 }
-                                disabled={saving || posting}
+                                disabled={saving || posting || cancelling}
                                 placeholder="Cheque, transfer or receipt reference"
                                 className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 font-semibold text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:bg-slate-100"
                             />
@@ -1139,7 +1224,7 @@ export default function ManualVoucherPage() {
                                             event.target.checked
                                         )
                                     }
-                                    disabled={saving || posting}
+                                    disabled={saving || posting || cancelling}
                                     className="mt-1 h-5 w-5 rounded border-amber-400 text-amber-600 focus:ring-amber-500"
                                 />
 
@@ -1161,7 +1246,7 @@ export default function ManualVoucherPage() {
                         <div className="flex flex-col gap-3 border-t border-slate-200 pt-5 sm:flex-row lg:col-span-2">
                             <button
                                 type="submit"
-                                disabled={saving || posting}
+                                disabled={saving || posting || cancelling}
                                 className="rounded-xl bg-amber-500 px-6 py-3.5 text-sm font-black text-slate-950 shadow-sm transition hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-60"
                             >
                                 {saving
@@ -1174,7 +1259,7 @@ export default function ManualVoucherPage() {
                             <button
                                 type="button"
                                 onClick={postVoucher}
-                                disabled={saving || posting}
+                                disabled={saving || posting || cancelling}
                                 className="rounded-xl bg-emerald-700 px-6 py-3.5 text-sm font-black text-white shadow-sm transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60"
                             >
                                 {posting
@@ -1182,10 +1267,21 @@ export default function ManualVoucherPage() {
                                     : "Post Voucher & Record Transaction"}
                             </button>
 
+                            {voucherId && (
+                                <button
+                                    type="button"
+                                    onClick={cancelDraft}
+                                    disabled={saving || posting || cancelling}
+                                    className="rounded-xl border border-red-200 bg-red-50 px-6 py-3.5 text-sm font-black text-red-700 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
+                                >
+                                    {cancelling ? "Cancelling Draft…" : "Cancel Draft"}
+                                </button>
+                            )}
+
                             <button
                                 type="button"
                                 onClick={() => clearForm()}
-                                disabled={saving || posting}
+                                disabled={saving || posting || cancelling}
                                 className="rounded-xl border border-slate-300 bg-slate-50 px-6 py-3.5 text-sm font-black text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
                             >
                                 Clear Form
@@ -1276,9 +1372,9 @@ export default function ManualVoucherPage() {
 
                                     <span
                                         className={`font-black ${accountBalanceAfterPayment <
-                                                0
-                                                ? "text-red-700"
-                                                : "text-emerald-950"
+                                            0
+                                            ? "text-red-700"
+                                            : "text-emerald-950"
                                             }`}
                                     >
                                         {money(
@@ -1294,9 +1390,9 @@ export default function ManualVoucherPage() {
 
                                     <span
                                         className={`font-black ${subheadBalanceAfterPayment <
-                                                0
-                                                ? "text-red-700"
-                                                : "text-emerald-950"
+                                            0
+                                            ? "text-red-700"
+                                            : "text-emerald-950"
                                             }`}
                                     >
                                         {money(
