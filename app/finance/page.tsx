@@ -31,14 +31,12 @@ type TransactionRow = {
   transaction_date: string | null;
 };
 
-type ModuleCardProps = {
-  title: string;
-  description: string;
-  icon: string;
-  section: string;
-  href?: string;
-  badge?: string;
-  colour:
+type LoadIssue = {
+  source: string;
+  message: string;
+};
+
+type Colour =
   | "blue"
   | "amber"
   | "violet"
@@ -47,10 +45,28 @@ type ModuleCardProps = {
   | "rose"
   | "indigo"
   | "slate";
+
+type ModuleCardProps = {
+  title: string;
+  description: string;
+  icon: string;
+  section: string;
+  href?: string;
+  badge?: string;
+  colour: Colour;
   comingSoon?: boolean;
 };
 
-const colourStyles = {
+const colourStyles: Record<
+  Colour,
+  {
+    card: string;
+    icon: string;
+    section: string;
+    button: string;
+    badge: string;
+  }
+> = {
   blue: {
     card: "border-blue-200 bg-gradient-to-br from-white to-blue-50",
     icon: "bg-blue-100 text-blue-800",
@@ -58,7 +74,6 @@ const colourStyles = {
     button: "bg-blue-700 text-white group-hover:bg-blue-800",
     badge: "border-blue-200 bg-blue-50 text-blue-800",
   },
-
   amber: {
     card: "border-amber-200 bg-gradient-to-br from-white to-amber-50",
     icon: "bg-amber-100 text-amber-800",
@@ -66,7 +81,6 @@ const colourStyles = {
     button: "bg-amber-600 text-white group-hover:bg-amber-700",
     badge: "border-amber-200 bg-amber-50 text-amber-800",
   },
-
   violet: {
     card: "border-violet-200 bg-gradient-to-br from-white to-violet-50",
     icon: "bg-violet-100 text-violet-800",
@@ -74,7 +88,6 @@ const colourStyles = {
     button: "bg-violet-700 text-white group-hover:bg-violet-800",
     badge: "border-violet-200 bg-violet-50 text-violet-800",
   },
-
   emerald: {
     card: "border-emerald-200 bg-gradient-to-br from-white to-emerald-50",
     icon: "bg-emerald-100 text-emerald-800",
@@ -82,7 +95,6 @@ const colourStyles = {
     button: "bg-emerald-700 text-white group-hover:bg-emerald-800",
     badge: "border-emerald-200 bg-emerald-50 text-emerald-800",
   },
-
   cyan: {
     card: "border-cyan-200 bg-gradient-to-br from-white to-cyan-50",
     icon: "bg-cyan-100 text-cyan-800",
@@ -90,7 +102,6 @@ const colourStyles = {
     button: "bg-cyan-700 text-white group-hover:bg-cyan-800",
     badge: "border-cyan-200 bg-cyan-50 text-cyan-800",
   },
-
   rose: {
     card: "border-rose-200 bg-gradient-to-br from-white to-rose-50",
     icon: "bg-rose-100 text-rose-800",
@@ -98,7 +109,6 @@ const colourStyles = {
     button: "bg-rose-700 text-white group-hover:bg-rose-800",
     badge: "border-rose-200 bg-rose-50 text-rose-800",
   },
-
   indigo: {
     card: "border-indigo-200 bg-gradient-to-br from-white to-indigo-50",
     icon: "bg-indigo-100 text-indigo-800",
@@ -106,7 +116,6 @@ const colourStyles = {
     button: "bg-indigo-700 text-white group-hover:bg-indigo-800",
     badge: "border-indigo-200 bg-indigo-50 text-indigo-800",
   },
-
   slate: {
     card: "border-slate-200 bg-gradient-to-br from-white to-slate-50",
     icon: "bg-slate-100 text-slate-700",
@@ -119,7 +128,7 @@ const colourStyles = {
 function formatMoney(value: number | string | null | undefined) {
   const amount = Number(value ?? 0);
 
-  return new Intl.NumberFormat("en-US", {
+  return new Intl.NumberFormat("en-NG", {
     style: "currency",
     currency: "NGN",
     minimumFractionDigits: 2,
@@ -132,15 +141,19 @@ function formatDate(value: string | null | undefined) {
 
   const date = new Date(value);
 
-  if (Number.isNaN(date.getTime())) {
-    return "Not available";
-  }
+  if (Number.isNaN(date.getTime())) return "Not available";
 
-  return date.toLocaleDateString("en-US", {
+  return date.toLocaleDateString("en-NG", {
     day: "2-digit",
     month: "short",
     year: "numeric",
   });
+}
+
+function normaliseStatus(value: string | null | undefined) {
+  return (value || "Unknown")
+    .replaceAll("_", " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
 function isPendingFinanceRequest(request: RequestRow) {
@@ -211,8 +224,8 @@ function ModuleCard({
   const card = (
     <article
       className={`group flex h-full flex-col rounded-3xl border p-5 shadow-sm transition ${styles.card} ${comingSoon
-        ? "cursor-not-allowed opacity-70"
-        : "hover:-translate-y-1 hover:shadow-xl"
+          ? "cursor-not-allowed opacity-75"
+          : "hover:-translate-y-1 hover:shadow-xl"
         }`}
     >
       <div className="flex items-start justify-between gap-4">
@@ -223,13 +236,13 @@ function ModuleCard({
           {icon}
         </div>
 
-        {badge && (
+        {badge ? (
           <span
             className={`rounded-full border px-3 py-1 text-xs font-black ${styles.badge}`}
           >
             {badge}
           </span>
-        )}
+        ) : null}
       </div>
 
       <p
@@ -249,14 +262,12 @@ function ModuleCard({
       <span
         className={`mt-5 inline-flex w-fit items-center rounded-xl px-4 py-2.5 text-sm font-black transition ${styles.button}`}
       >
-        {comingSoon ? "Coming Soon" : "Open Module →"}
+        {comingSoon ? "Planned Module" : "Open Module →"}
       </span>
     </article>
   );
 
-  if (comingSoon || !href) {
-    return card;
-  }
+  if (comingSoon || !href) return card;
 
   return (
     <Link
@@ -291,9 +302,7 @@ function MetricCard({
       <p className="text-xs font-black uppercase tracking-[0.14em] opacity-70">
         {label}
       </p>
-
       <p className="mt-2 text-2xl font-black tracking-tight">{value}</p>
-
       <p className="mt-1 text-xs font-bold opacity-70">{note}</p>
     </article>
   );
@@ -314,12 +323,10 @@ function SectionHeading({
         <p className="text-xs font-black uppercase tracking-[0.18em] text-blue-700">
           {label}
         </p>
-
         <h2 className="mt-1 text-2xl font-black tracking-tight text-slate-950">
           {title}
         </h2>
       </div>
-
       <p className="max-w-2xl text-sm font-semibold leading-6 text-slate-500">
         {description}
       </p>
@@ -327,32 +334,45 @@ function SectionHeading({
   );
 }
 
+function LoadingScreen() {
+  return (
+    <main className="mx-auto max-w-7xl px-4 py-8">
+      <div className="animate-pulse space-y-6">
+        <div className="h-16 rounded-3xl bg-slate-200" />
+        <div className="h-56 rounded-3xl bg-slate-200" />
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <div key={index} className="h-28 rounded-2xl bg-slate-200" />
+          ))}
+        </div>
+        <div className="h-96 rounded-3xl bg-slate-200" />
+      </div>
+    </main>
+  );
+}
+
 export default function FinancePage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [fatalError, setFatalError] = useState<string | null>(null);
+  const [loadIssues, setLoadIssues] = useState<LoadIssue[]>([]);
 
   const [requests, setRequests] = useState<RequestRow[]>([]);
   const [vouchers, setVouchers] = useState<VoucherRow[]>([]);
   const [transactions, setTransactions] = useState<TransactionRow[]>([]);
 
   const loadFinanceData = useCallback(async (manualRefresh = false) => {
-    if (manualRefresh) {
-      setRefreshing(true);
-    } else {
-      setLoading(true);
-    }
+    if (manualRefresh) setRefreshing(true);
+    else setLoading(true);
 
-    setErrorMessage(null);
+    setFatalError(null);
+    setLoadIssues([]);
 
     try {
-      const { data: authData, error: authError } =
-        await supabase.auth.getUser();
+      const { data: authData, error: authError } = await supabase.auth.getUser();
 
       if (authError || !authData.user) {
-        throw new Error(
-          "Your login session has expired. Please sign in again."
-        );
+        throw new Error("Your login session has expired. Please sign in again.");
       }
 
       const [requestsResult, vouchersResult, transactionsResult] =
@@ -373,52 +393,50 @@ export default function FinancePage() {
               ].join(",")
             )
             .order("created_at", { ascending: false })
-            .limit(200),
-
+            .limit(500),
           supabase
             .from("payment_vouchers")
-            .select(
-              [
-                "id",
-                "status",
-                "voucher_type",
-                "amount",
-                "total_amount",
-              ].join(",")
-            )
-            .limit(2000),
-
+            .select("id,status,voucher_type,amount,total_amount")
+            .limit(5000),
           supabase
             .from("finance_transactions")
-            .select(
-              [
-                "id",
-                "amount",
-                "transaction_type",
-                "transaction_date",
-              ].join(",")
-            )
+            .select("id,amount,transaction_type,transaction_date")
             .order("transaction_date", { ascending: false })
-            .limit(2000),
+            .limit(5000),
         ]);
 
+      const issues: LoadIssue[] = [];
+
       if (requestsResult.error) {
-        throw requestsResult.error;
+        issues.push({ source: "Finance requests", message: requestsResult.error.message });
+        setRequests([]);
+      } else {
+        setRequests((requestsResult.data ?? []) as unknown as RequestRow[]);
       }
 
       if (vouchersResult.error) {
-        throw vouchersResult.error;
+        issues.push({ source: "Payment vouchers", message: vouchersResult.error.message });
+        setVouchers([]);
+      } else {
+        setVouchers((vouchersResult.data ?? []) as unknown as VoucherRow[]);
       }
 
       if (transactionsResult.error) {
-        throw transactionsResult.error;
+        issues.push({
+          source: "Finance transactions",
+          message: transactionsResult.error.message,
+        });
+        setTransactions([]);
+      } else {
+        setTransactions(
+          (transactionsResult.data ?? []) as unknown as TransactionRow[]
+        );
       }
 
-      setRequests(((requestsResult.data || []) as unknown) as RequestRow[]);
-      setVouchers(((vouchersResult.data || []) as unknown) as VoucherRow[]);
-      setTransactions(((transactionsResult.data || []) as unknown) as TransactionRow[]);
+      setLoadIssues(issues);
     } catch (error) {
-      setErrorMessage(
+      console.error("Finance Control Centre load error:", error);
+      setFatalError(
         error instanceof Error
           ? error.message
           : "Unable to load Finance Control Centre records."
@@ -430,43 +448,41 @@ export default function FinancePage() {
   }, []);
 
   useEffect(() => {
-    loadFinanceData();
+    void loadFinanceData();
   }, [loadFinanceData]);
 
   useEffect(() => {
+    let refreshTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const scheduleRefresh = () => {
+      if (refreshTimer) clearTimeout(refreshTimer);
+      refreshTimer = setTimeout(() => {
+        void loadFinanceData(true);
+      }, 400);
+    };
+
     const financeChannel = supabase
       .channel("finance-control-centre-realtime")
       .on(
         "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "requests",
-        },
-        () => loadFinanceData(true)
+        { event: "*", schema: "public", table: "requests" },
+        scheduleRefresh
       )
       .on(
         "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "payment_vouchers",
-        },
-        () => loadFinanceData(true)
+        { event: "*", schema: "public", table: "payment_vouchers" },
+        scheduleRefresh
       )
       .on(
         "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "finance_transactions",
-        },
-        () => loadFinanceData(true)
+        { event: "*", schema: "public", table: "finance_transactions" },
+        scheduleRefresh
       )
       .subscribe();
 
     return () => {
-      supabase.removeChannel(financeChannel);
+      if (refreshTimer) clearTimeout(refreshTimer);
+      void supabase.removeChannel(financeChannel);
     };
   }, [loadFinanceData]);
 
@@ -478,8 +494,7 @@ export default function FinancePage() {
   const manualVouchers = useMemo(
     () =>
       vouchers.filter(
-        (voucher) =>
-          (voucher.voucher_type || "").toLowerCase() === "manual"
+        (voucher) => (voucher.voucher_type || "").toLowerCase() === "manual"
       ),
     [vouchers]
   );
@@ -487,9 +502,7 @@ export default function FinancePage() {
   const requestVouchers = useMemo(
     () =>
       vouchers.filter(
-        (voucher) =>
-          (voucher.voucher_type || "request").toLowerCase() !==
-          "manual"
+        (voucher) => (voucher.voucher_type || "request").toLowerCase() !== "manual"
       ),
     [vouchers]
   );
@@ -498,7 +511,6 @@ export default function FinancePage() {
     () =>
       vouchers.filter((voucher) => {
         const status = (voucher.status || "").toLowerCase();
-
         return (
           status.includes("draft") ||
           status.includes("prepared") ||
@@ -512,7 +524,6 @@ export default function FinancePage() {
     () =>
       vouchers.filter((voucher) => {
         const status = (voucher.status || "").toLowerCase();
-
         return (
           status.includes("posted") ||
           status.includes("paid") ||
@@ -525,10 +536,7 @@ export default function FinancePage() {
   const postedVoucherValue = useMemo(
     () =>
       postedVouchers.reduce((total, voucher) => {
-        const amount = Number(
-          voucher.total_amount ?? voucher.amount ?? 0
-        );
-
+        const amount = Number(voucher.total_amount ?? voucher.amount ?? 0);
         return total + (Number.isFinite(amount) ? amount : 0);
       }, 0),
     [postedVouchers]
@@ -538,40 +546,20 @@ export default function FinancePage() {
     () =>
       transactions.reduce((total, transaction) => {
         const amount = Number(transaction.amount ?? 0);
-
         return total + (Number.isFinite(amount) ? amount : 0);
       }, 0),
     [transactions]
   );
 
   const recentPendingRequests = useMemo(
-    () => pendingRequests.slice(0, 8),
+    () => pendingRequests.slice(0, 10),
     [pendingRequests]
   );
 
-  if (loading) {
-    return (
-      <main className="mx-auto max-w-7xl px-4 py-8">
-        <div className="animate-pulse space-y-6">
-          <div className="h-48 rounded-3xl bg-slate-200" />
-
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="h-28 rounded-2xl bg-slate-200" />
-            <div className="h-28 rounded-2xl bg-slate-200" />
-            <div className="h-28 rounded-2xl bg-slate-200" />
-            <div className="h-28 rounded-2xl bg-slate-200" />
-          </div>
-
-          <div className="h-96 rounded-3xl bg-slate-200" />
-        </div>
-      </main>
-    );
-  }
+  if (loading) return <LoadingScreen />;
 
   return (
     <main className="mx-auto max-w-7xl px-4 py-6 sm:py-8">
-      {/* TOP NAVIGATION */}
-
       <nav className="mb-6 flex flex-col gap-3 rounded-3xl border border-slate-200 bg-white p-3 shadow-sm lg:flex-row lg:items-center lg:justify-between">
         <div className="flex flex-wrap gap-2">
           <Link
@@ -580,21 +568,18 @@ export default function FinancePage() {
           >
             ← Main Dashboard
           </Link>
-
           <Link
             href="/finance/manual-voucher"
             className="rounded-xl bg-amber-600 px-4 py-2.5 text-sm font-black text-white transition hover:bg-amber-700"
           >
             + Create Manual Voucher
           </Link>
-
           <Link
             href="/finance/vouchers"
             className="rounded-xl bg-violet-700 px-4 py-2.5 text-sm font-black text-white transition hover:bg-violet-800"
           >
             Voucher Register
           </Link>
-
           <Link
             href="/finance/transactions"
             className="rounded-xl bg-emerald-700 px-4 py-2.5 text-sm font-black text-white transition hover:bg-emerald-800"
@@ -605,7 +590,7 @@ export default function FinancePage() {
 
         <button
           type="button"
-          onClick={() => loadFinanceData(true)}
+          onClick={() => void loadFinanceData(true)}
           disabled={refreshing}
           className="rounded-xl border border-cyan-200 bg-cyan-50 px-4 py-2.5 text-sm font-black text-cyan-800 transition hover:bg-cyan-100 disabled:cursor-not-allowed disabled:opacity-60"
         >
@@ -613,23 +598,19 @@ export default function FinancePage() {
         </button>
       </nav>
 
-      {/* HERO */}
-
       <section className="overflow-hidden rounded-3xl border border-blue-900/20 bg-gradient-to-br from-slate-950 via-blue-950 to-violet-950 p-6 text-white shadow-xl sm:p-8">
         <div className="grid gap-7 lg:grid-cols-[1.45fr_0.75fr] lg:items-end">
           <div>
             <p className="text-xs font-black uppercase tracking-[0.22em] text-cyan-300">
               Finance Management
             </p>
-
             <h1 className="mt-3 text-3xl font-black tracking-tight sm:text-5xl">
               Finance Control Centre
             </h1>
-
             <p className="mt-4 max-w-3xl font-semibold leading-7 text-slate-300">
-              A unified control centre for finance requests, payment
-              vouchers, transaction records, accounting ledgers,
-              reporting, audit controls and financial administration.
+              A unified control centre for finance requests, payment vouchers,
+              transaction records, accounting ledgers, reporting, audit controls
+              and financial administration.
             </p>
 
             <div className="mt-6 flex flex-wrap gap-3">
@@ -639,7 +620,6 @@ export default function FinancePage() {
               >
                 Create Manual Voucher
               </Link>
-
               <a
                 href="#pending-finance-requests"
                 className="rounded-xl border border-white/20 bg-white/10 px-5 py-3 text-sm font-black text-white transition hover:bg-white/15"
@@ -653,25 +633,20 @@ export default function FinancePage() {
             <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-300">
               Recorded Transaction Value
             </p>
-
             <p className="mt-2 text-3xl font-black text-white">
               {formatMoney(transactionValue)}
             </p>
-
             <p className="mt-1 text-sm font-semibold text-slate-300">
-              Total value currently returned by the transaction
-              register.
+              Total value currently returned by the finance transactions register.
             </p>
 
             <div className="mt-5 flex flex-wrap gap-2 text-xs font-black">
               <span className="rounded-full bg-amber-400/15 px-3 py-1.5 text-amber-200">
                 {pendingRequests.length} Pending
               </span>
-
               <span className="rounded-full bg-violet-400/15 px-3 py-1.5 text-violet-200">
                 {postedVouchers.length} Posted Vouchers
               </span>
-
               <span className="rounded-full bg-emerald-400/15 px-3 py-1.5 text-emerald-200">
                 {transactions.length} Transactions
               </span>
@@ -680,13 +655,32 @@ export default function FinancePage() {
         </div>
       </section>
 
-      {errorMessage && (
-        <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 font-semibold text-red-800">
-          {errorMessage}
+      {fatalError ? (
+        <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-4 text-red-900">
+          <p className="font-black">Finance Control Centre could not be loaded.</p>
+          <p className="mt-1 text-sm font-semibold">{fatalError}</p>
+          <button
+            type="button"
+            onClick={() => void loadFinanceData(true)}
+            className="mt-3 rounded-xl bg-red-700 px-4 py-2 text-sm font-black text-white hover:bg-red-800"
+          >
+            Try Again
+          </button>
         </div>
-      )}
+      ) : null}
 
-      {/* METRICS */}
+      {loadIssues.length > 0 ? (
+        <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-amber-950">
+          <p className="font-black">Some finance records could not be loaded.</p>
+          <div className="mt-2 space-y-1 text-sm font-semibold">
+            {loadIssues.map((issue) => (
+              <p key={`${issue.source}-${issue.message}`}>
+                <span className="font-black">{issue.source}:</span> {issue.message}
+              </p>
+            ))}
+          </div>
+        </div>
+      ) : null}
 
       <section className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard
@@ -695,21 +689,18 @@ export default function FinancePage() {
           note="Awaiting Finance action"
           colour="amber"
         />
-
         <MetricCard
           label="Manual Vouchers"
           value={String(manualVouchers.length)}
           note={`${draftVouchers.length} draft or pending vouchers`}
           colour="violet"
         />
-
         <MetricCard
           label="Posted Voucher Value"
           value={formatMoney(postedVoucherValue)}
           note={`${postedVouchers.length} posted vouchers`}
           colour="emerald"
         />
-
         <MetricCard
           label="Request-Based Vouchers"
           value={String(requestVouchers.length)}
@@ -718,51 +709,43 @@ export default function FinancePage() {
         />
       </section>
 
-      {/* =========================
-    OPERATIONS
-========================= */}
-
       <section className="mt-10">
         <SectionHeading
           label="Operations"
           title="Daily Finance Operations"
           description="Core operational tools used daily by the Finance Department."
         />
-
         <div className="mt-5 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
           <ModuleCard
             title="Pending Finance Requests"
-            description="Process all approved requests awaiting Finance action."
+            description="Process approved requests currently awaiting Finance action."
             icon="📝"
             section="Operations"
             href="#pending-finance-requests"
             badge={`${pendingRequests.length} Pending`}
             colour="blue"
           />
-
           <ModuleCard
             title="Manual Voucher Centre"
-            description="Create, edit, draft and post manual payment vouchers."
+            description="Create, edit, save, cancel and post manual payment vouchers."
             icon="💳"
             section="Operations"
             href="/finance/manual-voucher"
             badge={`${manualVouchers.length} Records`}
             colour="amber"
           />
-
           <ModuleCard
             title="Payment Voucher Register"
-            description="View all Request and Manual Payment Vouchers."
+            description="Review request-based and manual payment vouchers in one register."
             icon="📄"
             section="Operations"
             href="/finance/vouchers"
             badge={`${vouchers.length} Vouchers`}
             colour="violet"
           />
-
           <ModuleCard
             title="Transactions Register"
-            description="View every posted finance transaction."
+            description="Review every posted finance transaction and its source record."
             icon="💰"
             section="Operations"
             href="/finance/transactions"
@@ -772,142 +755,218 @@ export default function FinancePage() {
         </div>
       </section>
 
-      {/* =========================
-    ACCOUNTING
-========================= */}
+      <section
+        id="pending-finance-requests"
+        className="mt-10 scroll-mt-24 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6"
+      >
+        <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-blue-700">
+              Live Work Queue
+            </p>
+            <h2 className="mt-1 text-2xl font-black tracking-tight text-slate-950">
+              Pending Finance Requests
+            </h2>
+            <p className="mt-2 text-sm font-semibold text-slate-500">
+              The ten most recent requests detected at a Finance, Account or Payment stage.
+            </p>
+          </div>
+          <span className="w-fit rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-black text-amber-800">
+            {pendingRequests.length} awaiting action
+          </span>
+        </div>
+
+        {recentPendingRequests.length === 0 ? (
+          <div className="mt-5 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-5 py-10 text-center">
+            <p className="text-lg font-black text-slate-800">No pending Finance requests</p>
+            <p className="mt-1 text-sm font-semibold text-slate-500">
+              New requests will appear here when they reach a Finance-related stage.
+            </p>
+          </div>
+        ) : (
+          <div className="mt-5 overflow-x-auto rounded-2xl border border-slate-200">
+            <table className="min-w-full divide-y divide-slate-200 text-left">
+              <thead className="bg-slate-50">
+                <tr>
+                  <th className="px-4 py-3 text-xs font-black uppercase tracking-wide text-slate-500">
+                    Request
+                  </th>
+                  <th className="px-4 py-3 text-xs font-black uppercase tracking-wide text-slate-500">
+                    Description
+                  </th>
+                  <th className="px-4 py-3 text-xs font-black uppercase tracking-wide text-slate-500">
+                    Amount
+                  </th>
+                  <th className="px-4 py-3 text-xs font-black uppercase tracking-wide text-slate-500">
+                    Stage / Owner
+                  </th>
+                  <th className="px-4 py-3 text-xs font-black uppercase tracking-wide text-slate-500">
+                    Status
+                  </th>
+                  <th className="px-4 py-3 text-xs font-black uppercase tracking-wide text-slate-500">
+                    Date
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 bg-white">
+                {recentPendingRequests.map((request) => (
+                  <tr key={request.id} className="align-top hover:bg-slate-50/70">
+                    <td className="whitespace-nowrap px-4 py-4 text-sm font-black text-blue-800">
+                      {request.request_no || "No request number"}
+                    </td>
+                    <td className="min-w-60 px-4 py-4">
+                      <p className="text-sm font-black text-slate-900">
+                        {request.title || "Untitled request"}
+                      </p>
+                      {request.assigned_account_officer_name ? (
+                        <p className="mt-1 text-xs font-semibold text-slate-500">
+                          Officer: {request.assigned_account_officer_name}
+                        </p>
+                      ) : null}
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-4 text-sm font-black text-slate-900">
+                      {formatMoney(request.amount)}
+                    </td>
+                    <td className="min-w-48 px-4 py-4 text-sm font-semibold text-slate-600">
+                      <p>{normaliseStatus(request.current_stage)}</p>
+                      <p className="mt-1 text-xs text-slate-500">
+                        Owner: {normaliseStatus(request.current_owner)}
+                      </p>
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-4">
+                      <span
+                        className={`rounded-full border px-3 py-1 text-xs font-black ${getStatusClasses(
+                          request.status
+                        )}`}
+                      >
+                        {normaliseStatus(request.status)}
+                      </span>
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-4 text-sm font-semibold text-slate-600">
+                      {formatDate(request.created_at)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
 
       <section className="mt-10">
         <SectionHeading
           label="Accounting"
           title="Accounting & Fund Management"
-          description="Control ledgers, balances and fund movements."
+          description="Ledger, balance and authorised fund-movement modules scheduled for the next implementation phases."
         />
-
         <div className="mt-5 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
           <ModuleCard
             title="Account Ledger"
-            description="Debit, credit and balance movement for each IET account."
+            description="Debit, credit and running-balance movement for each IET account."
             icon="🏦"
             section="Accounting"
-            badge="Coming Soon"
+            badge="Phase 6"
             colour="cyan"
             comingSoon
           />
-
           <ModuleCard
             title="Subhead Ledger"
-            description="Allocation, reservation and expenditure history."
+            description="Allocation, reservation, expenditure and available-balance history."
             icon="📚"
             section="Accounting"
-            badge="Coming Soon"
+            badge="Phase 7"
             colour="blue"
             comingSoon
           />
-
           <ModuleCard
             title="Account Transfers"
-            description="Transfer funds between authorised IET accounts."
+            description="Controlled transfers between authorised IET accounts with dual entries."
             icon="🔄"
             section="Accounting"
-            badge="Coming Soon"
+            badge="Phase 8"
             colour="indigo"
             comingSoon
           />
         </div>
       </section>
 
-      {/* =========================
-    REPORTS
-========================= */}
-
       <section className="mt-10">
         <SectionHeading
           label="Reports"
-          title="Finance Reports"
-          description="Management reports, exports and printing."
+          title="Finance Reports & Output"
+          description="Management reporting, statements, printing and export capabilities."
         />
-
         <div className="mt-5 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
           <ModuleCard
             title="Monthly Reports"
-            description="Generate monthly finance reports."
+            description="Monthly expenditure, balances, vouchers and department spending."
             icon="📊"
             section="Reports"
-            badge="Coming Soon"
+            badge="Phase 9"
             colour="blue"
             comingSoon
           />
-
           <ModuleCard
             title="Annual Reports"
-            description="Generate annual finance reports."
+            description="Yearly allocation, expenditure, comparisons and performance reports."
             icon="📈"
             section="Reports"
-            badge="Coming Soon"
+            badge="Phase 9"
             colour="emerald"
             comingSoon
           />
-
           <ModuleCard
             title="Print Centre"
-            description="Print vouchers and financial reports."
+            description="Print vouchers, registers, statements and approved reports."
             icon="🖨️"
             section="Reports"
-            badge="Coming Soon"
+            badge="Phase 10"
             colour="slate"
             comingSoon
           />
-
           <ModuleCard
             title="PDF / Excel Export"
-            description="Export finance records to PDF and Excel."
+            description="Export authorised finance records to PDF and Excel formats."
             icon="📑"
             section="Reports"
-            badge="Coming Soon"
+            badge="Phase 10"
             colour="violet"
             comingSoon
           />
         </div>
       </section>
 
-      {/* =========================
-    ADMINISTRATION
-========================= */}
-
-      <section className="mt-10">
+      <section className="mt-10 pb-8">
         <SectionHeading
           label="Administration"
           title="Finance Administration"
-          description="System administration, audit and activity monitoring."
+          description="Workflow configuration, audit evidence and chronological activity monitoring."
         />
-
         <div className="mt-5 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
           <ModuleCard
             title="Finance Settings"
-            description="Configure finance module settings."
+            description="Configure numbering formats, fiscal year and permitted workflows."
             icon="⚙️"
             section="Administration"
-            badge="Coming Soon"
+            badge="Phase 11"
             colour="slate"
             comingSoon
           />
-
           <ModuleCard
             title="Audit Trail"
-            description="Inspect every finance action performed."
+            description="Inspect who created, edited, posted or changed finance records."
             icon="📋"
             section="Administration"
-            badge="Coming Soon"
+            badge="Phase 11"
             colour="rose"
             comingSoon
           />
-
           <ModuleCard
             title="Activity History"
-            description="Chronological finance activity by user and date."
+            description="Review chronological finance activity by user, module, date and action."
             icon="📜"
             section="Administration"
-            badge="Coming Soon"
+            badge="Phase 11"
             colour="indigo"
             comingSoon
           />
