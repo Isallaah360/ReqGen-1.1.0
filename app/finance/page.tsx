@@ -857,7 +857,7 @@ export default function FinancePage() {
         <SectionHeading
           label="Accounting"
           title="Accounting & Fund Management"
-          description="Ledger, balance and authorised fund-movement modules scheduled for the next implementation phases."
+          description="Ledger, balance and authorised fund-movement modules available from the Finance Control Centre."
         />
         <div className="mt-5 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
           <ModuleCard
@@ -865,9 +865,9 @@ export default function FinancePage() {
             description="Debit, credit and running-balance movement for each IET account."
             icon="🏦"
             section="Accounting"
-            badge="Phase 6"
+            badge="Live"
             colour="cyan"
-            comingSoon
+            href="/finance/account-ledger"
           />
           <ModuleCard
             title="Subhead Ledger"
@@ -876,7 +876,7 @@ export default function FinancePage() {
             section="Accounting"
             badge="Phase 7"
             colour="blue"
-            comingSoon
+            href="/finance/subhead-ledger"
           />
           <ModuleCard
             title="Account Transfers"
@@ -885,7 +885,7 @@ export default function FinancePage() {
             section="Accounting"
             badge="Phase 8"
             colour="indigo"
-            comingSoon
+            href="/finance/account-transfers"
           />
         </div>
       </section>
@@ -904,7 +904,7 @@ export default function FinancePage() {
             section="Reports"
             badge="Phase 9"
             colour="blue"
-            comingSoon
+            href="/finance/reports/monthly"
           />
           <ModuleCard
             title="Annual Reports"
@@ -913,7 +913,7 @@ export default function FinancePage() {
             section="Reports"
             badge="Phase 9"
             colour="emerald"
-            comingSoon
+            href="/finance/reports/annual"
           />
           <ModuleCard
             title="Print Centre"
@@ -922,7 +922,7 @@ export default function FinancePage() {
             section="Reports"
             badge="Phase 10"
             colour="slate"
-            comingSoon
+            href="/finance/print-centre"
           />
           <ModuleCard
             title="PDF / Excel Export"
@@ -931,7 +931,7 @@ export default function FinancePage() {
             section="Reports"
             badge="Phase 10"
             colour="violet"
-            comingSoon
+            href="/finance/export-centre"
           />
         </div>
       </section>
@@ -950,7 +950,7 @@ export default function FinancePage() {
             section="Administration"
             badge="Phase 11"
             colour="slate"
-            comingSoon
+            href="/finance/settings"
           />
           <ModuleCard
             title="Audit Trail"
@@ -959,7 +959,7 @@ export default function FinancePage() {
             section="Administration"
             badge="Phase 11"
             colour="rose"
-            comingSoon
+            href="/finance/audit-trail"
           />
           <ModuleCard
             title="Activity History"
@@ -968,7 +968,7 @@ export default function FinancePage() {
             section="Administration"
             badge="Phase 11"
             colour="indigo"
-            comingSoon
+            href="/finance/activity-history"
           />
         </div>
       </section>

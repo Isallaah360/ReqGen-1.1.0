@@ -625,7 +625,7 @@ export default function AccountLedgerPage() {
                             type="button"
                             onClick={() => void loadLedger(true)}
                             disabled={refreshing}
-                            className="rounded-2xl bg-slate-950 px-5 py-3 font-bold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                            className="rounded-2xl border border-cyan-200 bg-cyan-50 px-5 py-3 font-bold text-cyan-800 transition hover:bg-cyan-100 disabled:cursor-not-allowed disabled:opacity-60"
                         >
                             {refreshing ? "Refreshing..." : "Refresh Ledger"}
                         </button>
