@@ -3,6 +3,7 @@ import "./globals.css";
 import NavBar from "./components/NavBar";
 import SessionTimeout from "./components/SessionTimeout";
 import MfaGuard from "./components/MfaGuard";
+import RouteAccessGuard from "./components/RouteAccessGuard";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://req-gen-1-1-0.vercel.app"),
@@ -55,6 +56,7 @@ export default function RootLayout({
         className="min-h-screen bg-gradient-to-b from-gray-50 to-white text-gray-900 antialiased"
       >
         <MfaGuard />
+        <RouteAccessGuard />
 
         <NavBar />
 
