@@ -256,7 +256,7 @@ function IconLogout({ className = "h-5 w-5" }: IconProps) {
 
 function IconButtonTooltip({ label }: { label: string }) {
   return (
-    <span className="pointer-events-none absolute left-1/2 top-full z-[70] mt-2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-slate-900 px-2.5 py-1 text-xs font-bold text-white opacity-0 shadow-lg transition group-hover:opacity-100">
+    <span className="pointer-events-none absolute left-1/2 top-full z-[70] mt-2 -translate-x-1/2 whitespace-nowrap rounded-lg border border-blue-400/20 bg-blue-950/95 px-2.5 py-1 text-xs font-bold text-white shadow-lg backdrop-blur opacity-0 shadow-lg transition group-hover:opacity-100">
       {label}
     </span>
   );
@@ -350,14 +350,14 @@ export default function NavBar() {
 
   const iconLinkClass = (href: string) =>
     `group relative inline-flex h-11 w-11 items-center justify-center rounded-2xl border text-sm font-semibold transition ${isActiveLink(href)
-      ? "border-slate-900 bg-slate-900 text-white shadow-sm"
-      : "border-slate-200 bg-white text-slate-700 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+      ? "border-blue-600 bg-gradient-to-br from-blue-700 to-cyan-600 text-white shadow-lg shadow-blue-200/70"
+      : "border-slate-200 bg-white text-slate-700 hover:-translate-y-0.5 hover:border-cyan-300 hover:bg-gradient-to-br hover:from-blue-50 hover:to-cyan-50 hover:text-blue-700 hover:shadow-md"
     }`;
 
   const dropdownIconButtonClass = (active: boolean) =>
     `group relative inline-flex h-11 w-11 items-center justify-center rounded-2xl border text-sm font-semibold transition ${active
-      ? "border-slate-900 bg-slate-900 text-white shadow-sm"
-      : "border-slate-200 bg-white text-slate-700 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+      ? "border-blue-600 bg-gradient-to-br from-blue-700 to-cyan-600 text-white shadow-lg shadow-blue-200/70"
+      : "border-slate-200 bg-white text-slate-700 hover:-translate-y-0.5 hover:border-cyan-300 hover:bg-gradient-to-br hover:from-blue-50 hover:to-cyan-50 hover:text-blue-700 hover:shadow-md"
     }`;
 
   const dropdownItemClass = (href: string) =>
@@ -665,7 +665,7 @@ export default function NavBar() {
   const showLockedMfaNavigation = signedIn && !mfaVerified && !isPublicPath(pathname);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/90 backdrop-blur-xl">
+    <header className="sticky top-0 z-50 border-b border-blue-100 bg-white/90 backdrop-blur-xl/90 backdrop-blur-xl">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-2.5">
         <Link href="/" className="shrink-0 text-lg font-bold tracking-tight text-slate-950">
           ReqGen <span className="text-slate-400">1.1.0</span>
@@ -713,10 +713,10 @@ export default function NavBar() {
                     setOpenMobileMenu(false);
                   }}
                   className={`group relative inline-flex h-11 w-11 items-center justify-center rounded-xl border transition ${isActiveLink("/approvals")
-                      ? "border-slate-900 bg-slate-900 text-white shadow-sm"
+                      ? "border-blue-600 bg-gradient-to-br from-blue-700 to-cyan-600 text-white shadow-lg shadow-blue-200/70"
                       : pendingApprovalCount > 0
                         ? "border-red-200 bg-red-50 text-red-700 hover:bg-red-100"
-                        : "border-slate-200 bg-white text-slate-700 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+                        : "border-slate-200 bg-white text-slate-700 hover:-translate-y-0.5 hover:border-cyan-300 hover:bg-gradient-to-br hover:from-blue-50 hover:to-cyan-50 hover:text-blue-700 hover:shadow-md"
                     }`}
                 >
                   <IconApprovals />
@@ -880,10 +880,10 @@ export default function NavBar() {
                 type="button"
                 onClick={() => goTo("/notifications")}
                 className={`group relative inline-flex h-11 w-11 items-center justify-center rounded-xl border transition ${isActiveLink("/notifications")
-                    ? "border-slate-900 bg-slate-900 text-white shadow-sm"
+                    ? "border-blue-600 bg-gradient-to-br from-blue-700 to-cyan-600 text-white shadow-lg shadow-blue-200/70"
                     : unreadNotificationCount > 0
                       ? "border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100"
-                      : "border-slate-200 bg-white text-slate-700 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+                      : "border-slate-200 bg-white text-slate-700 hover:-translate-y-0.5 hover:border-cyan-300 hover:bg-gradient-to-br hover:from-blue-50 hover:to-cyan-50 hover:text-blue-700 hover:shadow-md"
                   }`}
               >
                 <IconNotifications />
@@ -983,7 +983,7 @@ export default function NavBar() {
                   setOpenApprovalPanel(false);
                 }}
                 className={`rounded-xl border px-3 py-2 text-sm font-bold transition ${openMobileMenu
-                    ? "border-slate-900 bg-slate-900 text-white shadow-sm"
+                    ? "border-blue-600 bg-gradient-to-br from-blue-700 to-cyan-600 text-white shadow-lg shadow-blue-200/70"
                     : "border-slate-200 bg-white text-slate-900 hover:bg-slate-100"
                   }`}
               >

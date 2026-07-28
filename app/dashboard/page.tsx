@@ -587,19 +587,44 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-slate-100/70 px-4">
-        <div className="mx-auto max-w-7xl py-10 text-slate-600">Loading dashboard...</div>
+      <main className="relative min-h-screen overflow-hidden bg-slate-100 px-4">
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-blue-100/70 via-white to-cyan-100/60" />
+        <div className="absolute inset-0 backdrop-blur-[2px]" />
+        <div className="relative mx-auto max-w-7xl py-8">
+          <div className="overflow-hidden rounded-[2rem] border border-white/70 bg-white/65 p-7 shadow-xl shadow-blue-900/10 backdrop-blur-xl">
+            <div className="flex items-center gap-4">
+              <div className="h-14 w-14 animate-pulse rounded-2xl bg-blue-200" />
+              <div className="flex-1 space-y-3">
+                <div className="h-5 w-48 animate-pulse rounded-full bg-slate-200" />
+                <div className="h-3 w-72 max-w-full animate-pulse rounded-full bg-slate-100" />
+              </div>
+              <div className="h-11 w-28 animate-pulse rounded-xl bg-cyan-200" />
+            </div>
+            <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              {[0, 1, 2, 3].map((item) => (
+                <div key={item} className="h-40 animate-pulse rounded-3xl border border-white bg-white/80 shadow-sm" />
+              ))}
+            </div>
+            <div className="mt-5 grid gap-4 lg:grid-cols-3">
+              <div className="h-64 animate-pulse rounded-3xl bg-white/80 lg:col-span-2" />
+              <div className="h-64 animate-pulse rounded-3xl bg-white/80" />
+            </div>
+          </div>
+        </div>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-slate-100/70 px-4">
-      <div className="mx-auto max-w-7xl py-7">
-        <div className="dashboard-enter relative overflow-hidden rounded-[2rem] border border-blue-900/10 bg-gradient-to-br from-slate-950 via-blue-950 to-blue-900 px-6 py-8 shadow-xl shadow-blue-950/10 sm:px-8">
-          <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
+    <main className="relative min-h-screen overflow-hidden bg-slate-100 px-4">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.15),transparent_34%),radial-gradient(circle_at_top_right,rgba(6,182,212,0.12),transparent_30%),radial-gradient(circle_at_bottom,rgba(168,85,247,0.08),transparent_32%)]" />
+      <div className="relative mx-auto max-w-7xl py-7">
+        <div className="dashboard-enter relative overflow-hidden rounded-[2rem] border border-blue-900/10 bg-gradient-to-br from-blue-950 via-blue-800 to-cyan-700 px-6 py-8 shadow-xl shadow-blue-950/10 sm:px-8">
+          <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-cyan-300/25 blur-3xl" />
+          <div className="pointer-events-none absolute -bottom-24 left-1/3 h-56 w-56 rounded-full bg-violet-400/20 blur-3xl" />
           <div className="relative flex flex-wrap items-start justify-between gap-4">
           <div>
+            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-black uppercase tracking-[0.18em] text-cyan-100 backdrop-blur"><DashboardSparkIcon /> Live workspace</div>
             <h1 className="text-3xl font-black tracking-tight text-white sm:text-4xl">Dashboard</h1>
             <p className="mt-2 text-sm text-blue-100">
               Welcome back. Here is a clear summary of your work, approvals and account status.
@@ -648,10 +673,10 @@ export default function DashboardPage() {
 
         {profile && (
           <>
-            <div className="mt-6 rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="mt-6 rounded-[1.75rem] border border-white/80 bg-white/90 p-6 shadow-xl shadow-blue-900/5 backdrop-blur">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <h2 className="text-xl font-extrabold text-slate-900">Live Request Counts</h2>
+                  <div className="flex items-center gap-3"><span className="grid h-11 w-11 place-items-center rounded-2xl bg-gradient-to-br from-blue-600 to-cyan-500 text-white shadow-lg shadow-blue-200"><PulseIcon /></span><h2 className="text-xl font-extrabold text-slate-900">Live Request Counts</h2></div>
                   <p className="mt-1 text-sm text-slate-600">
                     These numbers update from live workflow records. Click Pending My Approval to
                     take action.
@@ -812,7 +837,7 @@ export default function DashboardPage() {
             </div>
 
             <div className="mt-6 grid gap-4 xl:grid-cols-3">
-              <div className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-sm xl:col-span-2">
+              <div className="rounded-[1.75rem] border border-blue-100 bg-gradient-to-br from-white to-blue-50/70 p-6 shadow-xl shadow-blue-900/5 xl:col-span-2">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div>
                     <h2 className="text-xl font-extrabold text-slate-900">Profile Summary</h2>
@@ -851,7 +876,7 @@ export default function DashboardPage() {
                 )}
               </div>
 
-              <div className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-sm">
+              <div className="rounded-[1.75rem] border border-emerald-100 bg-gradient-to-br from-white to-emerald-50/70 p-6 shadow-xl shadow-emerald-900/5">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <h2 className="text-xl font-extrabold text-slate-900">Security Status</h2>
@@ -948,6 +973,10 @@ export default function DashboardPage() {
           to { opacity: 1; transform: translateY(0); }
         }
         .dashboard-enter { animation: dashboardEnter 600ms ease-out both; }
+        .dashboard-card { animation: dashboardEnter 650ms ease-out both; }
+        .dashboard-card:nth-child(2) { animation-delay: 70ms; }
+        .dashboard-card:nth-child(3) { animation-delay: 140ms; }
+        .dashboard-card:nth-child(4) { animation-delay: 210ms; }
         @media (prefers-reduced-motion: reduce) { .dashboard-enter { animation: none; } }
       `}</style>
     </main>
@@ -994,6 +1023,23 @@ function SecurityLine({
   );
 }
 
+function DashboardSparkIcon() {
+  return <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2"><path d="m12 3 1.4 4.1L17.5 8.5l-4.1 1.4L12 14l-1.4-4.1-4.1-1.4 4.1-1.4L12 3Z"/><path d="m19 15 .8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8L19 15Z"/></svg>;
+}
+
+function PulseIcon() {
+  return <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 12h4l2-6 4 12 2-6h6" strokeLinecap="round" strokeLinejoin="round"/></svg>;
+}
+
+function MetricIcon({ label }: { label: string }) {
+  const common = "h-6 w-6";
+  if (/approval|stage|awaiting/i.test(label)) return <svg viewBox="0 0 24 24" className={common} fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 11.5 11 13.5 15.5 9"/><path d="M6 3h12v18H6z"/></svg>;
+  if (/submitted|request/i.test(label)) return <svg viewBox="0 0 24 24" className={common} fill="none" stroke="currentColor" strokeWidth="2"><path d="M7 3h10v18H7z"/><path d="M9 8h6M9 12h6M9 16h4"/></svg>;
+  if (/complete|paid|payment|pv/i.test(label)) return <svg viewBox="0 0 24 24" className={common} fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="9"/><path d="m8 12 2.5 2.5L16 9"/></svg>;
+  if (/notification/i.test(label)) return <svg viewBox="0 0 24 24" className={common} fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9Z"/><path d="M10 21h4"/></svg>;
+  return <svg viewBox="0 0 24 24" className={common} fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/></svg>;
+}
+
 function NumberCountCard({
   label,
   value,
@@ -1007,28 +1053,35 @@ function NumberCountCard({
   tone: "blue" | "emerald" | "purple" | "amber" | "red" | "slate";
   onClick?: () => void;
 }) {
-  const toneClass =
-    tone === "emerald"
-      ? "border-slate-200 text-slate-900"
-      : tone === "purple"
-        ? "border-slate-200 text-slate-900"
-        : tone === "amber"
-          ? "border-slate-200 text-slate-900"
-          : tone === "red"
-            ? "border-rose-200 bg-rose-50/70 text-rose-900"
-            : tone === "slate"
-              ? "border-slate-200 text-slate-900"
-              : "border-slate-200 text-slate-900";
+  const tones = {
+    blue: "from-blue-600 to-cyan-500 shadow-blue-200/70",
+    emerald: "from-emerald-600 to-teal-500 shadow-emerald-200/70",
+    purple: "from-violet-600 to-fuchsia-500 shadow-violet-200/70",
+    amber: "from-amber-500 to-orange-500 shadow-amber-200/70",
+    red: "from-rose-600 to-red-500 shadow-rose-200/70",
+    slate: "from-slate-700 to-slate-500 shadow-slate-200/70",
+  } as const;
 
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`group rounded-2xl border bg-white p-5 text-left shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md ${toneClass}`}
+      className="dashboard-card group relative overflow-hidden rounded-3xl border border-white/80 bg-white p-5 text-left shadow-lg transition duration-300 hover:-translate-y-1 hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-blue-200"
     >
-      <div className="text-xs font-black uppercase tracking-wide opacity-75">{label}</div>
-      <div className="mt-3 text-4xl font-black leading-none">{countValue(value)}</div>
-      <div className="mt-2 text-sm font-semibold opacity-90">{helper}</div>
+      <div className={`absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r ${tones[tone]}`} />
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <div className="text-xs font-black uppercase tracking-[0.12em] text-slate-500">{label}</div>
+          <div className="mt-3 text-4xl font-black leading-none text-slate-950">{countValue(value)}</div>
+        </div>
+        <span className={`grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-gradient-to-br text-white shadow-lg transition duration-300 group-hover:scale-110 group-hover:rotate-3 ${tones[tone]}`}>
+          <MetricIcon label={label} />
+        </span>
+      </div>
+      <div className="mt-3 flex items-center justify-between gap-3 text-sm font-semibold text-slate-600">
+        <span>{helper}</span><span className="text-blue-600 transition group-hover:translate-x-1">→</span>
+      </div>
+      <div className="pointer-events-none absolute -bottom-12 -right-12 h-28 w-28 rounded-full bg-blue-100/50 blur-2xl transition group-hover:bg-cyan-100/70" />
     </button>
   );
 }

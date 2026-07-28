@@ -157,7 +157,7 @@ export default function SessionTimeout() {
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/45 backdrop-blur-sm px-4">
-      <div className="w-full max-w-md rounded-[2rem] border border-slate-200 bg-white p-6 shadow-2xl">
+      <div className="w-full max-w-2xl rounded-3xl border bg-white p-6 shadow-2xl">
         <div className="text-xl font-extrabold text-slate-900">
           Session Timeout Warning
         </div>
@@ -179,7 +179,7 @@ export default function SessionTimeout() {
           <button
             type="button"
             onClick={logoutDueToInactivity}
-            className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 hover:bg-slate-100"
+            className="rounded-xl border border-blue-200 bg-blue-50 px-5 py-3 text-sm font-bold text-blue-800 transition hover:bg-blue-100"
           >
             Logout Now
           </button>
@@ -187,7 +187,7 @@ export default function SessionTimeout() {
           <button
             type="button"
             onClick={stayLoggedIn}
-            className="rounded-xl bg-slate-900 px-4 py-3 text-sm font-bold text-white transition hover:bg-slate-800"
+            className="rounded-xl bg-blue-700 px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-blue-800"
           >
             Stay Logged In
           </button>

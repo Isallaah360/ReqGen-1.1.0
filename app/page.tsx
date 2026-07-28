@@ -58,9 +58,14 @@ export default function HomePage() {
           </div>
 
           <footer className="mt-14 flex flex-col items-center gap-3 text-xs font-semibold text-slate-500">
-            <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white/80 px-4 py-2 shadow-sm backdrop-blur">
+            <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white/85 px-4 py-2 shadow-sm backdrop-blur">
               <img src="/be-logo.png" alt="Barderian Enterprises logo" className="h-9 w-auto object-contain" />
               <span>Powered by Barderian Enterprises</span>
+            </div>
+            <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
+              <a href="https://barderians.com.ng" target="_blank" rel="noreferrer" className="transition hover:text-blue-700">barderians.com.ng</a>
+              <span className="hidden h-1 w-1 rounded-full bg-slate-300 sm:block" />
+              <a href="mailto:info@barderians.com.ng" className="transition hover:text-blue-700">info@barderians.com.ng</a>
             </div>
             <span>© 2026 Islamic Education Trust</span>
           </footer>
