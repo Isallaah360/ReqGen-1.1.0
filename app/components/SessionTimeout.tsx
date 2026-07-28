@@ -156,8 +156,8 @@ export default function SessionTimeout() {
   if (!warningVisible) return null;
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 px-4">
-      <div className="w-full max-w-md rounded-3xl border bg-white p-6 shadow-2xl">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/45 backdrop-blur-sm px-4">
+      <div className="w-full max-w-md rounded-[2rem] border border-slate-200 bg-white p-6 shadow-2xl">
         <div className="text-xl font-extrabold text-slate-900">
           Session Timeout Warning
         </div>
@@ -187,7 +187,7 @@ export default function SessionTimeout() {
           <button
             type="button"
             onClick={stayLoggedIn}
-            className="rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white hover:bg-blue-700"
+            className="rounded-xl bg-slate-900 px-4 py-3 text-sm font-bold text-white transition hover:bg-slate-800"
           >
             Stay Logged In
           </button>

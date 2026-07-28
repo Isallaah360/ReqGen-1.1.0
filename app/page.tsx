@@ -1,86 +1,113 @@
 import Link from "next/link";
-import { BrandLockup, FeatureIcon, PublicPageShell } from "./components/ui/PublicPageShell";
-
-const features = [
-  { icon: "workflow" as const, title: "Structured Approvals", text: "Move requests through defined institutional approval stages with clear accountability." },
-  { icon: "shield" as const, title: "Secure Access", text: "Role-based permissions, MFA protection and controlled access for authorised users." },
-  { icon: "finance" as const, title: "Finance Control", text: "Connect approvals, vouchers, transactions, ledgers and reports in one workflow." },
-  { icon: "records" as const, title: "Reliable Records", text: "Maintain searchable institutional records, histories and audit-ready documentation." },
-];
 
 export default function HomePage() {
   return (
-    <PublicPageShell>
-      <div className="mx-auto flex min-h-screen max-w-7xl flex-col px-4 py-5 sm:px-6 lg:px-8">
-        <header className="reqgen-rise flex items-center justify-between rounded-3xl border border-white/10 bg-white/5 px-4 py-3 backdrop-blur-xl sm:px-6">
-          <BrandLockup compact />
-          <div className="flex items-center gap-2">
-            <Link href="/login" className="rounded-xl px-4 py-2 text-sm font-bold text-white transition hover:bg-white/10">Login</Link>
-            <Link href="/signup" className="rounded-xl bg-cyan-400 px-4 py-2 text-sm font-black text-slate-950 shadow-lg shadow-cyan-950/30 transition hover:bg-cyan-300">Create Account</Link>
-          </div>
-        </header>
-
-        <section className="grid flex-1 items-center gap-10 py-12 lg:grid-cols-[1.05fr_.95fr] lg:py-16">
-          <div className="reqgen-rise-delay">
-            <div className="inline-flex items-center gap-2 rounded-full border border-cyan-300/20 bg-cyan-300/10 px-4 py-2 text-xs font-black uppercase tracking-[0.2em] text-cyan-200">
-              <span className="h-2 w-2 rounded-full bg-cyan-300" /> ReqGen 1.1.0
-            </div>
-            <h1 className="mt-6 max-w-4xl text-5xl font-black tracking-tight text-white sm:text-6xl lg:text-7xl">
-              Institutional requests, managed with <span className="text-cyan-300">clarity and control.</span>
-            </h1>
-            <p className="mt-6 max-w-2xl text-base font-medium leading-8 text-slate-300 sm:text-lg">
-              ReqGen is the Islamic Education Trust digital workflow platform for request submission, approvals, finance processing, registry control and accountable institutional records.
-            </p>
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <Link href="/login" className="inline-flex items-center justify-center gap-2 rounded-2xl bg-blue-600 px-7 py-4 text-sm font-black text-white shadow-xl shadow-blue-950/40 transition hover:-translate-y-0.5 hover:bg-blue-500">
-                <FeatureIcon name="lock" /> Login Securely
-              </Link>
-              <Link href="/signup" className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/5 px-7 py-4 text-sm font-black text-white backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/10">
-                <FeatureIcon name="user" /> Create Staff Account
-              </Link>
-            </div>
-            <div className="mt-8 flex flex-wrap gap-3 text-xs font-bold text-slate-300">
-              {['Role-based workflow', 'MFA security', 'Digital records', 'Finance integration'].map((item) => (
-                <span key={item} className="rounded-full border border-white/10 bg-white/5 px-3 py-2">✓ {item}</span>
-              ))}
-            </div>
-          </div>
-
-          <div className="reqgen-rise-delay-2 relative">
-            <div className="reqgen-pulse absolute -inset-6 rounded-[3rem] bg-blue-500/15 blur-3xl" />
-            <div className="relative overflow-hidden rounded-[2.25rem] border border-white/15 bg-white/95 p-5 shadow-2xl shadow-black/30 sm:p-7">
-              <div className="flex items-center justify-between rounded-3xl bg-gradient-to-br from-blue-700 via-blue-800 to-slate-900 p-5 text-white">
-                <div>
-                  <p className="text-xs font-black uppercase tracking-[0.2em] text-cyan-200">Control Centre</p>
-                  <h2 className="mt-2 text-2xl font-black">One platform. One workflow.</h2>
-                </div>
-                <div className="reqgen-float h-20 w-20 rounded-2xl bg-white p-2 shadow-xl"><img src="/iet-logo.png" alt="IET logo" className="h-full w-full object-contain" /></div>
-              </div>
-              <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                {features.map((feature) => (
-                  <div key={feature.title} className="group rounded-2xl border border-slate-200 bg-slate-50 p-4 transition hover:-translate-y-1 hover:border-blue-200 hover:bg-white hover:shadow-lg">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100 text-blue-700 transition group-hover:bg-blue-600 group-hover:text-white"><FeatureIcon name={feature.icon} /></div>
-                    <h3 className="mt-4 font-black text-slate-950">{feature.title}</h3>
-                    <p className="mt-2 text-sm font-medium leading-6 text-slate-600">{feature.text}</p>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-5 flex items-center justify-between rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3">
-                <div>
-                  <div className="text-xs font-black uppercase tracking-[0.2em] text-blue-700">Developed by</div>
-                  <div className="mt-1 font-black text-slate-950">Barderian Enterprises</div>
-                </div>
-                <img src="/be-logo.png" alt="Barderian Enterprises logo" className="h-12 w-12 object-contain" />
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <footer className="flex flex-col gap-2 border-t border-white/10 py-5 text-center text-xs font-semibold text-slate-400 sm:flex-row sm:items-center sm:justify-between sm:text-left">
-          <span>© 2026 Islamic Education Trust. All rights reserved.</span>
-          <span>Powered by Barderian Enterprises</span>
-        </footer>
+    <main className="relative min-h-screen overflow-hidden bg-slate-50 px-4">
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute -left-24 top-8 h-80 w-80 rounded-full bg-blue-200/45 blur-3xl" />
+        <div className="absolute -right-20 bottom-8 h-80 w-80 rounded-full bg-emerald-200/40 blur-3xl" />
+        <div className="absolute left-1/2 top-1/2 h-[34rem] w-[34rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/80 blur-3xl" />
       </div>
-    </PublicPageShell>
+
+      <section className="relative mx-auto flex min-h-screen max-w-5xl items-center justify-center py-10">
+        <div className="w-full text-center">
+          <div className="animate-logo-float mx-auto flex h-64 w-64 items-center justify-center rounded-[2.75rem] border border-white bg-white/95 p-6 shadow-2xl shadow-blue-200/60 backdrop-blur md:h-80 md:w-80">
+            <img
+              src="/iet-logo.png"
+              alt="Islamic Education Trust logo"
+              className="h-full w-full object-contain"
+            />
+          </div>
+
+          <div className="animate-content-rise">
+            <p className="mt-9 text-xs font-black uppercase tracking-[0.32em] text-blue-700 sm:text-sm">
+              Islamic Education Trust
+            </p>
+
+            <h1 className="mt-4 text-5xl font-black tracking-tight text-slate-950 sm:text-6xl md:text-7xl">
+              Welcome to ReqGen
+            </h1>
+
+            <p className="mx-auto mt-4 max-w-xl text-base font-semibold leading-7 text-slate-600 sm:text-lg">
+              A secure and simple request management system for IET staff.
+            </p>
+
+            <div className="mx-auto mt-8 flex max-w-md flex-col gap-3 sm:flex-row sm:justify-center">
+              <Link
+                href="/login"
+                className="inline-flex min-h-14 flex-1 items-center justify-center gap-2 rounded-2xl bg-blue-700 px-8 py-4 text-sm font-black text-white shadow-lg shadow-blue-200 transition duration-300 hover:-translate-y-0.5 hover:bg-blue-800 focus:outline-none focus:ring-4 focus:ring-blue-200"
+              >
+                <LockIcon />
+                Login
+              </Link>
+
+              <Link
+                href="/signup"
+                className="inline-flex min-h-14 flex-1 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-8 py-4 text-sm font-black text-slate-900 shadow-sm transition duration-300 hover:-translate-y-0.5 hover:border-blue-200 hover:bg-blue-50 focus:outline-none focus:ring-4 focus:ring-blue-100"
+              >
+                <UserPlusIcon />
+                Sign Up
+              </Link>
+            </div>
+
+            <div className="mt-10 flex items-center justify-center gap-3 text-xs font-bold text-slate-500">
+              <span className="h-px w-10 bg-slate-200" />
+              Secure • Reliable • Accountable
+              <span className="h-px w-10 bg-slate-200" />
+            </div>
+          </div>
+
+          <footer className="mt-14 text-xs font-semibold text-slate-500">
+            © 2026 Islamic Education Trust. Powered by Barderian Enterprises.
+          </footer>
+        </div>
+      </section>
+
+      <style>{`
+        @keyframes logoFloat {
+          0%, 100% { transform: translateY(0) rotate(0deg); }
+          50% { transform: translateY(-12px) rotate(0.5deg); }
+        }
+
+        @keyframes contentRise {
+          from { opacity: 0; transform: translateY(18px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+
+        .animate-logo-float {
+          animation: logoFloat 4.5s ease-in-out infinite;
+        }
+
+        .animate-content-rise {
+          animation: contentRise 700ms ease-out both;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .animate-logo-float,
+          .animate-content-rise {
+            animation: none;
+          }
+        }
+      `}</style>
+    </main>
+  );
+}
+
+function LockIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2">
+      <rect x="5" y="10" width="14" height="10" rx="2" />
+      <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+    </svg>
+  );
+}
+
+function UserPlusIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M15 19a6 6 0 0 0-12 0" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M19 8v6M16 11h6" />
+    </svg>
   );
 }

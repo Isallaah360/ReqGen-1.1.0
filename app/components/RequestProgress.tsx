@@ -409,7 +409,7 @@ export function RequestProgress({
   const currentIndex = foundIndex >= 0 ? foundIndex : 0;
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+    <div className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="text-sm font-extrabold text-slate-900">{meta.title}</div>
@@ -423,7 +423,7 @@ export function RequestProgress({
               ? "border-red-200 bg-red-50 text-red-700"
               : effectiveStage === "Completed"
                 ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                : "border-blue-200 bg-blue-50 text-blue-700"
+                : "border-slate-300 bg-slate-100 text-slate-700"
             }`}
         >
           {isRejected ? "Rejected / Closed" : `Current: ${effectiveStage}`}
@@ -459,7 +459,7 @@ export function RequestProgress({
                   </div>
                 </div>
 
-                {!isLast && <div className={`mx-2 h-1 w-12 rounded-full ${lineClass}`} />}
+                {!isLast && <div className={`mx-2 h-0.5 w-12 rounded-full ${lineClass}`} />}
               </div>
             );
           })}

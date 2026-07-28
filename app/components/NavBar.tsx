@@ -350,13 +350,13 @@ export default function NavBar() {
 
   const iconLinkClass = (href: string) =>
     `group relative inline-flex h-11 w-11 items-center justify-center rounded-2xl border text-sm font-semibold transition ${isActiveLink(href)
-      ? "border-blue-600 bg-blue-600 text-white shadow-sm"
+      ? "border-slate-900 bg-slate-900 text-white shadow-sm"
       : "border-slate-200 bg-white text-slate-700 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
     }`;
 
   const dropdownIconButtonClass = (active: boolean) =>
     `group relative inline-flex h-11 w-11 items-center justify-center rounded-2xl border text-sm font-semibold transition ${active
-      ? "border-blue-600 bg-blue-600 text-white shadow-sm"
+      ? "border-slate-900 bg-slate-900 text-white shadow-sm"
       : "border-slate-200 bg-white text-slate-700 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
     }`;
 
@@ -665,9 +665,9 @@ export default function NavBar() {
   const showLockedMfaNavigation = signedIn && !mfaVerified && !isPublicPath(pathname);
 
   return (
-    <header className="sticky top-0 z-50 border-b bg-white/95 backdrop-blur">
-      <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3">
-        <Link href="/" className="shrink-0 text-lg font-extrabold tracking-tight text-slate-900">
+    <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/90 backdrop-blur-xl">
+      <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-2.5">
+        <Link href="/" className="shrink-0 text-lg font-bold tracking-tight text-slate-950">
           ReqGen <span className="text-slate-400">1.1.0</span>
         </Link>
 
@@ -694,7 +694,7 @@ export default function NavBar() {
             <button
               type="button"
               onClick={logout}
-              className="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700"
+              className="rounded-xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-700"
             >
               Logout
             </button>
@@ -712,8 +712,8 @@ export default function NavBar() {
                     setOpenHR(false);
                     setOpenMobileMenu(false);
                   }}
-                  className={`group relative inline-flex h-11 w-11 items-center justify-center rounded-2xl border transition ${isActiveLink("/approvals")
-                      ? "border-blue-600 bg-blue-600 text-white shadow-sm"
+                  className={`group relative inline-flex h-11 w-11 items-center justify-center rounded-xl border transition ${isActiveLink("/approvals")
+                      ? "border-slate-900 bg-slate-900 text-white shadow-sm"
                       : pendingApprovalCount > 0
                         ? "border-red-200 bg-red-50 text-red-700 hover:bg-red-100"
                         : "border-slate-200 bg-white text-slate-700 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
@@ -723,7 +723,7 @@ export default function NavBar() {
                   <IconButtonTooltip label="Approvals" />
 
                   {pendingApprovalCount > 0 && (
-                    <span className="absolute -right-2 -top-2 rounded-full bg-red-600 px-2 py-0.5 text-xs font-black text-white">
+                    <span className="absolute -right-2 -top-2 rounded-full bg-rose-600 px-2 py-0.5 text-xs font-black text-white">
                       {compactCount(pendingApprovalCount)}
                     </span>
                   )}
@@ -744,7 +744,7 @@ export default function NavBar() {
 
                         <span
                           className={`rounded-full px-2.5 py-1 text-xs font-black ${pendingApprovalCount > 0
-                              ? "bg-red-600 text-white"
+                              ? "bg-rose-600 text-white"
                               : "bg-slate-200 text-slate-700"
                             }`}
                         >
@@ -879,8 +879,8 @@ export default function NavBar() {
               <button
                 type="button"
                 onClick={() => goTo("/notifications")}
-                className={`group relative inline-flex h-11 w-11 items-center justify-center rounded-2xl border transition ${isActiveLink("/notifications")
-                    ? "border-blue-600 bg-blue-600 text-white shadow-sm"
+                className={`group relative inline-flex h-11 w-11 items-center justify-center rounded-xl border transition ${isActiveLink("/notifications")
+                    ? "border-slate-900 bg-slate-900 text-white shadow-sm"
                     : unreadNotificationCount > 0
                       ? "border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100"
                       : "border-slate-200 bg-white text-slate-700 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
@@ -983,7 +983,7 @@ export default function NavBar() {
                   setOpenApprovalPanel(false);
                 }}
                 className={`rounded-xl border px-3 py-2 text-sm font-bold transition ${openMobileMenu
-                    ? "border-blue-600 bg-blue-600 text-white shadow-sm"
+                    ? "border-slate-900 bg-slate-900 text-white shadow-sm"
                     : "border-slate-200 bg-white text-slate-900 hover:bg-slate-100"
                   }`}
               >
@@ -1008,7 +1008,7 @@ export default function NavBar() {
                       <IconApprovals className="h-4 w-4" />
                       Approvals
                       {pendingApprovalCount > 0 && (
-                        <span className="rounded-full bg-red-600 px-2 py-0.5 text-xs font-black text-white">
+                        <span className="rounded-full bg-rose-600 px-2 py-0.5 text-xs font-black text-white">
                           {compactCount(pendingApprovalCount)}
                         </span>
                       )}
@@ -1141,7 +1141,7 @@ export default function NavBar() {
                     <button
                       type="button"
                       onClick={logout}
-                      className="w-full rounded-xl bg-red-600 px-4 py-3 text-left text-sm font-bold text-white hover:bg-red-700"
+                      className="w-full rounded-xl bg-rose-600 px-4 py-3 text-left text-sm font-bold text-white hover:bg-rose-700"
                     >
                       <span className="inline-flex items-center gap-2">
                         <IconLogout className="h-4 w-4" />
@@ -1156,7 +1156,7 @@ export default function NavBar() {
             <button
               type="button"
               onClick={logout}
-              className="group relative hidden h-11 w-11 items-center justify-center rounded-2xl bg-red-600 text-white transition hover:bg-red-700 sm:inline-flex"
+              className="group relative hidden h-11 w-11 items-center justify-center rounded-2xl bg-rose-600 text-white transition hover:bg-rose-700 sm:inline-flex"
             >
               <IconLogout />
               <IconButtonTooltip label="Logout" />

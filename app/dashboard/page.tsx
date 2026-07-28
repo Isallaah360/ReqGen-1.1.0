@@ -587,66 +587,68 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-slate-50 px-4">
+      <main className="min-h-screen bg-slate-100/70 px-4">
         <div className="mx-auto max-w-7xl py-10 text-slate-600">Loading dashboard...</div>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4">
-      <div className="mx-auto max-w-7xl py-8">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">Dashboard</h1>
-            <p className="mt-2 text-sm text-slate-600">
-              Welcome back. Your live request counts and role-based shortcuts are shown below.
-            </p>
-            <p className="mt-1 text-xs font-semibold text-slate-500">
-              Final workflow supports PO, DOD, DIN Admin, Registrar, HOD, HR, DG, AccountOfficer
-              and HR Filing stages.
-            </p>
-          </div>
+    <main className="min-h-screen bg-slate-100/70 px-4">
+      <div className="mx-auto max-w-7xl py-7">
+        <div className="relative overflow-hidden rounded-[2rem] border border-slate-200 bg-white px-6 py-7 shadow-sm sm:px-8">
+          <div className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-slate-100 blur-3xl" />
+          <div className="relative flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight text-slate-950">Dashboard</h1>
+              <p className="mt-2 text-sm text-slate-600">
+                Welcome back. Here is a clear summary of your work, approvals and account status.
+              </p>
+              <p className="mt-1 text-xs font-semibold text-slate-500">
+                Your view is automatically tailored to your active roles and responsibilities.
+              </p>
+            </div>
 
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => load({ silent: true })}
-              disabled={refreshing}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-100 disabled:opacity-60"
-            >
-              {refreshing ? "Refreshing..." : "Refresh"}
-            </button>
-
-            {isAdmin && (
+            <div className="flex flex-wrap gap-2">
               <button
                 type="button"
-                onClick={() => router.push("/admin/security")}
-                className="inline-flex items-center justify-center rounded-xl bg-blue-600 px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700"
+                onClick={() => load({ silent: true })}
+                disabled={refreshing}
+                className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-800 transition hover:border-slate-400 hover:bg-slate-50 disabled:opacity-60"
               >
-                Security Checklist
+                {refreshing ? "Refreshing..." : "Refresh"}
               </button>
-            )}
 
-            <button
-              type="button"
-              onClick={() => router.push("/profile")}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-100"
-            >
-              My Profile
-            </button>
+              {isAdmin && (
+                <button
+                  type="button"
+                  onClick={() => router.push("/admin/security")}
+                  className="inline-flex items-center justify-center rounded-xl bg-slate-900 px-4 py-2 text-sm font-bold text-white transition hover:bg-slate-800"
+                >
+                  Security Checklist
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={() => router.push("/profile")}
+                className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-100"
+              >
+                My Profile
+              </button>
+            </div>
           </div>
         </div>
 
         {msg && (
-          <div className="mt-4 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 shadow-sm">
+          <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50/70 px-4 py-3 text-sm text-slate-800 shadow-sm">
             {msg}
           </div>
         )}
 
         {profile && (
           <>
-            <div className="mt-6 rounded-3xl border bg-white p-6 shadow-sm">
+            <div className="mt-6 rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-sm">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <h2 className="text-xl font-extrabold text-slate-900">Live Request Counts</h2>
@@ -810,7 +812,7 @@ export default function DashboardPage() {
             </div>
 
             <div className="mt-6 grid gap-4 xl:grid-cols-3">
-              <div className="rounded-3xl border bg-white p-6 shadow-sm xl:col-span-2">
+              <div className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-sm xl:col-span-2">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div>
                     <h2 className="text-xl font-extrabold text-slate-900">Profile Summary</h2>
@@ -849,7 +851,7 @@ export default function DashboardPage() {
                 )}
               </div>
 
-              <div className="rounded-3xl border bg-white p-6 shadow-sm">
+              <div className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-sm">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <h2 className="text-xl font-extrabold text-slate-900">Security Status</h2>
@@ -927,7 +929,7 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            <div className="mt-6 rounded-3xl border bg-white p-6 shadow-sm">
+            <div className="mt-6 rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-sm">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <h2 className="text-xl font-extrabold text-slate-900">Quick Access</h2>
@@ -972,7 +974,7 @@ export default function DashboardPage() {
 
 function Info({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+    <div className="rounded-2xl border border-slate-200 bg-slate-50/70 px-4 py-3">
       <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</div>
       <div className="mt-1 break-words text-sm font-semibold text-slate-900">{value}</div>
     </div>
@@ -989,7 +991,7 @@ function SecurityLine({
   ok: boolean;
 }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+    <div className="rounded-2xl border border-slate-200 bg-slate-50/70 px-4 py-3">
       <div className="flex items-center justify-between gap-3">
         <div>
           <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -1025,22 +1027,22 @@ function NumberCountCard({
 }) {
   const toneClass =
     tone === "emerald"
-      ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+      ? "border-slate-200 text-slate-900"
       : tone === "purple"
-        ? "border-purple-200 bg-purple-50 text-purple-800"
+        ? "border-slate-200 text-slate-900"
         : tone === "amber"
-          ? "border-amber-200 bg-amber-50 text-amber-900"
+          ? "border-slate-200 text-slate-900"
           : tone === "red"
-            ? "border-red-200 bg-red-50 text-red-800"
+            ? "border-rose-200 bg-rose-50/70 text-rose-900"
             : tone === "slate"
-              ? "border-slate-200 bg-slate-50 text-slate-800"
-              : "border-blue-200 bg-blue-50 text-blue-800";
+              ? "border-slate-200 text-slate-900"
+              : "border-slate-200 text-slate-900";
 
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-3xl border p-5 text-left shadow-sm transition hover:shadow-md ${toneClass}`}
+      className={`group rounded-2xl border bg-white p-5 text-left shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md ${toneClass}`}
     >
       <div className="text-xs font-black uppercase tracking-wide opacity-75">{label}</div>
       <div className="mt-3 text-4xl font-black leading-none">{countValue(value)}</div>
@@ -1062,22 +1064,22 @@ function QuickAccessCard({
 }) {
   const toneClass =
     tone === "emerald"
-      ? "border-emerald-100 bg-emerald-50 text-emerald-800 hover:bg-emerald-100"
+      ? "border-slate-200 text-slate-900 hover:border-slate-300 hover:bg-slate-50"
       : tone === "purple"
-        ? "border-purple-100 bg-purple-50 text-purple-800 hover:bg-purple-100"
+        ? "border-slate-200 text-slate-900 hover:border-slate-300 hover:bg-slate-50"
         : tone === "amber"
-          ? "border-amber-100 bg-amber-50 text-amber-900 hover:bg-amber-100"
+          ? "border-slate-200 text-slate-900 hover:border-slate-300 hover:bg-slate-50"
           : tone === "red"
-            ? "border-red-100 bg-red-50 text-red-800 hover:bg-red-100"
+            ? "border-rose-200 bg-rose-50/70 text-rose-900 hover:bg-rose-50"
             : tone === "slate"
-              ? "border-slate-200 bg-slate-50 text-slate-800 hover:bg-slate-100"
-              : "border-blue-100 bg-blue-50 text-blue-800 hover:bg-blue-100";
+              ? "border-slate-200 text-slate-900 hover:bg-slate-100"
+              : "border-slate-200 text-slate-900 hover:border-slate-300 hover:bg-slate-50";
 
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-3xl border p-5 text-left shadow-sm transition ${toneClass}`}
+      className={`group rounded-2xl border bg-white p-5 text-left shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md ${toneClass}`}
     >
       <div className="text-base font-extrabold">{title}</div>
       <div className="mt-2 text-sm font-semibold leading-relaxed opacity-90">{description}</div>
