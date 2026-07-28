@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import { ActionButton } from "@/app/components/ui/ReqGenUI";
 
 type Row = {
   id: string;
@@ -473,33 +474,35 @@ export default function MyRequestsPage() {
               </p>
             </div>
 
-            <div className="flex flex-wrap gap-3 animate-[fadeUp_.65s_ease-out]">
-              <button
+            <div className="grid w-full grid-cols-1 gap-3 animate-[fadeUp_.65s_ease-out] sm:grid-cols-3 lg:w-auto">
+              <ActionButton
                 type="button"
+                tone="ghost"
                 onClick={() => load({ silent: true })}
                 disabled={refreshing || loading}
-                className="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm font-bold text-white backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-60"
+                icon={<Icon name="refresh" className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />}
               >
-                <Icon name="refresh" className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
                 {refreshing ? "Refreshing" : "Refresh"}
-              </button>
-              <button
+              </ActionButton>
+
+              <ActionButton
                 type="button"
+                tone="violet"
                 onClick={exportCsv}
                 disabled={filteredRows.length === 0}
-                className="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white px-4 py-3 text-sm font-bold text-blue-900 shadow-lg shadow-blue-950/20 transition hover:-translate-y-0.5 hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-50"
+                icon={<Icon name="download" className="h-4 w-4" />}
               >
-                <Icon name="download" className="h-4 w-4" />
-                Export
-              </button>
-              <button
+                Export CSV
+              </ActionButton>
+
+              <ActionButton
                 type="button"
+                tone="secondary"
                 onClick={() => router.push(`/requests/new?updated=${Date.now()}`)}
-                className="inline-flex items-center gap-2 rounded-xl bg-cyan-400 px-4 py-3 text-sm font-black text-slate-950 shadow-lg shadow-cyan-950/20 transition hover:-translate-y-0.5 hover:bg-cyan-300"
+                icon={<Icon name="plus" className="h-4 w-4" />}
               >
-                <Icon name="plus" className="h-4 w-4" />
                 New Request
-              </button>
+              </ActionButton>
             </div>
           </div>
         </div>
@@ -571,7 +574,7 @@ export default function MyRequestsPage() {
             <FilterSelect label="Stage" value={stageFilter} onChange={(value) => setStageFilter(value as StageFilter)} options={[
               ["ALL", "All Stages"], ["PO", "PO"], ["DOD", "DOD"], ["DINADMIN", "DIN Admin"], ["REGISTRAR", "Registrar"], ["HOD", "HOD"], ["HR", "HR"], ["DG", "DG"], ["ACCOUNT", "Account Officer"], ["HRFILING", "HR Filing"], ["COMPLETED", "Completed"]
             ]} />
-            <button type="button" onClick={resetFilters} className="inline-flex h-[46px] items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-800">
+            <button type="button" onClick={resetFilters} className="inline-flex h-[46px] min-w-[120px] items-center justify-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 text-sm font-extrabold text-blue-800 transition hover:-translate-y-0.5 hover:border-blue-300 hover:bg-blue-100 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-100">
               <Icon name="filterX" className="h-4 w-4" /> Reset
             </button>
           </div>
