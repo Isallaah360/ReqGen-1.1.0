@@ -596,48 +596,48 @@ export default function DashboardPage() {
   return (
     <main className="min-h-screen bg-slate-100/70 px-4">
       <div className="mx-auto max-w-7xl py-7">
-        <div className="relative overflow-hidden rounded-[2rem] border border-slate-200 bg-white px-6 py-7 shadow-sm sm:px-8">
-          <div className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-slate-100 blur-3xl" />
+        <div className="dashboard-enter relative overflow-hidden rounded-[2rem] border border-blue-900/10 bg-gradient-to-br from-slate-950 via-blue-950 to-blue-900 px-6 py-8 shadow-xl shadow-blue-950/10 sm:px-8">
+          <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
           <div className="relative flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight text-slate-950">Dashboard</h1>
-              <p className="mt-2 text-sm text-slate-600">
-                Welcome back. Here is a clear summary of your work, approvals and account status.
-              </p>
-              <p className="mt-1 text-xs font-semibold text-slate-500">
-                Your view is automatically tailored to your active roles and responsibilities.
-              </p>
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={() => load({ silent: true })}
-                disabled={refreshing}
-                className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-800 transition hover:border-slate-400 hover:bg-slate-50 disabled:opacity-60"
-              >
-                {refreshing ? "Refreshing..." : "Refresh"}
-              </button>
-
-              {isAdmin && (
-                <button
-                  type="button"
-                  onClick={() => router.push("/admin/security")}
-                  className="inline-flex items-center justify-center rounded-xl bg-slate-900 px-4 py-2 text-sm font-bold text-white transition hover:bg-slate-800"
-                >
-                  Security Checklist
-                </button>
-              )}
-
-              <button
-                type="button"
-                onClick={() => router.push("/profile")}
-                className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-100"
-              >
-                My Profile
-              </button>
-            </div>
+          <div>
+            <h1 className="text-3xl font-black tracking-tight text-white sm:text-4xl">Dashboard</h1>
+            <p className="mt-2 text-sm text-blue-100">
+              Welcome back. Here is a clear summary of your work, approvals and account status.
+            </p>
+            <p className="mt-1 text-xs font-semibold text-blue-200/80">
+              Your view is automatically tailored to your active roles and responsibilities.
+            </p>
           </div>
+
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => load({ silent: true })}
+              disabled={refreshing}
+              className="rounded-xl border border-white/25 bg-white/10 px-4 py-2 text-sm font-semibold text-white backdrop-blur transition hover:bg-white/20 disabled:opacity-60"
+            >
+              {refreshing ? "Refreshing..." : "Refresh"}
+            </button>
+
+            {isAdmin && (
+              <button
+                type="button"
+                onClick={() => router.push("/admin/security")}
+                className="inline-flex items-center justify-center rounded-xl bg-cyan-400 px-4 py-2 text-sm font-black text-slate-950 transition hover:bg-cyan-300"
+              >
+                Security Checklist
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={() => router.push("/profile")}
+              className="rounded-xl border border-white/25 bg-white px-4 py-2 text-sm font-bold text-blue-950 shadow-sm transition hover:bg-blue-50"
+            >
+              My Profile
+            </button>
+          </div>
+        </div>
         </div>
 
         {msg && (
@@ -929,33 +929,6 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            <div className="mt-6 rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-sm">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <h2 className="text-xl font-extrabold text-slate-900">Quick Access</h2>
-                  <p className="mt-1 text-sm text-slate-600">
-                    Shortcuts are shown based on all your active multiple roles.
-                  </p>
-                </div>
-
-                <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">
-                  {quickCards.length} shortcuts
-                </span>
-              </div>
-
-              <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                {quickCards.map((card) => (
-                  <QuickAccessCard
-                    key={card.href}
-                    title={card.title}
-                    description={card.description}
-                    tone={card.tone}
-                    onClick={() => router.push(card.href)}
-                  />
-                ))}
-              </div>
-            </div>
-
             <div className="mt-6 rounded-3xl border border-blue-100 bg-blue-50 p-5 text-sm text-blue-900">
               <div className="font-bold">Dashboard Note</div>
               <p className="mt-1">
@@ -968,6 +941,15 @@ export default function DashboardPage() {
           </>
         )}
       </div>
+
+      <style>{`
+        @keyframes dashboardEnter {
+          from { opacity: 0; transform: translateY(14px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .dashboard-enter { animation: dashboardEnter 600ms ease-out both; }
+        @media (prefers-reduced-motion: reduce) { .dashboard-enter { animation: none; } }
+      `}</style>
     </main>
   );
 }
@@ -1047,42 +1029,6 @@ function NumberCountCard({
       <div className="text-xs font-black uppercase tracking-wide opacity-75">{label}</div>
       <div className="mt-3 text-4xl font-black leading-none">{countValue(value)}</div>
       <div className="mt-2 text-sm font-semibold opacity-90">{helper}</div>
-    </button>
-  );
-}
-
-function QuickAccessCard({
-  title,
-  description,
-  tone,
-  onClick,
-}: {
-  title: string;
-  description: string;
-  tone: "blue" | "emerald" | "purple" | "amber" | "red" | "slate";
-  onClick: () => void;
-}) {
-  const toneClass =
-    tone === "emerald"
-      ? "border-slate-200 text-slate-900 hover:border-slate-300 hover:bg-slate-50"
-      : tone === "purple"
-        ? "border-slate-200 text-slate-900 hover:border-slate-300 hover:bg-slate-50"
-        : tone === "amber"
-          ? "border-slate-200 text-slate-900 hover:border-slate-300 hover:bg-slate-50"
-          : tone === "red"
-            ? "border-rose-200 bg-rose-50/70 text-rose-900 hover:bg-rose-50"
-            : tone === "slate"
-              ? "border-slate-200 text-slate-900 hover:bg-slate-100"
-              : "border-slate-200 text-slate-900 hover:border-slate-300 hover:bg-slate-50";
-
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`group rounded-2xl border bg-white p-5 text-left shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md ${toneClass}`}
-    >
-      <div className="text-base font-extrabold">{title}</div>
-      <div className="mt-2 text-sm font-semibold leading-relaxed opacity-90">{description}</div>
     </button>
   );
 }

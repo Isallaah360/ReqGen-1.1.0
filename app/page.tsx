@@ -57,8 +57,12 @@ export default function HomePage() {
             </div>
           </div>
 
-          <footer className="mt-14 text-xs font-semibold text-slate-500">
-            © 2026 Islamic Education Trust. Powered by Barderian Enterprises.
+          <footer className="mt-14 flex flex-col items-center gap-3 text-xs font-semibold text-slate-500">
+            <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white/80 px-4 py-2 shadow-sm backdrop-blur">
+              <img src="/be-logo.png" alt="Barderian Enterprises logo" className="h-9 w-auto object-contain" />
+              <span>Powered by Barderian Enterprises</span>
+            </div>
+            <span>© 2026 Islamic Education Trust</span>
           </footer>
         </div>
       </section>
