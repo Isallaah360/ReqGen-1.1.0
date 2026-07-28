@@ -1,12 +1,5 @@
-import FinanceModulePlaceholder from "../_components/FinanceModulePlaceholder";
+import FinanceOutputWorkspace from "../_components/FinanceOutputWorkspace";
 
-export default function Page() {
-  return (
-    <FinanceModulePlaceholder
-      eyebrow="Finance Output"
-      title="Print Centre"
-      description="Print vouchers, transaction registers, account statements, subhead statements and approved reports."
-      phase="Phase 10"
-    />
-  );
+export default function PrintCentrePage() {
+  return <FinanceOutputWorkspace mode="print" />;
 }
