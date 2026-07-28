@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -408,289 +408,279 @@ export default function MyRequestsPage() {
     setStageFilter("ALL");
   }
 
+
+  function exportCsv() {
+    const escape = (value: unknown) => {
+      const text = String(value ?? "");
+      return `"${text.replace(/"/g, '""')}"`;
+    };
+
+    const header = [
+      "Request No",
+      "Title",
+      "Type",
+      "Stage",
+      "Status",
+      "Amount",
+      "Funds State",
+      "Account Officer",
+      "Created At",
+    ];
+
+    const body = filteredRows.map((row) => [
+      row.request_no,
+      row.title,
+      requestTypeLabel(row),
+      stageLabel(row.current_stage),
+      row.status,
+      requestGroup(row) === "PERSONAL_OTHER" ? "Not Applicable" : Number(row.amount || 0),
+      row.funds_state || "",
+      row.assigned_account_officer_name || "",
+      new Date(row.created_at).toLocaleString(),
+    ]);
+
+    const csv = [header, ...body].map((line) => line.map(escape).join(",")).join("\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `reqgen-my-requests-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(url);
+  }
+
   return (
-    <main className="min-h-screen bg-slate-50 px-4">
-      <div className="mx-auto max-w-7xl py-10">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">
-              My Requests
-            </h1>
-            <p className="mt-2 text-sm text-slate-600">
-              All requests you created. This page refreshes automatically when you return to it.
-            </p>
-            <p className="mt-1 text-xs font-semibold text-slate-500">
-              Final routing supports PO, DOD, DIN Admin, Registrar, HOD, HR, DG, AccountOfficer and HR Filing.
-            </p>
-          </div>
+    <main className="min-h-screen bg-slate-50/80 pb-14">
+      <section className="relative overflow-hidden bg-gradient-to-br from-slate-950 via-blue-950 to-blue-700 text-white">
+        <div className="absolute -left-20 top-10 h-64 w-64 rounded-full bg-cyan-400/15 blur-3xl" />
+        <div className="absolute -right-16 -top-20 h-80 w-80 rounded-full bg-blue-400/20 blur-3xl" />
+        <div className="absolute bottom-0 left-1/2 h-40 w-96 -translate-x-1/2 rounded-full bg-indigo-500/10 blur-3xl" />
 
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => load({ silent: true })}
-              disabled={refreshing || loading}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-900 shadow-sm hover:bg-slate-100 disabled:opacity-60"
-            >
-              {refreshing ? "Refreshing..." : "Refresh"}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => router.push(`/requests/new?updated=${Date.now()}`)}
-              className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700"
-            >
-              New Request
-            </button>
-          </div>
-        </div>
-
-        <div className="mt-5 grid gap-3 md:grid-cols-4 xl:grid-cols-7">
-          <CountCard label="Total Requests" value={counts.total} tone="slate" />
-          <CountCard label="Active" value={counts.active} tone="blue" />
-          <CountCard label="Completed / Paid" value={counts.completed} tone="emerald" />
-          <CountCard label="Rejected / Deleted" value={counts.rejectedOrDeleted} tone="red" />
-          <CountCard label="Official" value={counts.official} tone="blue" />
-          <CountCard label="Personal Fund" value={counts.personalFund} tone="purple" />
-          <CountCard label="Personal Other" value={counts.personalOther} tone="emerald" />
-        </div>
-
-        <div className="mt-4 grid gap-3 md:grid-cols-3 xl:grid-cols-9">
-          <MiniStageCard label="PO" value={counts.po} />
-          <MiniStageCard label="DOD" value={counts.dod} />
-          <MiniStageCard label="DIN Admin" value={counts.dinAdmin} />
-          <MiniStageCard label="Registrar" value={counts.registrar} />
-          <MiniStageCard label="HOD" value={counts.hod} />
-          <MiniStageCard label="HR" value={counts.hr} />
-          <MiniStageCard label="DG" value={counts.dg} />
-          <MiniStageCard label="Account" value={counts.account} />
-          <MiniStageCard label="HR Filing" value={counts.hrFiling} />
-        </div>
-
-        <div className="mt-5 rounded-2xl border bg-white p-4 shadow-sm">
-          <div className="grid gap-3 md:grid-cols-4">
-            <div className="md:col-span-2">
-              <label className="text-sm font-bold text-slate-800">Search</label>
-              <input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search request no, title, stage, type..."
-                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
-              />
+        <div className="relative mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8 lg:py-14">
+          <div className="flex flex-col gap-7 lg:flex-row lg:items-end lg:justify-between">
+            <div className="max-w-3xl animate-[fadeUp_.55s_ease-out]">
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.2em] text-cyan-100 backdrop-blur">
+                <Icon name="workflow" className="h-4 w-4" />
+                Request Operations
+              </div>
+              <h1 className="mt-5 text-3xl font-black tracking-tight sm:text-4xl lg:text-5xl">
+                Request Management Centre
+              </h1>
+              <p className="mt-4 max-w-2xl text-sm leading-6 text-blue-100 sm:text-base">
+                Create, track and monitor your official and personal requests through every authorised approval stage.
+              </p>
             </div>
 
-            <div>
-              <label className="text-sm font-bold text-slate-800">Request Type</label>
-              <select
-                value={typeFilter}
-                onChange={(e) => setTypeFilter(e.target.value as TypeFilter)}
-                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
+            <div className="flex flex-wrap gap-3 animate-[fadeUp_.65s_ease-out]">
+              <button
+                type="button"
+                onClick={() => load({ silent: true })}
+                disabled={refreshing || loading}
+                className="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm font-bold text-white backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                <option value="ALL">All Types</option>
-                <option value="OFFICIAL">Official</option>
-                <option value="PERSONAL_FUND">Personal Fund</option>
-                <option value="PERSONAL_OTHER">Personal Leave/Contract/Resignation/Others</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="text-sm font-bold text-slate-800">Status</label>
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
-                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
+                <Icon name="refresh" className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+                {refreshing ? "Refreshing" : "Refresh"}
+              </button>
+              <button
+                type="button"
+                onClick={exportCsv}
+                disabled={filteredRows.length === 0}
+                className="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white px-4 py-3 text-sm font-bold text-blue-900 shadow-lg shadow-blue-950/20 transition hover:-translate-y-0.5 hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                <option value="ALL">All Statuses</option>
-                <option value="ACTIVE">Active / In Progress</option>
-                <option value="COMPLETED">Completed / Paid</option>
-                <option value="REJECTED">Rejected / Deleted</option>
-              </select>
+                <Icon name="download" className="h-4 w-4" />
+                Export
+              </button>
+              <button
+                type="button"
+                onClick={() => router.push(`/requests/new?updated=${Date.now()}`)}
+                className="inline-flex items-center gap-2 rounded-xl bg-cyan-400 px-4 py-3 text-sm font-black text-slate-950 shadow-lg shadow-cyan-950/20 transition hover:-translate-y-0.5 hover:bg-cyan-300"
+              >
+                <Icon name="plus" className="h-4 w-4" />
+                New Request
+              </button>
             </div>
           </div>
+        </div>
+      </section>
 
-          <div className="mt-3 grid gap-3 md:grid-cols-[1fr_auto] md:items-end">
-            <div>
-              <label className="text-sm font-bold text-slate-800">Stage</label>
-              <select
-                value={stageFilter}
-                onChange={(e) => setStageFilter(e.target.value as StageFilter)}
-                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
-              >
-                <option value="ALL">All Stages</option>
-                <option value="PO">PO</option>
-                <option value="DOD">DOD</option>
-                <option value="DINADMIN">DIN Admin</option>
-                <option value="REGISTRAR">Registrar</option>
-                <option value="HOD">HOD</option>
-                <option value="HR">HR</option>
-                <option value="DG">DG</option>
-                <option value="ACCOUNT">AccountOfficer</option>
-                <option value="HRFILING">HR Filing</option>
-                <option value="COMPLETED">Completed</option>
-              </select>
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <section className="relative -mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <StatCard label="Total Requests" value={counts.total} tone="blue" icon="inbox" delay="0ms" />
+          <StatCard label="Active Workflow" value={counts.active} tone="cyan" icon="clock" delay="70ms" />
+          <StatCard label="Completed / Paid" value={counts.completed} tone="emerald" icon="check" delay="140ms" />
+          <StatCard label="Rejected / Deleted" value={counts.rejectedOrDeleted} tone="rose" icon="x" delay="210ms" />
+        </section>
+
+        <section className="mt-5 grid gap-4 sm:grid-cols-3">
+          <CategoryCard label="Official Requests" value={counts.official} tone="blue" icon="briefcase" />
+          <CategoryCard label="Personal Fund" value={counts.personalFund} tone="violet" icon="wallet" />
+          <CategoryCard label="Personal Other" value={counts.personalOther} tone="emerald" icon="user" />
+        </section>
+
+        <section className="mt-6 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+          <div className="border-b border-slate-100 px-5 py-5 sm:px-6">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <div className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.18em] text-blue-700">
+                  <Icon name="route" className="h-4 w-4" />
+                  Live Workflow Distribution
+                </div>
+                <h2 className="mt-1 text-xl font-black text-slate-950">Current approval stages</h2>
+              </div>
+              <div className="text-sm font-semibold text-slate-500">{counts.active.toLocaleString()} request(s) currently in progress</div>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-px bg-slate-100 sm:grid-cols-3 lg:grid-cols-9">
+            <StageTile label="PO" value={counts.po} icon="userCheck" />
+            <StageTile label="DOD" value={counts.dod} icon="building" />
+            <StageTile label="DIN Admin" value={counts.dinAdmin} icon="shield" />
+            <StageTile label="Registrar" value={counts.registrar} icon="file" />
+            <StageTile label="HOD" value={counts.hod} icon="users" />
+            <StageTile label="HR" value={counts.hr} icon="badge" />
+            <StageTile label="DG" value={counts.dg} icon="crown" />
+            <StageTile label="Account" value={counts.account} icon="calculator" />
+            <StageTile label="HR Filing" value={counts.hrFiling} icon="archive" />
+          </div>
+        </section>
+
+        <section className="mt-6 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+          <div className="flex flex-col gap-4 xl:flex-row xl:items-end">
+            <div className="min-w-0 flex-1">
+              <label className="flex items-center gap-2 text-sm font-black text-slate-800">
+                <Icon name="search" className="h-4 w-4 text-blue-600" /> Search requests
+              </label>
+              <div className="relative mt-2">
+                <Icon name="search" className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Request number, title, stage, type or officer..."
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-10 pr-4 text-sm font-semibold text-slate-900 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100"
+                />
+              </div>
             </div>
 
-            <button
-              type="button"
-              onClick={resetFilters}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-900 hover:bg-slate-100"
-            >
-              Reset Filters
+            <FilterSelect label="Request Type" value={typeFilter} onChange={(value) => setTypeFilter(value as TypeFilter)} options={[
+              ["ALL", "All Types"], ["OFFICIAL", "Official"], ["PERSONAL_FUND", "Personal Fund"], ["PERSONAL_OTHER", "Personal Other"]
+            ]} />
+            <FilterSelect label="Status" value={statusFilter} onChange={(value) => setStatusFilter(value as StatusFilter)} options={[
+              ["ALL", "All Statuses"], ["ACTIVE", "Active / In Progress"], ["COMPLETED", "Completed / Paid"], ["REJECTED", "Rejected / Deleted"]
+            ]} />
+            <FilterSelect label="Stage" value={stageFilter} onChange={(value) => setStageFilter(value as StageFilter)} options={[
+              ["ALL", "All Stages"], ["PO", "PO"], ["DOD", "DOD"], ["DINADMIN", "DIN Admin"], ["REGISTRAR", "Registrar"], ["HOD", "HOD"], ["HR", "HR"], ["DG", "DG"], ["ACCOUNT", "Account Officer"], ["HRFILING", "HR Filing"], ["COMPLETED", "Completed"]
+            ]} />
+            <button type="button" onClick={resetFilters} className="inline-flex h-[46px] items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-800">
+              <Icon name="filterX" className="h-4 w-4" /> Reset
             </button>
           </div>
-        </div>
+        </section>
 
         {msg && (
-          <div className="mt-4 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 shadow-sm">
+          <div className="mt-5 flex items-start gap-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-800">
+            <Icon name="alert" className="mt-0.5 h-5 w-5 shrink-0" />
             {msg}
           </div>
         )}
 
         {loading ? (
-          <div className="mt-6 rounded-2xl border bg-white p-6 text-slate-600 shadow-sm">
-            Loading requests...
-          </div>
+          <RequestsSkeleton />
         ) : filteredRows.length === 0 ? (
-          <div className="mt-6 rounded-2xl border bg-white p-6 text-slate-700 shadow-sm">
-            No requests found using the selected filters.
-          </div>
+          <section className="mt-6 rounded-3xl border border-dashed border-slate-300 bg-white px-6 py-16 text-center shadow-sm">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-50 text-blue-700">
+              <Icon name="inbox" className="h-8 w-8" />
+            </div>
+            <h3 className="mt-5 text-xl font-black text-slate-900">No requests found</h3>
+            <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">No record matches the selected filters. Reset the filters or create a new request.</p>
+            <button type="button" onClick={resetFilters} className="mt-5 rounded-xl bg-blue-700 px-5 py-3 text-sm font-bold text-white transition hover:bg-blue-800">Reset Filters</button>
+          </section>
         ) : (
-          <div className="mt-6 overflow-hidden rounded-2xl border bg-white shadow-sm">
-            <div className="hidden grid-cols-12 bg-slate-100 px-4 py-3 text-xs font-bold uppercase tracking-wide text-slate-600 md:grid">
-              <div className="col-span-2">Request No</div>
-              <div className="col-span-3">Title</div>
-              <div className="col-span-2">Type</div>
-              <div className="col-span-2">Stage</div>
-              <div className="col-span-2">Status</div>
-              <div className="col-span-1 text-right">Amount</div>
+          <section className="mt-6 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+            <div className="flex flex-col gap-3 border-b border-slate-100 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.18em] text-blue-700">Request Register</p>
+                <h2 className="mt-1 text-xl font-black text-slate-950">Your submitted requests</h2>
+              </div>
+              <div className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-black text-slate-600">{filteredRows.length.toLocaleString()} record(s)</div>
             </div>
 
-            {filteredRows.map((r) => (
-              <div key={r.id} className="border-t px-4 py-4">
-                <div className="grid gap-3 md:grid-cols-12 md:items-center">
-                  <button
-                    type="button"
-                    onClick={() => openRequest(r.id)}
-                    className="text-left font-extrabold text-slate-900 hover:underline md:col-span-2"
-                  >
-                    {r.request_no || "—"}
-                  </button>
+            <div className="hidden grid-cols-12 border-b border-slate-100 bg-slate-50 px-5 py-3 text-[11px] font-black uppercase tracking-wider text-slate-500 lg:grid">
+              <div className="col-span-2">Request</div><div className="col-span-3">Title & Workflow</div><div className="col-span-2">Type</div><div className="col-span-1">Stage</div><div className="col-span-1">Status</div><div className="col-span-1 text-right">Amount</div><div className="col-span-2 text-right">Actions</div>
+            </div>
 
-                  <div className="break-words text-sm font-semibold text-slate-800 md:col-span-3">
-                    {r.title || "—"}
+            <div className="divide-y divide-slate-100">
+              {filteredRows.map((r, index) => (
+                <article key={r.id} className="group px-5 py-5 transition hover:bg-blue-50/40 sm:px-6" style={{ animation: `fadeUp .45s ease-out ${Math.min(index * 35, 350)}ms both` }}>
+                  <div className="grid gap-4 lg:grid-cols-12 lg:items-center">
+                    <div className="lg:col-span-2">
+                      <button type="button" onClick={() => openRequest(r.id)} className="flex items-center gap-3 text-left">
+                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-100 text-blue-700 transition group-hover:scale-105 group-hover:bg-blue-700 group-hover:text-white"><Icon name="file" className="h-5 w-5" /></span>
+                        <span><span className="block text-sm font-black text-slate-950 hover:text-blue-700">{r.request_no || "—"}</span><span className="mt-0.5 block text-[11px] font-semibold text-slate-500">{new Date(r.created_at).toLocaleDateString()}</span></span>
+                      </button>
+                    </div>
+                    <div className="min-w-0 lg:col-span-3">
+                      <h3 className="truncate text-sm font-black text-slate-900">{r.title || "—"}</h3>
+                      <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-500">{workflowNote(r)}</p>
+                      {r.assigned_account_officer_name && <p className="mt-1 text-[11px] font-bold text-purple-700">Officer: {r.assigned_account_officer_name}</p>}
+                    </div>
+                    <div className="lg:col-span-2"><span className="inline-flex items-center gap-1.5 rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-xs font-bold text-blue-800"><Icon name={requestGroup(r) === "OFFICIAL" ? "briefcase" : "user"} className="h-3.5 w-3.5" />{requestTypeLabel(r)}</span></div>
+                    <div className="lg:col-span-1"><span className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-black ${stageClass(r.current_stage)}`}>{stageLabel(r.current_stage)}</span></div>
+                    <div className="lg:col-span-1"><span className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-black ${statusClass(r.status)}`}>{r.status || "—"}</span></div>
+                    <div className="text-sm font-black text-slate-950 lg:col-span-1 lg:text-right">{amountLabel(r)}</div>
+                    <div className="flex flex-wrap gap-2 lg:col-span-2 lg:justify-end">
+                      <button type="button" onClick={() => openRequest(r.id)} className="inline-flex items-center gap-1.5 rounded-xl bg-blue-700 px-3 py-2 text-xs font-black text-white transition hover:bg-blue-800"><Icon name="eye" className="h-3.5 w-3.5" /> View</button>
+                      <button type="button" onClick={() => printRequest(r.id)} className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 transition hover:border-purple-200 hover:bg-purple-50 hover:text-purple-800"><Icon name="print" className="h-3.5 w-3.5" /> Print</button>
+                    </div>
                   </div>
-
-                  <div className="text-sm font-semibold text-slate-700 md:col-span-2">
-                    {requestTypeLabel(r)}
-                  </div>
-
-                  <div className="md:col-span-2">
-                    <span
-                      className={`inline-flex rounded-full border px-3 py-1 text-xs font-bold ${stageClass(
-                        r.current_stage
-                      )}`}
-                    >
-                      {stageLabel(r.current_stage)}
-                    </span>
-                  </div>
-
-                  <div className="md:col-span-2">
-                    <span
-                      className={`inline-flex rounded-full border px-3 py-1 text-xs font-bold ${statusClass(
-                        r.status
-                      )}`}
-                    >
-                      {r.status || "—"}
-                    </span>
-                  </div>
-
-                  <div className="text-sm font-extrabold text-slate-900 md:col-span-1 md:text-right">
-                    {amountLabel(r)}
-                  </div>
-                </div>
-
-                <div className="mt-2 text-xs font-semibold text-slate-500">
-                  {workflowNote(r)}
-                </div>
-
-                {r.funds_state && (
-                  <div className="mt-1 text-xs font-semibold text-slate-500">
-                    Funds State: {r.funds_state}
-                  </div>
-                )}
-
-                {r.assigned_account_officer_name && (
-                  <div className="mt-1 text-xs font-semibold text-slate-500">
-                    Selected AccountOfficer: {r.assigned_account_officer_name}
-                  </div>
-                )}
-
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => openRequest(r.id)}
-                    className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-900 hover:bg-slate-50"
-                  >
-                    View
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => printRequest(r.id)}
-                    className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-900 hover:bg-slate-50"
-                  >
-                    Print
-                  </button>
-                </div>
-
-                <div className="mt-2 text-xs font-semibold text-slate-500">
-                  Created: {new Date(r.created_at).toLocaleString()}
-                </div>
-              </div>
-            ))}
-          </div>
+                </article>
+              ))}
+            </div>
+          </section>
         )}
       </div>
+
+      <style jsx global>{`
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+      `}</style>
     </main>
   );
 }
 
-function CountCard({
-  label,
-  value,
-  tone,
-}: {
-  label: string;
-  value: number;
-  tone: "slate" | "blue" | "emerald" | "red" | "purple";
-}) {
-  const cls =
-    tone === "blue"
-      ? "border-blue-200 bg-blue-50 text-blue-800"
-      : tone === "emerald"
-        ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-        : tone === "red"
-          ? "border-red-200 bg-red-50 text-red-800"
-          : tone === "purple"
-            ? "border-purple-200 bg-purple-50 text-purple-800"
-            : "border-slate-200 bg-white text-slate-800";
+type IconName = "workflow" | "refresh" | "download" | "plus" | "inbox" | "clock" | "check" | "x" | "briefcase" | "wallet" | "user" | "route" | "userCheck" | "building" | "shield" | "file" | "users" | "badge" | "crown" | "calculator" | "archive" | "search" | "filterX" | "alert" | "eye" | "print";
 
-  return (
-    <div className={`rounded-2xl border p-4 shadow-sm ${cls}`}>
-      <div className="text-xs font-black uppercase tracking-wide opacity-75">{label}</div>
-      <div className="mt-2 text-3xl font-black leading-none">
-        {Number(value || 0).toLocaleString()}
-      </div>
-    </div>
-  );
+function Icon({ name, className = "h-5 w-5" }: { name: IconName; className?: string }) {
+  const paths: Record<IconName, ReactNode> = {
+    workflow: <><path d="M4 6h7"/><path d="M4 12h11"/><path d="M4 18h7"/><path d="m15 6 2 2 3-3"/><path d="m17 16 3 3"/><path d="m20 16-3 3"/></>,
+    refresh: <><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></>,
+    download: <><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></>,
+    plus: <><path d="M12 5v14"/><path d="M5 12h14"/></>, inbox: <><path d="M4 5h16v14H4z"/><path d="M4 13h4l2 3h4l2-3h4"/></>,
+    clock: <><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></>, check: <><circle cx="12" cy="12" r="9"/><path d="m8 12 2.5 2.5L16 9"/></>, x: <><circle cx="12" cy="12" r="9"/><path d="m9 9 6 6M15 9l-6 6"/></>,
+    briefcase: <><rect x="3" y="7" width="18" height="12" rx="2"/><path d="M8 7V5h8v2M3 12h18"/></>, wallet: <><path d="M4 6h14a2 2 0 0 1 2 2v10H4z"/><path d="M4 6a2 2 0 0 1 2-2h11"/><path d="M16 12h4"/></>, user: <><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></>,
+    route: <><circle cx="6" cy="18" r="2"/><circle cx="18" cy="6" r="2"/><path d="M8 18h3a3 3 0 0 0 3-3V9a3 3 0 0 1 3-3"/></>, userCheck: <><circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0"/><path d="m16 12 2 2 3-4"/></>, building: <><path d="M4 21V7l8-4 8 4v14"/><path d="M8 10h1M8 14h1M15 10h1M15 14h1M10 21v-4h4v4"/></>, shield: <><path d="M12 3 5 6v5c0 4.5 2.8 7.6 7 9.5 4.2-1.9 7-5 7-9.5V6z"/><path d="m9 12 2 2 4-5"/></>, file: <><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></>, users: <><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3 20a6 6 0 0 1 12 0M14 15a5 5 0 0 1 7 4"/></>, badge: <><circle cx="12" cy="8" r="5"/><path d="m8 12-2 9 6-3 6 3-2-9"/></>, crown: <><path d="m4 8 4 4 4-7 4 7 4-4-2 11H6z"/></>, calculator: <><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 11h1M12 11h1M16 11h1M8 15h1M12 15h1M16 15h1"/></>, archive: <><path d="M4 7h16v14H4zM3 3h18v4H3zM9 11h6"/></>,
+    search: <><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></>, filterX: <><path d="M4 5h16M7 12h10M10 19h4"/><path d="m18 15 4 4M22 15l-4 4"/></>, alert: <><path d="M12 3 2 21h20z"/><path d="M12 9v5M12 18h.01"/></>, eye: <><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12z"/><circle cx="12" cy="12" r="2.5"/></>, print: <><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v7H6z"/></>,
+  };
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">{paths[name]}</svg>;
 }
 
-function MiniStageCard({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
-      <div className="text-[11px] font-black uppercase tracking-wide text-slate-500">{label}</div>
-      <div className="mt-1 text-xl font-black text-slate-900">
-        {Number(value || 0).toLocaleString()}
-      </div>
-    </div>
-  );
+function StatCard({ label, value, tone, icon, delay }: { label: string; value: number; tone: "blue" | "cyan" | "emerald" | "rose"; icon: IconName; delay: string }) {
+  const styles = { blue: "border-blue-200 bg-blue-50 text-blue-800", cyan: "border-cyan-200 bg-cyan-50 text-cyan-800", emerald: "border-emerald-200 bg-emerald-50 text-emerald-800", rose: "border-rose-200 bg-rose-50 text-rose-800" }[tone];
+  return <div className={`rounded-2xl border p-4 shadow-lg shadow-slate-900/5 backdrop-blur transition hover:-translate-y-1 hover:shadow-xl ${styles}`} style={{ animation: `fadeUp .5s ease-out ${delay} both` }}><div className="flex items-center justify-between gap-3"><div><p className="text-xs font-black uppercase tracking-wider opacity-75">{label}</p><p className="mt-2 text-3xl font-black leading-none">{Number(value || 0).toLocaleString()}</p></div><span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/75 shadow-sm"><Icon name={icon} className="h-6 w-6" /></span></div></div>;
+}
+
+function CategoryCard({ label, value, tone, icon }: { label: string; value: number; tone: "blue" | "violet" | "emerald"; icon: IconName }) {
+  const styles = { blue: "from-blue-600 to-blue-700", violet: "from-violet-600 to-purple-700", emerald: "from-emerald-600 to-teal-700" }[tone];
+  return <div className={`relative overflow-hidden rounded-2xl bg-gradient-to-br ${styles} p-5 text-white shadow-lg`}><div className="absolute -right-5 -top-5 h-24 w-24 rounded-full bg-white/10 blur-xl"/><div className="relative flex items-center justify-between"><div><p className="text-xs font-black uppercase tracking-wider text-white/75">{label}</p><p className="mt-2 text-3xl font-black">{value.toLocaleString()}</p></div><span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/15 backdrop-blur"><Icon name={icon} className="h-6 w-6" /></span></div></div>;
+}
+
+function StageTile({ label, value, icon }: { label: string; value: number; icon: IconName }) {
+  return <div className="bg-white px-3 py-4 text-center transition hover:bg-blue-50"><span className="mx-auto flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100 text-slate-600"><Icon name={icon} className="h-4 w-4" /></span><p className="mt-2 text-[10px] font-black uppercase tracking-wide text-slate-500">{label}</p><p className="mt-1 text-xl font-black text-slate-950">{value.toLocaleString()}</p></div>;
+}
+
+function FilterSelect({ label, value, onChange, options }: { label: string; value: string; onChange: (value: string) => void; options: [string, string][] }) {
+  return <div className="w-full xl:w-48"><label className="text-sm font-black text-slate-800">{label}</label><select value={value} onChange={(e) => onChange(e.target.value)} className="mt-2 h-[46px] w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-900 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100">{options.map(([v,l]) => <option key={v} value={v}>{l}</option>)}</select></div>;
+}
+
+function RequestsSkeleton() {
+  return <div className="mt-6 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm"><div className="h-20 animate-pulse border-b border-slate-100 bg-slate-100/80 blur-[1px]"/><div className="space-y-1 p-4">{Array.from({ length: 5 }).map((_, i) => <div key={i} className="grid animate-pulse gap-4 rounded-2xl p-4 lg:grid-cols-12"><div className="h-11 rounded-xl bg-slate-200 lg:col-span-2"/><div className="h-11 rounded-xl bg-slate-200 lg:col-span-3"/><div className="h-8 rounded-full bg-slate-200 lg:col-span-2"/><div className="h-8 rounded-full bg-slate-200 lg:col-span-1"/><div className="h-8 rounded-full bg-slate-200 lg:col-span-1"/><div className="h-8 rounded-xl bg-slate-200 lg:col-span-1"/><div className="h-10 rounded-xl bg-slate-200 lg:col-span-2"/></div>)}</div></div>;
 }
