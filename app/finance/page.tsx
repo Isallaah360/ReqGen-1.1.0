@@ -224,8 +224,8 @@ function ModuleCard({
   const card = (
     <article
       className={`group flex h-full flex-col rounded-3xl border p-5 shadow-sm transition ${styles.card} ${comingSoon
-          ? "cursor-not-allowed opacity-75"
-          : "hover:-translate-y-1 hover:shadow-xl"
+        ? "cursor-not-allowed opacity-75"
+        : "hover:-translate-y-1 hover:shadow-xl"
         }`}
     >
       <div className="flex items-start justify-between gap-4">
@@ -865,7 +865,7 @@ export default function FinancePage() {
             description="Debit, credit and running-balance movement for each IET account."
             icon="🏦"
             section="Accounting"
-            badge="Live"
+            badge="Operational"
             colour="cyan"
             href="/finance/account-ledger"
           />
@@ -874,7 +874,7 @@ export default function FinancePage() {
             description="Allocation, reservation, expenditure and available-balance history."
             icon="📚"
             section="Accounting"
-            badge="Phase 7"
+            badge="Ledger"
             colour="blue"
             href="/finance/subhead-ledger"
           />
@@ -883,7 +883,7 @@ export default function FinancePage() {
             description="Controlled transfers between authorised IET accounts with dual entries."
             icon="🔄"
             section="Accounting"
-            badge="Phase 8"
+            badge="Transfer"
             colour="indigo"
             href="/finance/account-transfers"
           />
@@ -902,7 +902,7 @@ export default function FinancePage() {
             description="Monthly expenditure, balances, vouchers and department spending."
             icon="📊"
             section="Reports"
-            badge="Phase 9"
+            badge="Reports"
             colour="blue"
             href="/finance/reports?view=monthly"
           />
@@ -911,7 +911,7 @@ export default function FinancePage() {
             description="Yearly allocation, expenditure, comparisons and performance reports."
             icon="📈"
             section="Reports"
-            badge="Phase 9"
+            badge="Reports"
             colour="emerald"
             href="/finance/reports?view=annual"
           />
@@ -920,7 +920,7 @@ export default function FinancePage() {
             description="Print reports and save approved finance outputs as PDF from one central workspace."
             icon="🖨️"
             section="Reports"
-            badge="Phase 10"
+            badge="Print Report"
             colour="slate"
             href="/finance/reports?view=output"
           />
@@ -929,7 +929,7 @@ export default function FinancePage() {
             description="Export authorised finance reports and registers from the central Reports Centre."
             icon="📑"
             section="Reports"
-            badge="Phase 10"
+            badge="Exports"
             colour="violet"
             href="/finance/reports?view=output"
           />
@@ -948,7 +948,7 @@ export default function FinancePage() {
             description="Configure numbering formats, fiscal year and permitted workflows."
             icon="⚙️"
             section="Administration"
-            badge="Phase 11"
+            badge="Control Panel"
             colour="slate"
             href="/finance/settings"
           />
@@ -957,7 +957,7 @@ export default function FinancePage() {
             description="Inspect who created, edited, posted or changed finance records."
             icon="📋"
             section="Administration"
-            badge="Phase 11"
+            badge="Auditing"
             colour="rose"
             href="/finance/audit-trail"
           />
@@ -966,7 +966,7 @@ export default function FinancePage() {
             description="Review chronological finance activity by user, module, date and action."
             icon="📜"
             section="Administration"
-            badge="Phase 11"
+            badge="Activity Logs"
             colour="indigo"
             href="/finance/activity-history"
           />
