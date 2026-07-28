@@ -92,6 +92,15 @@ function csvSafeFilePart(value: string) {
   return value.replace(/[^a-z0-9_-]+/gi, "_").replace(/^_+|_+$/g, "");
 }
 
+function escapeHtml(value: string | number | null | undefined) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 export default function FinanceOutputWorkspace({ mode }: { mode: OutputMode }) {
   const router = useRouter();
   const now = new Date();
@@ -269,112 +278,181 @@ export default function FinanceOutputWorkspace({ mode }: { mode: OutputMode }) {
   }
 
   async function printOnePageReport() {
-    // Open the print window immediately so the browser does not block it as a popup.
-    const printWindow = window.open("", "_blank", "width=980,height=760");
-
-    if (!printWindow) {
-      setError("The browser blocked the print window. Please allow pop-ups for this site and try again.");
-      return;
-    }
-
     setWorking(true);
-    setError("");
+    setError(null);
 
     try {
-      await loadData();
-      await new Promise((resolve) => setTimeout(resolve, 300));
-
-      const report = document.querySelector<HTMLElement>(".print-sheet");
-      if (!report) {
-        throw new Error("The A4 report template could not be prepared.");
+      const printWindow = window.open("", "_blank", "width=980,height=760");
+      if (!printWindow) {
+        throw new Error("The browser blocked the report window. Please allow pop-ups for this site and try again.");
       }
 
-      const stylesheetLinks = Array.from(
-        document.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]')
-      )
-        .map((link) => `<link rel="stylesheet" href="${link.href}" />`)
-        .join("\n");
+      const logoUrl = `${window.location.origin}/iet-logo.png`;
+      const generatedAt = new Date().toLocaleString("en-NG");
+      const utilisation = totals.allocation > 0
+        ? Math.min(999, (totals.expenditure / totals.allocation) * 100)
+        : 0;
 
-      const inlineStyles = Array.from(document.querySelectorAll<HTMLStyleElement>("style"))
-        .map((style) => `<style>${style.textContent || ""}</style>`)
-        .join("\n");
+      const departmentHtml = departmentRows.length
+        ? departmentRows.map((row) => `
+            <tr>
+              <td>${escapeHtml(row.name)}</td>
+              <td class="num">${escapeHtml(shortMoney(row.allocation))}</td>
+              <td class="num">${escapeHtml(shortMoney(row.expenditure))}</td>
+              <td class="num">${escapeHtml(shortMoney(row.balance))}</td>
+            </tr>`).join("")
+        : '<tr><td colspan="4">No department records within the selected scope.</td></tr>';
 
-      printWindow.document.open();
-      printWindow.document.write(`<!doctype html>
+      const subheadHtml = topSubheads.length
+        ? topSubheads.map((row) => `
+            <tr>
+              <td>${escapeHtml(row.code || "—")}</td>
+              <td>${escapeHtml(row.name)}</td>
+              <td>${escapeHtml(departmentMap[row.dept_id || ""] || "Unassigned")}</td>
+              <td class="num">${escapeHtml(shortMoney(row.approved_allocation))}</td>
+              <td class="num">${escapeHtml(shortMoney(row.reserved_amount))}</td>
+              <td class="num">${escapeHtml(shortMoney(row.expenditure))}</td>
+              <td class="num">${escapeHtml(shortMoney(row.balance))}</td>
+            </tr>`).join("")
+        : '<tr><td colspan="7">No subhead records within the selected scope.</td></tr>';
+
+      const html = `<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>IET Finance Performance Report</title>
-  ${stylesheetLinks}
-  ${inlineStyles}
-  <style>
-    @page { size: A4 portrait; margin: 0; }
-    html, body {
-      width: 210mm;
-      min-height: 297mm;
-      margin: 0 !important;
-      padding: 0 !important;
-      background: #ffffff !important;
-      color: #0f172a;
-      -webkit-print-color-adjust: exact !important;
-      print-color-adjust: exact !important;
-    }
-    body { overflow: hidden; }
-    .print-shell {
-      width: 210mm;
-      height: 297mm;
-      margin: 0 auto;
-      background: #ffffff;
-      overflow: hidden;
-    }
-    .print-sheet,
-    .a4-sheet {
-      width: 210mm !important;
-      height: 297mm !important;
-      min-height: 297mm !important;
-      margin: 0 !important;
-      box-shadow: none !important;
-      border-radius: 0 !important;
-      overflow: hidden !important;
-      page-break-after: avoid !important;
-      break-after: avoid-page !important;
-    }
-    @media screen {
-      body { background: #e2e8f0 !important; padding: 14px 0 !important; overflow: auto; }
-      .print-shell { box-shadow: 0 18px 55px rgba(15, 23, 42, .22); }
-    }
-    @media print {
-      body { overflow: hidden !important; }
-      .print-shell { margin: 0 !important; box-shadow: none !important; }
-    }
-  </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>IET Finance Performance Report</title>
+<style>
+  @page { size: A4 portrait; margin: 0; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: #eef2f7; color: #0f172a; font-family: Arial, Helvetica, sans-serif; }
+  .toolbar { width: 210mm; margin: 12px auto; display: flex; justify-content: flex-end; gap: 8px; }
+  .toolbar button { border: 0; border-radius: 10px; padding: 10px 16px; font-weight: 800; cursor: pointer; }
+  .print-btn { background: #155eef; color: white; }
+  .close-btn { background: white; color: #0f172a; border: 1px solid #cbd5e1 !important; }
+  .sheet { width: 210mm; height: 297mm; margin: 0 auto 16px; padding: 10mm 11mm 8mm; overflow: hidden; background: white; box-shadow: 0 18px 50px rgba(15,23,42,.2); }
+  .header { display: grid; grid-template-columns: 20mm 1fr 47mm; gap: 4mm; align-items: center; border-bottom: 3px solid #174f9f; padding-bottom: 3mm; }
+  .logo { width: 18mm; height: 18mm; object-fit: contain; }
+  .org { text-align: center; }
+  .org h1 { margin: 0; font-size: 17px; letter-spacing: .06em; color: #153d75; text-transform: uppercase; }
+  .org p { margin: 1.5mm 0 0; font-size: 9px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: .12em; }
+  .meta { font-size: 7.5px; line-height: 1.55; text-align: right; color: #475569; }
+  .scope { margin-top: 3mm; display: grid; grid-template-columns: 1fr 1fr 1.35fr; gap: 2mm; border: 1px solid #bfdbfe; background: #eff6ff; border-radius: 6px; padding: 2.4mm 3mm; font-size: 7.8px; }
+  .scope strong { display: block; color: #174f9f; margin-bottom: .6mm; }
+  .metrics { margin-top: 3mm; display: grid; grid-template-columns: repeat(4,1fr); gap: 2mm; }
+  .metric { border: 1px solid #dbe2ea; border-radius: 6px; padding: 2.2mm; }
+  .metric span { display: block; font-size: 6.8px; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: .06em; }
+  .metric strong { display: block; margin-top: 1mm; font-size: 11px; }
+  .two-col { margin-top: 3mm; display: grid; grid-template-columns: 1.2fr .8fr; gap: 3mm; }
+  h2 { margin: 0 0 1.2mm; font-size: 9px; color: #174f9f; text-transform: uppercase; letter-spacing: .07em; }
+  table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+  th { background: #eaf2ff; color: #173a72; font-size: 6.7px; text-transform: uppercase; letter-spacing: .04em; text-align: left; padding: 1.4mm; border: 1px solid #cbd5e1; }
+  td { font-size: 6.8px; padding: 1.25mm 1.4mm; border: 1px solid #dbe2ea; vertical-align: top; line-height: 1.25; }
+  .num { text-align: right; white-space: nowrap; }
+  .indicators { border: 1px solid #dbe2ea; border-radius: 6px; padding: 2.4mm; font-size: 7px; }
+  .indicator { display: flex; justify-content: space-between; gap: 2mm; border-bottom: 1px solid #eef2f7; padding: 1.2mm 0; }
+  .bar { height: 2.2mm; margin-top: 2mm; background: #e2e8f0; border-radius: 99px; overflow: hidden; }
+  .bar > div { height: 100%; width: ${Math.min(100, utilisation)}%; background: #1d73d4; }
+  .section { margin-top: 3mm; }
+  .notes { margin-top: 3mm; display: grid; grid-template-columns: 1fr 1fr; gap: 3mm; }
+  .note { border: 1px solid #dbe2ea; border-radius: 6px; padding: 2.5mm; font-size: 7px; line-height: 1.45; color: #475569; }
+  .note strong { display: block; color: #174f9f; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 1mm; }
+  .signatures { margin-top: 5mm; display: grid; grid-template-columns: repeat(3,1fr); gap: 9mm; text-align: center; font-size: 6.8px; color: #475569; }
+  .sig-line { margin-top: 7mm; border-top: 1px solid #64748b; padding-top: 1mm; }
+  .footer { margin-top: 3mm; display: flex; justify-content: space-between; border-top: 1px solid #dbe2ea; padding-top: 1.5mm; font-size: 6.3px; color: #64748b; }
+  @media print {
+    html, body { width: 210mm; height: 297mm; background: white; }
+    .toolbar { display: none !important; }
+    .sheet { margin: 0; box-shadow: none; page-break-after: avoid; break-after: avoid-page; }
+  }
+</style>
 </head>
 <body>
-  <main class="print-shell">${report.outerHTML}</main>
+  <div class="toolbar">
+    <button class="close-btn" id="closeBtn">Close</button>
+    <button class="print-btn" id="printBtn">Print / Save PDF</button>
+  </div>
+  <article class="sheet">
+    <header class="header">
+      <img class="logo" src="${escapeHtml(logoUrl)}" alt="Islamic Education Trust logo" />
+      <div class="org"><h1>Islamic Education Trust</h1><p>Finance Performance Report</p></div>
+      <div class="meta">
+        <div><strong>Report ID:</strong> IET-FIN-${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}</div>
+        <div><strong>Generated:</strong> ${escapeHtml(generatedAt)}</div>
+        <div><strong>Prepared by:</strong> ${escapeHtml(actorName)}</div>
+      </div>
+    </header>
+
+    <section class="scope">
+      <div><strong>Reporting Scope</strong>${escapeHtml(selectedDepartment)}</div>
+      <div><strong>Reporting Period</strong>${escapeHtml(dateLabel(dateFrom))} — ${escapeHtml(dateLabel(dateTo))}</div>
+      <div><strong>Basis</strong>Posted vouchers, finance transactions and approved subhead balances.</div>
+    </section>
+
+    <section class="metrics">
+      <div class="metric"><span>Approved Allocation</span><strong>${escapeHtml(shortMoney(totals.allocation))}</strong></div>
+      <div class="metric"><span>Reserved</span><strong>${escapeHtml(shortMoney(totals.reserved))}</strong></div>
+      <div class="metric"><span>Expenditure</span><strong>${escapeHtml(shortMoney(totals.expenditure))}</strong></div>
+      <div class="metric"><span>Available Balance</span><strong>${escapeHtml(shortMoney(totals.balance))}</strong></div>
+    </section>
+
+    <section class="two-col">
+      <div>
+        <h2>Department Performance</h2>
+        <table><thead><tr><th style="width:34%">Department</th><th>Allocation</th><th>Expenditure</th><th>Balance</th></tr></thead><tbody>${departmentHtml}</tbody></table>
+      </div>
+      <div>
+        <h2>Control Indicators</h2>
+        <div class="indicators">
+          <div class="indicator"><span>Budget utilisation</span><strong>${utilisation.toFixed(1)}%</strong></div>
+          <div class="indicator"><span>Posted vouchers</span><strong>${totals.postedCount}</strong></div>
+          <div class="indicator"><span>Posted voucher value</span><strong>${escapeHtml(shortMoney(totals.postedValue))}</strong></div>
+          <div class="indicator"><span>Finance entries</span><strong>${totals.transactionCount}</strong></div>
+          <div class="bar"><div></div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>Priority Subhead Performance</h2>
+      <table>
+        <thead><tr><th style="width:9%">Code</th><th style="width:23%">Subhead</th><th style="width:18%">Department</th><th>Allocation</th><th>Reserved</th><th>Expenditure</th><th>Balance</th></tr></thead>
+        <tbody>${subheadHtml}</tbody>
+      </table>
+    </section>
+
+    <section class="notes">
+      <div class="note"><strong>Management Observation</strong>Expenditure represents ${utilisation.toFixed(1)}% of approved allocation. The remaining balance is ${escapeHtml(shortMoney(totals.balance))} after recognised expenditure and current reservations.</div>
+      <div class="note"><strong>Control Note</strong>This report is generated from current Finance records. Source vouchers, transaction registers and ledgers remain the authoritative audit evidence.</div>
+    </section>
+
+    <section class="signatures">
+      <div><div class="sig-line">Prepared by Finance</div><div>Name / Signature / Date</div></div>
+      <div><div class="sig-line">Reviewed / Audited</div><div>Name / Signature / Date</div></div>
+      <div><div class="sig-line">Approved by Management</div><div>Name / Signature / Date</div></div>
+    </section>
+
+    <footer class="footer"><span>ReqGen Finance Control Centre • Islamic Education Trust</span><span>Confidential Finance Document • Page 1 of 1</span></footer>
+  </article>
   <script>
+    document.getElementById('printBtn').addEventListener('click', function () { window.print(); });
+    document.getElementById('closeBtn').addEventListener('click', function () { window.close(); });
     window.addEventListener('load', function () {
       var images = Array.from(document.images || []);
-      Promise.all(images.map(function (image) {
-        if (image.complete) return Promise.resolve();
-        return new Promise(function (resolve) {
-          image.onload = resolve;
-          image.onerror = resolve;
-        });
-      })).then(function () {
-        setTimeout(function () {
-          window.focus();
-          window.print();
-        }, 450);
-      });
+      Promise.all(images.map(function (img) {
+        if (img.complete) return Promise.resolve();
+        return new Promise(function (resolve) { img.onload = resolve; img.onerror = resolve; });
+      })).then(function () { setTimeout(function () { window.focus(); window.print(); }, 350); });
     });
   <\/script>
 </body>
-</html>`);
+</html>`;
+
+      printWindow.document.open();
+      printWindow.document.write(html);
       printWindow.document.close();
     } catch (caught) {
-      printWindow.close();
-      setError(caught instanceof Error ? caught.message : "Unable to prepare the A4 report for printing.");
+      setError(caught instanceof Error ? caught.message : "Unable to prepare the printable A4 report.");
     } finally {
       setWorking(false);
     }
