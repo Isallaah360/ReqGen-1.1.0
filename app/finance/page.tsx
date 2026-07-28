@@ -904,7 +904,7 @@ export default function FinancePage() {
             section="Reports"
             badge="Phase 9"
             colour="blue"
-            href="/finance/reports/monthly"
+            href="/finance/reports?view=monthly"
           />
           <ModuleCard
             title="Annual Reports"
@@ -913,25 +913,25 @@ export default function FinancePage() {
             section="Reports"
             badge="Phase 9"
             colour="emerald"
-            href="/finance/reports/annual"
+            href="/finance/reports?view=annual"
           />
           <ModuleCard
-            title="Print Centre"
-            description="Print vouchers, registers, statements and approved reports."
+            title="Print / PDF Centre"
+            description="Print reports and save approved finance outputs as PDF from one central workspace."
             icon="🖨️"
             section="Reports"
             badge="Phase 10"
             colour="slate"
-            href="/finance/print-centre"
+            href="/finance/reports?view=output"
           />
           <ModuleCard
-            title="PDF / Excel Export"
-            description="Export authorised finance records to PDF and Excel formats."
+            title="Excel Export"
+            description="Export authorised finance reports and registers from the central Reports Centre."
             icon="📑"
             section="Reports"
             badge="Phase 10"
             colour="violet"
-            href="/finance/export-centre"
+            href="/finance/reports?view=output"
           />
         </div>
       </section>

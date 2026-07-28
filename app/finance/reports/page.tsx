@@ -46,7 +46,7 @@ type ExportRow = {
   status: string;
 };
 
-type TabKey = "overview" | "departments" | "subheads" | "monthly";
+type TabKey = "overview" | "monthly" | "annual" | "departments" | "subheads" | "output";
 
 function roleKey(role: string | null | undefined) {
   return (role || "")
@@ -209,6 +209,21 @@ export default function FinanceReportsPage() {
 
   const [activeTab, setActiveTab] = useState<TabKey>("overview");
   const [search, setSearch] = useState("");
+
+  useEffect(() => {
+    const view = new URLSearchParams(window.location.search).get("view");
+    if (view === "monthly" || view === "annual" || view === "output") {
+      setActiveTab(view);
+    }
+  }, []);
+
+  const selectReportView = useCallback((view: TabKey) => {
+    setActiveTab(view);
+    const url = new URL(window.location.href);
+    if (view === "overview") url.searchParams.delete("view");
+    else url.searchParams.set("view", view);
+    window.history.replaceState({}, "", url.toString());
+  }, []);
 
   const [year, setYear] = useState<number>(currentDate.getFullYear());
   const [deptFilter, setDeptFilter] = useState<string>("ALL");
@@ -638,6 +653,8 @@ export default function FinanceReportsPage() {
         .finance-card:hover { transform: translateY(-3px); box-shadow: 0 18px 40px rgba(15,23,42,.10); border-color: rgba(59,130,246,.25); }
         .finance-action { display:inline-flex; align-items:center; justify-content:center; gap:.55rem; transition:transform .18s ease, box-shadow .18s ease, background .18s ease; }
         .finance-action:hover:not(:disabled) { transform: translateY(-1px); }
+        .finance-output-action { background: linear-gradient(135deg, #0ea5e9, #2563eb); color: #fff; box-shadow: 0 10px 24px rgba(37,99,235,.22); }
+        .finance-output-action:hover:not(:disabled) { background: linear-gradient(135deg, #0284c7, #1d4ed8); }
         .finance-table tbody tr { transition: background .18s ease; }
         .finance-table tbody tr:hover { background: #f8fbff; }
         @keyframes reportRise { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:translateY(0); } }
@@ -705,7 +722,7 @@ export default function FinanceReportsPage() {
 
         <div className="no-print finance-panel mt-5 flex flex-wrap gap-2 rounded-3xl border border-slate-200/80 bg-white/90 p-3 shadow-sm backdrop-blur">
           <button onClick={refreshReports} disabled={refreshing || printing || exporting} className="finance-action rounded-2xl bg-sky-500 px-4 py-3 text-sm font-extrabold text-white shadow-md hover:bg-sky-600 disabled:cursor-not-allowed disabled:opacity-50"><span aria-hidden>↻</span>{refreshing ? "Refreshing..." : "Refresh Reports"}</button>
-          <button onClick={printFinanceReport} disabled={refreshing || printing || exporting} className="finance-action rounded-2xl bg-slate-900 px-4 py-3 text-sm font-extrabold text-white shadow-md hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"><span aria-hidden>🖨️</span>{printing ? "Preparing..." : "Print / Save PDF"}</button>
+          <button onClick={printFinanceReport} disabled={refreshing || printing || exporting} className="finance-action finance-output-action rounded-2xl border border-blue-400/30 px-4 py-3 text-sm font-extrabold disabled:cursor-not-allowed disabled:opacity-50"><span aria-hidden>🖨️</span>{printing ? "Preparing..." : "Print / Save PDF"}</button>
           <button onClick={exportExcel} disabled={refreshing || printing || exporting} className="finance-action rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-extrabold text-white shadow-md hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"><span aria-hidden>📊</span>{exporting ? "Exporting..." : "Export Excel"}</button>
           <button onClick={openAudit} disabled={refreshing || printing || exporting} className="finance-action rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-extrabold text-slate-800 hover:bg-slate-50 disabled:opacity-50"><span aria-hidden>🧾</span>Audit Trail</button>
         </div>
@@ -806,10 +823,12 @@ export default function FinanceReportsPage() {
 
         <div className="no-print mt-6 rounded-3xl border bg-white p-2 shadow-sm">
           <div className="flex flex-wrap gap-2">
-            <TabButton label="Overview" active={activeTab === "overview"} onClick={() => setActiveTab("overview")} />
-            <TabButton label="Monthly" active={activeTab === "monthly"} onClick={() => setActiveTab("monthly")} />
-            <TabButton label="Departments" active={activeTab === "departments"} onClick={() => setActiveTab("departments")} />
-            <TabButton label="Subheads" active={activeTab === "subheads"} onClick={() => setActiveTab("subheads")} />
+            <TabButton label="Overview" active={activeTab === "overview"} onClick={() => selectReportView("overview")} />
+            <TabButton label="Monthly Report" active={activeTab === "monthly"} onClick={() => selectReportView("monthly")} />
+            <TabButton label="Annual Report" active={activeTab === "annual"} onClick={() => selectReportView("annual")} />
+            <TabButton label="Departments" active={activeTab === "departments"} onClick={() => selectReportView("departments")} />
+            <TabButton label="Subheads" active={activeTab === "subheads"} onClick={() => selectReportView("subheads")} />
+            <TabButton label="Print & Export" active={activeTab === "output"} onClick={() => selectReportView("output")} />
           </div>
         </div>
 
@@ -817,16 +836,37 @@ export default function FinanceReportsPage() {
           <MonthlyPanel monthly={monthly} year={year} dateFrom={dateFrom} dateTo={dateTo} />
         )}
 
-        {(activeTab === "overview" || activeTab === "departments") && (
+        {(activeTab === "overview" || activeTab === "annual" || activeTab === "departments") && (
           <DepartmentSummaryPanel rows={totalsByDept} totals={budgetTotals} />
         )}
 
-        {(activeTab === "overview" || activeTab === "subheads") && (
+        {(activeTab === "overview" || activeTab === "annual" || activeTab === "subheads") && (
           <SubheadBreakdownPanel
             rows={expenditureBySubhead}
             deptMap={deptMap}
             totals={budgetTotals}
           />
+        )}
+
+        {activeTab === "output" && (
+          <section className="no-print mt-6 finance-panel rounded-3xl border border-slate-200/80 bg-white/95 p-6 shadow-[0_14px_45px_rgba(15,23,42,.07)]">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <div className="text-xs font-black uppercase tracking-[0.2em] text-blue-600">Central Output Centre</div>
+                <h2 className="mt-2 text-2xl font-black text-slate-950">Print, PDF and Excel exports</h2>
+                <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">Use the same verified report filters above, then print the current report, save it as PDF, or export the complete finance dataset to Excel. This replaces separate duplicate report pages.</p>
+              </div>
+              <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700">Centralised</span>
+            </div>
+            <div className="mt-6 grid gap-4 md:grid-cols-2">
+              <button onClick={printFinanceReport} disabled={refreshing || printing || exporting} className="finance-action finance-output-action min-h-28 rounded-3xl border border-blue-400/30 p-5 text-left disabled:opacity-50">
+                <span className="text-3xl" aria-hidden>🖨️</span><span><strong className="block text-base">Print / Save PDF</strong><span className="mt-1 block text-xs text-blue-100">Create a clean institutional report using the current scope and filters.</span></span>
+              </button>
+              <button onClick={exportExcel} disabled={refreshing || printing || exporting} className="finance-action min-h-28 rounded-3xl bg-emerald-600 p-5 text-left text-white shadow-lg shadow-emerald-900/15 hover:bg-emerald-700 disabled:opacity-50">
+                <span className="text-3xl" aria-hidden>📊</span><span><strong className="block text-base">Export Excel</strong><span className="mt-1 block text-xs text-emerald-100">Export allocations, expenditure, balances and report summaries.</span></span>
+              </button>
+            </div>
+          </section>
         )}
 
         <div className="mt-6 rounded-3xl border border-blue-100 bg-blue-50 p-5 text-sm text-blue-900 print:border-t print:border-black print:bg-white print:text-black">
