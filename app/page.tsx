@@ -1,158 +1,86 @@
 import Link from "next/link";
+import { BrandLockup, FeatureIcon, PublicPageShell } from "./components/ui/PublicPageShell";
+
+const features = [
+  { icon: "workflow" as const, title: "Structured Approvals", text: "Move requests through defined institutional approval stages with clear accountability." },
+  { icon: "shield" as const, title: "Secure Access", text: "Role-based permissions, MFA protection and controlled access for authorised users." },
+  { icon: "finance" as const, title: "Finance Control", text: "Connect approvals, vouchers, transactions, ledgers and reports in one workflow." },
+  { icon: "records" as const, title: "Reliable Records", text: "Maintain searchable institutional records, histories and audit-ready documentation." },
+];
 
 export default function HomePage() {
   return (
-    <main className="min-h-screen overflow-hidden bg-slate-50 px-4">
-      <section className="relative mx-auto flex min-h-screen max-w-6xl items-center justify-center py-10">
-        <div className="absolute left-0 top-10 h-72 w-72 rounded-full bg-blue-200/40 blur-3xl" />
-        <div className="absolute bottom-10 right-0 h-72 w-72 rounded-full bg-emerald-200/40 blur-3xl" />
-        <div className="absolute left-1/2 top-1/2 h-96 w-96 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/70 blur-3xl" />
+    <PublicPageShell>
+      <div className="mx-auto flex min-h-screen max-w-7xl flex-col px-4 py-5 sm:px-6 lg:px-8">
+        <header className="reqgen-rise flex items-center justify-between rounded-3xl border border-white/10 bg-white/5 px-4 py-3 backdrop-blur-xl sm:px-6">
+          <BrandLockup compact />
+          <div className="flex items-center gap-2">
+            <Link href="/login" className="rounded-xl px-4 py-2 text-sm font-bold text-white transition hover:bg-white/10">Login</Link>
+            <Link href="/signup" className="rounded-xl bg-cyan-400 px-4 py-2 text-sm font-black text-slate-950 shadow-lg shadow-cyan-950/30 transition hover:bg-cyan-300">Create Account</Link>
+          </div>
+        </header>
 
-        <div className="relative w-full overflow-hidden rounded-[2.5rem] border border-white bg-white/90 shadow-2xl shadow-slate-200/70 backdrop-blur">
-          <div className="grid min-h-[660px] items-center gap-10 px-6 py-10 md:px-12 lg:grid-cols-[0.95fr_1.05fr] lg:px-16">
-            <div className="flex flex-col items-center text-center lg:items-start lg:text-left">
-              <div className="animate-soft-float flex h-52 w-52 items-center justify-center rounded-[2.25rem] border border-blue-100 bg-white p-5 shadow-xl shadow-blue-100/70 md:h-64 md:w-64">
-                <img
-                  src="/iet-logo.png"
-                  alt="Islamic Education Trust Logo"
-                  className="h-full w-full object-contain"
-                />
-              </div>
-
-              <div className="mt-8 inline-flex rounded-full border border-blue-100 bg-blue-50 px-5 py-2 text-xs font-black uppercase tracking-[0.3em] text-blue-700">
-                Islamic Education Trust
-              </div>
-
-              <h1 className="mt-5 text-5xl font-black tracking-tight text-slate-950 md:text-7xl">
-                ReqGen
-              </h1>
-
-              <p className="mt-3 text-xl font-extrabold text-slate-600 md:text-2xl">
-                Request Management System
-              </p>
-
-              <p className="mt-5 max-w-2xl text-base font-semibold leading-8 text-slate-600">
-                Welcome to IET’s secure digital platform for request submission, approval workflow,
-                finance processing, records and institutional request management.
-              </p>
-
-              <div className="mt-8 flex w-full flex-col justify-center gap-3 sm:w-auto sm:flex-row lg:justify-start">
-                <Link
-                  href="/login"
-                  className="rounded-2xl bg-blue-700 px-10 py-4 text-center text-sm font-black text-white shadow-lg shadow-blue-200 transition hover:bg-blue-800"
-                >
-                  Login
-                </Link>
-
-                <Link
-                  href="/signup"
-                  className="rounded-2xl border border-slate-200 bg-white px-10 py-4 text-center text-sm font-black text-slate-900 shadow-sm transition hover:bg-slate-100"
-                >
-                  Sign Up
-                </Link>
-              </div>
+        <section className="grid flex-1 items-center gap-10 py-12 lg:grid-cols-[1.05fr_.95fr] lg:py-16">
+          <div className="reqgen-rise-delay">
+            <div className="inline-flex items-center gap-2 rounded-full border border-cyan-300/20 bg-cyan-300/10 px-4 py-2 text-xs font-black uppercase tracking-[0.2em] text-cyan-200">
+              <span className="h-2 w-2 rounded-full bg-cyan-300" /> ReqGen 1.1.0
             </div>
-
-            <div className="rounded-[2.25rem] border border-slate-200 bg-slate-50 p-6 shadow-sm md:p-8">
-              <div className="rounded-[2rem] border border-white bg-white p-6 shadow-sm">
-                <div className="text-xs font-black uppercase tracking-[0.3em] text-blue-700">
-                  About the App
-                </div>
-
-                <h2 className="mt-4 text-3xl font-black tracking-tight text-slate-950">
-                  Built for secure institutional workflow.
-                </h2>
-
-                <p className="mt-4 text-sm font-semibold leading-7 text-slate-600">
-                  ReqGen helps Islamic Education Trust manage official and personal staff requests
-                  through proper approval stages, secure access, digital signatures and accountable
-                  record keeping.
-                </p>
-
-                <div className="mt-6 grid gap-3">
-                  <CleanPoint text="Role-based request workflow" />
-                  <CleanPoint text="Two-factor authentication protection" />
-                  <CleanPoint text="Digital signature verification" />
-                  <CleanPoint text="Finance, registry and approval tracking" />
-                </div>
-              </div>
-
-              <div className="mt-5 rounded-[2rem] border border-blue-100 bg-blue-50 p-6">
-                <div className="text-xs font-black uppercase tracking-[0.3em] text-blue-700">
-                  Developed by
-                </div>
-
-                <div className="mt-4 flex flex-wrap items-center gap-4">
-                  <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-white p-2 shadow-sm">
-                    <img
-                      src="/be-logo.png"
-                      alt="BELogo"
-                      className="h-full w-full object-contain"
-                    />
-                  </div>
-
-                  <div>
-                    <div className="text-xl font-black text-slate-950">
-                      Barderian Enterprises
-                    </div>
-                    <div className="text-sm font-bold text-slate-600">
-                      Digital Solutions & Workflow Systems
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-5 grid gap-2 text-sm font-bold text-slate-700">
-                  <a
-                    href="https://barderians.com.ng"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="w-fit text-blue-700 hover:underline"
-                  >
-                    barderians.com.ng
-                  </a>
-
-                  <a
-                    href="mailto:info@barderians.com.ng"
-                    className="w-fit text-blue-700 hover:underline"
-                  >
-                    info@barderians.com.ng
-                  </a>
-                </div>
-              </div>
+            <h1 className="mt-6 max-w-4xl text-5xl font-black tracking-tight text-white sm:text-6xl lg:text-7xl">
+              Institutional requests, managed with <span className="text-cyan-300">clarity and control.</span>
+            </h1>
+            <p className="mt-6 max-w-2xl text-base font-medium leading-8 text-slate-300 sm:text-lg">
+              ReqGen is the Islamic Education Trust digital workflow platform for request submission, approvals, finance processing, registry control and accountable institutional records.
+            </p>
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <Link href="/login" className="inline-flex items-center justify-center gap-2 rounded-2xl bg-blue-600 px-7 py-4 text-sm font-black text-white shadow-xl shadow-blue-950/40 transition hover:-translate-y-0.5 hover:bg-blue-500">
+                <FeatureIcon name="lock" /> Login Securely
+              </Link>
+              <Link href="/signup" className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/5 px-7 py-4 text-sm font-black text-white backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/10">
+                <FeatureIcon name="user" /> Create Staff Account
+              </Link>
+            </div>
+            <div className="mt-8 flex flex-wrap gap-3 text-xs font-bold text-slate-300">
+              {['Role-based workflow', 'MFA security', 'Digital records', 'Finance integration'].map((item) => (
+                <span key={item} className="rounded-full border border-white/10 bg-white/5 px-3 py-2">✓ {item}</span>
+              ))}
             </div>
           </div>
 
-          <footer className="border-t border-slate-100 bg-white/80 px-6 py-5 text-center text-xs font-bold text-slate-500">
-            © 2026 Islamic Education Trust (IET) ReqGen. Powered by Barderian Enterprises.
-          </footer>
-        </div>
-      </section>
+          <div className="reqgen-rise-delay-2 relative">
+            <div className="reqgen-pulse absolute -inset-6 rounded-[3rem] bg-blue-500/15 blur-3xl" />
+            <div className="relative overflow-hidden rounded-[2.25rem] border border-white/15 bg-white/95 p-5 shadow-2xl shadow-black/30 sm:p-7">
+              <div className="flex items-center justify-between rounded-3xl bg-gradient-to-br from-blue-700 via-blue-800 to-slate-900 p-5 text-white">
+                <div>
+                  <p className="text-xs font-black uppercase tracking-[0.2em] text-cyan-200">Control Centre</p>
+                  <h2 className="mt-2 text-2xl font-black">One platform. One workflow.</h2>
+                </div>
+                <div className="reqgen-float h-20 w-20 rounded-2xl bg-white p-2 shadow-xl"><img src="/iet-logo.png" alt="IET logo" className="h-full w-full object-contain" /></div>
+              </div>
+              <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                {features.map((feature) => (
+                  <div key={feature.title} className="group rounded-2xl border border-slate-200 bg-slate-50 p-4 transition hover:-translate-y-1 hover:border-blue-200 hover:bg-white hover:shadow-lg">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100 text-blue-700 transition group-hover:bg-blue-600 group-hover:text-white"><FeatureIcon name={feature.icon} /></div>
+                    <h3 className="mt-4 font-black text-slate-950">{feature.title}</h3>
+                    <p className="mt-2 text-sm font-medium leading-6 text-slate-600">{feature.text}</p>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-5 flex items-center justify-between rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3">
+                <div>
+                  <div className="text-xs font-black uppercase tracking-[0.2em] text-blue-700">Developed by</div>
+                  <div className="mt-1 font-black text-slate-950">Barderian Enterprises</div>
+                </div>
+                <img src="/be-logo.png" alt="Barderian Enterprises logo" className="h-12 w-12 object-contain" />
+              </div>
+            </div>
+          </div>
+        </section>
 
-      <style>{`
-        @keyframes softFloat {
-          0%, 100% {
-            transform: translateY(0);
-          }
-          50% {
-            transform: translateY(-10px);
-          }
-        }
-
-        .animate-soft-float {
-          animation: softFloat 4s ease-in-out infinite;
-        }
-      `}</style>
-    </main>
-  );
-}
-
-function CleanPoint({ text }: { text: string }) {
-  return (
-    <div className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3">
-      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-600 text-xs font-black text-white">
-        ✓
-      </span>
-      <span className="text-sm font-bold text-slate-800">{text}</span>
-    </div>
+        <footer className="flex flex-col gap-2 border-t border-white/10 py-5 text-center text-xs font-semibold text-slate-400 sm:flex-row sm:items-center sm:justify-between sm:text-left">
+          <span>© 2026 Islamic Education Trust. All rights reserved.</span>
+          <span>Powered by Barderian Enterprises</span>
+        </footer>
+      </div>
+    </PublicPageShell>
   );
 }
