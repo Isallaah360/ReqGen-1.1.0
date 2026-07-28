@@ -269,13 +269,115 @@ export default function FinanceOutputWorkspace({ mode }: { mode: OutputMode }) {
   }
 
   async function printOnePageReport() {
-    await prepareFreshData();
-    document.body.classList.add("finance-output-printing");
-    window.print();
-    setTimeout(() => {
-      document.body.classList.remove("finance-output-printing");
+    // Open the print window immediately so the browser does not block it as a popup.
+    const printWindow = window.open("", "_blank", "width=980,height=760");
+
+    if (!printWindow) {
+      setError("The browser blocked the print window. Please allow pop-ups for this site and try again.");
+      return;
+    }
+
+    setWorking(true);
+    setError("");
+
+    try {
+      await loadData();
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      const report = document.querySelector<HTMLElement>(".print-sheet");
+      if (!report) {
+        throw new Error("The A4 report template could not be prepared.");
+      }
+
+      const stylesheetLinks = Array.from(
+        document.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]')
+      )
+        .map((link) => `<link rel="stylesheet" href="${link.href}" />`)
+        .join("\n");
+
+      const inlineStyles = Array.from(document.querySelectorAll<HTMLStyleElement>("style"))
+        .map((style) => `<style>${style.textContent || ""}</style>`)
+        .join("\n");
+
+      printWindow.document.open();
+      printWindow.document.write(`<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>IET Finance Performance Report</title>
+  ${stylesheetLinks}
+  ${inlineStyles}
+  <style>
+    @page { size: A4 portrait; margin: 0; }
+    html, body {
+      width: 210mm;
+      min-height: 297mm;
+      margin: 0 !important;
+      padding: 0 !important;
+      background: #ffffff !important;
+      color: #0f172a;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+    body { overflow: hidden; }
+    .print-shell {
+      width: 210mm;
+      height: 297mm;
+      margin: 0 auto;
+      background: #ffffff;
+      overflow: hidden;
+    }
+    .print-sheet,
+    .a4-sheet {
+      width: 210mm !important;
+      height: 297mm !important;
+      min-height: 297mm !important;
+      margin: 0 !important;
+      box-shadow: none !important;
+      border-radius: 0 !important;
+      overflow: hidden !important;
+      page-break-after: avoid !important;
+      break-after: avoid-page !important;
+    }
+    @media screen {
+      body { background: #e2e8f0 !important; padding: 14px 0 !important; overflow: auto; }
+      .print-shell { box-shadow: 0 18px 55px rgba(15, 23, 42, .22); }
+    }
+    @media print {
+      body { overflow: hidden !important; }
+      .print-shell { margin: 0 !important; box-shadow: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="print-shell">${report.outerHTML}</main>
+  <script>
+    window.addEventListener('load', function () {
+      var images = Array.from(document.images || []);
+      Promise.all(images.map(function (image) {
+        if (image.complete) return Promise.resolve();
+        return new Promise(function (resolve) {
+          image.onload = resolve;
+          image.onerror = resolve;
+        });
+      })).then(function () {
+        setTimeout(function () {
+          window.focus();
+          window.print();
+        }, 450);
+      });
+    });
+  <\/script>
+</body>
+</html>`);
+      printWindow.document.close();
+    } catch (caught) {
+      printWindow.close();
+      setError(caught instanceof Error ? caught.message : "Unable to prepare the A4 report for printing.");
+    } finally {
       setWorking(false);
-    }, 350);
+    }
   }
 
   async function exportExcel() {
@@ -470,7 +572,7 @@ export default function FinanceOutputWorkspace({ mode }: { mode: OutputMode }) {
         .field span { display:block; margin-bottom:.45rem; font-size:.72rem; font-weight:900; text-transform:uppercase; letter-spacing:.1em; color:#334155; }
         .field input,.field select { width:100%; min-height:46px; border:1px solid #cbd5e1; border-radius:14px; background:white; padding:0 .9rem; font:inherit; font-weight:700; color:#0f172a; outline:none; }
         .field input:focus,.field select:focus { border-color:#0ea5e9; box-shadow:0 0 0 4px rgba(14,165,233,.12); }
-        .a4-sheet { width:210mm; height:297mm; overflow:hidden; background:white; color:#0f172a; padding:10mm 11mm 9mm; font-family:inherit; }
+        .a4-sheet { width:210mm; height:297mm; overflow:hidden; background:white; color:#0f172a; padding:10mm 11mm 9mm; font-family:inherit; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
         .report-logo { width:18mm; height:18mm; object-fit:contain; }
         .report-table { width:100%; border-collapse:collapse; table-layout:fixed; }
         .report-table th { background:#eaf2ff; color:#173a72; font-size:8px; text-transform:uppercase; letter-spacing:.05em; text-align:left; padding:5px 5px; border:1px solid #cbd5e1; }
