@@ -48,7 +48,7 @@ export function ReportsHero({ actions }: { actions: ReactNode }) {
   </section>;
 }
 
-export function ReportButton({ children, onClick, icon, variant = "light", disabled = false }: { children: ReactNode; onClick?: () => void; icon: string; variant?: "light" | "blue" | "violet" | "cyan"; disabled?: boolean }) {
+export function ReportButton({ children, onClick, icon, variant = "blue", disabled = false }: { children: ReactNode; onClick?: () => void; icon: string; variant?: "light" | "blue" | "violet" | "cyan"; disabled?: boolean }) {
   const variants = {
     light: "bg-white text-slate-900 hover:bg-slate-100",
     blue: "bg-blue-600 text-white hover:bg-blue-700",
