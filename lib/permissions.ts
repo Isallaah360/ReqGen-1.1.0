@@ -1,4 +1,4 @@
-import { hasAnyRole } from "./roles";
+import { hasAnyRole, REPORT_ACCESS_ROLES } from "./roles";
 
 export type RoutePolicy = {
   prefix: string;
@@ -19,6 +19,7 @@ export const PUBLIC_PATHS = [
 
 export const ROUTE_POLICIES: RoutePolicy[] = [
   { prefix: "/admin", roles: ["admin"] },
+  { prefix: "/reports", roles: [...REPORT_ACCESS_ROLES] },
   {
     prefix: "/finance",
     roles: [

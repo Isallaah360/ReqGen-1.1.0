@@ -904,7 +904,7 @@ export default function FinancePage() {
             section="Reports"
             badge="Reports"
             colour="blue"
-            href="/finance/reports?view=monthly"
+            href="/reports#finance-and-workflow"
           />
           <ModuleCard
             title="Annual Reports"
@@ -913,7 +913,7 @@ export default function FinancePage() {
             section="Reports"
             badge="Reports"
             colour="emerald"
-            href="/finance/reports?view=annual"
+            href="/reports#finance-and-workflow"
           />
           <ModuleCard
             title="Print / PDF Centre"
@@ -922,7 +922,7 @@ export default function FinancePage() {
             section="Reports"
             badge="Print Report"
             colour="slate"
-            href="/finance/reports?view=output"
+            href="/reports#executive-overview"
           />
           <ModuleCard
             title="Excel Export"
@@ -931,7 +931,7 @@ export default function FinancePage() {
             section="Reports"
             badge="Exports"
             colour="violet"
-            href="/finance/reports?view=output"
+            href="/reports#executive-overview"
           />
         </div>
       </section>

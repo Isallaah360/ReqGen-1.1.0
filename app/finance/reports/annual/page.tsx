@@ -1,12 +1,5 @@
-import FinanceModulePlaceholder from "../../_components/FinanceModulePlaceholder";
+import { redirect } from "next/navigation";
 
-export default function Page() {
-  return (
-    <FinanceModulePlaceholder
-      eyebrow="Finance Reports"
-      title="Annual Reports"
-      description="Yearly allocation, expenditure, balances, comparisons and performance reporting."
-      phase="Phase 9"
-    />
-  );
+export default function AnnualFinanceReportsRedirect() {
+  redirect("/reports#finance-and-workflow");
 }

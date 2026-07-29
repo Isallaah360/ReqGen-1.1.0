@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import { REPORT_ACCESS_ROLES } from "@/lib/roles";
 
 type VoucherRow = {
   id: string;
@@ -248,6 +249,7 @@ export default function PaymentVouchersPage() {
   ]);
 
   const canDeleteVoucher = hasAnyRole(roleSet, ["admin", "auditor"]);
+  const canViewReports = hasAnyRole(roleSet, [...REPORT_ACCESS_ROLES]);
 
   const [rows, setRows] = useState<VoucherRow[]>([]);
   const [readyRows, setReadyRows] = useState<ReadyRequest[]>([]);
@@ -1102,14 +1104,16 @@ export default function PaymentVouchersPage() {
               {refreshing ? "Refreshing..." : "Refresh"}
             </button>
 
-            <button
-              type="button"
-              onClick={() => router.push("/payment-vouchers/reports")}
-              disabled={Boolean(deletingId) || generating}
-              className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:opacity-60"
-            >
-              PV Reports
-            </button>
+            {canViewReports && (
+              <button
+                type="button"
+                onClick={() => router.push("/reports#executive-overview")}
+                disabled={Boolean(deletingId) || generating}
+                className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:opacity-60"
+              >
+                PV Reports
+              </button>
+            )}
 
             <button
               type="button"

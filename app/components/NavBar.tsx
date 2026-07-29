@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import { REPORT_ACCESS_ROLES } from "@/lib/roles";
 
 type Notif = {
   id: string;
@@ -310,6 +311,7 @@ export default function NavBar() {
   }, [myRole, myRoles]);
 
   const isAdmin = hasAnyRole(roleSet, ["admin", "auditor"]);
+  const canViewReports = hasAnyRole(roleSet, [...REPORT_ACCESS_ROLES]);
 
   const canFinance = hasAnyRole(roleSet, [
     "admin",
@@ -886,10 +888,12 @@ export default function NavBar() {
                 <IconButtonTooltip label="My Requests" />
               </Link>
 
-              <Link className={iconLinkClass("/reports")} href="/reports">
-                <IconReports />
-                <IconButtonTooltip label="Reports & Analytics" />
-              </Link>
+              {canViewReports && (
+                <Link className={iconLinkClass("/reports")} href="/reports">
+                  <IconReports />
+                  <IconButtonTooltip label="Reports & Analytics" />
+                </Link>
+              )}
 
               <button
                 type="button"
@@ -1052,19 +1056,21 @@ export default function NavBar() {
                     </span>
                   </button>
 
-                  <button
-                    type="button"
-                    onClick={() => goTo("/reports")}
-                    className={mobileItemClass("/reports")}
-                  >
-                    <span className="inline-flex items-center gap-2">
-                      <IconReports className="h-4 w-4" />
-                      Reports & Analytics
-                    </span>
-                    <div className={mobileItemDescriptionClass("/reports")}>
-                      Consolidated request, department, budget and finance intelligence
-                    </div>
-                  </button>
+                  {canViewReports && (
+                    <button
+                      type="button"
+                      onClick={() => goTo("/reports")}
+                      className={mobileItemClass("/reports")}
+                    >
+                      <span className="inline-flex items-center gap-2">
+                        <IconReports className="h-4 w-4" />
+                        Reports & Analytics
+                      </span>
+                      <div className={mobileItemDescriptionClass("/reports")}>
+                        Consolidated request, department, budget and finance intelligence
+                      </div>
+                    </button>
+                  )}
 
                   <button
                     type="button"

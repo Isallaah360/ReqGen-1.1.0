@@ -47,11 +47,12 @@ export function ReportsHero({ actions }: { actions: ReactNode }) {
   </section>;
 }
 
-export function ReportButton({ children, onClick, icon, variant = "light", disabled = false }: { children: ReactNode; onClick?: () => void; icon: string; variant?: "light" | "blue" | "violet"; disabled?: boolean }) {
+export function ReportButton({ children, onClick, icon, variant = "light", disabled = false }: { children: ReactNode; onClick?: () => void; icon: string; variant?: "light" | "blue" | "violet" | "cyan"; disabled?: boolean }) {
   const variants = {
     light: "bg-white text-slate-900 hover:bg-slate-100",
     blue: "bg-blue-600 text-white hover:bg-blue-700",
     violet: "bg-violet-600 text-white hover:bg-violet-700",
+    cyan: "bg-cyan-600 text-white hover:bg-cyan-700",
   };
   return <button type="button" onClick={onClick} disabled={disabled} className={`inline-flex h-11 min-w-[132px] items-center justify-center gap-2 rounded-xl px-4 text-sm font-extrabold shadow-lg transition duration-200 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 ${variants[variant]}`}><ReportIcon name={icon} className="h-4 w-4"/>{children}</button>;
 }
