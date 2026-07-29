@@ -15,293 +15,136 @@ import {
   ReportStat,
 } from "@/app/components/ui/ReportsUI";
 
-type RequestRow = {
-  id: string;
-  request_no: string | null;
-  title: string | null;
-  amount: number | null;
-  status: string | null;
-  current_stage: string | null;
-  request_type: string | null;
-  dept_id: string | null;
-  created_at: string;
-};
-
+type AnyRow = Record<string, unknown>;
+type RequestRow = { id: string; request_no: string | null; title: string | null; amount: number | null; status: string | null; current_stage: string | null; request_type: string | null; dept_id: string | null; created_at: string };
 type DepartmentRow = { id: string; name: string };
-type SubheadRow = {
-  id: string;
-  dept_id: string | null;
-  approved_allocation: number | null;
-  reserved_amount: number | null;
-  expenditure: number | null;
-  balance: number | null;
-  is_active: boolean | null;
-};
-type TransactionRow = {
-  id: string;
-  amount: number | null;
-  transaction_type: string | null;
-  transaction_date: string | null;
-};
-type VoucherRow = {
-  id: string;
-  status: string | null;
-  amount: number | null;
-  total_amount: number | null;
-  voucher_type: string | null;
-};
-
 type LoadIssue = { source: string; message: string };
 type StatusFilter = "ALL" | "ACTIVE" | "COMPLETED" | "REJECTED";
 type TypeFilter = "ALL" | "OFFICIAL" | "PERSONAL";
+type PrintSection = "ALL" | "OVERVIEW" | "REQUESTS" | "FINANCE" | "VOUCHERS" | "AUDIT" | "DEPARTMENTS" | "REGISTERS";
 
-function money(value: number | null | undefined) {
-  return "₦" + Math.round(Number(value || 0)).toLocaleString();
-}
-function key(value: string | null | undefined) {
-  return String(value || "").trim().toUpperCase().replace(/[\s_-]+/g, "");
-}
-function isRejected(row: RequestRow) {
-  const text = `${row.status || ""} ${row.current_stage || ""}`.toLowerCase();
-  return /reject|delete|cancel/.test(text);
-}
-function isCompleted(row: RequestRow) {
-  const text = `${row.status || ""} ${row.current_stage || ""}`.toLowerCase();
-  return /complete|paid|closed/.test(text);
-}
-function isActive(row: RequestRow) {
-  return !isRejected(row) && !isCompleted(row);
-}
-function dateInput(date: Date) {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
-}
+const PRINT_OPTIONS: Array<{ value: PrintSection; label: string }> = [
+  { value: "ALL", label: "Complete institutional report" },
+  { value: "OVERVIEW", label: "Executive overview only" },
+  { value: "REQUESTS", label: "Request intelligence" },
+  { value: "FINANCE", label: "Finance: monthly & annual" },
+  { value: "VOUCHERS", label: "Payment voucher report" },
+  { value: "AUDIT", label: "Audit & reconciliation" },
+  { value: "DEPARTMENTS", label: "Department performance" },
+  { value: "REGISTERS", label: "Detailed registers" },
+];
+
+function n(value: unknown) { const x = Number(value ?? 0); return Number.isFinite(x) ? x : 0; }
+function s(value: unknown) { return String(value ?? "").trim(); }
+function money(value: unknown) { return "₦" + Math.round(n(value)).toLocaleString("en-NG"); }
+function compactMoney(value: unknown) { return new Intl.NumberFormat("en-NG", { style: "currency", currency: "NGN", notation: "compact", maximumFractionDigits: 1 }).format(n(value)); }
+function key(value: unknown) { return s(value).toUpperCase().replace(/[\s_-]+/g, ""); }
+function dateInput(date: Date) { return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`; }
+function isRejected(row: RequestRow) { return /reject|delete|cancel/.test(`${row.status || ""} ${row.current_stage || ""}`.toLowerCase()); }
+function isCompleted(row: RequestRow) { return /complete|paid|closed|approved/.test(`${row.status || ""} ${row.current_stage || ""}`.toLowerCase()); }
+function isActive(row: RequestRow) { return !isRejected(row) && !isCompleted(row); }
+function rowDate(row: AnyRow) { return s(row.transaction_date || row.voucher_date || row.created_at || row.updated_at || row.date); }
 function downloadCsv(filename: string, rows: Array<Array<string | number>>) {
   const csv = rows.map((row) => row.map((cell) => `"${String(cell ?? "").replace(/"/g, '""')}"`).join(",")).join("\n");
   const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = filename;
-  anchor.click();
-  URL.revokeObjectURL(url);
+  const url = URL.createObjectURL(blob); const anchor = document.createElement("a"); anchor.href = url; anchor.download = filename; anchor.click(); URL.revokeObjectURL(url);
+}
+
+function DataBar({ label, value, max, tone = "blue", suffix = "" }: { label: string; value: number; max: number; tone?: "blue" | "emerald" | "amber" | "rose" | "violet" | "cyan"; suffix?: string }) {
+  const styles = { blue: "from-blue-700 to-cyan-400", emerald: "from-emerald-700 to-teal-400", amber: "from-amber-600 to-orange-400", rose: "from-rose-700 to-pink-400", violet: "from-violet-700 to-fuchsia-400", cyan: "from-cyan-700 to-sky-400" };
+  const pct = max ? Math.max(value > 0 ? 3 : 0, Math.min(100, value / max * 100)) : 0;
+  return <div><div className="mb-1.5 flex items-center justify-between gap-3 text-sm"><span className="truncate font-bold text-slate-700">{label}</span><span className="shrink-0 font-black text-slate-950">{value.toLocaleString()}{suffix}</span></div><div className="h-2.5 overflow-hidden rounded-full bg-slate-100"><div className={`h-full rounded-full bg-gradient-to-r ${styles[tone]}`} style={{ width: `${pct}%` }}/></div></div>;
+}
+
+function Donut({ segments, center, note }: { segments: Array<{ label: string; value: number; color: string }>; center: string; note: string }) {
+  const total = Math.max(1, segments.reduce((a, b) => a + b.value, 0)); let cursor = 0;
+  const gradient = segments.map((segment) => { const start = cursor; cursor += segment.value / total * 100; return `${segment.color} ${start}% ${cursor}%`; }).join(",");
+  return <div className="grid gap-5 sm:grid-cols-[170px_1fr] sm:items-center"><div className="relative mx-auto h-40 w-40 rounded-full" style={{ background: `conic-gradient(${gradient || "#e2e8f0 0 100%"})` }}><div className="absolute inset-7 grid place-items-center rounded-full bg-white text-center shadow-inner"><div><div className="text-2xl font-black text-slate-950">{center}</div><div className="text-[11px] font-bold text-slate-500">{note}</div></div></div></div><div className="space-y-3">{segments.map((item) => <div key={item.label} className="flex items-center justify-between gap-3 text-sm"><span className="flex items-center gap-2 font-bold text-slate-700"><span className="h-3 w-3 rounded-full" style={{ background: item.color }}/>{item.label}</span><span className="font-black text-slate-950">{item.value.toLocaleString()}</span></div>)}</div></div>;
+}
+
+function Insight({ tone, title, text }: { tone: "emerald" | "amber" | "rose" | "blue"; title: string; text: string }) {
+  const c = { emerald: "border-emerald-200 bg-emerald-50 text-emerald-900", amber: "border-amber-200 bg-amber-50 text-amber-900", rose: "border-rose-200 bg-rose-50 text-rose-900", blue: "border-blue-200 bg-blue-50 text-blue-900" };
+  return <div className={`rounded-2xl border p-4 ${c[tone]}`}><div className="font-black">{title}</div><p className="mt-1 text-sm leading-6 opacity-90">{text}</p></div>;
 }
 
 export default function ReportsAnalyticsPage() {
-  const router = useRouter();
-  const today = new Date();
-  const start = new Date(today.getFullYear(), today.getMonth() - 5, 1);
-
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [fatalError, setFatalError] = useState<string | null>(null);
-  const [issues, setIssues] = useState<LoadIssue[]>([]);
-  const [requests, setRequests] = useState<RequestRow[]>([]);
-  const [departments, setDepartments] = useState<DepartmentRow[]>([]);
-  const [subheads, setSubheads] = useState<SubheadRow[]>([]);
-  const [transactions, setTransactions] = useState<TransactionRow[]>([]);
-  const [vouchers, setVouchers] = useState<VoucherRow[]>([]);
-
-  const [dateFrom, setDateFrom] = useState(dateInput(start));
-  const [dateTo, setDateTo] = useState(dateInput(today));
-  const [departmentFilter, setDepartmentFilter] = useState("ALL");
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
-  const [typeFilter, setTypeFilter] = useState<TypeFilter>("ALL");
+  const router = useRouter(); const today = new Date(); const defaultStart = new Date(today.getFullYear(), 0, 1);
+  const [loading, setLoading] = useState(true); const [refreshing, setRefreshing] = useState(false); const [fatalError, setFatalError] = useState<string | null>(null); const [issues, setIssues] = useState<LoadIssue[]>([]);
+  const [requests, setRequests] = useState<RequestRow[]>([]); const [departments, setDepartments] = useState<DepartmentRow[]>([]); const [subheads, setSubheads] = useState<AnyRow[]>([]); const [transactions, setTransactions] = useState<AnyRow[]>([]); const [vouchers, setVouchers] = useState<AnyRow[]>([]); const [accounts, setAccounts] = useState<AnyRow[]>([]); const [transfers, setTransfers] = useState<AnyRow[]>([]); const [bankLedger, setBankLedger] = useState<AnyRow[]>([]); const [auditRows, setAuditRows] = useState<AnyRow[]>([]);
+  const [dateFrom, setDateFrom] = useState(dateInput(defaultStart)); const [dateTo, setDateTo] = useState(dateInput(today)); const [departmentFilter, setDepartmentFilter] = useState("ALL"); const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL"); const [typeFilter, setTypeFilter] = useState<TypeFilter>("ALL"); const [printSection, setPrintSection] = useState<PrintSection>("ALL");
 
   const load = useCallback(async (silent = false) => {
-    silent ? setRefreshing(true) : setLoading(true);
-    setFatalError(null);
-    setIssues([]);
-
+    silent ? setRefreshing(true) : setLoading(true); setFatalError(null); setIssues([]);
     try {
-      const authContext = await getCurrentAuthContext();
-      if (!authContext) {
-        router.replace("/login?next=%2Freports");
-        return;
-      }
-
-      if (!hasAnyRole(authContext.roleSet, [...REPORT_ACCESS_ROLES])) {
-        router.replace("/unauthorized?from=%2Freports");
-        return;
-      }
-
-      const [requestRes, departmentRes, subheadRes, transactionRes, voucherRes] = await Promise.all([
+      const auth = await getCurrentAuthContext(); if (!auth) { router.replace("/login?next=%2Freports"); return; }
+      if (!hasAnyRole(auth.roleSet, [...REPORT_ACCESS_ROLES])) { router.replace("/unauthorized?from=%2Freports"); return; }
+      const results = await Promise.all([
         supabase.from("requests").select("id,request_no,title,amount,status,current_stage,request_type,dept_id,created_at").order("created_at", { ascending: false }).limit(5000),
-        supabase.from("departments").select("id,name").order("name", { ascending: true }),
-        supabase.from("subheads").select("id,dept_id,approved_allocation,reserved_amount,expenditure,balance,is_active").limit(5000),
-        supabase.from("finance_transactions").select("id,amount,transaction_type,transaction_date").order("transaction_date", { ascending: false }).limit(5000),
-        supabase.from("payment_vouchers").select("id,status,amount,total_amount,voucher_type").limit(5000),
+        supabase.from("departments").select("id,name").order("name"),
+        supabase.from("subheads").select("*").limit(5000),
+        supabase.from("finance_transactions").select("*").order("created_at", { ascending: false }).limit(5000),
+        supabase.from("payment_vouchers").select("*").order("created_at", { ascending: false }).limit(5000),
+        supabase.from("iet_accounts").select("*").limit(1000),
+        supabase.from("account_transfers").select("*").order("created_at", { ascending: false }).limit(5000),
+        supabase.from("iet_bank_ledger").select("*").order("created_at", { ascending: false }).limit(5000),
       ]);
-
-      const nextIssues: LoadIssue[] = [];
-      if (requestRes.error) nextIssues.push({ source: "Requests", message: requestRes.error.message });
-      if (departmentRes.error) nextIssues.push({ source: "Departments", message: departmentRes.error.message });
-      if (subheadRes.error) nextIssues.push({ source: "Subheads", message: subheadRes.error.message });
-      if (transactionRes.error) nextIssues.push({ source: "Finance transactions", message: transactionRes.error.message });
-      if (voucherRes.error) nextIssues.push({ source: "Payment vouchers", message: voucherRes.error.message });
-
-      setRequests((requestRes.data || []) as RequestRow[]);
-      setDepartments((departmentRes.data || []) as DepartmentRow[]);
-      setSubheads((subheadRes.data || []) as SubheadRow[]);
-      setTransactions((transactionRes.data || []) as TransactionRow[]);
-      setVouchers((voucherRes.data || []) as VoucherRow[]);
-      setIssues(nextIssues);
-    } catch (error) {
-      setFatalError(error instanceof Error ? error.message : "Unable to load reports and analytics.");
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
+      const labels = ["Requests", "Departments", "Subheads", "Finance transactions", "Payment vouchers", "IET accounts", "Account transfers", "Bank ledger"];
+      const nextIssues: LoadIssue[] = []; results.forEach((result, index) => { if (result.error) nextIssues.push({ source: labels[index], message: result.error.message }); });
+      setRequests((results[0].data || []) as RequestRow[]); setDepartments((results[1].data || []) as DepartmentRow[]); setSubheads((results[2].data || []) as AnyRow[]); setTransactions((results[3].data || []) as AnyRow[]); setVouchers((results[4].data || []) as AnyRow[]); setAccounts((results[5].data || []) as AnyRow[]); setTransfers((results[6].data || []) as AnyRow[]); setBankLedger((results[7].data || []) as AnyRow[]);
+      let auditData: AnyRow[] = []; for (const table of ["finance_audit_trail", "audit_logs", "finance_activity_history", "manual_payment_voucher_audit"]) { const res = await supabase.from(table).select("*").order("created_at", { ascending: false }).limit(1000); if (!res.error) { auditData = [...auditData, ...((res.data || []) as AnyRow[])]; } }
+      setAuditRows(auditData.sort((a, b) => new Date(rowDate(b) || 0).getTime() - new Date(rowDate(a) || 0).getTime())); setIssues(nextIssues);
+    } catch (error) { setFatalError(error instanceof Error ? error.message : "Unable to load the institutional report."); }
+    finally { setLoading(false); setRefreshing(false); }
   }, [router]);
 
-  useEffect(() => {
-    load();
-    const onFocus = () => load(true);
-    window.addEventListener("focus", onFocus);
-    return () => window.removeEventListener("focus", onFocus);
-  }, [load]);
+  useEffect(() => { load(); const onFocus = () => load(true); window.addEventListener("focus", onFocus); return () => window.removeEventListener("focus", onFocus); }, [load]);
+  const inRange = useCallback((value: string) => { if (!value) return false; const t = new Date(value).getTime(); return t >= new Date(`${dateFrom}T00:00:00`).getTime() && t <= new Date(`${dateTo}T23:59:59.999`).getTime(); }, [dateFrom, dateTo]);
+  const filteredRequests = useMemo(() => requests.filter((row) => { if (!inRange(row.created_at)) return false; if (departmentFilter !== "ALL" && row.dept_id !== departmentFilter) return false; if (statusFilter === "ACTIVE" && !isActive(row)) return false; if (statusFilter === "COMPLETED" && !isCompleted(row)) return false; if (statusFilter === "REJECTED" && !isRejected(row)) return false; if (typeFilter !== "ALL" && key(row.request_type) !== typeFilter) return false; return true; }), [requests, inRange, departmentFilter, statusFilter, typeFilter]);
+  const filteredTransactions = useMemo(() => transactions.filter((row) => inRange(rowDate(row))), [transactions, inRange]); const filteredVouchers = useMemo(() => vouchers.filter((row) => !rowDate(row) || inRange(rowDate(row))), [vouchers, inRange]); const filteredTransfers = useMemo(() => transfers.filter((row) => !rowDate(row) || inRange(rowDate(row))), [transfers, inRange]);
 
-  const filteredRequests = useMemo(() => {
-    const from = new Date(`${dateFrom}T00:00:00`).getTime();
-    const to = new Date(`${dateTo}T23:59:59.999`).getTime();
-    return requests.filter((row) => {
-      const timestamp = new Date(row.created_at).getTime();
-      if (timestamp < from || timestamp > to) return false;
-      if (departmentFilter !== "ALL" && row.dept_id !== departmentFilter) return false;
-      if (statusFilter === "ACTIVE" && !isActive(row)) return false;
-      if (statusFilter === "COMPLETED" && !isCompleted(row)) return false;
-      if (statusFilter === "REJECTED" && !isRejected(row)) return false;
-      if (typeFilter !== "ALL" && key(row.request_type) !== typeFilter) return false;
-      return true;
-    });
-  }, [requests, dateFrom, dateTo, departmentFilter, statusFilter, typeFilter]);
+  const requestStats = useMemo(() => ({ total: filteredRequests.length, active: filteredRequests.filter(isActive).length, completed: filteredRequests.filter(isCompleted).length, rejected: filteredRequests.filter(isRejected).length, amount: filteredRequests.reduce((a, b) => a + n(b.amount), 0) }), [filteredRequests]);
+  const financeStats = useMemo(() => { const active = subheads.filter((r) => r.is_active !== false); const allocation = active.reduce((a, r) => a + n(r.approved_allocation || r.allocation_amount), 0); const reserved = active.reduce((a, r) => a + n(r.reserved_amount), 0); const expenditure = active.reduce((a, r) => a + n(r.expenditure || r.spent_amount), 0); const balance = active.reduce((a, r) => a + n(r.balance || r.available_balance), 0); const movement = filteredTransactions.reduce((a, r) => a + Math.abs(n(r.amount)), 0); const accountBalance = accounts.reduce((a, r) => a + n(r.current_balance || r.balance || r.available_balance), 0); return { allocation, reserved, expenditure, balance, movement, accountBalance }; }, [subheads, filteredTransactions, accounts]);
+  const voucherStats = useMemo(() => { const totalValue = filteredVouchers.reduce((a, r) => a + n(r.total_amount || r.amount || r.net_amount), 0); const count = (pattern: RegExp) => filteredVouchers.filter((r) => pattern.test(s(r.status).toLowerCase())).length; return { total: filteredVouchers.length, value: totalValue, draft: count(/draft/), pending: count(/pending|submitted|review|approval/), approved: count(/approved|paid|complete/), rejected: count(/reject|cancel|void/) }; }, [filteredVouchers]);
+  const auditStats = useMemo(() => { const unlinked = subheads.filter((r) => !r.iet_account_id && !r.account_id).length; const negative = subheads.filter((r) => n(r.balance || r.available_balance) < 0).length; const overUtilised = subheads.filter((r) => { const alloc = n(r.approved_allocation || r.allocation_amount); return alloc > 0 && n(r.expenditure || r.spent_amount) > alloc; }).length; const unreconciled = bankLedger.filter((r) => r.is_reconciled === false || /unreconciled|pending/.test(s(r.reconciliation_status || r.status).toLowerCase())).length; const reversed = [...filteredTransactions, ...filteredVouchers].filter((r) => /reverse|void|cancel/.test(s(r.status || r.transaction_type).toLowerCase())).length; return { unlinked, negative, overUtilised, unreconciled, reversed, events: auditRows.length, exceptions: unlinked + negative + overUtilised + unreconciled + reversed }; }, [subheads, bankLedger, filteredTransactions, filteredVouchers, auditRows]);
 
-  const filteredTransactions = useMemo(() => {
-    const from = new Date(`${dateFrom}T00:00:00`).getTime();
-    const to = new Date(`${dateTo}T23:59:59.999`).getTime();
-    return transactions.filter((row) => {
-      if (!row.transaction_date) return false;
-      const timestamp = new Date(row.transaction_date).getTime();
-      return timestamp >= from && timestamp <= to;
-    });
-  }, [transactions, dateFrom, dateTo]);
+  const departmentRows = useMemo(() => { const names = new Map(departments.map((d) => [d.id, d.name])); const map = new Map<string, AnyRow>(); departments.forEach((d) => map.set(d.id, { id: d.id, name: d.name, total: 0, completed: 0, amount: 0, allocation: 0, spent: 0 })); filteredRequests.forEach((r) => { const id = r.dept_id || "UNASSIGNED"; if (!map.has(id)) map.set(id, { id, name: names.get(id) || "Unassigned", total: 0, completed: 0, amount: 0, allocation: 0, spent: 0 }); const x = map.get(id)!; x.total = n(x.total) + 1; x.amount = n(x.amount) + n(r.amount); if (isCompleted(r)) x.completed = n(x.completed) + 1; }); subheads.forEach((r) => { const id = s(r.dept_id) || "UNASSIGNED"; if (!map.has(id)) map.set(id, { id, name: names.get(id) || "Unassigned", total: 0, completed: 0, amount: 0, allocation: 0, spent: 0 }); const x = map.get(id)!; x.allocation = n(x.allocation) + n(r.approved_allocation || r.allocation_amount); x.spent = n(x.spent) + n(r.expenditure || r.spent_amount); }); return [...map.values()].filter((r) => n(r.total) || n(r.allocation)).sort((a, b) => n(b.spent) - n(a.spent)); }, [departments, filteredRequests, subheads]);
+  const stageRows = useMemo(() => { const map = new Map<string, number>(); filteredRequests.forEach((r) => map.set(r.current_stage || "Unassigned", (map.get(r.current_stage || "Unassigned") || 0) + 1)); return [...map].map(([label, value]) => ({ label, value })).sort((a, b) => b.value - a.value); }, [filteredRequests]);
+  const monthRows = useMemo(() => { const rows: Array<{ key: string; label: string; requests: number; requestValue: number; finance: number; vouchers: number }> = []; const start = new Date(`${dateFrom}T00:00:00`); const end = new Date(`${dateTo}T23:59:59`); const cursor = new Date(start.getFullYear(), start.getMonth(), 1); while (cursor <= end && rows.length < 24) { rows.push({ key: `${cursor.getFullYear()}-${cursor.getMonth()}`, label: cursor.toLocaleDateString("en-NG", { month: "short", year: "2-digit" }), requests: 0, requestValue: 0, finance: 0, vouchers: 0 }); cursor.setMonth(cursor.getMonth() + 1); } const map = new Map(rows.map((r) => [r.key, r])); filteredRequests.forEach((r) => { const d = new Date(r.created_at); const x = map.get(`${d.getFullYear()}-${d.getMonth()}`); if (x) { x.requests++; x.requestValue += n(r.amount); } }); filteredTransactions.forEach((r) => { const d = new Date(rowDate(r)); const x = map.get(`${d.getFullYear()}-${d.getMonth()}`); if (x) x.finance += Math.abs(n(r.amount)); }); filteredVouchers.forEach((r) => { const d = new Date(rowDate(r)); const x = map.get(`${d.getFullYear()}-${d.getMonth()}`); if (x) x.vouchers += n(r.total_amount || r.amount || r.net_amount); }); return rows; }, [dateFrom, dateTo, filteredRequests, filteredTransactions, filteredVouchers]);
+  const annualRows = useMemo(() => { const map = new Map<number, { year: number; requests: number; requested: number; finance: number; vouchers: number }>(); const ensure = (year: number) => { if (!map.has(year)) map.set(year, { year, requests: 0, requested: 0, finance: 0, vouchers: 0 }); return map.get(year)!; }; requests.forEach((r) => { const y = new Date(r.created_at).getFullYear(); const x = ensure(y); x.requests++; x.requested += n(r.amount); }); transactions.forEach((r) => { const y = new Date(rowDate(r)).getFullYear(); if (Number.isFinite(y)) ensure(y).finance += Math.abs(n(r.amount)); }); vouchers.forEach((r) => { const y = new Date(rowDate(r)).getFullYear(); if (Number.isFinite(y)) ensure(y).vouchers += n(r.total_amount || r.amount || r.net_amount); }); return [...map.values()].sort((a, b) => b.year - a.year).slice(0, 5); }, [requests, transactions, vouchers]);
 
-  const metrics = useMemo(() => {
-    const total = filteredRequests.length;
-    const active = filteredRequests.filter(isActive).length;
-    const completed = filteredRequests.filter(isCompleted).length;
-    const rejected = filteredRequests.filter(isRejected).length;
-    const requestedAmount = filteredRequests.reduce((sum, row) => sum + Number(row.amount || 0), 0);
-    const allocation = subheads.filter((s) => s.is_active !== false).reduce((sum, s) => sum + Number(s.approved_allocation || 0), 0);
-    const expenditure = subheads.filter((s) => s.is_active !== false).reduce((sum, s) => sum + Number(s.expenditure || 0), 0);
-    const balance = subheads.filter((s) => s.is_active !== false).reduce((sum, s) => sum + Number(s.balance || 0), 0);
-    const financeMovement = filteredTransactions.reduce((sum, row) => sum + Math.abs(Number(row.amount || 0)), 0);
-    const voucherValue = vouchers.reduce((sum, row) => sum + Number(row.total_amount ?? row.amount ?? 0), 0);
-    return { total, active, completed, rejected, requestedAmount, allocation, expenditure, balance, financeMovement, voucherValue };
-  }, [filteredRequests, filteredTransactions, subheads, vouchers]);
+  const utilisation = financeStats.allocation ? financeStats.expenditure / financeStats.allocation * 100 : 0; const completion = requestStats.total ? requestStats.completed / requestStats.total * 100 : 0; const maxMonth = Math.max(1, ...monthRows.flatMap((r) => [r.requestValue, r.finance, r.vouchers])); const maxDept = Math.max(1, ...departmentRows.map((r) => n(r.spent))); const maxStage = Math.max(1, ...stageRows.map((r) => r.value));
+  const insights = useMemo(() => { const result: Array<{ tone: "emerald" | "amber" | "rose" | "blue"; title: string; text: string }> = []; if (utilisation >= 90) result.push({ tone: "rose", title: "Critical budget pressure", text: `Institutional budget utilisation is ${utilisation.toFixed(1)}%. Immediate expenditure control and reallocation review are recommended.` }); else if (utilisation >= 75) result.push({ tone: "amber", title: "Budget utilisation requires attention", text: `${utilisation.toFixed(1)}% of approved allocation has been consumed. Review fast-moving subheads before further commitments.` }); else result.push({ tone: "emerald", title: "Budget position is within control", text: `${utilisation.toFixed(1)}% of approved allocation is currently utilised, leaving ${money(financeStats.balance)} recorded balance.` }); const bottleneck = stageRows[0]; if (bottleneck) result.push({ tone: bottleneck.value > Math.max(5, requestStats.total * .35) ? "amber" : "blue", title: "Workflow concentration", text: `${bottleneck.value} request(s) are currently concentrated at “${bottleneck.label}”, the largest workflow queue in the selected period.` }); if (auditStats.exceptions) result.push({ tone: "rose", title: "Control exceptions detected", text: `${auditStats.exceptions} audit or reconciliation exception(s) require review, including unlinked subheads, negative balances, unreconciled ledger items or reversed records.` }); else result.push({ tone: "emerald", title: "No material reconciliation exception", text: "The automated control checks did not identify a major exception in the currently accessible records." }); return result; }, [utilisation, financeStats.balance, stageRows, requestStats.total, auditStats.exceptions]);
 
-  const departmentRows = useMemo(() => {
-    const deptName = new Map(departments.map((d) => [d.id, d.name]));
-    const map = new Map<string, { id: string; name: string; total: number; active: number; completed: number; rejected: number; amount: number; allocation: number; spent: number }>();
-    departments.forEach((dept) => map.set(dept.id, { id: dept.id, name: dept.name, total: 0, active: 0, completed: 0, rejected: 0, amount: 0, allocation: 0, spent: 0 }));
-    filteredRequests.forEach((row) => {
-      const id = row.dept_id || "UNASSIGNED";
-      if (!map.has(id)) map.set(id, { id, name: deptName.get(id) || "Unassigned", total: 0, active: 0, completed: 0, rejected: 0, amount: 0, allocation: 0, spent: 0 });
-      const item = map.get(id)!;
-      item.total += 1;
-      item.amount += Number(row.amount || 0);
-      if (isActive(row)) item.active += 1;
-      if (isCompleted(row)) item.completed += 1;
-      if (isRejected(row)) item.rejected += 1;
-    });
-    subheads.forEach((s) => {
-      const id = s.dept_id || "UNASSIGNED";
-      if (!map.has(id)) map.set(id, { id, name: deptName.get(id) || "Unassigned", total: 0, active: 0, completed: 0, rejected: 0, amount: 0, allocation: 0, spent: 0 });
-      const item = map.get(id)!;
-      item.allocation += Number(s.approved_allocation || 0);
-      item.spent += Number(s.expenditure || 0);
-    });
-    return Array.from(map.values()).filter((row) => row.total > 0 || row.allocation > 0).sort((a, b) => b.total - a.total || b.amount - a.amount);
-  }, [departments, filteredRequests, subheads]);
-
-  const stageRows = useMemo(() => {
-    const map = new Map<string, number>();
-    filteredRequests.forEach((row) => {
-      const stage = row.current_stage || "Unassigned";
-      map.set(stage, (map.get(stage) || 0) + 1);
-    });
-    return Array.from(map.entries()).map(([stage, count]) => ({ stage, count })).sort((a, b) => b.count - a.count);
-  }, [filteredRequests]);
-
-  const monthlyRows = useMemo(() => {
-    const from = new Date(`${dateFrom}T00:00:00`);
-    const to = new Date(`${dateTo}T23:59:59`);
-    const months: Array<{ key: string; label: string; requests: number; amount: number; finance: number }> = [];
-    const cursor = new Date(from.getFullYear(), from.getMonth(), 1);
-    while (cursor <= to && months.length < 24) {
-      months.push({ key: `${cursor.getFullYear()}-${cursor.getMonth()}`, label: cursor.toLocaleDateString("en-GB", { month: "short", year: "2-digit" }), requests: 0, amount: 0, finance: 0 });
-      cursor.setMonth(cursor.getMonth() + 1);
-    }
-    const byKey = new Map(months.map((m) => [m.key, m]));
-    filteredRequests.forEach((row) => {
-      const d = new Date(row.created_at); const item = byKey.get(`${d.getFullYear()}-${d.getMonth()}`); if (item) { item.requests += 1; item.amount += Number(row.amount || 0); }
-    });
-    filteredTransactions.forEach((row) => {
-      if (!row.transaction_date) return; const d = new Date(row.transaction_date); const item = byKey.get(`${d.getFullYear()}-${d.getMonth()}`); if (item) item.finance += Math.abs(Number(row.amount || 0));
-    });
-    return months;
-  }, [dateFrom, dateTo, filteredRequests, filteredTransactions]);
-
-  const maxMonthly = Math.max(1, ...monthlyRows.map((row) => row.requests));
-  const completionRate = metrics.total ? (metrics.completed / metrics.total) * 100 : 0;
-  const utilisation = metrics.allocation ? (metrics.expenditure / metrics.allocation) * 100 : 0;
-
-  function exportReport() {
-    const deptName = new Map(departments.map((d) => [d.id, d.name]));
-    downloadCsv(`reqgen-reports-${dateFrom}-to-${dateTo}.csv`, [
-      ["Request No", "Title", "Department", "Type", "Status", "Stage", "Amount", "Created"],
-      ...filteredRequests.map((row) => [row.request_no || "", row.title || "", deptName.get(row.dept_id || "") || "Unassigned", row.request_type || "", row.status || "", row.current_stage || "", Number(row.amount || 0), new Date(row.created_at).toLocaleString()]),
-    ]);
-  }
-
+  function printSelected() { document.documentElement.setAttribute("data-report-print", printSection); window.setTimeout(() => { window.print(); window.setTimeout(() => document.documentElement.removeAttribute("data-report-print"), 300); }, 50); }
+  function exportReport() { const dept = new Map(departments.map((d) => [d.id, d.name])); downloadCsv(`reqgen-central-report-${dateFrom}-to-${dateTo}.csv`, [["Request No", "Title", "Department", "Type", "Status", "Stage", "Amount", "Created"], ...filteredRequests.map((r) => [r.request_no || "", r.title || "", dept.get(r.dept_id || "") || "Unassigned", r.request_type || "", r.status || "", r.current_stage || "", n(r.amount), new Date(r.created_at).toLocaleString("en-NG")])]); }
   if (loading) return <><ReportsPageStyles/><ReportsSkeleton/></>;
 
-  return <div className="min-h-screen bg-slate-100 p-4 sm:p-7"><ReportsPageStyles/><main className="report-print-shell mx-auto max-w-[1500px] space-y-6">
-    <div className="report-no-print"><ReportsHero actions={<><ReportButton icon="refresh" variant="cyan" onClick={() => load(true)} disabled={refreshing}>{refreshing ? "Refreshing…" : "Refresh"}</ReportButton><ReportButton icon="download" variant="violet" onClick={exportReport}>Export CSV</ReportButton><ReportButton icon="print" variant="blue" onClick={() => window.print()}>Print Report</ReportButton></>}/></div>
+  return <div className="min-h-screen bg-slate-100 p-4 sm:p-7"><ReportsPageStyles/><style jsx global>{`
+    @media print {
+      html[data-report-print]:not([data-report-print="ALL"]) [data-report-section] { display:none !important; }
+      html[data-report-print="OVERVIEW"] [data-report-section="OVERVIEW"], html[data-report-print="REQUESTS"] [data-report-section="REQUESTS"], html[data-report-print="FINANCE"] [data-report-section="FINANCE"], html[data-report-print="VOUCHERS"] [data-report-section="VOUCHERS"], html[data-report-print="AUDIT"] [data-report-section="AUDIT"], html[data-report-print="DEPARTMENTS"] [data-report-section="DEPARTMENTS"], html[data-report-print="REGISTERS"] [data-report-section="REGISTERS"] { display:block !important; }
+      .report-print-heading { display:block !important; }
+    }
+  `}</style><main className="report-print-shell mx-auto max-w-[1500px] space-y-6">
+    <div className="report-no-print"><ReportsHero actions={<><ReportButton icon="refresh" variant="cyan" onClick={() => load(true)} disabled={refreshing}>{refreshing ? "Refreshing…" : "Refresh"}</ReportButton><ReportButton icon="download" variant="violet" onClick={exportReport}>Export CSV</ReportButton><div className="flex min-w-[255px] items-center overflow-hidden rounded-2xl bg-white/10 ring-1 ring-white/20"><select value={printSection} onChange={(e) => setPrintSection(e.target.value as PrintSection)} className="h-12 min-w-0 flex-1 bg-transparent px-3 text-sm font-extrabold text-white outline-none [&>option]:text-slate-900">{PRINT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}</select><button onClick={printSelected} className="h-12 bg-blue-500 px-4 text-sm font-black text-white transition hover:bg-blue-400">Print</button></div></>}/></div>
+    <div className="report-print-heading hidden border-b-2 border-slate-950 pb-4 text-center"><h1 className="text-2xl font-black">REQGEN CENTRAL REPORTS & DECISION INTELLIGENCE</h1><p className="mt-1 text-sm">Reporting period: {dateFrom} to {dateTo} • Printed {new Date().toLocaleString("en-NG")}</p></div>
+    {fatalError && <div className="rounded-2xl border border-rose-200 bg-rose-50 p-5 font-semibold text-rose-800">{fatalError}</div>}{issues.length > 0 && <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5"><div className="flex items-center gap-2 font-black text-amber-900"><ReportIcon name="warning"/>Partial-data notice</div>{issues.map((i) => <p key={i.source} className="mt-1 text-sm text-amber-800"><b>{i.source}:</b> {i.message}</p>)}</div>}
 
-    {fatalError && <div className="rounded-2xl border border-rose-200 bg-rose-50 p-5 text-sm font-semibold text-rose-800">{fatalError}</div>}
-    {issues.length > 0 && <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5"><div className="flex items-center gap-2 font-black text-amber-900"><ReportIcon name="warning"/>Partial data warning</div><div className="mt-2 space-y-1 text-sm text-amber-800">{issues.map((issue) => <p key={issue.source}><strong>{issue.source}:</strong> {issue.message}</p>)}</div></div>}
+    <section className="report-no-print rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"><div className="mb-4 flex items-center gap-3"><div className="grid h-10 w-10 place-items-center rounded-xl bg-blue-600 text-white"><ReportIcon name="filter"/></div><div><h2 className="font-black text-slate-950">Institutional report controls</h2><p className="text-sm text-slate-500">One reporting scope for requests, finance, vouchers, audit and departmental intelligence.</p></div></div><div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5"><label className="text-sm font-bold text-slate-700">From<input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"/></label><label className="text-sm font-bold text-slate-700">To<input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"/></label><label className="text-sm font-bold text-slate-700">Department<select value={departmentFilter} onChange={(e) => setDepartmentFilter(e.target.value)} className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3"><option value="ALL">All departments</option>{departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}</select></label><label className="text-sm font-bold text-slate-700">Status<select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as StatusFilter)} className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3"><option value="ALL">All statuses</option><option value="ACTIVE">Active</option><option value="COMPLETED">Completed</option><option value="REJECTED">Rejected / cancelled</option></select></label><label className="text-sm font-bold text-slate-700">Request type<select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as TypeFilter)} className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3"><option value="ALL">All types</option><option value="OFFICIAL">Official</option><option value="PERSONAL">Personal</option></select></label></div></section>
 
-    <section className="report-no-print rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"><div className="mb-4 flex items-center gap-3"><div className="grid h-10 w-10 place-items-center rounded-xl bg-blue-600 text-white"><ReportIcon name="filter"/></div><div><h2 className="font-black text-slate-950">Report filters</h2><p className="text-sm text-slate-500">Filters apply to request and dated finance activity.</p></div></div><div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-      <label className="text-sm font-bold text-slate-700">From<input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"/></label>
-      <label className="text-sm font-bold text-slate-700">To<input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"/></label>
-      <label className="text-sm font-bold text-slate-700">Department<select value={departmentFilter} onChange={(e) => setDepartmentFilter(e.target.value)} className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"><option value="ALL">All departments</option>{departments.map((dept) => <option key={dept.id} value={dept.id}>{dept.name}</option>)}</select></label>
-      <label className="text-sm font-bold text-slate-700">Status<select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as StatusFilter)} className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"><option value="ALL">All statuses</option><option value="ACTIVE">Active</option><option value="COMPLETED">Completed</option><option value="REJECTED">Rejected/Cancelled</option></select></label>
-      <label className="text-sm font-bold text-slate-700">Request type<select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as TypeFilter)} className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"><option value="ALL">All types</option><option value="OFFICIAL">Official</option><option value="PERSONAL">Personal</option></select></label>
-    </div></section>
+    <div data-report-section="OVERVIEW" id="executive-overview" className="scroll-mt-24 space-y-6"><div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"><ReportStat label="Total requests" value={requestStats.total.toLocaleString()} note={`${completion.toFixed(1)}% completion rate`} icon="request" tone="blue"/><ReportStat label="Requested value" value={money(requestStats.amount)} note="Filtered institutional demand" icon="money" tone="violet"/><ReportStat label="Approved allocation" value={money(financeStats.allocation)} note={`${utilisation.toFixed(1)}% utilised`} icon="building" tone="cyan" progress={utilisation}/><ReportStat label="Available balance" value={money(financeStats.balance)} note={`Reserved: ${money(financeStats.reserved)}`} icon="money" tone="emerald"/><ReportStat label="Payment vouchers" value={voucherStats.total.toLocaleString()} note={`Value: ${money(voucherStats.value)}`} icon="request" tone="amber"/><ReportStat label="Finance movement" value={money(financeStats.movement)} note="Absolute movement in period" icon="chart" tone="blue"/><ReportStat label="Audit exceptions" value={auditStats.exceptions.toLocaleString()} note={`${auditStats.events} audit event(s) loaded`} icon="warning" tone={auditStats.exceptions ? "rose" : "emerald"}/><ReportStat label="Account transfers" value={filteredTransfers.length.toLocaleString()} note="Transfers recorded in period" icon="clock" tone="violet"/></div><ReportSection title="Management decision insights" description="Automated interpretation of the most decision-relevant indicators." icon="chart"><div className="grid gap-4 lg:grid-cols-3">{insights.map((x) => <Insight key={x.title} {...x}/>)}</div></ReportSection></div>
 
-    <div id="executive-overview" className="scroll-mt-24 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-      <ReportStat label="Total requests" value={metrics.total.toLocaleString()} note={`${dateFrom} to ${dateTo}`} icon="request" tone="blue"/>
-      <ReportStat label="Active workflow" value={metrics.active.toLocaleString()} note="Requests still moving through approval" icon="clock" tone="amber"/>
-      <ReportStat label="Completed" value={metrics.completed.toLocaleString()} note={`${completionRate.toFixed(1)}% completion rate`} icon="check" tone="emerald" progress={completionRate}/>
-      <ReportStat label="Rejected / cancelled" value={metrics.rejected.toLocaleString()} note="Requests not completed" icon="warning" tone="rose"/>
-      <ReportStat label="Requested value" value={money(metrics.requestedAmount)} note="Value of filtered requests" icon="money" tone="violet"/>
-      <ReportStat label="Approved allocation" value={money(metrics.allocation)} note="Across active subheads" icon="building" tone="cyan"/>
-      <ReportStat label="Expenditure" value={money(metrics.expenditure)} note={`${utilisation.toFixed(1)}% budget utilisation`} icon="chart" tone="amber" progress={utilisation}/>
-      <ReportStat label="Available balance" value={money(metrics.balance)} note={`Finance movement: ${money(metrics.financeMovement)}`} icon="money" tone="emerald"/>
-    </div>
+    <div data-report-section="REQUESTS" id="request-intelligence" className="scroll-mt-24 grid gap-6 xl:grid-cols-3"><ReportSection title="Request status distribution" description="Completion, active workflow and rejected records." icon="request"><Donut center={requestStats.total.toLocaleString()} note="requests" segments={[{ label: "Active", value: requestStats.active, color: "#f59e0b" }, { label: "Completed", value: requestStats.completed, color: "#10b981" }, { label: "Rejected", value: requestStats.rejected, color: "#f43f5e" }]}/></ReportSection><ReportSection title="Workflow bottlenecks" description="Largest current queues by approval stage." icon="clock"><div className="space-y-4">{stageRows.slice(0, 10).map((r, i) => <DataBar key={r.label} label={r.label} value={r.value} max={maxStage} tone={i === 0 ? "rose" : i < 3 ? "amber" : "violet"}/>)}</div></ReportSection><ReportSection title="Request control indicators" description="Core operational ratios for management review." icon="chart"><div className="space-y-4"><Insight tone={completion >= 70 ? "emerald" : "amber"} title={`${completion.toFixed(1)}% completion`} text={`${requestStats.completed} of ${requestStats.total} request(s) are completed in the reporting scope.`}/><Insight tone={requestStats.rejected ? "rose" : "blue"} title={`${requestStats.rejected} rejected / cancelled`} text="Review recurring rejection reasons to improve request quality and reduce rework."/><Insight tone="blue" title={compactMoney(requestStats.amount)} text="Total requested monetary value across all filtered records."/></div></ReportSection></div>
 
-    <div id="finance-and-workflow" className="scroll-mt-24 grid gap-6 xl:grid-cols-3">
-      <ReportSection title="Monthly activity trend" description="Request volume and financial movement over the selected period." icon="chart" className="report-print-card xl:col-span-2"><div className="overflow-x-auto"><div className="flex min-w-[680px] items-end gap-3 rounded-2xl bg-slate-50 p-5" style={{height: 300}}>{monthlyRows.length === 0 ? <div className="m-auto text-sm text-slate-500">No monthly activity in this period.</div> : monthlyRows.map((row) => <div key={row.key} className="flex h-full flex-1 flex-col justify-end"><div className="mb-2 text-center text-[11px] font-bold text-slate-500">{row.requests}</div><div className="mx-auto w-full max-w-12 rounded-t-xl bg-gradient-to-t from-blue-700 to-cyan-400 transition-all" style={{height: `${Math.max(8, (row.requests / maxMonthly) * 210)}px`}} title={`${row.label}: ${row.requests} requests, ${money(row.finance)} finance movement`}/><div className="mt-2 text-center text-[11px] font-extrabold text-slate-600">{row.label}</div></div>)}</div></div></ReportSection>
-      <ReportSection title="Workflow distribution" description="Current request position by approval stage." icon="clock" className="report-print-card"><div className="space-y-3">{stageRows.length === 0 ? <p className="text-sm text-slate-500">No workflow data.</p> : stageRows.slice(0, 10).map((row) => <div key={row.stage}><div className="mb-1 flex items-center justify-between gap-3 text-sm"><span className="font-bold text-slate-700">{row.stage}</span><span className="font-black text-slate-950">{row.count}</span></div><div className="h-2 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-gradient-to-r from-violet-600 to-blue-500" style={{width: `${metrics.total ? Math.max(3, row.count / metrics.total * 100) : 0}%`}}/></div></div>)}</div></ReportSection>
-    </div>
+    <div data-report-section="FINANCE" id="finance-and-workflow" className="scroll-mt-24 space-y-6"><div className="grid gap-6 xl:grid-cols-3"><ReportSection title="Monthly financial movement" description="Requested value, finance movement and payment vouchers by month." icon="chart" className="xl:col-span-2"><div className="overflow-x-auto"><div className="min-w-[760px]"><div className="grid h-72 grid-cols-12 items-end gap-3 rounded-2xl bg-slate-50 p-5">{monthRows.map((r) => <div key={r.key} className="flex h-full flex-col justify-end"><div className="flex h-[220px] items-end justify-center gap-1"><div className="w-2 rounded-t bg-blue-600" style={{ height: `${Math.max(r.requestValue ? 4 : 0, r.requestValue / maxMonth * 210)}px` }} title={`Requested: ${money(r.requestValue)}`}/><div className="w-2 rounded-t bg-emerald-500" style={{ height: `${Math.max(r.finance ? 4 : 0, r.finance / maxMonth * 210)}px` }} title={`Finance movement: ${money(r.finance)}`}/><div className="w-2 rounded-t bg-violet-500" style={{ height: `${Math.max(r.vouchers ? 4 : 0, r.vouchers / maxMonth * 210)}px` }} title={`Vouchers: ${money(r.vouchers)}`}/></div><div className="mt-2 text-center text-[10px] font-black text-slate-600">{r.label}</div></div>)}</div><div className="mt-3 flex flex-wrap gap-4 text-xs font-bold text-slate-600"><span><i className="mr-1 inline-block h-2.5 w-2.5 rounded bg-blue-600"/>Requested</span><span><i className="mr-1 inline-block h-2.5 w-2.5 rounded bg-emerald-500"/>Finance movement</span><span><i className="mr-1 inline-block h-2.5 w-2.5 rounded bg-violet-500"/>Vouchers</span></div></div></div></ReportSection><ReportSection title="Budget position" description="Allocation, commitments, expenditure and available balance." icon="money"><div className="space-y-4"><DataBar label="Expenditure utilisation" value={Math.round(utilisation)} max={100} suffix="%" tone={utilisation > 90 ? "rose" : utilisation > 75 ? "amber" : "emerald"}/><div className="grid grid-cols-2 gap-3">{[["Allocation", financeStats.allocation], ["Reserved", financeStats.reserved], ["Expenditure", financeStats.expenditure], ["Balance", financeStats.balance]].map(([label, value]) => <div key={String(label)} className="rounded-2xl bg-slate-50 p-3"><div className="text-xs font-bold text-slate-500">{label}</div><div className="mt-1 text-base font-black text-slate-950">{compactMoney(value)}</div></div>)}</div></div></ReportSection></div><ReportSection title="Annual institutional comparison" description="Five-year view of request demand, finance movement and voucher value." icon="building"><div className="overflow-x-auto"><table className="min-w-[760px] w-full text-left text-sm"><thead><tr className="border-b text-xs uppercase tracking-wide text-slate-500"><th className="px-3 py-3">Year</th><th className="px-3 py-3 text-right">Requests</th><th className="px-3 py-3 text-right">Requested value</th><th className="px-3 py-3 text-right">Finance movement</th><th className="px-3 py-3 text-right">Voucher value</th></tr></thead><tbody>{annualRows.map((r) => <tr key={r.year} className="border-b border-slate-100"><td className="px-3 py-3 font-black">{r.year}</td><td className="px-3 py-3 text-right font-bold">{r.requests}</td><td className="px-3 py-3 text-right">{money(r.requested)}</td><td className="px-3 py-3 text-right">{money(r.finance)}</td><td className="px-3 py-3 text-right">{money(r.vouchers)}</td></tr>)}</tbody></table></div></ReportSection></div>
 
-    <div id="department-performance" className="scroll-mt-24"><ReportSection title="Department performance" description="Request volume, completion and budget utilisation by department." icon="building" className="report-print-card"><div className="overflow-x-auto"><table className="min-w-[980px] w-full text-left text-sm"><thead><tr className="border-b border-slate-200 text-xs uppercase tracking-wide text-slate-500"><th className="px-3 py-3">Department</th><th className="px-3 py-3 text-right">Requests</th><th className="px-3 py-3 text-right">Active</th><th className="px-3 py-3 text-right">Completed</th><th className="px-3 py-3 text-right">Request value</th><th className="px-3 py-3 text-right">Allocation</th><th className="px-3 py-3 text-right">Spent</th><th className="px-3 py-3 text-right">Utilisation</th></tr></thead><tbody>{departmentRows.length === 0 ? <tr><td colSpan={8} className="px-3 py-10 text-center text-slate-500">No department data for this selection.</td></tr> : departmentRows.map((row) => { const rate = row.allocation ? row.spent / row.allocation * 100 : 0; return <tr key={row.id} className="border-b border-slate-100 hover:bg-slate-50"><td className="px-3 py-3 font-extrabold text-slate-900">{row.name}</td><td className="px-3 py-3 text-right font-bold">{row.total}</td><td className="px-3 py-3 text-right text-amber-700">{row.active}</td><td className="px-3 py-3 text-right text-emerald-700">{row.completed}</td><td className="px-3 py-3 text-right font-bold">{money(row.amount)}</td><td className="px-3 py-3 text-right">{money(row.allocation)}</td><td className="px-3 py-3 text-right">{money(row.spent)}</td><td className="px-3 py-3 text-right font-black">{rate.toFixed(1)}%</td></tr>; })}</tbody></table></div></ReportSection></div>
+    <div data-report-section="VOUCHERS" id="payment-voucher-intelligence" className="scroll-mt-24 grid gap-6 xl:grid-cols-3"><ReportSection title="Payment voucher status" description="Voucher processing position and value." icon="request"><Donut center={voucherStats.total.toLocaleString()} note="vouchers" segments={[{ label: "Draft", value: voucherStats.draft, color: "#64748b" }, { label: "Pending", value: voucherStats.pending, color: "#f59e0b" }, { label: "Approved / paid", value: voucherStats.approved, color: "#10b981" }, { label: "Rejected / void", value: voucherStats.rejected, color: "#f43f5e" }]}/></ReportSection><ReportSection title="Voucher financial exposure" description="Monetary and processing indicators." icon="money"><div className="space-y-4"><Insight tone="blue" title={money(voucherStats.value)} text="Gross value represented by vouchers in the reporting period."/><Insight tone={voucherStats.pending ? "amber" : "emerald"} title={`${voucherStats.pending} pending`} text="Vouchers awaiting review, approval, counter-signature or payment completion."/><Insight tone={voucherStats.rejected ? "rose" : "blue"} title={`${voucherStats.rejected} rejected / void`} text="Records requiring root-cause review or corrective documentation."/></div></ReportSection><ReportSection title="Recent voucher register" description="Latest accessible payment voucher records." icon="clock"><div className="space-y-3">{filteredVouchers.slice(0, 8).map((r, i) => <div key={s(r.id) || i} className="rounded-2xl border border-slate-100 p-3"><div className="flex justify-between gap-3"><div className="min-w-0"><div className="truncate font-black text-slate-900">{s(r.voucher_no || r.voucher_number || r.reference_no) || `Voucher ${i + 1}`}</div><div className="mt-1 text-xs font-bold text-slate-500">{s(r.status) || "Unclassified"}</div></div><div className="shrink-0 font-black text-violet-700">{money(r.total_amount || r.amount || r.net_amount)}</div></div></div>)}</div></ReportSection></div>
 
-    <div id="request-records" className="scroll-mt-24"><ReportSection title="Recent request records" description="Latest requests matching the current report filters." icon="request" className="report-print-card"><div className="overflow-x-auto"><table className="min-w-[900px] w-full text-left text-sm"><thead><tr className="border-b border-slate-200 text-xs uppercase tracking-wide text-slate-500"><th className="px-3 py-3">Request</th><th className="px-3 py-3">Title</th><th className="px-3 py-3">Type</th><th className="px-3 py-3">Status</th><th className="px-3 py-3">Stage</th><th className="px-3 py-3 text-right">Amount</th><th className="px-3 py-3">Date</th></tr></thead><tbody>{filteredRequests.slice(0, 50).map((row) => <tr key={row.id} className="border-b border-slate-100 hover:bg-slate-50"><td className="px-3 py-3 font-extrabold text-blue-700">{row.request_no || "—"}</td><td className="max-w-[280px] truncate px-3 py-3 font-semibold text-slate-800">{row.title || "Untitled request"}</td><td className="px-3 py-3">{row.request_type || "—"}</td><td className="px-3 py-3">{row.status || "—"}</td><td className="px-3 py-3">{row.current_stage || "—"}</td><td className="px-3 py-3 text-right font-bold">{money(row.amount)}</td><td className="px-3 py-3 text-slate-500">{new Date(row.created_at).toLocaleDateString()}</td></tr>)}{filteredRequests.length === 0 && <tr><td colSpan={7} className="px-3 py-10 text-center text-slate-500">No requests match the selected filters.</td></tr>}</tbody></table></div>{filteredRequests.length > 50 && <p className="mt-4 text-xs font-semibold text-slate-500">Showing the latest 50 of {filteredRequests.length.toLocaleString()} matching requests. Export CSV contains all matching records.</p>}</ReportSection></div>
+    <div data-report-section="AUDIT" id="audit-reconciliation" className="scroll-mt-24 space-y-6"><div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5"><ReportStat label="Audit events" value={auditStats.events.toLocaleString()} note="Loaded governance records" icon="clock" tone="blue"/><ReportStat label="Unlinked subheads" value={auditStats.unlinked.toLocaleString()} note="Missing bank-account relationship" icon="warning" tone={auditStats.unlinked ? "amber" : "emerald"}/><ReportStat label="Unreconciled ledger" value={auditStats.unreconciled.toLocaleString()} note="Pending reconciliation indicators" icon="warning" tone={auditStats.unreconciled ? "rose" : "emerald"}/><ReportStat label="Over-utilised subheads" value={auditStats.overUtilised.toLocaleString()} note="Expenditure above allocation" icon="chart" tone={auditStats.overUtilised ? "rose" : "emerald"}/><ReportStat label="Reversed / void records" value={auditStats.reversed.toLocaleString()} note="Transactions and vouchers" icon="request" tone={auditStats.reversed ? "amber" : "emerald"}/></div><div className="grid gap-6 xl:grid-cols-2"><ReportSection title="Automated reconciliation checks" description="Control checks derived from accessible finance, ledger, subhead and voucher records." icon="warning"><div className="space-y-4"><DataBar label="Unlinked subheads" value={auditStats.unlinked} max={Math.max(1, auditStats.exceptions)} tone="amber"/><DataBar label="Negative balances" value={auditStats.negative} max={Math.max(1, auditStats.exceptions)} tone="rose"/><DataBar label="Over-utilised subheads" value={auditStats.overUtilised} max={Math.max(1, auditStats.exceptions)} tone="rose"/><DataBar label="Unreconciled bank ledger" value={auditStats.unreconciled} max={Math.max(1, auditStats.exceptions)} tone="violet"/><DataBar label="Reversed / void records" value={auditStats.reversed} max={Math.max(1, auditStats.exceptions)} tone="amber"/></div></ReportSection><ReportSection title="Recent audit evidence" description="Most recent available audit, activity and manual-voucher control records." icon="clock"><div className="space-y-3">{auditRows.slice(0, 10).map((r, i) => <div key={s(r.id) || i} className="rounded-2xl border border-slate-100 p-3"><div className="flex flex-wrap items-start justify-between gap-2"><div><div className="font-black text-slate-900">{s(r.action || r.event_type || r.activity || r.module) || "Audit activity"}</div><div className="mt-1 text-xs font-semibold text-slate-500">{s(r.actor_name || r.actor_email || r.user_email) || "System user"}</div></div><div className="text-xs font-bold text-slate-500">{rowDate(r) ? new Date(rowDate(r)).toLocaleString("en-NG") : "—"}</div></div></div>)}{!auditRows.length && <p className="text-sm text-slate-500">No compatible audit records were returned. Automated reconciliation checks above remain active.</p>}</div></ReportSection></div></div>
 
-    <footer className="pb-4 text-center text-xs font-semibold text-slate-500">ReqGen 1.1.0 • Reports generated {new Date().toLocaleString()}</footer>
+    <div data-report-section="DEPARTMENTS" id="department-performance" className="scroll-mt-24 grid gap-6 xl:grid-cols-3"><ReportSection title="Department expenditure ranking" description="Departments ranked by recorded expenditure." icon="building"><div className="space-y-4">{departmentRows.slice(0, 10).map((r, i) => <DataBar key={s(r.id)} label={s(r.name)} value={Math.round(n(r.spent))} max={maxDept} tone={i < 2 ? "rose" : i < 5 ? "amber" : "blue"}/>)}</div></ReportSection><ReportSection title="Department completion performance" description="Request completion rate by department." icon="check"><div className="space-y-4">{departmentRows.slice(0, 10).map((r) => { const rate = n(r.total) ? n(r.completed) / n(r.total) * 100 : 0; return <DataBar key={s(r.id)} label={s(r.name)} value={Math.round(rate)} max={100} suffix="%" tone={rate >= 75 ? "emerald" : rate >= 50 ? "amber" : "rose"}/>; })}</div></ReportSection><ReportSection title="Department decision flags" description="Highest utilisation and outstanding demand." icon="warning"><div className="space-y-3">{departmentRows.slice(0, 6).map((r) => { const util = n(r.allocation) ? n(r.spent) / n(r.allocation) * 100 : 0; return <div key={s(r.id)} className="rounded-2xl border border-slate-100 p-3"><div className="flex justify-between gap-3"><span className="font-black text-slate-900">{s(r.name)}</span><span className={`font-black ${util > 90 ? "text-rose-700" : util > 75 ? "text-amber-700" : "text-emerald-700"}`}>{util.toFixed(1)}%</span></div><div className="mt-1 text-xs font-semibold text-slate-500">{n(r.total)} requests • {money(r.spent)} spent</div></div>; })}</div></ReportSection></div>
+
+    <div data-report-section="REGISTERS" id="detailed-registers" className="scroll-mt-24 space-y-6"><ReportSection title="Department financial and request register" description="Detailed institutional comparison for management, audit and reconciliation." icon="building"><div className="overflow-x-auto"><table className="min-w-[1050px] w-full text-left text-sm"><thead><tr className="border-b text-xs uppercase tracking-wide text-slate-500"><th className="px-3 py-3">Department</th><th className="px-3 py-3 text-right">Requests</th><th className="px-3 py-3 text-right">Completed</th><th className="px-3 py-3 text-right">Requested</th><th className="px-3 py-3 text-right">Allocation</th><th className="px-3 py-3 text-right">Spent</th><th className="px-3 py-3 text-right">Balance</th><th className="px-3 py-3 text-right">Utilisation</th></tr></thead><tbody>{departmentRows.map((r) => { const balance = n(r.allocation) - n(r.spent); const util = n(r.allocation) ? n(r.spent) / n(r.allocation) * 100 : 0; return <tr key={s(r.id)} className="border-b border-slate-100"><td className="px-3 py-3 font-black">{s(r.name)}</td><td className="px-3 py-3 text-right">{n(r.total)}</td><td className="px-3 py-3 text-right">{n(r.completed)}</td><td className="px-3 py-3 text-right">{money(r.amount)}</td><td className="px-3 py-3 text-right">{money(r.allocation)}</td><td className="px-3 py-3 text-right">{money(r.spent)}</td><td className="px-3 py-3 text-right">{money(balance)}</td><td className="px-3 py-3 text-right font-black">{util.toFixed(1)}%</td></tr>; })}</tbody></table></div></ReportSection><ReportSection title="Recent request records" description="Latest requests matching the current report controls." icon="request"><div className="overflow-x-auto"><table className="min-w-[980px] w-full text-left text-sm"><thead><tr className="border-b text-xs uppercase tracking-wide text-slate-500"><th className="px-3 py-3">Request</th><th className="px-3 py-3">Title</th><th className="px-3 py-3">Type</th><th className="px-3 py-3">Status</th><th className="px-3 py-3">Stage</th><th className="px-3 py-3 text-right">Amount</th><th className="px-3 py-3">Date</th></tr></thead><tbody>{filteredRequests.slice(0, 100).map((r) => <tr key={r.id} className="border-b border-slate-100"><td className="px-3 py-3 font-black text-blue-700">{r.request_no || "—"}</td><td className="max-w-[280px] truncate px-3 py-3 font-semibold">{r.title || "Untitled request"}</td><td className="px-3 py-3">{r.request_type || "—"}</td><td className="px-3 py-3">{r.status || "—"}</td><td className="px-3 py-3">{r.current_stage || "—"}</td><td className="px-3 py-3 text-right font-bold">{money(r.amount)}</td><td className="px-3 py-3 text-slate-500">{new Date(r.created_at).toLocaleDateString("en-NG")}</td></tr>)}</tbody></table></div></ReportSection></div>
+    <footer className="pb-4 text-center text-xs font-semibold text-slate-500">ReqGen 1.1.0 • Central Reports & Decision Intelligence • Generated {new Date().toLocaleString("en-NG")}</footer>
   </main></div>;
 }
