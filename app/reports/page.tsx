@@ -116,39 +116,174 @@ export default function ReportsAnalyticsPage() {
   const insights = useMemo(() => { const result: Array<{ tone: "emerald" | "amber" | "rose" | "blue"; title: string; text: string }> = []; if (utilisation >= 90) result.push({ tone: "rose", title: "Critical budget pressure", text: `Institutional budget utilisation is ${utilisation.toFixed(1)}%. Immediate expenditure control and reallocation review are recommended.` }); else if (utilisation >= 75) result.push({ tone: "amber", title: "Budget utilisation requires attention", text: `${utilisation.toFixed(1)}% of approved allocation has been consumed. Review fast-moving subheads before further commitments.` }); else result.push({ tone: "emerald", title: "Budget position is within control", text: `${utilisation.toFixed(1)}% of approved allocation is currently utilised, leaving ${money(financeStats.balance)} recorded balance.` }); const bottleneck = stageRows[0]; if (bottleneck) result.push({ tone: bottleneck.value > Math.max(5, requestStats.total * .35) ? "amber" : "blue", title: "Workflow concentration", text: `${bottleneck.value} request(s) are currently concentrated at “${bottleneck.label}”, the largest workflow queue in the selected period.` }); if (auditStats.exceptions) result.push({ tone: "rose", title: "Control exceptions detected", text: `${auditStats.exceptions} audit or reconciliation exception(s) require review, including unlinked subheads, negative balances, unreconciled ledger items or reversed records.` }); else result.push({ tone: "emerald", title: "No material reconciliation exception", text: "The automated control checks did not identify a major exception in the currently accessible records." }); return result; }, [utilisation, financeStats.balance, stageRows, requestStats.total, auditStats.exceptions]);
 
   const selectedPrintOption = PRINT_OPTIONS.find((option) => option.value === printSection) ?? PRINT_OPTIONS[0];
+  function clearPrintWorkspace() {
+    document.body.classList.remove("report-print-active");
+    const root = document.getElementById("reqgen-print-root");
+    if (root) root.innerHTML = "";
+  }
+
   function printSelected() {
-    document.documentElement.setAttribute("data-report-print", printSection);
-    document.documentElement.setAttribute("data-report-print-label", selectedPrintOption.label);
-    window.setTimeout(() => {
-      window.print();
-      window.setTimeout(() => {
-        document.documentElement.removeAttribute("data-report-print");
-        document.documentElement.removeAttribute("data-report-print-label");
-      }, 400);
-    }, 120);
+    const root = document.getElementById("reqgen-print-root");
+    if (!root) return;
+
+    root.innerHTML = "";
+    const scopes: PrintSection[] = printSection === "ALL"
+      ? PRINT_OPTIONS.filter((option) => option.value !== "ALL").map((option) => option.value)
+      : [printSection];
+
+    for (const scope of scopes) {
+      const source = document.querySelector<HTMLElement>(`[data-report-section="${scope}"]`);
+      if (!source) continue;
+
+      const option = PRINT_OPTIONS.find((item) => item.value === scope) ?? selectedPrintOption;
+      const sheet = document.createElement("article");
+      sheet.className = "reqgen-a4-sheet";
+
+      const header = document.createElement("header");
+      header.className = "reqgen-a4-header";
+      header.innerHTML = `
+        <div class="reqgen-a4-brand">
+          <div class="reqgen-a4-mark">RG</div>
+          <div>
+            <div class="reqgen-a4-org">Islamic Education Trust (IET)</div>
+            <div class="reqgen-a4-system">ReqGen Central Reports & Decision Intelligence</div>
+          </div>
+        </div>
+        <div class="reqgen-a4-meta">
+          <div><span>Report:</span> ${option.label}</div>
+          <div><span>Period:</span> ${dateFrom} to ${dateTo}</div>
+          <div><span>Generated:</span> ${new Date().toLocaleString("en-NG")}</div>
+        </div>`;
+
+      const content = document.createElement("div");
+      content.className = "reqgen-a4-content";
+      const clone = source.cloneNode(true) as HTMLElement;
+      clone.removeAttribute("id");
+      clone.removeAttribute("data-report-section");
+      clone.querySelectorAll("[id]").forEach((node) => node.removeAttribute("id"));
+      content.appendChild(clone);
+
+      const footer = document.createElement("footer");
+      footer.className = "reqgen-a4-footer";
+      footer.innerHTML = `<span>Official management report • Generated from ReqGen 1.1.0</span><span>Confidential</span>`;
+
+      sheet.append(header, content, footer);
+      root.appendChild(sheet);
+    }
+
+    if (!root.children.length) {
+      alert("The selected report section could not be prepared. Please refresh the page and try again.");
+      return;
+    }
+
+    document.body.classList.add("report-print-active");
+    const cleanup = () => {
+      clearPrintWorkspace();
+      window.removeEventListener("afterprint", cleanup);
+    };
+    window.addEventListener("afterprint", cleanup);
+    window.setTimeout(() => window.print(), 250);
   }
   function exportReport() { const dept = new Map(departments.map((d) => [d.id, d.name])); downloadCsv(`reqgen-central-report-${dateFrom}-to-${dateTo}.csv`, [["Request No", "Title", "Department", "Type", "Status", "Stage", "Amount", "Created"], ...filteredRequests.map((r) => [r.request_no || "", r.title || "", dept.get(r.dept_id || "") || "Unassigned", r.request_type || "", r.status || "", r.current_stage || "", n(r.amount), new Date(r.created_at).toLocaleString("en-NG")])]); }
   if (loading) return <><ReportsPageStyles/><ReportsSkeleton/></>;
 
   return <div className="min-h-screen bg-slate-100 p-4 sm:p-7"><ReportsPageStyles/><style jsx global>{`
+    #reqgen-print-root { display: none; }
+    [data-report-section] { display: block; }
     @media print {
-      @page { size: A4 portrait; margin: 12mm; }
-      html[data-report-print]:not([data-report-print="ALL"]) [data-report-section] { display:none !important; }
-      html[data-report-print="OVERVIEW"] [data-report-section="OVERVIEW"],
-      html[data-report-print="REQUESTS"] [data-report-section="REQUESTS"],
-      html[data-report-print="FINANCE"] [data-report-section="FINANCE"],
-      html[data-report-print="VOUCHERS"] [data-report-section="VOUCHERS"],
-      html[data-report-print="AUDIT"] [data-report-section="AUDIT"],
-      html[data-report-print="DEPARTMENTS"] [data-report-section="DEPARTMENTS"],
-      html[data-report-print="REGISTERS"] [data-report-section="REGISTERS"] { display:block !important; }
-      .report-print-heading { display:block !important; }
-      [data-report-section] { break-before:auto; }
-      [data-report-section] > * { break-inside:avoid; }
-      .report-print-footer { display:none !important; }
+      @page { size: A4 portrait; margin: 0; }
+      html, body { background: #fff !important; }
+      body.report-print-active * { visibility: hidden !important; }
+      body.report-print-active #reqgen-print-root,
+      body.report-print-active #reqgen-print-root * { visibility: visible !important; }
+      body.report-print-active #reqgen-print-root {
+        display: block !important;
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        background: #fff;
+      }
+      .reqgen-a4-sheet {
+        box-sizing: border-box;
+        width: 210mm;
+        min-height: 297mm;
+        margin: 0 auto;
+        padding: 13mm 13mm 12mm;
+        background: #fff;
+        color: #0f172a;
+        page-break-after: always;
+        position: relative;
+      }
+      .reqgen-a4-sheet:last-child { page-break-after: auto; }
+      .reqgen-a4-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 10mm;
+        border-bottom: 2px solid #0f172a;
+        padding-bottom: 4mm;
+        margin-bottom: 5mm;
+      }
+      .reqgen-a4-brand { display: flex; align-items: center; gap: 3mm; }
+      .reqgen-a4-mark {
+        display: grid;
+        place-items: center;
+        width: 12mm;
+        height: 12mm;
+        border-radius: 3mm;
+        background: #0f172a;
+        color: #fff;
+        font-size: 12pt;
+        font-weight: 900;
+      }
+      .reqgen-a4-org { font-size: 12pt; font-weight: 900; }
+      .reqgen-a4-system { margin-top: 1mm; font-size: 8.5pt; font-weight: 700; color: #475569; }
+      .reqgen-a4-meta { min-width: 62mm; font-size: 8pt; line-height: 1.55; color: #334155; text-align: right; }
+      .reqgen-a4-meta span { font-weight: 900; color: #0f172a; }
+      .reqgen-a4-content { font-size: 9pt; }
+      .reqgen-a4-content [data-report-section] { display: block !important; }
+      .reqgen-a4-content .rounded-3xl,
+      .reqgen-a4-content .rounded-2xl { border-radius: 3mm !important; }
+      .reqgen-a4-content article,
+      .reqgen-a4-content section,
+      .reqgen-a4-content table,
+      .reqgen-a4-content .report-print-card { break-inside: avoid; }
+      .reqgen-a4-content .shadow-sm,
+      .reqgen-a4-content .shadow-lg,
+      .reqgen-a4-content .shadow-xl { box-shadow: none !important; }
+      .reqgen-a4-content .overflow-x-auto { overflow: visible !important; }
+      .reqgen-a4-content table { min-width: 0 !important; width: 100% !important; font-size: 7.4pt !important; }
+      .reqgen-a4-content th,
+      .reqgen-a4-content td { padding: 1.8mm 1.4mm !important; }
+      .reqgen-a4-footer {
+        display: flex;
+        justify-content: space-between;
+        gap: 6mm;
+        border-top: 1px solid #cbd5e1;
+        margin-top: 6mm;
+        padding-top: 3mm;
+        font-size: 7.5pt;
+        font-weight: 700;
+        color: #64748b;
+      }
     }
   `}</style><main className="report-print-shell mx-auto max-w-[1500px] space-y-6">
-    <div className="report-no-print"><ReportsHero actions={<><ReportButton icon="refresh" variant="cyan" onClick={() => load(true)} disabled={refreshing}>{refreshing ? "Refreshing…" : "Refresh"}</ReportButton><ReportButton icon="download" variant="violet" onClick={exportReport}>Export CSV</ReportButton><div className="min-w-[320px] rounded-2xl border border-white/20 bg-white/10 p-1.5 shadow-xl shadow-slate-950/20 backdrop-blur-xl"><div className="flex items-center gap-2"><div className="relative min-w-0 flex-1"><div className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-cyan-200"><ReportIcon name="report" className="h-4 w-4"/></div><select aria-label="Select report section to print" value={printSection} onChange={(e) => setPrintSection(e.target.value as PrintSection)} className="h-12 w-full appearance-none rounded-xl border border-white/15 bg-slate-950/35 pl-10 pr-10 text-sm font-extrabold text-white outline-none transition hover:bg-slate-950/45 focus:border-cyan-300 focus:ring-4 focus:ring-cyan-300/15 [&>option]:bg-white [&>option]:text-slate-900">{PRINT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}</select><div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-slate-200"><ReportIcon name="chevron" className="h-4 w-4"/></div></div><button type="button" onClick={printSelected} className="inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 px-4 text-sm font-black text-white shadow-lg shadow-blue-950/25 transition duration-200 hover:-translate-y-0.5 hover:from-blue-400 hover:to-cyan-400 focus:outline-none focus:ring-4 focus:ring-cyan-300/25"><ReportIcon name="print" className="h-4 w-4"/>{printSection === "ALL" ? "Print All" : "Print Section"}</button></div><div className="flex items-center justify-between px-2 pb-0.5 pt-1.5 text-[11px] font-bold text-slate-200"><span>Output scope</span><span className="max-w-[190px] truncate text-cyan-200">{selectedPrintOption.label}</span></div></div></>}/></div>
-    <div className="report-print-heading hidden border-b-2 border-slate-950 pb-4 text-center"><h1 className="text-2xl font-black">REQGEN CENTRAL REPORTS & DECISION INTELLIGENCE</h1><p className="mt-1 text-sm font-bold">{selectedPrintOption.label}</p><p className="mt-1 text-sm">Reporting period: {dateFrom} to {dateTo} • Printed {new Date().toLocaleString("en-NG")}</p></div>
+    <div className="report-no-print"><ReportsHero actions={<><ReportButton icon="refresh" variant="cyan" onClick={() => load(true)} disabled={refreshing}>{refreshing ? "Refreshing…" : "Refresh"}</ReportButton><ReportButton icon="download" variant="violet" onClick={exportReport}>Export CSV</ReportButton></>}/></div>
+
+    <section className="report-no-print sticky top-3 z-30 rounded-3xl border border-slate-200 bg-white/95 p-4 shadow-xl shadow-slate-900/10 backdrop-blur-xl sm:p-5">
+      <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+        <div>
+          <div className="flex items-center gap-3"><div className="grid h-11 w-11 place-items-center rounded-2xl bg-slate-950 text-white"><ReportIcon name="print"/></div><div><h2 className="text-lg font-black text-slate-950">Report Print Centre</h2><p className="text-sm text-slate-500">Choose one exact report section or print every section in a standardized A4 management template.</p></div></div>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-[minmax(280px,430px)_auto] sm:items-end">
+          <label className="block text-xs font-black uppercase tracking-[0.14em] text-slate-500">Print scope
+            <div className="relative mt-2"><ReportIcon name="report" className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-blue-700"/><select aria-label="Select report section to print" value={printSection} onChange={(e) => setPrintSection(e.target.value as PrintSection)} className="h-13 w-full appearance-none rounded-2xl border border-slate-300 bg-slate-50 py-3.5 pl-12 pr-12 text-sm font-black text-slate-950 outline-none transition hover:border-blue-400 hover:bg-white focus:border-blue-600 focus:bg-white focus:ring-4 focus:ring-blue-100">{PRINT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}</select><ReportIcon name="chevron" className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500"/></div>
+          </label>
+          <button type="button" onClick={printSelected} className="inline-flex h-[52px] items-center justify-center gap-2 rounded-2xl bg-slate-950 px-6 text-sm font-black text-white shadow-lg shadow-slate-900/20 transition hover:-translate-y-0.5 hover:bg-blue-800 focus:outline-none focus:ring-4 focus:ring-blue-200"><ReportIcon name="print" className="h-5 w-5"/>{printSection === "ALL" ? "Print All Sections" : "Print Selected Section"}</button>
+        </div>
+      </div>
+      <div className="mt-4 flex flex-wrap gap-2 border-t border-slate-100 pt-4">{PRINT_OPTIONS.filter((option) => option.value !== "ALL").map((option) => <button key={option.value} type="button" onClick={() => { setPrintSection(option.value); document.querySelector(`[data-report-section="${option.value}"]`)?.scrollIntoView({ behavior: "smooth", block: "start" }); }} className={`rounded-full border px-3 py-1.5 text-xs font-extrabold transition ${printSection === option.value ? "border-blue-700 bg-blue-700 text-white" : "border-slate-200 bg-slate-50 text-slate-700 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-800"}`}>{option.label.replace(" only", "")}</button>)}</div>
+    </section>
     {fatalError && <div className="rounded-2xl border border-rose-200 bg-rose-50 p-5 font-semibold text-rose-800">{fatalError}</div>}{issues.length > 0 && <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5"><div className="flex items-center gap-2 font-black text-amber-900"><ReportIcon name="warning"/>Partial-data notice</div>{issues.map((i) => <p key={i.source} className="mt-1 text-sm text-amber-800"><b>{i.source}:</b> {i.message}</p>)}</div>}
 
     <section className="report-no-print rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"><div className="mb-4 flex items-center gap-3"><div className="grid h-10 w-10 place-items-center rounded-xl bg-blue-600 text-white"><ReportIcon name="filter"/></div><div><h2 className="font-black text-slate-950">Institutional report controls</h2><p className="text-sm text-slate-500">One reporting scope for requests, finance, vouchers, audit and departmental intelligence.</p></div></div><div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5"><label className="text-sm font-bold text-slate-700">From<input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"/></label><label className="text-sm font-bold text-slate-700">To<input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"/></label><label className="text-sm font-bold text-slate-700">Department<select value={departmentFilter} onChange={(e) => setDepartmentFilter(e.target.value)} className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3"><option value="ALL">All departments</option>{departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}</select></label><label className="text-sm font-bold text-slate-700">Status<select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as StatusFilter)} className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3"><option value="ALL">All statuses</option><option value="ACTIVE">Active</option><option value="COMPLETED">Completed</option><option value="REJECTED">Rejected / cancelled</option></select></label><label className="text-sm font-bold text-slate-700">Request type<select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as TypeFilter)} className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3"><option value="ALL">All types</option><option value="OFFICIAL">Official</option><option value="PERSONAL">Personal</option></select></label></div></section>
@@ -167,5 +302,5 @@ export default function ReportsAnalyticsPage() {
 
     <div data-report-section="REGISTERS" id="detailed-registers" className="scroll-mt-24 space-y-6"><ReportSection title="Department financial and request register" description="Detailed institutional comparison for management, audit and reconciliation." icon="building"><div className="overflow-x-auto"><table className="min-w-[1050px] w-full text-left text-sm"><thead><tr className="border-b text-xs uppercase tracking-wide text-slate-500"><th className="px-3 py-3">Department</th><th className="px-3 py-3 text-right">Requests</th><th className="px-3 py-3 text-right">Completed</th><th className="px-3 py-3 text-right">Requested</th><th className="px-3 py-3 text-right">Allocation</th><th className="px-3 py-3 text-right">Spent</th><th className="px-3 py-3 text-right">Balance</th><th className="px-3 py-3 text-right">Utilisation</th></tr></thead><tbody>{departmentRows.map((r) => { const balance = n(r.allocation) - n(r.spent); const util = n(r.allocation) ? n(r.spent) / n(r.allocation) * 100 : 0; return <tr key={s(r.id)} className="border-b border-slate-100"><td className="px-3 py-3 font-black">{s(r.name)}</td><td className="px-3 py-3 text-right">{n(r.total)}</td><td className="px-3 py-3 text-right">{n(r.completed)}</td><td className="px-3 py-3 text-right">{money(r.amount)}</td><td className="px-3 py-3 text-right">{money(r.allocation)}</td><td className="px-3 py-3 text-right">{money(r.spent)}</td><td className="px-3 py-3 text-right">{money(balance)}</td><td className="px-3 py-3 text-right font-black">{util.toFixed(1)}%</td></tr>; })}</tbody></table></div></ReportSection><ReportSection title="Recent request records" description="Latest requests matching the current report controls." icon="request"><div className="overflow-x-auto"><table className="min-w-[980px] w-full text-left text-sm"><thead><tr className="border-b text-xs uppercase tracking-wide text-slate-500"><th className="px-3 py-3">Request</th><th className="px-3 py-3">Title</th><th className="px-3 py-3">Type</th><th className="px-3 py-3">Status</th><th className="px-3 py-3">Stage</th><th className="px-3 py-3 text-right">Amount</th><th className="px-3 py-3">Date</th></tr></thead><tbody>{filteredRequests.slice(0, 100).map((r) => <tr key={r.id} className="border-b border-slate-100"><td className="px-3 py-3 font-black text-blue-700">{r.request_no || "—"}</td><td className="max-w-[280px] truncate px-3 py-3 font-semibold">{r.title || "Untitled request"}</td><td className="px-3 py-3">{r.request_type || "—"}</td><td className="px-3 py-3">{r.status || "—"}</td><td className="px-3 py-3">{r.current_stage || "—"}</td><td className="px-3 py-3 text-right font-bold">{money(r.amount)}</td><td className="px-3 py-3 text-slate-500">{new Date(r.created_at).toLocaleDateString("en-NG")}</td></tr>)}</tbody></table></div></ReportSection></div>
     <footer className="report-print-footer pb-4 text-center text-xs font-semibold text-slate-500">ReqGen 1.1.0 • Central Reports & Decision Intelligence • Generated {new Date().toLocaleString("en-NG")}</footer>
-  </main></div>;
+  </main><div id="reqgen-print-root" aria-hidden="true"/></div>;
 }
