@@ -211,7 +211,7 @@ export default function ReportsAnalyticsPage() {
         { label: "Departments", table: "departments", order: "name", limit: 1000 },
         { label: "Request history", table: "request_history", order: "created_at", limit: 5000 },
         { label: "Request attachments", table: "request_attachments", order: "created_at", limit: 5000 },
-        { label: "Subheads", table: "subheads", order: "created_at", limit: 5000 },
+        { label: "Subheads", table: "subheads", order: "name", limit: 5000 },
         { label: "Finance transactions", table: "finance_transactions", order: "created_at", limit: 5000 },
         { label: "IET accounts", table: "iet_accounts", order: "created_at", limit: 1000 },
         { label: "Account transactions", table: "iet_account_transactions", order: "created_at", limit: 5000 },
@@ -486,11 +486,11 @@ export default function ReportsAnalyticsPage() {
         <ReportButton icon="print" variant="blue" onClick={printSelected}>{printSection === "ALL" ? "Print All" : "Print Section"}</ReportButton>
       </>} />
 
-      <section className="report-no-print sticky top-3 z-30 rounded-3xl border border-slate-200 bg-white/95 p-5 shadow-xl shadow-slate-300/30 backdrop-blur-xl">
+      <section className="report-no-print sticky top-20 z-30 rounded-3xl border border-slate-200 bg-white/95 p-5 shadow-xl shadow-slate-300/30 backdrop-blur-xl">
         <div className="grid gap-5 xl:grid-cols-[1fr_auto] xl:items-end">
           <div>
             <div className="flex items-center gap-3"><div className="grid h-11 w-11 place-items-center rounded-2xl bg-slate-950 text-white"><ReportIcon name="print" /></div><div><h2 className="text-lg font-black uppercase tracking-wide text-slate-950">REPORT NAVIGATION & PRINT CENTRE</h2><p className="text-sm text-slate-500">Every option corresponds exactly with a visible report section below.</p></div></div>
-            <div className="mt-4 flex flex-wrap gap-2">{REPORT_SECTIONS.map((section) => <button key={section.key} type="button" onClick={() => scrollToSection(section.id)} className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-slate-950 px-3.5 text-xs font-black uppercase tracking-wide text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-blue-700"><ReportIcon name={section.icon} className="h-4 w-4" />{section.shortTitle}</button>)}</div>
+            <div className="mt-4 flex flex-wrap gap-2">{REPORT_SECTIONS.map((section) => <button key={section.key} type="button" onClick={() => scrollToSection(section.id)} className="inline-flex h-10 items-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-3.5 text-xs font-black uppercase tracking-wide text-blue-900 shadow-sm transition hover:-translate-y-0.5 hover:border-blue-300 hover:bg-blue-100 hover:shadow-md focus:outline-none focus:ring-4 focus:ring-blue-100"><ReportIcon name={section.icon} className="h-4 w-4" />{section.shortTitle}</button>)}</div>
           </div>
           <label className="block min-w-[300px] text-xs font-black uppercase tracking-[0.14em] text-slate-600">Select section to print
             <div className="relative mt-2"><select value={printSection} onChange={(event) => setPrintSection(event.target.value as PrintKey)} className="h-12 w-full appearance-none rounded-2xl border-2 border-blue-200 bg-gradient-to-r from-blue-50 to-cyan-50 px-4 pr-11 text-sm font-black text-slate-950 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"><option value="ALL">PRINT ALL SECTIONS</option>{REPORT_SECTIONS.map((section) => <option key={section.key} value={section.key}>{section.title}</option>)}</select><ReportIcon name="chevron" className="pointer-events-none absolute right-4 top-3.5 h-5 w-5 text-blue-700" /></div>
@@ -510,7 +510,7 @@ export default function ReportsAnalyticsPage() {
       </section>
 
       {fatalError && <Insight tone="rose" title="REPORT LOADING ERROR" text={fatalError} />}
-      {issues.length > 0 && <ReportSection title="DATA AVAILABILITY NOTICE" description="Some optional sources are unavailable or restricted by Row Level Security. Available sections remain operational." icon="warning"><div className="grid gap-3 md:grid-cols-2">{issues.map((issue) => <div key={`${issue.source}-${issue.message}`} className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm"><strong className="text-amber-950">{issue.source}:</strong> <span className="text-amber-800">{issue.message}</span></div>)}</div></ReportSection>}
+      {issues.length > 0 && <ReportSection title="DATA SOURCE STATUS" description="Core reporting remains available. The optional sources below are not configured or are restricted for this account." icon="warning"><div className="grid gap-3 md:grid-cols-2">{issues.map((issue) => { const unavailable = /could not find the table|schema cache|does not exist/i.test(issue.message); return <div key={`${issue.source}-${issue.message}`} className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 p-4"><div className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-amber-500 text-white"><ReportIcon name="warning" className="h-4 w-4" /></div><div><p className="text-sm font-black uppercase tracking-wide text-amber-950">{issue.source}</p><p className="mt-1 text-sm leading-6 text-amber-800">{unavailable ? "Optional reporting source is not currently available. This does not affect the other report sections." : "Access to this optional source is restricted. Contact the system administrator when this dataset is required."}</p></div></div>; })}</div></ReportSection>}
 
       <div id="executive-overview" data-report-section="EXECUTIVE" className="report-section-anchor space-y-6">
         <ReportSection title="EXECUTIVE OVERVIEW & DECISION INSIGHTS" description="Institution-wide position, management priorities and decision-critical indicators." icon="chart">

@@ -67,7 +67,7 @@ export function ReportStat({ label, value, note, icon, tone = "blue", progress }
 }
 
 export function ReportSection({ title, description, icon, action, children, className = "" }: { title: string; description: string; icon: string; action?: ReactNode; children: ReactNode; className?: string }) {
-  return <section className={`rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6 ${className}`}><div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div className="flex items-center gap-3"><div className="grid h-10 w-10 place-items-center rounded-xl bg-slate-950 text-white"><ReportIcon name={icon}/></div><div><h2 className="text-lg font-black text-slate-950">{title}</h2><p className="mt-0.5 text-sm text-slate-500">{description}</p></div></div>{action}</div>{children}</section>;
+  return <section className={`rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition-shadow duration-300 hover:shadow-md sm:p-6 ${className}`}><div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div className="flex items-center gap-3"><div className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-slate-950 to-blue-900 text-white shadow-md"><ReportIcon name={icon}/></div><div><h2 className="text-lg font-black uppercase tracking-wide text-slate-950">{title}</h2><p className="mt-0.5 text-sm text-slate-500">{description}</p></div></div>{action}</div>{children}</section>;
 }
 
 export function ReportsSkeleton() {
