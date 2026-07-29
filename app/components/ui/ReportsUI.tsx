@@ -28,6 +28,7 @@ export function ReportIcon({ name, className = "h-5 w-5" }: { name: string; clas
     chart: <><path d="M3 3v18h18"/><path d="m7 16 4-5 3 3 5-7"/></>,
     filter: <><path d="M4 5h16M7 12h10M10 19h4"/></>,
     warning: <><path d="M10.3 2.9 1.8 17a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 2.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></>,
+    chevron: <path d="m7 10 5 5 5-5"/>,
   };
   return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" className={className}>{paths[name] || paths.report}</svg>;
 }
