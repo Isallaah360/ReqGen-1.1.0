@@ -1,0 +1,83 @@
+"use client";
+
+import type { ReactNode } from "react";
+
+type Tone = "blue" | "cyan" | "emerald" | "violet" | "amber" | "rose" | "slate";
+
+const toneMap: Record<Tone, { card: string; icon: string; bar: string }> = {
+  blue: { card: "border-blue-200 bg-gradient-to-br from-white to-blue-50", icon: "bg-blue-600 text-white", bar: "bg-blue-600" },
+  cyan: { card: "border-cyan-200 bg-gradient-to-br from-white to-cyan-50", icon: "bg-cyan-600 text-white", bar: "bg-cyan-600" },
+  emerald: { card: "border-emerald-200 bg-gradient-to-br from-white to-emerald-50", icon: "bg-emerald-600 text-white", bar: "bg-emerald-600" },
+  violet: { card: "border-violet-200 bg-gradient-to-br from-white to-violet-50", icon: "bg-violet-600 text-white", bar: "bg-violet-600" },
+  amber: { card: "border-amber-200 bg-gradient-to-br from-white to-amber-50", icon: "bg-amber-500 text-white", bar: "bg-amber-500" },
+  rose: { card: "border-rose-200 bg-gradient-to-br from-white to-rose-50", icon: "bg-rose-600 text-white", bar: "bg-rose-600" },
+  slate: { card: "border-slate-200 bg-gradient-to-br from-white to-slate-50", icon: "bg-slate-900 text-white", bar: "bg-slate-800" },
+};
+
+export function ReportIcon({ name, className = "h-5 w-5" }: { name: string; className?: string }) {
+  const paths: Record<string, ReactNode> = {
+    report: <><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><path d="M9 7h7M9 11h7"/></>,
+    refresh: <><path d="M20 11a8 8 0 1 0 2 5"/><path d="M20 4v7h-7"/></>,
+    download: <><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></>,
+    print: <><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8" rx="1"/></>,
+    request: <><path d="M6 2h9l5 5v15H6z"/><path d="M14 2v6h6M9 13h6M9 17h6"/></>,
+    money: <><rect x="2" y="5" width="20" height="14" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 9h2M16 15h2"/></>,
+    building: <><path d="M3 21h18M5 21V7l7-4 7 4v14M9 10h1M14 10h1M9 14h1M14 14h1M10 21v-3h4v3"/></>,
+    check: <><circle cx="12" cy="12" r="9"/><path d="m8 12 2.5 2.5L16 9"/></>,
+    clock: <><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></>,
+    chart: <><path d="M3 3v18h18"/><path d="m7 16 4-5 3 3 5-7"/></>,
+    filter: <><path d="M4 5h16M7 12h10M10 19h4"/></>,
+    warning: <><path d="M10.3 2.9 1.8 17a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 2.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></>,
+  };
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" className={className}>{paths[name] || paths.report}</svg>;
+}
+
+export function ReportsHero({ actions }: { actions: ReactNode }) {
+  return <section className="relative overflow-hidden rounded-[30px] bg-gradient-to-br from-slate-950 via-blue-950 to-indigo-900 px-6 py-8 text-white shadow-2xl shadow-blue-950/20 sm:px-9 sm:py-10">
+    <div className="pointer-events-none absolute -right-16 -top-20 h-72 w-72 rounded-full bg-cyan-400/20 blur-3xl report-float" />
+    <div className="pointer-events-none absolute -bottom-28 left-1/3 h-64 w-64 rounded-full bg-violet-500/20 blur-3xl" />
+    <div className="relative z-10 flex flex-col gap-7 xl:flex-row xl:items-end xl:justify-between">
+      <div className="max-w-3xl">
+        <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-bold uppercase tracking-[0.2em] text-cyan-100"><ReportIcon name="report" className="h-4 w-4"/>Intelligence</div>
+        <h1 className="text-3xl font-black tracking-tight sm:text-4xl lg:text-5xl">Reports & Analytics Centre</h1>
+        <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-200 sm:text-base">A consolidated view of request activity, workflow performance, departmental demand, budget utilisation and financial movement.</p>
+      </div>
+      <div className="flex flex-wrap gap-3">{actions}</div>
+    </div>
+  </section>;
+}
+
+export function ReportButton({ children, onClick, icon, variant = "light", disabled = false }: { children: ReactNode; onClick?: () => void; icon: string; variant?: "light" | "blue" | "violet"; disabled?: boolean }) {
+  const variants = {
+    light: "bg-white text-slate-900 hover:bg-slate-100",
+    blue: "bg-blue-600 text-white hover:bg-blue-700",
+    violet: "bg-violet-600 text-white hover:bg-violet-700",
+  };
+  return <button type="button" onClick={onClick} disabled={disabled} className={`inline-flex h-11 min-w-[132px] items-center justify-center gap-2 rounded-xl px-4 text-sm font-extrabold shadow-lg transition duration-200 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 ${variants[variant]}`}><ReportIcon name={icon} className="h-4 w-4"/>{children}</button>;
+}
+
+export function ReportStat({ label, value, note, icon, tone = "blue", progress }: { label: string; value: ReactNode; note: string; icon: string; tone?: Tone; progress?: number }) {
+  const t = toneMap[tone];
+  return <article className={`group rounded-2xl border p-5 shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl ${t.card}`}>
+    <div className="flex items-start justify-between gap-4"><div><p className="text-xs font-extrabold uppercase tracking-[0.15em] text-slate-500">{label}</p><div className="mt-2 text-3xl font-black tracking-tight text-slate-950">{value}</div><p className="mt-2 text-xs leading-5 text-slate-500">{note}</p></div><div className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl shadow-lg ${t.icon}`}><ReportIcon name={icon}/></div></div>
+    {typeof progress === "number" && <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-slate-200"><div className={`h-full rounded-full ${t.bar}`} style={{ width: `${Math.max(0, Math.min(100, progress))}%` }}/></div>}
+  </article>;
+}
+
+export function ReportSection({ title, description, icon, action, children, className = "" }: { title: string; description: string; icon: string; action?: ReactNode; children: ReactNode; className?: string }) {
+  return <section className={`rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6 ${className}`}><div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div className="flex items-center gap-3"><div className="grid h-10 w-10 place-items-center rounded-xl bg-slate-950 text-white"><ReportIcon name={icon}/></div><div><h2 className="text-lg font-black text-slate-950">{title}</h2><p className="mt-0.5 text-sm text-slate-500">{description}</p></div></div>{action}</div>{children}</section>;
+}
+
+export function ReportsSkeleton() {
+  return <div className="min-h-screen bg-slate-100 p-4 sm:p-7"><div className="mx-auto max-w-[1500px] space-y-6"><div className="report-skeleton h-64 rounded-[30px]"/><div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{Array.from({length:8}).map((_,i)=><div key={i} className="report-skeleton h-36 rounded-2xl"/>)}</div><div className="grid gap-6 xl:grid-cols-3"><div className="report-skeleton h-96 rounded-3xl xl:col-span-2"/><div className="report-skeleton h-96 rounded-3xl"/></div></div></div>;
+}
+
+export function ReportsPageStyles() {
+  return <style jsx global>{`
+    @keyframes reportFloat { 0%,100%{transform:translate3d(0,0,0)} 50%{transform:translate3d(-12px,12px,0)} }
+    @keyframes reportShimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+    .report-float{animation:reportFloat 7s ease-in-out infinite}
+    .report-skeleton{background:linear-gradient(90deg,#e2e8f0 25%,#f8fafc 50%,#e2e8f0 75%);background-size:200% 100%;animation:reportShimmer 1.5s infinite}
+    @media print { .report-no-print, nav { display:none !important } body{background:#fff !important} .report-print-shell{padding:0 !important;max-width:none !important} .report-print-card{box-shadow:none !important;break-inside:avoid} }
+  `}</style>;
+}

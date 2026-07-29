@@ -143,6 +143,16 @@ function IconRequests({ className = "h-5 w-5" }: IconProps) {
   );
 }
 
+
+function IconReports({ className = "h-5 w-5" }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M5 3h14v18H5V3Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+      <path d="M8 16v-3M12 16V9M16 16v-5M8 7h8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 function IconFinance({ className = "h-5 w-5" }: IconProps) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -876,6 +886,11 @@ export default function NavBar() {
                 <IconButtonTooltip label="My Requests" />
               </Link>
 
+              <Link className={iconLinkClass("/reports")} href="/reports">
+                <IconReports />
+                <IconButtonTooltip label="Reports & Analytics" />
+              </Link>
+
               <button
                 type="button"
                 onClick={() => goTo("/notifications")}
@@ -1035,6 +1050,20 @@ export default function NavBar() {
                       <IconRequests className="h-4 w-4" />
                       My Requests
                     </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => goTo("/reports")}
+                    className={mobileItemClass("/reports")}
+                  >
+                    <span className="inline-flex items-center gap-2">
+                      <IconReports className="h-4 w-4" />
+                      Reports & Analytics
+                    </span>
+                    <div className={mobileItemDescriptionClass("/reports")}>
+                      Consolidated request, department, budget and finance intelligence
+                    </div>
                   </button>
 
                   <button
