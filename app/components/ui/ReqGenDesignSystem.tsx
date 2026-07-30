@@ -63,8 +63,8 @@ export function ExecutiveHero({ eyebrow, title, description, actions, meta }: { 
 export function ActionButton({ href, onClick, icon = "arrow", children, variant = "light", disabled = false }: { href?: string; onClick?: () => void; icon?: string; children: ReactNode; variant?: "light" | "primary" | "ghost"; disabled?: boolean }) {
   const cls = variant === "primary" ? "bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-950/20" : variant === "ghost" ? "border border-white/20 bg-white/10 text-white hover:bg-white/20" : "bg-white text-slate-900 hover:bg-slate-100 shadow-lg shadow-slate-950/10";
   const content = <><Icon name={icon} className="h-4 w-4" /><span>{children}</span></>;
-  if (href) return <Link href={href} className={`inline-flex h-11 items-center justify-center gap-2 rounded-xl px-4 text-sm font-bold transition duration-200 hover:-translate-y-0.5 ${cls}`}>{content}</Link>;
-  return <button type="button" onClick={onClick} disabled={disabled} className={`inline-flex h-11 items-center justify-center gap-2 rounded-xl px-4 text-sm font-bold transition duration-200 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 ${cls}`}>{content}</button>;
+  if (href) return <Link href={href} className={`inline-flex h-11 items-center justify-center gap-2 rounded-xl px-4 text-sm font-extrabold transition duration-200 hover:-translate-y-0.5 ${cls} focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60`}>{content}</Link>;
+  return <button type="button" onClick={onClick} disabled={disabled} className={`inline-flex h-11 items-center justify-center gap-2 rounded-xl px-4 text-sm font-extrabold transition duration-200 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 ${cls} focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200`}>{content}</button>;
 }
 
 export function StatCard({ label, value, note, icon, tone = "blue", progress }: { label: string; value: ReactNode; note?: string; icon: string; tone?: Tone; progress?: number }) {
@@ -78,7 +78,7 @@ export function SectionCard({ title, description, icon = "chart", action, childr
 
 export function QuickAction({ href, title, description, icon, tone = "blue" }: { href: string; title: string; description: string; icon: string; tone?: Tone }) {
   const t = tones[tone];
-  return <Link href={href} className={`group flex min-h-[118px] items-start gap-4 rounded-2xl border p-4 transition duration-300 hover:-translate-y-1 hover:shadow-lg ${t.card}`}><div className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl ${t.icon}`}><Icon name={icon} /></div><div><h3 className="font-extrabold text-slate-950 group-hover:text-blue-700">{title}</h3><p className="mt-1 text-xs leading-5 text-slate-500">{description}</p></div></Link>;
+  return <Link href={href} className={`group flex min-h-[118px] items-start gap-4 rounded-2xl border p-4 transition duration-300 hover:-translate-y-1 hover:shadow-lg ${t.card} focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60`}><div className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl ${t.icon}`}><Icon name={icon} /></div><div><h3 className="font-extrabold text-slate-950 group-hover:text-blue-700">{title}</h3><p className="mt-1 text-xs leading-5 text-slate-500">{description}</p></div></Link>;
 }
 
 export function StatusBadge({ children, tone = "slate" }: { children: ReactNode; tone?: Tone }) {

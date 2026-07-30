@@ -55,7 +55,7 @@ export function ReportButton({ children, onClick, icon, variant = "blue", disabl
     violet: "bg-violet-600 text-white hover:bg-violet-700",
     cyan: "bg-cyan-600 text-white hover:bg-cyan-700",
   };
-  return <button type="button" onClick={onClick} disabled={disabled} className={`inline-flex h-11 min-w-[132px] items-center justify-center gap-2 rounded-xl px-4 text-sm font-extrabold shadow-lg transition duration-200 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 ${variants[variant]}`}><ReportIcon name={icon} className="h-4 w-4"/>{children}</button>;
+  return <button type="button" onClick={onClick} disabled={disabled} className={`inline-flex h-11 min-w-[132px] items-center justify-center gap-2 rounded-xl px-4 text-sm font-extrabold shadow-lg transition duration-200 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 ${variants[variant]} focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200`}><ReportIcon name={icon} className="h-4 w-4"/>{children}</button>;
 }
 
 export function ReportStat({ label, value, note, icon, tone = "blue", progress }: { label: string; value: ReactNode; note: string; icon: string; tone?: Tone; progress?: number }) {

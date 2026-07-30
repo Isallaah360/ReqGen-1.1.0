@@ -41,7 +41,7 @@ export default function ExportCentrePage() {
               ["Vouchers", "Draft, prepared and posted vouchers", "/finance/vouchers", "🧾"],
               ["Account Ledger", "Account movements and balances", "/finance/account-ledger", "📘"],
               ["Subhead Ledger", "Budget-line expenditure history", "/finance/subhead-ledger", "📒"],
-            ].map(([title, text, href, icon]) => <Link key={title} href={href} className="group rounded-2xl border border-slate-200 bg-slate-50 p-4 transition hover:-translate-y-0.5 hover:border-emerald-300 hover:bg-emerald-50 hover:shadow-md"><span className="text-xl">{icon}</span><p className="mt-3 font-black text-slate-950">{title}</p><p className="mt-1 text-xs font-semibold leading-5 text-slate-500">{text}</p></Link>)}
+            ].map(([title, text, href, icon]) => <Link key={title} href={href} className="group rounded-2xl border border-slate-200 bg-slate-50 p-4 transition hover:-translate-y-0.5 hover:border-emerald-300 hover:bg-emerald-50 hover:shadow-md duration-200 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60"><span className="text-xl">{icon}</span><p className="mt-3 font-black text-slate-950">{title}</p><p className="mt-1 text-xs font-semibold leading-5 text-slate-500">{text}</p></Link>)}
           </div>
           <div className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-bold text-emerald-900">Selected package: {dataset} · {format}</div>
         </FinanceCard>

@@ -139,7 +139,7 @@ export default function AssignAccountToOfficerPage() {
 
           <button
             onClick={() => router.push("/finance/manage-accounts")}
-            className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
+            className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-extrabold text-slate-900 hover:bg-slate-100 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60 shadow-sm"
           >
             Back
           </button>
@@ -202,7 +202,7 @@ export default function AssignAccountToOfficerPage() {
             <button
               onClick={assign}
               disabled={saving || accounts.length === 0 || officers.length === 0}
-              className="mt-4 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
+              className="mt-4 rounded-xl bg-blue-600 px-4 py-2 text-sm font-extrabold text-white hover:bg-blue-700 disabled:opacity-60 shadow-md transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
             >
               {saving ? "Assigning..." : "Assign"}
             </button>

@@ -616,7 +616,7 @@ export default function ManageAccountsPage() {
             <button
               onClick={() => loadAll({ silent: true })}
               disabled={refreshing || saving || fundingSaving}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
+              className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-extrabold text-slate-900 hover:bg-slate-100 disabled:opacity-60 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 shadow-sm"
             >
               {refreshing ? "Refreshing..." : "Refresh"}
             </button>
@@ -624,7 +624,7 @@ export default function ManageAccountsPage() {
             <button
               onClick={recalculateAccounts}
               disabled={refreshing || saving || fundingSaving}
-              className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-800 hover:bg-blue-100 disabled:opacity-60"
+              className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-extrabold text-blue-800 hover:bg-blue-100 disabled:opacity-60 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
             >
               Recalculate
             </button>
@@ -632,7 +632,7 @@ export default function ManageAccountsPage() {
             <button
               onClick={startCreate}
               disabled={!canManage || refreshing || saving || fundingSaving}
-              className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
+              className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-extrabold text-white hover:bg-blue-700 disabled:opacity-60 shadow-md transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
             >
               Add Account
             </button>
@@ -640,7 +640,7 @@ export default function ManageAccountsPage() {
             <button
               onClick={openAssignPage}
               disabled={refreshing || saving || fundingSaving}
-              className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-60"
+              className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-extrabold text-white hover:bg-emerald-700 disabled:opacity-60 shadow-md transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
             >
               Assign to Officer
             </button>
@@ -648,7 +648,7 @@ export default function ManageAccountsPage() {
             <button
               onClick={openAudit}
               disabled={refreshing || saving || fundingSaving}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
+              className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-extrabold text-slate-900 hover:bg-slate-100 disabled:opacity-60 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 shadow-sm"
             >
               Audit
             </button>
@@ -656,7 +656,7 @@ export default function ManageAccountsPage() {
             <button
               onClick={backToFinance}
               disabled={refreshing || saving || fundingSaving}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
+              className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-extrabold text-slate-900 hover:bg-slate-100 disabled:opacity-60 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 shadow-sm"
             >
               Back to Finance
             </button>
@@ -725,7 +725,7 @@ export default function ManageAccountsPage() {
                 <button
                   onClick={resetFundingForm}
                   disabled={fundingSaving}
-                  className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
+                  className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-extrabold text-slate-900 hover:bg-slate-100 disabled:opacity-60 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 shadow-sm"
                 >
                   Clear
                 </button>
@@ -795,7 +795,7 @@ export default function ManageAccountsPage() {
             <button
               onClick={saveFunding}
               disabled={!canManage || fundingSaving}
-              className="mt-5 w-full rounded-2xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
+              className="mt-5 w-full rounded-2xl bg-blue-600 px-4 py-3 text-sm font-extrabold text-white hover:bg-blue-700 disabled:opacity-60 shadow-md transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
             >
               {fundingSaving ? "Updating Fund..." : "Update Bank Total Fund"}
             </button>
@@ -818,7 +818,7 @@ export default function ManageAccountsPage() {
                 <button
                   onClick={resetForm}
                   disabled={saving}
-                  className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
+                  className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-extrabold text-slate-900 hover:bg-slate-100 disabled:opacity-60 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 shadow-sm"
                 >
                   Cancel Edit
                 </button>
@@ -893,7 +893,7 @@ export default function ManageAccountsPage() {
             <button
               onClick={saveAccount}
               disabled={!canManage || saving}
-              className="mt-5 w-full rounded-2xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
+              className="mt-5 w-full rounded-2xl bg-blue-600 px-4 py-3 text-sm font-extrabold text-white hover:bg-blue-700 disabled:opacity-60 shadow-md transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
             >
               {saving ? "Saving..." : editId ? "Update Account" : "Create Account"}
             </button>
@@ -1010,7 +1010,7 @@ export default function ManageAccountsPage() {
                               <button
                                 onClick={() => startFunding(account)}
                                 disabled={!canManage || saving || fundingSaving}
-                                className="rounded-xl bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+                                className="rounded-xl bg-blue-600 px-3 py-2 text-xs font-extrabold text-white hover:bg-blue-700 disabled:opacity-50 shadow-md transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
                               >
                                 Fund
                               </button>
@@ -1018,7 +1018,7 @@ export default function ManageAccountsPage() {
                               <button
                                 onClick={() => startEdit(account)}
                                 disabled={!canManage || saving || fundingSaving}
-                                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-50"
+                                className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-extrabold text-slate-900 hover:bg-slate-100 disabled:opacity-50 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 shadow-sm"
                               >
                                 Edit
                               </button>
@@ -1026,10 +1026,10 @@ export default function ManageAccountsPage() {
                               <button
                                 onClick={() => toggleActive(account, account.is_active === false)}
                                 disabled={!canManage || saving || fundingSaving}
-                                className={`rounded-xl px-3 py-2 text-xs font-semibold text-white disabled:opacity-50 ${account.is_active === false
-                                    ? "bg-emerald-600 hover:bg-emerald-700"
-                                    : "bg-amber-600 hover:bg-amber-700"
-                                  }`}
+                                className={`rounded-xl px-3 py-2 text-xs font-extrabold text-white disabled:opacity-50 ${account.is_active === false
+ ? "bg-emerald-600 hover:bg-emerald-700"
+ : "bg-amber-600 hover:bg-amber-700"
+ } shadow-md transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200`}
                               >
                                 {account.is_active === false ? "Activate" : "Deactivate"}
                               </button>
@@ -1037,7 +1037,7 @@ export default function ManageAccountsPage() {
                               <button
                                 onClick={() => deleteOrDeactivate(account)}
                                 disabled={!canManage || saving || fundingSaving}
-                                className="rounded-xl bg-red-600 px-3 py-2 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+                                className="rounded-xl bg-red-600 px-3 py-2 text-xs font-extrabold text-white hover:bg-red-700 disabled:opacity-50 shadow-md transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
                               >
                                 {Number(account.allocated_amount || 0) > 0 ||
                                   Number(account.expenditure || 0) > 0 ||
@@ -1146,7 +1146,7 @@ function AccountCard({
         <button
           onClick={onFunding}
           disabled={!canManage || saving}
-          className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+          className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-extrabold text-white hover:bg-blue-700 disabled:opacity-50 shadow-md transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
         >
           Fund
         </button>
@@ -1154,7 +1154,7 @@ function AccountCard({
         <button
           onClick={onEdit}
           disabled={!canManage || saving}
-          className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-50"
+          className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-extrabold text-slate-900 hover:bg-slate-100 disabled:opacity-50 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 shadow-sm"
         >
           Edit
         </button>
@@ -1162,10 +1162,10 @@ function AccountCard({
         <button
           onClick={onToggle}
           disabled={!canManage || saving}
-          className={`rounded-xl px-4 py-2 text-sm font-semibold text-white disabled:opacity-50 ${account.is_active === false
-              ? "bg-emerald-600 hover:bg-emerald-700"
-              : "bg-amber-600 hover:bg-amber-700"
-            }`}
+          className={`rounded-xl px-4 py-2 text-sm font-extrabold text-white disabled:opacity-50 ${account.is_active === false
+ ? "bg-emerald-600 hover:bg-emerald-700"
+ : "bg-amber-600 hover:bg-amber-700"
+ } shadow-md transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200`}
         >
           {account.is_active === false ? "Activate" : "Deactivate"}
         </button>
@@ -1173,7 +1173,7 @@ function AccountCard({
         <button
           onClick={onDelete}
           disabled={!canManage || saving}
-          className="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+          className="rounded-xl bg-red-600 px-4 py-2 text-sm font-extrabold text-white hover:bg-red-700 disabled:opacity-50 shadow-md transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
         >
           {Number(account.allocated_amount || 0) > 0 ||
             Number(account.expenditure || 0) > 0 ||
@@ -1212,8 +1212,8 @@ function TabButton({
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-2xl px-4 py-3 text-sm font-bold transition ${active ? "bg-blue-600 text-white shadow-sm" : "bg-white text-slate-700 hover:bg-slate-100"
-        }`}
+      className={`rounded-2xl px-4 py-3 text-sm font-extrabold transition ${active ? "bg-blue-600 text-white shadow-sm" : "bg-white text-white hover:bg-slate-100"
+ } duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60`}
     >
       {label}
     </button>

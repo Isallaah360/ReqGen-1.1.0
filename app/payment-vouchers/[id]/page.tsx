@@ -607,7 +607,7 @@ export default function PaymentVoucherDetailPage() {
 
             <button
               onClick={() => router.push("/dashboard")}
-              className="mt-5 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+              className="mt-5 rounded-xl bg-blue-600 px-4 py-2 text-sm font-extrabold text-white hover:bg-blue-700 shadow-md transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60"
             >
               Back to Dashboard
             </button>
@@ -629,7 +629,7 @@ export default function PaymentVoucherDetailPage() {
               type="button"
               onClick={() => load({ silent: true })}
               disabled={saving || refreshing}
-              className="inline-flex min-h-11 items-center justify-center rounded-xl border border-cyan-300 bg-cyan-400 px-4 py-2.5 text-sm font-extrabold text-slate-950 shadow-sm transition hover:-translate-y-0.5 hover:bg-cyan-300 disabled:opacity-60"
+              className="inline-flex min-h-11 items-center justify-center rounded-xl border border-cyan-300 bg-cyan-600 px-4 py-2.5 text-sm font-extrabold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-cyan-700 disabled:opacity-60 duration-200 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
             >
               {refreshing ? "Refreshing..." : "Refresh"}
             </button>
@@ -639,7 +639,7 @@ export default function PaymentVoucherDetailPage() {
                 type="button"
                 onClick={goBackToVouchers}
                 disabled={saving}
-                className="inline-flex min-h-11 items-center justify-center rounded-xl border border-blue-200 bg-blue-50 px-4 py-2.5 text-sm font-extrabold text-blue-800 shadow-sm transition hover:-translate-y-0.5 hover:bg-blue-100 disabled:opacity-60"
+                className="inline-flex min-h-11 items-center justify-center rounded-xl border border-blue-200 bg-blue-50 px-4 py-2.5 text-sm font-extrabold text-blue-800 shadow-sm transition hover:-translate-y-0.5 hover:bg-blue-100 disabled:opacity-60 duration-200 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
               >
                 Back to Vouchers
               </button>
@@ -649,7 +649,7 @@ export default function PaymentVoucherDetailPage() {
               type="button"
               onClick={openPrimaryRequest}
               disabled={saving}
-              className="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-extrabold text-slate-800 shadow-sm transition hover:-translate-y-0.5 hover:bg-slate-100 disabled:opacity-60"
+              className="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-extrabold text-slate-800 shadow-sm transition hover:-translate-y-0.5 hover:bg-slate-100 disabled:opacity-60 duration-200 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
             >
               Open Primary Request
             </button>
@@ -658,7 +658,7 @@ export default function PaymentVoucherDetailPage() {
               type="button"
               onClick={printVoucher}
               disabled={saving}
-              className="inline-flex min-h-11 items-center justify-center rounded-xl border border-violet-500 bg-violet-600 px-4 py-2.5 text-sm font-extrabold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-violet-700 disabled:opacity-60"
+              className="inline-flex min-h-11 items-center justify-center rounded-xl border border-violet-500 bg-violet-600 px-4 py-2.5 text-sm font-extrabold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-violet-700 disabled:opacity-60 duration-200 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
             >
               Print Voucher
             </button>
@@ -1008,7 +1008,7 @@ export default function PaymentVoucherDetailPage() {
                 type="button"
                 onClick={signCheque}
                 disabled={saving || refreshing}
-                className="rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
+                className="rounded-xl bg-blue-600 px-4 py-3 text-sm font-extrabold text-white hover:bg-blue-700 disabled:opacity-60 shadow-md transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
               >
                 {saving ? "Signing..." : "Sign Cheque"}
               </button>
@@ -1019,7 +1019,7 @@ export default function PaymentVoucherDetailPage() {
                 type="button"
                 onClick={counterSignCheque}
                 disabled={saving || refreshing}
-                className="rounded-xl bg-purple-600 px-4 py-3 text-sm font-semibold text-white hover:bg-purple-700 disabled:opacity-60"
+                className="rounded-xl bg-purple-600 px-4 py-3 text-sm font-extrabold text-white hover:bg-purple-700 disabled:opacity-60 shadow-md transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
               >
                 {saving ? "Counter Signing..." : "Counter Sign Cheque"}
               </button>
@@ -1031,15 +1031,15 @@ export default function PaymentVoucherDetailPage() {
                 type="button"
                 onClick={() => runFinanceAction(a.action)}
                 disabled={saving || refreshing}
-                className={`rounded-xl px-4 py-3 text-sm font-semibold text-white disabled:opacity-60 ${
-                  a.tone === "emerald"
-                    ? "bg-emerald-600 hover:bg-emerald-700"
-                    : a.tone === "purple"
-                    ? "bg-purple-600 hover:bg-purple-700"
-                    : a.tone === "amber"
-                    ? "bg-amber-600 hover:bg-amber-700"
-                    : "bg-blue-600 hover:bg-blue-700"
-                }`}
+                className={`rounded-xl px-4 py-3 text-sm font-extrabold text-white disabled:opacity-60 ${
+ a.tone === "emerald"
+ ? "bg-emerald-600 hover:bg-emerald-700"
+ : a.tone === "purple"
+ ? "bg-purple-600 hover:bg-purple-700"
+ : a.tone === "amber"
+ ? "bg-amber-600 hover:bg-amber-700"
+ : "bg-blue-600 hover:bg-blue-700"
+ } shadow-md transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200`}
               >
                 {saving ? "Working..." : a.label}
               </button>
@@ -1050,7 +1050,7 @@ export default function PaymentVoucherDetailPage() {
                 type="button"
                 onClick={() => runFinanceAction("Cancel")}
                 disabled={saving || refreshing}
-                className="rounded-xl bg-red-600 px-4 py-3 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-60"
+                className="rounded-xl bg-red-600 px-4 py-3 text-sm font-extrabold text-white hover:bg-red-700 disabled:opacity-60 shadow-md transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
               >
                 Cancel Voucher
               </button>
@@ -1061,7 +1061,7 @@ export default function PaymentVoucherDetailPage() {
                 type="button"
                 onClick={deleteVoucher}
                 disabled={saving || refreshing}
-                className="rounded-xl bg-red-800 px-4 py-3 text-sm font-semibold text-white hover:bg-red-900 disabled:opacity-60"
+                className="rounded-xl bg-red-800 px-4 py-3 text-sm font-extrabold text-white hover:bg-red-900 disabled:opacity-60 shadow-md transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
               >
                 Delete PV for Regeneration
               </button>

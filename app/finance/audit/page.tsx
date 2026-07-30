@@ -1407,7 +1407,7 @@ export default function FinanceAuditPage() {
 
             <button
               onClick={goDashboard}
-              className="mt-5 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+              className="mt-5 rounded-xl bg-blue-600 px-4 py-2 text-sm font-extrabold text-white hover:bg-blue-700 shadow-md transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60"
             >
               Back to Dashboard
             </button>
@@ -1484,7 +1484,7 @@ export default function FinanceAuditPage() {
             <button
               onClick={() => load({ silent: true })}
               disabled={refreshing || printing || exporting}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-100 disabled:opacity-60"
+              className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-extrabold text-slate-900 shadow-sm hover:bg-slate-100 disabled:opacity-60 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
             >
               {refreshing ? "Refreshing..." : "Refresh"}
             </button>
@@ -1492,7 +1492,7 @@ export default function FinanceAuditPage() {
             <button
               onClick={printAuditReport}
               disabled={refreshing || printing || exporting}
-              className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:opacity-60"
+              className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-extrabold text-white shadow-sm hover:bg-blue-700 disabled:opacity-60 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
             >
               {printing ? "Preparing..." : "Print / Save PDF"}
             </button>
@@ -1500,7 +1500,7 @@ export default function FinanceAuditPage() {
             <button
               onClick={exportAuditExcel}
               disabled={refreshing || printing || exporting}
-              className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 disabled:opacity-60"
+              className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-extrabold text-white shadow-sm hover:bg-emerald-700 disabled:opacity-60 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
             >
               {exporting ? "Exporting..." : "Export Excel"}
             </button>
@@ -1508,7 +1508,7 @@ export default function FinanceAuditPage() {
             <button
               onClick={openBanks}
               disabled={refreshing || printing || exporting}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-100 disabled:opacity-60"
+              className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-extrabold text-slate-900 shadow-sm hover:bg-slate-100 disabled:opacity-60 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
             >
               IET Banks
             </button>
@@ -1516,7 +1516,7 @@ export default function FinanceAuditPage() {
             <button
               onClick={openSubheads}
               disabled={refreshing || printing || exporting}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-100 disabled:opacity-60"
+              className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-extrabold text-slate-900 shadow-sm hover:bg-slate-100 disabled:opacity-60 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
             >
               Subheads
             </button>
@@ -1524,7 +1524,7 @@ export default function FinanceAuditPage() {
             <button
               onClick={openPvReports}
               disabled={refreshing || printing || exporting}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-100 disabled:opacity-60"
+              className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-extrabold text-slate-900 shadow-sm hover:bg-slate-100 disabled:opacity-60 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
             >
               PV Reports
             </button>
@@ -1532,7 +1532,7 @@ export default function FinanceAuditPage() {
             <button
               onClick={backToFinance}
               disabled={refreshing || printing || exporting}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-100 disabled:opacity-60"
+              className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-extrabold text-slate-900 shadow-sm hover:bg-slate-100 disabled:opacity-60 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
             >
               Finance
             </button>
@@ -1689,7 +1689,7 @@ export default function FinanceAuditPage() {
             <div className="flex items-end">
               <button
                 onClick={resetFilters}
-                className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 hover:bg-slate-100"
+                className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-extrabold text-slate-900 hover:bg-slate-100 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60 shadow-sm"
               >
                 Reset Filters
               </button>
@@ -1772,7 +1772,7 @@ function BanksPanel({
         <button
           type="button"
           onClick={onOpenBanks}
-          className="no-print rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
+          className="no-print rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-extrabold text-slate-900 hover:bg-slate-100 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60 shadow-sm"
         >
           Manage Banks
         </button>
@@ -1939,7 +1939,7 @@ function SubheadsPanel({
         <button
           type="button"
           onClick={onOpenSubheads}
-          className="no-print rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
+          className="no-print rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-extrabold text-slate-900 hover:bg-slate-100 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60 shadow-sm"
         >
           Open Subheads
         </button>
@@ -2166,14 +2166,14 @@ function PendingVouchersPanel({
               <div className="no-print mt-3 flex justify-end gap-2">
                 <button
                   onClick={() => onOpenVoucher(v.id)}
-                  className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-900 hover:bg-slate-100"
+                  className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-extrabold text-slate-900 hover:bg-slate-100 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60 shadow-sm"
                 >
                   View
                 </button>
 
                 <button
                   onClick={() => onPrintVoucher(v.id)}
-                  className="rounded-xl bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-700"
+                  className="rounded-xl bg-blue-600 px-3 py-2 text-xs font-extrabold text-white hover:bg-blue-700 shadow-md transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   Print
                 </button>
@@ -2254,14 +2254,14 @@ function VoucherRegisterPanel({
                     <div className="flex justify-end gap-2">
                       <button
                         onClick={() => onOpenVoucher(v.id)}
-                        className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-900 hover:bg-slate-100"
+                        className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-extrabold text-slate-900 hover:bg-slate-100 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60 shadow-sm"
                       >
                         View
                       </button>
 
                       <button
                         onClick={() => onPrintVoucher(v.id)}
-                        className="rounded-xl bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-700"
+                        className="rounded-xl bg-blue-600 px-3 py-2 text-xs font-extrabold text-white hover:bg-blue-700 shadow-md transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60"
                       >
                         Print
                       </button>
@@ -2304,9 +2304,9 @@ function TabButton({
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-2xl px-4 py-3 text-sm font-bold transition ${
-        active ? "bg-blue-600 text-white shadow-sm" : "bg-white text-slate-700 hover:bg-slate-100"
-      }`}
+      className={`rounded-2xl px-4 py-3 text-sm font-extrabold transition ${
+ active ? "bg-blue-600 text-white shadow-sm" : "bg-white text-white hover:bg-slate-100"
+ } duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60`}
     >
       {label}
     </button>

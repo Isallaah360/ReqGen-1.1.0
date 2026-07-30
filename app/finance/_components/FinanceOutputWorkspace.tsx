@@ -546,7 +546,7 @@ export default function FinanceOutputWorkspace({ mode }: { mode: OutputMode }) {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-slate-50 px-4 font-[inherit]">
+      <main className="min-h-screen bg-slate-50 px-4 font-[inherit] transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60">
         <div className="mx-auto max-w-7xl py-12 text-slate-600">Loading Finance Output Centre...</div>
       </main>
     );
@@ -579,8 +579,8 @@ export default function FinanceOutputWorkspace({ mode }: { mode: OutputMode }) {
                 Generate one-page institutional A4 reports and structured Excel workbooks from verified Finance records.
               </p>
               <div className="mt-6 flex flex-wrap gap-3 no-print">
-                <button className="action secondary" onClick={() => router.push("/finance")}>🏛 Finance Control Centre</button>
-                <button className="action cyan" onClick={() => router.push("/finance/reports?view=output")}>📊 Reports Centre</button>
+                <button className="action secondary transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60" onClick={() => router.push("/finance")}>🏛 Finance Control Centre</button>
+                <button className="action cyan transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60" onClick={() => router.push("/finance/reports?view=output")}>📊 Reports Centre</button>
               </div>
             </div>
             <div className="rounded-3xl border border-white/15 bg-white/10 p-5 backdrop-blur-xl">
@@ -605,12 +605,12 @@ export default function FinanceOutputWorkspace({ mode }: { mode: OutputMode }) {
             <label className="field"><span>Date From</span><input type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} /></label>
             <label className="field"><span>Date To</span><input type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} /></label>
             <div className="flex items-end gap-2">
-              <button className="action cyan w-full" disabled={working} onClick={loadData}>↻ Refresh</button>
+              <button className="action cyan w-full transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60" disabled={working} onClick={loadData}>↻ Refresh</button>
             </div>
           </div>
           <div className="mt-4 flex flex-wrap gap-3">
-            <button className="action blue" disabled={working} onClick={printOnePageReport}>🖨 {working ? "Preparing..." : "Print / Save PDF"}</button>
-            <button className="action green" disabled={working} onClick={exportExcel}>📗 {working ? "Preparing..." : "Export Standard Excel"}</button>
+            <button className="action blue transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60" disabled={working} onClick={printOnePageReport}>🖨 {working ? "Preparing..." : "Print / Save PDF"}</button>
+            <button className="action green transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60" disabled={working} onClick={exportExcel}>📗 {working ? "Preparing..." : "Export Standard Excel"}</button>
           </div>
         </section>
 

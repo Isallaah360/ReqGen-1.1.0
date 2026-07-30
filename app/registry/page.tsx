@@ -656,7 +656,7 @@ export default function RegistryPage() {
                         <button
                             type="button"
                             onClick={goDashboard}
-                            className="mt-5 rounded-xl bg-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-blue-700"
+                            className="mt-5 rounded-xl bg-blue-600 px-4 py-2 text-sm font-extrabold text-white hover:bg-blue-700 shadow-md transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60"
                         >
                             Back to Dashboard
                         </button>
@@ -688,7 +688,7 @@ export default function RegistryPage() {
                             type="button"
                             onClick={() => load({ silent: true })}
                             disabled={refreshing}
-                            className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-900 shadow-sm hover:bg-slate-100 disabled:opacity-60"
+                            className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-extrabold text-slate-900 shadow-sm hover:bg-slate-100 disabled:opacity-60 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
                         >
                             {refreshing ? "Refreshing..." : "Refresh"}
                         </button>
@@ -697,7 +697,7 @@ export default function RegistryPage() {
                             type="button"
                             onClick={goDashboard}
                             disabled={refreshing}
-                            className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-900 shadow-sm hover:bg-slate-100 disabled:opacity-60"
+                            className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-extrabold text-slate-900 shadow-sm hover:bg-slate-100 disabled:opacity-60 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
                         >
                             Dashboard
                         </button>
@@ -789,7 +789,7 @@ export default function RegistryPage() {
                                                 setDeptFilter(row.dept_id);
                                                 setStageFilter("ALL");
                                             }}
-                                            className="text-left font-extrabold text-blue-700 hover:underline"
+                                            className="text-left font-extrabold text-blue-700 hover:underline transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60"
                                         >
                                             {row.dept_name}
                                         </button>
@@ -944,7 +944,7 @@ export default function RegistryPage() {
                                         <button
                                             type="button"
                                             onClick={() => openRequest(r.id)}
-                                            className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-blue-700"
+                                            className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-extrabold text-white hover:bg-blue-700 shadow-md transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60"
                                         >
                                             View Request
                                         </button>
@@ -1032,7 +1032,7 @@ export default function RegistryPage() {
                                                 <button
                                                     type="button"
                                                     onClick={() => openRequest(r.id)}
-                                                    className="rounded-xl bg-blue-600 px-3 py-2 text-xs font-bold text-white hover:bg-blue-700"
+                                                    className="rounded-xl bg-blue-600 px-3 py-2 text-xs font-extrabold text-white hover:bg-blue-700 shadow-md transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60"
                                                 >
                                                     View
                                                 </button>
@@ -1110,7 +1110,7 @@ function ReminderCard({
             <button
                 type="button"
                 onClick={onClick}
-                className="mt-4 rounded-xl bg-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-blue-700"
+                className="mt-4 rounded-xl bg-blue-600 px-4 py-2 text-sm font-extrabold text-white hover:bg-blue-700 shadow-md transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60"
             >
                 {buttonText}
             </button>

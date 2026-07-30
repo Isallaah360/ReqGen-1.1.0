@@ -35,7 +35,7 @@ export default function HomePage() {
             <div className="mx-auto mt-8 flex max-w-md flex-col gap-3 sm:flex-row sm:justify-center">
               <Link
                 href="/login"
-                className="inline-flex min-h-14 flex-1 items-center justify-center gap-2 rounded-2xl bg-blue-700 px-8 py-4 text-sm font-black text-white shadow-lg shadow-blue-200 transition duration-300 hover:-translate-y-0.5 hover:bg-blue-800 focus:outline-none focus:ring-4 focus:ring-blue-200"
+                className="inline-flex min-h-14 flex-1 items-center justify-center gap-2 rounded-2xl bg-blue-700 px-8 py-4 text-sm font-black text-white shadow-lg shadow-blue-200 transition duration-300 hover:-translate-y-0.5 hover:bg-blue-800 focus:outline-none focus:ring-4 focus:ring-blue-200 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <LockIcon />
                 Login
@@ -43,7 +43,7 @@ export default function HomePage() {
 
               <Link
                 href="/signup"
-                className="inline-flex min-h-14 flex-1 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-8 py-4 text-sm font-black text-slate-900 shadow-sm transition duration-300 hover:-translate-y-0.5 hover:border-blue-200 hover:bg-blue-50 focus:outline-none focus:ring-4 focus:ring-blue-100"
+                className="inline-flex min-h-14 flex-1 items-center justify-center gap-2 rounded-2xl border border-slate-300 bg-white px-8 py-4 text-sm font-black text-slate-900 shadow-sm transition duration-300 hover:-translate-y-0.5 hover:border-blue-200 hover:bg-blue-50 focus:outline-none focus:ring-4 focus:ring-blue-100 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <UserPlusIcon />
                 Sign Up

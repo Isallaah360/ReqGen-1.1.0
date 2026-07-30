@@ -199,7 +199,7 @@ export default function MfaVerifyPage() {
           <button
             onClick={() => verifyCode()}
             disabled={verifying || code.trim().length !== 6}
-            className="mt-5 w-full rounded-2xl bg-blue-600 px-4 py-3 text-base font-bold text-white hover:bg-blue-700 disabled:opacity-60"
+            className="mt-5 w-full rounded-2xl bg-blue-600 px-4 py-3 text-base font-extrabold text-white hover:bg-blue-700 disabled:opacity-60 shadow-md transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
           >
             {verifying ? "Verifying automatically..." : "Verify and Continue"}
           </button>
@@ -207,7 +207,7 @@ export default function MfaVerifyPage() {
           <button
             onClick={logout}
             disabled={verifying}
-            className="mt-3 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
+            className="mt-3 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-extrabold text-slate-900 hover:bg-slate-100 disabled:opacity-60 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 shadow-sm"
           >
             Logout
           </button>

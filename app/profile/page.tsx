@@ -409,7 +409,7 @@ export default function ProfilePage() {
               type="button"
               onClick={() => load({ silent: true })}
               disabled={busy}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
+              className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-extrabold text-slate-900 hover:bg-slate-100 disabled:opacity-60 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 shadow-sm"
             >
               {refreshing ? "Refreshing..." : "Refresh"}
             </button>
@@ -418,7 +418,7 @@ export default function ProfilePage() {
               type="button"
               onClick={goDashboard}
               disabled={busy}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
+              className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-extrabold text-slate-900 hover:bg-slate-100 disabled:opacity-60 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 shadow-sm"
             >
               Back
             </button>
@@ -487,7 +487,7 @@ export default function ProfilePage() {
               <button
                 type="button"
                 onClick={goMfaSetup}
-                className="rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white hover:bg-blue-700"
+                className="rounded-xl bg-blue-600 px-4 py-3 text-sm font-extrabold text-white hover:bg-blue-700 shadow-md transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 Set Up 2FA
               </button>
@@ -497,7 +497,7 @@ export default function ProfilePage() {
               <button
                 type="button"
                 onClick={goMfaVerify}
-                className="rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white hover:bg-blue-700"
+                className="rounded-xl bg-blue-600 px-4 py-3 text-sm font-extrabold text-white hover:bg-blue-700 shadow-md transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 Verify 2FA
               </button>
@@ -506,7 +506,7 @@ export default function ProfilePage() {
             <button
               type="button"
               onClick={goChangePassword}
-              className="rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700"
+              className="rounded-xl bg-blue-600 px-4 py-3 text-sm font-extrabold text-white shadow-sm transition hover:bg-blue-700 duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60"
             >
               Change Password Securely
             </button>
@@ -515,7 +515,7 @@ export default function ProfilePage() {
               type="button"
               onClick={refreshSecurity}
               disabled={refreshing}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
+              className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-extrabold text-slate-900 hover:bg-slate-100 disabled:opacity-60 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 shadow-sm"
             >
               {refreshing ? "Refreshing..." : "Refresh Security Status"}
             </button>
@@ -588,7 +588,7 @@ export default function ProfilePage() {
               type="button"
               onClick={saveProfile}
               disabled={!canSaveProfile || savingProfile}
-              className="mt-5 w-full rounded-2xl bg-blue-600 px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700 disabled:opacity-60"
+              className="mt-5 w-full rounded-2xl bg-blue-600 px-4 py-3 text-sm font-extrabold text-white shadow-sm transition hover:bg-blue-700 disabled:opacity-60 duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
             >
               {savingProfile ? "Saving..." : "Save Profile"}
             </button>
@@ -631,7 +631,7 @@ export default function ProfilePage() {
               type="button"
               onClick={uploadSignature}
               disabled={uploadingSig}
-              className="mt-4 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
+              className="mt-4 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-extrabold text-slate-900 hover:bg-slate-100 disabled:opacity-60 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 shadow-sm"
             >
               {uploadingSig ? "Saving Signature..." : "Save Signature"}
             </button>
@@ -665,7 +665,7 @@ export default function ProfilePage() {
               type="button"
               onClick={changeEmail}
               disabled={savingEmail}
-              className="mt-4 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
+              className="mt-4 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-extrabold text-slate-900 hover:bg-slate-100 disabled:opacity-60 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 shadow-sm"
             >
               {savingEmail ? "Updating Email..." : "Update Email"}
             </button>
@@ -685,7 +685,7 @@ export default function ProfilePage() {
             <button
               type="button"
               onClick={goChangePassword}
-              className="mt-5 w-full rounded-2xl bg-blue-600 px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700"
+              className="mt-5 w-full rounded-2xl bg-blue-600 px-4 py-3 text-sm font-extrabold text-white shadow-sm transition hover:bg-blue-700 duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60"
             >
               Change Password Securely
             </button>

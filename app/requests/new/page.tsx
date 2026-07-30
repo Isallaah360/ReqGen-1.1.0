@@ -1249,7 +1249,7 @@ export default function NewRequestPage() {
                     <button
                       type="button"
                       onClick={clearAttachments}
-                      className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-900 hover:bg-slate-100"
+                      className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-extrabold text-slate-900 hover:bg-slate-100 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60 shadow-sm"
                     >
                       Clear All
                     </button>
@@ -1286,7 +1286,7 @@ export default function NewRequestPage() {
                         <button
                           type="button"
                           onClick={() => removeAttachment(index)}
-                          className="rounded-xl bg-red-600 px-3 py-2 text-xs font-bold text-white hover:bg-red-700"
+                          className="rounded-xl bg-red-600 px-3 py-2 text-xs font-extrabold text-white hover:bg-red-700 shadow-md transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60"
                         >
                           Remove
                         </button>
@@ -1335,10 +1335,10 @@ export default function NewRequestPage() {
                     type="button"
                     onClick={signRequest}
                     disabled={!me?.signature_url || saving || sendingOtp || verifyingOtp}
-                    className={`rounded-xl px-5 py-3 text-sm font-bold text-white disabled:opacity-60 ${signedRequest
-                      ? "bg-emerald-600 hover:bg-emerald-700"
-                      : "bg-blue-600 hover:bg-blue-700"
-                      }`}
+                    className={`rounded-xl px-5 py-3 text-sm font-extrabold text-white disabled:opacity-60 ${signedRequest
+ ? "bg-emerald-600 hover:bg-emerald-700"
+ : "bg-blue-600 hover:bg-blue-700"
+ } shadow-md transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200`}
                   >
                     {signedRequest ? "Signed ✅" : "Sign Request"}
                   </button>
@@ -1350,7 +1350,7 @@ export default function NewRequestPage() {
           <button
             onClick={openSubmitVerification}
             disabled={!canSubmit}
-            className="mt-5 w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+            className="mt-5 w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-extrabold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50 shadow-md transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
           >
             {saving
               ? uploadingAttachments
@@ -1455,7 +1455,7 @@ export default function NewRequestPage() {
                   otpAutoSubmittingRef.current = false;
                 }}
                 disabled={verifyingOtp || saving}
-                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
+                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-extrabold text-slate-900 hover:bg-slate-100 disabled:opacity-60 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 shadow-sm"
               >
                 Cancel
               </button>
@@ -1464,7 +1464,7 @@ export default function NewRequestPage() {
                 type="button"
                 onClick={() => verifyOtpAndSubmit()}
                 disabled={verifyingOtp || saving || otpCode.trim().length !== 6}
-                className="w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white hover:bg-blue-700 disabled:opacity-60"
+                className="w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-extrabold text-white hover:bg-blue-700 disabled:opacity-60 shadow-md transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
               >
                 {verifyingOtp || saving ? "Verifying automatically..." : "Verify OTP & Submit"}
               </button>
@@ -1474,7 +1474,7 @@ export default function NewRequestPage() {
               type="button"
               onClick={openSubmitVerification}
               disabled={sendingOtp || verifyingOtp || saving}
-              className="mt-3 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
+              className="mt-3 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-extrabold text-slate-900 hover:bg-slate-100 disabled:opacity-60 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 shadow-sm"
             >
               {sendingOtp ? "Resending OTP..." : `Resend ${otpLabel}`}
             </button>

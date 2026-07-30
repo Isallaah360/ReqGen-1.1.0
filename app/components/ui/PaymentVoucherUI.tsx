@@ -59,7 +59,7 @@ export function PVActionButton({
       type={type}
       onClick={onClick}
       disabled={disabled}
-      className={`inline-flex min-h-12 min-w-[150px] items-center justify-center rounded-xl border px-5 py-3 text-sm font-black tracking-[0.01em] shadow-md backdrop-blur-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus:ring-4 focus:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 ${tones[tone]}`}
+      className={`inline-flex min-h-12 min-w-[150px] items-center justify-center rounded-xl border px-5 py-3 text-sm font-black tracking-[0.01em] shadow-md backdrop-blur-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus:ring-4 focus:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 ${tones[tone]} focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200`}
     >
       {children}
     </button>

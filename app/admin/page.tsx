@@ -631,7 +631,7 @@ export default function AdminPage() {
             <button
               onClick={() => loadAll({ silent: true })}
               disabled={refreshing || saving}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
+              className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-extrabold text-slate-900 hover:bg-slate-100 disabled:opacity-60 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 shadow-sm"
             >
               {refreshing ? "Refreshing..." : "Refresh"}
             </button>
@@ -639,7 +639,7 @@ export default function AdminPage() {
             <button
               onClick={goUsersRoles}
               disabled={refreshing || saving}
-              className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
+              className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-extrabold text-white hover:bg-blue-700 disabled:opacity-60 shadow-md transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
             >
               Users & Multiple Roles
             </button>
@@ -647,7 +647,7 @@ export default function AdminPage() {
             <button
               onClick={goRoles}
               disabled={refreshing || saving}
-              className="rounded-xl bg-purple-600 px-4 py-2 text-sm font-semibold text-white hover:bg-purple-700 disabled:opacity-60"
+              className="rounded-xl bg-purple-600 px-4 py-2 text-sm font-extrabold text-white hover:bg-purple-700 disabled:opacity-60 shadow-md transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
             >
               Roles & Permissions
             </button>
@@ -655,7 +655,7 @@ export default function AdminPage() {
             <button
               onClick={goSecurity}
               disabled={refreshing || saving}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
+              className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-extrabold text-slate-900 hover:bg-slate-100 disabled:opacity-60 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 shadow-sm"
             >
               Security
             </button>
@@ -663,7 +663,7 @@ export default function AdminPage() {
             <button
               onClick={goDashboard}
               disabled={refreshing || saving}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
+              className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-extrabold text-slate-900 hover:bg-slate-100 disabled:opacity-60 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 shadow-sm"
             >
               Back
             </button>
@@ -712,7 +712,7 @@ export default function AdminPage() {
               <button
                 onClick={goUsersRoles}
                 disabled={saving || refreshing}
-                className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
+                className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-extrabold text-slate-900 hover:bg-slate-100 disabled:opacity-60 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 shadow-sm"
               >
                 Advanced Users Page
               </button>
@@ -785,7 +785,7 @@ export default function AdminPage() {
             <button
               onClick={saveQuickRole}
               disabled={saving}
-              className="mt-4 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
+              className="mt-4 rounded-xl bg-blue-600 px-4 py-2 text-sm font-extrabold text-white hover:bg-blue-700 disabled:opacity-60 shadow-md transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
             >
               {savingTarget === "role" ? "Saving Role..." : "Assign Role"}
             </button>
@@ -820,7 +820,7 @@ export default function AdminPage() {
             <button
               onClick={goRoles}
               disabled={saving || refreshing}
-              className="mt-4 w-full rounded-xl bg-purple-600 px-4 py-2 text-sm font-semibold text-white hover:bg-purple-700 disabled:opacity-60"
+              className="mt-4 w-full rounded-xl bg-purple-600 px-4 py-2 text-sm font-extrabold text-white hover:bg-purple-700 disabled:opacity-60 shadow-md transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
             >
               Open Roles & Permissions
             </button>
@@ -875,7 +875,7 @@ export default function AdminPage() {
                   <button
                     onClick={() => saveSetting(k, settings[k] || "")}
                     disabled={saving}
-                    className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
+                    className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-extrabold text-white hover:bg-blue-700 disabled:opacity-60 shadow-md transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
                   >
                     {savingTarget === k ? "Saving..." : "Save"}
                   </button>
@@ -1025,7 +1025,7 @@ export default function AdminPage() {
                     <button
                       onClick={() => saveDept(d.id, d.hod_user_id, d.director_user_id, d.po_id)}
                       disabled={saving}
-                      className="mt-4 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
+                      className="mt-4 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-extrabold text-slate-900 hover:bg-slate-100 disabled:opacity-60 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 shadow-sm"
                     >
                       {savingTarget === `dept-${d.id}` ? "Saving..." : "Save Department Routing"}
                     </button>

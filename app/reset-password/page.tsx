@@ -304,7 +304,7 @@ function ResetPasswordContent() {
 
               <Link
                 href="/forgot-password"
-                className="block rounded-2xl bg-blue-600 px-4 py-3 text-center text-sm font-black text-white hover:bg-blue-700"
+                className="block rounded-2xl bg-blue-600 px-4 py-3 text-center text-sm font-black text-white hover:bg-blue-700 shadow-md transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 Request New Reset Link
               </Link>
@@ -356,7 +356,7 @@ function ResetPasswordContent() {
                       type="button"
                       onClick={verifyMfa}
                       disabled={verifyingMfa || mfaCode.trim().length !== 6}
-                      className="rounded-2xl bg-amber-600 px-5 py-3 text-sm font-black text-white hover:bg-amber-700 disabled:opacity-60"
+                      className="rounded-2xl bg-amber-600 px-5 py-3 text-sm font-black text-white hover:bg-amber-700 disabled:opacity-60 shadow-md transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
                     >
                       {verifyingMfa ? "Verifying..." : "Verify 2FA"}
                     </button>
@@ -410,7 +410,7 @@ function ResetPasswordContent() {
                 <button
                   type="submit"
                   disabled={!canSubmit}
-                  className="w-full rounded-2xl bg-blue-600 px-4 py-3 text-sm font-black text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="w-full rounded-2xl bg-blue-600 px-4 py-3 text-sm font-black text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60 shadow-md duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
                 >
                   {saving ? "Changing Password..." : "Change Password"}
                 </button>
@@ -419,11 +419,11 @@ function ResetPasswordContent() {
           )}
 
           <div className="mt-6 flex flex-wrap items-center justify-between gap-3 text-sm">
-            <Link href="/login" className="font-bold text-blue-700 hover:underline">
+            <Link href="/login" className="font-extrabold text-blue-700 hover:underline transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60">
               Back to Login
             </Link>
 
-            <Link href="/forgot-password" className="font-bold text-slate-600 hover:text-slate-900">
+            <Link href="/forgot-password" className="font-extrabold text-slate-600 hover:text-slate-900 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60">
               Request Another Link
             </Link>
           </div>

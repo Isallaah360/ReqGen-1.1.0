@@ -57,7 +57,7 @@ export function FinancePageFrame({
             </div>
 
             <div className="flex flex-wrap gap-2 animate-[fadeUp_.7s_ease-out_both]">
-              <Link href="/finance" className="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-4 py-2.5 text-sm font-black text-white backdrop-blur transition hover:bg-white/20">
+              <Link href="/finance" className="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-4 py-2.5 text-sm font-black text-white backdrop-blur transition hover:bg-white/20 duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60 shadow-sm text-slate-900">
                 <span aria-hidden="true">←</span> Finance Centre
               </Link>
               {actions}
@@ -123,5 +123,5 @@ export function StatusPill({ children, tone = "blue" }: { children: ReactNode; t
 }
 
 export function PrimaryButton({ children, tone = "blue", ...props }: React.ButtonHTMLAttributes<HTMLButtonElement> & { tone?: FinanceTone }) {
-  return <button {...props} className={`inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-black text-white shadow-sm transition disabled:cursor-not-allowed disabled:opacity-50 ${toneMap[tone].button} ${props.className || ""}`}>{children}</button>;
+  return <button {...props} className={`inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-black text-white shadow-sm transition disabled:cursor-not-allowed disabled:opacity-50 ${toneMap[tone].button} ${props.className || ""} duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200`}>{children}</button>;
 }

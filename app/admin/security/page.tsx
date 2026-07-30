@@ -372,7 +372,7 @@ export default function AdminSecurityPage() {
 
             <button
               onClick={goDashboard}
-              className="mt-5 rounded-xl bg-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-blue-700"
+              className="mt-5 rounded-xl bg-blue-600 px-4 py-2 text-sm font-extrabold text-white hover:bg-blue-700 shadow-md transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60"
             >
               Back to Dashboard
             </button>
@@ -439,7 +439,7 @@ export default function AdminSecurityPage() {
             <button
               onClick={() => load({ silent: true })}
               disabled={refreshing || printing}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
+              className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-extrabold text-slate-900 hover:bg-slate-100 disabled:opacity-60 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 shadow-sm"
             >
               {refreshing ? "Refreshing..." : "Refresh"}
             </button>
@@ -447,7 +447,7 @@ export default function AdminSecurityPage() {
             <button
               onClick={printChecklist}
               disabled={refreshing || printing}
-              className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-blue-700 disabled:opacity-60"
+              className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-extrabold text-white hover:bg-blue-700 disabled:opacity-60 shadow-md transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
             >
               {printing ? "Preparing..." : "Print Checklist"}
             </button>
@@ -455,7 +455,7 @@ export default function AdminSecurityPage() {
             <button
               onClick={goAdmin}
               disabled={refreshing || printing}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
+              className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-extrabold text-slate-900 hover:bg-slate-100 disabled:opacity-60 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 shadow-sm"
             >
               Admin
             </button>
@@ -463,7 +463,7 @@ export default function AdminSecurityPage() {
             <button
               onClick={goDashboard}
               disabled={refreshing || printing}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
+              className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-extrabold text-slate-900 hover:bg-slate-100 disabled:opacity-60 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 shadow-sm"
             >
               Dashboard
             </button>
@@ -537,7 +537,7 @@ export default function AdminSecurityPage() {
             {!isMfaSetupComplete && (
               <button
                 onClick={goMfaSetup}
-                className="rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white hover:bg-blue-700"
+                className="rounded-xl bg-blue-600 px-4 py-3 text-sm font-extrabold text-white hover:bg-blue-700 shadow-md transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 Set Up 2FA
               </button>
@@ -546,7 +546,7 @@ export default function AdminSecurityPage() {
             {isMfaSetupComplete && !isSessionMfaVerified && (
               <button
                 onClick={goMfa}
-                className="rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white hover:bg-blue-700"
+                className="rounded-xl bg-blue-600 px-4 py-3 text-sm font-extrabold text-white hover:bg-blue-700 shadow-md transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 Verify 2FA
               </button>
@@ -614,7 +614,7 @@ export default function AdminSecurityPage() {
                 <div className="flex items-end">
                   <button
                     onClick={resetFilters}
-                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 hover:bg-slate-100"
+                    className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-extrabold text-slate-900 hover:bg-slate-100 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60 shadow-sm"
                   >
                     Reset Filters
                   </button>
@@ -849,9 +849,9 @@ function TabButton({
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-2xl px-4 py-3 text-sm font-bold transition ${
-        active ? "bg-blue-600 text-white shadow-sm" : "bg-white text-slate-700 hover:bg-slate-100"
-      }`}
+      className={`rounded-2xl px-4 py-3 text-sm font-extrabold transition ${
+ active ? "bg-blue-600 text-white shadow-sm" : "bg-white text-white hover:bg-slate-100"
+ } duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60`}
     >
       {label}
     </button>

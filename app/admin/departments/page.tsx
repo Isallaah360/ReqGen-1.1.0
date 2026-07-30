@@ -143,7 +143,7 @@ export default function DepartmentsPage() {
 
             <button
             onClick={()=>saveDept(dept)}
-            className="mt-4 bg-blue-600 text-white px-4 py-2 rounded">
+            className="mt-4 bg-blue-600 text-white px-4 py-2 rounded shadow-md transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60">
 
               Save
 

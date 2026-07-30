@@ -272,7 +272,7 @@ function ModuleCard({
   return (
     <Link
       href={href}
-      className="block h-full rounded-3xl focus:outline-none focus:ring-4 focus:ring-blue-200"
+      className="block h-full rounded-3xl focus:outline-none focus:ring-4 focus:ring-blue-200 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60"
     >
       {card}
     </Link>
@@ -564,25 +564,25 @@ export default function FinancePage() {
         <div className="flex flex-wrap gap-2">
           <Link
             href="/dashboard"
-            className="rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm font-black text-slate-700 transition hover:bg-slate-100"
+            className="rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm font-black text-slate-700 transition hover:bg-slate-100 duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60"
           >
             ← Main Dashboard
           </Link>
           <Link
             href="/finance/manual-voucher"
-            className="rounded-xl bg-amber-600 px-4 py-2.5 text-sm font-black text-white transition hover:bg-amber-700"
+            className="rounded-xl bg-amber-600 px-4 py-2.5 text-sm font-black text-white transition hover:bg-amber-700 shadow-md duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60"
           >
             + Create Manual Voucher
           </Link>
           <Link
             href="/payment-vouchers"
-            className="rounded-xl bg-violet-700 px-4 py-2.5 text-sm font-black text-white transition hover:bg-violet-800"
+            className="rounded-xl bg-violet-700 px-4 py-2.5 text-sm font-black text-white transition hover:bg-violet-800 shadow-md duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60"
           >
             Voucher Register
           </Link>
           <Link
             href="/finance/transactions"
-            className="rounded-xl bg-emerald-700 px-4 py-2.5 text-sm font-black text-white transition hover:bg-emerald-800"
+            className="rounded-xl bg-emerald-700 px-4 py-2.5 text-sm font-black text-white transition hover:bg-emerald-800 shadow-md duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60"
           >
             Transactions
           </Link>
@@ -592,7 +592,7 @@ export default function FinancePage() {
           type="button"
           onClick={() => void loadFinanceData(true)}
           disabled={refreshing}
-          className="rounded-xl border border-cyan-200 bg-cyan-50 px-4 py-2.5 text-sm font-black text-cyan-800 transition hover:bg-cyan-100 disabled:cursor-not-allowed disabled:opacity-60"
+          className="rounded-xl border border-cyan-200 bg-cyan-50 px-4 py-2.5 text-sm font-black text-cyan-800 transition hover:bg-cyan-100 disabled:cursor-not-allowed disabled:opacity-60 duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
         >
           {refreshing ? "Refreshing..." : "Refresh Finance Data"}
         </button>
@@ -616,7 +616,7 @@ export default function FinancePage() {
             <div className="mt-6 flex flex-wrap gap-3">
               <Link
                 href="/finance/manual-voucher"
-                className="rounded-xl bg-amber-500 px-5 py-3 text-sm font-black text-slate-950 transition hover:bg-amber-400"
+                className="rounded-xl bg-amber-600 px-5 py-3 text-sm font-black text-white transition hover:bg-amber-700 shadow-md duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 Create Manual Voucher
               </Link>
@@ -662,7 +662,7 @@ export default function FinancePage() {
           <button
             type="button"
             onClick={() => void loadFinanceData(true)}
-            className="mt-3 rounded-xl bg-red-700 px-4 py-2 text-sm font-black text-white hover:bg-red-800"
+            className="mt-3 rounded-xl bg-red-700 px-4 py-2 text-sm font-black text-white hover:bg-red-800 shadow-md transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60"
           >
             Try Again
           </button>
