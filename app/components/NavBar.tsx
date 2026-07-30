@@ -687,7 +687,7 @@ export default function NavBar() {
   return (
     <header className="sticky top-0 z-50 border-b border-blue-100 bg-white/90 backdrop-blur-xl/90 backdrop-blur-xl">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-2.5">
-        <Link href="/" className="shrink-0 text-lg font-extrabold tracking-tight text-slate-950 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60">
+        <Link href="/" className="shrink-0 text-lg font-bold tracking-tight text-slate-950">
           ReqGen <span className="text-slate-400">1.1.0</span>
         </Link>
 
@@ -706,7 +706,7 @@ export default function NavBar() {
             <button
               type="button"
               onClick={() => router.push("/mfa")}
-              className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-extrabold text-slate-900 hover:bg-slate-100 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60 shadow-sm"
+              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-900 hover:bg-slate-100"
             >
               Verify 2FA
             </button>
@@ -714,7 +714,7 @@ export default function NavBar() {
             <button
               type="button"
               onClick={logout}
-              className="rounded-xl bg-rose-600 px-4 py-2 text-sm font-extrabold text-white transition hover:bg-rose-700 shadow-md duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60"
+              className="bg-rose-600 px-4 py-2 text-sm text-white hover:bg-rose-700 font-black rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
             >
               Logout
             </button>
@@ -735,12 +735,12 @@ export default function NavBar() {
                     setOpenMobileMenu(false);
                   }}
                   className={`group relative inline-flex h-11 w-11 items-center justify-center rounded-2xl border transition ${
- isActiveLink("/approvals")
- ? "border-blue-600 bg-gradient-to-br from-blue-700 to-cyan-600 text-white shadow-lg shadow-blue-200/70"
- : actionCount > 0
- ? "border-blue-200 bg-gradient-to-br from-blue-50 to-cyan-50 text-blue-700 shadow-sm hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-md"
- : "border-slate-300 bg-white text-slate-700 hover:-translate-y-0.5 hover:border-cyan-300 hover:bg-gradient-to-br hover:from-blue-50 hover:to-cyan-50 hover:text-blue-700 hover:shadow-md"
- } duration-200 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60`}
+                    isActiveLink("/approvals")
+                      ? "border-blue-600 bg-gradient-to-br from-blue-700 to-cyan-600 text-white shadow-lg shadow-blue-200/70"
+                      : actionCount > 0
+                        ? "border-blue-200 bg-gradient-to-br from-blue-50 to-cyan-50 text-blue-700 shadow-sm hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-md"
+                        : "border-slate-200 bg-white text-slate-700 hover:-translate-y-0.5 hover:border-cyan-300 hover:bg-gradient-to-br hover:from-blue-50 hover:to-cyan-50 hover:text-blue-700 hover:shadow-md"
+                  }`}
                 >
                   <IconNotifications />
                   <span className="absolute bottom-2 right-2 grid h-3.5 w-3.5 place-items-center rounded-full bg-emerald-500 text-[8px] font-black leading-none text-white ring-2 ring-white">✓</span>
@@ -768,14 +768,14 @@ export default function NavBar() {
                       <button
                         type="button"
                         onClick={() => setActionTab("actions")}
-                        className={`rounded-xl px-3 py-2.5 text-xs font-black transition ${actionTab === "actions" ? "bg-blue-600 text-white shadow-sm" : "bg-white text-white hover:bg-blue-50 hover:text-white"} duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60`}
+                        className={`rounded-xl px-3 py-2.5 text-xs font-black transition ${actionTab === "actions" ? "bg-blue-600 text-white shadow-sm" : "bg-white text-slate-700 hover:bg-blue-50 hover:text-blue-700"}`}
                       >
                         WAITING FOR ACTION ({pendingApprovalCount})
                       </button>
                       <button
                         type="button"
                         onClick={() => setActionTab("updates")}
-                        className={`rounded-xl px-3 py-2.5 text-xs font-black transition ${actionTab === "updates" ? "bg-blue-600 text-white shadow-sm" : "bg-white text-white hover:bg-blue-50 hover:text-white"} duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60`}
+                        className={`rounded-xl px-3 py-2.5 text-xs font-black transition ${actionTab === "updates" ? "bg-blue-600 text-white shadow-sm" : "bg-white text-slate-700 hover:bg-blue-50 hover:text-blue-700"}`}
                       >
                         RECENT UPDATES ({unreadNotificationCount})
                       </button>
@@ -796,7 +796,7 @@ export default function NavBar() {
                                 type="button"
                                 key={r.id}
                                 onClick={() => openApprovalRequest(r.id)}
-                                className="w-full border-b border-slate-100 px-5 py-4 text-left transition hover:bg-blue-50/70 duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60"
+                                className="w-full border-b border-slate-100 px-5 py-4 text-left transition hover:bg-blue-50/70"
                               >
                                 <div className="flex items-start justify-between gap-3">
                                   <div className="min-w-0">
@@ -816,7 +816,7 @@ export default function NavBar() {
                           </div>
                         )}
                         <div className="border-t bg-slate-50 p-3">
-                          <button type="button" onClick={() => goTo("/approvals")} className="w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-black text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-200 duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60">
+                          <button type="button" onClick={() => goTo("/approvals")} className="w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-black text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-200">
                             OPEN FULL APPROVALS INBOX
                           </button>
                         </div>
@@ -825,7 +825,7 @@ export default function NavBar() {
                       <>
                         <div className="flex items-center justify-between border-b px-4 py-3">
                           <span className="text-xs font-black uppercase tracking-wide text-slate-500">Latest workflow updates</span>
-                          <button type="button" onClick={markAllNotificationsRead} disabled={unreadNotificationCount === 0} className="rounded-lg px-2 py-1 text-xs font-black text-blue-700 transition hover:bg-blue-50 disabled:cursor-not-allowed disabled:text-slate-400 duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200">MARK ALL READ</button>
+                          <button type="button" onClick={markAllNotificationsRead} disabled={unreadNotificationCount === 0} className="px-2 py-1 text-xs hover:bg-blue-50 disabled:cursor-not-allowed disabled:text-slate-400 bg-slate-700 hover:bg-slate-800 font-black text-white rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-60">MARK ALL READ</button>
                         </div>
                         {notificationItems.length === 0 ? (
                           <div className="px-5 py-8 text-center text-sm font-semibold text-slate-500">No recent update.</div>
@@ -834,7 +834,7 @@ export default function NavBar() {
                             {notificationItems.map((n) => {
                               const detail = n.body || n.message || "Open the related record for details.";
                               return (
-                                <button type="button" key={n.id} onClick={() => openNotif(n)} className={`w-full border-b border-slate-100 px-5 py-4 text-left transition hover:bg-blue-50/70 ${n.is_read ? "bg-white" : "bg-blue-50/50"} duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60 border border-slate-300 shadow-sm text-slate-900`}>
+                                <button type="button" key={n.id} onClick={() => openNotif(n)} className={`w-full border-b border-slate-100 px-5 py-4 text-left transition hover:bg-blue-50/70 ${n.is_read ? "bg-white" : "bg-blue-50/50"}`}>
                                   <div className="flex items-start gap-3">
                                     <span className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${n.is_read ? "bg-slate-300" : "bg-blue-600"}`} />
                                     <div className="min-w-0">
@@ -885,7 +885,7 @@ export default function NavBar() {
               )}
 
               {canHR && (
-                <div className="relative transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60" ref={hrRef}>
+                <div className="relative" ref={hrRef}>
                   <button
                     type="button"
                     onClick={() => {
@@ -900,7 +900,7 @@ export default function NavBar() {
                   </button>
 
                   {openHR && (
-                    <div className="absolute left-0 top-12 z-50 w-[300px] overflow-hidden rounded-3xl border border-slate-300 bg-white shadow-2xl transition duration-200 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60 text-slate-900">
+                    <div className="absolute left-0 top-12 z-50 w-[300px] overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl">
                       <div className="border-b bg-slate-50 px-5 py-4">
                         <div className="text-base font-extrabold text-slate-900">
                           HR Directorate
@@ -918,7 +918,7 @@ export default function NavBar() {
                             onClick={() => goTo(item.href)}
                             className={dropdownItemClass(item.href)}
                           >
-                            <div className="text-sm font-extrabold transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60">{item.label}</div>
+                            <div className="text-sm font-extrabold">{item.label}</div>
                             {item.description && (
                               <div className={dropdownItemDescriptionClass(item.href)}>
                                 {item.description}
@@ -951,7 +951,7 @@ export default function NavBar() {
               )}
             </nav>
 
-            <div className="relative md:hidden transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60" ref={mobileRef}>
+            <div className="relative md:hidden" ref={mobileRef}>
               <button
                 type="button"
                 onClick={() => {
@@ -959,10 +959,10 @@ export default function NavBar() {
                   setOpenHR(false);
                   setOpenApprovalPanel(false);
                 }}
-                className={`rounded-xl border px-3 py-2 text-sm font-extrabold transition ${openMobileMenu
- ? "border-blue-600 bg-gradient-to-br from-blue-700 to-cyan-600 text-white shadow-lg shadow-blue-200/70"
- : "border-slate-300 bg-white text-slate-900 hover:bg-slate-100"
- } duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60`}
+                className={`rounded-xl border px-3 py-2 text-sm font-bold transition ${openMobileMenu
+                    ? "border-blue-600 bg-gradient-to-br from-blue-700 to-cyan-600 text-white shadow-lg shadow-blue-200/70"
+                    : "border-slate-200 bg-white text-slate-900 hover:bg-slate-100"
+                  }`}
               >
                 Menu ▾
               </button>
@@ -981,7 +981,7 @@ export default function NavBar() {
                     onClick={() => goTo("/approvals")}
                     className={mobileItemClass("/approvals")}
                   >
-                    <div className="flex items-center justify-between gap-3 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60">
+                    <div className="flex items-center justify-between gap-3">
                       <span className="inline-flex items-center gap-2">
                         <IconNotifications className="h-4 w-4" />
                         Action Centre
@@ -1000,7 +1000,7 @@ export default function NavBar() {
                     onClick={() => goTo("/dashboard")}
                     className={mobileItemClass("/dashboard")}
                   >
-                    <span className="inline-flex items-center gap-2 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60"><IconDashboard className="h-4 w-4" />Dashboard</span>
+                    <span className="inline-flex items-center gap-2"><IconDashboard className="h-4 w-4" />Dashboard</span>
                   </button>
 
                   <button
@@ -1008,7 +1008,7 @@ export default function NavBar() {
                     onClick={() => goTo("/requests")}
                     className={mobileItemClass("/requests")}
                   >
-                    <span className="inline-flex items-center gap-2 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60"><IconRequests className="h-4 w-4" />My Requests</span>
+                    <span className="inline-flex items-center gap-2"><IconRequests className="h-4 w-4" />My Requests</span>
                   </button>
 
                   {canFinance && (
@@ -1017,7 +1017,7 @@ export default function NavBar() {
                       onClick={() => goTo("/finance")}
                       className={mobileItemClass("/finance")}
                     >
-                      <div className="inline-flex items-center gap-2 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60">
+                      <div className="inline-flex items-center gap-2">
                         <IconFinance className="h-4 w-4" />
                         Finance
                       </div>
@@ -1040,7 +1040,7 @@ export default function NavBar() {
                           onClick={() => goTo(item.href)}
                           className={mobileItemClass(item.href)}
                         >
-                          <div className="inline-flex items-center gap-2 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60">
+                          <div className="inline-flex items-center gap-2">
                             <IconHR className="h-4 w-4" />
                             {item.label}
                           </div>
@@ -1065,7 +1065,7 @@ export default function NavBar() {
                         onClick={() => goTo("/registry")}
                         className={mobileItemClass("/registry")}
                       >
-                        <span className="inline-flex items-center gap-2 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60">
+                        <span className="inline-flex items-center gap-2">
                           <IconRegistry className="h-4 w-4" />
                           Registry Desk
                         </span>
@@ -1087,7 +1087,7 @@ export default function NavBar() {
                         onClick={() => goTo("/admin")}
                         className={mobileItemClass("/admin")}
                       >
-                        <span className="inline-flex items-center gap-2 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60">
+                        <span className="inline-flex items-center gap-2">
                           <IconAdmin className="h-4 w-4" />
                           Admin
                         </span>
@@ -1099,7 +1099,7 @@ export default function NavBar() {
                     <button
                       type="button"
                       onClick={logout}
-                      className="w-full rounded-xl bg-rose-600 px-4 py-3 text-left text-sm font-extrabold text-white hover:bg-rose-700 shadow-md transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60"
+                      className="w-full bg-rose-600 px-4 py-3 text-left text-sm text-white hover:bg-rose-700 font-black rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       <span className="inline-flex items-center gap-2">
                         <IconLogout className="h-4 w-4" />
@@ -1114,7 +1114,7 @@ export default function NavBar() {
             <button
               type="button"
               onClick={logout}
-              className="group relative hidden h-11 w-11 items-center justify-center rounded-2xl bg-rose-600 text-white transition hover:bg-rose-700 sm:inline-flex shadow-md duration-200 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60"
+              className="group relative hidden h-11 w-11 items-center justify-center bg-rose-600 text-white hover:bg-rose-700 sm:inline-flex px-4 py-2.5 font-black rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
             >
               <IconLogout />
               <IconButtonTooltip label="Logout" />

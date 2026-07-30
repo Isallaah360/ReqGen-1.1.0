@@ -574,7 +574,7 @@ export default function MyRequestsPage() {
             <FilterSelect label="Stage" value={stageFilter} onChange={(value) => setStageFilter(value as StageFilter)} options={[
               ["ALL", "All Stages"], ["PO", "PO"], ["DOD", "DOD"], ["DINADMIN", "DIN Admin"], ["REGISTRAR", "Registrar"], ["HOD", "HOD"], ["HR", "HR"], ["DG", "DG"], ["ACCOUNT", "Account Officer"], ["HRFILING", "HR Filing"], ["COMPLETED", "Completed"]
             ]} />
-            <button type="button" onClick={resetFilters} className="inline-flex h-[46px] min-w-[120px] items-center justify-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 text-sm font-extrabold text-blue-800 transition hover:-translate-y-0.5 hover:border-blue-300 hover:bg-blue-100 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-100">
+            <button type="button" onClick={resetFilters} className="inline-flex h-[46px] min-w-[120px] items-center justify-center gap-2 border border-blue-200 bg-blue-700 px-4 text-sm hover:-translate-y-0.5 hover:border-blue-300 hover:bg-blue-800 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-100 py-2.5 font-black text-white rounded-xl shadow-sm transition-all duration-200 hover:shadow-md focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60">
               <Icon name="filterX" className="h-4 w-4" /> Reset
             </button>
           </div>
@@ -596,7 +596,7 @@ export default function MyRequestsPage() {
             </div>
             <h3 className="mt-5 text-xl font-black text-slate-900">No requests found</h3>
             <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">No record matches the selected filters. Reset the filters or create a new request.</p>
-            <button type="button" onClick={resetFilters} className="mt-5 rounded-xl bg-blue-700 px-5 py-3 text-sm font-bold text-white transition hover:bg-blue-800">Reset Filters</button>
+            <button type="button" onClick={resetFilters} className="mt-5 bg-blue-700 px-5 py-3 text-sm text-white hover:bg-blue-800 font-black rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60">Reset Filters</button>
           </section>
         ) : (
           <section className="mt-6 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">

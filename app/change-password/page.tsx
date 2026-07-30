@@ -281,7 +281,7 @@ export default function ChangePasswordPage() {
 
                     <Link
                         href="/dashboard"
-                        className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-extrabold text-slate-900 shadow-sm hover:bg-slate-100 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60"
+                        className="border border-slate-200 bg-slate-700 px-4 py-2 text-sm hover:bg-slate-800 font-black text-white rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                         Dashboard
                     </Link>
@@ -337,7 +337,7 @@ export default function ChangePasswordPage() {
                             type="button"
                             onClick={verifyCurrentPassword}
                             disabled={verifyingCurrentPassword || !currentPassword}
-                            className="rounded-2xl bg-slate-900 px-5 py-3 text-sm font-black text-white hover:bg-slate-800 disabled:opacity-60 shadow-md transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
+                            className="bg-slate-900 px-5 py-3 text-sm text-white hover:bg-slate-800 disabled:opacity-60 font-black rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed"
                         >
                             {verifyingCurrentPassword ? "Checking..." : "Confirm"}
                         </button>
@@ -365,7 +365,7 @@ export default function ChangePasswordPage() {
                                 type="button"
                                 onClick={verifyMfa}
                                 disabled={verifyingMfa || mfaCode.trim().length !== 6}
-                                className="rounded-2xl bg-amber-600 px-5 py-3 text-sm font-black text-white hover:bg-amber-700 disabled:opacity-60 shadow-md transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
+                                className="bg-amber-600 px-5 py-3 text-sm text-white hover:bg-amber-700 disabled:opacity-60 font-black rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed"
                             >
                                 {verifyingMfa ? "Verifying..." : "Verify 2FA"}
                             </button>
@@ -421,7 +421,7 @@ export default function ChangePasswordPage() {
                         <button
                             type="submit"
                             disabled={!canSubmit}
-                            className="w-full rounded-2xl bg-blue-600 px-4 py-3 text-sm font-black text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60 shadow-md duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
+                            className="w-full bg-blue-600 px-4 py-3 text-sm text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60 font-black rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
                         >
                             {saving ? "Changing Password..." : "Change Password"}
                         </button>

@@ -621,7 +621,7 @@ export default function DashboardPage() {
               type="button"
               onClick={() => load({ silent: true })}
               disabled={refreshing}
-              className="rounded-xl border border-white/25 bg-white/10 px-4 py-2 text-sm font-extrabold text-white backdrop-blur transition hover:bg-white/20 disabled:opacity-60 duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 shadow-sm text-slate-900"
+              className="rounded-xl border border-white/25 bg-white/10 px-4 py-2 text-sm font-semibold text-white backdrop-blur transition hover:bg-white/20 disabled:opacity-60"
             >
               {refreshing ? "Refreshing..." : "Refresh"}
             </button>
@@ -630,7 +630,7 @@ export default function DashboardPage() {
               <button
                 type="button"
                 onClick={() => router.push("/admin/security")}
-                className="inline-flex items-center justify-center rounded-xl bg-cyan-600 px-4 py-2 text-sm font-black text-white transition hover:bg-cyan-700 shadow-md duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex items-center justify-center rounded-xl bg-cyan-400 px-4 py-2 text-sm font-black text-slate-950 transition hover:bg-cyan-300"
               >
                 Security Checklist
               </button>
@@ -639,7 +639,7 @@ export default function DashboardPage() {
             <button
               type="button"
               onClick={() => router.push("/profile")}
-              className="rounded-xl border border-white/25 bg-white px-4 py-2 text-sm font-extrabold text-blue-950 shadow-sm transition hover:bg-blue-50 duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60"
+              className="rounded-xl border border-white/25 bg-white px-4 py-2 text-sm font-bold text-blue-950 shadow-sm transition hover:bg-blue-50"
             >
               My Profile
             </button>
@@ -899,7 +899,7 @@ export default function DashboardPage() {
                   <button
                     type="button"
                     onClick={() => router.push("/mfa/setup")}
-                    className="mt-5 w-full rounded-2xl bg-blue-600 px-4 py-3 text-sm font-extrabold text-white hover:bg-blue-700 shadow-md transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="mt-5 w-full rounded-2xl bg-blue-600 px-4 py-3 text-sm font-bold text-white hover:bg-blue-700"
                   >
                     Set Up 2FA
                   </button>
@@ -909,7 +909,7 @@ export default function DashboardPage() {
                   <button
                     type="button"
                     onClick={() => router.push("/mfa")}
-                    className="mt-5 w-full rounded-2xl bg-blue-600 px-4 py-3 text-sm font-extrabold text-white hover:bg-blue-700 shadow-md transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="mt-5 w-full rounded-2xl bg-blue-600 px-4 py-3 text-sm font-bold text-white hover:bg-blue-700"
                   >
                     Verify 2FA
                   </button>
@@ -1040,7 +1040,7 @@ function NumberCountCard({
     <button
       type="button"
       onClick={onClick}
-      className="dashboard-card group relative overflow-hidden rounded-3xl border border-white/80 bg-white p-5 text-left shadow-lg transition duration-300 hover:-translate-y-1 hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-blue-200 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60 text-slate-900"
+      className="dashboard-card group relative overflow-hidden border border-white/80 bg-slate-700 p-5 text-left shadow-lg hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-blue-200 font-black text-white rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
     >
       <div className={`absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r ${tones[tone]}`} />
       <div className="flex items-start justify-between gap-4">

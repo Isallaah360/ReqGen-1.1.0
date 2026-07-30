@@ -27,15 +27,24 @@ button {
   box-sizing: border-box;
 }
 
-/* ReqGen official action-control standard */
-.reqgen-action-control {
-  min-height: 2.75rem;
+/* ReqGen Finance Control Centre button standard */
+.reqgen-finance-button {
   border-radius: 0.75rem;
-  font-weight: 800;
-  color: #fff;
-  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.14);
-  transition: transform 180ms ease, box-shadow 180ms ease, filter 180ms ease;
+  color: #ffffff;
+  font-weight: 900;
+  box-shadow: 0 1px 2px 0 rgb(15 23 42 / 0.12);
+  transition: transform 200ms ease, box-shadow 200ms ease, background-color 200ms ease;
 }
-.reqgen-action-control:hover { transform: translateY(-2px); filter: brightness(1.04); }
-.reqgen-action-control:focus-visible { outline: none; box-shadow: 0 0 0 4px rgba(147, 197, 253, .65); }
-.reqgen-action-control:disabled { cursor: not-allowed; opacity: .6; transform: none; }
+.reqgen-finance-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 18px -8px rgb(15 23 42 / 0.35);
+}
+.reqgen-finance-button:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+.reqgen-finance-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+  transform: none;
+}

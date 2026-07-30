@@ -443,7 +443,7 @@ export default function AdminRolesPage() {
 
             <button
               onClick={() => router.push(`/dashboard?updated=${Date.now()}`)}
-              className="mt-5 rounded-xl bg-blue-600 px-4 py-2 text-sm font-extrabold text-white hover:bg-blue-700 shadow-md transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60"
+              className="mt-5 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
             >
               Back to Dashboard
             </button>
@@ -473,7 +473,7 @@ export default function AdminRolesPage() {
             <button
               onClick={() => loadAll({ silent: true })}
               disabled={refreshing || saving}
-              className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-extrabold text-slate-900 hover:bg-slate-100 disabled:opacity-60 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 shadow-sm"
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
             >
               {refreshing ? "Refreshing..." : "Refresh"}
             </button>
@@ -481,7 +481,7 @@ export default function AdminRolesPage() {
             <button
               onClick={startCreate}
               disabled={refreshing || saving}
-              className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-extrabold text-white hover:bg-blue-700 disabled:opacity-60 shadow-md transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
+              className="bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700 disabled:opacity-60 font-black rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed"
             >
               Add Role
             </button>
@@ -489,7 +489,7 @@ export default function AdminRolesPage() {
             <button
               onClick={goUsers}
               disabled={refreshing || saving}
-              className="rounded-xl bg-purple-600 px-4 py-2 text-sm font-extrabold text-white hover:bg-purple-700 disabled:opacity-60 shadow-md transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
+              className="bg-purple-600 px-4 py-2 text-sm text-white hover:bg-purple-700 disabled:opacity-60 font-black rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed"
             >
               Users & Roles
             </button>
@@ -497,7 +497,7 @@ export default function AdminRolesPage() {
             <button
               onClick={goAdmin}
               disabled={refreshing || saving}
-              className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-extrabold text-slate-900 hover:bg-slate-100 disabled:opacity-60 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 shadow-sm"
+              className="border border-slate-200 bg-slate-700 px-4 py-2 text-sm hover:bg-slate-800 disabled:opacity-60 font-black text-white rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed"
             >
               Back to Admin
             </button>
@@ -560,7 +560,7 @@ export default function AdminRolesPage() {
                 <button
                   onClick={resetForm}
                   disabled={saving}
-                  className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-extrabold text-slate-900 hover:bg-slate-100 disabled:opacity-60 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 shadow-sm"
+                  className="border border-slate-200 bg-slate-700 px-4 py-2 text-sm hover:bg-slate-800 disabled:opacity-60 font-black text-white rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed"
                 >
                   Cancel Edit
                 </button>
@@ -638,7 +638,7 @@ export default function AdminRolesPage() {
             <button
               onClick={saveRole}
               disabled={saving}
-              className="mt-5 w-full rounded-2xl bg-blue-600 px-4 py-3 text-sm font-extrabold text-white hover:bg-blue-700 disabled:opacity-60 shadow-md transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
+              className="mt-5 w-full bg-blue-600 px-4 py-3 text-sm text-white hover:bg-blue-700 disabled:opacity-60 font-black rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed"
             >
               {saving ? "Saving..." : editId ? "Update Role" : "Create Role"}
             </button>
@@ -744,7 +744,7 @@ export default function AdminRolesPage() {
                               <button
                                 onClick={() => startEdit(role)}
                                 disabled={saving}
-                                className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-extrabold text-slate-900 hover:bg-slate-100 disabled:opacity-50 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 shadow-sm"
+                                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-50"
                               >
                                 Edit
                               </button>
@@ -752,11 +752,11 @@ export default function AdminRolesPage() {
                               <button
                                 onClick={() => toggleActive(role, !role.is_active)}
                                 disabled={saving}
-                                className={`rounded-xl px-3 py-2 text-xs font-extrabold text-white disabled:opacity-50 ${
- role.is_active
- ? "bg-amber-600 hover:bg-amber-700"
- : "bg-emerald-600 hover:bg-emerald-700"
- } shadow-md transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200`}
+                                className={`rounded-xl px-3 py-2 text-xs font-semibold text-white disabled:opacity-50 ${
+                                  role.is_active
+                                    ? "bg-amber-600 hover:bg-amber-700"
+                                    : "bg-emerald-600 hover:bg-emerald-700"
+                                }`}
                               >
                                 {role.is_active ? "Deactivate" : "Activate"}
                               </button>
@@ -764,7 +764,7 @@ export default function AdminRolesPage() {
                               <button
                                 onClick={() => deleteRole(role)}
                                 disabled={saving || role.is_system}
-                                className="rounded-xl bg-red-600 px-3 py-2 text-xs font-extrabold text-white hover:bg-red-700 disabled:opacity-40 shadow-md transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
+                                className="rounded-xl bg-red-600 px-3 py-2 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-40"
                               >
                                 Delete
                               </button>
@@ -833,7 +833,7 @@ function RoleCard({
         <button
           onClick={onEdit}
           disabled={saving}
-          className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-extrabold text-slate-900 hover:bg-slate-100 disabled:opacity-50 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 shadow-sm"
+          className="border border-slate-200 bg-slate-700 px-4 py-2 text-sm hover:bg-slate-800 disabled:opacity-50 font-black text-white rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
         >
           Edit
         </button>
@@ -841,11 +841,11 @@ function RoleCard({
         <button
           onClick={onToggle}
           disabled={saving}
-          className={`rounded-xl px-4 py-2 text-sm font-extrabold text-white disabled:opacity-50 ${
- role.is_active
- ? "bg-amber-600 hover:bg-amber-700"
- : "bg-emerald-600 hover:bg-emerald-700"
- } shadow-md transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200`}
+          className={`rounded-xl px-4 py-2 text-sm font-semibold text-white disabled:opacity-50 ${
+            role.is_active
+              ? "bg-amber-600 hover:bg-amber-700"
+              : "bg-emerald-600 hover:bg-emerald-700"
+          }`}
         >
           {role.is_active ? "Deactivate" : "Activate"}
         </button>
@@ -853,7 +853,7 @@ function RoleCard({
         <button
           onClick={onDelete}
           disabled={saving || role.is_system}
-          className="rounded-xl bg-red-600 px-4 py-2 text-sm font-extrabold text-white hover:bg-red-700 disabled:opacity-40 shadow-md transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
+          className="bg-red-600 px-4 py-2 text-sm text-white hover:bg-red-700 disabled:opacity-40 font-black rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
         >
           Delete
         </button>
@@ -900,9 +900,9 @@ function TabButton({
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-2xl px-4 py-3 text-sm font-extrabold transition ${
- active ? "bg-blue-600 text-white shadow-sm" : "bg-white text-white hover:bg-slate-100"
- } duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60`}
+      className={`rounded-2xl px-4 py-3 text-sm font-bold transition ${
+        active ? "bg-blue-600 text-white shadow-sm" : "bg-white text-slate-700 hover:bg-slate-100"
+      }`}
     >
       {label}
     </button>

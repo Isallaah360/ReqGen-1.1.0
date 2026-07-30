@@ -17,7 +17,7 @@ export default function FinanceModulePlaceholder({ eyebrow, title, description, 
         <h1 className="mt-3 text-3xl font-black tracking-tight sm:text-5xl">{title}</h1>
         <p className="mt-4 max-w-3xl text-base font-semibold leading-7 text-slate-200">{description}</p>
         <div className="mt-7 flex flex-wrap gap-3">
-          <Link href="/finance" className="rounded-xl border border-white/20 bg-white/10 px-5 py-3 text-sm font-black text-white transition hover:bg-white/15 duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60 shadow-sm text-slate-900">
+          <Link href="/finance" className="border border-white/20 bg-white/10 px-5 py-3 text-sm text-white hover:bg-white/15 font-black rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60">
             Finance Control Centre
           </Link>
           <span className="rounded-xl bg-amber-500 px-5 py-3 text-sm font-black text-slate-950">{phase}</span>

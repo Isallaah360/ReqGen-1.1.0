@@ -834,7 +834,7 @@ export default function SubheadsPage() {
             <button
               onClick={() => load({ silent: true })}
               disabled={refreshing || printing || exporting || saving}
-              className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-extrabold text-slate-900 shadow-sm hover:bg-slate-100 disabled:opacity-60 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-100 disabled:opacity-60"
             >
               {refreshing ? "Refreshing..." : "Refresh"}
             </button>
@@ -842,7 +842,7 @@ export default function SubheadsPage() {
             <button
               onClick={startCreate}
               disabled={!canManage || refreshing || printing || exporting || saving}
-              className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-extrabold text-white shadow-sm hover:bg-blue-700 disabled:opacity-60 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
+              className="bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700 disabled:opacity-60 font-black rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed"
             >
               Add Subhead
             </button>
@@ -850,7 +850,7 @@ export default function SubheadsPage() {
             <button
               onClick={printSubheadsReport}
               disabled={refreshing || printing || exporting || saving}
-              className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-extrabold text-white shadow-sm hover:bg-blue-700 disabled:opacity-60 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
+              className="bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700 disabled:opacity-60 font-black rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed"
             >
               {printing ? "Preparing..." : "Print / Save PDF"}
             </button>
@@ -858,7 +858,7 @@ export default function SubheadsPage() {
             <button
               onClick={exportSubheadsExcel}
               disabled={refreshing || printing || exporting || saving}
-              className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-extrabold text-white shadow-sm hover:bg-emerald-700 disabled:opacity-60 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
+              className="bg-emerald-600 px-4 py-2 text-sm text-white hover:bg-emerald-700 disabled:opacity-60 font-black rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed"
             >
               {exporting ? "Exporting..." : "Export Excel"}
             </button>
@@ -866,7 +866,7 @@ export default function SubheadsPage() {
             <button
               onClick={openBanks}
               disabled={refreshing || printing || exporting || saving}
-              className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-extrabold text-slate-900 shadow-sm hover:bg-slate-100 disabled:opacity-60 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
+              className="border border-slate-200 bg-slate-700 px-4 py-2 text-sm hover:bg-slate-800 disabled:opacity-60 font-black text-white rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed"
             >
               IET Banks
             </button>
@@ -875,7 +875,7 @@ export default function SubheadsPage() {
               <button
                 onClick={openFinanceAudit}
                 disabled={refreshing || printing || exporting || saving}
-                className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-extrabold text-slate-900 shadow-sm hover:bg-slate-100 disabled:opacity-60 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
+                className="border border-slate-200 bg-slate-700 px-4 py-2 text-sm hover:bg-slate-800 disabled:opacity-60 font-black text-white rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed"
               >
                 Audit & Reconciliation
               </button>
@@ -884,7 +884,7 @@ export default function SubheadsPage() {
             <button
               onClick={backToFinance}
               disabled={refreshing || printing || exporting || saving}
-              className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-extrabold text-slate-900 shadow-sm hover:bg-slate-100 disabled:opacity-60 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
+              className="border border-slate-200 bg-slate-700 px-4 py-2 text-sm hover:bg-slate-800 disabled:opacity-60 font-black text-white rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed"
             >
               Back to Finance
             </button>
@@ -1114,7 +1114,7 @@ function SubheadForm({
           <button
             onClick={onCancel}
             disabled={saving}
-            className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-extrabold text-slate-900 hover:bg-slate-100 disabled:opacity-60 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 shadow-sm"
+            className="border border-slate-200 bg-slate-700 px-4 py-2 text-sm hover:bg-slate-800 disabled:opacity-60 font-black text-white rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed"
           >
             Cancel Edit
           </button>
@@ -1237,7 +1237,7 @@ function SubheadForm({
           <button
             onClick={onSave}
             disabled={!canManage || saving}
-            className="ml-auto rounded-2xl bg-blue-600 px-5 py-3 text-sm font-extrabold text-white shadow-sm hover:bg-blue-700 disabled:opacity-60 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
+            className="ml-auto bg-blue-600 px-5 py-3 text-sm text-white hover:bg-blue-700 disabled:opacity-60 font-black rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed"
           >
             {saving ? "Saving..." : editId ? "Update Subhead" : "Create Subhead"}
           </button>
@@ -1353,7 +1353,7 @@ function SubheadTable({
                       <button
                         disabled={!canManage || saving}
                         onClick={() => onEdit(s)}
-                        className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-extrabold text-slate-900 hover:bg-slate-100 disabled:opacity-50 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 shadow-sm"
+                        className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-50"
                       >
                         Edit
                       </button>
@@ -1361,9 +1361,9 @@ function SubheadTable({
                       <button
                         disabled={!canManage || saving}
                         onClick={() => onToggle(s, !s.is_active)}
-                        className={`rounded-xl px-3 py-2 text-xs font-extrabold text-white disabled:opacity-50 ${
- s.is_active ? "bg-amber-600 hover:bg-amber-700" : "bg-emerald-600 hover:bg-emerald-700"
- } shadow-md transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200`}
+                        className={`rounded-xl px-3 py-2 text-xs font-semibold text-white disabled:opacity-50 ${
+                          s.is_active ? "bg-amber-600 hover:bg-amber-700" : "bg-emerald-600 hover:bg-emerald-700"
+                        }`}
                       >
                         {s.is_active ? "Deactivate" : "Activate"}
                       </button>
@@ -1371,7 +1371,7 @@ function SubheadTable({
                       <button
                         disabled={!canManage || saving}
                         onClick={() => onDelete(s)}
-                        className="rounded-xl bg-red-600 px-3 py-2 text-xs font-extrabold text-white hover:bg-red-700 disabled:opacity-50 shadow-md transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
+                        className="rounded-xl bg-red-600 px-3 py-2 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-50"
                       >
                         {Number(s.request_count || 0) > 0 ||
                         Number(s.approved_allocation || 0) > 0 ||
@@ -1467,7 +1467,7 @@ function SubheadMobileCard({
         <button
           disabled={!canManage || saving}
           onClick={onEdit}
-          className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-extrabold text-slate-900 hover:bg-slate-100 disabled:opacity-50 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 shadow-sm"
+          className="border border-slate-200 bg-slate-700 px-4 py-2 text-sm hover:bg-slate-800 disabled:opacity-50 font-black text-white rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
         >
           Edit
         </button>
@@ -1475,9 +1475,9 @@ function SubheadMobileCard({
         <button
           disabled={!canManage || saving}
           onClick={onToggle}
-          className={`rounded-xl px-4 py-2 text-sm font-extrabold text-white disabled:opacity-50 ${
- s.is_active ? "bg-amber-600 hover:bg-amber-700" : "bg-emerald-600 hover:bg-emerald-700"
- } shadow-md transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200`}
+          className={`rounded-xl px-4 py-2 text-sm font-semibold text-white disabled:opacity-50 ${
+            s.is_active ? "bg-amber-600 hover:bg-amber-700" : "bg-emerald-600 hover:bg-emerald-700"
+          }`}
         >
           {s.is_active ? "Deactivate" : "Activate"}
         </button>
@@ -1485,7 +1485,7 @@ function SubheadMobileCard({
         <button
           disabled={!canManage || saving}
           onClick={onDelete}
-          className="rounded-xl bg-red-600 px-4 py-2 text-sm font-extrabold text-white hover:bg-red-700 disabled:opacity-50 shadow-md transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
+          className="bg-red-600 px-4 py-2 text-sm text-white hover:bg-red-700 disabled:opacity-50 font-black rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {Number(s.request_count || 0) > 0 ||
           Number(s.approved_allocation || 0) > 0 ||
@@ -1533,7 +1533,7 @@ function CompletedRequestsPanel({
         <button
           onClick={onRefresh}
           disabled={refreshing || printing || exporting || saving}
-          className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-extrabold text-slate-900 hover:bg-slate-100 disabled:opacity-60 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 shadow-sm"
+          className="border border-slate-200 bg-slate-700 px-4 py-2 text-sm hover:bg-slate-800 disabled:opacity-60 font-black text-white rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed"
         >
           {refreshing ? "Refreshing..." : "Refresh"}
         </button>
@@ -1595,7 +1595,7 @@ function CompletedRequestsPanel({
                   <td className="px-4 py-4 text-right">
                     <button
                       onClick={() => onPrint(r.id)}
-                      className="rounded-xl bg-blue-600 px-4 py-2 text-xs font-extrabold text-white hover:bg-blue-700 shadow-md transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60"
+                      className="rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700"
                     >
                       Print
                     </button>
@@ -1615,9 +1615,9 @@ function TabButton({ label, active, onClick }: { label: string; active: boolean;
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-2xl px-4 py-3 text-sm font-extrabold transition ${
- active ? "bg-blue-600 text-white shadow-sm" : "bg-white text-white hover:bg-slate-100"
- } duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60`}
+      className={`rounded-2xl px-4 py-3 text-sm font-bold transition ${
+        active ? "bg-blue-600 text-white shadow-sm" : "bg-white text-slate-700 hover:bg-slate-100"
+      }`}
     >
       {label}
     </button>

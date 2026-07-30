@@ -1051,7 +1051,7 @@ export default function PaymentVouchersPage() {
             <button
               type="button"
               onClick={() => router.push("/dashboard")}
-              className="mt-5 rounded-xl bg-blue-600 px-4 py-2 text-sm font-extrabold text-white hover:bg-blue-700 shadow-md transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60"
+              className="mt-5 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
             >
               Back to Dashboard
             </button>
@@ -1170,7 +1170,7 @@ export default function PaymentVouchersPage() {
                   type="button"
                   onClick={clearSelection}
                   disabled={selectedRequests.length === 0 || generating}
-                  className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-extrabold text-slate-900 hover:bg-slate-100 disabled:opacity-50 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 shadow-sm"
+                  className="border border-slate-200 bg-slate-700 px-4 py-3 text-sm hover:bg-slate-800 disabled:opacity-50 font-black text-white rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   Clear Selection
                 </button>
@@ -1179,7 +1179,7 @@ export default function PaymentVouchersPage() {
                   type="button"
                   onClick={openGenerateModalFromSelection}
                   disabled={!selectionSummary.valid || generating}
-                  className="rounded-xl bg-blue-600 px-4 py-3 text-sm font-extrabold text-white hover:bg-blue-700 disabled:opacity-50 shadow-md transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
+                  className="bg-blue-600 px-4 py-3 text-sm text-white hover:bg-blue-700 disabled:opacity-50 font-black rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {selectedRequests.length > 1 ? "Generate Combined PV" : "Generate PV"}
                 </button>
@@ -1283,7 +1283,7 @@ export default function PaymentVouchersPage() {
                         <button
                           type="button"
                           onClick={() => openRequest(r.id)}
-                          className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-extrabold text-slate-900 hover:bg-slate-100 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60 shadow-sm"
+                          className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-900 hover:bg-slate-100"
                         >
                           Request
                         </button>
@@ -1292,7 +1292,7 @@ export default function PaymentVouchersPage() {
                           type="button"
                           onClick={() => openGenerateModalSingle(r)}
                           disabled={generating || Boolean(deletingId)}
-                          className="rounded-xl bg-blue-600 px-3 py-2 text-xs font-extrabold text-white hover:bg-blue-700 disabled:opacity-50 shadow-md transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
+                          className="rounded-xl bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
                         >
                           Single PV
                         </button>
@@ -1301,10 +1301,10 @@ export default function PaymentVouchersPage() {
                           type="button"
                           onClick={() => toggleSelectRequest(r)}
                           disabled={generating}
-                          className={`rounded-xl px-3 py-2 text-xs font-extrabold text-white disabled:opacity-50 ${checked
- ? "bg-red-600 hover:bg-red-700"
- : "bg-purple-600 hover:bg-purple-700"
- } shadow-md transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200`}
+                          className={`rounded-xl px-3 py-2 text-xs font-semibold text-white disabled:opacity-50 ${checked
+                              ? "bg-red-600 hover:bg-red-700"
+                              : "bg-purple-600 hover:bg-purple-700"
+                            }`}
                         >
                           {checked ? "Remove" : "Add"}
                         </button>
@@ -1457,7 +1457,7 @@ export default function PaymentVouchersPage() {
                       <button
                         type="button"
                         onClick={() => openVoucher(v.id)}
-                        className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-extrabold text-slate-900 hover:bg-slate-100 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60 shadow-sm"
+                        className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-900 hover:bg-slate-100"
                       >
                         View
                       </button>
@@ -1465,7 +1465,7 @@ export default function PaymentVouchersPage() {
                       <button
                         type="button"
                         onClick={() => printVoucher(v.id)}
-                        className="rounded-xl bg-blue-600 px-3 py-2 text-xs font-extrabold text-white hover:bg-blue-700 shadow-md transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60"
+                        className="rounded-xl bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-700"
                       >
                         Print
                       </button>
@@ -1475,7 +1475,7 @@ export default function PaymentVouchersPage() {
                           type="button"
                           onClick={() => deleteVoucher(v)}
                           disabled={deletingId === v.id || generating}
-                          className="rounded-xl bg-red-600 px-3 py-2 text-xs font-extrabold text-white hover:bg-red-700 disabled:opacity-50 shadow-md transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
+                          className="rounded-xl bg-red-600 px-3 py-2 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-50"
                         >
                           {deletingId === v.id ? "Deleting..." : "Delete"}
                         </button>
@@ -1536,7 +1536,7 @@ export default function PaymentVouchersPage() {
                   <button
                     type="button"
                     onClick={() => openVoucher(v.id)}
-                    className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-extrabold text-slate-900 hover:bg-slate-100 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60 shadow-sm"
+                    className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
                   >
                     View
                   </button>
@@ -1544,7 +1544,7 @@ export default function PaymentVouchersPage() {
                   <button
                     type="button"
                     onClick={() => printVoucher(v.id)}
-                    className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-extrabold text-white hover:bg-blue-700 shadow-md transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
                   >
                     Print
                   </button>
@@ -1554,7 +1554,7 @@ export default function PaymentVouchersPage() {
                       type="button"
                       onClick={() => deleteVoucher(v)}
                       disabled={deletingId === v.id || generating}
-                      className="rounded-xl bg-red-600 px-4 py-2 text-sm font-extrabold text-white hover:bg-red-700 disabled:opacity-50 shadow-md transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
+                      className="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
                     >
                       {deletingId === v.id ? "Deleting..." : "Delete"}
                     </button>
@@ -1581,7 +1581,7 @@ export default function PaymentVouchersPage() {
                 <button
                   type="button"
                   onClick={closeManualVoucher}
-                  className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-extrabold hover:bg-slate-100 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60 shadow-sm text-slate-900"
+                  className="border border-slate-200 bg-slate-700 px-3 py-2 text-sm hover:bg-slate-800 font-black text-white rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   ✕
                 </button>
@@ -1720,7 +1720,7 @@ export default function PaymentVouchersPage() {
                   type="button"
                   onClick={closeManualVoucher}
                   disabled={manualSaving}
-                  className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-extrabold text-slate-900 hover:bg-slate-100 disabled:opacity-60 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 shadow-sm"
+                  className="border border-slate-200 bg-slate-700 px-4 py-3 text-sm hover:bg-slate-800 disabled:opacity-60 font-black text-white rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed"
                 >
                   Cancel
                 </button>
@@ -1729,7 +1729,7 @@ export default function PaymentVouchersPage() {
                   type="button"
                   onClick={createManualVoucher}
                   disabled={manualSaving}
-                  className="rounded-xl bg-emerald-600 px-4 py-3 text-sm font-extrabold text-white hover:bg-emerald-700 disabled:opacity-60 shadow-md transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
+                  className="bg-emerald-600 px-4 py-3 text-sm text-white hover:bg-emerald-700 disabled:opacity-60 font-black rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed"
                 >
                   {manualSaving ? "Creating..." : "Create Manual Voucher"}
                 </button>
@@ -1756,7 +1756,7 @@ export default function PaymentVouchersPage() {
                 <button
                   type="button"
                   onClick={closeGenerateModal}
-                  className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-extrabold hover:bg-slate-100 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60 shadow-sm text-slate-900"
+                  className="border border-slate-200 bg-slate-700 px-3 py-2 text-sm hover:bg-slate-800 font-black text-white rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   ✕
                 </button>
@@ -1916,7 +1916,7 @@ export default function PaymentVouchersPage() {
                   type="button"
                   onClick={closeGenerateModal}
                   disabled={generating}
-                  className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-extrabold text-slate-900 hover:bg-slate-100 disabled:opacity-60 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 shadow-sm"
+                  className="border border-slate-200 bg-slate-700 px-4 py-3 text-sm hover:bg-slate-800 disabled:opacity-60 font-black text-white rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed"
                 >
                   Cancel
                 </button>
@@ -1925,7 +1925,7 @@ export default function PaymentVouchersPage() {
                   type="button"
                   onClick={generateVoucher}
                   disabled={generating}
-                  className="rounded-xl bg-blue-600 px-4 py-3 text-sm font-extrabold text-white hover:bg-blue-700 disabled:opacity-60 shadow-md transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
+                  className="bg-blue-600 px-4 py-3 text-sm text-white hover:bg-blue-700 disabled:opacity-60 font-black rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed"
                 >
                   {generating ? "Generating..." : "Generate Voucher"}
                 </button>

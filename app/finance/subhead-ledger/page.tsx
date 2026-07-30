@@ -321,8 +321,8 @@ export default function SubheadLedgerPage() {
           <h1>Subhead Ledger</h1>
           <p>Review allocations, reservations, expenditure, available balances and linked finance transactions for every subhead.</p>
           <div className="hero-actions">
-            <Link href="/finance" className="ghost-button transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60">Finance Control Centre</Link>
-            <Link href="/finance/account-ledger" className="blue-button transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60">Account Ledger</Link>
+            <Link href="/finance" className="ghost-button">Finance Control Centre</Link>
+            <Link href="/finance/account-ledger" className="blue-button">Account Ledger</Link>
           </div>
         </div>
         <div className="hero-summary">
@@ -348,13 +348,13 @@ export default function SubheadLedgerPage() {
         <div className="field date"><label>FROM</label><input type="date" value={fromDate} onChange={(event) => setFromDate(event.target.value)} /></div>
         <div className="field date"><label>TO</label><input type="date" value={toDate} onChange={(event) => setToDate(event.target.value)} /></div>
         <div className="control-actions">
-          <button type="button" className="refresh-button transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60" onClick={() => void loadData(true)} disabled={refreshing}>
+          <button type="button" className="refresh-button bg-slate-700 hover:bg-slate-800 px-4 py-2.5 font-black text-white rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60" onClick={() => void loadData(true)} disabled={refreshing}>
             <span aria-hidden="true">↻</span>{refreshing ? "Refreshing…" : "Refresh Ledger"}
           </button>
-          <button type="button" className="export-button transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60" onClick={exportCsv} disabled={!selected}>
+          <button type="button" className="export-button bg-slate-700 hover:bg-slate-800 px-4 py-2.5 font-black text-white rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60" onClick={exportCsv} disabled={!selected}>
             <span aria-hidden="true">⇩</span>Export Excel / CSV
           </button>
-          <button type="button" className="print-button transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60" onClick={() => window.print()} disabled={!selected}>
+          <button type="button" className="print-button bg-slate-700 hover:bg-slate-800 px-4 py-2.5 font-black text-white rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60" onClick={() => window.print()} disabled={!selected}>
             <span aria-hidden="true">⎙</span>Print / Save PDF
           </button>
         </div>

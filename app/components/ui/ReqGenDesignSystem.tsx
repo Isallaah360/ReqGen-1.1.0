@@ -54,7 +54,7 @@ export function ExecutiveHero({ eyebrow, title, description, actions, meta }: { 
     <div className="pointer-events-none absolute -right-16 -top-20 h-72 w-72 rounded-full bg-cyan-400/20 blur-3xl reqgen-float" />
     <div className="pointer-events-none absolute -bottom-28 left-1/3 h-64 w-64 rounded-full bg-violet-500/20 blur-3xl" />
     <div className="relative z-10 flex flex-col gap-7 xl:flex-row xl:items-end xl:justify-between">
-      <div className="max-w-3xl"><div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-bold uppercase tracking-[0.2em] text-cyan-100"><Icon name="dashboard" className="h-4 w-4" />{eyebrow}</div><h1 className="text-3xl font-black tracking-tight sm:text-4xl lg:text-5xl">{title}</h1><p className="mt-4 max-w-2xl text-sm leading-7 text-slate-200 sm:text-base">{description}</p>{meta && <div className="mt-5">{meta}</div>}</div>
+      <div className="max-w-3xl"><div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-black uppercase tracking-[0.2em] text-cyan-100"><Icon name="dashboard" className="h-4 w-4" />{eyebrow}</div><h1 className="text-3xl font-black tracking-tight sm:text-4xl lg:text-5xl">{title}</h1><p className="mt-4 max-w-2xl text-sm leading-7 text-slate-200 sm:text-base">{description}</p>{meta && <div className="mt-5">{meta}</div>}</div>
       {actions && <div className="flex flex-wrap gap-3">{actions}</div>}
     </div>
   </section>;
@@ -63,13 +63,13 @@ export function ExecutiveHero({ eyebrow, title, description, actions, meta }: { 
 export function ActionButton({ href, onClick, icon = "arrow", children, variant = "light", disabled = false }: { href?: string; onClick?: () => void; icon?: string; children: ReactNode; variant?: "light" | "primary" | "ghost"; disabled?: boolean }) {
   const cls = variant === "primary" ? "bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-950/20" : variant === "ghost" ? "border border-white/20 bg-white/10 text-white hover:bg-white/20" : "bg-white text-slate-900 hover:bg-slate-100 shadow-lg shadow-slate-950/10";
   const content = <><Icon name={icon} className="h-4 w-4" /><span>{children}</span></>;
-  if (href) return <Link href={href} className={`inline-flex h-11 items-center justify-center gap-2 rounded-xl px-4 text-sm font-extrabold transition duration-200 hover:-translate-y-0.5 ${cls} focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60`}>{content}</Link>;
-  return <button type="button" onClick={onClick} disabled={disabled} className={`inline-flex h-11 items-center justify-center gap-2 rounded-xl px-4 text-sm font-extrabold transition duration-200 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 ${cls} focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200`}>{content}</button>;
+  if (href) return <Link href={href} className={`inline-flex h-11 items-center justify-center gap-2 rounded-xl px-4 text-sm font-black transition duration-200 hover:-translate-y-0.5 ${cls}`}>{content}</Link>;
+  return <button type="button" onClick={onClick} disabled={disabled} className={`inline-flex h-11 items-center justify-center gap-2 rounded-xl px-4 text-sm font-black transition duration-200 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 ${cls}`}>{content}</button>;
 }
 
 export function StatCard({ label, value, note, icon, tone = "blue", progress }: { label: string; value: ReactNode; note?: string; icon: string; tone?: Tone; progress?: number }) {
   const t = tones[tone];
-  return <article className={`group relative overflow-hidden rounded-2xl border p-5 shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl ${t.card}`}><div className="flex items-start justify-between gap-4"><div><p className="text-xs font-extrabold uppercase tracking-[0.16em] text-slate-500">{label}</p><div className="mt-2 text-3xl font-black tracking-tight text-slate-950">{value}</div>{note && <p className="mt-2 text-xs leading-5 text-slate-500">{note}</p>}</div><div className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl shadow-lg transition group-hover:scale-105 ${t.icon}`}><Icon name={icon} /></div></div>{typeof progress === "number" && <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-slate-200"><div className={`h-full rounded-full ${t.bar}`} style={{ width: `${Math.min(100, Math.max(0, progress))}%` }} /></div>}</article>;
+  return <article className={`group relative overflow-hidden rounded-2xl border p-5 shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl ${t.card}`}><div className="flex items-start justify-between gap-4"><div><p className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">{label}</p><div className="mt-2 text-3xl font-black tracking-tight text-slate-950">{value}</div>{note && <p className="mt-2 text-xs leading-5 text-slate-500">{note}</p>}</div><div className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl shadow-lg transition group-hover:scale-105 ${t.icon}`}><Icon name={icon} /></div></div>{typeof progress === "number" && <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-slate-200"><div className={`h-full rounded-full ${t.bar}`} style={{ width: `${Math.min(100, Math.max(0, progress))}%` }} /></div>}</article>;
 }
 
 export function SectionCard({ title, description, icon = "chart", action, children, className = "" }: { title: string; description?: string; icon?: string; action?: ReactNode; children: ReactNode; className?: string }) {
@@ -78,12 +78,12 @@ export function SectionCard({ title, description, icon = "chart", action, childr
 
 export function QuickAction({ href, title, description, icon, tone = "blue" }: { href: string; title: string; description: string; icon: string; tone?: Tone }) {
   const t = tones[tone];
-  return <Link href={href} className={`group flex min-h-[118px] items-start gap-4 rounded-2xl border p-4 transition duration-300 hover:-translate-y-1 hover:shadow-lg ${t.card} focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60`}><div className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl ${t.icon}`}><Icon name={icon} /></div><div><h3 className="font-extrabold text-slate-950 group-hover:text-blue-700">{title}</h3><p className="mt-1 text-xs leading-5 text-slate-500">{description}</p></div></Link>;
+  return <Link href={href} className={`group flex min-h-[118px] items-start gap-4 rounded-2xl border p-4 transition duration-300 hover:-translate-y-1 hover:shadow-lg ${t.card}`}><div className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl ${t.icon}`}><Icon name={icon} /></div><div><h3 className="font-black text-slate-950 group-hover:text-blue-700">{title}</h3><p className="mt-1 text-xs leading-5 text-slate-500">{description}</p></div></Link>;
 }
 
 export function StatusBadge({ children, tone = "slate" }: { children: ReactNode; tone?: Tone }) {
   const map: Record<Tone,string> = { navy:"border-slate-300 bg-slate-100 text-slate-800", blue:"border-blue-200 bg-blue-50 text-blue-700", cyan:"border-cyan-200 bg-cyan-50 text-cyan-700", emerald:"border-emerald-200 bg-emerald-50 text-emerald-700", violet:"border-violet-200 bg-violet-50 text-violet-700", amber:"border-amber-200 bg-amber-50 text-amber-800", rose:"border-rose-200 bg-rose-50 text-rose-700", slate:"border-slate-200 bg-slate-50 text-slate-700" };
-  return <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-extrabold uppercase tracking-wide ${map[tone]}`}>{children}</span>;
+  return <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-black uppercase tracking-wide ${map[tone]}`}>{children}</span>;
 }
 
 export function SkeletonDashboard() {

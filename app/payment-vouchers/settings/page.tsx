@@ -407,14 +407,14 @@ export default function PaymentVoucherSettingsPage() {
             <div className="mt-5 flex flex-wrap gap-2">
               <button
                 onClick={backToVouchers}
-                className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-extrabold text-white hover:bg-blue-700 shadow-md transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60"
+                className="bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700 font-black rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 Back to Vouchers
               </button>
 
               <button
                 onClick={goDashboard}
-                className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-extrabold text-slate-900 hover:bg-slate-100 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60 shadow-sm"
+                className="border border-slate-200 bg-slate-700 px-4 py-2 text-sm hover:bg-slate-800 font-black text-white rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 Dashboard
               </button>
@@ -494,7 +494,7 @@ export default function PaymentVoucherSettingsPage() {
               <button
                 onClick={resetForm}
                 disabled={saving}
-                className="rounded-xl border border-slate-300 bg-slate-900 px-4 py-2 text-sm font-black text-white shadow-sm hover:bg-slate-800 disabled:opacity-60 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
+                className="border border-slate-300 bg-slate-900 px-4 py-2 text-sm text-white hover:bg-slate-800 disabled:opacity-60 font-black rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed"
               >
                 Cancel Edit
               </button>
@@ -543,7 +543,7 @@ export default function PaymentVoucherSettingsPage() {
               <button
                 onClick={save}
                 disabled={saving}
-                className="w-full rounded-2xl bg-gradient-to-r from-blue-700 to-cyan-600 px-5 py-3 text-sm font-black text-white shadow-md transition hover:-translate-y-0.5 hover:shadow-lg disabled:opacity-60 duration-200 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
+                className="w-full bg-gradient-to-r from-blue-700 to-cyan-600 px-5 py-3 text-sm text-white hover:-translate-y-0.5 disabled:opacity-60 font-black rounded-xl shadow-sm transition-all duration-200 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed"
               >
                 {saving ? "Saving..." : editId ? "Update" : "Add"}
               </button>
@@ -616,7 +616,7 @@ export default function PaymentVoucherSettingsPage() {
                       setSignatoryType(row.signatory_type || "CounterSigner");
                       setActive(row.is_active);
                     }}
-                    className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-extrabold text-slate-900 hover:bg-slate-100 disabled:opacity-50 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 shadow-sm"
+                    className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-50"
                   >
                     Edit
                   </button>
@@ -624,11 +624,11 @@ export default function PaymentVoucherSettingsPage() {
                   <button
                     disabled={saving}
                     onClick={() => toggleActive(row)}
-                    className={`rounded-xl px-4 py-2 text-sm font-extrabold text-white disabled:opacity-50 ${
- row.is_active
- ? "bg-amber-600 hover:bg-amber-700"
- : "bg-emerald-600 hover:bg-emerald-700"
- } shadow-md transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200`}
+                    className={`rounded-xl px-4 py-2 text-sm font-semibold text-white disabled:opacity-50 ${
+                      row.is_active
+                        ? "bg-amber-600 hover:bg-amber-700"
+                        : "bg-emerald-600 hover:bg-emerald-700"
+                    }`}
                   >
                     {row.is_active ? "Deactivate" : "Activate"}
                   </button>
@@ -636,7 +636,7 @@ export default function PaymentVoucherSettingsPage() {
                   <button
                     disabled={saving}
                     onClick={() => del(row)}
-                    className="rounded-xl bg-red-600 px-4 py-2 text-sm font-extrabold text-white hover:bg-red-700 disabled:opacity-50 shadow-md transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
+                    className="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
                   >
                     Delete
                   </button>
@@ -718,7 +718,7 @@ export default function PaymentVoucherSettingsPage() {
                           setSignatoryType(row.signatory_type || "CounterSigner");
                           setActive(row.is_active);
                         }}
-                        className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-extrabold text-slate-900 hover:bg-slate-100 disabled:opacity-50 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 shadow-sm"
+                        className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-50"
                       >
                         Edit
                       </button>
@@ -726,11 +726,11 @@ export default function PaymentVoucherSettingsPage() {
                       <button
                         disabled={saving}
                         onClick={() => toggleActive(row)}
-                        className={`rounded-xl px-3 py-2 text-xs font-extrabold text-white disabled:opacity-50 ${
- row.is_active
- ? "bg-amber-600 hover:bg-amber-700"
- : "bg-emerald-600 hover:bg-emerald-700"
- } shadow-md transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200`}
+                        className={`rounded-xl px-3 py-2 text-xs font-semibold text-white disabled:opacity-50 ${
+                          row.is_active
+                            ? "bg-amber-600 hover:bg-amber-700"
+                            : "bg-emerald-600 hover:bg-emerald-700"
+                        }`}
                       >
                         {row.is_active ? "Off" : "On"}
                       </button>
@@ -738,7 +738,7 @@ export default function PaymentVoucherSettingsPage() {
                       <button
                         disabled={saving}
                         onClick={() => del(row)}
-                        className="rounded-xl bg-red-600 px-3 py-2 text-xs font-extrabold text-white hover:bg-red-700 disabled:opacity-50 shadow-md transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
+                        className="rounded-xl bg-red-600 px-3 py-2 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-50"
                       >
                         Delete
                       </button>

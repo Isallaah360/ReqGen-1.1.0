@@ -8,7 +8,7 @@ const toneClasses: Record<ActionTone, string> = {
   primary:
     "border-blue-600 bg-blue-600 text-white shadow-blue-950/20 hover:border-blue-500 hover:bg-blue-500 focus-visible:ring-blue-300",
   secondary:
-    "border-cyan-400 bg-cyan-400 text-slate-950 shadow-cyan-950/20 hover:border-cyan-300 hover:bg-cyan-300 focus-visible:ring-cyan-200",
+    "border-cyan-400 bg-cyan-700 text-white shadow-cyan-950/20 hover:border-cyan-300 hover:bg-cyan-800 focus-visible:ring-cyan-200",
   success:
     "border-emerald-600 bg-emerald-600 text-white shadow-emerald-950/20 hover:border-emerald-500 hover:bg-emerald-500 focus-visible:ring-emerald-200",
   violet:
@@ -32,7 +32,7 @@ export function ActionButton({
   return (
     <button
       {...props}
-      className={`inline-flex h-12 min-w-[148px] items-center justify-center gap-2 rounded-xl border px-5 text-sm font-extrabold shadow-lg transition duration-200 hover:-translate-y-0.5 hover:shadow-xl focus-visible:outline-none focus-visible:ring-4 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 ${toneClasses[tone]} ${className}`}
+      className={`inline-flex h-12 min-w-[148px] items-center justify-center gap-2 rounded-xl border px-5 text-sm font-black shadow-lg transition duration-200 hover:-translate-y-0.5 hover:shadow-xl focus-visible:outline-none focus-visible:ring-4 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 ${toneClasses[tone]} ${className}`}
     >
       {icon ? <span className="flex h-5 w-5 shrink-0 items-center justify-center">{icon}</span> : null}
       <span className="whitespace-nowrap">{children}</span>

@@ -128,7 +128,7 @@ function ForgotPasswordContent() {
                             <button
                                 type="submit"
                                 disabled={sending || !validEmail}
-                                className="w-full rounded-2xl bg-blue-600 px-4 py-3 text-sm font-black text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60 shadow-md duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
+                                className="w-full bg-blue-600 px-4 py-3 text-sm text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60 font-black rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
                             >
                                 {sending ? "Sending Reset Link..." : "Send Password Reset Link"}
                             </button>
@@ -152,7 +152,7 @@ function ForgotPasswordContent() {
                                     setMsg(null);
                                     setErr(null);
                                 }}
-                                className="mt-4 rounded-xl border border-blue-200 bg-white px-4 py-2 text-sm font-extrabold text-blue-700 hover:bg-blue-50 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60 shadow-sm"
+                                className="mt-4 rounded-xl border border-blue-200 bg-white px-4 py-2 text-sm font-bold text-blue-700 hover:bg-blue-50"
                             >
                                 Send Again
                             </button>
@@ -160,11 +160,11 @@ function ForgotPasswordContent() {
                     )}
 
                     <div className="mt-6 flex flex-wrap items-center justify-between gap-3 text-sm">
-                        <Link href="/login" className="font-extrabold text-blue-700 hover:underline transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60">
+                        <Link href="/login" className="font-bold text-blue-700 hover:underline">
                             Back to Login
                         </Link>
 
-                        <Link href="/" className="font-extrabold text-slate-600 hover:text-slate-900 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60">
+                        <Link href="/" className="font-bold text-slate-600 hover:text-slate-900">
                             Homepage
                         </Link>
                     </div>

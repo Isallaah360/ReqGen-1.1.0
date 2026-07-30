@@ -1318,7 +1318,7 @@ export default function RequestDetailsPage() {
                     <button
                       onClick={goToEdit}
                       disabled={saving || verifyingCode || assigningSubhead}
-                      className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-extrabold text-slate-900 hover:bg-slate-100 disabled:opacity-60 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 shadow-sm"
+                      className="w-full border border-slate-200 bg-slate-700 px-4 py-3 text-sm hover:bg-slate-800 disabled:opacity-60 font-black text-white rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed"
                     >
                       Edit
                     </button>
@@ -1328,7 +1328,7 @@ export default function RequestDetailsPage() {
                     <button
                       onClick={() => openFresh2faModal("Delete")}
                       disabled={saving || verifyingCode || assigningSubhead}
-                      className="w-full rounded-xl bg-red-600 px-4 py-3 text-sm font-extrabold text-white hover:bg-red-700 disabled:opacity-60 shadow-md transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
+                      className="w-full rounded-xl bg-red-600 px-4 py-3 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-60"
                     >
                       {saving || verifyingCode ? "Working..." : "Delete"}
                     </button>
@@ -1423,7 +1423,7 @@ export default function RequestDetailsPage() {
                         !selectedSubheadId ||
                         !selectedSubheadCanCoverAmount
                       }
-                      className="mt-4 w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-black text-white hover:bg-blue-700 disabled:opacity-60 shadow-md transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
+                      className="mt-4 w-full bg-blue-600 px-4 py-3 text-sm text-white hover:bg-blue-700 disabled:opacity-60 font-black rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed"
                     >
                       {assigningSubhead ? "Assigning & Reserving..." : "Assign Subhead & Reserve Funds"}
                     </button>
@@ -1498,7 +1498,7 @@ export default function RequestDetailsPage() {
                               href={a.signed_url}
                               target="_blank"
                               rel="noreferrer"
-                              className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-center text-sm font-bold text-slate-900 hover:bg-slate-100 sm:w-auto"
+                              className="w-full border border-slate-200 bg-slate-700 px-4 py-3 text-center text-sm hover:bg-slate-800 sm:w-auto font-black text-white rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
                             >
                               Open Attachment
                             </a>
@@ -1506,7 +1506,7 @@ export default function RequestDetailsPage() {
                             <button
                               type="button"
                               disabled
-                              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-extrabold text-slate-400 sm:w-auto transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60"
+                              className="w-full border border-slate-200 bg-slate-700 px-4 py-3 text-sm sm:w-auto font-black text-white rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
                             >
                               File Link Unavailable
                             </button>
@@ -1517,7 +1517,7 @@ export default function RequestDetailsPage() {
                               type="button"
                               onClick={() => checkAttachmentPersonally(a)}
                               disabled={checkingAttachmentId === a.id}
-                              className="w-full rounded-xl bg-emerald-600 px-4 py-3 text-sm font-extrabold text-white hover:bg-emerald-700 disabled:opacity-60 sm:w-auto shadow-md transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
+                              className="w-full rounded-xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white hover:bg-emerald-700 disabled:opacity-60 sm:w-auto"
                             >
                               {checkingAttachmentId === a.id ? "Checking..." : "I Have Checked This ✅"}
                             </button>
@@ -1527,7 +1527,7 @@ export default function RequestDetailsPage() {
                             <button
                               type="button"
                               disabled
-                              className="w-full rounded-xl bg-emerald-50 px-4 py-3 text-sm font-extrabold text-emerald-700 sm:w-auto transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60"
+                              className="w-full bg-emerald-700 px-4 py-3 text-sm sm:w-auto font-black text-white rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
                             >
                               Checked By You ✅
                             </button>
@@ -1622,7 +1622,7 @@ export default function RequestDetailsPage() {
                         needsSubheadAssignment ||
                         (hasAttachments && !allAttachmentsCheckedByMe)
                       }
-                      className="w-full rounded-xl bg-emerald-600 px-4 py-3 text-sm font-extrabold text-white shadow-sm hover:bg-emerald-700 disabled:opacity-60 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
+                      className="w-full rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 disabled:opacity-60"
                     >
                       {approveButtonText}
                     </button>
@@ -1635,7 +1635,7 @@ export default function RequestDetailsPage() {
                         assigningSubhead ||
                         (hasAttachments && !allAttachmentsCheckedByMe)
                       }
-                      className="w-full rounded-xl bg-red-600 px-4 py-3 text-sm font-extrabold text-white shadow-sm hover:bg-red-700 disabled:opacity-60 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
+                      className="w-full rounded-xl bg-red-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-red-700 disabled:opacity-60"
                     >
                       {saving || verifyingCode ? "Processing..." : "Reject"}
                     </button>
@@ -1738,7 +1738,7 @@ export default function RequestDetailsPage() {
                   mfaAutoSubmittingRef.current = false;
                 }}
                 disabled={verifyingCode || saving}
-                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-extrabold text-slate-900 hover:bg-slate-100 disabled:opacity-60 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 shadow-sm"
+                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
               >
                 Cancel
               </button>
@@ -1747,7 +1747,7 @@ export default function RequestDetailsPage() {
                 type="button"
                 onClick={() => verifyCodeAndContinue()}
                 disabled={verifyingCode || saving || mfaCode.trim().length !== 6}
-                className="w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-extrabold text-white hover:bg-blue-700 disabled:opacity-60 shadow-md transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
+                className="w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white hover:bg-blue-700 disabled:opacity-60"
               >
                 {verifyingCode || saving ? "Verifying automatically..." : "Verify & Continue"}
               </button>

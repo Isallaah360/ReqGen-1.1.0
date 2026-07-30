@@ -527,7 +527,7 @@ export default function ApprovalsPage() {
             <button
               type="button"
               onClick={resetFilters}
-              className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-extrabold text-slate-900 hover:bg-slate-100 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60 shadow-sm"
+              className="border border-slate-200 bg-slate-700 px-4 py-2 text-sm hover:bg-slate-800 font-black text-white rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
             >
               Reset Filters
             </button>
@@ -567,7 +567,7 @@ export default function ApprovalsPage() {
                 key={r.id}
                 type="button"
                 onClick={() => openRequest(r.id)}
-                className="block w-full border-t px-4 py-4 text-left hover:bg-slate-50 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60"
+                className="block w-full border-t px-4 py-4 text-left hover:bg-slate-50"
               >
                 <div className="grid gap-3 md:grid-cols-12 md:items-center">
                   <div className="font-extrabold text-slate-900 md:col-span-2">

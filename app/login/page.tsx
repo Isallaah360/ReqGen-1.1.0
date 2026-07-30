@@ -173,7 +173,7 @@ function LoginPageContent() {
               <button
                 type="button"
                 onClick={goForgotPassword}
-                className="text-xs font-black text-blue-700 hover:underline transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60"
+                className="text-xs hover:underline bg-slate-700 hover:bg-slate-800 px-4 py-2.5 font-black text-white rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 Forgot Password?
               </button>
@@ -196,7 +196,7 @@ function LoginPageContent() {
             type="button"
             onClick={login}
             disabled={saving}
-            className="mt-5 w-full rounded-2xl bg-blue-700 px-4 py-3 text-base font-extrabold text-white hover:bg-blue-800 disabled:opacity-60 shadow-md transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
+            className="mt-5 w-full bg-blue-700 px-4 py-3 text-base text-white hover:bg-blue-800 disabled:opacity-60 font-black rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed"
           >
             {saving ? "Signing in..." : "Login Securely"}
           </button>
@@ -204,7 +204,7 @@ function LoginPageContent() {
           <button
             type="button"
             onClick={goForgotPassword}
-            className="mt-3 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-extrabold text-slate-900 hover:bg-slate-100 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60 shadow-sm"
+            className="mt-3 w-full border border-slate-200 bg-slate-700 px-4 py-3 text-sm hover:bg-slate-800 font-black text-white rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
           >
             Reset Forgotten Password
           </button>
@@ -216,13 +216,13 @@ function LoginPageContent() {
 
           <div className="mt-4 text-center text-sm text-slate-600">
             Don’t have an account?{" "}
-            <Link href="/signup" className="font-extrabold text-blue-700 hover:underline transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60">
+            <Link href="/signup" className="font-bold text-blue-700 hover:underline">
               Sign up
             </Link>
           </div>
 
           <div className="mt-3 text-center text-sm">
-            <Link href="/" className="font-extrabold text-slate-600 hover:text-slate-900 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60">
+            <Link href="/" className="font-bold text-slate-600 hover:text-slate-900">
               Back to Homepage
             </Link>
           </div>

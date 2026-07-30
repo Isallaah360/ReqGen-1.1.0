@@ -55,7 +55,7 @@ export function WorkflowHero({
       <div className="pointer-events-none absolute -bottom-24 left-1/3 h-60 w-60 rounded-full bg-blue-500/25 blur-3xl workflow-float workflow-delay" />
       <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
         <div className="max-w-3xl">
-          <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-bold uppercase tracking-[.22em] text-cyan-100 backdrop-blur">
+          <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-black uppercase tracking-[.22em] text-cyan-100 backdrop-blur">
             <WorkflowIcon name={icon} className="h-4 w-4" />
             {eyebrow}
           </div>
@@ -80,7 +80,7 @@ export function WorkflowAction({
 }) {
   const tones = {
     blue: "bg-blue-600 text-white hover:bg-blue-500 focus:ring-blue-300/40",
-    cyan: "bg-cyan-400 text-slate-950 hover:bg-cyan-300 focus:ring-cyan-200/50",
+    cyan: "bg-cyan-400 text-white hover:bg-cyan-300 focus:ring-cyan-200/50",
     violet: "bg-violet-600 text-white hover:bg-violet-500 focus:ring-violet-300/40",
     emerald: "bg-emerald-500 text-white hover:bg-emerald-400 focus:ring-emerald-300/40",
     rose: "bg-rose-500 text-white hover:bg-rose-400 focus:ring-rose-300/40",
@@ -90,7 +90,7 @@ export function WorkflowAction({
     <button
       type="button"
       {...props}
-      className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-extrabold shadow-sm transition duration-200 hover:-translate-y-0.5 focus:outline-none focus:ring-4 disabled:cursor-not-allowed disabled:opacity-60 ${tones[tone]} ${props.className || ""} focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200`}
+      className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-black shadow-sm transition duration-200 hover:-translate-y-0.5 focus:outline-none focus:ring-4 disabled:cursor-not-allowed disabled:opacity-60 ${tones[tone]} ${props.className || ""}`}
     >
       <WorkflowIcon name={icon} className="h-4 w-4" />
       {children}

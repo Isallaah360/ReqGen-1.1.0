@@ -861,7 +861,7 @@ export default function EditRequestPage() {
                 type="button"
                 onClick={openSaveVerification}
                 disabled={saving || verifyingCode}
-                className="w-full rounded-2xl bg-gradient-to-r from-blue-700 to-cyan-500 px-4 py-3.5 text-sm font-extrabold text-white shadow-lg shadow-blue-900/10 hover:from-blue-600 hover:to-cyan-400 disabled:opacity-60 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
+                className="w-full bg-gradient-to-r from-blue-700 to-cyan-500 px-4 py-3.5 text-sm text-white shadow-lg shadow-blue-900/10 hover:from-blue-600 hover:to-cyan-400 disabled:opacity-60 font-black rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed"
               >
                 {saving
                   ? "Saving..."
@@ -926,7 +926,7 @@ export default function EditRequestPage() {
                   mfaAutoSubmittingRef.current = false;
                 }}
                 disabled={verifyingCode || saving}
-                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-extrabold text-slate-900 hover:bg-slate-100 disabled:opacity-60 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 shadow-sm"
+                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
               >
                 Cancel
               </button>
@@ -935,7 +935,7 @@ export default function EditRequestPage() {
                 type="button"
                 onClick={() => verifyCodeAndSave()}
                 disabled={verifyingCode || saving || mfaCode.trim().length !== 6}
-                className="w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-extrabold text-white hover:bg-blue-700 disabled:opacity-60 shadow-md transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
+                className="w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white hover:bg-blue-700 disabled:opacity-60"
               >
                 {verifyingCode || saving
                   ? "Verifying automatically..."

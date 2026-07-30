@@ -473,7 +473,7 @@ export default function AccountLedgerPage() {
                     </p>
                     <Link
                         href="/finance"
-                        className="mt-7 inline-flex rounded-2xl bg-slate-950 px-5 py-3 font-extrabold text-white shadow-md transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60"
+                        className="mt-7 inline-flex bg-slate-950 px-5 py-3 text-white font-black rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                         Return to Finance Control Centre
                     </Link>
@@ -500,13 +500,13 @@ export default function AccountLedgerPage() {
                             <div className="mt-6 flex flex-wrap gap-3">
                                 <Link
                                     href="/finance"
-                                    className="rounded-2xl border border-white/20 bg-white/10 px-5 py-3 font-extrabold text-white hover:bg-white/15 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60 shadow-sm text-slate-900"
+                                    className="border border-white/20 bg-white/10 px-5 py-3 text-white hover:bg-white/15 font-black rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
                                 >
                                     Finance Control Centre
                                 </Link>
                                 <Link
                                     href="/finance/transactions"
-                                    className="rounded-2xl bg-blue-600 px-5 py-3 font-extrabold text-white hover:bg-blue-500 shadow-md transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60"
+                                    className="bg-blue-600 px-5 py-3 text-white hover:bg-blue-500 font-black rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
                                 >
                                     Transactions Register
                                 </Link>
@@ -625,7 +625,7 @@ export default function AccountLedgerPage() {
                             type="button"
                             onClick={() => void loadLedger(true)}
                             disabled={refreshing}
-                            className="rounded-2xl border border-cyan-200 bg-cyan-50 px-5 py-3 font-extrabold text-cyan-800 transition hover:bg-cyan-100 disabled:cursor-not-allowed disabled:opacity-60 duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
+                            className="rounded-2xl border border-cyan-200 bg-cyan-50 px-5 py-3 font-bold text-cyan-800 transition hover:bg-cyan-100 disabled:cursor-not-allowed disabled:opacity-60"
                         >
                             {refreshing ? "Refreshing..." : "Refresh Ledger"}
                         </button>
@@ -633,14 +633,14 @@ export default function AccountLedgerPage() {
                             type="button"
                             onClick={exportCsv}
                             disabled={!filteredLedger.length}
-                            className="rounded-2xl bg-emerald-600 px-5 py-3 font-extrabold text-white disabled:cursor-not-allowed disabled:opacity-50 shadow-md transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
+                            className="bg-emerald-600 px-5 py-3 text-white disabled:cursor-not-allowed disabled:opacity-50 font-black rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-60"
                         >
                             Export Excel / CSV
                         </button>
                         <button
                             type="button"
                             onClick={() => window.print()}
-                            className="rounded-2xl border border-slate-300 bg-white px-5 py-3 font-extrabold text-slate-800 transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60 shadow-sm"
+                            className="rounded-2xl border border-slate-300 bg-white px-5 py-3 font-bold text-slate-800"
                         >
                             Print / Save PDF
                         </button>
