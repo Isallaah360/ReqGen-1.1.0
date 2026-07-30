@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { REPORT_ACCESS_ROLES } from "@/lib/roles";
+import { PVHero } from "@/app/components/ui/PaymentVoucherUI";
 
 type VoucherRow = {
   id: string;
@@ -1071,25 +1072,19 @@ export default function PaymentVouchersPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4">
-      <div className="mx-auto max-w-7xl py-8">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">
-              Payment Vouchers
-            </h1>
-            <p className="mt-2 text-sm text-slate-600">
-              Official IET payment voucher register for request-based and manual finance payments.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
+    <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,_#eff6ff,_#f8fafc_36%,_#f1f5f9)] px-3 sm:px-4">
+      <div className="mx-auto max-w-[1500px] py-6 sm:py-8">
+        <PVHero
+          eyebrow="Finance Operations"
+          title="Payment Voucher Centre"
+          description="Generate, review, authorize, disburse and audit official IET payment vouchers from one controlled workspace."
+          actions={<>
             {canManualVoucher && (
               <button
                 type="button"
                 onClick={openManualVoucher}
                 disabled={Boolean(deletingId) || generating || refreshing}
-                className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 disabled:opacity-60"
+                className="inline-flex min-h-11 items-center justify-center rounded-xl border border-emerald-500 bg-emerald-600 px-4 py-2.5 text-sm font-extrabold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-emerald-700 disabled:opacity-60"
               >
                 Manual Voucher
               </button>
@@ -1099,7 +1094,7 @@ export default function PaymentVouchersPage() {
               type="button"
               onClick={() => load({ silent: true })}
               disabled={Boolean(deletingId) || generating || refreshing}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-100 disabled:opacity-60"
+              className="inline-flex min-h-11 items-center justify-center rounded-xl border border-cyan-300 bg-cyan-400 px-4 py-2.5 text-sm font-extrabold text-slate-950 shadow-sm transition hover:-translate-y-0.5 hover:bg-cyan-300 disabled:opacity-60"
             >
               {refreshing ? "Refreshing..." : "Refresh"}
             </button>
@@ -1107,9 +1102,9 @@ export default function PaymentVouchersPage() {
             {canViewReports && (
               <button
                 type="button"
-                onClick={() => router.push("/reports#executive-overview")}
+                onClick={() => router.push("/reports#payment-voucher-report")}
                 disabled={Boolean(deletingId) || generating}
-                className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:opacity-60"
+                className="inline-flex min-h-11 items-center justify-center rounded-xl border border-violet-500 bg-violet-600 px-4 py-2.5 text-sm font-extrabold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-violet-700 disabled:opacity-60"
               >
                 PV Reports
               </button>
@@ -1118,20 +1113,20 @@ export default function PaymentVouchersPage() {
             <button
               type="button"
               onClick={() => router.push("/payment-vouchers/settings")}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-100"
+              className="inline-flex min-h-11 items-center justify-center rounded-xl border border-blue-200 bg-blue-50 px-4 py-2.5 text-sm font-extrabold text-blue-800 shadow-sm transition hover:-translate-y-0.5 hover:bg-blue-100"
             >
               PV Settings
             </button>
 
             <button
               type="button"
-              onClick={() => router.push("/finance/subheads")}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-100"
+              onClick={() => router.push("/finance")}
+              className="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-extrabold text-slate-800 shadow-sm transition hover:-translate-y-0.5 hover:bg-slate-100"
             >
               Back to Finance
             </button>
-          </div>
-        </div>
+          </>}
+        />
 
         {msg && (
           <div className="mt-4 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 shadow-sm">

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import { PVHero } from "@/app/components/ui/PaymentVoucherUI";
 
 type SignatoryType = "ChequeSigner" | "CounterSigner" | "Both";
 
@@ -381,7 +382,7 @@ export default function PaymentVoucherSettingsPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-slate-50 px-4">
+      <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,_#eff6ff,_#f8fafc_36%,_#f1f5f9)] px-3 sm:px-4">
         <div className="mx-auto max-w-6xl py-10 text-slate-600">
           Loading PV settings...
         </div>
@@ -391,7 +392,7 @@ export default function PaymentVoucherSettingsPage() {
 
   if (!canAccess) {
     return (
-      <main className="min-h-screen bg-slate-50 px-4">
+      <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,_#eff6ff,_#f8fafc_36%,_#f1f5f9)] px-3 sm:px-4">
         <div className="mx-auto max-w-3xl py-10">
           <div className="rounded-3xl border bg-white p-6 shadow-sm">
             <h1 className="text-xl font-extrabold text-slate-900">
@@ -425,7 +426,7 @@ export default function PaymentVoucherSettingsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4">
+    <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,_#eff6ff,_#f8fafc_36%,_#f1f5f9)] px-3 sm:px-4">
       <div className="mx-auto max-w-6xl py-8">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>

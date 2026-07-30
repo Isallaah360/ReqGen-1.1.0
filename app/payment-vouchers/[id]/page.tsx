@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import { PVHero } from "@/app/components/ui/PaymentVoucherUI";
 
 type VoucherDetail = {
   id: string;
@@ -617,24 +618,18 @@ export default function PaymentVoucherDetailPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4">
-      <div className="mx-auto max-w-6xl py-8">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">
-              Payment Voucher
-            </h1>
-            <p className="mt-2 text-sm text-slate-600">
-              Review, sign, manage and print official IET payment voucher.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
+    <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,_#eff6ff,_#f8fafc_36%,_#f1f5f9)] px-3 sm:px-4">
+      <div className="mx-auto max-w-7xl py-6 sm:py-8">
+        <PVHero
+          eyebrow="Voucher Control Workspace"
+          title={`Payment Voucher ${voucher.voucher_no ? `• ${voucher.voucher_no}` : ""}`}
+          description="Review voucher evidence, complete controlled approvals, manage disbursement and open the protected official print template."
+          actions={<>
             <button
               type="button"
               onClick={() => load({ silent: true })}
               disabled={saving || refreshing}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
+              className="inline-flex min-h-11 items-center justify-center rounded-xl border border-cyan-300 bg-cyan-400 px-4 py-2.5 text-sm font-extrabold text-slate-950 shadow-sm transition hover:-translate-y-0.5 hover:bg-cyan-300 disabled:opacity-60"
             >
               {refreshing ? "Refreshing..." : "Refresh"}
             </button>
@@ -644,7 +639,7 @@ export default function PaymentVoucherDetailPage() {
                 type="button"
                 onClick={goBackToVouchers}
                 disabled={saving}
-                className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
+                className="inline-flex min-h-11 items-center justify-center rounded-xl border border-blue-200 bg-blue-50 px-4 py-2.5 text-sm font-extrabold text-blue-800 shadow-sm transition hover:-translate-y-0.5 hover:bg-blue-100 disabled:opacity-60"
               >
                 Back to Vouchers
               </button>
@@ -654,7 +649,7 @@ export default function PaymentVoucherDetailPage() {
               type="button"
               onClick={openPrimaryRequest}
               disabled={saving}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
+              className="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-extrabold text-slate-800 shadow-sm transition hover:-translate-y-0.5 hover:bg-slate-100 disabled:opacity-60"
             >
               Open Primary Request
             </button>
@@ -663,12 +658,12 @@ export default function PaymentVoucherDetailPage() {
               type="button"
               onClick={printVoucher}
               disabled={saving}
-              className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
+              className="inline-flex min-h-11 items-center justify-center rounded-xl border border-violet-500 bg-violet-600 px-4 py-2.5 text-sm font-extrabold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-violet-700 disabled:opacity-60"
             >
               Print Voucher
             </button>
-          </div>
-        </div>
+          </>}
+        />
 
         {msg && (
           <div className="mt-4 rounded-2xl border bg-white px-4 py-3 text-sm text-slate-800 shadow-sm">
