@@ -93,7 +93,7 @@ function roleSummary(fallbackRole: string | null | undefined, profileRoles: Prof
     .join(", ");
 }
 
-function IconApprovals({ className = "h-5 w-5" }: IconProps) {
+function IconApprovals({ className = "h-6 w-6" }: IconProps) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <path
@@ -113,7 +113,7 @@ function IconApprovals({ className = "h-5 w-5" }: IconProps) {
   );
 }
 
-function IconDashboard({ className = "h-5 w-5" }: IconProps) {
+function IconDashboard({ className = "h-6 w-6" }: IconProps) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <path
@@ -126,7 +126,7 @@ function IconDashboard({ className = "h-5 w-5" }: IconProps) {
   );
 }
 
-function IconRequests({ className = "h-5 w-5" }: IconProps) {
+function IconRequests({ className = "h-6 w-6" }: IconProps) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <path
@@ -146,7 +146,7 @@ function IconRequests({ className = "h-5 w-5" }: IconProps) {
 }
 
 
-function IconReports({ className = "h-5 w-5" }: IconProps) {
+function IconReports({ className = "h-6 w-6" }: IconProps) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <path d="M5 3h14v18H5V3Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
@@ -155,7 +155,7 @@ function IconReports({ className = "h-5 w-5" }: IconProps) {
   );
 }
 
-function IconFinance({ className = "h-5 w-5" }: IconProps) {
+function IconFinance({ className = "h-6 w-6" }: IconProps) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <path
@@ -169,7 +169,7 @@ function IconFinance({ className = "h-5 w-5" }: IconProps) {
   );
 }
 
-function IconHR({ className = "h-5 w-5" }: IconProps) {
+function IconHR({ className = "h-6 w-6" }: IconProps) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <path
@@ -188,7 +188,7 @@ function IconHR({ className = "h-5 w-5" }: IconProps) {
   );
 }
 
-function IconRegistry({ className = "h-5 w-5" }: IconProps) {
+function IconRegistry({ className = "h-6 w-6" }: IconProps) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <path
@@ -207,7 +207,7 @@ function IconRegistry({ className = "h-5 w-5" }: IconProps) {
   );
 }
 
-function IconAdmin({ className = "h-5 w-5" }: IconProps) {
+function IconAdmin({ className = "h-6 w-6" }: IconProps) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <path
@@ -227,7 +227,7 @@ function IconAdmin({ className = "h-5 w-5" }: IconProps) {
   );
 }
 
-function IconNotifications({ className = "h-5 w-5" }: IconProps) {
+function IconNotifications({ className = "h-6 w-6" }: IconProps) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <path
@@ -246,7 +246,7 @@ function IconNotifications({ className = "h-5 w-5" }: IconProps) {
   );
 }
 
-function IconLogout({ className = "h-5 w-5" }: IconProps) {
+function IconLogout({ className = "h-6 w-6" }: IconProps) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <path
@@ -268,7 +268,7 @@ function IconLogout({ className = "h-5 w-5" }: IconProps) {
 
 function IconButtonTooltip({ label }: { label: string }) {
   return (
-    <span className="pointer-events-none absolute left-1/2 top-full z-[70] mt-2 -translate-x-1/2 whitespace-nowrap rounded-lg border border-blue-400/20 bg-blue-950/95 px-2.5 py-1 text-xs font-bold text-white shadow-lg backdrop-blur opacity-0 shadow-lg transition group-hover:opacity-100">
+    <span className="pointer-events-none absolute left-1/2 top-full z-[70] mt-2 -translate-x-1/2 whitespace-nowrap rounded-xl border border-white/10 bg-slate-950/95 px-3 py-1.5 text-xs font-black tracking-wide text-white shadow-xl backdrop-blur opacity-0 translate-y-1 transition duration-200 group-hover:translate-y-0 group-hover:opacity-100">
       {label}
     </span>
   );
@@ -363,15 +363,15 @@ export default function NavBar() {
   }, [hrLinks, pathname]);
 
   const iconLinkClass = (href: string) =>
-    `group relative inline-flex h-11 w-11 items-center justify-center rounded-2xl border text-sm font-semibold transition ${isActiveLink(href)
-      ? "border-blue-600 bg-gradient-to-br from-blue-700 to-cyan-600 text-white shadow-lg shadow-blue-200/70"
-      : "border-slate-200 bg-white text-slate-700 hover:-translate-y-0.5 hover:border-cyan-300 hover:bg-gradient-to-br hover:from-blue-50 hover:to-cyan-50 hover:text-blue-700 hover:shadow-md"
+    `group relative inline-flex h-12 w-12 items-center justify-center rounded-xl border-2 text-sm font-black transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-cyan-200 ${isActiveLink(href)
+      ? "border-blue-700 bg-gradient-to-br from-blue-700 via-blue-700 to-cyan-600 text-white shadow-lg shadow-blue-300/60 -translate-y-0.5"
+      : "border-slate-200 bg-white text-slate-700 shadow-sm hover:-translate-y-1 hover:border-cyan-400 hover:bg-gradient-to-br hover:from-blue-50 hover:to-cyan-50 hover:text-blue-700 hover:shadow-lg"
     }`;
 
   const dropdownIconButtonClass = (active: boolean) =>
-    `group relative inline-flex h-11 w-11 items-center justify-center rounded-2xl border text-sm font-semibold transition ${active
-      ? "border-blue-600 bg-gradient-to-br from-blue-700 to-cyan-600 text-white shadow-lg shadow-blue-200/70"
-      : "border-slate-200 bg-white text-slate-700 hover:-translate-y-0.5 hover:border-cyan-300 hover:bg-gradient-to-br hover:from-blue-50 hover:to-cyan-50 hover:text-blue-700 hover:shadow-md"
+    `group relative inline-flex h-12 w-12 items-center justify-center rounded-xl border-2 text-sm font-black transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-cyan-200 ${active
+      ? "border-blue-700 bg-gradient-to-br from-blue-700 via-blue-700 to-cyan-600 text-white shadow-lg shadow-blue-300/60 -translate-y-0.5"
+      : "border-slate-200 bg-white text-slate-700 shadow-sm hover:-translate-y-1 hover:border-cyan-400 hover:bg-gradient-to-br hover:from-blue-50 hover:to-cyan-50 hover:text-blue-700 hover:shadow-lg"
     }`;
 
   const dropdownItemClass = (href: string) =>
@@ -685,10 +685,10 @@ export default function NavBar() {
   const showLockedMfaNavigation = signedIn && !mfaVerified && !isPublicPath(pathname);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-blue-100 bg-white/90 backdrop-blur-xl/90 backdrop-blur-xl">
-      <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-2.5">
-        <Link href="/" className="shrink-0 text-lg font-bold tracking-tight text-slate-950">
-          ReqGen <span className="text-slate-400">1.1.0</span>
+    <header className="sticky top-0 z-50 border-b border-slate-200/80 bg-white/95 shadow-sm backdrop-blur-xl">
+      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3">
+        <Link href="/" className="shrink-0 rounded-xl bg-gradient-to-r from-slate-950 to-blue-900 px-3 py-2 text-lg font-black tracking-tight text-white shadow-md">
+          ReqGen <span className="text-cyan-300">1.1.0</span>
         </Link>
 
         {checkingSecurity && signedIn && !isPublicPath(pathname) && (
@@ -706,7 +706,7 @@ export default function NavBar() {
             <button
               type="button"
               onClick={() => router.push("/mfa")}
-              className="reqgen-btn reqgen-btn-cyan rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-900 hover:bg-slate-100"
+              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-900 hover:bg-slate-100"
             >
               Verify 2FA
             </button>
@@ -714,7 +714,7 @@ export default function NavBar() {
             <button
               type="button"
               onClick={logout}
-              className="reqgen-btn reqgen-btn-rose rounded-xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-700"
+              className="rounded-xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-700"
             >
               Logout
             </button>
@@ -723,7 +723,7 @@ export default function NavBar() {
 
         {showFullNavigation && (
           <div className="flex min-w-0 items-center gap-2">
-            <nav className="hidden items-center gap-2 md:flex">
+            <nav className="hidden items-center gap-2.5 md:flex">
               <div className="relative" ref={approvalRef}>
                 <button
                   type="button"
@@ -734,16 +734,16 @@ export default function NavBar() {
                     setOpenHR(false);
                     setOpenMobileMenu(false);
                   }}
-                  className={`reqgen-btn reqgen-btn-slate group relative inline-flex h-11 w-11 items-center justify-center rounded-2xl border transition ${
+                  className={`group relative inline-flex h-12 w-12 items-center justify-center rounded-xl border-2 transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-cyan-200 ${
                     isActiveLink("/approvals")
-                      ? "border-blue-600 bg-gradient-to-br from-blue-700 to-cyan-600 text-white shadow-lg shadow-blue-200/70"
+                      ? "border-blue-700 bg-gradient-to-br from-blue-700 via-blue-700 to-cyan-600 text-white shadow-lg shadow-blue-300/60 -translate-y-0.5"
                       : actionCount > 0
-                        ? "border-blue-200 bg-gradient-to-br from-blue-50 to-cyan-50 text-blue-700 shadow-sm hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-md"
-                        : "border-slate-200 bg-white text-slate-700 hover:-translate-y-0.5 hover:border-cyan-300 hover:bg-gradient-to-br hover:from-blue-50 hover:to-cyan-50 hover:text-blue-700 hover:shadow-md"
+                        ? "border-blue-300 bg-gradient-to-br from-blue-50 to-cyan-50 text-blue-700 shadow-md hover:-translate-y-1 hover:border-cyan-400 hover:shadow-lg"
+                        : "border-slate-200 bg-white text-slate-700 shadow-sm hover:-translate-y-1 hover:border-cyan-400 hover:bg-gradient-to-br hover:from-blue-50 hover:to-cyan-50 hover:text-blue-700 hover:shadow-lg"
                   }`}
                 >
                   <IconNotifications />
-                  <span className="absolute bottom-2 right-2 grid h-3.5 w-3.5 place-items-center rounded-full bg-emerald-500 text-[8px] font-black leading-none text-white ring-2 ring-white">✓</span>
+                  <span className="absolute bottom-1.5 right-1.5 grid h-4 w-4 place-items-center rounded-full bg-emerald-500 text-[9px] font-black leading-none text-white shadow-sm ring-2 ring-white">✓</span>
                   <IconButtonTooltip label="Action Centre" />
                   {actionCount > 0 && (
                     <span className="absolute -right-2 -top-2 min-w-6 rounded-full bg-rose-600 px-1.5 py-0.5 text-center text-xs font-black text-white shadow-sm ring-2 ring-white">
@@ -768,14 +768,14 @@ export default function NavBar() {
                       <button
                         type="button"
                         onClick={() => setActionTab("actions")}
-                        className={`reqgen-btn reqgen-btn-slate rounded-xl px-3 py-2.5 text-xs font-black transition ${actionTab === "actions" ? "bg-blue-600 text-white shadow-sm" : "bg-white text-slate-700 hover:bg-blue-50 hover:text-blue-700"}`}
+                        className={`rounded-xl px-3 py-2.5 text-xs font-black transition ${actionTab === "actions" ? "bg-blue-600 text-white shadow-sm" : "bg-white text-slate-700 hover:bg-blue-50 hover:text-blue-700"}`}
                       >
                         WAITING FOR ACTION ({pendingApprovalCount})
                       </button>
                       <button
                         type="button"
                         onClick={() => setActionTab("updates")}
-                        className={`reqgen-btn reqgen-btn-slate rounded-xl px-3 py-2.5 text-xs font-black transition ${actionTab === "updates" ? "bg-blue-600 text-white shadow-sm" : "bg-white text-slate-700 hover:bg-blue-50 hover:text-blue-700"}`}
+                        className={`rounded-xl px-3 py-2.5 text-xs font-black transition ${actionTab === "updates" ? "bg-blue-600 text-white shadow-sm" : "bg-white text-slate-700 hover:bg-blue-50 hover:text-blue-700"}`}
                       >
                         RECENT UPDATES ({unreadNotificationCount})
                       </button>
@@ -816,7 +816,7 @@ export default function NavBar() {
                           </div>
                         )}
                         <div className="border-t bg-slate-50 p-3">
-                          <button type="button" onClick={() => goTo("/approvals")} className="reqgen-btn reqgen-btn-blue w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-black text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-200">
+                          <button type="button" onClick={() => goTo("/approvals")} className="w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-black text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-200">
                             OPEN FULL APPROVALS INBOX
                           </button>
                         </div>
@@ -825,7 +825,7 @@ export default function NavBar() {
                       <>
                         <div className="flex items-center justify-between border-b px-4 py-3">
                           <span className="text-xs font-black uppercase tracking-wide text-slate-500">Latest workflow updates</span>
-                          <button type="button" onClick={markAllNotificationsRead} disabled={unreadNotificationCount === 0} className="reqgen-btn reqgen-btn-rose rounded-lg px-2 py-1 text-xs font-black text-blue-700 transition hover:bg-blue-50 disabled:cursor-not-allowed disabled:text-slate-400">MARK ALL READ</button>
+                          <button type="button" onClick={markAllNotificationsRead} disabled={unreadNotificationCount === 0} className="rounded-lg px-2 py-1 text-xs font-black text-blue-700 transition hover:bg-blue-50 disabled:cursor-not-allowed disabled:text-slate-400">MARK ALL READ</button>
                         </div>
                         {notificationItems.length === 0 ? (
                           <div className="px-5 py-8 text-center text-sm font-semibold text-slate-500">No recent update.</div>
@@ -877,7 +877,7 @@ export default function NavBar() {
                 <button
                   type="button"
                   onClick={() => goTo("/finance")}
-                  className={`reqgen-btn reqgen-btn-blue ${iconLinkClass("/finance")}`}
+                  className={iconLinkClass("/finance")}
                 >
                   <IconFinance />
                   <IconButtonTooltip label="Finance" />
@@ -893,7 +893,7 @@ export default function NavBar() {
                       setOpenApprovalPanel(false);
                       setOpenMobileMenu(false);
                     }}
-                    className={`reqgen-btn reqgen-btn-blue ${dropdownIconButtonClass(hrActive)}`}
+                    className={dropdownIconButtonClass(hrActive)}
                   >
                     <IconHR />
                     <IconButtonTooltip label="HR" />
@@ -916,7 +916,7 @@ export default function NavBar() {
                             key={item.href}
                             type="button"
                             onClick={() => goTo(item.href)}
-                            className={`reqgen-btn reqgen-btn-blue ${dropdownItemClass(item.href)}`}
+                            className={dropdownItemClass(item.href)}
                           >
                             <div className="text-sm font-extrabold">{item.label}</div>
                             {item.description && (
@@ -936,7 +936,7 @@ export default function NavBar() {
                 <button
                   type="button"
                   onClick={() => goTo("/registry")}
-                  className={`reqgen-btn reqgen-btn-blue ${iconLinkClass("/registry")}`}
+                  className={iconLinkClass("/registry")}
                 >
                   <IconRegistry />
                   <IconButtonTooltip label="Registry Desk" />
@@ -959,7 +959,7 @@ export default function NavBar() {
                   setOpenHR(false);
                   setOpenApprovalPanel(false);
                 }}
-                className={`reqgen-btn reqgen-btn-slate rounded-xl border px-3 py-2 text-sm font-bold transition ${openMobileMenu
+                className={`inline-flex min-h-11 items-center rounded-xl border-2 px-4 py-2 text-sm font-black shadow-sm transition-all ${openMobileMenu
                     ? "border-blue-600 bg-gradient-to-br from-blue-700 to-cyan-600 text-white shadow-lg shadow-blue-200/70"
                     : "border-slate-200 bg-white text-slate-900 hover:bg-slate-100"
                   }`}
@@ -979,11 +979,11 @@ export default function NavBar() {
                   <button
                     type="button"
                     onClick={() => goTo("/approvals")}
-                    className={`reqgen-btn reqgen-btn-rose ${mobileItemClass("/approvals")}`}
+                    className={mobileItemClass("/approvals")}
                   >
                     <div className="flex items-center justify-between gap-3">
                       <span className="inline-flex items-center gap-2">
-                        <IconNotifications className="h-4 w-4" />
+                        <IconNotifications className="h-5 w-5" />
                         Action Centre
                       </span>
                       {actionCount > 0 && (
@@ -998,27 +998,27 @@ export default function NavBar() {
                   <button
                     type="button"
                     onClick={() => goTo("/dashboard")}
-                    className={`reqgen-btn reqgen-btn-slate ${mobileItemClass("/dashboard")}`}
+                    className={mobileItemClass("/dashboard")}
                   >
-                    <span className="inline-flex items-center gap-2"><IconDashboard className="h-4 w-4" />Dashboard</span>
+                    <span className="inline-flex items-center gap-2"><IconDashboard className="h-5 w-5" />Dashboard</span>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => goTo("/requests")}
-                    className={`reqgen-btn reqgen-btn-blue ${mobileItemClass("/requests")}`}
+                    className={mobileItemClass("/requests")}
                   >
-                    <span className="inline-flex items-center gap-2"><IconRequests className="h-4 w-4" />My Requests</span>
+                    <span className="inline-flex items-center gap-2"><IconRequests className="h-5 w-5" />My Requests</span>
                   </button>
 
                   {canFinance && (
                     <button
                       type="button"
                       onClick={() => goTo("/finance")}
-                      className={`reqgen-btn reqgen-btn-violet ${mobileItemClass("/finance")}`}
+                      className={mobileItemClass("/finance")}
                     >
                       <div className="inline-flex items-center gap-2">
-                        <IconFinance className="h-4 w-4" />
+                        <IconFinance className="h-5 w-5" />
                         Finance
                       </div>
                       <div className={mobileItemDescriptionClass("/finance")}>
@@ -1038,10 +1038,10 @@ export default function NavBar() {
                           key={item.href}
                           type="button"
                           onClick={() => goTo(item.href)}
-                          className={`reqgen-btn reqgen-btn-blue ${mobileItemClass(item.href)}`}
+                          className={mobileItemClass(item.href)}
                         >
                           <div className="inline-flex items-center gap-2">
-                            <IconHR className="h-4 w-4" />
+                            <IconHR className="h-5 w-5" />
                             {item.label}
                           </div>
                           {item.description && (
@@ -1063,10 +1063,10 @@ export default function NavBar() {
                       <button
                         type="button"
                         onClick={() => goTo("/registry")}
-                        className={`reqgen-btn reqgen-btn-blue ${mobileItemClass("/registry")}`}
+                        className={mobileItemClass("/registry")}
                       >
                         <span className="inline-flex items-center gap-2">
-                          <IconRegistry className="h-4 w-4" />
+                          <IconRegistry className="h-5 w-5" />
                           Registry Desk
                         </span>
                         <div className={mobileItemDescriptionClass("/registry")}>
@@ -1085,10 +1085,10 @@ export default function NavBar() {
                       <button
                         type="button"
                         onClick={() => goTo("/admin")}
-                        className={`reqgen-btn reqgen-btn-blue ${mobileItemClass("/admin")}`}
+                        className={mobileItemClass("/admin")}
                       >
                         <span className="inline-flex items-center gap-2">
-                          <IconAdmin className="h-4 w-4" />
+                          <IconAdmin className="h-5 w-5" />
                           Admin
                         </span>
                       </button>
@@ -1099,10 +1099,10 @@ export default function NavBar() {
                     <button
                       type="button"
                       onClick={logout}
-                      className="reqgen-btn reqgen-btn-rose w-full rounded-xl bg-rose-600 px-4 py-3 text-left text-sm font-bold text-white hover:bg-rose-700"
+                      className="w-full rounded-xl bg-rose-600 px-4 py-3 text-left text-sm font-bold text-white hover:bg-rose-700"
                     >
                       <span className="inline-flex items-center gap-2">
-                        <IconLogout className="h-4 w-4" />
+                        <IconLogout className="h-5 w-5" />
                         Logout
                       </span>
                     </button>
@@ -1114,7 +1114,7 @@ export default function NavBar() {
             <button
               type="button"
               onClick={logout}
-              className="reqgen-btn reqgen-btn-rose reqgen-btn-icon group relative hidden h-11 w-11 items-center justify-center rounded-2xl bg-rose-600 text-white transition hover:bg-rose-700 sm:inline-flex"
+              className="group relative hidden h-11 w-11 items-center justify-center rounded-2xl bg-rose-600 text-white transition hover:bg-rose-700 sm:inline-flex"
             >
               <IconLogout />
               <IconButtonTooltip label="Logout" />
