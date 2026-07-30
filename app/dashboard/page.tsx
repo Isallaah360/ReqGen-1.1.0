@@ -37,6 +37,18 @@ type SecurityStatus = {
   factorCount: number;
 };
 
+type RecentActivity = {
+  id: string;
+  request_id: string;
+  request_no: string;
+  request_title: string;
+  action_type: string;
+  actor_name: string;
+  actor_role_name: string;
+  to_stage: string;
+  created_at: string;
+};
+
 type DashboardCounts = {
   pendingMyApproval: number;
   mySubmittedRequests: number;
@@ -146,6 +158,8 @@ export default function DashboardPage() {
     nextLevel: null,
     factorCount: 0,
   });
+
+  const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
 
   const [counts, setCounts] = useState<DashboardCounts>({
     pendingMyApproval: 0,
@@ -313,6 +327,48 @@ export default function DashboardPage() {
     });
   }
 
+  async function loadRecentActivity() {
+    const { data: historyRows, error } = await supabase
+      .from("request_history")
+      .select("id,request_id,action_type,to_stage,created_at,actor_name,actor_role_name")
+      .order("created_at", { ascending: false })
+      .limit(8);
+
+    if (error || !historyRows?.length) {
+      setRecentActivity([]);
+      return;
+    }
+
+    const requestIds = Array.from(
+      new Set(historyRows.map((row: any) => row.request_id).filter(Boolean))
+    );
+
+    const { data: requestRows } = requestIds.length
+      ? await supabase.from("requests").select("id,request_no,title").in("id", requestIds)
+      : { data: [] as any[] };
+
+    const requestMap = new Map(
+      (requestRows || []).map((row: any) => [row.id, row])
+    );
+
+    setRecentActivity(
+      historyRows.map((row: any) => {
+        const request = requestMap.get(row.request_id);
+        return {
+          id: row.id,
+          request_id: row.request_id,
+          request_no: request?.request_no || "Request",
+          request_title: request?.title || "Workflow activity",
+          action_type: row.action_type || "Updated",
+          actor_name: row.actor_name || "ReqGen user",
+          actor_role_name: row.actor_role_name || "",
+          to_stage: row.to_stage || "",
+          created_at: row.created_at,
+        };
+      })
+    );
+  }
+
   async function load(options?: { silent?: boolean }) {
     if (options?.silent) {
       setRefreshing(true);
@@ -401,7 +457,7 @@ export default function DashboardPage() {
       setDeptName("");
     }
 
-    await loadCounts(user.id, nextRoleSet);
+    await Promise.all([loadCounts(user.id, nextRoleSet), loadRecentActivity()]);
 
     setLoading(false);
     setRefreshing(false);
@@ -607,9 +663,12 @@ export default function DashboardPage() {
           <div className="relative flex flex-wrap items-start justify-between gap-4">
           <div>
             <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-black uppercase tracking-[0.18em] text-cyan-100 backdrop-blur"><DashboardSparkIcon /> Live workspace</div>
-            <h1 className="text-3xl font-black tracking-tight text-white sm:text-4xl">Dashboard</h1>
+            <h1 className="text-3xl font-black tracking-tight text-white sm:text-4xl">Executive Dashboard</h1>
             <p className="mt-2 text-sm text-blue-100">
-              Welcome back. Here is a clear summary of your work, approvals and account status.
+              Welcome back{profile?.full_name ? `, ${profile.full_name}` : ""}. Here is your live operational overview.
+            </p>
+            <p className="mt-2 text-xs font-bold uppercase tracking-[0.16em] text-cyan-100/90">
+              {new Intl.DateTimeFormat("en-NG", { weekday: "long", day: "numeric", month: "long", year: "numeric" }).format(new Date())}
             </p>
             <p className="mt-1 text-xs font-semibold text-blue-200/80">
               Your view is automatically tailored to your active roles and responsibilities.
@@ -674,7 +733,7 @@ export default function DashboardPage() {
                 </span>
               </div>
 
-              <div className="mt-5 grid gap-4 md:grid-cols-3">
+              <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                 <NumberCountCard
                   label="Pending My Approval"
                   value={counts.pendingMyApproval}
@@ -696,6 +755,14 @@ export default function DashboardPage() {
                   value={counts.myCompletedRequests}
                   helper="Your successful requests"
                   tone="emerald"
+                  onClick={() => router.push("/requests")}
+                />
+
+                <NumberCountCard
+                  label="Rejected / Cancelled"
+                  value={counts.myRejectedRequests}
+                  helper="Requests requiring review"
+                  tone={counts.myRejectedRequests > 0 ? "red" : "slate"}
                   onClick={() => router.push("/requests")}
                 />
               </div>
@@ -808,6 +875,55 @@ export default function DashboardPage() {
                   action. Open the Action Centre to treat them.
                 </div>
               )}
+            </div>
+
+            <div className="mt-6 grid gap-6 xl:grid-cols-[1.35fr_0.65fr]">
+              <section className="rounded-[1.75rem] border border-white/80 bg-white/90 p-6 shadow-xl shadow-blue-900/5 backdrop-blur">
+                <div className="flex flex-wrap items-end justify-between gap-3">
+                  <div>
+                    <div className="text-xs font-black uppercase tracking-[0.16em] text-blue-600">Role-aware shortcuts</div>
+                    <h2 className="mt-1 text-xl font-black text-slate-950">Quick Actions</h2>
+                    <p className="mt-1 text-sm text-slate-600">Open the tools available to your current responsibilities.</p>
+                  </div>
+                  <span className="rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-xs font-black text-blue-700">{quickCards.length} available</span>
+                </div>
+
+                <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {quickCards.map((card) => (
+                    <QuickActionCard key={card.href + card.title} card={card} onOpen={() => router.push(card.href)} />
+                  ))}
+                </div>
+              </section>
+
+              <section className="rounded-[1.75rem] border border-white/80 bg-white/90 p-6 shadow-xl shadow-blue-900/5 backdrop-blur">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <div className="text-xs font-black uppercase tracking-[0.16em] text-violet-600">Live workflow</div>
+                    <h2 className="mt-1 text-xl font-black text-slate-950">Recent Activity</h2>
+                  </div>
+                  <button type="button" onClick={() => router.push("/requests")} className="text-xs font-black text-blue-700 hover:text-blue-900">View all →</button>
+                </div>
+
+                <div className="mt-5 space-y-3">
+                  {recentActivity.length === 0 ? (
+                    <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm font-semibold text-slate-500">No recent workflow activity is visible to your account.</div>
+                  ) : recentActivity.map((item) => (
+                    <button key={item.id} type="button" onClick={() => router.push(`/requests/${item.request_id}`)} className="group w-full rounded-2xl border border-slate-200 bg-slate-50/70 px-4 py-3 text-left transition hover:-translate-y-0.5 hover:border-blue-200 hover:bg-blue-50 hover:shadow-md focus:outline-none focus:ring-4 focus:ring-blue-100">
+                      <div className="flex items-start gap-3">
+                        <span className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-gradient-to-br from-violet-600 to-cyan-500 shadow-sm" />
+                        <span className="min-w-0 flex-1">
+                          <span className="flex items-center justify-between gap-3">
+                            <span className="truncate text-sm font-black text-slate-900">{item.request_no}</span>
+                            <span className="shrink-0 text-[11px] font-bold text-slate-500">{formatActivityTime(item.created_at)}</span>
+                          </span>
+                          <span className="mt-0.5 block truncate text-xs font-semibold text-slate-600">{item.action_type}{item.to_stage ? ` · ${item.to_stage}` : ""}</span>
+                          <span className="mt-1 block truncate text-[11px] text-slate-500">{item.actor_name}{item.actor_role_name ? ` · ${item.actor_role_name}` : ""}</span>
+                        </span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </section>
             </div>
 
             <div className="mt-6 grid gap-4 xl:grid-cols-3">
@@ -954,6 +1070,37 @@ export default function DashboardPage() {
         @media (prefers-reduced-motion: reduce) { .dashboard-enter { animation: none; } }
       `}</style>
     </main>
+  );
+}
+
+function formatActivityTime(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const today = new Date();
+  const sameDay = date.toDateString() === today.toDateString();
+  return new Intl.DateTimeFormat("en-NG", sameDay
+    ? { hour: "2-digit", minute: "2-digit" }
+    : { day: "2-digit", month: "short" }
+  ).format(date);
+}
+
+function QuickActionCard({ card, onOpen }: { card: QuickCard; onOpen: () => void }) {
+  const tones = {
+    blue: "from-blue-600 to-cyan-500 shadow-blue-200",
+    emerald: "from-emerald-600 to-teal-500 shadow-emerald-200",
+    purple: "from-violet-600 to-fuchsia-500 shadow-violet-200",
+    amber: "from-amber-500 to-orange-500 shadow-amber-200",
+    red: "from-rose-600 to-red-500 shadow-rose-200",
+    slate: "from-slate-700 to-slate-500 shadow-slate-200",
+  } as const;
+
+  return (
+    <button type="button" onClick={onOpen} className="group relative min-h-36 overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-sm transition duration-300 hover:-translate-y-1 hover:border-blue-200 hover:shadow-lg focus:outline-none focus:ring-4 focus:ring-blue-100">
+      <span className={`grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br text-lg font-black text-white shadow-md ${tones[card.tone]}`}>→</span>
+      <span className="mt-3 block text-sm font-black text-slate-950">{card.title}</span>
+      <span className="mt-1 line-clamp-2 block text-xs font-medium leading-5 text-slate-600">{card.description}</span>
+      <span className="absolute bottom-3 right-4 text-sm font-black text-blue-600 transition group-hover:translate-x-1">Open →</span>
+    </button>
   );
 }
 
