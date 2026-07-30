@@ -1,1165 +1,374 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
-type RequestRow = {
-    id: string;
-    request_no: string | null;
-    title: string;
-    details: string | null;
-    amount: number | null;
-    status: string | null;
-    current_stage: string | null;
-    current_owner: string | null;
-    created_by: string | null;
-    dept_id: string | null;
-    request_type: string | null;
-    personal_category: string | null;
-    created_at: string;
-    requester_name: string | null;
-    assigned_account_officer_name: string | null;
+type RequestMovementRow = {
+  id: string;
+  status: string | null;
+  current_stage: string | null;
+  dept_id: string | null;
+  request_type: string | null;
+  personal_category: string | null;
+  created_at: string;
 };
 
-type ProfileRow = {
-    id: string;
-    full_name: string | null;
-    role: string | null;
-};
-
-type DepartmentRow = {
-    id: string;
-    name: string;
-};
+type DepartmentRow = { id: string; name: string };
 
 type ProfileRole = {
-    id: string;
-    profile_id: string;
-    role_key: string;
-    role_name: string;
-    is_primary: boolean;
-    is_active: boolean;
+  id: string;
+  profile_id: string;
+  role_key: string;
+  role_name: string;
+  is_primary: boolean;
+  is_active: boolean;
 };
 
-type DepartmentMovement = {
-    dept_id: string;
-    dept_name: string;
-    total: number;
-    today: number;
-    po: number;
-    dod: number;
-    dinAdmin: number;
-    registrar: number;
-    hod: number;
-    hr: number;
-    dg: number;
-    account: number;
-    hrFiling: number;
-    completed: number;
-    rejected: number;
-};
+type StageKey =
+  | "PO"
+  | "DOD"
+  | "DINADMIN"
+  | "REGISTRAR"
+  | "HOD"
+  | "HR"
+  | "DG"
+  | "ACCOUNT"
+  | "HRFILING"
+  | "COMPLETED"
+  | "REJECTED";
 
-type StageFilter =
-    | "ALL"
-    | "TODAY"
-    | "PO"
-    | "DOD"
-    | "DINADMIN"
-    | "REGISTRAR"
-    | "HOD"
-    | "DG"
-    | "HRFILING"
-    | "HR"
-    | "ACCOUNT"
-    | "COMPLETED"
-    | "REJECTED";
+const STAGES: Array<{
+  key: StageKey;
+  label: string;
+  short: string;
+  tone: string;
+  bar: string;
+}> = [
+  { key: "PO", label: "Programme Officer", short: "PO", tone: "bg-indigo-600", bar: "bg-indigo-500" },
+  { key: "DOD", label: "Director of Department", short: "DOD", tone: "bg-blue-600", bar: "bg-blue-500" },
+  { key: "DINADMIN", label: "DIN Administration", short: "DIN", tone: "bg-cyan-600", bar: "bg-cyan-500" },
+  { key: "REGISTRAR", label: "Registrar", short: "REG", tone: "bg-sky-600", bar: "bg-sky-500" },
+  { key: "HOD", label: "Head of Department", short: "HOD", tone: "bg-emerald-600", bar: "bg-emerald-500" },
+  { key: "HR", label: "Human Resources", short: "HR", tone: "bg-teal-600", bar: "bg-teal-500" },
+  { key: "DG", label: "Director-General", short: "DG", tone: "bg-violet-600", bar: "bg-violet-500" },
+  { key: "ACCOUNT", label: "Account Officer", short: "ACCT", tone: "bg-amber-600", bar: "bg-amber-500" },
+  { key: "HRFILING", label: "HR Filing", short: "FILE", tone: "bg-fuchsia-600", bar: "bg-fuchsia-500" },
+  { key: "COMPLETED", label: "Completed / Paid", short: "DONE", tone: "bg-green-600", bar: "bg-green-500" },
+  { key: "REJECTED", label: "Rejected / Closed", short: "CLOSED", tone: "bg-rose-600", bar: "bg-rose-500" },
+];
 
-function roleKey(role: string | null | undefined) {
-    return (role || "")
-        .trim()
-        .toLowerCase()
-        .replace(/\s+/g, "")
-        .replace(/_/g, "");
+function roleKey(value: string | null | undefined) {
+  return String(value || "").trim().toLowerCase().replace(/[\s_]+/g, "");
 }
 
-function stageKey(stage: string | null | undefined) {
-    return (stage || "")
-        .trim()
-        .toUpperCase()
-        .replace(/\s+/g, "")
-        .replace(/_/g, "");
+function stageKey(value: string | null | undefined): StageKey {
+  const key = String(value || "").trim().toUpperCase().replace(/[\s_]+/g, "");
+  if (["PO", "DOD", "DINADMIN", "REGISTRAR", "HOD", "HR", "DG", "ACCOUNT", "HRFILING", "COMPLETED"].includes(key)) {
+    return key as StageKey;
+  }
+  if (["REJECTED", "DELETED", "CANCELLED"].includes(key)) return "REJECTED";
+  return "PO";
 }
 
-function categoryKey(category: string | null | undefined) {
-    return (category || "")
-        .trim()
-        .toUpperCase()
-        .replace(/\s+/g, "")
-        .replace(/_/g, "");
+function isCompleted(row: RequestMovementRow) {
+  const status = String(row.status || "").toLowerCase();
+  return stageKey(row.current_stage) === "COMPLETED" || status.includes("complete") || status.includes("paid") || status.includes("closed");
 }
 
-function normalize(v: string | null | undefined) {
-    return (v || "").toLowerCase().replace(/[^a-z]/g, "");
+function isRejected(row: RequestMovementRow) {
+  const status = String(row.status || "").toLowerCase();
+  const stage = String(row.current_stage || "").toUpperCase();
+  return ["REJECTED", "DELETED", "CANCELLED"].includes(stage) || status.includes("reject") || status.includes("delete") || status.includes("cancel");
+}
+
+function isActive(row: RequestMovementRow) {
+  return !isCompleted(row) && !isRejected(row);
+}
+
+function isToday(value: string) {
+  const d = new Date(value);
+  const now = new Date();
+  return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
+}
+
+function isWithinDays(value: string, days: number) {
+  const time = new Date(value).getTime();
+  return time >= Date.now() - days * 24 * 60 * 60 * 1000;
+}
+
+function requestType(row: RequestMovementRow) {
+  const type = String(row.request_type || "").trim().toUpperCase();
+  const category = String(row.personal_category || "").trim().toUpperCase().replace(/[\s_]+/g, "");
+  if (type === "OFFICIAL") return "Official";
+  if (type === "PERSONAL" && category === "FUND") return "Personal Fund";
+  if (type === "PERSONAL") return "Personal Other";
+  return "Unclassified";
 }
 
 function hasAnyRole(roleSet: Set<string>, roles: string[]) {
-    return roles.some((r) => roleSet.has(roleKey(r)));
+  return roles.some((role) => roleSet.has(roleKey(role)));
 }
 
-function shortDate(d: string | null | undefined) {
-    if (!d) return "—";
-    return new Date(d).toLocaleDateString();
+function pct(value: number, total: number) {
+  return total > 0 ? Math.round((value / total) * 100) : 0;
 }
 
-function shortDateTime(d: string | null | undefined) {
-    if (!d) return "—";
-    return new Date(d).toLocaleString();
+function Icon({ children }: { children: ReactNode }) {
+  return <span className="grid h-11 w-11 place-items-center rounded-2xl bg-white/20 text-white shadow-inner">{children}</span>;
 }
 
-function naira(n: number | null | undefined) {
-    return "₦" + Math.round(Number(n || 0)).toLocaleString();
+function KpiCard({ label, value, note, className, icon }: { label: string; value: number; note: string; className: string; icon: ReactNode }) {
+  return (
+    <section className={`relative overflow-hidden rounded-3xl p-5 text-white shadow-lg ${className}`}>
+      <div className="absolute -right-8 -top-8 h-28 w-28 rounded-full bg-white/10" />
+      <div className="relative flex items-start justify-between gap-4">
+        <div>
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-white/80">{label}</p>
+          <p className="mt-3 text-4xl font-black tracking-tight">{value.toLocaleString()}</p>
+          <p className="mt-2 text-xs font-bold text-white/80">{note}</p>
+        </div>
+        <Icon>{icon}</Icon>
+      </div>
+    </section>
+  );
 }
 
-function isToday(dateText: string | null | undefined) {
-    if (!dateText) return false;
-
-    const d = new Date(dateText);
-    const now = new Date();
-
-    return (
-        d.getFullYear() === now.getFullYear() &&
-        d.getMonth() === now.getMonth() &&
-        d.getDate() === now.getDate()
-    );
-}
-
-function isClosed(r: RequestRow) {
-    const s = String(r.status || "").toLowerCase();
-    const stg = stageKey(r.current_stage);
-
-    return (
-        ["COMPLETED", "REJECTED", "DELETED", "CANCELLED"].includes(stg) ||
-        s.includes("complete") ||
-        s.includes("paid") ||
-        s.includes("reject") ||
-        s.includes("delete") ||
-        s.includes("cancel")
-    );
-}
-
-function isRejected(r: RequestRow) {
-    const s = String(r.status || "").toLowerCase();
-    const stg = stageKey(r.current_stage);
-
-    return (
-        ["REJECTED", "DELETED", "CANCELLED"].includes(stg) ||
-        s.includes("reject") ||
-        s.includes("delete") ||
-        s.includes("cancel")
-    );
-}
-
-function isCompleted(r: RequestRow) {
-    const s = String(r.status || "").toLowerCase();
-    const stg = stageKey(r.current_stage);
-
-    return stg === "COMPLETED" || s.includes("complete") || s.includes("paid");
-}
-
-function requestTypeLabel(r: RequestRow) {
-    if (normalize(r.request_type) === "official") return "Official";
-
-    if (normalize(r.request_type) === "personal") {
-        if (categoryKey(r.personal_category) === "FUND") return "Personal Fund";
-
-        const cat = String(r.personal_category || "").trim();
-
-        if (!cat || categoryKey(cat) === "NONFUND") return "Personal Other";
-
-        return `Personal ${cat}`;
-    }
-
-    return "—";
-}
-
-function amountLabel(r: RequestRow) {
-    if (normalize(r.request_type) === "personal" && categoryKey(r.personal_category) !== "FUND") {
-        return "N/A";
-    }
-
-    return naira(r.amount);
-}
-
-function stageLabel(stage: string | null | undefined) {
-    const s = stageKey(stage);
-
-    if (s === "PO") return "PO";
-    if (s === "DOD") return "DOD";
-    if (s === "DINADMIN") return "DIN Admin";
-    if (s === "REGISTRAR") return "Registrar";
-    if (s === "HOD") return "HOD";
-    if (s === "HR") return "HR";
-    if (s === "DG") return "DG";
-    if (s === "ACCOUNT") return "AccountOfficer";
-    if (s === "HRFILING") return "HR Filing";
-    if (s === "COMPLETED") return "Completed";
-    if (s === "REJECTED") return "Rejected";
-    if (s === "DELETED") return "Deleted";
-    if (s === "CANCELLED") return "Cancelled";
-
-    return stage || "—";
-}
-
-function stageBadgeClass(stage: string | null | undefined, status?: string | null) {
-    const s = stageKey(stage);
-    const st = String(status || "").toLowerCase();
-
-    if (s === "DG") return "border-indigo-200 bg-indigo-50 text-indigo-700";
-    if (s === "HRFILING") return "border-purple-200 bg-purple-50 text-purple-700";
-    if (s === "HR") return "border-blue-200 bg-blue-50 text-blue-700";
-    if (s === "ACCOUNT") return "border-amber-200 bg-amber-50 text-amber-700";
-    if (["PO", "DOD", "HOD", "DINADMIN", "REGISTRAR"].includes(s)) {
-        return "border-emerald-200 bg-emerald-50 text-emerald-700";
-    }
-
-    if (s === "COMPLETED" || st.includes("paid") || st.includes("complete")) {
-        return "border-emerald-200 bg-emerald-50 text-emerald-700";
-    }
-
-    if (["REJECTED", "DELETED", "CANCELLED"].includes(s) || st.includes("reject")) {
-        return "border-red-200 bg-red-50 text-red-700";
-    }
-
-    return "border-slate-200 bg-slate-50 text-slate-700";
-}
-
-function typeBadgeClass(r: RequestRow) {
-    const type = normalize(r.request_type);
-    const cat = categoryKey(r.personal_category);
-
-    if (type === "official") return "border-blue-200 bg-blue-50 text-blue-700";
-    if (cat === "FUND") return "border-indigo-200 bg-indigo-50 text-indigo-700";
-    if (cat === "LEAVE") return "border-emerald-200 bg-emerald-50 text-emerald-700";
-    if (cat === "CONTRACTRENEWAL") return "border-purple-200 bg-purple-50 text-purple-700";
-    if (cat === "RESIGNATION") return "border-red-200 bg-red-50 text-red-700";
-    if (cat === "OTHERS") return "border-amber-200 bg-amber-50 text-amber-800";
-
-    return "border-slate-200 bg-slate-50 text-slate-700";
-}
-
-function roleSummary(fallbackRole: string, roles: ProfileRole[]) {
-    const active = roles.filter((r) => r.is_active);
-
-    if (active.length === 0) return fallbackRole || "Staff";
-
-    return active
-        .slice()
-        .sort((a, b) => {
-            if (a.is_primary && !b.is_primary) return -1;
-            if (!a.is_primary && b.is_primary) return 1;
-            return a.role_name.localeCompare(b.role_name);
-        })
-        .map((r) => r.role_name)
-        .join(", ");
+function MiniBar({ label, value, total, bar }: { label: string; value: number; total: number; bar: string }) {
+  const percentage = pct(value, total);
+  return (
+    <div>
+      <div className="flex items-center justify-between gap-3 text-sm">
+        <span className="font-bold text-slate-700">{label}</span>
+        <span className="font-black text-slate-900">{value} <span className="text-xs text-slate-400">({percentage}%)</span></span>
+      </div>
+      <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-slate-100">
+        <div className={`h-full rounded-full ${bar}`} style={{ width: `${Math.max(percentage, value > 0 ? 4 : 0)}%` }} />
+      </div>
+    </div>
+  );
 }
 
 export default function RegistryPage() {
-    const router = useRouter();
+  const router = useRouter();
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const [role, setRole] = useState("Staff");
+  const [roles, setRoles] = useState<ProfileRole[]>([]);
+  const [rows, setRows] = useState<RequestMovementRow[]>([]);
+  const [departments, setDepartments] = useState<DepartmentRow[]>([]);
 
-    const [loading, setLoading] = useState(true);
-    const [refreshing, setRefreshing] = useState(false);
-    const [msg, setMsg] = useState<string | null>(null);
-    const [copyMsg, setCopyMsg] = useState<string | null>(null);
+  const roleSet = useMemo(() => {
+    const set = new Set<string>([roleKey(role)]);
+    roles.filter((item) => item.is_active).forEach((item) => set.add(roleKey(item.role_key)));
+    return set;
+  }, [role, roles]);
 
-    const [myRole, setMyRole] = useState("Staff");
-    const [myRoles, setMyRoles] = useState<ProfileRole[]>([]);
+  const canAccess = useMemo(() => hasAnyRole(roleSet, ["registry", "admin", "auditor"]), [roleSet]);
 
-    const [requests, setRequests] = useState<RequestRow[]>([]);
-    const [profiles, setProfiles] = useState<ProfileRow[]>([]);
-    const [departments, setDepartments] = useState<DepartmentRow[]>([]);
+  const load = useCallback(async (silent = false) => {
+    silent ? setRefreshing(true) : setLoading(true);
+    setMessage(null);
 
-    const [search, setSearch] = useState("");
-    const [stageFilter, setStageFilter] = useState<StageFilter>("ALL");
-    const [deptFilter, setDeptFilter] = useState("ALL");
-
-    const roleSet = useMemo(() => {
-        const set = new Set<string>();
-
-        if (myRole) set.add(roleKey(myRole));
-
-        myRoles.forEach((r) => {
-            if (r.is_active) set.add(roleKey(r.role_key));
-        });
-
-        return set;
-    }, [myRole, myRoles]);
-
-    const canAccess = useMemo(() => {
-        return hasAnyRole(roleSet, ["admin", "auditor", "registry"]);
-    }, [roleSet]);
-
-    const profileMap = useMemo(() => {
-        const map = new Map<string, ProfileRow>();
-
-        profiles.forEach((p) => {
-            map.set(p.id, p);
-        });
-
-        return map;
-    }, [profiles]);
-
-    const deptMap = useMemo(() => {
-        const map = new Map<string, string>();
-
-        departments.forEach((d) => {
-            map.set(d.id, d.name);
-        });
-
-        return map;
-    }, [departments]);
-
-    const load = useCallback(
-        async (options?: { silent?: boolean }) => {
-            if (options?.silent) {
-                setRefreshing(true);
-            } else {
-                setLoading(true);
-            }
-
-            setMsg(null);
-            setCopyMsg(null);
-
-            const { data: auth } = await supabase.auth.getUser();
-
-            if (!auth.user) {
-                router.push("/login");
-                return;
-            }
-
-            const [profRes, rolesRes] = await Promise.all([
-                supabase.from("profiles").select("role").eq("id", auth.user.id).maybeSingle(),
-
-                supabase
-                    .from("profile_roles")
-                    .select("id,profile_id,role_key,role_name,is_primary,is_active")
-                    .eq("profile_id", auth.user.id)
-                    .eq("is_active", true),
-            ]);
-
-            if (profRes.error) {
-                setMsg("Failed to load your profile: " + profRes.error.message);
-                setLoading(false);
-                setRefreshing(false);
-                return;
-            }
-
-            const fallbackRole = String(profRes.data?.role || "Staff");
-            const activeRoles = (rolesRes.data || []) as ProfileRole[];
-
-            setMyRole(fallbackRole);
-            setMyRoles(activeRoles);
-
-            const nextRoleSet = new Set<string>();
-
-            if (fallbackRole) nextRoleSet.add(roleKey(fallbackRole));
-
-            activeRoles.forEach((r) => {
-                if (r.is_active) nextRoleSet.add(roleKey(r.role_key));
-            });
-
-            const allowed = hasAnyRole(nextRoleSet, ["admin", "auditor", "registry"]);
-
-            if (!allowed) {
-                setMsg("Access denied. Only Registry, Admin and Auditor can access Registry Desk.");
-                setRequests([]);
-                setProfiles([]);
-                setDepartments([]);
-                setLoading(false);
-                setRefreshing(false);
-                return;
-            }
-
-            const [reqRes, profilesRes, deptRes] = await Promise.all([
-                supabase
-                    .from("requests")
-                    .select(
-                        "id,request_no,title,details,amount,status,current_stage,current_owner,created_by,dept_id,request_type,personal_category,created_at,requester_name,assigned_account_officer_name"
-                    )
-                    .order("created_at", { ascending: false })
-                    .limit(1000),
-
-                supabase.from("profiles").select("id,full_name,role"),
-
-                supabase.from("departments").select("id,name").order("name", { ascending: true }),
-            ]);
-
-            if (reqRes.error) {
-                setMsg("Failed to load requests: " + reqRes.error.message);
-                setRequests([]);
-            } else {
-                setRequests((reqRes.data || []) as RequestRow[]);
-            }
-
-            if (profilesRes.error) {
-                setProfiles([]);
-            } else {
-                setProfiles((profilesRes.data || []) as ProfileRow[]);
-            }
-
-            if (deptRes.error) {
-                setDepartments([]);
-            } else {
-                setDepartments((deptRes.data || []) as DepartmentRow[]);
-            }
-
-            setLoading(false);
-            setRefreshing(false);
-        },
-        [router]
-    );
-
-    useEffect(() => {
-        load();
-
-        const refreshOnFocus = () => {
-            load({ silent: true });
-        };
-
-        const refreshOnVisible = () => {
-            if (document.visibilityState === "visible") {
-                load({ silent: true });
-            }
-        };
-
-        window.addEventListener("focus", refreshOnFocus);
-        document.addEventListener("visibilitychange", refreshOnVisible);
-
-        return () => {
-            window.removeEventListener("focus", refreshOnFocus);
-            document.removeEventListener("visibilitychange", refreshOnVisible);
-        };
-    }, [load]);
-
-    const stats = useMemo(() => {
-        const total = requests.length;
-        const today = requests.filter((r) => isToday(r.created_at)).length;
-        const dgPending = requests.filter((r) => stageKey(r.current_stage) === "DG" && !isClosed(r)).length;
-        const hrFiling = requests.filter((r) => stageKey(r.current_stage) === "HRFILING" && !isClosed(r)).length;
-        const account = requests.filter((r) => stageKey(r.current_stage) === "ACCOUNT" && !isClosed(r)).length;
-        const hr = requests.filter((r) => stageKey(r.current_stage) === "HR" && !isClosed(r)).length;
-        const completed = requests.filter(isCompleted).length;
-        const rejected = requests.filter(isRejected).length;
-
-        const official = requests.filter((r) => normalize(r.request_type) === "official").length;
-        const personal = requests.filter((r) => normalize(r.request_type) === "personal").length;
-        const personalFund = requests.filter(
-            (r) => normalize(r.request_type) === "personal" && categoryKey(r.personal_category) === "FUND"
-        ).length;
-        const personalOther = requests.filter(
-            (r) => normalize(r.request_type) === "personal" && categoryKey(r.personal_category) !== "FUND"
-        ).length;
-
-        return {
-            total,
-            today,
-            dgPending,
-            hrFiling,
-            account,
-            hr,
-            completed,
-            rejected,
-            official,
-            personal,
-            personalFund,
-            personalOther,
-        };
-    }, [requests]);
-
-    const departmentMovements = useMemo<DepartmentMovement[]>(() => {
-        return departments
-            .map((dept) => {
-                const rows = requests.filter((r) => r.dept_id === dept.id);
-
-                return {
-                    dept_id: dept.id,
-                    dept_name: dept.name,
-                    total: rows.length,
-                    today: rows.filter((r) => isToday(r.created_at)).length,
-                    po: rows.filter((r) => stageKey(r.current_stage) === "PO" && !isClosed(r)).length,
-                    dod: rows.filter((r) => stageKey(r.current_stage) === "DOD" && !isClosed(r)).length,
-                    dinAdmin: rows.filter((r) => stageKey(r.current_stage) === "DINADMIN" && !isClosed(r)).length,
-                    registrar: rows.filter((r) => stageKey(r.current_stage) === "REGISTRAR" && !isClosed(r)).length,
-                    hod: rows.filter((r) => stageKey(r.current_stage) === "HOD" && !isClosed(r)).length,
-                    hr: rows.filter((r) => stageKey(r.current_stage) === "HR" && !isClosed(r)).length,
-                    dg: rows.filter((r) => stageKey(r.current_stage) === "DG" && !isClosed(r)).length,
-                    account: rows.filter((r) => stageKey(r.current_stage) === "ACCOUNT" && !isClosed(r)).length,
-                    hrFiling: rows.filter((r) => stageKey(r.current_stage) === "HRFILING" && !isClosed(r)).length,
-                    completed: rows.filter(isCompleted).length,
-                    rejected: rows.filter(isRejected).length,
-                };
-            })
-            .filter((row) => row.total > 0)
-            .sort((a, b) => b.total - a.total || a.dept_name.localeCompare(b.dept_name));
-    }, [departments, requests]);
-
-    const filteredRows = useMemo(() => {
-        const s = search.trim().toLowerCase();
-
-        return requests.filter((r) => {
-            if (deptFilter !== "ALL" && r.dept_id !== deptFilter) return false;
-
-            if (stageFilter === "TODAY" && !isToday(r.created_at)) return false;
-            if (stageFilter === "PO" && stageKey(r.current_stage) !== "PO") return false;
-            if (stageFilter === "DOD" && stageKey(r.current_stage) !== "DOD") return false;
-            if (stageFilter === "DINADMIN" && stageKey(r.current_stage) !== "DINADMIN") return false;
-            if (stageFilter === "REGISTRAR" && stageKey(r.current_stage) !== "REGISTRAR") return false;
-            if (stageFilter === "HOD" && stageKey(r.current_stage) !== "HOD") return false;
-            if (stageFilter === "DG" && stageKey(r.current_stage) !== "DG") return false;
-            if (stageFilter === "HRFILING" && stageKey(r.current_stage) !== "HRFILING") return false;
-            if (stageFilter === "HR" && stageKey(r.current_stage) !== "HR") return false;
-            if (stageFilter === "ACCOUNT" && stageKey(r.current_stage) !== "ACCOUNT") return false;
-            if (stageFilter === "COMPLETED" && !isCompleted(r)) return false;
-            if (stageFilter === "REJECTED" && !isRejected(r)) return false;
-
-            if (s) {
-                const ownerName = r.current_owner ? profileMap.get(r.current_owner)?.full_name || "" : "";
-                const deptName = r.dept_id ? deptMap.get(r.dept_id) || "" : "";
-
-                const haystack = [
-                    r.request_no,
-                    r.title,
-                    r.details,
-                    r.status,
-                    r.current_stage,
-                    r.requester_name,
-                    ownerName,
-                    deptName,
-                    r.request_type,
-                    r.personal_category,
-                ]
-                    .join(" ")
-                    .toLowerCase();
-
-                if (!haystack.includes(s)) return false;
-            }
-
-            return true;
-        });
-    }, [requests, search, stageFilter, deptFilter, profileMap, deptMap]);
-
-    const dgPendingRows = useMemo(() => {
-        return requests.filter((r) => stageKey(r.current_stage) === "DG" && !isClosed(r));
-    }, [requests]);
-
-    const todayRows = useMemo(() => {
-        return requests.filter((r) => isToday(r.created_at));
-    }, [requests]);
-
-    const hrFilingRows = useMemo(() => {
-        return requests.filter((r) => stageKey(r.current_stage) === "HRFILING" && !isClosed(r));
-    }, [requests]);
-
-    function openRequest(requestId: string) {
-        router.push(`/requests/${requestId}?updated=${Date.now()}`);
-        router.refresh();
+    const { data: auth } = await supabase.auth.getUser();
+    if (!auth.user) {
+      router.push("/login");
+      return;
     }
 
-    function goDashboard() {
-        router.push(`/dashboard?updated=${Date.now()}`);
-        router.refresh();
+    const [profileResult, rolesResult] = await Promise.all([
+      supabase.from("profiles").select("role").eq("id", auth.user.id).maybeSingle(),
+      supabase.from("profile_roles").select("id,profile_id,role_key,role_name,is_primary,is_active").eq("profile_id", auth.user.id).eq("is_active", true),
+    ]);
+
+    if (profileResult.error) {
+      setMessage(`Unable to verify Registry access: ${profileResult.error.message}`);
+      setLoading(false);
+      setRefreshing(false);
+      return;
     }
 
-    async function copyText(text: string) {
-        try {
-            await navigator.clipboard.writeText(text);
-            setCopyMsg("Copied reminder text successfully.");
-        } catch {
-            setCopyMsg("Could not copy automatically. Please select and copy manually.");
-        }
+    const fallbackRole = String(profileResult.data?.role || "Staff");
+    const activeRoles = (rolesResult.data || []) as ProfileRole[];
+    setRole(fallbackRole);
+    setRoles(activeRoles);
+
+    const accessSet = new Set<string>([roleKey(fallbackRole)]);
+    activeRoles.forEach((item) => accessSet.add(roleKey(item.role_key)));
+    if (!hasAnyRole(accessSet, ["registry", "admin", "auditor"])) {
+      setRows([]);
+      setDepartments([]);
+      setMessage("Access denied. Registry Dashboard is available to Registry, Admin and Auditor roles.");
+      setLoading(false);
+      setRefreshing(false);
+      return;
     }
 
-    function buildDGReminder() {
-        const lines = dgPendingRows.slice(0, 12).map((r, index) => {
-            const owner = r.current_owner ? profileMap.get(r.current_owner)?.full_name || "DG" : "DG";
-            const dept = r.dept_id ? deptMap.get(r.dept_id) || "Unknown Department" : "Unknown Department";
+    const [requestResult, departmentResult] = await Promise.all([
+      supabase.from("requests").select("id,status,current_stage,dept_id,request_type,personal_category,created_at").order("created_at", { ascending: false }),
+      supabase.from("departments").select("id,name").order("name", { ascending: true }),
+    ]);
 
-            return `${index + 1}. ${r.request_no || "No Ref"} - ${r.title} (${requestTypeLabel(
-                r
-            )}, ${dept}) - Pending with ${owner}`;
-        });
+    if (requestResult.error) setMessage(`Unable to load request movement summary: ${requestResult.error.message}`);
+    if (departmentResult.error) setMessage((current) => current || `Unable to load departments: ${departmentResult.error.message}`);
 
-        if (lines.length === 0) {
-            return "Assalamu Alaikum Sir. There is currently no request pending at DG stage on ReqGen.";
-        }
+    setRows((requestResult.data || []) as RequestMovementRow[]);
+    setDepartments((departmentResult.data || []) as DepartmentRow[]);
+    setLoading(false);
+    setRefreshing(false);
+  }, [router]);
 
-        return `Assalamu Alaikum Sir.\n\nKind reminder: the following request(s) are pending at DG stage on ReqGen:\n\n${lines.join(
-            "\n"
-        )}\n\nKindly review when convenient.\n\nRegistry Desk`;
-    }
+  useEffect(() => { void load(false); }, [load]);
 
-    function buildDailySummary() {
-        const lines = todayRows.slice(0, 15).map((r, index) => {
-            const dept = r.dept_id ? deptMap.get(r.dept_id) || "Unknown Department" : "Unknown Department";
+  const stats = useMemo(() => {
+    const total = rows.length;
+    const active = rows.filter(isActive).length;
+    const completed = rows.filter(isCompleted).length;
+    const rejected = rows.filter(isRejected).length;
+    const today = rows.filter((row) => isToday(row.created_at)).length;
+    const last7 = rows.filter((row) => isWithinDays(row.created_at, 7)).length;
+    return { total, active, completed, rejected, today, last7 };
+  }, [rows]);
 
-            return `${index + 1}. ${r.request_no || "No Ref"} - ${r.title} (${requestTypeLabel(
-                r
-            )}, ${dept}, Stage: ${stageLabel(r.current_stage)})`;
-        });
+  const stageCounts = useMemo(() => {
+    const counts = new Map<StageKey, number>();
+    STAGES.forEach((stage) => counts.set(stage.key, 0));
+    rows.forEach((row) => {
+      const key = isRejected(row) ? "REJECTED" : isCompleted(row) ? "COMPLETED" : stageKey(row.current_stage);
+      counts.set(key, (counts.get(key) || 0) + 1);
+    });
+    return counts;
+  }, [rows]);
 
-        if (lines.length === 0) {
-            return "Daily Registry Summary: No new request was submitted today on ReqGen.";
-        }
+  const typeCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    rows.forEach((row) => {
+      const key = requestType(row);
+      counts.set(key, (counts.get(key) || 0) + 1);
+    });
+    return ["Official", "Personal Fund", "Personal Other", "Unclassified"].map((label) => ({ label, value: counts.get(label) || 0 }));
+  }, [rows]);
 
-        return `Daily Registry Summary\n\nNew request(s) submitted today:\n\n${lines.join(
-            "\n"
-        )}\n\nRegistry Desk`;
-    }
+  const departmentSummary = useMemo(() => {
+    const names = new Map<string, string>(departments.map((department) => [department.id, department.name]));
+    const counts = new Map<string, { name: string; total: number; active: number; completed: number; today: number }>();
+    rows.forEach((row) => {
+      const id = row.dept_id || "UNASSIGNED";
+      const current = counts.get(id) || { name: names.get(id) || "Unassigned Department", total: 0, active: 0, completed: 0, today: 0 };
+      current.total += 1;
+      if (isActive(row)) current.active += 1;
+      if (isCompleted(row)) current.completed += 1;
+      if (isToday(row.created_at)) current.today += 1;
+      counts.set(id, current);
+    });
+    return Array.from(counts.values()).sort((a, b) => b.total - a.total);
+  }, [rows, departments]);
 
-    function buildHRFilingReminder() {
-        const lines = hrFilingRows.slice(0, 12).map((r, index) => {
-            const dept = r.dept_id ? deptMap.get(r.dept_id) || "Unknown Department" : "Unknown Department";
+  const bottleneck = useMemo(() => {
+    return STAGES.filter((stage) => !["COMPLETED", "REJECTED"].includes(stage.key))
+      .map((stage) => ({ ...stage, value: stageCounts.get(stage.key) || 0 }))
+      .sort((a, b) => b.value - a.value)[0];
+  }, [stageCounts]);
 
-            return `${index + 1}. ${r.request_no || "No Ref"} - ${r.title} (${requestTypeLabel(
-                r
-            )}, ${dept})`;
-        });
+  if (loading) {
+    return <main className="min-h-screen bg-slate-50 px-4"><div className="mx-auto max-w-7xl py-12 font-bold text-slate-600">Loading Registry Dashboard...</div></main>;
+  }
 
-        if (lines.length === 0) {
-            return "Assalamu Alaikum. There is currently no request waiting at HR Filing stage on ReqGen.";
-        }
-
-        return `Assalamu Alaikum.\n\nKind reminder: the following request(s) are currently waiting at HR Filing stage on ReqGen:\n\n${lines.join(
-            "\n"
-        )}\n\nRegistry Desk`;
-    }
-
-    if (loading) {
-        return (
-            <main className="min-h-screen bg-slate-50 px-4">
-                <div className="mx-auto max-w-7xl py-10 text-slate-600">Loading Registry Desk...</div>
-            </main>
-        );
-    }
-
-    if (!canAccess) {
-        return (
-            <main className="min-h-screen bg-slate-50 px-4">
-                <div className="mx-auto max-w-3xl py-10">
-                    <div className="rounded-3xl border bg-white p-6 shadow-sm">
-                        <h1 className="text-xl font-extrabold text-slate-900">Registry Desk Access</h1>
-
-                        <div className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-                            {msg || "Access denied."}
-                        </div>
-
-                        <button
-                            type="button"
-                            onClick={goDashboard}
-                            className="reqgen-btn reqgen-btn-slate mt-5 rounded-xl bg-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-blue-700"
-                        >
-                            Back to Dashboard
-                        </button>
-                    </div>
-                </div>
-            </main>
-        );
-    }
-
+  if (!canAccess) {
     return (
-        <main className="min-h-screen bg-slate-50 px-4">
-            <div className="mx-auto max-w-7xl py-8">
-                <div className="flex flex-wrap items-start justify-between gap-4">
-                    <div>
-                        <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">
-                            Registry Desk
-                        </h1>
-                        <p className="mt-2 text-sm text-slate-600">
-                            Monitoring and reminder desk for request submissions. Registry does not approve or
-                            reject requests.
-                        </p>
-                        <p className="mt-1 text-xs font-semibold text-slate-500">
-                            Active capacity: <b className="text-slate-800">{roleSummary(myRole, myRoles)}</b>
-                        </p>
-                    </div>
+      <main className="min-h-screen bg-slate-50 px-4 py-10">
+        <section className="mx-auto max-w-2xl rounded-3xl border border-slate-200 bg-white p-7 shadow-lg">
+          <h1 className="text-2xl font-black text-slate-900">Registry Dashboard Access</h1>
+          <p className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-bold text-amber-900">{message || "Access denied."}</p>
+          <button type="button" onClick={() => router.push("/dashboard")} className="reqgen-btn reqgen-btn-slate mt-5 rounded-xl bg-slate-700 px-5 py-3 text-sm font-black text-white shadow-md hover:bg-slate-800">Back to Dashboard</button>
+        </section>
+      </main>
+    );
+  }
 
-                    <div className="flex flex-wrap gap-2">
-                        <button
-                            type="button"
-                            onClick={() => load({ silent: true })}
-                            disabled={refreshing}
-                            className="reqgen-btn reqgen-btn-rose rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-900 shadow-sm hover:bg-slate-100 disabled:opacity-60"
-                        >
-                            {refreshing ? "Refreshing..." : "Refresh"}
-                        </button>
-
-                        <button
-                            type="button"
-                            onClick={goDashboard}
-                            disabled={refreshing}
-                            className="reqgen-btn reqgen-btn-rose rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-900 shadow-sm hover:bg-slate-100 disabled:opacity-60"
-                        >
-                            Dashboard
-                        </button>
-                    </div>
-                </div>
-
-                {msg && (
-                    <div className="mt-4 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-800 shadow-sm">
-                        {msg}
-                    </div>
-                )}
-
-                {copyMsg && (
-                    <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">
-                        {copyMsg}
-                    </div>
-                )}
-
-                <div className="mt-4 rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 text-xs font-semibold text-blue-900">
-                    Registry can monitor, summarize and remind. Approval actions remain with PO, DOD, DIN
-                    Admin, Registrar, HOD, HR, DG and AccountOfficer.
-                </div>
-
-                <div className="mt-6 grid gap-4 md:grid-cols-3 xl:grid-cols-6">
-                    <StatCard title="Total Loaded" value={String(stats.total)} tone="slate" />
-                    <StatCard title="Submitted Today" value={String(stats.today)} tone="blue" />
-                    <StatCard title="DG Pending" value={String(stats.dgPending)} tone="indigo" />
-                    <StatCard title="HR Filing" value={String(stats.hrFiling)} tone="purple" />
-                    <StatCard title="Account Stage" value={String(stats.account)} tone="amber" />
-                    <StatCard title="Completed/Paid" value={String(stats.completed)} tone="emerald" />
-                </div>
-
-                <div className="mt-4 grid gap-4 md:grid-cols-3 xl:grid-cols-6">
-                    <StatCard title="Official" value={String(stats.official)} tone="blue" />
-                    <StatCard title="Personal" value={String(stats.personal)} tone="purple" />
-                    <StatCard title="Personal Fund" value={String(stats.personalFund)} tone="indigo" />
-                    <StatCard title="Personal Other" value={String(stats.personalOther)} tone="amber" />
-                    <StatCard title="Initial HR" value={String(stats.hr)} tone="blue" />
-                    <StatCard title="Rejected/Deleted" value={String(stats.rejected)} tone="red" />
-                </div>
-
-                <div className="mt-6 rounded-3xl border bg-white p-5 shadow-sm">
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                        <div>
-                            <h2 className="text-lg font-extrabold text-slate-900">
-                                Department Movement Summary
-                            </h2>
-                            <p className="mt-1 text-sm text-slate-600">
-                                Registry overview of request movement by department and current workflow stage.
-                            </p>
-                        </div>
-
-                        <span className="rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-xs font-black text-blue-700">
-                            {departmentMovements.length} active department(s)
-                        </span>
-                    </div>
-
-                    {departmentMovements.length === 0 ? (
-                        <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
-                            No department movement found yet.
-                        </div>
-                    ) : (
-                        <div className="mt-4 overflow-x-auto">
-                            <div className="min-w-[1180px] overflow-hidden rounded-2xl border">
-                                <div className="grid grid-cols-[2fr_0.8fr_0.8fr_0.8fr_0.8fr_0.9fr_0.9fr_0.8fr_0.8fr_0.8fr_0.9fr_1fr_1fr] bg-slate-100 px-4 py-3 text-xs font-black uppercase tracking-wide text-slate-600">
-                                    <div>Department</div>
-                                    <div>Total</div>
-                                    <div>Today</div>
-                                    <div>PO</div>
-                                    <div>DOD</div>
-                                    <div>DIN Admin</div>
-                                    <div>Registrar</div>
-                                    <div>HOD</div>
-                                    <div>HR</div>
-                                    <div>DG</div>
-                                    <div>Account</div>
-                                    <div>HR Filing</div>
-                                    <div>Completed</div>
-                                </div>
-
-                                {departmentMovements.map((row) => (
-                                    <div
-                                        key={row.dept_id}
-                                        className="grid grid-cols-[2fr_0.8fr_0.8fr_0.8fr_0.8fr_0.9fr_0.9fr_0.8fr_0.8fr_0.8fr_0.9fr_1fr_1fr] items-center border-t px-4 py-3 text-sm hover:bg-slate-50"
-                                    >
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                setDeptFilter(row.dept_id);
-                                                setStageFilter("ALL");
-                                            }}
-                                            className="text-left font-extrabold text-blue-700 hover:underline"
-                                        >
-                                            {row.dept_name}
-                                        </button>
-
-                                        <MovementNumber value={row.total} tone="slate" />
-                                        <MovementNumber value={row.today} tone={row.today > 0 ? "blue" : "slate"} />
-                                        <MovementNumber value={row.po} tone={row.po > 0 ? "red" : "slate"} />
-                                        <MovementNumber value={row.dod} tone={row.dod > 0 ? "red" : "slate"} />
-                                        <MovementNumber value={row.dinAdmin} tone={row.dinAdmin > 0 ? "red" : "slate"} />
-                                        <MovementNumber value={row.registrar} tone={row.registrar > 0 ? "red" : "slate"} />
-                                        <MovementNumber value={row.hod} tone={row.hod > 0 ? "red" : "slate"} />
-                                        <MovementNumber value={row.hr} tone={row.hr > 0 ? "amber" : "slate"} />
-                                        <MovementNumber value={row.dg} tone={row.dg > 0 ? "indigo" : "slate"} />
-                                        <MovementNumber value={row.account} tone={row.account > 0 ? "amber" : "slate"} />
-                                        <MovementNumber value={row.hrFiling} tone={row.hrFiling > 0 ? "purple" : "slate"} />
-                                        <MovementNumber value={row.completed} tone={row.completed > 0 ? "emerald" : "slate"} />
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-                </div>
-
-                <div className="mt-6 grid gap-4 lg:grid-cols-3">
-                    <ReminderCard
-                        title="DG Pending Reminder"
-                        description="Copy a clean reminder for requests currently pending with DG."
-                        buttonText="Copy DG Reminder"
-                        onClick={() => copyText(buildDGReminder())}
-                    />
-
-                    <ReminderCard
-                        title="Daily Submission Summary"
-                        description="Copy today’s submissions summary for registry reporting."
-                        buttonText="Copy Daily Summary"
-                        onClick={() => copyText(buildDailySummary())}
-                    />
-
-                    <ReminderCard
-                        title="HR Filing Reminder"
-                        description="Copy a reminder for requests waiting at HR Filing."
-                        buttonText="Copy HR Filing Reminder"
-                        onClick={() => copyText(buildHRFilingReminder())}
-                    />
-                </div>
-
-                <div className="mt-6 rounded-3xl border bg-white p-5 shadow-sm">
-                    <div className="grid gap-4 md:grid-cols-3">
-                        <div>
-                            <label className="text-sm font-semibold text-slate-800">Search</label>
-                            <input
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                                placeholder="Search request no, title, requester, owner..."
-                                className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-3 text-slate-900 outline-none focus:border-blue-500"
-                            />
-                        </div>
-
-                        <div>
-                            <label className="text-sm font-semibold text-slate-800">Department</label>
-                            <select
-                                value={deptFilter}
-                                onChange={(e) => setDeptFilter(e.target.value)}
-                                className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-3 text-slate-900 outline-none focus:border-blue-500"
-                            >
-                                <option value="ALL">All Departments</option>
-                                {departments.map((d) => (
-                                    <option key={d.id} value={d.id}>
-                                        {d.name}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-
-                        <div>
-                            <label className="text-sm font-semibold text-slate-800">Registry View</label>
-                            <select
-                                value={stageFilter}
-                                onChange={(e) => setStageFilter(e.target.value as StageFilter)}
-                                className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-3 text-slate-900 outline-none focus:border-blue-500"
-                            >
-                                <option value="ALL">All Requests</option>
-                                <option value="TODAY">Submitted Today</option>
-                                <option value="PO">PO Stage</option>
-                                <option value="DOD">DOD Stage</option>
-                                <option value="DINADMIN">DIN Admin Stage</option>
-                                <option value="REGISTRAR">Registrar Stage</option>
-                                <option value="HOD">HOD Stage</option>
-                                <option value="DG">Pending at DG</option>
-                                <option value="HR">Initial HR Review</option>
-                                <option value="ACCOUNT">Account Stage</option>
-                                <option value="HRFILING">HR Filing</option>
-                                <option value="COMPLETED">Completed / Paid</option>
-                                <option value="REJECTED">Rejected / Deleted</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="mt-6 grid gap-4 xl:hidden">
-                    {filteredRows.length === 0 ? (
-                        <EmptyState />
-                    ) : (
-                        filteredRows.map((r) => {
-                            const owner = r.current_owner ? profileMap.get(r.current_owner)?.full_name || "—" : "—";
-                            const dept = r.dept_id ? deptMap.get(r.dept_id) || "—" : "—";
-
-                            return (
-                                <div key={r.id} className="rounded-3xl border bg-white p-5 shadow-sm">
-                                    <div className="flex flex-wrap items-start justify-between gap-3">
-                                        <div>
-                                            <div className="text-lg font-extrabold text-slate-900">
-                                                {r.request_no || "No Ref"}
-                                            </div>
-                                            <div className="mt-1 font-semibold text-slate-800">{r.title}</div>
-                                            <div className="mt-1 text-sm text-slate-500">{dept}</div>
-                                        </div>
-
-                                        <div className="flex flex-col items-end gap-1">
-                                            <span className={`rounded-full border px-3 py-1 text-xs font-bold ${typeBadgeClass(r)}`}>
-                                                {requestTypeLabel(r)}
-                                            </span>
-
-                                            <span
-                                                className={`rounded-full border px-3 py-1 text-xs font-bold ${stageBadgeClass(
-                                                    r.current_stage,
-                                                    r.status
-                                                )}`}
-                                            >
-                                                {stageLabel(r.current_stage)}
-                                            </span>
-                                        </div>
-                                    </div>
-
-                                    <div className="mt-4 grid gap-2 text-sm sm:grid-cols-2">
-                                        <InfoLine label="Requester" value={r.requester_name || "—"} />
-                                        <InfoLine label="Current Owner" value={owner} />
-                                        <InfoLine label="Amount" value={amountLabel(r)} />
-                                        <InfoLine label="Status" value={r.status || "—"} />
-                                        <InfoLine label="Submitted" value={shortDateTime(r.created_at)} />
-                                        <InfoLine label="AccountOfficer" value={r.assigned_account_officer_name || "—"} />
-                                    </div>
-
-                                    <div className="mt-4 rounded-2xl bg-slate-50 p-4 text-sm text-slate-700">
-                                        <div className="font-semibold text-slate-900">Details</div>
-                                        <div className="mt-1 line-clamp-3 whitespace-pre-wrap">
-                                            {r.details || "No details"}
-                                        </div>
-                                    </div>
-
-                                    <div className="mt-4 flex justify-end">
-                                        <button
-                                            type="button"
-                                            onClick={() => openRequest(r.id)}
-                                            className="reqgen-btn reqgen-btn-blue rounded-xl bg-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-blue-700"
-                                        >
-                                            View Request
-                                        </button>
-                                    </div>
-                                </div>
-                            );
-                        })
-                    )}
-                </div>
-
-                <div className="mt-6 hidden overflow-hidden rounded-3xl border bg-white shadow-sm xl:block">
-                    <div className="border-b bg-slate-50 px-6 py-4">
-                        <h2 className="text-lg font-bold text-slate-900">Registry Monitoring Register</h2>
-                        <p className="mt-1 text-sm text-slate-600">
-                            Read-only register for submissions, pending DG items and HR filing follow-up.
-                        </p>
-                    </div>
-
-                    {filteredRows.length === 0 ? (
-                        <EmptyState />
-                    ) : (
-                        <div className="overflow-x-auto">
-                            <div className="min-w-[1320px]">
-                                <div className="grid grid-cols-[1.1fr_2fr_1.35fr_1fr_1fr_1fr_1.35fr_1.35fr_0.95fr_1fr] bg-slate-100 px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600">
-                                    <div>Request No</div>
-                                    <div>Title</div>
-                                    <div>Department</div>
-                                    <div>Type</div>
-                                    <div>Amount</div>
-                                    <div>Stage</div>
-                                    <div>Requester</div>
-                                    <div>Current Owner</div>
-                                    <div>Date</div>
-                                    <div className="text-right">Action</div>
-                                </div>
-
-                                {filteredRows.map((r) => {
-                                    const owner = r.current_owner ? profileMap.get(r.current_owner)?.full_name || "—" : "—";
-                                    const dept = r.dept_id ? deptMap.get(r.dept_id) || "—" : "—";
-
-                                    return (
-                                        <div
-                                            key={r.id}
-                                            className="grid grid-cols-[1.1fr_2fr_1.35fr_1fr_1fr_1fr_1.35fr_1.35fr_0.95fr_1fr] items-center border-t px-6 py-4 text-sm hover:bg-slate-50"
-                                        >
-                                            <div className="font-extrabold text-slate-900">
-                                                {r.request_no || "No Ref"}
-                                            </div>
-
-                                            <div>
-                                                <div className="font-semibold text-slate-900">{r.title}</div>
-                                                <div className="mt-1 line-clamp-1 text-xs text-slate-500">
-                                                    {r.details || "No details"}
-                                                </div>
-                                            </div>
-
-                                            <div className="text-slate-700">{dept}</div>
-
-                                            <div>
-                                                <span className={`rounded-full border px-2 py-1 text-[11px] font-bold ${typeBadgeClass(r)}`}>
-                                                    {requestTypeLabel(r)}
-                                                </span>
-                                            </div>
-
-                                            <div className="font-semibold text-slate-900">{amountLabel(r)}</div>
-
-                                            <div>
-                                                <span
-                                                    className={`rounded-full border px-2 py-1 text-[11px] font-bold ${stageBadgeClass(
-                                                        r.current_stage,
-                                                        r.status
-                                                    )}`}
-                                                >
-                                                    {stageLabel(r.current_stage)}
-                                                </span>
-                                            </div>
-
-                                            <div className="text-slate-700">{r.requester_name || "—"}</div>
-
-                                            <div className="text-slate-700">{owner}</div>
-
-                                            <div className="text-slate-600">{shortDate(r.created_at)}</div>
-
-                                            <div className="flex justify-end">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => openRequest(r.id)}
-                                                    className="reqgen-btn reqgen-btn-blue rounded-xl bg-blue-600 px-3 py-2 text-xs font-bold text-white hover:bg-blue-700"
-                                                >
-                                                    View
-                                                </button>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                    )}
-                </div>
-
-                <div className="mt-6 rounded-3xl border border-blue-100 bg-blue-50 p-5 text-sm text-blue-900">
-                    <div className="font-bold">Registry Desk Note</div>
-                    <p className="mt-1">
-                        This page is intentionally read-only. Registry monitors submissions, prepares daily
-                        summaries, reminds DG/HR when necessary, and supports administrative follow-up without
-                        approving, rejecting, editing or paying requests.
-                    </p>
-                </div>
+  return (
+    <main className="min-h-screen bg-slate-50 px-4 pb-12">
+      <div className="mx-auto max-w-7xl py-8">
+        <section className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-slate-950 via-blue-950 to-indigo-900 px-6 py-7 text-white shadow-2xl md:px-8">
+          <div className="absolute -right-20 -top-24 h-72 w-72 rounded-full bg-cyan-400/15 blur-2xl" />
+          <div className="absolute -bottom-24 left-1/3 h-64 w-64 rounded-full bg-violet-400/15 blur-2xl" />
+          <div className="relative flex flex-col justify-between gap-6 lg:flex-row lg:items-center">
+            <div>
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-black uppercase tracking-[0.18em] text-cyan-100">Registry Command Centre</div>
+              <h1 className="mt-4 text-3xl font-black tracking-tight md:text-4xl">Request Movement Intelligence</h1>
+              <p className="mt-3 max-w-3xl text-sm font-semibold leading-6 text-slate-200">A privacy-conscious visual dashboard showing only summarized request movement, workload distribution and workflow position. Request contents, narratives and financial details are not displayed.</p>
+              <p className="mt-3 text-xs font-bold text-cyan-100">Viewing capacity: {roles.filter((item) => item.is_active).map((item) => item.role_name).join(", ") || role}</p>
             </div>
-        </main>
-    );
-}
-
-function StatCard({
-    title,
-    value,
-    tone,
-}: {
-    title: string;
-    value: string;
-    tone: "blue" | "emerald" | "purple" | "slate" | "amber" | "red" | "indigo";
-}) {
-    const cls =
-        tone === "emerald"
-            ? "bg-emerald-50 text-emerald-700"
-            : tone === "purple"
-                ? "bg-purple-50 text-purple-700"
-                : tone === "amber"
-                    ? "bg-amber-50 text-amber-700"
-                    : tone === "red"
-                        ? "bg-red-50 text-red-700"
-                        : tone === "indigo"
-                            ? "bg-indigo-50 text-indigo-700"
-                            : tone === "slate"
-                                ? "bg-slate-50 text-slate-700"
-                                : "bg-blue-50 text-blue-700";
-
-    return (
-        <div className="rounded-3xl border bg-white p-5 shadow-sm">
-            <div className="text-sm font-semibold text-slate-500">{title}</div>
-            <div className={`mt-3 inline-flex rounded-2xl px-3 py-2 text-2xl font-extrabold ${cls}`}>
-                {value}
+            <div className="flex flex-wrap gap-3">
+              <button type="button" onClick={() => void load(true)} disabled={refreshing} className="reqgen-btn reqgen-btn-cyan rounded-xl bg-cyan-600 px-5 py-3 text-sm font-black text-white shadow-lg hover:bg-cyan-500 disabled:opacity-60">{refreshing ? "Refreshing..." : "Refresh Dashboard"}</button>
+              <button type="button" onClick={() => router.push("/dashboard")} className="reqgen-btn reqgen-btn-slate rounded-xl bg-slate-700 px-5 py-3 text-sm font-black text-white shadow-lg hover:bg-slate-600">Main Dashboard</button>
             </div>
-        </div>
-    );
-}
+          </div>
+        </section>
 
-function ReminderCard({
-    title,
-    description,
-    buttonText,
-    onClick,
-}: {
-    title: string;
-    description: string;
-    buttonText: string;
-    onClick: () => void;
-}) {
-    return (
-        <div className="rounded-3xl border bg-white p-5 shadow-sm">
-            <div className="text-lg font-extrabold text-slate-900">{title}</div>
-            <p className="mt-2 text-sm leading-6 text-slate-600">{description}</p>
-            <button
-                type="button"
-                onClick={onClick}
-                className="reqgen-btn reqgen-btn-blue mt-4 rounded-xl bg-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-blue-700"
-            >
-                {buttonText}
-            </button>
-        </div>
-    );
-}
+        {message && <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-900">{message}</div>}
 
-function InfoLine({ label, value }: { label: string; value: string }) {
-    return (
-        <div>
-            <span className="text-slate-500">{label}:</span>{" "}
-            <b className="text-slate-900">{value}</b>
-        </div>
-    );
-}
+        <section className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+          <KpiCard label="Total Movement" value={stats.total} note="All summarized requests" className="bg-gradient-to-br from-slate-700 to-slate-900" icon={<svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 6h16M4 12h16M4 18h10" /></svg>} />
+          <KpiCard label="Active Workflow" value={stats.active} note="Currently moving" className="bg-gradient-to-br from-blue-600 to-indigo-700" icon={<svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M13 6l6 6-6 6" /></svg>} />
+          <KpiCard label="Submitted Today" value={stats.today} note={`${stats.last7} in the last 7 days`} className="bg-gradient-to-br from-cyan-600 to-sky-700" icon={<svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2"><path d="M8 2v4M16 2v4M3 9h18M5 4h14a2 2 0 012 2v14H3V6a2 2 0 012-2z" /></svg>} />
+          <KpiCard label="Completed / Paid" value={stats.completed} note={`${pct(stats.completed, stats.total)}% completion rate`} className="bg-gradient-to-br from-emerald-600 to-green-700" icon={<svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 6L9 17l-5-5" /></svg>} />
+          <KpiCard label="Closed / Rejected" value={stats.rejected} note={`${pct(stats.rejected, stats.total)}% of movement`} className="bg-gradient-to-br from-rose-600 to-red-700" icon={<svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 6l12 12M18 6L6 18" /></svg>} />
+        </section>
 
-function EmptyState() {
-    return (
-        <div className="rounded-2xl border bg-white p-6 text-sm text-slate-700 shadow-sm xl:rounded-none xl:border-0 xl:shadow-none">
-            No request found for the selected filter.
-        </div>
-    );
-}
+        <section className="mt-6 grid gap-6 xl:grid-cols-[1.45fr_0.55fr]">
+          <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-lg md:p-6">
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <div><h2 className="text-xl font-black text-slate-900">Workflow Movement Pipeline</h2><p className="mt-1 text-sm font-semibold text-slate-500">Current summarized position across each approval stage.</p></div>
+              <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-black text-blue-700">Live Snapshot</span>
+            </div>
+            <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {STAGES.map((stage) => {
+                const count = stageCounts.get(stage.key) || 0;
+                return <div key={stage.key} className="rounded-2xl border border-slate-200 bg-slate-50 p-4 transition hover:-translate-y-0.5 hover:shadow-md"><div className="flex items-center justify-between gap-3"><span className={`rounded-xl px-3 py-2 text-xs font-black text-white shadow-sm ${stage.tone}`}>{stage.short}</span><span className="text-2xl font-black text-slate-900">{count}</span></div><p className="mt-3 text-sm font-extrabold text-slate-700">{stage.label}</p><div className="mt-3 h-2 overflow-hidden rounded-full bg-white"><div className={`h-full rounded-full ${stage.bar}`} style={{ width: `${Math.max(pct(count, stats.total), count > 0 ? 5 : 0)}%` }} /></div></div>;
+              })}
+            </div>
+          </div>
 
-function MovementNumber({
-    value,
-    tone,
-}: {
-    value: number;
-    tone: "blue" | "emerald" | "purple" | "slate" | "amber" | "red" | "indigo";
-}) {
-    const cls =
-        tone === "emerald"
-            ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-            : tone === "purple"
-                ? "border-purple-200 bg-purple-50 text-purple-700"
-                : tone === "amber"
-                    ? "border-amber-200 bg-amber-50 text-amber-800"
-                    : tone === "red"
-                        ? "border-red-200 bg-red-50 text-red-700"
-                        : tone === "indigo"
-                            ? "border-indigo-200 bg-indigo-50 text-indigo-700"
-                            : tone === "blue"
-                                ? "border-blue-200 bg-blue-50 text-blue-700"
-                                : "border-slate-200 bg-slate-50 text-slate-700";
+          <aside className="space-y-6">
+            <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-lg">
+              <h2 className="text-lg font-black text-slate-900">Request Category Mix</h2>
+              <p className="mt-1 text-sm font-semibold text-slate-500">Volume only; no request content shown.</p>
+              <div className="mt-5 space-y-5">
+                {typeCounts.map((item, index) => <MiniBar key={item.label} label={item.label} value={item.value} total={stats.total} bar={["bg-blue-500", "bg-violet-500", "bg-amber-500", "bg-slate-400"][index]} />)}
+              </div>
+            </div>
+            <div className="rounded-3xl bg-gradient-to-br from-amber-500 to-orange-600 p-5 text-white shadow-lg">
+              <p className="text-xs font-black uppercase tracking-[0.18em] text-white/80">Movement Attention</p>
+              <p className="mt-3 text-3xl font-black">{bottleneck?.value || 0}</p>
+              <p className="mt-1 text-lg font-black">{bottleneck?.label || "No active stage"}</p>
+              <p className="mt-3 text-sm font-semibold text-white/85">This is currently the busiest active workflow stage and may deserve operational attention.</p>
+            </div>
+          </aside>
+        </section>
 
-    return (
-        <span className={`inline-flex w-fit rounded-full border px-2.5 py-1 text-xs font-black ${cls}`}>
-            {value}
-        </span>
-    );
+        <section className="mt-6 rounded-3xl border border-slate-200 bg-white p-5 shadow-lg md:p-6">
+          <div className="flex flex-wrap items-end justify-between gap-3"><div><h2 className="text-xl font-black text-slate-900">Department Movement Overview</h2><p className="mt-1 text-sm font-semibold text-slate-500">Summarized request volume by originating department.</p></div><span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-700">{departmentSummary.length} department(s)</span></div>
+          <div className="mt-5 overflow-x-auto rounded-2xl border border-slate-200">
+            <table className="min-w-full divide-y divide-slate-200 text-sm">
+              <thead className="bg-slate-900 text-white"><tr><th className="px-4 py-3 text-left font-black">Department</th><th className="px-4 py-3 text-center font-black">Total</th><th className="px-4 py-3 text-center font-black">Active</th><th className="px-4 py-3 text-center font-black">Completed</th><th className="px-4 py-3 text-center font-black">Today</th><th className="px-4 py-3 text-left font-black">Movement Share</th></tr></thead>
+              <tbody className="divide-y divide-slate-100 bg-white">
+                {departmentSummary.length === 0 ? <tr><td colSpan={6} className="px-4 py-10 text-center font-bold text-slate-500">No summarized movement is available yet.</td></tr> : departmentSummary.map((department) => {
+                  const share = pct(department.total, stats.total);
+                  return <tr key={department.name} className="hover:bg-slate-50"><td className="px-4 py-4 font-extrabold text-slate-900">{department.name}</td><td className="px-4 py-4 text-center font-black text-slate-900">{department.total}</td><td className="px-4 py-4 text-center"><span className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-black text-blue-700">{department.active}</span></td><td className="px-4 py-4 text-center"><span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-black text-emerald-700">{department.completed}</span></td><td className="px-4 py-4 text-center"><span className="rounded-full bg-cyan-50 px-2.5 py-1 text-xs font-black text-cyan-700">{department.today}</span></td><td className="min-w-48 px-4 py-4"><div className="flex items-center gap-3"><div className="h-2.5 flex-1 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-indigo-500" style={{ width: `${Math.max(share, department.total > 0 ? 4 : 0)}%` }} /></div><span className="w-10 text-right text-xs font-black text-slate-600">{share}%</span></div></td></tr>;
+                })}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section className="mt-6 grid gap-4 md:grid-cols-3">
+          <div className="rounded-3xl border border-blue-200 bg-blue-50 p-5"><p className="text-xs font-black uppercase tracking-[0.16em] text-blue-700">Registry Boundary</p><h3 className="mt-2 text-lg font-black text-blue-950">Movement, not content</h3><p className="mt-2 text-sm font-semibold leading-6 text-blue-900">The dashboard deliberately excludes request titles, descriptions, amounts, attachments and personal narratives.</p></div>
+          <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5"><p className="text-xs font-black uppercase tracking-[0.16em] text-emerald-700">Operational Purpose</p><h3 className="mt-2 text-lg font-black text-emerald-950">Monitor and summarize</h3><p className="mt-2 text-sm font-semibold leading-6 text-emerald-900">Registry can observe volume, current stage, departmental distribution and completion trends without taking approval action.</p></div>
+          <div className="rounded-3xl border border-violet-200 bg-violet-50 p-5"><p className="text-xs font-black uppercase tracking-[0.16em] text-violet-700">Data Protection</p><h3 className="mt-2 text-lg font-black text-violet-950">Privacy-conscious view</h3><p className="mt-2 text-sm font-semibold leading-6 text-violet-900">The data query retrieves only workflow metadata required for visual summaries and does not retrieve request contents.</p></div>
+        </section>
+      </div>
+    </main>
+  );
 }
