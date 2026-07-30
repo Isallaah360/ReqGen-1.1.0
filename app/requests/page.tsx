@@ -536,6 +536,7 @@ export default function MyRequestsPage() {
               <ActionButton
                 type="button"
                 tone="secondary"
+                className="!border-orange-500 !bg-orange-500 !text-white [&_*]:!text-white !shadow-lg !shadow-orange-950/20 hover:!border-orange-400 hover:!bg-orange-400 focus-visible:!ring-orange-200"
                 onClick={() => router.push(`/requests/new?updated=${Date.now()}`)}
                 icon={<Icon name="plus" className="h-4 w-4" />}
               >
@@ -596,8 +597,8 @@ export default function MyRequestsPage() {
         </section>
 
         <section className="mt-6 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-          <div className="flex flex-col gap-4 xl:flex-row xl:items-end">
-            <div className="min-w-0 flex-1">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-[minmax(260px,1.55fr)_repeat(5,minmax(140px,1fr))_auto] xl:items-end">
+            <div className="min-w-0">
               <label className="flex items-center gap-2 text-sm font-black text-slate-800">
                 <Icon name="search" className="h-4 w-4 text-blue-600" /> Search requests
               </label>
@@ -627,7 +628,7 @@ export default function MyRequestsPage() {
             <FilterSelect label="Sort By" value={sortMode} onChange={(value) => setSortMode(value as SortMode)} options={[
               ["NEWEST", "Newest First"], ["OLDEST", "Oldest First"], ["AMOUNT_HIGH", "Highest Amount"], ["AMOUNT_LOW", "Lowest Amount"], ["TITLE", "Title A-Z"]
             ]} />
-            <button type="button" onClick={resetFilters} className="reqgen-btn reqgen-btn-cyan inline-flex h-[46px] min-w-[120px] items-center justify-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 text-sm font-extrabold text-blue-800 transition hover:-translate-y-0.5 hover:border-blue-300 hover:bg-blue-100 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-100">
+            <button type="button" onClick={resetFilters} className="reqgen-btn reqgen-btn-cyan inline-flex h-[46px] min-w-[120px] items-center justify-center gap-2 rounded-xl border border-cyan-600 bg-cyan-600 px-4 text-sm font-extrabold !text-white shadow-lg shadow-cyan-950/20 transition hover:-translate-y-0.5 hover:border-cyan-500 hover:bg-cyan-500 hover:shadow-xl focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-cyan-200 [&_*]:!text-white">
               <Icon name="filterX" className="h-4 w-4" /> Reset{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
             </button>
           </div>
@@ -741,15 +742,20 @@ function StatusTab({ label, value, active, tone, onClick }: { label: string; val
     rose: "bg-rose-700 hover:bg-rose-600 focus-visible:ring-rose-200",
   }[tone];
   return (
-    <button type="button" onClick={onClick} aria-pressed={active} className={`inline-flex min-h-14 items-center justify-between gap-3 rounded-xl px-4 py-3 text-left text-white shadow-lg transition hover:-translate-y-0.5 hover:shadow-xl focus-visible:outline-none focus-visible:ring-4 ${tones} ${active ? "ring-4 ring-offset-2" : ""}`}>
-      <span className="text-sm font-black">{label}</span>
-      <span className="rounded-lg bg-white/15 px-2.5 py-1 text-sm font-black">{value.toLocaleString()}</span>
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={`inline-flex min-h-14 w-full items-center justify-between gap-3 rounded-xl border px-4 py-3 text-left !text-white shadow-lg transition hover:-translate-y-0.5 hover:shadow-xl focus-visible:outline-none focus-visible:ring-4 [&_*]:!text-white ${tones} ${active ? "border-white/60 shadow-xl ring-2 ring-white/80 ring-offset-2 ring-offset-slate-100" : "border-transparent"}`}
+    >
+      <span className="text-sm font-black !text-white">{label}</span>
+      <span className="rounded-lg border border-white/20 bg-white/20 px-2.5 py-1 text-sm font-black !text-white shadow-sm">{value.toLocaleString()}</span>
     </button>
   );
 }
 
 function FilterSelect({ label, value, onChange, options }: { label: string; value: string; onChange: (value: string) => void; options: [string, string][] }) {
-  return <div className="w-full xl:w-48"><label className="text-sm font-black text-slate-800">{label}</label><select value={value} onChange={(e) => onChange(e.target.value)} className="mt-2 h-[46px] w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-900 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100">{options.map(([v,l]) => <option key={v} value={v}>{l}</option>)}</select></div>;
+  return <div className="min-w-0 w-full"><label className="block text-sm font-black text-slate-800">{label}</label><select value={value} onChange={(e) => onChange(e.target.value)} className="mt-2 h-[46px] w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-900 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100">{options.map(([v,l]) => <option key={v} value={v}>{l}</option>)}</select></div>;
 }
 
 function RequestsSkeleton() {
