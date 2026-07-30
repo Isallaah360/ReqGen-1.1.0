@@ -13,7 +13,9 @@ export type WorkflowIconName =
   | "shield"
   | "attachment"
   | "money"
-  | "timeline";
+  | "timeline"
+  | "search"
+  | "view";
 
 export function WorkflowIcon({ name, className = "h-5 w-5" }: { name: WorkflowIconName; className?: string }) {
   const common = { fill: "none", stroke: "currentColor", strokeWidth: 1.9, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
@@ -29,6 +31,8 @@ export function WorkflowIcon({ name, className = "h-5 w-5" }: { name: WorkflowIc
     attachment: <><path d="m21.4 11.6-8.9 8.9a6 6 0 0 1-8.5-8.5l9.4-9.4a4 4 0 0 1 5.7 5.7L9.7 17.7a2 2 0 0 1-2.8-2.8l8.7-8.7" /></>,
     money: <><rect x="3" y="6" width="18" height="12" rx="2" /><path d="M7 10h.01M17 14h.01" /><circle cx="12" cy="12" r="2" /></>,
     timeline: <><path d="M6 3v18" /><circle cx="6" cy="6" r="2" /><circle cx="6" cy="12" r="2" /><circle cx="6" cy="18" r="2" /><path d="M10 6h8M10 12h8M10 18h8" /></>,
+    search: <><circle cx="11" cy="11" r="7" /><path d="m20 20-4-4" /></>,
+    view: <><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" /><circle cx="12" cy="12" r="2.5" /></>,
   };
 
   return <svg viewBox="0 0 24 24" aria-hidden="true" className={className} {...common}>{paths[name]}</svg>;
@@ -80,7 +84,7 @@ export function WorkflowAction({
 }) {
   const tones = {
     blue: "bg-blue-600 text-white hover:bg-blue-500 focus:ring-blue-300/40",
-    cyan: "bg-cyan-400 text-slate-950 hover:bg-cyan-300 focus:ring-cyan-200/50",
+    cyan: "bg-cyan-600 text-white hover:bg-cyan-500 focus:ring-cyan-200/50",
     violet: "bg-violet-600 text-white hover:bg-violet-500 focus:ring-violet-300/40",
     emerald: "bg-emerald-500 text-white hover:bg-emerald-400 focus:ring-emerald-300/40",
     rose: "bg-rose-500 text-white hover:bg-rose-400 focus:ring-rose-300/40",

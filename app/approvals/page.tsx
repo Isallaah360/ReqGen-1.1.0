@@ -42,6 +42,8 @@ type StageFilter =
   | "HRFILING";
 
 type TypeFilter = "ALL" | "OFFICIAL" | "PERSONAL_FUND" | "PERSONAL_NONFUND";
+type QueueTab = "ALL" | "OFFICIAL" | "PERSONAL_FUND" | "PERSONAL_NONFUND";
+type SortMode = "NEWEST" | "OLDEST" | "HIGHEST" | "LOWEST" | "TITLE";
 
 function naira(value: number | null | undefined) {
   return "₦" + Math.round(Number(value || 0)).toLocaleString();
@@ -251,8 +253,10 @@ export default function ApprovalsPage() {
   const [meRoles, setMeRoles] = useState<ProfileRole[]>([]);
 
   const [search, setSearch] = useState("");
+  const [queueTab, setQueueTab] = useState<QueueTab>("ALL");
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("ALL");
   const [stageFilter, setStageFilter] = useState<StageFilter>("ALL");
+  const [sortMode, setSortMode] = useState<SortMode>("NEWEST");
 
   const load = useCallback(
     async (options?: { silent?: boolean }) => {
@@ -351,10 +355,11 @@ export default function ApprovalsPage() {
   const filteredRows = useMemo(() => {
     const q = search.trim().toLowerCase();
 
-    return rows.filter((row) => {
+    const filtered = rows.filter((row) => {
       const rowGroup = requestGroup(row);
       const rowStage = stageKey(row.current_stage);
 
+      if (queueTab !== "ALL" && rowGroup !== queueTab) return false;
       if (typeFilter !== "ALL" && rowGroup !== typeFilter) return false;
       if (stageFilter !== "ALL" && rowStage !== stageFilter) return false;
 
@@ -376,7 +381,15 @@ export default function ApprovalsPage() {
 
       return haystack.includes(q);
     });
-  }, [rows, search, typeFilter, stageFilter]);
+
+    return filtered.slice().sort((a, b) => {
+      if (sortMode === "OLDEST") return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      if (sortMode === "HIGHEST") return Number(b.amount || 0) - Number(a.amount || 0);
+      if (sortMode === "LOWEST") return Number(a.amount || 0) - Number(b.amount || 0);
+      if (sortMode === "TITLE") return String(a.title || "").localeCompare(String(b.title || ""));
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
+  }, [rows, search, queueTab, typeFilter, stageFilter, sortMode]);
 
   const counts = useMemo(() => {
     const total = rows.length;
@@ -428,8 +441,10 @@ export default function ApprovalsPage() {
 
   function resetFilters() {
     setSearch("");
+    setQueueTab("ALL");
     setTypeFilter("ALL");
     setStageFilter("ALL");
+    setSortMode("NEWEST");
   }
 
   return (
@@ -462,6 +477,15 @@ export default function ApprovalsPage() {
           <CountCard label="Total Amount" value={naira(counts.totalAmount)} tone="purple" />
         </div>
 
+        <section className="rounded-3xl border border-slate-200 bg-white p-3 shadow-sm" aria-label="Approval queue tabs">
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <QueueTabButton active={queueTab === "ALL"} label="All Pending" count={counts.total} tone="slate" onClick={() => setQueueTab("ALL")} />
+            <QueueTabButton active={queueTab === "OFFICIAL"} label="Official" count={counts.official} tone="blue" onClick={() => setQueueTab("OFFICIAL")} />
+            <QueueTabButton active={queueTab === "PERSONAL_FUND"} label="Personal Fund" count={counts.personalFund} tone="violet" onClick={() => setQueueTab("PERSONAL_FUND")} />
+            <QueueTabButton active={queueTab === "PERSONAL_NONFUND"} label="Personal Other" count={counts.personalNonFund} tone="emerald" onClick={() => setQueueTab("PERSONAL_NONFUND")} />
+          </div>
+        </section>
+
         <div className="mt-4 grid gap-3 md:grid-cols-3 xl:grid-cols-9">
           <MiniStageCard label="PO" value={counts.po} />
           <MiniStageCard label="DOD" value={counts.dod} />
@@ -474,65 +498,65 @@ export default function ApprovalsPage() {
           <MiniStageCard label="HR Filing" value={counts.hrFiling} />
         </div>
 
-        <div className="mt-5 rounded-2xl border bg-white p-4 shadow-sm">
-          <div className="grid gap-3 md:grid-cols-4">
-            <div className="md:col-span-2">
-              <label className="text-sm font-bold text-slate-800">Search</label>
-              <input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search request no, title, stage, type..."
-                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
-              />
+        <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <div className="text-xs font-black uppercase tracking-[0.18em] text-blue-700">Queue Controls</div>
+              <h2 className="mt-1 text-xl font-black text-slate-950">Find the approval requiring your action</h2>
+            </div>
+            <div className="rounded-xl bg-slate-100 px-3 py-2 text-sm font-black text-slate-700">
+              {filteredRows.length.toLocaleString()} of {rows.length.toLocaleString()} item(s)
+            </div>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-12">
+            <div className="xl:col-span-4">
+              <label className="text-sm font-black text-slate-800">Search approvals</label>
+              <div className="relative mt-1">
+                <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-400">
+                  <WorkflowIcon name="search" className="h-4 w-4" />
+                </span>
+                <input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Request no, title, stage or officer..."
+                  className="h-12 w-full rounded-xl border border-slate-300 bg-white pl-10 pr-3 text-sm font-semibold text-slate-900 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                />
+              </div>
             </div>
 
-            <div>
-              <label className="text-sm font-bold text-slate-800">Request Type</label>
-              <select
-                value={typeFilter}
-                onChange={(e) => setTypeFilter(e.target.value as TypeFilter)}
-                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
-              >
+            <div className="xl:col-span-2">
+              <label className="text-sm font-black text-slate-800">Request Type</label>
+              <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as TypeFilter)} className="mt-1 h-12 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm font-bold text-slate-900 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100">
                 <option value="ALL">All Types</option>
                 <option value="OFFICIAL">Official</option>
                 <option value="PERSONAL_FUND">Personal Fund</option>
-                <option value="PERSONAL_NONFUND">
-                  Personal Leave/Contract/Resignation/Others
-                </option>
+                <option value="PERSONAL_NONFUND">Personal Other</option>
               </select>
             </div>
 
-            <div>
-              <label className="text-sm font-bold text-slate-800">Stage</label>
-              <select
-                value={stageFilter}
-                onChange={(e) => setStageFilter(e.target.value as StageFilter)}
-                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
-              >
+            <div className="xl:col-span-2">
+              <label className="text-sm font-black text-slate-800">Workflow Stage</label>
+              <select value={stageFilter} onChange={(e) => setStageFilter(e.target.value as StageFilter)} className="mt-1 h-12 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm font-bold text-slate-900 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100">
                 <option value="ALL">All Stages</option>
-                <option value="PO">PO</option>
-                <option value="DOD">DOD</option>
-                <option value="DINADMIN">DIN Admin</option>
-                <option value="REGISTRAR">Registrar</option>
-                <option value="HOD">HOD</option>
-                <option value="HR">HR</option>
-                <option value="DG">DG</option>
-                <option value="ACCOUNT">AccountOfficer</option>
-                <option value="HRFILING">HR Filing</option>
+                <option value="PO">PO</option><option value="DOD">DOD</option><option value="DINADMIN">DIN Admin</option><option value="REGISTRAR">Registrar</option><option value="HOD">HOD</option><option value="HR">HR</option><option value="DG">DG</option><option value="ACCOUNT">AccountOfficer</option><option value="HRFILING">HR Filing</option>
               </select>
             </div>
-          </div>
 
-          <div className="mt-3 flex justify-end">
-            <button
-              type="button"
-              onClick={resetFilters}
-              className="reqgen-btn reqgen-btn-cyan rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-900 hover:bg-slate-100"
-            >
-              Reset Filters
-            </button>
+            <div className="xl:col-span-2">
+              <label className="text-sm font-black text-slate-800">Sort By</label>
+              <select value={sortMode} onChange={(e) => setSortMode(e.target.value as SortMode)} className="mt-1 h-12 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm font-bold text-slate-900 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100">
+                <option value="NEWEST">Newest First</option><option value="OLDEST">Oldest First</option><option value="HIGHEST">Highest Amount</option><option value="LOWEST">Lowest Amount</option><option value="TITLE">Title A-Z</option>
+              </select>
+            </div>
+
+            <div className="flex items-end xl:col-span-2">
+              <button type="button" onClick={resetFilters} className="reqgen-btn reqgen-btn-cyan h-12 w-full rounded-xl px-4 text-sm font-black text-white shadow-md transition hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus:ring-4 focus:ring-cyan-200">
+                Reset Filters
+              </button>
+            </div>
           </div>
-        </div>
+        </section>
 
         {msg && (
           <div className="mt-4 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 shadow-sm">
@@ -563,12 +587,7 @@ export default function ApprovalsPage() {
             </div>
 
             {filteredRows.map((r) => (
-              <button
-                key={r.id}
-                type="button"
-                onClick={() => openRequest(r.id)}
-                className="block w-full border-t px-4 py-4 text-left hover:bg-slate-50"
-              >
+              <article key={r.id} className="border-t px-4 py-4 transition hover:bg-slate-50">
                 <div className="grid gap-3 md:grid-cols-12 md:items-center">
                   <div className="font-extrabold text-slate-900 md:col-span-2">
                     {r.request_no || "—"}
@@ -623,10 +642,13 @@ export default function ApprovalsPage() {
                   </div>
                 )}
 
-                <div className="mt-1 text-xs font-semibold text-slate-500">
-                  Created: {new Date(r.created_at).toLocaleString()}
+                <div className="mt-4 flex flex-col gap-3 border-t border-slate-100 pt-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="text-xs font-semibold text-slate-500">Created: {new Date(r.created_at).toLocaleString()}</div>
+                  <button type="button" onClick={() => openRequest(r.id)} className="reqgen-btn reqgen-btn-blue inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-black text-white shadow-md transition hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus:ring-4 focus:ring-blue-200">
+                    <WorkflowIcon name="view" className="h-4 w-4" /> Review Request
+                  </button>
                 </div>
-              </button>
+              </article>
             ))}
           </div>
         )}
@@ -637,6 +659,17 @@ export default function ApprovalsPage() {
         </div>
       </div>
     </main>
+  );
+}
+
+function QueueTabButton({ active, label, count, tone, onClick }: { active: boolean; label: string; count: number; tone: "slate" | "blue" | "violet" | "emerald"; onClick: () => void }) {
+  const toneClass = tone === "blue" ? "from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 focus:ring-blue-200" : tone === "violet" ? "from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 focus:ring-violet-200" : tone === "emerald" ? "from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 focus:ring-emerald-200" : "from-slate-700 to-slate-900 hover:from-slate-800 hover:to-black focus:ring-slate-200";
+
+  return (
+    <button type="button" onClick={onClick} aria-pressed={active} className={`flex min-h-14 items-center justify-between gap-3 rounded-2xl bg-gradient-to-r px-5 py-3 text-left font-black text-white shadow-md transition hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus:ring-4 ${toneClass} ${active ? "ring-4 ring-white ring-offset-2 ring-offset-slate-300" : ""}`}>
+      <span className="text-sm sm:text-base">{label}</span>
+      <span className="inline-flex min-w-9 items-center justify-center rounded-xl border border-white/40 bg-white/20 px-2.5 py-1 text-sm font-black text-white backdrop-blur-sm">{count.toLocaleString()}</span>
+    </button>
   );
 }
 
