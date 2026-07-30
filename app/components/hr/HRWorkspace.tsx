@@ -180,9 +180,9 @@ export function HRModuleNav() {
   const pathname = usePathname();
   const items = [
     { href: "/hr/filing", label: "HR Overview", icon: "dashboard" as const, tone: "bg-slate-700 hover:bg-slate-800" },
-    { href: "/hr-filing/staff", label: "Staff Files", icon: "staff" as const, tone: "bg-blue-600 hover:bg-blue-700" },
-    { href: "/hr-filing/leave", label: "Leave Records", icon: "leave" as const, tone: "bg-emerald-600 hover:bg-emerald-700" },
-    { href: "/hr-filing/archive", label: "HR Archive", icon: "archive" as const, tone: "bg-violet-600 hover:bg-violet-700" },
+    { href: "/hr/staff", label: "Staff Files", icon: "staff" as const, tone: "bg-blue-600 hover:bg-blue-700" },
+    { href: "/hr/leave", label: "Leave Records", icon: "leave" as const, tone: "bg-emerald-600 hover:bg-emerald-700" },
+    { href: "/hr/archive", label: "HR Archive", icon: "archive" as const, tone: "bg-violet-600 hover:bg-violet-700" },
   ];
 
   return <nav className="rounded-3xl border border-slate-200 bg-white p-3 shadow-sm" aria-label="HR module navigation">

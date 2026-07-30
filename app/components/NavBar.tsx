@@ -35,12 +35,6 @@ type ProfileRole = {
   is_active: boolean;
 };
 
-type NavItem = {
-  href: string;
-  label: string;
-  description?: string;
-};
-
 type IconProps = {
   className?: string;
 };
@@ -287,7 +281,6 @@ export default function NavBar() {
 
   const [openApprovalPanel, setOpenApprovalPanel] = useState(false);
   const [actionTab, setActionTab] = useState<"actions" | "updates">("actions");
-  const [openHR, setOpenHR] = useState(false);
   const [openMobileMenu, setOpenMobileMenu] = useState(false);
 
   const [pendingApprovalCount, setPendingApprovalCount] = useState(0);
@@ -297,7 +290,6 @@ export default function NavBar() {
   const [userId, setUserId] = useState<string | null>(null);
 
   const approvalRef = useRef<HTMLDivElement | null>(null);
-  const hrRef = useRef<HTMLDivElement | null>(null);
   const mobileRef = useRef<HTMLDivElement | null>(null);
 
   const roleSet = useMemo(() => {
@@ -329,6 +321,8 @@ export default function NavBar() {
     "admin",
     "auditor",
     "hr",
+    "hrboss",
+    "hrofficer",
     "hrofficer1",
     "hrofficer2",
     "hrofficer3",
@@ -347,41 +341,14 @@ export default function NavBar() {
     return pathname.startsWith(href + "/");
   }
 
-  const hrLinks = useMemo<NavItem[]>(() => {
-    return [
-      {
-        href: "/hr/filing",
-        label: "HR Filing",
-        description: "Personal requests, filing and staff records",
-      },
-    ];
-  }, []);
-
-  const hrActive = useMemo(() => {
-    return hrLinks.some((item) => isActiveLink(item.href));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hrLinks, pathname]);
+  const isHRBoss = hasAnyRole(roleSet, ["admin", "hr", "hrboss"]);
+  const hrHomeHref = isHRBoss ? "/hr" : "/hr/my-work";
 
   const iconLinkClass = (href: string) =>
     `group relative inline-flex h-12 w-12 items-center justify-center rounded-xl border-2 text-sm font-black transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-cyan-200 ${isActiveLink(href)
       ? "border-blue-700 bg-gradient-to-br from-blue-700 via-blue-700 to-cyan-600 text-white shadow-lg shadow-blue-300/60 -translate-y-0.5"
       : "border-slate-200 bg-white text-slate-700 shadow-sm hover:-translate-y-1 hover:border-cyan-400 hover:bg-gradient-to-br hover:from-blue-50 hover:to-cyan-50 hover:text-blue-700 hover:shadow-lg"
     }`;
-
-  const dropdownIconButtonClass = (active: boolean) =>
-    `group relative inline-flex h-12 w-12 items-center justify-center rounded-xl border-2 text-sm font-black transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-cyan-200 ${active
-      ? "border-blue-700 bg-gradient-to-br from-blue-700 via-blue-700 to-cyan-600 text-white shadow-lg shadow-blue-300/60 -translate-y-0.5"
-      : "border-slate-200 bg-white text-slate-700 shadow-sm hover:-translate-y-1 hover:border-cyan-400 hover:bg-gradient-to-br hover:from-blue-50 hover:to-cyan-50 hover:text-blue-700 hover:shadow-lg"
-    }`;
-
-  const dropdownItemClass = (href: string) =>
-    `block w-full rounded-2xl px-4 py-3 text-left transition ${isActiveLink(href)
-      ? "bg-blue-600 text-white shadow-sm"
-      : "text-slate-800 hover:bg-slate-100"
-    }`;
-
-  const dropdownItemDescriptionClass = (href: string) =>
-    `mt-0.5 text-xs font-semibold ${isActiveLink(href) ? "text-blue-100" : "text-slate-500"}`;
 
   const mobileItemClass = (href: string) =>
     `block w-full rounded-xl px-4 py-3 text-left text-sm font-bold transition ${isActiveLink(href)
@@ -603,9 +570,6 @@ export default function NavBar() {
         setOpenApprovalPanel(false);
       }
 
-      if (openHR && hrRef.current && !hrRef.current.contains(t)) {
-        setOpenHR(false);
-      }
 
       if (openMobileMenu && mobileRef.current && !mobileRef.current.contains(t)) {
         setOpenMobileMenu(false);
@@ -614,11 +578,10 @@ export default function NavBar() {
 
     document.addEventListener("mousedown", onClick);
     return () => document.removeEventListener("mousedown", onClick);
-  }, [openApprovalPanel, openHR, openMobileMenu]);
+  }, [openApprovalPanel, openMobileMenu]);
 
   useEffect(() => {
     setOpenApprovalPanel(false);
-    setOpenHR(false);
     setOpenMobileMenu(false);
   }, [pathname]);
 
@@ -670,7 +633,6 @@ export default function NavBar() {
   }
 
   function goTo(href: string) {
-    setOpenHR(false);
     setOpenMobileMenu(false);
     setOpenApprovalPanel(false);
     router.push(`${href}?updated=${Date.now()}`);
@@ -731,8 +693,7 @@ export default function NavBar() {
                   aria-expanded={openApprovalPanel}
                   onClick={() => {
                     setOpenApprovalPanel((v) => !v);
-                    setOpenHR(false);
-                    setOpenMobileMenu(false);
+                                    setOpenMobileMenu(false);
                   }}
                   className={`group relative inline-flex h-12 w-12 items-center justify-center rounded-xl border-2 transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-cyan-200 ${
                     isActiveLink("/approvals")
@@ -885,51 +846,10 @@ export default function NavBar() {
               )}
 
               {canHR && (
-                <div className="relative" ref={hrRef}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setOpenHR((v) => !v);
-                      setOpenApprovalPanel(false);
-                      setOpenMobileMenu(false);
-                    }}
-                    className={dropdownIconButtonClass(hrActive)}
-                  >
-                    <IconHR />
-                    <IconButtonTooltip label="HR" />
-                  </button>
-
-                  {openHR && (
-                    <div className="absolute left-0 top-12 z-50 w-[300px] overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl">
-                      <div className="border-b bg-slate-50 px-5 py-4">
-                        <div className="text-base font-extrabold text-slate-900">
-                          HR Directorate
-                        </div>
-                        <div className="mt-1 text-sm font-semibold text-slate-500">
-                          Personal requests, filing and records
-                        </div>
-                      </div>
-
-                      <div className="space-y-1 p-3">
-                        {hrLinks.map((item) => (
-                          <button
-                            key={item.href}
-                            type="button"
-                            onClick={() => goTo(item.href)}
-                            className={dropdownItemClass(item.href)}
-                          >
-                            <div className="text-sm font-extrabold">{item.label}</div>
-                            {item.description && (
-                              <div className={dropdownItemDescriptionClass(item.href)}>
-                                {item.description}
-                              </div>
-                            )}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
+                <Link className={iconLinkClass(hrHomeHref)} href={hrHomeHref}>
+                  <IconHR />
+                  <IconButtonTooltip label={isHRBoss ? "HR Directorate" : "My HR Work"} />
+                </Link>
               )}
 
               {canRegistry && (
@@ -956,8 +876,7 @@ export default function NavBar() {
                 type="button"
                 onClick={() => {
                   setOpenMobileMenu((v) => !v);
-                  setOpenHR(false);
-                  setOpenApprovalPanel(false);
+                                setOpenApprovalPanel(false);
                 }}
                 className={`inline-flex min-h-11 items-center rounded-xl border-2 px-4 py-2 text-sm font-black shadow-sm transition-all ${openMobileMenu
                     ? "border-blue-600 bg-gradient-to-br from-blue-700 to-cyan-600 text-white shadow-lg shadow-blue-200/70"
@@ -1030,27 +949,23 @@ export default function NavBar() {
                   {canHR && (
                     <>
                       <div className="mt-3 border-t pt-3 text-xs font-black uppercase tracking-wide text-slate-500">
-                        HR
+                        HR Directorate
                       </div>
-
-                      {hrLinks.map((item) => (
-                        <button
-                          key={item.href}
-                          type="button"
-                          onClick={() => goTo(item.href)}
-                          className={mobileItemClass(item.href)}
-                        >
-                          <div className="inline-flex items-center gap-2">
-                            <IconHR className="h-5 w-5" />
-                            {item.label}
-                          </div>
-                          {item.description && (
-                            <div className={mobileItemDescriptionClass(item.href)}>
-                              {item.description}
-                            </div>
-                          )}
-                        </button>
-                      ))}
+                      <button
+                        type="button"
+                        onClick={() => goTo(hrHomeHref)}
+                        className={mobileItemClass(hrHomeHref)}
+                      >
+                        <div className="inline-flex items-center gap-2">
+                          <IconHR className="h-5 w-5" />
+                          {isHRBoss ? "HR Command Centre" : "My HR Work"}
+                        </div>
+                        <div className={mobileItemDescriptionClass(hrHomeHref)}>
+                          {isHRBoss
+                            ? "Open the centralized HR dashboard and all authorized functions"
+                            : "Open your assigned HR roles, tasks and submissions"}
+                        </div>
+                      </button>
                     </>
                   )}
 
