@@ -590,7 +590,7 @@ export default function FinanceTransactionsPage() {
                     </p>
                     <Link
                         href="/dashboard"
-                        className="mt-5 inline-flex bg-slate-950 px-4 py-3 text-sm text-white font-black rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+                        className="mt-5 inline-flex rounded-xl bg-slate-950 px-4 py-3 text-sm font-black text-white"
                     >
                         Return to Dashboard
                     </Link>
@@ -605,13 +605,13 @@ export default function FinanceTransactionsPage() {
                 <div className="flex flex-wrap gap-2">
                     <Link
                         href="/finance"
-                        className="bg-blue-700 px-4 py-2.5 text-sm text-white hover:bg-blue-800 font-black rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+                        className="inline-flex min-h-12 items-center justify-center rounded-xl bg-blue-700 px-5 py-3 text-sm font-black text-white shadow-md transition duration-200 hover:-translate-y-0.5 hover:bg-blue-800 hover:shadow-lg focus:outline-none focus:ring-4 focus:ring-blue-200"
                     >
                         ← Finance Dashboard
                     </Link>
                     <Link
                         href="/dashboard"
-                        className="bg-slate-950 px-4 py-2.5 text-sm text-white hover:bg-slate-800 font-black rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+                        className="inline-flex min-h-12 items-center justify-center rounded-xl bg-slate-700 px-5 py-3 text-sm font-black text-white shadow-md transition duration-200 hover:-translate-y-0.5 hover:bg-slate-800 hover:shadow-lg focus:outline-none focus:ring-4 focus:ring-slate-200"
                     >
                         Main Dashboard
                     </Link>
@@ -625,7 +625,7 @@ export default function FinanceTransactionsPage() {
                         type="button"
                         onClick={() => loadTransactions(true)}
                         disabled={refreshing}
-                        className="rounded-xl border border-cyan-200 bg-cyan-50 px-4 py-2.5 text-sm font-black text-cyan-800 transition hover:bg-cyan-100 disabled:opacity-60"
+                        className="inline-flex min-h-12 items-center justify-center rounded-xl bg-cyan-700 px-5 py-3 text-sm font-black text-white shadow-md transition duration-200 hover:-translate-y-0.5 hover:bg-cyan-800 hover:shadow-lg focus:outline-none focus:ring-4 focus:ring-cyan-200 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
                     >
                         {refreshing ? "Refreshing…" : "Refresh Now"}
                     </button>
@@ -694,7 +694,7 @@ export default function FinanceTransactionsPage() {
                             type="button"
                             onClick={exportCsv}
                             disabled={filteredTransactions.length === 0}
-                            className="border border-emerald-200 bg-emerald-700 px-4 py-2.5 text-sm hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50 font-black text-white rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-60"
+                            className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-black text-emerald-800 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50"
                         >
                             Export Excel / CSV
                         </button>
@@ -702,14 +702,14 @@ export default function FinanceTransactionsPage() {
                             type="button"
                             onClick={printRegister}
                             disabled={filteredTransactions.length === 0}
-                            className="border border-violet-200 bg-violet-700 px-4 py-2.5 text-sm hover:bg-violet-800 disabled:cursor-not-allowed disabled:opacity-50 font-black text-white rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-60"
+                            className="rounded-xl border border-violet-200 bg-violet-50 px-4 py-2.5 text-sm font-black text-violet-800 transition hover:bg-violet-100 disabled:cursor-not-allowed disabled:opacity-50"
                         >
                             Print / Save PDF
                         </button>
                         <button
                             type="button"
                             onClick={resetFilters}
-                            className="border border-slate-300 bg-slate-700 px-4 py-2.5 text-sm hover:bg-slate-800 font-black text-white rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+                            className="rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm font-black text-slate-700 transition hover:bg-slate-100"
                         >
                             Reset Filters
                         </button>
@@ -903,7 +903,7 @@ export default function FinanceTransactionsPage() {
                                                 {transactionLink(item) && (
                                                     <Link
                                                         href={transactionLink(item) as string}
-                                                        className="border border-slate-300 bg-slate-700 px-3 py-2 text-xs hover:bg-slate-800 font-black text-white rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+                                                        className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-50"
                                                     >
                                                         Open Source
                                                     </Link>
@@ -979,7 +979,7 @@ export default function FinanceTransactionsPage() {
                             {transactionLink(selectedTransaction) && (
                                 <Link
                                     href={transactionLink(selectedTransaction) as string}
-                                    className="bg-blue-700 px-4 py-3 text-sm text-white hover:bg-blue-800 font-black rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+                                    className="rounded-xl bg-blue-700 px-4 py-3 text-sm font-black text-white hover:bg-blue-800"
                                 >
                                     Open Linked Source
                                 </Link>

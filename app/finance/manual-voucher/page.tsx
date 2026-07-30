@@ -826,7 +826,7 @@ export default function ManualVoucherPage() {
 
                     <Link
                         href="/dashboard"
-                        className="mt-5 inline-flex bg-slate-950 px-4 py-3 text-sm text-white hover:bg-slate-800 font-black rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+                        className="mt-5 inline-flex rounded-xl bg-slate-950 px-4 py-3 text-sm font-black text-white transition hover:bg-slate-800"
                     >
                         Return to Dashboard
                     </Link>
@@ -841,21 +841,21 @@ export default function ManualVoucherPage() {
                 <div className="flex flex-wrap gap-2">
                     <Link
                         href="/finance"
-                        className="border border-slate-200 bg-slate-700 px-4 py-2.5 text-sm hover:bg-slate-800 font-black text-white rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+                        className="inline-flex min-h-12 items-center justify-center rounded-xl bg-slate-700 px-5 py-3 text-sm font-black text-white shadow-md transition duration-200 hover:-translate-y-0.5 hover:bg-slate-800 hover:shadow-lg focus:outline-none focus:ring-4 focus:ring-slate-200"
                     >
                         ← Finance Dashboard
                     </Link>
 
                     <Link
                         href="/payment-vouchers"
-                        className="bg-violet-700 px-4 py-2.5 text-sm text-white hover:bg-violet-800 font-black rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+                        className="inline-flex min-h-12 items-center justify-center rounded-xl bg-violet-700 px-5 py-3 text-sm font-black text-white shadow-md transition duration-200 hover:-translate-y-0.5 hover:bg-violet-800 hover:shadow-lg focus:outline-none focus:ring-4 focus:ring-violet-200"
                     >
                         Voucher Register
                     </Link>
 
                     <Link
                         href="/finance/transactions"
-                        className="bg-emerald-700 px-4 py-2.5 text-sm text-white hover:bg-emerald-800 font-black rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+                        className="inline-flex min-h-12 items-center justify-center rounded-xl bg-emerald-700 px-5 py-3 text-sm font-black text-white shadow-md transition duration-200 hover:-translate-y-0.5 hover:bg-emerald-800 hover:shadow-lg focus:outline-none focus:ring-4 focus:ring-emerald-200"
                     >
                         Transactions
                     </Link>
@@ -865,7 +865,7 @@ export default function ManualVoucherPage() {
                     type="button"
                     onClick={() => loadPage(true)}
                     disabled={refreshing}
-                    className="rounded-xl border border-cyan-200 bg-cyan-50 px-4 py-2.5 text-sm font-black text-cyan-800 transition hover:bg-cyan-100 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="inline-flex min-h-12 items-center justify-center rounded-xl bg-cyan-700 px-5 py-3 text-sm font-black text-white shadow-md transition duration-200 hover:-translate-y-0.5 hover:bg-cyan-800 hover:shadow-lg focus:outline-none focus:ring-4 focus:ring-cyan-200 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
                 >
                     {refreshing
                         ? "Refreshing…"
@@ -902,7 +902,7 @@ export default function ManualVoucherPage() {
 
                             <Link
                                 href="/payment-vouchers"
-                                className="border border-white/20 bg-white/10 px-5 py-3 text-sm text-white hover:bg-white/15 font-black rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+                                className="rounded-xl border border-white/20 bg-white/10 px-5 py-3 text-sm font-black text-white transition hover:bg-white/15"
                             >
                                 View Voucher Register
                             </Link>
@@ -1281,7 +1281,7 @@ export default function ManualVoucherPage() {
                             <button
                                 type="submit"
                                 disabled={saving || posting || cancelling}
-                                className="bg-amber-500 px-6 py-3.5 text-sm hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-60 font-black text-white rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+                                className="rounded-xl bg-amber-500 px-6 py-3.5 text-sm font-black text-slate-950 shadow-sm transition hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-60"
                             >
                                 {saving
                                     ? "Saving Draft…"
@@ -1294,7 +1294,7 @@ export default function ManualVoucherPage() {
                                 type="button"
                                 onClick={postVoucher}
                                 disabled={saving || posting || cancelling}
-                                className="bg-emerald-700 px-6 py-3.5 text-sm text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60 font-black rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+                                className="rounded-xl bg-emerald-700 px-6 py-3.5 text-sm font-black text-white shadow-sm transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60"
                             >
                                 {posting
                                     ? "Posting Voucher…"
@@ -1306,7 +1306,7 @@ export default function ManualVoucherPage() {
                                     type="button"
                                     onClick={cancelDraft}
                                     disabled={saving || posting || cancelling}
-                                    className="border border-red-200 bg-red-700 px-6 py-3.5 text-sm hover:bg-red-800 disabled:cursor-not-allowed disabled:opacity-60 font-black text-white rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+                                    className="rounded-xl border border-red-200 bg-red-50 px-6 py-3.5 text-sm font-black text-red-700 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
                                 >
                                     {cancelling ? "Cancelling Draft…" : "Cancel Draft"}
                                 </button>
@@ -1577,7 +1577,7 @@ export default function ManualVoucherPage() {
                                             {posted ? (
                                                 <Link
                                                     href="/payment-vouchers"
-                                                    className="inline-flex border border-emerald-200 bg-emerald-700 px-4 py-2.5 text-sm font-black text-white rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+                                                    className="inline-flex rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-black text-emerald-800"
                                                 >
                                                     View in Register
                                                 </Link>
@@ -1726,7 +1726,7 @@ export default function ManualVoucherPage() {
                                                     {posted ? (
                                                         <Link
                                                             href="/payment-vouchers"
-                                                            className="inline-flex border border-emerald-200 bg-emerald-700 px-4 py-2 text-sm hover:bg-emerald-800 font-black text-white rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+                                                            className="inline-flex rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-black text-emerald-800 transition hover:bg-emerald-100"
                                                         >
                                                             View Register
                                                         </Link>

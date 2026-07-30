@@ -642,7 +642,7 @@ export default function FinanceRequestPage() {
           </p>
           <Link
             href="/finance"
-            className="mt-5 inline-flex bg-slate-950 px-4 py-3 text-sm text-white font-black rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+            className="mt-5 inline-flex rounded-xl bg-slate-950 px-4 py-3 text-sm font-black text-white"
           >
             Return to Finance
           </Link>
@@ -660,21 +660,21 @@ export default function FinanceRequestPage() {
           <div className="flex flex-wrap gap-2">
             <Link
               href="/finance"
-              className="inline-flex items-center bg-blue-700 px-4 py-2.5 text-sm text-white hover:bg-blue-800 font-black rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex min-h-12 items-center justify-center rounded-xl bg-blue-700 px-5 py-3 text-sm font-black text-white shadow-md transition duration-200 hover:-translate-y-0.5 hover:bg-blue-800 hover:shadow-lg focus:outline-none focus:ring-4 focus:ring-blue-200"
             >
               ← Finance Dashboard
             </Link>
 
             <Link
               href="/dashboard"
-              className="inline-flex items-center bg-slate-950 px-4 py-2.5 text-sm text-white hover:bg-slate-800 font-black rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex min-h-12 items-center justify-center rounded-xl bg-slate-700 px-5 py-3 text-sm font-black text-white shadow-md transition duration-200 hover:-translate-y-0.5 hover:bg-slate-800 hover:shadow-lg focus:outline-none focus:ring-4 focus:ring-slate-200"
             >
               Main Dashboard
             </Link>
 
             <Link
               href="/requests"
-              className="inline-flex items-center border border-violet-200 bg-violet-700 px-4 py-2.5 text-sm hover:bg-violet-800 font-black text-white rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex min-h-12 items-center justify-center rounded-xl bg-violet-700 px-5 py-3 text-sm font-black text-white shadow-md transition duration-200 hover:-translate-y-0.5 hover:bg-violet-800 hover:shadow-lg focus:outline-none focus:ring-4 focus:ring-violet-200"
             >
               All Requests
             </Link>
@@ -688,7 +688,7 @@ export default function FinanceRequestPage() {
             <button
               type="button"
               onClick={loadFinanceRequest}
-              className="border border-cyan-200 bg-cyan-700 px-4 py-2.5 text-sm hover:bg-cyan-800 font-black text-white rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex min-h-12 items-center justify-center rounded-xl bg-cyan-700 px-5 py-3 text-sm font-black text-white shadow-md transition duration-200 hover:-translate-y-0.5 hover:bg-cyan-800 hover:shadow-lg focus:outline-none focus:ring-4 focus:ring-cyan-200"
             >
               Refresh Now
             </button>
@@ -921,7 +921,7 @@ export default function FinanceRequestPage() {
                 !request.subhead_id ||
                 !linkedAccountId
               }
-              className="mt-5 inline-flex bg-emerald-700 px-5 py-3 text-sm text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-400 font-black rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-60"
+              className="mt-5 inline-flex rounded-xl bg-emerald-700 px-5 py-3 text-sm font-black text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-400"
             >
               {generatingVoucher
                 ? "Generating Voucher…"
@@ -1048,7 +1048,7 @@ export default function FinanceRequestPage() {
             type="button"
             onClick={savePaymentDraft}
             disabled={!voucher || savingDraft || isPosted}
-            className="bg-blue-700 px-5 py-3 text-sm text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-slate-400 font-black rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-60"
+            className="rounded-xl bg-blue-700 px-5 py-3 text-sm font-black text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-slate-400"
           >
             {savingDraft
               ? "Saving Draft…"
@@ -1124,7 +1124,7 @@ export default function FinanceRequestPage() {
               type="button"
               onClick={postPayment}
               disabled={!paymentDetailsReady || !confirmPost || postingPayment}
-              className="mt-5 bg-red-700 px-5 py-3 text-sm text-white hover:bg-red-800 disabled:cursor-not-allowed disabled:bg-slate-400 font-black rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-60"
+              className="mt-5 rounded-xl bg-red-700 px-5 py-3 text-sm font-black text-white transition hover:bg-red-800 disabled:cursor-not-allowed disabled:bg-slate-400"
             >
               {postingPayment
                 ? "Posting Payment…"
@@ -1148,14 +1148,14 @@ export default function FinanceRequestPage() {
           <div className="flex flex-wrap gap-2">
             <Link
               href="/finance"
-              className="bg-blue-700 px-4 py-2.5 text-sm text-white hover:bg-blue-800 font-black rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+              className="rounded-xl bg-blue-700 px-4 py-2.5 text-sm font-black text-white transition hover:bg-blue-800"
             >
               Finance Home
             </Link>
 
             <Link
               href="/dashboard"
-              className="bg-slate-950 px-4 py-2.5 text-sm text-white hover:bg-slate-800 font-black rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+              className="rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-black text-white transition hover:bg-slate-800"
             >
               Main Dashboard
             </Link>

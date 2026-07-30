@@ -842,7 +842,7 @@ export default function SubheadsPage() {
             <button
               onClick={startCreate}
               disabled={!canManage || refreshing || printing || exporting || saving}
-              className="bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700 disabled:opacity-60 font-black rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed"
+              className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:opacity-60"
             >
               Add Subhead
             </button>
@@ -850,7 +850,7 @@ export default function SubheadsPage() {
             <button
               onClick={printSubheadsReport}
               disabled={refreshing || printing || exporting || saving}
-              className="bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700 disabled:opacity-60 font-black rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed"
+              className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:opacity-60"
             >
               {printing ? "Preparing..." : "Print / Save PDF"}
             </button>
@@ -858,7 +858,7 @@ export default function SubheadsPage() {
             <button
               onClick={exportSubheadsExcel}
               disabled={refreshing || printing || exporting || saving}
-              className="bg-emerald-600 px-4 py-2 text-sm text-white hover:bg-emerald-700 disabled:opacity-60 font-black rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed"
+              className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 disabled:opacity-60"
             >
               {exporting ? "Exporting..." : "Export Excel"}
             </button>
@@ -866,7 +866,7 @@ export default function SubheadsPage() {
             <button
               onClick={openBanks}
               disabled={refreshing || printing || exporting || saving}
-              className="border border-slate-200 bg-slate-700 px-4 py-2 text-sm hover:bg-slate-800 disabled:opacity-60 font-black text-white rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed"
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-100 disabled:opacity-60"
             >
               IET Banks
             </button>
@@ -875,7 +875,7 @@ export default function SubheadsPage() {
               <button
                 onClick={openFinanceAudit}
                 disabled={refreshing || printing || exporting || saving}
-                className="border border-slate-200 bg-slate-700 px-4 py-2 text-sm hover:bg-slate-800 disabled:opacity-60 font-black text-white rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed"
+                className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-100 disabled:opacity-60"
               >
                 Audit & Reconciliation
               </button>
@@ -884,7 +884,7 @@ export default function SubheadsPage() {
             <button
               onClick={backToFinance}
               disabled={refreshing || printing || exporting || saving}
-              className="border border-slate-200 bg-slate-700 px-4 py-2 text-sm hover:bg-slate-800 disabled:opacity-60 font-black text-white rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed"
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-100 disabled:opacity-60"
             >
               Back to Finance
             </button>
@@ -919,7 +919,7 @@ export default function SubheadsPage() {
           <SmallStat title="IET Banks" value={String(banks.length)} />
         </div>
 
-        <div className="no-print mt-6 rounded-3xl border bg-white p-2 shadow-sm">
+        <div className="no-print mt-6 rounded-3xl border border-slate-200 bg-white p-3 shadow-sm">
           <div className="flex flex-wrap gap-2">
             <TabButton label="Overview" active={activeTab === "overview"} onClick={() => setActiveTab("overview")} />
             <TabButton label="Active Subheads" active={activeTab === "active"} onClick={() => setActiveTab("active")} />
@@ -1114,7 +1114,7 @@ function SubheadForm({
           <button
             onClick={onCancel}
             disabled={saving}
-            className="border border-slate-200 bg-slate-700 px-4 py-2 text-sm hover:bg-slate-800 disabled:opacity-60 font-black text-white rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed"
+            className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
           >
             Cancel Edit
           </button>
@@ -1237,7 +1237,7 @@ function SubheadForm({
           <button
             onClick={onSave}
             disabled={!canManage || saving}
-            className="ml-auto bg-blue-600 px-5 py-3 text-sm text-white hover:bg-blue-700 disabled:opacity-60 font-black rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed"
+            className="ml-auto rounded-2xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:opacity-60"
           >
             {saving ? "Saving..." : editId ? "Update Subhead" : "Create Subhead"}
           </button>
@@ -1467,7 +1467,7 @@ function SubheadMobileCard({
         <button
           disabled={!canManage || saving}
           onClick={onEdit}
-          className="border border-slate-200 bg-slate-700 px-4 py-2 text-sm hover:bg-slate-800 disabled:opacity-50 font-black text-white rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+          className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-50"
         >
           Edit
         </button>
@@ -1485,7 +1485,7 @@ function SubheadMobileCard({
         <button
           disabled={!canManage || saving}
           onClick={onDelete}
-          className="bg-red-600 px-4 py-2 text-sm text-white hover:bg-red-700 disabled:opacity-50 font-black rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+          className="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
         >
           {Number(s.request_count || 0) > 0 ||
           Number(s.approved_allocation || 0) > 0 ||
@@ -1533,7 +1533,7 @@ function CompletedRequestsPanel({
         <button
           onClick={onRefresh}
           disabled={refreshing || printing || exporting || saving}
-          className="border border-slate-200 bg-slate-700 px-4 py-2 text-sm hover:bg-slate-800 disabled:opacity-60 font-black text-white rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed"
+          className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
         >
           {refreshing ? "Refreshing..." : "Refresh"}
         </button>
@@ -1611,12 +1611,29 @@ function CompletedRequestsPanel({
 }
 
 function TabButton({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
+  const key = label.toLowerCase();
+  const tone =
+    key.includes("inactive") || key.includes("policy")
+      ? "bg-rose-600 hover:bg-rose-700 focus:ring-rose-200"
+      : key.includes("active") || key.includes("assign") || key.includes("ledger")
+      ? "bg-emerald-700 hover:bg-emerald-800 focus:ring-emerald-200"
+      : key.includes("add") || key.includes("edit") || key.includes("fund") || key.includes("backup")
+      ? "bg-orange-600 hover:bg-orange-700 focus:ring-orange-200"
+      : key.includes("voucher") || key.includes("subhead") || key.includes("completed")
+      ? "bg-violet-700 hover:bg-violet-800 focus:ring-violet-200"
+      : key.includes("bank") || key.includes("checklist")
+      ? "bg-cyan-700 hover:bg-cyan-800 focus:ring-cyan-200"
+      : key.includes("department")
+      ? "bg-blue-700 hover:bg-blue-800 focus:ring-blue-200"
+      : "bg-slate-700 hover:bg-slate-800 focus:ring-slate-200";
+
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-2xl px-4 py-3 text-sm font-bold transition ${
-        active ? "bg-blue-600 text-white shadow-sm" : "bg-white text-slate-700 hover:bg-slate-100"
+      aria-pressed={active}
+      className={`inline-flex min-h-12 items-center justify-center rounded-xl px-5 py-3 text-sm font-black text-white shadow-md transition duration-200 hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus:ring-4 ${tone} ${
+        active ? "ring-4 ring-offset-2 brightness-110" : ""
       }`}
     >
       {label}

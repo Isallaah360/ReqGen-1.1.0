@@ -42,16 +42,17 @@ export function PVActionButton({
   children: ReactNode;
   onClick?: () => void;
   disabled?: boolean;
-  tone?: "blue" | "cyan" | "violet" | "emerald" | "slate" | "danger";
+  tone?: "blue" | "cyan" | "violet" | "emerald" | "orange" | "slate" | "danger";
   type?: "button" | "submit";
 }) {
   const tones = {
-    blue: "border-blue-500 bg-blue-600 text-white hover:bg-blue-700",
-    cyan: "border-cyan-300/70 bg-cyan-500/90 text-white hover:bg-cyan-400",
-    violet: "border-violet-500 bg-violet-600 text-white hover:bg-violet-700",
-    emerald: "border-emerald-500 bg-emerald-600 text-white hover:bg-emerald-700",
-    slate: "border-slate-700/70 bg-slate-900/90 text-white hover:bg-slate-800",
-    danger: "border-red-600 bg-red-600 text-white hover:bg-red-700",
+    blue: "border-blue-700 bg-blue-700 text-white hover:bg-blue-800 focus:ring-blue-200",
+    cyan: "border-cyan-700 bg-cyan-700 text-white hover:bg-cyan-800 focus:ring-cyan-200",
+    violet: "border-violet-700 bg-violet-700 text-white hover:bg-violet-800 focus:ring-violet-200",
+    emerald: "border-emerald-700 bg-emerald-700 text-white hover:bg-emerald-800 focus:ring-emerald-200",
+    orange: "border-orange-600 bg-orange-600 text-white hover:bg-orange-700 focus:ring-orange-200",
+    slate: "border-slate-700 bg-slate-700 text-white hover:bg-slate-800 focus:ring-slate-200",
+    danger: "border-rose-700 bg-rose-700 text-white hover:bg-rose-800 focus:ring-rose-200",
   } as const;
 
   return (
@@ -59,7 +60,7 @@ export function PVActionButton({
       type={type}
       onClick={onClick}
       disabled={disabled}
-      className={`inline-flex min-h-12 min-w-[150px] items-center justify-center rounded-xl border px-5 py-3 text-sm font-black tracking-[0.01em] shadow-md backdrop-blur-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus:ring-4 focus:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 ${tones[tone]} focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200`}
+      className={`inline-flex min-h-12 min-w-[150px] items-center justify-center rounded-xl border px-5 py-3 text-sm font-black tracking-[0.01em] shadow-md backdrop-blur-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus:ring-4 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 ${tones[tone]}`}
     >
       {children}
     </button>

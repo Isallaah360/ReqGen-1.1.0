@@ -420,7 +420,7 @@ export default function DepartmentsPage() {
             <button
               onClick={startCreate}
               disabled={!canManage || refreshing || saving}
-              className="bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700 disabled:opacity-60 font-black rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed"
+              className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
             >
               Add Department
             </button>
@@ -428,7 +428,7 @@ export default function DepartmentsPage() {
             <button
               onClick={backToFinance}
               disabled={refreshing || saving}
-              className="border border-slate-200 bg-slate-700 px-4 py-2 text-sm hover:bg-slate-800 disabled:opacity-60 font-black text-white rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed"
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
             >
               Back to Finance
             </button>
@@ -455,7 +455,7 @@ export default function DepartmentsPage() {
           <StatCard title="Routed" value={String(stats.routedDepartments)} tone="blue" />
         </div>
 
-        <div className="mt-6 rounded-3xl border bg-white p-2 shadow-sm">
+        <div className="mt-6 rounded-3xl border border-slate-200 bg-white p-3 shadow-sm">
           <div className="flex flex-wrap gap-2">
             <TabButton label="Overview" active={activeTab === "overview"} onClick={() => setActiveTab("overview")} />
             <TabButton label="Active Departments" active={activeTab === "active"} onClick={() => setActiveTab("active")} />
@@ -492,7 +492,7 @@ export default function DepartmentsPage() {
                 <button
                   onClick={resetForm}
                   disabled={saving}
-                  className="border border-slate-200 bg-slate-700 px-4 py-2 text-sm hover:bg-slate-800 disabled:opacity-60 font-black text-white rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed"
+                  className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
                 >
                   Cancel Edit
                 </button>
@@ -531,7 +531,7 @@ export default function DepartmentsPage() {
                 <button
                   onClick={save}
                   disabled={!canManage || saving}
-                  className="ml-auto bg-blue-600 px-5 py-3 text-sm text-white hover:bg-blue-700 disabled:opacity-60 font-black rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed"
+                  className="ml-auto rounded-2xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
                 >
                   {saving ? "Saving..." : editId ? "Update Department" : "Create Department"}
                 </button>
@@ -706,7 +706,7 @@ function DepartmentCard({
         <button
           onClick={onEdit}
           disabled={!canManage || saving}
-          className="border border-slate-200 bg-slate-700 px-4 py-2 text-sm hover:bg-slate-800 disabled:opacity-50 font-black text-white rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+          className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-50"
         >
           Edit
         </button>
@@ -726,7 +726,7 @@ function DepartmentCard({
         <button
           onClick={onDelete}
           disabled={!canManage || saving}
-          className="bg-red-600 px-4 py-2 text-sm text-white hover:bg-red-700 disabled:opacity-50 font-black rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+          className="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
         >
           {canHardDeleteDepartment(d) ? "Delete" : "Deactivate"}
         </button>
@@ -749,21 +749,30 @@ function StatusBadge({ active }: { active: boolean }) {
   );
 }
 
-function TabButton({
-  label,
-  active,
-  onClick,
-}: {
-  label: string;
-  active: boolean;
-  onClick: () => void;
-}) {
+function TabButton({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
+  const key = label.toLowerCase();
+  const tone =
+    key.includes("inactive") || key.includes("policy")
+      ? "bg-rose-600 hover:bg-rose-700 focus:ring-rose-200"
+      : key.includes("active") || key.includes("assign") || key.includes("ledger")
+      ? "bg-emerald-700 hover:bg-emerald-800 focus:ring-emerald-200"
+      : key.includes("add") || key.includes("edit") || key.includes("fund") || key.includes("backup")
+      ? "bg-orange-600 hover:bg-orange-700 focus:ring-orange-200"
+      : key.includes("voucher") || key.includes("subhead") || key.includes("completed")
+      ? "bg-violet-700 hover:bg-violet-800 focus:ring-violet-200"
+      : key.includes("bank") || key.includes("checklist")
+      ? "bg-cyan-700 hover:bg-cyan-800 focus:ring-cyan-200"
+      : key.includes("department")
+      ? "bg-blue-700 hover:bg-blue-800 focus:ring-blue-200"
+      : "bg-slate-700 hover:bg-slate-800 focus:ring-slate-200";
+
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-2xl px-4 py-3 text-sm font-bold transition ${
-        active ? "bg-blue-600 text-white shadow-sm" : "bg-white text-slate-700 hover:bg-slate-100"
+      aria-pressed={active}
+      className={`inline-flex min-h-12 items-center justify-center rounded-xl px-5 py-3 text-sm font-black text-white shadow-md transition duration-200 hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus:ring-4 ${tone} ${
+        active ? "ring-4 ring-offset-2 brightness-110" : ""
       }`}
     >
       {label}

@@ -714,7 +714,7 @@ export default function NavBar() {
             <button
               type="button"
               onClick={logout}
-              className="bg-rose-600 px-4 py-2 text-sm text-white hover:bg-rose-700 font-black rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+              className="rounded-xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-700"
             >
               Logout
             </button>
@@ -768,14 +768,14 @@ export default function NavBar() {
                       <button
                         type="button"
                         onClick={() => setActionTab("actions")}
-                        className={`rounded-xl px-3 py-2.5 text-xs font-black transition ${actionTab === "actions" ? "bg-blue-600 text-white shadow-sm" : "bg-white text-slate-700 hover:bg-blue-50 hover:text-blue-700"}`}
+                        className={`min-h-11 rounded-xl bg-blue-700 px-4 py-2.5 text-xs font-black text-white shadow-md transition hover:-translate-y-0.5 hover:bg-blue-800 hover:shadow-lg focus:outline-none focus:ring-4 focus:ring-blue-200 ${actionTab === "actions" ? "ring-4 ring-offset-2" : ""}`}
                       >
                         WAITING FOR ACTION ({pendingApprovalCount})
                       </button>
                       <button
                         type="button"
                         onClick={() => setActionTab("updates")}
-                        className={`rounded-xl px-3 py-2.5 text-xs font-black transition ${actionTab === "updates" ? "bg-blue-600 text-white shadow-sm" : "bg-white text-slate-700 hover:bg-blue-50 hover:text-blue-700"}`}
+                        className={`min-h-11 rounded-xl bg-violet-700 px-4 py-2.5 text-xs font-black text-white shadow-md transition hover:-translate-y-0.5 hover:bg-violet-800 hover:shadow-lg focus:outline-none focus:ring-4 focus:ring-violet-200 ${actionTab === "updates" ? "ring-4 ring-offset-2" : ""}`}
                       >
                         RECENT UPDATES ({unreadNotificationCount})
                       </button>
@@ -825,7 +825,7 @@ export default function NavBar() {
                       <>
                         <div className="flex items-center justify-between border-b px-4 py-3">
                           <span className="text-xs font-black uppercase tracking-wide text-slate-500">Latest workflow updates</span>
-                          <button type="button" onClick={markAllNotificationsRead} disabled={unreadNotificationCount === 0} className="px-2 py-1 text-xs hover:bg-blue-50 disabled:cursor-not-allowed disabled:text-slate-400 bg-slate-700 hover:bg-slate-800 font-black text-white rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-60">MARK ALL READ</button>
+                          <button type="button" onClick={markAllNotificationsRead} disabled={unreadNotificationCount === 0} className="rounded-lg px-2 py-1 text-xs font-black text-blue-700 transition hover:bg-blue-50 disabled:cursor-not-allowed disabled:text-slate-400">MARK ALL READ</button>
                         </div>
                         {notificationItems.length === 0 ? (
                           <div className="px-5 py-8 text-center text-sm font-semibold text-slate-500">No recent update.</div>
@@ -1099,7 +1099,7 @@ export default function NavBar() {
                     <button
                       type="button"
                       onClick={logout}
-                      className="w-full bg-rose-600 px-4 py-3 text-left text-sm text-white hover:bg-rose-700 font-black rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+                      className="w-full rounded-xl bg-rose-600 px-4 py-3 text-left text-sm font-bold text-white hover:bg-rose-700"
                     >
                       <span className="inline-flex items-center gap-2">
                         <IconLogout className="h-4 w-4" />
@@ -1114,7 +1114,7 @@ export default function NavBar() {
             <button
               type="button"
               onClick={logout}
-              className="group relative hidden h-11 w-11 items-center justify-center bg-rose-600 text-white hover:bg-rose-700 sm:inline-flex px-4 py-2.5 font-black rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+              className="group relative hidden h-11 w-11 items-center justify-center rounded-2xl bg-rose-600 text-white transition hover:bg-rose-700 sm:inline-flex"
             >
               <IconLogout />
               <IconButtonTooltip label="Logout" />
