@@ -649,17 +649,7 @@ export default function PaymentVouchersPage() {
   }
 
   function openManualVoucher() {
-    setMsg(null);
-    setShowManualModal(true);
-    setManualDeptId("");
-    setManualSubheadId("");
-    setManualBankAccountId("");
-    setManualPayeeName("");
-    setManualNarration("");
-    setManualReason("");
-    setManualAmount("");
-    setManualMode("Transfer");
-    setManualReference("");
+    router.push("/finance/manual-voucher");
   }
 
   function closeManualVoucher() {
@@ -1074,28 +1064,24 @@ export default function PaymentVouchersPage() {
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,_#eff6ff,_#f8fafc_36%,_#f1f5f9)] px-3 sm:px-4">
       <div className="mx-auto max-w-[1500px] py-6 sm:py-8">
-        <PVHero
-          eyebrow="Finance Operations"
-          title="Payment Voucher Centre"
-          description="Generate, review, authorize, disburse and audit official IET payment vouchers from one controlled workspace."
-          actions={<>
+        <nav className="mb-6 flex flex-col gap-3 rounded-3xl border border-slate-200 bg-white p-3 shadow-sm lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-wrap gap-2">
+            <PVActionButton
+              onClick={() => router.push("/finance")}
+              tone="slate"
+            >
+              ← Finance Centre
+            </PVActionButton>
+
             {canManualVoucher && (
               <PVActionButton
                 onClick={openManualVoucher}
                 disabled={Boolean(deletingId) || generating || refreshing}
                 tone="emerald"
               >
-                Manual Voucher
+                + Manual Voucher
               </PVActionButton>
             )}
-
-            <PVActionButton
-              onClick={() => load({ silent: true })}
-              disabled={Boolean(deletingId) || generating || refreshing}
-              tone="cyan"
-            >
-              {refreshing ? "Refreshing..." : "Refresh"}
-            </PVActionButton>
 
             {canViewReports && (
               <PVActionButton
@@ -1113,14 +1099,21 @@ export default function PaymentVouchersPage() {
             >
               PV Settings
             </PVActionButton>
+          </div>
 
-            <PVActionButton
-              onClick={() => router.push("/finance")}
-              tone="slate"
-            >
-              Finance Centre
-            </PVActionButton>
-          </>}
+          <PVActionButton
+            onClick={() => load({ silent: true })}
+            disabled={Boolean(deletingId) || generating || refreshing}
+            tone="cyan"
+          >
+            {refreshing ? "Refreshing..." : "Refresh Voucher Data"}
+          </PVActionButton>
+        </nav>
+
+        <PVHero
+          eyebrow="Finance Operations"
+          title="Payment Voucher Centre"
+          description="Generate, review, authorize, disburse and audit official IET payment vouchers from one controlled workspace."
         />
 
         {msg && (
@@ -1195,8 +1188,8 @@ export default function PaymentVouchersPage() {
 
             <div
               className={`mt-4 rounded-2xl border px-4 py-3 text-sm font-semibold ${selectionSummary.valid
-                  ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-                  : "border-amber-200 bg-amber-50 text-amber-900"
+                ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                : "border-amber-200 bg-amber-50 text-amber-900"
                 }`}
             >
               {selectionSummary.message}
@@ -1309,8 +1302,8 @@ export default function PaymentVouchersPage() {
                           onClick={() => toggleSelectRequest(r)}
                           disabled={generating}
                           className={`rounded-xl px-3 py-2 text-xs font-semibold text-white disabled:opacity-50 ${checked
-                              ? "bg-red-600 hover:bg-red-700"
-                              : "bg-purple-600 hover:bg-purple-700"
+                            ? "bg-red-600 hover:bg-red-700"
+                            : "bg-purple-600 hover:bg-purple-700"
                             }`}
                         >
                           {checked ? "Remove" : "Add"}
