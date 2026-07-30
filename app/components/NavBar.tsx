@@ -9,6 +9,7 @@ import { REPORT_ACCESS_ROLES } from "@/lib/roles";
 type Notif = {
   id: string;
   title: string | null;
+  body: string | null;
   message: string | null;
   link: string | null;
   is_read: boolean;
@@ -285,6 +286,7 @@ export default function NavBar() {
   const [myRoles, setMyRoles] = useState<ProfileRole[]>([]);
 
   const [openApprovalPanel, setOpenApprovalPanel] = useState(false);
+  const [actionTab, setActionTab] = useState<"actions" | "updates">("actions");
   const [openHR, setOpenHR] = useState(false);
   const [openMobileMenu, setOpenMobileMenu] = useState(false);
 
@@ -436,7 +438,7 @@ export default function NavBar() {
   async function loadNotifications(uid: string) {
     const { data: n } = await supabase
       .from("notifications")
-      .select("id,title,message,link,is_read,created_at")
+      .select("id,title,body,message,link,is_read,created_at")
       .eq("user_id", uid)
       .order("created_at", { ascending: false })
       .limit(5);
@@ -650,10 +652,14 @@ export default function NavBar() {
   async function openNotif(n: Notif) {
     if (!mfaVerified) return;
 
-    await supabase.from("notifications").update({ is_read: true }).eq("id", n.id);
+    await supabase
+      .from("notifications")
+      .update({ is_read: true })
+      .eq("id", n.id)
+      .eq("user_id", userId);
 
     setOpenApprovalPanel(false);
-    router.push(n.link || "/notifications");
+    router.push(n.link || "/approvals");
     router.refresh();
   }
 
@@ -670,6 +676,8 @@ export default function NavBar() {
     router.push(`${href}?updated=${Date.now()}`);
     router.refresh();
   }
+
+  const actionCount = pendingApprovalCount + unreadNotificationCount;
 
   const showFullNavigation =
     signedIn && mfaVerified && !isPublicPath(pathname) && !isMfaPath(pathname);
@@ -719,161 +727,129 @@ export default function NavBar() {
               <div className="relative" ref={approvalRef}>
                 <button
                   type="button"
+                  aria-label="Open Action Centre"
+                  aria-expanded={openApprovalPanel}
                   onClick={() => {
                     setOpenApprovalPanel((v) => !v);
                     setOpenHR(false);
                     setOpenMobileMenu(false);
                   }}
-                  className={`group relative inline-flex h-11 w-11 items-center justify-center rounded-xl border transition ${isActiveLink("/approvals")
+                  className={`group relative inline-flex h-11 w-11 items-center justify-center rounded-2xl border transition ${
+                    isActiveLink("/approvals")
                       ? "border-blue-600 bg-gradient-to-br from-blue-700 to-cyan-600 text-white shadow-lg shadow-blue-200/70"
-                      : pendingApprovalCount > 0
-                        ? "border-red-200 bg-red-50 text-red-700 hover:bg-red-100"
+                      : actionCount > 0
+                        ? "border-blue-200 bg-gradient-to-br from-blue-50 to-cyan-50 text-blue-700 shadow-sm hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-md"
                         : "border-slate-200 bg-white text-slate-700 hover:-translate-y-0.5 hover:border-cyan-300 hover:bg-gradient-to-br hover:from-blue-50 hover:to-cyan-50 hover:text-blue-700 hover:shadow-md"
-                    }`}
+                  }`}
                 >
-                  <IconApprovals />
-                  <IconButtonTooltip label="Approvals" />
-
-                  {pendingApprovalCount > 0 && (
-                    <span className="absolute -right-2 -top-2 rounded-full bg-rose-600 px-2 py-0.5 text-xs font-black text-white">
-                      {compactCount(pendingApprovalCount)}
+                  <IconNotifications />
+                  <span className="absolute bottom-2 right-2 grid h-3.5 w-3.5 place-items-center rounded-full bg-emerald-500 text-[8px] font-black leading-none text-white ring-2 ring-white">✓</span>
+                  <IconButtonTooltip label="Action Centre" />
+                  {actionCount > 0 && (
+                    <span className="absolute -right-2 -top-2 min-w-6 rounded-full bg-rose-600 px-1.5 py-0.5 text-center text-xs font-black text-white shadow-sm ring-2 ring-white">
+                      {compactCount(actionCount)}
                     </span>
                   )}
                 </button>
 
                 {openApprovalPanel && (
-                  <div className="absolute left-0 top-12 z-50 w-[390px] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
-                    <div className="border-b bg-slate-50 px-4 py-3">
-                      <div className="flex items-center justify-between gap-3">
+                  <div className="absolute left-0 top-12 z-50 w-[420px] overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl shadow-slate-900/20">
+                    <div className="bg-gradient-to-r from-blue-950 via-blue-900 to-cyan-800 px-5 py-4 text-white">
+                      <div className="flex items-start justify-between gap-4">
                         <div>
-                          <div className="font-extrabold text-slate-900">
-                            Pending Approvals
-                          </div>
-                          <div className="mt-0.5 text-xs font-semibold text-slate-500">
-                            Exact requests currently assigned to you
-                          </div>
+                          <div className="text-base font-black tracking-tight">ACTION CENTRE</div>
+                          <div className="mt-1 text-xs font-semibold text-blue-100">Live requests requiring action and recent workflow updates.</div>
                         </div>
-
-                        <span
-                          className={`rounded-full px-2.5 py-1 text-xs font-black ${pendingApprovalCount > 0
-                              ? "bg-rose-600 text-white"
-                              : "bg-slate-200 text-slate-700"
-                            }`}
-                        >
-                          {pendingApprovalCount}
-                        </span>
+                        <span className="rounded-full bg-white/15 px-2.5 py-1 text-xs font-black ring-1 ring-white/20">{actionCount}</span>
                       </div>
                     </div>
 
-                    {pendingApprovals.length === 0 ? (
-                      <div className="p-4 text-sm text-slate-600">
-                        No request is currently awaiting your approval.
-                      </div>
-                    ) : (
-                      <div className="max-h-80 overflow-auto">
-                        {pendingApprovals.map((r) => (
-                          <button
-                            type="button"
-                            key={r.id}
-                            onClick={() => openApprovalRequest(r.id)}
-                            className="w-full border-t px-4 py-3 text-left hover:bg-slate-50"
-                          >
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="min-w-0">
-                                <div className="truncate text-sm font-black text-slate-900">
-                                  {r.request_no || "No Request No"}
-                                </div>
-                                <div className="mt-1 text-sm font-semibold text-slate-700">
-                                  {r.title || "Untitled Request"}
-                                </div>
-                                <div className="mt-1 text-xs font-semibold text-slate-500">
-                                  Stage: {r.current_stage || "Pending"} •{" "}
-                                  {new Date(r.created_at).toLocaleString()}
-                                </div>
-                              </div>
-
-                              <div className="shrink-0 text-right text-xs font-black text-slate-900">
-                                {formatNaira(r.amount)}
-                              </div>
-                            </div>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-
-                    <div className="border-t bg-slate-50 p-3">
+                    <div className="grid grid-cols-2 gap-2 border-b bg-slate-50 p-2">
                       <button
                         type="button"
-                        onClick={() => goTo("/approvals")}
-                        className="w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-black text-white hover:bg-blue-700"
+                        onClick={() => setActionTab("actions")}
+                        className={`rounded-xl px-3 py-2.5 text-xs font-black transition ${actionTab === "actions" ? "bg-blue-600 text-white shadow-sm" : "bg-white text-slate-700 hover:bg-blue-50 hover:text-blue-700"}`}
                       >
-                        Open Approvals Inbox
+                        WAITING FOR ACTION ({pendingApprovalCount})
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setActionTab("updates")}
+                        className={`rounded-xl px-3 py-2.5 text-xs font-black transition ${actionTab === "updates" ? "bg-blue-600 text-white shadow-sm" : "bg-white text-slate-700 hover:bg-blue-50 hover:text-blue-700"}`}
+                      >
+                        RECENT UPDATES ({unreadNotificationCount})
                       </button>
                     </div>
 
-                    <div className="border-t">
-                      <div className="flex items-center justify-between bg-white px-4 py-3">
-                        <div className="text-sm font-extrabold text-slate-900">
-                          Recent Notifications
-                          {unreadNotificationCount > 0 && (
-                            <span className="ml-2 rounded-full bg-blue-600 px-2 py-0.5 text-xs font-black text-white">
-                              {unreadNotificationCount}
-                            </span>
-                          )}
-                        </div>
-
-                        <button
-                          type="button"
-                          onClick={markAllNotificationsRead}
-                          disabled={unreadNotificationCount === 0}
-                          className="text-xs font-bold text-blue-700 hover:underline disabled:text-slate-400"
-                        >
-                          Mark read
-                        </button>
-                      </div>
-
-                      {notificationItems.length === 0 ? (
-                        <div className="border-t px-4 py-3 text-sm text-slate-500">
-                          No notification yet.
-                        </div>
-                      ) : (
-                        <div className="max-h-52 overflow-auto">
-                          {notificationItems.map((n) => (
-                            <button
-                              type="button"
-                              key={n.id}
-                              onClick={() => openNotif(n)}
-                              className={`w-full border-t px-4 py-3 text-left hover:bg-slate-50 ${n.is_read ? "bg-white" : "bg-blue-50"
-                                }`}
-                            >
-                              <div className="text-sm font-black text-slate-900">
-                                {n.title || "Notification"}
-                              </div>
-
-                              {n.message && (
-                                <div className="mt-1 line-clamp-2 text-xs font-semibold text-slate-600">
-                                  {n.message}
+                    {actionTab === "actions" ? (
+                      <>
+                        {pendingApprovals.length === 0 ? (
+                          <div className="px-5 py-8 text-center">
+                            <div className="mx-auto grid h-11 w-11 place-items-center rounded-2xl bg-emerald-50 text-emerald-600"><IconApprovals /></div>
+                            <div className="mt-3 text-sm font-black text-slate-900">No pending action</div>
+                            <div className="mt-1 text-xs font-semibold text-slate-500">You are up to date with assigned requests.</div>
+                          </div>
+                        ) : (
+                          <div className="max-h-[360px] overflow-auto">
+                            {pendingApprovals.map((r) => (
+                              <button
+                                type="button"
+                                key={r.id}
+                                onClick={() => openApprovalRequest(r.id)}
+                                className="w-full border-b border-slate-100 px-5 py-4 text-left transition hover:bg-blue-50/70"
+                              >
+                                <div className="flex items-start justify-between gap-3">
+                                  <div className="min-w-0">
+                                    <div className="flex items-center gap-2">
+                                      <span className="truncate text-sm font-black text-slate-950">{r.request_no || "No Request Number"}</span>
+                                      <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-black text-amber-800">ACTION</span>
+                                    </div>
+                                    <div className="mt-1 line-clamp-2 text-sm font-semibold text-slate-700">{r.title || "Untitled Request"}</div>
+                                    <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] font-bold text-slate-500">
+                                      <span>{r.current_stage || "Pending stage"}</span><span>•</span><span>{new Date(r.created_at).toLocaleString()}</span>
+                                    </div>
+                                  </div>
+                                  <div className="shrink-0 text-right text-xs font-black text-slate-950">{formatNaira(r.amount)}</div>
                                 </div>
-                              )}
-
-                              <div className="mt-1 text-xs text-slate-500">
-                                {new Date(n.created_at).toLocaleString()}
-                              </div>
-                            </button>
-                          ))}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                        <div className="border-t bg-slate-50 p-3">
+                          <button type="button" onClick={() => goTo("/approvals")} className="w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-black text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-200">
+                            OPEN FULL APPROVALS INBOX
+                          </button>
                         </div>
-                      )}
-
-                      <div className="border-t bg-slate-50 p-3">
-                        <button
-                          type="button"
-                          onClick={() => goTo("/notifications")}
-                          className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-900 hover:bg-slate-100"
-                        >
-                          Open Notifications
-                        </button>
-                      </div>
-                    </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="flex items-center justify-between border-b px-4 py-3">
+                          <span className="text-xs font-black uppercase tracking-wide text-slate-500">Latest workflow updates</span>
+                          <button type="button" onClick={markAllNotificationsRead} disabled={unreadNotificationCount === 0} className="rounded-lg px-2 py-1 text-xs font-black text-blue-700 transition hover:bg-blue-50 disabled:cursor-not-allowed disabled:text-slate-400">MARK ALL READ</button>
+                        </div>
+                        {notificationItems.length === 0 ? (
+                          <div className="px-5 py-8 text-center text-sm font-semibold text-slate-500">No recent update.</div>
+                        ) : (
+                          <div className="max-h-[360px] overflow-auto">
+                            {notificationItems.map((n) => {
+                              const detail = n.body || n.message || "Open the related record for details.";
+                              return (
+                                <button type="button" key={n.id} onClick={() => openNotif(n)} className={`w-full border-b border-slate-100 px-5 py-4 text-left transition hover:bg-blue-50/70 ${n.is_read ? "bg-white" : "bg-blue-50/50"}`}>
+                                  <div className="flex items-start gap-3">
+                                    <span className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${n.is_read ? "bg-slate-300" : "bg-blue-600"}`} />
+                                    <div className="min-w-0">
+                                      <div className="text-sm font-black text-slate-950">{n.title || "Workflow update"}</div>
+                                      <div className="mt-1 line-clamp-2 text-xs font-semibold leading-5 text-slate-600">{detail}</div>
+                                      <div className="mt-1.5 text-[11px] font-bold text-slate-400">{new Date(n.created_at).toLocaleString()}</div>
+                                    </div>
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </>
+                    )}
                   </div>
                 )}
               </div>
@@ -895,25 +871,7 @@ export default function NavBar() {
                 </Link>
               )}
 
-              <button
-                type="button"
-                onClick={() => goTo("/notifications")}
-                className={`group relative inline-flex h-11 w-11 items-center justify-center rounded-xl border transition ${isActiveLink("/notifications")
-                    ? "border-blue-600 bg-gradient-to-br from-blue-700 to-cyan-600 text-white shadow-lg shadow-blue-200/70"
-                    : unreadNotificationCount > 0
-                      ? "border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100"
-                      : "border-slate-200 bg-white text-slate-700 hover:-translate-y-0.5 hover:border-cyan-300 hover:bg-gradient-to-br hover:from-blue-50 hover:to-cyan-50 hover:text-blue-700 hover:shadow-md"
-                  }`}
-              >
-                <IconNotifications />
-                <IconButtonTooltip label="Notifications" />
 
-                {unreadNotificationCount > 0 && (
-                  <span className="absolute -right-2 -top-2 rounded-full bg-amber-600 px-2 py-0.5 text-xs font-black text-white">
-                    {compactCount(unreadNotificationCount)}
-                  </span>
-                )}
-              </button>
 
               {canFinance && (
                 <button
@@ -1023,15 +981,18 @@ export default function NavBar() {
                     onClick={() => goTo("/approvals")}
                     className={mobileItemClass("/approvals")}
                   >
-                    <span className="inline-flex items-center gap-2">
-                      <IconApprovals className="h-4 w-4" />
-                      Approvals
-                      {pendingApprovalCount > 0 && (
-                        <span className="rounded-full bg-rose-600 px-2 py-0.5 text-xs font-black text-white">
-                          {compactCount(pendingApprovalCount)}
-                        </span>
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="inline-flex items-center gap-2">
+                        <IconNotifications className="h-4 w-4" />
+                        Action Centre
+                      </span>
+                      {actionCount > 0 && (
+                        <span className="rounded-full bg-rose-600 px-2 py-0.5 text-xs font-black text-white">{compactCount(actionCount)}</span>
                       )}
-                    </span>
+                    </div>
+                    <div className={mobileItemDescriptionClass("/approvals")}>
+                      {pendingApprovalCount} waiting for action • {unreadNotificationCount} unread updates
+                    </div>
                   </button>
 
                   <button
@@ -1039,10 +1000,7 @@ export default function NavBar() {
                     onClick={() => goTo("/dashboard")}
                     className={mobileItemClass("/dashboard")}
                   >
-                    <span className="inline-flex items-center gap-2">
-                      <IconDashboard className="h-4 w-4" />
-                      Dashboard
-                    </span>
+                    <span className="inline-flex items-center gap-2"><IconDashboard className="h-4 w-4" />Dashboard</span>
                   </button>
 
                   <button
@@ -1050,42 +1008,7 @@ export default function NavBar() {
                     onClick={() => goTo("/requests")}
                     className={mobileItemClass("/requests")}
                   >
-                    <span className="inline-flex items-center gap-2">
-                      <IconRequests className="h-4 w-4" />
-                      My Requests
-                    </span>
-                  </button>
-
-                  {canViewReports && (
-                    <button
-                      type="button"
-                      onClick={() => goTo("/reports")}
-                      className={mobileItemClass("/reports")}
-                    >
-                      <span className="inline-flex items-center gap-2">
-                        <IconReports className="h-4 w-4" />
-                        Reports & Analytics
-                      </span>
-                      <div className={mobileItemDescriptionClass("/reports")}>
-                        Consolidated request, department, budget and finance intelligence
-                      </div>
-                    </button>
-                  )}
-
-                  <button
-                    type="button"
-                    onClick={() => goTo("/notifications")}
-                    className={mobileItemClass("/notifications")}
-                  >
-                    <span className="inline-flex items-center gap-2">
-                      <IconNotifications className="h-4 w-4" />
-                      Notifications
-                      {unreadNotificationCount > 0 && (
-                        <span className="rounded-full bg-amber-600 px-2 py-0.5 text-xs font-black text-white">
-                          {compactCount(unreadNotificationCount)}
-                        </span>
-                      )}
-                    </span>
+                    <span className="inline-flex items-center gap-2"><IconRequests className="h-4 w-4" />My Requests</span>
                   </button>
 
                   {canFinance && (

@@ -54,7 +54,6 @@ type DashboardCounts = {
   hrFilingAssignedToMe: number;
 
   paymentPrintReady: number;
-  unreadNotifications: number;
 };
 
 function roleKey(role: string | null | undefined) {
@@ -165,7 +164,6 @@ export default function DashboardPage() {
     hrFilingAssignedToMe: 0,
 
     paymentPrintReady: 0,
-    unreadNotifications: 0,
   });
 
   const roleSet = useMemo(() => {
@@ -251,7 +249,6 @@ export default function DashboardPage() {
       dgCount,
       accountCount,
       hrFilingCount,
-      unreadNotifRes,
     ] = await Promise.all([
       supabase
         .from("requests")
@@ -282,12 +279,6 @@ export default function DashboardPage() {
       countAssignedStage(userId, "DG"),
       countAssignedStage(userId, "Account"),
       countAssignedStage(userId, "HR Filing"),
-
-      supabase
-        .from("notifications")
-        .select("*", { count: "exact", head: true })
-        .eq("user_id", userId)
-        .eq("is_read", false),
     ]);
 
     let paymentPrintReady = 0;
@@ -319,7 +310,6 @@ export default function DashboardPage() {
       hrFilingAssignedToMe: hrFilingCount,
 
       paymentPrintReady,
-      unreadNotifications: Number(unreadNotifRes.count || 0),
     });
   }
 
@@ -456,18 +446,11 @@ export default function DashboardPage() {
         tone: "slate",
       },
       {
-        title: "Approvals",
+        title: "Action Centre",
         description:
-          "Review requests currently assigned to you as PO, DOD, Registrar, HOD, HR, DG, AccountOfficer or HR Filing officer.",
+          "Review requests currently waiting for your action. Live workflow updates remain available from the NavBar Action Centre.",
         href: "/approvals",
         tone: counts.pendingMyApproval > 0 ? "red" : "emerald",
-      },
-      {
-        title: "Notifications",
-        description:
-          "Open your workflow alerts, approvals, routing updates and request status notifications.",
-        href: "/notifications",
-        tone: counts.unreadNotifications > 0 ? "amber" : "slate",
       },
     ];
 
@@ -582,7 +565,6 @@ export default function DashboardPage() {
     isAdmin,
     counts.pendingMyApproval,
     counts.hrFilingAssignedToMe,
-    counts.unreadNotifications,
   ]);
 
   if (loading) {
@@ -692,7 +674,7 @@ export default function DashboardPage() {
                 </span>
               </div>
 
-              <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              <div className="mt-5 grid gap-4 md:grid-cols-3">
                 <NumberCountCard
                   label="Pending My Approval"
                   value={counts.pendingMyApproval}
@@ -715,14 +697,6 @@ export default function DashboardPage() {
                   helper="Your successful requests"
                   tone="emerald"
                   onClick={() => router.push("/requests")}
-                />
-
-                <NumberCountCard
-                  label="Unread Notifications"
-                  value={counts.unreadNotifications}
-                  helper="Unread workflow alerts"
-                  tone={counts.unreadNotifications > 0 ? "amber" : "slate"}
-                  onClick={() => router.push("/notifications")}
                 />
               </div>
 
@@ -831,7 +805,7 @@ export default function DashboardPage() {
               {counts.pendingMyApproval > 0 && (
                 <div className="mt-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-800">
                   You have {countValue(counts.pendingMyApproval)} request(s) waiting for your
-                  action. Open Approvals to treat them.
+                  action. Open the Action Centre to treat them.
                 </div>
               )}
             </div>
