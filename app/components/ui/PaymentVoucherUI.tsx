@@ -50,7 +50,7 @@ export function PVActionButton({
     cyan: "border-cyan-400 bg-cyan-500 text-slate-950 hover:bg-cyan-400",
     violet: "border-violet-500 bg-violet-600 text-white hover:bg-violet-700",
     emerald: "border-emerald-500 bg-emerald-600 text-white hover:bg-emerald-700",
-    slate: "border-slate-300 bg-white text-slate-800 hover:bg-slate-100",
+    slate: "border-slate-500 bg-slate-700 text-white hover:bg-slate-800",
     danger: "border-red-600 bg-red-600 text-white hover:bg-red-700",
   } as const;
 
@@ -59,7 +59,7 @@ export function PVActionButton({
       type={type}
       onClick={onClick}
       disabled={disabled}
-      className={`inline-flex min-h-11 items-center justify-center rounded-xl border px-4 py-2.5 text-sm font-extrabold shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus:ring-4 focus:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 ${tones[tone]}`}
+      className={`inline-flex min-h-11 min-w-[132px] items-center justify-center rounded-xl border px-4 py-2.5 text-sm font-extrabold shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus:ring-4 focus:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 ${tones[tone]}`}
     >
       {children}
     </button>

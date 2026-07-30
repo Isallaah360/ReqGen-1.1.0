@@ -575,7 +575,7 @@ export default function FinancePage() {
             + Create Manual Voucher
           </Link>
           <Link
-            href="/finance/vouchers"
+            href="/payment-vouchers"
             className="rounded-xl bg-violet-700 px-4 py-2.5 text-sm font-black text-white transition hover:bg-violet-800"
           >
             Voucher Register
@@ -735,11 +735,11 @@ export default function FinancePage() {
             colour="amber"
           />
           <ModuleCard
-            title="Payment Voucher Register"
-            description="Review request-based and manual payment vouchers in one register."
+            title="Payment Voucher Centre"
+            description="Generate, review, authorize, disburse and audit all payment vouchers from the main controlled workspace."
             icon="📄"
             section="Operations"
-            href="/finance/vouchers"
+            href="/payment-vouchers"
             badge={`${vouchers.length} Vouchers`}
             colour="violet"
           />

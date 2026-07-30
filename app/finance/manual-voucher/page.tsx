@@ -847,7 +847,7 @@ export default function ManualVoucherPage() {
                     </Link>
 
                     <Link
-                        href="/finance/vouchers"
+                        href="/payment-vouchers"
                         className="rounded-xl bg-violet-700 px-4 py-2.5 text-sm font-black text-white transition hover:bg-violet-800"
                     >
                         Voucher Register
@@ -901,7 +901,7 @@ export default function ManualVoucherPage() {
                             </button>
 
                             <Link
-                                href="/finance/vouchers"
+                                href="/payment-vouchers"
                                 className="rounded-xl border border-white/20 bg-white/10 px-5 py-3 text-sm font-black text-white transition hover:bg-white/15"
                             >
                                 View Voucher Register
@@ -1576,7 +1576,7 @@ export default function ManualVoucherPage() {
                                         <div className="mt-4 border-t border-slate-200 pt-4">
                                             {posted ? (
                                                 <Link
-                                                    href="/finance/vouchers"
+                                                    href="/payment-vouchers"
                                                     className="inline-flex rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-black text-emerald-800"
                                                 >
                                                     View in Register
@@ -1725,7 +1725,7 @@ export default function ManualVoucherPage() {
                                                 <td className="px-5 py-5 text-right">
                                                     {posted ? (
                                                         <Link
-                                                            href="/finance/vouchers"
+                                                            href="/payment-vouchers"
                                                             className="inline-flex rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-black text-emerald-800 transition hover:bg-emerald-100"
                                                         >
                                                             View Register

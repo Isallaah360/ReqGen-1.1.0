@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { REPORT_ACCESS_ROLES } from "@/lib/roles";
-import { PVHero } from "@/app/components/ui/PaymentVoucherUI";
+import { PVActionButton, PVHero } from "@/app/components/ui/PaymentVoucherUI";
 
 type VoucherRow = {
   id: string;
@@ -1080,51 +1080,46 @@ export default function PaymentVouchersPage() {
           description="Generate, review, authorize, disburse and audit official IET payment vouchers from one controlled workspace."
           actions={<>
             {canManualVoucher && (
-              <button
-                type="button"
+              <PVActionButton
                 onClick={openManualVoucher}
                 disabled={Boolean(deletingId) || generating || refreshing}
-                className="inline-flex min-h-11 items-center justify-center rounded-xl border border-emerald-500 bg-emerald-600 px-4 py-2.5 text-sm font-extrabold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-emerald-700 disabled:opacity-60"
+                tone="emerald"
               >
                 Manual Voucher
-              </button>
+              </PVActionButton>
             )}
 
-            <button
-              type="button"
+            <PVActionButton
               onClick={() => load({ silent: true })}
               disabled={Boolean(deletingId) || generating || refreshing}
-              className="inline-flex min-h-11 items-center justify-center rounded-xl border border-cyan-300 bg-cyan-400 px-4 py-2.5 text-sm font-extrabold text-slate-950 shadow-sm transition hover:-translate-y-0.5 hover:bg-cyan-300 disabled:opacity-60"
+              tone="cyan"
             >
               {refreshing ? "Refreshing..." : "Refresh"}
-            </button>
+            </PVActionButton>
 
             {canViewReports && (
-              <button
-                type="button"
+              <PVActionButton
                 onClick={() => router.push("/reports#payment-voucher-report")}
                 disabled={Boolean(deletingId) || generating}
-                className="inline-flex min-h-11 items-center justify-center rounded-xl border border-violet-500 bg-violet-600 px-4 py-2.5 text-sm font-extrabold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-violet-700 disabled:opacity-60"
+                tone="violet"
               >
                 PV Reports
-              </button>
+              </PVActionButton>
             )}
 
-            <button
-              type="button"
+            <PVActionButton
               onClick={() => router.push("/payment-vouchers/settings")}
-              className="inline-flex min-h-11 items-center justify-center rounded-xl border border-blue-200 bg-blue-50 px-4 py-2.5 text-sm font-extrabold text-blue-800 shadow-sm transition hover:-translate-y-0.5 hover:bg-blue-100"
+              tone="blue"
             >
               PV Settings
-            </button>
+            </PVActionButton>
 
-            <button
-              type="button"
+            <PVActionButton
               onClick={() => router.push("/finance")}
-              className="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-extrabold text-slate-800 shadow-sm transition hover:-translate-y-0.5 hover:bg-slate-100"
+              tone="slate"
             >
-              Back to Finance
-            </button>
+              Finance Centre
+            </PVActionButton>
           </>}
         />
 
