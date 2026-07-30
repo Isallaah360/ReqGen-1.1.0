@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
-import { PVHero } from "@/app/components/ui/PaymentVoucherUI";
+import { PVActionButton, PVHero } from "@/app/components/ui/PaymentVoucherUI";
 
 type SignatoryType = "ChequeSigner" | "CounterSigner" | "Both";
 
@@ -428,34 +428,29 @@ export default function PaymentVoucherSettingsPage() {
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,_#eff6ff,_#f8fafc_36%,_#f1f5f9)] px-3 sm:px-4">
       <div className="mx-auto max-w-6xl py-8">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">
-              Payment Voucher Settings
-            </h1>
-            <p className="mt-2 text-sm text-slate-600">
-              Manage authorized cheque signers and counter signers used during cheque PV workflow.
-            </p>
-          </div>
-
+        <nav className="mb-6 flex flex-col gap-3 rounded-3xl border border-slate-200/80 bg-white/90 p-3 shadow-sm backdrop-blur lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-wrap gap-2">
-            <button
-              onClick={() => load({ silent: true })}
-              disabled={saving || refreshing}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-100 disabled:opacity-60"
-            >
-              {refreshing ? "Refreshing..." : "Refresh"}
-            </button>
-
-            <button
-              onClick={backToVouchers}
-              disabled={saving || refreshing}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-100 disabled:opacity-60"
-            >
-              Back to Vouchers
-            </button>
+            <PVActionButton onClick={backToVouchers} disabled={saving || refreshing} tone="slate">
+              ← Voucher Centre
+            </PVActionButton>
+            <PVActionButton onClick={() => router.push("/finance")} disabled={saving || refreshing} tone="blue">
+              Finance Centre
+            </PVActionButton>
           </div>
-        </div>
+          <PVActionButton
+            onClick={() => load({ silent: true })}
+            disabled={saving || refreshing}
+            tone="cyan"
+          >
+            {refreshing ? "Refreshing..." : "Refresh Settings"}
+          </PVActionButton>
+        </nav>
+
+        <PVHero
+          eyebrow="Controlled Authority"
+          title="Payment Voucher Settings"
+          description="Manage authorized cheque signers and counter-signatories for the official Payment Voucher workflow from one secure administration workspace."
+        />
 
         {msg && (
           <div className="mt-4 rounded-2xl border bg-white px-4 py-3 text-sm text-slate-800 shadow-sm">
@@ -463,12 +458,12 @@ export default function PaymentVoucherSettingsPage() {
           </div>
         )}
 
-        <div className="mt-4 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-xs font-semibold text-blue-900">
+        <div className="mt-4 rounded-2xl border border-blue-200/80 bg-blue-50/80 px-5 py-4 text-sm font-bold text-blue-950 shadow-sm">
           This settings page refreshes automatically when you return to it. Changes are reloaded immediately after every save.
         </div>
 
-        <div className="mt-6 rounded-3xl border border-red-100 bg-red-50 p-5 text-sm text-red-900">
-          <div className="font-extrabold">Restricted Authority Setting</div>
+        <div className="mt-6 overflow-hidden rounded-3xl border border-rose-200/80 bg-gradient-to-r from-rose-50 via-white to-amber-50 p-5 text-sm font-semibold text-rose-950 shadow-sm">
+          <div className="text-base font-black uppercase tracking-[0.08em]">Restricted Authority Setting</div>
           <p className="mt-1">
             This page controls who can appear as Cheque Signer and Counter Signer on Payment
             Vouchers. Only Admin and Auditor should manage these names. Account Officers can generate
@@ -484,7 +479,7 @@ export default function PaymentVoucherSettingsPage() {
           <StatCard title="Counter Signers" value={String(stats.counterSignerCount)} tone="amber" />
         </div>
 
-        <div className="mt-6 rounded-3xl border bg-white p-6 shadow-sm">
+        <div className="mt-6 rounded-3xl border border-slate-200/80 bg-white/95 p-6 shadow-[0_16px_40px_-28px_rgba(15,23,42,.45)] backdrop-blur">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h2 className="text-lg font-bold text-slate-900">
@@ -499,7 +494,7 @@ export default function PaymentVoucherSettingsPage() {
               <button
                 onClick={resetForm}
                 disabled={saving}
-                className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
+                className="rounded-xl border border-slate-300 bg-slate-900 px-4 py-2 text-sm font-black text-white shadow-sm hover:bg-slate-800 disabled:opacity-60"
               >
                 Cancel Edit
               </button>
@@ -514,7 +509,7 @@ export default function PaymentVoucherSettingsPage() {
                 onChange={(e) => setFullName(e.target.value)}
                 placeholder="Must match the user's profile full name"
                 disabled={saving}
-                className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-3 text-slate-900 outline-none focus:border-blue-500 disabled:bg-slate-50"
+                className="mt-1 w-full rounded-2xl border border-slate-300 bg-white px-3 py-3 font-semibold text-slate-950 shadow-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:bg-slate-50"
               />
             </div>
 
@@ -524,7 +519,7 @@ export default function PaymentVoucherSettingsPage() {
                 value={signatoryType}
                 onChange={(e) => setSignatoryType(e.target.value as SignatoryType)}
                 disabled={saving}
-                className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-3 text-slate-900 outline-none focus:border-blue-500 disabled:bg-slate-50"
+                className="mt-1 w-full rounded-2xl border border-slate-300 bg-white px-3 py-3 font-semibold text-slate-950 shadow-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:bg-slate-50"
               >
                 <option value="ChequeSigner">Cheque Signer</option>
                 <option value="CounterSigner">Counter Signer</option>
@@ -548,7 +543,7 @@ export default function PaymentVoucherSettingsPage() {
               <button
                 onClick={save}
                 disabled={saving}
-                className="w-full rounded-2xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
+                className="w-full rounded-2xl bg-gradient-to-r from-blue-700 to-cyan-600 px-5 py-3 text-sm font-black text-white shadow-md transition hover:-translate-y-0.5 hover:shadow-lg disabled:opacity-60"
               >
                 {saving ? "Saving..." : editId ? "Update" : "Add"}
               </button>
@@ -562,13 +557,13 @@ export default function PaymentVoucherSettingsPage() {
           </div>
         </div>
 
-        <div className="mt-6 rounded-3xl border bg-white p-5 shadow-sm">
+        <div className="mt-6 rounded-3xl border border-slate-200/80 bg-white/95 p-5 shadow-[0_16px_40px_-28px_rgba(15,23,42,.45)] backdrop-blur">
           <label className="text-sm font-semibold text-slate-800">Search</label>
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search name, signatory type, status..."
-            className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-3 text-slate-900 outline-none focus:border-blue-500"
+            className="mt-1 w-full rounded-2xl border border-slate-300 bg-white px-3 py-3 font-semibold text-slate-950 shadow-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
           />
         </div>
 

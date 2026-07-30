@@ -1188,8 +1188,8 @@ export default function PaymentVouchersPage() {
 
             <div
               className={`mt-4 rounded-2xl border px-4 py-3 text-sm font-semibold ${selectionSummary.valid
-                ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-                : "border-amber-200 bg-amber-50 text-amber-900"
+                  ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                  : "border-amber-200 bg-amber-50 text-amber-900"
                 }`}
             >
               {selectionSummary.message}
@@ -1302,8 +1302,8 @@ export default function PaymentVouchersPage() {
                           onClick={() => toggleSelectRequest(r)}
                           disabled={generating}
                           className={`rounded-xl px-3 py-2 text-xs font-semibold text-white disabled:opacity-50 ${checked
-                            ? "bg-red-600 hover:bg-red-700"
-                            : "bg-purple-600 hover:bg-purple-700"
+                              ? "bg-red-600 hover:bg-red-700"
+                              : "bg-purple-600 hover:bg-purple-700"
                             }`}
                         >
                           {checked ? "Remove" : "Add"}
