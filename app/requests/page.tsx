@@ -22,6 +22,8 @@ type Row = {
 type TypeFilter = "ALL" | "OFFICIAL" | "PERSONAL_FUND" | "PERSONAL_OTHER";
 
 type StatusFilter = "ALL" | "ACTIVE" | "COMPLETED" | "REJECTED";
+type DateFilter = "ALL" | "7D" | "30D" | "90D" | "THIS_YEAR";
+type SortMode = "NEWEST" | "OLDEST" | "AMOUNT_HIGH" | "AMOUNT_LOW" | "TITLE";
 
 type StageFilter =
   | "ALL"
@@ -256,6 +258,8 @@ export default function MyRequestsPage() {
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("ALL");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
   const [stageFilter, setStageFilter] = useState<StageFilter>("ALL");
+  const [dateFilter, setDateFilter] = useState<DateFilter>("ALL");
+  const [sortMode, setSortMode] = useState<SortMode>("NEWEST");
 
   const load = useCallback(
     async (options?: { silent?: boolean }) => {
@@ -331,6 +335,16 @@ export default function MyRequestsPage() {
       if (statusFilter === "COMPLETED" && !isCompletedRequest(row)) return false;
       if (statusFilter === "REJECTED" && !isRejectedOrDeletedRequest(row)) return false;
 
+      if (dateFilter !== "ALL") {
+        const created = new Date(row.created_at).getTime();
+        const now = Date.now();
+        const day = 24 * 60 * 60 * 1000;
+        if (dateFilter === "7D" && created < now - 7 * day) return false;
+        if (dateFilter === "30D" && created < now - 30 * day) return false;
+        if (dateFilter === "90D" && created < now - 90 * day) return false;
+        if (dateFilter === "THIS_YEAR" && new Date(row.created_at).getFullYear() !== new Date().getFullYear()) return false;
+      }
+
       if (!q) return true;
 
       const haystack = [
@@ -349,7 +363,29 @@ export default function MyRequestsPage() {
 
       return haystack.includes(q);
     });
-  }, [rows, search, typeFilter, statusFilter, stageFilter]);
+  }, [rows, search, typeFilter, statusFilter, stageFilter, dateFilter]);
+
+  const sortedRows = useMemo(() => {
+    const copy = [...filteredRows];
+    copy.sort((a, b) => {
+      if (sortMode === "OLDEST") return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      if (sortMode === "AMOUNT_HIGH") return Number(b.amount || 0) - Number(a.amount || 0);
+      if (sortMode === "AMOUNT_LOW") return Number(a.amount || 0) - Number(b.amount || 0);
+      if (sortMode === "TITLE") return String(a.title || "").localeCompare(String(b.title || ""));
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
+    return copy;
+  }, [filteredRows, sortMode]);
+
+  const activeFilterCount = useMemo(() => {
+    return [
+      search.trim() ? 1 : 0,
+      typeFilter !== "ALL" ? 1 : 0,
+      statusFilter !== "ALL" ? 1 : 0,
+      stageFilter !== "ALL" ? 1 : 0,
+      dateFilter !== "ALL" ? 1 : 0,
+    ].reduce((sum, value) => sum + value, 0);
+  }, [search, typeFilter, statusFilter, stageFilter, dateFilter]);
 
   const counts = useMemo(() => {
     const total = rows.length;
@@ -407,6 +443,8 @@ export default function MyRequestsPage() {
     setTypeFilter("ALL");
     setStatusFilter("ALL");
     setStageFilter("ALL");
+    setDateFilter("ALL");
+    setSortMode("NEWEST");
   }
 
 
@@ -428,7 +466,7 @@ export default function MyRequestsPage() {
       "Created At",
     ];
 
-    const body = filteredRows.map((row) => [
+    const body = sortedRows.map((row) => [
       row.request_no,
       row.title,
       requestTypeLabel(row),
@@ -489,7 +527,7 @@ export default function MyRequestsPage() {
                 type="button"
                 tone="violet"
                 onClick={exportCsv}
-                disabled={filteredRows.length === 0}
+                disabled={sortedRows.length === 0}
                 icon={<Icon name="download" className="h-4 w-4" />}
               >
                 Export CSV
@@ -548,6 +586,15 @@ export default function MyRequestsPage() {
           </div>
         </section>
 
+        <section className="mt-6 rounded-3xl border border-slate-200 bg-white p-3 shadow-sm">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <StatusTab label="All Requests" value={counts.total} active={statusFilter === "ALL"} tone="slate" onClick={() => setStatusFilter("ALL")} />
+            <StatusTab label="Active Workflow" value={counts.active} active={statusFilter === "ACTIVE"} tone="blue" onClick={() => setStatusFilter("ACTIVE")} />
+            <StatusTab label="Completed / Paid" value={counts.completed} active={statusFilter === "COMPLETED"} tone="emerald" onClick={() => setStatusFilter("COMPLETED")} />
+            <StatusTab label="Rejected / Deleted" value={counts.rejectedOrDeleted} active={statusFilter === "REJECTED"} tone="rose" onClick={() => setStatusFilter("REJECTED")} />
+          </div>
+        </section>
+
         <section className="mt-6 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
           <div className="flex flex-col gap-4 xl:flex-row xl:items-end">
             <div className="min-w-0 flex-1">
@@ -574,8 +621,14 @@ export default function MyRequestsPage() {
             <FilterSelect label="Stage" value={stageFilter} onChange={(value) => setStageFilter(value as StageFilter)} options={[
               ["ALL", "All Stages"], ["PO", "PO"], ["DOD", "DOD"], ["DINADMIN", "DIN Admin"], ["REGISTRAR", "Registrar"], ["HOD", "HOD"], ["HR", "HR"], ["DG", "DG"], ["ACCOUNT", "Account Officer"], ["HRFILING", "HR Filing"], ["COMPLETED", "Completed"]
             ]} />
+            <FilterSelect label="Date" value={dateFilter} onChange={(value) => setDateFilter(value as DateFilter)} options={[
+              ["ALL", "All Dates"], ["7D", "Last 7 Days"], ["30D", "Last 30 Days"], ["90D", "Last 90 Days"], ["THIS_YEAR", "This Year"]
+            ]} />
+            <FilterSelect label="Sort By" value={sortMode} onChange={(value) => setSortMode(value as SortMode)} options={[
+              ["NEWEST", "Newest First"], ["OLDEST", "Oldest First"], ["AMOUNT_HIGH", "Highest Amount"], ["AMOUNT_LOW", "Lowest Amount"], ["TITLE", "Title A-Z"]
+            ]} />
             <button type="button" onClick={resetFilters} className="reqgen-btn reqgen-btn-cyan inline-flex h-[46px] min-w-[120px] items-center justify-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 text-sm font-extrabold text-blue-800 transition hover:-translate-y-0.5 hover:border-blue-300 hover:bg-blue-100 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-100">
-              <Icon name="filterX" className="h-4 w-4" /> Reset
+              <Icon name="filterX" className="h-4 w-4" /> Reset{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
             </button>
           </div>
         </section>
@@ -589,7 +642,7 @@ export default function MyRequestsPage() {
 
         {loading ? (
           <RequestsSkeleton />
-        ) : filteredRows.length === 0 ? (
+        ) : sortedRows.length === 0 ? (
           <section className="mt-6 rounded-3xl border border-dashed border-slate-300 bg-white px-6 py-16 text-center shadow-sm">
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-50 text-blue-700">
               <Icon name="inbox" className="h-8 w-8" />
@@ -605,7 +658,7 @@ export default function MyRequestsPage() {
                 <p className="text-xs font-black uppercase tracking-[0.18em] text-blue-700">Request Register</p>
                 <h2 className="mt-1 text-xl font-black text-slate-950">Your submitted requests</h2>
               </div>
-              <div className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-black text-slate-600">{filteredRows.length.toLocaleString()} record(s)</div>
+              <div className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-black text-slate-600">{sortedRows.length.toLocaleString()} record(s)</div>
             </div>
 
             <div className="hidden grid-cols-12 border-b border-slate-100 bg-slate-50 px-5 py-3 text-[11px] font-black uppercase tracking-wider text-slate-500 lg:grid">
@@ -613,7 +666,7 @@ export default function MyRequestsPage() {
             </div>
 
             <div className="divide-y divide-slate-100">
-              {filteredRows.map((r, index) => (
+              {sortedRows.map((r, index) => (
                 <article key={r.id} className="group px-5 py-5 transition hover:bg-blue-50/40 sm:px-6" style={{ animation: `fadeUp .45s ease-out ${Math.min(index * 35, 350)}ms both` }}>
                   <div className="grid gap-4 lg:grid-cols-12 lg:items-center">
                     <div className="lg:col-span-2">
@@ -678,6 +731,21 @@ function CategoryCard({ label, value, tone, icon }: { label: string; value: numb
 
 function StageTile({ label, value, icon }: { label: string; value: number; icon: IconName }) {
   return <div className="bg-white px-3 py-4 text-center transition hover:bg-blue-50"><span className="mx-auto flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100 text-slate-600"><Icon name={icon} className="h-4 w-4" /></span><p className="mt-2 text-[10px] font-black uppercase tracking-wide text-slate-500">{label}</p><p className="mt-1 text-xl font-black text-slate-950">{value.toLocaleString()}</p></div>;
+}
+
+function StatusTab({ label, value, active, tone, onClick }: { label: string; value: number; active: boolean; tone: "slate" | "blue" | "emerald" | "rose"; onClick: () => void }) {
+  const tones = {
+    slate: "bg-slate-700 hover:bg-slate-600 focus-visible:ring-slate-200",
+    blue: "bg-blue-700 hover:bg-blue-600 focus-visible:ring-blue-200",
+    emerald: "bg-emerald-700 hover:bg-emerald-600 focus-visible:ring-emerald-200",
+    rose: "bg-rose-700 hover:bg-rose-600 focus-visible:ring-rose-200",
+  }[tone];
+  return (
+    <button type="button" onClick={onClick} aria-pressed={active} className={`inline-flex min-h-14 items-center justify-between gap-3 rounded-xl px-4 py-3 text-left text-white shadow-lg transition hover:-translate-y-0.5 hover:shadow-xl focus-visible:outline-none focus-visible:ring-4 ${tones} ${active ? "ring-4 ring-offset-2" : ""}`}>
+      <span className="text-sm font-black">{label}</span>
+      <span className="rounded-lg bg-white/15 px-2.5 py-1 text-sm font-black">{value.toLocaleString()}</span>
+    </button>
+  );
 }
 
 function FilterSelect({ label, value, onChange, options }: { label: string; value: string; onChange: (value: string) => void; options: [string, string][] }) {
