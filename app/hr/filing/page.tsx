@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import type { ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -49,6 +50,14 @@ type StatusFilter =
   | "ReadyForHRFiling"
   | "Completed"
   | "Rejected";
+
+type HRView =
+  | "OVERVIEW"
+  | "IN_PROGRESS"
+  | "HR_REVIEW"
+  | "FILING"
+  | "COMPLETED"
+  | "REJECTED";
 
 function roleKey(role: string | null | undefined) {
   return (role || "")
@@ -283,6 +292,7 @@ export default function HRFilingPage() {
   const [deptFilter, setDeptFilter] = useState("ALL");
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("ALL");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
+  const [activeView, setActiveView] = useState<HRView>("OVERVIEW");
 
   const roleSet = useMemo(() => {
     const set = new Set<string>();
@@ -452,6 +462,12 @@ export default function HRFilingPage() {
         if (categoryKey(r.personal_category) !== categoryKey(categoryFilter)) return false;
       }
 
+      if (activeView === "IN_PROGRESS" && (isCompleted(r) || isRejected(r))) return false;
+      if (activeView === "HR_REVIEW" && !isAtInitialHRReview(r)) return false;
+      if (activeView === "FILING" && !isReadyForHRFiling(r)) return false;
+      if (activeView === "COMPLETED" && !isCompleted(r)) return false;
+      if (activeView === "REJECTED" && !isRejected(r)) return false;
+
       if (statusFilter === "Completed" && !isCompleted(r)) return false;
       if (statusFilter === "ReadyForHRFiling" && !isReadyForHRFiling(r)) return false;
       if (statusFilter === "InitialHRReview" && !isAtInitialHRReview(r)) return false;
@@ -486,7 +502,7 @@ export default function HRFilingPage() {
 
       return true;
     });
-  }, [rows, search, deptFilter, categoryFilter, statusFilter]);
+  }, [rows, search, deptFilter, categoryFilter, statusFilter, activeView]);
 
   const stats = useMemo(() => {
     const personalRows = rows.filter(isPersonal);
@@ -531,12 +547,43 @@ export default function HRFilingPage() {
     };
   }, [rows]);
 
+  const departmentSummary = useMemo(() => {
+    const map = new Map<string, { name: string; total: number; active: number; completed: number }>();
+
+    rows.forEach((r) => {
+      const key = r.dept_id || "unknown";
+      const current = map.get(key) || {
+        name: r.dept_name || "Unassigned Department",
+        total: 0,
+        active: 0,
+        completed: 0,
+      };
+
+      current.total += 1;
+      if (isCompleted(r)) current.completed += 1;
+      else if (!isRejected(r)) current.active += 1;
+      map.set(key, current);
+    });
+
+    return Array.from(map.values()).sort((a, b) => b.total - a.total).slice(0, 8);
+  }, [rows]);
+
+  const maxDepartmentTotal = Math.max(1, ...departmentSummary.map((d) => d.total));
+  const completionRate = stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0;
+  const activeCount = rows.filter((r) => !isCompleted(r) && !isRejected(r)).length;
+  const rejectedCount = rows.filter(isRejected).length;
+
+  function resetFilters() {
+    setSearch("");
+    setDeptFilter("ALL");
+    setCategoryFilter("ALL");
+    setStatusFilter("ALL");
+  }
+
   if (loading) {
     return (
       <main className="min-h-screen bg-slate-50 px-4">
-        <div className="mx-auto max-w-7xl py-10 text-slate-600">
-          Loading HR filing requests...
-        </div>
+        <div className="mx-auto max-w-7xl py-10 text-slate-600">Loading HR operations dashboard...</div>
       </main>
     );
   }
@@ -545,17 +592,12 @@ export default function HRFilingPage() {
     return (
       <main className="min-h-screen bg-slate-50 px-4">
         <div className="mx-auto max-w-3xl py-10">
-          <div className="rounded-2xl border bg-white p-6 shadow-sm">
-            <h1 className="text-xl font-extrabold text-slate-900">HR Filing Access</h1>
-
-            <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          <div className="rounded-3xl border border-slate-200 bg-white p-7 shadow-sm">
+            <h1 className="text-2xl font-black text-slate-950">HR Operations Access</h1>
+            <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-950">
               {msg || "Access denied."}
             </div>
-
-            <button
-              onClick={goDashboard}
-              className="reqgen-btn reqgen-btn-slate mt-5 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
-            >
+            <button onClick={goDashboard} className="reqgen-btn reqgen-btn-slate mt-5 rounded-xl px-5 py-3 text-sm font-black text-white">
               Back to Dashboard
             </button>
           </div>
@@ -564,104 +606,119 @@ export default function HRFilingPage() {
     );
   }
 
+  const viewTabs: Array<{ key: HRView; label: string; count: number; cls: string }> = [
+    { key: "OVERVIEW", label: "All HR Records", count: stats.total, cls: "reqgen-btn-slate" },
+    { key: "IN_PROGRESS", label: "Active Workflow", count: activeCount, cls: "reqgen-btn-blue" },
+    { key: "HR_REVIEW", label: "HR Review", count: stats.initialHRReview, cls: "reqgen-btn-cyan" },
+    { key: "FILING", label: "Ready for Filing", count: stats.readyForHRFiling, cls: "reqgen-btn-violet" },
+    { key: "COMPLETED", label: "Completed / Filed", count: stats.completed, cls: "reqgen-btn-emerald" },
+    { key: "REJECTED", label: "Rejected / Closed", count: rejectedCount, cls: "reqgen-btn-rose" },
+  ];
+
   return (
-    <main className="min-h-screen bg-slate-50 px-4">
+    <main className="min-h-screen bg-slate-50 px-4 pb-12">
       <div className="mx-auto max-w-7xl py-8">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">HR Filing</h1>
-            <p className="mt-2 text-sm text-slate-600">
-              HR register for Staff Personal Fund, Leave, Contract Renewal, Resignation and Others.
-            </p>
-            <p className="mt-1 text-xs font-semibold text-slate-500">
-              Active capacity: <b className="text-slate-800">{roleSummary(myRole, myRoles)}</b>
-            </p>
-            <p className="mt-1 text-xs font-semibold text-slate-500">
-              Personal Fund returns to HR Filing after AccountOfficer treatment. Other Personal
-              requests return to HR Filing after DG approval.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={() => load({ silent: true })}
-              disabled={refreshing}
-              className="reqgen-btn reqgen-btn-rose rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-100 disabled:opacity-60"
-            >
-              {refreshing ? "Refreshing..." : "Refresh"}
-            </button>
-
-            <button
-              onClick={goDashboard}
-              disabled={refreshing}
-              className="reqgen-btn reqgen-btn-rose rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-100 disabled:opacity-60"
-            >
-              Dashboard
-            </button>
-          </div>
-        </div>
-
-        {msg && (
-          <div className="mt-4 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 shadow-sm">
-            {msg}
-          </div>
-        )}
-
-        <div className="mt-4 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-xs font-semibold text-blue-900">
-          This HR Filing page refreshes automatically when you return to it, so completed requests
-          and filing-ready items stay current.
-        </div>
-
-        <div className="mt-6 grid gap-4 md:grid-cols-3 xl:grid-cols-11">
-          <StatCard title="Total Personal" value={String(stats.total)} tone="blue" />
-          <StatCard title="Fund" value={String(stats.fund)} tone="blue" />
-          <StatCard title="Leave" value={String(stats.leave)} tone="emerald" />
-          <StatCard title="Contract" value={String(stats.contractRenewal)} tone="purple" />
-          <StatCard title="Resignation" value={String(stats.resignation)} tone="red" />
-          <StatCard title="Others" value={String(stats.others)} tone="amber" />
-          <StatCard title="Legacy Other" value={String(stats.legacyOther)} tone="slate" />
-          <StatCard title="HR Review" value={String(stats.initialHRReview)} tone="blue" />
-          <StatCard title="HR Filing" value={String(stats.readyForHRFiling)} tone="amber" />
-          <StatCard title="Completed" value={String(stats.completed)} tone="emerald" />
-          <StatCard title="This Month" value={String(stats.thisMonth)} tone="slate" />
-        </div>
-
-        <div className="mt-6 rounded-3xl border bg-white p-5 shadow-sm">
-          <div className="grid gap-4 md:grid-cols-4">
-            <div>
-              <label className="text-sm font-semibold text-slate-800">Search</label>
-              <input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search request no, title, requester..."
-                className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-3 text-slate-900 outline-none focus:border-blue-500"
-              />
+        <section className="overflow-hidden rounded-[2rem] border border-slate-200 bg-gradient-to-br from-slate-950 via-indigo-950 to-violet-900 p-6 text-white shadow-xl md:p-8">
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+            <div className="max-w-3xl">
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-black uppercase tracking-[0.18em] text-indigo-100">
+                Human Resources Intelligence
+              </div>
+              <h1 className="mt-4 text-3xl font-black tracking-tight md:text-5xl">HR Operations Centre</h1>
+              <p className="mt-3 max-w-2xl text-sm font-medium leading-6 text-indigo-100 md:text-base">
+                A secure operational view of staff personal requests, HR review queues, filing readiness and departmental workload.
+              </p>
+              <p className="mt-3 text-xs font-bold text-indigo-200">
+                Active capacity: <span className="text-white">{roleSummary(myRole, myRoles)}</span>
+              </p>
             </div>
 
-            <div>
-              <label className="text-sm font-semibold text-slate-800">Department</label>
-              <select
-                value={deptFilter}
-                onChange={(e) => setDeptFilter(e.target.value)}
-                className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-3 text-slate-900 outline-none focus:border-blue-500"
+            <div className="flex flex-wrap gap-3">
+              <button onClick={() => load({ silent: true })} disabled={refreshing} className="reqgen-btn reqgen-btn-cyan rounded-xl px-5 py-3 text-sm font-black text-white disabled:opacity-60">
+                {refreshing ? "Refreshing..." : "Refresh HR Data"}
+              </button>
+              <button onClick={goDashboard} className="reqgen-btn reqgen-btn-slate rounded-xl px-5 py-3 text-sm font-black text-white">
+                Main Dashboard
+              </button>
+            </div>
+          </div>
+        </section>
+
+        {msg && <div className="mt-4 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-800 shadow-sm">{msg}</div>}
+
+        <section className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <ExecutiveKpi title="Total HR Records" value={stats.total} note={`${stats.thisMonth} added this month`} tone="indigo" />
+          <ExecutiveKpi title="Active Workflow" value={activeCount} note="Awaiting treatment or filing" tone="blue" />
+          <ExecutiveKpi title="Ready for Filing" value={stats.readyForHRFiling} note="Final HR filing queue" tone="violet" />
+          <ExecutiveKpi title="Completion Rate" value={`${completionRate}%`} note={`${stats.completed} completed / filed`} tone="emerald" />
+        </section>
+
+        <section className="mt-6 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm md:p-5">
+          <div className="flex flex-wrap gap-3">
+            {viewTabs.map((tab) => (
+              <button
+                key={tab.key}
+                onClick={() => setActiveView(tab.key)}
+                className={`reqgen-btn ${tab.cls} inline-flex min-h-12 items-center gap-3 rounded-xl px-4 py-3 text-sm font-black text-white ${activeView === tab.key ? "ring-4 ring-slate-900/10" : ""}`}
               >
+                <span>{tab.label}</span>
+                <span className="rounded-full border border-white/25 bg-white/20 px-2.5 py-1 text-xs font-black text-white">{tab.count}</span>
+              </button>
+            ))}
+          </div>
+        </section>
+
+        <section className="mt-6 grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
+          <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-black text-slate-950">HR Workload by Category</h2>
+                <p className="mt-1 text-sm text-slate-500">Live distribution of personal-request categories.</p>
+              </div>
+              <span className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-black text-indigo-700">{stats.total} records</span>
+            </div>
+            <div className="mt-5 space-y-4">
+              <DistributionBar label="Personal Fund" value={stats.fund} total={stats.total} tone="blue" />
+              <DistributionBar label="Leave" value={stats.leave} total={stats.total} tone="emerald" />
+              <DistributionBar label="Contract Renewal" value={stats.contractRenewal} total={stats.total} tone="violet" />
+              <DistributionBar label="Resignation" value={stats.resignation} total={stats.total} tone="rose" />
+              <DistributionBar label="Others / Legacy" value={stats.others + stats.legacyOther} total={stats.total} tone="amber" />
+            </div>
+          </div>
+
+          <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+            <h2 className="text-xl font-black text-slate-950">Operational Intelligence</h2>
+            <p className="mt-1 text-sm text-slate-500">Current HR queue signals requiring attention.</p>
+            <div className="mt-5 grid gap-3">
+              <InsightCard label="Initial HR review" value={stats.initialHRReview} note="Requests currently waiting at HR review" tone="blue" />
+              <InsightCard label="Final filing queue" value={stats.readyForHRFiling} note="Approved requests ready to be filed" tone="violet" />
+              <InsightCard label="Rejected / closed" value={rejectedCount} note="Records excluded from active workflow" tone="rose" />
+            </div>
+          </div>
+        </section>
+
+        <section className="mt-6 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <h2 className="text-xl font-black text-slate-950">Search & Filter HR Register</h2>
+              <p className="mt-1 text-sm text-slate-500">Find staff personal requests by reference, requester, department, category or stage.</p>
+            </div>
+            <div className="text-sm font-bold text-slate-600">Showing {filteredRows.length} of {rows.length} records</div>
+          </div>
+
+          <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-[1.5fr_1fr_1fr_1fr_auto]">
+            <FilterField label="Search requests">
+              <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Request no, title, requester..." className="w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm font-semibold text-slate-900 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100" />
+            </FilterField>
+            <FilterField label="Department">
+              <select value={deptFilter} onChange={(e) => setDeptFilter(e.target.value)} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm font-semibold text-slate-900 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100">
                 <option value="ALL">All Departments</option>
-                {departments.map((d) => (
-                  <option key={d.id} value={d.id}>
-                    {d.name}
-                  </option>
-                ))}
+                {departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
               </select>
-            </div>
-
-            <div>
-              <label className="text-sm font-semibold text-slate-800">Category</label>
-              <select
-                value={categoryFilter}
-                onChange={(e) => setCategoryFilter(e.target.value as CategoryFilter)}
-                className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-3 text-slate-900 outline-none focus:border-blue-500"
-              >
-                <option value="ALL">All Personal Categories</option>
+            </FilterField>
+            <FilterField label="Category">
+              <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value as CategoryFilter)} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm font-semibold text-slate-900 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100">
+                <option value="ALL">All Categories</option>
                 <option value="Fund">Personal Fund</option>
                 <option value="Leave">Leave</option>
                 <option value="Contract Renewal">Contract Renewal</option>
@@ -669,15 +726,9 @@ export default function HRFilingPage() {
                 <option value="Others">Others</option>
                 <option value="NonFund">Legacy Personal Other</option>
               </select>
-            </div>
-
-            <div>
-              <label className="text-sm font-semibold text-slate-800">Status</label>
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
-                className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-3 text-slate-900 outline-none focus:border-blue-500"
-              >
+            </FilterField>
+            <FilterField label="Status">
+              <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as StatusFilter)} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm font-semibold text-slate-900 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100">
                 <option value="ALL">All Statuses</option>
                 <option value="InProgress">In Progress</option>
                 <option value="InitialHRReview">Initial HR Review</option>
@@ -685,257 +736,100 @@ export default function HRFilingPage() {
                 <option value="Completed">Completed / Paid</option>
                 <option value="Rejected">Rejected</option>
               </select>
+            </FilterField>
+            <button onClick={resetFilters} className="reqgen-btn reqgen-btn-cyan min-h-12 rounded-xl px-5 py-3 text-sm font-black text-white xl:self-end">Reset Filters</button>
+          </div>
+        </section>
+
+        <section className="mt-6 grid gap-6 xl:grid-cols-[1fr_0.42fr]">
+          <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+            <div className="border-b border-slate-200 px-5 py-4">
+              <h2 className="text-xl font-black text-slate-950">HR Personal Requests Register</h2>
+              <p className="mt-1 text-sm text-slate-500">Operational queue and filing register for authorized HR users.</p>
             </div>
-          </div>
-        </div>
 
-        <div className="mt-6 grid gap-4 xl:hidden">
-          {filteredRows.length === 0 ? (
-            <EmptyState />
-          ) : (
-            filteredRows.map((r) => (
-              <div key={r.id} className="rounded-3xl border bg-white p-5 shadow-sm">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <div className="text-lg font-extrabold text-slate-900">{r.request_no}</div>
-                    <div className="mt-1 font-semibold text-slate-800">{r.title}</div>
-                    <div className="mt-1 text-sm text-slate-500">{r.dept_name || "—"}</div>
-                  </div>
-
-                  <div className="flex flex-col items-end gap-1">
-                    <span
-                      className={`rounded-full border px-3 py-1 text-xs font-bold ${categoryBadgeClass(
-                        r
-                      )}`}
-                    >
-                      {categoryLabel(r)}
-                    </span>
-
-                    <span
-                      className={`rounded-full border px-3 py-1 text-xs font-bold ${statusBadgeClass(
-                        r.status
-                      )}`}
-                    >
-                      {r.status || "—"}
-                    </span>
-
-                    <span
-                      className={`rounded-full border px-3 py-1 text-xs font-bold ${stageBadgeClass(
-                        r.current_stage
-                      )}`}
-                    >
-                      {stageLabel(r.current_stage)}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="mt-3 rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 text-xs font-semibold text-blue-900">
-                  {workflowNote(r)}
-                </div>
-
-                <div className="mt-4 grid gap-2 text-sm sm:grid-cols-2">
-                  <InfoLine label="Requester" value={r.requester_name || "—"} />
-                  <InfoLine label="Amount" value={amountLabel(r)} />
-                  <InfoLine label="DOD/HOD" value={r.checked_by_name || "—"} />
-                  <InfoLine label="HR Review" value={r.hr_name || "—"} />
-                  <InfoLine label="DG" value={r.dg_name || "—"} />
-                  <InfoLine
-                    label="Account"
-                    value={isPersonalFund(r) ? r.account_name || "—" : "Not Applicable"}
-                  />
-                  <InfoLine label="Created" value={shortDate(r.created_at)} />
-                  <InfoLine label="Stage" value={stageLabel(r.current_stage)} />
-                </div>
-
-                <div className="mt-4 rounded-2xl bg-slate-50 p-4 text-sm text-slate-700">
-                  <div className="font-semibold text-slate-900">Details</div>
-                  <div className="mt-1 line-clamp-3 whitespace-pre-wrap">{r.details}</div>
-                </div>
-
-                <div className="mt-4 flex flex-wrap justify-end gap-2">
-                  <button
-                    onClick={() => openWorkflow(r.id)}
-                    className="reqgen-btn reqgen-btn-slate rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
-                  >
-                    View Workflow
-                  </button>
-
-                  {isCompleted(r) && (
-                    <button
-                      onClick={() => openTemplate(r.id)}
-                      className="reqgen-btn reqgen-btn-violet rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
-                    >
-                      Print / File
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-
-        <div className="mt-6 hidden overflow-hidden rounded-3xl border bg-white shadow-sm xl:block">
-          <div className="border-b bg-slate-50 px-6 py-4">
-            <h2 className="text-lg font-bold text-slate-900">Personal Requests Register</h2>
-            <p className="mt-1 text-sm text-slate-600">
-              HR register for Personal Fund, Leave, Contract Renewal, Resignation and Others.
-            </p>
-          </div>
-
-          {filteredRows.length === 0 ? (
-            <EmptyState />
-          ) : (
-            <div className="overflow-x-auto">
-              <div className="min-w-[1320px]">
-                <div className="grid grid-cols-[1.25fr_2fr_1.45fr_1fr_1fr_1fr_1fr_1.45fr_1fr_0.85fr_1fr] bg-slate-100 px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600">
-                  <div>Request No</div>
-                  <div>Title</div>
-                  <div>Department</div>
-                  <div>Category</div>
-                  <div>Amount</div>
-                  <div>Status</div>
-                  <div>Stage</div>
-                  <div>Requester</div>
-                  <div>HR</div>
-                  <div>Date</div>
-                  <div className="text-right">Action</div>
-                </div>
-
+            {filteredRows.length === 0 ? <EmptyState /> : (
+              <div className="divide-y divide-slate-100">
                 {filteredRows.map((r) => (
-                  <div
-                    key={r.id}
-                    className="grid grid-cols-[1.25fr_2fr_1.45fr_1fr_1fr_1fr_1fr_1.45fr_1fr_0.85fr_1fr] items-center border-t px-6 py-4 text-sm hover:bg-slate-50"
-                  >
-                    <div className="font-extrabold text-slate-900">{r.request_no}</div>
-
-                    <div>
-                      <div className="font-semibold text-slate-900">{r.title}</div>
-                      <div className="mt-1 line-clamp-1 text-xs text-slate-500">{r.details}</div>
+                  <article key={r.id} className="p-5 transition hover:bg-slate-50">
+                    <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-sm font-black text-indigo-700">{r.request_no}</span>
+                          <span className={`rounded-full border px-2.5 py-1 text-[11px] font-black ${categoryBadgeClass(r)}`}>{categoryLabel(r)}</span>
+                          <span className={`rounded-full border px-2.5 py-1 text-[11px] font-black ${stageBadgeClass(r.current_stage)}`}>{stageLabel(r.current_stage)}</span>
+                        </div>
+                        <h3 className="mt-2 truncate text-lg font-black text-slate-950">{r.title}</h3>
+                        <p className="mt-1 text-sm font-semibold text-slate-500">{r.requester_name || "Unknown requester"} · {r.dept_name || "Unassigned department"}</p>
+                        <div className="mt-3 grid gap-2 text-sm sm:grid-cols-3">
+                          <InfoLine label="Created" value={shortDate(r.created_at)} />
+                          <InfoLine label="HR Officer" value={r.hr_name || "—"} />
+                          <InfoLine label="Amount" value={amountLabel(r)} />
+                        </div>
+                        <div className="mt-3 rounded-2xl border border-indigo-100 bg-indigo-50 px-4 py-3 text-xs font-bold leading-5 text-indigo-950">{workflowNote(r)}</div>
+                      </div>
+                      <div className="flex shrink-0 flex-wrap gap-2 lg:justify-end">
+                        <button onClick={() => openWorkflow(r.id)} className="reqgen-btn reqgen-btn-slate rounded-xl px-4 py-2.5 text-sm font-black text-white">View Workflow</button>
+                        {isCompleted(r) && <button onClick={() => openTemplate(r.id)} className="reqgen-btn reqgen-btn-violet rounded-xl px-4 py-2.5 text-sm font-black text-white">Print / File</button>}
+                      </div>
                     </div>
-
-                    <div className="text-slate-700">{r.dept_name || "—"}</div>
-
-                    <div>
-                      <span
-                        className={`rounded-full border px-2 py-1 text-[11px] font-bold ${categoryBadgeClass(
-                          r
-                        )}`}
-                      >
-                        {categoryShortLabel(r)}
-                      </span>
-                    </div>
-
-                    <div className="font-semibold text-slate-900">{amountLabel(r)}</div>
-
-                    <div>
-                      <span
-                        className={`rounded-full border px-2 py-1 text-[11px] font-bold ${statusBadgeClass(
-                          r.status
-                        )}`}
-                      >
-                        {r.status || "—"}
-                      </span>
-                    </div>
-
-                    <div>
-                      <span
-                        className={`rounded-full border px-2 py-1 text-[11px] font-bold ${stageBadgeClass(
-                          r.current_stage
-                        )}`}
-                      >
-                        {stageLabel(r.current_stage)}
-                      </span>
-                    </div>
-
-                    <div className="text-slate-700">{r.requester_name || "—"}</div>
-
-                    <div className="text-slate-700">{r.hr_name || "—"}</div>
-
-                    <div className="text-slate-600">{shortDate(r.created_at)}</div>
-
-                    <div className="flex justify-end gap-2">
-                      <button
-                        onClick={() => openWorkflow(r.id)}
-                        className="reqgen-btn reqgen-btn-slate rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-900 hover:bg-slate-100"
-                      >
-                        View
-                      </button>
-
-                      {isCompleted(r) && (
-                        <button
-                          onClick={() => openTemplate(r.id)}
-                          className="reqgen-btn reqgen-btn-violet rounded-xl bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-700"
-                        >
-                          Print
-                        </button>
-                      )}
-                    </div>
-                  </div>
+                  </article>
                 ))}
               </div>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
 
-        <div className="mt-6 rounded-3xl border border-blue-100 bg-blue-50 p-5 text-sm text-blue-900">
-          <div className="font-bold">HR Personal Requests Note</div>
-          <p className="mt-1">
-            This page shows Staff Personal requests because every Personal request passes through
-            HR. Personal Fund requests move to AccountOfficer after DG approval before returning to
-            HR Filing. Leave, Contract Renewal, Resignation and Others move from DG directly to HR
-            Filing.
-          </p>
-        </div>
+          <aside className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+            <h2 className="text-xl font-black text-slate-950">Department Workload</h2>
+            <p className="mt-1 text-sm text-slate-500">Top departments by HR-related request volume.</p>
+            <div className="mt-5 space-y-4">
+              {departmentSummary.length === 0 ? <p className="text-sm text-slate-500">No department data available.</p> : departmentSummary.map((d) => (
+                <div key={d.name}>
+                  <div className="flex items-center justify-between gap-3 text-sm">
+                    <span className="truncate font-black text-slate-800">{d.name}</span>
+                    <span className="font-black text-indigo-700">{d.total}</span>
+                  </div>
+                  <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-indigo-600" style={{ width: `${Math.max(6, Math.round((d.total / maxDepartmentTotal) * 100))}%` }} /></div>
+                  <div className="mt-1 flex justify-between text-[11px] font-bold text-slate-500"><span>{d.active} active</span><span>{d.completed} completed</span></div>
+                </div>
+              ))}
+            </div>
+          </aside>
+        </section>
+
+        <section className="mt-6 rounded-3xl border border-indigo-100 bg-indigo-50 p-5 text-sm text-indigo-950">
+          <div className="font-black">HR privacy and workflow notice</div>
+          <p className="mt-1 font-medium leading-6">This centre is restricted to authorized HR, Admin and Auditor roles. Personal Fund requests pass through AccountOfficer before final HR filing; other personal-request categories return to HR Filing after DG approval.</p>
+        </section>
       </div>
     </main>
   );
 }
 
-function StatCard({
-  title,
-  value,
-  tone,
-}: {
-  title: string;
-  value: string;
-  tone: "blue" | "emerald" | "purple" | "slate" | "amber" | "red";
-}) {
-  const cls =
-    tone === "emerald"
-      ? "bg-emerald-50 text-emerald-700"
-      : tone === "purple"
-        ? "bg-purple-50 text-purple-700"
-        : tone === "amber"
-          ? "bg-amber-50 text-amber-700"
-          : tone === "red"
-            ? "bg-red-50 text-red-700"
-            : tone === "slate"
-              ? "bg-slate-50 text-slate-700"
-              : "bg-blue-50 text-blue-700";
+function ExecutiveKpi({ title, value, note, tone }: { title: string; value: string | number; note: string; tone: "indigo" | "blue" | "violet" | "emerald" }) {
+  const cls = tone === "emerald" ? "from-emerald-500 to-emerald-700" : tone === "violet" ? "from-violet-500 to-violet-700" : tone === "blue" ? "from-blue-500 to-blue-700" : "from-indigo-500 to-indigo-700";
+  return <div className={`rounded-3xl bg-gradient-to-br ${cls} p-5 text-white shadow-lg`}><div className="text-sm font-black text-white/85">{title}</div><div className="mt-3 text-4xl font-black tracking-tight">{value}</div><div className="mt-2 text-xs font-bold text-white/75">{note}</div></div>;
+}
 
-  return (
-    <div className="rounded-3xl border bg-white p-5 shadow-sm">
-      <div className="text-sm font-semibold text-slate-500">{title}</div>
-      <div className={`mt-3 inline-flex rounded-2xl px-3 py-2 text-2xl font-extrabold ${cls}`}>
-        {value}
-      </div>
-    </div>
-  );
+function DistributionBar({ label, value, total, tone }: { label: string; value: number; total: number; tone: "blue" | "emerald" | "violet" | "rose" | "amber" }) {
+  const width = total > 0 ? Math.round((value / total) * 100) : 0;
+  const cls = tone === "emerald" ? "bg-emerald-500" : tone === "violet" ? "bg-violet-500" : tone === "rose" ? "bg-rose-500" : tone === "amber" ? "bg-amber-500" : "bg-blue-500";
+  return <div><div className="flex items-center justify-between text-sm"><span className="font-black text-slate-800">{label}</span><span className="font-black text-slate-600">{value} · {width}%</span></div><div className="mt-2 h-3 overflow-hidden rounded-full bg-slate-100"><div className={`h-full rounded-full ${cls}`} style={{ width: `${Math.max(value ? 5 : 0, width)}%` }} /></div></div>;
+}
+
+function InsightCard({ label, value, note, tone }: { label: string; value: number; note: string; tone: "blue" | "violet" | "rose" }) {
+  const cls = tone === "violet" ? "border-violet-200 bg-violet-50 text-violet-800" : tone === "rose" ? "border-rose-200 bg-rose-50 text-rose-800" : "border-blue-200 bg-blue-50 text-blue-800";
+  return <div className={`rounded-2xl border p-4 ${cls}`}><div className="flex items-center justify-between gap-3"><span className="text-sm font-black">{label}</span><span className="text-2xl font-black">{value}</span></div><p className="mt-1 text-xs font-bold opacity-80">{note}</p></div>;
+}
+
+function FilterField({ label, children }: { label: string; children: ReactNode }) {
+  return <label className="block"><span className="mb-2 block text-xs font-black uppercase tracking-wide text-slate-600">{label}</span>{children}</label>;
 }
 
 function InfoLine({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <span className="text-slate-500">{label}:</span>{" "}
-      <b className="text-slate-900">{value}</b>
-    </div>
-  );
+  return <div><span className="text-slate-500">{label}:</span> <b className="text-slate-900">{value}</b></div>;
 }
 
 function EmptyState() {
-  return (
-    <div className="rounded-2xl border bg-white p-6 text-sm text-slate-700 shadow-sm xl:rounded-none xl:border-0 xl:shadow-none">
-      No Personal request found for the selected filter.
-    </div>
-  );
+  return <div className="p-8 text-center"><div className="text-lg font-black text-slate-800">No HR record found</div><p className="mt-1 text-sm text-slate-500">Adjust the selected queue or reset the filters.</p></div>;
 }
