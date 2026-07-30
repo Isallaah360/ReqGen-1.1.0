@@ -616,7 +616,7 @@ export default function ManageAccountsPage() {
             <button
               onClick={() => loadAll({ silent: true })}
               disabled={refreshing || saving || fundingSaving}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
+              className="reqgen-btn reqgen-btn-rose rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
             >
               {refreshing ? "Refreshing..." : "Refresh"}
             </button>
@@ -624,7 +624,7 @@ export default function ManageAccountsPage() {
             <button
               onClick={recalculateAccounts}
               disabled={refreshing || saving || fundingSaving}
-              className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-800 hover:bg-blue-100 disabled:opacity-60"
+              className="reqgen-btn reqgen-btn-rose rounded-xl border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-800 hover:bg-blue-100 disabled:opacity-60"
             >
               Recalculate
             </button>
@@ -632,7 +632,7 @@ export default function ManageAccountsPage() {
             <button
               onClick={startCreate}
               disabled={!canManage || refreshing || saving || fundingSaving}
-              className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
+              className="reqgen-btn reqgen-btn-rose rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
             >
               Add Account
             </button>
@@ -640,7 +640,7 @@ export default function ManageAccountsPage() {
             <button
               onClick={openAssignPage}
               disabled={refreshing || saving || fundingSaving}
-              className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-60"
+              className="reqgen-btn reqgen-btn-rose rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-60"
             >
               Assign to Officer
             </button>
@@ -648,7 +648,7 @@ export default function ManageAccountsPage() {
             <button
               onClick={openAudit}
               disabled={refreshing || saving || fundingSaving}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
+              className="reqgen-btn reqgen-btn-rose rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
             >
               Audit
             </button>
@@ -656,7 +656,7 @@ export default function ManageAccountsPage() {
             <button
               onClick={backToFinance}
               disabled={refreshing || saving || fundingSaving}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
+              className="reqgen-btn reqgen-btn-rose rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
             >
               Back to Finance
             </button>
@@ -688,7 +688,7 @@ export default function ManageAccountsPage() {
           <SmallStat title="Warnings" value={String(stats.negativeAvailable + stats.overAllocated)} tone="red" />
         </div>
 
-        <div className="mt-6 rounded-3xl border border-slate-200 bg-white p-3 shadow-sm">
+        <div className="mt-6 rounded-3xl border bg-white p-2 shadow-sm">
           <div className="flex flex-wrap gap-2">
             <TabButton label="Overview" active={activeTab === "overview"} onClick={() => setActiveTab("overview")} />
             <TabButton label="Active Accounts" active={activeTab === "active"} onClick={() => setActiveTab("active")} />
@@ -725,7 +725,7 @@ export default function ManageAccountsPage() {
                 <button
                   onClick={resetFundingForm}
                   disabled={fundingSaving}
-                  className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
+                  className="reqgen-btn reqgen-btn-rose rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
                 >
                   Clear
                 </button>
@@ -795,7 +795,7 @@ export default function ManageAccountsPage() {
             <button
               onClick={saveFunding}
               disabled={!canManage || fundingSaving}
-              className="mt-5 w-full rounded-2xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
+              className="reqgen-btn reqgen-btn-rose mt-5 w-full rounded-2xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
             >
               {fundingSaving ? "Updating Fund..." : "Update Bank Total Fund"}
             </button>
@@ -818,7 +818,7 @@ export default function ManageAccountsPage() {
                 <button
                   onClick={resetForm}
                   disabled={saving}
-                  className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
+                  className="reqgen-btn reqgen-btn-rose rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
                 >
                   Cancel Edit
                 </button>
@@ -893,7 +893,7 @@ export default function ManageAccountsPage() {
             <button
               onClick={saveAccount}
               disabled={!canManage || saving}
-              className="mt-5 w-full rounded-2xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
+              className="reqgen-btn reqgen-btn-rose mt-5 w-full rounded-2xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
             >
               {saving ? "Saving..." : editId ? "Update Account" : "Create Account"}
             </button>
@@ -1010,7 +1010,7 @@ export default function ManageAccountsPage() {
                               <button
                                 onClick={() => startFunding(account)}
                                 disabled={!canManage || saving || fundingSaving}
-                                className="rounded-xl bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+                                className="reqgen-btn reqgen-btn-rose rounded-xl bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
                               >
                                 Fund
                               </button>
@@ -1018,7 +1018,7 @@ export default function ManageAccountsPage() {
                               <button
                                 onClick={() => startEdit(account)}
                                 disabled={!canManage || saving || fundingSaving}
-                                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-50"
+                                className="reqgen-btn reqgen-btn-rose rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-50"
                               >
                                 Edit
                               </button>
@@ -1026,7 +1026,7 @@ export default function ManageAccountsPage() {
                               <button
                                 onClick={() => toggleActive(account, account.is_active === false)}
                                 disabled={!canManage || saving || fundingSaving}
-                                className={`rounded-xl px-3 py-2 text-xs font-semibold text-white disabled:opacity-50 ${account.is_active === false
+                                className={`reqgen-btn reqgen-btn-rose rounded-xl px-3 py-2 text-xs font-semibold text-white disabled:opacity-50 ${account.is_active === false
                                     ? "bg-emerald-600 hover:bg-emerald-700"
                                     : "bg-amber-600 hover:bg-amber-700"
                                   }`}
@@ -1037,7 +1037,7 @@ export default function ManageAccountsPage() {
                               <button
                                 onClick={() => deleteOrDeactivate(account)}
                                 disabled={!canManage || saving || fundingSaving}
-                                className="rounded-xl bg-red-600 px-3 py-2 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+                                className="reqgen-btn reqgen-btn-rose rounded-xl bg-red-600 px-3 py-2 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-50"
                               >
                                 {Number(account.allocated_amount || 0) > 0 ||
                                   Number(account.expenditure || 0) > 0 ||
@@ -1146,7 +1146,7 @@ function AccountCard({
         <button
           onClick={onFunding}
           disabled={!canManage || saving}
-          className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+          className="reqgen-btn reqgen-btn-rose rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
         >
           Fund
         </button>
@@ -1154,7 +1154,7 @@ function AccountCard({
         <button
           onClick={onEdit}
           disabled={!canManage || saving}
-          className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-50"
+          className="reqgen-btn reqgen-btn-rose rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-50"
         >
           Edit
         </button>
@@ -1162,7 +1162,7 @@ function AccountCard({
         <button
           onClick={onToggle}
           disabled={!canManage || saving}
-          className={`rounded-xl px-4 py-2 text-sm font-semibold text-white disabled:opacity-50 ${account.is_active === false
+          className={`reqgen-btn reqgen-btn-rose rounded-xl px-4 py-2 text-sm font-semibold text-white disabled:opacity-50 ${account.is_active === false
               ? "bg-emerald-600 hover:bg-emerald-700"
               : "bg-amber-600 hover:bg-amber-700"
             }`}
@@ -1173,7 +1173,7 @@ function AccountCard({
         <button
           onClick={onDelete}
           disabled={!canManage || saving}
-          className="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+          className="reqgen-btn reqgen-btn-rose rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
         >
           {Number(account.allocated_amount || 0) > 0 ||
             Number(account.expenditure || 0) > 0 ||
@@ -1199,31 +1199,21 @@ function StatusBadge({ active }: { active: boolean }) {
   );
 }
 
-function TabButton({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
-  const key = label.toLowerCase();
-  const tone =
-    key.includes("inactive") || key.includes("policy")
-      ? "bg-rose-600 hover:bg-rose-700 focus:ring-rose-200"
-      : key.includes("active") || key.includes("assign") || key.includes("ledger")
-      ? "bg-emerald-700 hover:bg-emerald-800 focus:ring-emerald-200"
-      : key.includes("add") || key.includes("edit") || key.includes("fund") || key.includes("backup")
-      ? "bg-orange-600 hover:bg-orange-700 focus:ring-orange-200"
-      : key.includes("voucher") || key.includes("subhead") || key.includes("completed")
-      ? "bg-violet-700 hover:bg-violet-800 focus:ring-violet-200"
-      : key.includes("bank") || key.includes("checklist")
-      ? "bg-cyan-700 hover:bg-cyan-800 focus:ring-cyan-200"
-      : key.includes("department")
-      ? "bg-blue-700 hover:bg-blue-800 focus:ring-blue-200"
-      : "bg-slate-700 hover:bg-slate-800 focus:ring-slate-200";
-
+function TabButton({
+  label,
+  active,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) {
   return (
     <button
       type="button"
       onClick={onClick}
-      aria-pressed={active}
-      className={`inline-flex min-h-12 items-center justify-center rounded-xl px-5 py-3 text-sm font-black text-white shadow-md transition duration-200 hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus:ring-4 ${tone} ${
-        active ? "ring-4 ring-offset-2 brightness-110" : ""
-      }`}
+      className={`reqgen-btn reqgen-btn-slate rounded-2xl px-4 py-3 text-sm font-bold transition ${active ? "bg-blue-600 text-white shadow-sm" : "bg-white text-slate-700 hover:bg-slate-100"
+        }`}
     >
       {label}
     </button>

@@ -706,7 +706,7 @@ export default function NavBar() {
             <button
               type="button"
               onClick={() => router.push("/mfa")}
-              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-900 hover:bg-slate-100"
+              className="reqgen-btn reqgen-btn-cyan rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-900 hover:bg-slate-100"
             >
               Verify 2FA
             </button>
@@ -714,7 +714,7 @@ export default function NavBar() {
             <button
               type="button"
               onClick={logout}
-              className="rounded-xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-700"
+              className="reqgen-btn reqgen-btn-rose rounded-xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-700"
             >
               Logout
             </button>
@@ -734,7 +734,7 @@ export default function NavBar() {
                     setOpenHR(false);
                     setOpenMobileMenu(false);
                   }}
-                  className={`group relative inline-flex h-11 w-11 items-center justify-center rounded-2xl border transition ${
+                  className={`reqgen-btn reqgen-btn-slate group relative inline-flex h-11 w-11 items-center justify-center rounded-2xl border transition ${
                     isActiveLink("/approvals")
                       ? "border-blue-600 bg-gradient-to-br from-blue-700 to-cyan-600 text-white shadow-lg shadow-blue-200/70"
                       : actionCount > 0
@@ -768,14 +768,14 @@ export default function NavBar() {
                       <button
                         type="button"
                         onClick={() => setActionTab("actions")}
-                        className={`min-h-11 rounded-xl bg-blue-700 px-4 py-2.5 text-xs font-black text-white shadow-md transition hover:-translate-y-0.5 hover:bg-blue-800 hover:shadow-lg focus:outline-none focus:ring-4 focus:ring-blue-200 ${actionTab === "actions" ? "ring-4 ring-offset-2" : ""}`}
+                        className={`reqgen-btn reqgen-btn-slate rounded-xl px-3 py-2.5 text-xs font-black transition ${actionTab === "actions" ? "bg-blue-600 text-white shadow-sm" : "bg-white text-slate-700 hover:bg-blue-50 hover:text-blue-700"}`}
                       >
                         WAITING FOR ACTION ({pendingApprovalCount})
                       </button>
                       <button
                         type="button"
                         onClick={() => setActionTab("updates")}
-                        className={`min-h-11 rounded-xl bg-violet-700 px-4 py-2.5 text-xs font-black text-white shadow-md transition hover:-translate-y-0.5 hover:bg-violet-800 hover:shadow-lg focus:outline-none focus:ring-4 focus:ring-violet-200 ${actionTab === "updates" ? "ring-4 ring-offset-2" : ""}`}
+                        className={`reqgen-btn reqgen-btn-slate rounded-xl px-3 py-2.5 text-xs font-black transition ${actionTab === "updates" ? "bg-blue-600 text-white shadow-sm" : "bg-white text-slate-700 hover:bg-blue-50 hover:text-blue-700"}`}
                       >
                         RECENT UPDATES ({unreadNotificationCount})
                       </button>
@@ -816,7 +816,7 @@ export default function NavBar() {
                           </div>
                         )}
                         <div className="border-t bg-slate-50 p-3">
-                          <button type="button" onClick={() => goTo("/approvals")} className="w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-black text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-200">
+                          <button type="button" onClick={() => goTo("/approvals")} className="reqgen-btn reqgen-btn-blue w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-black text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-200">
                             OPEN FULL APPROVALS INBOX
                           </button>
                         </div>
@@ -825,7 +825,7 @@ export default function NavBar() {
                       <>
                         <div className="flex items-center justify-between border-b px-4 py-3">
                           <span className="text-xs font-black uppercase tracking-wide text-slate-500">Latest workflow updates</span>
-                          <button type="button" onClick={markAllNotificationsRead} disabled={unreadNotificationCount === 0} className="rounded-lg px-2 py-1 text-xs font-black text-blue-700 transition hover:bg-blue-50 disabled:cursor-not-allowed disabled:text-slate-400">MARK ALL READ</button>
+                          <button type="button" onClick={markAllNotificationsRead} disabled={unreadNotificationCount === 0} className="reqgen-btn reqgen-btn-rose rounded-lg px-2 py-1 text-xs font-black text-blue-700 transition hover:bg-blue-50 disabled:cursor-not-allowed disabled:text-slate-400">MARK ALL READ</button>
                         </div>
                         {notificationItems.length === 0 ? (
                           <div className="px-5 py-8 text-center text-sm font-semibold text-slate-500">No recent update.</div>
@@ -877,7 +877,7 @@ export default function NavBar() {
                 <button
                   type="button"
                   onClick={() => goTo("/finance")}
-                  className={iconLinkClass("/finance")}
+                  className={`reqgen-btn reqgen-btn-blue ${iconLinkClass("/finance")}`}
                 >
                   <IconFinance />
                   <IconButtonTooltip label="Finance" />
@@ -893,7 +893,7 @@ export default function NavBar() {
                       setOpenApprovalPanel(false);
                       setOpenMobileMenu(false);
                     }}
-                    className={dropdownIconButtonClass(hrActive)}
+                    className={`reqgen-btn reqgen-btn-blue ${dropdownIconButtonClass(hrActive)}`}
                   >
                     <IconHR />
                     <IconButtonTooltip label="HR" />
@@ -916,7 +916,7 @@ export default function NavBar() {
                             key={item.href}
                             type="button"
                             onClick={() => goTo(item.href)}
-                            className={dropdownItemClass(item.href)}
+                            className={`reqgen-btn reqgen-btn-blue ${dropdownItemClass(item.href)}`}
                           >
                             <div className="text-sm font-extrabold">{item.label}</div>
                             {item.description && (
@@ -936,7 +936,7 @@ export default function NavBar() {
                 <button
                   type="button"
                   onClick={() => goTo("/registry")}
-                  className={iconLinkClass("/registry")}
+                  className={`reqgen-btn reqgen-btn-blue ${iconLinkClass("/registry")}`}
                 >
                   <IconRegistry />
                   <IconButtonTooltip label="Registry Desk" />
@@ -959,7 +959,7 @@ export default function NavBar() {
                   setOpenHR(false);
                   setOpenApprovalPanel(false);
                 }}
-                className={`rounded-xl border px-3 py-2 text-sm font-bold transition ${openMobileMenu
+                className={`reqgen-btn reqgen-btn-slate rounded-xl border px-3 py-2 text-sm font-bold transition ${openMobileMenu
                     ? "border-blue-600 bg-gradient-to-br from-blue-700 to-cyan-600 text-white shadow-lg shadow-blue-200/70"
                     : "border-slate-200 bg-white text-slate-900 hover:bg-slate-100"
                   }`}
@@ -979,7 +979,7 @@ export default function NavBar() {
                   <button
                     type="button"
                     onClick={() => goTo("/approvals")}
-                    className={mobileItemClass("/approvals")}
+                    className={`reqgen-btn reqgen-btn-rose ${mobileItemClass("/approvals")}`}
                   >
                     <div className="flex items-center justify-between gap-3">
                       <span className="inline-flex items-center gap-2">
@@ -998,7 +998,7 @@ export default function NavBar() {
                   <button
                     type="button"
                     onClick={() => goTo("/dashboard")}
-                    className={mobileItemClass("/dashboard")}
+                    className={`reqgen-btn reqgen-btn-slate ${mobileItemClass("/dashboard")}`}
                   >
                     <span className="inline-flex items-center gap-2"><IconDashboard className="h-4 w-4" />Dashboard</span>
                   </button>
@@ -1006,7 +1006,7 @@ export default function NavBar() {
                   <button
                     type="button"
                     onClick={() => goTo("/requests")}
-                    className={mobileItemClass("/requests")}
+                    className={`reqgen-btn reqgen-btn-blue ${mobileItemClass("/requests")}`}
                   >
                     <span className="inline-flex items-center gap-2"><IconRequests className="h-4 w-4" />My Requests</span>
                   </button>
@@ -1015,7 +1015,7 @@ export default function NavBar() {
                     <button
                       type="button"
                       onClick={() => goTo("/finance")}
-                      className={mobileItemClass("/finance")}
+                      className={`reqgen-btn reqgen-btn-violet ${mobileItemClass("/finance")}`}
                     >
                       <div className="inline-flex items-center gap-2">
                         <IconFinance className="h-4 w-4" />
@@ -1038,7 +1038,7 @@ export default function NavBar() {
                           key={item.href}
                           type="button"
                           onClick={() => goTo(item.href)}
-                          className={mobileItemClass(item.href)}
+                          className={`reqgen-btn reqgen-btn-blue ${mobileItemClass(item.href)}`}
                         >
                           <div className="inline-flex items-center gap-2">
                             <IconHR className="h-4 w-4" />
@@ -1063,7 +1063,7 @@ export default function NavBar() {
                       <button
                         type="button"
                         onClick={() => goTo("/registry")}
-                        className={mobileItemClass("/registry")}
+                        className={`reqgen-btn reqgen-btn-blue ${mobileItemClass("/registry")}`}
                       >
                         <span className="inline-flex items-center gap-2">
                           <IconRegistry className="h-4 w-4" />
@@ -1085,7 +1085,7 @@ export default function NavBar() {
                       <button
                         type="button"
                         onClick={() => goTo("/admin")}
-                        className={mobileItemClass("/admin")}
+                        className={`reqgen-btn reqgen-btn-blue ${mobileItemClass("/admin")}`}
                       >
                         <span className="inline-flex items-center gap-2">
                           <IconAdmin className="h-4 w-4" />
@@ -1099,7 +1099,7 @@ export default function NavBar() {
                     <button
                       type="button"
                       onClick={logout}
-                      className="w-full rounded-xl bg-rose-600 px-4 py-3 text-left text-sm font-bold text-white hover:bg-rose-700"
+                      className="reqgen-btn reqgen-btn-rose w-full rounded-xl bg-rose-600 px-4 py-3 text-left text-sm font-bold text-white hover:bg-rose-700"
                     >
                       <span className="inline-flex items-center gap-2">
                         <IconLogout className="h-4 w-4" />
@@ -1114,7 +1114,7 @@ export default function NavBar() {
             <button
               type="button"
               onClick={logout}
-              className="group relative hidden h-11 w-11 items-center justify-center rounded-2xl bg-rose-600 text-white transition hover:bg-rose-700 sm:inline-flex"
+              className="reqgen-btn reqgen-btn-rose reqgen-btn-icon group relative hidden h-11 w-11 items-center justify-center rounded-2xl bg-rose-600 text-white transition hover:bg-rose-700 sm:inline-flex"
             >
               <IconLogout />
               <IconButtonTooltip label="Logout" />

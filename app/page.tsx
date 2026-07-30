@@ -35,7 +35,7 @@ export default function HomePage() {
             <div className="mx-auto mt-8 flex max-w-md flex-col gap-3 sm:flex-row sm:justify-center">
               <Link
                 href="/login"
-                className="inline-flex min-h-14 flex-1 items-center justify-center gap-2 bg-blue-700 px-8 py-4 text-sm text-white shadow-lg shadow-blue-200 hover:-translate-y-0.5 hover:bg-blue-800 focus:outline-none focus:ring-4 focus:ring-blue-200 font-black rounded-xl shadow-sm transition-all duration-200 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+                className="reqgen-btn reqgen-btn-blue inline-flex min-h-14 flex-1 items-center justify-center gap-2 rounded-2xl bg-blue-700 px-8 py-4 text-sm font-black text-white shadow-lg shadow-blue-200 transition duration-300 hover:-translate-y-0.5 hover:bg-blue-800 focus:outline-none focus:ring-4 focus:ring-blue-200"
               >
                 <LockIcon />
                 Login
@@ -43,7 +43,7 @@ export default function HomePage() {
 
               <Link
                 href="/signup"
-                className="inline-flex min-h-14 flex-1 items-center justify-center gap-2 border border-slate-200 bg-slate-700 px-8 py-4 text-sm hover:-translate-y-0.5 hover:border-blue-200 hover:bg-blue-50 focus:outline-none focus:ring-4 focus:ring-blue-100 font-black text-white rounded-xl shadow-sm transition-all duration-200 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex min-h-14 flex-1 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-8 py-4 text-sm font-black text-slate-900 shadow-sm transition duration-300 hover:-translate-y-0.5 hover:border-blue-200 hover:bg-blue-50 focus:outline-none focus:ring-4 focus:ring-blue-100"
               >
                 <UserPlusIcon />
                 Sign Up

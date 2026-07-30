@@ -656,7 +656,7 @@ export default function RegistryPage() {
                         <button
                             type="button"
                             onClick={goDashboard}
-                            className="mt-5 bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700 font-black rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+                            className="reqgen-btn reqgen-btn-slate mt-5 rounded-xl bg-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-blue-700"
                         >
                             Back to Dashboard
                         </button>
@@ -688,7 +688,7 @@ export default function RegistryPage() {
                             type="button"
                             onClick={() => load({ silent: true })}
                             disabled={refreshing}
-                            className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-900 shadow-sm hover:bg-slate-100 disabled:opacity-60"
+                            className="reqgen-btn reqgen-btn-rose rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-900 shadow-sm hover:bg-slate-100 disabled:opacity-60"
                         >
                             {refreshing ? "Refreshing..." : "Refresh"}
                         </button>
@@ -697,7 +697,7 @@ export default function RegistryPage() {
                             type="button"
                             onClick={goDashboard}
                             disabled={refreshing}
-                            className="border border-slate-200 bg-slate-700 px-4 py-2 text-sm hover:bg-slate-800 disabled:opacity-60 font-black text-white rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed"
+                            className="reqgen-btn reqgen-btn-rose rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-900 shadow-sm hover:bg-slate-100 disabled:opacity-60"
                         >
                             Dashboard
                         </button>
@@ -944,7 +944,7 @@ export default function RegistryPage() {
                                         <button
                                             type="button"
                                             onClick={() => openRequest(r.id)}
-                                            className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-blue-700"
+                                            className="reqgen-btn reqgen-btn-blue rounded-xl bg-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-blue-700"
                                         >
                                             View Request
                                         </button>
@@ -1032,7 +1032,7 @@ export default function RegistryPage() {
                                                 <button
                                                     type="button"
                                                     onClick={() => openRequest(r.id)}
-                                                    className="rounded-xl bg-blue-600 px-3 py-2 text-xs font-bold text-white hover:bg-blue-700"
+                                                    className="reqgen-btn reqgen-btn-blue rounded-xl bg-blue-600 px-3 py-2 text-xs font-bold text-white hover:bg-blue-700"
                                                 >
                                                     View
                                                 </button>
@@ -1110,7 +1110,7 @@ function ReminderCard({
             <button
                 type="button"
                 onClick={onClick}
-                className="mt-4 bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700 font-black rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+                className="reqgen-btn reqgen-btn-blue mt-4 rounded-xl bg-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-blue-700"
             >
                 {buttonText}
             </button>

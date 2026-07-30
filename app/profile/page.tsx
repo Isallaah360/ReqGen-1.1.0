@@ -409,7 +409,7 @@ export default function ProfilePage() {
               type="button"
               onClick={() => load({ silent: true })}
               disabled={busy}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
+              className="reqgen-btn reqgen-btn-rose rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
             >
               {refreshing ? "Refreshing..." : "Refresh"}
             </button>
@@ -418,7 +418,7 @@ export default function ProfilePage() {
               type="button"
               onClick={goDashboard}
               disabled={busy}
-              className="border border-slate-200 bg-slate-700 px-4 py-2 text-sm hover:bg-slate-800 disabled:opacity-60 font-black text-white rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed"
+              className="reqgen-btn reqgen-btn-rose rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
             >
               Back
             </button>
@@ -487,7 +487,7 @@ export default function ProfilePage() {
               <button
                 type="button"
                 onClick={goMfaSetup}
-                className="bg-blue-600 px-4 py-3 text-sm text-white hover:bg-blue-700 font-black rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+                className="reqgen-btn reqgen-btn-blue rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white hover:bg-blue-700"
               >
                 Set Up 2FA
               </button>
@@ -497,7 +497,7 @@ export default function ProfilePage() {
               <button
                 type="button"
                 onClick={goMfaVerify}
-                className="bg-blue-600 px-4 py-3 text-sm text-white hover:bg-blue-700 font-black rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+                className="reqgen-btn reqgen-btn-cyan rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white hover:bg-blue-700"
               >
                 Verify 2FA
               </button>
@@ -506,7 +506,7 @@ export default function ProfilePage() {
             <button
               type="button"
               onClick={goChangePassword}
-              className="bg-blue-600 px-4 py-3 text-sm text-white hover:bg-blue-700 font-black rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+              className="reqgen-btn reqgen-btn-blue rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700"
             >
               Change Password Securely
             </button>
@@ -515,7 +515,7 @@ export default function ProfilePage() {
               type="button"
               onClick={refreshSecurity}
               disabled={refreshing}
-              className="border border-slate-200 bg-slate-700 px-4 py-3 text-sm hover:bg-slate-800 disabled:opacity-60 font-black text-white rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed"
+              className="reqgen-btn reqgen-btn-rose rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
             >
               {refreshing ? "Refreshing..." : "Refresh Security Status"}
             </button>
@@ -588,7 +588,7 @@ export default function ProfilePage() {
               type="button"
               onClick={saveProfile}
               disabled={!canSaveProfile || savingProfile}
-              className="mt-5 w-full bg-blue-600 px-4 py-3 text-sm text-white hover:bg-blue-700 disabled:opacity-60 font-black rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed"
+              className="reqgen-btn reqgen-btn-rose mt-5 w-full rounded-2xl bg-blue-600 px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700 disabled:opacity-60"
             >
               {savingProfile ? "Saving..." : "Save Profile"}
             </button>
@@ -631,7 +631,7 @@ export default function ProfilePage() {
               type="button"
               onClick={uploadSignature}
               disabled={uploadingSig}
-              className="mt-4 w-full border border-slate-200 bg-slate-700 px-4 py-3 text-sm hover:bg-slate-800 disabled:opacity-60 font-black text-white rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed"
+              className="reqgen-btn reqgen-btn-rose mt-4 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
             >
               {uploadingSig ? "Saving Signature..." : "Save Signature"}
             </button>
@@ -665,7 +665,7 @@ export default function ProfilePage() {
               type="button"
               onClick={changeEmail}
               disabled={savingEmail}
-              className="mt-4 w-full border border-slate-200 bg-slate-700 px-4 py-3 text-sm hover:bg-slate-800 disabled:opacity-60 font-black text-white rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed"
+              className="reqgen-btn reqgen-btn-rose mt-4 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
             >
               {savingEmail ? "Updating Email..." : "Update Email"}
             </button>
@@ -685,7 +685,7 @@ export default function ProfilePage() {
             <button
               type="button"
               onClick={goChangePassword}
-              className="mt-5 w-full bg-blue-600 px-4 py-3 text-sm text-white hover:bg-blue-700 font-black rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+              className="reqgen-btn reqgen-btn-blue mt-5 w-full rounded-2xl bg-blue-600 px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700"
             >
               Change Password Securely
             </button>

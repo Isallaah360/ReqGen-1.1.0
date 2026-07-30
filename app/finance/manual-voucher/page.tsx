@@ -826,7 +826,7 @@ export default function ManualVoucherPage() {
 
                     <Link
                         href="/dashboard"
-                        className="mt-5 inline-flex rounded-xl bg-slate-950 px-4 py-3 text-sm font-black text-white transition hover:bg-slate-800"
+                        className="reqgen-btn reqgen-btn-slate mt-5 inline-flex rounded-xl bg-slate-950 px-4 py-3 text-sm font-black text-white transition hover:bg-slate-800"
                     >
                         Return to Dashboard
                     </Link>
@@ -841,21 +841,21 @@ export default function ManualVoucherPage() {
                 <div className="flex flex-wrap gap-2">
                     <Link
                         href="/finance"
-                        className="inline-flex min-h-12 items-center justify-center rounded-xl bg-slate-700 px-5 py-3 text-sm font-black text-white shadow-md transition duration-200 hover:-translate-y-0.5 hover:bg-slate-800 hover:shadow-lg focus:outline-none focus:ring-4 focus:ring-slate-200"
+                        className="reqgen-btn reqgen-btn-slate rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-black text-slate-800 transition hover:bg-slate-100"
                     >
                         ← Finance Dashboard
                     </Link>
 
                     <Link
                         href="/payment-vouchers"
-                        className="inline-flex min-h-12 items-center justify-center rounded-xl bg-violet-700 px-5 py-3 text-sm font-black text-white shadow-md transition duration-200 hover:-translate-y-0.5 hover:bg-violet-800 hover:shadow-lg focus:outline-none focus:ring-4 focus:ring-violet-200"
+                        className="reqgen-btn reqgen-btn-violet rounded-xl bg-violet-700 px-4 py-2.5 text-sm font-black text-white transition hover:bg-violet-800"
                     >
                         Voucher Register
                     </Link>
 
                     <Link
                         href="/finance/transactions"
-                        className="inline-flex min-h-12 items-center justify-center rounded-xl bg-emerald-700 px-5 py-3 text-sm font-black text-white shadow-md transition duration-200 hover:-translate-y-0.5 hover:bg-emerald-800 hover:shadow-lg focus:outline-none focus:ring-4 focus:ring-emerald-200"
+                        className="reqgen-btn reqgen-btn-emerald rounded-xl bg-emerald-700 px-4 py-2.5 text-sm font-black text-white transition hover:bg-emerald-800"
                     >
                         Transactions
                     </Link>
@@ -865,7 +865,7 @@ export default function ManualVoucherPage() {
                     type="button"
                     onClick={() => loadPage(true)}
                     disabled={refreshing}
-                    className="inline-flex min-h-12 items-center justify-center rounded-xl bg-cyan-700 px-5 py-3 text-sm font-black text-white shadow-md transition duration-200 hover:-translate-y-0.5 hover:bg-cyan-800 hover:shadow-lg focus:outline-none focus:ring-4 focus:ring-cyan-200 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
+                    className="reqgen-btn reqgen-btn-rose rounded-xl border border-cyan-200 bg-cyan-50 px-4 py-2.5 text-sm font-black text-cyan-800 transition hover:bg-cyan-100 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                     {refreshing
                         ? "Refreshing…"
@@ -895,14 +895,14 @@ export default function ManualVoucherPage() {
                             <button
                                 type="button"
                                 onClick={() => clearForm()}
-                                className="rounded-xl bg-amber-400 px-5 py-3 text-sm font-black text-slate-950 transition hover:bg-amber-300"
+                                className="reqgen-btn reqgen-btn-violet rounded-xl bg-amber-400 px-5 py-3 text-sm font-black text-slate-950 transition hover:bg-amber-300"
                             >
                                 + Start New Voucher
                             </button>
 
                             <Link
                                 href="/payment-vouchers"
-                                className="rounded-xl border border-white/20 bg-white/10 px-5 py-3 text-sm font-black text-white transition hover:bg-white/15"
+                                className="reqgen-btn reqgen-btn-violet rounded-xl border border-white/20 bg-white/10 px-5 py-3 text-sm font-black text-white transition hover:bg-white/15"
                             >
                                 View Voucher Register
                             </Link>
@@ -1042,7 +1042,7 @@ export default function ManualVoucherPage() {
                         <button
                             type="button"
                             onClick={() => clearForm()}
-                            className="w-fit rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm font-black text-slate-700 transition hover:bg-slate-100"
+                            className="reqgen-btn reqgen-btn-violet w-fit rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm font-black text-slate-700 transition hover:bg-slate-100"
                         >
                             Start New Voucher
                         </button>
@@ -1281,7 +1281,7 @@ export default function ManualVoucherPage() {
                             <button
                                 type="submit"
                                 disabled={saving || posting || cancelling}
-                                className="rounded-xl bg-amber-500 px-6 py-3.5 text-sm font-black text-slate-950 shadow-sm transition hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-60"
+                                className="reqgen-btn reqgen-btn-rose rounded-xl bg-amber-500 px-6 py-3.5 text-sm font-black text-slate-950 shadow-sm transition hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-60"
                             >
                                 {saving
                                     ? "Saving Draft…"
@@ -1294,7 +1294,7 @@ export default function ManualVoucherPage() {
                                 type="button"
                                 onClick={postVoucher}
                                 disabled={saving || posting || cancelling}
-                                className="rounded-xl bg-emerald-700 px-6 py-3.5 text-sm font-black text-white shadow-sm transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60"
+                                className="reqgen-btn reqgen-btn-rose rounded-xl bg-emerald-700 px-6 py-3.5 text-sm font-black text-white shadow-sm transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60"
                             >
                                 {posting
                                     ? "Posting Voucher…"
@@ -1306,7 +1306,7 @@ export default function ManualVoucherPage() {
                                     type="button"
                                     onClick={cancelDraft}
                                     disabled={saving || posting || cancelling}
-                                    className="rounded-xl border border-red-200 bg-red-50 px-6 py-3.5 text-sm font-black text-red-700 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
+                                    className="reqgen-btn reqgen-btn-rose rounded-xl border border-red-200 bg-red-50 px-6 py-3.5 text-sm font-black text-red-700 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
                                 >
                                     {cancelling ? "Cancelling Draft…" : "Cancel Draft"}
                                 </button>
@@ -1316,7 +1316,7 @@ export default function ManualVoucherPage() {
                                 type="button"
                                 onClick={() => clearForm()}
                                 disabled={saving || posting || cancelling}
-                                className="rounded-xl border border-slate-300 bg-slate-50 px-6 py-3.5 text-sm font-black text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
+                                className="reqgen-btn reqgen-btn-rose rounded-xl border border-slate-300 bg-slate-50 px-6 py-3.5 text-sm font-black text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
                             >
                                 Clear Form
                             </button>
@@ -1577,7 +1577,7 @@ export default function ManualVoucherPage() {
                                             {posted ? (
                                                 <Link
                                                     href="/payment-vouchers"
-                                                    className="inline-flex rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-black text-emerald-800"
+                                                    className="reqgen-btn reqgen-btn-violet inline-flex rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-black text-emerald-800"
                                                 >
                                                     View in Register
                                                 </Link>
@@ -1589,7 +1589,7 @@ export default function ManualVoucherPage() {
                                                             voucher
                                                         )
                                                     }
-                                                    className="rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-black text-slate-950"
+                                                    className="reqgen-btn reqgen-btn-violet rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-black text-slate-950"
                                                 >
                                                     Open Draft
                                                 </button>
@@ -1726,7 +1726,7 @@ export default function ManualVoucherPage() {
                                                     {posted ? (
                                                         <Link
                                                             href="/payment-vouchers"
-                                                            className="inline-flex rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-black text-emerald-800 transition hover:bg-emerald-100"
+                                                            className="reqgen-btn reqgen-btn-violet inline-flex rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-black text-emerald-800 transition hover:bg-emerald-100"
                                                         >
                                                             View Register
                                                         </Link>
@@ -1738,7 +1738,7 @@ export default function ManualVoucherPage() {
                                                                     voucher
                                                                 )
                                                             }
-                                                            className="rounded-xl bg-amber-500 px-4 py-2 text-sm font-black text-slate-950 transition hover:bg-amber-400"
+                                                            className="reqgen-btn reqgen-btn-violet rounded-xl bg-amber-500 px-4 py-2 text-sm font-black text-slate-950 transition hover:bg-amber-400"
                                                         >
                                                             Open Draft
                                                         </button>

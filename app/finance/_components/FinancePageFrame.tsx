@@ -36,7 +36,7 @@ export function FinancePageFrame({
   const toneStyle = toneMap[tone];
 
   return (
-    <main className="min-h-screen bg-slate-50 pb-14 text-white">
+    <main className="min-h-screen bg-slate-50 pb-14 text-slate-950">
       <section className="relative isolate overflow-hidden border-b border-blue-900/20 bg-gradient-to-br from-slate-950 via-blue-950 to-blue-800 text-white">
         <div className="pointer-events-none absolute -left-16 top-10 h-56 w-56 animate-pulse rounded-full bg-cyan-400/15 blur-3xl" />
         <div className="pointer-events-none absolute -right-14 -top-14 h-72 w-72 rounded-full bg-blue-300/15 blur-3xl" />
@@ -57,7 +57,7 @@ export function FinancePageFrame({
             </div>
 
             <div className="flex flex-wrap gap-2 animate-[fadeUp_.7s_ease-out_both]">
-              <Link href="/finance" className="inline-flex items-center gap-2 border border-white/20 bg-white/10 px-4 py-2.5 text-sm text-white backdrop-blur hover:bg-white/20 font-black rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60">
+              <Link href="/finance" className="reqgen-btn reqgen-btn-slate inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-4 py-2.5 text-sm font-black text-white backdrop-blur transition hover:bg-white/20">
                 <span aria-hidden="true">←</span> Finance Centre
               </Link>
               {actions}
@@ -95,7 +95,7 @@ export function MetricCard({ label, value, icon, tone = "blue", helper }: { labe
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-xs font-black uppercase tracking-[0.15em] text-slate-500">{label}</p>
-          <p className="mt-2 text-2xl font-black tracking-tight text-white">{value}</p>
+          <p className="mt-2 text-2xl font-black tracking-tight text-slate-950">{value}</p>
           {helper ? <p className="mt-1 text-xs font-semibold text-slate-500">{helper}</p> : null}
         </div>
         <span className={`flex h-11 w-11 items-center justify-center rounded-2xl text-xl transition group-hover:scale-110 ${t.icon}`}>{icon}</span>
@@ -123,5 +123,5 @@ export function StatusPill({ children, tone = "blue" }: { children: ReactNode; t
 }
 
 export function PrimaryButton({ children, tone = "blue", ...props }: React.ButtonHTMLAttributes<HTMLButtonElement> & { tone?: FinanceTone }) {
-  return <button {...props} className={`inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-black text-white shadow-sm transition disabled:cursor-not-allowed disabled:opacity-50 ${toneMap[tone].button} ${props.className || ""}`}>{children}</button>;
+  return <button {...props} className={`reqgen-btn reqgen-btn-blue inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-black text-white shadow-sm transition disabled:cursor-not-allowed disabled:opacity-50 ${toneMap[tone].button} ${props.className || ""}`}>{children}</button>;
 }

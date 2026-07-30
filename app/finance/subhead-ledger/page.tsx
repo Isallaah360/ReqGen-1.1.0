@@ -348,13 +348,13 @@ export default function SubheadLedgerPage() {
         <div className="field date"><label>FROM</label><input type="date" value={fromDate} onChange={(event) => setFromDate(event.target.value)} /></div>
         <div className="field date"><label>TO</label><input type="date" value={toDate} onChange={(event) => setToDate(event.target.value)} /></div>
         <div className="control-actions">
-          <button type="button" className="refresh-button bg-slate-700 hover:bg-slate-800 px-4 py-2.5 font-black text-white rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60" onClick={() => void loadData(true)} disabled={refreshing}>
+          <button type="button" className="reqgen-btn reqgen-btn-rose refresh-button" onClick={() => void loadData(true)} disabled={refreshing}>
             <span aria-hidden="true">↻</span>{refreshing ? "Refreshing…" : "Refresh Ledger"}
           </button>
-          <button type="button" className="export-button bg-slate-700 hover:bg-slate-800 px-4 py-2.5 font-black text-white rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60" onClick={exportCsv} disabled={!selected}>
+          <button type="button" className="reqgen-btn reqgen-btn-rose export-button" onClick={exportCsv} disabled={!selected}>
             <span aria-hidden="true">⇩</span>Export Excel / CSV
           </button>
-          <button type="button" className="print-button bg-slate-700 hover:bg-slate-800 px-4 py-2.5 font-black text-white rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60" onClick={() => window.print()} disabled={!selected}>
+          <button type="button" className="reqgen-btn reqgen-btn-rose print-button" onClick={() => window.print()} disabled={!selected}>
             <span aria-hidden="true">⎙</span>Print / Save PDF
           </button>
         </div>

@@ -443,7 +443,7 @@ export default function AdminRolesPage() {
 
             <button
               onClick={() => router.push(`/dashboard?updated=${Date.now()}`)}
-              className="mt-5 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+              className="reqgen-btn reqgen-btn-slate mt-5 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
             >
               Back to Dashboard
             </button>
@@ -473,7 +473,7 @@ export default function AdminRolesPage() {
             <button
               onClick={() => loadAll({ silent: true })}
               disabled={refreshing || saving}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
+              className="reqgen-btn reqgen-btn-rose rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
             >
               {refreshing ? "Refreshing..." : "Refresh"}
             </button>
@@ -481,7 +481,7 @@ export default function AdminRolesPage() {
             <button
               onClick={startCreate}
               disabled={refreshing || saving}
-              className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
+              className="reqgen-btn reqgen-btn-rose rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
             >
               Add Role
             </button>
@@ -489,7 +489,7 @@ export default function AdminRolesPage() {
             <button
               onClick={goUsers}
               disabled={refreshing || saving}
-              className="rounded-xl bg-purple-600 px-4 py-2 text-sm font-semibold text-white hover:bg-purple-700 disabled:opacity-60"
+              className="reqgen-btn reqgen-btn-rose rounded-xl bg-purple-600 px-4 py-2 text-sm font-semibold text-white hover:bg-purple-700 disabled:opacity-60"
             >
               Users & Roles
             </button>
@@ -497,7 +497,7 @@ export default function AdminRolesPage() {
             <button
               onClick={goAdmin}
               disabled={refreshing || saving}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
+              className="reqgen-btn reqgen-btn-rose rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
             >
               Back to Admin
             </button>
@@ -523,7 +523,7 @@ export default function AdminRolesPage() {
           <StatCard title="Signature Required" value={String(stats.signatureCount)} tone="red" />
         </div>
 
-        <div className="mt-6 rounded-3xl border border-slate-200 bg-white p-3 shadow-sm">
+        <div className="mt-6 rounded-3xl border bg-white p-2 shadow-sm">
           <div className="flex flex-wrap gap-2">
             <TabButton label="Overview" active={activeTab === "overview"} onClick={() => setActiveTab("overview")} />
             <TabButton label="Active Roles" active={activeTab === "active"} onClick={() => setActiveTab("active")} />
@@ -560,7 +560,7 @@ export default function AdminRolesPage() {
                 <button
                   onClick={resetForm}
                   disabled={saving}
-                  className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
+                  className="reqgen-btn reqgen-btn-rose rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
                 >
                   Cancel Edit
                 </button>
@@ -638,7 +638,7 @@ export default function AdminRolesPage() {
             <button
               onClick={saveRole}
               disabled={saving}
-              className="mt-5 w-full rounded-2xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
+              className="reqgen-btn reqgen-btn-rose mt-5 w-full rounded-2xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
             >
               {saving ? "Saving..." : editId ? "Update Role" : "Create Role"}
             </button>
@@ -744,7 +744,7 @@ export default function AdminRolesPage() {
                               <button
                                 onClick={() => startEdit(role)}
                                 disabled={saving}
-                                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-50"
+                                className="reqgen-btn reqgen-btn-rose rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-50"
                               >
                                 Edit
                               </button>
@@ -752,7 +752,7 @@ export default function AdminRolesPage() {
                               <button
                                 onClick={() => toggleActive(role, !role.is_active)}
                                 disabled={saving}
-                                className={`rounded-xl px-3 py-2 text-xs font-semibold text-white disabled:opacity-50 ${
+                                className={`reqgen-btn reqgen-btn-rose rounded-xl px-3 py-2 text-xs font-semibold text-white disabled:opacity-50 ${
                                   role.is_active
                                     ? "bg-amber-600 hover:bg-amber-700"
                                     : "bg-emerald-600 hover:bg-emerald-700"
@@ -764,7 +764,7 @@ export default function AdminRolesPage() {
                               <button
                                 onClick={() => deleteRole(role)}
                                 disabled={saving || role.is_system}
-                                className="rounded-xl bg-red-600 px-3 py-2 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-40"
+                                className="reqgen-btn reqgen-btn-rose rounded-xl bg-red-600 px-3 py-2 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-40"
                               >
                                 Delete
                               </button>
@@ -833,7 +833,7 @@ function RoleCard({
         <button
           onClick={onEdit}
           disabled={saving}
-          className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-50"
+          className="reqgen-btn reqgen-btn-rose rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-50"
         >
           Edit
         </button>
@@ -841,7 +841,7 @@ function RoleCard({
         <button
           onClick={onToggle}
           disabled={saving}
-          className={`rounded-xl px-4 py-2 text-sm font-semibold text-white disabled:opacity-50 ${
+          className={`reqgen-btn reqgen-btn-rose rounded-xl px-4 py-2 text-sm font-semibold text-white disabled:opacity-50 ${
             role.is_active
               ? "bg-amber-600 hover:bg-amber-700"
               : "bg-emerald-600 hover:bg-emerald-700"
@@ -853,7 +853,7 @@ function RoleCard({
         <button
           onClick={onDelete}
           disabled={saving || role.is_system}
-          className="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-40"
+          className="reqgen-btn reqgen-btn-rose rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-40"
         >
           Delete
         </button>
@@ -887,30 +887,21 @@ function InfoMetric({ title, value }: { title: string; value: string }) {
   );
 }
 
-function TabButton({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
-  const key = label.toLowerCase();
-  const tone =
-    key.includes("inactive") || key.includes("policy")
-      ? "bg-rose-600 hover:bg-rose-700 focus:ring-rose-200"
-      : key.includes("active") || key.includes("assign") || key.includes("ledger")
-      ? "bg-emerald-700 hover:bg-emerald-800 focus:ring-emerald-200"
-      : key.includes("add") || key.includes("edit") || key.includes("fund") || key.includes("backup")
-      ? "bg-orange-600 hover:bg-orange-700 focus:ring-orange-200"
-      : key.includes("voucher") || key.includes("subhead") || key.includes("completed")
-      ? "bg-violet-700 hover:bg-violet-800 focus:ring-violet-200"
-      : key.includes("bank") || key.includes("checklist")
-      ? "bg-cyan-700 hover:bg-cyan-800 focus:ring-cyan-200"
-      : key.includes("department")
-      ? "bg-blue-700 hover:bg-blue-800 focus:ring-blue-200"
-      : "bg-slate-700 hover:bg-slate-800 focus:ring-slate-200";
-
+function TabButton({
+  label,
+  active,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) {
   return (
     <button
       type="button"
       onClick={onClick}
-      aria-pressed={active}
-      className={`inline-flex min-h-12 items-center justify-center rounded-xl px-5 py-3 text-sm font-black text-white shadow-md transition duration-200 hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus:ring-4 ${tone} ${
-        active ? "ring-4 ring-offset-2 brightness-110" : ""
+      className={`reqgen-btn reqgen-btn-slate rounded-2xl px-4 py-3 text-sm font-bold transition ${
+        active ? "bg-blue-600 text-white shadow-sm" : "bg-white text-slate-700 hover:bg-slate-100"
       }`}
     >
       {label}

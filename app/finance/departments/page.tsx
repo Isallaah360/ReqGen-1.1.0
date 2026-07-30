@@ -412,7 +412,7 @@ export default function DepartmentsPage() {
             <button
               onClick={() => load({ silent: true })}
               disabled={refreshing || saving}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
+              className="reqgen-btn reqgen-btn-rose rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
             >
               {refreshing ? "Refreshing..." : "Refresh"}
             </button>
@@ -420,7 +420,7 @@ export default function DepartmentsPage() {
             <button
               onClick={startCreate}
               disabled={!canManage || refreshing || saving}
-              className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
+              className="reqgen-btn reqgen-btn-rose rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
             >
               Add Department
             </button>
@@ -428,7 +428,7 @@ export default function DepartmentsPage() {
             <button
               onClick={backToFinance}
               disabled={refreshing || saving}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
+              className="reqgen-btn reqgen-btn-rose rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
             >
               Back to Finance
             </button>
@@ -455,7 +455,7 @@ export default function DepartmentsPage() {
           <StatCard title="Routed" value={String(stats.routedDepartments)} tone="blue" />
         </div>
 
-        <div className="mt-6 rounded-3xl border border-slate-200 bg-white p-3 shadow-sm">
+        <div className="mt-6 rounded-3xl border bg-white p-2 shadow-sm">
           <div className="flex flex-wrap gap-2">
             <TabButton label="Overview" active={activeTab === "overview"} onClick={() => setActiveTab("overview")} />
             <TabButton label="Active Departments" active={activeTab === "active"} onClick={() => setActiveTab("active")} />
@@ -492,7 +492,7 @@ export default function DepartmentsPage() {
                 <button
                   onClick={resetForm}
                   disabled={saving}
-                  className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
+                  className="reqgen-btn reqgen-btn-rose rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
                 >
                   Cancel Edit
                 </button>
@@ -531,7 +531,7 @@ export default function DepartmentsPage() {
                 <button
                   onClick={save}
                   disabled={!canManage || saving}
-                  className="ml-auto rounded-2xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
+                  className="reqgen-btn reqgen-btn-rose ml-auto rounded-2xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
                 >
                   {saving ? "Saving..." : editId ? "Update Department" : "Create Department"}
                 </button>
@@ -621,7 +621,7 @@ export default function DepartmentsPage() {
                               <button
                                 onClick={() => startEdit(d)}
                                 disabled={!canManage || saving}
-                                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-50"
+                                className="reqgen-btn reqgen-btn-rose rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-50"
                               >
                                 Edit
                               </button>
@@ -629,7 +629,7 @@ export default function DepartmentsPage() {
                               <button
                                 onClick={() => toggleActive(d, d.is_active === false)}
                                 disabled={!canManage || saving}
-                                className={`rounded-xl px-3 py-2 text-xs font-semibold text-white disabled:opacity-50 ${
+                                className={`reqgen-btn reqgen-btn-rose rounded-xl px-3 py-2 text-xs font-semibold text-white disabled:opacity-50 ${
                                   d.is_active === false
                                     ? "bg-emerald-600 hover:bg-emerald-700"
                                     : "bg-amber-600 hover:bg-amber-700"
@@ -641,7 +641,7 @@ export default function DepartmentsPage() {
                               <button
                                 onClick={() => deleteOrDeactivate(d)}
                                 disabled={!canManage || saving}
-                                className="rounded-xl bg-red-600 px-3 py-2 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+                                className="reqgen-btn reqgen-btn-rose rounded-xl bg-red-600 px-3 py-2 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-50"
                               >
                                 {canHardDeleteDepartment(d) ? "Delete" : "Deactivate"}
                               </button>
@@ -706,7 +706,7 @@ function DepartmentCard({
         <button
           onClick={onEdit}
           disabled={!canManage || saving}
-          className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-50"
+          className="reqgen-btn reqgen-btn-rose rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-50"
         >
           Edit
         </button>
@@ -714,7 +714,7 @@ function DepartmentCard({
         <button
           onClick={onToggle}
           disabled={!canManage || saving}
-          className={`rounded-xl px-4 py-2 text-sm font-semibold text-white disabled:opacity-50 ${
+          className={`reqgen-btn reqgen-btn-rose rounded-xl px-4 py-2 text-sm font-semibold text-white disabled:opacity-50 ${
             d.is_active === false
               ? "bg-emerald-600 hover:bg-emerald-700"
               : "bg-amber-600 hover:bg-amber-700"
@@ -726,7 +726,7 @@ function DepartmentCard({
         <button
           onClick={onDelete}
           disabled={!canManage || saving}
-          className="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+          className="reqgen-btn reqgen-btn-rose rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
         >
           {canHardDeleteDepartment(d) ? "Delete" : "Deactivate"}
         </button>
@@ -749,30 +749,21 @@ function StatusBadge({ active }: { active: boolean }) {
   );
 }
 
-function TabButton({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
-  const key = label.toLowerCase();
-  const tone =
-    key.includes("inactive") || key.includes("policy")
-      ? "bg-rose-600 hover:bg-rose-700 focus:ring-rose-200"
-      : key.includes("active") || key.includes("assign") || key.includes("ledger")
-      ? "bg-emerald-700 hover:bg-emerald-800 focus:ring-emerald-200"
-      : key.includes("add") || key.includes("edit") || key.includes("fund") || key.includes("backup")
-      ? "bg-orange-600 hover:bg-orange-700 focus:ring-orange-200"
-      : key.includes("voucher") || key.includes("subhead") || key.includes("completed")
-      ? "bg-violet-700 hover:bg-violet-800 focus:ring-violet-200"
-      : key.includes("bank") || key.includes("checklist")
-      ? "bg-cyan-700 hover:bg-cyan-800 focus:ring-cyan-200"
-      : key.includes("department")
-      ? "bg-blue-700 hover:bg-blue-800 focus:ring-blue-200"
-      : "bg-slate-700 hover:bg-slate-800 focus:ring-slate-200";
-
+function TabButton({
+  label,
+  active,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) {
   return (
     <button
       type="button"
       onClick={onClick}
-      aria-pressed={active}
-      className={`inline-flex min-h-12 items-center justify-center rounded-xl px-5 py-3 text-sm font-black text-white shadow-md transition duration-200 hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus:ring-4 ${tone} ${
-        active ? "ring-4 ring-offset-2 brightness-110" : ""
+      className={`reqgen-btn reqgen-btn-slate rounded-2xl px-4 py-3 text-sm font-bold transition ${
+        active ? "bg-blue-600 text-white shadow-sm" : "bg-white text-slate-700 hover:bg-slate-100"
       }`}
     >
       {label}

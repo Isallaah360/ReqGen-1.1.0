@@ -590,7 +590,7 @@ export default function FinanceTransactionsPage() {
                     </p>
                     <Link
                         href="/dashboard"
-                        className="mt-5 inline-flex rounded-xl bg-slate-950 px-4 py-3 text-sm font-black text-white"
+                        className="reqgen-btn reqgen-btn-slate mt-5 inline-flex rounded-xl bg-slate-950 px-4 py-3 text-sm font-black text-white"
                     >
                         Return to Dashboard
                     </Link>
@@ -605,13 +605,13 @@ export default function FinanceTransactionsPage() {
                 <div className="flex flex-wrap gap-2">
                     <Link
                         href="/finance"
-                        className="inline-flex min-h-12 items-center justify-center rounded-xl bg-blue-700 px-5 py-3 text-sm font-black text-white shadow-md transition duration-200 hover:-translate-y-0.5 hover:bg-blue-800 hover:shadow-lg focus:outline-none focus:ring-4 focus:ring-blue-200"
+                        className="reqgen-btn reqgen-btn-slate rounded-xl bg-blue-700 px-4 py-2.5 text-sm font-black text-white transition hover:bg-blue-800"
                     >
                         ← Finance Dashboard
                     </Link>
                     <Link
                         href="/dashboard"
-                        className="inline-flex min-h-12 items-center justify-center rounded-xl bg-slate-700 px-5 py-3 text-sm font-black text-white shadow-md transition duration-200 hover:-translate-y-0.5 hover:bg-slate-800 hover:shadow-lg focus:outline-none focus:ring-4 focus:ring-slate-200"
+                        className="reqgen-btn reqgen-btn-slate rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-black text-white transition hover:bg-slate-800"
                     >
                         Main Dashboard
                     </Link>
@@ -625,7 +625,7 @@ export default function FinanceTransactionsPage() {
                         type="button"
                         onClick={() => loadTransactions(true)}
                         disabled={refreshing}
-                        className="inline-flex min-h-12 items-center justify-center rounded-xl bg-cyan-700 px-5 py-3 text-sm font-black text-white shadow-md transition duration-200 hover:-translate-y-0.5 hover:bg-cyan-800 hover:shadow-lg focus:outline-none focus:ring-4 focus:ring-cyan-200 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
+                        className="reqgen-btn reqgen-btn-rose rounded-xl border border-cyan-200 bg-cyan-50 px-4 py-2.5 text-sm font-black text-cyan-800 transition hover:bg-cyan-100 disabled:opacity-60"
                     >
                         {refreshing ? "Refreshing…" : "Refresh Now"}
                     </button>
@@ -694,7 +694,7 @@ export default function FinanceTransactionsPage() {
                             type="button"
                             onClick={exportCsv}
                             disabled={filteredTransactions.length === 0}
-                            className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-black text-emerald-800 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50"
+                            className="reqgen-btn reqgen-btn-rose rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-black text-emerald-800 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50"
                         >
                             Export Excel / CSV
                         </button>
@@ -702,14 +702,14 @@ export default function FinanceTransactionsPage() {
                             type="button"
                             onClick={printRegister}
                             disabled={filteredTransactions.length === 0}
-                            className="rounded-xl border border-violet-200 bg-violet-50 px-4 py-2.5 text-sm font-black text-violet-800 transition hover:bg-violet-100 disabled:cursor-not-allowed disabled:opacity-50"
+                            className="reqgen-btn reqgen-btn-rose rounded-xl border border-violet-200 bg-violet-50 px-4 py-2.5 text-sm font-black text-violet-800 transition hover:bg-violet-100 disabled:cursor-not-allowed disabled:opacity-50"
                         >
                             Print / Save PDF
                         </button>
                         <button
                             type="button"
                             onClick={resetFilters}
-                            className="rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm font-black text-slate-700 transition hover:bg-slate-100"
+                            className="reqgen-btn reqgen-btn-cyan rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm font-black text-slate-700 transition hover:bg-slate-100"
                         >
                             Reset Filters
                         </button>
@@ -896,14 +896,14 @@ export default function FinanceTransactionsPage() {
                                                 <button
                                                     type="button"
                                                     onClick={() => setSelectedTransaction(item)}
-                                                    className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-black text-blue-800 hover:bg-blue-100"
+                                                    className="reqgen-btn reqgen-btn-emerald rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-black text-blue-800 hover:bg-blue-100"
                                                 >
                                                     Details
                                                 </button>
                                                 {transactionLink(item) && (
                                                     <Link
                                                         href={transactionLink(item) as string}
-                                                        className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-50"
+                                                        className="reqgen-btn reqgen-btn-emerald rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-50"
                                                     >
                                                         Open Source
                                                     </Link>
@@ -943,7 +943,7 @@ export default function FinanceTransactionsPage() {
                             <button
                                 type="button"
                                 onClick={() => setSelectedTransaction(null)}
-                                className="rounded-xl border border-slate-300 px-3 py-2 text-sm font-black text-slate-700"
+                                className="reqgen-btn reqgen-btn-emerald rounded-xl border border-slate-300 px-3 py-2 text-sm font-black text-slate-700"
                             >
                                 Close
                             </button>
@@ -979,7 +979,7 @@ export default function FinanceTransactionsPage() {
                             {transactionLink(selectedTransaction) && (
                                 <Link
                                     href={transactionLink(selectedTransaction) as string}
-                                    className="rounded-xl bg-blue-700 px-4 py-3 text-sm font-black text-white hover:bg-blue-800"
+                                    className="reqgen-btn reqgen-btn-emerald rounded-xl bg-blue-700 px-4 py-3 text-sm font-black text-white hover:bg-blue-800"
                                 >
                                     Open Linked Source
                                 </Link>
@@ -987,7 +987,7 @@ export default function FinanceTransactionsPage() {
                             <button
                                 type="button"
                                 onClick={() => setSelectedTransaction(null)}
-                                className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-black text-slate-800 shadow-sm transition hover:border-slate-400 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                                className="reqgen-btn reqgen-btn-emerald rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-black text-slate-800 shadow-sm transition hover:border-slate-400 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                                 aria-label="Close transaction details"
                             >
                                 Close

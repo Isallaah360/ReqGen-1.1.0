@@ -380,8 +380,8 @@ export default function AccountTransfersPage() {
           </label>
 
           <div className="form-actions">
-            <button type="button" className="button button-light bg-slate-700 hover:bg-slate-800 px-4 py-2.5 font-black text-white rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60" onClick={clearForm} disabled={posting}><span aria-hidden="true">↺</span>Clear Form</button>
-            <button type="submit" className="button button-primary bg-slate-700 hover:bg-slate-800 px-4 py-2.5 font-black text-white rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60" disabled={posting || Boolean(validationMessage)}><span aria-hidden="true">⇄</span>{posting ? "Posting Transfer…" : "Post Transfer"}</button>
+            <button type="button" className="reqgen-btn reqgen-btn-rose button button-light" onClick={clearForm} disabled={posting}><span aria-hidden="true">↺</span>Clear Form</button>
+            <button type="submit" className="reqgen-btn reqgen-btn-rose button button-primary" disabled={posting || Boolean(validationMessage)}><span aria-hidden="true">⇄</span>{posting ? "Posting Transfer…" : "Post Transfer"}</button>
           </div>
           {validationMessage && <p className="validation-note">{validationMessage}</p>}
         </form>
@@ -397,9 +397,9 @@ export default function AccountTransfersPage() {
           <label><span>Search</span><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Transfer number, account, narration…" /></label>
           <label><span>Status</span><select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}><option>All</option><option>Draft</option><option>Pending</option><option>Approved</option><option>Posted</option><option>Cancelled</option><option>Reversed</option></select></label>
           <div className="filter-actions">
-            <button className="button button-cyan bg-slate-700 hover:bg-slate-800 px-4 py-2.5 font-black text-white rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60" onClick={() => void loadData(true)} disabled={refreshing}>{refreshing ? "Refreshing…" : "↻ Refresh"}</button>
-            <button className="button button-green bg-slate-700 hover:bg-slate-800 px-4 py-2.5 font-black text-white rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60" onClick={exportCsv} disabled={!filteredTransfers.length}>⇩ Export CSV</button>
-            <button className="button button-light bg-slate-700 hover:bg-slate-800 px-4 py-2.5 font-black text-white rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60" onClick={() => window.print()} disabled={!filteredTransfers.length}>⎙ Print / PDF</button>
+            <button className="reqgen-btn reqgen-btn-rose button button-cyan" onClick={() => void loadData(true)} disabled={refreshing}>{refreshing ? "Refreshing…" : "↻ Refresh"}</button>
+            <button className="reqgen-btn reqgen-btn-rose button button-green" onClick={exportCsv} disabled={!filteredTransfers.length}>⇩ Export CSV</button>
+            <button className="reqgen-btn reqgen-btn-rose button button-light" onClick={() => window.print()} disabled={!filteredTransfers.length}>⎙ Print / PDF</button>
           </div>
         </div>
 
@@ -417,7 +417,7 @@ export default function AccountTransfersPage() {
                   <td><b>{row.narration}</b><small>{row.external_reference || "No external reference"}</small></td>
                   <td><span className={`status status-${(row.status || "Posted").toLowerCase()}`}>{row.status || "Posted"}</span></td>
                   <td className="amount-cell"><b>{money(row.amount)}</b></td>
-                  <td className="no-print"><button className="details-button bg-slate-700 hover:bg-slate-800 px-4 py-2.5 font-black text-white rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60" onClick={() => setSelectedTransfer(row)}>Details</button></td>
+                  <td className="no-print"><button className="reqgen-btn reqgen-btn-emerald details-button" onClick={() => setSelectedTransfer(row)}>Details</button></td>
                 </tr>
               )) : <tr><td colSpan={7} className="empty">No account transfers match the current filters.</td></tr>}
             </tbody>
@@ -428,7 +428,7 @@ export default function AccountTransfersPage() {
       {selectedTransfer && (
         <div className="modal-backdrop no-print" onMouseDown={(e) => { if (e.currentTarget === e.target) setSelectedTransfer(null); }}>
           <section className="modal" role="dialog" aria-modal="true" aria-label="Transfer details">
-            <div className="modal-head"><div><span className="eyebrow blue">TRANSFER DETAILS</span><h2>{selectedTransfer.transfer_no || "Account Transfer"}</h2></div><button onClick={() => setSelectedTransfer(null)} aria-label="Close transfer details">×</button></div>
+            <div className="modal-head"><div><span className="eyebrow blue">TRANSFER DETAILS</span><h2>{selectedTransfer.transfer_no || "Account Transfer"}</h2></div><button onClick={() => setSelectedTransfer(null)} aria-label="Close transfer details" className="reqgen-btn reqgen-btn-emerald">×</button></div>
             <div className="detail-grid">
               <div><span>Source account</span><b>{accountLabel(accountMap.get(selectedTransfer.source_account_id))}</b></div>
               <div><span>Destination account</span><b>{accountLabel(accountMap.get(selectedTransfer.destination_account_id))}</b></div>
@@ -439,7 +439,7 @@ export default function AccountTransfersPage() {
               <div className="full-width"><span>Narration</span><b>{selectedTransfer.narration}</b></div>
               <div className="full-width"><span>Posted at</span><b>{dateTimeLabel(selectedTransfer.posted_at || selectedTransfer.created_at)}</b></div>
             </div>
-            <div className="modal-actions"><button className="button button-light bg-slate-700 hover:bg-slate-800 px-4 py-2.5 font-black text-white rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60" onClick={() => setSelectedTransfer(null)}>Close</button></div>
+            <div className="modal-actions"><button className="reqgen-btn reqgen-btn-emerald button button-light" onClick={() => setSelectedTransfer(null)}>Close</button></div>
           </section>
         </div>
       )}

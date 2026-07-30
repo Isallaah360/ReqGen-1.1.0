@@ -28,23 +28,41 @@ button {
 }
 
 /* ReqGen Finance Control Centre button standard */
-.reqgen-finance-button {
-  border-radius: 0.75rem;
-  color: #ffffff;
-  font-weight: 900;
-  box-shadow: 0 1px 2px 0 rgb(15 23 42 / 0.12);
-  transition: transform 200ms ease, box-shadow 200ms ease, background-color 200ms ease;
+.reqgen-btn {
+  display: inline-flex !important;
+  min-height: 2.75rem !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0.5rem !important;
+  border: 1px solid rgba(255, 255, 255, 0.24) !important;
+  border-radius: 0.75rem !important;
+  padding: 0.625rem 1rem !important;
+  color: #ffffff !important;
+  font-size: 0.875rem !important;
+  font-weight: 800 !important;
+  line-height: 1.25rem !important;
+  text-decoration: none !important;
+  white-space: nowrap !important;
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.18) !important;
+  transition: transform 160ms ease, filter 160ms ease, box-shadow 160ms ease !important;
+  cursor: pointer;
 }
-.reqgen-finance-button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 18px -8px rgb(15 23 42 / 0.35);
+.reqgen-btn:hover:not(:disabled):not([aria-disabled="true"]) {
+  transform: translateY(-1px) !important;
+  filter: brightness(1.07) !important;
+  box-shadow: 0 7px 15px rgba(15, 23, 42, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.22) !important;
 }
-.reqgen-finance-button:focus-visible {
-  outline: 2px solid currentColor;
-  outline-offset: 2px;
-}
-.reqgen-finance-button:disabled {
-  cursor: not-allowed;
-  opacity: 0.6;
-  transform: none;
+.reqgen-btn:active:not(:disabled):not([aria-disabled="true"]) { transform: translateY(0) !important; }
+.reqgen-btn:focus-visible { outline: 3px solid rgba(14, 165, 233, 0.34) !important; outline-offset: 2px !important; }
+.reqgen-btn:disabled, .reqgen-btn[aria-disabled="true"] { cursor: not-allowed !important; opacity: 0.58 !important; transform: none !important; filter: none !important; }
+.reqgen-btn-icon { width: 2.75rem !important; min-width: 2.75rem !important; padding-left: 0 !important; padding-right: 0 !important; }
+.reqgen-btn-slate { background-color: #334155 !important; border-color: #475569 !important; }
+.reqgen-btn-orange { background-color: #ea7600 !important; border-color: #f28c18 !important; }
+.reqgen-btn-violet { background-color: #7c00df !important; border-color: #9333ea !important; }
+.reqgen-btn-emerald { background-color: #00875a !important; border-color: #059669 !important; }
+.reqgen-btn-cyan { background-color: #087f9b !important; border-color: #0891b2 !important; }
+.reqgen-btn-blue { background-color: #0866d9 !important; border-color: #1479ef !important; }
+.reqgen-btn-rose { background-color: #e40046 !important; border-color: #f00055 !important; }
+@media (max-width: 640px) {
+  .reqgen-btn:not(.reqgen-btn-icon) { min-height: 2.625rem !important; padding: 0.5625rem 0.875rem !important; white-space: normal !important; text-align: center !important; }
 }

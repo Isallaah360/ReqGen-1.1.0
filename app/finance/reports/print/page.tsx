@@ -41,7 +41,7 @@ export default async function FinanceReportPrintPage({
       </div>
 
       <div style={{ marginTop: 24 }}>
-        <button onClick={() => window.print()}>Print / Save as PDF</button>
+        <button onClick={() => window.print()} className="reqgen-btn reqgen-btn-emerald">Print / Save as PDF</button>
       </div>
     </main>
   );

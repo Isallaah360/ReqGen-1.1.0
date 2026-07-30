@@ -1051,7 +1051,7 @@ export default function PaymentVouchersPage() {
             <button
               type="button"
               onClick={() => router.push("/dashboard")}
-              className="mt-5 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+              className="reqgen-btn reqgen-btn-slate mt-5 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
             >
               Back to Dashboard
             </button>
@@ -1077,7 +1077,7 @@ export default function PaymentVouchersPage() {
               <PVActionButton
                 onClick={openManualVoucher}
                 disabled={Boolean(deletingId) || generating || refreshing}
-                tone="orange"
+                tone="emerald"
               >
                 + Manual Voucher
               </PVActionButton>
@@ -1170,7 +1170,7 @@ export default function PaymentVouchersPage() {
                   type="button"
                   onClick={clearSelection}
                   disabled={selectedRequests.length === 0 || generating}
-                  className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-50"
+                  className="reqgen-btn reqgen-btn-rose rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-50"
                 >
                   Clear Selection
                 </button>
@@ -1179,7 +1179,7 @@ export default function PaymentVouchersPage() {
                   type="button"
                   onClick={openGenerateModalFromSelection}
                   disabled={!selectionSummary.valid || generating}
-                  className="rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+                  className="reqgen-btn reqgen-btn-rose rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
                 >
                   {selectedRequests.length > 1 ? "Generate Combined PV" : "Generate PV"}
                 </button>
@@ -1283,7 +1283,7 @@ export default function PaymentVouchersPage() {
                         <button
                           type="button"
                           onClick={() => openRequest(r.id)}
-                          className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-900 hover:bg-slate-100"
+                          className="reqgen-btn reqgen-btn-slate rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-900 hover:bg-slate-100"
                         >
                           Request
                         </button>
@@ -1292,7 +1292,7 @@ export default function PaymentVouchersPage() {
                           type="button"
                           onClick={() => openGenerateModalSingle(r)}
                           disabled={generating || Boolean(deletingId)}
-                          className="rounded-xl bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+                          className="reqgen-btn reqgen-btn-rose rounded-xl bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
                         >
                           Single PV
                         </button>
@@ -1301,7 +1301,7 @@ export default function PaymentVouchersPage() {
                           type="button"
                           onClick={() => toggleSelectRequest(r)}
                           disabled={generating}
-                          className={`rounded-xl px-3 py-2 text-xs font-semibold text-white disabled:opacity-50 ${checked
+                          className={`reqgen-btn reqgen-btn-rose rounded-xl px-3 py-2 text-xs font-semibold text-white disabled:opacity-50 ${checked
                               ? "bg-red-600 hover:bg-red-700"
                               : "bg-purple-600 hover:bg-purple-700"
                             }`}
@@ -1457,7 +1457,7 @@ export default function PaymentVouchersPage() {
                       <button
                         type="button"
                         onClick={() => openVoucher(v.id)}
-                        className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-900 hover:bg-slate-100"
+                        className="reqgen-btn reqgen-btn-violet rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-900 hover:bg-slate-100"
                       >
                         View
                       </button>
@@ -1465,7 +1465,7 @@ export default function PaymentVouchersPage() {
                       <button
                         type="button"
                         onClick={() => printVoucher(v.id)}
-                        className="rounded-xl bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-700"
+                        className="reqgen-btn reqgen-btn-violet rounded-xl bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-700"
                       >
                         Print
                       </button>
@@ -1475,7 +1475,7 @@ export default function PaymentVouchersPage() {
                           type="button"
                           onClick={() => deleteVoucher(v)}
                           disabled={deletingId === v.id || generating}
-                          className="rounded-xl bg-red-600 px-3 py-2 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+                          className="reqgen-btn reqgen-btn-rose rounded-xl bg-red-600 px-3 py-2 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-50"
                         >
                           {deletingId === v.id ? "Deleting..." : "Delete"}
                         </button>
@@ -1536,7 +1536,7 @@ export default function PaymentVouchersPage() {
                   <button
                     type="button"
                     onClick={() => openVoucher(v.id)}
-                    className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
+                    className="reqgen-btn reqgen-btn-violet rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
                   >
                     View
                   </button>
@@ -1544,7 +1544,7 @@ export default function PaymentVouchersPage() {
                   <button
                     type="button"
                     onClick={() => printVoucher(v.id)}
-                    className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+                    className="reqgen-btn reqgen-btn-violet rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
                   >
                     Print
                   </button>
@@ -1554,7 +1554,7 @@ export default function PaymentVouchersPage() {
                       type="button"
                       onClick={() => deleteVoucher(v)}
                       disabled={deletingId === v.id || generating}
-                      className="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+                      className="reqgen-btn reqgen-btn-rose rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
                     >
                       {deletingId === v.id ? "Deleting..." : "Delete"}
                     </button>
@@ -1581,7 +1581,7 @@ export default function PaymentVouchersPage() {
                 <button
                   type="button"
                   onClick={closeManualVoucher}
-                  className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold hover:bg-slate-100"
+                  className="reqgen-btn reqgen-btn-violet rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold hover:bg-slate-100"
                 >
                   ✕
                 </button>
@@ -1720,7 +1720,7 @@ export default function PaymentVouchersPage() {
                   type="button"
                   onClick={closeManualVoucher}
                   disabled={manualSaving}
-                  className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
+                  className="reqgen-btn reqgen-btn-rose rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
                 >
                   Cancel
                 </button>
@@ -1729,7 +1729,7 @@ export default function PaymentVouchersPage() {
                   type="button"
                   onClick={createManualVoucher}
                   disabled={manualSaving}
-                  className="rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-60"
+                  className="reqgen-btn reqgen-btn-rose rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-60"
                 >
                   {manualSaving ? "Creating..." : "Create Manual Voucher"}
                 </button>
@@ -1756,7 +1756,7 @@ export default function PaymentVouchersPage() {
                 <button
                   type="button"
                   onClick={closeGenerateModal}
-                  className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold hover:bg-slate-100"
+                  className="reqgen-btn reqgen-btn-slate rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold hover:bg-slate-100"
                 >
                   ✕
                 </button>
@@ -1916,7 +1916,7 @@ export default function PaymentVouchersPage() {
                   type="button"
                   onClick={closeGenerateModal}
                   disabled={generating}
-                  className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
+                  className="reqgen-btn reqgen-btn-rose rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
                 >
                   Cancel
                 </button>
@@ -1925,7 +1925,7 @@ export default function PaymentVouchersPage() {
                   type="button"
                   onClick={generateVoucher}
                   disabled={generating}
-                  className="rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
+                  className="reqgen-btn reqgen-btn-rose rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
                 >
                   {generating ? "Generating..." : "Generate Voucher"}
                 </button>

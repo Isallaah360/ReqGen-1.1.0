@@ -574,7 +574,7 @@ export default function MyRequestsPage() {
             <FilterSelect label="Stage" value={stageFilter} onChange={(value) => setStageFilter(value as StageFilter)} options={[
               ["ALL", "All Stages"], ["PO", "PO"], ["DOD", "DOD"], ["DINADMIN", "DIN Admin"], ["REGISTRAR", "Registrar"], ["HOD", "HOD"], ["HR", "HR"], ["DG", "DG"], ["ACCOUNT", "Account Officer"], ["HRFILING", "HR Filing"], ["COMPLETED", "Completed"]
             ]} />
-            <button type="button" onClick={resetFilters} className="inline-flex h-[46px] min-w-[120px] items-center justify-center gap-2 border border-blue-200 bg-blue-700 px-4 text-sm hover:-translate-y-0.5 hover:border-blue-300 hover:bg-blue-800 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-100 py-2.5 font-black text-white rounded-xl shadow-sm transition-all duration-200 hover:shadow-md focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60">
+            <button type="button" onClick={resetFilters} className="reqgen-btn reqgen-btn-cyan inline-flex h-[46px] min-w-[120px] items-center justify-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 text-sm font-extrabold text-blue-800 transition hover:-translate-y-0.5 hover:border-blue-300 hover:bg-blue-100 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-100">
               <Icon name="filterX" className="h-4 w-4" /> Reset
             </button>
           </div>
@@ -596,7 +596,7 @@ export default function MyRequestsPage() {
             </div>
             <h3 className="mt-5 text-xl font-black text-slate-900">No requests found</h3>
             <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">No record matches the selected filters. Reset the filters or create a new request.</p>
-            <button type="button" onClick={resetFilters} className="mt-5 bg-blue-700 px-5 py-3 text-sm text-white hover:bg-blue-800 font-black rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60">Reset Filters</button>
+            <button type="button" onClick={resetFilters} className="reqgen-btn reqgen-btn-cyan mt-5 rounded-xl bg-blue-700 px-5 py-3 text-sm font-bold text-white transition hover:bg-blue-800">Reset Filters</button>
           </section>
         ) : (
           <section className="mt-6 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
@@ -632,8 +632,8 @@ export default function MyRequestsPage() {
                     <div className="lg:col-span-1"><span className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-black ${statusClass(r.status)}`}>{r.status || "—"}</span></div>
                     <div className="text-sm font-black text-slate-950 lg:col-span-1 lg:text-right">{amountLabel(r)}</div>
                     <div className="flex flex-wrap gap-2 lg:col-span-2 lg:justify-end">
-                      <button type="button" onClick={() => openRequest(r.id)} className="inline-flex items-center gap-1.5 rounded-xl bg-blue-700 px-3 py-2 text-xs font-black text-white transition hover:bg-blue-800"><Icon name="eye" className="h-3.5 w-3.5" /> View</button>
-                      <button type="button" onClick={() => printRequest(r.id)} className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 transition hover:border-purple-200 hover:bg-purple-50 hover:text-purple-800"><Icon name="print" className="h-3.5 w-3.5" /> Print</button>
+                      <button type="button" onClick={() => openRequest(r.id)} className="reqgen-btn reqgen-btn-blue inline-flex items-center gap-1.5 rounded-xl bg-blue-700 px-3 py-2 text-xs font-black text-white transition hover:bg-blue-800"><Icon name="eye" className="h-3.5 w-3.5" /> View</button>
+                      <button type="button" onClick={() => printRequest(r.id)} className="reqgen-btn reqgen-btn-violet inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 transition hover:border-purple-200 hover:bg-purple-50 hover:text-purple-800"><Icon name="print" className="h-3.5 w-3.5" /> Print</button>
                     </div>
                   </div>
                 </article>

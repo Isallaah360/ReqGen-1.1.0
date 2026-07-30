@@ -527,7 +527,7 @@ export default function ApprovalsPage() {
             <button
               type="button"
               onClick={resetFilters}
-              className="border border-slate-200 bg-slate-700 px-4 py-2 text-sm hover:bg-slate-800 font-black text-white rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+              className="reqgen-btn reqgen-btn-cyan rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-900 hover:bg-slate-100"
             >
               Reset Filters
             </button>

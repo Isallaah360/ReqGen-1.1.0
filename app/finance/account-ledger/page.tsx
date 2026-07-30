@@ -473,7 +473,7 @@ export default function AccountLedgerPage() {
                     </p>
                     <Link
                         href="/finance"
-                        className="mt-7 inline-flex bg-slate-950 px-5 py-3 text-white font-black rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+                        className="reqgen-btn reqgen-btn-slate mt-7 inline-flex rounded-2xl bg-slate-950 px-5 py-3 font-bold text-white"
                     >
                         Return to Finance Control Centre
                     </Link>
@@ -500,13 +500,13 @@ export default function AccountLedgerPage() {
                             <div className="mt-6 flex flex-wrap gap-3">
                                 <Link
                                     href="/finance"
-                                    className="border border-white/20 bg-white/10 px-5 py-3 text-white hover:bg-white/15 font-black rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+                                    className="reqgen-btn reqgen-btn-blue rounded-2xl border border-white/20 bg-white/10 px-5 py-3 font-bold text-white hover:bg-white/15"
                                 >
                                     Finance Control Centre
                                 </Link>
                                 <Link
                                     href="/finance/transactions"
-                                    className="bg-blue-600 px-5 py-3 text-white hover:bg-blue-500 font-black rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+                                    className="reqgen-btn reqgen-btn-emerald rounded-2xl bg-blue-600 px-5 py-3 font-bold text-white hover:bg-blue-500"
                                 >
                                     Transactions Register
                                 </Link>
@@ -625,7 +625,7 @@ export default function AccountLedgerPage() {
                             type="button"
                             onClick={() => void loadLedger(true)}
                             disabled={refreshing}
-                            className="rounded-2xl border border-cyan-200 bg-cyan-50 px-5 py-3 font-bold text-cyan-800 transition hover:bg-cyan-100 disabled:cursor-not-allowed disabled:opacity-60"
+                            className="reqgen-btn reqgen-btn-rose rounded-2xl border border-cyan-200 bg-cyan-50 px-5 py-3 font-bold text-cyan-800 transition hover:bg-cyan-100 disabled:cursor-not-allowed disabled:opacity-60"
                         >
                             {refreshing ? "Refreshing..." : "Refresh Ledger"}
                         </button>
@@ -633,14 +633,14 @@ export default function AccountLedgerPage() {
                             type="button"
                             onClick={exportCsv}
                             disabled={!filteredLedger.length}
-                            className="bg-emerald-600 px-5 py-3 text-white disabled:cursor-not-allowed disabled:opacity-50 font-black rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-60"
+                            className="reqgen-btn reqgen-btn-rose rounded-2xl bg-emerald-600 px-5 py-3 font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
                         >
                             Export Excel / CSV
                         </button>
                         <button
                             type="button"
                             onClick={() => window.print()}
-                            className="rounded-2xl border border-slate-300 bg-white px-5 py-3 font-bold text-slate-800"
+                            className="reqgen-btn reqgen-btn-emerald rounded-2xl border border-slate-300 bg-white px-5 py-3 font-bold text-slate-800"
                         >
                             Print / Save PDF
                         </button>

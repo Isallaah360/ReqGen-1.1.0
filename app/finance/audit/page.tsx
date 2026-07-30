@@ -1407,7 +1407,7 @@ export default function FinanceAuditPage() {
 
             <button
               onClick={goDashboard}
-              className="mt-5 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+              className="reqgen-btn reqgen-btn-slate mt-5 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
             >
               Back to Dashboard
             </button>
@@ -1484,7 +1484,7 @@ export default function FinanceAuditPage() {
             <button
               onClick={() => load({ silent: true })}
               disabled={refreshing || printing || exporting}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-100 disabled:opacity-60"
+              className="reqgen-btn reqgen-btn-rose rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-100 disabled:opacity-60"
             >
               {refreshing ? "Refreshing..." : "Refresh"}
             </button>
@@ -1492,7 +1492,7 @@ export default function FinanceAuditPage() {
             <button
               onClick={printAuditReport}
               disabled={refreshing || printing || exporting}
-              className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:opacity-60"
+              className="reqgen-btn reqgen-btn-rose rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:opacity-60"
             >
               {printing ? "Preparing..." : "Print / Save PDF"}
             </button>
@@ -1500,7 +1500,7 @@ export default function FinanceAuditPage() {
             <button
               onClick={exportAuditExcel}
               disabled={refreshing || printing || exporting}
-              className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 disabled:opacity-60"
+              className="reqgen-btn reqgen-btn-rose rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 disabled:opacity-60"
             >
               {exporting ? "Exporting..." : "Export Excel"}
             </button>
@@ -1508,7 +1508,7 @@ export default function FinanceAuditPage() {
             <button
               onClick={openBanks}
               disabled={refreshing || printing || exporting}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-100 disabled:opacity-60"
+              className="reqgen-btn reqgen-btn-rose rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-100 disabled:opacity-60"
             >
               IET Banks
             </button>
@@ -1516,7 +1516,7 @@ export default function FinanceAuditPage() {
             <button
               onClick={openSubheads}
               disabled={refreshing || printing || exporting}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-100 disabled:opacity-60"
+              className="reqgen-btn reqgen-btn-rose rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-100 disabled:opacity-60"
             >
               Subheads
             </button>
@@ -1524,7 +1524,7 @@ export default function FinanceAuditPage() {
             <button
               onClick={openPvReports}
               disabled={refreshing || printing || exporting}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-100 disabled:opacity-60"
+              className="reqgen-btn reqgen-btn-rose rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-100 disabled:opacity-60"
             >
               PV Reports
             </button>
@@ -1532,7 +1532,7 @@ export default function FinanceAuditPage() {
             <button
               onClick={backToFinance}
               disabled={refreshing || printing || exporting}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-100 disabled:opacity-60"
+              className="reqgen-btn reqgen-btn-rose rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-100 disabled:opacity-60"
             >
               Finance
             </button>
@@ -1578,7 +1578,7 @@ export default function FinanceAuditPage() {
           <MiniCard title="Audit Alerts" value={`${stats.highFindings} High / ${stats.mediumFindings} Medium`} />
         </div>
 
-        <div className="no-print mt-6 rounded-3xl border border-slate-200 bg-white p-3 shadow-sm">
+        <div className="no-print mt-6 rounded-3xl border bg-white p-2 shadow-sm">
           <div className="flex flex-wrap gap-2">
             <TabButton label="Overview" active={activeTab === "overview"} onClick={() => setActiveTab("overview")} />
             <TabButton label="IET Banks" active={activeTab === "banks"} onClick={() => setActiveTab("banks")} />
@@ -1689,7 +1689,7 @@ export default function FinanceAuditPage() {
             <div className="flex items-end">
               <button
                 onClick={resetFilters}
-                className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 hover:bg-slate-100"
+                className="reqgen-btn reqgen-btn-cyan w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 hover:bg-slate-100"
               >
                 Reset Filters
               </button>
@@ -1772,7 +1772,7 @@ function BanksPanel({
         <button
           type="button"
           onClick={onOpenBanks}
-          className="no-print rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
+          className="reqgen-btn reqgen-btn-violet no-print rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
         >
           Manage Banks
         </button>
@@ -1939,7 +1939,7 @@ function SubheadsPanel({
         <button
           type="button"
           onClick={onOpenSubheads}
-          className="no-print rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
+          className="reqgen-btn reqgen-btn-violet no-print rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
         >
           Open Subheads
         </button>
@@ -2166,14 +2166,14 @@ function PendingVouchersPanel({
               <div className="no-print mt-3 flex justify-end gap-2">
                 <button
                   onClick={() => onOpenVoucher(v.id)}
-                  className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-900 hover:bg-slate-100"
+                  className="reqgen-btn reqgen-btn-violet rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-900 hover:bg-slate-100"
                 >
                   View
                 </button>
 
                 <button
                   onClick={() => onPrintVoucher(v.id)}
-                  className="rounded-xl bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-700"
+                  className="reqgen-btn reqgen-btn-violet rounded-xl bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-700"
                 >
                   Print
                 </button>
@@ -2254,14 +2254,14 @@ function VoucherRegisterPanel({
                     <div className="flex justify-end gap-2">
                       <button
                         onClick={() => onOpenVoucher(v.id)}
-                        className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-900 hover:bg-slate-100"
+                        className="reqgen-btn reqgen-btn-violet rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-900 hover:bg-slate-100"
                       >
                         View
                       </button>
 
                       <button
                         onClick={() => onPrintVoucher(v.id)}
-                        className="rounded-xl bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-700"
+                        className="reqgen-btn reqgen-btn-violet rounded-xl bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-700"
                       >
                         Print
                       </button>
@@ -2291,30 +2291,21 @@ function VoucherRegisterPanel({
   );
 }
 
-function TabButton({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
-  const key = label.toLowerCase();
-  const tone =
-    key.includes("inactive") || key.includes("policy")
-      ? "bg-rose-600 hover:bg-rose-700 focus:ring-rose-200"
-      : key.includes("active") || key.includes("assign") || key.includes("ledger")
-      ? "bg-emerald-700 hover:bg-emerald-800 focus:ring-emerald-200"
-      : key.includes("add") || key.includes("edit") || key.includes("fund") || key.includes("backup")
-      ? "bg-orange-600 hover:bg-orange-700 focus:ring-orange-200"
-      : key.includes("voucher") || key.includes("subhead") || key.includes("completed")
-      ? "bg-violet-700 hover:bg-violet-800 focus:ring-violet-200"
-      : key.includes("bank") || key.includes("checklist")
-      ? "bg-cyan-700 hover:bg-cyan-800 focus:ring-cyan-200"
-      : key.includes("department")
-      ? "bg-blue-700 hover:bg-blue-800 focus:ring-blue-200"
-      : "bg-slate-700 hover:bg-slate-800 focus:ring-slate-200";
-
+function TabButton({
+  label,
+  active,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) {
   return (
     <button
       type="button"
       onClick={onClick}
-      aria-pressed={active}
-      className={`inline-flex min-h-12 items-center justify-center rounded-xl px-5 py-3 text-sm font-black text-white shadow-md transition duration-200 hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus:ring-4 ${tone} ${
-        active ? "ring-4 ring-offset-2 brightness-110" : ""
+      className={`reqgen-btn reqgen-btn-slate rounded-2xl px-4 py-3 text-sm font-bold transition ${
+        active ? "bg-blue-600 text-white shadow-sm" : "bg-white text-slate-700 hover:bg-slate-100"
       }`}
     >
       {label}

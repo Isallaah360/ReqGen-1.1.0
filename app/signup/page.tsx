@@ -213,7 +213,7 @@ export default function SignupPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-blue-700 px-4 py-3 text-sm text-white hover:bg-blue-800 disabled:opacity-60 font-black rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed"
+                className="reqgen-btn reqgen-btn-rose w-full rounded-xl bg-blue-700 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 disabled:opacity-60"
               >
                 {loading ? "Creating..." : "Create Account"}
               </button>

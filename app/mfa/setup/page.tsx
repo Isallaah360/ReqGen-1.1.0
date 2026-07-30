@@ -185,7 +185,7 @@ export default function MfaSetupPage() {
               <button
                 onClick={startEnrollment}
                 disabled={enrolling}
-                className="mt-5 w-full bg-blue-600 px-4 py-3 text-base text-white hover:bg-blue-700 disabled:opacity-60 font-black rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed"
+                className="reqgen-btn reqgen-btn-rose mt-5 w-full rounded-2xl bg-blue-600 px-4 py-3 text-base font-bold text-white hover:bg-blue-700 disabled:opacity-60"
               >
                 {enrolling ? "Preparing 2FA..." : "Start 2FA Setup"}
               </button>
@@ -239,7 +239,7 @@ export default function MfaSetupPage() {
               <button
                 onClick={verifyEnrollment}
                 disabled={verifying}
-                className="mt-5 w-full bg-blue-600 px-4 py-3 text-base text-white hover:bg-blue-700 disabled:opacity-60 font-black rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed"
+                className="reqgen-btn reqgen-btn-rose mt-5 w-full rounded-2xl bg-blue-600 px-4 py-3 text-base font-bold text-white hover:bg-blue-700 disabled:opacity-60"
               >
                 {verifying ? "Verifying..." : "Complete 2FA Setup"}
               </button>
@@ -249,7 +249,7 @@ export default function MfaSetupPage() {
           <button
             onClick={logout}
             disabled={enrolling || verifying}
-            className="mt-3 w-full border border-slate-200 bg-slate-700 px-4 py-3 text-sm hover:bg-slate-800 disabled:opacity-60 font-black text-white rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed"
+            className="reqgen-btn reqgen-btn-rose mt-3 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
           >
             Logout
           </button>

@@ -612,7 +612,7 @@ export default function AdminUsersPage() {
 
             <button
               onClick={goDashboard}
-              className="mt-4 bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700 font-black rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+              className="reqgen-btn reqgen-btn-slate mt-4 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
             >
               Back to Dashboard
             </button>
@@ -644,7 +644,7 @@ export default function AdminUsersPage() {
             <button
               onClick={() => load({ silent: true })}
               disabled={refreshing || !!savingId}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
+              className="reqgen-btn reqgen-btn-rose rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
             >
               {refreshing ? "Refreshing..." : "Refresh"}
             </button>
@@ -652,7 +652,7 @@ export default function AdminUsersPage() {
             <button
               onClick={goRoles}
               disabled={refreshing || !!savingId}
-              className="bg-purple-600 px-4 py-2 text-sm text-white hover:bg-purple-700 disabled:opacity-60 font-black rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed"
+              className="reqgen-btn reqgen-btn-rose rounded-xl bg-purple-600 px-4 py-2 text-sm font-semibold text-white hover:bg-purple-700 disabled:opacity-60"
             >
               Roles & Permissions
             </button>
@@ -660,7 +660,7 @@ export default function AdminUsersPage() {
             <button
               onClick={goAdmin}
               disabled={refreshing || !!savingId}
-              className="border border-slate-200 bg-slate-700 px-4 py-2 text-sm hover:bg-slate-800 disabled:opacity-60 font-black text-white rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed"
+              className="reqgen-btn reqgen-btn-rose rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
             >
               Back
             </button>
@@ -751,7 +751,7 @@ export default function AdminUsersPage() {
           <div className="mt-4 flex justify-end">
             <button
               onClick={resetFilters}
-              className="border border-slate-200 bg-slate-700 px-4 py-2 text-sm hover:bg-slate-800 font-black text-white rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+              className="reqgen-btn reqgen-btn-cyan rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
             >
               Reset Filters
             </button>
@@ -918,7 +918,7 @@ function UserRolePanel({
                         type="button"
                         onClick={() => onSetPrimaryRole(u.id, r.role_key)}
                         disabled={disabled || saving}
-                        className="rounded-lg bg-white px-2 py-1 text-[11px] font-bold text-slate-900 hover:bg-slate-100 disabled:opacity-50"
+                        className="reqgen-btn reqgen-btn-rose rounded-lg bg-white px-2 py-1 text-[11px] font-bold text-slate-900 hover:bg-slate-100 disabled:opacity-50"
                       >
                         Set Primary
                       </button>
@@ -928,7 +928,7 @@ function UserRolePanel({
                       type="button"
                       onClick={() => onDeactivateRole(u.id, r.role_key)}
                       disabled={disabled || saving}
-                      className="rounded-lg bg-white px-2 py-1 text-[11px] font-bold text-red-700 hover:bg-red-50 disabled:opacity-50"
+                      className="reqgen-btn reqgen-btn-rose rounded-lg bg-white px-2 py-1 text-[11px] font-bold text-red-700 hover:bg-red-50 disabled:opacity-50"
                     >
                       Deactivate
                     </button>
@@ -978,7 +978,7 @@ function UserRolePanel({
             type="button"
             onClick={handleAssign}
             disabled={!newRoleKey || disabled || saving}
-            className="mt-3 w-full bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700 disabled:opacity-50 font-black rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+            className="reqgen-btn reqgen-btn-rose mt-3 w-full rounded-xl bg-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-blue-700 disabled:opacity-50"
           >
             {saving ? "Saving..." : "Assign Role"}
           </button>
@@ -1013,7 +1013,7 @@ function UserRolePanel({
             type="button"
             disabled={!deptChanged || disabled || saving}
             onClick={() => onUpdateDepartment(u.id, deptId || null)}
-            className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-bold text-white hover:bg-slate-800 disabled:opacity-50"
+            className="reqgen-btn reqgen-btn-rose rounded-xl bg-slate-900 px-4 py-2 text-sm font-bold text-white hover:bg-slate-800 disabled:opacity-50"
           >
             Save Department
           </button>
