@@ -343,7 +343,14 @@ export default function HRBossDashboard() {
                 <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-700">Strategic HR Development</p>
                 <h2 className="mt-2 text-2xl font-black text-slate-950">Learning, performance and assessment centres</h2>
               </div>
-              <Link href="/hr/reports" className="rounded-xl bg-violet-700 px-4 py-3 text-sm font-black text-white shadow-md transition hover:-translate-y-0.5 hover:bg-violet-800">Open HR Reports</Link>
+              <div className="flex flex-wrap gap-2">
+                <Link href="/hr/reports" className="rounded-xl bg-violet-700 px-4 py-3 text-sm font-black text-white shadow-md transition hover:-translate-y-0.5 hover:bg-violet-800">Open HR Reports</Link>
+                <Link href="/hr/analytics" className="rounded-xl bg-blue-700 px-4 py-3 text-sm font-black text-white shadow-md transition hover:-translate-y-0.5 hover:bg-blue-800">HR Analytics</Link>
+                <Link href="/hr/officer-performance" className="rounded-xl bg-cyan-600 px-4 py-3 text-sm font-black text-white shadow-md transition hover:-translate-y-0.5 hover:bg-cyan-700">Officer Performance</Link>
+                <Link href="/hr/compliance" className="rounded-xl bg-rose-700 px-4 py-3 text-sm font-black text-white shadow-md transition hover:-translate-y-0.5 hover:bg-rose-800">Compliance</Link>
+                <Link href="/hr/settings" className="rounded-xl bg-slate-800 px-4 py-3 text-sm font-black text-white shadow-md transition hover:-translate-y-0.5 hover:bg-slate-900">HR Settings</Link>
+                <Link href="/hr/output" className="rounded-xl bg-emerald-700 px-4 py-3 text-sm font-black text-white shadow-md transition hover:-translate-y-0.5 hover:bg-emerald-800">Print & Export</Link>
+              </div>
             </div>
             <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
               {[
