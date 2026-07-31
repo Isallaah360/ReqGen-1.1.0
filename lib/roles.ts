@@ -58,9 +58,6 @@ export function buildEffectiveRoleSet(
 ): Set<string> {
   const effective = new Set<string>();
   const normalizedActive = normalizeRole(activeRole);
-  const hasAdmin = assignedRoles.has("admin");
-
-  if (hasAdmin) effective.add("admin");
   if (normalizedActive) effective.add(normalizedActive);
 
   if (!normalizedActive) {

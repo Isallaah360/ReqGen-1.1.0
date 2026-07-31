@@ -30,8 +30,9 @@ export default function RouteAccessGuard() {
           return;
         }
 
-        // Admin is the ultimate authority even when operating under another role.
-        if (!context.isAdmin && !canAccessPath(pathname, context.roleSet)) {
+        // Strict working context: the selected active role governs route access,
+        // including for users who also hold the Admin role.
+        if (!canAccessPath(pathname, context.roleSet)) {
           router.replace(`/unauthorized?from=${encodeURIComponent(pathname)}&role=${encodeURIComponent(context.activeRoleKey || "staff")}`);
           return;
         }

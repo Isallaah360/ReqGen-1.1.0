@@ -40,17 +40,10 @@ export default function HRAccessGuard({
         return;
       }
 
-      // Ultimate access: Admin must never be blocked from testing or administering HR.
-      if (context.isAdmin) {
-        if (mounted) {
-          setAllowed(true);
-          setReady(true);
-        }
-        return;
-      }
-
+      // Strict working context: access is determined by the currently selected role.
+      // An Admin who switches to another role must obey that role's boundaries.
       const activeRole = normalizeRole(context.activeRoleKey);
-      const isBoss = ["hrboss", "hr"].includes(activeRole);
+      const isBoss = ["admin", "hrboss", "hr"].includes(activeRole);
 
       if (isBoss) {
         if (mounted) {
