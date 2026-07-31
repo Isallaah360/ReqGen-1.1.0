@@ -1,77 +1,96 @@
 "use client";
 
-import Link from "next/link";
 import type { ReactNode } from "react";
-import { usePathname } from "next/navigation";
+import DirectorateWorkspaceMenu, { type DirectorateWorkspaceItem } from "@/app/components/ui/DirectorateWorkspaceMenu";
 
-type IconName = "home" | "assign" | "work" | "review" | "filing" | "staff" | "leave" | "archive" | "registrar" | "audit";
-
-type NavItem = {
-  href: string;
-  label: string;
-  icon: IconName;
-  tone: string;
-};
-
-const items: NavItem[] = [
-  { href: "/hr", label: "HR Dashboard", icon: "home", tone: "from-slate-800 to-slate-950" },
-  { href: "/hr/assignments", label: "Officer Assignments", icon: "assign", tone: "from-violet-600 to-indigo-700" },
-  { href: "/hr/my-work", label: "My HR Work", icon: "work", tone: "from-cyan-500 to-blue-600" },
-  { href: "/hr/review", label: "HR Boss Review", icon: "review", tone: "from-orange-500 to-rose-600" },
-  { href: "/hr/filing", label: "HR Filing", icon: "filing", tone: "from-emerald-500 to-teal-700" },
-  { href: "/hr/staff", label: "Staff Files", icon: "staff", tone: "from-blue-600 to-indigo-700" },
-  { href: "/hr/leave", label: "Leave Records", icon: "leave", tone: "from-emerald-600 to-green-700" },
-  { href: "/hr/archive", label: "HR Archive", icon: "archive", tone: "from-violet-600 to-purple-700" },
-  { href: "/hr/registrar", label: "Registrar Centre", icon: "registrar", tone: "from-sky-600 to-cyan-700" },
-  { href: "/hr/audit", label: "Audit Trail", icon: "audit", tone: "from-amber-500 to-orange-700" },
-];
-
-function NavIcon({ name }: { name: IconName }) {
-  const common = {
-    fill: "none",
-    stroke: "currentColor",
-    strokeWidth: 1.9,
-    strokeLinecap: "round" as const,
-    strokeLinejoin: "round" as const,
-  };
-  const paths: Record<IconName, ReactNode> = {
-    home: <><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10.5V20h13v-9.5"/><path d="M9.5 20v-6h5v6"/></>,
-    assign: <><circle cx="9" cy="7" r="4"/><path d="M2.5 21v-2a6.5 6.5 0 0 1 13 0v2"/><path d="M17 8h5M19.5 5.5v5"/></>,
-    work: <><rect x="3" y="6" width="18" height="14" rx="2"/><path d="M8 6V4h8v2M3 11h18M9 15h6"/></>,
-    review: <><path d="M4 4h12v16H4z"/><path d="M8 8h4M8 12h4M8 16h3"/><path d="m17 15 2 2 4-5"/></>,
-    filing: <><path d="M4 3h11l5 5v13H4z"/><path d="M15 3v6h6M8 13h8M8 17h6"/></>,
-    staff: <><circle cx="8" cy="8" r="3.5"/><path d="M2 21v-2a6 6 0 0 1 12 0v2"/><circle cx="17.5" cy="9" r="2.5"/><path d="M15 21v-1.5a4.5 4.5 0 0 1 7 0V21"/></>,
-    leave: <><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></>,
-    archive: <><path d="M3 7h18v14H3z"/><path d="M1 3h22v4H1zM9 12h6"/></>,
-    registrar: <><path d="M4 4h16v16H4z"/><path d="M8 8h8M8 12h8M8 16h5"/></>,
-    audit: <><path d="M12 3 4 6v6c0 5 3.4 8.4 8 9 4.6-.6 8-4 8-9V6z"/><path d="m9 12 2 2 4-4"/></>,
-  };
-  return <svg viewBox="0 0 24 24" className="h-5 w-5 shrink-0" aria-hidden="true" {...common}>{paths[name]}</svg>;
+function Icon({ children }: { children: ReactNode }) {
+  return (
+    <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      {children}
+    </svg>
+  );
 }
 
-export default function HRNavigation() {
-  const pathname = usePathname();
+const items: DirectorateWorkspaceItem[] = [
+  {
+    href: "/hr",
+    title: "HR Dashboard",
+    description: "Directorate overview, live HR workload and decision indicators.",
+    gradient: "from-slate-950 via-slate-800 to-blue-900",
+    badge: "Home",
+    icon: <Icon><path d="m3 11 9-8 9 8" /><path d="M5 10v10h14V10" /><path d="M9 20v-6h6v6" /></Icon>,
+  },
+  {
+    href: "/hr/assignments",
+    title: "Officer Assignments",
+    description: "Assign multiple HR functions, permissions and operational scopes.",
+    gradient: "from-violet-700 via-indigo-600 to-blue-600",
+    icon: <Icon><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="m19 8 2 2 3-3" /></Icon>,
+  },
+  {
+    href: "/hr/my-work",
+    title: "My HR Work",
+    description: "Assigned duties, returned work and completed officer submissions.",
+    gradient: "from-cyan-700 via-sky-600 to-blue-600",
+    icon: <Icon><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M8 2v4M16 2v4M3 10h18" /><path d="m9 15 2 2 4-4" /></Icon>,
+  },
+  {
+    href: "/hr/review",
+    title: "HR Boss Review",
+    description: "Review recommendations, return corrections and finalize HR positions.",
+    gradient: "from-orange-700 via-amber-600 to-yellow-600",
+    icon: <Icon><path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /></Icon>,
+  },
+  {
+    href: "/hr/filing",
+    title: "HR Filing",
+    description: "Monitor HR-bound requests and complete final filing actions.",
+    gradient: "from-emerald-700 via-green-600 to-teal-600",
+    icon: <Icon><path d="M4 4h16v16H4z" /><path d="M8 2v4M16 2v4M8 11h8M8 15h5" /></Icon>,
+  },
+  {
+    href: "/hr/staff",
+    title: "Staff Files",
+    description: "Manage summarized personnel-file workflows and staff records.",
+    gradient: "from-blue-800 via-blue-600 to-cyan-600",
+    icon: <Icon><circle cx="12" cy="8" r="4" /><path d="M4 21a8 8 0 0 1 16 0" /></Icon>,
+  },
+  {
+    href: "/hr/leave",
+    title: "Leave Records",
+    description: "Review leave workflows, HR actions and filing progress.",
+    gradient: "from-fuchsia-700 via-purple-600 to-violet-600",
+    icon: <Icon><path d="M8 2v4M16 2v4" /><rect x="3" y="4" width="18" height="17" rx="2" /><path d="M3 10h18M8 14h.01M12 14h.01M16 14h.01" /></Icon>,
+  },
+  {
+    href: "/hr/archive",
+    title: "HR Archive",
+    description: "Access completed, closed and archived HR workflow records.",
+    gradient: "from-amber-800 via-orange-700 to-red-600",
+    icon: <Icon><path d="M3 6h18M5 6l1 15h12l1-15M8 6V3h8v3M9 11h6" /></Icon>,
+  },
+  {
+    href: "/hr/registrar",
+    title: "Registrar Centre",
+    description: "Control personnel files, movement, classification and archive readiness.",
+    gradient: "from-teal-800 via-cyan-700 to-sky-600",
+    icon: <Icon><path d="M3 21h18M5 21V5l7-3 7 3v16M9 9h6M9 13h6M9 17h6" /></Icon>,
+  },
+  {
+    href: "/hr/audit",
+    title: "Audit Trail",
+    description: "Inspect assignments, reviews, decisions and authority changes.",
+    gradient: "from-rose-800 via-red-700 to-orange-600",
+    icon: <Icon><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" /><path d="m9 12 2 2 4-4" /></Icon>,
+  },
+];
 
+export default function HRNavigation() {
   return (
-    <nav aria-label="HR Directorate navigation" className="rounded-[1.75rem] border border-slate-200 bg-white/95 p-3 shadow-lg backdrop-blur">
-      <div className="flex gap-3 overflow-x-auto pb-1 lg:flex-wrap lg:overflow-visible">
-        {items.map((item) => {
-          const active = item.href === "/hr" ? pathname === item.href : pathname.startsWith(item.href);
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              aria-current={active ? "page" : undefined}
-              className={`group inline-flex min-h-12 shrink-0 items-center justify-center gap-2.5 rounded-xl bg-gradient-to-r px-4 py-3 text-sm font-black text-white shadow-md transition-all duration-200 hover:-translate-y-0.5 hover:brightness-110 hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-cyan-200 ${item.tone} ${active ? "ring-4 ring-cyan-200 shadow-xl" : ""}`}
-            >
-              <span className="grid h-8 w-8 place-items-center rounded-lg bg-white/15 ring-1 ring-white/20 transition group-hover:bg-white/25">
-                <NavIcon name={item.icon} />
-              </span>
-              <span className="whitespace-nowrap">{item.label}</span>
-            </Link>
-          );
-        })}
-      </div>
-    </nav>
+    <DirectorateWorkspaceMenu
+      title="HR Workspace Menu"
+      subtitle="Ten centralized HR workspaces arranged in two balanced rows of five on wide screens."
+      items={items}
+    />
   );
 }
