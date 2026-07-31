@@ -341,26 +341,23 @@ export default function HRBossDashboard() {
             <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
               <div>
                 <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-700">Strategic HR Development</p>
-                <h2 className="mt-2 text-2xl font-black text-slate-950">Captured future HR functions</h2>
+                <h2 className="mt-2 text-2xl font-black text-slate-950">Learning, performance and assessment centres</h2>
               </div>
-              <span className="text-xs font-bold text-slate-500">Planned for phased implementation</span>
+              <Link href="/hr/reports" className="rounded-xl bg-violet-700 px-4 py-3 text-sm font-black text-white shadow-md transition hover:-translate-y-0.5 hover:bg-violet-800">Open HR Reports</Link>
             </div>
             <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-              <Link href="/hr/weekly-seminar" className="group rounded-2xl border border-violet-200 bg-gradient-to-br from-violet-600 to-blue-700 p-4 text-white shadow-md transition hover:-translate-y-1 hover:shadow-xl">
-                <p className="text-sm font-black">Wednesday Weekly Seminar</p>
-                <p className="mt-2 text-xs font-semibold leading-5 text-violet-100">Attendance, punctuality and departmental participation.</p>
-                <span className="mt-3 inline-flex rounded-full bg-white/15 px-3 py-1 text-[11px] font-black uppercase tracking-wide text-white ring-1 ring-white/20">Operational</span>
-              </Link>
               {[
-                "Staff Capacity Building",
-                "Department Capacity Building",
-                "Department KPI",
-                "Annual Staff 360° Assessment",
-              ].map((title) => (
-                <div key={title} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                  <p className="text-sm font-black text-slate-900">{title}</p>
-                  <span className="mt-3 inline-flex rounded-full bg-white px-3 py-1 text-[11px] font-black uppercase tracking-wide text-slate-500 shadow-sm">Planned</span>
-                </div>
+                ["/hr/weekly-seminar", "Wednesday Weekly Seminar", "Attendance, punctuality and departmental participation.", "from-violet-600 to-blue-700"],
+                ["/hr/capacity-building/staff", "Staff Capacity Building", "Training needs, programmes, certification and impact.", "from-fuchsia-600 to-violet-700"],
+                ["/hr/capacity-building/departments", "Department Capacity Building", "Gap assessment and institutional improvement programmes.", "from-cyan-600 to-blue-700"],
+                ["/hr/department-kpi", "Department KPI", "Targets, weighted evidence and performance review.", "from-emerald-600 to-teal-700"],
+                ["/hr/assessments/annual-360", "Annual Staff 360° Assessment", "Controlled multi-source assessment and development planning.", "from-amber-500 to-orange-700"],
+              ].map(([href, title, description, tone]) => (
+                <Link key={href} href={href} className={`group rounded-2xl border border-white/20 bg-gradient-to-br ${tone} p-4 text-white shadow-md transition hover:-translate-y-1 hover:shadow-xl`}>
+                  <p className="text-sm font-black">{title}</p>
+                  <p className="mt-2 text-xs font-semibold leading-5 text-white/80">{description}</p>
+                  <span className="mt-3 inline-flex rounded-full bg-white/15 px-3 py-1 text-[11px] font-black uppercase tracking-wide text-white ring-1 ring-white/20">Operational</span>
+                </Link>
               ))}
             </div>
           </section>
