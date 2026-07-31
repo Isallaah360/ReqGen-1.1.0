@@ -179,14 +179,15 @@ export function HRIcon({ name, className = "h-5 w-5" }: { name: "staff" | "leave
 export function HRModuleNav() {
   const pathname = usePathname();
   const items = [
-    { href: "/hr/filing", label: "HR Overview", icon: "dashboard" as const, tone: "bg-slate-700 hover:bg-slate-800" },
-    { href: "/hr/staff", label: "Staff Files", icon: "staff" as const, tone: "bg-blue-600 hover:bg-blue-700" },
-    { href: "/hr/leave", label: "Leave Records", icon: "leave" as const, tone: "bg-emerald-600 hover:bg-emerald-700" },
-    { href: "/hr/archive", label: "HR Archive", icon: "archive" as const, tone: "bg-violet-600 hover:bg-violet-700" },
+    { href: "/hr", label: "HR Dashboard", icon: "dashboard" as const, tone: "bg-slate-800 hover:bg-slate-700" },
+    { href: "/hr/filing", label: "HR Overview", icon: "dashboard" as const, tone: "bg-cyan-600 hover:bg-cyan-500" },
+    { href: "/hr/staff", label: "Staff Files", icon: "staff" as const, tone: "bg-blue-600 hover:bg-blue-500" },
+    { href: "/hr/leave", label: "Leave Records", icon: "leave" as const, tone: "bg-emerald-600 hover:bg-emerald-500" },
+    { href: "/hr/archive", label: "HR Archive", icon: "archive" as const, tone: "bg-violet-600 hover:bg-violet-500" },
   ];
 
   return <nav className="rounded-3xl border border-slate-200 bg-white p-3 shadow-sm" aria-label="HR module navigation">
-    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
       {items.map((item) => {
         const active = pathname === item.href;
         return <Link key={item.href} href={item.href} className={`flex min-h-14 items-center justify-center gap-3 rounded-xl px-4 py-3 text-sm font-black text-white shadow-md transition hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus:ring-4 focus:ring-blue-200 ${item.tone} ${active ? "ring-4 ring-slate-200" : ""}`}>

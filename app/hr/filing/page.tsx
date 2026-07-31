@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import { HRNavigation } from "@/app/components/hr";
 
 type ReqRow = {
   id: string;
@@ -643,6 +644,8 @@ export default function HRFilingPage() {
             </div>
           </div>
         </section>
+
+        <div className="mt-6"><HRNavigation /></div>
 
         {msg && <div className="mt-4 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-800 shadow-sm">{msg}</div>}
 
