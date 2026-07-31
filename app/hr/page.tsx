@@ -346,8 +346,12 @@ export default function HRBossDashboard() {
               <span className="text-xs font-bold text-slate-500">Planned for phased implementation</span>
             </div>
             <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+              <Link href="/hr/weekly-seminar" className="group rounded-2xl border border-violet-200 bg-gradient-to-br from-violet-600 to-blue-700 p-4 text-white shadow-md transition hover:-translate-y-1 hover:shadow-xl">
+                <p className="text-sm font-black">Wednesday Weekly Seminar</p>
+                <p className="mt-2 text-xs font-semibold leading-5 text-violet-100">Attendance, punctuality and departmental participation.</p>
+                <span className="mt-3 inline-flex rounded-full bg-white/15 px-3 py-1 text-[11px] font-black uppercase tracking-wide text-white ring-1 ring-white/20">Operational</span>
+              </Link>
               {[
-                "Wednesday Weekly Seminar",
                 "Staff Capacity Building",
                 "Department Capacity Building",
                 "Department KPI",
