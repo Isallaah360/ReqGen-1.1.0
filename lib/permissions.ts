@@ -1,4 +1,4 @@
-import { hasAnyRole, REPORT_ACCESS_ROLES } from "./roles";
+import { hasAnyRole } from "./roles";
 
 export type RoutePolicy = {
   prefix: string;
@@ -19,27 +19,26 @@ export const PUBLIC_PATHS = [
 
 export const ROUTE_POLICIES: RoutePolicy[] = [
   { prefix: "/admin", roles: ["admin"] },
-  { prefix: "/reports", roles: [...REPORT_ACCESS_ROLES] },
+  { prefix: "/hr/assignments", roles: ["admin", "hrboss", "hr"] },
+  { prefix: "/hr/review", roles: ["admin", "hrboss", "hr"] },
+  { prefix: "/hr/audit", roles: ["admin", "hrboss", "hr"] },
   {
-    prefix: "/finance",
+    prefix: "/hr",
     roles: [
-      "admin",
-      "auditor",
-      "account",
-      "accounts",
-      "accountofficer",
-      "pvsigner",
-      "pvcountersigner",
-      "dg",
-      "director",
+      "admin", "hrboss", "hr", "hrofficer", "hrofficer1", "hrofficer2", "hrofficer3",
+      "hr:stafffiling", "hr:leave", "hr:registrar", "hr:archive",
     ],
   },
   {
-    prefix: "/hr",
-    roles: ["admin", "auditor", "hr", "hrofficer1", "hrofficer2", "hrofficer3"],
+    prefix: "/finance",
+    roles: [
+      "admin", "auditor", "account", "accounts", "accountofficer",
+      "pvsigner", "pvcountersigner", "dg", "director",
+    ],
   },
   { prefix: "/registry", roles: ["admin", "auditor", "registry"] },
   { prefix: "/audit", roles: ["admin", "auditor"] },
+  { prefix: "/reports", roles: ["admin", "auditor", "dg", "accountofficer"] },
   { prefix: "/approvals", authenticatedOnly: true },
   { prefix: "/requests", authenticatedOnly: true },
   { prefix: "/dashboard", authenticatedOnly: true },
@@ -53,24 +52,15 @@ export function isPublicPath(pathname: string): boolean {
 }
 
 export function getRoutePolicy(pathname: string): RoutePolicy | null {
-  return (
-    ROUTE_POLICIES
-      .slice()
-      .sort((a, b) => b.prefix.length - a.prefix.length)
-      .find(
-        (policy) =>
-          pathname === policy.prefix || pathname.startsWith(`${policy.prefix}/`)
-      ) || null
-  );
+  return ROUTE_POLICIES
+    .slice()
+    .sort((a, b) => b.prefix.length - a.prefix.length)
+    .find((policy) => pathname === policy.prefix || pathname.startsWith(`${policy.prefix}/`)) || null;
 }
 
 export function canAccessPath(pathname: string, roleSet: Set<string>): boolean {
   if (isPublicPath(pathname)) return true;
-
   const policy = getRoutePolicy(pathname);
-  if (!policy) return true;
-  if (policy.authenticatedOnly) return true;
-  if (!policy.roles || policy.roles.length === 0) return true;
-
+  if (!policy || policy.authenticatedOnly || !policy.roles?.length) return true;
   return hasAnyRole(roleSet, policy.roles);
 }

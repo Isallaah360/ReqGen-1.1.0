@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import { ActiveRoleSwitcher } from "@/app/components/ActiveRoleSwitcher";
 
 type Dept = { id: string; name: string };
 
@@ -430,6 +431,8 @@ export default function ProfilePage() {
             {msg}
           </div>
         )}
+
+        <div className="mt-6"><ActiveRoleSwitcher /></div>
 
         <div className="mt-4 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-xs font-semibold text-blue-900">
           This profile page refreshes automatically when you return to it. Signature and 2FA changes

@@ -3,8 +3,14 @@
 import { ReactNode, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import { getCurrentAuthContext } from "@/lib/auth";
+import { normalizeRole } from "@/lib/roles";
 
-type Assignment = { section_key: string; permission_key: string; is_active: boolean };
+type Assignment = {
+  section_key: string;
+  permission_key: string;
+  is_active: boolean;
+};
 
 type Props = {
   children: ReactNode;
@@ -13,43 +19,41 @@ type Props = {
   bossOnly?: boolean;
 };
 
-function key(value: string | null | undefined) {
-  return (value || "").trim().toLowerCase().replace(/[\s_-]+/g, "");
-}
-
-export default function HRAccessGuard({ children, section, permission = "view", bossOnly = false }: Props) {
+export default function HRAccessGuard({
+  children,
+  section,
+  permission = "view",
+  bossOnly = false,
+}: Props) {
   const router = useRouter();
   const [ready, setReady] = useState(false);
   const [allowed, setAllowed] = useState(false);
-  const normalizedSection = useMemo(() => key(section), [section]);
+  const normalizedSection = useMemo(() => normalizeRole(section), [section]);
 
   useEffect(() => {
-    let active = true;
+    let mounted = true;
+
     async function check() {
-      const { data: auth } = await supabase.auth.getUser();
-      const user = auth.user;
-      if (!user) {
+      const context = await getCurrentAuthContext();
+      if (!context) {
         router.replace("/login?next=/hr");
         return;
       }
 
-      const [{ data: profile }, { data: profileRoles }] = await Promise.all([
-        supabase.from("profiles").select("role").eq("id", user.id).maybeSingle(),
-        supabase.from("profile_roles").select("role_key,role_name,is_active").eq("profile_id", user.id).eq("is_active", true),
-      ]);
-
-      const roles = new Set<string>();
-      roles.add(key(profile?.role));
-      for (const item of profileRoles || []) {
-        roles.add(key(item.role_key));
-        roles.add(key(item.role_name));
+      // Ultimate access: Admin must never be blocked from testing or administering HR.
+      if (context.isAdmin) {
+        if (mounted) {
+          setAllowed(true);
+          setReady(true);
+        }
+        return;
       }
 
-      const isAdmin = roles.has("admin");
-      const isBoss = roles.has("hrboss") || roles.has("hr");
+      const activeRole = normalizeRole(context.activeRoleKey);
+      const isBoss = ["hrboss", "hr"].includes(activeRole);
 
-      if (isAdmin || isBoss) {
-        if (active) {
+      if (isBoss) {
+        if (mounted) {
           setAllowed(true);
           setReady(true);
         }
@@ -57,41 +61,72 @@ export default function HRAccessGuard({ children, section, permission = "view", 
       }
 
       if (bossOnly || !normalizedSection) {
-        if (active) {
+        if (mounted) {
           setAllowed(false);
           setReady(true);
-          router.replace("/unauthorized?from=/hr");
+          router.replace("/unauthorized?from=/hr&reason=hr-boss-required");
         }
         return;
       }
 
-      const { data: assignments } = await supabase
+      const activeFunctionalRole = activeRole === `hr:${normalizedSection}`;
+      const { data: assignments, error } = await supabase
         .from("hr_officer_assignments")
         .select("section_key,permission_key,is_active")
-        .eq("officer_id", user.id)
+        .eq("officer_id", context.userId)
         .eq("is_active", true);
 
-      const permitted = ((assignments || []) as Assignment[]).some(
-        (item) => key(item.section_key) === normalizedSection && ["view", key(permission), "manage"].includes(key(item.permission_key))
-      );
+      if (error) throw error;
 
-      if (active) {
+      const permittedAssignment = ((assignments || []) as Assignment[]).some((item) => {
+        const sameSection = normalizeRole(item.section_key) === normalizedSection;
+        const permissionKey = normalizeRole(item.permission_key);
+        return sameSection && ["view", normalizeRole(permission), "manage"].includes(permissionKey);
+      });
+
+      const permitted = activeFunctionalRole && permittedAssignment;
+
+      if (mounted) {
         setAllowed(permitted);
         setReady(true);
-        if (!permitted) router.replace("/unauthorized?from=/hr");
+        if (!permitted) {
+          router.replace(`/unauthorized?from=/hr/${normalizedSection}&reason=active-hr-role-required`);
+        }
       }
     }
-    check().catch(() => {
-      if (active) {
+
+    check().catch((error) => {
+      console.error("HR access verification failed:", error);
+      if (mounted) {
         setReady(true);
         setAllowed(false);
         router.replace("/unauthorized?reason=hr-access");
       }
     });
-    return () => { active = false; };
+
+    const refresh = () => {
+      setReady(false);
+      check();
+    };
+    window.addEventListener("reqgen-active-role-changed", refresh);
+
+    return () => {
+      mounted = false;
+      window.removeEventListener("reqgen-active-role-changed", refresh);
+    };
   }, [bossOnly, normalizedSection, permission, router]);
 
-  if (!ready) return <div className="min-h-[60vh] grid place-items-center text-sm font-bold text-slate-600">Verifying HR access…</div>;
+  if (!ready) {
+    return (
+      <div className="grid min-h-[60vh] place-items-center bg-slate-50 px-4">
+        <div className="rounded-3xl border border-blue-100 bg-white px-8 py-7 text-center shadow-xl">
+          <div className="mx-auto h-11 w-11 animate-spin rounded-full border-4 border-blue-100 border-t-blue-700" />
+          <div className="mt-4 text-sm font-black text-slate-700">Verifying HR role context...</div>
+        </div>
+      </div>
+    );
+  }
+
   if (!allowed) return null;
   return <>{children}</>;
 }

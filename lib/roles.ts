@@ -7,6 +7,8 @@ export type AppRole =
   | "pvsigner"
   | "pvcountersigner"
   | "hr"
+  | "hrboss"
+  | "hrofficer"
   | "hrofficer1"
   | "hrofficer2"
   | "hrofficer3"
@@ -15,12 +17,8 @@ export type AppRole =
   | "director"
   | "staff";
 
-export const REPORT_ACCESS_ROLES = [
-  "admin",
-  "auditor",
-  "dg",
-  "accountofficer",
-] as const;
+
+export const REPORT_ACCESS_ROLES = ["admin", "auditor", "dg", "accountofficer"] as const;
 
 export type ProfileRoleRecord = {
   role_key?: string | null;
@@ -33,7 +31,7 @@ export function normalizeRole(value: string | null | undefined): string {
   return (value || "")
     .trim()
     .toLowerCase()
-    .replace(/[\s_-]+/g, "");
+    .replace(/[^a-z0-9:]+/g, "");
 }
 
 export function buildRoleSet(
@@ -42,18 +40,35 @@ export function buildRoleSet(
 ): Set<string> {
   const roles = new Set<string>();
   const fallback = normalizeRole(fallbackRole);
-
   if (fallback) roles.add(fallback);
 
   profileRoles.forEach((record) => {
     if (record.is_active === false) return;
-
     const key = normalizeRole(record.role_key || record.role_name);
     if (key) roles.add(key);
   });
 
   if (roles.size === 0) roles.add("staff");
   return roles;
+}
+
+export function buildEffectiveRoleSet(
+  assignedRoles: Set<string>,
+  activeRole: string | null | undefined
+): Set<string> {
+  const effective = new Set<string>();
+  const normalizedActive = normalizeRole(activeRole);
+  const hasAdmin = assignedRoles.has("admin");
+
+  if (hasAdmin) effective.add("admin");
+  if (normalizedActive) effective.add(normalizedActive);
+
+  if (!normalizedActive) {
+    assignedRoles.forEach((role) => effective.add(role));
+  }
+
+  if (effective.size === 0) effective.add("staff");
+  return effective;
 }
 
 export function hasAnyRole(roleSet: Set<string>, roles: string[]): boolean {

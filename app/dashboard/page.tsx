@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import { ActiveRoleSwitcher } from "@/app/components/ActiveRoleSwitcher";
 
 type Profile = {
   id: string;
@@ -150,6 +151,7 @@ export default function DashboardPage() {
 
   const [profile, setProfile] = useState<Profile | null>(null);
   const [profileRoles, setProfileRoles] = useState<ProfileRole[]>([]);
+  const [activeRoleKey, setActiveRoleKey] = useState<string | null>(null);
   const [deptName, setDeptName] = useState<string>("");
 
   const [security, setSecurity] = useState<SecurityStatus>({
@@ -181,16 +183,18 @@ export default function DashboardPage() {
   });
 
   const roleSet = useMemo(() => {
-    const set = new Set<string>();
-
-    if (profile?.role) set.add(roleKey(profile.role));
-
+    const assigned = new Set<string>();
+    if (profile?.role) assigned.add(roleKey(profile.role));
     profileRoles.forEach((r) => {
-      if (r.is_active) set.add(roleKey(r.role_key));
+      if (r.is_active) assigned.add(roleKey(r.role_key));
     });
 
-    return set;
-  }, [profile?.role, profileRoles]);
+    const effective = new Set<string>();
+    if (assigned.has("admin")) effective.add("admin");
+    if (activeRoleKey) effective.add(roleKey(activeRoleKey));
+    if (!activeRoleKey) assigned.forEach((role) => effective.add(role));
+    return effective;
+  }, [activeRoleKey, profile?.role, profileRoles]);
 
   const isAdmin = hasAnyRole(roleSet, ["admin", "auditor"]);
 
@@ -386,7 +390,7 @@ export default function DashboardPage() {
       return;
     }
 
-    const [profRes, profileRolesRes, factorsRes, aalRes] = await Promise.all([
+    const [profRes, profileRolesRes, activeRoleRes, factorsRes, aalRes] = await Promise.all([
       supabase
         .from("profiles")
         .select("id,full_name,role,gender,phone,dept_id,signature_url")
@@ -398,6 +402,8 @@ export default function DashboardPage() {
         .select("id,profile_id,role_key,role_name,is_primary,is_active")
         .eq("profile_id", user.id)
         .eq("is_active", true),
+
+      supabase.rpc("get_my_active_role"),
 
       supabase.auth.mfa.listFactors(),
 
@@ -417,13 +423,19 @@ export default function DashboardPage() {
     setProfile(profileRow);
     setProfileRoles(activeProfileRoles);
 
-    const nextRoleSet = new Set<string>();
+    const currentActiveRole = (activeRoleRes.data as { active_role_key?: string } | null)?.active_role_key || null;
+    setActiveRoleKey(currentActiveRole);
 
-    if (profileRow.role) nextRoleSet.add(roleKey(profileRow.role));
-
+    const assignedRoles = new Set<string>();
+    if (profileRow.role) assignedRoles.add(roleKey(profileRow.role));
     activeProfileRoles.forEach((r) => {
-      if (r.is_active) nextRoleSet.add(roleKey(r.role_key));
+      if (r.is_active) assignedRoles.add(roleKey(r.role_key));
     });
+
+    const nextRoleSet = new Set<string>();
+    if (assignedRoles.has("admin")) nextRoleSet.add("admin");
+    if (currentActiveRole) nextRoleSet.add(roleKey(currentActiveRole));
+    if (!currentActiveRole) assignedRoles.forEach((role) => nextRoleSet.add(role));
 
     if (factorsRes.error) {
       setSecurity({
@@ -466,6 +478,9 @@ export default function DashboardPage() {
   useEffect(() => {
     load();
 
+    const refreshRole = () => load({ silent: true });
+    window.addEventListener("reqgen-active-role-changed", refreshRole);
+
     const refreshOnFocus = () => {
       load({ silent: true });
     };
@@ -482,6 +497,7 @@ export default function DashboardPage() {
     return () => {
       window.removeEventListener("focus", refreshOnFocus);
       document.removeEventListener("visibilitychange", refreshOnVisible);
+      window.removeEventListener("reqgen-active-role-changed", refreshRole);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -705,6 +721,8 @@ export default function DashboardPage() {
           </div>
         </div>
         </div>
+
+        <div className="mt-6"><ActiveRoleSwitcher /></div>
 
         {msg && (
           <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50/70 px-4 py-3 text-sm text-slate-800 shadow-sm">

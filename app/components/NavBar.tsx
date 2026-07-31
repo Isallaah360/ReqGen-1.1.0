@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { REPORT_ACCESS_ROLES } from "@/lib/roles";
+import { ActiveRoleBadge } from "@/app/components/ActiveRoleSwitcher";
 
 type Notif = {
   id: string;
@@ -278,6 +279,7 @@ export default function NavBar() {
 
   const [myRole, setMyRole] = useState<string>("Staff");
   const [myRoles, setMyRoles] = useState<ProfileRole[]>([]);
+  const [activeRoleKey, setActiveRoleKey] = useState<string | null>(null);
 
   const [openApprovalPanel, setOpenApprovalPanel] = useState(false);
   const [actionTab, setActionTab] = useState<"actions" | "updates">("actions");
@@ -293,16 +295,18 @@ export default function NavBar() {
   const mobileRef = useRef<HTMLDivElement | null>(null);
 
   const roleSet = useMemo(() => {
-    const set = new Set<string>();
-
-    if (myRole) set.add(roleKey(myRole));
-
+    const assigned = new Set<string>();
+    if (myRole) assigned.add(roleKey(myRole));
     myRoles.forEach((r) => {
-      if (r.is_active) set.add(roleKey(r.role_key));
+      if (r.is_active) assigned.add(roleKey(r.role_key || r.role_name));
     });
 
-    return set;
-  }, [myRole, myRoles]);
+    const effective = new Set<string>();
+    if (assigned.has("admin")) effective.add("admin");
+    if (activeRoleKey) effective.add(roleKey(activeRoleKey));
+    if (!activeRoleKey) assigned.forEach((role) => effective.add(role));
+    return effective;
+  }, [activeRoleKey, myRole, myRoles]);
 
   const isAdmin = hasAnyRole(roleSet, ["admin", "auditor"]);
   const canViewReports = hasAnyRole(roleSet, [...REPORT_ACCESS_ROLES]);
@@ -423,14 +427,14 @@ export default function NavBar() {
   }
 
   async function loadRoleContext(uid: string) {
-    const [profRes, rolesRes] = await Promise.all([
+    const [profRes, rolesRes, activeRes] = await Promise.all([
       supabase.from("profiles").select("role").eq("id", uid).maybeSingle(),
-
       supabase
         .from("profile_roles")
         .select("id,profile_id,role_key,role_name,is_primary,is_active")
         .eq("profile_id", uid)
         .eq("is_active", true),
+      supabase.rpc("get_my_active_role"),
     ]);
 
     if (!profRes.error && profRes.data?.role) {
@@ -444,6 +448,9 @@ export default function NavBar() {
     } else {
       setMyRoles([]);
     }
+
+    const active = activeRes.data as { active_role_key?: string } | null;
+    setActiveRoleKey(active?.active_role_key || null);
   }
 
   async function refreshAll() {
@@ -457,6 +464,7 @@ export default function NavBar() {
       setUserId(null);
       setMyRole("Staff");
       setMyRoles([]);
+      setActiveRoleKey(null);
       setPendingApprovalCount(0);
       setPendingApprovals([]);
       setNotificationItems([]);
@@ -475,6 +483,7 @@ export default function NavBar() {
     if (!verified) {
       setMyRole("Staff");
       setMyRoles([]);
+      setActiveRoleKey(null);
       setPendingApprovalCount(0);
       setPendingApprovals([]);
       setNotificationItems([]);
@@ -509,6 +518,13 @@ export default function NavBar() {
     refreshAll();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
+
+  useEffect(() => {
+    const refreshRole = () => refreshAll();
+    window.addEventListener("reqgen-active-role-changed", refreshRole);
+    return () => window.removeEventListener("reqgen-active-role-changed", refreshRole);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (!userId || !mfaVerified) return;
@@ -871,6 +887,8 @@ export default function NavBar() {
               )}
             </nav>
 
+            <div className="hidden xl:block"><ActiveRoleBadge /></div>
+
             <div className="relative md:hidden" ref={mobileRef}>
               <button
                 type="button"
@@ -888,6 +906,7 @@ export default function NavBar() {
 
               {openMobileMenu && (
                 <div className="absolute right-0 top-12 z-50 max-h-[80vh] w-[340px] overflow-auto rounded-3xl border border-slate-200 bg-white p-3 shadow-2xl">
+                  <div className="mb-3"><ActiveRoleBadge /></div>
                   <div className="mb-2 rounded-2xl bg-slate-50 px-4 py-3">
                     <div className="font-extrabold text-slate-900">Navigation</div>
                     <div className="mt-1 text-xs font-semibold text-slate-500">
