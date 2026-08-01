@@ -1,7 +1,6 @@
 "use client";
 
 import AdminNavigation from "@/app/components/admin/AdminNavigation";
-import { AdminHero } from "@/app/components/admin/AdminUI";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
@@ -374,7 +373,7 @@ export default function AdminSecurityPage() {
 
             <button
               onClick={goDashboard}
-              className="reqgen-btn reqgen-btn-slate mt-5 rounded-xl bg-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-blue-700"
+              className="reqgen-btn reqgen-btn-slate mt-5 rounded-xl px-4 py-2 text-sm font-black text-white"
             >
               Back to Dashboard
             </button>
@@ -387,13 +386,6 @@ export default function AdminSecurityPage() {
   return (
     <main className="min-h-screen bg-slate-50 px-4">
       <AdminNavigation />
-      <div className="mx-auto mt-6 max-w-7xl">
-        <AdminHero
-          eyebrow="Security Governance"
-          title="System Security Centre"
-          description="Review MFA readiness, access controls, sensitive-action safeguards and security configuration from one protected workspace."
-        />
-      </div>
       <style>{`
         @media print {
           @page {
@@ -449,7 +441,7 @@ export default function AdminSecurityPage() {
             <button
               onClick={() => load({ silent: true })}
               disabled={refreshing || printing}
-              className="reqgen-btn reqgen-btn-rose rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
+              className="reqgen-btn reqgen-btn-cyan rounded-xl px-4 py-2 text-sm font-black text-white disabled:opacity-60"
             >
               {refreshing ? "Refreshing..." : "Refresh"}
             </button>
@@ -457,7 +449,7 @@ export default function AdminSecurityPage() {
             <button
               onClick={printChecklist}
               disabled={refreshing || printing}
-              className="reqgen-btn reqgen-btn-rose rounded-xl bg-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-blue-700 disabled:opacity-60"
+              className="reqgen-btn reqgen-btn-violet rounded-xl px-4 py-2 text-sm font-black text-white disabled:opacity-60"
             >
               {printing ? "Preparing..." : "Print Checklist"}
             </button>
@@ -465,7 +457,7 @@ export default function AdminSecurityPage() {
             <button
               onClick={goAdmin}
               disabled={refreshing || printing}
-              className="reqgen-btn reqgen-btn-rose rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
+              className="reqgen-btn reqgen-btn-slate rounded-xl border border-slate-200 px-4 py-2 text-sm disabled:opacity-60 font-black text-white"
             >
               Admin
             </button>
@@ -473,7 +465,7 @@ export default function AdminSecurityPage() {
             <button
               onClick={goDashboard}
               disabled={refreshing || printing}
-              className="reqgen-btn reqgen-btn-rose rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
+              className="reqgen-btn reqgen-btn-slate rounded-xl border border-slate-200 px-4 py-2 text-sm disabled:opacity-60 font-black text-white"
             >
               Dashboard
             </button>
@@ -547,7 +539,7 @@ export default function AdminSecurityPage() {
             {!isMfaSetupComplete && (
               <button
                 onClick={goMfaSetup}
-                className="reqgen-btn reqgen-btn-blue rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white hover:bg-blue-700"
+                className="reqgen-btn reqgen-btn-blue rounded-xl px-4 py-3 text-sm font-black text-white"
               >
                 Set Up 2FA
               </button>
@@ -556,7 +548,7 @@ export default function AdminSecurityPage() {
             {isMfaSetupComplete && !isSessionMfaVerified && (
               <button
                 onClick={goMfa}
-                className="reqgen-btn reqgen-btn-cyan rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white hover:bg-blue-700"
+                className="reqgen-btn reqgen-btn-cyan rounded-xl px-4 py-3 text-sm font-black text-white"
               >
                 Verify 2FA
               </button>
@@ -624,7 +616,7 @@ export default function AdminSecurityPage() {
                 <div className="flex items-end">
                   <button
                     onClick={resetFilters}
-                    className="reqgen-btn reqgen-btn-cyan w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 hover:bg-slate-100"
+                    className="reqgen-btn reqgen-btn-cyan w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-black text-white"
                   >
                     Reset Filters
                   </button>
@@ -859,9 +851,7 @@ function TabButton({
     <button
       type="button"
       onClick={onClick}
-      className={`reqgen-btn reqgen-btn-slate rounded-2xl px-4 py-3 text-sm font-bold transition ${
-        active ? "bg-blue-600 text-white shadow-sm" : "bg-white text-slate-700 hover:bg-slate-100"
-      }`}
+      className={`reqgen-btn rounded-2xl px-4 py-3 text-sm font-black text-white transition ${active ? "reqgen-btn-blue ring-4 ring-blue-100" : "reqgen-btn-slate"}`}
     >
       {label}
     </button>

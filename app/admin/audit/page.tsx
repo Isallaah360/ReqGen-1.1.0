@@ -8,16 +8,7 @@ import AdminNavigation from "@/app/components/admin/AdminNavigation";
 type AuditRow = { id: string; source: string; action: string; actor: string; details: string; created_at: string };
 type GenericRow = Record<string, unknown>;
 
-function normalizeRole(value: unknown) { return String(value ?? "").trim().toLowerCase().replace(/[^a-z0-9:]+/g, ""); }
-function activeRoleFromRpc(value: unknown) {
-  if (typeof value === "string") return normalizeRole(value);
-  if (Array.isArray(value)) return activeRoleFromRpc(value[0]);
-  if (value && typeof value === "object") {
-    const row = value as Record<string, unknown>;
-    return normalizeRole(row.active_role_key ?? row.role_key ?? row.role ?? row.get_my_active_role);
-  }
-  return "";
-}
+function normalizeRole(value: unknown) { return String(value ?? "").trim().toLowerCase().replace(/[^a-z0-9]+/g, ""); }
 function asRows(value: unknown): GenericRow[] { return Array.isArray(value) ? value.filter((v): v is GenericRow => !!v && typeof v === "object" && !Array.isArray(v)) : []; }
 function text(row: GenericRow, keys: string[], fallback = "—") { for (const key of keys) { const v = row[key]; if (v !== null && v !== undefined && String(v).trim()) return String(v); } return fallback; }
 function dateText(value: string) { const d = new Date(value); return Number.isNaN(d.getTime()) ? "—" : d.toLocaleString("en-NG", { dateStyle: "medium", timeStyle: "short" }); }
@@ -39,7 +30,7 @@ export default function AdminAuditPage() {
         supabase.from("profiles").select("role").eq("id", auth.user.id).maybeSingle(),
         supabase.rpc("get_my_active_role"),
       ]);
-      const role = activeRoleFromRpc(activeRole) || normalizeRole(profile?.role);
+      const role = normalizeRole(activeRole || profile?.role);
       if (!["admin", "auditor"].includes(role)) { router.push("/unauthorized?from=/admin/audit"); return; }
 
       const sources = [
@@ -90,11 +81,11 @@ export default function AdminAuditPage() {
       <AdminNavigation />
       <section className="overflow-hidden rounded-3xl border border-fuchsia-200 bg-gradient-to-br from-slate-950 via-purple-950 to-fuchsia-900 p-7 text-white shadow-xl">
         <p className="text-xs font-black uppercase tracking-[0.2em] text-fuchsia-200">System Administration</p>
-        <div className="mt-2 flex flex-col justify-between gap-4 lg:flex-row lg:items-end"><div><h1 className="text-3xl font-black sm:text-4xl">Administrative Audit Trail</h1><p className="mt-3 max-w-3xl font-semibold leading-7 text-slate-200">Review role switches, assignment changes, Finance administration events and other high-value control activities from one secured workspace.</p></div><button onClick={() => void load()} className="rounded-xl bg-cyan-600 px-5 py-3 text-sm font-black text-white shadow-md transition hover:-translate-y-0.5 hover:bg-cyan-700">Refresh Audit</button></div>
+        <div className="mt-2 flex flex-col justify-between gap-4 lg:flex-row lg:items-end"><div><h1 className="text-3xl font-black sm:text-4xl">Administrative Audit Trail</h1><p className="mt-3 max-w-3xl font-semibold leading-7 text-slate-200">Review role switches, assignment changes, Finance administration events and other high-value control activities from one secured workspace.</p></div><button onClick={() => void load()} className="reqgen-btn reqgen-btn-cyan rounded-xl px-5 py-3 text-sm font-black text-white">Refresh Audit</button></div>
       </section>
       {warning && <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 font-bold text-amber-900">{warning}</div>}
       <section className="mt-6 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-        <div className="grid gap-3 md:grid-cols-[1fr_240px_auto]"><input value={query} onChange={(e)=>setQuery(e.target.value)} placeholder="Search action, actor or details" className="h-12 rounded-xl border border-slate-300 px-4 font-semibold outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"/><select value={source} onChange={(e)=>setSource(e.target.value)} className="h-12 rounded-xl border border-slate-300 px-4 font-bold outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100">{sources.map((s)=><option key={s}>{s}</option>)}</select><button onClick={()=>{setQuery("");setSource("ALL");}} className="rounded-xl bg-slate-700 px-5 py-3 font-black text-white shadow-md transition hover:bg-slate-800">Reset</button></div>
+        <div className="grid gap-3 md:grid-cols-[1fr_240px_auto]"><input value={query} onChange={(e)=>setQuery(e.target.value)} placeholder="Search action, actor or details" className="h-12 rounded-xl border border-slate-300 px-4 font-semibold outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"/><select value={source} onChange={(e)=>setSource(e.target.value)} className="h-12 rounded-xl border border-slate-300 px-4 font-bold outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100">{sources.map((s)=><option key={s}>{s}</option>)}</select><button onClick={()=>{setQuery("");setSource("ALL");}} className="reqgen-btn reqgen-btn-slate rounded-xl px-5 py-3 font-black text-white">Reset</button></div>
       </section>
       <section className="mt-6 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
         <div className="border-b border-slate-200 px-5 py-4"><h2 className="text-xl font-black text-slate-950">Audit Events</h2><p className="text-sm font-semibold text-slate-500">{loading ? "Loading secured activity…" : `${filtered.length} event(s) displayed`}</p></div>

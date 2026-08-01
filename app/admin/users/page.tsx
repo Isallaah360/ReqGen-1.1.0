@@ -1,7 +1,6 @@
 "use client";
 
 import AdminNavigation from "@/app/components/admin/AdminNavigation";
-import { AdminHero } from "@/app/components/admin/AdminUI";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
@@ -614,7 +613,7 @@ export default function AdminUsersPage() {
 
             <button
               onClick={goDashboard}
-              className="reqgen-btn reqgen-btn-slate mt-4 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+              className="reqgen-btn reqgen-btn-slate mt-4 rounded-xl px-4 py-2 text-sm font-black text-white"
             >
               Back to Dashboard
             </button>
@@ -627,13 +626,6 @@ export default function AdminUsersPage() {
   return (
     <main className="min-h-screen bg-slate-50 px-4">
       <AdminNavigation />
-      <div className="mx-auto mt-6 max-w-7xl">
-        <AdminHero
-          eyebrow="User Administration"
-          title="User Management Centre"
-          description="Create a controlled view of staff accounts, departments, signatures, assigned roles and access readiness."
-        />
-      </div>
       <div className="mx-auto max-w-7xl py-10">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
@@ -654,7 +646,7 @@ export default function AdminUsersPage() {
             <button
               onClick={() => load({ silent: true })}
               disabled={refreshing || !!savingId}
-              className="rounded-xl bg-slate-700 px-4 py-2 text-sm font-black text-white shadow-md transition hover:-translate-y-0.5 hover:bg-slate-800 hover:shadow-lg disabled:opacity-50"
+              className="reqgen-btn reqgen-btn-cyan rounded-xl px-4 py-2 text-sm font-black text-white disabled:opacity-60"
             >
               {refreshing ? "Refreshing..." : "Refresh"}
             </button>
@@ -662,7 +654,7 @@ export default function AdminUsersPage() {
             <button
               onClick={goRoles}
               disabled={refreshing || !!savingId}
-              className="reqgen-btn reqgen-btn-rose rounded-xl bg-purple-600 px-4 py-2 text-sm font-semibold text-white hover:bg-purple-700 disabled:opacity-60"
+              className="reqgen-btn reqgen-btn-violet rounded-xl px-4 py-2 text-sm disabled:opacity-60 font-black text-white"
             >
               Roles & Permissions
             </button>
@@ -670,7 +662,7 @@ export default function AdminUsersPage() {
             <button
               onClick={goAdmin}
               disabled={refreshing || !!savingId}
-              className="rounded-xl bg-slate-700 px-4 py-2 text-sm font-black text-white shadow-md transition hover:-translate-y-0.5 hover:bg-slate-800 hover:shadow-lg disabled:opacity-50"
+              className="reqgen-btn reqgen-btn-slate rounded-xl border border-slate-200 px-4 py-2 text-sm disabled:opacity-60 font-black text-white"
             >
               Back
             </button>
@@ -761,7 +753,7 @@ export default function AdminUsersPage() {
           <div className="mt-4 flex justify-end">
             <button
               onClick={resetFilters}
-              className="reqgen-btn reqgen-btn-cyan rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
+              className="reqgen-btn reqgen-btn-cyan rounded-xl border border-slate-200 px-4 py-2 text-sm font-black text-white"
             >
               Reset Filters
             </button>
@@ -928,7 +920,7 @@ function UserRolePanel({
                         type="button"
                         onClick={() => onSetPrimaryRole(u.id, r.role_key)}
                         disabled={disabled || saving}
-                        className="reqgen-btn reqgen-btn-rose rounded-lg bg-white px-2 py-1 text-[11px] font-bold text-slate-900 hover:bg-slate-100 disabled:opacity-50"
+                        className="reqgen-btn reqgen-btn-violet rounded-lg px-2 py-1 text-[11px] font-black text-white disabled:opacity-50"
                       >
                         Set Primary
                       </button>
@@ -938,7 +930,7 @@ function UserRolePanel({
                       type="button"
                       onClick={() => onDeactivateRole(u.id, r.role_key)}
                       disabled={disabled || saving}
-                      className="reqgen-btn reqgen-btn-rose rounded-lg bg-white px-2 py-1 text-[11px] font-bold text-red-700 hover:bg-red-50 disabled:opacity-50"
+                      className="reqgen-btn reqgen-btn-rose rounded-lg px-2 py-1 text-[11px] font-black text-white disabled:opacity-50"
                     >
                       Deactivate
                     </button>
@@ -988,7 +980,7 @@ function UserRolePanel({
             type="button"
             onClick={handleAssign}
             disabled={!newRoleKey || disabled || saving}
-            className="reqgen-btn reqgen-btn-rose mt-3 w-full rounded-xl bg-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-blue-700 disabled:opacity-50"
+            className="reqgen-btn reqgen-btn-blue mt-3 w-full rounded-xl px-4 py-2 text-sm font-black text-white disabled:opacity-50"
           >
             {saving ? "Saving..." : "Assign Role"}
           </button>
@@ -1023,7 +1015,7 @@ function UserRolePanel({
             type="button"
             disabled={!deptChanged || disabled || saving}
             onClick={() => onUpdateDepartment(u.id, deptId || null)}
-            className="reqgen-btn reqgen-btn-rose rounded-xl bg-slate-900 px-4 py-2 text-sm font-bold text-white hover:bg-slate-800 disabled:opacity-50"
+            className="reqgen-btn reqgen-btn-emerald rounded-xl px-4 py-2 text-sm font-black text-white disabled:opacity-50"
           >
             Save Department
           </button>

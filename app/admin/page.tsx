@@ -1,7 +1,6 @@
 "use client";
 
 import AdminNavigation from "@/app/components/admin/AdminNavigation";
-import { AdminHero, AdminKpiCard } from "@/app/components/admin/AdminUI";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
@@ -616,24 +615,61 @@ export default function AdminPage() {
     <main className="min-h-screen bg-slate-50 px-4">
       <AdminNavigation />
       <div className="mx-auto max-w-7xl py-10">
-        <AdminHero
-          eyebrow="Restricted System Control Workspace"
-          title="System Administration Command Centre"
-          description="Manage users, active roles, departments, routing, security controls, global settings and the complete administrative audit record from one protected workspace."
-          actions={
-            <>
-              <button onClick={() => loadAll({ silent: true })} disabled={refreshing || saving} className="min-h-11 rounded-xl bg-cyan-600 px-5 py-3 text-sm font-black text-white shadow-md transition hover:-translate-y-0.5 hover:bg-cyan-700 hover:shadow-lg disabled:opacity-50">
-                {refreshing ? "Refreshing…" : "Refresh Administration"}
-              </button>
-              <button onClick={goDashboard} disabled={refreshing || saving} className="min-h-11 rounded-xl bg-slate-700 px-5 py-3 text-sm font-black text-white shadow-md transition hover:-translate-y-0.5 hover:bg-slate-800 hover:shadow-lg disabled:opacity-50">
-                Main Dashboard
-              </button>
-            </>
-          }
-        />
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">
+              Admin Routing Panel
+            </h1>
+            <p className="mt-2 text-sm text-slate-600">
+              Logged in as <b className="text-slate-900">{meEmail || "—"}</b> • Primary role{" "}
+              <b className="text-slate-900">{meRole || "Staff"}</b>
+            </p>
+            <p className="mt-1 text-xs font-semibold text-slate-500">
+              Manage global officers, department DOD/HOD/PO routing, multiple roles and signature readiness.
+            </p>
+          </div>
 
-        <div className="mt-5 rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm font-bold text-blue-950">
-          Active administrator: <span className="text-blue-700">{meEmail || "—"}</span> · Working role: <span className="text-blue-700">{meRole || "Admin"}</span>. Administrative actions are recorded against the active working role.
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => loadAll({ silent: true })}
+              disabled={refreshing || saving}
+              className="reqgen-btn reqgen-btn-cyan rounded-xl px-4 py-2 text-sm font-black text-white disabled:opacity-60"
+            >
+              {refreshing ? "Refreshing..." : "Refresh"}
+            </button>
+
+            <button
+              onClick={goUsersRoles}
+              disabled={refreshing || saving}
+              className="reqgen-btn reqgen-btn-violet rounded-xl px-4 py-2 text-sm disabled:opacity-60 font-black text-white"
+            >
+              Users & Multiple Roles
+            </button>
+
+            <button
+              onClick={goRoles}
+              disabled={refreshing || saving}
+              className="reqgen-btn reqgen-btn-violet rounded-xl px-4 py-2 text-sm disabled:opacity-60 font-black text-white"
+            >
+              Roles & Permissions
+            </button>
+
+            <button
+              onClick={goSecurity}
+              disabled={refreshing || saving}
+              className="reqgen-btn reqgen-btn-rose rounded-xl px-4 py-2 text-sm font-black text-white disabled:opacity-60"
+            >
+              Security
+            </button>
+
+            <button
+              onClick={goDashboard}
+              disabled={refreshing || saving}
+              className="reqgen-btn reqgen-btn-slate rounded-xl border border-slate-200 px-4 py-2 text-sm disabled:opacity-60 font-black text-white"
+            >
+              Back
+            </button>
+          </div>
         </div>
 
         {msg && (
@@ -647,21 +683,23 @@ export default function AdminPage() {
           Registry is not an approval-stage officer; Registry is for monitoring and DG reminder support.
         </div>
 
-        <section className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6">
-          <AdminKpiCard label="Total Users" value={stats.totalUsers} note="Registered ReqGen profiles" tone="blue" icon={<span className="text-lg">👥</span>} />
-          <AdminKpiCard label="Signature Ready" value={stats.signatureReadyCount} note="Ready for formal approvals" tone="emerald" icon={<span className="text-lg">✍</span>} />
-          <AdminKpiCard label="Needs Signature" value={stats.needsSignature} note="Profiles requiring attention" tone="amber" icon={<span className="text-lg">!</span>} />
-          <AdminKpiCard label="Departments" value={stats.departments} note={`${stats.activeDepartments} currently active`} tone="cyan" icon={<span className="text-lg">🏢</span>} />
-          <AdminKpiCard label="Active Roles" value={stats.activeRoles} note="Assignable authority profiles" tone="violet" icon={<span className="text-lg">🛡</span>} />
-          <AdminKpiCard label="Routed Departments" value={stats.routedDepartments} note="Leadership routing configured" tone="fuchsia" icon={<span className="text-lg">↗</span>} />
-        </section>
+        <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-6">
+          <StatCard title="Total Users" value={String(stats.totalUsers)} tone="blue" />
+          <StatCard title="Signature Ready" value={String(stats.signatureReadyCount)} tone="emerald" />
+          <StatCard title="Needs Signature" value={String(stats.needsSignature)} tone="amber" />
+          <StatCard title="Departments" value={String(stats.departments)} tone="slate" />
+          <StatCard title="Active Roles" value={String(stats.activeRoles)} tone="purple" />
+          <StatCard title="DIN Depts" value={String(stats.dinDepartments)} tone="blue" />
+        </div>
 
-        <section className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <MiniCard title="DIN Departments" value={String(stats.dinDepartments)} />
-          <MiniCard title="ASAP / ALLI Departments" value={String(stats.asapDepartments)} />
-          <MiniCard title="Registrar / DIN Admin" value={stats.registrarSet && stats.dinAdminSet ? "Configured" : "Needs Review"} />
-          <MiniCard title="DG / HR Routing" value={stats.dgSet && stats.hrSet ? "Configured" : "Incomplete"} />
-        </section>
+        <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-6">
+          <MiniCard title="Active Departments" value={String(stats.activeDepartments)} />
+          <MiniCard title="Routed Departments" value={String(stats.routedDepartments)} />
+          <MiniCard title="ASAP/ALLI Depts" value={String(stats.asapDepartments)} />
+          <MiniCard title="Registrar" value={stats.registrarSet ? "Assigned" : "Not Set"} />
+          <MiniCard title="DG / HR" value={stats.dgSet && stats.hrSet ? "Assigned" : "Incomplete"} />
+          <MiniCard title="DIN Admin" value={stats.dinAdminSet ? "Assigned" : "Not Set"} />
+        </div>
 
         <div className="mt-6 grid gap-6 xl:grid-cols-3">
           <div className="rounded-2xl border bg-white p-6 shadow-sm xl:col-span-2">
@@ -676,7 +714,7 @@ export default function AdminPage() {
               <button
                 onClick={goUsersRoles}
                 disabled={saving || refreshing}
-                className="rounded-xl bg-slate-700 px-4 py-2 text-sm font-black text-white shadow-md transition hover:-translate-y-0.5 hover:bg-slate-800 hover:shadow-lg disabled:opacity-50"
+                className="reqgen-btn reqgen-btn-blue rounded-xl px-4 py-2 text-sm font-black text-white disabled:opacity-60"
               >
                 Advanced Users Page
               </button>
@@ -749,7 +787,7 @@ export default function AdminPage() {
             <button
               onClick={saveQuickRole}
               disabled={saving}
-              className="mt-4 rounded-xl bg-blue-600 px-4 py-2 text-sm font-black text-white shadow-md transition hover:-translate-y-0.5 hover:bg-blue-700 hover:shadow-lg disabled:opacity-50"
+              className="reqgen-btn reqgen-btn-blue mt-4 rounded-xl px-4 py-2 text-sm font-black text-white disabled:opacity-60"
             >
               {savingTarget === "role" ? "Saving Role..." : "Assign Role"}
             </button>
@@ -784,7 +822,7 @@ export default function AdminPage() {
             <button
               onClick={goRoles}
               disabled={saving || refreshing}
-              className="mt-4 w-full rounded-xl bg-violet-600 px-4 py-2 text-sm font-black text-white shadow-md transition hover:-translate-y-0.5 hover:bg-violet-700 hover:shadow-lg disabled:opacity-50"
+              className="reqgen-btn reqgen-btn-violet mt-4 w-full rounded-xl px-4 py-2 text-sm disabled:opacity-60 font-black text-white"
             >
               Open Roles & Permissions
             </button>
@@ -839,7 +877,7 @@ export default function AdminPage() {
                   <button
                     onClick={() => saveSetting(k, settings[k] || "")}
                     disabled={saving}
-                    className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-black text-white shadow-md transition hover:-translate-y-0.5 hover:bg-blue-700 hover:shadow-lg disabled:opacity-50"
+                    className="reqgen-btn reqgen-btn-emerald rounded-xl px-4 py-2 text-sm font-black text-white disabled:opacity-60"
                   >
                     {savingTarget === k ? "Saving..." : "Save"}
                   </button>
@@ -989,7 +1027,7 @@ export default function AdminPage() {
                     <button
                       onClick={() => saveDept(d.id, d.hod_user_id, d.director_user_id, d.po_id)}
                       disabled={saving}
-                      className="reqgen-btn reqgen-btn-rose mt-4 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
+                      className="reqgen-btn reqgen-btn-emerald mt-4 rounded-xl px-4 py-2 text-sm font-black text-white disabled:opacity-60"
                     >
                       {savingTarget === `dept-${d.id}` ? "Saving..." : "Save Department Routing"}
                     </button>
