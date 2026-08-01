@@ -8,7 +8,16 @@ import AdminNavigation from "@/app/components/admin/AdminNavigation";
 type AuditRow = { id: string; source: string; action: string; actor: string; details: string; created_at: string };
 type GenericRow = Record<string, unknown>;
 
-function normalizeRole(value: unknown) { return String(value ?? "").trim().toLowerCase().replace(/[^a-z0-9]+/g, ""); }
+function normalizeRole(value: unknown) { return String(value ?? "").trim().toLowerCase().replace(/[^a-z0-9:]+/g, ""); }
+function activeRoleFromRpc(value: unknown) {
+  if (typeof value === "string") return normalizeRole(value);
+  if (Array.isArray(value)) return activeRoleFromRpc(value[0]);
+  if (value && typeof value === "object") {
+    const row = value as Record<string, unknown>;
+    return normalizeRole(row.active_role_key ?? row.role_key ?? row.role ?? row.get_my_active_role);
+  }
+  return "";
+}
 function asRows(value: unknown): GenericRow[] { return Array.isArray(value) ? value.filter((v): v is GenericRow => !!v && typeof v === "object" && !Array.isArray(v)) : []; }
 function text(row: GenericRow, keys: string[], fallback = "—") { for (const key of keys) { const v = row[key]; if (v !== null && v !== undefined && String(v).trim()) return String(v); } return fallback; }
 function dateText(value: string) { const d = new Date(value); return Number.isNaN(d.getTime()) ? "—" : d.toLocaleString("en-NG", { dateStyle: "medium", timeStyle: "short" }); }
@@ -30,7 +39,7 @@ export default function AdminAuditPage() {
         supabase.from("profiles").select("role").eq("id", auth.user.id).maybeSingle(),
         supabase.rpc("get_my_active_role"),
       ]);
-      const role = normalizeRole(activeRole || profile?.role);
+      const role = activeRoleFromRpc(activeRole) || normalizeRole(profile?.role);
       if (!["admin", "auditor"].includes(role)) { router.push("/unauthorized?from=/admin/audit"); return; }
 
       const sources = [

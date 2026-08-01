@@ -1,6 +1,7 @@
 "use client";
 
 import AdminNavigation from "@/app/components/admin/AdminNavigation";
+import { AdminHero } from "@/app/components/admin/AdminUI";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
@@ -145,6 +146,13 @@ export default function AdminSettingsPage() {
   return (
     <main className="min-h-screen bg-slate-50 px-4">
       <AdminNavigation />
+      <div className="mx-auto mt-6 max-w-7xl">
+        <AdminHero
+          eyebrow="Global Configuration"
+          title="System Settings Centre"
+          description="Manage global workflow officers, routing defaults and application-wide operational settings."
+        />
+      </div>
       <div className="mx-auto max-w-5xl py-10">
         <div className="flex items-start justify-between gap-3">
           <div>
@@ -158,7 +166,7 @@ export default function AdminSettingsPage() {
 
           <button
             onClick={() => router.push("/admin")}
-            className="reqgen-btn reqgen-btn-slate rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
+            className="rounded-xl bg-slate-700 px-4 py-2 text-sm font-black text-white shadow-md transition hover:-translate-y-0.5 hover:bg-slate-800 hover:shadow-lg"
           >
             Back
           </button>
@@ -191,7 +199,7 @@ export default function AdminSettingsPage() {
                 <button
                   onClick={() => saveSetting(k, settings[k] || "")}
                   disabled={saving}
-                  className="reqgen-btn reqgen-btn-rose rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
+                  className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-black text-white shadow-md transition hover:-translate-y-0.5 hover:bg-blue-700 hover:shadow-lg disabled:opacity-50"
                 >
                   Save
                 </button>

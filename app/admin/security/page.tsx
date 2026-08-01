@@ -1,6 +1,7 @@
 "use client";
 
 import AdminNavigation from "@/app/components/admin/AdminNavigation";
+import { AdminHero } from "@/app/components/admin/AdminUI";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
@@ -386,6 +387,13 @@ export default function AdminSecurityPage() {
   return (
     <main className="min-h-screen bg-slate-50 px-4">
       <AdminNavigation />
+      <div className="mx-auto mt-6 max-w-7xl">
+        <AdminHero
+          eyebrow="Security Governance"
+          title="System Security Centre"
+          description="Review MFA readiness, access controls, sensitive-action safeguards and security configuration from one protected workspace."
+        />
+      </div>
       <style>{`
         @media print {
           @page {

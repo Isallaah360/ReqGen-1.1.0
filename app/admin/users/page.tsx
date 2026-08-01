@@ -1,6 +1,7 @@
 "use client";
 
 import AdminNavigation from "@/app/components/admin/AdminNavigation";
+import { AdminHero } from "@/app/components/admin/AdminUI";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
@@ -626,6 +627,13 @@ export default function AdminUsersPage() {
   return (
     <main className="min-h-screen bg-slate-50 px-4">
       <AdminNavigation />
+      <div className="mx-auto mt-6 max-w-7xl">
+        <AdminHero
+          eyebrow="User Administration"
+          title="User Management Centre"
+          description="Create a controlled view of staff accounts, departments, signatures, assigned roles and access readiness."
+        />
+      </div>
       <div className="mx-auto max-w-7xl py-10">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
@@ -646,7 +654,7 @@ export default function AdminUsersPage() {
             <button
               onClick={() => load({ silent: true })}
               disabled={refreshing || !!savingId}
-              className="reqgen-btn reqgen-btn-rose rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
+              className="rounded-xl bg-slate-700 px-4 py-2 text-sm font-black text-white shadow-md transition hover:-translate-y-0.5 hover:bg-slate-800 hover:shadow-lg disabled:opacity-50"
             >
               {refreshing ? "Refreshing..." : "Refresh"}
             </button>
@@ -662,7 +670,7 @@ export default function AdminUsersPage() {
             <button
               onClick={goAdmin}
               disabled={refreshing || !!savingId}
-              className="reqgen-btn reqgen-btn-rose rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
+              className="rounded-xl bg-slate-700 px-4 py-2 text-sm font-black text-white shadow-md transition hover:-translate-y-0.5 hover:bg-slate-800 hover:shadow-lg disabled:opacity-50"
             >
               Back
             </button>

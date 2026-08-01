@@ -1,6 +1,7 @@
 "use client";
 
 import AdminNavigation from "@/app/components/admin/AdminNavigation";
+import { AdminHero } from "@/app/components/admin/AdminUI";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
@@ -221,6 +222,13 @@ export default function AccountRoutingPage() {
   return (
     <main className="min-h-screen bg-slate-50 px-4">
       <AdminNavigation />
+      <div className="mx-auto mt-6 max-w-7xl">
+        <AdminHero
+          eyebrow="Workflow Configuration"
+          title="Account Routing Centre"
+          description="Connect departments to authorized IET accounts and responsible Account Officers with clear operational ownership."
+        />
+      </div>
       <div className="mx-auto max-w-6xl py-10">
         <div className="flex items-start justify-between gap-3">
           <div>
@@ -234,7 +242,7 @@ export default function AccountRoutingPage() {
 
           <button
             onClick={() => router.push("/admin")}
-            className="reqgen-btn reqgen-btn-slate rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
+            className="rounded-xl bg-slate-700 px-4 py-2 text-sm font-black text-white shadow-md transition hover:-translate-y-0.5 hover:bg-slate-800 hover:shadow-lg"
           >
             Back
           </button>
@@ -336,7 +344,7 @@ function RoutingCard({
         <button
           onClick={() => onSave(dept.id, ietAccountId, officerUserId, route?.id)}
           disabled={saving}
-          className="reqgen-btn reqgen-btn-rose rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
+          className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-black text-white shadow-md transition hover:-translate-y-0.5 hover:bg-blue-700 hover:shadow-lg disabled:opacity-50"
         >
           {saving ? "Saving..." : "Save Routing"}
         </button>
@@ -345,7 +353,7 @@ function RoutingCard({
           <button
             onClick={() => onDelete(route.id)}
             disabled={saving}
-            className="reqgen-btn reqgen-btn-rose rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-60"
+            className="rounded-xl bg-rose-600 px-4 py-2 text-sm font-black text-white shadow-md transition hover:-translate-y-0.5 hover:bg-rose-700 hover:shadow-lg disabled:opacity-50"
           >
             Delete
           </button>

@@ -1,6 +1,7 @@
 "use client";
 
 import AdminNavigation from "@/app/components/admin/AdminNavigation";
+import { AdminHero } from "@/app/components/admin/AdminUI";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -51,6 +52,13 @@ export default function DepartmentsPage() {
 
     <main className="max-w-5xl mx-auto py-10">
       <AdminNavigation />
+      <div className="mx-auto mt-6 max-w-7xl">
+        <AdminHero
+          eyebrow="Institutional Structure"
+          title="Department Management Centre"
+          description="Manage departmental leadership, routing responsibilities and active organizational structure."
+        />
+      </div>
 
       <h1 className="text-2xl font-bold mb-6">
         Department Routing
@@ -145,7 +153,7 @@ export default function DepartmentsPage() {
 
             <button
             onClick={()=>saveDept(dept)}
-            className="reqgen-btn reqgen-btn-emerald mt-4 bg-blue-600 text-white px-4 py-2 rounded">
+            className="mt-4 rounded-xl bg-emerald-600 px-5 py-3 font-black text-white shadow-md transition hover:-translate-y-0.5 hover:bg-emerald-700 hover:shadow-lg">
 
               Save
 
