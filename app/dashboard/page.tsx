@@ -508,6 +508,18 @@ export default function DashboardPage() {
         href: "/approvals",
         tone: counts.pendingMyApproval > 0 ? "red" : "emerald",
       },
+      {
+        title: "Global Search",
+        description: "Search authorized requests, departments and operational records using your active role.",
+        href: "/dashboard/search",
+        tone: "purple",
+      },
+      {
+        title: "My Activity",
+        description: "Review the permission-aware activity timeline visible to your current working role.",
+        href: "/dashboard/activity",
+        tone: "slate",
+      },
     ];
 
     if (canFinance) {

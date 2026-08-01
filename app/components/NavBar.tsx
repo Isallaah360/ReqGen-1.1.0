@@ -141,6 +141,16 @@ function IconRequests({ className = "h-6 w-6" }: IconProps) {
 }
 
 
+
+function IconSearch({ className = "h-6 w-6" }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2" />
+      <path d="m16.5 16.5 4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 function IconReports({ className = "h-6 w-6" }: IconProps) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -834,6 +844,11 @@ export default function NavBar() {
                 <IconButtonTooltip label="My Requests" />
               </Link>
 
+              <Link className={iconLinkClass("/dashboard/search")} href="/dashboard/search">
+                <IconSearch />
+                <IconButtonTooltip label="Global Search" />
+              </Link>
+
               {canViewReports && (
                 <Link className={iconLinkClass("/reports")} href="/reports">
                   <IconReports />
@@ -940,6 +955,14 @@ export default function NavBar() {
                     className={mobileItemClass("/requests")}
                   >
                     <span className="inline-flex items-center gap-2"><IconRequests className="h-5 w-5" />My Requests</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => goTo("/dashboard/search")}
+                    className={mobileItemClass("/dashboard/search")}
+                  >
+                    <span className="inline-flex items-center gap-2"><IconSearch className="h-5 w-5" />Global Search</span>
                   </button>
 
                   {canFinance && (
