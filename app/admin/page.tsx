@@ -605,14 +605,14 @@ export default function AdminPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-slate-50 px-4">
+      <main className="min-h-screen bg-transparent px-4">
         <div className="mx-auto max-w-7xl py-10 text-slate-600">Loading Admin Panel...</div>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4">
+    <main className="min-h-screen bg-transparent px-4">
       <AdminNavigation />
       <div className="mx-auto max-w-7xl py-10">
         <div className="flex flex-wrap items-start justify-between gap-3">

@@ -66,3 +66,52 @@ button {
 @media (max-width: 640px) {
   .reqgen-btn:not(.reqgen-btn-icon) { min-height: 2.625rem !important; padding: 0.5625rem 0.875rem !important; white-space: normal !important; text-align: center !important; }
 }
+
+
+/* ReqGen Administration Enterprise UI */
+.admin-scope {
+  background:
+    radial-gradient(circle at 10% 0%, rgba(14, 165, 233, 0.10), transparent 26rem),
+    radial-gradient(circle at 92% 8%, rgba(124, 58, 237, 0.09), transparent 24rem),
+    linear-gradient(180deg, #f8fbff 0%, #f5f7fb 48%, #eef3f8 100%);
+}
+.admin-scope .reqgen-btn {
+  color: #fff !important;
+  font-weight: 900 !important;
+  border-color: rgba(255,255,255,.28) !important;
+  box-shadow:
+    0 8px 20px rgba(15,23,42,.16),
+    inset 0 1px 0 rgba(255,255,255,.24) !important;
+  backdrop-filter: blur(10px);
+}
+.admin-scope .reqgen-btn-slate { background: linear-gradient(135deg, rgba(51,65,85,.94), rgba(15,23,42,.94)) !important; }
+.admin-scope .reqgen-btn-blue { background: linear-gradient(135deg, rgba(37,99,235,.94), rgba(8,102,217,.94)) !important; }
+.admin-scope .reqgen-btn-cyan { background: linear-gradient(135deg, rgba(8,145,178,.94), rgba(14,116,144,.94)) !important; }
+.admin-scope .reqgen-btn-emerald { background: linear-gradient(135deg, rgba(5,150,105,.94), rgba(4,120,87,.94)) !important; }
+.admin-scope .reqgen-btn-violet { background: linear-gradient(135deg, rgba(124,58,237,.94), rgba(109,40,217,.94)) !important; }
+.admin-scope .reqgen-btn-orange { background: linear-gradient(135deg, rgba(234,88,12,.94), rgba(194,65,12,.94)) !important; }
+.admin-scope .reqgen-btn-rose { background: linear-gradient(135deg, rgba(225,29,72,.94), rgba(190,18,60,.94)) !important; }
+.admin-scope input,
+.admin-scope select,
+.admin-scope textarea {
+  min-height: 2.75rem;
+  border-radius: .8rem;
+}
+.admin-scope table {
+  width: 100%;
+}
+.admin-scope th {
+  white-space: nowrap;
+}
+.admin-scope td {
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+@media (max-width: 768px) {
+  .admin-scope table {
+    font-size: .78rem;
+  }
+  .admin-scope .reqgen-btn {
+    white-space: normal !important;
+  }
+}

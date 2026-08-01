@@ -589,7 +589,7 @@ export default function AdminUsersPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-slate-50 px-4">
+      <main className="min-h-screen bg-transparent px-4">
         <div className="mx-auto max-w-7xl py-10 text-slate-600">Loading users and roles...</div>
       </main>
     );
@@ -597,7 +597,7 @@ export default function AdminUsersPage() {
 
   if (!canAdmin) {
     return (
-      <main className="min-h-screen bg-slate-50 px-4">
+      <main className="min-h-screen bg-transparent px-4">
         <div className="mx-auto max-w-6xl py-10">
           <div className="rounded-2xl border bg-white p-6 shadow-sm">
             <div className="text-lg font-bold text-slate-900">Access denied</div>
@@ -624,7 +624,7 @@ export default function AdminUsersPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4">
+    <main className="min-h-screen bg-transparent px-4">
       <AdminNavigation />
       <div className="mx-auto max-w-7xl py-10">
         <div className="flex flex-wrap items-start justify-between gap-4">

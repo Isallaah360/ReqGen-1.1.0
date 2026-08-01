@@ -9,7 +9,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   const readOnlyOversight = pathname === "/admin/audit" || pathname === "/admin/security";
   return (
     <StrictActiveRoleBoundary allowedRoles={readOnlyOversight ? ["admin", "auditor"] : ["admin"]} label="the System Administration Centre">
-      {children}
+      <div className="admin-scope min-h-screen">{children}</div>
     </StrictActiveRoleBoundary>
   );
 }

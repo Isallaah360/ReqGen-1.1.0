@@ -142,11 +142,12 @@ function IconRequests({ className = "h-6 w-6" }: IconProps) {
 
 
 
-function IconSearch({ className = "h-6 w-6" }: IconProps) {
+function IconAudit({ className = "h-6 w-6" }: IconProps) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2" />
-      <path d="m16.5 16.5 4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <rect x="4" y="4" width="16" height="16" rx="2" stroke="currentColor" strokeWidth="2" />
+      <path d="M8 9h8M8 13h5M8 17h7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="m15.5 12.5 1.5 1.5 3-3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -313,6 +314,7 @@ export default function NavBar() {
 
   const isAdmin = hasAnyRole(roleSet, ["admin"]);
   const canViewReports = hasAnyRole(roleSet, [...REPORT_ACCESS_ROLES]);
+  const canAudit = hasAnyRole(roleSet, ["admin", "auditor"]);
 
   const canFinance = hasAnyRole(roleSet, [
     "admin",
@@ -843,13 +845,7 @@ export default function NavBar() {
                 <IconRequests />
                 <IconButtonTooltip label="My Requests" />
               </Link>
-
-              <Link className={iconLinkClass("/dashboard/search")} href="/dashboard/search">
-                <IconSearch />
-                <IconButtonTooltip label="Global Search" />
-              </Link>
-
-              {canViewReports && (
+{canViewReports && (
                 <Link className={iconLinkClass("/reports")} href="/reports">
                   <IconReports />
                   <IconButtonTooltip label="Reports & Analytics" />
@@ -885,6 +881,13 @@ export default function NavBar() {
                   <IconRegistry />
                   <IconButtonTooltip label="Registry Desk" />
                 </button>
+              )}
+
+              {canAudit && (
+                <Link className={iconLinkClass("/audit-centre")} href="/audit-centre">
+                  <IconAudit />
+                  <IconButtonTooltip label="Enterprise Audit Centre" />
+                </Link>
               )}
 
               {isAdmin && (
@@ -956,16 +959,7 @@ export default function NavBar() {
                   >
                     <span className="inline-flex items-center gap-2"><IconRequests className="h-5 w-5" />My Requests</span>
                   </button>
-
-                  <button
-                    type="button"
-                    onClick={() => goTo("/dashboard/search")}
-                    className={mobileItemClass("/dashboard/search")}
-                  >
-                    <span className="inline-flex items-center gap-2"><IconSearch className="h-5 w-5" />Global Search</span>
-                  </button>
-
-                  {canFinance && (
+{canFinance && (
                     <button
                       type="button"
                       onClick={() => goTo("/finance")}

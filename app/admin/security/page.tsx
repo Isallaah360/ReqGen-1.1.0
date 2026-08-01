@@ -350,7 +350,7 @@ export default function AdminSecurityPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-slate-50 px-4">
+      <main className="min-h-screen bg-transparent px-4">
         <div className="mx-auto max-w-6xl py-10 text-slate-600">
           Loading Security Checklist...
         </div>
@@ -360,7 +360,7 @@ export default function AdminSecurityPage() {
 
   if (!canAccess) {
     return (
-      <main className="min-h-screen bg-slate-50 px-4">
+      <main className="min-h-screen bg-transparent px-4">
         <div className="mx-auto max-w-3xl py-10">
           <div className="rounded-3xl border bg-white p-6 shadow-sm">
             <h1 className="text-xl font-extrabold text-slate-900">
@@ -384,7 +384,7 @@ export default function AdminSecurityPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4">
+    <main className="min-h-screen bg-transparent px-4">
       <AdminNavigation />
       <style>{`
         @media print {

@@ -418,7 +418,7 @@ export default function AdminRolesPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-slate-50 px-4">
+      <main className="min-h-screen bg-transparent px-4">
         <div className="mx-auto max-w-7xl py-10 text-slate-600">
           Loading roles...
         </div>
@@ -428,7 +428,7 @@ export default function AdminRolesPage() {
 
   if (!canManage) {
     return (
-      <main className="min-h-screen bg-slate-50 px-4">
+      <main className="min-h-screen bg-transparent px-4">
         <div className="mx-auto max-w-3xl py-10">
           <div className="rounded-3xl border bg-white p-6 shadow-sm">
             <h1 className="text-xl font-extrabold text-slate-900">Access denied</h1>
@@ -444,7 +444,7 @@ export default function AdminRolesPage() {
 
             <button
               onClick={() => router.push(`/dashboard?updated=${Date.now()}`)}
-              className="reqgen-btn reqgen-btn-slate mt-5 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+              className="reqgen-btn reqgen-btn-blue mt-5 rounded-xl px-4 py-2 text-sm font-black text-white"
             >
               Back to Dashboard
             </button>
@@ -455,7 +455,7 @@ export default function AdminRolesPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4">
+    <main className="min-h-screen bg-transparent px-4">
       <AdminNavigation />
       <div className="mx-auto max-w-7xl py-10">
         <div className="flex flex-wrap items-start justify-between gap-4">
