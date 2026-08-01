@@ -1,5 +1,6 @@
 "use client";
 
+import AdminNavigation from "@/app/components/admin/AdminNavigation";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -49,6 +50,7 @@ export default function DepartmentsPage() {
   return (
 
     <main className="max-w-5xl mx-auto py-10">
+      <AdminNavigation />
 
       <h1 className="text-2xl font-bold mb-6">
         Department Routing

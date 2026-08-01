@@ -1,5 +1,6 @@
 "use client";
 
+import AdminNavigation from "@/app/components/admin/AdminNavigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
@@ -384,6 +385,7 @@ export default function AdminSecurityPage() {
 
   return (
     <main className="min-h-screen bg-slate-50 px-4">
+      <AdminNavigation />
       <style>{`
         @media print {
           @page {

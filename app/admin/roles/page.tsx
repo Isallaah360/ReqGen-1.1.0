@@ -1,5 +1,6 @@
 "use client";
 
+import AdminNavigation from "@/app/components/admin/AdminNavigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
@@ -455,6 +456,7 @@ export default function AdminRolesPage() {
 
   return (
     <main className="min-h-screen bg-slate-50 px-4">
+      <AdminNavigation />
       <div className="mx-auto max-w-7xl py-10">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
