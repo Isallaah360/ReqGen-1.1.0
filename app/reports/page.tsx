@@ -484,6 +484,8 @@ export default function ReportsAnalyticsPage() {
         <ReportButton icon="refresh" variant="cyan" disabled={refreshing} onClick={() => void load(true)}>{refreshing ? "Refreshing…" : "Refresh Data"}</ReportButton>
         <ReportButton icon="download" variant="violet" onClick={exportReport}>Export CSV</ReportButton>
         <ReportButton icon="print" variant="blue" onClick={printSelected}>{printSection === "ALL" ? "Print All" : "Print Section"}</ReportButton>
+        <ReportButton icon="download" variant="cyan" onClick={() => router.push("/output")}>Output Centre</ReportButton>
+        <ReportButton icon="report" variant="violet" onClick={() => router.push("/audit-centre")}>Audit Centre</ReportButton>
       </>} />
 
       <section className="report-no-print sticky top-20 z-30 rounded-3xl border border-slate-200 bg-white/95 p-5 shadow-xl shadow-slate-300/30 backdrop-blur-xl">

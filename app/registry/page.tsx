@@ -302,6 +302,7 @@ export default function RegistryPage() {
             </div>
             <div className="flex flex-wrap gap-3">
               <button type="button" onClick={() => void load(true)} disabled={refreshing} className="reqgen-btn reqgen-btn-cyan rounded-xl bg-cyan-600 px-5 py-3 text-sm font-black text-white shadow-lg hover:bg-cyan-500 disabled:opacity-60">{refreshing ? "Refreshing..." : "Refresh Dashboard"}</button>
+              <button type="button" onClick={() => router.push("/registry/operations")} className="reqgen-btn reqgen-btn-blue rounded-xl bg-blue-700 px-5 py-3 text-sm font-black text-white shadow-lg hover:bg-blue-600">Registry Operations</button>
               <button type="button" onClick={() => router.push("/dashboard")} className="reqgen-btn reqgen-btn-slate rounded-xl bg-slate-700 px-5 py-3 text-sm font-black text-white shadow-lg hover:bg-slate-600">Main Dashboard</button>
             </div>
           </div>

@@ -60,14 +60,15 @@ export default function AdminNavigation() {
     if (activeRole === "auditor") {
       return items.filter((item) => ["/admin/security", "/admin/audit"].includes(item.href));
     }
-    return [];
+    return [  { href: "/workflow", label: "WORKFLOW INTELLIGENCE", description: "Rules, SLA and escalation", tone: "from-indigo-600 to-blue-800", icon: <svg className={iconClass} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 6h14M5 12h9M5 18h14"/><path d="m16 9 3 3-3 3"/></svg> },
+];
   }, [activeRole]);
 
   if (visibleItems.length === 0) return null;
 
   return (
     <section className="mx-auto mb-6 w-full max-w-6xl rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
-      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
         {visibleItems.map((item) => {
           const active = pathname === item.href || (item.href !== "/admin" && pathname.startsWith(item.href + "/"));
           return (

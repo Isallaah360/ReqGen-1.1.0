@@ -36,7 +36,7 @@ type ApprovalRow = {
   createdAt: string;
 };
 
-type ActionTab = "actions" | "updates";
+type ActionTab = "actions" | "updates" | "priority";
 
 const CLOSED_STATUSES = [
   "completed",
@@ -53,6 +53,7 @@ export default function ActionCentrePage() {
   const [tab, setTab] = useState<ActionTab>("actions");
   const [userId, setUserId] = useState<string | null>(null);
   const [warning, setWarning] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -188,10 +189,13 @@ export default function ActionCentrePage() {
     };
   }, [load]);
 
-  const unread = useMemo(
-    () => updates.filter((item) => !item.read).length,
-    [updates]
-  );
+  const unread = useMemo(() => updates.filter((item) => !item.read).length, [updates]);
+  const priorityApprovals = useMemo(() => approvals.filter((item) => /urgent|high|overdue/i.test(`${item.status} ${item.stage}`)), [approvals]);
+  const visibleApprovals = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    const source = tab === "priority" ? priorityApprovals : approvals;
+    return q ? source.filter((item) => [item.requestNo,item.title,item.stage,item.status].join(" ").toLowerCase().includes(q)) : source;
+  }, [approvals, priorityApprovals, search, tab]);
 
   async function markRead(item: NotificationRow) {
     if (!userId || item.read) return;
@@ -258,6 +262,20 @@ export default function ActionCentrePage() {
           }
         />
 
+        <section className="rounded-3xl border border-slate-200 bg-white p-3 shadow-sm" aria-label="Action Centre navigation">
+          <div className="grid gap-3 sm:grid-cols-3">
+            <Link href="/approvals/action-centre" className="inline-flex min-h-12 items-center justify-center rounded-xl bg-gradient-to-r from-violet-700 to-fuchsia-600 px-4 py-3 text-sm font-black text-white shadow-md ring-4 ring-violet-100 transition hover:-translate-y-0.5 hover:shadow-lg">
+              Action Centre
+            </Link>
+            <Link href="/approvals" className="inline-flex min-h-12 items-center justify-center rounded-xl bg-gradient-to-r from-blue-700 to-cyan-600 px-4 py-3 text-sm font-black text-white shadow-md transition hover:-translate-y-0.5 hover:shadow-lg">
+              Approvals Inbox
+            </Link>
+            <Link href="/dashboard" className="inline-flex min-h-12 items-center justify-center rounded-xl bg-gradient-to-r from-slate-700 to-slate-900 px-4 py-3 text-sm font-black text-white shadow-md transition hover:-translate-y-0.5 hover:shadow-lg">
+              Main Dashboard
+            </Link>
+          </div>
+        </section>
+
         {warning ? (
           <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-900">
             {warning}
@@ -299,7 +317,7 @@ export default function ActionCentrePage() {
             ) : undefined
           }
         >
-          <div className="mb-5 grid gap-3 sm:grid-cols-2">
+          <div className="mb-5 grid gap-3 sm:grid-cols-3">
             <button
               type="button"
               onClick={() => setTab("actions")}
@@ -323,10 +341,24 @@ export default function ActionCentrePage() {
             >
               RECENT UPDATES ({unread} UNREAD)
             </button>
+            <button
+              type="button"
+              onClick={() => setTab("priority")}
+              className={`min-h-12 rounded-xl px-4 text-sm font-black text-white shadow-md transition hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus:ring-4 focus:ring-rose-200 ${
+                tab === "priority"
+                  ? "bg-rose-700 ring-4 ring-rose-200"
+                  : "bg-slate-700 hover:bg-slate-800"
+              }`}
+            >
+              PRIORITY ACTIONS ({priorityApprovals.length})
+            </button>
+
           </div>
 
-          {tab === "actions" ? (
-            approvals.length === 0 ? (
+
+          {tab !== "updates" ? <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search request number, title, stage or status..." className="mb-5 min-h-12 w-full rounded-xl border border-slate-300 px-4 text-sm font-bold text-slate-900 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100" /> : null}
+          {tab === "actions" || tab === "priority" ? (
+            visibleApprovals.length === 0 ? (
               <EmptyState
                 title={loading ? "Loading action queue" : "No pending action"}
                 description={
@@ -337,7 +369,7 @@ export default function ActionCentrePage() {
               />
             ) : (
               <div className="space-y-3">
-                {approvals.map((item) => (
+                {visibleApprovals.map((item) => (
                   <Link
                     href={`/requests/${item.id}`}
                     key={item.id}
