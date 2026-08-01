@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
@@ -269,6 +270,28 @@ function IconLogout({ className = "h-6 w-6" }: IconProps) {
         strokeLinejoin="round"
       />
     </svg>
+  );
+}
+
+
+function NavPngIcon({
+  src,
+  alt,
+  size = 28,
+}: {
+  src: string;
+  alt: string;
+  size?: number;
+}) {
+  return (
+    <Image
+      src={src}
+      alt={alt}
+      width={size}
+      height={size}
+      priority
+      className="h-auto w-auto max-h-7 max-w-7 object-contain drop-shadow-sm transition-transform duration-200 group-hover:scale-110"
+    />
   );
 }
 
@@ -724,7 +747,7 @@ export default function NavBar() {
                         : "border-slate-200 bg-white text-slate-700 shadow-sm hover:-translate-y-1 hover:border-cyan-400 hover:bg-gradient-to-br hover:from-blue-50 hover:to-cyan-50 hover:text-blue-700 hover:shadow-lg"
                   }`}
                 >
-                  <IconNotifications />
+                  <NavPngIcon src="/action.png" alt="Action Centre" />
                   <span className="absolute bottom-1.5 right-1.5 grid h-4 w-4 place-items-center rounded-full bg-emerald-500 text-[9px] font-black leading-none text-white shadow-sm ring-2 ring-white">✓</span>
                   <IconButtonTooltip label="Action Centre" />
                   {actionCount > 0 && (
@@ -837,17 +860,17 @@ export default function NavBar() {
               </div>
 
               <Link className={iconLinkClass("/dashboard")} href="/dashboard">
-                <IconDashboard />
+                <NavPngIcon src="/dashboard.png" alt="Dashboard" />
                 <IconButtonTooltip label="Dashboard" />
               </Link>
 
               <Link className={iconLinkClass("/requests")} href="/requests">
-                <IconRequests />
+                <NavPngIcon src="/request.png" alt="My Requests" />
                 <IconButtonTooltip label="My Requests" />
               </Link>
 {canViewReports && (
                 <Link className={iconLinkClass("/reports")} href="/reports">
-                  <IconReports />
+                  <NavPngIcon src="/report.png" alt="Reports and Analytics" />
                   <IconButtonTooltip label="Reports & Analytics" />
                 </Link>
               )}
@@ -860,14 +883,14 @@ export default function NavBar() {
                   onClick={() => goTo("/finance")}
                   className={iconLinkClass("/finance")}
                 >
-                  <IconFinance />
+                  <NavPngIcon src="/finance.png" alt="Finance" />
                   <IconButtonTooltip label="Finance" />
                 </button>
               )}
 
               {canHR && (
                 <Link className={iconLinkClass(hrHomeHref)} href={hrHomeHref}>
-                  <IconHR />
+                  <NavPngIcon src="/hr.png" alt="HR Directorate" />
                   <IconButtonTooltip label={isHRBoss ? "HR Directorate" : "My HR Work"} />
                 </Link>
               )}
@@ -878,21 +901,21 @@ export default function NavBar() {
                   onClick={() => goTo("/registry")}
                   className={iconLinkClass("/registry")}
                 >
-                  <IconRegistry />
+                  <NavPngIcon src="/registry.png" alt="Registry Desk" />
                   <IconButtonTooltip label="Registry Desk" />
                 </button>
               )}
 
               {canAudit && (
                 <Link className={iconLinkClass("/audit-centre")} href="/audit-centre">
-                  <IconAudit />
+                  <NavPngIcon src="/audit.png" alt="Enterprise Audit Centre" />
                   <IconButtonTooltip label="Enterprise Audit Centre" />
                 </Link>
               )}
 
               {isAdmin && (
                 <Link className={iconLinkClass("/admin")} href="/admin">
-                  <IconAdmin />
+                  <NavPngIcon src="/admin.png" alt="Administration" />
                   <IconButtonTooltip label="Admin" />
                 </Link>
               )}
@@ -932,7 +955,7 @@ export default function NavBar() {
                   >
                     <div className="flex items-center justify-between gap-3">
                       <span className="inline-flex items-center gap-2">
-                        <IconNotifications className="h-5 w-5" />
+                        <NavPngIcon src="/action.png" alt="Action Centre" size={22} />
                         Action Centre
                       </span>
                       {actionCount > 0 && (
@@ -949,7 +972,7 @@ export default function NavBar() {
                     onClick={() => goTo("/dashboard")}
                     className={mobileItemClass("/dashboard")}
                   >
-                    <span className="inline-flex items-center gap-2"><IconDashboard className="h-5 w-5" />Dashboard</span>
+                    <span className="inline-flex items-center gap-2"><NavPngIcon src="/dashboard.png" alt="Dashboard" size={22} />Dashboard</span>
                   </button>
 
                   <button
@@ -957,8 +980,21 @@ export default function NavBar() {
                     onClick={() => goTo("/requests")}
                     className={mobileItemClass("/requests")}
                   >
-                    <span className="inline-flex items-center gap-2"><IconRequests className="h-5 w-5" />My Requests</span>
+                    <span className="inline-flex items-center gap-2"><NavPngIcon src="/request.png" alt="My Requests" size={22} />My Requests</span>
                   </button>
+
+                  {canViewReports && (
+                    <button
+                      type="button"
+                      onClick={() => goTo("/reports")}
+                      className={mobileItemClass("/reports")}
+                    >
+                      <span className="inline-flex items-center gap-2">
+                        <NavPngIcon src="/report.png" alt="Reports and Analytics" size={22} />
+                        Reports & Analytics
+                      </span>
+                    </button>
+                  )}
 {canFinance && (
                     <button
                       type="button"
@@ -966,7 +1002,7 @@ export default function NavBar() {
                       className={mobileItemClass("/finance")}
                     >
                       <div className="inline-flex items-center gap-2">
-                        <IconFinance className="h-5 w-5" />
+                        <NavPngIcon src="/finance.png" alt="Finance" size={22} />
                         Finance
                       </div>
                       <div className={mobileItemDescriptionClass("/finance")}>
@@ -986,7 +1022,7 @@ export default function NavBar() {
                         className={mobileItemClass(hrHomeHref)}
                       >
                         <div className="inline-flex items-center gap-2">
-                          <IconHR className="h-5 w-5" />
+                          <NavPngIcon src="/hr.png" alt="HR Directorate" size={22} />
                           {isHRBoss ? "HR Command Centre" : "My HR Work"}
                         </div>
                         <div className={mobileItemDescriptionClass(hrHomeHref)}>
@@ -1010,12 +1046,30 @@ export default function NavBar() {
                         className={mobileItemClass("/registry")}
                       >
                         <span className="inline-flex items-center gap-2">
-                          <IconRegistry className="h-5 w-5" />
+                          <NavPngIcon src="/registry.png" alt="Registry Desk" size={22} />
                           Registry Desk
                         </span>
                         <div className={mobileItemDescriptionClass("/registry")}>
                           Department movement, DG reminders and daily submission summaries
                         </div>
+                      </button>
+                    </>
+                  )}
+
+                  {canAudit && (
+                    <>
+                      <div className="mt-3 border-t pt-3 text-xs font-black uppercase tracking-wide text-slate-500">
+                        Governance
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => goTo("/audit-centre")}
+                        className={mobileItemClass("/audit-centre")}
+                      >
+                        <span className="inline-flex items-center gap-2">
+                          <NavPngIcon src="/audit.png" alt="Enterprise Audit Centre" size={22} />
+                          Enterprise Audit Centre
+                        </span>
                       </button>
                     </>
                   )}
@@ -1032,7 +1086,7 @@ export default function NavBar() {
                         className={mobileItemClass("/admin")}
                       >
                         <span className="inline-flex items-center gap-2">
-                          <IconAdmin className="h-5 w-5" />
+                          <NavPngIcon src="/admin.png" alt="Administration" size={22} />
                           Admin
                         </span>
                       </button>
