@@ -306,6 +306,15 @@ export default function RequestDetailsPage() {
     return keys;
   }, [me?.role, myRoles]);
 
+  const isHRContext = useMemo(() => {
+    return [...activeRoleKeys].some((role) =>
+      role === "hr" ||
+      role === "hrboss" ||
+      role.startsWith("hrofficer") ||
+      role.startsWith("hr:")
+    );
+  }, [activeRoleKeys]);
+
   const stg = stageKey(req?.current_stage);
 
   const isMyRequest = useMemo(() => {
@@ -416,22 +425,33 @@ export default function RequestDetailsPage() {
   }, [req, me, activeRoleKeys]);
 
   const needsSubheadAssignment = useMemo(() => {
-    if (!req) return false;
+    if (!req || req.subhead_id) return false;
 
-    return (
-      isOfficial &&
-      !req.subhead_id &&
-      ["DIRECTOR", "DINADMIN", "HOD", "REGISTRAR"].includes(stg) &&
-      !["APPROVED", "REJECTED", "CANCELLED", "DELETED", "PAID", "CLOSED", "COMPLETED"].includes(
-        stageKey(req.status)
-      )
-    );
-  }, [req, isOfficial, stg]);
+    const requestIsClosed = [
+      "APPROVED",
+      "REJECTED",
+      "CANCELLED",
+      "DELETED",
+      "PAID",
+      "CLOSED",
+      "COMPLETED",
+    ].includes(stageKey(req.status));
+
+    if (requestIsClosed) return false;
+
+    const officialNeedsBudgetLine =
+      isOfficial && ["DIRECTOR", "DINADMIN", "HOD", "REGISTRAR"].includes(stg);
+
+    const personalFundNeedsHRRecommendation =
+      isPersonalFund && stg === "HR";
+
+    return officialNeedsBudgetLine || personalFundNeedsHRRecommendation;
+  }, [req, isOfficial, isPersonalFund, stg]);
 
   const canAssignSubhead = useMemo(() => {
     if (!req || !me) return false;
 
-    const roleAllowed =
+    const officialBudgetRoleAllowed =
       activeRoleKeys.has("director") ||
       activeRoleKeys.has("dinadmin") ||
       activeRoleKeys.has("dinadmin1") ||
@@ -442,11 +462,30 @@ export default function RequestDetailsPage() {
       activeRoleKeys.has("admin") ||
       activeRoleKeys.has("auditor");
 
-    const isAssignedOfficer = req.current_owner === me.id;
-    const isAdminAuditor = activeRoleKeys.has("admin") || activeRoleKeys.has("auditor");
+    const hrFundingRoleAllowed =
+      isPersonalFund &&
+      (isHRContext || activeRoleKeys.has("admin"));
 
-    return needsSubheadAssignment && roleAllowed && (isAssignedOfficer || isAdminAuditor);
-  }, [req, me, activeRoleKeys, needsSubheadAssignment]);
+    const isAssignedOfficer = req.current_owner === me.id;
+    const hasOversightAuthority =
+      activeRoleKeys.has("admin") ||
+      activeRoleKeys.has("auditor") ||
+      activeRoleKeys.has("hrboss") ||
+      activeRoleKeys.has("hr");
+
+    return (
+      needsSubheadAssignment &&
+      (officialBudgetRoleAllowed || hrFundingRoleAllowed) &&
+      (isAssignedOfficer || hasOversightAuthority)
+    );
+  }, [
+    req,
+    me,
+    activeRoleKeys,
+    needsSubheadAssignment,
+    isPersonalFund,
+    isHRContext,
+  ]);
 
   const selectedAssignableSubhead = useMemo(() => {
     return assignableSubheads.find((s) => s.id === selectedSubheadId) || null;
@@ -543,21 +582,38 @@ export default function RequestDetailsPage() {
   }
 
   async function loadAssignableSubheads(deptId: string) {
-    const { data, error } = await supabase
-      .from("subheads")
-      .select(
-        "id,dept_id,code,name,approved_allocation,reserved_amount,expenditure,balance,is_active"
-      )
-      .eq("dept_id", deptId)
-      .eq("is_active", true)
-      .order("name", { ascending: true });
+    let rows: AssignableSubhead[] = [];
 
-    if (error) {
-      setAssignableSubheads([]);
-      return;
+    if (isHRContext && id) {
+      const { data, error } = await supabase.rpc(
+        "get_hr_personal_fund_subhead_summary",
+        { p_request_id: id }
+      );
+
+      if (error) {
+        setAssignableSubheads([]);
+        return;
+      }
+
+      rows = (data || []) as AssignableSubhead[];
+    } else {
+      const { data, error } = await supabase
+        .from("subheads")
+        .select(
+          "id,dept_id,code,name,approved_allocation,reserved_amount,expenditure,balance,is_active"
+        )
+        .eq("dept_id", deptId)
+        .eq("is_active", true)
+        .order("name", { ascending: true });
+
+      if (error) {
+        setAssignableSubheads([]);
+        return;
+      }
+
+      rows = (data || []) as AssignableSubhead[];
     }
 
-    const rows = (data || []) as AssignableSubhead[];
     setAssignableSubheads(rows);
 
     if (rows.length > 0) {
@@ -1285,10 +1341,10 @@ export default function RequestDetailsPage() {
                 <Info
                   label="Subhead"
                   value={
-                    isOfficial
+                    isOfficial || isPersonalFund
                       ? subhead
                         ? `${subhead.code ? `${subhead.code} — ` : ""}${subhead.name}`
-                        : "Pending Assignment"
+                        : "Pending HR Recommendation"
                       : "Not Applicable"
                   }
                 />
@@ -1299,7 +1355,7 @@ export default function RequestDetailsPage() {
                 <Info label="Request Date" value={new Date(req.created_at).toLocaleString()} />
               </div>
 
-              {req.assigned_account_officer_name && (
+              {!isHRContext && req.assigned_account_officer_name && (
                 <div className="mt-4">
                   <Info label="Automatically Attached AccountOfficer" value={req.assigned_account_officer_name} />
                 </div>
@@ -1348,11 +1404,12 @@ export default function RequestDetailsPage() {
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <h2 className="text-lg font-extrabold text-slate-900">
-                      Budget Subhead Assignment
+                      {isPersonalFund ? "HR Funding Recommendation" : "Budget Subhead Assignment"}
                     </h2>
                     <p className="mt-1 text-sm text-slate-600">
-                      This Official request has no budget line yet. Select the correct subhead and
-                      reserve funds before approving.
+                      {isPersonalFund
+                        ? "Select an appropriate subhead and confirm that sufficient balance is available before forwarding the Personal Fund request to DG."
+                        : "This Official request has no budget line yet. Select the correct subhead and reserve funds before approving."}
                     </p>
                   </div>
 
@@ -1363,14 +1420,13 @@ export default function RequestDetailsPage() {
 
                 {!canAssignSubhead ? (
                   <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
-                    View only. Only the assigned budget authority, Admin, or Auditor can assign the
-                    subhead at this stage.
+                    View only. Only the assigned authority for this workflow stage can recommend and reserve the subhead.
                   </div>
                 ) : (
                   <>
                     <div className="mt-4">
                       <label className="text-sm font-semibold text-slate-800">
-                        Select Subhead / Budget Line
+                        {isPersonalFund ? "Select Recommended Subhead" : "Select Subhead / Budget Line"}
                       </label>
                       <select
                         value={selectedSubheadId}
@@ -1425,7 +1481,11 @@ export default function RequestDetailsPage() {
                       }
                       className="reqgen-btn reqgen-btn-rose mt-4 w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-black text-white hover:bg-blue-700 disabled:opacity-60"
                     >
-                      {assigningSubhead ? "Assigning & Reserving..." : "Assign Subhead & Reserve Funds"}
+                      {assigningSubhead
+                        ? "Assigning & Reserving..."
+                        : isPersonalFund
+                          ? "Recommend Subhead & Reserve Funds"
+                          : "Assign Subhead & Reserve Funds"}
                     </button>
                   </>
                 )}

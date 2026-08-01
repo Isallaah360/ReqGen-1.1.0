@@ -19,7 +19,6 @@ type ReqRow = {
   checked_by_name: string | null;
   hr_name: string | null;
   dg_name: string | null;
-  account_name: string | null;
   dept_id: string | null;
   dept_name: string | null;
   request_type: string | null;
@@ -488,7 +487,6 @@ export default function HRFilingPage() {
           r.checked_by_name,
           r.hr_name,
           r.dg_name,
-          r.account_name,
           r.dept_name,
           r.status,
           r.current_stage,
