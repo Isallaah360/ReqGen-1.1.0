@@ -30,9 +30,13 @@ export default function RouteAccessGuard() {
           return;
         }
 
-        // Strict working context: the selected active role governs route access,
-        // including for users who also hold the Admin role.
-        if (!canAccessPath(pathname, context.roleSet)) {
+        // Strict working context: route authorization receives ONLY the selected
+        // active role. Other assigned roles must never leak authority into the
+        // current session context.
+        const activeRoleOnly = new Set<string>();
+        if (context.activeRoleKey) activeRoleOnly.add(context.activeRoleKey);
+
+        if (!canAccessPath(pathname, activeRoleOnly)) {
           router.replace(`/unauthorized?from=${encodeURIComponent(pathname)}&role=${encodeURIComponent(context.activeRoleKey || "staff")}`);
           return;
         }

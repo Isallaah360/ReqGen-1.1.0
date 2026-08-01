@@ -183,20 +183,12 @@ export default function DashboardPage() {
   });
 
   const roleSet = useMemo(() => {
-    const assigned = new Set<string>();
-    if (profile?.role) assigned.add(roleKey(profile.role));
-    profileRoles.forEach((r) => {
-      if (r.is_active) assigned.add(roleKey(r.role_key));
-    });
-
     const effective = new Set<string>();
-    if (assigned.has("admin")) effective.add("admin");
     if (activeRoleKey) effective.add(roleKey(activeRoleKey));
-    if (!activeRoleKey) assigned.forEach((role) => effective.add(role));
     return effective;
-  }, [activeRoleKey, profile?.role, profileRoles]);
+  }, [activeRoleKey]);
 
-  const isAdmin = hasAnyRole(roleSet, ["admin", "auditor"]);
+  const isAdmin = hasAnyRole(roleSet, ["admin"]);
 
   const canFinance = hasAnyRole(roleSet, [
     "admin",
@@ -426,16 +418,8 @@ export default function DashboardPage() {
     const currentActiveRole = (activeRoleRes.data as { active_role_key?: string } | null)?.active_role_key || null;
     setActiveRoleKey(currentActiveRole);
 
-    const assignedRoles = new Set<string>();
-    if (profileRow.role) assignedRoles.add(roleKey(profileRow.role));
-    activeProfileRoles.forEach((r) => {
-      if (r.is_active) assignedRoles.add(roleKey(r.role_key));
-    });
-
     const nextRoleSet = new Set<string>();
-    if (assignedRoles.has("admin")) nextRoleSet.add("admin");
     if (currentActiveRole) nextRoleSet.add(roleKey(currentActiveRole));
-    if (!currentActiveRole) assignedRoles.forEach((role) => nextRoleSet.add(role));
 
     if (factorsRes.error) {
       setSecurity({

@@ -295,20 +295,13 @@ export default function NavBar() {
   const mobileRef = useRef<HTMLDivElement | null>(null);
 
   const roleSet = useMemo(() => {
-    const assigned = new Set<string>();
-    if (myRole) assigned.add(roleKey(myRole));
-    myRoles.forEach((r) => {
-      if (r.is_active) assigned.add(roleKey(r.role_key || r.role_name));
-    });
-
+    // Strict isolation: only the selected active role controls visible modules.
     const effective = new Set<string>();
-    if (assigned.has("admin")) effective.add("admin");
     if (activeRoleKey) effective.add(roleKey(activeRoleKey));
-    if (!activeRoleKey) assigned.forEach((role) => effective.add(role));
     return effective;
-  }, [activeRoleKey, myRole, myRoles]);
+  }, [activeRoleKey]);
 
-  const isAdmin = hasAnyRole(roleSet, ["admin", "auditor"]);
+  const isAdmin = hasAnyRole(roleSet, ["admin"]);
   const canViewReports = hasAnyRole(roleSet, [...REPORT_ACCESS_ROLES]);
 
   const canFinance = hasAnyRole(roleSet, [

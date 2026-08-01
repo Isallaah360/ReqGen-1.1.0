@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { supabase } from "@/lib/supabaseClient";
 
 type NavItem = {
   href: string;
@@ -24,12 +26,49 @@ const items: NavItem[] = [
   { href: "/admin/audit", label: "ADMIN AUDIT", description: "Changes and role switches", tone: "from-fuchsia-600 to-purple-800", icon: <svg className={iconClass} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg> },
 ];
 
+function normalizeRole(value: unknown) {
+  return String(value ?? "").trim().toLowerCase().replace(/[^a-z0-9:]+/g, "");
+}
+
+function roleFromRpc(value: unknown) {
+  if (typeof value === "string") return normalizeRole(value);
+  if (value && typeof value === "object") {
+    const row = value as Record<string, unknown>;
+    return normalizeRole(row.active_role_key ?? row.role_key ?? row.role);
+  }
+  return "";
+}
+
 export default function AdminNavigation() {
   const pathname = usePathname();
+  const [activeRole, setActiveRole] = useState("");
+
+  const loadRole = useCallback(async () => {
+    const { data } = await supabase.rpc("get_my_active_role");
+    setActiveRole(roleFromRpc(data));
+  }, []);
+
+  useEffect(() => {
+    void loadRole();
+    const refresh = () => void loadRole();
+    window.addEventListener("reqgen-active-role-changed", refresh);
+    return () => window.removeEventListener("reqgen-active-role-changed", refresh);
+  }, [loadRole]);
+
+  const visibleItems = useMemo(() => {
+    if (activeRole === "admin") return items;
+    if (activeRole === "auditor") {
+      return items.filter((item) => ["/admin/security", "/admin/audit"].includes(item.href));
+    }
+    return [];
+  }, [activeRole]);
+
+  if (visibleItems.length === 0) return null;
+
   return (
     <section className="mb-6 rounded-3xl border border-slate-200 bg-white p-3 shadow-sm">
       <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-        {items.map((item) => {
+        {visibleItems.map((item) => {
           const active = pathname === item.href || (item.href !== "/admin" && pathname.startsWith(item.href + "/"));
           return (
             <Link key={item.href} href={item.href} className={`group flex min-h-16 items-center gap-3 rounded-2xl bg-gradient-to-r ${item.tone} px-4 py-3 font-black text-white shadow-md transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus:ring-4 focus:ring-blue-200 ${active ? "ring-4 ring-sky-200" : ""}`}>

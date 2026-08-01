@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import {
@@ -40,7 +40,6 @@ export function ActiveRoleSwitcher({ compact = false }: { compact?: boolean }) {
 
   const currentKey = activeRole?.active_role_key || roles[0]?.key || "staff";
   const currentName = activeRole?.active_role_name || roles[0]?.name || "Staff";
-  const isAdminAssigned = useMemo(() => roles.some((role) => role.key === "admin"), [roles]);
 
   async function changeRole(nextRole: string) {
     if (!nextRole || nextRole === currentKey) return;
@@ -51,6 +50,7 @@ export function ActiveRoleSwitcher({ compact = false }: { compact?: boolean }) {
       setActiveRole(result);
       setMessage(`Now operating as ${result.active_role_name}.`);
       window.dispatchEvent(new Event("reqgen-active-role-changed"));
+      router.replace("/dashboard");
       router.refresh();
       setTimeout(() => window.location.reload(), 250);
     } catch (error) {
@@ -90,7 +90,7 @@ export function ActiveRoleSwitcher({ compact = false }: { compact?: boolean }) {
           <p className="text-xs font-black uppercase tracking-[0.18em] text-blue-700">Current Working Context</p>
           <h2 className="mt-2 text-2xl font-black text-slate-950">Operating as {currentName}</h2>
           <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-slate-600">
-            Navigation, authorization and audit attribution use this active role. Only roles formally assigned to your account are available.
+            Navigation, authorization, database actions and audit attribution use only this active role. Other assigned roles remain inactive until you deliberately switch to them.
           </p>
         </div>
         <div className="w-full lg:max-w-md">
@@ -107,7 +107,7 @@ export function ActiveRoleSwitcher({ compact = false }: { compact?: boolean }) {
           </select>
           <div className="mt-2 flex flex-wrap gap-2 text-xs font-bold">
             <span className="rounded-full bg-blue-100 px-3 py-1 text-blue-800">{roles.length} assigned role{roles.length === 1 ? "" : "s"}</span>
-            {isAdminAssigned && <span className="rounded-full bg-rose-100 px-3 py-1 text-rose-800">Admin override retained</span>}
+            <span className="rounded-full bg-emerald-100 px-3 py-1 text-emerald-800">Strict role isolation active</span>
           </div>
           {message && <div className="mt-3 rounded-xl border border-blue-200 bg-white px-3 py-2 text-sm font-bold text-blue-800">{message}</div>}
         </div>
