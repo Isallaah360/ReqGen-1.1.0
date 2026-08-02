@@ -502,39 +502,9 @@ export default function DashboardPage() {
         tone: "slate",
       },
       {
-        title: "My Leave",
-        description: "View your personal leave applications, decisions and leave history.",
-        href: "/staff/leave",
-        tone: "purple",
-      },
-      {
-        title: "My Attendance",
-        description: "Review your captured seminar attendance, punctuality and participation history.",
-        href: "/staff/attendance",
-        tone: "emerald",
-      },
-      {
-        title: "My Training",
-        description: "View your capacity-building programmes, participation and completion records.",
-        href: "/staff/training",
-        tone: "blue",
-      },
-      {
-        title: "My Notifications",
-        description: "Open your personal workflow and system notification inbox.",
-        href: "/staff/notifications",
-        tone: "red",
-      },
-      {
-        title: "My Downloads",
-        description: "Open approved personal documents and original IET Request printouts.",
-        href: "/staff/downloads",
-        tone: "emerald",
-      },
-      {
-        title: "My Profile",
-        description: "Review and update your centralized personal profile, signature and security settings.",
-        href: "/profile",
+        title: "Staff Workspace",
+        description: "Open your personal self-service centre for leave, attendance, training, notifications, downloads and profile information.",
+        href: "/staff",
         tone: "purple",
       },
       {
