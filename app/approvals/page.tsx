@@ -251,6 +251,7 @@ export default function ApprovalsPage() {
 
   const [meRole, setMeRole] = useState<string | null>(null);
   const [meRoles, setMeRoles] = useState<ProfileRole[]>([]);
+  const [activeRole, setActiveRole] = useState<string>("staff");
 
   const [search, setSearch] = useState("");
   const [queueTab, setQueueTab] = useState<QueueTab>("ALL");
@@ -276,7 +277,7 @@ export default function ApprovalsPage() {
         return;
       }
 
-      const [profileRes, rolesRes, requestRes, notificationRes] = await Promise.all([
+      const [profileRes, rolesRes, activeRoleRes, requestRes, notificationRes] = await Promise.all([
         supabase.from("profiles").select("role").eq("id", user.id).maybeSingle(),
 
         supabase
@@ -285,12 +286,13 @@ export default function ApprovalsPage() {
           .eq("profile_id", user.id)
           .eq("is_active", true),
 
+        supabase.rpc("get_my_active_role"),
+
         supabase
           .from("requests")
           .select(
             "id,request_no,title,status,current_stage,current_owner,amount,created_at,request_type,personal_category,funds_state,assigned_account_officer_name"
           )
-          .eq("current_owner", user.id)
           .order("created_at", { ascending: false }),
 
         supabase
@@ -313,11 +315,70 @@ export default function ApprovalsPage() {
         setMeRoles((rolesRes.data || []) as ProfileRole[]);
       }
 
+      const rawActiveRole = activeRoleRes.data as unknown;
+      let resolvedActiveRole = "";
+
+      if (typeof rawActiveRole === "string") {
+        resolvedActiveRole = rawActiveRole;
+      } else if (Array.isArray(rawActiveRole)) {
+        const first = rawActiveRole[0] as Record<string, unknown> | undefined;
+        resolvedActiveRole = String(
+          first?.active_role_key ||
+          first?.role_key ||
+          first?.get_my_active_role ||
+          ""
+        );
+      } else if (rawActiveRole && typeof rawActiveRole === "object") {
+        const item = rawActiveRole as Record<string, unknown>;
+        resolvedActiveRole = String(
+          item.active_role_key ||
+          item.role_key ||
+          item.get_my_active_role ||
+          ""
+        );
+      }
+
+      const effectiveRole = roleKey(
+        resolvedActiveRole ||
+        (profileRes.data?.role as string) ||
+        "staff"
+      );
+
+      setActiveRole(effectiveRole);
+
       if (requestRes.error) {
         setMsg("Failed to load approvals: " + requestRes.error.message);
         setRows([]);
       } else {
-        setRows(((requestRes.data || []) as RequestRow[]).filter(isActiveApproval));
+        const stageForRole: Record<string, string[]> = {
+          po: ["PO"],
+          dod: ["DOD"],
+          director: ["DOD"],
+          dinadmin: ["DINADMIN"],
+          registrar: ["REGISTRAR"],
+          registry: ["REGISTRAR"],
+          hod: ["HOD"],
+          hr: ["HR", "HRFILING"],
+          hrboss: ["HR", "HRFILING"],
+          hrofficer: ["HR", "HRFILING"],
+          dg: ["DG"],
+          account: ["ACCOUNT"],
+          accounts: ["ACCOUNT"],
+          accountofficer: ["ACCOUNT"],
+        };
+
+        const allowedStages = stageForRole[effectiveRole] || [];
+        const canSeeAll = ["admin", "auditor"].includes(effectiveRole);
+
+        const actionableRows = ((requestRes.data || []) as RequestRow[])
+          .filter(isActiveApproval)
+          .filter((row) => {
+            if (canSeeAll) return true;
+            if (row.current_owner === user.id) return true;
+            return allowedStages.includes(stageKey(row.current_stage));
+          });
+
+        setRows(actionableRows);
       }
 
       if (!notificationRes.error) {
@@ -349,6 +410,26 @@ export default function ApprovalsPage() {
     return () => {
       window.removeEventListener("focus", refreshOnFocus);
       document.removeEventListener("visibilitychange", refreshOnVisible);
+    };
+  }, [load]);
+
+  useEffect(() => {
+    const channel = supabase
+      .channel("approvals-inbox-live")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "requests" },
+        () => void load({ silent: true })
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "notifications" },
+        () => void load({ silent: true })
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
     };
   }, [load]);
 
@@ -456,7 +537,7 @@ export default function ApprovalsPage() {
           title="Approvals Inbox"
           description="Review requests assigned to your active role, verify supporting evidence and move each workflow forward securely."
           icon="approval"
-          meta={<>Active capacity: <b>{roleSummary(meRole, meRoles)}</b>{unreadCount > 0 ? <> • <b>{unreadCount} new assignment(s)</b></> : null}</>}
+          meta={<>Active role: <b>{activeRole || roleKey(meRole) || "staff"}</b>{unreadCount > 0 ? <> • <b>{unreadCount} new assignment(s)</b></> : null}</>}
           actions={
             <>
               <WorkflowAction icon="refresh" tone="white" onClick={() => load({ silent: true })} disabled={refreshing || loading}>
@@ -667,7 +748,7 @@ function QueueTabButton({ active, label, count, tone, onClick }: { active: boole
 
   return (
     <button type="button" onClick={onClick} aria-pressed={active} className={`flex min-h-14 items-center justify-between gap-3 rounded-2xl bg-gradient-to-r px-5 py-3 text-left font-black text-white shadow-md transition hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus:ring-4 ${toneClass} ${active ? "ring-4 ring-white ring-offset-2 ring-offset-slate-300" : ""}`}>
-      <span className="text-sm sm:text-base">{label}</span>
+      <span className="text-sm font-black text-white sm:text-base" style={{ color: "#ffffff" }}>{label}</span>
       <span className="inline-flex min-w-9 items-center justify-center rounded-xl border border-white/40 bg-white/20 px-2.5 py-1 text-sm font-black text-white backdrop-blur-sm">{count.toLocaleString()}</span>
     </button>
   );

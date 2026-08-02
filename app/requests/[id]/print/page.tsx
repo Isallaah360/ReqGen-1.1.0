@@ -539,23 +539,8 @@ export default function PrintRequestPage() {
     return naira(req?.amount);
   }, [isPersonalOther, req?.amount]);
 
-  const backPath = useMemo(() => {
-    if (hasAnyRole(roleSet, ["hr", "hrofficer1", "hrofficer2", "hrofficer3"]) && isPersonal) {
-      return "/hr/filing";
-    }
-
-    if (hasAnyRole(roleSet, ["account", "accounts", "accountofficer", "admin", "auditor"])) {
-      return "/finance";
-    }
-
-    return "/requests";
-  }, [roleSet, isPersonal]);
-
-  const backLabel = useMemo(() => {
-    if (backPath === "/hr/filing") return "Back to HR Filing";
-    if (backPath === "/finance") return "Back to Finance";
-    return "Back to Requests";
-  }, [backPath]);
+  const backPath = "/requests";
+  const backLabel = "Back to My Requests";
 
   const ready = useMemo(() => {
     if (!req) return false;
@@ -669,14 +654,14 @@ export default function PrintRequestPage() {
           <div className="mt-5 flex flex-wrap gap-2">
             <button
               onClick={goBack}
-              className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+              className="reqgen-btn reqgen-btn-blue rounded-xl px-4 py-2 text-sm font-black text-white shadow-md transition hover:-translate-y-0.5 hover:shadow-lg"
             >
               {backLabel}
             </button>
 
             <button
               onClick={goDashboard}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
+              className="reqgen-btn reqgen-btn-slate rounded-xl px-4 py-2 text-sm font-black text-white shadow-md transition hover:-translate-y-0.5 hover:shadow-lg"
             >
               Dashboard
             </button>
