@@ -338,7 +338,7 @@ export default function EditRequestPage() {
         isAdminAuditorEdit ||
         (
           isAssignedOfficerEdit &&
-          hasAnyRole(roleSet, ["hod", "registrar", "admin", "auditor"])
+          hasAnyRole(roleSet, ["hod", "registrar", "dinadmin", "dinadmin1", "dinadmin2", "dinadmin3", "admin", "auditor"])
         )
       )
     );
@@ -801,8 +801,8 @@ export default function EditRequestPage() {
 
               {isOfficial && !canEditFinanceFields && (
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
-                  Subhead information is handled by assigned HOD/Registrar/Admin/Auditor and is
-                  not editable here.
+                  Subhead information is handled by the assigned DIN Admin/HOD/Registrar/Admin/Auditor and is
+                  not editable for your current authority.
                 </div>
               )}
 

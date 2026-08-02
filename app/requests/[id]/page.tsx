@@ -467,6 +467,14 @@ export default function RequestDetailsPage() {
       (isHRContext || activeRoleKeys.has("admin"));
 
     const isAssignedOfficer = req.current_owner === me.id;
+    const isDinAdminAtDinStage =
+      isOfficial &&
+      stg === "DINADMIN" &&
+      (activeRoleKeys.has("dinadmin") ||
+        activeRoleKeys.has("dinadmin1") ||
+        activeRoleKeys.has("dinadmin2") ||
+        activeRoleKeys.has("dinadmin3"));
+
     const hasOversightAuthority =
       activeRoleKeys.has("admin") ||
       activeRoleKeys.has("auditor") ||
@@ -476,7 +484,7 @@ export default function RequestDetailsPage() {
     return (
       needsSubheadAssignment &&
       (officialBudgetRoleAllowed || hrFundingRoleAllowed) &&
-      (isAssignedOfficer || hasOversightAuthority)
+      (isAssignedOfficer || isDinAdminAtDinStage || hasOversightAuthority)
     );
   }, [
     req,
