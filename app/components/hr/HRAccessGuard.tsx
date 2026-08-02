@@ -1,7 +1,7 @@
 "use client";
 
 import { ReactNode, useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { getCurrentAuthContext } from "@/lib/auth";
 import { normalizeRole } from "@/lib/roles";
@@ -17,18 +17,50 @@ type Props = {
   section?: string;
   permission?: string;
   bossOnly?: boolean;
+  auditorAllowed?: boolean;
 };
+
+const SECTION_ALIASES: Record<string, string[]> = {
+  filing: ["filing", "hrfiling", "stafffiling", "staff_filing"],
+  leave: ["leave", "leavemanagement", "leave_management"],
+  staff: ["staff", "stafffiles", "staff_filing", "stafffiling"],
+  registrar: ["registrar", "registry", "registrarcentre"],
+  archive: ["archive", "hrarchive", "hr_archive"],
+  weeklyseminar: ["weeklyseminar", "weekly_seminar", "seminar"],
+  staffcapacitybuilding: ["staffcapacitybuilding", "staff_capacity_building"],
+  departmentcapacitybuilding: ["departmentcapacitybuilding", "department_capacity_building"],
+  departmentkpi: ["departmentkpi", "department_kpi"],
+  annual360assessment: ["annual360assessment", "annual_360_assessment", "annual360"],
+};
+
+function canonicalSection(value: string | null | undefined) {
+  const normalized = normalizeRole(value);
+  for (const [canonical, aliases] of Object.entries(SECTION_ALIASES)) {
+    if (canonical === normalized || aliases.some((alias) => normalizeRole(alias) === normalized)) return canonical;
+  }
+  return normalized;
+}
+
+function assignmentMatches(item: Assignment, section: string, permission: string) {
+  const sameSection = canonicalSection(item.section_key) === canonicalSection(section);
+  const assignedPermission = normalizeRole(item.permission_key);
+  const requestedPermission = normalizeRole(permission);
+  const accepted = new Set(["view", requestedPermission, "process", "file", "recommend", "submittohrboss", "archive", "manage"]);
+  return item.is_active && sameSection && accepted.has(assignedPermission);
+}
 
 export default function HRAccessGuard({
   children,
   section,
   permission = "view",
   bossOnly = false,
+  auditorAllowed = false,
 }: Props) {
   const router = useRouter();
+  const pathname = usePathname();
   const [ready, setReady] = useState(false);
   const [allowed, setAllowed] = useState(false);
-  const normalizedSection = useMemo(() => normalizeRole(section), [section]);
+  const normalizedSection = useMemo(() => canonicalSection(section), [section]);
 
   useEffect(() => {
     let mounted = true;
@@ -36,16 +68,16 @@ export default function HRAccessGuard({
     async function check() {
       const context = await getCurrentAuthContext();
       if (!context) {
-        router.replace("/login?next=/hr");
+        router.replace(`/login?next=${encodeURIComponent(pathname || "/hr")}`);
         return;
       }
 
-      // Strict working context: access is determined by the currently selected role.
-      // An Admin who switches to another role must obey that role's boundaries.
       const activeRole = normalizeRole(context.activeRoleKey);
-      const isBoss = ["admin", "hrboss", "hr"].includes(activeRole);
+      const isAdmin = activeRole === "admin";
+      const isHRBoss = ["hrboss", "hr", "humanresources", "humanresourcesboss"].includes(activeRole);
+      const isAuditor = activeRole === "auditor";
 
-      if (isBoss) {
+      if (isAdmin || isHRBoss || (auditorAllowed && isAuditor)) {
         if (mounted) {
           setAllowed(true);
           setReady(true);
@@ -57,13 +89,12 @@ export default function HRAccessGuard({
         if (mounted) {
           setAllowed(false);
           setReady(true);
-          router.replace("/unauthorized?from=/hr&reason=hr-boss-required");
+          router.replace(`/unauthorized?from=${encodeURIComponent(pathname || "/hr")}&reason=hr-boss-required`);
         }
         return;
       }
 
-      const activeFunctionalRole = activeRole === `hr:${normalizedSection}`;
-      const { data: assignments, error } = await supabase
+      const { data, error } = await supabase
         .from("hr_officer_assignments")
         .select("section_key,permission_key,is_active")
         .eq("officer_id", context.userId)
@@ -71,19 +102,19 @@ export default function HRAccessGuard({
 
       if (error) throw error;
 
-      const permittedAssignment = ((assignments || []) as Assignment[]).some((item) => {
-        const sameSection = normalizeRole(item.section_key) === normalizedSection;
-        const permissionKey = normalizeRole(item.permission_key);
-        return sameSection && ["view", normalizeRole(permission), "manage"].includes(permissionKey);
-      });
+      const assignments = (data || []) as Assignment[];
+      const hasAssignment = assignments.some((item) => assignmentMatches(item, normalizedSection, permission));
+      const activeFunctionalRole = activeRole.startsWith("hr:")
+        ? canonicalSection(activeRole.slice(3)) === normalizedSection
+        : ["hrofficer", "hrofficer1", "hrofficer2", "hrofficer3"].includes(activeRole);
 
-      const permitted = activeFunctionalRole && permittedAssignment;
+      const permitted = hasAssignment && activeFunctionalRole;
 
       if (mounted) {
         setAllowed(permitted);
         setReady(true);
         if (!permitted) {
-          router.replace(`/unauthorized?from=/hr/${normalizedSection}&reason=active-hr-role-required`);
+          router.replace(`/unauthorized?from=${encodeURIComponent(pathname || "/hr")}&reason=active-hr-assignment-required`);
         }
       }
     }
@@ -93,28 +124,31 @@ export default function HRAccessGuard({
       if (mounted) {
         setReady(true);
         setAllowed(false);
-        router.replace("/unauthorized?reason=hr-access");
+        router.replace(`/unauthorized?from=${encodeURIComponent(pathname || "/hr")}&reason=hr-access`);
       }
     });
 
     const refresh = () => {
       setReady(false);
-      check();
+      void check();
     };
+
     window.addEventListener("reqgen-active-role-changed", refresh);
+    window.addEventListener("focus", refresh);
 
     return () => {
       mounted = false;
       window.removeEventListener("reqgen-active-role-changed", refresh);
+      window.removeEventListener("focus", refresh);
     };
-  }, [bossOnly, normalizedSection, permission, router]);
+  }, [auditorAllowed, bossOnly, normalizedSection, pathname, permission, router]);
 
   if (!ready) {
     return (
       <div className="grid min-h-[60vh] place-items-center bg-slate-50 px-4">
         <div className="rounded-3xl border border-blue-100 bg-white px-8 py-7 text-center shadow-xl">
           <div className="mx-auto h-11 w-11 animate-spin rounded-full border-4 border-blue-100 border-t-blue-700" />
-          <div className="mt-4 text-sm font-black text-slate-700">Verifying HR role context...</div>
+          <div className="mt-4 text-sm font-black text-slate-700">Verifying HR authority...</div>
         </div>
       </div>
     );
