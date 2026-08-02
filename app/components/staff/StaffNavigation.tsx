@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const items = [
-  ["01", "Overview", "/dashboard"],
+  ["01", "Overview", "/staff"],
   ["02", "My Requests", "/staff/requests"],
   ["03", "My Leave", "/staff/leave"],
   ["04", "Attendance", "/staff/attendance"],
@@ -20,9 +20,13 @@ export default function StaffNavigation() {
   const pathname = usePathname();
 
   return (
-    <nav className="mx-auto grid max-w-[1180px] grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-5" aria-label="Staff workspace navigation">
+    <nav
+      className="mx-auto grid max-w-[1180px] grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-5"
+      aria-label="Staff workspace navigation"
+    >
       {items.map(([number, label, href]) => {
-        const active = href === "/dashboard" ? pathname === "/staff" || pathname === "/dashboard" : pathname.startsWith(href);
+        const active = href === "/staff" ? pathname === "/staff" : pathname.startsWith(href);
+
         return (
           <Link
             key={href}
@@ -33,10 +37,16 @@ export default function StaffNavigation() {
                 : "border-slate-200 bg-white/90 text-slate-800 hover:border-blue-200 hover:bg-blue-50"
             }`}
           >
-            <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl text-xs font-black ${active ? "bg-white/20 text-white" : "bg-slate-900 text-white"}`}>
+            <span
+              className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl text-xs font-black ${
+                active ? "bg-white/20 text-white" : "bg-slate-900 text-white"
+              }`}
+            >
               {number}
             </span>
-            <span className={`text-sm font-black ${active ? "text-white" : "text-slate-900"}`}>{label}</span>
+            <span className={`text-sm font-black ${active ? "text-white" : "text-slate-900"}`}>
+              {label}
+            </span>
           </Link>
         );
       })}

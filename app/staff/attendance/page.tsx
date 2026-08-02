@@ -1,6 +1,311 @@
 "use client";
-import StaffNavigation from "@/app/components/staff/StaffNavigation";
-import { StaffAction, StaffBadge, StaffEmpty, StaffHero, StaffSection, StaffShell, StaffStat } from "@/app/components/staff/StaffUI";
-import { useStaffWorkspace } from "@/app/components/staff/useStaffWorkspace";
-import { dateText, text } from "@/app/components/enterprise/data";
-export default function StaffAttendancePage(){const {profile,attendance,loading,warning}=useStaffWorkspace(); const present=attendance.filter(r=>text(r.attendance_status).toLowerCase()!=="absent"); const late=attendance.filter(r=>text(r.attendance_status).toLowerCase().includes("late")); const rate=attendance.length?Math.round(present.length/attendance.length*100):0; return <StaffShell><div className="mx-auto max-w-[1500px] space-y-6"><StaffHero name={profile?.fullName||"Staff Member"} designation="My Attendance" description="Your personal Wednesday Weekly Seminar attendance and punctuality record." actions={<StaffAction href="/staff" tone="slate">Overview</StaffAction>}/><StaffNavigation/>{warning?<div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-bold text-amber-900">{warning}</div>:null}<section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"><StaffStat label="Captured Sessions" value={loading?"—":attendance.length} tone="blue"/><StaffStat label="Present" value={loading?"—":present.length} tone="emerald"/><StaffStat label="Late" value={loading?"—":late.length} tone="amber"/><StaffStat label="Attendance Rate" value={loading?"—":`${rate}%`} tone="cyan"/></section><StaffSection title="Attendance Register" eyebrow="Weekly seminar participation">{attendance.length===0?<StaffEmpty title="No attendance record" description="Verified seminar attendance linked to your staff profile will appear here."/>:<div className="space-y-3">{attendance.map(r=><div key={text(r.id)} className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 sm:grid-cols-[1fr_auto] sm:items-center"><div><div className="font-black text-slate-950">{text(r.session_date,text(r.attendance_date,"Seminar Session"))}</div><div className="mt-1 text-sm font-semibold text-slate-600">Time in: {text(r.time_in,"—")} · Late minutes: {text(r.late_minutes,"0")}</div><div className="mt-1 text-xs font-bold text-slate-400">Recorded {dateText(r.recorded_at)}</div></div><StaffBadge tone={text(r.attendance_status).toLowerCase().includes("late")?"amber":"emerald"}>{text(r.attendance_status,"Recorded")}</StaffBadge></div>)}</div>}</StaffSection></div></StaffShell>}
+
+import Link from "next/link";
+import {
+    CalendarDays,
+    Clock3,
+    ArrowLeft,
+    CheckCircle2,
+    XCircle,
+    AlertTriangle,
+    TimerReset,
+    Printer,
+    TrendingUp,
+} from "lucide-react";
+
+const summary = [
+    {
+        title: "Present",
+        value: "22",
+        color: "bg-emerald-600",
+        icon: CheckCircle2,
+    },
+    {
+        title: "Late",
+        value: "2",
+        color: "bg-amber-500",
+        icon: AlertTriangle,
+    },
+    {
+        title: "Absent",
+        value: "1",
+        color: "bg-red-600",
+        icon: XCircle,
+    },
+    {
+        title: "Attendance",
+        value: "96%",
+        color: "bg-cyan-700",
+        icon: TrendingUp,
+    },
+];
+
+const attendance = [
+    {
+        date: "04 Aug 2026",
+        status: "Present",
+        checkIn: "08:03",
+        checkOut: "16:15",
+        remarks: "On Time",
+    },
+    {
+        date: "03 Aug 2026",
+        status: "Present",
+        checkIn: "08:01",
+        checkOut: "16:07",
+        remarks: "On Time",
+    },
+    {
+        date: "31 Jul 2026",
+        status: "Late",
+        checkIn: "08:34",
+        checkOut: "16:03",
+        remarks: "Traffic",
+    },
+    {
+        date: "30 Jul 2026",
+        status: "Present",
+        checkIn: "07:57",
+        checkOut: "16:18",
+        remarks: "Excellent",
+    },
+];
+
+export default function AttendancePage() {
+    return (
+        <div className="space-y-8">
+
+            {/* HERO */}
+
+            <section className="rounded-3xl bg-gradient-to-r from-slate-900 via-cyan-900 to-sky-900 p-8 shadow-xl">
+
+                <div className="flex flex-col lg:flex-row justify-between gap-8">
+
+                    <div>
+
+                        <p className="uppercase tracking-[0.35em] text-cyan-300 font-bold">
+                            Attendance & Time Management
+                        </p>
+
+                        <h1 className="text-5xl font-black text-white mt-2">
+                            My Attendance
+                        </h1>
+
+                        <p className="text-white/90 mt-4 max-w-2xl">
+                            Monitor your attendance history,
+                            punctuality and overall attendance performance.
+                        </p>
+
+                    </div>
+
+                    <div className="flex gap-3 self-start">
+
+                        <Link
+                            href="/staff"
+                            className="px-5 py-3 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold flex items-center gap-2"
+                        >
+                            <ArrowLeft size={18} />
+                            Staff Workspace
+                        </Link>
+
+                        <button
+                            className="px-5 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold flex items-center gap-2"
+                        >
+                            <Printer size={18} />
+                            Print
+                        </button>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+            {/* SUMMARY */}
+
+            <section className="grid md:grid-cols-2 xl:grid-cols-4 gap-5">
+
+                {summary.map((card) => {
+
+                    const Icon = card.icon;
+
+                    return (
+
+                        <div
+                            key={card.title}
+                            className={`${card.color} rounded-2xl p-5 text-white shadow-lg`}
+                        >
+
+                            <div className="flex justify-between">
+
+                                <div>
+
+                                    <p className="font-semibold opacity-90">
+                                        {card.title}
+                                    </p>
+
+                                    <h2 className="text-4xl font-black mt-3">
+                                        {card.value}
+                                    </h2>
+
+                                </div>
+
+                                <Icon size={34} />
+
+                            </div>
+
+                        </div>
+
+                    );
+
+                })}
+
+            </section>
+
+            {/* WEEK */}
+
+            <section className="grid lg:grid-cols-3 gap-5">
+
+                <div className="rounded-2xl bg-white dark:bg-slate-900 p-6 shadow-lg">
+
+                    <div className="flex items-center gap-3">
+
+                        <CalendarDays className="text-cyan-600" />
+
+                        <h2 className="text-xl font-black">
+                            Current Week
+                        </h2>
+
+                    </div>
+
+                    <div className="mt-6 space-y-3">
+
+                        <div className="flex justify-between">
+                            <span>Present</span>
+                            <span className="font-bold">5 Days</span>
+                        </div>
+
+                        <div className="flex justify-between">
+                            <span>Late</span>
+                            <span className="font-bold">0</span>
+                        </div>
+
+                        <div className="flex justify-between">
+                            <span>Absent</span>
+                            <span className="font-bold">0</span>
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <div className="rounded-2xl bg-white dark:bg-slate-900 p-6 shadow-lg">
+
+                    <div className="flex items-center gap-3">
+
+                        <Clock3 className="text-emerald-600" />
+
+                        <h2 className="text-xl font-black">
+                            Average Check In
+                        </h2>
+
+                    </div>
+
+                    <h3 className="mt-8 text-5xl font-black text-cyan-700">
+                        08:04
+                    </h3>
+
+                </div>
+
+                <div className="rounded-2xl bg-white dark:bg-slate-900 p-6 shadow-lg">
+
+                    <div className="flex items-center gap-3">
+
+                        <TimerReset className="text-amber-600" />
+
+                        <h2 className="text-xl font-black">
+                            HR Verification
+                        </h2>
+
+                    </div>
+
+                    <div className="mt-8">
+
+                        <span className="rounded-full bg-emerald-100 text-emerald-700 px-4 py-2 font-bold">
+                            Verified
+                        </span>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+            {/* HISTORY */}
+
+            <section className="rounded-2xl bg-white dark:bg-slate-900 shadow-lg overflow-hidden">
+
+                <div className="p-6 border-b">
+
+                    <h2 className="text-2xl font-black">
+                        Attendance History
+                    </h2>
+
+                </div>
+
+                <div className="overflow-auto">
+
+                    <table className="w-full">
+
+                        <thead className="bg-slate-100 dark:bg-slate-800">
+
+                            <tr>
+
+                                <th className="text-left p-4">Date</th>
+                                <th className="text-left p-4">Status</th>
+                                <th className="text-left p-4">Check In</th>
+                                <th className="text-left p-4">Check Out</th>
+                                <th className="text-left p-4">Remarks</th>
+
+                            </tr>
+
+                        </thead>
+
+                        <tbody>
+
+                            {attendance.map((row) => (
+                                <tr
+                                    key={row.date}
+                                    className="border-b hover:bg-slate-50 dark:hover:bg-slate-800"
+                                >
+
+                                    <td className="p-4">{row.date}</td>
+
+                                    <td className="p-4">
+
+                                        <span className="rounded-full px-3 py-1 bg-cyan-100 text-cyan-700 font-bold">
+                                            {row.status}
+                                        </span>
+
+                                    </td>
+
+                                    <td className="p-4">{row.checkIn}</td>
+
+                                    <td className="p-4">{row.checkOut}</td>
+
+                                    <td className="p-4">{row.remarks}</td>
+
+                                </tr>
+                            ))}
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            </section>
+
+        </div>
+    );
+}
