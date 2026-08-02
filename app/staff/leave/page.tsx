@@ -173,7 +173,7 @@ export default function LeavePage() {
                     </div>
 
                     <Link
-                        href="/leave/new"
+                        href="/staff/leave/new"
                         className="rounded-xl bg-cyan-700 hover:bg-cyan-800 text-white font-bold px-5 py-3 flex items-center gap-2"
                     >
                         <PlusCircle size={18} />
