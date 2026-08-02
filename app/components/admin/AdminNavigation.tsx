@@ -95,13 +95,22 @@ export default function AdminNavigation() {
             Simple numbered access to the eight Administration workspaces.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => router.push("/audit-centre")}
-          className="reqgen-btn reqgen-btn-violet hidden rounded-xl px-3 py-2 text-xs font-black text-white sm:inline-flex"
-        >
-          Enterprise Audit
-        </button>
+        <div className="hidden flex-wrap items-center gap-2 sm:flex">
+          <button
+            type="button"
+            onClick={() => router.push("/admin/access-audit")}
+            className="reqgen-btn reqgen-btn-cyan rounded-xl px-3 py-2 text-xs font-black text-white"
+          >
+            Access Audit
+          </button>
+          <button
+            type="button"
+            onClick={() => router.push("/audit-centre")}
+            className="reqgen-btn reqgen-btn-violet rounded-xl px-3 py-2 text-xs font-black text-white"
+          >
+            Enterprise Audit
+          </button>
+        </div>
       </div>
 
       <nav className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
