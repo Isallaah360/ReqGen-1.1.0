@@ -108,12 +108,13 @@ export default function StaffWorkspacePage() {
         <StaffHero
           name={profile?.fullName || "Staff Member"}
           designation={profile?.designation || profile?.role || "IET Staff Member"}
-          description={`${greeting()}. This is your secure personal workspace for requests, leave, attendance, training, notifications, documents and profile services.`}
+          description={`${greeting()}. Welcome to your secure personal workspace for requests, leave, attendance, training, notifications, documents and profile services.`}
+          prominentGreeting
           actions={
             <div className="flex flex-col gap-3 sm:min-w-[310px]">
               <div className="rounded-2xl border border-white/20 bg-white/10 p-3 backdrop-blur">
                 <p className="mb-2 text-[10px] font-black uppercase tracking-[0.2em] text-cyan-100">Current Working Role</p>
-                <ActiveRoleSwitcher compact />
+                <ActiveRoleSwitcher compact hero />
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <button

@@ -11,7 +11,7 @@ import {
   type AvailableRole,
 } from "@/lib/activeRole";
 
-export function ActiveRoleSwitcher({ compact = false }: { compact?: boolean }) {
+export function ActiveRoleSwitcher({ compact = false, hero = false }: { compact?: boolean; hero?: boolean }) {
   const router = useRouter();
   const [roles, setRoles] = useState<AvailableRole[]>([]);
   const [activeRole, setActiveRole] = useState<ActiveRoleRecord | null>(null);
@@ -50,7 +50,7 @@ export function ActiveRoleSwitcher({ compact = false }: { compact?: boolean }) {
       setActiveRole(result);
       setMessage(`Now operating as ${result.active_role_name}.`);
       window.dispatchEvent(new Event("reqgen-active-role-changed"));
-      router.replace("/dashboard");
+      router.replace("/staff");
       router.refresh();
       setTimeout(() => window.location.reload(), 250);
     } catch (error) {
@@ -66,17 +66,26 @@ export function ActiveRoleSwitcher({ compact = false }: { compact?: boolean }) {
 
   if (compact) {
     return (
-      <div className="min-w-[190px] rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 shadow-sm">
-        <div className="text-[10px] font-black uppercase tracking-[0.16em] text-blue-700">Acting as</div>
+      <div className={hero
+        ? "min-w-[210px] rounded-xl border border-cyan-300/40 bg-white/10 px-3 py-2 shadow-lg backdrop-blur-md"
+        : "min-w-[190px] rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 shadow-sm"
+      }>
+        <div className={hero
+          ? "text-[10px] font-black uppercase tracking-[0.18em] text-cyan-100"
+          : "text-[10px] font-black uppercase tracking-[0.16em] text-blue-700"
+        }>Acting as</div>
         <select
           aria-label="Active working role"
           value={currentKey}
           onChange={(event) => changeRole(event.target.value)}
           disabled={saving}
-          className="mt-1 w-full border-0 bg-transparent p-0 text-sm font-black text-slate-950 outline-none"
+          className={hero
+            ? "mt-1 w-full cursor-pointer appearance-none border-0 bg-transparent p-0 text-sm font-black text-white outline-none [color-scheme:dark]"
+            : "mt-1 w-full border-0 bg-transparent p-0 text-sm font-black text-slate-950 outline-none"
+          }
         >
           {roles.map((role) => (
-            <option key={role.key} value={role.key}>{role.name}</option>
+            <option key={role.key} value={role.key} className="bg-slate-950 text-white">{role.name}</option>
           ))}
         </select>
       </div>

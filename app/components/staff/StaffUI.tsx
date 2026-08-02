@@ -19,7 +19,7 @@ export function StaffShell({ children }: { children: ReactNode }) {
   return <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,_#dbeafe_0,_#f8fafc_42%,_#eef2ff_100%)] px-3 py-6 sm:px-6 lg:px-8">{children}</main>;
 }
 
-export function StaffHero({ name, designation, description, actions }: { name: string; designation?: string; description: string; actions?: ReactNode }) {
+export function StaffHero({ name, designation, description, actions, prominentGreeting = false }: { name: string; designation?: string; description: string; actions?: ReactNode; prominentGreeting?: boolean }) {
   return (
     <section className="relative overflow-hidden rounded-[2rem] border border-cyan-300/20 bg-gradient-to-br from-slate-950 via-blue-950 to-cyan-800 px-5 py-8 text-white shadow-2xl sm:px-8 lg:px-10">
       <div className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-cyan-300/20 blur-3xl" />
@@ -27,9 +27,20 @@ export function StaffHero({ name, designation, description, actions }: { name: s
       <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
         <div className="max-w-3xl">
           <p className="text-xs font-black uppercase tracking-[0.28em] text-cyan-200">Staff Self-Service Portal</p>
-          <h1 className="mt-3 text-3xl font-black tracking-tight sm:text-4xl">Welcome back, {name}</h1>
-          <p className="mt-2 text-sm font-black uppercase tracking-[0.18em] text-blue-100">{designation || "IET Staff Member"}</p>
-          <p className="mt-4 max-w-2xl text-sm font-semibold leading-7 text-blue-100 sm:text-base">{description}</p>
+          {prominentGreeting ? (
+            <>
+              <p className="mt-4 text-xl font-black tracking-tight text-white sm:text-2xl lg:text-3xl">{description.split(".")[0]}</p>
+              <h1 className="mt-2 break-words text-4xl font-black uppercase leading-[0.95] tracking-tight text-white sm:text-5xl lg:text-6xl">{name}</h1>
+              <p className="mt-3 inline-flex rounded-full border border-cyan-200/30 bg-cyan-300/15 px-4 py-2 text-sm font-black uppercase tracking-[0.18em] text-cyan-50">{designation || "IET Staff Member"}</p>
+              <p className="mt-5 max-w-2xl text-sm font-semibold leading-7 text-blue-100 sm:text-base">{description.includes(".") ? description.slice(description.indexOf(".") + 1).trim() : "Welcome to your secure personal workspace."}</p>
+            </>
+          ) : (
+            <>
+              <h1 className="mt-3 text-3xl font-black tracking-tight sm:text-4xl">Welcome back, {name}</h1>
+              <p className="mt-2 text-sm font-black uppercase tracking-[0.18em] text-blue-100">{designation || "IET Staff Member"}</p>
+              <p className="mt-4 max-w-2xl text-sm font-semibold leading-7 text-blue-100 sm:text-base">{description}</p>
+            </>
+          )}
         </div>
         {actions ? <div className="flex flex-wrap gap-3">{actions}</div> : null}
       </div>

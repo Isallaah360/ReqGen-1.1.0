@@ -868,7 +868,7 @@ export default function NavBar() {
                 )}
               </div>
 
-              <Link className={iconLinkClass("/dashboard")} href="/dashboard">
+              <Link className={iconLinkClass("/staff")} href="/staff">
                 <NavPngIcon src="/dashboard.png" alt="Dashboard" />
                 <IconButtonTooltip label="Dashboard" />
               </Link>
@@ -978,8 +978,8 @@ export default function NavBar() {
 
                   <button
                     type="button"
-                    onClick={() => goTo("/dashboard")}
-                    className={mobileItemClass("/dashboard")}
+                    onClick={() => goTo("/staff")}
+                    className={mobileItemClass("/staff")}
                   >
                     <span className="inline-flex items-center gap-2"><NavPngIcon src="/dashboard.png" alt="Dashboard" size={22} />Dashboard</span>
                   </button>
