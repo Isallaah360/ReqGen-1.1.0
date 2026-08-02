@@ -639,7 +639,7 @@ export default function AccountLedgerPage() {
                         </button>
                         <button
                             type="button"
-                            onClick={() => window.print()}
+                            onClick={() => window.open('/output?report=accounts', '_blank', 'noopener,noreferrer')}
                             className="reqgen-btn reqgen-btn-emerald rounded-2xl border border-slate-300 bg-white px-5 py-3 font-bold text-slate-800"
                         >
                             Print / Save PDF

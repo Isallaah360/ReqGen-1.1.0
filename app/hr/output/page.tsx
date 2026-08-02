@@ -148,7 +148,7 @@ export default function HROutputPage() {
   }
 
   function printReport() {
-    window.print();
+    window.open('/output?report=hr_staff', '_blank', 'noopener,noreferrer');
   }
 
   return (

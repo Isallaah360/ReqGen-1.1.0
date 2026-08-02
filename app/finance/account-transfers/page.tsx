@@ -399,7 +399,7 @@ export default function AccountTransfersPage() {
           <div className="filter-actions">
             <button className="reqgen-btn reqgen-btn-rose button button-cyan" onClick={() => void loadData(true)} disabled={refreshing}>{refreshing ? "Refreshing…" : "↻ Refresh"}</button>
             <button className="reqgen-btn reqgen-btn-rose button button-green" onClick={exportCsv} disabled={!filteredTransfers.length}>⇩ Export CSV</button>
-            <button className="reqgen-btn reqgen-btn-rose button button-light" onClick={() => window.print()} disabled={!filteredTransfers.length}>⎙ Print / PDF</button>
+            <button className="reqgen-btn reqgen-btn-rose button button-light" onClick={() => window.open('/output?report=transactions', '_blank', 'noopener,noreferrer')} disabled={!filteredTransfers.length}>⎙ Print / PDF</button>
           </div>
         </div>
 

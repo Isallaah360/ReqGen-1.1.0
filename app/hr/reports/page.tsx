@@ -67,7 +67,7 @@ export default function HrReportsPage() {
   return (
     <HRAccessGuard bossOnly>
       <StrategicShell>
-        <StrategicHero eyebrow="HR Decision Intelligence" title="HR Reports & Analytics Centre" description="Consolidated management intelligence covering capacity building, departmental performance, annual assessments and Wednesday seminar participation." action={<div className="flex flex-wrap gap-2"><PrimaryButton tone="cyan" onClick={() => void load()}>Refresh Reports</PrimaryButton><PrimaryButton tone="emerald" onClick={exportSummary}>Export Summary</PrimaryButton><PrimaryButton tone="violet" onClick={() => window.print()}>Print Report</PrimaryButton></div>} />
+        <StrategicHero eyebrow="HR Decision Intelligence" title="HR Reports & Analytics Centre" description="Consolidated management intelligence covering capacity building, departmental performance, annual assessments and Wednesday seminar participation." action={<div className="flex flex-wrap gap-2"><PrimaryButton tone="cyan" onClick={() => void load()}>Refresh Reports</PrimaryButton><PrimaryButton tone="emerald" onClick={exportSummary}>Export Summary</PrimaryButton><PrimaryButton tone="violet" onClick={() => window.open('/output?report=hr_staff', '_blank', 'noopener,noreferrer')}>Print Report</PrimaryButton></div>} />
         <StrategicNavigation />
         {message ? <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-bold text-amber-900">Some data sources could not be loaded: {message}</div> : null}
         <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">

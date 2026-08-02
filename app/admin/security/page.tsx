@@ -317,7 +317,7 @@ export default function AdminSecurityPage() {
     await load({ silent: true });
 
     setTimeout(() => {
-      window.print();
+      window.open('/output?report=security', '_blank', 'noopener,noreferrer');
       setPrinting(false);
     }, 250);
   }

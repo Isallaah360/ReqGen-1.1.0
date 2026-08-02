@@ -354,7 +354,7 @@ export default function SubheadLedgerPage() {
           <button type="button" className="reqgen-btn reqgen-btn-rose export-button" onClick={exportCsv} disabled={!selected}>
             <span aria-hidden="true">⇩</span>Export Excel / CSV
           </button>
-          <button type="button" className="reqgen-btn reqgen-btn-rose print-button" onClick={() => window.print()} disabled={!selected}>
+          <button type="button" className="reqgen-btn reqgen-btn-rose print-button" onClick={() => window.open('/output?report=subheads', '_blank', 'noopener,noreferrer')} disabled={!selected}>
             <span aria-hidden="true">⎙</span>Print / Save PDF
           </button>
         </div>

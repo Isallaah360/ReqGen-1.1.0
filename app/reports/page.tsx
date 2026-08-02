@@ -435,7 +435,7 @@ export default function ReportsAnalyticsPage() {
     document.body.classList.add("report-print-active");
     const cleanup = () => { clearPrintWorkspace(); window.removeEventListener("afterprint", cleanup); };
     window.addEventListener("afterprint", cleanup);
-    window.setTimeout(() => window.print(), 250);
+    window.open('/output?report=requests', '_blank', 'noopener,noreferrer');
   }
 
   function exportReport() {

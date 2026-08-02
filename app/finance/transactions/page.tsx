@@ -550,7 +550,7 @@ export default function FinanceTransactionsPage() {
     }
 
     function printRegister() {
-        window.print();
+        window.open('/output?report=transactions', '_blank', 'noopener,noreferrer');
     }
 
     function resetFilters() {

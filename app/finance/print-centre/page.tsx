@@ -41,7 +41,7 @@ export default function PrintCentrePage() {
           <div className="mt-5 rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-50 to-cyan-50 p-4"><p className="text-sm font-black text-blue-950">Selected: {templates.find((t) => t.id === selected)?.title}</p><p className="mt-1 text-xs font-semibold leading-5 text-blue-700">Period: {period}. The final output will be generated from live Finance records.</p></div>
           <div className="mt-5 grid gap-3">
             <Link href={`/finance/reports?view=output&template=${selected}`} className="reqgen-btn reqgen-btn-violet inline-flex items-center justify-center gap-2 rounded-xl bg-cyan-700 px-4 py-3 text-sm font-black text-white shadow-sm transition hover:bg-cyan-800">👁️ Open Print Workspace</Link>
-            <PrimaryButton tone="blue" onClick={() => window.print()}>🖨️ Print Current Preview</PrimaryButton>
+            <PrimaryButton tone="blue" onClick={() => window.open('/output?report=subheads', '_blank', 'noopener,noreferrer')}>🖨️ Print Current Preview</PrimaryButton>
           </div>
         </FinanceCard>
       </div>
