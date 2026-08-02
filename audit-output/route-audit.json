@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-08-02T01:24:25.592Z",
-  "totalPages": 96,
+  "generatedAt": "2026-08-02T01:32:51.672Z",
+  "totalPages": 97,
   "sensitiveRoots": [
     "/admin",
     "/audit-centre",
@@ -12,6 +12,7 @@
     "/reports"
   ],
   "policyPrefixes": [
+    "/admin/release-readiness",
     "/admin/account-routing",
     "/admin/workflow-test",
     "/admin/system-health",
@@ -52,6 +53,7 @@
     "/admin/account-routing",
     "/admin/audit",
     "/admin/departments",
+    "/admin/release-readiness",
     "/admin/roles",
     "/admin/security",
     "/admin/settings",

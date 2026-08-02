@@ -8,7 +8,11 @@
     "start": "next start",
     "lint": "eslint",
     "audit:routes": "node scripts/audit-route-access.mjs",
-    "audit:workflow": "node scripts/audit-workflow-readiness.mjs"
+    "audit:workflow": "node scripts/audit-workflow-readiness.mjs",
+    "audit:responsive": "node scripts/audit-responsive-ui.mjs",
+    "audit:print": "node scripts/audit-print-readiness.mjs",
+    "audit:performance": "node scripts/audit-performance.mjs",
+    "audit:phase-d": "npm run audit:responsive && npm run audit:print && npm run audit:performance"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.97.0",

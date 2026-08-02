@@ -1,0 +1,165 @@
+{
+  "summary": {
+    "candidates": 17,
+    "withPrintCall": 14,
+    "withPrintCss": 14,
+    "withA4": 11,
+    "withLogo": 3,
+    "generatedAt": "2026-08-02T01:32:54.583Z"
+  },
+  "results": [
+    {
+      "file": "app/admin/security/page.tsx",
+      "hasPrintCall": true,
+      "hasPrintCss": true,
+      "hasNoPrintClass": true,
+      "hasA4": true,
+      "hasPageBreakControl": true,
+      "hasLogoReference": false
+    },
+    {
+      "file": "app/components/ui/ReportsUI.tsx",
+      "hasPrintCall": false,
+      "hasPrintCss": true,
+      "hasNoPrintClass": true,
+      "hasA4": false,
+      "hasPageBreakControl": true,
+      "hasLogoReference": false
+    },
+    {
+      "file": "app/finance/account-ledger/page.tsx",
+      "hasPrintCall": true,
+      "hasPrintCss": true,
+      "hasNoPrintClass": false,
+      "hasA4": false,
+      "hasPageBreakControl": false,
+      "hasLogoReference": false
+    },
+    {
+      "file": "app/finance/account-transfers/page.tsx",
+      "hasPrintCall": true,
+      "hasPrintCss": true,
+      "hasNoPrintClass": true,
+      "hasA4": true,
+      "hasPageBreakControl": false,
+      "hasLogoReference": false
+    },
+    {
+      "file": "app/finance/audit/page.tsx",
+      "hasPrintCall": false,
+      "hasPrintCss": true,
+      "hasNoPrintClass": true,
+      "hasA4": true,
+      "hasPageBreakControl": true,
+      "hasLogoReference": false
+    },
+    {
+      "file": "app/finance/print-centre/page.tsx",
+      "hasPrintCall": true,
+      "hasPrintCss": false,
+      "hasNoPrintClass": false,
+      "hasA4": true,
+      "hasPageBreakControl": false,
+      "hasLogoReference": false
+    },
+    {
+      "file": "app/finance/reports/print/page.tsx",
+      "hasPrintCall": true,
+      "hasPrintCss": true,
+      "hasNoPrintClass": false,
+      "hasA4": true,
+      "hasPageBreakControl": false,
+      "hasLogoReference": false
+    },
+    {
+      "file": "app/finance/subhead-ledger/page.tsx",
+      "hasPrintCall": true,
+      "hasPrintCss": true,
+      "hasNoPrintClass": true,
+      "hasA4": true,
+      "hasPageBreakControl": false,
+      "hasLogoReference": false
+    },
+    {
+      "file": "app/finance/subheads/page.tsx",
+      "hasPrintCall": false,
+      "hasPrintCss": true,
+      "hasNoPrintClass": true,
+      "hasA4": true,
+      "hasPageBreakControl": true,
+      "hasLogoReference": false
+    },
+    {
+      "file": "app/finance/transactions/page.tsx",
+      "hasPrintCall": true,
+      "hasPrintCss": true,
+      "hasNoPrintClass": false,
+      "hasA4": false,
+      "hasPageBreakControl": false,
+      "hasLogoReference": false
+    },
+    {
+      "file": "app/finance/_components/FinanceOutputWorkspace.tsx",
+      "hasPrintCall": true,
+      "hasPrintCss": true,
+      "hasNoPrintClass": true,
+      "hasA4": true,
+      "hasPageBreakControl": true,
+      "hasLogoReference": true
+    },
+    {
+      "file": "app/hr/output/page.tsx",
+      "hasPrintCall": true,
+      "hasPrintCss": true,
+      "hasNoPrintClass": false,
+      "hasA4": false,
+      "hasPageBreakControl": false,
+      "hasLogoReference": false
+    },
+    {
+      "file": "app/hr/reports/page.tsx",
+      "hasPrintCall": true,
+      "hasPrintCss": false,
+      "hasNoPrintClass": false,
+      "hasA4": false,
+      "hasPageBreakControl": false,
+      "hasLogoReference": false
+    },
+    {
+      "file": "app/output/page.tsx",
+      "hasPrintCall": true,
+      "hasPrintCss": false,
+      "hasNoPrintClass": false,
+      "hasA4": false,
+      "hasPageBreakControl": false,
+      "hasLogoReference": false
+    },
+    {
+      "file": "app/payment-vouchers/[id]/print/page.tsx",
+      "hasPrintCall": true,
+      "hasPrintCss": true,
+      "hasNoPrintClass": true,
+      "hasA4": true,
+      "hasPageBreakControl": true,
+      "hasLogoReference": true
+    },
+    {
+      "file": "app/reports/page.tsx",
+      "hasPrintCall": true,
+      "hasPrintCss": true,
+      "hasNoPrintClass": true,
+      "hasA4": true,
+      "hasPageBreakControl": true,
+      "hasLogoReference": false
+    },
+    {
+      "file": "app/requests/[id]/print/page.tsx",
+      "hasPrintCall": true,
+      "hasPrintCss": true,
+      "hasNoPrintClass": true,
+      "hasA4": true,
+      "hasPageBreakControl": true,
+      "hasLogoReference": true
+    }
+  ]
+}
