@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import StaffNavigation from "@/app/components/staff/StaffNavigation";
 import {
     CalendarDays,
     Clock3,
@@ -44,29 +45,29 @@ const attendance = [
     {
         date: "04 Aug 2026",
         status: "Present",
-        checkIn: "08:03",
-        checkOut: "16:15",
+        checkIn: "8:03 AM",
+        checkOut: "4:15 PM",
         remarks: "On Time",
     },
     {
         date: "03 Aug 2026",
         status: "Present",
-        checkIn: "08:01",
-        checkOut: "16:07",
+        checkIn: "8:01 AM",
+        checkOut: "4:07 PM",
         remarks: "On Time",
     },
     {
         date: "31 Jul 2026",
         status: "Late",
-        checkIn: "08:34",
-        checkOut: "16:03",
+        checkIn: "8:34 AM",
+        checkOut: "4:03 PM",
         remarks: "Traffic",
     },
     {
         date: "30 Jul 2026",
         status: "Present",
-        checkIn: "07:57",
-        checkOut: "16:18",
+        checkIn: "7:57 AM",
+        checkOut: "4:18 PM",
         remarks: "Excellent",
     },
 ];
@@ -108,7 +109,7 @@ export default function AttendancePage() {
                             Staff Workspace
                         </Link>
 
-                        <button
+                        <button type="button" onClick={() => window.print()}
                             className="px-5 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold flex items-center gap-2"
                         >
                             <Printer size={18} />
@@ -120,6 +121,8 @@ export default function AttendancePage() {
                 </div>
 
             </section>
+
+            <StaffNavigation />
 
             {/* SUMMARY */}
 

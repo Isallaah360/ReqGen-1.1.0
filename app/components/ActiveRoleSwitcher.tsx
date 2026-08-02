@@ -74,20 +74,25 @@ export function ActiveRoleSwitcher({ compact = false, hero = false }: { compact?
           ? "text-[10px] font-black uppercase tracking-[0.18em] text-cyan-100"
           : "text-[10px] font-black uppercase tracking-[0.16em] text-blue-700"
         }>Acting as</div>
-        <select
-          aria-label="Active working role"
-          value={currentKey}
-          onChange={(event) => changeRole(event.target.value)}
-          disabled={saving}
-          className={hero
-            ? "mt-1 w-full cursor-pointer appearance-none border-0 bg-transparent p-0 text-sm font-black text-white outline-none [color-scheme:dark]"
-            : "mt-1 w-full border-0 bg-transparent p-0 text-sm font-black text-slate-950 outline-none"
-          }
-        >
-          {roles.map((role) => (
-            <option key={role.key} value={role.key} className="bg-slate-950 text-white">{role.name}</option>
-          ))}
-        </select>
+        <div className="relative mt-1">
+          <select
+            aria-label="Active working role"
+            value={currentKey}
+            onChange={(event) => changeRole(event.target.value)}
+            disabled={saving}
+            className={hero
+              ? "w-full cursor-pointer appearance-none rounded-lg border border-white/20 bg-slate-950/35 py-2 pl-3 pr-10 text-sm font-black text-white outline-none transition focus:border-cyan-200 focus:ring-4 focus:ring-cyan-200/20 [color-scheme:dark]"
+              : "w-full cursor-pointer appearance-none rounded-lg border border-blue-200 bg-white py-2 pl-3 pr-10 text-sm font-black text-slate-950 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+            }
+          >
+            {roles.map((role) => (
+              <option key={role.key} value={role.key} className="bg-slate-950 text-white">{role.name}</option>
+            ))}
+          </select>
+          <svg viewBox="0 0 24 24" aria-hidden="true" className={`pointer-events-none absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 ${hero ? "text-cyan-100" : "text-blue-700"}`} fill="none" stroke="currentColor" strokeWidth="2.5">
+            <path d="m7 10 5 5 5-5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </div>
       </div>
     );
   }

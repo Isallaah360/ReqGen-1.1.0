@@ -105,7 +105,7 @@ function dateLabel(value: string) {
 
 function timeLabel(value: string | null) {
   if (!value) return "—";
-  return new Date(value).toLocaleTimeString("en-NG", { hour: "2-digit", minute: "2-digit" });
+  return new Date(value).toLocaleTimeString("en-NG", { hour: "numeric", minute: "2-digit", hour12: true });
 }
 
 function badge(status: string) {

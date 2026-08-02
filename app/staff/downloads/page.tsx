@@ -1,297 +1,174 @@
 "use client";
 
 import Link from "next/link";
-import {
-    ArrowLeft,
-    Download,
-    FileText,
-    FileCheck,
-    GraduationCap,
-    Search,
-    Printer,
-    Filter,
-    CalendarDays,
-    FolderOpen,
-} from "lucide-react";
 import { useMemo, useState } from "react";
+import { Download, FileCheck, FileText, FolderOpen, Search } from "lucide-react";
+import StaffNavigation from "@/app/components/staff/StaffNavigation";
+import { StaffAction, StaffEmpty, StaffHero, StaffSection, StaffShell, StaffStat } from "@/app/components/staff/StaffUI";
+import { useStaffWorkspace } from "@/app/components/staff/useStaffWorkspace";
+import { dateText, text, type GenericRow } from "@/app/components/enterprise/data";
 
-type DownloadItem = {
-    id: number;
-    title: string;
-    category: string;
-    date: string;
-    status: "Available" | "Pending";
-    href: string;
+type DownloadRecord = {
+  id: string;
+  title: string;
+  category: string;
+  date: string;
+  href: string;
+  action: string;
 };
 
-const documents: DownloadItem[] = [
-    {
-        id: 1,
-        title: "Appointment Letter",
-        category: "HR",
-        date: "12 Jan 2025",
-        status: "Available",
-        href: "#",
-    },
-    {
-        id: 2,
-        title: "Approved Official Request",
-        category: "Requests",
-        date: "04 Aug 2026",
-        status: "Available",
-        href: "/requests",
-    },
-    {
-        id: 3,
-        title: "Training Certificate",
-        category: "Training",
-        date: "29 Jul 2026",
-        status: "Available",
-        href: "/staff/training",
-    },
-    {
-        id: 4,
-        title: "Leave Approval Letter",
-        category: "Leave",
-        date: "18 Jun 2026",
-        status: "Available",
-        href: "/staff/leave",
-    },
-];
-
-export default function DownloadsPage() {
-    const [search, setSearch] = useState("");
-
-    const filtered = useMemo(() => {
-        return documents.filter((d) =>
-            d.title.toLowerCase().includes(search.toLowerCase())
-        );
-    }, [search]);
-
-    return (
-        <div className="space-y-8">
-
-            {/* HERO */}
-
-            <section className="rounded-3xl bg-gradient-to-r from-slate-900 via-cyan-900 to-blue-900 p-8 shadow-xl">
-
-                <div className="flex flex-col lg:flex-row justify-between gap-8">
-
-                    <div>
-
-                        <p className="uppercase tracking-[0.35em] text-cyan-300 font-bold">
-                            Enterprise Downloads
-                        </p>
-
-                        <h1 className="text-5xl font-black text-white mt-2">
-                            My Downloads
-                        </h1>
-
-                        <p className="mt-4 text-white/90 max-w-2xl">
-                            Download your official documents,
-                            letters, certificates and approved reports.
-                        </p>
-
-                    </div>
-
-                    <div className="flex gap-3 self-start">
-
-                        <Link
-                            href="/staff"
-                            className="rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold px-5 py-3 flex items-center gap-2"
-                        >
-                            <ArrowLeft size={18} />
-                            Staff Workspace
-                        </Link>
-
-                        <button
-                            className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-5 py-3 flex items-center gap-2"
-                        >
-                            <Printer size={18} />
-                            Print List
-                        </button>
-
-                    </div>
-
-                </div>
-
-            </section>
-
-            {/* KPI */}
-
-            <section className="grid md:grid-cols-4 gap-5">
-
-                <Card icon={FolderOpen} title="Documents" value="18" color="from-cyan-600 to-blue-700" />
-                <Card icon={FileText} title="Letters" value="7" color="from-emerald-600 to-green-700" />
-                <Card icon={GraduationCap} title="Certificates" value="10" color="from-violet-600 to-fuchsia-700" />
-                <Card icon={CalendarDays} title="This Month" value="4" color="from-amber-500 to-orange-600" />
-
-            </section>
-
-            {/* SEARCH */}
-
-            <section className="rounded-2xl bg-white dark:bg-slate-900 shadow-lg p-5">
-
-                <div className="flex flex-col lg:flex-row gap-4 justify-between">
-
-                    <div className="relative w-full lg:w-96">
-
-                        <Search
-                            size={18}
-                            className="absolute left-3 top-3 text-slate-500"
-                        />
-
-                        <input
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            placeholder="Search documents..."
-                            className="pl-10 w-full rounded-xl border px-4 py-3"
-                        />
-
-                    </div>
-
-                    <button className="rounded-xl bg-cyan-700 hover:bg-cyan-800 text-white px-5 py-3 font-bold flex items-center gap-2">
-                        <Filter size={18} />
-                        Filter
-                    </button>
-
-                </div>
-
-            </section>
-
-            {/* TABLE */}
-
-            <section className="rounded-2xl bg-white dark:bg-slate-900 shadow-lg overflow-hidden">
-
-                <div className="border-b p-6">
-
-                    <h2 className="text-2xl font-black">
-                        Available Downloads
-                    </h2>
-
-                </div>
-
-                <div className="overflow-auto">
-
-                    <table className="w-full">
-
-                        <thead className="bg-slate-100 dark:bg-slate-800">
-
-                            <tr>
-
-                                <th className="text-left p-4">Document</th>
-                                <th className="text-left p-4">Category</th>
-                                <th className="text-left p-4">Date</th>
-                                <th className="text-left p-4">Status</th>
-                                <th className="text-left p-4">Action</th>
-
-                            </tr>
-
-                        </thead>
-
-                        <tbody>
-
-                            {filtered.map((doc) => (
-
-                                <tr
-                                    key={doc.id}
-                                    className="border-b hover:bg-slate-50 dark:hover:bg-slate-800"
-                                >
-
-                                    <td className="p-4 font-semibold">
-                                        {doc.title}
-                                    </td>
-
-                                    <td className="p-4">
-                                        {doc.category}
-                                    </td>
-
-                                    <td className="p-4">
-                                        {doc.date}
-                                    </td>
-
-                                    <td className="p-4">
-
-                                        <span className="rounded-full bg-emerald-100 text-emerald-700 px-3 py-1 font-bold">
-                                            {doc.status}
-                                        </span>
-
-                                    </td>
-
-                                    <td className="p-4">
-
-                                        <Link
-                                            href={doc.href}
-                                            className="rounded-xl bg-cyan-700 hover:bg-cyan-800 text-white px-4 py-2 font-bold inline-flex items-center gap-2"
-                                        >
-                                            <Download size={16} />
-                                            Download
-                                        </Link>
-
-                                    </td>
-
-                                </tr>
-
-                            ))}
-
-                        </tbody>
-
-                    </table>
-
-                </div>
-
-            </section>
-
-            {/* ENTERPRISE NOTE */}
-
-            <section className="rounded-2xl bg-gradient-to-r from-cyan-700 to-blue-700 p-6 text-white shadow-lg">
-
-                <div className="flex items-center gap-3">
-
-                    <FileCheck size={34} />
-
-                    <div>
-
-                        <h2 className="text-2xl font-black">
-                            Enterprise Print Engine
-                        </h2>
-
-                        <p className="text-white/90 mt-2">
-                            All downloadable documents are generated using the official
-                            IET enterprise print templates and remain subject to your
-                            assigned role permissions.
-                        </p>
-
-                    </div>
-
-                </div>
-
-            </section>
-
-        </div>
-    );
+const printableStatuses = ["approved", "completed", "paid", "filed", "closed"];
+
+function isPrintableRequest(row: GenericRow) {
+  const status = text(row.status).toLowerCase();
+  return printableStatuses.some((item) => status.includes(item));
 }
 
-function Card({
-    title,
-    value,
-    color,
-    icon: Icon,
-}: {
-    title: string;
-    value: string;
-    color: string;
-    icon: any;
-}) {
-    return (
-        <div className={`rounded-2xl bg-gradient-to-br ${color} p-5 text-white shadow-lg`}>
-            <div className="flex justify-between">
-                <div>
-                    <p className="font-semibold">{title}</p>
-                    <h2 className="text-4xl font-black mt-3">{value}</h2>
-                </div>
-                <Icon size={34} />
+export default function DownloadsPage() {
+  const { profile, requests, leave, training, loading, warning } = useStaffWorkspace();
+  const [search, setSearch] = useState("");
+
+  const records = useMemo<DownloadRecord[]>(() => {
+    const requestDocs = requests.filter(isPrintableRequest).map((row, index) => ({
+      id: `request-${text(row.id) || index}`,
+      title: `${text(row.request_no, "Request")} — ${text(row.title, "Approved Request")}`,
+      category: "Approved Request",
+      date: dateText(row.updated_at || row.created_at),
+      href: text(row.id) ? `/requests/${text(row.id)}/print` : "/staff/requests",
+      action: "Open Printout",
+    }));
+
+    const leaveDocs = leave
+      .filter((row) => printableStatuses.some((item) => text(row.status).toLowerCase().includes(item)))
+      .map((row, index) => ({
+        id: `leave-${text(row.id) || index}`,
+        title: `${text(row.leave_type, "Leave")} Approval Record`,
+        category: "Leave",
+        date: dateText(row.approved_at || row.updated_at || row.created_at),
+        href: text(row.document_url) || text(row.letter_url) || "/staff/leave",
+        action: text(row.document_url) || text(row.letter_url) ? "Download Letter" : "Open Leave Record",
+      }));
+
+    const trainingDocs = training.map((row, index) => {
+      const directUrl = text(row.certificate_url) || text(row.evidence_url) || text(row.document_url);
+      return {
+        id: `training-${text(row.id) || index}`,
+        title: `${text(row.programme_title || row.title, "Training Programme")} Certificate`,
+        category: "Training",
+        date: dateText(row.completed_at || row.updated_at || row.created_at),
+        href: directUrl || "/staff/training",
+        action: directUrl ? "Download Certificate" : "Open Training Record",
+      };
+    });
+
+    return [...requestDocs, ...leaveDocs, ...trainingDocs];
+  }, [leave, requests, training]);
+
+  const filtered = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    if (!query) return records;
+    return records.filter((row) => `${row.title} ${row.category}`.toLowerCase().includes(query));
+  }, [records, search]);
+
+  return (
+    <StaffShell>
+      <div className="space-y-6">
+        <StaffHero
+          name={profile?.fullName || "Staff Member"}
+          designation="My Downloads"
+          description="Access approved requests, leave documents and training records available to your account."
+          actions={
+            <>
+              <StaffAction href="/staff" tone="slate">Staff Home</StaffAction>
+              <StaffAction href="/output" tone="cyan">Enterprise Print Centre</StaffAction>
+            </>
+          }
+        />
+
+        <StaffNavigation />
+
+        {warning ? (
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-bold text-amber-900">{warning}</div>
+        ) : null}
+
+        <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <StaffStat label="Available" value={loading ? "—" : records.length} note="Documents ready to open" tone="blue" />
+          <StaffStat label="Requests" value={loading ? "—" : records.filter((row) => row.category === "Approved Request").length} note="Approved request printouts" tone="cyan" />
+          <StaffStat label="Leave" value={loading ? "—" : records.filter((row) => row.category === "Leave").length} note="Leave documents" tone="violet" />
+          <StaffStat label="Training" value={loading ? "—" : records.filter((row) => row.category === "Training").length} note="Certificates and records" tone="emerald" />
+        </section>
+
+        <StaffSection title="Available Documents" eyebrow="Personal Document Library">
+          <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="relative w-full sm:max-w-md">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+              <input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Search your documents..."
+                className="w-full rounded-xl border-2 border-slate-200 bg-white py-3 pl-10 pr-4 text-sm font-bold text-slate-950 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+              />
             </div>
-        </div>
-    );
+            <div className="inline-flex items-center gap-2 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm font-black text-blue-800">
+              <FolderOpen className="h-5 w-5" />
+              {filtered.length} matching record{filtered.length === 1 ? "" : "s"}
+            </div>
+          </div>
+
+          {filtered.length === 0 ? (
+            <StaffEmpty
+              title={loading ? "Loading documents" : "No matching document"}
+              description={loading ? "Please wait while ReqGen checks your personal records." : "Approved requests and available HR documents will appear here."}
+            />
+          ) : (
+            <div className="grid gap-3 lg:grid-cols-2">
+              {filtered.map((record) => {
+                const external = /^https?:\/\//i.test(record.href);
+                return (
+                  <article key={record.id} className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-slate-50/80 p-4 transition hover:-translate-y-0.5 hover:border-blue-200 hover:bg-white hover:shadow-md sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex min-w-0 items-start gap-3">
+                      <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-blue-700 to-cyan-500 text-white shadow-sm">
+                        <FileText className="h-5 w-5" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="break-words font-black text-slate-950">{record.title}</p>
+                        <div className="mt-2 flex flex-wrap gap-2 text-xs font-bold text-slate-500">
+                          <span className="rounded-full bg-white px-2.5 py-1 ring-1 ring-slate-200">{record.category}</span>
+                          <span className="rounded-full bg-white px-2.5 py-1 ring-1 ring-slate-200">{record.date}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <Link
+                      href={record.href}
+                      target={external || record.href.includes("/print") ? "_blank" : undefined}
+                      rel={external ? "noreferrer" : undefined}
+                      className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-700 to-teal-500 px-4 py-2.5 text-sm font-black text-white shadow-md transition hover:-translate-y-0.5 hover:shadow-lg"
+                    >
+                      <Download className="h-4 w-4" />
+                      {record.action}
+                    </Link>
+                  </article>
+                );
+              })}
+            </div>
+          )}
+        </StaffSection>
+
+        <section className="rounded-[1.75rem] bg-gradient-to-r from-slate-950 via-blue-950 to-cyan-800 p-5 text-white shadow-xl sm:p-6">
+          <div className="flex items-start gap-4">
+            <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-white/15 ring-1 ring-white/20">
+              <FileCheck className="h-6 w-6" />
+            </div>
+            <div>
+              <h2 className="text-xl font-black">Official IET Document Access</h2>
+              <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-cyan-50">
+                Download controls open only records available to your authenticated account. Approved Request printouts continue to use the protected original IET Request template.
+              </p>
+            </div>
+          </div>
+        </section>
+      </div>
+    </StaffShell>
+  );
 }

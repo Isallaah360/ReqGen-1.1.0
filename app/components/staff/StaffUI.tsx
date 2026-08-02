@@ -16,7 +16,7 @@ const gradients: Record<StaffTone, string> = {
 };
 
 export function StaffShell({ children }: { children: ReactNode }) {
-  return <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,_#dbeafe_0,_#f8fafc_42%,_#eef2ff_100%)] px-3 py-6 sm:px-6 lg:px-8">{children}</main>;
+  return <main className="w-full">{children}</main>;
 }
 
 export function StaffHero({ name, designation, description, actions, prominentGreeting = false }: { name: string; designation?: string; description: string; actions?: ReactNode; prominentGreeting?: boolean }) {

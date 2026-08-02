@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import StaffNavigation from "@/app/components/staff/StaffNavigation";
 import {
     ArrowLeft,
     Award,
@@ -98,7 +99,7 @@ export default function TrainingPage() {
                             Staff Workspace
                         </Link>
 
-                        <button className="px-5 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold flex items-center gap-2">
+                        <button type="button" onClick={() => window.print()} className="px-5 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold flex items-center gap-2">
                             <Printer size={18} />
                             Print
                         </button>
@@ -108,6 +109,8 @@ export default function TrainingPage() {
                 </div>
 
             </section>
+
+            <StaffNavigation />
 
             {/* SUMMARY */}
 

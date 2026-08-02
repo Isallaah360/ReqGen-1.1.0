@@ -73,6 +73,7 @@ export default function ProfileSecurityPage() {
           <p className="text-xs font-black uppercase tracking-[0.2em] text-cyan-300">Personal Security Workspace</p>
           <h1 className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">Security Centre</h1>
           <p className="mt-3 max-w-3xl font-semibold leading-7 text-slate-200">Review your authentication strength, active working role and account-protection controls.</p>
+          <div className="mt-5"><Link href="/staff" className="inline-flex min-h-11 items-center rounded-xl bg-white/15 px-4 py-2.5 text-sm font-black text-white ring-1 ring-white/25 transition hover:bg-white/25">← Back to Staff Workspace</Link></div>
         </section>
 
         <ProfileNavigation />
@@ -91,7 +92,7 @@ export default function ProfileSecurityPage() {
             <h2 className="text-xl font-black text-slate-950">Account Protection</h2>
             <div className="mt-5 grid gap-3">
               <Info label="Account email" value={security.email || "Not available"} />
-              <Info label="Last sign-in" value={security.lastSignInAt ? new Date(security.lastSignInAt).toLocaleString() : "Not available"} />
+              <Info label="Last sign-in" value={security.lastSignInAt ? new Date(security.lastSignInAt).toLocaleString("en-NG", { hour12: true }) : "Not available"} />
               <Info label="Session assurance" value={sessionSecure ? "AAL2 — MFA verified" : "AAL1 — password only"} />
             </div>
             <div className="mt-6 flex flex-wrap gap-3">

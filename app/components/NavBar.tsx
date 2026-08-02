@@ -820,7 +820,7 @@ export default function NavBar() {
                                     </div>
                                     <div className="mt-1 line-clamp-2 text-sm font-semibold text-slate-700">{r.title || "Untitled Request"}</div>
                                     <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] font-bold text-slate-500">
-                                      <span>{r.current_stage || "Pending stage"}</span><span>•</span><span>{new Date(r.created_at).toLocaleString()}</span>
+                                      <span>{r.current_stage || "Pending stage"}</span><span>•</span><span>{new Date(r.created_at).toLocaleString("en-NG", { hour12: true })}</span>
                                     </div>
                                   </div>
                                   <div className="shrink-0 text-right text-xs font-black text-slate-950">{formatNaira(r.amount)}</div>
@@ -854,7 +854,7 @@ export default function NavBar() {
                                     <div className="min-w-0">
                                       <div className="text-sm font-black text-slate-950">{n.title || "Workflow update"}</div>
                                       <div className="mt-1 line-clamp-2 text-xs font-semibold leading-5 text-slate-600">{detail}</div>
-                                      <div className="mt-1.5 text-[11px] font-bold text-slate-400">{new Date(n.created_at).toLocaleString()}</div>
+                                      <div className="mt-1.5 text-[11px] font-bold text-slate-400">{new Date(n.created_at).toLocaleString("en-NG", { hour12: true })}</div>
                                     </div>
                                   </div>
                                 </button>
@@ -870,7 +870,7 @@ export default function NavBar() {
 
               <Link className={iconLinkClass("/staff")} href="/staff">
                 <NavPngIcon src="/dashboard.png" alt="Dashboard" />
-                <IconButtonTooltip label="Dashboard" />
+                <IconButtonTooltip label="Staff Workspace" />
               </Link>
 
               <Link className={iconLinkClass("/requests")} href="/requests">
@@ -981,7 +981,7 @@ export default function NavBar() {
                     onClick={() => goTo("/staff")}
                     className={mobileItemClass("/staff")}
                   >
-                    <span className="inline-flex items-center gap-2"><NavPngIcon src="/dashboard.png" alt="Dashboard" size={22} />Dashboard</span>
+                    <span className="inline-flex items-center gap-2"><NavPngIcon src="/dashboard.png" alt="Staff Workspace" size={22} />Staff Workspace</span>
                   </button>
 
                   <button

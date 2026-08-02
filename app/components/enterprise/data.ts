@@ -18,7 +18,7 @@ export function numberValue(value: unknown) {
 export function dateText(value: unknown) {
   if (!value) return "—";
   const date = new Date(String(value));
-  return Number.isNaN(date.getTime()) ? "—" : date.toLocaleString();
+  return Number.isNaN(date.getTime()) ? "—" : date.toLocaleString("en-NG", { hour12: true });
 }
 
 export function roleKey(value: unknown) {

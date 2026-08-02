@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import StaffNavigation from "@/app/components/staff/StaffNavigation";
 import {
     ArrowLeft,
     Bell,
@@ -35,7 +36,7 @@ const sample: Notification[] = [
         category: "Request",
         priority: "High",
         status: "Unread",
-        date: "04 Aug 2026 09:14",
+        date: "04 Aug 2026, 9:14 AM",
         href: "/requests",
     },
     {
@@ -45,7 +46,7 @@ const sample: Notification[] = [
         category: "Leave",
         priority: "Normal",
         status: "Unread",
-        date: "03 Aug 2026 15:08",
+        date: "03 Aug 2026, 3:08 PM",
         href: "/staff/leave",
     },
     {
@@ -130,7 +131,7 @@ export default function StaffNotificationsPage() {
                             Staff Workspace
                         </Link>
 
-                        <button
+                        <button type="button" onClick={() => window.print()}
                             className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-5 py-3 flex items-center gap-2"
                         >
                             <Printer size={18} />
@@ -142,6 +143,8 @@ export default function StaffNotificationsPage() {
                 </div>
 
             </section>
+
+            <StaffNavigation />
 
             {/* KPI */}
 
