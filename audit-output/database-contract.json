@@ -1,0 +1,1985 @@
+{
+  "generatedAt": "2026-08-02T01:16:32.840Z",
+  "summary": {
+    "tables": 48,
+    "rpcs": 32,
+    "realtimeChannels": 9
+  },
+  "tables": [
+    "account_officer_accounts",
+    "account_transfers",
+    "app_settings",
+    "department_account_routing",
+    "departments",
+    "finance_activity_history",
+    "finance_transactions",
+    "hr_assessment_assignments",
+    "hr_assessment_cycles",
+    "hr_assignment_history",
+    "hr_department_capacity_programmes",
+    "hr_department_kpis",
+    "hr_leave_records",
+    "hr_officer_assignments",
+    "hr_policy_settings",
+    "hr_request_assignments",
+    "hr_request_reviews",
+    "hr_seminar_attendance",
+    "hr_seminar_sessions",
+    "hr_seminar_settings",
+    "hr_staff_file_movements",
+    "hr_staff_files",
+    "hr_staff_training_programmes",
+    "iet_account_officer_assignments",
+    "iet_account_officers",
+    "iet_account_transactions",
+    "iet_accounts",
+    "iet_bank_ledger",
+    "notifications",
+    "payment_voucher_counter_signatories",
+    "payment_vouchers",
+    "profile_roles",
+    "profiles",
+    "registry_correspondence",
+    "reqgen_roles",
+    "request-attachments",
+    "request_attachment_checks",
+    "request_attachments",
+    "request_history",
+    "requests",
+    "signatures",
+    "sms_logs",
+    "sms_otps",
+    "subheads",
+    "user_active_roles",
+    "user_role_switch_history",
+    "workflow_rules",
+    "workflow_sla_events"
+  ],
+  "rpcs": [
+    "approve_request_step",
+    "assign_request_subhead_and_reserve",
+    "counter_sign_payment_voucher_cheque",
+    "create_manual_payment_voucher",
+    "delete_payment_voucher_for_regeneration",
+    "delete_request_restore",
+    "generate_multi_payment_voucher",
+    "get_hr_filing_requests",
+    "get_my_active_role",
+    "get_my_pending_approval_count",
+    "get_payment_voucher_detail",
+    "get_payment_voucher_history",
+    "get_payment_voucher_items",
+    "get_payment_vouchers",
+    "get_print_request_detail",
+    "get_requests_ready_for_payment_voucher",
+    "hr_archive_staff_file",
+    "hr_move_staff_file",
+    "hr_record_seminar_attendance",
+    "hr_set_seminar_session_status",
+    "post_account_transfer",
+    "reject_request_step",
+    "reqgen_assign_profile_role",
+    "reqgen_deactivate_profile_role",
+    "reqgen_recalculate_all_iet_accounts",
+    "reqgen_set_iet_account_fund",
+    "reqgen_set_primary_profile_role",
+    "set_my_active_role",
+    "sign_payment_voucher_cheque",
+    "submit_request_with_reservation",
+    "update_payment_voucher_status",
+    "update_request_adjust_reservation"
+  ],
+  "realtimeChannels": [
+    "account-ledger-live",
+    "account-transfers-live",
+    "enterprise-audit-centre-live",
+    "finance-control-centre-realtime",
+    "finance-transactions-register-live",
+    "hr-registrar-live",
+    "manual-voucher-centre-live",
+    "reqgen-action-centre-page",
+    "subhead-ledger-live"
+  ],
+  "references": [
+    {
+      "kind": "table",
+      "name": "profiles",
+      "file": "app/admin/account-routing/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "departments",
+      "file": "app/admin/account-routing/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "iet_accounts",
+      "file": "app/admin/account-routing/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "profiles",
+      "file": "app/admin/account-routing/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "department_account_routing",
+      "file": "app/admin/account-routing/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "department_account_routing",
+      "file": "app/admin/account-routing/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "department_account_routing",
+      "file": "app/admin/account-routing/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "department_account_routing",
+      "file": "app/admin/account-routing/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "profiles",
+      "file": "app/admin/audit/page.tsx"
+    },
+    {
+      "kind": "rpc",
+      "name": "get_my_active_role",
+      "file": "app/admin/audit/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "departments",
+      "file": "app/admin/departments/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "profiles",
+      "file": "app/admin/departments/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "departments",
+      "file": "app/admin/departments/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "profiles",
+      "file": "app/admin/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "profile_roles",
+      "file": "app/admin/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "profiles",
+      "file": "app/admin/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "profile_roles",
+      "file": "app/admin/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "departments",
+      "file": "app/admin/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "app_settings",
+      "file": "app/admin/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "reqgen_roles",
+      "file": "app/admin/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "departments",
+      "file": "app/admin/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "app_settings",
+      "file": "app/admin/page.tsx"
+    },
+    {
+      "kind": "rpc",
+      "name": "reqgen_assign_profile_role",
+      "file": "app/admin/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "profiles",
+      "file": "app/admin/roles/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "reqgen_roles",
+      "file": "app/admin/roles/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "reqgen_roles",
+      "file": "app/admin/roles/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "reqgen_roles",
+      "file": "app/admin/roles/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "reqgen_roles",
+      "file": "app/admin/roles/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "reqgen_roles",
+      "file": "app/admin/roles/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "profiles",
+      "file": "app/admin/security/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "profiles",
+      "file": "app/admin/settings/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "profiles",
+      "file": "app/admin/settings/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "app_settings",
+      "file": "app/admin/settings/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "app_settings",
+      "file": "app/admin/settings/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "profiles",
+      "file": "app/admin/users/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "profile_roles",
+      "file": "app/admin/users/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "departments",
+      "file": "app/admin/users/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "reqgen_roles",
+      "file": "app/admin/users/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "profiles",
+      "file": "app/admin/users/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "profile_roles",
+      "file": "app/admin/users/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "profiles",
+      "file": "app/admin/users/page.tsx"
+    },
+    {
+      "kind": "rpc",
+      "name": "reqgen_assign_profile_role",
+      "file": "app/admin/users/page.tsx"
+    },
+    {
+      "kind": "rpc",
+      "name": "reqgen_set_primary_profile_role",
+      "file": "app/admin/users/page.tsx"
+    },
+    {
+      "kind": "rpc",
+      "name": "reqgen_deactivate_profile_role",
+      "file": "app/admin/users/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "sms_logs",
+      "file": "app/api/notifications/sms/request-approval/route.ts"
+    },
+    {
+      "kind": "table",
+      "name": "requests",
+      "file": "app/api/notifications/sms/request-approval/route.ts"
+    },
+    {
+      "kind": "table",
+      "name": "profiles",
+      "file": "app/api/notifications/sms/request-approval/route.ts"
+    },
+    {
+      "kind": "table",
+      "name": "sms_logs",
+      "file": "app/api/notifications/sms/request-event/route.ts"
+    },
+    {
+      "kind": "table",
+      "name": "requests",
+      "file": "app/api/notifications/sms/request-event/route.ts"
+    },
+    {
+      "kind": "table",
+      "name": "profiles",
+      "file": "app/api/notifications/sms/request-event/route.ts"
+    },
+    {
+      "kind": "table",
+      "name": "sms_logs",
+      "file": "app/api/otp/request-submission/send/route.ts"
+    },
+    {
+      "kind": "table",
+      "name": "profiles",
+      "file": "app/api/otp/request-submission/send/route.ts"
+    },
+    {
+      "kind": "table",
+      "name": "sms_otps",
+      "file": "app/api/otp/request-submission/send/route.ts"
+    },
+    {
+      "kind": "table",
+      "name": "sms_otps",
+      "file": "app/api/otp/request-submission/send/route.ts"
+    },
+    {
+      "kind": "table",
+      "name": "sms_otps",
+      "file": "app/api/otp/request-submission/send/route.ts"
+    },
+    {
+      "kind": "table",
+      "name": "sms_otps",
+      "file": "app/api/otp/request-submission/verify/route.ts"
+    },
+    {
+      "kind": "table",
+      "name": "sms_otps",
+      "file": "app/api/otp/request-submission/verify/route.ts"
+    },
+    {
+      "kind": "table",
+      "name": "sms_otps",
+      "file": "app/api/otp/request-submission/verify/route.ts"
+    },
+    {
+      "kind": "table",
+      "name": "requests",
+      "file": "app/approvals/action-centre/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "notifications",
+      "file": "app/approvals/action-centre/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "notifications",
+      "file": "app/approvals/action-centre/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "notifications",
+      "file": "app/approvals/action-centre/page.tsx"
+    },
+    {
+      "kind": "channel",
+      "name": "reqgen-action-centre-page",
+      "file": "app/approvals/action-centre/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "profiles",
+      "file": "app/approvals/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "profile_roles",
+      "file": "app/approvals/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "requests",
+      "file": "app/approvals/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "notifications",
+      "file": "app/approvals/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "profiles",
+      "file": "app/audit-centre/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "profiles",
+      "file": "app/audit-centre/page.tsx"
+    },
+    {
+      "kind": "rpc",
+      "name": "get_my_active_role",
+      "file": "app/audit-centre/page.tsx"
+    },
+    {
+      "kind": "channel",
+      "name": "enterprise-audit-centre-live",
+      "file": "app/audit-centre/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "requests",
+      "file": "app/components/NavBar.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "requests",
+      "file": "app/components/NavBar.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "notifications",
+      "file": "app/components/NavBar.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "notifications",
+      "file": "app/components/NavBar.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "profiles",
+      "file": "app/components/NavBar.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "profile_roles",
+      "file": "app/components/NavBar.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "notifications",
+      "file": "app/components/NavBar.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "notifications",
+      "file": "app/components/NavBar.tsx"
+    },
+    {
+      "kind": "rpc",
+      "name": "get_my_pending_approval_count",
+      "file": "app/components/NavBar.tsx"
+    },
+    {
+      "kind": "rpc",
+      "name": "get_my_active_role",
+      "file": "app/components/NavBar.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "profiles",
+      "file": "app/components/admin/AdminNavigation.tsx"
+    },
+    {
+      "kind": "rpc",
+      "name": "get_my_active_role",
+      "file": "app/components/admin/AdminNavigation.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "hr_officer_assignments",
+      "file": "app/components/hr/HRAccessGuard.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "departments",
+      "file": "app/components/hr/HRProgrammeCentre.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "profiles",
+      "file": "app/components/hr/HRWorkspace.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "profile_roles",
+      "file": "app/components/hr/HRWorkspace.tsx"
+    },
+    {
+      "kind": "rpc",
+      "name": "get_hr_filing_requests",
+      "file": "app/components/hr/HRWorkspace.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "hr_leave_records",
+      "file": "app/components/hr/LeaveDashboard.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "registry_correspondence",
+      "file": "app/components/registry/RegistryRegister.tsx"
+    },
+    {
+      "kind": "rpc",
+      "name": "get_my_active_role",
+      "file": "app/components/security/StrictActiveRoleBoundary.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "requests",
+      "file": "app/dashboard/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "requests",
+      "file": "app/dashboard/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "requests",
+      "file": "app/dashboard/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "requests",
+      "file": "app/dashboard/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "requests",
+      "file": "app/dashboard/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "requests",
+      "file": "app/dashboard/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "request_history",
+      "file": "app/dashboard/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "requests",
+      "file": "app/dashboard/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "profiles",
+      "file": "app/dashboard/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "profile_roles",
+      "file": "app/dashboard/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "departments",
+      "file": "app/dashboard/page.tsx"
+    },
+    {
+      "kind": "rpc",
+      "name": "get_my_active_role",
+      "file": "app/dashboard/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "profiles",
+      "file": "app/finance/_components/FinanceOutputWorkspace.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "profile_roles",
+      "file": "app/finance/_components/FinanceOutputWorkspace.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "departments",
+      "file": "app/finance/_components/FinanceOutputWorkspace.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "subheads",
+      "file": "app/finance/_components/FinanceOutputWorkspace.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "payment_vouchers",
+      "file": "app/finance/_components/FinanceOutputWorkspace.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "finance_transactions",
+      "file": "app/finance/_components/FinanceOutputWorkspace.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "profiles",
+      "file": "app/finance/account-ledger/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "profile_roles",
+      "file": "app/finance/account-ledger/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "iet_accounts",
+      "file": "app/finance/account-ledger/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "iet_account_transactions",
+      "file": "app/finance/account-ledger/page.tsx"
+    },
+    {
+      "kind": "channel",
+      "name": "account-ledger-live",
+      "file": "app/finance/account-ledger/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "iet_accounts",
+      "file": "app/finance/account-transfers/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "account_transfers",
+      "file": "app/finance/account-transfers/page.tsx"
+    },
+    {
+      "kind": "rpc",
+      "name": "post_account_transfer",
+      "file": "app/finance/account-transfers/page.tsx"
+    },
+    {
+      "kind": "channel",
+      "name": "account-transfers-live",
+      "file": "app/finance/account-transfers/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "profiles",
+      "file": "app/finance/accounts/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "iet_accounts",
+      "file": "app/finance/accounts/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "profiles",
+      "file": "app/finance/accounts/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "iet_accounts",
+      "file": "app/finance/accounts/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "iet_accounts",
+      "file": "app/finance/accounts/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "account_officer_accounts",
+      "file": "app/finance/accounts/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "profiles",
+      "file": "app/finance/assign-account/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "iet_accounts",
+      "file": "app/finance/assign-account/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "profiles",
+      "file": "app/finance/assign-account/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "iet_account_officers",
+      "file": "app/finance/assign-account/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "profiles",
+      "file": "app/finance/audit/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "iet_accounts",
+      "file": "app/finance/audit/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "departments",
+      "file": "app/finance/audit/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "subheads",
+      "file": "app/finance/audit/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "requests",
+      "file": "app/finance/audit/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "iet_bank_ledger",
+      "file": "app/finance/audit/page.tsx"
+    },
+    {
+      "kind": "rpc",
+      "name": "reqgen_recalculate_all_iet_accounts",
+      "file": "app/finance/audit/page.tsx"
+    },
+    {
+      "kind": "rpc",
+      "name": "get_payment_vouchers",
+      "file": "app/finance/audit/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "profiles",
+      "file": "app/finance/departments/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "departments",
+      "file": "app/finance/departments/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "requests",
+      "file": "app/finance/departments/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "subheads",
+      "file": "app/finance/departments/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "profiles",
+      "file": "app/finance/departments/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "departments",
+      "file": "app/finance/departments/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "departments",
+      "file": "app/finance/departments/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "departments",
+      "file": "app/finance/departments/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "departments",
+      "file": "app/finance/departments/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "departments",
+      "file": "app/finance/departments/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "profiles",
+      "file": "app/finance/manage-accounts/assign/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "iet_accounts",
+      "file": "app/finance/manage-accounts/assign/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "profiles",
+      "file": "app/finance/manage-accounts/assign/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "iet_account_officer_assignments",
+      "file": "app/finance/manage-accounts/assign/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "iet_account_officer_assignments",
+      "file": "app/finance/manage-accounts/assign/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "iet_account_officer_assignments",
+      "file": "app/finance/manage-accounts/assign/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "profiles",
+      "file": "app/finance/manage-accounts/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "iet_accounts",
+      "file": "app/finance/manage-accounts/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "iet_accounts",
+      "file": "app/finance/manage-accounts/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "iet_accounts",
+      "file": "app/finance/manage-accounts/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "iet_accounts",
+      "file": "app/finance/manage-accounts/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "iet_accounts",
+      "file": "app/finance/manage-accounts/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "iet_accounts",
+      "file": "app/finance/manage-accounts/page.tsx"
+    },
+    {
+      "kind": "rpc",
+      "name": "reqgen_recalculate_all_iet_accounts",
+      "file": "app/finance/manage-accounts/page.tsx"
+    },
+    {
+      "kind": "rpc",
+      "name": "reqgen_set_iet_account_fund",
+      "file": "app/finance/manage-accounts/page.tsx"
+    },
+    {
+      "kind": "rpc",
+      "name": "reqgen_recalculate_all_iet_accounts",
+      "file": "app/finance/manage-accounts/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "profiles",
+      "file": "app/finance/manual-voucher/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "profile_roles",
+      "file": "app/finance/manual-voucher/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "iet_accounts",
+      "file": "app/finance/manual-voucher/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "subheads",
+      "file": "app/finance/manual-voucher/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "payment_vouchers",
+      "file": "app/finance/manual-voucher/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "payment_vouchers",
+      "file": "app/finance/manual-voucher/page.tsx"
+    },
+    {
+      "kind": "channel",
+      "name": "manual-voucher-centre-live",
+      "file": "app/finance/manual-voucher/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "requests",
+      "file": "app/finance/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "payment_vouchers",
+      "file": "app/finance/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "finance_transactions",
+      "file": "app/finance/page.tsx"
+    },
+    {
+      "kind": "channel",
+      "name": "finance-control-centre-realtime",
+      "file": "app/finance/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "requests",
+      "file": "app/finance/request/[id]/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "subheads",
+      "file": "app/finance/request/[id]/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "iet_accounts",
+      "file": "app/finance/request/[id]/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "payment_vouchers",
+      "file": "app/finance/request/[id]/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "payment_vouchers",
+      "file": "app/finance/request/[id]/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "payment_vouchers",
+      "file": "app/finance/request/[id]/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "finance_activity_history",
+      "file": "app/finance/settings/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "subheads",
+      "file": "app/finance/subhead-ledger/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "finance_transactions",
+      "file": "app/finance/subhead-ledger/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "payment_vouchers",
+      "file": "app/finance/subhead-ledger/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "iet_accounts",
+      "file": "app/finance/subhead-ledger/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "departments",
+      "file": "app/finance/subhead-ledger/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "profiles",
+      "file": "app/finance/subhead-ledger/page.tsx"
+    },
+    {
+      "kind": "channel",
+      "name": "subhead-ledger-live",
+      "file": "app/finance/subhead-ledger/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "profiles",
+      "file": "app/finance/subheads/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "departments",
+      "file": "app/finance/subheads/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "iet_accounts",
+      "file": "app/finance/subheads/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "subheads",
+      "file": "app/finance/subheads/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "requests",
+      "file": "app/finance/subheads/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "requests",
+      "file": "app/finance/subheads/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "requests",
+      "file": "app/finance/subheads/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "subheads",
+      "file": "app/finance/subheads/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "subheads",
+      "file": "app/finance/subheads/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "subheads",
+      "file": "app/finance/subheads/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "subheads",
+      "file": "app/finance/subheads/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "subheads",
+      "file": "app/finance/subheads/page.tsx"
+    },
+    {
+      "kind": "rpc",
+      "name": "reqgen_recalculate_all_iet_accounts",
+      "file": "app/finance/subheads/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "profiles",
+      "file": "app/finance/transactions/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "profile_roles",
+      "file": "app/finance/transactions/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "finance_transactions",
+      "file": "app/finance/transactions/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "payment_vouchers",
+      "file": "app/finance/transactions/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "iet_accounts",
+      "file": "app/finance/transactions/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "subheads",
+      "file": "app/finance/transactions/page.tsx"
+    },
+    {
+      "kind": "channel",
+      "name": "finance-transactions-register-live",
+      "file": "app/finance/transactions/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "hr_staff_training_programmes",
+      "file": "app/hr/analytics/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "hr_department_capacity_programmes",
+      "file": "app/hr/analytics/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "hr_department_kpis",
+      "file": "app/hr/analytics/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "hr_assessment_assignments",
+      "file": "app/hr/analytics/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "hr_seminar_attendance",
+      "file": "app/hr/analytics/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "profiles",
+      "file": "app/hr/archive/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "profile_roles",
+      "file": "app/hr/archive/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "hr_officer_assignments",
+      "file": "app/hr/archive/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "hr_staff_files",
+      "file": "app/hr/archive/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "profiles",
+      "file": "app/hr/archive/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "departments",
+      "file": "app/hr/archive/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "hr_staff_file_movements",
+      "file": "app/hr/archive/page.tsx"
+    },
+    {
+      "kind": "rpc",
+      "name": "hr_archive_staff_file",
+      "file": "app/hr/archive/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "hr_assessment_cycles",
+      "file": "app/hr/assessments/annual-360/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "hr_assessment_assignments",
+      "file": "app/hr/assessments/annual-360/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "profiles",
+      "file": "app/hr/assessments/annual-360/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "hr_assessment_cycles",
+      "file": "app/hr/assessments/annual-360/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "profiles",
+      "file": "app/hr/assignments/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "hr_officer_assignments",
+      "file": "app/hr/assignments/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "hr_officer_assignments",
+      "file": "app/hr/assignments/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "hr_officer_assignments",
+      "file": "app/hr/assignments/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "profiles",
+      "file": "app/hr/assignments-page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "hr_officer_assignments",
+      "file": "app/hr/assignments-page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "requests",
+      "file": "app/hr/assignments-page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "hr_officer_assignments",
+      "file": "app/hr/assignments-page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "hr_request_assignments",
+      "file": "app/hr/assignments-page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "hr_officer_assignments",
+      "file": "app/hr/assignments-page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "hr_assignment_history",
+      "file": "app/hr/audit/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "hr_department_kpis",
+      "file": "app/hr/department-kpi/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "departments",
+      "file": "app/hr/department-kpi/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "hr_department_kpis",
+      "file": "app/hr/department-kpi/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "profiles",
+      "file": "app/hr/filing/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "profile_roles",
+      "file": "app/hr/filing/page.tsx"
+    },
+    {
+      "kind": "rpc",
+      "name": "get_hr_filing_requests",
+      "file": "app/hr/filing/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "hr_request_assignments",
+      "file": "app/hr/my-work/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "hr_request_assignments",
+      "file": "app/hr/my-work/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "hr_request_assignments",
+      "file": "app/hr/officer-performance/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "profiles",
+      "file": "app/hr/officer-performance/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "hr_officer_assignments",
+      "file": "app/hr/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "hr_request_assignments",
+      "file": "app/hr/page.tsx"
+    },
+    {
+      "kind": "rpc",
+      "name": "get_hr_filing_requests",
+      "file": "app/hr/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "hr_staff_files",
+      "file": "app/hr/registrar/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "hr_staff_file_movements",
+      "file": "app/hr/registrar/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "profiles",
+      "file": "app/hr/registrar/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "departments",
+      "file": "app/hr/registrar/page.tsx"
+    },
+    {
+      "kind": "rpc",
+      "name": "hr_move_staff_file",
+      "file": "app/hr/registrar/page.tsx"
+    },
+    {
+      "kind": "channel",
+      "name": "hr-registrar-live",
+      "file": "app/hr/registrar/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "hr_staff_training_programmes",
+      "file": "app/hr/reports/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "hr_department_capacity_programmes",
+      "file": "app/hr/reports/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "hr_department_kpis",
+      "file": "app/hr/reports/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "hr_assessment_cycles",
+      "file": "app/hr/reports/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "hr_assessment_assignments",
+      "file": "app/hr/reports/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "hr_seminar_sessions",
+      "file": "app/hr/reports/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "hr_seminar_attendance",
+      "file": "app/hr/reports/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "hr_request_assignments",
+      "file": "app/hr/review/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "profiles",
+      "file": "app/hr/review/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "hr_request_assignments",
+      "file": "app/hr/review/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "hr_request_reviews",
+      "file": "app/hr/review/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "hr_policy_settings",
+      "file": "app/hr/settings/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "hr_policy_settings",
+      "file": "app/hr/settings/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "profiles",
+      "file": "app/hr/staff/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "profile_roles",
+      "file": "app/hr/staff/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "hr_officer_assignments",
+      "file": "app/hr/staff/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "hr_staff_files",
+      "file": "app/hr/staff/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "profiles",
+      "file": "app/hr/staff/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "departments",
+      "file": "app/hr/staff/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "hr_staff_file_movements",
+      "file": "app/hr/staff/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "hr_staff_files",
+      "file": "app/hr/staff/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "hr_staff_files",
+      "file": "app/hr/staff/page.tsx"
+    },
+    {
+      "kind": "rpc",
+      "name": "hr_move_staff_file",
+      "file": "app/hr/staff/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "hr_seminar_sessions",
+      "file": "app/hr/weekly-seminar/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "hr_seminar_attendance",
+      "file": "app/hr/weekly-seminar/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "profiles",
+      "file": "app/hr/weekly-seminar/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "departments",
+      "file": "app/hr/weekly-seminar/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "hr_seminar_settings",
+      "file": "app/hr/weekly-seminar/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "hr_seminar_sessions",
+      "file": "app/hr/weekly-seminar/page.tsx"
+    },
+    {
+      "kind": "rpc",
+      "name": "hr_set_seminar_session_status",
+      "file": "app/hr/weekly-seminar/page.tsx"
+    },
+    {
+      "kind": "rpc",
+      "name": "hr_record_seminar_attendance",
+      "file": "app/hr/weekly-seminar/page.tsx"
+    },
+    {
+      "kind": "rpc",
+      "name": "get_my_active_role",
+      "file": "app/output/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "profiles",
+      "file": "app/payment-vouchers/[id]/page.tsx"
+    },
+    {
+      "kind": "rpc",
+      "name": "get_payment_voucher_detail",
+      "file": "app/payment-vouchers/[id]/page.tsx"
+    },
+    {
+      "kind": "rpc",
+      "name": "get_payment_voucher_items",
+      "file": "app/payment-vouchers/[id]/page.tsx"
+    },
+    {
+      "kind": "rpc",
+      "name": "get_payment_voucher_history",
+      "file": "app/payment-vouchers/[id]/page.tsx"
+    },
+    {
+      "kind": "rpc",
+      "name": "update_payment_voucher_status",
+      "file": "app/payment-vouchers/[id]/page.tsx"
+    },
+    {
+      "kind": "rpc",
+      "name": "sign_payment_voucher_cheque",
+      "file": "app/payment-vouchers/[id]/page.tsx"
+    },
+    {
+      "kind": "rpc",
+      "name": "counter_sign_payment_voucher_cheque",
+      "file": "app/payment-vouchers/[id]/page.tsx"
+    },
+    {
+      "kind": "rpc",
+      "name": "delete_payment_voucher_for_regeneration",
+      "file": "app/payment-vouchers/[id]/page.tsx"
+    },
+    {
+      "kind": "rpc",
+      "name": "get_payment_voucher_detail",
+      "file": "app/payment-vouchers/[id]/print/page.tsx"
+    },
+    {
+      "kind": "rpc",
+      "name": "get_payment_voucher_items",
+      "file": "app/payment-vouchers/[id]/print/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "profiles",
+      "file": "app/payment-vouchers/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "profile_roles",
+      "file": "app/payment-vouchers/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "payment_voucher_counter_signatories",
+      "file": "app/payment-vouchers/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "departments",
+      "file": "app/payment-vouchers/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "subheads",
+      "file": "app/payment-vouchers/page.tsx"
+    },
+    {
+      "kind": "rpc",
+      "name": "get_payment_vouchers",
+      "file": "app/payment-vouchers/page.tsx"
+    },
+    {
+      "kind": "rpc",
+      "name": "get_requests_ready_for_payment_voucher",
+      "file": "app/payment-vouchers/page.tsx"
+    },
+    {
+      "kind": "rpc",
+      "name": "create_manual_payment_voucher",
+      "file": "app/payment-vouchers/page.tsx"
+    },
+    {
+      "kind": "rpc",
+      "name": "generate_multi_payment_voucher",
+      "file": "app/payment-vouchers/page.tsx"
+    },
+    {
+      "kind": "rpc",
+      "name": "delete_payment_voucher_for_regeneration",
+      "file": "app/payment-vouchers/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "profiles",
+      "file": "app/payment-vouchers/settings/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "payment_voucher_counter_signatories",
+      "file": "app/payment-vouchers/settings/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "payment_voucher_counter_signatories",
+      "file": "app/payment-vouchers/settings/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "payment_voucher_counter_signatories",
+      "file": "app/payment-vouchers/settings/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "payment_voucher_counter_signatories",
+      "file": "app/payment-vouchers/settings/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "payment_voucher_counter_signatories",
+      "file": "app/payment-vouchers/settings/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "profiles",
+      "file": "app/profile/access/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "profile_roles",
+      "file": "app/profile/access/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "hr_officer_assignments",
+      "file": "app/profile/access/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "user_role_switch_history",
+      "file": "app/profile/activity/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "hr_assignment_history",
+      "file": "app/profile/activity/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "profiles",
+      "file": "app/profile/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "departments",
+      "file": "app/profile/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "profiles",
+      "file": "app/profile/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "signatures",
+      "file": "app/profile/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "profiles",
+      "file": "app/profile/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "profiles",
+      "file": "app/profile/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "profiles",
+      "file": "app/registry/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "profile_roles",
+      "file": "app/registry/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "requests",
+      "file": "app/registry/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "departments",
+      "file": "app/registry/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "profile_roles",
+      "file": "app/requests/[id]/edit/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "profiles",
+      "file": "app/requests/[id]/edit/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "requests",
+      "file": "app/requests/[id]/edit/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "subheads",
+      "file": "app/requests/[id]/edit/page.tsx"
+    },
+    {
+      "kind": "rpc",
+      "name": "update_request_adjust_reservation",
+      "file": "app/requests/[id]/edit/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "subheads",
+      "file": "app/requests/[id]/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "request_attachments",
+      "file": "app/requests/[id]/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "request-attachments",
+      "file": "app/requests/[id]/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "request_attachment_checks",
+      "file": "app/requests/[id]/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "profile_roles",
+      "file": "app/requests/[id]/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "profiles",
+      "file": "app/requests/[id]/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "requests",
+      "file": "app/requests/[id]/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "subheads",
+      "file": "app/requests/[id]/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "request_history",
+      "file": "app/requests/[id]/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "requests",
+      "file": "app/requests/[id]/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "request_history",
+      "file": "app/requests/[id]/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "subheads",
+      "file": "app/requests/[id]/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "request_attachment_checks",
+      "file": "app/requests/[id]/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "request_history",
+      "file": "app/requests/[id]/page.tsx"
+    },
+    {
+      "kind": "rpc",
+      "name": "assign_request_subhead_and_reserve",
+      "file": "app/requests/[id]/page.tsx"
+    },
+    {
+      "kind": "rpc",
+      "name": "approve_request_step",
+      "file": "app/requests/[id]/page.tsx"
+    },
+    {
+      "kind": "rpc",
+      "name": "reject_request_step",
+      "file": "app/requests/[id]/page.tsx"
+    },
+    {
+      "kind": "rpc",
+      "name": "delete_request_restore",
+      "file": "app/requests/[id]/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "profiles",
+      "file": "app/requests/[id]/print/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "profile_roles",
+      "file": "app/requests/[id]/print/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "request_history",
+      "file": "app/requests/[id]/print/page.tsx"
+    },
+    {
+      "kind": "rpc",
+      "name": "get_print_request_detail",
+      "file": "app/requests/[id]/print/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "profiles",
+      "file": "app/requests/new/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "profile_roles",
+      "file": "app/requests/new/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "departments",
+      "file": "app/requests/new/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "subheads",
+      "file": "app/requests/new/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "request-attachments",
+      "file": "app/requests/new/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "request_attachments",
+      "file": "app/requests/new/page.tsx"
+    },
+    {
+      "kind": "rpc",
+      "name": "submit_request_with_reservation",
+      "file": "app/requests/new/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "requests",
+      "file": "app/requests/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "departments",
+      "file": "app/signup/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "profiles",
+      "file": "app/signup/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "departments",
+      "file": "app/test-supabase/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "workflow_rules",
+      "file": "app/workflow/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "workflow_sla_events",
+      "file": "app/workflow/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "workflow_rules",
+      "file": "app/workflow/page.tsx"
+    },
+    {
+      "kind": "table",
+      "name": "profiles",
+      "file": "lib/activeRole.ts"
+    },
+    {
+      "kind": "table",
+      "name": "profile_roles",
+      "file": "lib/activeRole.ts"
+    },
+    {
+      "kind": "table",
+      "name": "hr_officer_assignments",
+      "file": "lib/activeRole.ts"
+    },
+    {
+      "kind": "table",
+      "name": "user_active_roles",
+      "file": "lib/activeRole.ts"
+    },
+    {
+      "kind": "rpc",
+      "name": "set_my_active_role",
+      "file": "lib/activeRole.ts"
+    },
+    {
+      "kind": "table",
+      "name": "profiles",
+      "file": "lib/auth.ts"
+    },
+    {
+      "kind": "table",
+      "name": "profile_roles",
+      "file": "lib/auth.ts"
+    },
+    {
+      "kind": "rpc",
+      "name": "get_my_active_role",
+      "file": "lib/auth.ts"
+    }
+  ]
+}

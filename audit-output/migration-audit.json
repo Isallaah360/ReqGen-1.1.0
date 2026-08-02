@@ -1,0 +1,8 @@
+{
+  "generatedAt": "2026-08-02T01:16:32.864Z",
+  "migrationCount": 0,
+  "warnings": [
+    "No local migration directory was found. Record already-applied SQL manually in docs/DATABASE_MIGRATION_REGISTER.md."
+  ],
+  "migrations": []
+}
