@@ -36,6 +36,10 @@ const emptyData: StaffWorkspaceData = {
   staffFiles: [],
 };
 
+function metadataName(metadata: Record<string, unknown> | undefined) {
+  return text(metadata?.full_name) || text(metadata?.name) || text(metadata?.display_name);
+}
+
 export function useStaffWorkspace() {
   const [loading, setLoading] = useState(true);
   const [warning, setWarning] = useState<string | null>(null);
@@ -46,9 +50,10 @@ export function useStaffWorkspace() {
     setWarning(null);
 
     try {
-      const { data: sessionData } = await supabase.auth.getSession();
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
       const user = sessionData.session?.user;
-      if (!user) {
+
+      if (sessionError || !user) {
         setWarning("Your authenticated session could not be confirmed.");
         setData(emptyData);
         return;
@@ -56,12 +61,19 @@ export function useStaffWorkspace() {
 
       const profileResult = await supabase
         .from("profiles")
-        .select("id,full_name,role,phone,dept_id,signature_url,departments(name)")
+        .select("id,full_name,email,role,phone,dept_id,signature_url")
         .eq("id", user.id)
         .maybeSingle();
 
+      const profileRow = (profileResult.data || {}) as GenericRow;
+      const departmentId = text(profileRow.dept_id);
+
+      const departmentResult = departmentId
+        ? await supabase.from("departments").select("name").eq("id", departmentId).maybeSingle()
+        : { data: null, error: null };
+
       const [requestsResult, notificationsResult, leaveResult, attendanceResult, trainingResult, staffFilesResult] = await Promise.all([
-        supabase.from("requests").select("*").eq("requester_id", user.id).order("created_at", { ascending: false }).limit(50),
+        supabase.from("requests").select("*").eq("created_by", user.id).order("created_at", { ascending: false }).limit(50),
         supabase.from("notifications").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(50),
         supabase.from("hr_leave_requests").select("*").eq("staff_id", user.id).order("created_at", { ascending: false }).limit(50),
         supabase.from("hr_seminar_attendance").select("*").eq("staff_id", user.id).order("recorded_at", { ascending: false }).limit(50),
@@ -69,49 +81,44 @@ export function useStaffWorkspace() {
         supabase.from("hr_staff_files").select("*").eq("staff_id", user.id).limit(5),
       ]);
 
-      const profileRow = profileResult.data as GenericRow | null;
-      const departments = profileRow?.departments;
-      const departmentName = Array.isArray(departments)
-        ? text((departments[0] as GenericRow | undefined)?.name)
-        : departments && typeof departments === "object"
-          ? text((departments as GenericRow).name)
-          : "";
+      const fullName =
+        text(profileRow.full_name) ||
+        metadataName(user.user_metadata as Record<string, unknown> | undefined) ||
+        "Staff Member";
 
-      const unavailable = [
-        requestsResult.error,
-        notificationsResult.error,
-        leaveResult.error,
-        attendanceResult.error,
-        trainingResult.error,
-        staffFilesResult.error,
-      ].filter(Boolean);
+      const email = text(profileRow.email) || user.email || "";
+      const role = text(profileRow.role, "Staff");
+      const departmentName = text((departmentResult.data as GenericRow | null)?.name, "Department not assigned");
 
-      if (unavailable.length > 0) {
-        setWarning("Some personal records are not yet available. The accessible parts of your workspace are displayed.");
+      // Only core personal sources trigger a workspace warning. Optional HR modules may
+      // legitimately be unavailable until the staff member has matching records.
+      const coreErrors = [profileResult.error, requestsResult.error, notificationsResult.error].filter(Boolean);
+      if (coreErrors.length > 0) {
+        setWarning("Some core personal information could not be loaded. Refresh the page or contact the Administrator if this continues.");
       }
 
       setData({
         profile: {
           id: user.id,
-          fullName: text(profileRow?.full_name, user.email || "Staff Member"),
-          email: user.email || "",
-          role: text(profileRow?.role, "Staff"),
-          phone: text(profileRow?.phone),
-          department: departmentName || "Department not assigned",
-          departmentId: text(profileRow?.dept_id),
-          designation: text(profileRow?.role, "IET Staff Member"),
-          signatureUrl: text(profileRow?.signature_url),
+          fullName,
+          email,
+          role,
+          phone: text(profileRow.phone),
+          department: departmentName,
+          departmentId,
+          designation: role || "IET Staff Member",
+          signatureUrl: text(profileRow.signature_url),
         },
         requests: normalizeRows(requestsResult.data),
         notifications: normalizeRows(notificationsResult.data),
-        leave: normalizeRows(leaveResult.data),
-        attendance: normalizeRows(attendanceResult.data),
-        training: normalizeRows(trainingResult.data),
-        staffFiles: normalizeRows(staffFilesResult.data),
+        leave: leaveResult.error ? [] : normalizeRows(leaveResult.data),
+        attendance: attendanceResult.error ? [] : normalizeRows(attendanceResult.data),
+        training: trainingResult.error ? [] : normalizeRows(trainingResult.data),
+        staffFiles: staffFilesResult.error ? [] : normalizeRows(staffFilesResult.data),
       });
     } catch (error) {
-      console.error("Unable to load Staff Workspace:", error);
-      setWarning("The Staff Workspace could not load all records at this time.");
+      console.error("Unable to load personal workspace data:", error);
+      setWarning("Your personal information could not be loaded at this time.");
       setData(emptyData);
     } finally {
       setLoading(false);

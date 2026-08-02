@@ -877,11 +877,6 @@ export default function NavBar() {
                 <NavPngIcon src="/request.png" alt="My Requests" />
                 <IconButtonTooltip label="My Requests" />
               </Link>
-
-              <Link className={iconLinkClass("/staff")} href="/staff">
-                <IconStaff className="h-7 w-7" />
-                <IconButtonTooltip label="Staff Workspace" />
-              </Link>
 {canViewReports && (
                 <Link className={iconLinkClass("/reports")} href="/reports">
                   <NavPngIcon src="/report.png" alt="Reports and Analytics" />
@@ -995,15 +990,6 @@ export default function NavBar() {
                     className={mobileItemClass("/requests")}
                   >
                     <span className="inline-flex items-center gap-2"><NavPngIcon src="/request.png" alt="My Requests" size={22} />My Requests</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => goTo("/staff")}
-                    className={mobileItemClass("/staff")}
-                  >
-                    <span className="inline-flex items-center gap-2"><IconStaff className="h-[22px] w-[22px]" />Staff Workspace</span>
-                    <div className={mobileItemDescriptionClass("/staff")}>My leave, attendance, training, notifications and downloads</div>
                   </button>
 
                   {canViewReports && (

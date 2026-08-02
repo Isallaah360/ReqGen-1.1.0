@@ -4,16 +4,16 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const items = [
-  ["01", "Overview", "/staff"],
+  ["01", "Overview", "/dashboard"],
   ["02", "My Requests", "/staff/requests"],
   ["03", "My Leave", "/staff/leave"],
   ["04", "Attendance", "/staff/attendance"],
-  ["05", "My Staff File", "/staff/profile"],
+  ["05", "My Profile", "/profile"],
   ["06", "Training", "/staff/training"],
   ["07", "Performance", "/staff/performance"],
   ["08", "Notifications", "/staff/notifications"],
   ["09", "Downloads", "/staff/downloads"],
-  ["10", "Settings", "/profile"],
+  ["10", "Security", "/profile/security"],
 ] as const;
 
 export default function StaffNavigation() {
@@ -22,7 +22,7 @@ export default function StaffNavigation() {
   return (
     <nav className="mx-auto grid max-w-[1180px] grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-5" aria-label="Staff workspace navigation">
       {items.map(([number, label, href]) => {
-        const active = href === "/staff" ? pathname === href : pathname.startsWith(href);
+        const active = href === "/dashboard" ? pathname === href : pathname.startsWith(href);
         return (
           <Link
             key={href}
