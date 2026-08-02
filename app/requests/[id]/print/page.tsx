@@ -546,7 +546,12 @@ export default function PrintRequestPage() {
     if (!req) return false;
 
     const requesterReady = !!req.requester_name && !!sigRequester;
-    const checkedReady = !!(checkedHistory?.actor_name || req.checked_by_name) && !!sigChecked;
+    // The Recommended-by signature belongs to the Official workflow only.
+    // Personal Leave, Personal Fund and Personal Other requests are reviewed by HR and DG,
+    // therefore an intentionally unused department-review line must not block printing.
+    const checkedReady = isOfficial
+      ? !!(checkedHistory?.actor_name || req.checked_by_name) && !!sigChecked
+      : true;
     const dgReady = !!(dgHistory?.actor_name || req.dg_name) && !!sigDG;
 
     const hrReady = isPersonal ? !!(hrHistory?.actor_name || req.hr_name) && !!sigHR : true;
@@ -586,6 +591,7 @@ export default function PrintRequestPage() {
     canOpenPrintPage,
     requestIsCompletedForPrint,
     isPersonal,
+    isOfficial,
   ]);
 
   async function handlePrint() {

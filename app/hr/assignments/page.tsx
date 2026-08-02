@@ -1,26 +1,81 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { BriefcaseBusiness, CheckCircle2, PauseCircle, RefreshCw, ShieldCheck, Users } from "lucide-react";
+import {
+  BriefcaseBusiness,
+  CheckCircle2,
+  ClipboardList,
+  PauseCircle,
+  RefreshCw,
+  Send,
+  ShieldCheck,
+  Users,
+} from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { HRAccessGuard, HRNavigation } from "@/app/components/hr";
+import {
+  HRAlert,
+  HRBadge,
+  HRButton,
+  HREmpty,
+  HRHero,
+  HRPageShell,
+  HRPanel,
+  HRRefreshButton,
+  HRStatCard,
+  formatDate,
+  pretty,
+} from "@/app/components/hr/HREnterprisePage";
 
 type Officer = { id: string; full_name: string | null; email: string | null; role: string | null };
-type Assignment = { id: string; officer_id: string; section_key: string; permission_key: string; is_active: boolean; created_at?: string | null };
-type SummaryCard = { title: string; value: number; icon: LucideIcon; tone: string };
+type FunctionalAssignment = {
+  id: string;
+  officer_id: string;
+  section_key: string;
+  permission_key: string;
+  is_active: boolean;
+  created_at?: string | null;
+};
+type RequestAssignment = {
+  id: string;
+  request_id: string;
+  officer_id: string;
+  section_key: string;
+  status: string;
+  priority: string;
+  due_at: string | null;
+  instructions: string | null;
+  assigned_at?: string | null;
+  requests?: {
+    request_no?: string | null;
+    title?: string | null;
+    current_stage?: string | null;
+    status?: string | null;
+  } | null;
+};
+type RequestRow = {
+  id: string;
+  request_no: string | null;
+  title: string | null;
+  current_stage: string | null;
+  status: string | null;
+  request_type?: string | null;
+  personal_category?: string | null;
+};
+type SummaryCard = { title: string; value: number; icon: LucideIcon; tone: "blue" | "cyan" | "emerald" | "amber" | "rose" | "violet" | "slate"; note: string };
 
 const sections = [
-  ["filing", "HR Filing & Personal Requests"],
-  ["leave", "Leave Management"],
-  ["staff_filing", "Staff Files"],
-  ["registrar", "Registrar Centre"],
-  ["archive", "HR Archive"],
-  ["weekly_seminar", "Wednesday Weekly Seminar"],
-  ["staff_capacity_building", "Staff Capacity Building"],
-  ["department_capacity_building", "Department Capacity Building"],
-  ["department_kpi", "Department KPI"],
-  ["annual_360_assessment", "Annual Staff 360° Assessment"],
+  ["filing", "HR Filing & Personal Requests", "/hr/filing"],
+  ["leave", "Leave Management", "/hr/leave"],
+  ["staff_filing", "Staff Files", "/hr/staff"],
+  ["registrar", "Registrar Centre", "/hr/registrar"],
+  ["archive", "HR Archive", "/hr/archive"],
+  ["weekly_seminar", "Wednesday Weekly Seminar", "/hr/weekly-seminar"],
+  ["staff_capacity_building", "Staff Capacity Building", "/hr/capacity-building/staff"],
+  ["department_capacity_building", "Department Capacity Building", "/hr/capacity-building/departments"],
+  ["department_kpi", "Department KPI", "/hr/department-kpi"],
+  ["annual_360_assessment", "Annual Staff 360° Assessment", "/hr/assessments/annual-360"],
 ] as const;
 
 const permissions = [
@@ -33,120 +88,275 @@ const permissions = [
   ["manage", "Full Section Management"],
 ] as const;
 
-const label = (value: string) => value.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
+const priorities = ["low", "normal", "high", "critical"] as const;
 
 export default function HRAssignmentsPage() {
   const [officers, setOfficers] = useState<Officer[]>([]);
-  const [assignments, setAssignments] = useState<Assignment[]>([]);
+  const [functionalAssignments, setFunctionalAssignments] = useState<FunctionalAssignment[]>([]);
+  const [requestAssignments, setRequestAssignments] = useState<RequestAssignment[]>([]);
+  const [requests, setRequests] = useState<RequestRow[]>([]);
   const [officerId, setOfficerId] = useState("");
   const [section, setSection] = useState("filing");
   const [permission, setPermission] = useState("process");
+  const [requestId, setRequestId] = useState("");
+  const [priority, setPriority] = useState("normal");
+  const [dueAt, setDueAt] = useState("");
+  const [instructions, setInstructions] = useState("");
   const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [message, setMessage] = useState("");
 
   const load = useCallback(async () => {
-    const [{ data: profiles, error: profileError }, { data: current, error: assignmentError }] = await Promise.all([
+    setLoading(true);
+    setMessage("");
+    const [profilesResult, functionalResult, taskResult, requestResult] = await Promise.all([
       supabase.from("profiles").select("id,full_name,email,role").order("full_name"),
       supabase.from("hr_officer_assignments").select("id,officer_id,section_key,permission_key,is_active,created_at").order("created_at", { ascending: false }),
+      supabase.from("hr_request_assignments").select("id,request_id,officer_id,section_key,status,priority,due_at,instructions,assigned_at,requests(request_no,title,current_stage,status)").order("assigned_at", { ascending: false }).limit(300),
+      supabase.from("requests").select("id,request_no,title,current_stage,status,request_type,personal_category").order("created_at", { ascending: false }).limit(300),
     ]);
-    setOfficers((profiles || []) as Officer[]);
-    setAssignments((current || []) as Assignment[]);
-    setMessage(profileError?.message || assignmentError?.message || null);
+
+    setOfficers((profilesResult.data || []) as Officer[]);
+    setFunctionalAssignments((functionalResult.data || []) as FunctionalAssignment[]);
+    setRequestAssignments((taskResult.data || []) as unknown as RequestAssignment[]);
+    setRequests((requestResult.data || []) as RequestRow[]);
+    setMessage(
+      profilesResult.error?.message ||
+        functionalResult.error?.message ||
+        taskResult.error?.message ||
+        requestResult.error?.message ||
+        ""
+    );
+    setLoading(false);
   }, []);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    void load();
+  }, [load]);
 
-  const names = useMemo(() => new Map(officers.map((officer) => [officer.id, officer.full_name || officer.email || officer.id])), [officers]);
-  const activeCount = assignments.filter((item) => item.is_active).length;
-  const assignedOfficers = new Set(assignments.filter((item) => item.is_active).map((item) => item.officer_id)).size;
-  const domainCount = new Set(assignments.filter((item) => item.is_active).map((item) => item.section_key)).size;
-
-  const summaryCards: SummaryCard[] = [
-    { title: "Assigned Officers", value: assignedOfficers, icon: Users, tone: "from-blue-600 to-indigo-700" },
-    { title: "Active Authorities", value: activeCount, icon: ShieldCheck, tone: "from-emerald-600 to-teal-700" },
-    { title: "HR Domains Covered", value: domainCount, icon: BriefcaseBusiness, tone: "from-violet-600 to-purple-700" },
+  const names = useMemo(
+    () => new Map(officers.map((officer) => [officer.id, officer.full_name || officer.email || officer.id])),
+    [officers]
+  );
+  const activeAuthorities = functionalAssignments.filter((item) => item.is_active);
+  const summary: SummaryCard[] = [
+    {
+      title: "Assigned Officers",
+      value: new Set(activeAuthorities.map((item) => item.officer_id)).size,
+      icon: Users,
+      tone: "blue",
+      note: "Distinct officers holding an active HR authority",
+    },
+    {
+      title: "Active Authorities",
+      value: activeAuthorities.length,
+      icon: ShieldCheck,
+      tone: "emerald",
+      note: "Section and permission combinations currently enabled",
+    },
+    {
+      title: "Delegated Requests",
+      value: requestAssignments.filter((item) => !["completed", "approved"].includes(item.status)).length,
+      icon: ClipboardList,
+      tone: "violet",
+      note: "Live case assignments visible in officers’ My Work queues",
+    },
     {
       title: "Suspended",
-      value: assignments.filter((item) => !item.is_active).length,
+      value: functionalAssignments.filter((item) => !item.is_active).length,
       icon: PauseCircle,
-      tone: "from-amber-500 to-orange-600",
+      tone: "amber",
+      note: "Authorities retained for history but currently inactive",
     },
   ];
 
-  async function assign() {
+  async function assignAuthority() {
     if (!officerId) return;
     setBusy(true);
-    setMessage(null);
+    setMessage("");
     const { data: auth } = await supabase.auth.getUser();
-    const { error } = await supabase.from("hr_officer_assignments").upsert({
-      officer_id: officerId,
-      section_key: section,
-      permission_key: permission,
-      is_active: true,
-      assigned_by: auth.user?.id,
-    }, { onConflict: "officer_id,section_key,permission_key" });
+    const { error } = await supabase.from("hr_officer_assignments").upsert(
+      {
+        officer_id: officerId,
+        section_key: section,
+        permission_key: permission,
+        is_active: true,
+        assigned_by: auth.user?.id,
+      },
+      { onConflict: "officer_id,section_key,permission_key" }
+    );
     setBusy(false);
-    setMessage(error ? error.message : "HR authority assigned successfully.");
+    setMessage(error ? error.message : "HR authority assigned successfully. The officer can now see this function in My HR Work.");
     if (!error) await load();
   }
 
-  async function toggle(item: Assignment) {
-    const { error } = await supabase.from("hr_officer_assignments").update({ is_active: !item.is_active }).eq("id", item.id);
-    setMessage(error ? error.message : item.is_active ? "Assignment suspended." : "Assignment restored.");
+  async function delegateRequest() {
+    if (!officerId || !requestId) return;
+    setBusy(true);
+    setMessage("");
+    const { data: auth } = await supabase.auth.getUser();
+    const { error } = await supabase.from("hr_request_assignments").upsert(
+      {
+        request_id: requestId,
+        officer_id: officerId,
+        section_key: section,
+        status: "assigned",
+        priority,
+        due_at: dueAt ? new Date(dueAt).toISOString() : null,
+        instructions: instructions.trim() || null,
+        assigned_by: auth.user?.id,
+        assigned_at: new Date().toISOString(),
+      },
+      { onConflict: "request_id,officer_id,section_key" }
+    );
+    setBusy(false);
+    setMessage(error ? error.message : "Request delegated successfully and added to the officer’s My HR Work queue.");
+    if (!error) {
+      setRequestId("");
+      setDueAt("");
+      setInstructions("");
+      await load();
+    }
+  }
+
+  async function toggleAuthority(item: FunctionalAssignment) {
+    const { error } = await supabase
+      .from("hr_officer_assignments")
+      .update({ is_active: !item.is_active })
+      .eq("id", item.id);
+    setMessage(error ? error.message : item.is_active ? "Authority suspended." : "Authority restored.");
     if (!error) await load();
   }
 
   return (
     <HRAccessGuard bossOnly>
-      <main className="min-h-screen bg-gradient-to-br from-slate-50 via-violet-50/40 to-blue-50/40 px-4 py-8 lg:px-8">
-        <div className="mx-auto max-w-7xl space-y-6">
-          <section className="rounded-[2rem] bg-gradient-to-br from-violet-950 via-indigo-900 to-blue-800 p-8 text-white shadow-2xl">
-            <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-              <div><p className="text-xs font-black uppercase tracking-[.25em] text-violet-200">Enterprise HR Authority Model</p><h1 className="mt-3 text-3xl font-black lg:text-5xl">Officer Assignment Centre</h1><p className="mt-4 max-w-3xl font-semibold leading-7 text-violet-100">Assign multiple HR domains and precise permission levels to each officer. Access becomes effective only when the officer switches to the matching active HR role.</p></div>
-              <button onClick={() => void load()} className="inline-flex items-center gap-2 rounded-xl bg-cyan-500 px-5 py-3 text-sm font-black text-white shadow-lg hover:bg-cyan-400"><RefreshCw className="h-5 w-5" />Refresh</button>
+      <HRPageShell>
+        <HRHero
+          eyebrow="Enterprise HR Authority Model"
+          title="Officer Assignment & Delegation Centre"
+          description="Grant functional HR authority, assign precise permission levels and delegate individual HR cases. Functional authority appears immediately in My HR Work; request delegation creates an actionable case queue."
+          icon={BriefcaseBusiness}
+          tone="violet"
+          action={<HRRefreshButton onClick={() => void load()} loading={loading} />}
+        />
+
+        <HRNavigation />
+        {message ? <HRAlert message={message} /> : null}
+
+        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {summary.map((card) => (
+            <HRStatCard key={card.title} label={card.title} value={card.value} note={card.note} icon={card.icon} tone={card.tone} />
+          ))}
+        </section>
+
+        <section className="grid gap-6 xl:grid-cols-2">
+          <HRPanel title="Grant Functional Authority" eyebrow="Role Assignment">
+            <div className="grid gap-4">
+              <label>
+                <span className="mb-2 block text-xs font-black uppercase tracking-wider text-slate-500">HR Officer</span>
+                <select value={officerId} onChange={(event) => setOfficerId(event.target.value)} className="min-h-12 w-full rounded-xl border border-slate-200 bg-white px-4 font-bold outline-none focus:border-violet-500 focus:ring-4 focus:ring-violet-100">
+                  <option value="">Select officer</option>
+                  {officers.map((officer) => <option key={officer.id} value={officer.id}>{officer.full_name || officer.email}</option>)}
+                </select>
+              </label>
+              <div className="grid gap-4 md:grid-cols-2">
+                <label>
+                  <span className="mb-2 block text-xs font-black uppercase tracking-wider text-slate-500">HR Function</span>
+                  <select value={section} onChange={(event) => setSection(event.target.value)} className="min-h-12 w-full rounded-xl border border-slate-200 bg-white px-4 font-bold outline-none focus:border-violet-500 focus:ring-4 focus:ring-violet-100">
+                    {sections.map(([key, name]) => <option key={key} value={key}>{name}</option>)}
+                  </select>
+                </label>
+                <label>
+                  <span className="mb-2 block text-xs font-black uppercase tracking-wider text-slate-500">Permission Level</span>
+                  <select value={permission} onChange={(event) => setPermission(event.target.value)} className="min-h-12 w-full rounded-xl border border-slate-200 bg-white px-4 font-bold outline-none focus:border-violet-500 focus:ring-4 focus:ring-violet-100">
+                    {permissions.map(([key, name]) => <option key={key} value={key}>{name}</option>)}
+                  </select>
+                </label>
+              </div>
+              <HRButton onClick={() => void assignAuthority()} disabled={busy || !officerId} tone="violet">
+                <ShieldCheck className="h-4 w-4" /> {busy ? "Saving..." : "Assign Authority"}
+              </HRButton>
             </div>
-          </section>
+          </HRPanel>
 
-          <HRNavigation />
+          <HRPanel title="Delegate a Specific HR Request" eyebrow="Case Assignment">
+            <div className="grid gap-4">
+              <label>
+                <span className="mb-2 block text-xs font-black uppercase tracking-wider text-slate-500">Request</span>
+                <select value={requestId} onChange={(event) => setRequestId(event.target.value)} className="min-h-12 w-full rounded-xl border border-slate-200 bg-white px-4 font-bold outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100">
+                  <option value="">Select HR request</option>
+                  {requests.map((request) => <option key={request.id} value={request.id}>{request.request_no || "Request"} · {request.title || "Untitled"} · {request.current_stage || request.status}</option>)}
+                </select>
+              </label>
+              <div className="grid gap-4 md:grid-cols-2">
+                <label>
+                  <span className="mb-2 block text-xs font-black uppercase tracking-wider text-slate-500">Priority</span>
+                  <select value={priority} onChange={(event) => setPriority(event.target.value)} className="min-h-12 w-full rounded-xl border border-slate-200 bg-white px-4 font-bold">
+                    {priorities.map((item) => <option key={item} value={item}>{pretty(item)}</option>)}
+                  </select>
+                </label>
+                <label>
+                  <span className="mb-2 block text-xs font-black uppercase tracking-wider text-slate-500">Due Date & Time</span>
+                  <input type="datetime-local" value={dueAt} onChange={(event) => setDueAt(event.target.value)} className="min-h-12 w-full rounded-xl border border-slate-200 bg-white px-4 font-bold" />
+                </label>
+              </div>
+              <label>
+                <span className="mb-2 block text-xs font-black uppercase tracking-wider text-slate-500">Officer Instructions</span>
+                <textarea value={instructions} onChange={(event) => setInstructions(event.target.value)} rows={3} className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 font-semibold" placeholder="State the expected review, filing or recommendation work..." />
+              </label>
+              <HRButton onClick={() => void delegateRequest()} disabled={busy || !officerId || !requestId} tone="blue">
+                <Send className="h-4 w-4" /> {busy ? "Delegating..." : "Delegate to My HR Work"}
+              </HRButton>
+            </div>
+          </HRPanel>
+        </section>
 
-          {message ? <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm font-bold text-blue-900">{message}</div> : null}
-
-          <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            {summaryCards.map(({ title, value, icon: Icon, tone }) => (
-              <article
-                key={title}
-                className={`rounded-3xl bg-gradient-to-br ${tone} p-5 text-white shadow-lg`}
-              >
-                <div className="flex justify-between gap-3">
-                  <div>
-                    <p className="text-xs font-black uppercase tracking-wider text-white/75">
-                      {title}
-                    </p>
-                    <p className="mt-3 text-3xl font-black">{value}</p>
+        <HRPanel title="Functional Authority Register" eyebrow="Enterprise Permissions">
+          {functionalAssignments.length === 0 ? <HREmpty title="No HR authority assigned" /> : (
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              {functionalAssignments.map((item) => (
+                <article key={item.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4 transition hover:bg-white hover:shadow-md">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="font-black text-slate-950">{names.get(item.officer_id) || item.officer_id}</p>
+                      <p className="mt-1 text-sm font-bold text-blue-700">{pretty(item.section_key)}</p>
+                    </div>
+                    <HRBadge value={item.is_active ? "active" : "suspended"} tone={item.is_active ? "emerald" : "amber"} />
                   </div>
-                  <Icon className="h-7 w-7" />
-                </div>
-              </article>
-            ))}
-          </section>
-
-          <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-            <div className="mb-5"><p className="text-xs font-black uppercase tracking-[.18em] text-violet-700">Grant HR Authority</p><h2 className="mt-1 text-2xl font-black text-slate-950">Create or restore an officer assignment</h2></div>
-            <div className="grid gap-4 lg:grid-cols-[1.2fr_1fr_1fr_auto]">
-              <label><span className="mb-2 block text-xs font-black uppercase text-slate-500">HR Officer</span><select value={officerId} onChange={(event) => setOfficerId(event.target.value)} className="min-h-12 w-full rounded-xl border border-slate-200 bg-white px-4 font-bold outline-none focus:border-violet-500 focus:ring-4 focus:ring-violet-100"><option value="">Select officer</option>{officers.map((officer) => <option key={officer.id} value={officer.id}>{officer.full_name || officer.email}</option>)}</select></label>
-              <label><span className="mb-2 block text-xs font-black uppercase text-slate-500">HR Domain</span><select value={section} onChange={(event) => setSection(event.target.value)} className="min-h-12 w-full rounded-xl border border-slate-200 bg-white px-4 font-bold outline-none focus:border-violet-500 focus:ring-4 focus:ring-violet-100">{sections.map(([key, name]) => <option key={key} value={key}>{name}</option>)}</select></label>
-              <label><span className="mb-2 block text-xs font-black uppercase text-slate-500">Permission Level</span><select value={permission} onChange={(event) => setPermission(event.target.value)} className="min-h-12 w-full rounded-xl border border-slate-200 bg-white px-4 font-bold outline-none focus:border-violet-500 focus:ring-4 focus:ring-violet-100">{permissions.map(([key, name]) => <option key={key} value={key}>{name}</option>)}</select></label>
-              <button disabled={busy || !officerId} onClick={() => void assign()} className="min-h-12 self-end rounded-xl bg-gradient-to-r from-violet-700 to-indigo-600 px-6 py-3 text-sm font-black text-white shadow-md transition hover:-translate-y-0.5 disabled:opacity-50">{busy ? "Assigning..." : "Assign Authority"}</button>
+                  <div className="mt-4 flex items-center justify-between gap-3">
+                    <HRBadge value={item.permission_key} tone="violet" />
+                    <button onClick={() => void toggleAuthority(item)} className={`rounded-xl px-3 py-2 text-xs font-black text-white ${item.is_active ? "bg-amber-600" : "bg-emerald-600"}`}>
+                      {item.is_active ? "Suspend" : "Restore"}
+                    </button>
+                  </div>
+                </article>
+              ))}
             </div>
-          </section>
+          )}
+        </HRPanel>
 
-          <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-            <div className="border-b border-slate-200 px-5 py-4"><h2 className="text-xl font-black text-slate-950">HR Officer Authority Register</h2><p className="mt-1 text-sm font-semibold text-slate-500">Independent assignments can be suspended or restored without removing other responsibilities.</p></div>
-            <div className="hidden overflow-x-auto md:block"><table className="min-w-full text-left text-sm"><thead className="bg-slate-950 text-white"><tr><th className="p-4">Officer</th><th className="p-4">HR Domain</th><th className="p-4">Permission</th><th className="p-4">Status</th><th className="p-4">Action</th></tr></thead><tbody>{assignments.map((item) => <tr key={item.id} className="border-t border-slate-100"><td className="p-4 font-black text-slate-900">{names.get(item.officer_id) || item.officer_id}</td><td className="p-4 font-bold">{label(item.section_key)}</td><td className="p-4">{label(item.permission_key)}</td><td className="p-4"><span className={`rounded-full px-3 py-1 text-xs font-black ${item.is_active ? "bg-emerald-100 text-emerald-700" : "bg-slate-200 text-slate-600"}`}>{item.is_active ? "Active" : "Suspended"}</span></td><td className="p-4"><button onClick={() => void toggle(item)} className={`rounded-xl px-4 py-2 text-xs font-black text-white ${item.is_active ? "bg-rose-600 hover:bg-rose-700" : "bg-emerald-600 hover:bg-emerald-700"}`}>{item.is_active ? "Suspend" : "Restore"}</button></td></tr>)}</tbody></table></div>
-            <div className="grid gap-3 p-4 md:hidden">{assignments.map((item) => <article key={item.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4"><p className="font-black text-slate-950">{names.get(item.officer_id) || item.officer_id}</p><p className="mt-2 text-sm font-bold text-violet-700">{label(item.section_key)}</p><p className="mt-1 text-sm text-slate-600">{label(item.permission_key)}</p><div className="mt-4 flex items-center justify-between gap-3"><span className={`rounded-full px-3 py-1 text-xs font-black ${item.is_active ? "bg-emerald-100 text-emerald-700" : "bg-slate-200 text-slate-600"}`}>{item.is_active ? "Active" : "Suspended"}</span><button onClick={() => void toggle(item)} className={`rounded-xl px-4 py-2 text-xs font-black text-white ${item.is_active ? "bg-rose-600" : "bg-emerald-600"}`}>{item.is_active ? "Suspend" : "Restore"}</button></div></article>)}</div>
-          </section>
-        </div>
-      </main>
+        <HRPanel title="Delegated Request Register" eyebrow="My Work Feed">
+          {requestAssignments.length === 0 ? <HREmpty title="No request has been delegated" description="Use the case assignment form above to create actionable work in an officer’s My HR Work queue." /> : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-left text-sm">
+                <thead className="bg-slate-950 text-white"><tr><th className="p-4">Request</th><th className="p-4">Officer</th><th className="p-4">Function</th><th className="p-4">Priority</th><th className="p-4">Status</th><th className="p-4">Due</th></tr></thead>
+                <tbody>
+                  {requestAssignments.map((item) => (
+                    <tr key={item.id} className="border-t border-slate-100 align-top">
+                      <td className="p-4"><p className="font-black text-slate-950">{item.requests?.request_no || item.request_id}</p><p className="mt-1 text-slate-600">{item.requests?.title || "Untitled request"}</p></td>
+                      <td className="p-4 font-bold">{names.get(item.officer_id) || item.officer_id}</td>
+                      <td className="p-4">{pretty(item.section_key)}</td>
+                      <td className="p-4"><HRBadge value={item.priority} tone={item.priority === "critical" ? "rose" : item.priority === "high" ? "amber" : "blue"} /></td>
+                      <td className="p-4"><HRBadge value={item.status} tone="violet" /></td>
+                      <td className="p-4">{formatDate(item.due_at)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </HRPanel>
+      </HRPageShell>
     </HRAccessGuard>
   );
 }
