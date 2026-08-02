@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Archive, CheckCircle2, Clock3, FileCheck2, Filter, RefreshCw, Search, Users } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { HRAccessGuard, HRNavigation } from "@/app/components/hr";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -20,6 +21,14 @@ type HRRequest = {
 };
 
 type Queue = "all" | "review" | "filing" | "completed" | "rejected";
+
+type FilingSummaryCard = {
+  label: string;
+  value: number;
+  note: string;
+  icon: LucideIcon;
+  tone: string;
+};
 
 const compact = (value: string | null | undefined) => (value || "").toLowerCase().replace(/[^a-z0-9]/g, "");
 const stage = (value: string | null | undefined) => compact(value).toUpperCase();
@@ -113,6 +122,44 @@ export default function HRFilingPage() {
     { key: "rejected", label: "Rejected / Closed", count: counts.rejected, tone: "from-rose-600 to-red-700" },
   ];
 
+  const filingSummaryCards: FilingSummaryCard[] = [
+    {
+      label: "All HR Requests",
+      value: counts.all,
+      note: "Personal HR workflows",
+      icon: Users,
+      tone: "from-blue-600 to-indigo-700",
+    },
+    {
+      label: "Initial HR Review",
+      value: counts.review,
+      note: "Awaiting HR treatment",
+      icon: Clock3,
+      tone: "from-cyan-500 to-blue-700",
+    },
+    {
+      label: "Ready for Filing",
+      value: counts.filing,
+      note: "Approved by DG or paid",
+      icon: FileCheck2,
+      tone: "from-violet-600 to-purple-700",
+    },
+    {
+      label: "Completed",
+      value: counts.completed,
+      note: "Successfully filed",
+      icon: CheckCircle2,
+      tone: "from-emerald-600 to-teal-700",
+    },
+    {
+      label: "Archive Signals",
+      value: counts.rejected,
+      note: "Rejected or closed",
+      icon: Archive,
+      tone: "from-rose-600 to-red-700",
+    },
+  ];
+
   return (
     <HRAccessGuard section="filing" permission="process">
       <main className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/40 to-cyan-50/40 px-4 py-8 lg:px-8">
@@ -139,15 +186,25 @@ export default function HRFilingPage() {
           {message ? <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-bold text-amber-900">{message}</div> : null}
 
           <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-            {[
-              ["All HR Requests", counts.all, "Personal HR workflows", Users, "from-blue-600 to-indigo-700"],
-              ["Initial HR Review", counts.review, "Awaiting HR treatment", Clock3, "from-cyan-500 to-blue-700"],
-              ["Ready for Filing", counts.filing, "Approved by DG / paid", FileCheck2, "from-violet-600 to-purple-700"],
-              ["Completed", counts.completed, "Successfully filed", CheckCircle2, "from-emerald-600 to-teal-700"],
-              ["Archive Signals", counts.rejected, "Rejected or closed", Archive, "from-rose-600 to-red-700"],
-            ].map(([label, value, note, Icon, tone]) => (
-              <article key={String(label)} className={`rounded-3xl bg-gradient-to-br ${tone} p-5 text-white shadow-lg`}>
-                <div className="flex items-start justify-between gap-3"><div><p className="text-[11px] font-black uppercase tracking-[0.16em] text-white/75">{label as string}</p><p className="mt-3 text-3xl font-black">{loading ? "—" : String(value)}</p><p className="mt-2 text-xs font-semibold text-white/75">{note as string}</p></div><Icon className="h-7 w-7" /></div>
+            {filingSummaryCards.map(({ label, value, note, icon: Icon, tone }) => (
+              <article
+                key={label}
+                className={`rounded-3xl bg-gradient-to-br ${tone} p-5 text-white shadow-lg`}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-[11px] font-black uppercase tracking-[0.16em] text-white/75">
+                      {label}
+                    </p>
+                    <p className="mt-3 text-3xl font-black">
+                      {loading ? "—" : value}
+                    </p>
+                    <p className="mt-2 text-xs font-semibold text-white/75">
+                      {note}
+                    </p>
+                  </div>
+                  <Icon className="h-7 w-7" />
+                </div>
               </article>
             ))}
           </section>
