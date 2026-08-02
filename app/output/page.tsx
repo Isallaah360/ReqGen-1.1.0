@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import {
   ActionButton,
@@ -409,6 +409,7 @@ async function fetchSource(config: SourceConfig) {
 }
 
 export default function OutputCentrePage() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const requested = searchParams.get("report") as SourceKey | null;
   const [role, setRole] = useState("staff");
@@ -420,6 +421,11 @@ export default function OutputCentrePage() {
   const [warning, setWarning] = useState<string | null>(null);
   const [printedBy, setPrintedBy] = useState("ReqGen User");
   const [department, setDepartment] = useState("");
+  const [legacyRequests, setLegacyRequests] = useState<Row[]>([]);
+  const [legacyVouchers, setLegacyVouchers] = useState<Row[]>([]);
+  const [selectedRequestId, setSelectedRequestId] = useState("");
+  const [selectedVoucherId, setSelectedVoucherId] = useState("");
+  const [legacyLoading, setLegacyLoading] = useState(false);
 
   const available = useMemo(
     () =>
@@ -478,9 +484,34 @@ export default function OutputCentrePage() {
 
       const resultRows = await fetchSource(SOURCES[actualKey]);
       setRows(resultRows);
+
+      setLegacyLoading(true);
+      const [requestLegacyResult, voucherLegacyResult] = await Promise.all([
+        supabase
+          .from("requests")
+          .select("*")
+          .order("created_at", { ascending: false })
+          .limit(50),
+        ["admin", "auditor", "account", "accounts", "accountofficer"].includes(roleValue)
+          ? supabase
+              .from("payment_vouchers")
+              .select("*")
+              .order("created_at", { ascending: false })
+              .limit(50)
+          : Promise.resolve({ data: [], error: null }),
+      ]);
+
+      const requestOptions = normalizeRows(requestLegacyResult.data);
+      const voucherOptions = normalizeRows(voucherLegacyResult.data);
+      setLegacyRequests(requestOptions);
+      setLegacyVouchers(voucherOptions);
+      setSelectedRequestId((current) => current || text(requestOptions[0]?.id));
+      setSelectedVoucherId((current) => current || text(voucherOptions[0]?.id));
+      setLegacyLoading(false);
     } catch (error) {
       console.error("Unable to load enterprise report:", error);
       setRows([]);
+      setLegacyLoading(false);
       setWarning(
         "The report source could not be loaded. Confirm that its database table exists and that the current active role has read access."
       );
@@ -541,6 +572,31 @@ export default function OutputCentrePage() {
     return list;
   }, [normalizedRows.length, selected]);
 
+  async function goToDashboard() {
+    const { data } = await supabase.auth.getSession();
+    if (!data.session) {
+      setWarning("Your session is no longer available. Please sign in again before opening the Dashboard.");
+      return;
+    }
+    router.push("/dashboard");
+  }
+
+  function openLegacyRequestPrint() {
+    if (!selectedRequestId) {
+      setWarning("Select a Request before opening the approved legacy Request template.");
+      return;
+    }
+    router.push(`/requests/${selectedRequestId}/print`);
+  }
+
+  function openLegacyVoucherPrint() {
+    if (!selectedVoucherId) {
+      setWarning("Select a Payment Voucher before opening the approved legacy PV template.");
+      return;
+    }
+    router.push(`/payment-vouchers/${selectedVoucherId}/print`);
+  }
+
   function exportCsv() {
     const headers = selectedConfig.printColumns.map((column) => column.key);
     const csv = [
@@ -577,12 +633,13 @@ export default function OutputCentrePage() {
               description="Generate official A4 institutional reports from live authorized data. The approved Request and Payment Voucher templates remain protected and unchanged."
               actions={
                 <>
-                  <Link
-                    href="/dashboard"
-                    className="inline-flex min-h-11 items-center justify-center rounded-xl bg-gradient-to-r from-slate-800 to-slate-600 px-4 py-2.5 text-sm font-black text-white shadow-md transition hover:-translate-y-0.5 hover:shadow-lg"
+                  <button
+                    type="button"
+                    onClick={() => void goToDashboard()}
+                    className="inline-flex min-h-11 items-center justify-center rounded-xl bg-gradient-to-r from-slate-800 to-slate-600 px-4 py-2.5 text-sm font-black text-white shadow-md transition hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus:ring-4 focus:ring-slate-200"
                   >
                     ← Main Dashboard
-                  </Link>
+                  </button>
                   <ActionButton tone="cyan" onClick={() => void load()}>
                     {loading ? "Refreshing..." : "Refresh Data"}
                   </ActionButton>
@@ -624,34 +681,68 @@ export default function OutputCentrePage() {
                 </div>
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-2">
-                <Link
-                  href="/requests"
-                  className="group rounded-2xl bg-gradient-to-br from-blue-700 to-cyan-500 p-4 text-white shadow-lg transition hover:-translate-y-1 hover:shadow-xl"
-                >
-                  <div className="text-3xl">📄</div>
-                  <div className="mt-3 text-base font-black">Original Request Print</div>
-                  <p className="mt-1 text-xs font-semibold text-blue-50">
-                    Open a request record and use its approved original print template.
-                  </p>
-                  <div className="mt-3 text-xs font-black uppercase tracking-wider">
-                    Open Requests →
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="rounded-3xl border border-blue-200 bg-gradient-to-br from-blue-700 via-blue-600 to-cyan-500 p-5 text-white shadow-xl">
+                  <div className="flex items-center gap-3">
+                    <div className="grid h-12 w-12 place-items-center rounded-2xl bg-white/15 text-2xl shadow-inner">📄</div>
+                    <div>
+                      <div className="text-base font-black">Approved IET Request Template</div>
+                      <div className="text-xs font-bold text-blue-100">Original legacy Request printout</div>
+                    </div>
                   </div>
-                </Link>
+                  <label className="mt-4 block text-xs font-black uppercase tracking-wider text-blue-100">Select Request</label>
+                  <select
+                    value={selectedRequestId}
+                    onChange={(event) => setSelectedRequestId(event.target.value)}
+                    className="mt-2 min-h-12 w-full rounded-xl border border-white/30 bg-white/95 px-3 text-sm font-bold text-slate-950 shadow-sm outline-none focus:ring-4 focus:ring-white/30"
+                  >
+                    {!legacyRequests.length ? <option value="">No Request available</option> : null}
+                    {legacyRequests.map((row) => (
+                      <option key={text(row.id)} value={text(row.id)}>
+                        {text(row.request_no, "Request")} — {text(row.title, "Untitled Request")}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={openLegacyRequestPrint}
+                    disabled={legacyLoading || !selectedRequestId}
+                    className="mt-4 inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-white px-4 py-2.5 text-sm font-black text-blue-800 shadow-md transition hover:-translate-y-0.5 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {legacyLoading ? "Loading Requests..." : "Open Original Request Print"}
+                  </button>
+                </div>
 
-                <Link
-                  href="/payment-vouchers"
-                  className="group rounded-2xl bg-gradient-to-br from-violet-700 to-fuchsia-500 p-4 text-white shadow-lg transition hover:-translate-y-1 hover:shadow-xl"
-                >
-                  <div className="text-3xl">🧾</div>
-                  <div className="mt-3 text-base font-black">Original PV Print</div>
-                  <p className="mt-1 text-xs font-semibold text-violet-50">
-                    Open a voucher record and use the protected IET Payment Voucher template.
-                  </p>
-                  <div className="mt-3 text-xs font-black uppercase tracking-wider">
-                    Open Vouchers →
+                <div className="rounded-3xl border border-violet-200 bg-gradient-to-br from-violet-700 via-purple-600 to-fuchsia-500 p-5 text-white shadow-xl">
+                  <div className="flex items-center gap-3">
+                    <div className="grid h-12 w-12 place-items-center rounded-2xl bg-white/15 text-2xl shadow-inner">🧾</div>
+                    <div>
+                      <div className="text-base font-black">Approved IET Payment Voucher</div>
+                      <div className="text-xs font-bold text-violet-100">Original protected PV printout</div>
+                    </div>
                   </div>
-                </Link>
+                  <label className="mt-4 block text-xs font-black uppercase tracking-wider text-violet-100">Select Voucher</label>
+                  <select
+                    value={selectedVoucherId}
+                    onChange={(event) => setSelectedVoucherId(event.target.value)}
+                    className="mt-2 min-h-12 w-full rounded-xl border border-white/30 bg-white/95 px-3 text-sm font-bold text-slate-950 shadow-sm outline-none focus:ring-4 focus:ring-white/30"
+                  >
+                    {!legacyVouchers.length ? <option value="">No Payment Voucher available</option> : null}
+                    {legacyVouchers.map((row) => (
+                      <option key={text(row.id)} value={text(row.id)}>
+                        {text(row.voucher_no, text(row.pv_no, "Payment Voucher"))} — {text(row.status, "Pending")}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={openLegacyVoucherPrint}
+                    disabled={legacyLoading || !selectedVoucherId}
+                    className="mt-4 inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-white px-4 py-2.5 text-sm font-black text-violet-800 shadow-md transition hover:-translate-y-0.5 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {legacyLoading ? "Loading Vouchers..." : "Open Original PV Print"}
+                  </button>
+                </div>
               </div>
             </section>
 
