@@ -143,6 +143,15 @@ function IconRequests({ className = "h-6 w-6" }: IconProps) {
 
 
 
+function IconStaff({ className = "h-6 w-6" }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle cx="12" cy="8" r="4" stroke="currentColor" strokeWidth="2" />
+      <path d="M4.5 21a7.5 7.5 0 0 1 15 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 function IconAudit({ className = "h-6 w-6" }: IconProps) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -868,6 +877,11 @@ export default function NavBar() {
                 <NavPngIcon src="/request.png" alt="My Requests" />
                 <IconButtonTooltip label="My Requests" />
               </Link>
+
+              <Link className={iconLinkClass("/staff")} href="/staff">
+                <IconStaff className="h-7 w-7" />
+                <IconButtonTooltip label="Staff Workspace" />
+              </Link>
 {canViewReports && (
                 <Link className={iconLinkClass("/reports")} href="/reports">
                   <NavPngIcon src="/report.png" alt="Reports and Analytics" />
@@ -981,6 +995,15 @@ export default function NavBar() {
                     className={mobileItemClass("/requests")}
                   >
                     <span className="inline-flex items-center gap-2"><NavPngIcon src="/request.png" alt="My Requests" size={22} />My Requests</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => goTo("/staff")}
+                    className={mobileItemClass("/staff")}
+                  >
+                    <span className="inline-flex items-center gap-2"><IconStaff className="h-[22px] w-[22px]" />Staff Workspace</span>
+                    <div className={mobileItemDescriptionClass("/staff")}>My leave, attendance, training, notifications and downloads</div>
                   </button>
 
                   {canViewReports && (

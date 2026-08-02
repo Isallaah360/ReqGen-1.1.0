@@ -93,6 +93,7 @@ export const ROUTE_POLICIES: RoutePolicy[] = [
   { prefix: "/registry", roles: ["admin", "auditor", "registry"] },
   { prefix: "/reports", roles: ["admin", "auditor", "dg", "accountofficer"] },
 
+  { prefix: "/staff", authenticatedOnly: true },
   { prefix: "/output", authenticatedOnly: true },
   { prefix: "/approvals", authenticatedOnly: true },
   { prefix: "/requests", authenticatedOnly: true },
