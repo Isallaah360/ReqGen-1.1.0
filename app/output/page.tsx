@@ -572,15 +572,6 @@ export default function OutputCentrePage() {
     return list;
   }, [normalizedRows.length, selected]);
 
-  async function goToDashboard() {
-    const { data } = await supabase.auth.getSession();
-    if (!data.session) {
-      setWarning("Your session is no longer available. Please sign in again before opening the Dashboard.");
-      return;
-    }
-    router.push("/dashboard");
-  }
-
   function openLegacyRequestPrint() {
     if (!selectedRequestId) {
       setWarning("Select a Request before opening the approved legacy Request template.");
@@ -633,13 +624,18 @@ export default function OutputCentrePage() {
               description="Generate official A4 institutional reports from live authorized data. The approved Request and Payment Voucher templates remain protected and unchanged."
               actions={
                 <>
-                  <button
-                    type="button"
-                    onClick={() => void goToDashboard()}
-                    className="inline-flex min-h-11 items-center justify-center rounded-xl bg-gradient-to-r from-slate-800 to-slate-600 px-4 py-2.5 text-sm font-black text-white shadow-md transition hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus:ring-4 focus:ring-slate-200"
+                  <Link
+                    href="/dashboard"
+                    className="reqgen-btn reqgen-btn-slate"
                   >
                     ← Main Dashboard
-                  </button>
+                  </Link>
+                  <Link
+                    href="/reports"
+                    className="reqgen-btn reqgen-btn-blue"
+                  >
+                    Reports & Analytics
+                  </Link>
                   <ActionButton tone="cyan" onClick={() => void load()}>
                     {loading ? "Refreshing..." : "Refresh Data"}
                   </ActionButton>
@@ -782,7 +778,7 @@ export default function OutputCentrePage() {
                       key={key}
                       type="button"
                       onClick={() => setSelected(key)}
-                      className={`group relative overflow-hidden rounded-2xl bg-gradient-to-br ${config.gradient} p-4 text-left text-white shadow-lg transition hover:-translate-y-1 hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-blue-200 ${
+                      className={`group relative min-h-[168px] overflow-hidden rounded-2xl border border-white/25 bg-gradient-to-br ${config.gradient} p-5 text-left !text-white shadow-xl transition hover:-translate-y-1 hover:brightness-105 hover:shadow-2xl focus:outline-none focus:ring-4 focus:ring-blue-200 ${
                         active ? "ring-4 ring-blue-200" : ""
                       }`}
                     >
@@ -791,14 +787,14 @@ export default function OutputCentrePage() {
                         <div className="grid h-12 w-12 place-items-center rounded-2xl bg-white/15 text-2xl shadow-inner backdrop-blur">
                           {config.icon}
                         </div>
-                        <span className="rounded-full bg-white/15 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider backdrop-blur">
+                        <span className="rounded-full border border-white/20 bg-white/20 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider !text-white backdrop-blur">
                           {active ? "Selected" : "A4 Report"}
                         </span>
                       </div>
-                      <div className="relative mt-4 text-base font-black">
+                      <div className="relative mt-5 text-base font-black uppercase tracking-wide !text-white">
                         {config.shortLabel}
                       </div>
-                      <p className="relative mt-1 line-clamp-2 text-xs font-semibold leading-5 text-white/85">
+                      <p className="relative mt-2 line-clamp-2 text-xs font-bold leading-5 !text-white/90">
                         {config.subtitle}
                       </p>
                     </button>

@@ -4,67 +4,92 @@ import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
-const PUBLIC_PATHS = ["/", "/login", "/signup", "/forgot-password", "/reset-password", "/mfa", "/mfa/setup"];
+const PUBLIC_PATHS = [
+  "/",
+  "/login",
+  "/signup",
+  "/forgot-password",
+  "/reset-password",
+  "/mfa",
+  "/mfa/setup",
+];
 
 function isPublicPath(pathname: string) {
-  if (PUBLIC_PATHS.includes(pathname)) return true;
-  return false;
+  return PUBLIC_PATHS.includes(pathname);
+}
+
+function delay(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 export default function MfaGuard() {
   const router = useRouter();
   const pathname = usePathname();
-
   const [checking, setChecking] = useState(false);
 
   useEffect(() => {
+    let mounted = true;
+
     async function checkMfa() {
       if (isPublicPath(pathname)) return;
-
-      setChecking(true);
+      if (mounted) setChecking(true);
 
       try {
-        const { data: authData } = await supabase.auth.getUser();
+        // getSession is local and stable. Do not force users to Login because a
+        // temporary network request to getUser/listFactors failed.
+        const { data: sessionData } = await supabase.auth.getSession();
+        if (!sessionData.session?.user) {
+          await delay(250);
+          const retry = await supabase.auth.getSession();
+          if (!retry.data.session?.user) {
+            router.replace(`/login?next=${encodeURIComponent(pathname)}`);
+            return;
+          }
+        }
 
-        if (!authData.user) {
-          router.push("/login");
+        let factorsResult = await supabase.auth.mfa.listFactors();
+        if (factorsResult.error) {
+          await delay(500);
+          factorsResult = await supabase.auth.mfa.listFactors();
+        }
+
+        if (factorsResult.error || !factorsResult.data) {
+          console.warn("MFA factor verification was temporarily unavailable.");
           return;
         }
 
-        const { data: factorsData, error: factorsErr } = await supabase.auth.mfa.listFactors();
-
-        if (factorsErr) {
-          router.push("/login");
-          return;
-        }
-
-        const verifiedTotpFactors = factorsData.totp.filter(
+        const verifiedTotpFactors = factorsResult.data.totp.filter(
           (factor) => factor.status === "verified"
         );
 
         if (verifiedTotpFactors.length === 0) {
-          router.push("/mfa/setup");
+          router.replace("/mfa/setup");
           return;
         }
 
-        const { data: aalData, error: aalErr } =
-          await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-
-        if (aalErr) {
-          router.push("/login");
+        const aalResult = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+        if (aalResult.error) {
+          console.warn("MFA assurance verification was temporarily unavailable.");
           return;
         }
 
-        if (aalData.nextLevel === "aal2" && aalData.currentLevel !== "aal2") {
-          router.push("/mfa");
-          return;
+        if (
+          aalResult.data.nextLevel === "aal2" &&
+          aalResult.data.currentLevel !== "aal2"
+        ) {
+          router.replace("/mfa");
         }
+      } catch (error) {
+        console.error("MFA guard verification failed without ending the session:", error);
       } finally {
-        setChecking(false);
+        if (mounted) setChecking(false);
       }
     }
 
-    checkMfa();
+    void checkMfa();
+    return () => {
+      mounted = false;
+    };
   }, [pathname, router]);
 
   if (!checking) return null;

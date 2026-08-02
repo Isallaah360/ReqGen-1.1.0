@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
-const INACTIVITY_LIMIT_MS = 3 * 60 * 1000;
-const WARNING_BEFORE_LOGOUT_MS = 30 * 1000;
+const INACTIVITY_LIMIT_MS = 15 * 60 * 1000;
+const WARNING_BEFORE_LOGOUT_MS = 60 * 1000;
+const ACTIVITY_STORAGE_KEY = "reqgen:last-activity-at";
 
 const PUBLIC_PATHS = [
   "/",
@@ -25,8 +26,13 @@ function formatCountdown(secondsLeft: number) {
   const safeSeconds = Math.max(0, Number(secondsLeft || 0));
   const minutes = Math.floor(safeSeconds / 60);
   const seconds = safeSeconds % 60;
-
   return `${minutes}:${String(seconds).padStart(2, "0")}`;
+}
+
+function readLastActivity() {
+  if (typeof window === "undefined") return Date.now();
+  const stored = Number(window.localStorage.getItem(ACTIVITY_STORAGE_KEY) || 0);
+  return Number.isFinite(stored) && stored > 0 ? stored : Date.now();
 }
 
 export default function SessionTimeout() {
@@ -34,163 +40,194 @@ export default function SessionTimeout() {
   const pathname = usePathname();
 
   const [warningVisible, setWarningVisible] = useState(false);
-  const [secondsLeft, setSecondsLeft] = useState(30);
+  const [secondsLeft, setSecondsLeft] = useState(
+    Math.ceil(WARNING_BEFORE_LOGOUT_MS / 1000)
+  );
 
-  const lastActivityRef = useRef<number>(Date.now());
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const warningTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const logoutTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const loggingOutRef = useRef(false);
-  const warningVisibleRef = useRef(false);
+  const lastActivityRef = useRef(Date.now());
+  const lastEventWriteRef = useRef(0);
 
-  async function logoutDueToInactivity() {
+  const clearTimers = useCallback(() => {
+    if (warningTimerRef.current) clearTimeout(warningTimerRef.current);
+    if (logoutTimerRef.current) clearTimeout(logoutTimerRef.current);
+    if (countdownRef.current) clearInterval(countdownRef.current);
+    warningTimerRef.current = null;
+    logoutTimerRef.current = null;
+    countdownRef.current = null;
+  }, []);
+
+  const logoutDueToInactivity = useCallback(async () => {
     if (loggingOutRef.current) return;
-
     loggingOutRef.current = true;
-
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
-    }
+    clearTimers();
 
     try {
-      await supabase.auth.signOut();
+      await supabase.auth.signOut({ scope: "local" });
+    } catch (error) {
+      console.error("Unable to complete inactivity logout:", error);
     } finally {
-      warningVisibleRef.current = false;
       setWarningVisible(false);
-      setSecondsLeft(30);
-      router.push("/login?reason=session-timeout");
+      setSecondsLeft(Math.ceil(WARNING_BEFORE_LOGOUT_MS / 1000));
+      router.replace("/login?reason=session-timeout");
       router.refresh();
     }
-  }
+  }, [clearTimers, router]);
 
-  function resetActivityTimer() {
+  const startCountdown = useCallback(() => {
     if (loggingOutRef.current) return;
+    setWarningVisible(true);
 
-    lastActivityRef.current = Date.now();
-    warningVisibleRef.current = false;
+    const update = () => {
+      const elapsed = Date.now() - lastActivityRef.current;
+      const remaining = Math.max(0, INACTIVITY_LIMIT_MS - elapsed);
+      setSecondsLeft(Math.ceil(remaining / 1000));
+      if (remaining <= 0) void logoutDueToInactivity();
+    };
+
+    update();
+    if (countdownRef.current) clearInterval(countdownRef.current);
+    countdownRef.current = setInterval(update, 1000);
+  }, [logoutDueToInactivity]);
+
+  const scheduleTimers = useCallback(
+    (activityAt: number) => {
+      if (loggingOutRef.current) return;
+      clearTimers();
+      lastActivityRef.current = activityAt;
+
+      const elapsed = Math.max(0, Date.now() - activityAt);
+      const warningDelay = Math.max(
+        0,
+        INACTIVITY_LIMIT_MS - WARNING_BEFORE_LOGOUT_MS - elapsed
+      );
+      const logoutDelay = Math.max(0, INACTIVITY_LIMIT_MS - elapsed);
+
+      if (logoutDelay <= 0) {
+        void logoutDueToInactivity();
+        return;
+      }
+
+      if (warningDelay <= 0) startCountdown();
+      else warningTimerRef.current = setTimeout(startCountdown, warningDelay);
+
+      logoutTimerRef.current = setTimeout(
+        () => void logoutDueToInactivity(),
+        logoutDelay
+      );
+    },
+    [clearTimers, logoutDueToInactivity, startCountdown]
+  );
+
+  const recordActivity = useCallback(() => {
+    if (loggingOutRef.current) return;
+    const now = Date.now();
+
+    // Avoid writing to localStorage for every mouse movement.
+    if (now - lastEventWriteRef.current < 1000) return;
+    lastEventWriteRef.current = now;
+
+    window.localStorage.setItem(ACTIVITY_STORAGE_KEY, String(now));
     setWarningVisible(false);
     setSecondsLeft(Math.ceil(WARNING_BEFORE_LOGOUT_MS / 1000));
-  }
-
-  function stayLoggedIn() {
-    resetActivityTimer();
-  }
+    scheduleTimers(now);
+  }, [scheduleTimers]);
 
   useEffect(() => {
     if (isPublicPath(pathname)) {
-      warningVisibleRef.current = false;
+      clearTimers();
       setWarningVisible(false);
-      setSecondsLeft(Math.ceil(WARNING_BEFORE_LOGOUT_MS / 1000));
-
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-        timerRef.current = null;
-      }
-
       return;
     }
 
     loggingOutRef.current = false;
-    lastActivityRef.current = Date.now();
-    warningVisibleRef.current = false;
-    setWarningVisible(false);
-    setSecondsLeft(Math.ceil(WARNING_BEFORE_LOGOUT_MS / 1000));
+    const initialActivity = Math.max(readLastActivity(), Date.now());
+    window.localStorage.setItem(ACTIVITY_STORAGE_KEY, String(initialActivity));
+    scheduleTimers(initialActivity);
 
     const activityEvents: Array<keyof WindowEventMap> = [
-      "mousemove",
-      "mousedown",
+      "pointerdown",
       "keydown",
       "scroll",
       "touchstart",
-      "click",
     ];
 
-    activityEvents.forEach((eventName) => {
-      window.addEventListener(eventName, resetActivityTimer, { passive: true });
-    });
-
-    timerRef.current = setInterval(() => {
-      if (loggingOutRef.current) return;
-
-      const inactiveFor = Date.now() - lastActivityRef.current;
-      const timeLeftMs = INACTIVITY_LIMIT_MS - inactiveFor;
-
-      if (timeLeftMs <= 0) {
-        setSecondsLeft(0);
-        logoutDueToInactivity();
-        return;
-      }
-
-      if (timeLeftMs <= WARNING_BEFORE_LOGOUT_MS) {
-        const nextSecondsLeft = Math.max(1, Math.ceil(timeLeftMs / 1000));
-
-        if (!warningVisibleRef.current) {
-          warningVisibleRef.current = true;
-          setWarningVisible(true);
-        }
-
-        setSecondsLeft(nextSecondsLeft);
-      } else {
-        if (warningVisibleRef.current) {
-          warningVisibleRef.current = false;
-          setWarningVisible(false);
-        }
-
-        setSecondsLeft(Math.ceil(WARNING_BEFORE_LOGOUT_MS / 1000));
-      }
-    }, 1000);
-
-    return () => {
-      activityEvents.forEach((eventName) => {
-        window.removeEventListener(eventName, resetActivityTimer);
-      });
-
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-        timerRef.current = null;
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key !== ACTIVITY_STORAGE_KEY || !event.newValue) return;
+      const value = Number(event.newValue);
+      if (Number.isFinite(value) && value > lastActivityRef.current) {
+        setWarningVisible(false);
+        scheduleTimers(value);
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathname]);
 
-  if (isPublicPath(pathname)) return null;
-  if (!warningVisible) return null;
+    const handleVisibility = () => {
+      if (document.visibilityState !== "visible") return;
+      // Browser timers can be throttled in background tabs. Recalculate from
+      // the absolute activity timestamp so the warning is never skipped.
+      scheduleTimers(readLastActivity());
+    };
+
+    activityEvents.forEach((eventName) =>
+      window.addEventListener(eventName, recordActivity, { passive: true })
+    );
+    window.addEventListener("storage", handleStorage);
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    return () => {
+      activityEvents.forEach((eventName) =>
+        window.removeEventListener(eventName, recordActivity)
+      );
+      window.removeEventListener("storage", handleStorage);
+      document.removeEventListener("visibilitychange", handleVisibility);
+      clearTimers();
+    };
+  }, [clearTimers, pathname, recordActivity, scheduleTimers]);
+
+  if (isPublicPath(pathname) || !warningVisible) return null;
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/45 backdrop-blur-sm px-4">
-      <div className="w-full max-w-2xl rounded-3xl border bg-white p-6 shadow-2xl">
-        <div className="text-xl font-extrabold text-slate-900">
-          Session Timeout Warning
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/55 px-4 backdrop-blur-md">
+      <div className="w-full max-w-xl overflow-hidden rounded-[2rem] border border-amber-200 bg-white shadow-2xl">
+        <div className="bg-gradient-to-r from-slate-950 via-blue-950 to-cyan-800 px-6 py-5 text-white">
+          <div className="text-xs font-black uppercase tracking-[0.2em] text-cyan-200">
+            Security Session Notice
+          </div>
+          <div className="mt-2 text-2xl font-black">Session timeout warning</div>
+          <p className="mt-2 text-sm font-semibold leading-6 text-blue-100">
+            No activity has been detected. ReqGen will sign you out unless you continue your session.
+          </p>
         </div>
 
-        <p className="mt-3 text-base leading-7 text-slate-700">
-          For security reasons, you will be logged out soon because your account has been inactive.
-        </p>
-
-        <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-center">
-          <div className="text-xs font-black uppercase tracking-wide text-amber-700">
-            Logging out in
+        <div className="p-6">
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-center">
+            <div className="text-xs font-black uppercase tracking-[0.16em] text-amber-700">
+              Automatic logout in
+            </div>
+            <div className="mt-1 text-5xl font-black tabular-nums text-amber-950">
+              {formatCountdown(secondsLeft)}
+            </div>
           </div>
-          <div className="mt-1 text-4xl font-black tabular-nums text-amber-900">
-            {formatCountdown(secondsLeft)}
+
+          <div className="mt-5 grid gap-3 sm:grid-cols-2">
+            <button
+              type="button"
+              onClick={() => void logoutDueToInactivity()}
+              className="reqgen-btn reqgen-btn-rose w-full"
+            >
+              Logout Now
+            </button>
+            <button
+              type="button"
+              onClick={recordActivity}
+              className="reqgen-btn reqgen-btn-blue w-full"
+            >
+              Stay Logged In
+            </button>
           </div>
-        </div>
-
-        <div className="mt-5 flex flex-wrap justify-end gap-2">
-          <button
-            type="button"
-            onClick={logoutDueToInactivity}
-            className="reqgen-btn reqgen-btn-rose rounded-xl border border-blue-200 bg-blue-50 px-5 py-3 text-sm font-bold text-blue-800 transition hover:bg-blue-100"
-          >
-            Logout Now
-          </button>
-
-          <button
-            type="button"
-            onClick={stayLoggedIn}
-            className="reqgen-btn reqgen-btn-blue rounded-xl bg-blue-700 px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-blue-800"
-          >
-            Stay Logged In
-          </button>
         </div>
       </div>
     </div>
