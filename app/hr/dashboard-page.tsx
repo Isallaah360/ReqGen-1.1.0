@@ -7,13 +7,8 @@ const modules = [
   ["HR Review Queue", "Review officer recommendations before completing the HR stage.", "/hr/review", "bg-orange-600"],
   ["HR Audit Trail", "Trace assignments, decisions, returns and delegated actions.", "/hr/audit", "bg-slate-700"],
   ["Officer Assignment Centre", "Assign multiple HR roles and permissions to officers.", "/hr/assignments", "bg-violet-600"],
-  ["Registrar Centre", "Control staff records, file movement and archive operations.", "/hr/registrar", "bg-blue-700"],
+  ["Registrar Governance Centre", "Secure strategic HR administration, reporting, compliance, seminars, development, KPI and 360° assessment.", "/hr/registrar", "bg-blue-700"],
   ["HR Filing Centre", "Review summarized HR-bound requests and filing stages.", "/hr/filing", "bg-emerald-600"],
-  ["Wednesday Weekly Seminar", "Attendance, punctuality and institutional participation analytics.", "/hr/weekly-seminar", "bg-orange-600"],
-  ["Staff Capacity Building", "Training needs, programmes, completion and impact.", "/hr/capacity-building/staff", "bg-cyan-600"],
-  ["Department Capacity Building", "Departmental gaps, interventions and improvement plans.", "/hr/capacity-building/departments", "bg-indigo-600"],
-  ["Department KPI", "Department performance indicators, targets and evidence.", "/hr/department-kpi", "bg-fuchsia-600"],
-  ["Annual Staff 360° Assessment", "Controlled multi-source staff performance assessment.", "/hr/assessments/annual-360", "bg-rose-600"],
 ];
 
 export default function HRBossDashboard() {

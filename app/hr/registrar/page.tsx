@@ -2,7 +2,7 @@
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { HRAccessGuard, HRNavigation } from "@/app/components/hr";
+import { HRNavigation } from "@/app/components/hr";
 import { supabase } from "@/lib/supabaseClient";
 
 type StaffFile = {
@@ -341,7 +341,7 @@ export default function RegistrarPage() {
 
   if (loading) {
     return (
-      <HRAccessGuard section="registrar">
+      <>
         <main className="min-h-screen bg-slate-50 px-4 py-8 lg:px-8">
           <div className="mx-auto max-w-7xl animate-pulse space-y-6 blur-[0.2px]">
             <div className="h-44 rounded-[2rem] bg-slate-200" />
@@ -354,12 +354,12 @@ export default function RegistrarPage() {
             <div className="h-96 rounded-3xl bg-slate-200" />
           </div>
         </main>
-      </HRAccessGuard>
+      </>
     );
   }
 
   return (
-    <HRAccessGuard section="registrar">
+    <>
       <main className="min-h-screen bg-slate-50 px-4 py-8 lg:px-8">
         <div className="mx-auto max-w-7xl space-y-6">
           <section className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-slate-950 via-blue-950 to-cyan-700 p-7 text-white shadow-xl sm:p-9">
@@ -376,9 +376,12 @@ export default function RegistrarPage() {
                 </p>
               </div>
               <div className="flex flex-wrap gap-3">
-                <Link href="/hr/staff" className="rounded-xl bg-violet-700 px-5 py-3 text-sm font-black text-white shadow-lg transition hover:-translate-y-0.5 hover:bg-violet-800">Staff Files</Link>
-                <Link href="/hr/archive" className="rounded-xl bg-amber-600 px-5 py-3 text-sm font-black text-white shadow-lg transition hover:-translate-y-0.5 hover:bg-amber-700">HR Archive</Link>
-                <Link href="/hr/audit" className="rounded-xl bg-slate-700 px-5 py-3 text-sm font-black text-white shadow-lg transition hover:-translate-y-0.5 hover:bg-slate-800">Audit Evidence</Link>
+                <Link
+                  href="/hr/staff"
+                  className="rounded-xl bg-violet-700 px-5 py-3 text-sm font-black text-white shadow-lg transition hover:-translate-y-0.5 hover:bg-violet-800"
+                >
+                  Staff Files
+                </Link>
                 <button
                   type="button"
                   onClick={() => loadData(true)}
@@ -646,6 +649,6 @@ export default function RegistrarPage() {
           </div>
         )}
       </main>
-    </HRAccessGuard>
+    </>
   );
 }

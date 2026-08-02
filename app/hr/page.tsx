@@ -337,35 +337,18 @@ export default function HRBossDashboard() {
             </article>
           </section>
 
-          <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <section className="overflow-hidden rounded-3xl border border-cyan-200 bg-gradient-to-br from-slate-950 via-blue-950 to-cyan-800 p-6 text-white shadow-xl">
+            <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
               <div>
-                <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-700">Strategic HR Development</p>
-                <h2 className="mt-2 text-2xl font-black text-slate-950">Learning, performance and assessment centres</h2>
+                <p className="text-xs font-black uppercase tracking-[0.2em] text-cyan-200">Registrar-Governed HR Administration</p>
+                <h2 className="mt-2 text-2xl font-black text-white">Strategic HR, compliance, analytics and institutional development</h2>
+                <p className="mt-3 max-w-3xl text-sm font-semibold leading-6 text-blue-100">
+                  Settings, officer performance, analytics, reports, compliance, outputs, weekly seminar, capacity building, department KPI and annual 360° assessment are controlled from the secured Registrar Centre.
+                </p>
               </div>
-              <div className="flex flex-wrap gap-2">
-                <Link href="/hr/reports" className="rounded-xl bg-violet-700 px-4 py-3 text-sm font-black text-white shadow-md transition hover:-translate-y-0.5 hover:bg-violet-800">Open HR Reports</Link>
-                <Link href="/hr/analytics" className="rounded-xl bg-blue-700 px-4 py-3 text-sm font-black text-white shadow-md transition hover:-translate-y-0.5 hover:bg-blue-800">HR Analytics</Link>
-                <Link href="/hr/officer-performance" className="rounded-xl bg-cyan-600 px-4 py-3 text-sm font-black text-white shadow-md transition hover:-translate-y-0.5 hover:bg-cyan-700">Officer Performance</Link>
-                <Link href="/hr/compliance" className="rounded-xl bg-rose-700 px-4 py-3 text-sm font-black text-white shadow-md transition hover:-translate-y-0.5 hover:bg-rose-800">Compliance</Link>
-                <Link href="/hr/settings" className="rounded-xl bg-slate-800 px-4 py-3 text-sm font-black text-white shadow-md transition hover:-translate-y-0.5 hover:bg-slate-900">HR Settings</Link>
-                <Link href="/hr/output" className="rounded-xl bg-emerald-700 px-4 py-3 text-sm font-black text-white shadow-md transition hover:-translate-y-0.5 hover:bg-emerald-800">Print & Export</Link>
-              </div>
-            </div>
-            <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-              {[
-                ["/hr/weekly-seminar", "Wednesday Weekly Seminar", "Attendance, punctuality and departmental participation.", "from-violet-600 to-blue-700"],
-                ["/hr/capacity-building/staff", "Staff Capacity Building", "Training needs, programmes, certification and impact.", "from-fuchsia-600 to-violet-700"],
-                ["/hr/capacity-building/departments", "Department Capacity Building", "Gap assessment and institutional improvement programmes.", "from-cyan-600 to-blue-700"],
-                ["/hr/department-kpi", "Department KPI", "Targets, weighted evidence and performance review.", "from-emerald-600 to-teal-700"],
-                ["/hr/assessments/annual-360", "Annual Staff 360° Assessment", "Controlled multi-source assessment and development planning.", "from-amber-500 to-orange-700"],
-              ].map(([href, title, description, tone]) => (
-                <Link key={href} href={href} className={`group rounded-2xl border border-white/20 bg-gradient-to-br ${tone} p-4 text-white shadow-md transition hover:-translate-y-1 hover:shadow-xl`}>
-                  <p className="text-sm font-black">{title}</p>
-                  <p className="mt-2 text-xs font-semibold leading-5 text-white/80">{description}</p>
-                  <span className="mt-3 inline-flex rounded-full bg-white/15 px-3 py-1 text-[11px] font-black uppercase tracking-wide text-white ring-1 ring-white/20">Operational</span>
-                </Link>
-              ))}
+              <Link href="/hr/registrar" className="inline-flex min-h-12 shrink-0 items-center justify-center rounded-xl bg-white px-5 py-3 text-sm font-black text-blue-950 shadow-lg transition hover:-translate-y-0.5 hover:bg-cyan-50">
+                Open Registrar Governance
+              </Link>
             </div>
           </section>
         </div>
