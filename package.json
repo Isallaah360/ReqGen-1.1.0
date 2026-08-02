@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "audit:routes": "node scripts/audit-route-access.mjs"
+    "audit:routes": "node scripts/audit-route-access.mjs",
+    "audit:workflow": "node scripts/audit-workflow-readiness.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.97.0",

@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-08-02T00:46:37.618Z",
-  "totalPages": 95,
+  "generatedAt": "2026-08-02T01:01:14.133Z",
+  "totalPages": 96,
   "sensitiveRoots": [
     "/admin",
     "/audit-centre",
@@ -13,6 +13,7 @@
   ],
   "policyPrefixes": [
     "/admin/account-routing",
+    "/admin/workflow-test",
     "/admin/system-health",
     "/admin/access-audit",
     "/admin/departments",
@@ -56,6 +57,7 @@
     "/admin/settings",
     "/admin/system-health",
     "/admin/users",
+    "/admin/workflow-test",
     "/approvals",
     "/approvals/action-centre",
     "/audit-centre",

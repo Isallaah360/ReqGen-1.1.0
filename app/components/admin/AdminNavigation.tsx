@@ -105,6 +105,13 @@ export default function AdminNavigation() {
           </button>
           <button
             type="button"
+            onClick={() => router.push("/admin/workflow-test")}
+            className="reqgen-btn reqgen-btn-emerald rounded-xl px-3 py-2 text-xs font-black text-white"
+          >
+            Workflow Test
+          </button>
+          <button
+            type="button"
             onClick={() => router.push("/audit-centre")}
             className="reqgen-btn reqgen-btn-violet rounded-xl px-3 py-2 text-xs font-black text-white"
           >

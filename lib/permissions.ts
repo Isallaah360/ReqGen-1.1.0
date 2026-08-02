@@ -22,6 +22,7 @@ export const PUBLIC_PATHS = [
  * getRoutePolicy also sorts by prefix length as a defensive safeguard.
  */
 export const ROUTE_POLICIES: RoutePolicy[] = [
+  { prefix: "/admin/workflow-test", roles: ["admin"] },
   { prefix: "/admin/access-audit", roles: ["admin"] },
   { prefix: "/admin/system-health", roles: ["admin"] },
   { prefix: "/admin/account-routing", roles: ["admin"] },
