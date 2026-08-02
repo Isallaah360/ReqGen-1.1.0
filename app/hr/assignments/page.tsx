@@ -2,11 +2,13 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { BriefcaseBusiness, CheckCircle2, PauseCircle, RefreshCw, ShieldCheck, Users } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { HRAccessGuard, HRNavigation } from "@/app/components/hr";
 
 type Officer = { id: string; full_name: string | null; email: string | null; role: string | null };
 type Assignment = { id: string; officer_id: string; section_key: string; permission_key: string; is_active: boolean; created_at?: string | null };
+type SummaryCard = { title: string; value: number; icon: LucideIcon; tone: string };
 
 const sections = [
   ["filing", "HR Filing & Personal Requests"],
@@ -59,6 +61,18 @@ export default function HRAssignmentsPage() {
   const assignedOfficers = new Set(assignments.filter((item) => item.is_active).map((item) => item.officer_id)).size;
   const domainCount = new Set(assignments.filter((item) => item.is_active).map((item) => item.section_key)).size;
 
+  const summaryCards: SummaryCard[] = [
+    { title: "Assigned Officers", value: assignedOfficers, icon: Users, tone: "from-blue-600 to-indigo-700" },
+    { title: "Active Authorities", value: activeCount, icon: ShieldCheck, tone: "from-emerald-600 to-teal-700" },
+    { title: "HR Domains Covered", value: domainCount, icon: BriefcaseBusiness, tone: "from-violet-600 to-purple-700" },
+    {
+      title: "Suspended",
+      value: assignments.filter((item) => !item.is_active).length,
+      icon: PauseCircle,
+      tone: "from-amber-500 to-orange-600",
+    },
+  ];
+
   async function assign() {
     if (!officerId) return;
     setBusy(true);
@@ -98,12 +112,22 @@ export default function HRAssignmentsPage() {
           {message ? <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm font-bold text-blue-900">{message}</div> : null}
 
           <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            {[
-              ["Assigned Officers", assignedOfficers, Users, "from-blue-600 to-indigo-700"],
-              ["Active Authorities", activeCount, ShieldCheck, "from-emerald-600 to-teal-700"],
-              ["HR Domains Covered", domainCount, BriefcaseBusiness, "from-violet-600 to-purple-700"],
-              ["Suspended", assignments.filter((item) => !item.is_active).length, PauseCircle, "from-amber-500 to-orange-600"],
-            ].map(([title, value, Icon, tone]) => <article key={String(title)} className={`rounded-3xl bg-gradient-to-br ${tone} p-5 text-white shadow-lg`}><div className="flex justify-between gap-3"><div><p className="text-xs font-black uppercase tracking-wider text-white/75">{title as string}</p><p className="mt-3 text-3xl font-black">{String(value)}</p></div><Icon className="h-7 w-7" /></div></article>)}
+            {summaryCards.map(({ title, value, icon: Icon, tone }) => (
+              <article
+                key={title}
+                className={`rounded-3xl bg-gradient-to-br ${tone} p-5 text-white shadow-lg`}
+              >
+                <div className="flex justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-wider text-white/75">
+                      {title}
+                    </p>
+                    <p className="mt-3 text-3xl font-black">{value}</p>
+                  </div>
+                  <Icon className="h-7 w-7" />
+                </div>
+              </article>
+            ))}
           </section>
 
           <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
