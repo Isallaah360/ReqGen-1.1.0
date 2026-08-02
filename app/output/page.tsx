@@ -83,12 +83,28 @@ export default function OutputCentrePage() {
 
   useEffect(() => { void load(); }, [load]);
 
-  const normalizedRows = useMemo(() => rows.map((row) => ({
-    ...row,
-    created_at: displayDate(row.created_at), payment_date: displayDate(row.payment_date), transaction_date: displayDate(row.transaction_date), received_sent_at: displayDate(row.received_sent_at), switched_at: displayDate(row.switched_at),
-    display_amount: money(row.total_amount ?? row.amount), approved_allocation_display: money(row.approved_allocation), reserved_amount_display: money(row.reserved_amount), expenditure_display: money(row.expenditure), balance_display: money(row.balance), current_balance_display: money(row.current_balance),
-    details: typeof row.details === "object" ? JSON.stringify(row.details) : text(row.details),
-  })), [rows]);
+  const normalizedRows = useMemo<Row[]>(
+    () =>
+      rows.map((row): Row => ({
+        ...row,
+        created_at: displayDate(row.created_at),
+        payment_date: displayDate(row.payment_date),
+        transaction_date: displayDate(row.transaction_date),
+        received_sent_at: displayDate(row.received_sent_at),
+        switched_at: displayDate(row.switched_at),
+        display_amount: money(row.total_amount ?? row.amount),
+        approved_allocation_display: money(row.approved_allocation),
+        reserved_amount_display: money(row.reserved_amount),
+        expenditure_display: money(row.expenditure),
+        balance_display: money(row.balance),
+        current_balance_display: money(row.current_balance),
+        details:
+          row.details !== null && typeof row.details === "object"
+            ? JSON.stringify(row.details)
+            : text(row.details),
+      })),
+    [rows]
+  );
 
   const selectedConfig = SOURCES[selected];
   const documentId = `IET-${selected.toUpperCase()}-${new Date().toISOString().slice(0,10).replace(/-/g,"")}`;
