@@ -44,8 +44,8 @@ export default function RegistrarGovernanceNavigation() {
   const pathname = usePathname();
 
   return (
-    <section className="mx-auto w-full max-w-7xl px-4 pt-6 lg:px-8">
-      <div className="rounded-[1.75rem] border border-white/70 bg-white/95 p-4 shadow-xl backdrop-blur-xl">
+    <section className="mx-auto w-full max-w-7xl px-4 pt-4 lg:px-8">
+      <div className="rounded-[1.75rem] border border-white/80 bg-white/95 p-4 shadow-xl backdrop-blur-xl">
         <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-[11px] font-black uppercase tracking-[0.22em] text-blue-700">Secured Registrar Governance</p>
@@ -62,9 +62,9 @@ export default function RegistrarGovernanceNavigation() {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`group flex min-h-16 items-center gap-3 rounded-xl border px-3 py-2.5 transition focus:outline-none focus:ring-4 focus:ring-cyan-100 ${
+                className={`group flex min-h-[68px] items-center gap-3 rounded-xl border px-3 py-2.5 transition focus:outline-none focus:ring-4 focus:ring-cyan-100 ${
                   active
-                    ? "border-blue-700 bg-gradient-to-r from-blue-900 to-cyan-700 text-white shadow-lg"
+                    ? "border-blue-700 bg-gradient-to-r from-blue-950 via-blue-800 to-cyan-700 text-white shadow-lg"
                     : "border-slate-200 bg-slate-50 text-slate-900 hover:-translate-y-0.5 hover:border-cyan-300 hover:bg-cyan-50 hover:shadow-md"
                 }`}
               >

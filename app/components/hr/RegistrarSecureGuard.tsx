@@ -11,8 +11,6 @@ import { normalizeRole } from "@/lib/roles";
 const ALLOWED_ROLES = new Set([
   "admin",
   "hrboss",
-  "hr",
-  "humanresources",
   "humanresourcesboss",
   "registrar",
   "registrarofficer",

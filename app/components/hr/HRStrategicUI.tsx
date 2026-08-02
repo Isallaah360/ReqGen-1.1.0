@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { ReactNode } from "react";
+import { usePathname } from "next/navigation";
 import HRNavigation from "./HRNavigation";
 
 export type Tone = "blue" | "cyan" | "emerald" | "violet" | "amber" | "rose" | "slate";
@@ -52,6 +53,8 @@ export function StrategicShell({ children }: { children: ReactNode }) {
 }
 
 export function StrategicNavigation() {
+  const pathname = usePathname();
+  if (pathname.startsWith("/hr/registrar")) return null;
   return <HRNavigation />;
 }
 

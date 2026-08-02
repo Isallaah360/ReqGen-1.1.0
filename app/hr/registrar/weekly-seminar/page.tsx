@@ -1,7 +1,6 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
-import { HRNavigation } from "@/app/components/hr";
 import { supabase } from "@/lib/supabaseClient";
 
 type Session = {
@@ -295,7 +294,6 @@ export default function WeeklySeminarPage() {
             </div>
           </section>
 
-          <HRNavigation />
 
           {error && <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 font-bold text-rose-800">{error}</div>}
           {success && <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 font-bold text-emerald-800">{success}</div>}

@@ -2,8 +2,8 @@
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { HRNavigation } from "@/app/components/hr";
 import { supabase } from "@/lib/supabaseClient";
+import RegistrarGovernanceOverview from "@/app/components/hr/RegistrarGovernanceOverview";
 
 type StaffFile = {
   id: string;
@@ -394,7 +394,7 @@ export default function RegistrarPage() {
             </div>
           </section>
 
-          <HRNavigation />
+          <RegistrarGovernanceOverview />
 
           {error && (
             <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-800">
