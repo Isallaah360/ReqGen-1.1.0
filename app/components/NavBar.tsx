@@ -347,6 +347,7 @@ export default function NavBar() {
   const isAdmin = hasAnyRole(roleSet, ["admin"]);
   const canViewReports = hasAnyRole(roleSet, [...REPORT_ACCESS_ROLES]);
   const canAudit = hasAnyRole(roleSet, ["admin", "auditor"]);
+  const canExecutive = hasAnyRole(roleSet, ["admin", "dg", "director", "auditor", "hrboss", "humanresourcesboss"]);
 
   const canFinance = hasAnyRole(roleSet, [
     "admin",
@@ -915,6 +916,14 @@ export default function NavBar() {
                 </button>
               )}
 
+
+              {canExecutive && (
+                <Link className={iconLinkClass("/executive")} href="/executive">
+                  <NavPngIcon src="/dashboard.png" alt="Executive Command Centre" />
+                  <IconButtonTooltip label="Executive Command Centre" />
+                </Link>
+              )}
+
               {canAudit && (
                 <Link className={iconLinkClass("/audit-centre")} href="/audit-centre">
                   <NavPngIcon src="/audit.png" alt="Enterprise Audit Centre" />
@@ -1060,6 +1069,28 @@ export default function NavBar() {
                         </span>
                         <div className={mobileItemDescriptionClass("/registry")}>
                           Department movement, DG reminders and daily submission summaries
+                        </div>
+                      </button>
+                    </>
+                  )}
+
+
+                  {canExecutive && (
+                    <>
+                      <div className="mt-3 border-t pt-3 text-xs font-black uppercase tracking-wide text-slate-500">
+                        Executive
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => goTo("/executive")}
+                        className={mobileItemClass("/executive")}
+                      >
+                        <span className="inline-flex items-center gap-2">
+                          <NavPngIcon src="/dashboard.png" alt="Executive Command Centre" size={22} />
+                          Executive Command Centre
+                        </span>
+                        <div className={mobileItemDescriptionClass("/executive")}>
+                          Live institutional oversight, alerts, calendar and executive reporting
                         </div>
                       </button>
                     </>
