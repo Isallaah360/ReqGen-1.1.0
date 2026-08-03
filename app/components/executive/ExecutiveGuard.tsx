@@ -1,78 +1,47 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import { activeRoleFromRpc, roleKey } from "@/app/components/enterprise/data";
 
 const ALLOWED = new Set(["admin", "dg", "director", "auditor", "hrboss", "humanresourcesboss"]);
 
-function roleKey(value: unknown) {
-  return String(value ?? "").trim().toLowerCase().replace(/[\s_-]+/g, "");
-}
-
-function activeRoleFrom(value: unknown): string {
-  if (typeof value === "string") return value;
-  if (Array.isArray(value)) return activeRoleFrom(value[0]);
-  if (value && typeof value === "object") {
-    const row = value as Record<string, unknown>;
-    return String(row.role_key ?? row.active_role_key ?? row.role_name ?? row.active_role ?? row.get_my_active_role ?? "");
-  }
-  return "";
-}
-
-export default function ExecutiveGuard({ children }: { children: ReactNode }) {
+export default function ExecutiveGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const [ready, setReady] = useState(false);
+  const [allowed, setAllowed] = useState<boolean | null>(null);
 
   useEffect(() => {
-    let mounted = true;
-    async function verify() {
-      setReady(false);
+    let cancelled = false;
+    async function check() {
       const { data: sessionData } = await supabase.auth.getSession();
-      if (!sessionData.session?.user) {
+      if (!sessionData.session) {
         router.replace(`/login?next=${encodeURIComponent(pathname)}`);
         return;
       }
 
-      const [{ data: roleData }, factors, aal] = await Promise.all([
-        supabase.rpc("get_my_active_role"),
-        supabase.auth.mfa.listFactors(),
-        supabase.auth.mfa.getAuthenticatorAssuranceLevel(),
-      ]);
-
-      const role = roleKey(activeRoleFrom(roleData));
-      const verified = !factors.error && Boolean(factors.data?.totp.some((item) => item.status === "verified"));
-      const isAal2 = !aal.error && aal.data.currentLevel === "aal2";
-
-      if (!verified) {
-        router.replace("/mfa/setup");
+      const { data: roleData } = await supabase.rpc("get_my_active_role");
+      const activeRole = roleKey(activeRoleFromRpc(roleData));
+      if (!ALLOWED.has(activeRole)) {
+        router.replace("/unauthorized");
         return;
       }
-      if (!isAal2) {
+
+      const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+      if (aal?.currentLevel !== "aal2") {
         router.replace(`/mfa?next=${encodeURIComponent(pathname)}`);
         return;
       }
-      if (!ALLOWED.has(role)) {
-        router.replace(`/unauthorized?from=${encodeURIComponent(pathname)}&role=${encodeURIComponent(role || "staff")}`);
-        return;
-      }
-      if (mounted) setReady(true);
+
+      if (!cancelled) setAllowed(true);
     }
-    void verify();
-    return () => { mounted = false; };
+    void check();
+    return () => { cancelled = true; };
   }, [pathname, router]);
 
-  if (!ready) {
-    return (
-      <div className="grid min-h-[60vh] place-items-center px-4">
-        <div className="rounded-3xl border border-blue-100 bg-white px-8 py-7 text-center shadow-xl">
-          <div className="mx-auto h-11 w-11 animate-spin rounded-full border-4 border-blue-100 border-t-blue-700" />
-          <p className="mt-4 font-black text-slate-950">Verifying executive authority</p>
-          <p className="mt-1 text-sm font-semibold text-slate-500">Active role and 2FA are required.</p>
-        </div>
-      </div>
-    );
+  if (allowed !== true) {
+    return <div className="grid min-h-[60vh] place-items-center bg-slate-50"><div className="rounded-2xl border border-slate-200 bg-white px-6 py-5 text-sm font-black text-slate-700 shadow-sm">Verifying executive access…</div></div>;
   }
-  return children;
+  return <>{children}</>;
 }

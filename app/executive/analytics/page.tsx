@@ -1,2 +1,2 @@
 import ExecutiveModulePage from "@/app/components/executive/ExecutiveModulePage";
-export default function Page(){ return <ExecutiveModulePage module="analytics" />; }
+export default function Page() { return <ExecutiveModulePage module="analytics" />; }

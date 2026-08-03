@@ -2,58 +2,88 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import { activeRoleFromRpc, normalizeRows, numberValue, roleKey, text, type GenericRow } from "@/app/components/enterprise/data";
 
-export type Row = Record<string, unknown>;
-export type ExecData = Record<string, Row[]>;
-const sources = [
-  ["requests", "requests"], ["vouchers", "payment_vouchers"], ["transactions", "finance_transactions"],
-  ["hrAssignments", "hr_request_assignments"], ["leave", "hr_leave_records"], ["seminars", "hr_seminar_sessions"],
-  ["attendance", "hr_seminar_attendance"], ["registry", "registry_correspondence"], ["audit", "enterprise_audit_events"],
-  ["notifications", "notifications"], ["departments", "departments"], ["profiles", "profiles"],
-  ["kpis", "hr_department_kpis"], ["workflow", "workflow_sla_events"], ["roleSwitches", "user_role_switch_history"],
-] as const;
+export type ExecutiveData = Record<string, GenericRow[]>;
 
-export function text(value: unknown, fallback="") { return typeof value === "string" && value.trim() ? value : fallback; }
-export function numberOf(value: unknown) { const n=Number(value ?? 0); return Number.isFinite(n)?n:0; }
-export function dateOf(value: unknown) { const d=new Date(String(value ?? "")); return Number.isNaN(d.getTime())?null:d; }
-export function dateTime(value: unknown) { const d=dateOf(value); return d?d.toLocaleString("en-NG", {dateStyle:"medium",timeStyle:"short",hour12:true}):"—"; }
+const SOURCES: Record<string, { table: string; order?: string; limit?: number }> = {
+  requests: { table: "requests", order: "created_at", limit: 250 },
+  vouchers: { table: "payment_vouchers", order: "created_at", limit: 150 },
+  transactions: { table: "finance_transactions", order: "created_at", limit: 150 },
+  hrAssignments: { table: "hr_request_assignments", order: "created_at", limit: 150 },
+  leave: { table: "hr_leave_records", order: "created_at", limit: 150 },
+  seminars: { table: "hr_weekly_seminars", order: "session_date", limit: 100 },
+  seminarAttendance: { table: "hr_seminar_attendance", order: "created_at", limit: 250 },
+  kpis: { table: "hr_department_kpis", order: "created_at", limit: 150 },
+  registry: { table: "registry_correspondence", order: "created_at", limit: 150 },
+  movements: { table: "registry_file_movements", order: "created_at", limit: 150 },
+  audit: { table: "enterprise_audit_events", order: "created_at", limit: 250 },
+  roleSwitches: { table: "user_role_switch_history", order: "created_at", limit: 150 },
+  notifications: { table: "notifications", order: "created_at", limit: 150 },
+  workflowSla: { table: "workflow_sla_events", order: "due_at", limit: 150 },
+};
 
 export function useExecutiveData() {
-  const [data,setData]=useState<ExecData>({});
-  const [loading,setLoading]=useState(true);
-  const [coverage,setCoverage]=useState(0);
-  const [warning,setWarning]=useState<string|null>(null);
+  const [data, setData] = useState<ExecutiveData>({});
+  const [loading, setLoading] = useState(true);
+  const [warning, setWarning] = useState("");
+  const [coverage, setCoverage] = useState(0);
+  const [activeRole, setActiveRole] = useState("Executive");
 
-  const load=useCallback(async()=>{
-    setLoading(true); setWarning(null);
-    const results=await Promise.all(sources.map(async ([key,table])=>{
-      const result=await supabase.from(table).select("*").order("created_at",{ascending:false}).limit(250);
-      return {key,rows:Array.isArray(result.data)?result.data as Row[]:[],ok:!result.error};
+  const load = useCallback(async () => {
+    setLoading(true);
+    setWarning("");
+    const { data: roleData } = await supabase.rpc("get_my_active_role");
+    setActiveRole(activeRoleFromRpc(roleData) || "Executive");
+
+    const entries = await Promise.all(Object.entries(SOURCES).map(async ([key, config]) => {
+      let query = supabase.from(config.table).select("*");
+      if (config.order) query = query.order(config.order, { ascending: false });
+      if (config.limit) query = query.limit(config.limit);
+      const result = await query;
+      return { key, rows: normalizeRows(result.data), error: result.error?.message || "" };
     }));
-    const next:ExecData={}; let ok=0;
-    for(const result of results){ next[result.key]=result.rows; if(result.ok) ok++; }
-    setData(next); setCoverage(Math.round(ok/results.length*100));
-    if(ok===0) setWarning("No executive data source is currently available to this active role.");
+
+    const next: ExecutiveData = {};
+    const failed: string[] = [];
+    let connected = 0;
+    entries.forEach((entry) => {
+      next[entry.key] = entry.rows;
+      if (entry.error) failed.push(entry.key);
+      else connected += 1;
+    });
+    setData(next);
+    setCoverage(Math.round((connected / Object.keys(SOURCES).length) * 100));
+    if (failed.length) setWarning("Some optional executive data sources are unavailable. Available authorized records are still displayed.");
     setLoading(false);
-  },[]);
+  }, []);
 
-  useEffect(()=>{ void load(); const channel=supabase.channel("executive-live").on("postgres_changes",{event:"*",schema:"public",table:"requests"},()=>void load()).on("postgres_changes",{event:"*",schema:"public",table:"notifications"},()=>void load()).subscribe(); return()=>{void supabase.removeChannel(channel)}; },[load]);
+  useEffect(() => {
+    void load();
+    const channel = supabase.channel("executive-command-live")
+      .on("postgres_changes", { event: "*", schema: "public", table: "requests" }, () => void load())
+      .on("postgres_changes", { event: "*", schema: "public", table: "notifications" }, () => void load())
+      .on("postgres_changes", { event: "*", schema: "public", table: "enterprise_audit_events" }, () => void load())
+      .subscribe();
+    return () => { void supabase.removeChannel(channel); };
+  }, [load]);
 
-  const metrics=useMemo(()=>{
-    const requests=data.requests??[]; const vouchers=data.vouchers??[]; const transactions=data.transactions??[];
-    const hr=data.hrAssignments??[]; const registry=data.registry??[]; const audit=data.audit??[]; const attendance=data.attendance??[]; const leave=data.leave??[];
-    const pending=requests.filter(r=>!/approved|completed|paid|rejected|cancelled|filed/i.test(text(r.status))).length;
-    const approved=requests.filter(r=>/approved|completed|paid|filed/i.test(text(r.status))).length;
-    const financePending=vouchers.filter(r=>!/paid|completed|cancelled|rejected/i.test(text(r.status))).length;
-    const hrPending=hr.filter(r=>!/approved|completed|closed/i.test(text(r.status))).length;
-    const registryOpen=registry.filter(r=>!/archived|closed|completed/i.test(text(r.status))).length;
-    const unread=(data.notifications??[]).filter(r=>!Boolean(r.is_read)).length;
-    const expenditure=transactions.reduce((s,r)=>s+numberOf(r.amount),0);
-    const present=attendance.filter(r=>!/absent/i.test(text(r.attendance_status))).length;
-    const attendanceRate=attendance.length?present/attendance.length*100:0;
-    const leaveToday=leave.filter(r=>{const now=new Date();const start=dateOf(r.start_date);const end=dateOf(r.end_date);return start&&end&&start<=now&&end>=now;}).length;
-    return {requests:requests.length,pending,approved,financePending,hrPending,registryOpen,audit:audit.length,unread,expenditure,attendanceRate,leaveToday,vouchers:vouchers.length};
-  },[data]);
+  const metrics = useMemo(() => {
+    const requests = data.requests ?? [];
+    const closed = requests.filter((row) => /completed|paid|approved|filed|closed/i.test(text(row.status))).length;
+    const pending = requests.filter((row) => !/completed|paid|approved|rejected|cancelled|deleted|filed|closed/i.test(text(row.status))).length;
+    const vouchers = data.vouchers ?? [];
+    const financePending = vouchers.filter((row) => !/paid|completed|cancelled|rejected/i.test(text(row.status))).length;
+    const hrOpen = (data.hrAssignments ?? []).filter((row) => !/completed|approved|closed/i.test(text(row.status))).length;
+    const registryOpen = (data.registry ?? []).filter((row) => !/archived|closed|completed/i.test(text(row.status))).length;
+    const totalTransactionValue = (data.transactions ?? []).reduce((sum, row) => sum + numberValue(row.amount || row.transaction_amount || row.credit || row.debit), 0);
+    const attendance = data.seminarAttendance ?? [];
+    const present = attendance.filter((row) => /present|late/i.test(text(row.status || row.attendance_status))).length;
+    const attendanceRate = attendance.length ? Math.round((present / attendance.length) * 100) : 0;
+    return { requestTotal: requests.length, requestClosed: closed, requestPending: pending, financePending, hrOpen, registryOpen, totalTransactionValue, attendanceRate, notificationsUnread: (data.notifications ?? []).filter((row) => !Boolean(row.is_read)).length };
+  }, [data]);
 
-  return {data,metrics,loading,coverage,warning,refresh:load};
+  return { data, loading, warning, coverage, activeRole, metrics, refresh: load };
 }
+
+export function normalizedRole(value: unknown) { return roleKey(value); }

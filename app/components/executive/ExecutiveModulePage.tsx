@@ -1,116 +1,338 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import {
-  Activity, AlertTriangle, BarChart3, BellRing, CalendarDays, CheckCircle2, ClipboardList,
-  Clock3, FileBarChart, Landmark, Printer, RefreshCw, Scale, ShieldAlert, ShieldCheck,
-  TrendingUp, UsersRound, WalletCards,
-} from "lucide-react";
-import { ExecButton, ExecEmpty, ExecHero, ExecLink, ExecSection, ExecStat, MiniBar } from "./ExecutiveUI";
-import { dateOf, dateTime, numberOf, text, useExecutiveData, type Row } from "./useExecutiveData";
+import { RefreshCw, Search, AlertTriangle, CheckCircle2, Clock3, Activity, Building2, Banknote, Users, Archive, ShieldCheck, BarChart3, CalendarDays, Bell, FileText, BriefcaseBusiness, ClipboardList } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import { dateText, numberValue, text, type GenericRow } from "@/app/components/enterprise/data";
+import { useExecutiveData } from "./useExecutiveData";
+import { ExecutiveActionButton, ExecutiveActionLink, ExecutiveBadge, ExecutiveEmpty, ExecutiveHero, ExecutiveLoading, ExecutivePanel, ExecutiveShell, ExecutiveStatCard, type ExecutiveTone } from "./ExecutiveUI";
 
-export type ExecutiveModule = "dashboard"|"requests"|"finance"|"hr"|"registry"|"audit"|"analytics"|"calendar"|"meetings"|"notifications"|"reports";
+export type ExecutiveModule = "overview" | "requests" | "finance" | "hr" | "registry" | "audit" | "analytics" | "calendar" | "meetings" | "notifications" | "reports";
 
-const configs: Record<ExecutiveModule,{eyebrow:string;title:string;description:string}> = {
-  dashboard:{eyebrow:"Executive Intelligence",title:"Executive Command Centre",description:"Live institutional oversight across Requests, Finance, Human Resources, Registry, Audit, attendance and enterprise alerts."},
-  requests:{eyebrow:"Workflow Oversight",title:"Executive Requests Intelligence",description:"Monitor volumes, pending decisions, approval stages, ageing requests and institutional processing pressure."},
-  finance:{eyebrow:"Authorized Executive View",title:"Executive Finance Intelligence",description:"High-level voucher and transaction oversight for authorized executive roles without replacing Finance operational controls."},
-  hr:{eyebrow:"People & Workforce",title:"Executive HR Intelligence",description:"Monitor HR workload, leave activity, seminar participation, departmental KPI records and workforce service delivery."},
-  registry:{eyebrow:"Records & Correspondence",title:"Executive Registry Intelligence",description:"Track correspondence, open registry work, movement status and records requiring executive attention."},
-  audit:{eyebrow:"Assurance & Governance",title:"Executive Audit Intelligence",description:"Review significant activity, risk signals, role switches and compliance evidence across the platform."},
-  analytics:{eyebrow:"Enterprise Performance",title:"Executive Analytics Centre",description:"Consolidated performance indicators, workload ratios and trend signals drawn from authorized enterprise data."},
-  calendar:{eyebrow:"Institutional Schedule",title:"Executive Calendar",description:"A consolidated view of leave periods, seminars, workflow deadlines and upcoming institutional activities."},
-  meetings:{eyebrow:"Governance & Follow-up",title:"Executive Meetings Centre",description:"Track scheduled governance activities, seminar sessions and action-oriented institutional events."},
-  notifications:{eyebrow:"Priority Communications",title:"Executive Notification Centre",description:"Review unread updates, priority workflow alerts and recent institutional notifications in one workspace."},
-  reports:{eyebrow:"Official Executive Output",title:"Executive Reports Centre",description:"Generate an executive summary from live authorized data and print it in a clean management-ready format."},
+type Row = GenericRow;
+
+type ModuleMeta = {
+  eyebrow: string;
+  title: string;
+  description: string;
+  icon: LucideIcon;
 };
 
-function statusTone(status:string){ if(/rejected|failed|overdue|critical/i.test(status)) return "rose" as const; if(/approved|completed|paid|closed|filed/i.test(status)) return "emerald" as const; if(/pending|review|waiting|open/i.test(status)) return "amber" as const; return "blue" as const; }
-function isToday(value:unknown){const d=dateOf(value);const n=new Date();return Boolean(d&&d.toDateString()===n.toDateString());}
-function recent(rows:Row[],count=8){return rows.slice().sort((a,b)=>(dateOf(b.created_at)?.getTime()??0)-(dateOf(a.created_at)?.getTime()??0)).slice(0,count);}
+const META: Record<ExecutiveModule, ModuleMeta> = {
+  overview: { eyebrow: "Executive Command", title: "Enterprise Command Centre", description: "A secure executive view of requests, Finance, HR, Registry, audit evidence, alerts and institutional performance.", icon: Building2 },
+  requests: { eyebrow: "Workflow Intelligence", title: "Executive Requests Intelligence", description: "Monitor request volume, approval queues, workflow stages, bottlenecks and recent institutional submissions.", icon: ClipboardList },
+  finance: { eyebrow: "Authorized Financial Intelligence", title: "Executive Finance Intelligence", description: "Review Finance workload and values permitted by your active role and existing Supabase security policies.", icon: Banknote },
+  hr: { eyebrow: "Workforce Intelligence", title: "Executive HR Intelligence", description: "Monitor HR workload, leave activity, seminar participation, capacity records and departmental KPIs.", icon: Users },
+  registry: { eyebrow: "Records Intelligence", title: "Executive Registry Intelligence", description: "Track correspondence, open records, archival activity and file movement across the institution.", icon: Archive },
+  audit: { eyebrow: "Assurance and Risk", title: "Executive Audit Intelligence", description: "Review who did what, under which active role, when it happened and the risk signals requiring oversight.", icon: ShieldCheck },
+  analytics: { eyebrow: "Institutional Performance", title: "Enterprise Analytics", description: "Compare completion, workload, attendance and data-source coverage across major ReqGen modules.", icon: BarChart3 },
+  calendar: { eyebrow: "Institutional Schedule", title: "Executive Calendar", description: "View leave, seminars, workflow deadlines and available institutional events in one executive schedule.", icon: CalendarDays },
+  meetings: { eyebrow: "Governance Activities", title: "Executive Meetings Centre", description: "Monitor seminar sessions, governance activities and action follow-up information available in ReqGen.", icon: BriefcaseBusiness },
+  notifications: { eyebrow: "Priority Communications", title: "Executive Notification Centre", description: "Review unread updates, priority workflow alerts and system notifications addressed to your account.", icon: Bell },
+  reports: { eyebrow: "Executive Reporting", title: "Executive Management Report", description: "Generate a structured institutional summary for printing or saving as PDF.", icon: FileText },
+};
 
-export default function ExecutiveModulePage({ module }: { module: ExecutiveModule }) {
-  const {data,metrics,loading,coverage,warning,refresh}=useExecutiveData();
-  const [query,setQuery]=useState("");
-  const config=configs[module];
-  const requestRows=data.requests??[];
-
-  const filteredRequests=useMemo(()=>requestRows.filter(r=>[r.request_no,r.title,r.status,r.current_stage].some(v=>text(v).toLowerCase().includes(query.toLowerCase()))),[requestRows,query]);
-
-  const print=()=>window.print();
-
-  return <div className="space-y-6">
-    <ExecHero eyebrow={config.eyebrow} title={config.title} description={config.description}>
-      <ExecButton onClick={()=>void refresh()} tone="cyan" disabled={loading}><RefreshCw className="h-4 w-4" />{loading?"Refreshing...":"Refresh Live Data"}</ExecButton>
-      {module==="reports" && <ExecButton onClick={print} tone="emerald"><Printer className="h-4 w-4" />Print Executive Report</ExecButton>}
-      {module!=="dashboard" && <ExecLink href="/executive" tone="slate">Command Centre</ExecLink>}
-    </ExecHero>
-
-    {warning && <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-bold text-amber-900">{warning}</div>}
-
-    {module==="dashboard" && <Dashboard data={data} metrics={metrics} coverage={coverage} />}
-    {module==="requests" && <Requests rows={filteredRequests} query={query} setQuery={setQuery} metrics={metrics} />}
-    {module==="finance" && <Finance data={data} metrics={metrics} />}
-    {module==="hr" && <HR data={data} metrics={metrics} />}
-    {module==="registry" && <Registry rows={data.registry??[]} />}
-    {module==="audit" && <Audit data={data} />}
-    {module==="analytics" && <Analytics data={data} metrics={metrics} coverage={coverage} />}
-    {module==="calendar" && <Calendar data={data} />}
-    {module==="meetings" && <Meetings data={data} />}
-    {module==="notifications" && <Notifications rows={data.notifications??[]} />}
-    {module==="reports" && <Reports data={data} metrics={metrics} coverage={coverage} />}
-  </div>;
+function statusTone(status: unknown): ExecutiveTone {
+  const value = text(status).toLowerCase();
+  if (/paid|completed|approved|present|active|closed|filed/.test(value)) return "emerald";
+  if (/rejected|failed|overdue|missing|critical|cancelled/.test(value)) return "rose";
+  if (/pending|review|submitted|processing|late|open/.test(value)) return "amber";
+  if (/archive|security|audit/.test(value)) return "violet";
+  return "blue";
 }
 
-function Dashboard({data,metrics,coverage}:{data:Record<string,Row[]>;metrics:any;coverage:number}){
-  const departments=[
-    ["Requests",metrics.pending,metrics.requests,"/executive/requests"],
-    ["Finance",metrics.financePending,metrics.vouchers,"/executive/finance"],
-    ["Human Resources",metrics.hrPending,(data.hrAssignments??[]).length,"/executive/hr"],
-    ["Registry",metrics.registryOpen,(data.registry??[]).length,"/executive/registry"],
-  ] as const;
-  const feed=recent([...(data.requests??[]).map(r=>({...r,_module:"Requests"})),...(data.audit??[]).map(r=>({...r,_module:"Audit"})),...(data.notifications??[]).map(r=>({...r,_module:"Notifications"}))],10);
+function currency(value: unknown) {
+  return `₦${Math.round(numberValue(value)).toLocaleString("en-NG")}`;
+}
+
+function rowTitle(row: Row) {
+  return text(row.title || row.subject || row.request_no || row.voucher_no || row.reference || row.name, "Untitled record");
+}
+
+function recordDate(row: Row) {
+  return dateText(row.created_at || row.updated_at || row.session_date || row.start_date || row.due_at || row.occurred_at);
+}
+
+function RecordList({ rows, emptyTitle, emptyDescription, limit = 40 }: { rows: Row[]; emptyTitle: string; emptyDescription: string; limit?: number }) {
+  if (!rows.length) return <ExecutiveEmpty title={emptyTitle} description={emptyDescription} />;
+  return (
+    <div className="space-y-3">
+      {rows.slice(0, limit).map((row, index) => (
+        <article key={text(row.id, `record-${index}`)} className="rounded-2xl border border-slate-200 bg-slate-50 p-4 transition hover:-translate-y-0.5 hover:bg-white hover:shadow-md">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <ExecutiveBadge tone={statusTone(row.status || row.current_stage)}>{text(row.status || row.current_stage, "Recorded")}</ExecutiveBadge>
+                {row.request_type ? <ExecutiveBadge tone="violet">{text(row.request_type)}</ExecutiveBadge> : null}
+              </div>
+              <h3 className="mt-3 break-words text-base font-black text-slate-950">{rowTitle(row)}</h3>
+              <p className="mt-2 break-words text-sm font-semibold leading-6 text-slate-600">{text(row.description || row.details || row.message || row.notes || row.current_stage, "No additional details supplied.")}</p>
+            </div>
+            <div className="shrink-0 text-left sm:text-right">
+              <p className="text-xs font-black uppercase tracking-[0.12em] text-slate-400">Recorded</p>
+              <p className="mt-1 text-sm font-bold text-slate-700">{recordDate(row)}</p>
+            </div>
+          </div>
+        </article>
+      ))}
+    </div>
+  );
+}
+
+export default function ExecutiveModulePage({ module }: { module: ExecutiveModule }) {
+  const meta = META[module];
+  const Icon = meta.icon;
+  const { data, loading, warning, coverage, activeRole, metrics, refresh } = useExecutiveData();
+  const [query, setQuery] = useState("");
+
+  const filteredRequests = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    const rows = data.requests ?? [];
+    if (!q) return rows;
+    return rows.filter((row) => `${rowTitle(row)} ${text(row.status)} ${text(row.current_stage)} ${text(row.request_type)}`.toLowerCase().includes(q));
+  }, [data.requests, query]);
+
+  return (
+    <ExecutiveShell>
+      <div className="mx-auto max-w-[1500px] space-y-6">
+        <ExecutiveHero
+          eyebrow={meta.eyebrow}
+          title={meta.title}
+          description={meta.description}
+          actions={
+            <>
+              <ExecutiveActionButton onClick={() => void refresh()} tone="cyan" disabled={loading}><RefreshCw className="h-4 w-4" />{loading ? "Refreshing…" : "Refresh"}</ExecutiveActionButton>
+              <ExecutiveActionLink href="/staff" tone="slate">Staff Workspace</ExecutiveActionLink>
+            </>
+          }
+        />
+
+        <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+          <ExecutiveBadge tone="blue">Active Role: {activeRole}</ExecutiveBadge>
+          <ExecutiveBadge tone={coverage >= 75 ? "emerald" : coverage >= 45 ? "amber" : "rose"}>Data Coverage: {coverage}%</ExecutiveBadge>
+          <span className="inline-flex items-center gap-2 text-xs font-bold text-slate-500"><Icon className="h-4 w-4 text-blue-700" />Secured executive workspace</span>
+        </div>
+
+        {warning ? <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-900">{warning}</div> : null}
+        {loading ? <ExecutiveLoading /> : <ModuleContent module={module} data={data} metrics={metrics} coverage={coverage} query={query} setQuery={setQuery} filteredRequests={filteredRequests} />}
+      </div>
+    </ExecutiveShell>
+  );
+}
+
+function ModuleContent({ module, data, metrics, coverage, query, setQuery, filteredRequests }: { module: ExecutiveModule; data: Record<string, Row[]>; metrics: ReturnType<typeof useExecutiveData>["metrics"]; coverage: number; query: string; setQuery: (value: string) => void; filteredRequests: Row[] }) {
+  switch (module) {
+    case "overview": return <Overview data={data} metrics={metrics} coverage={coverage} />;
+    case "requests": return <Requests rows={filteredRequests} metrics={metrics} query={query} setQuery={setQuery} />;
+    case "finance": return <Finance data={data} metrics={metrics} />;
+    case "hr": return <HR data={data} metrics={metrics} />;
+    case "registry": return <Registry data={data} metrics={metrics} />;
+    case "audit": return <Audit data={data} />;
+    case "analytics": return <Analytics metrics={metrics} coverage={coverage} />;
+    case "calendar": return <Calendar data={data} />;
+    case "meetings": return <Meetings data={data} />;
+    case "notifications": return <Notifications rows={data.notifications ?? []} />;
+    case "reports": return <Reports metrics={metrics} coverage={coverage} />;
+  }
+}
+
+function Overview({ data, metrics, coverage }: { data: Record<string, Row[]>; metrics: ReturnType<typeof useExecutiveData>["metrics"]; coverage: number }) {
+  const recent = [...(data.requests ?? []).slice(0, 5), ...(data.audit ?? []).slice(0, 5)].sort((a, b) => new Date(text(b.created_at || b.occurred_at, "1970-01-01")).getTime() - new Date(text(a.created_at || a.occurred_at, "1970-01-01")).getTime());
   return <>
     <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-      <ExecStat label="Total Requests" value={metrics.requests} note="Authorized records in scope" icon={ClipboardList} tone="blue" />
-      <ExecStat label="Pending Decisions" value={metrics.pending} note="Requests not yet closed" icon={Clock3} tone="amber" />
-      <ExecStat label="HR Queue" value={metrics.hrPending} note="Open HR assignments" icon={UsersRound} tone="violet" />
-      <ExecStat label="Registry Queue" value={metrics.registryOpen} note="Open correspondence" icon={FileBarChart} tone="cyan" />
-      <ExecStat label="Finance Pending" value={metrics.financePending} note="Vouchers awaiting completion" icon={WalletCards} tone="rose" />
-      <ExecStat label="Attendance" value={`${metrics.attendanceRate.toFixed(1)}%`} note="Captured seminar participation" icon={TrendingUp} tone="emerald" />
-      <ExecStat label="Leave Today" value={metrics.leaveToday} note="Recorded staff on leave" icon={CalendarDays} tone="amber" />
-      <ExecStat label="Audit Events" value={metrics.audit} note={`${coverage}% data-source coverage`} icon={ShieldCheck} tone="slate" />
+      <ExecutiveStatCard label="Total Requests" value={metrics.requestTotal} note="Visible institutional requests" icon={ClipboardList} tone="blue" />
+      <ExecutiveStatCard label="Pending Decisions" value={metrics.requestPending} note="Requests still in active workflow" icon={Clock3} tone="amber" />
+      <ExecutiveStatCard label="HR Open Work" value={metrics.hrOpen} note="Open HR assignments" icon={Users} tone="violet" />
+      <ExecutiveStatCard label="Unread Updates" value={metrics.notificationsUnread} note="Notifications requiring attention" icon={Bell} tone="rose" />
+      <ExecutiveStatCard label="Finance Pending" value={metrics.financePending} note="Uncompleted vouchers" icon={Banknote} tone="cyan" />
+      <ExecutiveStatCard label="Registry Open" value={metrics.registryOpen} note="Active correspondence records" icon={Archive} tone="slate" />
+      <ExecutiveStatCard label="Seminar Attendance" value={`${metrics.attendanceRate}%`} note="Available attendance evidence" icon={CheckCircle2} tone="emerald" />
+      <ExecutiveStatCard label="Data Coverage" value={`${coverage}%`} note="Connected authorized sources" icon={Activity} tone="blue" />
     </section>
-    <section className="grid gap-6 lg:grid-cols-2">
-      <ExecSection title="Directorate Operating Status" eyebrow="Live Workload">
-        <div className="grid gap-3">{departments.map(([name,pending,total,href])=><a key={name} href={href} className="rounded-2xl border border-slate-200 p-4 transition hover:border-cyan-300 hover:shadow-sm"><div className="flex items-center justify-between"><div><p className="font-black text-slate-950">{name}</p><p className="mt-1 text-xs font-semibold text-slate-500">{pending} pending from {total} records</p></div><span className={`rounded-full px-3 py-1 text-xs font-black ${pending>10?"bg-rose-100 text-rose-800":pending>0?"bg-amber-100 text-amber-800":"bg-emerald-100 text-emerald-800"}`}>{pending>10?"Pressure":pending>0?"Active":"Healthy"}</span></div></a>)}</div>
-      </ExecSection>
-      <ExecSection title="Executive Activity Feed" eyebrow="Latest Evidence">
-        <div className="space-y-3">{feed.length?feed.map((r,i)=><div key={`${text(r.id)}-${i}`} className="rounded-2xl bg-slate-50 p-4"><div className="flex justify-between gap-3"><p className="font-black text-slate-900">{text(r.title)||text(r.action)||text(r.request_no)||"Enterprise activity"}</p><span className="text-[10px] font-black uppercase text-blue-700">{text(r._module)}</span></div><p className="mt-1 text-xs font-semibold text-slate-500">{text(r.status)||text(r.message)||text(r.body)||text(r.details,"Recorded activity")}</p><p className="mt-2 text-[11px] font-bold text-slate-400">{dateTime(r.created_at)}</p></div>):<ExecEmpty title="No recent activity" description="New enterprise activity will appear here." />}</div>
-      </ExecSection>
+    <section className="grid gap-6 xl:grid-cols-[1.15fr_.85fr]">
+      <ExecutivePanel eyebrow="Live Enterprise Feed" title="Recent Institutional Activity" description="The latest request and audit activity available to your active role."><RecordList rows={recent} emptyTitle="No recent activity" emptyDescription="Recent authorized events will appear here." limit={12} /></ExecutivePanel>
+      <ExecutivePanel eyebrow="Directorate Status" title="Operational Health" description="Immediate workload position across major ReqGen directorates.">
+        <div className="space-y-3">
+          {[
+            ["Requests", metrics.requestPending, "Active workflow items", "blue"],
+            ["Finance", metrics.financePending, "Pending voucher work", "cyan"],
+            ["Human Resources", metrics.hrOpen, "Open assignments", "violet"],
+            ["Registry", metrics.registryOpen, "Open records", "slate"],
+          ].map(([label, value, note, tone]) => <div key={String(label)} className="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 p-4"><div><p className="font-black text-slate-950">{label}</p><p className="mt-1 text-xs font-semibold text-slate-500">{note}</p></div><ExecutiveBadge tone={tone as ExecutiveTone}>{String(value)}</ExecutiveBadge></div>)}
+        </div>
+      </ExecutivePanel>
     </section>
   </>;
 }
 
-function Requests({rows,query,setQuery,metrics}:{rows:Row[];query:string;setQuery:(v:string)=>void;metrics:any}){
-  const stageCounts=Object.entries(rows.reduce<Record<string,number>>((a,r)=>{const k=text(r.current_stage,"Unassigned");a[k]=(a[k]??0)+1;return a;},{})).sort((a,b)=>b[1]-a[1]).slice(0,6);
-  return <><section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"><ExecStat label="Requests" value={metrics.requests} note="Total authorized records" icon={ClipboardList}/><ExecStat label="Pending" value={metrics.pending} note="Awaiting workflow completion" icon={Clock3} tone="amber"/><ExecStat label="Approved" value={metrics.approved} note="Approved or completed" icon={CheckCircle2} tone="emerald"/><ExecStat label="Today" value={rows.filter(r=>isToday(r.created_at)).length} note="Submitted today" icon={Activity} tone="cyan"/></section><section className="grid gap-6 lg:grid-cols-[1fr_1.6fr]"><ExecSection title="Stage Distribution" eyebrow="Bottleneck Monitor"><div className="space-y-4">{stageCounts.map(([name,count])=><MiniBar key={name} label={`${name} (${count})`} value={rows.length?count/rows.length*100:0}/>)}</div></ExecSection><ExecSection title="Request Register" eyebrow="Executive Queue" action={<input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search requests..." className="min-h-11 rounded-xl border border-slate-300 px-4 text-sm font-semibold"/>}><div className="space-y-3">{rows.slice(0,30).map(r=><a href={`/requests/${text(r.id)}`} key={text(r.id)} className="block rounded-2xl border border-slate-200 p-4 hover:border-blue-300"><div className="flex flex-col gap-2 sm:flex-row sm:justify-between"><div><p className="font-black text-slate-950">{text(r.request_no,"Request")} · {text(r.title,"Untitled")}</p><p className="mt-1 text-xs font-semibold text-slate-500">{text(r.current_stage,"Unassigned")} · {dateTime(r.created_at)}</p></div><span className={`h-fit rounded-full px-3 py-1 text-xs font-black ${statusTone(text(r.status))==="emerald"?"bg-emerald-100 text-emerald-800":statusTone(text(r.status))==="rose"?"bg-rose-100 text-rose-800":"bg-amber-100 text-amber-800"}`}>{text(r.status,"Pending")}</span></div></a>)}{!rows.length&&<ExecEmpty title="No request found" description="No request matches the current search and active-role scope."/>}</div></ExecSection></section></>;
+function Requests({ rows, metrics, query, setQuery }: { rows: Row[]; metrics: ReturnType<typeof useExecutiveData>["metrics"]; query: string; setQuery: (value: string) => void }) {
+  const approvedRate = metrics.requestTotal ? Math.round((metrics.requestClosed / metrics.requestTotal) * 100) : 0;
+  return <>
+    <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <ExecutiveStatCard label="Requests" value={metrics.requestTotal} icon={ClipboardList} tone="blue" />
+      <ExecutiveStatCard label="Pending" value={metrics.requestPending} icon={Clock3} tone="amber" />
+      <ExecutiveStatCard label="Closed" value={metrics.requestClosed} icon={CheckCircle2} tone="emerald" />
+      <ExecutiveStatCard label="Completion Rate" value={`${approvedRate}%`} icon={BarChart3} tone="cyan" />
+    </section>
+    <ExecutivePanel title="Request Register" eyebrow="Workflow Queue" description="Search and review the executive request register permitted by RLS." action={<div className="relative w-full sm:w-80"><Search className="absolute left-3 top-3.5 h-4 w-4 text-slate-400" /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search request, stage or status…" className="w-full rounded-xl border border-slate-300 bg-white py-3 pl-10 pr-3 text-sm font-semibold outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100" /></div>}><RecordList rows={rows} emptyTitle="No request found" emptyDescription="No request matches the current search or active-role access." /></ExecutivePanel>
+  </>;
 }
 
-function Finance({data,metrics}:{data:Record<string,Row[]>;metrics:any}){const vouchers=data.vouchers??[];const tx=data.transactions??[];return <><section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"><ExecStat label="Vouchers" value={vouchers.length} note="Authorized voucher records" icon={WalletCards} tone="blue"/><ExecStat label="Pending Vouchers" value={metrics.financePending} note="Not yet paid or closed" icon={Clock3} tone="amber"/><ExecStat label="Transactions" value={tx.length} note="Visible transaction records" icon={Landmark} tone="cyan"/><ExecStat label="Recorded Value" value={`₦${Math.round(metrics.expenditure).toLocaleString()}`} note="Aggregate visible transaction amount" icon={TrendingUp} tone="emerald"/></section><ExecSection title="Recent Finance Activity" eyebrow="Executive Oversight"><div className="grid gap-3 lg:grid-cols-2">{recent([...vouchers.map(r=>({...r,_type:"Voucher"})),...tx.map(r=>({...r,_type:"Transaction"}))],20).map((r,i)=><div key={`${text(r.id)}-${i}`} className="rounded-2xl border border-slate-200 p-4"><div className="flex justify-between gap-3"><p className="font-black text-slate-950">{text(r.voucher_no)||text(r.reference)||text(r.transaction_reference)||"Finance record"}</p><span className="text-xs font-black text-blue-700">{text(r._type)}</span></div><p className="mt-2 text-sm font-semibold text-slate-600">{text(r.status,"Recorded")} · ₦{Math.round(numberOf(r.amount||r.total_amount)).toLocaleString()}</p><p className="mt-2 text-xs font-bold text-slate-400">{dateTime(r.created_at)}</p></div>)}{!vouchers.length&&!tx.length&&<ExecEmpty title="Finance summary unavailable" description="The active role or RLS policy has not exposed executive finance records."/>}</div></ExecSection></>}
+function Finance({ data, metrics }: { data: Record<string, Row[]>; metrics: ReturnType<typeof useExecutiveData>["metrics"] }) {
+  const vouchers = data.vouchers ?? [];
+  const transactions = data.transactions ?? [];
+  return <>
+    <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <ExecutiveStatCard label="Vouchers" value={vouchers.length} icon={FileText} tone="blue" />
+      <ExecutiveStatCard label="Pending Vouchers" value={metrics.financePending} icon={Clock3} tone="amber" />
+      <ExecutiveStatCard label="Transactions" value={transactions.length} icon={Activity} tone="cyan" />
+      <ExecutiveStatCard label="Recorded Value" value={currency(metrics.totalTransactionValue)} icon={Banknote} tone="emerald" />
+    </section>
+    <section className="grid gap-6 xl:grid-cols-2">
+      <ExecutivePanel title="Recent Vouchers" eyebrow="Finance Workload" description="Voucher records available to your active role."><RecordList rows={vouchers} emptyTitle="No voucher records" emptyDescription="No authorized voucher record is currently available." limit={20} /></ExecutivePanel>
+      <ExecutivePanel title="Recent Transactions" eyebrow="Financial Activity" description="Transaction records available through Finance RLS."><RecordList rows={transactions} emptyTitle="No transaction records" emptyDescription="No authorized transaction record is currently available." limit={20} /></ExecutivePanel>
+    </section>
+  </>;
+}
 
-function HR({data,metrics}:{data:Record<string,Row[]>;metrics:any}){const assignments=data.hrAssignments??[];const leave=data.leave??[];const seminars=data.seminars??[];const kpis=data.kpis??[];return <><section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"><ExecStat label="HR Assignments" value={assignments.length} note={`${metrics.hrPending} currently open`} icon={UsersRound} tone="violet"/><ExecStat label="Leave Records" value={leave.length} note={`${metrics.leaveToday} active today`} icon={CalendarDays} tone="amber"/><ExecStat label="Seminar Sessions" value={seminars.length} note="Captured weekly sessions" icon={Activity} tone="cyan"/><ExecStat label="Department KPIs" value={kpis.length} note="Performance records" icon={BarChart3} tone="emerald"/></section><section className="grid gap-6 lg:grid-cols-2"><ExecSection title="HR Workload" eyebrow="Assignments"><div className="space-y-3">{recent(assignments,12).map(r=><div key={text(r.id)} className="rounded-2xl border border-slate-200 p-4"><p className="font-black text-slate-950">{text(r.section_key)||text(r.assignment_type)||"HR assignment"}</p><p className="mt-1 text-xs font-semibold text-slate-500">{text(r.status,"Assigned")} · {dateTime(r.created_at)}</p></div>)}{!assignments.length&&<ExecEmpty title="No HR assignment data" description="No assignment records are visible to the active role."/>}</div></ExecSection><ExecSection title="Workforce Signals" eyebrow="Participation & Performance"><div className="space-y-5"><MiniBar label="Seminar attendance" value={metrics.attendanceRate}/><MiniBar label="Open HR workload" value={assignments.length?metrics.hrPending/assignments.length*100:0}/><MiniBar label="KPI portfolio coverage" value={Math.min(100,kpis.length*5)}/></div></ExecSection></section></>}
+function HR({ data, metrics }: { data: Record<string, Row[]>; metrics: ReturnType<typeof useExecutiveData>["metrics"] }) {
+  const leave = data.leave ?? [];
+  const seminars = data.seminars ?? [];
+  const kpis = data.kpis ?? [];
+  return <>
+    <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <ExecutiveStatCard label="Open HR Work" value={metrics.hrOpen} icon={Users} tone="violet" />
+      <ExecutiveStatCard label="Leave Records" value={leave.length} icon={CalendarDays} tone="amber" />
+      <ExecutiveStatCard label="Seminar Sessions" value={seminars.length} icon={BriefcaseBusiness} tone="cyan" />
+      <ExecutiveStatCard label="Department KPIs" value={kpis.length} icon={BarChart3} tone="emerald" />
+    </section>
+    <section className="grid gap-6 xl:grid-cols-2">
+      <ExecutivePanel title="HR Workload" eyebrow="Assignments" description="Recent HR assignments permitted to the executive role."><RecordList rows={data.hrAssignments ?? []} emptyTitle="No HR assignment" emptyDescription="No authorized HR assignment is currently available." limit={20} /></ExecutivePanel>
+      <ExecutivePanel title="Leave and Seminar Signals" eyebrow="Workforce Activity" description="Recent leave and seminar records."><RecordList rows={[...leave.slice(0, 10), ...seminars.slice(0, 10)]} emptyTitle="No workforce activity" emptyDescription="No leave or seminar record is available." limit={20} /></ExecutivePanel>
+    </section>
+  </>;
+}
 
-function Registry({rows}:{rows:Row[]}){const open=rows.filter(r=>!/archived|closed|completed/i.test(text(r.status))).length;return <><section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"><ExecStat label="Correspondence" value={rows.length} note="Visible Registry records" icon={FileBarChart} tone="cyan"/><ExecStat label="Open" value={open} note="Awaiting closure or archive" icon={Clock3} tone="amber"/><ExecStat label="Incoming" value={rows.filter(r=>/incoming/i.test(text(r.direction)||text(r.correspondence_type))).length} note="Incoming records" icon={Activity} tone="blue"/><ExecStat label="Archived" value={rows.filter(r=>/archived/i.test(text(r.status))).length} note="Archived correspondence" icon={CheckCircle2} tone="emerald"/></section><ExecSection title="Registry Movement Register" eyebrow="Correspondence Intelligence"><div className="grid gap-3 lg:grid-cols-2">{recent(rows,24).map(r=><div key={text(r.id)} className="rounded-2xl border border-slate-200 p-4"><p className="font-black text-slate-950">{text(r.reference_no)||text(r.subject)||"Registry record"}</p><p className="mt-1 text-sm font-semibold text-slate-600">{text(r.direction)||text(r.correspondence_type)||"Correspondence"} · {text(r.status,"Open")}</p><p className="mt-2 text-xs font-bold text-slate-400">{dateTime(r.created_at)}</p></div>)}{!rows.length&&<ExecEmpty title="No Registry records" description="No Registry correspondence is visible to this active role."/>}</div></ExecSection></>}
+function Registry({ data, metrics }: { data: Record<string, Row[]>; metrics: ReturnType<typeof useExecutiveData>["metrics"] }) {
+  const registry = data.registry ?? [];
+  const movements = data.movements ?? [];
+  const archived = registry.filter((row) => /archived/i.test(text(row.status))).length;
+  return <>
+    <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <ExecutiveStatCard label="Correspondence" value={registry.length} icon={Archive} tone="blue" />
+      <ExecutiveStatCard label="Open Records" value={metrics.registryOpen} icon={Clock3} tone="amber" />
+      <ExecutiveStatCard label="Archived" value={archived} icon={CheckCircle2} tone="violet" />
+      <ExecutiveStatCard label="File Movements" value={movements.length} icon={Activity} tone="cyan" />
+    </section>
+    <section className="grid gap-6 xl:grid-cols-2">
+      <ExecutivePanel title="Correspondence Register" eyebrow="Registry Operations" description="Incoming, outgoing and archived correspondence."><RecordList rows={registry} emptyTitle="No correspondence" emptyDescription="No Registry correspondence is available to this active role." limit={25} /></ExecutivePanel>
+      <ExecutivePanel title="Recent File Movement" eyebrow="Custody Evidence" description="File movement records visible through Registry security."><RecordList rows={movements} emptyTitle="No file movement" emptyDescription="No authorized movement record is available." limit={25} /></ExecutivePanel>
+    </section>
+  </>;
+}
 
-function Audit({data}:{data:Record<string,Row[]>}){const rows=[...(data.audit??[]),...(data.roleSwitches??[]).map(r=>({...r,module:"Security",action:text(r.action,"Active role switched")}))];const risky=rows.filter(r=>/delete|reject|fail|unauthor|suspend|critical/i.test([r.action,r.details,r.status].map(text).join(" "))).length;return <><section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"><ExecStat label="Audit Evidence" value={rows.length} note="Consolidated visible events" icon={ShieldCheck} tone="slate"/><ExecStat label="Today" value={rows.filter(r=>isToday(r.created_at)).length} note="Recorded today" icon={Activity} tone="cyan"/><ExecStat label="Risk Signals" value={risky} note="Events requiring review" icon={ShieldAlert} tone="rose"/><ExecStat label="Role Switches" value={(data.roleSwitches??[]).length} note="Working-context changes" icon={UsersRound} tone="violet"/></section><ExecSection title="Executive Audit Timeline" eyebrow="Who Did What"><div className="space-y-3">{recent(rows,40).map((r,i)=><div key={`${text(r.id)}-${i}`} className="rounded-2xl border border-slate-200 p-4"><div className="flex flex-col gap-2 sm:flex-row sm:justify-between"><div><p className="font-black text-slate-950">{text(r.action)||text(r.event_type)||"Recorded action"}</p><p className="mt-1 text-sm font-semibold text-slate-600">{text(r.module)||text(r.source,"Enterprise")} · {text(r.actor_name)||text(r.user_id)||text(r.actor,"System user")}</p></div><span className={`h-fit rounded-full px-3 py-1 text-xs font-black ${/delete|reject|fail|unauthor|critical/i.test(text(r.action)+text(r.details))?"bg-rose-100 text-rose-800":"bg-blue-100 text-blue-800"}`}>{text(r.active_role)||text(r.role_name,"Audited")}</span></div><p className="mt-2 text-xs font-semibold text-slate-500">{text(r.details)||text(r.description)||text(r.new_value,"No additional narrative")}</p><p className="mt-2 text-[11px] font-bold text-slate-400">{dateTime(r.created_at)}</p></div>)}{!rows.length&&<ExecEmpty title="No audit evidence" description="No audit event is visible to this active role."/>}</div></ExecSection></>}
+function Audit({ data }: { data: Record<string, Row[]> }) {
+  const rows: Row[] = [
+    ...(data.audit ?? []).map((row): Row => ({ ...row, module: text(row.module, "Enterprise Audit"), action: text(row.action, "Activity recorded"), details: text(row.details || row.description || row.message || row.metadata, "No additional evidence supplied.") })),
+    ...(data.roleSwitches ?? []).map((row): Row => ({ ...row, module: "Security", action: text(row.action, `Working role changed to ${text(row.new_role_key || row.active_role_key || row.role_key, "another role")}`), details: text(row.details || row.reason || row.source, "Active-role switch recorded.") })),
+  ].sort((a, b) => new Date(text(b.created_at || b.occurred_at, "1970-01-01")).getTime() - new Date(text(a.created_at || a.occurred_at, "1970-01-01")).getTime());
+  const today = new Date().toISOString().slice(0, 10);
+  const todayCount = rows.filter((row) => text(row.created_at || row.occurred_at).startsWith(today)).length;
+  const critical = rows.filter((row) => /delete|revoke|failed|denied|critical|security|role/i.test(`${text(row.action)} ${text(row.details)}`)).length;
+  const actors = new Set(rows.map((row) => text(row.actor_name || row.user_name || row.user_id || row.actor_id)).filter(Boolean)).size;
+  return <>
+    <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <ExecutiveStatCard label="Audit Events" value={rows.length} icon={ShieldCheck} tone="blue" />
+      <ExecutiveStatCard label="Recorded Today" value={todayCount} icon={Clock3} tone="cyan" />
+      <ExecutiveStatCard label="Risk Signals" value={critical} icon={AlertTriangle} tone="rose" />
+      <ExecutiveStatCard label="Distinct Actors" value={actors} icon={Users} tone="violet" />
+    </section>
+    <ExecutivePanel title="Enterprise Evidence Timeline" eyebrow="Who Did What" description="Consolidated audit and active-role evidence available to the executive role."><RecordList rows={rows} emptyTitle="No audit evidence" emptyDescription="No authorized audit evidence is currently available." limit={60} /></ExecutivePanel>
+  </>;
+}
 
-function Analytics({data,metrics,coverage}:{data:Record<string,Row[]>;metrics:any;coverage:number}){const completion=metrics.requests?metrics.approved/metrics.requests*100:0;const financeCompletion=metrics.vouchers?(metrics.vouchers-metrics.financePending)/metrics.vouchers*100:0;const hrTotal=(data.hrAssignments??[]).length;const hrCompletion=hrTotal?(hrTotal-metrics.hrPending)/hrTotal*100:0;return <><section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"><ExecStat label="Request Completion" value={`${completion.toFixed(1)}%`} note="Approved and closed requests" icon={TrendingUp} tone="emerald"/><ExecStat label="Finance Completion" value={`${financeCompletion.toFixed(1)}%`} note="Completed voucher portfolio" icon={Landmark} tone="blue"/><ExecStat label="HR Completion" value={`${hrCompletion.toFixed(1)}%`} note="Completed HR workload" icon={UsersRound} tone="violet"/><ExecStat label="Data Coverage" value={`${coverage}%`} note="Connected executive sources" icon={BarChart3} tone="cyan"/></section><ExecSection title="Enterprise Performance Portfolio" eyebrow="Normalized Indicators"><div className="grid gap-6 lg:grid-cols-2"><div className="space-y-5"><MiniBar label="Request completion" value={completion}/><MiniBar label="Finance completion" value={financeCompletion}/><MiniBar label="HR completion" value={hrCompletion}/><MiniBar label="Attendance participation" value={metrics.attendanceRate}/></div><div className="rounded-2xl bg-slate-950 p-6 text-white"><p className="text-xs font-black uppercase tracking-[0.2em] text-cyan-300">Executive Interpretation</p><h3 className="mt-3 text-2xl font-black">{metrics.pending>20?"Workflow pressure requires intervention":"Institutional workflow is within manageable range"}</h3><p className="mt-3 text-sm font-semibold leading-7 text-slate-300">There are {metrics.pending} open requests, {metrics.financePending} pending vouchers and {metrics.hrPending} open HR assignments within the authorized data scope.</p></div></div></ExecSection></>}
+function Analytics({ metrics, coverage }: { metrics: ReturnType<typeof useExecutiveData>["metrics"]; coverage: number }) {
+  const completion = metrics.requestTotal ? Math.round((metrics.requestClosed / metrics.requestTotal) * 100) : 0;
+  const items = [
+    ["Request Completion", completion, "emerald"],
+    ["Seminar Attendance", metrics.attendanceRate, "cyan"],
+    ["Data Coverage", coverage, "blue"],
+    ["Pending Load", metrics.requestTotal ? Math.round((metrics.requestPending / metrics.requestTotal) * 100) : 0, "amber"],
+  ] as const;
+  return <>
+    <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{items.map(([label, value, tone]) => <ExecutiveStatCard key={label} label={label} value={`${value}%`} icon={BarChart3} tone={tone} />)}</section>
+    <ExecutivePanel title="Institutional Performance Interpretation" eyebrow="Executive Analysis" description="A concise operational interpretation of current ReqGen indicators.">
+      <div className="grid gap-4 md:grid-cols-2">
+        {items.map(([label, value, tone]) => <article key={label} className="rounded-2xl border border-slate-200 bg-slate-50 p-5"><div className="flex items-center justify-between"><p className="font-black text-slate-950">{label}</p><ExecutiveBadge tone={tone}>{value}%</ExecutiveBadge></div><div className="mt-4 h-3 overflow-hidden rounded-full bg-slate-200"><div className="h-full rounded-full bg-gradient-to-r from-blue-700 to-cyan-500" style={{ width: `${Math.max(0, Math.min(100, value))}%` }} /></div></article>)}
+      </div>
+    </ExecutivePanel>
+  </>;
+}
 
-function Calendar({data}:{data:Record<string,Row[]>}){const events=[...(data.leave??[]).map(r=>({...r,_kind:"Leave",_date:r.start_date,_title:text(r.leave_type,"Staff leave")})),...(data.seminars??[]).map(r=>({...r,_kind:"Seminar",_date:r.session_date||r.start_date,_title:text(r.topic,"Weekly Seminar")})),...(data.workflow??[]).map(r=>({...r,_kind:"Deadline",_date:r.due_at||r.deadline,_title:text(r.stage,"Workflow deadline")}))].filter(r=>dateOf(r._date)).sort((a,b)=>(dateOf(a._date)?.getTime()??0)-(dateOf(b._date)?.getTime()??0));return <><section className="grid gap-4 sm:grid-cols-3"><ExecStat label="Calendar Events" value={events.length} note="Consolidated institutional events" icon={CalendarDays} tone="blue"/><ExecStat label="Upcoming" value={events.filter(r=>(dateOf(r._date)?.getTime()??0)>=Date.now()).length} note="Future events" icon={Clock3} tone="amber"/><ExecStat label="Today" value={events.filter(r=>isToday(r._date)).length} note="Events occurring today" icon={Activity} tone="emerald"/></section><ExecSection title="Consolidated Executive Calendar" eyebrow="Leave, Seminar & Workflow"><div className="grid gap-3 md:grid-cols-2">{events.slice(0,40).map((r,i)=><div key={`${text(r.id)}-${i}`} className="rounded-2xl border border-slate-200 p-4"><div className="flex justify-between gap-3"><p className="font-black text-slate-950">{text(r._title)}</p><span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-black text-blue-800">{text(r._kind)}</span></div><p className="mt-2 text-sm font-semibold text-slate-600">{dateTime(r._date)}</p></div>)}{!events.length&&<ExecEmpty title="No calendar events" description="Leave, seminar and workflow deadlines will appear here."/>}</div></ExecSection></>}
+function Calendar({ data }: { data: Record<string, Row[]> }) {
+  const rows: Row[] = [
+    ...(data.leave ?? []).map((row): Row => ({ ...row, title: text(row.leave_type, "Staff Leave"), status: text(row.status, "Leave"), created_at: row.start_date || row.created_at })),
+    ...(data.seminars ?? []).map((row): Row => ({ ...row, title: text(row.title, "Wednesday Seminar"), status: text(row.status, "Seminar"), created_at: row.session_date || row.created_at })),
+    ...(data.workflowSla ?? []).map((row): Row => ({ ...row, title: text(row.title || row.request_no, "Workflow Deadline"), status: text(row.status, "Deadline"), created_at: row.due_at || row.created_at })),
+  ].sort((a, b) => new Date(text(a.created_at, "2099-01-01")).getTime() - new Date(text(b.created_at, "2099-01-01")).getTime());
+  const today = new Date().toISOString().slice(0, 10);
+  return <>
+    <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <ExecutiveStatCard label="Calendar Items" value={rows.length} icon={CalendarDays} tone="blue" />
+      <ExecutiveStatCard label="Today" value={rows.filter((row) => text(row.created_at).startsWith(today)).length} icon={Clock3} tone="cyan" />
+      <ExecutiveStatCard label="Leave Events" value={(data.leave ?? []).length} icon={Users} tone="amber" />
+      <ExecutiveStatCard label="Workflow Deadlines" value={(data.workflowSla ?? []).length} icon={AlertTriangle} tone="rose" />
+    </section>
+    <ExecutivePanel title="Institutional Schedule" eyebrow="Executive Calendar" description="Leave, seminars and workflow deadlines available in ReqGen."><RecordList rows={rows} emptyTitle="No calendar records" emptyDescription="No authorized calendar record is currently available." limit={60} /></ExecutivePanel>
+  </>;
+}
 
-function Meetings({data}:{data:Record<string,Row[]>}){const seminars=data.seminars??[];const upcoming=seminars.filter(r=>(dateOf(r.session_date||r.start_date)?.getTime()??0)>=Date.now());return <><section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"><ExecStat label="Meeting Records" value={seminars.length} note="Seminar and governance sessions" icon={Scale} tone="violet"/><ExecStat label="Upcoming" value={upcoming.length} note="Scheduled future sessions" icon={CalendarDays} tone="cyan"/><ExecStat label="Completed" value={seminars.filter(r=>/closed|completed|verified/i.test(text(r.status))).length} note="Completed sessions" icon={CheckCircle2} tone="emerald"/><ExecStat label="Action Required" value={seminars.filter(r=>/draft|open|pending/i.test(text(r.status))).length} note="Sessions requiring follow-up" icon={AlertTriangle} tone="amber"/></section><ExecSection title="Governance Session Register" eyebrow="Agenda & Follow-up"><div className="grid gap-3 lg:grid-cols-2">{recent(seminars,30).map(r=><div key={text(r.id)} className="rounded-2xl border border-slate-200 p-4"><p className="font-black text-slate-950">{text(r.topic,"Wednesday Weekly Seminar")}</p><p className="mt-1 text-sm font-semibold text-slate-600">{text(r.facilitator,"Facilitator not recorded")} · {text(r.venue,"Venue not recorded")}</p><p className="mt-2 text-xs font-bold text-slate-400">{dateTime(r.session_date||r.start_date)} · {text(r.status,"Scheduled")}</p></div>)}{!seminars.length&&<ExecEmpty title="No meeting record" description="Governance meetings and seminar sessions will appear here."/>}</div></ExecSection></>}
+function Meetings({ data }: { data: Record<string, Row[]> }) {
+  const seminars = data.seminars ?? [];
+  const completed = seminars.filter((row) => /completed|held|closed/i.test(text(row.status))).length;
+  return <>
+    <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <ExecutiveStatCard label="Governance Activities" value={seminars.length} icon={BriefcaseBusiness} tone="blue" />
+      <ExecutiveStatCard label="Completed" value={completed} icon={CheckCircle2} tone="emerald" />
+      <ExecutiveStatCard label="Upcoming" value={Math.max(0, seminars.length - completed)} icon={CalendarDays} tone="cyan" />
+      <ExecutiveStatCard label="Follow-up" value={seminars.filter((row) => /follow|action|pending/i.test(text(row.status || row.notes))).length} icon={AlertTriangle} tone="amber" />
+    </section>
+    <ExecutivePanel title="Meetings and Seminar Register" eyebrow="Governance Schedule" description="Available governance and Wednesday Seminar sessions."><RecordList rows={seminars} emptyTitle="No governance activity" emptyDescription="No meeting or seminar record is currently available." limit={50} /></ExecutivePanel>
+  </>;
+}
 
-function Notifications({rows}:{rows:Row[]}){const unread=rows.filter(r=>!Boolean(r.is_read));return <><section className="grid gap-4 sm:grid-cols-3"><ExecStat label="Notifications" value={rows.length} note="Recent authorized notifications" icon={BellRing} tone="blue"/><ExecStat label="Unread" value={unread.length} note="Awaiting attention" icon={AlertTriangle} tone="rose"/><ExecStat label="Today" value={rows.filter(r=>isToday(r.created_at)).length} note="Received today" icon={Activity} tone="cyan"/></section><ExecSection title="Executive Notification Inbox" eyebrow="Priority Updates"><div className="space-y-3">{recent(rows,50).map(r=><a key={text(r.id)} href={text(r.link,"/executive")} className={`block rounded-2xl border p-4 ${Boolean(r.is_read)?"border-slate-200 bg-white":"border-blue-200 bg-blue-50"}`}><div className="flex justify-between gap-3"><p className="font-black text-slate-950">{text(r.title,"Enterprise update")}</p><span className={`rounded-full px-3 py-1 text-xs font-black ${Boolean(r.is_read)?"bg-slate-100 text-slate-700":"bg-blue-700 text-white"}`}>{Boolean(r.is_read)?"Read":"Unread"}</span></div><p className="mt-2 text-sm font-semibold text-slate-600">{text(r.body)||text(r.message,"Open the related record for details.")}</p><p className="mt-2 text-xs font-bold text-slate-400">{dateTime(r.created_at)}</p></a>)}{!rows.length&&<ExecEmpty title="No notification" description="Executive notifications will appear here."/>}</div></ExecSection></>}
+function Notifications({ rows }: { rows: Row[] }) {
+  const unread = rows.filter((row) => !Boolean(row.is_read));
+  const today = new Date().toISOString().slice(0, 10);
+  return <>
+    <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <ExecutiveStatCard label="Notifications" value={rows.length} icon={Bell} tone="blue" />
+      <ExecutiveStatCard label="Unread" value={unread.length} icon={AlertTriangle} tone="rose" />
+      <ExecutiveStatCard label="Received Today" value={rows.filter((row) => text(row.created_at).startsWith(today)).length} icon={Clock3} tone="cyan" />
+      <ExecutiveStatCard label="Read" value={rows.length - unread.length} icon={CheckCircle2} tone="emerald" />
+    </section>
+    <ExecutivePanel title="Priority Updates" eyebrow="Executive Inbox" description="Notifications and workflow messages addressed to your authenticated account."><RecordList rows={rows} emptyTitle="No notification" emptyDescription="No executive notification is currently available." limit={60} /></ExecutivePanel>
+  </>;
+}
 
-function Reports({data,metrics,coverage}:{data:Record<string,Row[]>;metrics:any;coverage:number}){return <div className="print:p-0"><section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4 print:grid-cols-4"><ExecStat label="Requests" value={metrics.requests} note={`${metrics.pending} pending`} icon={ClipboardList}/><ExecStat label="Vouchers" value={metrics.vouchers} note={`${metrics.financePending} pending`} icon={WalletCards} tone="amber"/><ExecStat label="HR Assignments" value={(data.hrAssignments??[]).length} note={`${metrics.hrPending} pending`} icon={UsersRound} tone="violet"/><ExecStat label="Coverage" value={`${coverage}%`} note="Executive data sources" icon={BarChart3} tone="cyan"/></section><ExecSection title="Executive Management Summary" eyebrow="Official Report"><div className="space-y-5 text-sm font-semibold leading-7 text-slate-700"><p>ReqGen currently exposes <strong>{metrics.requests}</strong> request records to this executive role. <strong>{metrics.pending}</strong> remain open, while <strong>{metrics.approved}</strong> are approved, completed, paid or filed.</p><p>The authorized finance scope contains <strong>{metrics.vouchers}</strong> payment vouchers and <strong>{(data.transactions??[]).length}</strong> transaction records. <strong>{metrics.financePending}</strong> vouchers remain pending.</p><p>Human Resources currently shows <strong>{(data.hrAssignments??[]).length}</strong> assignments, with <strong>{metrics.hrPending}</strong> open. Registry has <strong>{metrics.registryOpen}</strong> open correspondence records. Captured seminar attendance stands at <strong>{metrics.attendanceRate.toFixed(1)}%</strong>.</p><div className="grid gap-4 border-t border-slate-200 pt-6 sm:grid-cols-3"><div><p className="text-xs font-black uppercase text-slate-400">Prepared By</p><div className="mt-8 border-t border-slate-400 pt-2">Executive User</div></div><div><p className="text-xs font-black uppercase text-slate-400">Reviewed By</p><div className="mt-8 border-t border-slate-400 pt-2">Authorized Reviewer</div></div><div><p className="text-xs font-black uppercase text-slate-400">Date</p><div className="mt-8 border-t border-slate-400 pt-2">{new Date().toLocaleString("en-NG",{dateStyle:"long",timeStyle:"short",hour12:true})}</div></div></div></div></ExecSection></div>}
+function Reports({ metrics, coverage }: { metrics: ReturnType<typeof useExecutiveData>["metrics"]; coverage: number }) {
+  return <>
+    <div className="no-print flex flex-wrap gap-3"><ExecutiveActionButton onClick={() => window.print()} tone="emerald"><FileText className="h-4 w-4" />Print / Save PDF</ExecutiveActionButton></div>
+    <section className="executive-print-sheet rounded-[1.75rem] border border-slate-300 bg-white p-6 shadow-sm sm:p-8">
+      <div className="border-b-2 border-blue-700 pb-5 text-center"><p className="text-xs font-black uppercase tracking-[0.24em] text-blue-700">Islamic Education Trust</p><h2 className="mt-2 text-3xl font-black text-slate-950">Executive Management Report</h2><p className="mt-2 text-sm font-semibold text-slate-500">Generated {new Date().toLocaleString("en-NG", { hour12: true })}</p></div>
+      <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <ExecutiveStatCard label="Requests" value={metrics.requestTotal} tone="blue" />
+        <ExecutiveStatCard label="Pending" value={metrics.requestPending} tone="amber" />
+        <ExecutiveStatCard label="Finance Pending" value={metrics.financePending} tone="cyan" />
+        <ExecutiveStatCard label="HR Open Work" value={metrics.hrOpen} tone="violet" />
+        <ExecutiveStatCard label="Registry Open" value={metrics.registryOpen} tone="slate" />
+        <ExecutiveStatCard label="Attendance" value={`${metrics.attendanceRate}%`} tone="emerald" />
+        <ExecutiveStatCard label="Unread Alerts" value={metrics.notificationsUnread} tone="rose" />
+        <ExecutiveStatCard label="Data Coverage" value={`${coverage}%`} tone="blue" />
+      </div>
+      <div className="mt-8 rounded-2xl border border-slate-200 bg-slate-50 p-5"><h3 className="text-lg font-black text-slate-950">Management Observation</h3><p className="mt-3 text-sm font-semibold leading-7 text-slate-600">ReqGen currently records {metrics.requestTotal} visible requests, with {metrics.requestPending} still active in workflow. Finance shows {metrics.financePending} pending voucher records, HR has {metrics.hrOpen} open assignments, and Registry has {metrics.registryOpen} open records. Data-source coverage for this report is {coverage}% under the current active role.</p></div>
+      <div className="mt-10 grid grid-cols-1 gap-8 sm:grid-cols-3"><div className="border-t border-slate-500 pt-2 text-center text-xs font-black">Prepared By</div><div className="border-t border-slate-500 pt-2 text-center text-xs font-black">Reviewed By</div><div className="border-t border-slate-500 pt-2 text-center text-xs font-black">Date</div></div>
+    </section>
+    <style jsx global>{`@media print { .no-print, header, nav { display:none !important; } body { background:white !important; } .executive-print-sheet { box-shadow:none !important; border:0 !important; width:210mm; min-height:297mm; margin:0 auto; } @page { size:A4 portrait; margin:12mm; } }`}</style>
+  </>;
+}

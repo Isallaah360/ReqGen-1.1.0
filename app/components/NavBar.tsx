@@ -916,10 +916,9 @@ export default function NavBar() {
                 </button>
               )}
 
-
               {canExecutive && (
                 <Link className={iconLinkClass("/executive")} href="/executive">
-                  <NavPngIcon src="/dashboard.png" alt="Executive Command Centre" />
+                  <NavPngIcon src="/report.png" alt="Executive Command Centre" />
                   <IconButtonTooltip label="Executive Command Centre" />
                 </Link>
               )}
@@ -1074,7 +1073,6 @@ export default function NavBar() {
                     </>
                   )}
 
-
                   {canExecutive && (
                     <>
                       <div className="mt-3 border-t pt-3 text-xs font-black uppercase tracking-wide text-slate-500">
@@ -1086,12 +1084,9 @@ export default function NavBar() {
                         className={mobileItemClass("/executive")}
                       >
                         <span className="inline-flex items-center gap-2">
-                          <NavPngIcon src="/dashboard.png" alt="Executive Command Centre" size={22} />
+                          <NavPngIcon src="/report.png" alt="Executive Command Centre" size={22} />
                           Executive Command Centre
                         </span>
-                        <div className={mobileItemDescriptionClass("/executive")}>
-                          Live institutional oversight, alerts, calendar and executive reporting
-                        </div>
                       </button>
                     </>
                   )}
