@@ -22,6 +22,17 @@ export const PUBLIC_PATHS = [
  * getRoutePolicy also sorts by prefix length as a defensive safeguard.
  */
 export const ROUTE_POLICIES: RoutePolicy[] = [
+  { prefix: "/erp-2/settings", roles: ["admin"] },
+  { prefix: "/erp-2/audit", roles: ["admin", "auditor"] },
+  { prefix: "/erp-2/reports", roles: ["admin", "auditor", "dg", "accountofficer"] },
+  { prefix: "/erp-2/finance", roles: ["admin", "auditor", "account", "accounts", "accountofficer", "pvsigner", "pvcountersigner", "dg", "director"] },
+  { prefix: "/erp-2/vouchers", roles: ["admin", "auditor", "account", "accounts", "accountofficer", "pvsigner", "pvcountersigner", "dg"] },
+  { prefix: "/erp-2/staff", roles: ["admin", "hrboss", "hr", "hrofficer", "hrofficer1", "hrofficer2", "hrofficer3", "registry"] },
+  { prefix: "/erp-2/dashboard", authenticatedOnly: true },
+  { prefix: "/erp-2/requests", authenticatedOnly: true },
+  { prefix: "/erp-2/approvals", authenticatedOnly: true },
+  { prefix: "/erp-2/profile", authenticatedOnly: true },
+  { prefix: "/erp-2/notifications", authenticatedOnly: true },
   { prefix: "/admin/workflow-test", roles: ["admin"] },
   { prefix: "/admin/release-readiness", roles: ["admin"] },
   { prefix: "/admin/access-audit", roles: ["admin"] },

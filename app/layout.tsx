@@ -4,7 +4,6 @@ import LegacyRootNavigation from "./components/LegacyRootNavigation";
 import SessionTimeout from "./components/SessionTimeout";
 import MfaGuard from "./components/MfaGuard";
 import RouteAccessGuard from "./components/RouteAccessGuard";
-import ERP2LaunchBanner from "./components/ERP2LaunchBanner";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://req-gen-1-1-0.vercel.app"),
@@ -56,16 +55,13 @@ export default function RootLayout({
         suppressHydrationWarning
         className="min-h-screen bg-gradient-to-b from-gray-50 to-white text-gray-900 antialiased"
       >
-        <MfaGuard />
-        <RouteAccessGuard />
-
-        <LegacyRootNavigation />
-
-        <SessionTimeout />
-
-        <ERP2LaunchBanner />
-
-        <main>{children}</main>
+        <MfaGuard>
+          <RouteAccessGuard>
+            <LegacyRootNavigation />
+            <SessionTimeout />
+            <main>{children}</main>
+          </RouteAccessGuard>
+        </MfaGuard>
       </body>
     </html>
   );

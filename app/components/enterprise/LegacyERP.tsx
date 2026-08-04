@@ -3,6 +3,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { getCurrentAuthContext } from "@/lib/auth";
+import { canAccessPath } from "@/lib/permissions";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { ActiveRoleSwitcher } from "@/app/components/ActiveRoleSwitcher";
@@ -147,10 +149,10 @@ function SettingsPage() { return <div className="erp-settings-grid"><aside class
 
 function ModuleContent({ kind }: { kind: ModuleKey }) { return <LiveLegacyWorkspace kind={kind} />; }
 
-function CommandPalette({ open, onClose }: { open: boolean; onClose: () => void }) {
+function CommandPalette({ open, onClose, items }: { open: boolean; onClose: () => void; items: ModuleConfig[] }) {
   const [query, setQuery] = useState("");
   if (!open) return null;
-  const filtered = modules.filter(item => `${item.label} ${item.title}`.toLowerCase().includes(query.toLowerCase()));
+  const filtered = items.filter(item => `${item.label} ${item.title}`.toLowerCase().includes(query.toLowerCase()));
   return <div className="erp-modal-backdrop" role="presentation" onMouseDown={onClose}><section className="erp-command" role="dialog" aria-modal="true" aria-label="ERP command centre" onMouseDown={event => event.stopPropagation()}><div className="erp-command-search"><Search size={19} /><input autoFocus value={query} onChange={event => setQuery(event.target.value)} placeholder="Search modules, records and actions..." /><kbd>ESC</kbd></div><div className="erp-command-section"><small>QUICK NAVIGATION</small>{filtered.map(item => { const ItemIcon = item.icon; return <Link href={`/erp-2/${item.key}`} key={item.key} onClick={onClose}><span><ItemIcon size={18} /></span><div><strong>{item.label}</strong><small>{item.subtitle}</small></div><ArrowUpRight size={15} /></Link>; })}</div></section></div>;
 }
 
@@ -170,6 +172,7 @@ export default function LegacyERP({ module }: { module: string }) {
   const [toast, setToast] = useState("");
   const [density, setDensity] = useState<"comfortable" | "compact">("comfortable");
   const [currentUser, setCurrentUser] = useState<CurrentUser>(fallbackUser);
+  const [accessibleModules, setAccessibleModules] = useState<ModuleConfig[]>([]);
   const Icon = active.icon;
 
   useEffect(() => {
@@ -196,6 +199,20 @@ export default function LegacyERP({ module }: { module: string }) {
   }, []);
 
   useEffect(() => {
+    let active = true;
+    async function loadAccess() {
+      const context = await getCurrentAuthContext();
+      if (!active || !context?.activeRoleKey) return;
+      const roleSet = new Set([context.activeRoleKey]);
+      setAccessibleModules(modules.filter((item) => canAccessPath(legacyWorkspaceRoutes[item.key], roleSet)));
+    }
+    void loadAccess();
+    const refresh = () => void loadAccess();
+    window.addEventListener("reqgen-active-role-changed", refresh);
+    return () => { active = false; window.removeEventListener("reqgen-active-role-changed", refresh); };
+  }, []);
+
+  useEffect(() => {
     const handler = (event: KeyboardEvent) => {
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") { event.preventDefault(); setCommand(true); }
       if (event.key === "Escape") { setCommand(false); setDrawer(false); setProfile(false); }
@@ -211,11 +228,11 @@ export default function LegacyERP({ module }: { module: string }) {
   }, [toast]);
 
   return <div className={`erp-shell ${collapsed ? "erp-collapsed" : ""} ${density === "compact" ? "erp-density-compact" : ""}`}><a className="erp-skip-link" href="#erp-main-content">Skip to main content</a>
-    <aside className={`erp-sidebar ${mobile ? "erp-mobile-open" : ""}`}><div className="erp-brand"><Image src="/iet-logo.png" alt="IET" width={40} height={40} /><div><strong>REQGEN</strong><span>ERP 2.0</span></div><button className="erp-mobile-close" onClick={() => setMobile(false)} aria-label="Close navigation"><X size={20} /></button></div><div className="erp-sidebar-context"><small>ENTERPRISE WORKSPACE</small><strong>Barderian Enterprises</strong></div><nav>{modules.filter(item => !["profile", "notifications"].includes(item.key)).map(item => { const NavIcon = item.icon; return <Link href={`/erp-2/${item.key}`} className={pathname.endsWith(item.key) ? "active" : ""} key={item.key}><NavIcon size={19} /><span>{item.label}</span>{item.key === "approvals" && <b>45</b>}</Link>; })}</nav><button className="erp-sidebar-command" onClick={() => setCommand(true)}><Search size={16} /><span>Quick search</span><kbd>Ctrl K</kbd></button><div className="erp-sidebar-foot"><span>PRODUCTION</span><small>ReqGen ERP v2.0 · Release 36</small></div></aside>
+    <aside className={`erp-sidebar ${mobile ? "erp-mobile-open" : ""}`}><div className="erp-brand"><Image src="/iet-logo.png" alt="IET" width={40} height={40} /><div><strong>REQGEN</strong><span>ERP 2.0</span></div><button className="erp-mobile-close" onClick={() => setMobile(false)} aria-label="Close navigation"><X size={20} /></button></div><div className="erp-sidebar-context"><small>ENTERPRISE WORKSPACE</small><strong>Barderian Enterprises</strong></div><nav>{accessibleModules.filter(item => !["profile", "notifications"].includes(item.key)).map(item => { const NavIcon = item.icon; return <Link href={`/erp-2/${item.key}`} className={pathname.endsWith(item.key) ? "active" : ""} key={item.key}><NavIcon size={19} /><span>{item.label}</span>{item.key === "approvals" && <b>45</b>}</Link>; })}</nav><button className="erp-sidebar-command" onClick={() => setCommand(true)}><Search size={16} /><span>Quick search</span><kbd>Ctrl K</kbd></button><div className="erp-sidebar-foot"><span>PRODUCTION</span><small>ReqGen ERP v2.0 · Release 44</small></div></aside>
     {mobile && <button className="erp-mobile-scrim" aria-label="Close navigation" onClick={() => setMobile(false)} />}
     <div className="erp-workspace"><header className="erp-topbar"><div className="erp-topbar-left"><button className="erp-menu-button" onClick={() => { if (window.innerWidth < 900) setMobile(true); else setCollapsed(!collapsed); }} aria-label="Toggle navigation"><Menu size={21} /></button><HeaderGreeting section={active.title.replaceAll("&", "and")} userName={currentUser.fullName} /></div><div className="erp-topbar-centre"><button className="erp-global-search" onClick={() => setCommand(true)}><Search size={17} /><span>Search ReqGen ERP...</span><kbd>Ctrl K</kbd></button><div className="erp-clock"><Clock /></div></div><div className="erp-topbar-actions"><div className="erp-role-switcher"><ActiveRoleSwitcher compact /></div><Link href="/erp-2/notifications" className="erp-icon-button erp-bell" aria-label="Notifications"><Bell size={19} /><i>5</i></Link><div className="erp-profile"><button onClick={() => setProfile(!profile)} aria-expanded={profile}><span className="erp-avatar">{currentUser.initials}</span><span><strong>{currentUser.fullName}</strong><small>{currentUser.role}</small></span><ChevronDown size={15} /></button>{profile && <div className="erp-profile-menu"><div className="erp-profile-menu-head"><strong>{currentUser.fullName}</strong><small>{currentUser.email || currentUser.role}</small></div><Link href="/erp-2/profile"><UserRound size={16} />My Profile</Link><Link href="/erp-2/settings"><Settings size={16} />Settings</Link><button onClick={() => setDensity(value => value === "comfortable" ? "compact" : "comfortable")}><SlidersHorizontal size={16} />{density === "comfortable" ? "Compact View" : "Comfortable View"}</button><Link href="/login"><LogOut size={16} />Logout</Link></div>}</div></div></header>
-      <main className="erp-main" id="erp-main-content"><div className="erp-watermark"><Image src="/be-logo.png" alt="" fill sizes="70vw" /></div><div className="erp-release-ribbon"><span>REQGEN ERP 2.0</span><strong>ENTERPRISE RELEASE 36</strong><small>Unified UI · Live Production Structure</small></div><div className="erp-breadcrumb"><Link href="/erp-2/dashboard">Home</Link><span>/</span><strong>{active.label}</strong></div><div className="erp-page-head"><div><span className="erp-eyebrow"><Icon size={15} />{active.label}</span><h1>{active.title}</h1><p>{active.subtitle}</p></div><div className="erp-page-actions"><button className="erp-button erp-button-secondary" onClick={() => setToast(`${active.label} export prepared`)}><Download size={16} />Export</button>{active.action && <button className="erp-button erp-button-gold" onClick={() => setToast(`${active.action} workflow opened`)}><Plus size={16} />{active.action}</button>}</div></div>{!['profile','settings','notifications','reports'].includes(active.key) && <div className="erp-toolbar"><div className="erp-search"><Search size={17} /><input placeholder={`Search ${active.label.toLowerCase()}...`} /></div><select aria-label="Category"><option>All Categories</option></select><select aria-label="Status"><option>All Status</option></select><select aria-label="Period"><option>This Month</option></select><button className="erp-button erp-button-secondary"><SlidersHorizontal size={16} />Filter</button></div>}<div onDoubleClick={() => setDrawer(true)}><ModuleContent kind={active.key} /></div><button className="erp-record-preview" onClick={() => setDrawer(true)}><Eye size={16} />Preview selected record</button></main>
-      <footer className="erp-footer"><span>© 2026 Barderian Enterprises. All rights reserved.</span><span>ReqGen ERP 2.0 · Production · Release 36</span></footer></div>
-    <CommandPalette open={command} onClose={() => setCommand(false)} /><RecordDrawer open={drawer} onClose={() => setDrawer(false)} />{toast && <div className="erp-toast"><CheckCircle2 size={18} /><div><strong>Action completed</strong><span>{toast}</span></div></div>}
+      <main className="erp-main" id="erp-main-content"><div className="erp-watermark"><Image src="/be-logo.png" alt="" fill sizes="70vw" /></div><div className="erp-release-ribbon"><span>REQGEN ERP 2.0</span><strong>ENTERPRISE RELEASE 44</strong><small>Unified UI · Live Production Structure</small></div><div className="erp-breadcrumb"><Link href="/erp-2/dashboard">Home</Link><span>/</span><strong>{active.label}</strong></div><div className="erp-page-head"><div><span className="erp-eyebrow"><Icon size={15} />{active.label}</span><h1>{active.title}</h1><p>{active.subtitle}</p></div><div className="erp-page-actions"><button className="erp-button erp-button-secondary" onClick={() => setToast(`${active.label} export prepared`)}><Download size={16} />Export</button>{active.action && <button className="erp-button erp-button-gold" onClick={() => setToast(`${active.action} workflow opened`)}><Plus size={16} />{active.action}</button>}</div></div>{!['profile','settings','notifications','reports'].includes(active.key) && <div className="erp-toolbar"><div className="erp-search"><Search size={17} /><input placeholder={`Search ${active.label.toLowerCase()}...`} /></div><select aria-label="Category"><option>All Categories</option></select><select aria-label="Status"><option>All Status</option></select><select aria-label="Period"><option>This Month</option></select><button className="erp-button erp-button-secondary"><SlidersHorizontal size={16} />Filter</button></div>}<div onDoubleClick={() => setDrawer(true)}><ModuleContent kind={active.key} /></div><button className="erp-record-preview" onClick={() => setDrawer(true)}><Eye size={16} />Preview selected record</button></main>
+      <footer className="erp-footer"><span>© 2026 Barderian Enterprises. All rights reserved.</span><span>ReqGen ERP 2.0 · Production · Release 44</span></footer></div>
+    <CommandPalette open={command} onClose={() => setCommand(false)} items={accessibleModules} /><RecordDrawer open={drawer} onClose={() => setDrawer(false)} />{toast && <div className="erp-toast"><CheckCircle2 size={18} /><div><strong>Action completed</strong><span>{toast}</span></div></div>}
   </div>;
 }
