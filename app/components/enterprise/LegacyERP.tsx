@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import { supabase } from "@/lib/supabaseClient";
 import {
   Activity, ArrowUpRight, BarChart3, Bell, BookOpenCheck, Building2,
   CheckCircle2, ChevronDown, CircleDollarSign, ClipboardCheck, Clock3,
@@ -15,6 +16,15 @@ import {
 type ModuleKey = "dashboard" | "requests" | "approvals" | "vouchers" | "staff" | "finance" | "reports" | "audit" | "profile" | "notifications" | "settings";
 type ModuleConfig = { key: ModuleKey; label: string; title: string; subtitle: string; icon: typeof LayoutDashboard; action?: string };
 type Tone = "blue" | "gold" | "green" | "red" | "violet";
+type CurrentUser = { fullName: string; email: string; role: string; initials: string };
+
+const fallbackUser: CurrentUser = { fullName: "ReqGen User", email: "", role: "Staff", initials: "RU" };
+
+function getInitials(name: string) {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return "RU";
+  return (parts.length === 1 ? parts[0].slice(0, 2) : `${parts[0][0]}${parts[parts.length - 1][0]}`).toUpperCase();
+}
 
 const modules: ModuleConfig[] = [
   { key: "dashboard", label: "Dashboard", title: "EXECUTIVE COMMAND CENTRE", subtitle: "Enterprise overview, performance and operational intelligence", icon: LayoutDashboard },
@@ -40,10 +50,10 @@ const records = [
 
 function getGreeting(hour: number) { return hour < 12 ? "GOOD MORNING" : hour < 17 ? "GOOD AFTERNOON" : "GOOD EVENING"; }
 
-function HeaderGreeting({ section }: { section: string }) {
+function HeaderGreeting({ section, userName }: { section: string; userName: string }) {
   const [hour, setHour] = useState<number | null>(null);
   useEffect(() => { const update = () => setHour(new Date().getHours()); update(); const id = setInterval(update, 60_000); return () => clearInterval(id); }, []);
-  return <div className="erp-greeting"><strong>{hour === null ? "WELCOME" : getGreeting(hour)}, ISALLAAH360</strong><span>{section}</span></div>;
+  return <div className="erp-greeting"><strong>{hour === null ? "WELCOME" : getGreeting(hour)}, {userName.toUpperCase()}</strong><span>{section}</span></div>;
 }
 
 function Clock() {
@@ -118,7 +128,31 @@ export default function LegacyERP({ module }: { module: string }) {
   const [drawer, setDrawer] = useState(false);
   const [toast, setToast] = useState("");
   const [density, setDensity] = useState<"comfortable" | "compact">("comfortable");
+  const [currentUser, setCurrentUser] = useState<CurrentUser>(fallbackUser);
   const Icon = active.icon;
+
+  useEffect(() => {
+    let alive = true;
+    async function loadCurrentUser() {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const authUser = sessionData.session?.user;
+      if (!authUser || !alive) return;
+
+      const metadata = (authUser.user_metadata || {}) as Record<string, unknown>;
+      const metadataName = [metadata.full_name, metadata.name, metadata.display_name].find(value => typeof value === "string" && value.trim()) as string | undefined;
+      const { data: profileRow } = await supabase.from("profiles").select("full_name,email,role").eq("id", authUser.id).maybeSingle();
+      if (!alive) return;
+
+      const fullName = profileRow?.full_name?.trim() || metadataName?.trim() || authUser.email?.split("@")[0] || "ReqGen User";
+      const email = profileRow?.email?.trim() || authUser.email || "";
+      const role = profileRow?.role?.trim() || "Staff";
+      setCurrentUser({ fullName, email, role, initials: getInitials(fullName) });
+    }
+
+    loadCurrentUser();
+    const { data: listener } = supabase.auth.onAuthStateChange(() => loadCurrentUser());
+    return () => { alive = false; listener.subscription.unsubscribe(); };
+  }, []);
 
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
@@ -136,11 +170,11 @@ export default function LegacyERP({ module }: { module: string }) {
   }, [toast]);
 
   return <div className={`erp-shell ${collapsed ? "erp-collapsed" : ""} ${density === "compact" ? "erp-density-compact" : ""}`}><a className="erp-skip-link" href="#erp-main-content">Skip to main content</a>
-    <aside className={`erp-sidebar ${mobile ? "erp-mobile-open" : ""}`}><div className="erp-brand"><Image src="/iet-logo.png" alt="IET" width={40} height={40} /><div><strong>REQGEN</strong><span>ERP 2.0</span></div><button className="erp-mobile-close" onClick={() => setMobile(false)} aria-label="Close navigation"><X size={20} /></button></div><div className="erp-sidebar-context"><small>ENTERPRISE WORKSPACE</small><strong>Barderian Enterprises</strong></div><nav>{modules.filter(item => !["profile", "notifications"].includes(item.key)).map(item => { const NavIcon = item.icon; return <Link href={`/erp-2/${item.key}`} className={pathname.endsWith(item.key) ? "active" : ""} key={item.key}><NavIcon size={19} /><span>{item.label}</span>{item.key === "approvals" && <b>45</b>}</Link>; })}</nav><button className="erp-sidebar-command" onClick={() => setCommand(true)}><Search size={16} /><span>Quick search</span><kbd>Ctrl K</kbd></button><div className="erp-sidebar-foot"><span>PRODUCTION</span><small>ReqGen ERP v2.0 · Release 20</small></div></aside>
+    <aside className={`erp-sidebar ${mobile ? "erp-mobile-open" : ""}`}><div className="erp-brand"><Image src="/iet-logo.png" alt="IET" width={40} height={40} /><div><strong>REQGEN</strong><span>ERP 2.0</span></div><button className="erp-mobile-close" onClick={() => setMobile(false)} aria-label="Close navigation"><X size={20} /></button></div><div className="erp-sidebar-context"><small>ENTERPRISE WORKSPACE</small><strong>Barderian Enterprises</strong></div><nav>{modules.filter(item => !["profile", "notifications"].includes(item.key)).map(item => { const NavIcon = item.icon; return <Link href={`/erp-2/${item.key}`} className={pathname.endsWith(item.key) ? "active" : ""} key={item.key}><NavIcon size={19} /><span>{item.label}</span>{item.key === "approvals" && <b>45</b>}</Link>; })}</nav><button className="erp-sidebar-command" onClick={() => setCommand(true)}><Search size={16} /><span>Quick search</span><kbd>Ctrl K</kbd></button><div className="erp-sidebar-foot"><span>PRODUCTION</span><small>ReqGen ERP v2.0 · Release 28</small></div></aside>
     {mobile && <button className="erp-mobile-scrim" aria-label="Close navigation" onClick={() => setMobile(false)} />}
-    <div className="erp-workspace"><header className="erp-topbar"><div className="erp-topbar-left"><button className="erp-menu-button" onClick={() => { if (window.innerWidth < 900) setMobile(true); else setCollapsed(!collapsed); }} aria-label="Toggle navigation"><Menu size={21} /></button><HeaderGreeting section={active.title.replaceAll("&", "and")} /></div><button className="erp-global-search" onClick={() => setCommand(true)}><Search size={17} /><span>Search ReqGen ERP...</span><kbd>Ctrl K</kbd></button><div className="erp-clock"><Clock /></div><div className="erp-topbar-actions"><Link href="/erp-2/notifications" className="erp-icon-button erp-bell" aria-label="Notifications"><Bell size={19} /><i>5</i></Link><div className="erp-profile"><button onClick={() => setProfile(!profile)} aria-expanded={profile}><span className="erp-avatar">I</span><span><strong>Isallaah360</strong><small>Super Administrator</small></span><ChevronDown size={15} /></button>{profile && <div className="erp-profile-menu"><div className="erp-profile-menu-head"><strong>Isallaah360</strong><small>admin@barderian.com</small></div><Link href="/erp-2/profile"><UserRound size={16} />My Profile</Link><Link href="/erp-2/settings"><Settings size={16} />Settings</Link><button onClick={() => setDensity(value => value === "comfortable" ? "compact" : "comfortable")}><SlidersHorizontal size={16} />{density === "comfortable" ? "Compact View" : "Comfortable View"}</button><Link href="/login"><LogOut size={16} />Logout</Link></div>}</div></div></header>
-      <main className="erp-main" id="erp-main-content"><div className="erp-watermark"><Image src="/be-logo.png" alt="" fill sizes="70vw" /></div><div className="erp-release-ribbon"><span>REQGEN ERP 2.0</span><strong>ENTERPRISE RELEASE 20</strong><small>Unified UI · Live Production Structure</small></div><div className="erp-breadcrumb"><Link href="/erp-2/dashboard">Home</Link><span>/</span><strong>{active.label}</strong></div><div className="erp-page-head"><div><span className="erp-eyebrow"><Icon size={15} />{active.label}</span><h1>{active.title}</h1><p>{active.subtitle}</p></div><div className="erp-page-actions"><button className="erp-button erp-button-secondary" onClick={() => setToast(`${active.label} export prepared`)}><Download size={16} />Export</button>{active.action && <button className="erp-button erp-button-gold" onClick={() => setToast(`${active.action} workflow opened`)}><Plus size={16} />{active.action}</button>}</div></div>{!['profile','settings','notifications','reports'].includes(active.key) && <div className="erp-toolbar"><div className="erp-search"><Search size={17} /><input placeholder={`Search ${active.label.toLowerCase()}...`} /></div><select aria-label="Category"><option>All Categories</option></select><select aria-label="Status"><option>All Status</option></select><select aria-label="Period"><option>This Month</option></select><button className="erp-button erp-button-secondary"><SlidersHorizontal size={16} />Filter</button></div>}<div onDoubleClick={() => setDrawer(true)}><ModuleContent kind={active.key} /></div><button className="erp-record-preview" onClick={() => setDrawer(true)}><Eye size={16} />Preview selected record</button></main>
-      <footer className="erp-footer"><span>© 2026 Barderian Enterprises. All rights reserved.</span><span>ReqGen ERP 2.0 · Production · Release 20</span></footer></div>
+    <div className="erp-workspace"><header className="erp-topbar"><div className="erp-topbar-left"><button className="erp-menu-button" onClick={() => { if (window.innerWidth < 900) setMobile(true); else setCollapsed(!collapsed); }} aria-label="Toggle navigation"><Menu size={21} /></button><HeaderGreeting section={active.title.replaceAll("&", "and")} userName={currentUser.fullName} /></div><div className="erp-topbar-centre"><button className="erp-global-search" onClick={() => setCommand(true)}><Search size={17} /><span>Search ReqGen ERP...</span><kbd>Ctrl K</kbd></button><div className="erp-clock"><Clock /></div></div><div className="erp-topbar-actions"><Link href="/erp-2/notifications" className="erp-icon-button erp-bell" aria-label="Notifications"><Bell size={19} /><i>5</i></Link><div className="erp-profile"><button onClick={() => setProfile(!profile)} aria-expanded={profile}><span className="erp-avatar">{currentUser.initials}</span><span><strong>{currentUser.fullName}</strong><small>{currentUser.role}</small></span><ChevronDown size={15} /></button>{profile && <div className="erp-profile-menu"><div className="erp-profile-menu-head"><strong>{currentUser.fullName}</strong><small>{currentUser.email || currentUser.role}</small></div><Link href="/erp-2/profile"><UserRound size={16} />My Profile</Link><Link href="/erp-2/settings"><Settings size={16} />Settings</Link><button onClick={() => setDensity(value => value === "comfortable" ? "compact" : "comfortable")}><SlidersHorizontal size={16} />{density === "comfortable" ? "Compact View" : "Comfortable View"}</button><Link href="/login"><LogOut size={16} />Logout</Link></div>}</div></div></header>
+      <main className="erp-main" id="erp-main-content"><div className="erp-watermark"><Image src="/be-logo.png" alt="" fill sizes="70vw" /></div><div className="erp-release-ribbon"><span>REQGEN ERP 2.0</span><strong>ENTERPRISE RELEASE 28</strong><small>Unified UI · Live Production Structure</small></div><div className="erp-breadcrumb"><Link href="/erp-2/dashboard">Home</Link><span>/</span><strong>{active.label}</strong></div><div className="erp-page-head"><div><span className="erp-eyebrow"><Icon size={15} />{active.label}</span><h1>{active.title}</h1><p>{active.subtitle}</p></div><div className="erp-page-actions"><button className="erp-button erp-button-secondary" onClick={() => setToast(`${active.label} export prepared`)}><Download size={16} />Export</button>{active.action && <button className="erp-button erp-button-gold" onClick={() => setToast(`${active.action} workflow opened`)}><Plus size={16} />{active.action}</button>}</div></div>{!['profile','settings','notifications','reports'].includes(active.key) && <div className="erp-toolbar"><div className="erp-search"><Search size={17} /><input placeholder={`Search ${active.label.toLowerCase()}...`} /></div><select aria-label="Category"><option>All Categories</option></select><select aria-label="Status"><option>All Status</option></select><select aria-label="Period"><option>This Month</option></select><button className="erp-button erp-button-secondary"><SlidersHorizontal size={16} />Filter</button></div>}<div onDoubleClick={() => setDrawer(true)}><ModuleContent kind={active.key} /></div><button className="erp-record-preview" onClick={() => setDrawer(true)}><Eye size={16} />Preview selected record</button></main>
+      <footer className="erp-footer"><span>© 2026 Barderian Enterprises. All rights reserved.</span><span>ReqGen ERP 2.0 · Production · Release 28</span></footer></div>
     <CommandPalette open={command} onClose={() => setCommand(false)} /><RecordDrawer open={drawer} onClose={() => setDrawer(false)} />{toast && <div className="erp-toast"><CheckCircle2 size={18} /><div><strong>Action completed</strong><span>{toast}</span></div></div>}
   </div>;
 }

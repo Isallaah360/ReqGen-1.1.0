@@ -160,3 +160,47 @@ button {
 @media(max-width:1200px){.erp-global-search{display:none}.erp-release-ribbon small{display:none}}
 @media(max-width:900px){.erp-sidebar-context{display:grid}.erp-record-preview{right:14px;bottom:65px}.erp-release-ribbon{align-items:flex-start;flex-direction:column;gap:3px}.erp-drawer{padding:18px}.erp-modal-backdrop{padding-top:5vh}}
 @media(max-width:620px){.erp-release-ribbon{margin-inline:-2px}.erp-record-preview span{display:none}.erp-command-section>a{grid-template-columns:34px 1fr auto}.erp-command-section>a>span{width:34px;height:34px}.erp-drawer-actions .erp-button{flex:1}.erp-toast{right:15px;top:68px}}
+
+/* ReqGen ERP 2.0 phases 21-28: typography reinforcement, topbar recovery and authenticated identity */
+.erp-shell{font-weight:600}
+.erp-shell button,.erp-shell input,.erp-shell select,.erp-shell textarea{font:inherit}
+.erp-shell p,.erp-shell span,.erp-shell small,.erp-shell td,.erp-shell th,.erp-shell label{font-weight:600}
+.erp-shell h1,.erp-shell h2,.erp-shell h3,.erp-shell strong,.erp-shell b{font-weight:850}
+.erp-sidebar nav a{font-size:12px;font-weight:700}
+.erp-sidebar-context strong,.erp-sidebar-command{font-size:10px;font-weight:750}
+.erp-page-head h1{font-size:25px;font-weight:900;letter-spacing:.015em}
+.erp-page-head p{font-size:12px;font-weight:650}
+.erp-panel-head h3{font-size:12px;font-weight:900}
+.erp-panel-head p,.erp-metric span,.erp-metric small{font-size:10px;font-weight:700}
+.erp-metric strong{font-size:24px;font-weight:900}
+.erp-table{font-size:11px;font-weight:650}
+.erp-table th{font-size:9px;font-weight:900;letter-spacing:.055em}
+.erp-button{font-size:11px;font-weight:850}
+.erp-status{font-size:9px;font-weight:850}
+
+.erp-topbar{height:78px;display:flex;align-items:center;gap:22px;padding:0 24px;background:#fff;border-bottom:1px solid var(--erp-line);box-shadow:0 5px 22px rgba(7,35,70,.07);overflow:visible}
+.erp-topbar-left{display:flex;align-items:center;gap:13px;min-width:280px;flex:0 1 auto}
+.erp-topbar-centre{display:flex;align-items:center;justify-content:center;gap:24px;min-width:0;flex:1}
+.erp-topbar-actions{display:flex;align-items:center;justify-content:flex-end;gap:10px;min-width:max-content;flex:0 0 auto}
+.erp-greeting{min-width:0;line-height:1.25}
+.erp-greeting strong{font-size:12px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:360px}
+.erp-greeting span{font-size:10px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:360px}
+.erp-global-search{width:min(420px,34vw);min-width:220px;height:40px;font-size:10px;font-weight:700}
+.erp-clock{min-width:170px;flex:0 0 auto}
+.erp-clock span{font-size:9px;font-weight:800}
+.erp-clock strong{font-size:13px;font-weight:900}
+.erp-profile>button{max-width:260px;padding:6px 8px;border-radius:10px}
+.erp-profile>button:hover{background:var(--erp-blue-100)}
+.erp-profile>button>span:nth-child(2){min-width:0;max-width:170px}
+.erp-profile strong,.erp-profile small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.erp-profile strong{font-size:11px;font-weight:850}
+.erp-profile small{font-size:9px;font-weight:700}
+.erp-avatar{width:38px;height:38px;flex:0 0 38px;font-size:11px;font-weight:900}
+.erp-profile-menu{top:56px;width:230px;z-index:80}
+.erp-profile-menu-head strong{font-size:11px;font-weight:900}
+.erp-profile-menu-head small{font-size:9px;font-weight:650;overflow-wrap:anywhere}
+
+@media(max-width:1280px){.erp-topbar{gap:14px}.erp-global-search{display:none}.erp-topbar-centre{justify-content:flex-end}.erp-clock{min-width:155px}}
+@media(max-width:1040px){.erp-topbar-left{min-width:0;flex:1}.erp-greeting span{display:none}.erp-greeting strong{max-width:280px}.erp-topbar-centre{flex:0 0 auto}.erp-profile>button>span:nth-child(2){display:none}.erp-profile>button{max-width:none}.erp-clock{min-width:145px}}
+@media(max-width:760px){.erp-topbar{height:70px;padding:0 12px;gap:8px}.erp-topbar-left{gap:8px}.erp-greeting strong{font-size:10px;max-width:46vw}.erp-clock{display:none}.erp-topbar-centre{display:none}.erp-topbar-actions{gap:6px}.erp-menu-button,.erp-icon-button{width:36px;height:36px}.erp-avatar{width:36px;height:36px;flex-basis:36px}.erp-profile-menu{right:-2px;top:50px}}
+@media(max-width:480px){.erp-greeting{display:none}.erp-topbar-left{flex:1}.erp-topbar-actions{margin-left:auto}.erp-page-head h1{font-size:20px}.erp-table{font-size:10px}}
