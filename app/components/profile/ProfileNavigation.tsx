@@ -13,6 +13,7 @@ const items = [
 
 export default function ProfileNavigation() {
   const pathname = usePathname();
+  if (pathname.startsWith("/erp-2")) return null;
 
   return (
     <nav className="mx-auto mt-5 grid max-w-5xl grid-cols-2 gap-2 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm sm:grid-cols-3 lg:grid-cols-5">

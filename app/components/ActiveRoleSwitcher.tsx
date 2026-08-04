@@ -11,9 +11,10 @@ import {
   type AvailableRole,
 } from "@/lib/activeRole";
 
-export function ActiveRoleSwitcher({ compact = false, hero = false }: { compact?: boolean; hero?: boolean }) {
+export function ActiveRoleSwitcher({ compact = false, hero = false, allowInERP = false }: { compact?: boolean; hero?: boolean; allowInERP?: boolean }) {
   const router = useRouter();
   const pathname = usePathname();
+  const hiddenInsideERPContent = pathname.startsWith("/erp-2") && !allowInERP;
   const [roles, setRoles] = useState<AvailableRole[]>([]);
   const [activeRole, setActiveRole] = useState<ActiveRoleRecord | null>(null);
   const [loading, setLoading] = useState(true);
@@ -65,6 +66,8 @@ export function ActiveRoleSwitcher({ compact = false, hero = false }: { compact?
       setSaving(false);
     }
   }
+
+  if (hiddenInsideERPContent) return null;
 
   if (loading) {
     return <div className="h-12 animate-pulse rounded-xl bg-slate-200" />;

@@ -18,6 +18,7 @@ const items = [
 
 export default function StaffNavigation() {
   const pathname = usePathname();
+  if (pathname.startsWith("/erp-2")) return null;
 
   return (
     <nav

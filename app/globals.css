@@ -504,3 +504,110 @@ body.reqgen-erp-embedded header.sticky {
   body.reqgen-erp-embedded > main { padding: 10px !important; }
   body.reqgen-erp-embedded h1 { font-size: 20px !important; }
 }
+
+/* ReqGen ERP 2.0 Release 68: native legacy-page conversion.
+   Legacy pages now render directly inside the single ERP shell; no iframe,
+   duplicate navbar, duplicate footer, or nested application viewport. */
+.erp-module-content {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  min-width: 0;
+  font-size: 13px;
+}
+.erp-module-content > div,
+.erp-module-content > section,
+.erp-module-content > main {
+  width: 100% !important;
+  max-width: none !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  background: transparent !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+.erp-module-content header,
+.erp-module-content nav,
+.erp-module-content footer {
+  font-size: 13px;
+}
+/* Suppress old page-level chrome; the ERP shell owns navigation and footer. */
+.erp-module-content .staff-navigation,
+.erp-module-content .admin-navigation,
+.erp-module-content .profile-navigation,
+.erp-module-content [data-legacy-navigation],
+.erp-module-content [data-legacy-footer] {
+  display: none !important;
+}
+/* Convert recurring Tailwind legacy surfaces into the enterprise system. */
+.erp-module-content :is(.rounded-xl,.rounded-2xl,.rounded-3xl) {
+  border-radius: 12px !important;
+}
+.erp-module-content :is(.shadow,.shadow-sm,.shadow-md,.shadow-lg,.shadow-xl,.shadow-2xl) {
+  box-shadow: var(--erp-shadow) !important;
+}
+.erp-module-content :is(.bg-white,.bg-slate-50,.bg-gray-50) {
+  background: rgba(255,255,255,.96) !important;
+}
+.erp-module-content :is(button,a)[class*="bg-blue"],
+.erp-module-content :is(button,a)[class*="bg-indigo"],
+.erp-module-content :is(button,a)[class*="bg-cyan"] {
+  background: var(--erp-blue-800) !important;
+  color: #fff !important;
+  border-color: var(--erp-blue-800) !important;
+}
+.erp-module-content :is(button,a)[class*="bg-amber"],
+.erp-module-content :is(button,a)[class*="bg-yellow"] {
+  background: var(--erp-gold-500) !important;
+  color: var(--erp-blue-950) !important;
+  border-color: var(--erp-gold-500) !important;
+}
+.erp-module-content button,
+.erp-module-content [role="button"] {
+  font-weight: 750;
+}
+.erp-module-content table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: #fff;
+  border: 1px solid var(--erp-line);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.erp-module-content thead th {
+  background: var(--erp-blue-50) !important;
+  color: var(--erp-blue-900) !important;
+  font-size: 12px !important;
+  font-weight: 850 !important;
+  letter-spacing: .025em;
+}
+.erp-module-content tbody td {
+  font-size: 13px !important;
+  border-color: var(--erp-line) !important;
+}
+.erp-module-content input,
+.erp-module-content select,
+.erp-module-content textarea {
+  font-size: 13px !important;
+  border-color: var(--erp-line) !important;
+  border-radius: 8px !important;
+  background: #fff !important;
+}
+.erp-module-content h1,
+.erp-module-content h2,
+.erp-module-content h3 {
+  color: var(--erp-blue-950);
+  font-weight: 850 !important;
+}
+.erp-module-content .min-h-screen {
+  min-height: 0 !important;
+}
+.erp-module-content [class*="max-w-"] {
+  max-width: none !important;
+}
+@media (max-width: 900px) {
+  .erp-module-content { overflow-x: hidden; }
+  .erp-module-content table { min-width: 760px; }
+  .erp-module-content :has(> table) { overflow-x: auto; }
+}

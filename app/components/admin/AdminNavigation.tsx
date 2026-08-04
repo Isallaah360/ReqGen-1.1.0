@@ -44,6 +44,7 @@ function roleFromRpc(value: unknown): string {
 
 export default function AdminNavigation() {
   const pathname = usePathname();
+  if (pathname.startsWith("/erp-2")) return null;
   const router = useRouter();
   const [activeRole, setActiveRole] = useState("");
 
