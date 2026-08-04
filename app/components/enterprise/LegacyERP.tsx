@@ -40,6 +40,23 @@ const rows = [
   ["REQ-2026-0118","Leave Request","Fatih Joseph","—","Completed"],
 ];
 
+function getGreeting(hour: number) {
+  if (hour < 12) return "GOOD MORNING";
+  if (hour < 17) return "GOOD AFTERNOON";
+  return "GOOD EVENING";
+}
+
+function HeaderGreeting({ section }: { section: string }) {
+  const [hour, setHour] = useState<number | null>(null);
+  useEffect(() => {
+    const update = () => setHour(new Date().getHours());
+    update();
+    const id = setInterval(update, 60_000);
+    return () => clearInterval(id);
+  }, []);
+  return <div className="erp-greeting"><strong>{hour === null ? "WELCOME" : getGreeting(hour)}, ISALLAAH360</strong><span>{section}</span></div>;
+}
+
 function Clock() {
   const [now,setNow]=useState<Date|null>(null);
   useEffect(()=>{ setNow(new Date()); const id=setInterval(()=>setNow(new Date()),1000); return()=>clearInterval(id); },[]);
@@ -77,15 +94,15 @@ export default function LegacyERP({module}:{module:string}){
   const active=useMemo(()=>modules.find(m=>m.key===module)||modules[0],[module]);
   const [collapsed,setCollapsed]=useState(false); const [mobile,setMobile]=useState(false); const [profile,setProfile]=useState(false);
   const Icon=active.icon;
-  return <div className={`erp-shell ${collapsed?"erp-collapsed":""}`}>
+  return <div className={`erp-shell ${collapsed?"erp-collapsed":""}`}><a className="erp-skip-link" href="#erp-main-content">Skip to main content</a>
     <aside className={`erp-sidebar ${mobile?"erp-mobile-open":""}`}>
       <div className="erp-brand"><Image src="/iet-logo.png" alt="IET" width={40} height={40}/><div><strong>REQGEN</strong><span>ERP 2.0</span></div><button className="erp-mobile-close" onClick={()=>setMobile(false)}><X size={20}/></button></div>
       <nav>{modules.filter(m=>!["profile","notifications"].includes(m.key)).map(m=>{const N=m.icon; return <Link href={`/erp-2/${m.key}`} className={pathname.endsWith(m.key)?"active":""} key={m.key}><N size={19}/><span>{m.label}</span></Link>})}</nav>
       <div className="erp-sidebar-foot"><span>PRODUCTION</span><small>ReqGen ERP v2.0</small></div>
     </aside>
     <div className="erp-workspace">
-      <header className="erp-topbar"><div className="erp-topbar-left"><button className="erp-menu-button" onClick={()=>{ if(innerWidth<900)setMobile(true); else setCollapsed(!collapsed)}}><Menu size={21}/></button><div className="erp-greeting"><strong>GOOD MORNING, ISALLAAH360</strong><span>Executive Command Centre</span></div></div><div className="erp-clock"><Clock/></div><div className="erp-topbar-actions"><Link href="/erp-2/notifications" className="erp-icon-button erp-bell"><Bell size={19}/><i>5</i></Link><div className="erp-profile"><button onClick={()=>setProfile(!profile)}><span className="erp-avatar">I</span><span><strong>Isallaah360</strong><small>Super Administrator</small></span><ChevronDown size={15}/></button>{profile&&<div className="erp-profile-menu"><Link href="/erp-2/profile"><UserRound size={16}/>My Profile</Link><Link href="/erp-2/settings"><Settings size={16}/>Settings</Link><button><LogOut size={16}/>Logout</button></div>}</div></div></header>
-      <main className="erp-main"><div className="erp-watermark"><Image src="/be-logo.png" alt="" fill sizes="70vw"/></div><div className="erp-page-head"><div><span className="erp-eyebrow"><Icon size={15}/>{active.label}</span><h1>{active.title}</h1><p>{active.subtitle}</p></div><div className="erp-page-actions"><button className="erp-button erp-button-secondary"><Download size={16}/>Export</button>{active.action&&<button className="erp-button erp-button-gold"><Plus size={16}/>{active.action}</button>}</div></div><div className="erp-toolbar"><div className="erp-search"><Search size={17}/><input placeholder={`Search ${active.label.toLowerCase()}...`}/></div><select><option>All Categories</option></select><select><option>All Status</option></select><select><option>This Month</option></select><button className="erp-button erp-button-secondary"><SlidersHorizontal size={16}/>Filter</button></div><DashboardContent kind={active.key}/></main>
+      <header className="erp-topbar"><div className="erp-topbar-left"><button className="erp-menu-button" onClick={()=>{ if(innerWidth<900)setMobile(true); else setCollapsed(!collapsed)}}><Menu size={21}/></button><HeaderGreeting section={active.title.replaceAll("&", "and")} /></div><div className="erp-clock"><Clock/></div><div className="erp-topbar-actions"><Link href="/erp-2/notifications" className="erp-icon-button erp-bell"><Bell size={19}/><i>5</i></Link><div className="erp-profile"><button onClick={()=>setProfile(!profile)}><span className="erp-avatar">I</span><span><strong>Isallaah360</strong><small>Super Administrator</small></span><ChevronDown size={15}/></button>{profile&&<div className="erp-profile-menu"><Link href="/erp-2/profile"><UserRound size={16}/>My Profile</Link><Link href="/erp-2/settings"><Settings size={16}/>Settings</Link><Link href="/login"><LogOut size={16}/>Logout</Link></div>}</div></div></header>
+      <main className="erp-main" id="erp-main-content"><div className="erp-watermark"><Image src="/be-logo.png" alt="" fill sizes="70vw"/></div><div className="erp-page-head"><div><span className="erp-eyebrow"><Icon size={15}/>{active.label}</span><h1>{active.title}</h1><p>{active.subtitle}</p></div><div className="erp-page-actions"><button className="erp-button erp-button-secondary"><Download size={16}/>Export</button>{active.action&&<button className="erp-button erp-button-gold"><Plus size={16}/>{active.action}</button>}</div></div><div className="erp-toolbar"><div className="erp-search"><Search size={17}/><input placeholder={`Search ${active.label.toLowerCase()}...`}/></div><select><option>All Categories</option></select><select><option>All Status</option></select><select><option>This Month</option></select><button className="erp-button erp-button-secondary"><SlidersHorizontal size={16}/>Filter</button></div><DashboardContent kind={active.key}/></main>
       <footer className="erp-footer"><span>© 2026 Barderian Enterprises. All rights reserved.</span><span>ReqGen ERP 2.0 · Production</span></footer>
     </div>
   </div>;
