@@ -10,9 +10,12 @@ export default function RouteAccessGuard({ children }: { children: ReactNode }) 
   const pathname = usePathname();
   const router = useRouter();
   const [verifiedPath, setVerifiedPath] = useState<string | null>(null);
+  const [verifiedRoleKey, setVerifiedRoleKey] = useState<string | null>(null);
 
-  const verifyAccess = useCallback(async () => {
-    setVerifiedPath(null);
+  const verifyAccess = useCallback(async (forceHide = false) => {
+    // Do not blank an already-authorized ERP shell during ordinary module
+    // navigation. A role change still forces concealment until revalidated.
+    if (forceHide) setVerifiedPath(null);
     if (isPublicPath(pathname)) {
       setVerifiedPath(pathname);
       return;
@@ -27,6 +30,7 @@ export default function RouteAccessGuard({ children }: { children: ReactNode }) 
 
       const activeRoleOnly = new Set<string>();
       if (context.activeRoleKey) activeRoleOnly.add(context.activeRoleKey);
+      setVerifiedRoleKey(context.activeRoleKey);
 
       if (!canAccessPath(pathname, activeRoleOnly)) {
         router.replace(`/unauthorized?from=${encodeURIComponent(pathname)}&role=${encodeURIComponent(context.activeRoleKey || "staff")}`);
@@ -41,12 +45,19 @@ export default function RouteAccessGuard({ children }: { children: ReactNode }) 
   }, [pathname, router]);
 
   useEffect(() => {
-    void verifyAccess();
-    const refresh = () => void verifyAccess();
+    void verifyAccess(false);
+    const refresh = () => void verifyAccess(true);
     window.addEventListener("reqgen-active-role-changed", refresh);
     return () => window.removeEventListener("reqgen-active-role-changed", refresh);
   }, [verifyAccess]);
 
-  if (verifiedPath !== pathname) return null;
+  const cachedRoleSet = new Set<string>();
+  if (verifiedRoleKey) cachedRoleSet.add(verifiedRoleKey);
+  const canKeepVisible =
+    pathname.startsWith("/erp-2") &&
+    verifiedPath?.startsWith("/erp-2") &&
+    canAccessPath(pathname, cachedRoleSet);
+
+  if (verifiedPath !== pathname && !canKeepVisible) return null;
   return <>{children}</>;
 }

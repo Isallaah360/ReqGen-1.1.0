@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import {
   getActiveRole,
@@ -13,6 +13,7 @@ import {
 
 export function ActiveRoleSwitcher({ compact = false, hero = false }: { compact?: boolean; hero?: boolean }) {
   const router = useRouter();
+  const pathname = usePathname();
   const [roles, setRoles] = useState<AvailableRole[]>([]);
   const [activeRole, setActiveRole] = useState<ActiveRoleRecord | null>(null);
   const [loading, setLoading] = useState(true);
@@ -49,10 +50,15 @@ export function ActiveRoleSwitcher({ compact = false, hero = false }: { compact?
       const result = await switchActiveRole(nextRole);
       setActiveRole(result);
       setMessage(`Now operating as ${result.active_role_name}.`);
-      window.dispatchEvent(new Event("reqgen-active-role-changed"));
-      router.replace("/staff");
+      window.dispatchEvent(new CustomEvent("reqgen-active-role-changed", {
+        detail: { roleKey: result.active_role_key, roleName: result.active_role_name },
+      }));
+      // Keep the user inside the current ERP 2.0 workspace. The shell and
+      // embedded production module refresh themselves without escaping to /staff.
+      if (pathname.startsWith("/erp-2") || pathname === "/erp") {
+        router.replace(pathname);
+      }
       router.refresh();
-      setTimeout(() => window.location.reload(), 250);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Unable to switch role.");
     } finally {
