@@ -9,7 +9,14 @@ export default function LegacyRootNavigation() {
   const [embedded, setEmbedded] = useState(false);
 
   useEffect(() => {
-    setEmbedded(new URLSearchParams(window.location.search).get("embedded") === "1");
+    const isEmbedded = new URLSearchParams(window.location.search).get("embedded") === "1";
+    setEmbedded(isEmbedded);
+    document.documentElement.classList.toggle("reqgen-erp-embedded", isEmbedded);
+    document.body.classList.toggle("reqgen-erp-embedded", isEmbedded);
+    return () => {
+      document.documentElement.classList.remove("reqgen-erp-embedded");
+      document.body.classList.remove("reqgen-erp-embedded");
+    };
   }, [pathname]);
 
   if (pathname.startsWith("/erp-2") || embedded) return null;
