@@ -204,3 +204,118 @@ button {
 @media(max-width:1040px){.erp-topbar-left{min-width:0;flex:1}.erp-greeting span{display:none}.erp-greeting strong{max-width:280px}.erp-topbar-centre{flex:0 0 auto}.erp-profile>button>span:nth-child(2){display:none}.erp-profile>button{max-width:none}.erp-clock{min-width:145px}}
 @media(max-width:760px){.erp-topbar{height:70px;padding:0 12px;gap:8px}.erp-topbar-left{gap:8px}.erp-greeting strong{font-size:10px;max-width:46vw}.erp-clock{display:none}.erp-topbar-centre{display:none}.erp-topbar-actions{gap:6px}.erp-menu-button,.erp-icon-button{width:36px;height:36px}.erp-avatar{width:36px;height:36px;flex-basis:36px}.erp-profile-menu{right:-2px;top:50px}}
 @media(max-width:480px){.erp-greeting{display:none}.erp-topbar-left{flex:1}.erp-topbar-actions{margin-left:auto}.erp-page-head h1{font-size:20px}.erp-table{font-size:10px}}
+
+/* =========================================================
+   REQGEN ERP 2.0 - PHASES 29-36
+   13px enterprise interface, 15px bold navigation,
+   live legacy-data bridge, and active-role restoration.
+   ========================================================= */
+.erp-shell,
+.erp-shell button,
+.erp-shell input,
+.erp-shell select,
+.erp-shell textarea,
+.erp-shell table,
+.erp-shell a,
+.erp-shell label,
+.erp-shell p,
+.erp-shell span,
+.erp-shell small {
+  font-size: 13px;
+  font-weight: 650;
+}
+.erp-sidebar nav a {
+  font-size: 15px !important;
+  font-weight: 800 !important;
+  min-height: 48px;
+}
+.erp-sidebar nav a svg { flex: 0 0 auto; }
+.erp-brand strong { font-size: 15px; font-weight: 900; }
+.erp-brand span { font-size: 12px; }
+.erp-greeting strong { font-size: 13px; font-weight: 900; }
+.erp-greeting span { font-size: 12px; font-weight: 700; }
+.erp-clock span { font-size: 11px; }
+.erp-clock strong { font-size: 14px; }
+.erp-profile strong { font-size: 13px; font-weight: 900; }
+.erp-profile small { font-size: 11px; }
+.erp-button { font-size: 13px; font-weight: 850; }
+.erp-page-head p,
+.erp-panel-head p,
+.erp-metric span,
+.erp-metric small,
+.erp-table,
+.erp-table td,
+.erp-table th,
+.erp-status,
+.erp-toolbar select,
+.erp-search input { font-size: 13px; }
+.erp-table th { font-weight: 900; }
+.erp-page-head h1 { font-size: 27px; font-weight: 950; }
+.erp-panel-head h3 { font-size: 14px; font-weight: 900; }
+.erp-role-switcher { min-width: 205px; }
+.erp-role-switcher > div { min-width: 205px !important; }
+.erp-role-switcher select { font-size: 13px !important; font-weight: 850 !important; }
+
+.erp-live-workspace {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--erp-line);
+  border-radius: 14px;
+  background: rgba(255,255,255,.98);
+  box-shadow: 0 12px 32px rgba(7,35,70,.08);
+}
+.erp-live-workspace-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  min-height: 66px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--erp-line);
+  background: linear-gradient(90deg, #f8fbff, #fffaf0);
+}
+.erp-live-workspace-head > div { display: grid; gap: 3px; }
+.erp-live-workspace-head strong {
+  color: var(--erp-blue-900);
+  font-size: 13px;
+  font-weight: 950;
+  letter-spacing: .07em;
+}
+.erp-live-workspace-head span { color: var(--erp-muted); font-size: 13px; }
+.erp-live-frame-wrap { position: relative; min-height: 760px; background: #f7f9fc; }
+.erp-live-frame {
+  display: block;
+  width: 100%;
+  min-height: 980px;
+  border: 0;
+  background: white;
+}
+.erp-live-loading {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 12px;
+  background: rgba(248,250,252,.94);
+  color: var(--erp-blue-900);
+}
+.erp-live-spinner {
+  width: 38px;
+  height: 38px;
+  border: 4px solid #dbe8f5;
+  border-top-color: var(--erp-gold-500);
+  border-radius: 50%;
+  animation: erp-live-spin .8s linear infinite;
+}
+@keyframes erp-live-spin { to { transform: rotate(360deg); } }
+
+@media (max-width: 1280px) {
+  .erp-role-switcher { display: none; }
+}
+@media (max-width: 760px) {
+  .erp-sidebar nav a { font-size: 15px !important; }
+  .erp-live-workspace-head { align-items: flex-start; flex-direction: column; }
+  .erp-live-frame { min-height: 1100px; }
+}
