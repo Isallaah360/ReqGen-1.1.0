@@ -46,6 +46,7 @@ export const ROUTE_POLICIES: RoutePolicy[] = [
   { prefix: "/admin/audit", roles: ["admin", "auditor"] },
   { prefix: "/admin", roles: ["admin"] },
 
+  { prefix: "/executive", roles: ["admin", "dg", "director", "auditor", "hrboss", "humanresourcesboss"] },
   { prefix: "/audit-centre", roles: ["admin", "auditor"] },
   { prefix: "/workflow", roles: ["admin", "auditor", "dg"] },
 

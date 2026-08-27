@@ -1,9 +1,11 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+
 import LegacyRootNavigation from "./components/LegacyRootNavigation";
 import SessionTimeout from "./components/SessionTimeout";
 import MfaGuard from "./components/MfaGuard";
 import RouteAccessGuard from "./components/RouteAccessGuard";
+import GlobalTips from "./components/GlobalTips";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://req-gen-1-1-0.vercel.app"),
@@ -28,12 +30,18 @@ export const metadata: Metadata = {
 
   keywords: [
     "IET",
+    "ReqGen",
     "Request Generator",
+    "Request Management",
     "Finance",
     "Workflow",
     "Approval",
     "Voucher",
     "Payment",
+    "Human Resources",
+    "Registry",
+    "Administration",
+    "Audit",
     "Supabase",
     "Next.js",
   ],
@@ -42,6 +50,8 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   themeColor: "#073b78",
   colorScheme: "light",
+  width: "device-width",
+  initialScale: 1,
 };
 
 export default function RootLayout({
@@ -58,8 +68,18 @@ export default function RootLayout({
         <MfaGuard>
           <RouteAccessGuard>
             <LegacyRootNavigation />
+
             <SessionTimeout />
-            <main>{children}</main>
+
+            <GlobalTips />
+
+            <main
+              id="reqgen-main-content"
+              className="reqgen-app-main"
+              role="main"
+            >
+              {children}
+            </main>
           </RouteAccessGuard>
         </MfaGuard>
       </body>

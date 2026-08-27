@@ -855,6 +855,52 @@ export default function FinancePage() {
 
       <section className="mt-10">
         <SectionHeading
+          label="Setup"
+          title="Bank, Budget & Responsibility Setup"
+          description="Institutional bank names, subheads, departments and officer responsibility routing."
+        />
+        <div className="mt-5 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+          <ModuleCard
+            title="IET Bank Accounts"
+            description="Manage approved bank names, institutional account labels, total funds and status. Account numbers are not stored here."
+            icon="🏛️"
+            section="Setup"
+            badge="Bank Register"
+            colour="blue"
+            href="/finance/manage-accounts"
+          />
+          <ModuleCard
+            title="Finance Subheads"
+            description="Create and manage budget subheads and link allocations to authorised IET banks."
+            icon="🧮"
+            section="Setup"
+            badge="Budget Lines"
+            colour="violet"
+            href="/finance/subheads"
+          />
+          <ModuleCard
+            title="Finance Departments"
+            description="Open the finance department setup and budget context workspace."
+            icon="🏢"
+            section="Setup"
+            badge="Departments"
+            colour="cyan"
+            href="/finance/departments"
+          />
+          <ModuleCard
+            title="Assign Bank to Officer"
+            description="Route authorised IET bank responsibilities to Accounting Officers."
+            icon="👤"
+            section="Setup"
+            badge="Responsibility"
+            colour="emerald"
+            href="/finance/manage-accounts/assign"
+          />
+        </div>
+      </section>
+
+      <section className="mt-10">
+        <SectionHeading
           label="Accounting"
           title="Accounting & Fund Management"
           description="Ledger, balance and authorised fund-movement modules available from the Finance Control Centre."
@@ -904,7 +950,7 @@ export default function FinancePage() {
             section="Reports"
             badge="Reports"
             colour="blue"
-            href="/reports#finance-and-workflow"
+            href="/finance/reports/monthly"
           />
           <ModuleCard
             title="Annual Reports"
@@ -913,7 +959,7 @@ export default function FinancePage() {
             section="Reports"
             badge="Reports"
             colour="emerald"
-            href="/reports#finance-and-workflow"
+            href="/finance/reports/annual"
           />
           <ModuleCard
             title="Print / PDF Centre"
@@ -922,7 +968,7 @@ export default function FinancePage() {
             section="Reports"
             badge="Print Report"
             colour="slate"
-            href="/reports#executive-overview"
+            href="/finance/print-centre"
           />
           <ModuleCard
             title="Excel Export"
@@ -931,7 +977,7 @@ export default function FinancePage() {
             section="Reports"
             badge="Exports"
             colour="violet"
-            href="/reports#executive-overview"
+            href="/finance/export-centre"
           />
         </div>
       </section>

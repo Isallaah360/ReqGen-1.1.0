@@ -260,7 +260,7 @@ const SOURCES: Record<SourceKey, SourceConfig> = {
     ],
   },
   audit: {
-    label: "Enterprise Audit Report",
+    label: "Audit Report",
     shortLabel: "Audit",
     subtitle: "Who did what, under which role, and when",
     table: "enterprise_audit_events",

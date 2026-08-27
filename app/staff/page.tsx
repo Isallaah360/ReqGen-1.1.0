@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useMemo } from "react";
-import { ActiveRoleSwitcher } from "@/app/components/ActiveRoleSwitcher";
 import StaffNavigation from "@/app/components/staff/StaffNavigation";
 import {
   StaffAction,
@@ -112,10 +111,6 @@ export default function StaffWorkspacePage() {
           prominentGreeting
           actions={
             <div className="flex flex-col gap-3 sm:min-w-[310px]">
-              <div className="rounded-2xl border border-white/20 bg-white/10 p-3 backdrop-blur">
-                <p className="mb-2 text-[10px] font-black uppercase tracking-[0.2em] text-cyan-100">Current Working Role</p>
-                <ActiveRoleSwitcher compact hero />
-              </div>
               <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"

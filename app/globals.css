@@ -1,4 +1,7 @@
-/* ==========================================================================\n   REQGEN ERP 2.0 FOUNDATION — COPY THIS ENTIRE BLOCK TO app/globals.css\n   ========================================================================== */
+/* ==========================================================================
+   REQGEN ERP 2.0 FOUNDATION
+   ========================================================================== */
+
 :root {
   --erp2-blue-950: #071a36;
   --erp2-blue-900: #0b2d57;
@@ -25,6 +28,57 @@
   --erp2-radius-lg: 16px;
   --erp2-shadow: 0 10px 28px rgba(13, 45, 87, 0.07);
   --erp2-font: Inter, "Segoe UI", Arial, sans-serif;
+
+  --reqgen-navy: #07142f;
+  --reqgen-blue: #0b57d0;
+  --reqgen-cyan: #0891b2;
+  --reqgen-surface: rgba(255, 255, 255, 0.94);
+  --reqgen-canvas: #f4f7fb;
+  --reqgen-border: #dbe4ef;
+  --reqgen-text: #0f172a;
+  --reqgen-muted: #64748b;
+  --reqgen-radius: 1rem;
+  --reqgen-radius-lg: 1.75rem;
+  --reqgen-shadow: 0 12px 38px -28px rgba(15, 23, 42, 0.45);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+html {
+  font-family:
+    Aptos,
+    "Segoe UI",
+    Inter,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
+}
+
+body {
+  margin: 0;
+  background: var(--reqgen-canvas);
+  color: var(--reqgen-text);
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+img,
+svg,
+canvas {
+  max-width: 100%;
 }
 
 .erp2-visually-hidden {
@@ -63,7 +117,7 @@
   background: var(--erp2-bg);
   color: var(--erp2-text);
   font: 600 13px/1.45 var(--erp2-font);
-  transition: grid-template-columns .2s ease;
+  transition: grid-template-columns 0.2s ease;
 }
 
 .erp2-shell.is-sidebar-collapsed {
@@ -87,7 +141,7 @@
   overflow: hidden;
   background: linear-gradient(180deg, var(--erp2-blue-950), var(--erp2-blue-900));
   color: #fff;
-  border-right: 1px solid rgba(255, 255, 255, .08);
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .erp2-sidebar__brand {
@@ -96,7 +150,7 @@
   align-items: center;
   gap: 11px;
   padding: 12px 15px;
-  border-bottom: 1px solid rgba(255, 255, 255, .09);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.09);
 }
 
 .erp2-sidebar__brand img {
@@ -118,11 +172,11 @@
 }
 
 .erp2-sidebar__brand span {
-  color: rgba(255, 255, 255, .6);
+  color: rgba(255, 255, 255, 0.6);
   font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: .12em;
+  letter-spacing: 0.12em;
   white-space: nowrap;
 }
 
@@ -147,10 +201,10 @@
 
 .erp2-sidebar__nav h2 {
   margin: 0 9px 6px;
-  color: rgba(255, 255, 255, .43);
+  color: rgba(255, 255, 255, 0.43);
   font-size: 10px;
   font-weight: 900;
-  letter-spacing: .13em;
+  letter-spacing: 0.13em;
   text-transform: uppercase;
 }
 
@@ -167,22 +221,25 @@
   align-items: center;
   gap: 9px;
   padding: 8px 10px;
-  color: rgba(255, 255, 255, .78);
+  color: rgba(255, 255, 255, 0.78);
   text-decoration: none;
   border-radius: 9px;
   font-size: 15px;
   font-weight: 800;
-  transition: background .15s ease, color .15s ease, transform .15s ease;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    transform 0.15s ease;
 }
 
 .erp2-sidebar__link:hover {
-  background: rgba(255, 255, 255, .08);
+  background: rgba(255, 255, 255, 0.08);
   color: #fff;
   transform: translateX(2px);
 }
 
 .erp2-sidebar__link.is-active {
-  background: rgba(212, 160, 23, .16);
+  background: rgba(212, 160, 23, 0.16);
   color: #fff;
   box-shadow: inset 3px 0 0 var(--erp2-gold-500);
 }
@@ -205,7 +262,7 @@
 
 .erp2-sidebar__footer {
   padding: 10px;
-  border-top: 1px solid rgba(255, 255, 255, .09);
+  border-top: 1px solid rgba(255, 255, 255, 0.09);
   display: grid;
   gap: 7px;
 }
@@ -221,7 +278,7 @@
 }
 
 .erp2-sidebar__footer>div {
-  background: rgba(255, 255, 255, .05);
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .erp2-sidebar__footer i {
@@ -229,7 +286,7 @@
   height: 8px;
   border-radius: 50%;
   background: #36c58a;
-  box-shadow: 0 0 0 4px rgba(54, 197, 138, .12);
+  box-shadow: 0 0 0 4px rgba(54, 197, 138, 0.12);
 }
 
 .erp2-sidebar__footer span {
@@ -246,13 +303,13 @@
 .erp2-sidebar__footer button {
   border: 0;
   background: transparent;
-  color: rgba(255, 255, 255, .7);
+  color: rgba(255, 255, 255, 0.7);
   cursor: pointer;
   font: inherit;
 }
 
 .erp2-sidebar__footer button:hover {
-  background: rgba(255, 255, 255, .07);
+  background: rgba(255, 255, 255, 0.07);
   color: #fff;
 }
 
@@ -292,13 +349,13 @@
   min-width: 0;
   height: var(--erp2-topbar-height);
   display: grid;
-  grid-template-columns: minmax(220px, .8fr) minmax(260px, 1.1fr) auto;
+  grid-template-columns: minmax(220px, 0.8fr) minmax(260px, 1.1fr) auto;
   align-items: center;
   gap: 16px;
   padding: 0 18px;
-  background: rgba(255, 255, 255, .98);
+  background: rgba(255, 255, 255, 0.98);
   border-bottom: 1px solid var(--erp2-border);
-  box-shadow: 0 3px 14px rgba(13, 45, 87, .04);
+  box-shadow: 0 3px 14px rgba(13, 45, 87, 0.04);
 }
 
 .erp2-topbar__identity {
@@ -366,7 +423,7 @@
 
 .erp2-topbar__search:focus-within {
   border-color: var(--erp2-gold-600);
-  box-shadow: 0 0 0 3px rgba(212, 160, 23, .13);
+  box-shadow: 0 0 0 3px rgba(212, 160, 23, 0.13);
   background: #fff;
 }
 
@@ -519,7 +576,7 @@
   border: 1px solid var(--erp2-border);
   border-radius: 12px;
   background: #fff;
-  box-shadow: 0 18px 40px rgba(7, 26, 54, .16);
+  box-shadow: 0 18px 40px rgba(7, 26, 54, 0.16);
 }
 
 .erp2-profile__menu header {
@@ -568,7 +625,9 @@
   min-height: 0;
   overflow: auto;
   padding: 18px;
-  background: radial-gradient(circle at 90% 0, rgba(212, 160, 23, .08), transparent 25%), var(--erp2-bg);
+  background:
+    radial-gradient(circle at 90% 0, rgba(212, 160, 23, 0.08), transparent 25%),
+    var(--erp2-bg);
 }
 
 .erp2-page-container {
@@ -600,7 +659,7 @@
   color: #9d7410;
   font-size: 10px;
   font-weight: 900;
-  letter-spacing: .14em;
+  letter-spacing: 0.14em;
 }
 
 .erp2-page-header h1 {
@@ -609,7 +668,7 @@
   font-size: clamp(21px, 2vw, 27px);
   line-height: 1.1;
   font-weight: 950;
-  letter-spacing: .015em;
+  letter-spacing: 0.015em;
 }
 
 .erp2-page-header p {
@@ -638,7 +697,10 @@
   text-decoration: none;
   cursor: pointer;
   font: 850 13px var(--erp2-font);
-  transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+  transition:
+    transform 0.12s ease,
+    box-shadow 0.12s ease,
+    background 0.12s ease;
 }
 
 .erp2-button:hover:not(:disabled) {
@@ -646,20 +708,20 @@
 }
 
 .erp2-button:focus-visible {
-  outline: 3px solid rgba(212, 160, 23, .24);
+  outline: 3px solid rgba(212, 160, 23, 0.24);
   outline-offset: 2px;
 }
 
 .erp2-button:disabled,
 .erp2-button[aria-disabled="true"] {
-  opacity: .55;
+  opacity: 0.55;
   cursor: not-allowed;
 }
 
 .erp2-button--primary {
   background: var(--erp2-blue-900);
   color: #fff;
-  box-shadow: 0 7px 16px rgba(11, 45, 87, .16);
+  box-shadow: 0 7px 16px rgba(11, 45, 87, 0.16);
 }
 
 .erp2-button--primary:hover {
@@ -669,7 +731,7 @@
 .erp2-button--gold {
   background: var(--erp2-gold-600);
   color: var(--erp2-blue-950);
-  box-shadow: 0 7px 16px rgba(212, 160, 23, .18);
+  box-shadow: 0 7px 16px rgba(212, 160, 23, 0.18);
 }
 
 .erp2-button--gold:hover {
@@ -719,7 +781,7 @@
   border: 2px solid currentColor;
   border-right-color: transparent;
   border-radius: 50%;
-  animation: erp2-spin .7s linear infinite;
+  animation: erp2-spin 0.7s linear infinite;
 }
 
 @keyframes erp2-spin {
@@ -784,7 +846,7 @@
   color: var(--erp2-blue-950);
   font-size: 14px;
   font-weight: 900;
-  letter-spacing: .02em;
+  letter-spacing: 0.02em;
 }
 
 .erp2-card__heading p {
@@ -800,7 +862,7 @@
   color: #9d7410;
   font-size: 9px;
   font-weight: 900;
-  letter-spacing: .12em;
+  letter-spacing: 0.12em;
 }
 
 .erp2-card__action {
@@ -819,7 +881,8 @@
 }
 
 .erp2-grid[style*="auto"] {
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--erp2-grid-min)), 1fr));
+  grid-template-columns: repeat(auto-fit,
+      minmax(min(100%, var(--erp2-grid-min)), 1fr));
 }
 
 .erp2-grid--gap-sm {
@@ -848,7 +911,7 @@
   border-top: 3px solid var(--erp2-blue-700);
   border-radius: 14px;
   background: #fff;
-  box-shadow: 0 8px 22px rgba(13, 45, 87, .055);
+  box-shadow: 0 8px 22px rgba(13, 45, 87, 0.055);
 }
 
 .erp2-kpi--gold {
@@ -884,7 +947,7 @@
   font-size: 11px;
   font-weight: 850;
   text-transform: uppercase;
-  letter-spacing: .05em;
+  letter-spacing: 0.05em;
 }
 
 .erp2-kpi__content>strong {
@@ -955,7 +1018,7 @@
 .erp2-compact-list article {
   min-height: 55px;
   display: grid;
-  grid-template-columns: minmax(0, 1.3fr) minmax(150px, .7fr) auto;
+  grid-template-columns: minmax(0, 1.3fr) minmax(150px, 0.7fr) auto;
   align-items: center;
   gap: 12px;
   padding: 9px 15px;
@@ -1133,7 +1196,7 @@
   border-bottom: 1px solid var(--erp2-border);
   font-size: 10px;
   font-weight: 900;
-  letter-spacing: .05em;
+  letter-spacing: 0.05em;
   text-align: left;
   white-space: nowrap;
 }
@@ -1241,7 +1304,7 @@
 }
 
 .erp2-table-pagination button:disabled {
-  opacity: .45;
+  opacity: 0.45;
 }
 
 .erp2-tabs {
@@ -1272,13 +1335,15 @@
 
 .erp2-tab:hover {
   color: var(--erp2-blue-900);
-  background: rgba(255, 255, 255, .62);
+  background: rgba(255, 255, 255, 0.62);
 }
 
 .erp2-tab.is-active {
   background: #fff;
   color: var(--erp2-blue-950);
-  box-shadow: inset 0 -3px 0 var(--erp2-gold-600), 0 2px 7px rgba(13, 45, 87, .08);
+  box-shadow:
+    inset 0 -3px 0 var(--erp2-gold-600),
+    0 2px 7px rgba(13, 45, 87, 0.08);
 }
 
 .erp2-tab b {
@@ -1386,9 +1451,209 @@
   height: 40px;
 }
 
+/* ==========================================================================
+   REQGEN GLOBAL UI STANDARDISATION
+   ========================================================================== */
+
+.reqgen-app-main {
+  min-height: calc(100vh - 72px);
+  background: linear-gradient(180deg,
+      #f8fbff 0%,
+      var(--reqgen-canvas) 48%,
+      #edf3f8 100%);
+}
+
+.reqgen-app-main main,
+.reqgen-app-main .admin-scope {
+  background: transparent !important;
+}
+
+.reqgen-app-main> :where(div, section, main) {
+  width: 100%;
+}
+
+.reqgen-app-main .workflow-hero,
+.reqgen-app-main section[class*="from-slate-950"][class*="text-white"],
+.reqgen-app-main section[class*="via-blue-950"][class*="text-white"] {
+  border: 1px solid rgba(125, 211, 252, 0.18) !important;
+  border-radius: var(--reqgen-radius-lg) !important;
+  background: linear-gradient(135deg,
+      #07142f 0%,
+      #0b2559 58%,
+      #075985 100%) !important;
+  box-shadow: 0 24px 65px -40px rgba(2, 6, 23, 0.78) !important;
+}
+
+.reqgen-app-main section[class*="bg-white"],
+.reqgen-app-main article[class*="bg-white"],
+.reqgen-app-main div[class*="bg-white"][class*="border"] {
+  border-color: var(--reqgen-border);
+}
+
+.reqgen-app-main button,
+.reqgen-app-main a[class*="rounded"][class*="px-"],
+.reqgen-app-main [role="button"],
+.reqgen-app-main [role="tab"] {
+  min-height: 2.75rem;
+  border-radius: 0.8rem;
+  font-weight: 800;
+  line-height: 1.2;
+  transition:
+    transform 160ms ease,
+    box-shadow 160ms ease,
+    filter 160ms ease,
+    background-color 160ms ease,
+    border-color 160ms ease;
+}
+
+.reqgen-app-main button:hover:not(:disabled),
+.reqgen-app-main a[class*="rounded"][class*="px-"]:hover,
+.reqgen-app-main [role="button"]:hover,
+.reqgen-app-main [role="tab"]:hover {
+  transform: translateY(-1px);
+}
+
+.reqgen-app-main button:focus-visible,
+.reqgen-app-main a:focus-visible,
+.reqgen-app-main [role="button"]:focus-visible,
+.reqgen-app-main [role="tab"]:focus-visible,
+.reqgen-app-main input:focus-visible,
+.reqgen-app-main select:focus-visible,
+.reqgen-app-main textarea:focus-visible {
+  outline: 3px solid rgba(14, 165, 233, 0.24);
+  outline-offset: 2px;
+}
+
+.reqgen-app-main input:not([type="checkbox"]):not([type="radio"]),
+.reqgen-app-main select,
+.reqgen-app-main textarea {
+  min-height: 2.75rem;
+  border-radius: 0.8rem !important;
+  border-color: #cbd5e1 !important;
+  background: rgba(255, 255, 255, 0.98) !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.reqgen-app-main :where(section, div):has(> table) {
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.reqgen-app-main table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.875rem;
+  background: rgba(255, 255, 255, 0.96);
+}
+
+.reqgen-app-main thead th {
+  position: relative;
+  background: #eef5ff;
+  color: #172554;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.reqgen-app-main th,
+.reqgen-app-main td {
+  padding: 0.78rem 0.85rem;
+  border-bottom: 1px solid #e5edf5;
+  vertical-align: middle;
+}
+
+.reqgen-app-main tbody tr:hover {
+  background: #f8fbff;
+}
+
+.reqgen-app-main td {
+  overflow-wrap: anywhere;
+}
+
+.reqgen-app-main canvas,
+.reqgen-app-main svg {
+  max-width: 100%;
+}
+
+.reqgen-app-main [class*="recharts-responsive-container"],
+.reqgen-app-main [class*="chart"] {
+  max-width: 100%;
+  min-width: 0;
+}
+
+.reqgen-app-main img {
+  max-width: 100%;
+  height: auto;
+}
+
+.reqgen-app-main footer {
+  border-top: 1px solid var(--reqgen-border);
+  background: rgba(255, 255, 255, 0.82);
+  color: var(--reqgen-muted);
+  backdrop-filter: blur(12px);
+}
+
+/* ==========================================================================
+   GLOBAL CONTEXTUAL TIPS
+   ========================================================================== */
+
+.reqgen-global-tip {
+  position: fixed;
+  z-index: 9999;
+  display: flex;
+  gap: 0.65rem;
+  align-items: flex-start;
+  pointer-events: none;
+  max-width: min(320px, calc(100vw - 24px));
+  border: 1px solid rgba(125, 211, 252, 0.3);
+  border-radius: 0.9rem;
+  background: rgba(7, 20, 47, 0.97);
+  padding: 0.72rem 0.8rem;
+  color: #fff;
+  font-size: 0.76rem;
+  font-weight: 700;
+  line-height: 1.45;
+  box-shadow: 0 16px 45px -22px rgba(2, 6, 23, 0.9);
+  backdrop-filter: blur(14px);
+  animation: reqgenTipIn 0.14s ease-out;
+}
+
+.reqgen-global-tip-icon {
+  display: grid;
+  width: 1.25rem;
+  height: 1.25rem;
+  flex: 0 0 1.25rem;
+  place-items: center;
+  border-radius: 999px;
+  background: #22d3ee;
+  color: #082f49;
+  font-size: 0.72rem;
+  font-weight: 950;
+}
+
+@keyframes reqgenTipIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ==========================================================================
+   RESPONSIVE BEHAVIOUR
+   ========================================================================== */
+
 @media (max-width: 1180px) {
   .erp2-topbar {
-    grid-template-columns: minmax(210px, .8fr) minmax(220px, 1fr) auto;
+    grid-template-columns: minmax(210px, 0.8fr) minmax(220px, 1fr) auto;
     gap: 10px;
     padding-inline: 12px;
   }
@@ -1400,6 +1665,17 @@
   .erp2-dashboard__analytics,
   .erp2-dashboard__operations {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 1024px) {
+  .reqgen-app-main table {
+    font-size: 0.8rem;
+  }
+
+  .reqgen-app-main th,
+  .reqgen-app-main td {
+    padding: 0.66rem 0.72rem;
   }
 }
 
@@ -1415,8 +1691,8 @@
     left: 0;
     transform: translateX(-105%);
     width: min(290px, 86vw);
-    transition: transform .2s ease;
-    box-shadow: 18px 0 45px rgba(7, 26, 54, .25);
+    transition: transform 0.2s ease;
+    box-shadow: 18px 0 45px rgba(7, 26, 54, 0.25);
   }
 
   .erp2-sidebar.is-mobile-open {
@@ -1452,11 +1728,11 @@
     inset: 0;
     z-index: 79;
     border: 0;
-    background: rgba(7, 26, 54, .48);
+    background: rgba(7, 26, 54, 0.48);
     opacity: 0;
     pointer-events: none;
     display: block;
-    transition: opacity .2s ease;
+    transition: opacity 0.2s ease;
   }
 
   .erp2-sidebar-backdrop.is-open {
@@ -1465,7 +1741,7 @@
   }
 
   .erp2-topbar {
-    grid-template-columns: minmax(190px, .7fr) minmax(200px, 1fr) auto;
+    grid-template-columns: minmax(190px, 0.7fr) minmax(200px, 1fr) auto;
   }
 
   .erp2-topbar__menu {
@@ -1553,6 +1829,31 @@
   }
 }
 
+@media (max-width: 640px) {
+  .reqgen-app-main {
+    overflow-x: hidden;
+  }
+
+  .reqgen-app-main .workflow-hero,
+  .reqgen-app-main section[class*="from-slate-950"][class*="text-white"],
+  .reqgen-app-main section[class*="via-blue-950"][class*="text-white"] {
+    border-radius: 1.25rem !important;
+  }
+
+  .reqgen-app-main button,
+  .reqgen-app-main a[class*="rounded"][class*="px-"],
+  .reqgen-app-main [role="button"],
+  .reqgen-app-main [role="tab"] {
+    min-height: 2.65rem;
+    white-space: normal;
+    text-align: center;
+  }
+
+  .reqgen-global-tip {
+    display: none;
+  }
+}
+
 @media (max-width: 440px) {
   .erp2-skeleton__kpis {
     grid-template-columns: 1fr;
@@ -1572,7 +1873,10 @@
   .erp2-shell,
   .erp2-sidebar,
   .erp2-button,
-  .erp2-sidebar__link {
+  .erp2-sidebar__link,
+  .reqgen-app-main *,
+  .reqgen-global-tip {
+    animation: none !important;
     transition: none !important;
   }
 
