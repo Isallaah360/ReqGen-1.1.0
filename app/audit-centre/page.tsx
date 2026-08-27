@@ -330,7 +330,7 @@ export default function AuditCentrePage() {
       <div className="mx-auto max-w-[1500px] space-y-6">
         <EnterpriseHero
           eyebrow="Governance, Accountability & Live Oversight"
-          title="Enterprise Audit & Activity Centre"
+          title="Audit & Activity Centre"
           description="A secured, live record of who performed each action, the active role used, the affected record and the time of the event across ReqGen."
           actions={
             <>

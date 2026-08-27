@@ -7,7 +7,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { ActiveRoleBadge } from "@/app/components/ActiveRoleSwitcher";
 import { canAccessPath } from "@/lib/permissions";
-import { getContextTips, NAVIGATION_ITEMS } from "@/lib/navigation";
+import { NAVIGATION_ITEMS } from "@/lib/navigation";
 
 type Notif = {
   id: string;
@@ -329,7 +329,6 @@ export default function NavBar() {
   const [actionTab, setActionTab] = useState<"actions" | "updates">("actions");
   const [openMobileMenu, setOpenMobileMenu] = useState(false);
   const [openNavigator, setOpenNavigator] = useState(false);
-  const [openTips, setOpenTips] = useState(false);
   const [navQuery, setNavQuery] = useState("");
 
   const [pendingApprovalCount, setPendingApprovalCount] = useState(0);
@@ -341,7 +340,6 @@ export default function NavBar() {
   const approvalRef = useRef<HTMLDivElement | null>(null);
   const mobileRef = useRef<HTMLDivElement | null>(null);
   const navigatorRef = useRef<HTMLDivElement | null>(null);
-  const tipsRef = useRef<HTMLDivElement | null>(null);
 
   const roleSet = useMemo(() => {
     // Strict isolation: only the selected active role controls visible modules.
@@ -377,7 +375,6 @@ export default function NavBar() {
       .slice(0, 40);
   }, [accessibleNavigationItems, navQuery]);
 
-  const contextTips = useMemo(() => getContextTips(pathname), [pathname]);
 
   function isActiveLink(href: string) {
     if (href === "/") return pathname === "/";
@@ -640,20 +637,16 @@ export default function NavBar() {
         setOpenNavigator(false);
       }
 
-      if (openTips && tipsRef.current && !tipsRef.current.contains(t)) {
-        setOpenTips(false);
-      }
     }
 
     document.addEventListener("mousedown", onClick);
     return () => document.removeEventListener("mousedown", onClick);
-  }, [openApprovalPanel, openMobileMenu, openNavigator, openTips]);
+  }, [openApprovalPanel, openMobileMenu, openNavigator]);
 
   useEffect(() => {
     setOpenApprovalPanel(false);
     setOpenMobileMenu(false);
     setOpenNavigator(false);
-    setOpenTips(false);
   }, [pathname]);
 
   async function logout() {
@@ -707,7 +700,6 @@ export default function NavBar() {
     setOpenMobileMenu(false);
     setOpenApprovalPanel(false);
     setOpenNavigator(false);
-    setOpenTips(false);
     setNavQuery("");
     router.push(`${href}?updated=${Date.now()}`);
     router.refresh();
@@ -762,7 +754,7 @@ export default function NavBar() {
             <div className="relative hidden md:block" ref={navigatorRef}>
               <button
                 type="button"
-                onClick={() => { setOpenNavigator((v) => !v); setOpenTips(false); setOpenMobileMenu(false); setOpenApprovalPanel(false); }}
+                onClick={() => { setOpenNavigator((v) => !v); setOpenMobileMenu(false); setOpenApprovalPanel(false); }}
                 className="flex h-11 w-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 text-left text-sm font-bold text-slate-600 shadow-sm transition hover:border-blue-300 hover:bg-white 2xl:w-52 2xl:justify-start"
                 aria-label="Search ReqGen pages and modules"
               >
@@ -805,23 +797,6 @@ export default function NavBar() {
               )}
             </div>
 
-            <div className="relative hidden sm:block" ref={tipsRef}>
-              <button
-                type="button"
-                onClick={() => { setOpenTips((v) => !v); setOpenNavigator(false); setOpenMobileMenu(false); setOpenApprovalPanel(false); }}
-                className="h-11 rounded-xl border border-amber-200 bg-amber-50 px-3 text-sm font-black text-amber-900 transition hover:bg-amber-100"
-              >
-                Tips
-              </button>
-              {openTips && (
-                <div className="absolute right-0 top-[52px] z-[70] w-[360px] rounded-3xl border border-amber-200 bg-white p-4 shadow-2xl">
-                  <div className="text-sm font-black text-slate-950">Quick Tips</div>
-                  <div className="mt-3 space-y-2">
-                    {contextTips.map((tip) => <div key={tip} className="rounded-xl bg-amber-50 px-3 py-2 text-xs font-semibold leading-5 text-slate-700">💡 {tip}</div>)}
-                  </div>
-                </div>
-              )}
-            </div>
             <nav className="hidden items-center gap-2.5 md:flex">
               <div className="relative" ref={approvalRef}>
                 <button
@@ -1008,8 +983,8 @@ export default function NavBar() {
 
               {canAudit && (
                 <Link className={iconLinkClass("/audit-centre")} href="/audit-centre">
-                  <NavPngIcon src="/audit.png" alt="Enterprise Audit Centre" />
-                  <IconButtonTooltip label="Enterprise Audit Centre" />
+                  <NavPngIcon src="/audit.png" alt="Audit Centre" />
+                  <IconButtonTooltip label="Audit Centre" />
                 </Link>
               )}
 
@@ -1070,12 +1045,7 @@ export default function NavBar() {
                     )}
                   </div>
 
-                  <details className="mb-3 rounded-2xl border border-amber-200 bg-amber-50 p-3">
-                    <summary className="cursor-pointer text-sm font-black text-amber-950">💡 Quick Tips</summary>
-                    <div className="mt-2 space-y-2">
-                      {contextTips.map((tip) => <div key={tip} className="rounded-lg bg-white px-3 py-2 text-xs font-semibold leading-5 text-slate-700">{tip}</div>)}
-                    </div>
-                  </details>
+                  
 
                   <button
                     type="button"
@@ -1214,8 +1184,8 @@ export default function NavBar() {
                         className={mobileItemClass("/audit-centre")}
                       >
                         <span className="inline-flex items-center gap-2">
-                          <NavPngIcon src="/audit.png" alt="Enterprise Audit Centre" size={22} />
-                          Enterprise Audit Centre
+                          <NavPngIcon src="/audit.png" alt="Audit Centre" size={22} />
+                          Audit Centre
                         </span>
                       </button>
                     </>

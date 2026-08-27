@@ -233,7 +233,7 @@ function Registry({ data, metrics }: { data: Record<string, Row[]>; metrics: Ret
 
 function Audit({ data }: { data: Record<string, Row[]> }) {
   const rows: Row[] = [
-    ...(data.audit ?? []).map((row): Row => ({ ...row, module: text(row.module, "Enterprise Audit"), action: text(row.action, "Activity recorded"), details: text(row.details || row.description || row.message || row.metadata, "No additional evidence supplied.") })),
+    ...(data.audit ?? []).map((row): Row => ({ ...row, module: text(row.module, "Audit"), action: text(row.action, "Activity recorded"), details: text(row.details || row.description || row.message || row.metadata, "No additional evidence supplied.") })),
     ...(data.roleSwitches ?? []).map((row): Row => ({ ...row, module: "Security", action: text(row.action, `Working role changed to ${text(row.new_role_key || row.active_role_key || row.role_key, "another role")}`), details: text(row.details || row.reason || row.source, "Active-role switch recorded.") })),
   ].sort((a, b) => new Date(text(b.created_at || b.occurred_at, "1970-01-01")).getTime() - new Date(text(a.created_at || a.occurred_at, "1970-01-01")).getTime());
   const today = new Date().toISOString().slice(0, 10);

@@ -115,3 +115,177 @@ button {
     white-space: normal !important;
   }
 }
+
+/* ========================================================================== */
+/* ReqGen 1.1.0 — Global ERP visual system (2026-08-27)                       */
+/* ========================================================================== */
+:root {
+  --reqgen-navy: #07142f;
+  --reqgen-blue: #0b57d0;
+  --reqgen-cyan: #0891b2;
+  --reqgen-surface: rgba(255, 255, 255, 0.94);
+  --reqgen-canvas: #f4f7fb;
+  --reqgen-border: #dbe4ef;
+  --reqgen-text: #0f172a;
+  --reqgen-muted: #64748b;
+  --reqgen-radius: 1rem;
+  --reqgen-radius-lg: 1.75rem;
+  --reqgen-shadow: 0 12px 38px -28px rgba(15, 23, 42, 0.45);
+}
+
+html { font-family: Aptos, "Segoe UI", Inter, system-ui, -apple-system, BlinkMacSystemFont, sans-serif; }
+body { background: var(--reqgen-canvas); color: var(--reqgen-text); }
+.reqgen-app-main { min-height: calc(100vh - 72px); background: linear-gradient(180deg, #f8fbff 0%, var(--reqgen-canvas) 48%, #edf3f8 100%); }
+
+/* Standardise page canvases without destroying module logic. */
+.reqgen-app-main main,
+.reqgen-app-main .admin-scope {
+  background: transparent !important;
+}
+.reqgen-app-main > :where(div, section, main) { width: 100%; }
+
+/* One hero language across Finance, HR, Registry, Admin, Staff, Workflow and Audit. */
+.reqgen-app-main .workflow-hero,
+.reqgen-app-main section[class*="from-slate-950"][class*="text-white"],
+.reqgen-app-main section[class*="via-blue-950"][class*="text-white"] {
+  border: 1px solid rgba(125, 211, 252, 0.18) !important;
+  border-radius: var(--reqgen-radius-lg) !important;
+  background: linear-gradient(135deg, #07142f 0%, #0b2559 58%, #075985 100%) !important;
+  box-shadow: 0 24px 65px -40px rgba(2, 6, 23, 0.78) !important;
+}
+
+/* Global surfaces/cards. */
+.reqgen-app-main section[class*="bg-white"],
+.reqgen-app-main article[class*="bg-white"],
+.reqgen-app-main div[class*="bg-white"][class*="border"] {
+  border-color: var(--reqgen-border);
+}
+
+/* Buttons, links used as buttons and tabs scale consistently. */
+.reqgen-app-main button,
+.reqgen-app-main a[class*="rounded"][class*="px-"],
+.reqgen-app-main [role="button"],
+.reqgen-app-main [role="tab"] {
+  min-height: 2.75rem;
+  border-radius: 0.8rem;
+  font-weight: 800;
+  line-height: 1.2;
+  transition: transform 160ms ease, box-shadow 160ms ease, filter 160ms ease, background-color 160ms ease, border-color 160ms ease;
+}
+.reqgen-app-main button:hover:not(:disabled),
+.reqgen-app-main a[class*="rounded"][class*="px-"]:hover,
+.reqgen-app-main [role="button"]:hover,
+.reqgen-app-main [role="tab"]:hover { transform: translateY(-1px); }
+.reqgen-app-main button:focus-visible,
+.reqgen-app-main a:focus-visible,
+.reqgen-app-main [role="button"]:focus-visible,
+.reqgen-app-main [role="tab"]:focus-visible,
+.reqgen-app-main input:focus-visible,
+.reqgen-app-main select:focus-visible,
+.reqgen-app-main textarea:focus-visible {
+  outline: 3px solid rgba(14, 165, 233, 0.24);
+  outline-offset: 2px;
+}
+
+/* Form language. */
+.reqgen-app-main input:not([type="checkbox"]):not([type="radio"]),
+.reqgen-app-main select,
+.reqgen-app-main textarea {
+  min-height: 2.75rem;
+  border-radius: 0.8rem !important;
+  border-color: #cbd5e1 !important;
+  background: rgba(255,255,255,.98) !important;
+  box-shadow: 0 1px 2px rgba(15,23,42,.04);
+}
+
+/* Tables: consistent ERP register look and safe horizontal scaling. */
+.reqgen-app-main :where(section, div):has(> table) { max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.reqgen-app-main table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.875rem;
+  background: rgba(255,255,255,.96);
+}
+.reqgen-app-main thead th {
+  position: relative;
+  background: #eef5ff;
+  color: #172554;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: .045em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.reqgen-app-main th,
+.reqgen-app-main td { padding: .78rem .85rem; border-bottom: 1px solid #e5edf5; vertical-align: middle; }
+.reqgen-app-main tbody tr:hover { background: #f8fbff; }
+.reqgen-app-main td { overflow-wrap: anywhere; }
+
+/* Charts and iconography must never overflow their cards. */
+.reqgen-app-main canvas,
+.reqgen-app-main svg { max-width: 100%; }
+.reqgen-app-main [class*="recharts-responsive-container"],
+.reqgen-app-main [class*="chart"] { max-width: 100%; min-width: 0; }
+.reqgen-app-main img { max-width: 100%; height: auto; }
+
+/* Footer language. */
+.reqgen-app-main footer {
+  border-top: 1px solid var(--reqgen-border);
+  background: rgba(255,255,255,.82);
+  color: var(--reqgen-muted);
+  backdrop-filter: blur(12px);
+}
+
+/* Contextual system-wide tips: replaces the old static Tips menu. */
+.reqgen-global-tip {
+  position: fixed;
+  z-index: 9999;
+  display: flex;
+  gap: .65rem;
+  align-items: flex-start;
+  pointer-events: none;
+  border: 1px solid rgba(125, 211, 252, .3);
+  border-radius: .9rem;
+  background: rgba(7, 20, 47, .97);
+  padding: .72rem .8rem;
+  color: #fff;
+  font-size: .76rem;
+  font-weight: 700;
+  line-height: 1.45;
+  box-shadow: 0 16px 45px -22px rgba(2,6,23,.9);
+  backdrop-filter: blur(14px);
+  animation: reqgenTipIn .14s ease-out;
+}
+.reqgen-global-tip-icon {
+  display: grid;
+  width: 1.25rem;
+  height: 1.25rem;
+  flex: 0 0 1.25rem;
+  place-items: center;
+  border-radius: 999px;
+  background: #22d3ee;
+  color: #082f49;
+  font-size: .72rem;
+  font-weight: 950;
+}
+@keyframes reqgenTipIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+@media (max-width: 1024px) {
+  .reqgen-app-main table { font-size: .8rem; }
+  .reqgen-app-main th, .reqgen-app-main td { padding: .66rem .72rem; }
+}
+@media (max-width: 640px) {
+  .reqgen-app-main { overflow-x: hidden; }
+  .reqgen-app-main .workflow-hero,
+  .reqgen-app-main section[class*="from-slate-950"][class*="text-white"],
+  .reqgen-app-main section[class*="via-blue-950"][class*="text-white"] { border-radius: 1.25rem !important; }
+  .reqgen-app-main button,
+  .reqgen-app-main a[class*="rounded"][class*="px-"],
+  .reqgen-app-main [role="button"],
+  .reqgen-app-main [role="tab"] { min-height: 2.65rem; white-space: normal; text-align: center; }
+  .reqgen-global-tip { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .reqgen-app-main *, .reqgen-global-tip { animation: none !important; transition: none !important; }
+}

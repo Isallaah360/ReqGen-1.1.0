@@ -103,7 +103,7 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
   { href: "/executive/meetings", label: "Executive Meetings", section: "Executive", description: "Executive meetings workspace." },
   { href: "/executive/notifications", label: "Executive Notifications", section: "Executive", description: "Executive notifications workspace." },
 
-  { href: "/audit-centre", label: "Enterprise Audit Centre", section: "Governance", description: "Enterprise audit oversight." },
+  { href: "/audit-centre", label: "Audit Centre", section: "Governance", description: "Audit oversight." },
   { href: "/workflow", label: "Workflow Intelligence", section: "Governance", description: "Workflow intelligence and process monitoring." },
 
   { href: "/admin", label: "Administration Centre", section: "Administration", description: "System administration command centre." },

@@ -122,7 +122,7 @@ export default function AdminNavigation() {
             onClick={() => router.push("/audit-centre")}
             className="reqgen-btn reqgen-btn-violet rounded-xl px-3 py-2 text-xs font-black text-white"
           >
-            Enterprise Audit
+            Audit
           </button>
         </div>
       </div>

@@ -133,7 +133,7 @@ export const ACCESS_MATRIX: AccessMatrixRow[] = [
   },
   {
     route: "/audit-centre",
-    label: "Enterprise Audit Centre",
+    label: "Audit Centre",
     admin: "allow",
     auditor: "allow",
     dg: "deny",

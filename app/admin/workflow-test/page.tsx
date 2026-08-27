@@ -130,7 +130,7 @@ const DEFAULT_CHECKS: WorkflowCheck[] = [
     group: "Audit",
     title: "Who did what",
     description: "Perform representative sensitive actions in every major module.",
-    expected: "Enterprise Audit identifies actor, active role, action, module, record and timestamp.",
+    expected: "Audit identifies actor, active role, action, module, record and timestamp.",
     status: "pending",
     note: "",
   },
@@ -175,7 +175,7 @@ export default function WorkflowTestPage() {
       { key: "finance", label: "Finance Transactions", table: "finance_transactions" },
       { key: "vouchers", label: "Payment Vouchers", table: "payment_vouchers" },
       { key: "hrAssignments", label: "HR Request Assignments", table: "hr_request_assignments" },
-      { key: "audit", label: "Enterprise Audit", table: "enterprise_audit_events" },
+      { key: "audit", label: "Audit", table: "enterprise_audit_events" },
     ];
 
     const results = await Promise.all(

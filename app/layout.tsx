@@ -4,6 +4,7 @@ import NavBar from "./components/NavBar";
 import SessionTimeout from "./components/SessionTimeout";
 import MfaGuard from "./components/MfaGuard";
 import RouteAccessGuard from "./components/RouteAccessGuard";
+import GlobalTips from "./components/GlobalTips";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://req-gen-1-1-0.vercel.app"),
@@ -61,8 +62,9 @@ export default function RootLayout({
         <NavBar />
 
         <SessionTimeout />
+        <GlobalTips />
 
-        <main>{children}</main>
+        <main className="reqgen-app-main">{children}</main>
       </body>
     </html>
   );
