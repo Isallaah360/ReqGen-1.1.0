@@ -9,7 +9,7 @@ type Account = {
   code: string | null;
   name: string;
   bank_name: string | null;
-  account_number: string | null;
+  account_number?: string | null;
   is_active: boolean | null;
   updated_at: string | null;
 
@@ -28,6 +28,37 @@ type ProfileMini = {
 };
 
 type TabKey = "overview" | "active" | "inactive" | "form" | "funding";
+
+const STANDARD_IET_ACCOUNTS = [
+  { code: "IET001", name: "Donations", bank_name: "Zenith Bank" },
+  { code: "IET002", name: "Admin", bank_name: "Zenith Bank" },
+  { code: "IET003", name: "Welfare", bank_name: "Zenith Bank" },
+  { code: "IET004", name: "USD", bank_name: "Zenith Bank" },
+  { code: "IET005", name: "GBP", bank_name: "Zenith Bank" },
+  { code: "IET006", name: "Zakat & Donations", bank_name: "GT-Bank" },
+  { code: "IET007", name: "Schools & Investment", bank_name: "GT-Bank" },
+  { code: "IET008", name: "Project", bank_name: "GT-Bank" },
+  { code: "IET009", name: "USD", bank_name: "GT-Bank" },
+  { code: "IET010", name: "GBP", bank_name: "GT-Bank" },
+  { code: "IET011", name: "EURO", bank_name: "GT-Bank" },
+  { code: "IET012", name: "DIN", bank_name: "UBA Bank" },
+  { code: "IET013", name: "Programme", bank_name: "UBA Bank" },
+  { code: "IET014", name: "ALLI", bank_name: "Zenith Bank" },
+  { code: "IET015", name: "ALLI", bank_name: "Lotus Bank" },
+  { code: "IET016", name: "ALLI MAUK", bank_name: "Lotus Bank" },
+  { code: "IET017", name: "POS", bank_name: "Lotus Bank" },
+  { code: "IET018", name: "Lotus Account", bank_name: "Lotus Bank" },
+  { code: "IET019", name: "Jaiz Account", bank_name: "Jaiz Bank" },
+  { code: "IET020", name: "Providus Account", bank_name: "Providus Bank" },
+] as const;
+
+function nextIetCode(accounts: Pick<Account, "code">[]) {
+  const max = accounts.reduce((highest, account) => {
+    const match = /^IET(\d{3,})$/i.exec((account.code || "").trim());
+    return match ? Math.max(highest, Number(match[1])) : highest;
+  }, 0);
+  return `IET${String(max + 1).padStart(3, "0")}`;
+}
 
 function roleKey(role: string | null | undefined) {
   return (role || "")
@@ -53,19 +84,6 @@ function naira(n: number | null | undefined) {
 
 function plainAmount(n: number | null | undefined) {
   return Math.round(Number(n || 0)).toLocaleString();
-}
-
-function maskAccountNumber(value: string | null | undefined) {
-  const raw = (value || "").trim();
-
-  if (!raw) return "—";
-  if (raw.length <= 4) return raw;
-
-  return `${"*".repeat(Math.max(raw.length - 4, 0))}${raw.slice(-4)}`;
-}
-
-function cleanAccountNumber(value: string) {
-  return value.replace(/[^\d]/g, "").slice(0, 20);
 }
 
 function amountInputValue(n: number | null | undefined) {
@@ -94,7 +112,6 @@ export default function ManageAccountsPage() {
   const [code, setCode] = useState("");
   const [name, setName] = useState("");
   const [bankName, setBankName] = useState("");
-  const [acctNo, setAcctNo] = useState("");
   const [active, setActive] = useState(true);
 
   const [fundingAccountId, setFundingAccountId] = useState<string>("");
@@ -149,12 +166,32 @@ export default function ManageAccountsPage() {
         return null;
       }
 
+      // Keep the approved IET bank register available after deployment without
+      // overwriting an administrator's later edits or active/inactive decisions.
+      const { data: existingCodes } = await supabase.from("iet_accounts").select("code");
+      const existingCodeSet = new Set(
+        (existingCodes || []).map((row: { code?: string | null }) => (row.code || "").trim().toUpperCase())
+      );
+      const missingStandardAccounts = STANDARD_IET_ACCOUNTS.filter(
+        (account) => !existingCodeSet.has(account.code)
+      );
+
+      if (missingStandardAccounts.length > 0) {
+        const { error: seedError } = await supabase
+          .from("iet_accounts")
+          .insert(missingStandardAccounts.map((account) => ({ ...account, is_active: true })));
+
+        if (seedError) {
+          console.warn("Standard IET bank register sync failed:", seedError.message);
+        }
+      }
+
       await supabase.rpc("reqgen_recalculate_all_iet_accounts");
 
       const { data, error } = await supabase
         .from("iet_accounts")
         .select(
-          "id,code,name,bank_name,account_number,is_active,updated_at,total_fund,allocated_amount,reserved_amount,expenditure,unallocated_balance,available_balance,last_recalculated_at"
+          "id,code,name,bank_name,is_active,updated_at,total_fund,allocated_amount,reserved_amount,expenditure,unallocated_balance,available_balance,last_recalculated_at"
         )
         .order("updated_at", { ascending: false });
 
@@ -259,7 +296,6 @@ export default function ManageAccountsPage() {
         a.code,
         a.name,
         a.bank_name,
-        a.account_number,
         a.is_active === false ? "inactive" : "active",
         a.total_fund,
         a.allocated_amount,
@@ -284,7 +320,6 @@ export default function ManageAccountsPage() {
     setCode("");
     setName("");
     setBankName("");
-    setAcctNo("");
     setActive(true);
   }
 
@@ -304,7 +339,6 @@ export default function ManageAccountsPage() {
     setCode(account.code || "");
     setName(account.name || "");
     setBankName(account.bank_name || "");
-    setAcctNo(account.account_number || "");
     setActive(account.is_active !== false);
     setMsg(null);
     setActiveTab("form");
@@ -326,15 +360,9 @@ export default function ManageAccountsPage() {
       return;
     }
 
-    const c = code.trim().toUpperCase();
+    const c = editId ? code.trim().toUpperCase() : nextIetCode(accounts);
     const n = name.trim();
     const b = bankName.trim();
-    const a = cleanAccountNumber(acctNo);
-
-    if (!c || c.length < 2) {
-      setMsg("❌ Code is required, for example GENADMIN.");
-      return;
-    }
 
     if (!n || n.length < 2) {
       setMsg("❌ Account name is required.");
@@ -346,11 +374,6 @@ export default function ManageAccountsPage() {
       return;
     }
 
-    if (!a || a.length < 6) {
-      setMsg("❌ Enter a valid account number.");
-      return;
-    }
-
     setSaving(true);
     setMsg(null);
 
@@ -359,16 +382,24 @@ export default function ManageAccountsPage() {
         code: c,
         name: n,
         bank_name: b,
-        account_number: a,
         is_active: active,
       };
 
       if (!editId) {
-        const { error } = await supabase.from("iet_accounts").insert(payload);
+        let { error } = await supabase.from("iet_accounts").insert(payload);
+
+        // If another record took the generated code between load and save, refresh
+        // and retry once with the next available code instead of exposing a DB error.
+        if (error && (error.code === "23505" || error.message.includes("iet_accounts_code_unique"))) {
+          const { data: latest } = await supabase.from("iet_accounts").select("code");
+          const retryCode = nextIetCode((latest || []) as Pick<Account, "code">[]);
+          const retry = await supabase.from("iet_accounts").insert({ ...payload, code: retryCode });
+          error = retry.error;
+        }
 
         if (error) throw new Error(error.message);
 
-        setMsg("✅ IET bank account created successfully. You can now set its total fund.");
+        setMsg("✅ IET bank account created successfully. The account code was generated automatically.");
       } else {
         const { error } = await supabase
           .from("iet_accounts")
@@ -704,7 +735,7 @@ export default function ManageAccountsPage() {
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by code, account name, bank, account number, amount or status..."
+              placeholder="Search by code, account name, bank, amount or status..."
               className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 text-slate-900 outline-none focus:border-blue-500"
             />
           </div>
@@ -750,8 +781,7 @@ export default function ManageAccountsPage() {
                   <option value="">-- Select Bank Account --</option>
                   {accounts.map((account) => (
                     <option key={account.id} value={account.id}>
-                      {accountLabel(account)} • {account.bank_name || "Bank"} •{" "}
-                      {maskAccountNumber(account.account_number)}
+                      {accountLabel(account)} • {account.bank_name || "Bank"}
                     </option>
                   ))}
                 </select>
@@ -810,7 +840,7 @@ export default function ManageAccountsPage() {
                   {editId ? "Edit IET Bank Account" : "Add New IET Bank Account"}
                 </h2>
                 <p className="mt-1 text-sm text-slate-600">
-                  Enter account code, title, bank name, account number and active status.
+                  Enter the account title and bank name. ReqGen generates the IET code automatically; account numbers are intentionally not stored here.
                 </p>
               </div>
 
@@ -834,13 +864,9 @@ export default function ManageAccountsPage() {
             <div className="mt-5 grid gap-4 md:grid-cols-2">
               <div>
                 <label className="text-sm font-semibold text-slate-800">Code</label>
-                <input
-                  value={code}
-                  onChange={(e) => setCode(e.target.value)}
-                  disabled={!canManage || saving}
-                  placeholder="e.g. GENADMIN"
-                  className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 text-slate-900 outline-none focus:border-blue-500 disabled:bg-slate-50"
-                />
+                <div className="mt-1 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-black text-slate-700">
+                  {editId ? code : `${nextIetCode(accounts)} (automatic)`}
+                </div>
               </div>
 
               <div>
@@ -865,15 +891,11 @@ export default function ManageAccountsPage() {
                 />
               </div>
 
-              <div>
-                <label className="text-sm font-semibold text-slate-800">Account Number</label>
-                <input
-                  value={acctNo}
-                  onChange={(e) => setAcctNo(cleanAccountNumber(e.target.value))}
-                  disabled={!canManage || saving}
-                  placeholder="e.g. 0123456789"
-                  className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 text-slate-900 outline-none focus:border-blue-500 disabled:bg-slate-50"
-                />
+              <div className="rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3">
+                <div className="text-sm font-black text-emerald-900">Security Control</div>
+                <div className="mt-1 text-xs font-semibold leading-5 text-emerald-800">
+                  Bank account numbers are not required or stored in the IET Bank Accounts register.
+                </div>
               </div>
             </div>
 
@@ -933,7 +955,7 @@ export default function ManageAccountsPage() {
                     <thead>
                       <tr className="bg-slate-100 text-xs uppercase tracking-wide text-slate-600">
                         <th className="px-4 py-3 text-left">Account</th>
-                        <th className="px-4 py-3 text-left">Bank / Number</th>
+                        <th className="px-4 py-3 text-left">Bank Name</th>
                         <th className="px-4 py-3 text-right">Total Fund</th>
                         <th className="px-4 py-3 text-right">Allocated</th>
                         <th className="px-4 py-3 text-right">Unallocated</th>
@@ -962,9 +984,7 @@ export default function ManageAccountsPage() {
 
                           <td className="px-4 py-4 text-slate-800">
                             <div className="font-semibold">{account.bank_name || "—"}</div>
-                            <div className="mt-1 text-xs text-slate-500">
-                              {maskAccountNumber(account.account_number)}
-                            </div>
+                            <div className="mt-1 text-xs font-semibold text-emerald-700">Account number not stored</div>
                           </td>
 
                           <td className="px-4 py-4 text-right font-bold text-blue-700">
@@ -1122,7 +1142,7 @@ function AccountCard({
           <div className="text-lg font-extrabold text-slate-900">{account.code || "—"}</div>
           <div className="mt-1 text-sm font-semibold text-slate-800">{account.name}</div>
           <div className="mt-1 text-xs text-slate-500">
-            {account.bank_name || "—"} • {maskAccountNumber(account.account_number)}
+            {account.bank_name || "—"} • Account number not stored
           </div>
         </div>
 

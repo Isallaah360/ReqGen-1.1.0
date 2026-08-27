@@ -5,8 +5,9 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
-import { REPORT_ACCESS_ROLES } from "@/lib/roles";
 import { ActiveRoleBadge } from "@/app/components/ActiveRoleSwitcher";
+import { canAccessPath } from "@/lib/permissions";
+import { getContextTips, NAVIGATION_ITEMS } from "@/lib/navigation";
 
 type Notif = {
   id: string;
@@ -327,6 +328,9 @@ export default function NavBar() {
   const [openApprovalPanel, setOpenApprovalPanel] = useState(false);
   const [actionTab, setActionTab] = useState<"actions" | "updates">("actions");
   const [openMobileMenu, setOpenMobileMenu] = useState(false);
+  const [openNavigator, setOpenNavigator] = useState(false);
+  const [openTips, setOpenTips] = useState(false);
+  const [navQuery, setNavQuery] = useState("");
 
   const [pendingApprovalCount, setPendingApprovalCount] = useState(0);
   const [pendingApprovals, setPendingApprovals] = useState<PendingApproval[]>([]);
@@ -336,6 +340,8 @@ export default function NavBar() {
 
   const approvalRef = useRef<HTMLDivElement | null>(null);
   const mobileRef = useRef<HTMLDivElement | null>(null);
+  const navigatorRef = useRef<HTMLDivElement | null>(null);
+  const tipsRef = useRef<HTMLDivElement | null>(null);
 
   const roleSet = useMemo(() => {
     // Strict isolation: only the selected active role controls visible modules.
@@ -344,33 +350,34 @@ export default function NavBar() {
     return effective;
   }, [activeRoleKey]);
 
-  const isAdmin = hasAnyRole(roleSet, ["admin"]);
-  const canViewReports = hasAnyRole(roleSet, [...REPORT_ACCESS_ROLES]);
-  const canAudit = hasAnyRole(roleSet, ["admin", "auditor"]);
-  const canExecutive = hasAnyRole(roleSet, ["admin", "dg", "director", "auditor", "hrboss", "humanresourcesboss"]);
+  const isAdmin = canAccessPath("/admin", roleSet);
+  const canViewReports = canAccessPath("/reports", roleSet);
+  const canAudit = canAccessPath("/audit-centre", roleSet);
+  const canExecutive = canAccessPath("/executive", roleSet);
+  const canFinance = canAccessPath("/finance", roleSet);
+  const canHR = canAccessPath("/hr", roleSet);
+  const canRegistry = canAccessPath("/registry", roleSet);
 
-  const canFinance = hasAnyRole(roleSet, [
-    "admin",
-    "auditor",
-    "account",
-    "accounts",
-    "accountofficer",
-    "pvsigner",
-    "pvcountersigner",
-  ]);
+  const accessibleNavigationItems = useMemo(
+    () => NAVIGATION_ITEMS.filter((item) => canAccessPath(item.href, roleSet)),
+    [roleSet]
+  );
 
-  const canHR = hasAnyRole(roleSet, [
-    "admin",
-    "auditor",
-    "hr",
-    "hrboss",
-    "hrofficer",
-    "hrofficer1",
-    "hrofficer2",
-    "hrofficer3",
-  ]);
+  const navigationResults = useMemo(() => {
+    const q = navQuery.trim().toLowerCase();
+    if (!q) return accessibleNavigationItems.slice(0, 24);
 
-  const canRegistry = hasAnyRole(roleSet, ["admin", "auditor", "registry"]);
+    return accessibleNavigationItems
+      .filter((item) =>
+        [item.label, item.section, item.description, item.href, ...(item.keywords || [])]
+          .join(" ")
+          .toLowerCase()
+          .includes(q)
+      )
+      .slice(0, 40);
+  }, [accessibleNavigationItems, navQuery]);
+
+  const contextTips = useMemo(() => getContextTips(pathname), [pathname]);
 
   function isActiveLink(href: string) {
     if (href === "/") return pathname === "/";
@@ -628,15 +635,25 @@ export default function NavBar() {
       if (openMobileMenu && mobileRef.current && !mobileRef.current.contains(t)) {
         setOpenMobileMenu(false);
       }
+
+      if (openNavigator && navigatorRef.current && !navigatorRef.current.contains(t)) {
+        setOpenNavigator(false);
+      }
+
+      if (openTips && tipsRef.current && !tipsRef.current.contains(t)) {
+        setOpenTips(false);
+      }
     }
 
     document.addEventListener("mousedown", onClick);
     return () => document.removeEventListener("mousedown", onClick);
-  }, [openApprovalPanel, openMobileMenu]);
+  }, [openApprovalPanel, openMobileMenu, openNavigator, openTips]);
 
   useEffect(() => {
     setOpenApprovalPanel(false);
     setOpenMobileMenu(false);
+    setOpenNavigator(false);
+    setOpenTips(false);
   }, [pathname]);
 
   async function logout() {
@@ -689,6 +706,9 @@ export default function NavBar() {
   function goTo(href: string) {
     setOpenMobileMenu(false);
     setOpenApprovalPanel(false);
+    setOpenNavigator(false);
+    setOpenTips(false);
+    setNavQuery("");
     router.push(`${href}?updated=${Date.now()}`);
     router.refresh();
   }
@@ -702,7 +722,7 @@ export default function NavBar() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-slate-200/80 bg-white/95 shadow-sm backdrop-blur-xl">
-      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3">
+      <div className="mx-auto flex max-w-[1680px] items-center justify-between gap-3 px-4 py-3">
         <Link href="/" className="shrink-0 rounded-xl bg-gradient-to-r from-slate-950 to-blue-900 px-3 py-2 text-lg font-black tracking-tight text-white shadow-md">
           ReqGen <span className="text-cyan-300">1.1.0</span>
         </Link>
@@ -739,6 +759,69 @@ export default function NavBar() {
 
         {showFullNavigation && (
           <div className="flex min-w-0 items-center gap-2">
+            <div className="relative hidden md:block" ref={navigatorRef}>
+              <button
+                type="button"
+                onClick={() => { setOpenNavigator((v) => !v); setOpenTips(false); setOpenMobileMenu(false); setOpenApprovalPanel(false); }}
+                className="flex h-11 w-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 text-left text-sm font-bold text-slate-600 shadow-sm transition hover:border-blue-300 hover:bg-white 2xl:w-52 2xl:justify-start"
+                aria-label="Search ReqGen pages and modules"
+              >
+                <span aria-hidden="true">⌕</span>
+                <span className="hidden truncate 2xl:inline">Search ReqGen…</span>
+              </button>
+
+              {openNavigator && (
+                <div className="absolute left-0 top-[52px] z-[70] w-[min(520px,calc(100vw-2rem))] overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl shadow-slate-900/20">
+                  <div className="border-b bg-gradient-to-r from-slate-950 to-blue-950 p-4">
+                    <div className="text-xs font-black uppercase tracking-[0.18em] text-cyan-200">System-wide Search</div>
+                    <input
+                      autoFocus
+                      value={navQuery}
+                      onChange={(e) => setNavQuery(e.target.value)}
+                      placeholder="Search pages, modules, banks, reports, settings…"
+                      className="mt-3 w-full rounded-xl border border-white/20 bg-white px-4 py-3 text-sm font-semibold text-slate-950 outline-none ring-0 placeholder:text-slate-400"
+                    />
+                  </div>
+                  <div className="max-h-[62vh] overflow-auto p-2">
+                    {navigationResults.length === 0 ? (
+                      <div className="px-4 py-8 text-center text-sm font-semibold text-slate-500">No authorised page matches this search.</div>
+                    ) : navigationResults.map((item) => (
+                      <button key={item.href} type="button" onClick={() => goTo(item.href)} className="w-full rounded-2xl px-4 py-3 text-left transition hover:bg-blue-50">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="text-sm font-black text-slate-950">{item.label}</div>
+                            <div className="mt-0.5 text-xs font-bold text-blue-700">{item.section}</div>
+                            <div className="mt-1 line-clamp-2 text-xs font-semibold text-slate-500">{item.description}</div>
+                          </div>
+                          <span className="shrink-0 rounded-lg bg-slate-100 px-2 py-1 text-[10px] font-black text-slate-500">OPEN</span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                  <div className="border-t bg-slate-50 px-4 py-3 text-xs font-semibold text-slate-500">
+                    Showing only pages permitted for your active role.
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="relative hidden sm:block" ref={tipsRef}>
+              <button
+                type="button"
+                onClick={() => { setOpenTips((v) => !v); setOpenNavigator(false); setOpenMobileMenu(false); setOpenApprovalPanel(false); }}
+                className="h-11 rounded-xl border border-amber-200 bg-amber-50 px-3 text-sm font-black text-amber-900 transition hover:bg-amber-100"
+              >
+                Tips
+              </button>
+              {openTips && (
+                <div className="absolute right-0 top-[52px] z-[70] w-[360px] rounded-3xl border border-amber-200 bg-white p-4 shadow-2xl">
+                  <div className="text-sm font-black text-slate-950">Quick Tips</div>
+                  <div className="mt-3 space-y-2">
+                    {contextTips.map((tip) => <div key={tip} className="rounded-xl bg-amber-50 px-3 py-2 text-xs font-semibold leading-5 text-slate-700">💡 {tip}</div>)}
+                  </div>
+                </div>
+              )}
+            </div>
             <nav className="hidden items-center gap-2.5 md:flex">
               <div className="relative" ref={approvalRef}>
                 <button
@@ -964,6 +1047,35 @@ export default function NavBar() {
                       {roleSummary(myRole, myRoles)}
                     </div>
                   </div>
+
+                  <div className="mb-3 rounded-2xl border border-blue-100 bg-blue-50 p-3">
+                    <div className="text-xs font-black uppercase tracking-wide text-blue-900">System-wide Search</div>
+                    <input
+                      value={navQuery}
+                      onChange={(e) => setNavQuery(e.target.value)}
+                      placeholder="Search authorised pages…"
+                      className="mt-2 w-full rounded-xl border border-blue-100 bg-white px-3 py-2.5 text-sm font-semibold text-slate-900 outline-none"
+                    />
+                    {navQuery.trim() && (
+                      <div className="mt-2 max-h-64 overflow-auto rounded-xl bg-white p-1">
+                        {navigationResults.length === 0 ? (
+                          <div className="px-3 py-4 text-xs font-semibold text-slate-500">No authorised page found.</div>
+                        ) : navigationResults.slice(0, 12).map((item) => (
+                          <button key={item.href} type="button" onClick={() => goTo(item.href)} className="w-full rounded-lg px-3 py-2 text-left hover:bg-blue-50">
+                            <div className="text-xs font-black text-slate-950">{item.label}</div>
+                            <div className="text-[11px] font-bold text-blue-700">{item.section}</div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <details className="mb-3 rounded-2xl border border-amber-200 bg-amber-50 p-3">
+                    <summary className="cursor-pointer text-sm font-black text-amber-950">💡 Quick Tips</summary>
+                    <div className="mt-2 space-y-2">
+                      {contextTips.map((tip) => <div key={tip} className="rounded-lg bg-white px-3 py-2 text-xs font-semibold leading-5 text-slate-700">{tip}</div>)}
+                    </div>
+                  </details>
 
                   <button
                     type="button"
