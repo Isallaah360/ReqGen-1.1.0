@@ -73,13 +73,9 @@ export default function RootLayout({
 
             <GlobalTips />
 
-            <main
-              id="reqgen-main-content"
-              className="reqgen-app-main"
-              role="main"
-            >
+            <div id="reqgen-main-content" className="reqgen-app-main">
               {children}
-            </main>
+            </div>
           </RouteAccessGuard>
         </MfaGuard>
       </body>
