@@ -232,7 +232,7 @@ export default function HRAssignmentsPage() {
     <HRAccessGuard bossOnly>
       <HRPageShell>
         <HRHero
-          eyebrow="Enterprise HR Authority Model"
+          eyebrow="HR Authority Model"
           title="Officer Assignment & Delegation Centre"
           description="Grant functional HR authority, assign precise permission levels and delegate individual HR cases. Functional authority appears immediately in My HR Work; request delegation creates an actionable case queue."
           icon={BriefcaseBusiness}
@@ -311,7 +311,7 @@ export default function HRAssignmentsPage() {
           </HRPanel>
         </section>
 
-        <HRPanel title="Functional Authority Register" eyebrow="Enterprise Permissions">
+        <HRPanel title="Functional Authority Register" eyebrow="Permissions">
           {functionalAssignments.length === 0 ? <HREmpty title="No HR authority assigned" /> : (
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
               {functionalAssignments.map((item) => (

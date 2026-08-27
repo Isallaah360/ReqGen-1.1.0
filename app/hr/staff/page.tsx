@@ -90,7 +90,7 @@ export default function HRStaffPage() {
     <HRAccessGuard section="staff_filing" permission="view">
       <HRPageShell>
         <HRHero
-          eyebrow="Enterprise Personnel Records"
+          eyebrow="Personnel Records"
           title="Staff Files & Records Intelligence"
           description="A complete ERP view of personnel-file registration, document completeness, custody, classification, retention status and current physical location."
           icon={FolderOpen}

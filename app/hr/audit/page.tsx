@@ -136,7 +136,7 @@ export default function HRAuditPage() {
   return (
     <HRAccessGuard bossOnly auditorAllowed>
       <HRPageShell>
-        <HRHero eyebrow="Immutable HR Accountability" title="HR Enterprise Audit & Compliance Centre" description="A live ERP-grade evidence trail showing who granted authority, delegated work, reviewed requests, moved personnel files, archived records or changed HR operational status." icon={ShieldCheck} tone="slate" action={<HRRefreshButton onClick={() => void load()} loading={loading} />} />
+        <HRHero eyebrow="Immutable HR Accountability" title="HR Audit & Compliance Centre" description="A live ERP-grade evidence trail showing who granted authority, delegated work, reviewed requests, moved personnel files, archived records or changed HR operational status." icon={ShieldCheck} tone="slate" action={<HRRefreshButton onClick={() => void load()} loading={loading} />} />
         <HRNavigation />
         {warning ? <HRAlert message={warning} /> : null}
         <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

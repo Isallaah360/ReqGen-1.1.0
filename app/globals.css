@@ -1889,3 +1889,544 @@ canvas {
     animation: none !important;
   }
 }
+/* ========================================================================== 
+   REQGEN EXPERTMODE GLOBAL UI CONTRACT — 2026-08-27
+   One visual architecture for every public and authenticated page.
+   ========================================================================== */
+
+:root {
+  --reqgen-max-width: 1440px;
+  --reqgen-page-gutter: clamp(14px, 2.2vw, 32px);
+  --reqgen-header-navy: #071a36;
+  --reqgen-header-blue: #0e3f78;
+  --reqgen-accent: #1769e0;
+  --reqgen-accent-strong: #0b57d0;
+  --reqgen-gold: #d4a017;
+  --reqgen-bg: #f4f7fb;
+  --reqgen-panel: #ffffff;
+  --reqgen-panel-soft: #f8fafc;
+  --reqgen-line: #dce4ed;
+  --reqgen-ink: #142238;
+  --reqgen-soft-ink: #66758a;
+  --reqgen-success-strong: #087a55;
+  --reqgen-danger-strong: #ba2737;
+  --reqgen-warning-strong: #a95c00;
+  --reqgen-radius-control: 10px;
+  --reqgen-radius-card: 16px;
+  --reqgen-radius-hero: 22px;
+  --reqgen-elevation: 0 10px 28px rgba(7, 26, 54, 0.075);
+}
+
+html {
+  min-width: 320px;
+  background: var(--reqgen-bg);
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  min-width: 320px;
+  margin: 0;
+  overflow-x: hidden;
+  background: var(--reqgen-bg);
+  color: var(--reqgen-ink);
+  font-family: Aptos, "Segoe UI", Inter, Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.reqgen-app-main {
+  width: 100%;
+  min-height: calc(100dvh - 70px);
+  overflow-x: clip;
+  background:
+    radial-gradient(circle at 8% 0%, rgba(23, 105, 224, 0.07), transparent 26rem),
+    radial-gradient(circle at 92% 5%, rgba(212, 160, 23, 0.06), transparent 24rem),
+    var(--reqgen-bg);
+}
+
+.reqgen-page-shell,
+.reqgen-public-shell {
+  width: 100%;
+  min-height: calc(100dvh - 70px);
+  display: flex;
+  flex-direction: column;
+}
+
+.reqgen-public-shell {
+  min-height: 100dvh;
+}
+
+.reqgen-page-body,
+.reqgen-public-content {
+  width: min(100%, var(--reqgen-max-width));
+  margin-inline: auto;
+  flex: 1 0 auto;
+}
+
+.reqgen-page-body {
+  padding: 18px var(--reqgen-page-gutter) 28px;
+}
+
+/* Prevent legacy pages from creating a second arbitrary viewport width. */
+.reqgen-page-body > :is(main, section, div),
+.reqgen-page-body main,
+.reqgen-page-body .max-w-7xl,
+.reqgen-page-body .max-w-6xl,
+.reqgen-page-body .max-w-5xl,
+.reqgen-page-body .max-w-4xl {
+  max-width: 100% !important;
+}
+
+.reqgen-page-body > main,
+.reqgen-page-body > section,
+.reqgen-page-body > div {
+  width: 100%;
+  margin-inline: auto;
+}
+
+/* Route fallback hero for pages that do not already provide a page heading. */
+.reqgen-route-hero {
+  width: min(calc(100% - (2 * var(--reqgen-page-gutter))), var(--reqgen-max-width));
+  min-height: 132px;
+  margin: 20px auto 0;
+  padding: clamp(20px, 2.3vw, 30px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: var(--reqgen-radius-hero);
+  color: #fff;
+  background: linear-gradient(135deg, var(--reqgen-header-navy) 0%, #0a2f62 55%, var(--reqgen-header-blue) 100%);
+  box-shadow: 0 22px 50px -34px rgba(7,26,54,.7);
+}
+
+.reqgen-route-hero__copy { min-width: 0; }
+.reqgen-route-hero__copy > span {
+  display: block;
+  margin-bottom: 5px;
+  color: #8fe8ff;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+.reqgen-route-hero h1 {
+  margin: 0;
+  color: #fff;
+  font-size: clamp(24px, 2.5vw, 36px);
+  line-height: 1.08;
+  font-weight: 950;
+  letter-spacing: -.02em;
+}
+.reqgen-route-hero p {
+  max-width: 780px;
+  margin: 8px 0 0;
+  color: rgba(255,255,255,.78);
+  font-size: 13px;
+  font-weight: 650;
+}
+.reqgen-route-hero__badge {
+  flex: 0 0 auto;
+  border: 1px solid rgba(255,255,255,.16);
+  border-radius: 999px;
+  padding: 8px 12px;
+  background: rgba(255,255,255,.08);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+/* Existing page heroes are visually converged without replacing page logic. */
+.reqgen-page-body .workflow-hero,
+.reqgen-page-body [data-page-hero="true"],
+.reqgen-page-body section[class*="bg-gradient"][class*="text-white"] {
+  width: 100%;
+  border-radius: var(--reqgen-radius-hero) !important;
+  border: 1px solid rgba(255,255,255,.12) !important;
+  background: linear-gradient(135deg, var(--reqgen-header-navy) 0%, #0a2f62 55%, var(--reqgen-header-blue) 100%) !important;
+  box-shadow: 0 20px 48px -34px rgba(7,26,54,.65) !important;
+}
+
+.reqgen-page-body h1 {
+  font-size: clamp(24px, 2.3vw, 34px);
+  line-height: 1.08;
+  letter-spacing: -.018em;
+}
+.reqgen-page-body h2 { font-size: clamp(18px, 1.55vw, 24px); line-height: 1.18; }
+.reqgen-page-body h3 { font-size: clamp(15px, 1.15vw, 19px); line-height: 1.25; }
+.reqgen-page-body p, .reqgen-page-body li { line-height: 1.55; }
+
+/* Card and panel architecture. */
+.reqgen-page-body :is(section, article, div)[class*="rounded"][class*="border"],
+.reqgen-page-body .erp2-card,
+.reqgen-page-body .erp2-table-card {
+  border-color: var(--reqgen-line) !important;
+  box-shadow: var(--reqgen-elevation);
+}
+
+/* Unified control sizes. */
+.reqgen-page-body button,
+.reqgen-page-body a[class*="rounded"],
+.reqgen-page-body [role="button"],
+.reqgen-page-body [role="tab"] {
+  min-width: 0;
+  min-height: 38px;
+  border-radius: var(--reqgen-radius-control) !important;
+  font-size: 12px;
+  font-weight: 850;
+  line-height: 1.2;
+  text-decoration: none;
+  transition: transform .14s ease, box-shadow .14s ease, background-color .14s ease, border-color .14s ease, color .14s ease;
+}
+
+.reqgen-page-body button:hover:not(:disabled),
+.reqgen-page-body a[class*="rounded"]:hover,
+.reqgen-page-body [role="button"]:hover,
+.reqgen-page-body [role="tab"]:hover {
+  transform: translateY(-1px);
+}
+
+.reqgen-page-body input:not([type="checkbox"]):not([type="radio"]),
+.reqgen-page-body select,
+.reqgen-page-body textarea {
+  width: 100%;
+  min-height: 40px;
+  border: 1px solid #cfd9e5 !important;
+  border-radius: var(--reqgen-radius-control) !important;
+  background: #fff !important;
+  color: var(--reqgen-ink) !important;
+  font-size: 13px;
+  box-shadow: 0 1px 2px rgba(7,26,54,.03);
+}
+
+.reqgen-page-body :is(button, a, input, select, textarea, [role="button"], [role="tab"]):focus-visible {
+  outline: 3px solid rgba(23,105,224,.20) !important;
+  outline-offset: 2px;
+}
+
+/* Tabs become a single compact family. */
+.reqgen-page-body [role="tablist"],
+.reqgen-page-body .erp2-tabs {
+  max-width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  border: 1px solid var(--reqgen-line);
+  border-radius: 13px;
+  padding: 5px;
+  background: #f0f4f8;
+}
+
+.reqgen-page-body [role="tab"],
+.reqgen-page-body .erp2-tab {
+  min-height: 34px;
+  padding: 7px 11px;
+  white-space: normal;
+}
+
+/* Tables: no horizontal scrolling on normal desktop layouts. */
+.reqgen-page-body .overflow-x-auto,
+.reqgen-page-body .overflow-auto,
+.reqgen-page-body .erp2-table-scroll {
+  max-width: 100%;
+}
+
+.reqgen-page-body table {
+  width: 100% !important;
+  max-width: 100%;
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: #fff;
+  font-size: 11px;
+}
+
+.reqgen-page-body thead th {
+  padding: 9px 7px !important;
+  background: #eaf1fb !important;
+  color: #102b51 !important;
+  font-size: 9.5px !important;
+  line-height: 1.25;
+  font-weight: 950 !important;
+  letter-spacing: .025em !important;
+  white-space: normal !important;
+  overflow-wrap: anywhere;
+  text-transform: uppercase;
+}
+
+.reqgen-page-body tbody td {
+  padding: 9px 7px !important;
+  color: #26354a;
+  line-height: 1.35;
+  vertical-align: middle;
+  white-space: normal !important;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+.reqgen-page-body tbody tr:nth-child(even) td { background: #fbfcfe; }
+.reqgen-page-body tbody tr:hover td { background: #f3f7fd; }
+
+.reqgen-page-body td button,
+.reqgen-page-body td a[class*="rounded"] {
+  min-height: 31px;
+  padding: 5px 8px !important;
+  font-size: 10px !important;
+  white-space: normal !important;
+}
+
+/* Keep status chips readable instead of breaking one word over multiple lines. */
+.reqgen-page-body td :is(span, b)[class*="rounded-full"],
+.reqgen-page-body td :is(span, b)[class*="rounded"] {
+  display: inline-flex;
+  max-width: 100%;
+  align-items: center;
+  justify-content: center;
+  padding-inline: 7px;
+  white-space: nowrap;
+  font-size: 9.5px;
+}
+
+/* Charts and visualisations remain contained. */
+.reqgen-page-body :is(canvas, svg, img) { max-width: 100%; }
+.reqgen-page-body [class*="recharts-responsive-container"],
+.reqgen-page-body [class*="chart"] {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+}
+
+/* Footer: one stable footprint on every route. */
+.reqgen-site-footer {
+  width: 100%;
+  margin-top: auto;
+  border-top: 1px solid var(--reqgen-line);
+  background: rgba(255,255,255,.96);
+  color: var(--reqgen-soft-ink);
+}
+
+.reqgen-site-footer__inner {
+  width: min(100%, var(--reqgen-max-width));
+  min-height: 76px;
+  margin-inline: auto;
+  padding: 12px var(--reqgen-page-gutter);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.reqgen-site-footer__brand {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.reqgen-site-footer__brand img {
+  width: 34px !important;
+  height: 34px !important;
+  max-width: 34px !important;
+  max-height: 34px !important;
+  object-fit: contain;
+  border-radius: 8px;
+}
+
+.reqgen-site-footer__brand div { min-width: 0; display: grid; }
+.reqgen-site-footer__brand strong { color: var(--reqgen-header-navy); font-size: 12px; font-weight: 950; }
+.reqgen-site-footer__brand span { font-size: 10px; font-weight: 700; }
+.reqgen-site-footer__links {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  font-size: 10px;
+  font-weight: 750;
+}
+.reqgen-site-footer__links a { color: var(--reqgen-header-blue); text-decoration: none; }
+.reqgen-site-footer__links a:hover { text-decoration: underline; }
+
+/* Public homepage: fixed professional scale, never oversized or miniature. */
+.reqgen-public-content { width: 100%; }
+.reqgen-home {
+  position: relative;
+  isolation: isolate;
+  width: 100%;
+  min-height: calc(100dvh - 77px);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  padding: clamp(28px, 5vh, 64px) 18px;
+  background: linear-gradient(180deg, #f8fbff 0%, #eef4fb 100%);
+}
+.reqgen-home__glow {
+  position: absolute;
+  z-index: -1;
+  width: min(34rem, 70vw);
+  aspect-ratio: 1;
+  border-radius: 999px;
+  filter: blur(90px);
+  opacity: .33;
+}
+.reqgen-home__glow--one { top: -16rem; left: -12rem; background: #8ec5ff; }
+.reqgen-home__glow--two { right: -14rem; bottom: -18rem; background: #9be7c4; }
+.reqgen-home__card {
+  width: min(100%, 620px);
+  display: grid;
+  justify-items: center;
+  padding: clamp(28px, 4vw, 46px);
+  border: 1px solid rgba(255,255,255,.85);
+  border-radius: 28px;
+  background: rgba(255,255,255,.78);
+  box-shadow: 0 28px 80px -50px rgba(7,26,54,.48);
+  backdrop-filter: blur(14px);
+  text-align: center;
+}
+.reqgen-home__logo-wrap {
+  width: clamp(104px, 11vw, 142px);
+  height: clamp(104px, 11vw, 142px);
+  display: grid;
+  place-items: center;
+  padding: 12px;
+  border: 1px solid #e3ebf4;
+  border-radius: 24px;
+  background: #fff;
+  box-shadow: 0 12px 28px rgba(7,26,54,.08);
+  animation: reqgenHomeFloat 5s ease-in-out infinite;
+}
+.reqgen-home__logo-wrap img { width: 100%; height: 100%; object-fit: contain; }
+.reqgen-home__copy { margin-top: 22px; }
+.reqgen-home__eyebrow {
+  color: var(--reqgen-accent-strong);
+  font-size: 10px;
+  font-weight: 950;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+}
+.reqgen-home h1 {
+  margin: 8px 0 0;
+  color: var(--reqgen-header-navy);
+  font-size: clamp(34px, 5vw, 54px);
+  line-height: 1.02;
+  font-weight: 950;
+  letter-spacing: -.04em;
+}
+.reqgen-home__copy p {
+  max-width: 470px;
+  margin: 12px auto 0;
+  color: var(--reqgen-soft-ink);
+  font-size: clamp(14px, 1.5vw, 17px);
+  font-weight: 650;
+}
+.reqgen-home__actions {
+  width: min(100%, 400px);
+  margin-top: 26px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0,1fr));
+  gap: 10px;
+}
+.reqgen-home__actions a {
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 12px;
+  padding: 10px 18px;
+  font-size: 13px;
+  font-weight: 900;
+  text-decoration: none;
+  transition: transform .15s ease, box-shadow .15s ease, background .15s ease;
+}
+.reqgen-home__actions a:hover { transform: translateY(-1px); }
+.reqgen-home__actions svg { width: 17px; height: 17px; flex: 0 0 auto; }
+.reqgen-home__primary { background: var(--reqgen-accent); color: #fff; box-shadow: 0 9px 20px rgba(23,105,224,.2); }
+.reqgen-home__primary:hover { background: #0f5fcf; }
+.reqgen-home__secondary { border: 1px solid #d7e0eb; background: #fff; color: var(--reqgen-header-navy); }
+.reqgen-home__trust {
+  margin-top: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  color: #718097;
+  font-size: 10px;
+  font-weight: 800;
+}
+.reqgen-home__trust i { width: 3px; height: 3px; border-radius: 50%; background: #b8c4d1; }
+
+@keyframes reqgenHomeFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+/* Contextual tips are opt-in only through data-tip. */
+.reqgen-global-tip {
+  max-width: 320px;
+  z-index: 9999;
+  border: 1px solid rgba(143,232,255,.25);
+  background: rgba(7,26,54,.98);
+  box-shadow: 0 14px 34px -22px rgba(7,26,54,.9);
+}
+
+@media (max-width: 1100px) {
+  :root { --reqgen-page-gutter: 16px; }
+  .reqgen-page-body table { font-size: 10px; }
+  .reqgen-page-body thead th { font-size: 9px !important; padding: 7px 5px !important; }
+  .reqgen-page-body tbody td { padding: 7px 5px !important; }
+}
+
+@media (max-width: 760px) {
+  .reqgen-route-hero { min-height: 112px; margin-top: 12px; border-radius: 16px; }
+  .reqgen-route-hero__badge { display: none; }
+  .reqgen-page-body { padding-top: 12px; }
+  .reqgen-site-footer__inner { align-items: flex-start; flex-direction: column; }
+  .reqgen-site-footer__links { justify-content: flex-start; }
+  .reqgen-home { min-height: calc(100dvh - 112px); }
+  .reqgen-home__card { border-radius: 22px; }
+  .reqgen-home__actions { grid-template-columns: 1fr; }
+
+  /* Compact tables rather than introducing a page-wide horizontal scrollbar. */
+  .reqgen-page-body table { font-size: 8.5px; }
+  .reqgen-page-body thead th { font-size: 7.5px !important; padding: 5px 3px !important; letter-spacing: 0 !important; }
+  .reqgen-page-body tbody td { padding: 6px 3px !important; line-height: 1.25; }
+  .reqgen-page-body td button,
+  .reqgen-page-body td a[class*="rounded"] { min-height: 28px; padding: 4px !important; font-size: 8px !important; }
+}
+
+@media (max-width: 520px) {
+  .reqgen-page-body { padding-inline: 8px; }
+  .reqgen-route-hero { width: calc(100% - 16px); padding: 16px; }
+  .reqgen-route-hero h1 { font-size: 23px; }
+  .reqgen-page-body h1 { font-size: 22px; }
+  .reqgen-home { padding-inline: 12px; }
+  .reqgen-home__card { padding: 26px 18px; }
+  .reqgen-site-footer__inner { padding-inline: 12px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reqgen-home__logo-wrap,
+  .reqgen-page-body *,
+  .reqgen-global-tip { animation: none !important; transition: none !important; }
+}
+
+/* Promote simple legacy page headings into the same hero language. */
+.reqgen-page-body .reqgen-auto-heading {
+  width: 100%;
+  margin-bottom: 16px;
+  padding: clamp(18px, 2vw, 26px);
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: var(--reqgen-radius-hero);
+  background: linear-gradient(135deg, var(--reqgen-header-navy) 0%, #0a2f62 58%, var(--reqgen-header-blue) 100%);
+  color: #fff;
+  box-shadow: 0 20px 48px -34px rgba(7,26,54,.65);
+}
+.reqgen-page-body .reqgen-auto-heading h1 { color: #fff !important; margin-top: 0; }
+.reqgen-page-body .reqgen-auto-heading p { color: rgba(255,255,255,.78) !important; }
+.reqgen-page-body .reqgen-auto-heading :is(a,button) { color: inherit; }

@@ -86,6 +86,7 @@ export function ActiveRoleSwitcher({ compact = false, hero = false, allowInERP =
         <div className="relative mt-1">
           <select
             aria-label="Active working role"
+            data-tip="Switch only to a role assigned to your account. Your active role controls visible modules and permissions."
             value={currentKey}
             onChange={(event) => changeRole(event.target.value)}
             disabled={saving}

@@ -19,13 +19,13 @@ type ModuleMeta = {
 };
 
 const META: Record<ExecutiveModule, ModuleMeta> = {
-  overview: { eyebrow: "Executive Command", title: "Enterprise Command Centre", description: "A secure executive view of requests, Finance, HR, Registry, audit evidence, alerts and institutional performance.", icon: Building2 },
+  overview: { eyebrow: "Executive Command", title: "Command Centre", description: "A secure executive view of requests, Finance, HR, Registry, audit evidence, alerts and institutional performance.", icon: Building2 },
   requests: { eyebrow: "Workflow Intelligence", title: "Executive Requests Intelligence", description: "Monitor request volume, approval queues, workflow stages, bottlenecks and recent institutional submissions.", icon: ClipboardList },
   finance: { eyebrow: "Authorized Financial Intelligence", title: "Executive Finance Intelligence", description: "Review Finance workload and values permitted by your active role and existing Supabase security policies.", icon: Banknote },
   hr: { eyebrow: "Workforce Intelligence", title: "Executive HR Intelligence", description: "Monitor HR workload, leave activity, seminar participation, capacity records and departmental KPIs.", icon: Users },
   registry: { eyebrow: "Records Intelligence", title: "Executive Registry Intelligence", description: "Track correspondence, open records, archival activity and file movement across the institution.", icon: Archive },
   audit: { eyebrow: "Assurance and Risk", title: "Executive Audit Intelligence", description: "Review who did what, under which active role, when it happened and the risk signals requiring oversight.", icon: ShieldCheck },
-  analytics: { eyebrow: "Institutional Performance", title: "Enterprise Analytics", description: "Compare completion, workload, attendance and data-source coverage across major ReqGen modules.", icon: BarChart3 },
+  analytics: { eyebrow: "Institutional Performance", title: "Analytics", description: "Compare completion, workload, attendance and data-source coverage across major ReqGen modules.", icon: BarChart3 },
   calendar: { eyebrow: "Institutional Schedule", title: "Executive Calendar", description: "View leave, seminars, workflow deadlines and available institutional events in one executive schedule.", icon: CalendarDays },
   meetings: { eyebrow: "Governance Activities", title: "Executive Meetings Centre", description: "Monitor seminar sessions, governance activities and action follow-up information available in ReqGen.", icon: BriefcaseBusiness },
   notifications: { eyebrow: "Priority Communications", title: "Executive Notification Centre", description: "Review unread updates, priority workflow alerts and system notifications addressed to your account.", icon: Bell },
@@ -150,7 +150,7 @@ function Overview({ data, metrics, coverage }: { data: Record<string, Row[]>; me
       <ExecutiveStatCard label="Data Coverage" value={`${coverage}%`} note="Connected authorized sources" icon={Activity} tone="blue" />
     </section>
     <section className="grid gap-6 xl:grid-cols-[1.15fr_.85fr]">
-      <ExecutivePanel eyebrow="Live Enterprise Feed" title="Recent Institutional Activity" description="The latest request and audit activity available to your active role."><RecordList rows={recent} emptyTitle="No recent activity" emptyDescription="Recent authorized events will appear here." limit={12} /></ExecutivePanel>
+      <ExecutivePanel eyebrow="Live Activity Feed" title="Recent Institutional Activity" description="The latest request and audit activity available to your active role."><RecordList rows={recent} emptyTitle="No recent activity" emptyDescription="Recent authorized events will appear here." limit={12} /></ExecutivePanel>
       <ExecutivePanel eyebrow="Directorate Status" title="Operational Health" description="Immediate workload position across major ReqGen directorates.">
         <div className="space-y-3">
           {[
@@ -247,7 +247,7 @@ function Audit({ data }: { data: Record<string, Row[]> }) {
       <ExecutiveStatCard label="Risk Signals" value={critical} icon={AlertTriangle} tone="rose" />
       <ExecutiveStatCard label="Distinct Actors" value={actors} icon={Users} tone="violet" />
     </section>
-    <ExecutivePanel title="Enterprise Evidence Timeline" eyebrow="Who Did What" description="Consolidated audit and active-role evidence available to the executive role."><RecordList rows={rows} emptyTitle="No audit evidence" emptyDescription="No authorized audit evidence is currently available." limit={60} /></ExecutivePanel>
+    <ExecutivePanel title="Evidence Timeline" eyebrow="Who Did What" description="Consolidated audit and active-role evidence available to the executive role."><RecordList rows={rows} emptyTitle="No audit evidence" emptyDescription="No authorized audit evidence is currently available." limit={60} /></ExecutivePanel>
   </>;
 }
 

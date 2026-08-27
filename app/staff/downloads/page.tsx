@@ -80,7 +80,7 @@ export default function DownloadsPage() {
           actions={
             <>
               <StaffAction href="/staff" tone="slate">Staff Home</StaffAction>
-              <StaffAction href="/output" tone="cyan">Enterprise Print Centre</StaffAction>
+              <StaffAction href="/output" tone="cyan">Print Centre</StaffAction>
             </>
           }
         />

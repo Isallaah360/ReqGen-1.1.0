@@ -757,6 +757,7 @@ export default function NavBar() {
                 onClick={() => { setOpenNavigator((v) => !v); setOpenMobileMenu(false); setOpenApprovalPanel(false); }}
                 className="flex h-11 w-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 text-left text-sm font-bold text-slate-600 shadow-sm transition hover:border-blue-300 hover:bg-white 2xl:w-52 2xl:justify-start"
                 aria-label="Search ReqGen pages and modules"
+                data-tip="Search authorised ReqGen pages and modules without leaving your current workspace."
               >
                 <span aria-hidden="true">⌕</span>
                 <span className="hidden truncate 2xl:inline">Search ReqGen…</span>
@@ -1230,6 +1231,7 @@ export default function NavBar() {
               type="button"
               onClick={logout}
               className="group relative hidden h-11 w-11 items-center justify-center rounded-2xl bg-rose-600 text-white transition hover:bg-rose-700 sm:inline-flex"
+              data-tip="Sign out securely from ReqGen."
             >
               <IconLogout />
               <IconButtonTooltip label="Logout" />

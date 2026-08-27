@@ -391,7 +391,7 @@ export default function AuditCentrePage() {
           </SectionCard>
         </section>
 
-        <SectionCard title="Enterprise Activity Register" eyebrow="Chronological evidence">
+        <SectionCard title="Activity Register" eyebrow="Chronological evidence">
           <div className="mb-5 grid gap-3 md:grid-cols-2 xl:grid-cols-[1fr_210px_190px_190px]">
             <input
               value={query}

@@ -619,7 +619,7 @@ export default function OutputCentrePage() {
         <EnterpriseShell>
           <div className="mx-auto max-w-[1500px] space-y-6">
             <EnterpriseHero
-              eyebrow="Enterprise Document Generation"
+              eyebrow="Document Generation"
               title="IET Print & Output Centre"
               description="Generate official A4 institutional reports from live authorized data. The approved Request and Payment Voucher templates remain protected and unchanged."
               actions={
@@ -769,7 +769,7 @@ export default function OutputCentrePage() {
               />
             </section>
 
-            <SectionCard title="Enterprise Report Library" eyebrow="Live templates">
+            <SectionCard title="Report Library" eyebrow="Live templates">
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {available.map(([key, config]) => {
                   const active = selected === key;

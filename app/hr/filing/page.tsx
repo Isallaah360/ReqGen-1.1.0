@@ -168,7 +168,7 @@ export default function HRFilingPage() {
             <div className="absolute -right-16 -top-16 h-64 w-64 rounded-full bg-cyan-400/15 blur-3xl" />
             <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
               <div>
-                <p className="text-xs font-black uppercase tracking-[0.28em] text-cyan-200">Enterprise HR Operations</p>
+                <p className="text-xs font-black uppercase tracking-[0.28em] text-cyan-200">HR Operations</p>
                 <h1 className="mt-3 text-3xl font-black lg:text-5xl">HR Filing & Request Processing</h1>
                 <p className="mt-4 max-w-3xl font-semibold leading-7 text-indigo-100">Process every HR-related personal request from HR review through DG decision and final filing. Open a record to take the action permitted by its current workflow stage.</p>
               </div>

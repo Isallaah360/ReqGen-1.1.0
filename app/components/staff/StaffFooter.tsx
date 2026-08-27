@@ -34,7 +34,7 @@ export default function StaffFooter() {
           <img src="/iet-logo.png" alt="Islamic Education Trust logo" className="h-14 w-14 rounded-xl bg-white object-contain p-1 shadow-sm" />
           <div>
             <p className="text-xs font-black uppercase tracking-[0.18em] text-blue-700">Islamic Education Trust</p>
-            <p className="mt-1 text-sm font-bold text-slate-600">ReqGen Enterprise Staff Workspace</p>
+            <p className="mt-1 text-sm font-bold text-slate-600">ReqGen Staff Workspace</p>
           </div>
         </div>
 
