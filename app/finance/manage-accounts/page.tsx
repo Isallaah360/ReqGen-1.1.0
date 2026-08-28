@@ -627,8 +627,8 @@ export default function ManageAccountsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4">
-      <div className="mx-auto max-w-7xl py-10">
+    <main className="finance-accounts-page min-h-screen bg-slate-50 px-4">
+      <div className="mx-auto max-w-7xl py-8">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">
@@ -923,7 +923,7 @@ export default function ManageAccountsPage() {
         )}
 
         {(activeTab === "overview" || activeTab === "active" || activeTab === "inactive") && (
-          <div className="mt-6 overflow-hidden rounded-3xl border bg-white shadow-sm">
+          <div className="finance-accounts-register mt-6 overflow-hidden rounded-3xl border bg-white shadow-sm">
             <div className="border-b bg-slate-50 px-6 py-4">
               <h2 className="text-lg font-bold text-slate-900">IET Bank Accounts Register</h2>
               <p className="mt-1 text-sm text-slate-600">
@@ -950,8 +950,8 @@ export default function ManageAccountsPage() {
                   ))}
                 </div>
 
-                <div className="hidden overflow-x-auto xl:block">
-                  <table className="min-w-[1500px] w-full border-collapse text-sm">
+                <div className="finance-accounts-table-wrap hidden xl:block">
+                  <table className="finance-accounts-table w-full text-sm">
                     <thead>
                       <tr className="bg-slate-100 text-xs uppercase tracking-wide text-slate-600">
                         <th className="px-4 py-3 text-left">Account</th>
@@ -974,24 +974,24 @@ export default function ManageAccountsPage() {
                             <div className="font-extrabold text-slate-900">
                               {account.code || "—"}
                             </div>
-                            <div className="mt-1 text-sm font-semibold text-slate-800">
+                            <div className="finance-account-name mt-1 font-semibold text-slate-800">
                               {account.name}
                             </div>
-                            <div className="mt-1 text-xs text-slate-500">
+                            <div className="finance-account-note mt-1 text-slate-500">
                               Recalculated {shortDateTime(account.last_recalculated_at)}
                             </div>
                           </td>
 
                           <td className="px-4 py-4 text-slate-800">
                             <div className="font-semibold">{account.bank_name || "—"}</div>
-                            <div className="mt-1 text-xs font-semibold text-emerald-700">Account number not stored</div>
+                            <div className="finance-account-note mt-1 font-semibold text-emerald-700">Account number not stored</div>
                           </td>
 
-                          <td className="px-4 py-4 text-right font-bold text-blue-700">
+                          <td className="px-4 py-4 finance-account-money text-right font-bold text-blue-700">
                             {naira(account.total_fund)}
                           </td>
 
-                          <td className="px-4 py-4 text-right font-bold text-purple-700">
+                          <td className="px-4 py-4 finance-account-money text-right font-bold text-purple-700">
                             {naira(account.allocated_amount)}
                           </td>
 
@@ -1004,16 +1004,16 @@ export default function ManageAccountsPage() {
                             {naira(account.unallocated_balance)}
                           </td>
 
-                          <td className="px-4 py-4 text-right font-bold text-amber-700">
+                          <td className="px-4 py-4 finance-account-money text-right font-bold text-amber-700">
                             {naira(account.reserved_amount)}
                           </td>
 
-                          <td className="px-4 py-4 text-right font-bold text-red-700">
+                          <td className="px-4 py-4 finance-account-money text-right font-bold text-red-700">
                             {naira(account.expenditure)}
                           </td>
 
                           <td
-                            className={`px-4 py-4 text-right font-black ${Number(account.available_balance || 0) < 0
+                            className={`px-4 py-4 finance-account-money text-right font-black ${Number(account.available_balance || 0) < 0
                                 ? "text-red-700"
                                 : "text-emerald-700"
                               }`}
@@ -1026,7 +1026,7 @@ export default function ManageAccountsPage() {
                           </td>
 
                           <td className="px-4 py-4">
-                            <div className="flex justify-end gap-2">
+                            <div className="finance-account-actions">
                               <button
                                 onClick={() => startFunding(account)}
                                 disabled={!canManage || saving || fundingSaving}

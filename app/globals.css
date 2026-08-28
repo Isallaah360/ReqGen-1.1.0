@@ -2955,3 +2955,69 @@ body { background: var(--mock-bg) !important; color: var(--mock-text); font-fami
 
 .req-family-progress{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:12px}.req-family-progress>div,.req-family-summary-grid>div{min-width:0;padding:12px;border:1px solid #dfe6ef;border-radius:11px;background:#fff;box-shadow:0 4px 14px rgba(19,45,83,.035)}.req-family-progress span{width:25px;height:25px;display:grid;place-items:center;margin-bottom:8px;border-radius:7px;background:#eef3fa;color:#52647f;font-size:9px;font-weight:900}.req-family-progress .is-active span{background:#0b57e3;color:#fff}.req-family-progress b{display:block;color:#132b52;font-size:11px}.req-family-progress small{display:block;margin-top:3px;color:#75849a;font-size:9.5px!important}.req-family-summary-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:12px}.req-family-summary-grid small{display:block;color:#75849a;font-size:9px!important;font-weight:800;text-transform:uppercase;letter-spacing:.04em}.req-family-summary-grid strong{display:block;margin-top:4px;color:#122b54;font-size:12px!important;font-weight:850;overflow-wrap:anywhere}.req-print-summary{margin-top:0}.module-finance .gov-content{}
 @media(max-width:760px){.req-family-progress,.req-family-summary-grid{grid-template-columns:1fr 1fr}}@media(max-width:460px){.req-family-progress,.req-family-summary-grid{grid-template-columns:1fr}}
+
+
+/* ========================================================================== */
+/* REQGEN MOCKUP POLISH V3.1 — typography, motion, finance density            */
+/* ========================================================================== */
+:root{
+  --reqgen-body-size:13px;
+  --reqgen-detail-size:12px;
+  --reqgen-caption-size:11px;
+  --reqgen-radius-card:12px;
+  --reqgen-shadow-card:0 8px 24px rgba(16,42,80,.055);
+}
+
+html{font-size:16px!important;text-rendering:optimizeLegibility;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+body{font-size:var(--reqgen-body-size)!important;letter-spacing:.001em}
+.gov-content,.gov-content p,.gov-content li,.gov-content label,.gov-content input,.gov-content select,.gov-content textarea,.gov-content button,.gov-content a{font-size:var(--reqgen-body-size)!important;line-height:1.5!important}
+.gov-content small,.gov-content time,.gov-content th,.gov-content td,.gov-content [class*="text-xs"],.gov-content [class*="text-[10px]"]{font-size:var(--reqgen-detail-size)!important;line-height:1.42!important}
+.gov-nav-link{font-size:13px!important;min-height:42px!important}
+.gov-subnav a{font-size:12px!important;min-height:31px!important}
+.gov-nav-secondary a{font-size:12px!important}
+.gov-search-trigger{font-size:12px!important}
+.gov-topbar-profile strong{font-size:12px!important}.gov-topbar-profile span{font-size:10px!important}
+.mock-role-switcher select{font-size:12px!important}.mock-role-switcher>span{font-size:9px!important}
+.gov-content h1{font-size:27px!important}.gov-content h2{font-size:17px!important}.gov-content h3{font-size:14px!important}
+.gov-content input:not([type="checkbox"]):not([type="radio"]),.gov-content select,.gov-content textarea{font-size:13px!important}
+.gov-content table,.gov-content .erp2-table{font-size:12px!important}.gov-content thead th,.gov-content .erp2-table th{font-size:11px!important}.gov-content tbody td,.gov-content .erp2-table td{font-size:12px!important}
+
+.gov-content :where(button,a,[role="button"],[role="tab"],input,select,textarea){transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease,background-color .16s ease,color .16s ease}
+.gov-content :where(button,a,[role="button"]):hover{transform:translateY(-1px)}
+.gov-content :where(.rounded-3xl,.rounded-2xl,.erp2-card,.finance-panel,.finance-mock-card){box-shadow:var(--reqgen-shadow-card)!important}
+
+.finance-overview-page,.finance-mock-page{font-size:13px!important}
+.finance-overview-head p,.finance-mock-header p{font-size:13px!important}
+.finance-overview-actions button,.finance-mock-header-actions button,.finance-primary-action,.finance-mock-primary{font-size:12px!important;min-height:38px!important}
+.finance-overview-kpis small,.finance-mock-metric p{font-size:12px!important}.finance-overview-kpis strong,.finance-mock-metric strong{font-size:20px!important}.finance-overview-kpis em,.finance-mock-metric small{font-size:11px!important}
+.finance-panel>header strong{font-size:13px!important}.finance-panel>header select{font-size:11px!important}
+.finance-overview-grid{grid-template-columns:minmax(0,1.55fr) minmax(230px,.68fr) minmax(250px,.68fr)!important;align-items:start}
+.finance-trend-panel{overflow:hidden}
+.finance-line-chart{height:246px!important;padding:16px 18px 12px!important;overflow:hidden!important}
+.finance-line-chart svg{display:block;width:100%!important;height:198px!important;max-height:198px!important;overflow:hidden!important}
+.finance-line-chart>div{margin-top:4px;font-size:11px!important}
+.finance-donut{width:110px!important;height:110px!important;margin:18px auto 12px!important}.finance-donut:after{inset:24px!important}
+.finance-composition li,.finance-alert-item,.finance-quick-grid a{font-size:11.5px!important}.finance-vouchers-table table{font-size:12px!important}.finance-vouchers-table th{font-size:11px!important}.finance-vouchers-table td{font-size:12px!important}.finance-status{font-size:10.5px!important}
+
+/* Finance bank register: desktop must fit the available workspace without side scrolling. */
+.finance-accounts-page{padding-inline:0!important}
+.finance-accounts-page .finance-accounts-register{overflow:hidden!important}
+.finance-accounts-page .finance-accounts-table-wrap{display:block!important;overflow:visible!important;width:100%!important}
+.finance-accounts-page .finance-accounts-table{width:100%!important;min-width:0!important;table-layout:fixed!important;border-collapse:separate!important;border-spacing:0!important}
+.finance-accounts-page .finance-accounts-table th,.finance-accounts-page .finance-accounts-table td{padding:10px 7px!important;font-size:11.5px!important;line-height:1.35!important;overflow-wrap:anywhere!important;word-break:normal!important;vertical-align:middle!important}
+.finance-accounts-page .finance-accounts-table th{font-size:10.5px!important;white-space:normal!important}
+.finance-accounts-page .finance-accounts-table th:nth-child(1){width:13%}.finance-accounts-page .finance-accounts-table th:nth-child(2){width:12%}.finance-accounts-page .finance-accounts-table th:nth-child(n+3):nth-child(-n+8){width:9%}.finance-accounts-page .finance-accounts-table th:nth-child(9){width:7%}.finance-accounts-page .finance-accounts-table th:nth-child(10){width:14%}
+.finance-accounts-page .finance-account-actions{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:5px!important;justify-content:stretch!important}
+.finance-accounts-page .finance-account-actions button{min-width:0!important;min-height:30px!important;padding:4px 5px!important;border-radius:7px!important;font-size:10px!important;white-space:normal!important;line-height:1.15!important}
+.finance-accounts-page .finance-account-note{font-size:10.5px!important;line-height:1.3!important}
+.finance-accounts-page .finance-account-name{font-size:12px!important;line-height:1.3!important}
+.finance-accounts-page .finance-account-money{font-variant-numeric:tabular-nums;font-size:11.5px!important}
+
+@media(max-width:1250px){
+  .finance-overview-grid{grid-template-columns:minmax(0,1.4fr) minmax(220px,.65fr)!important}.finance-side-stack{grid-column:1/-1!important;grid-template-columns:1fr 1fr!important}
+  .finance-accounts-page .finance-accounts-table th,.finance-accounts-page .finance-accounts-table td{padding:8px 5px!important;font-size:11px!important}.finance-accounts-page .finance-account-actions button{font-size:9.5px!important}
+}
+@media(max-width:980px){
+  .finance-accounts-page .finance-accounts-table-wrap{display:none!important}.finance-accounts-page .xl\\:hidden{display:grid!important}
+}
+@media(prefers-reduced-motion:reduce){.gov-content :where(button,a,[role="button"],[role="tab"],input,select,textarea){transition:none!important}.gov-content :where(button,a,[role="button"]):hover{transform:none!important}}
