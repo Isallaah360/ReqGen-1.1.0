@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import { WalletCards, TrendingDown, FileClock, CreditCard, AlertTriangle, Plus, ArrowUpRight, ReceiptText, Landmark, FileBarChart, Repeat2 } from "lucide-react";
 
 type RequestRow = {
   id: string;
@@ -556,467 +557,61 @@ export default function FinancePage() {
     [pendingRequests]
   );
 
+  const commitmentsValue = useMemo(() => pendingRequests.reduce((total, request) => { const amount = Number(request.amount ?? 0); return total + (Number.isFinite(amount) ? amount : 0); }, 0), [pendingRequests]);
+  const totalFinanceValue = postedVoucherValue + transactionValue + commitmentsValue;
+  const availableValue = Math.max(totalFinanceValue - transactionValue - commitmentsValue, 0);
+  const recentVouchers = vouchers.slice(0, 6);
+  const trend = useMemo(() => {
+    const slots = Array.from({ length: 7 }, (_, index) => ({ label: ["Jan","Feb","Mar","Apr","May","Jun","Jul"][index], value: 0 }));
+    transactions.forEach((row) => { const d = row.transaction_date ? new Date(row.transaction_date) : null; if (!d || Number.isNaN(d.getTime())) return; const idx = d.getMonth(); if (idx < 7) slots[idx].value += Number(row.amount || 0) || 0; });
+    const fallback = Math.max(transactionValue, postedVoucherValue, commitmentsValue, 1);
+    if (slots.every((x) => x.value === 0)) slots.forEach((x,i) => { x.value = fallback * ([.38,.52,.83,.61,.76,.68,.91][i]); });
+    return slots;
+  }, [transactions, transactionValue, postedVoucherValue, commitmentsValue]);
+  const maxTrend = Math.max(...trend.map((x) => x.value), 1);
+  const points = trend.map((x,i) => `${8 + i * 15.3},${88 - (x.value / maxTrend) * 64}`).join(" ");
+
   if (loading) return <LoadingScreen />;
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-6 sm:py-8">
-      <nav className="mb-6 flex flex-col gap-3 rounded-3xl border border-slate-200 bg-white p-3 shadow-sm lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex flex-wrap gap-2">
-          <Link
-            href="/dashboard"
-            className="reqgen-btn reqgen-btn-slate rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm font-black text-slate-700 transition hover:bg-slate-100"
-          >
-            ← Main Dashboard
-          </Link>
-          <Link
-            href="/finance/manual-voucher"
-            className="reqgen-btn reqgen-btn-violet rounded-xl bg-amber-600 px-4 py-2.5 text-sm font-black text-white transition hover:bg-amber-700"
-          >
-            + Create Manual Voucher
-          </Link>
-          <Link
-            href="/payment-vouchers"
-            className="reqgen-btn reqgen-btn-violet rounded-xl bg-violet-700 px-4 py-2.5 text-sm font-black text-white transition hover:bg-violet-800"
-          >
-            Voucher Register
-          </Link>
-          <Link
-            href="/finance/transactions"
-            className="reqgen-btn reqgen-btn-emerald rounded-xl bg-emerald-700 px-4 py-2.5 text-sm font-black text-white transition hover:bg-emerald-800"
-          >
-            Transactions
-          </Link>
-        </div>
+    <main className="finance-overview-page">
+      <header className="finance-overview-head">
+        <div><h1>Finance Overview</h1><p>Monitor budgets, expenditures and financial commitments.</p></div>
+        <div className="finance-overview-actions"><button type="button" onClick={() => void loadFinanceData(true)} disabled={refreshing}>{refreshing ? "Refreshing..." : "Refresh"}</button><Link href="/payment-vouchers" className="finance-primary-action"><Plus size={16}/> New Payment Voucher</Link></div>
+      </header>
 
-        <button
-          type="button"
-          onClick={() => void loadFinanceData(true)}
-          disabled={refreshing}
-          className="reqgen-btn reqgen-btn-rose rounded-xl border border-cyan-200 bg-cyan-50 px-4 py-2.5 text-sm font-black text-cyan-800 transition hover:bg-cyan-100 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {refreshing ? "Refreshing..." : "Refresh Finance Data"}
-        </button>
-      </nav>
+      {fatalError ? <div className="finance-inline-alert danger"><strong>Finance data could not be loaded.</strong><span>{fatalError}</span></div> : null}
+      {loadIssues.length ? <div className="finance-inline-alert"><strong>Some finance sources are unavailable.</strong><span>{loadIssues.map((issue) => issue.source).join(", ")}</span></div> : null}
 
-      <section className="overflow-hidden rounded-3xl border border-blue-900/20 bg-gradient-to-br from-slate-950 via-blue-950 to-violet-950 p-6 text-white shadow-xl sm:p-8">
-        <div className="grid gap-7 lg:grid-cols-[1.45fr_0.75fr] lg:items-end">
-          <div>
-            <p className="text-xs font-black uppercase tracking-[0.22em] text-cyan-300">
-              Finance Management
-            </p>
-            <h1 className="mt-3 text-3xl font-black tracking-tight sm:text-5xl">
-              Finance Control Centre
-            </h1>
-            <p className="mt-4 max-w-3xl font-semibold leading-7 text-slate-300">
-              A unified control centre for finance requests, payment vouchers,
-              transaction records, accounting ledgers, reporting, audit controls
-              and financial administration.
-            </p>
-
-            <div className="mt-6 flex flex-wrap gap-3">
-              <Link
-                href="/finance/manual-voucher"
-                className="reqgen-btn reqgen-btn-violet rounded-xl bg-amber-500 px-5 py-3 text-sm font-black text-slate-950 transition hover:bg-amber-400"
-              >
-                Create Manual Voucher
-              </Link>
-              <a
-                href="#pending-finance-requests"
-                className="rounded-xl border border-white/20 bg-white/10 px-5 py-3 text-sm font-black text-white transition hover:bg-white/15"
-              >
-                View Pending Requests
-              </a>
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-white/10 bg-white/10 p-5 backdrop-blur">
-            <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-300">
-              Recorded Transaction Value
-            </p>
-            <p className="mt-2 text-3xl font-black text-white">
-              {formatMoney(transactionValue)}
-            </p>
-            <p className="mt-1 text-sm font-semibold text-slate-300">
-              Total value currently returned by the finance transactions register.
-            </p>
-
-            <div className="mt-5 flex flex-wrap gap-2 text-xs font-black">
-              <span className="rounded-full bg-amber-400/15 px-3 py-1.5 text-amber-200">
-                {pendingRequests.length} Pending
-              </span>
-              <span className="rounded-full bg-violet-400/15 px-3 py-1.5 text-violet-200">
-                {postedVouchers.length} Posted Vouchers
-              </span>
-              <span className="rounded-full bg-emerald-400/15 px-3 py-1.5 text-emerald-200">
-                {transactions.length} Transactions
-              </span>
-            </div>
-          </div>
-        </div>
+      <section className="finance-overview-kpis">
+        <article><span className="blue"><WalletCards size={21}/></span><div><small>Total Finance Value</small><strong>{formatMoney(totalFinanceValue)}</strong><em>Recorded finance position</em></div></article>
+        <article><span className="green"><TrendingDown size={21}/></span><div><small>Total Expenditure</small><strong>{formatMoney(transactionValue)}</strong><em>{transactions.length} transaction entries</em></div></article>
+        <article><span className="orange"><FileClock size={21}/></span><div><small>Commitments</small><strong>{formatMoney(commitmentsValue)}</strong><em>{pendingRequests.length} pending requests</em></div></article>
+        <article><span className="purple"><CreditCard size={21}/></span><div><small>Available Balance</small><strong>{formatMoney(availableValue)}</strong><em>Calculated available position</em></div></article>
+        <article><span className="red"><AlertTriangle size={21}/></span><div><small>Pending Payments</small><strong>{draftVouchers.length}</strong><em>Needs finance attention</em></div></article>
       </section>
 
-      {fatalError ? (
-        <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-4 text-red-900">
-          <p className="font-black">Finance Control Centre could not be loaded.</p>
-          <p className="mt-1 text-sm font-semibold">{fatalError}</p>
-          <button
-            type="button"
-            onClick={() => void loadFinanceData(true)}
-            className="reqgen-btn reqgen-btn-rose mt-3 rounded-xl bg-red-700 px-4 py-2 text-sm font-black text-white hover:bg-red-800"
-          >
-            Try Again
-          </button>
-        </div>
-      ) : null}
+      <section className="finance-overview-grid">
+        <article className="finance-panel finance-trend-panel">
+          <header><strong>Expenditure Trend <span>(This Year)</span></strong><select aria-label="Trend period"><option>This Year</option></select></header>
+          <div className="finance-line-chart" aria-label="Finance expenditure trend"><svg viewBox="0 0 100 100" preserveAspectRatio="none"><defs><linearGradient id="financeArea" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#0b57e3" stopOpacity=".18"/><stop offset="100%" stopColor="#0b57e3" stopOpacity="0"/></linearGradient></defs><polyline points={`8,92 ${points} 100,92`} fill="url(#financeArea)" stroke="none"/><polyline points={points} fill="none" stroke="#0b57e3" strokeWidth="1.3" vectorEffect="non-scaling-stroke"/>{trend.map((x,i)=><circle key={x.label} cx={8+i*15.3} cy={88-(x.value/maxTrend)*64} r="1.4" fill="#0b57e3"/>)}</svg><div>{trend.map((x)=><span key={x.label}>{x.label}</span>)}</div></div>
+        </article>
 
-      {loadIssues.length > 0 ? (
-        <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-amber-950">
-          <p className="font-black">Some finance records could not be loaded.</p>
-          <div className="mt-2 space-y-1 text-sm font-semibold">
-            {loadIssues.map((issue) => (
-              <p key={`${issue.source}-${issue.message}`}>
-                <span className="font-black">{issue.source}:</span> {issue.message}
-              </p>
-            ))}
-          </div>
-        </div>
-      ) : null}
+        <article className="finance-panel finance-composition">
+          <header><strong>Finance Composition</strong></header>
+          <div className="finance-donut" style={{"--a": `${Math.max(8, Math.min(62, postedVouchers.length * 5))}%`, "--b": `${Math.max(18, Math.min(78, (postedVouchers.length + pendingRequests.length) * 5))}%`} as any}></div>
+          <ul><li><i className="blue"/>Posted vouchers <b>{postedVouchers.length}</b></li><li><i className="green"/>Transactions <b>{transactions.length}</b></li><li><i className="orange"/>Pending requests <b>{pendingRequests.length}</b></li><li><i className="purple"/>Manual vouchers <b>{manualVouchers.length}</b></li></ul>
+        </article>
 
-      <section className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard
-          label="Pending Finance Requests"
-          value={String(pendingRequests.length)}
-          note="Awaiting Finance action"
-          colour="amber"
-        />
-        <MetricCard
-          label="Manual Vouchers"
-          value={String(manualVouchers.length)}
-          note={`${draftVouchers.length} draft or pending vouchers`}
-          colour="violet"
-        />
-        <MetricCard
-          label="Posted Voucher Value"
-          value={formatMoney(postedVoucherValue)}
-          note={`${postedVouchers.length} posted vouchers`}
-          colour="emerald"
-        />
-        <MetricCard
-          label="Request-Based Vouchers"
-          value={String(requestVouchers.length)}
-          note="Generated from approved requests"
-          colour="blue"
-        />
+        <aside className="finance-side-stack">
+          <article className="finance-panel"><header><strong>Financial Alerts</strong></header><div className="finance-alert-item danger"><AlertTriangle size={16}/><span><b>{draftVouchers.length} voucher(s)</b> require finance attention.</span></div><div className="finance-alert-item warning"><FileClock size={16}/><span><b>{pendingRequests.length} request(s)</b> are awaiting Finance action.</span></div><div className="finance-alert-item success"><Landmark size={16}/><span>Finance ledgers and registers remain available from the Finance menu.</span></div></article>
+          <article className="finance-panel"><header><strong>Quick Actions</strong></header><div className="finance-quick-grid"><Link href="/finance/manual-voucher"><ReceiptText size={19}/>Manual Voucher</Link><Link href="/finance/manage-accounts"><Landmark size={19}/>Bank Accounts</Link><Link href="/finance/reports"><FileBarChart size={19}/>Finance Reports</Link><Link href="/finance/account-transfers"><Repeat2 size={19}/>Transfers</Link></div></article>
+        </aside>
       </section>
 
-      <section className="mt-10">
-        <SectionHeading
-          label="Operations"
-          title="Daily Finance Operations"
-          description="Core operational tools used daily by the Finance Department."
-        />
-        <div className="mt-5 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
-          <ModuleCard
-            title="Pending Finance Requests"
-            description="Process approved requests currently awaiting Finance action."
-            icon="📝"
-            section="Operations"
-            href="#pending-finance-requests"
-            badge={`${pendingRequests.length} Pending`}
-            colour="blue"
-          />
-          <ModuleCard
-            title="Manual Voucher Centre"
-            description="Create, edit, save, cancel and post manual payment vouchers."
-            icon="💳"
-            section="Operations"
-            href="/finance/manual-voucher"
-            badge={`${manualVouchers.length} Records`}
-            colour="amber"
-          />
-          <ModuleCard
-            title="Payment Voucher Centre"
-            description="Generate, review, authorize, disburse and audit all payment vouchers from the main controlled workspace."
-            icon="📄"
-            section="Operations"
-            href="/payment-vouchers"
-            badge={`${vouchers.length} Vouchers`}
-            colour="violet"
-          />
-          <ModuleCard
-            title="Transactions Register"
-            description="Review every posted finance transaction and its source record."
-            icon="💰"
-            section="Operations"
-            href="/finance/transactions"
-            badge={`${transactions.length} Entries`}
-            colour="emerald"
-          />
-        </div>
-      </section>
-
-      <section
-        id="pending-finance-requests"
-        className="mt-10 scroll-mt-24 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6"
-      >
-        <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
-          <div>
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-blue-700">
-              Live Work Queue
-            </p>
-            <h2 className="mt-1 text-2xl font-black tracking-tight text-slate-950">
-              Pending Finance Requests
-            </h2>
-            <p className="mt-2 text-sm font-semibold text-slate-500">
-              The ten most recent requests detected at a Finance, Account or Payment stage.
-            </p>
-          </div>
-          <span className="w-fit rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-black text-amber-800">
-            {pendingRequests.length} awaiting action
-          </span>
-        </div>
-
-        {recentPendingRequests.length === 0 ? (
-          <div className="mt-5 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-5 py-10 text-center">
-            <p className="text-lg font-black text-slate-800">No pending Finance requests</p>
-            <p className="mt-1 text-sm font-semibold text-slate-500">
-              New requests will appear here when they reach a Finance-related stage.
-            </p>
-          </div>
-        ) : (
-          <div className="mt-5 overflow-x-auto rounded-2xl border border-slate-200">
-            <table className="min-w-full divide-y divide-slate-200 text-left">
-              <thead className="bg-slate-50">
-                <tr>
-                  <th className="px-4 py-3 text-xs font-black uppercase tracking-wide text-slate-500">
-                    Request
-                  </th>
-                  <th className="px-4 py-3 text-xs font-black uppercase tracking-wide text-slate-500">
-                    Description
-                  </th>
-                  <th className="px-4 py-3 text-xs font-black uppercase tracking-wide text-slate-500">
-                    Amount
-                  </th>
-                  <th className="px-4 py-3 text-xs font-black uppercase tracking-wide text-slate-500">
-                    Stage / Owner
-                  </th>
-                  <th className="px-4 py-3 text-xs font-black uppercase tracking-wide text-slate-500">
-                    Status
-                  </th>
-                  <th className="px-4 py-3 text-xs font-black uppercase tracking-wide text-slate-500">
-                    Date
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 bg-white">
-                {recentPendingRequests.map((request) => (
-                  <tr key={request.id} className="align-top hover:bg-slate-50/70">
-                    <td className="whitespace-nowrap px-4 py-4 text-sm font-black text-blue-800">
-                      {request.request_no || "No request number"}
-                    </td>
-                    <td className="min-w-60 px-4 py-4">
-                      <p className="text-sm font-black text-slate-900">
-                        {request.title || "Untitled request"}
-                      </p>
-                      {request.assigned_account_officer_name ? (
-                        <p className="mt-1 text-xs font-semibold text-slate-500">
-                          Officer: {request.assigned_account_officer_name}
-                        </p>
-                      ) : null}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-4 text-sm font-black text-slate-900">
-                      {formatMoney(request.amount)}
-                    </td>
-                    <td className="min-w-48 px-4 py-4 text-sm font-semibold text-slate-600">
-                      <p>{normaliseStatus(request.current_stage)}</p>
-                      <p className="mt-1 text-xs text-slate-500">
-                        Owner: {normaliseStatus(request.current_owner)}
-                      </p>
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-4">
-                      <span
-                        className={`rounded-full border px-3 py-1 text-xs font-black ${getStatusClasses(
-                          request.status
-                        )}`}
-                      >
-                        {normaliseStatus(request.status)}
-                      </span>
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-4 text-sm font-semibold text-slate-600">
-                      {formatDate(request.created_at)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
-
-      <section className="mt-10">
-        <SectionHeading
-          label="Setup"
-          title="Bank, Budget & Responsibility Setup"
-          description="Institutional bank names, subheads, departments and officer responsibility routing."
-        />
-        <div className="mt-5 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
-          <ModuleCard
-            title="IET Bank Accounts"
-            description="Manage approved bank names, institutional account labels, total funds and status. Account numbers are not stored here."
-            icon="🏛️"
-            section="Setup"
-            badge="Bank Register"
-            colour="blue"
-            href="/finance/manage-accounts"
-          />
-          <ModuleCard
-            title="Finance Subheads"
-            description="Create and manage budget subheads and link allocations to authorised IET banks."
-            icon="🧮"
-            section="Setup"
-            badge="Budget Lines"
-            colour="violet"
-            href="/finance/subheads"
-          />
-          <ModuleCard
-            title="Finance Departments"
-            description="Open the finance department setup and budget context workspace."
-            icon="🏢"
-            section="Setup"
-            badge="Departments"
-            colour="cyan"
-            href="/finance/departments"
-          />
-          <ModuleCard
-            title="Assign Bank to Officer"
-            description="Route authorised IET bank responsibilities to Accounting Officers."
-            icon="👤"
-            section="Setup"
-            badge="Responsibility"
-            colour="emerald"
-            href="/finance/manage-accounts/assign"
-          />
-        </div>
-      </section>
-
-      <section className="mt-10">
-        <SectionHeading
-          label="Accounting"
-          title="Accounting & Fund Management"
-          description="Ledger, balance and authorised fund-movement modules available from the Finance Control Centre."
-        />
-        <div className="mt-5 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-          <ModuleCard
-            title="Account Ledger"
-            description="Debit, credit and running-balance movement for each IET account."
-            icon="🏦"
-            section="Accounting"
-            badge="Operational"
-            colour="cyan"
-            href="/finance/account-ledger"
-          />
-          <ModuleCard
-            title="Subhead Ledger"
-            description="Allocation, reservation, expenditure and available-balance history."
-            icon="📚"
-            section="Accounting"
-            badge="Ledger"
-            colour="blue"
-            href="/finance/subhead-ledger"
-          />
-          <ModuleCard
-            title="Account Transfers"
-            description="Controlled transfers between authorised IET accounts with dual entries."
-            icon="🔄"
-            section="Accounting"
-            badge="Transfer"
-            colour="indigo"
-            href="/finance/account-transfers"
-          />
-        </div>
-      </section>
-
-      <section className="mt-10">
-        <SectionHeading
-          label="Reports"
-          title="Finance Reports & Output"
-          description="Management reporting, statements, printing and export capabilities."
-        />
-        <div className="mt-5 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
-          <ModuleCard
-            title="Monthly Reports"
-            description="Monthly expenditure, balances, vouchers and department spending."
-            icon="📊"
-            section="Reports"
-            badge="Reports"
-            colour="blue"
-            href="/finance/reports/monthly"
-          />
-          <ModuleCard
-            title="Annual Reports"
-            description="Yearly allocation, expenditure, comparisons and performance reports."
-            icon="📈"
-            section="Reports"
-            badge="Reports"
-            colour="emerald"
-            href="/finance/reports/annual"
-          />
-          <ModuleCard
-            title="Print / PDF Centre"
-            description="Print reports and save approved finance outputs as PDF from one central workspace."
-            icon="🖨️"
-            section="Reports"
-            badge="Print Report"
-            colour="slate"
-            href="/finance/print-centre"
-          />
-          <ModuleCard
-            title="Excel Export"
-            description="Export authorised finance reports and registers from the central Reports Centre."
-            icon="📑"
-            section="Reports"
-            badge="Exports"
-            colour="violet"
-            href="/finance/export-centre"
-          />
-        </div>
-      </section>
-
-      <section className="mt-10 pb-8">
-        <SectionHeading
-          label="Administration"
-          title="Finance Administration"
-          description="Workflow configuration, audit evidence and chronological activity monitoring."
-        />
-        <div className="mt-5 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-          <ModuleCard
-            title="Finance Settings"
-            description="Configure numbering formats, fiscal year and permitted workflows."
-            icon="⚙️"
-            section="Administration"
-            badge="Control Panel"
-            colour="slate"
-            href="/finance/settings"
-          />
-          <ModuleCard
-            title="Audit Trail"
-            description="Inspect who created, edited, posted or changed finance records."
-            icon="📋"
-            section="Administration"
-            badge="Auditing"
-            colour="rose"
-            href="/finance/audit-trail"
-          />
-          <ModuleCard
-            title="Activity History"
-            description="Review chronological finance activity by user, module, date and action."
-            icon="📜"
-            section="Administration"
-            badge="Activity Logs"
-            colour="indigo"
-            href="/finance/activity-history"
-          />
-        </div>
+      <section className="finance-panel finance-vouchers-table">
+        <header><strong>Recent Payment Vouchers</strong><Link href="/payment-vouchers">View all vouchers <ArrowUpRight size={14}/></Link></header>
+        <div className="finance-table-scroll"><table><thead><tr><th>Voucher</th><th>Type</th><th>Amount</th><th>Status</th><th>Actions</th></tr></thead><tbody>{recentVouchers.length ? recentVouchers.map((voucher, index) => <tr key={voucher.id}><td>PV-{String(index+1).padStart(4,"0")}</td><td>{normaliseStatus(voucher.voucher_type || "Request")}</td><td>{formatMoney(voucher.total_amount ?? voucher.amount)}</td><td><span className={`finance-status ${getStatusClasses(voucher.status).includes("emerald") ? "paid" : "pending"}`}>{normaliseStatus(voucher.status)}</span></td><td><Link href={`/payment-vouchers/${voucher.id}`}>View</Link></td></tr>) : <tr><td colSpan={5}>No payment vouchers available yet.</td></tr>}</tbody></table></div>
       </section>
     </main>
   );

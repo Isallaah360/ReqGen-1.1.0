@@ -1259,6 +1259,13 @@ export default function RequestDetailsPage() {
           {req ? <button type="button" onClick={() => router.push(`/requests/${req.id}/print`)}>Print</button> : null}
         </nav>
 
+        <section className="req-family-summary-grid" aria-label="Request summary">
+          <div><small>Request No.</small><strong>{req?.request_no || "—"}</strong></div>
+          <div><small>Current Stage</small><strong>{req?.current_stage || "—"}</strong></div>
+          <div><small>Status</small><strong>{req?.status || "—"}</strong></div>
+          <div><small>Amount</small><strong>{req?.amount ? `₦${Number(req.amount).toLocaleString()}` : "Not Applicable"}</strong></div>
+        </section>
+
         <div
           className={`mt-4 rounded-2xl border px-4 py-3 text-sm font-semibold ${mfaVerified
             ? "border-emerald-200 bg-emerald-50 text-emerald-800"

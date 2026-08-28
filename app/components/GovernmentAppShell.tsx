@@ -23,6 +23,7 @@ import {
   X,
   LogOut,
   ChevronRight,
+  ChevronDown,
   CircleHelp,
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
@@ -43,6 +44,35 @@ const PUBLIC_PATHS = new Set([
   "/unauthorized",
   "/about",
 ]);
+
+
+const MODULE_SUBNAV: Record<string, { href: string; label: string }[]> = {
+  "/requests": [
+    { href: "/requests", label: "Requests Overview" },
+    { href: "/requests/new", label: "Create New Request" },
+  ],
+  "/finance": [
+    { href: "/finance", label: "Finance Overview" },
+    { href: "/finance/manage-accounts", label: "IET Bank Accounts" },
+    { href: "/finance/manage-accounts/assign", label: "Assign Bank to Officer" },
+    { href: "/finance/subheads", label: "Finance Subheads" },
+    { href: "/finance/departments", label: "Finance Departments" },
+    { href: "/finance/account-ledger", label: "Account Ledger" },
+    { href: "/finance/subhead-ledger", label: "Subhead Ledger" },
+    { href: "/finance/account-transfers", label: "Account Transfers" },
+    { href: "/finance/transactions", label: "Transactions Register" },
+    { href: "/finance/manual-voucher", label: "Manual Voucher Centre" },
+    { href: "/finance/vouchers", label: "Finance Vouchers" },
+    { href: "/finance/reports", label: "Finance Reports" },
+    { href: "/finance/reports/monthly", label: "Monthly Reports" },
+    { href: "/finance/reports/annual", label: "Annual Reports" },
+    { href: "/finance/print-centre", label: "Print / PDF Centre" },
+    { href: "/finance/export-centre", label: "Export Centre" },
+    { href: "/finance/audit-trail", label: "Audit Trail" },
+    { href: "/finance/activity-history", label: "Activity History" },
+    { href: "/finance/settings", label: "Finance Settings" },
+  ],
+};
 
 const PRIMARY_NAV = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -71,6 +101,7 @@ export default function GovernmentAppShell({ children }: { children: React.React
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const [expandedNav, setExpandedNav] = useState<string | null>(null);
   const [roleSet, setRoleSet] = useState<Set<string>>(new Set());
   const [userName, setUserName] = useState("ReqGen User");
   const [userEmail, setUserEmail] = useState("");
@@ -102,6 +133,8 @@ export default function GovernmentAppShell({ children }: { children: React.React
     setMobileOpen(false);
     setSearchOpen(false);
     setQuery("");
+    if (pathname.startsWith("/finance")) setExpandedNav("/finance");
+    else if (pathname.startsWith("/requests")) setExpandedNav("/requests");
   }, [pathname]);
 
   const accessiblePrimary = useMemo(
@@ -147,12 +180,37 @@ export default function GovernmentAppShell({ children }: { children: React.React
           {accessiblePrimary.map((item) => {
             const Icon = item.icon;
             const active = isActive(pathname, item.href);
+            const children = MODULE_SUBNAV[item.href] || [];
+            const expanded = expandedNav === item.href;
             return (
-              <Link key={item.href} href={item.href} className={`gov-nav-link ${active ? "is-active" : ""}`}>
-                <Icon size={18} aria-hidden="true" />
-                <span>{item.label}</span>
-                <ChevronRight size={14} className="gov-nav-chevron" aria-hidden="true" />
-              </Link>
+              <div key={item.href} className={`gov-nav-group ${active ? "is-active" : ""}`}>
+                <div className={`gov-nav-link ${active ? "is-active" : ""}`}>
+                  <Link href={item.href} className="gov-nav-main-link" onClick={() => children.length && setExpandedNav(item.href)}>
+                    <Icon size={18} aria-hidden="true" />
+                    <span>{item.label}</span>
+                  </Link>
+                  {children.length ? (
+                    <button
+                      type="button"
+                      className="gov-nav-expand"
+                      aria-label={`${expanded ? "Collapse" : "Expand"} ${item.label} navigation`}
+                      aria-expanded={expanded}
+                      onClick={() => setExpandedNav(expanded ? null : item.href)}
+                    >
+                      <ChevronDown size={14} className={expanded ? "is-open" : ""} aria-hidden="true" />
+                    </button>
+                  ) : <ChevronRight size={14} className="gov-nav-chevron" aria-hidden="true" />}
+                </div>
+                {children.length && expanded ? (
+                  <div className="gov-subnav" aria-label={`${item.label} pages`}>
+                    {children.map((child) => (
+                      <Link key={child.href} href={child.href} className={pathname === child.href ? "is-active" : ""}>
+                        {child.label}
+                      </Link>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
             );
           })}
         </nav>
@@ -205,7 +263,7 @@ export default function GovernmentAppShell({ children }: { children: React.React
         </header>
 
         <main id="reqgen-main-content" className="gov-main" role="main">
-          <div className="gov-content">{children}</div>
+          <div className={`gov-content ${pathname.startsWith("/finance") ? "module-finance" : pathname.startsWith("/requests") ? "module-requests" : ""}`}>{children}</div>
           <StaffFooter />
         </main>
       </div>

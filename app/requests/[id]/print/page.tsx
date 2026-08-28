@@ -726,6 +726,12 @@ export default function PrintRequestPage() {
           <button type="button" onClick={() => router.push(`/requests/${req.id}/edit`)}>Edit</button>
           <button type="button" className="is-active">Print</button>
         </nav>
+        <section className="no-print req-family-summary-grid req-print-summary" aria-label="Print summary">
+          <div><small>Request No.</small><strong>{req.request_no}</strong></div>
+          <div><small>Stage</small><strong>{req.current_stage || "—"}</strong></div>
+          <div><small>Status</small><strong>{req.status || "—"}</strong></div>
+          <div><small>Document</small><strong>A4 Request Print</strong></div>
+        </section>
         <div className="no-print req-print-actions">
           <button
             onClick={goBack}

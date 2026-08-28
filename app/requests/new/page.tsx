@@ -999,6 +999,13 @@ export default function NewRequestPage() {
           
         </nav>
 
+        <section className="req-family-progress" aria-label="New request steps">
+          <div className="is-active"><span>01</span><b>Request Type</b><small>Choose official or personal</small></div>
+          <div><span>02</span><b>Request Details</b><small>Department, title and amount</small></div>
+          <div><span>03</span><b>Review & Sign</b><small>Confirm request information</small></div>
+          <div><span>04</span><b>Submit</b><small>OTP protected submission</small></div>
+        </section>
+
         {requestOtpEnabled ? (
           <div className="mt-4 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-900">
             {otpLabel} protection is active. Sign the request first, then verify OTP before submission.
