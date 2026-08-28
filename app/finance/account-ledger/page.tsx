@@ -680,7 +680,7 @@ export default function AccountLedgerPage() {
                         </div>
                     ) : (
                         <div className="overflow-x-auto">
-                            <table className="min-w-[1180px] w-full border-collapse text-left text-sm">
+                            <table className="w-full table-fixed border-collapse text-left text-sm">
                                 <thead className="bg-slate-950 text-white">
                                     <tr>
                                         <th className="px-4 py-4 font-black">Date</th>

@@ -568,7 +568,7 @@ export default function DepartmentsPage() {
                 </div>
 
                 <div className="hidden overflow-x-auto xl:block">
-                  <table className="min-w-[1100px] w-full border-collapse text-sm">
+                  <table className="w-full table-fixed border-collapse text-sm">
                     <thead>
                       <tr className="bg-slate-100 text-xs uppercase tracking-wide text-slate-600">
                         <th className="px-4 py-3 text-left">Department</th>

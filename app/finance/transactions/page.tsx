@@ -818,7 +818,7 @@ export default function FinanceTransactionsPage() {
                     </div>
                 ) : (
                     <div className="overflow-x-auto">
-                        <table className="min-w-[1150px] divide-y divide-slate-200">
+                        <table className="w-full table-fixed divide-y divide-slate-200">
                             <thead className="bg-slate-50">
                                 <tr className="text-left text-xs font-black uppercase tracking-wide text-slate-500">
                                     <th className="px-5 py-3 sm:px-6">Transaction</th>

@@ -1270,7 +1270,7 @@ function SubheadTable({
 }) {
   return (
     <div className="overflow-x-auto">
-      <table className="min-w-[1580px] w-full border-collapse text-sm print:min-w-0 print:text-[8px]">
+      <table className="w-full table-fixed border-collapse text-sm print:table-auto print:text-[8px]">
         <thead>
           <tr className="bg-slate-100 text-xs uppercase tracking-wide text-slate-600 print:border-b print:border-black print:bg-white print:text-[8px]">
             <th className="px-4 py-3 text-left">Department</th>
@@ -1545,7 +1545,7 @@ function CompletedRequestsPanel({
         </div>
       ) : (
         <div className="overflow-x-auto">
-          <table className="min-w-[1180px] w-full border-collapse text-sm">
+          <table className="w-full table-fixed border-collapse text-sm">
             <thead>
               <tr className="bg-slate-100 text-xs uppercase tracking-wide text-slate-600">
                 <th className="px-4 py-3 text-left">Request No</th>

@@ -1782,7 +1782,7 @@ function BanksPanel({
         <EmptyState message="No IET bank account found." />
       ) : (
         <div className="overflow-x-auto">
-          <table className="min-w-[1200px] w-full border-collapse text-sm print:min-w-0 print:text-[8px]">
+          <table className="w-full table-fixed border-collapse text-sm print:table-auto print:text-[8px]">
             <thead>
               <tr className="bg-slate-100 text-xs uppercase tracking-wide text-slate-600 print:bg-white">
                 <th className="px-4 py-3 text-left">Bank Account</th>
@@ -1882,7 +1882,7 @@ function DepartmentPanel({ rows }: { rows: DepartmentSummary[] }) {
         <EmptyState message="No department allocation summary found." />
       ) : (
         <div className="overflow-x-auto">
-          <table className="min-w-[900px] w-full border-collapse text-sm print:min-w-0 print:text-[8px]">
+          <table className="w-full table-fixed border-collapse text-sm print:table-auto print:text-[8px]">
             <thead>
               <tr className="bg-slate-100 text-xs uppercase tracking-wide text-slate-600 print:bg-white">
                 <th className="px-4 py-3 text-left">Department</th>
@@ -2012,7 +2012,7 @@ function LedgerPanel({
         <EmptyState message="No bank ledger record found for the selected filters." />
       ) : (
         <div className="overflow-x-auto">
-          <table className="min-w-[1200px] w-full border-collapse text-sm print:min-w-0 print:text-[8px]">
+          <table className="w-full table-fixed border-collapse text-sm print:table-auto print:text-[8px]">
             <thead>
               <tr className="bg-slate-100 text-xs uppercase tracking-wide text-slate-600 print:bg-white">
                 <th className="px-4 py-3 text-left">Date</th>
@@ -2210,7 +2210,7 @@ function VoucherRegisterPanel({
         <EmptyState message="No payment voucher found for selected filters." />
       ) : (
         <div className="overflow-x-auto">
-          <table className="min-w-[1350px] w-full border-collapse text-sm print:min-w-0 print:text-[8px]">
+          <table className="w-full table-fixed border-collapse text-sm print:table-auto print:text-[8px]">
             <thead>
               <tr className="bg-slate-100 text-xs uppercase tracking-wide text-slate-600 print:bg-white">
                 <th className="px-4 py-3 text-left">PV No</th>
