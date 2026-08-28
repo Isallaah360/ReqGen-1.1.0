@@ -3076,39 +3076,164 @@ body{font-family:Aptos,"Segoe UI",Inter,Arial,sans-serif!important;background:va
 @media(max-width:520px){.rg-search-wrap{width:auto;flex:1}.rg-search-trigger span{max-width:120px}.rg-icon-btn:first-child{display:none}.finance-title-icon{display:none}.finance-mock-badge{margin-left:0}}
 .rg-directory-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px}.rg-directory-kpis article{min-height:106px;padding:16px;border:1px solid var(--rg-border);border-radius:12px;background:#fff;box-shadow:0 5px 16px rgba(20,45,82,.04);display:grid;align-content:center}.rg-directory-kpis span{color:#354766;font-size:10px;font-weight:800}.rg-directory-kpis strong{margin-top:5px;color:#0b5be6;font-size:20px;line-height:1.05;font-weight:900}.rg-directory-kpis small{margin-top:8px;color:#748197;font-size:8.5px}.rg-directory-panel{overflow:hidden;border:1px solid var(--rg-border);border-radius:12px;background:#fff;box-shadow:0 5px 16px rgba(20,45,82,.04)}.rg-directory-tabs{height:48px;display:flex;align-items:center;gap:22px;padding:0 16px;border-bottom:1px solid #e8edf4}.rg-directory-tabs button{height:48px;border:0;border-bottom:2px solid transparent;background:transparent;color:#344867;font-size:10px;font-weight:800}.rg-directory-tabs button.is-active{color:#0b5be6;border-bottom-color:#0b5be6}.rg-directory-filters{display:grid;grid-template-columns:minmax(220px,1.4fr) minmax(130px,.7fr) minmax(130px,.7fr) auto;gap:10px;padding:14px 16px;border-bottom:1px solid #edf1f5}.rg-directory-filters label{height:36px;display:flex;align-items:center;gap:8px;padding:0 10px;border:1px solid #dce4ee;border-radius:8px}.rg-directory-filters input{width:100%;min-height:0!important;border:0!important;outline:0!important;background:transparent!important;box-shadow:none!important;font-size:10px!important}.rg-directory-filters select{height:36px!important;min-height:36px!important;border:1px solid #dce4ee!important;border-radius:8px!important;background:#fff!important;padding:0 10px!important;font-size:10px!important}.rg-directory-export{height:36px;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:0 12px;border:1px solid #dce4ee;border-radius:8px;color:#17315c;text-decoration:none;font-size:10px;font-weight:800}.rg-directory-table-wrap{overflow-x:auto}.rg-directory-table{width:100%;min-width:820px;border-collapse:collapse}.rg-directory-table th{height:38px;padding:0 12px;background:#f6f8fb;text-align:left;font-size:8.5px!important;text-transform:uppercase;letter-spacing:.02em}.rg-directory-table td{height:50px;padding:8px 12px;border-top:1px solid #edf1f5;font-size:9.5px!important}.rg-directory-table td strong{color:#17325d}.rg-status-success{display:inline-flex;min-height:21px;align-items:center;padding:0 8px;border-radius:999px;background:#e7f7ef;color:#12825d;font-size:8px;font-weight:850}.rg-format{display:inline-flex;align-items:center;gap:3px;margin-right:5px;color:#435673;font-size:8.5px}.rg-row-actions{display:flex;gap:5px}.rg-row-actions a{width:28px;height:28px;display:grid;place-items:center;border:1px solid #dfe6ef;border-radius:7px;color:#17335f}.rg-directory-pagination{min-height:48px;display:flex;align-items:center;justify-content:space-between;padding:8px 16px;color:#64738a;font-size:9px}.rg-directory-pagination button{width:29px;height:29px;border:0;border-radius:7px;background:#0b5be6;color:#fff;font-size:9px;font-weight:800}@media(max-width:900px){.rg-directory-kpis{grid-template-columns:1fr 1fr}.rg-directory-filters{grid-template-columns:1fr 1fr}}@media(max-width:560px){.rg-directory-kpis,.rg-directory-filters{grid-template-columns:1fr}}
 
+/* ========================================================================== */
+/* ReqGen 1.1.0 — Adopted Shell System-Wide Lock                              */
+/* 2026-08-28: one shell, one navigation, one footer, one visual language.    */
+/* ========================================================================== */
+:root{
+  --rg-sidebar:270px;
+  --rg-topbar:72px;
+  --rg-content-max:1440px;
+  --rg-font-body:13px;
+  --rg-font-detail:12px;
+  --rg-font-meta:11px;
+  --rg-card-radius:12px;
+  --rg-card-shadow:0 6px 20px rgba(18,44,82,.055);
+}
 
-/* REQGEN FINANCE TABLE FIT HOTFIX V3.3 */
-@media screen {
-  .module-finance .gov-content :where(table,.erp2-table,.finance-accounts-table) {
-    width: 100% !important;
-    min-width: 0 !important;
-    max-width: 100% !important;
-    table-layout: fixed !important;
-  }
-  .module-finance .gov-content :where(th,td) {
-    min-width: 0 !important;
-    white-space: normal !important;
-    overflow-wrap: anywhere !important;
-    word-break: normal !important;
-    vertical-align: middle !important;
-  }
-  .module-finance .gov-content :where(th) {
-    font-size: 11px !important;
-    line-height: 1.3 !important;
-  }
-  .module-finance .gov-content :where(td) {
-    font-size: 12px !important;
-    line-height: 1.38 !important;
-  }
-  .module-finance .gov-content :where(.overflow-x-auto,.overflow-auto) {
-    max-width: 100% !important;
-  }
-  .module-finance .gov-content :where(table) button,
-  .module-finance .gov-content :where(table) a[role="button"] {
-    min-width: 0 !important;
-    max-width: 100% !important;
-    padding-inline: 7px !important;
-    font-size: 11px !important;
-    white-space: normal !important;
-  }
+.rg-brand{height:72px;padding:0 18px;gap:10px}
+.rg-brand-mark{min-width:0;display:flex;align-items:center;gap:10px;color:var(--rg-navy)}
+.rg-brand-logo{width:40px;height:34px;display:grid;place-items:center;flex:0 0 40px}
+.rg-brand-logo img{width:38px!important;height:32px!important;object-fit:contain}
+.rg-brand-copy{min-width:0;display:grid;gap:2px}
+.rg-brand-copy strong{font-size:18px!important;font-weight:900;line-height:1;color:var(--rg-navy);letter-spacing:-.02em;white-space:nowrap}
+.rg-brand-copy small{font-size:10px!important;font-weight:650;color:#68778d;white-space:nowrap}
+.rg-sidebar-collapse{display:none!important}
+
+.rg-nav{padding:14px 12px 10px;overflow-y:auto}
+.rg-nav-row{min-height:43px;border-radius:9px}
+.rg-nav-link{min-height:43px;gap:11px;padding:0 12px;font-size:13px!important;font-weight:800}
+.rg-nav-toggle{height:43px}
+.rg-nav-row.is-active{background:linear-gradient(90deg,#0a55dc 0%,#146df4 100%);box-shadow:0 6px 16px rgba(11,92,240,.16)}
+.rg-subnav{margin:6px 0 8px 31px;padding-left:12px;gap:1px;max-height:330px;overflow-y:auto;scrollbar-width:thin}
+.rg-subnav a{min-height:30px;padding:5px 8px;font-size:11.5px!important;font-weight:700}
+.rg-subnav a.is-active{background:#eaf2ff;color:#0758df;font-weight:850}
+.rg-more{display:none!important}
+.rg-sidebar-user{margin-top:auto}
+.rg-sidebar-user strong{font-size:12px!important}.rg-sidebar-user span{font-size:10px!important}
+
+.rg-topbar{height:72px;padding:0 20px;gap:12px}
+.rg-search-wrap{width:min(460px,42vw)}
+.rg-search-trigger{height:40px;font-size:12px!important}
+.rg-top-actions{gap:8px}
+.rg-icon-btn{width:38px;height:38px}
+.rg-profile{min-width:150px;padding-left:4px}
+.rg-profile strong{font-size:12px!important}.rg-profile span{font-size:10px!important}
+.mock-role-switcher{width:154px!important;min-width:154px!important;padding:5px 9px 6px!important;border-radius:10px!important;background:#f7faff!important}
+.mock-role-switcher>span{font-size:9px!important}.mock-role-switcher select{font-size:12px!important;min-height:25px!important}
+
+.rg-main{padding:20px 22px 0!important;background:#f8faff!important;overflow-x:hidden!important}
+.rg-content{width:min(100%,var(--rg-content-max));margin:0 auto;font-size:var(--rg-font-body)!important;color:var(--rg-text)!important}
+.rg-content p,.rg-content li,.rg-content label,.rg-content input,.rg-content select,.rg-content textarea,.rg-content button,.rg-content a{font-size:var(--rg-font-body)}
+.rg-content small,.rg-content time,.rg-content caption,.rg-content .text-xs{font-size:var(--rg-font-meta)!important}
+.rg-content h1{font-size:27px!important;line-height:1.15!important;font-weight:900!important;letter-spacing:-.025em!important;color:var(--rg-navy)!important}
+.rg-content h2{font-size:17px!important;line-height:1.25!important;font-weight:900!important;color:var(--rg-navy)!important}
+.rg-content h3{font-size:14px!important;line-height:1.3!important;font-weight:850!important;color:var(--rg-navy)!important}
+.rg-content p{line-height:1.55;color:#60708a}
+.mock-greeting{display:block;margin-bottom:4px;color:#0b5be6;font-size:12px!important;font-weight:850;letter-spacing:.02em;text-transform:none}
+
+/* Adopted cards and controls across every authenticated module. */
+.rg-content article,.rg-content .mock-card,.rg-content .finance-mock-card{
+  border-color:#dfe6f0;
+}
+.rg-content [class~="rounded-3xl"],.rg-content [class~="rounded-[2rem]"],.rg-content [class~="rounded-[1.75rem]"]{border-radius:var(--rg-card-radius)!important}
+.rg-content [class*="shadow-2xl"],.rg-content [class*="shadow-xl"]{box-shadow:var(--rg-card-shadow)!important}
+.rg-content button,.rg-content a[role="button"],.rg-content input,.rg-content select,.rg-content textarea{border-radius:9px!important}
+.rg-content button,.rg-content a[role="button"]{transition:transform .16s ease,box-shadow .16s ease,background-color .16s ease,border-color .16s ease}
+.rg-content button:hover:not(:disabled),.rg-content a[role="button"]:hover{transform:translateY(-1px)}
+
+/* Remove the old dark/gradient hero language from all non-dashboard modules. */
+.module-hr section[class*="bg-gradient-to-"][class*="text-white"],
+.module-registry section[class*="bg-gradient-to-"][class*="text-white"],
+.module-approvals section[class*="bg-gradient-to-"][class*="text-white"],
+.module-audit-centre section[class*="bg-gradient-to-"][class*="text-white"],
+.module-payment-vouchers section[class*="bg-gradient-to-"][class*="text-white"],
+.module-reports section[class*="bg-gradient-to-"][class*="text-white"],
+.module-workflow section[class*="bg-gradient-to-"][class*="text-white"],
+.module-staff section[class*="bg-gradient-to-"][class*="text-white"],
+.module-admin section[class*="bg-gradient-to-"][class*="text-white"],
+.module-executive section[class*="bg-gradient-to-"][class*="text-white"],
+.module-output section[class*="bg-gradient-to-"][class*="text-white"]{
+  border:1px solid var(--rg-border)!important;
+  border-radius:var(--rg-card-radius)!important;
+  background:#fff!important;
+  color:var(--rg-text)!important;
+  box-shadow:var(--rg-card-shadow)!important;
+  padding:18px 20px!important;
+}
+.module-hr section[class*="bg-gradient-to-"][class*="text-white"] h1,
+.module-registry section[class*="bg-gradient-to-"][class*="text-white"] h1,
+.module-approvals section[class*="bg-gradient-to-"][class*="text-white"] h1,
+.module-audit-centre section[class*="bg-gradient-to-"][class*="text-white"] h1,
+.module-payment-vouchers section[class*="bg-gradient-to-"][class*="text-white"] h1,
+.module-reports section[class*="bg-gradient-to-"][class*="text-white"] h1,
+.module-workflow section[class*="bg-gradient-to-"][class*="text-white"] h1,
+.module-staff section[class*="bg-gradient-to-"][class*="text-white"] h1,
+.module-admin section[class*="bg-gradient-to-"][class*="text-white"] h1,
+.module-executive section[class*="bg-gradient-to-"][class*="text-white"] h1,
+.module-output section[class*="bg-gradient-to-"][class*="text-white"] h1{
+  color:var(--rg-navy)!important;
+}
+.module-hr section[class*="bg-gradient-to-"][class*="text-white"] p,
+.module-registry section[class*="bg-gradient-to-"][class*="text-white"] p,
+.module-approvals section[class*="bg-gradient-to-"][class*="text-white"] p,
+.module-audit-centre section[class*="bg-gradient-to-"][class*="text-white"] p,
+.module-payment-vouchers section[class*="bg-gradient-to-"][class*="text-white"] p,
+.module-reports section[class*="bg-gradient-to-"][class*="text-white"] p,
+.module-workflow section[class*="bg-gradient-to-"][class*="text-white"] p,
+.module-staff section[class*="bg-gradient-to-"][class*="text-white"] p,
+.module-admin section[class*="bg-gradient-to-"][class*="text-white"] p,
+.module-executive section[class*="bg-gradient-to-"][class*="text-white"] p,
+.module-output section[class*="bg-gradient-to-"][class*="text-white"] p{
+  color:#60708a!important;
+}
+
+/* Normalise old large coloured KPI cards into the adopted white-card language. */
+.module-hr article[class*="bg-gradient-to-"],
+.module-registry article[class*="bg-gradient-to-"],
+.module-approvals article[class*="bg-gradient-to-"],
+.module-audit-centre article[class*="bg-gradient-to-"],
+.module-payment-vouchers article[class*="bg-gradient-to-"],
+.module-reports article[class*="bg-gradient-to-"],
+.module-workflow article[class*="bg-gradient-to-"],
+.module-staff article[class*="bg-gradient-to-"],
+.module-admin article[class*="bg-gradient-to-"]{
+  border:1px solid var(--rg-border)!important;
+  background:#fff!important;
+  color:var(--rg-text)!important;
+  box-shadow:var(--rg-card-shadow)!important;
+}
+
+/* Tables: fit the shell, wrap content, preserve all actions without horizontal page scroll. */
+.rg-content table{width:100%!important;max-width:100%!important;min-width:0!important;table-layout:fixed!important;border-collapse:separate;border-spacing:0;font-size:12px!important;background:#fff}
+.rg-content thead th{padding:10px 9px!important;background:#f3f6fa!important;color:#203558!important;font-size:11px!important;font-weight:900!important;line-height:1.25!important;white-space:normal!important;overflow-wrap:anywhere!important}
+.rg-content tbody td{padding:10px 9px!important;color:#263a5e!important;font-size:12px!important;line-height:1.4!important;white-space:normal!important;overflow-wrap:anywhere!important;word-break:normal!important;vertical-align:middle!important}
+.rg-content tbody tr:hover td{background:#f8fbff}
+.rg-content table button,.rg-content table a{font-size:11px!important;min-width:0!important;white-space:normal!important}
+.rg-content :where(.overflow-x-auto,.overflow-auto){max-width:100%!important}
+
+/* Internal legacy headers/footers/navigation cannot compete with the adopted shell. */
+.rg-content footer{display:none!important}
+.rg-content .erp2-page-header,.rg-content .reqgen-route-hero,.rg-content .workflow-hero{border-radius:var(--rg-card-radius)!important;background:#fff!important;color:var(--rg-text)!important;box-shadow:none!important;border:1px solid var(--rg-border)!important}
+.rg-content .staff-footer,.rg-content .reqgen-site-footer{display:none!important}
+
+/* The one and only authenticated footer. */
+.rg-main>.mock-footer{width:min(100%,var(--rg-content-max));margin:22px auto 0!important;display:grid!important;min-height:86px;padding:14px 4px 16px;background:transparent!important}
+.mock-footer-brand strong{font-size:14px!important}.mock-footer-brand span{font-size:10px!important}
+.mock-footer-centre>strong{font-size:11px!important}.mock-footer-centre a{font-size:10px!important}.mock-footer-centre small{font-size:9.5px!important}
+.mock-footer-developer>span{font-size:9px!important}.mock-footer-developer strong{font-size:11px!important}
+
+@media(max-width:1100px){
+  .rg-shell{grid-template-columns:1fr}
+  .rg-sidebar{width:270px}
+  .mock-role-switcher{width:145px!important;min-width:145px!important}
+}
+@media(max-width:760px){
+  .rg-main{padding:14px 12px 0!important}
+  .rg-topbar{padding:0 12px}
+  .rg-profile>div:nth-child(2){display:none}
+  .rg-profile{min-width:auto}
+  .mock-role-switcher{width:132px!important;min-width:132px!important}
+  .rg-content h1{font-size:23px!important}
+  .rg-content table{table-layout:auto!important}
 }

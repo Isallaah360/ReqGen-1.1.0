@@ -15,8 +15,11 @@ export default function DashboardPage() {
   const [requests, setRequests] = useState<RequestRow[]>([]);
   const [vouchers, setVouchers] = useState<VoucherRow[]>([]);
   const [name, setName] = useState("User");
+  const [greeting, setGreeting] = useState("Welcome");
 
   useEffect(() => {
+    const hour = new Date().getHours();
+    setGreeting(hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening");
     let live = true;
     (async () => {
       const auth = await supabase.auth.getUser();
@@ -49,7 +52,7 @@ export default function DashboardPage() {
   return (
     <div className="mock-page dashboard-mock">
       <div className="mock-page-title-row">
-        <div><h1>Welcome back, {name}! <span aria-hidden="true">👋</span></h1><p>Here&apos;s what&apos;s happening across ReqGen today.</p></div>
+        <div><span className="mock-greeting">{greeting}</span><h1>Welcome back, {name}! <span aria-hidden="true">👋</span></h1><p>Here&apos;s what&apos;s happening across ReqGen today.</p></div>
         <div className="mock-date">{new Date().toLocaleDateString("en-NG", { weekday:"long", day:"2-digit", month:"long", year:"numeric" })}</div>
       </div>
 

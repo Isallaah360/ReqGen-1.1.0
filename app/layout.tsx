@@ -10,11 +10,11 @@ import GovernmentAppShell from "./components/GovernmentAppShell";
 export const metadata: Metadata = {
   metadataBase: new URL("https://req-gen-1-1-0.vercel.app"),
   title: {
-    default: "ReqGen",
-    template: "%s | ReqGen",
+    default: "ReqGen 1.1.0",
+    template: "%s | ReqGen 1.1.0",
   },
   description: "Islamic Education Trust (IET) secure request management system.",
-  applicationName: "ReqGen",
+  applicationName: "ReqGen 1.1.0",
   creator: "Barderian Enterprises",
   authors: [{ name: "Barderian Enterprises" }],
   keywords: [

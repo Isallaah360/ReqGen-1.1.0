@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
@@ -17,29 +18,34 @@ import {
   Settings,
   Search,
   Bell,
+  MessageSquare,
   Menu,
   X,
   LogOut,
   ChevronDown,
-  CircleHelp,
-  Sun,
-  Globe2,
-  PanelLeftClose,
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { NAVIGATION_ITEMS } from "@/lib/navigation";
 import { canAccessPath } from "@/lib/permissions";
 import { getCurrentAuthContext } from "@/lib/auth";
+import ActiveRoleSwitcher from "./ActiveRoleSwitcher";
+import StaffFooter from "./staff/StaffFooter";
 
 const PUBLIC_PATHS = new Set([
   "/", "/login", "/signup", "/forgot-password", "/reset-password", "/mfa",
   "/mfa/setup", "/unauthorized", "/about",
 ]);
 
-const MODULE_SUBNAV: Record<string, { href: string; label: string }[]> = {
+type SubNavItem = { href: string; label: string };
+
+const MODULE_SUBNAV: Record<string, SubNavItem[]> = {
   "/requests": [
     { href: "/requests", label: "Requests Overview" },
     { href: "/requests/new", label: "Create New Request" },
+  ],
+  "/approvals": [
+    { href: "/approvals", label: "Approvals Overview" },
+    { href: "/approvals/action-centre", label: "Action Centre" },
   ],
   "/finance": [
     { href: "/finance", label: "Finance Overview" },
@@ -62,21 +68,83 @@ const MODULE_SUBNAV: Record<string, { href: string; label: string }[]> = {
     { href: "/finance/activity-history", label: "Activity History" },
     { href: "/finance/settings", label: "Finance Settings" },
   ],
+  "/payment-vouchers": [
+    { href: "/payment-vouchers", label: "Voucher Register" },
+    { href: "/payment-vouchers/reports", label: "Voucher Reports" },
+    { href: "/payment-vouchers/settings", label: "Voucher Settings" },
+  ],
+  "/registry": [
+    { href: "/registry", label: "Registry Overview" },
+    { href: "/registry/incoming", label: "Incoming Register" },
+    { href: "/registry/outgoing", label: "Outgoing Register" },
+    { href: "/registry/dispatch", label: "Dispatch" },
+    { href: "/registry/operations", label: "Registry Operations" },
+    { href: "/registry/archive", label: "Archive" },
+  ],
+  "/hr": [
+    { href: "/hr", label: "HR Overview" },
+    { href: "/hr/my-work", label: "My HR Work" },
+    { href: "/hr/review", label: "Review Queue" },
+    { href: "/hr/filing", label: "HR Filing" },
+    { href: "/hr/staff", label: "Staff Directory" },
+    { href: "/hr/leave", label: "Leave Management" },
+    { href: "/hr/assignments", label: "Assignments" },
+    { href: "/hr/analytics", label: "HR Analytics" },
+    { href: "/hr/department-kpi", label: "Department KPI" },
+    { href: "/hr/officer-performance", label: "Officer Performance" },
+    { href: "/hr/reports", label: "HR Reports" },
+    { href: "/hr/output", label: "HR Output" },
+    { href: "/hr/compliance", label: "Compliance" },
+    { href: "/hr/audit", label: "HR Audit" },
+    { href: "/hr/settings", label: "HR Settings" },
+  ],
+  "/reports": [
+    { href: "/reports", label: "Reports Centre" },
+    { href: "/reports/enterprise-analytics", label: "Analytics" },
+  ],
+  "/audit-centre": [
+    { href: "/audit-centre", label: "Audit Centre" },
+  ],
+  "/workflow": [
+    { href: "/workflow", label: "Workflow Centre" },
+  ],
+  "/staff": [
+    { href: "/staff", label: "Staff Overview" },
+    { href: "/staff/requests", label: "My Requests" },
+    { href: "/staff/leave", label: "My Leave" },
+    { href: "/staff/attendance", label: "Attendance" },
+    { href: "/staff/profile", label: "My Profile" },
+    { href: "/staff/training", label: "Training" },
+    { href: "/staff/performance", label: "Performance" },
+    { href: "/staff/notifications", label: "Notifications" },
+    { href: "/staff/downloads", label: "Downloads" },
+  ],
+  "/admin": [
+    { href: "/admin", label: "Admin Dashboard" },
+    { href: "/admin/users", label: "User Management" },
+    { href: "/admin/roles", label: "Roles & Permissions" },
+    { href: "/admin/departments", label: "Departments" },
+    { href: "/admin/account-routing", label: "Account Routing" },
+    { href: "/admin/security", label: "Security Centre" },
+    { href: "/admin/settings", label: "System Settings" },
+    { href: "/admin/audit", label: "Admin Audit" },
+    { href: "/admin/access-audit", label: "Access Audit" },
+    { href: "/admin/system-health", label: "System Health" },
+    { href: "/admin/release-readiness", label: "Release Readiness" },
+    { href: "/admin/workflow-test", label: "Workflow Test" },
+  ],
 };
 
-const CORE_NAV = [
+const MAIN_NAV = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/requests", label: "Requests", icon: FileText },
-  { href: "/finance", label: "Finance", icon: Landmark },
-  { href: "/hr", label: "HR", icon: Users },
-  { href: "/registry", label: "Registry", icon: Archive },
   { href: "/approvals", label: "Approvals", icon: ShieldCheck },
-  { href: "/audit-centre", label: "Audit", icon: ShieldCheck },
-];
-
-const MORE_NAV = [
+  { href: "/finance", label: "Finance", icon: Landmark },
   { href: "/payment-vouchers", label: "Payment Vouchers", icon: CreditCard },
+  { href: "/registry", label: "Registry", icon: Archive },
+  { href: "/hr", label: "HR", icon: Users },
   { href: "/reports", label: "Reports", icon: BarChart3 },
+  { href: "/audit-centre", label: "Audit Centre", icon: ShieldCheck },
   { href: "/workflow", label: "Workflow", icon: Workflow },
   { href: "/staff", label: "Staff", icon: UserRound },
   { href: "/admin", label: "Admin", icon: Settings },
@@ -123,13 +191,15 @@ export default function GovernmentAppShell({ children }: { children: React.React
     setMobileOpen(false);
     setSearchOpen(false);
     setQuery("");
-    if (pathname.startsWith("/finance")) setExpandedNav("/finance");
-    else if (pathname.startsWith("/requests")) setExpandedNav("/requests");
-    else setExpandedNav(null);
+    const parent = Object.keys(MODULE_SUBNAV).find((href) => pathname === href || pathname.startsWith(`${href}/`));
+    setExpandedNav(parent || null);
   }, [pathname]);
 
-  const visibleCore = useMemo(() => CORE_NAV.filter((item) => roleSet.size === 0 || canAccessPath(item.href, roleSet)), [roleSet]);
-  const visibleMore = useMemo(() => MORE_NAV.filter((item) => roleSet.size === 0 || canAccessPath(item.href, roleSet)), [roleSet]);
+  const visibleNav = useMemo(
+    () => MAIN_NAV.filter((item) => roleSet.size === 0 || canAccessPath(item.href, roleSet)),
+    [roleSet]
+  );
+
   const searchResults = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return [];
@@ -142,22 +212,37 @@ export default function GovernmentAppShell({ children }: { children: React.React
   if (isPublic) return <>{children}</>;
 
   const initials = userName.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join("") || "RG";
-  async function signOut() { await supabase.auth.signOut(); router.replace("/login"); }
+  const moduleKey = pathname.split("/").filter(Boolean)[0] || "dashboard";
 
-  const renderNav = (items: typeof CORE_NAV) => items.map((item) => {
+  async function signOut() {
+    await supabase.auth.signOut();
+    router.replace("/login");
+  }
+
+  const renderNav = () => visibleNav.map((item) => {
     const Icon = item.icon;
     const active = isActive(pathname, item.href);
-    const subnav = MODULE_SUBNAV[item.href] || [];
+    const subnav = (MODULE_SUBNAV[item.href] || []).filter((child) => roleSet.size === 0 || canAccessPath(child.href, roleSet));
     const expanded = expandedNav === item.href;
     return (
       <div key={item.href} className={`rg-nav-group ${active ? "is-active" : ""}`}>
         <div className={`rg-nav-row ${active ? "is-active" : ""}`}>
           <Link href={item.href} className="rg-nav-link" onClick={() => subnav.length && setExpandedNav(item.href)}>
-            <Icon size={17} /><span>{item.label}</span>
+            <Icon size={18} /><span>{item.label}</span>
           </Link>
-          {subnav.length ? <button type="button" className="rg-nav-toggle" aria-label={`${expanded ? "Collapse" : "Expand"} ${item.label}`} onClick={() => setExpandedNav(expanded ? null : item.href)}><ChevronDown size={15} className={expanded ? "is-open" : ""}/></button> : null}
+          {subnav.length ? (
+            <button type="button" className="rg-nav-toggle" aria-label={`${expanded ? "Collapse" : "Expand"} ${item.label}`} onClick={() => setExpandedNav(expanded ? null : item.href)}>
+              <ChevronDown size={16} className={expanded ? "is-open" : ""}/>
+            </button>
+          ) : null}
         </div>
-        {subnav.length && expanded ? <div className="rg-subnav">{subnav.map((child) => <Link key={child.href} href={child.href} className={pathname === child.href ? "is-active" : ""}>{child.label}</Link>)}</div> : null}
+        {subnav.length && expanded ? (
+          <div className="rg-subnav">
+            {subnav.map((child) => (
+              <Link key={child.href} href={child.href} className={pathname === child.href ? "is-active" : ""}>{child.label}</Link>
+            ))}
+          </div>
+        ) : null}
       </div>
     );
   });
@@ -167,12 +252,15 @@ export default function GovernmentAppShell({ children }: { children: React.React
       <button className={`rg-backdrop ${mobileOpen ? "is-open" : ""}`} onClick={() => setMobileOpen(false)} aria-label="Close navigation" />
       <aside className={`rg-sidebar ${mobileOpen ? "is-open" : ""}`}>
         <div className="rg-brand">
-          <Link href="/dashboard" className="rg-brand-mark" aria-label="ReqGen 2.0 home"><span className="rg-cube"><i/><b/><em/></span><strong>ReqGen<sup>2.0</sup></strong></Link>
-          <button className="rg-sidebar-collapse" aria-label="Navigation"><PanelLeftClose size={19}/></button>
+          <Link href="/dashboard" className="rg-brand-mark" aria-label="ReqGen 1.1.0 dashboard">
+            <span className="rg-brand-logo"><Image src="/be-logo.png" alt="Barderian Enterprises" width={38} height={32} priority /></span>
+            <span className="rg-brand-copy"><strong>ReqGen 1.1.0</strong><small>Request Management System</small></span>
+          </Link>
           <button className="rg-mobile-close" onClick={() => setMobileOpen(false)} aria-label="Close navigation"><X size={19}/></button>
         </div>
-        <nav className="rg-nav">{renderNav(visibleCore)}</nav>
-        {visibleMore.length ? <div className="rg-more"><span>MORE MODULES</span>{renderNav(visibleMore)}</div> : null}
+
+        <nav className="rg-nav" aria-label="ReqGen modules">{renderNav()}</nav>
+
         <div className="rg-sidebar-user">
           <div className="rg-avatar">{initials}</div>
           <div><strong>{userName}</strong><span>{userEmail || "Authorised user"}</span></div>
@@ -184,17 +272,35 @@ export default function GovernmentAppShell({ children }: { children: React.React
         <header className="rg-topbar">
           <button className="rg-menu" onClick={() => setMobileOpen(true)} aria-label="Open navigation"><Menu size={20}/></button>
           <div className="rg-search-wrap">
-            <button className="rg-search-trigger" onClick={() => setSearchOpen((v) => !v)}><Search size={16}/><span>Search anything...</span><kbd>Ctrl + K</kbd></button>
-            {searchOpen ? <div className="rg-search-popover"><div className="rg-search-input"><Search size={17}/><input autoFocus value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search authorised ReqGen pages..."/></div><div className="rg-search-results">{query && searchResults.length === 0 ? <p>No authorised result found.</p> : null}{searchResults.map((item) => <Link key={item.href} href={item.href}><strong>{item.label}</strong><span>{item.section} · {item.description}</span></Link>)}</div></div> : null}
+            <button className="rg-search-trigger" onClick={() => setSearchOpen((v) => !v)}>
+              <Search size={16}/><span>Search requests, transactions, documents...</span>
+            </button>
+            {searchOpen ? (
+              <div className="rg-search-popover">
+                <div className="rg-search-input"><Search size={17}/><input autoFocus value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search authorised ReqGen pages..."/></div>
+                <div className="rg-search-results">
+                  {query && searchResults.length === 0 ? <p>No authorised result found.</p> : null}
+                  {searchResults.map((item) => <Link key={item.href} href={item.href}><strong>{item.label}</strong><span>{item.section} · {item.description}</span></Link>)}
+                </div>
+              </div>
+            ) : null}
           </div>
+
           <div className="rg-top-actions">
-            <button type="button" className="rg-icon-btn" aria-label="Theme"><Sun size={19}/></button>
-            <button type="button" className="rg-icon-btn" aria-label="Language"><Globe2 size={19}/></button>
             <Link href="/staff/notifications" className="rg-icon-btn rg-bell" aria-label="Notifications"><Bell size={19}/><b>3</b></Link>
-            <Link href="/profile" className="rg-profile"><div className="rg-avatar">{initials}</div><div><strong>{userName}</strong><span>System Administrator</span></div><ChevronDown size={15}/></Link>
+            <Link href="/dashboard/activity" className="rg-icon-btn" aria-label="Activity and messages"><MessageSquare size={19}/></Link>
+            <ActiveRoleSwitcher compact />
+            <Link href="/profile" className="rg-profile">
+              <div className="rg-avatar">{initials}</div>
+              <div><strong>{userName}</strong><span>Authorised user</span></div>
+            </Link>
           </div>
         </header>
-        <main id="reqgen-main-content" className="rg-main" role="main"><div className={`rg-content ${pathname.startsWith("/finance") ? "module-finance" : pathname.startsWith("/requests") ? "module-requests" : ""}`}>{children}</div><footer className="rg-footer">© 2026 ReqGen 2.0. All rights reserved.</footer></main>
+
+        <main id="reqgen-main-content" className="rg-main" role="main">
+          <div className={`rg-content module-${moduleKey}`}>{children}</div>
+          <StaffFooter />
+        </main>
       </section>
     </div>
   );
