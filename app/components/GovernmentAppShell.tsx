@@ -18,6 +18,7 @@ import {
   Settings,
   Search,
   Bell,
+  MessageSquareText,
   Menu,
   X,
   LogOut,
@@ -57,28 +58,6 @@ const PRIMARY_NAV = [
   { href: "/staff", label: "Staff", icon: UserRound },
   { href: "/admin", label: "Admin", icon: Settings },
 ];
-
-function titleFromPath(pathname: string) {
-  const exact = NAVIGATION_ITEMS.find((item) => item.href === pathname);
-  if (exact) return { title: exact.label, description: exact.description, section: exact.section };
-
-  const staticMatch = NAVIGATION_ITEMS
-    .filter((item) => pathname.startsWith(`${item.href}/`))
-    .sort((a, b) => b.href.length - a.href.length)[0];
-  if (staticMatch) return { title: staticMatch.label, description: staticMatch.description, section: staticMatch.section };
-
-  const parts = pathname.split("/").filter(Boolean);
-  const last = parts.at(-1) || "ReqGen";
-  const title = last
-    .replace(/\[|\]/g, "")
-    .replace(/[-_]+/g, " ")
-    .replace(/\b\w/g, (letter) => letter.toUpperCase());
-  return {
-    title,
-    description: "Secure institutional workspace for authorised ReqGen operations.",
-    section: parts[0]?.replace(/[-_]+/g, " ") || "ReqGen",
-  };
-}
 
 function isActive(pathname: string, href: string) {
   if (href === "/dashboard") return pathname === href || pathname.startsWith("/dashboard/");
@@ -141,7 +120,6 @@ export default function GovernmentAppShell({ children }: { children: React.React
 
   if (isPublic) return <>{children}</>;
 
-  const context = titleFromPath(pathname);
   const initials = userName
     .split(/\s+/)
     .filter(Boolean)
@@ -155,17 +133,14 @@ export default function GovernmentAppShell({ children }: { children: React.React
   }
 
   return (
-    <div className="gov-shell">
+    <div className="gov-shell mock-app-shell">
       <button className="gov-mobile-backdrop" data-open={mobileOpen ? "true" : "false"} onClick={() => setMobileOpen(false)} aria-label="Close navigation" />
 
       <aside className={`gov-sidebar ${mobileOpen ? "is-open" : ""}`} aria-label="Primary navigation">
         <div className="gov-brand">
-          <Image src="/iet-logo.png" alt="Islamic Education Trust" width={52} height={52} className="gov-brand-logo" priority />
-          <div>
-            <strong>ReqGen</strong>
-            <span>Request Management System</span>
-          </div>
-          <button className="gov-mobile-close" onClick={() => setMobileOpen(false)} aria-label="Close navigation"><X size={20} /></button>
+          <Image src="/iet-logo.png" alt="Islamic Education Trust" width={58} height={58} className="gov-brand-logo" priority />
+          <div><strong>ReqGen</strong><span>Request Management System</span></div>
+          <button className="gov-mobile-close" onClick={() => setMobileOpen(false)} aria-label="Close navigation"><X size={19} /></button>
         </div>
 
         <nav className="gov-nav">
@@ -174,50 +149,44 @@ export default function GovernmentAppShell({ children }: { children: React.React
             const active = isActive(pathname, item.href);
             return (
               <Link key={item.href} href={item.href} className={`gov-nav-link ${active ? "is-active" : ""}`}>
-                <Icon size={19} aria-hidden="true" />
+                <Icon size={18} aria-hidden="true" />
                 <span>{item.label}</span>
-                <ChevronRight size={15} className="gov-nav-chevron" aria-hidden="true" />
+                <ChevronRight size={14} className="gov-nav-chevron" aria-hidden="true" />
               </Link>
             );
           })}
         </nav>
 
         <div className="gov-nav-secondary">
-          <span>Quick links</span>
-          <Link href="/profile"><UserRound size={18} />My Profile</Link>
-          <Link href="/staff/notifications"><Bell size={18} />Notifications</Link>
-          <Link href="/about"><CircleHelp size={18} />About ReqGen</Link>
+          <span>Quick Links</span>
+          <Link href="/profile"><UserRound size={17} />My Profile</Link>
+          <Link href="/staff/notifications"><Bell size={17} />Notifications</Link>
+          <Link href="/about"><CircleHelp size={17} />Help &amp; Support</Link>
+          <Link href="/admin/settings"><Settings size={17} />Settings</Link>
         </div>
 
         <div className="gov-sidebar-user">
           <div className="gov-avatar">{initials}</div>
-          <div className="gov-sidebar-user-copy">
-            <strong>{userName}</strong>
-            <span>{userEmail || "Authenticated user"}</span>
-          </div>
-          <button onClick={signOut} aria-label="Log out" data-tip="Sign out securely from ReqGen."><LogOut size={18} /></button>
+          <div className="gov-sidebar-user-copy"><strong>{userName}</strong><span>{userEmail || "Authenticated user"}</span></div>
+          <button onClick={signOut} aria-label="Log out" data-tip="Sign out securely from ReqGen."><LogOut size={17} /></button>
         </div>
       </aside>
 
       <div className="gov-stage">
         <header className="gov-topbar">
-          <button className="gov-menu-button" onClick={() => setMobileOpen(true)} aria-label="Open navigation"><Menu size={22} /></button>
+          <button className="gov-menu-button" onClick={() => setMobileOpen(true)} aria-label="Open navigation"><Menu size={21} /></button>
 
           <div className="gov-search-wrap">
-            <button className="gov-search-trigger" onClick={() => setSearchOpen((value) => !value)} data-tip="Search authorised ReqGen pages and functions.">
-              <Search size={18} />
-              <span>Search ReqGen...</span>
+            <button className="gov-search-trigger" onClick={() => setSearchOpen((value) => !value)}>
+              <Search size={16} /><span>Search requests, transactions, documents...</span>
             </button>
             {searchOpen && (
               <div className="gov-search-popover">
-                <div className="gov-search-input-wrap"><Search size={18} /><input autoFocus value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search pages, reports, registers..." /></div>
+                <div className="gov-search-input-wrap"><Search size={17} /><input autoFocus value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search authorised ReqGen pages and functions..." /></div>
                 <div className="gov-search-results">
                   {query && searchResults.length === 0 ? <p>No authorised result found.</p> : null}
                   {searchResults.map((item) => (
-                    <Link key={item.href} href={item.href}>
-                      <strong>{item.label}</strong>
-                      <span>{item.section} · {item.description}</span>
-                    </Link>
+                    <Link key={item.href} href={item.href}><strong>{item.label}</strong><span>{item.section} · {item.description}</span></Link>
                   ))}
                 </div>
               </div>
@@ -225,7 +194,8 @@ export default function GovernmentAppShell({ children }: { children: React.React
           </div>
 
           <div className="gov-topbar-actions">
-            <Link href="/staff/notifications" className="gov-icon-button" aria-label="Notifications"><Bell size={19} /></Link>
+            <Link href="/staff/notifications" className="gov-icon-button gov-icon-badge" aria-label="Notifications"><Bell size={18} /><b>•</b></Link>
+            <Link href="/dashboard/activity" className="gov-icon-button" aria-label="Activity"><MessageSquareText size={18} /></Link>
             <ActiveRoleBadge />
             <div className="gov-topbar-profile">
               <div className="gov-avatar">{initials}</div>
