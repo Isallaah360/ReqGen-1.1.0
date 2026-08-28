@@ -88,7 +88,7 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
   { href: "/registry/archive", label: "Registry Archive", section: "Registry", description: "Archived registry records." },
 
   { href: "/reports", label: "Reports & Analytics", section: "Reports", description: "Enterprise reporting and analytics centre." },
-  { href: "/reports/enterprise-analytics", label: "Enterprise Analytics", section: "Reports", description: "Enterprise-level analytical view." },
+  { href: "/reports/enterprise-analytics", label: "Analytics", section: "Reports", description: "Cross-module analytical view." },
   { href: "/output", label: "Output Centre", section: "Reports", description: "Printable and exportable system output." },
 
   { href: "/executive", label: "Executive Command Centre", section: "Executive", description: "Executive oversight workspace." },
