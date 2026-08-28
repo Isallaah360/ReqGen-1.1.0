@@ -28,7 +28,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { NAVIGATION_ITEMS } from "@/lib/navigation";
 import { canAccessPath } from "@/lib/permissions";
 import { getCurrentAuthContext } from "@/lib/auth";
-import ActiveRoleSwitcher from "./ActiveRoleSwitcher";
+import { ActiveRoleSwitcher } from "./ActiveRoleSwitcher";
 import StaffFooter from "./staff/StaffFooter";
 
 const PUBLIC_PATHS = new Set([
