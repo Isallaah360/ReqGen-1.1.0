@@ -3018,6 +3018,6 @@ body{font-size:var(--reqgen-body-size)!important;letter-spacing:.001em}
   .finance-accounts-page .finance-accounts-table th,.finance-accounts-page .finance-accounts-table td{padding:8px 5px!important;font-size:11px!important}.finance-accounts-page .finance-account-actions button{font-size:9.5px!important}
 }
 @media(max-width:980px){
-  .finance-accounts-page .finance-accounts-table-wrap{display:none!important}.finance-accounts-page .xl\\:hidden{display:grid!important}
+  .finance-accounts-page .finance-accounts-table-wrap{display:none!important}.finance-accounts-page [class~="xl:hidden"]{display:grid!important}
 }
 @media(prefers-reduced-motion:reduce){.gov-content :where(button,a,[role="button"],[role="tab"],input,select,textarea){transition:none!important}.gov-content :where(button,a,[role="button"]):hover{transform:none!important}}
