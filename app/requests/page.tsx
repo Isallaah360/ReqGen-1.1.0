@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
-import { ActionButton } from "@/app/components/ui/ReqGenUI";
 
 type Row = {
   id: string;
@@ -17,6 +16,7 @@ type Row = {
   personal_category?: string | null;
   funds_state?: string | null;
   assigned_account_officer_name?: string | null;
+  dept_id?: string | null;
 };
 
 type TypeFilter = "ALL" | "OFFICIAL" | "PERSONAL_FUND" | "PERSONAL_OTHER";
@@ -253,6 +253,8 @@ export default function MyRequestsPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [rows, setRows] = useState<Row[]>([]);
+  const [departmentNames, setDepartmentNames] = useState<Record<string, string>>({});
+  const [page, setPage] = useState(1);
 
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("ALL");
@@ -281,7 +283,7 @@ export default function MyRequestsPage() {
       const { data, error } = await supabase
         .from("requests")
         .select(
-          "id,request_no,title,amount,status,current_stage,created_at,request_type,personal_category,funds_state,assigned_account_officer_name"
+          "id,request_no,title,amount,status,current_stage,created_at,request_type,personal_category,funds_state,assigned_account_officer_name,dept_id"
         )
         .eq("created_by", auth.user.id)
         .order("created_at", { ascending: false });
@@ -291,6 +293,14 @@ export default function MyRequestsPage() {
         setRows([]);
       } else {
         setRows((data || []) as Row[]);
+      }
+
+      const deptIds = Array.from(new Set(((data || []) as Row[]).map((row) => row.dept_id).filter(Boolean))) as string[];
+      if (deptIds.length > 0) {
+        const { data: departments } = await supabase.from("departments").select("id,name").in("id", deptIds);
+        setDepartmentNames(Object.fromEntries((departments || []).map((department: any) => [String(department.id), String(department.name || "Unassigned")])));
+      } else {
+        setDepartmentNames({});
       }
 
       setLoading(false);
@@ -376,6 +386,8 @@ export default function MyRequestsPage() {
     });
     return copy;
   }, [filteredRows, sortMode]);
+
+  useEffect(() => { setPage(1); }, [search, typeFilter, statusFilter, stageFilter, dateFilter, sortMode]);
 
   const activeFilterCount = useMemo(() => {
     return [
@@ -490,274 +502,197 @@ export default function MyRequestsPage() {
     URL.revokeObjectURL(url);
   }
 
+  const pageSize = 8;
+  const totalPages = Math.max(1, Math.ceil(sortedRows.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const paginatedRows = sortedRows.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
   return (
-    <main className="min-h-screen bg-slate-50/80 pb-14">
-      <section className="relative overflow-hidden bg-gradient-to-br from-slate-950 via-blue-950 to-blue-700 text-white">
-        <div className="absolute -left-20 top-10 h-64 w-64 rounded-full bg-cyan-400/15 blur-3xl" />
-        <div className="absolute -right-16 -top-20 h-80 w-80 rounded-full bg-blue-400/20 blur-3xl" />
-        <div className="absolute bottom-0 left-1/2 h-40 w-96 -translate-x-1/2 rounded-full bg-indigo-500/10 blur-3xl" />
+    <main className="req-mock-page">
+      <section className="req-mock-header">
+        <div>
+          <h1>Requests</h1>
+          <p>Create, track and manage all institutional requests in one place.</p>
+        </div>
+        <button
+          type="button"
+          className="req-mock-primary"
+          onClick={() => router.push(`/requests/new?updated=${Date.now()}`)}
+          data-tip="Create and submit a new request."
+        >
+          <Icon name="plus" className="h-4 w-4" />
+          New Request
+        </button>
+      </section>
 
-        <div className="relative mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8 lg:py-14">
-          <div className="flex flex-col gap-7 lg:flex-row lg:items-end lg:justify-between">
-            <div className="max-w-3xl animate-[fadeUp_.55s_ease-out]">
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.2em] text-cyan-100 backdrop-blur">
-                <Icon name="workflow" className="h-4 w-4" />
-                Request Operations
-              </div>
-              <h1 className="mt-5 text-3xl font-black tracking-tight sm:text-4xl lg:text-5xl">
-                Request Management Centre
-              </h1>
-              <p className="mt-4 max-w-2xl text-sm leading-6 text-blue-100 sm:text-base">
-                Create, track and monitor your official and personal requests through every authorised approval stage.
-              </p>
-            </div>
+      <section className="req-mock-kpis" aria-label="Request summary">
+        <MockKpi label="Total Requests" value={counts.total} icon="inbox" tone="blue" note="All submitted requests" />
+        <MockKpi label="Active Workflow" value={counts.active} icon="clock" tone="orange" note="Currently in progress" />
+        <MockKpi label="Completed / Paid" value={counts.completed} icon="check" tone="green" note="Successfully completed" />
+        <MockKpi label="Official Requests" value={counts.official} icon="briefcase" tone="purple" note={`${counts.total ? Math.round((counts.official / counts.total) * 100) : 0}% of total`} />
+        <MockKpi label="Rejected / Deleted" value={counts.rejectedOrDeleted} icon="x" tone="red" note="Closed without completion" />
+      </section>
 
-            <div className="grid w-full grid-cols-1 gap-3 animate-[fadeUp_.65s_ease-out] sm:grid-cols-3 lg:w-auto">
-              <ActionButton
-                type="button"
-                tone="ghost"
-                onClick={() => load({ silent: true })}
-                disabled={refreshing || loading}
-                icon={<Icon name="refresh" className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />}
-              >
-                {refreshing ? "Refreshing" : "Refresh"}
-              </ActionButton>
+      <section className="req-mock-panel">
+        <div className="req-mock-tabs" role="tablist" aria-label="Request views">
+          <MockTab label="All Requests" count={counts.total} active={statusFilter === "ALL" && typeFilter === "ALL"} onClick={() => { setStatusFilter("ALL"); setTypeFilter("ALL"); }} />
+          <MockTab label="Active Workflow" count={counts.active} active={statusFilter === "ACTIVE"} onClick={() => setStatusFilter("ACTIVE")} />
+          <MockTab label="Completed / Paid" count={counts.completed} active={statusFilter === "COMPLETED"} onClick={() => setStatusFilter("COMPLETED")} />
+          <MockTab label="Rejected / Deleted" count={counts.rejectedOrDeleted} active={statusFilter === "REJECTED"} onClick={() => setStatusFilter("REJECTED")} />
+          <MockTab label="Official" count={counts.official} active={typeFilter === "OFFICIAL"} onClick={() => { setStatusFilter("ALL"); setTypeFilter("OFFICIAL"); }} />
+          <MockTab label="Personal Fund" count={counts.personalFund} active={typeFilter === "PERSONAL_FUND"} onClick={() => { setStatusFilter("ALL"); setTypeFilter("PERSONAL_FUND"); }} />
+          <MockTab label="Personal Other" count={counts.personalOther} active={typeFilter === "PERSONAL_OTHER"} onClick={() => { setStatusFilter("ALL"); setTypeFilter("PERSONAL_OTHER"); }} />
+        </div>
 
-              <ActionButton
-                type="button"
-                tone="violet"
-                onClick={exportCsv}
-                disabled={sortedRows.length === 0}
-                icon={<Icon name="download" className="h-4 w-4" />}
-              >
-                Export CSV
-              </ActionButton>
+        <div className="req-mock-filters">
+          <label className="req-mock-search">
+            <Icon name="search" className="h-4 w-4" />
+            <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search requests..." />
+          </label>
+          <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as StatusFilter)} aria-label="Filter by status">
+            <option value="ALL">All Status</option>
+            <option value="ACTIVE">Active</option>
+            <option value="COMPLETED">Completed / Paid</option>
+            <option value="REJECTED">Rejected / Deleted</option>
+          </select>
+          <select value={stageFilter} onChange={(event) => setStageFilter(event.target.value as StageFilter)} aria-label="Filter by stage">
+            <option value="ALL">All Stages</option>
+            <option value="PO">PO</option><option value="DOD">DOD</option><option value="DINADMIN">DIN Admin</option>
+            <option value="REGISTRAR">Registrar</option><option value="HOD">HOD</option><option value="HR">HR</option>
+            <option value="DG">DG</option><option value="ACCOUNT">Account Officer</option><option value="HRFILING">HR Filing</option>
+            <option value="COMPLETED">Completed</option>
+          </select>
+          <select value={typeFilter} onChange={(event) => setTypeFilter(event.target.value as TypeFilter)} aria-label="Filter by request type">
+            <option value="ALL">All Request Types</option>
+            <option value="OFFICIAL">Official</option>
+            <option value="PERSONAL_FUND">Personal Fund</option>
+            <option value="PERSONAL_OTHER">Personal Other</option>
+          </select>
+          <select value={dateFilter} onChange={(event) => setDateFilter(event.target.value as DateFilter)} aria-label="Filter by date">
+            <option value="ALL">Date Range</option>
+            <option value="7D">Last 7 Days</option><option value="30D">Last 30 Days</option><option value="90D">Last 90 Days</option><option value="THIS_YEAR">This Year</option>
+          </select>
+          <button type="button" className="req-mock-export" onClick={exportCsv} disabled={sortedRows.length === 0} data-tip="Export the currently filtered requests as CSV.">
+            <Icon name="download" className="h-4 w-4" /> Export
+          </button>
+        </div>
 
-              <ActionButton
-                type="button"
-                tone="secondary"
-                className="!border-orange-500 !bg-orange-500 !text-white [&_*]:!text-white !shadow-lg !shadow-orange-950/20 hover:!border-orange-400 hover:!bg-orange-400 focus-visible:!ring-orange-200"
-                onClick={() => router.push(`/requests/new?updated=${Date.now()}`)}
-                icon={<Icon name="plus" className="h-4 w-4" />}
-              >
-                New Request
-              </ActionButton>
-            </div>
+        {msg ? <div className="req-mock-alert"><Icon name="alert" className="h-4 w-4" />{msg}</div> : null}
+
+        <div className="req-mock-table-wrap">
+          <table className="req-mock-table">
+            <thead>
+              <tr>
+                <th>Req Code</th>
+                <th>Title</th>
+                <th>Department</th>
+                <th>Type</th>
+                <th>Amount (₦)</th>
+                <th>Status</th>
+                <th>Requested On</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                Array.from({ length: 6 }).map((_, index) => <MockLoadingRow key={index} />)
+              ) : paginatedRows.length === 0 ? (
+                <tr><td colSpan={8}><div className="req-mock-empty">No requests match the selected filters.</div></td></tr>
+              ) : paginatedRows.map((row) => (
+                <tr key={row.id}>
+                  <td><strong className="req-code">{row.request_no || "—"}</strong></td>
+                  <td><span className="req-title">{row.title || "Untitled Request"}</span></td>
+                  <td>{row.dept_id ? departmentNames[row.dept_id] || "Unassigned" : "Unassigned"}</td>
+                  <td><RequestTypePill row={row} /></td>
+                  <td><strong>{amountLabel(row)}</strong></td>
+                  <td><StatusPill row={row} /></td>
+                  <td>{new Date(row.created_at).toLocaleString(undefined, { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}</td>
+                  <td>
+                    <div className="req-mock-actions">
+                      <button type="button" onClick={() => openRequest(row.id)} aria-label={`View ${row.request_no}`} title="View"><Icon name="eye" className="h-4 w-4" /></button>
+                      <button type="button" onClick={() => printRequest(row.id)} aria-label={`Print ${row.request_no}`} title="Print"><Icon name="file" className="h-4 w-4" /></button>
+                      <button type="button" onClick={() => router.push(`/requests/${row.id}/edit`)} aria-label={`Edit ${row.request_no}`} title="Edit"><Icon name="more" className="h-4 w-4" /></button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="req-mock-pagination">
+          <span>Showing {sortedRows.length === 0 ? 0 : (currentPage - 1) * pageSize + 1} to {Math.min(currentPage * pageSize, sortedRows.length)} of {sortedRows.length} entries</span>
+          <div>
+            <button type="button" onClick={() => setPage((value) => Math.max(1, value - 1))} disabled={currentPage === 1}>‹</button>
+            {Array.from({ length: Math.min(totalPages, 5) }, (_, index) => {
+              const pageNumber = index + 1;
+              return <button type="button" key={pageNumber} className={pageNumber === currentPage ? "is-active" : ""} onClick={() => setPage(pageNumber)}>{pageNumber}</button>;
+            })}
+            {totalPages > 5 ? <span>…</span> : null}
+            {totalPages > 5 ? <button type="button" className={currentPage === totalPages ? "is-active" : ""} onClick={() => setPage(totalPages)}>{totalPages}</button> : null}
+            <button type="button" onClick={() => setPage((value) => Math.min(totalPages, value + 1))} disabled={currentPage === totalPages}>›</button>
           </div>
         </div>
       </section>
-
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <section className="relative -mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard label="Total Requests" value={counts.total} tone="blue" icon="inbox" delay="0ms" />
-          <StatCard label="Active Workflow" value={counts.active} tone="cyan" icon="clock" delay="70ms" />
-          <StatCard label="Completed / Paid" value={counts.completed} tone="emerald" icon="check" delay="140ms" />
-          <StatCard label="Rejected / Deleted" value={counts.rejectedOrDeleted} tone="rose" icon="x" delay="210ms" />
-        </section>
-
-        <section className="mt-5 grid gap-4 sm:grid-cols-3">
-          <CategoryCard label="Official Requests" value={counts.official} tone="blue" icon="briefcase" />
-          <CategoryCard label="Personal Fund" value={counts.personalFund} tone="violet" icon="wallet" />
-          <CategoryCard label="Personal Other" value={counts.personalOther} tone="emerald" icon="user" />
-        </section>
-
-        <section className="mt-6 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-          <div className="border-b border-slate-100 px-5 py-5 sm:px-6">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-              <div>
-                <div className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.18em] text-blue-700">
-                  <Icon name="route" className="h-4 w-4" />
-                  Live Workflow Distribution
-                </div>
-                <h2 className="mt-1 text-xl font-black text-slate-950">Current approval stages</h2>
-              </div>
-              <div className="text-sm font-semibold text-slate-500">{counts.active.toLocaleString()} request(s) currently in progress</div>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-px bg-slate-100 sm:grid-cols-3 lg:grid-cols-9">
-            <StageTile label="PO" value={counts.po} icon="userCheck" />
-            <StageTile label="DOD" value={counts.dod} icon="building" />
-            <StageTile label="DIN Admin" value={counts.dinAdmin} icon="shield" />
-            <StageTile label="Registrar" value={counts.registrar} icon="file" />
-            <StageTile label="HOD" value={counts.hod} icon="users" />
-            <StageTile label="HR" value={counts.hr} icon="badge" />
-            <StageTile label="DG" value={counts.dg} icon="crown" />
-            <StageTile label="Account" value={counts.account} icon="calculator" />
-            <StageTile label="HR Filing" value={counts.hrFiling} icon="archive" />
-          </div>
-        </section>
-
-        <section className="mt-6 rounded-3xl border border-slate-200 bg-white p-3 shadow-sm">
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <StatusTab label="All Requests" value={counts.total} active={statusFilter === "ALL"} tone="slate" onClick={() => setStatusFilter("ALL")} />
-            <StatusTab label="Active Workflow" value={counts.active} active={statusFilter === "ACTIVE"} tone="blue" onClick={() => setStatusFilter("ACTIVE")} />
-            <StatusTab label="Completed / Paid" value={counts.completed} active={statusFilter === "COMPLETED"} tone="emerald" onClick={() => setStatusFilter("COMPLETED")} />
-            <StatusTab label="Rejected / Deleted" value={counts.rejectedOrDeleted} active={statusFilter === "REJECTED"} tone="rose" onClick={() => setStatusFilter("REJECTED")} />
-          </div>
-        </section>
-
-        <section className="mt-6 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-[minmax(260px,1.55fr)_repeat(5,minmax(140px,1fr))_auto] xl:items-end">
-            <div className="min-w-0">
-              <label className="flex items-center gap-2 text-sm font-black text-slate-800">
-                <Icon name="search" className="h-4 w-4 text-blue-600" /> Search requests
-              </label>
-              <div className="relative mt-2">
-                <Icon name="search" className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                <input
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Request number, title, stage, type or officer..."
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-10 pr-4 text-sm font-semibold text-slate-900 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100"
-                />
-              </div>
-            </div>
-
-            <FilterSelect label="Request Type" value={typeFilter} onChange={(value) => setTypeFilter(value as TypeFilter)} options={[
-              ["ALL", "All Types"], ["OFFICIAL", "Official"], ["PERSONAL_FUND", "Personal Fund"], ["PERSONAL_OTHER", "Personal Other"]
-            ]} />
-            <FilterSelect label="Status" value={statusFilter} onChange={(value) => setStatusFilter(value as StatusFilter)} options={[
-              ["ALL", "All Statuses"], ["ACTIVE", "Active / In Progress"], ["COMPLETED", "Completed / Paid"], ["REJECTED", "Rejected / Deleted"]
-            ]} />
-            <FilterSelect label="Stage" value={stageFilter} onChange={(value) => setStageFilter(value as StageFilter)} options={[
-              ["ALL", "All Stages"], ["PO", "PO"], ["DOD", "DOD"], ["DINADMIN", "DIN Admin"], ["REGISTRAR", "Registrar"], ["HOD", "HOD"], ["HR", "HR"], ["DG", "DG"], ["ACCOUNT", "Account Officer"], ["HRFILING", "HR Filing"], ["COMPLETED", "Completed"]
-            ]} />
-            <FilterSelect label="Date" value={dateFilter} onChange={(value) => setDateFilter(value as DateFilter)} options={[
-              ["ALL", "All Dates"], ["7D", "Last 7 Days"], ["30D", "Last 30 Days"], ["90D", "Last 90 Days"], ["THIS_YEAR", "This Year"]
-            ]} />
-            <FilterSelect label="Sort By" value={sortMode} onChange={(value) => setSortMode(value as SortMode)} options={[
-              ["NEWEST", "Newest First"], ["OLDEST", "Oldest First"], ["AMOUNT_HIGH", "Highest Amount"], ["AMOUNT_LOW", "Lowest Amount"], ["TITLE", "Title A-Z"]
-            ]} />
-            <button type="button" onClick={resetFilters} className="reqgen-btn reqgen-btn-cyan inline-flex h-[46px] min-w-[120px] items-center justify-center gap-2 rounded-xl border border-cyan-600 bg-cyan-600 px-4 text-sm font-extrabold !text-white shadow-lg shadow-cyan-950/20 transition hover:-translate-y-0.5 hover:border-cyan-500 hover:bg-cyan-500 hover:shadow-xl focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-cyan-200 [&_*]:!text-white">
-              <Icon name="filterX" className="h-4 w-4" /> Reset{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
-            </button>
-          </div>
-        </section>
-
-        {msg && (
-          <div className="mt-5 flex items-start gap-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-800">
-            <Icon name="alert" className="mt-0.5 h-5 w-5 shrink-0" />
-            {msg}
-          </div>
-        )}
-
-        {loading ? (
-          <RequestsSkeleton />
-        ) : sortedRows.length === 0 ? (
-          <section className="mt-6 rounded-3xl border border-dashed border-slate-300 bg-white px-6 py-16 text-center shadow-sm">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-50 text-blue-700">
-              <Icon name="inbox" className="h-8 w-8" />
-            </div>
-            <h3 className="mt-5 text-xl font-black text-slate-900">No requests found</h3>
-            <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">No record matches the selected filters. Reset the filters or create a new request.</p>
-            <button type="button" onClick={resetFilters} className="reqgen-btn reqgen-btn-cyan mt-5 rounded-xl bg-blue-700 px-5 py-3 text-sm font-bold text-white transition hover:bg-blue-800">Reset Filters</button>
-          </section>
-        ) : (
-          <section className="mt-6 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-            <div className="flex flex-col gap-3 border-b border-slate-100 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-              <div>
-                <p className="text-xs font-black uppercase tracking-[0.18em] text-blue-700">Request Register</p>
-                <h2 className="mt-1 text-xl font-black text-slate-950">Your submitted requests</h2>
-              </div>
-              <div className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-black text-slate-600">{sortedRows.length.toLocaleString()} record(s)</div>
-            </div>
-
-            <div className="hidden grid-cols-12 border-b border-slate-100 bg-slate-50 px-5 py-3 text-[11px] font-black uppercase tracking-wider text-slate-500 lg:grid">
-              <div className="col-span-2">Request</div><div className="col-span-3">Title & Workflow</div><div className="col-span-2">Type</div><div className="col-span-1">Stage</div><div className="col-span-1">Status</div><div className="col-span-1 text-right">Amount</div><div className="col-span-2 text-right">Actions</div>
-            </div>
-
-            <div className="divide-y divide-slate-100">
-              {sortedRows.map((r, index) => (
-                <article key={r.id} className="group px-5 py-5 transition hover:bg-blue-50/40 sm:px-6" style={{ animation: `fadeUp .45s ease-out ${Math.min(index * 35, 350)}ms both` }}>
-                  <div className="grid gap-4 lg:grid-cols-12 lg:items-center">
-                    <div className="lg:col-span-2">
-                      <button type="button" onClick={() => openRequest(r.id)} className="flex items-center gap-3 text-left">
-                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-100 text-blue-700 transition group-hover:scale-105 group-hover:bg-blue-700 group-hover:text-white"><Icon name="file" className="h-5 w-5" /></span>
-                        <span><span className="block text-sm font-black text-slate-950 hover:text-blue-700">{r.request_no || "—"}</span><span className="mt-0.5 block text-[11px] font-semibold text-slate-500">{new Date(r.created_at).toLocaleDateString()}</span></span>
-                      </button>
-                    </div>
-                    <div className="min-w-0 lg:col-span-3">
-                      <h3 className="truncate text-sm font-black text-slate-900">{r.title || "—"}</h3>
-                      <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-500">{workflowNote(r)}</p>
-                      {r.assigned_account_officer_name && <p className="mt-1 text-[11px] font-bold text-purple-700">Officer: {r.assigned_account_officer_name}</p>}
-                    </div>
-                    <div className="lg:col-span-2"><span className="inline-flex items-center gap-1.5 rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-xs font-bold text-blue-800"><Icon name={requestGroup(r) === "OFFICIAL" ? "briefcase" : "user"} className="h-3.5 w-3.5" />{requestTypeLabel(r)}</span></div>
-                    <div className="lg:col-span-1"><span className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-black ${stageClass(r.current_stage)}`}>{stageLabel(r.current_stage)}</span></div>
-                    <div className="lg:col-span-1"><span className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-black ${statusClass(r.status)}`}>{r.status || "—"}</span></div>
-                    <div className="text-sm font-black text-slate-950 lg:col-span-1 lg:text-right">{amountLabel(r)}</div>
-                    <div className="flex flex-wrap gap-2 lg:col-span-2 lg:justify-end">
-                      <button type="button" onClick={() => openRequest(r.id)} className="reqgen-btn reqgen-btn-blue inline-flex items-center gap-1.5 rounded-xl bg-blue-700 px-3 py-2 text-xs font-black text-white transition hover:bg-blue-800"><Icon name="eye" className="h-3.5 w-3.5" /> View</button>
-                      <button type="button" onClick={() => printRequest(r.id)} className="reqgen-btn reqgen-btn-violet inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 transition hover:border-purple-200 hover:bg-purple-50 hover:text-purple-800"><Icon name="print" className="h-3.5 w-3.5" /> Print</button>
-                    </div>
-                  </div>
-                </article>
-              ))}
-            </div>
-          </section>
-        )}
-      </div>
-
-      <style jsx global>{`
-        @keyframes fadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
-      `}</style>
     </main>
   );
 }
 
-type IconName = "workflow" | "refresh" | "download" | "plus" | "inbox" | "clock" | "check" | "x" | "briefcase" | "wallet" | "user" | "route" | "userCheck" | "building" | "shield" | "file" | "users" | "badge" | "crown" | "calculator" | "archive" | "search" | "filterX" | "alert" | "eye" | "print";
+type IconName = "workflow" | "refresh" | "download" | "plus" | "inbox" | "clock" | "check" | "x" | "briefcase" | "wallet" | "user" | "route" | "userCheck" | "building" | "shield" | "file" | "users" | "badge" | "crown" | "calculator" | "archive" | "search" | "filterX" | "alert" | "eye" | "print" | "more";
 
 function Icon({ name, className = "h-5 w-5" }: { name: IconName; className?: string }) {
   const paths: Record<IconName, ReactNode> = {
-    workflow: <><path d="M4 6h7"/><path d="M4 12h11"/><path d="M4 18h7"/><path d="m15 6 2 2 3-3"/><path d="m17 16 3 3"/><path d="m20 16-3 3"/></>,
+    workflow: <><path d="M4 6h7"/><path d="M4 12h11"/><path d="M4 18h7"/></>,
     refresh: <><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></>,
     download: <><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></>,
-    plus: <><path d="M12 5v14"/><path d="M5 12h14"/></>, inbox: <><path d="M4 5h16v14H4z"/><path d="M4 13h4l2 3h4l2-3h4"/></>,
-    clock: <><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></>, check: <><circle cx="12" cy="12" r="9"/><path d="m8 12 2.5 2.5L16 9"/></>, x: <><circle cx="12" cy="12" r="9"/><path d="m9 9 6 6M15 9l-6 6"/></>,
-    briefcase: <><rect x="3" y="7" width="18" height="12" rx="2"/><path d="M8 7V5h8v2M3 12h18"/></>, wallet: <><path d="M4 6h14a2 2 0 0 1 2 2v10H4z"/><path d="M4 6a2 2 0 0 1 2-2h11"/><path d="M16 12h4"/></>, user: <><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></>,
-    route: <><circle cx="6" cy="18" r="2"/><circle cx="18" cy="6" r="2"/><path d="M8 18h3a3 3 0 0 0 3-3V9a3 3 0 0 1 3-3"/></>, userCheck: <><circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0"/><path d="m16 12 2 2 3-4"/></>, building: <><path d="M4 21V7l8-4 8 4v14"/><path d="M8 10h1M8 14h1M15 10h1M15 14h1M10 21v-4h4v4"/></>, shield: <><path d="M12 3 5 6v5c0 4.5 2.8 7.6 7 9.5 4.2-1.9 7-5 7-9.5V6z"/><path d="m9 12 2 2 4-5"/></>, file: <><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></>, users: <><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3 20a6 6 0 0 1 12 0M14 15a5 5 0 0 1 7 4"/></>, badge: <><circle cx="12" cy="8" r="5"/><path d="m8 12-2 9 6-3 6 3-2-9"/></>, crown: <><path d="m4 8 4 4 4-7 4 7 4-4-2 11H6z"/></>, calculator: <><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 11h1M12 11h1M16 11h1M8 15h1M12 15h1M16 15h1"/></>, archive: <><path d="M4 7h16v14H4zM3 3h18v4H3zM9 11h6"/></>,
-    search: <><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></>, filterX: <><path d="M4 5h16M7 12h10M10 19h4"/><path d="m18 15 4 4M22 15l-4 4"/></>, alert: <><path d="M12 3 2 21h20z"/><path d="M12 9v5M12 18h.01"/></>, eye: <><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12z"/><circle cx="12" cy="12" r="2.5"/></>, print: <><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v7H6z"/></>,
+    plus: <><path d="M12 5v14"/><path d="M5 12h14"/></>,
+    inbox: <><path d="M4 5h16v14H4z"/><path d="M4 13h4l2 3h4l2-3h4"/></>,
+    clock: <><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></>,
+    check: <><circle cx="12" cy="12" r="9"/><path d="m8 12 2.5 2.5L16 9"/></>,
+    x: <><circle cx="12" cy="12" r="9"/><path d="m9 9 6 6M15 9l-6 6"/></>,
+    briefcase: <><rect x="3" y="7" width="18" height="12" rx="2"/><path d="M8 7V5h8v2M3 12h18"/></>,
+    wallet: <><path d="M4 6h14a2 2 0 0 1 2 2v10H4z"/><path d="M16 12h4"/></>,
+    user: <><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></>,
+    route: <><path d="M5 6h14M5 12h14M5 18h14"/></>,
+    userCheck: <><circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0"/></>,
+    building: <><path d="M4 21V7l8-4 8 4v14"/><path d="M8 10h1M15 10h1"/></>,
+    shield: <><path d="M12 3 5 6v5c0 4.5 2.8 7.6 7 9.5 4.2-1.9 7-5 7-9.5V6z"/></>,
+    file: <><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></>,
+    users: <><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3 20a6 6 0 0 1 12 0"/></>,
+    badge: <><circle cx="12" cy="8" r="5"/><path d="m8 12-2 9 4-2 2 2 2-2 4 2-2-9"/></>,
+    crown: <><path d="m4 8 4 4 4-7 4 7 4-4-2 11H6z"/></>,
+    calculator: <><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 11h1M12 11h1M16 11h1"/></>,
+    archive: <><path d="M4 7h16v14H4zM3 3h18v4H3zM9 11h6"/></>,
+    search: <><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></>,
+    filterX: <><path d="M4 5h16M7 12h10M10 19h4"/></>,
+    alert: <><path d="M12 3 2 21h20z"/><path d="M12 9v5M12 18h.01"/></>,
+    eye: <><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12z"/><circle cx="12" cy="12" r="2.5"/></>,
+    print: <><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/></>,
+    more: <><circle cx="12" cy="5" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="19" r="1" fill="currentColor"/></>,
   };
   return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">{paths[name]}</svg>;
 }
 
-function StatCard({ label, value, tone, icon, delay }: { label: string; value: number; tone: "blue" | "cyan" | "emerald" | "rose"; icon: IconName; delay: string }) {
-  const styles = { blue: "border-blue-200 bg-blue-50 text-blue-800", cyan: "border-cyan-200 bg-cyan-50 text-cyan-800", emerald: "border-emerald-200 bg-emerald-50 text-emerald-800", rose: "border-rose-200 bg-rose-50 text-rose-800" }[tone];
-  return <div className={`rounded-2xl border p-4 shadow-lg shadow-slate-900/5 backdrop-blur transition hover:-translate-y-1 hover:shadow-xl ${styles}`} style={{ animation: `fadeUp .5s ease-out ${delay} both` }}><div className="flex items-center justify-between gap-3"><div><p className="text-xs font-black uppercase tracking-wider opacity-75">{label}</p><p className="mt-2 text-3xl font-black leading-none">{Number(value || 0).toLocaleString()}</p></div><span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/75 shadow-sm"><Icon name={icon} className="h-6 w-6" /></span></div></div>;
+function MockKpi({ label, value, icon, tone, note }: { label: string; value: number; icon: IconName; tone: "blue" | "orange" | "green" | "purple" | "red"; note: string }) {
+  return <article className="req-mock-kpi" data-tone={tone}><span className="req-mock-kpi-icon"><Icon name={icon} className="h-5 w-5" /></span><div><span className="req-mock-kpi-label">{label}</span><strong>{value.toLocaleString()}</strong><small>{note}</small></div></article>;
 }
 
-function CategoryCard({ label, value, tone, icon }: { label: string; value: number; tone: "blue" | "violet" | "emerald"; icon: IconName }) {
-  const styles = { blue: "from-blue-600 to-blue-700", violet: "from-violet-600 to-purple-700", emerald: "from-emerald-600 to-teal-700" }[tone];
-  return <div className={`relative overflow-hidden rounded-2xl bg-gradient-to-br ${styles} p-5 text-white shadow-lg`}><div className="absolute -right-5 -top-5 h-24 w-24 rounded-full bg-white/10 blur-xl"/><div className="relative flex items-center justify-between"><div><p className="text-xs font-black uppercase tracking-wider text-white/75">{label}</p><p className="mt-2 text-3xl font-black">{value.toLocaleString()}</p></div><span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/15 backdrop-blur"><Icon name={icon} className="h-6 w-6" /></span></div></div>;
+function MockTab({ label, count, active, onClick }: { label: string; count: number; active: boolean; onClick: () => void }) {
+  return <button type="button" role="tab" aria-selected={active} className={active ? "is-active" : ""} onClick={onClick}><span>{label}</span><b>{count.toLocaleString()}</b></button>;
 }
 
-function StageTile({ label, value, icon }: { label: string; value: number; icon: IconName }) {
-  return <div className="bg-white px-3 py-4 text-center transition hover:bg-blue-50"><span className="mx-auto flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100 text-slate-600"><Icon name={icon} className="h-4 w-4" /></span><p className="mt-2 text-[10px] font-black uppercase tracking-wide text-slate-500">{label}</p><p className="mt-1 text-xl font-black text-slate-950">{value.toLocaleString()}</p></div>;
+function RequestTypePill({ row }: { row: Row }) {
+  const group = requestGroup(row);
+  const cls = group === "OFFICIAL" ? "official" : group === "PERSONAL_FUND" ? "fund" : "other";
+  return <span className={`req-type-pill ${cls}`}>{requestTypeLabel(row)}</span>;
 }
 
-function StatusTab({ label, value, active, tone, onClick }: { label: string; value: number; active: boolean; tone: "slate" | "blue" | "emerald" | "rose"; onClick: () => void }) {
-  const tones = {
-    slate: "bg-slate-700 hover:bg-slate-600 focus-visible:ring-slate-200",
-    blue: "bg-blue-700 hover:bg-blue-600 focus-visible:ring-blue-200",
-    emerald: "bg-emerald-700 hover:bg-emerald-600 focus-visible:ring-emerald-200",
-    rose: "bg-rose-700 hover:bg-rose-600 focus-visible:ring-rose-200",
-  }[tone];
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      className={`inline-flex min-h-14 w-full items-center justify-between gap-3 rounded-xl border px-4 py-3 text-left !text-white shadow-lg transition hover:-translate-y-0.5 hover:shadow-xl focus-visible:outline-none focus-visible:ring-4 [&_*]:!text-white ${tones} ${active ? "border-white/60 shadow-xl ring-2 ring-white/80 ring-offset-2 ring-offset-slate-100" : "border-transparent"}`}
-    >
-      <span className="text-sm font-black !text-white">{label}</span>
-      <span className="rounded-lg border border-white/20 bg-white/20 px-2.5 py-1 text-sm font-black !text-white shadow-sm">{value.toLocaleString()}</span>
-    </button>
-  );
+function StatusPill({ row }: { row: Row }) {
+  const status = String(row.status || "").toLowerCase();
+  const cls = status.includes("reject") || status.includes("delete") ? "rejected" : isCompletedRequest(row) ? "approved" : status.includes("pending") ? "pending" : "progress";
+  return <span className={`req-status-pill ${cls}`}>{row.status || stageLabel(row.current_stage)}</span>;
 }
 
-function FilterSelect({ label, value, onChange, options }: { label: string; value: string; onChange: (value: string) => void; options: [string, string][] }) {
-  return <div className="min-w-0 w-full"><label className="block text-sm font-black text-slate-800">{label}</label><select value={value} onChange={(e) => onChange(e.target.value)} className="mt-2 h-[46px] w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-900 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100">{options.map(([v,l]) => <option key={v} value={v}>{l}</option>)}</select></div>;
-}
-
-function RequestsSkeleton() {
-  return <div className="mt-6 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm"><div className="h-20 animate-pulse border-b border-slate-100 bg-slate-100/80 blur-[1px]"/><div className="space-y-1 p-4">{Array.from({ length: 5 }).map((_, i) => <div key={i} className="grid animate-pulse gap-4 rounded-2xl p-4 lg:grid-cols-12"><div className="h-11 rounded-xl bg-slate-200 lg:col-span-2"/><div className="h-11 rounded-xl bg-slate-200 lg:col-span-3"/><div className="h-8 rounded-full bg-slate-200 lg:col-span-2"/><div className="h-8 rounded-full bg-slate-200 lg:col-span-1"/><div className="h-8 rounded-full bg-slate-200 lg:col-span-1"/><div className="h-8 rounded-xl bg-slate-200 lg:col-span-1"/><div className="h-10 rounded-xl bg-slate-200 lg:col-span-2"/></div>)}</div></div>;
+function MockLoadingRow() {
+  return <tr className="req-loading-row">{Array.from({ length: 8 }).map((_, index) => <td key={index}><span /></td>)}</tr>;
 }

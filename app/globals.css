@@ -2371,324 +2371,36 @@ a { color: inherit; }
 .auth-legacy-loading { text-align:center; font-size:12px; color:var(--mock-muted); }
 
 /* ========================================================================== */
-/* REQGEN MOCKUP-LOCKED GLOBAL ARCHITECTURE V4 — 2026-08-28                  */
-/* Approved contract: 12px working text, 11px metadata/table, 270px rail.     */
+/* REQUESTS PAGE — APPROVED MOCKUP LOCK                                        */
 /* ========================================================================== */
-:root {
-  --mock-blue: #0d5be1;
-  --mock-blue-2: #1d66ee;
-  --mock-navy: #0b2350;
-  --mock-text: #263754;
-  --mock-muted: #6d7b91;
-  --mock-border: #e1e7ef;
-  --mock-soft: #f6f9fd;
-  --mock-bg: #f9fbfe;
-  --mock-success: #129a67;
-  --mock-warning: #ef8c18;
-  --mock-danger: #ef4157;
-  --mock-violet: #7d3fe4;
-  --gov-sidebar: 270px;
-  --gov-topbar: 72px;
-  --gov-content: 1440px;
-}
-
-html { font-size: 16px !important; background: var(--mock-bg); }
-body { background: var(--mock-bg) !important; color: var(--mock-text); font-family: Aptos, "Segoe UI", Inter, Arial, sans-serif !important; }
-
-/* ---------- Public homepage: restore approved KISS mockup ---------- */
-.mock-public-shell {
-  position: relative;
-  min-height: 100dvh;
-  display: grid;
-  place-items: center;
-  overflow: hidden;
-  padding: 24px 16px;
-  background:
-    radial-gradient(circle at 50% 10%, rgba(255,255,255,.98) 0, rgba(246,250,255,.96) 45%, rgba(235,243,253,.98) 100%);
-}
-.mock-public-watermark {
-  position: fixed;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  opacity: .035;
-  filter: blur(5px);
-  pointer-events: none;
-}
-.mock-public-watermark img { width: min(72vw, 760px); height: auto; }
-.mock-home-card {
-  position: relative;
-  z-index: 1;
-  width: min(92vw, 720px);
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 34px 48px 24px;
-  border: 1px solid #d9e3ef;
-  border-radius: 28px;
-  background: rgba(255,255,255,.96);
-  box-shadow: 0 28px 80px rgba(26,54,93,.10);
-  text-align: center;
-  backdrop-filter: blur(16px);
-}
-.mock-home-logo-orbit {
-  width: 218px;
-  height: 218px;
-  display: grid;
-  place-items: center;
-  border-radius: 999px;
-  background: rgba(255,255,255,.98);
-  box-shadow: 0 17px 50px rgba(21,94,239,.13), 0 0 0 11px rgba(54,124,238,.035);
-  animation: reqgenHomeFloat 4.5s ease-in-out infinite;
-}
-.mock-home-logo-orbit img { width: 89%; height: 89%; object-fit: contain; }
-.mock-home-welcome { margin: 22px 0 0 !important; color: var(--mock-navy); font-size: 27px !important; font-weight: 800; line-height: 1.1; }
-.mock-home-card h1 { margin: 5px 0 0; color: var(--mock-navy); font-size: 49px !important; line-height: 1; font-weight: 950; letter-spacing: -.035em; }
-.mock-home-rule { width: min(100%, 420px); display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 14px; margin: 20px 0 0; color: var(--mock-blue); }
-.mock-home-rule span { height: 1px; background: #c9d7e9; }
-.mock-home-rule b { display: grid; place-items: center; }
-.mock-home-copy { max-width: 590px; margin: 15px auto 0 !important; color: #526179; font-size: 15px !important; line-height: 1.62 !important; font-weight: 600; }
-.mock-home-actions { width: min(100%, 510px); display: grid; gap: 10px; margin-top: 22px; }
-.mock-home-actions a { min-height: 50px; display: flex; align-items: center; justify-content: center; gap: 10px; border-radius: 10px; padding: 10px 18px; text-decoration: none; font-size: 15px; font-weight: 900; transition: transform .18s ease, box-shadow .18s ease, background .18s ease; }
-.mock-home-actions a:hover { transform: translateY(-2px); }
-.mock-home-primary { background: linear-gradient(90deg,#0d55d8,#1266ef); color: #fff; box-shadow: 0 10px 22px rgba(21,94,239,.18); }
-.mock-home-secondary { border: 1px solid #cdd8e6; background: #fff; color: #0c50c8; }
-.mock-home-divider { width: 100%; height: 1px; margin: 24px 0 18px; background: #dce4ee; }
-.mock-home-dev { display: flex; align-items: center; justify-content: center; gap: 12px; }
-.mock-home-dev img { width: 64px; height: 48px; object-fit: contain; }
-.mock-home-dev > div { display: grid; text-align: left; }
-.mock-home-dev span { color: #7f8b9d; font-size: 10px; }
-.mock-home-dev strong { color: var(--mock-navy); font-size: 15px; line-height: 1.1; }
-.mock-home-dev strong em { color: var(--mock-blue); font-style: normal; font-weight: inherit; }
-.mock-home-dev small { margin-top: 2px; color: #8591a2; font-size: 10px; }
-.mock-home-contact { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 14px; }
-.mock-home-contact a { display: inline-flex; align-items: center; gap: 6px; color: #0c4fbd; font-size: 11px; font-weight: 800; text-decoration: none; }
-.mock-home-contact i { width: 1px; height: 16px; background: #ccd7e5; }
-.mock-home-copyright { margin-top: 10px; color: #7a879a; font-size: 10px; }
-
-/* ---------- Exact authenticated application shell ---------- */
-.gov-shell,
-.mock-app-shell {
-  min-height: 100dvh !important;
-  display: grid !important;
-  grid-template-columns: 270px minmax(0,1fr) !important;
-  align-items: stretch !important;
-  background: var(--mock-bg) !important;
-}
-.gov-sidebar {
-  position: sticky !important;
-  inset: auto !important;
-  top: 0 !important;
-  width: 270px !important;
-  min-width: 270px !important;
-  max-width: 270px !important;
-  height: 100dvh !important;
-  transform: none !important;
-  display: flex !important;
-  flex-direction: column;
-  overflow: hidden;
-  border-right: 1px solid var(--mock-border) !important;
-  background: #fff !important;
-  box-shadow: none !important;
-}
-.gov-brand { min-height: 92px !important; padding: 14px 22px !important; gap: 11px; border-bottom: 1px solid #edf1f5; }
-.gov-brand-logo { width: 58px !important; height: 58px !important; object-fit: contain; }
-.gov-brand strong { color: var(--mock-navy) !important; font-size: 25px !important; line-height: 1 !important; font-weight: 950 !important; }
-.gov-brand span { margin-top: 5px; color: var(--mock-muted) !important; font-size: 10px !important; font-weight: 700; }
-.gov-nav { flex: 1; padding: 10px 12px !important; overflow-y: auto; }
-.gov-nav-link { min-height: 40px !important; grid-template-columns: 22px minmax(0,1fr) 14px !important; gap: 9px !important; margin-bottom: 2px !important; padding: 7px 11px !important; border-radius: 8px !important; color: #263754 !important; font-size: 12px !important; font-weight: 800 !important; box-shadow: none !important; }
-.gov-nav-link:hover { transform: none !important; background: #f4f7fc !important; color: var(--mock-blue) !important; }
-.gov-nav-link.is-active { background: linear-gradient(90deg,#0d56de,#1669ef) !important; color: #fff !important; box-shadow: 0 7px 16px rgba(21,94,239,.17) !important; }
-.gov-nav-secondary { padding: 10px 16px 11px !important; gap: 1px !important; }
-.gov-nav-secondary > span { padding: 0 7px 4px; color: #68758b; font-size: 9px !important; font-weight: 900; letter-spacing: .08em; }
-.gov-nav-secondary a { min-height: 31px !important; gap: 8px; padding: 5px 7px !important; color: #34445f; font-size: 11px !important; font-weight: 800; }
-.gov-sidebar-user { margin: 0 12px 12px !important; grid-template-columns: 38px minmax(0,1fr) 30px !important; gap: 8px !important; padding: 8px 9px !important; border-radius: 10px !important; }
-.gov-avatar { width: 34px !important; height: 34px !important; font-size: 10px !important; }
-.gov-sidebar-user-copy strong { font-size: 11px !important; }
-.gov-sidebar-user-copy span { font-size: 8.5px !important; }
-.gov-sidebar-user button { width: 29px !important; height: 29px !important; }
-
-.gov-stage { min-width: 0 !important; width: 100% !important; display: grid !important; grid-template-rows: 72px minmax(0,1fr) !important; }
-.gov-topbar { position: sticky !important; top: 0; z-index: 60; width: 100%; height: 72px !important; display: flex !important; align-items: center; gap: 12px !important; padding: 0 26px !important; border-bottom: 1px solid var(--mock-border) !important; background: rgba(255,255,255,.98) !important; box-shadow: 0 2px 10px rgba(10,35,80,.025) !important; backdrop-filter: blur(14px); }
-.gov-menu-button,.gov-mobile-close,.gov-mobile-backdrop { display: none !important; }
-.gov-search-wrap { width: min(490px, 42vw) !important; }
-.gov-search-trigger { min-height: 39px !important; padding: 0 13px !important; border: 1px solid #dce4ee !important; border-radius: 9px !important; background: #fff !important; color: #68768b !important; font-size: 11px !important; font-weight: 650; }
-.gov-search-popover { top: calc(100% + 7px) !important; width: min(590px,78vw) !important; border-radius: 11px !important; box-shadow: 0 18px 46px rgba(20,45,82,.16) !important; }
-.gov-search-results strong { font-size: 11px !important; }.gov-search-results span,.gov-search-results p { font-size: 9.5px !important; }
-.gov-topbar-actions { margin-left: auto; gap: 8px !important; }
-.gov-icon-button { position: relative; width: 36px !important; height: 36px !important; border: 0 !important; border-radius: 9px !important; background: transparent !important; color: #152c52 !important; }
-.gov-icon-button:hover { background: #f2f6fb !important; }
-.gov-icon-badge b { position:absolute; right:2px; top:0; width:8px; height:8px; overflow:hidden; border-radius:99px; background:#ef233c; color:transparent; }
-.gov-topbar-profile { gap: 8px !important; padding-left: 8px !important; }
-.gov-topbar-profile > div:last-child { min-width: 90px !important; }
-.gov-topbar-profile strong { color: var(--mock-navy); font-size: 11px !important; }
-.gov-topbar-profile span { color: var(--mock-muted); font-size: 9px !important; }
-.gov-main { min-width: 0 !important; width: 100%; overflow-x: clip !important; padding: 18px 22px 0 !important; background: var(--mock-bg) !important; }
-.gov-content { width: min(100%, 1440px) !important; min-width: 0 !important; margin: 0 auto !important; }
-
-/* Role switcher — compact, intentional, consistent with the mockups. */
-.mock-role-skeleton { width: 150px; height: 42px; border-radius: 9px; background: #eef2f7; animation: pulse 1.3s ease-in-out infinite; }
-.mock-role-switcher { width: 150px; min-width: 150px; padding: 5px 8px 6px; border: 1px solid #dbe4ef; border-radius: 9px; background: #f8fbff; box-shadow: none; }
-.mock-role-switcher > span { display: block; margin-bottom: 1px; color: #3d63a1; font-size: 8px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
-.mock-role-switcher > div { position: relative; }
-.mock-role-switcher select { width: 100%; min-height: 24px !important; appearance: none; border: 0 !important; outline: 0; padding: 0 20px 0 0 !important; background: transparent !important; color: var(--mock-navy) !important; font-size: 10px !important; font-weight: 900; box-shadow: none !important; cursor: pointer; }
-.mock-role-switcher svg { position: absolute; right: 0; top: 50%; width: 14px; height: 14px; transform: translateY(-50%); color: #3864a7; pointer-events: none; }
-.mock-role-panel { display: grid; grid-template-columns: 1fr minmax(250px,340px); gap: 18px; padding: 16px; border: 1px solid var(--mock-border); border-radius: 12px; background: #fff; box-shadow: 0 4px 14px rgba(19,45,83,.04); }
-.mock-role-panel p { margin:0; color:var(--mock-blue); font-size:9px!important; font-weight:900; text-transform:uppercase; letter-spacing:.1em; }.mock-role-panel h2{margin:3px 0 0;font-size:15px!important}.mock-role-panel span{color:var(--mock-muted);font-size:10px}.mock-role-panel-control{display:grid;gap:5px}.mock-role-panel-control label{font-size:10px!important;font-weight:800}.mock-role-panel-control select{min-height:36px!important;border:1px solid #d5dfeb!important;border-radius:8px!important;background:#fff!important;padding:0 10px!important;font-size:11px!important}.mock-role-panel-control small{font-size:9px;color:#3764a6}
-
-/* ---------- System-wide page reset: old architecture becomes mockup architecture ---------- */
-.gov-content :where(main,section,div)[class*="min-h-screen"] { min-height: auto !important; }
-.gov-content :where(main,section,div)[class*="bg-slate-"],
-.gov-content :where(main,section,div)[class*="bg-gray-"],
-.gov-content :where(main,section,div)[class*="bg-gradient-to-"] { background-color: transparent !important; }
-.gov-content > :where(main,div,section) { width: 100% !important; max-width: none !important; margin: 0 !important; }
-.gov-content :where(main,section,div)[class*="max-w-"] { max-width: 100% !important; }
-.gov-content :where(main,section,div)[class*="mx-auto"] { margin-left: 0 !important; margin-right: 0 !important; }
-.gov-content :where(main,section)[class*="px-"], .gov-content :where(main,section)[class*="py-"] { }
-
-/* Remove duplicate legacy shell chrome. */
-.gov-content .erp2-sidebar,.gov-content .erp2-topbar,.gov-content .erp-sidebar,.gov-content .erp-topbar,.gov-content .erp-footer,.gov-content .staff-navigation,.gov-content .admin-navigation { display:none!important; }
-.gov-content nav[aria-label="Staff workspace navigation"],.gov-content nav[aria-label="HR navigation"],.gov-content nav[aria-label="Registry navigation"],.gov-content nav[aria-label="Administration navigation"],.gov-content nav[aria-label="Executive navigation"] { display:none!important; }
-.gov-content > footer,.gov-content .staff-footer,.gov-content footer:not(.mock-footer) { display:none!important; }
-
-/* Every old dark hero is converted to the exact flat mockup title row, not hidden. */
-.gov-content .workflow-hero,
-.gov-content section[class*="from-slate-950"][class*="text-white"],
-.gov-content section[class*="via-blue-950"][class*="text-white"],
-.gov-content section[class*="bg-gradient-to-br"][class*="text-white"] {
-  display: flex !important;
-  min-height: 0 !important;
-  overflow: visible !important;
-  align-items: flex-start !important;
-  justify-content: space-between !important;
-  gap: 18px !important;
-  margin: 0 0 14px !important;
-  padding: 0 !important;
-  border: 0 !important;
-  border-radius: 0 !important;
-  background: transparent !important;
-  box-shadow: none !important;
-  color: var(--mock-text) !important;
-}
-.gov-content .workflow-hero > div[class*="absolute"],
-.gov-content section[class*="from-slate-950"] > div[class*="absolute"],
-.gov-content section[class*="bg-gradient-to-br"][class*="text-white"] > div[class*="absolute"] { display:none!important; }
-.gov-content .workflow-hero :where(h1,h2),
-.gov-content section[class*="from-slate-950"][class*="text-white"] :where(h1,h2),
-.gov-content section[class*="via-blue-950"][class*="text-white"] :where(h1,h2) { color: var(--mock-navy) !important; }
-.gov-content .workflow-hero p,
-.gov-content section[class*="from-slate-950"][class*="text-white"] p,
-.gov-content section[class*="via-blue-950"][class*="text-white"] p { color: var(--mock-muted) !important; }
-.gov-content .workflow-hero [class*="rounded-full"],
-.gov-content section[class*="from-slate-950"] [class*="rounded-full"] { border:0!important; background:transparent!important; padding:0!important; color:#4b5b73!important; }
-
-/* 12px / 11px typography contract. */
-.gov-content,.gov-content p,.gov-content li,.gov-content label,.gov-content input,.gov-content select,.gov-content textarea,.gov-content button,.gov-content a { font-size:12px!important; line-height:1.45; }
-.gov-content small,.gov-content time,.gov-content th,.gov-content td,.gov-content [class*="text-xs"],.gov-content [class*="text-[10px]"] { font-size:11px!important; line-height:1.35; }
-.gov-content h1,.gov-content [class*="text-4xl"],.gov-content [class*="text-5xl"],.gov-content [class*="text-6xl"] { margin-top:0; color:var(--mock-navy)!important; font-size:26px!important; line-height:1.12!important; font-weight:900!important; letter-spacing:-.02em!important; }
-.gov-content h2,.gov-content [class*="text-2xl"],.gov-content [class*="text-3xl"] { color:var(--mock-navy)!important; font-size:16px!important; line-height:1.2!important; font-weight:900!important; }
-.gov-content h3,.gov-content [class*="text-xl"] { color:var(--mock-navy)!important; font-size:13px!important; line-height:1.25!important; font-weight:850!important; }
-.gov-content [class*="tracking-["] { letter-spacing: .04em !important; }
-
-/* Containers/cards: same radius, borders, shadow and spacing everywhere. */
-.gov-content :where(section,article,div)[class*="rounded-3xl"],
-.gov-content :where(section,article,div)[class*="rounded-[2rem]"],
-.gov-content :where(section,article,div)[class*="rounded-[1.75rem]"],
-.gov-content :where(section,article,div)[class*="rounded-[30px]"] { border-radius:12px!important; }
-.gov-content :where(section,article,div)[class*="border"][class*="bg-white"],
-.gov-content :where(section,article,div)[class*="border"][class*="bg-slate-50"],
-.gov-content :where(section,article,div)[class*="border"][class*="bg-gradient"] { border:1px solid var(--mock-border)!important; background:#fff!important; box-shadow:0 4px 14px rgba(19,45,83,.04)!important; }
-.gov-content :where(section,article)[class*="p-6"],.gov-content :where(section,article)[class*="p-7"],.gov-content :where(section,article)[class*="p-8"],.gov-content :where(section,article)[class*="p-9"] { padding:14px!important; }
-.gov-content :where(section,article)[class*="p-5"] { padding:13px!important; }
-.gov-content :where(div,section)[class*="gap-6"],.gov-content :where(div,section)[class*="gap-7"] { gap:12px!important; }
-.gov-content :where(div,section)[class*="gap-4"],.gov-content :where(div,section)[class*="gap-5"] { gap:10px!important; }
-.gov-content :where(div,section)[class*="space-y-6"] > :not([hidden]) ~ :not([hidden]) { margin-top:12px!important; }
-.gov-content :where(div,section)[class*="space-y-4"] > :not([hidden]) ~ :not([hidden]) { margin-top:10px!important; }
-
-/* Buttons and links. */
-.gov-content button,.gov-content a[class*="rounded-"],.gov-content .reqgen-btn,.gov-content .erp2-button {
-  min-height:34px!important;
-  border-radius:8px!important;
-  padding-top:7px!important;
-  padding-bottom:7px!important;
-  font-size:11px!important;
-  font-weight:800!important;
-  box-shadow:none!important;
-  transition:transform .15s ease,box-shadow .15s ease,background-color .15s ease,border-color .15s ease!important;
-}
-.gov-content button:hover:not(:disabled),.gov-content a[class*="rounded-"]:hover { transform:translateY(-1px); }
-.gov-content :where(button,a)[class*="bg-blue-"],.gov-content :where(button,a)[class*="bg-cyan-"],.gov-content :where(button,a)[class*="bg-emerald-"],.gov-content :where(button,a)[class*="bg-violet-"],.gov-content :where(button,a)[class*="bg-rose-"] { color:#fff!important; }
-.gov-content :where(button,a)[class*="bg-gradient-to-"] { background:#0d5be1!important; color:#fff!important; }
-.gov-content :where(button,a)[class*="bg-white"] { border:1px solid #dce4ee!important; color:var(--mock-navy)!important; }
-
-/* Inputs/selects/forms. */
-.gov-content input:not([type="checkbox"]):not([type="radio"]),.gov-content select,.gov-content textarea { min-height:36px!important; border:1px solid #d6dfeb!important; border-radius:8px!important; padding:7px 10px!important; background:#fff!important; color:#21334f!important; font-size:12px!important; box-shadow:none!important; }
-.gov-content textarea { min-height:88px!important; }
-.gov-content input:focus,.gov-content select:focus,.gov-content textarea:focus { border-color:#5b91ee!important; box-shadow:0 0 0 3px rgba(21,94,239,.08)!important; outline:0!important; }
-
-/* Tabs/navigation inside pages. */
-.gov-content [role="tablist"],.gov-content .erp2-tabs,
-.gov-content :where(div,nav)[class*="overflow-x-auto"]:has(> button),
-.gov-content :where(div,nav)[class*="overflow-x-auto"]:has(> a) { display:flex!important; align-items:center; gap:2px!important; max-width:100%; overflow-x:auto; padding:0!important; border:0!important; border-bottom:1px solid var(--mock-border)!important; border-radius:0!important; background:transparent!important; box-shadow:none!important; }
-.gov-content [role="tab"],.gov-content .erp2-tab,
-.gov-content :where(div,nav)[class*="overflow-x-auto"] > button,
-.gov-content :where(div,nav)[class*="overflow-x-auto"] > a { min-height:36px!important; padding:8px 11px!important; border:0!important; border-radius:0!important; background:transparent!important; color:#44536c!important; white-space:nowrap; box-shadow:none!important; }
-.gov-content [role="tab"][aria-selected="true"],.gov-content .erp2-tab.is-active,
-.gov-content :where(div,nav)[class*="overflow-x-auto"] > .is-active { color:var(--mock-blue)!important; box-shadow:inset 0 -2px 0 var(--mock-blue)!important; }
-
-/* Tables/registers: no page-level horizontal slide on normal desktop. */
-.gov-content :where(div,section)[class*="overflow-x-auto"]:has(table),
-.gov-content .erp2-table-scroll { width:100%; max-width:100%; overflow-x:clip!important; }
-.gov-content table,.gov-content .erp2-table { width:100%!important; max-width:100%!important; table-layout:fixed!important; border-collapse:separate!important; border-spacing:0!important; background:#fff!important; font-size:11px!important; }
-.gov-content thead th,.gov-content .erp2-table th { height:auto!important; padding:8px 8px!important; background:#f2f5f9!important; color:#193258!important; border-bottom:1px solid #dde5ef!important; font-size:10px!important; line-height:1.25!important; font-weight:900!important; letter-spacing:.015em!important; white-space:normal!important; overflow-wrap:anywhere!important; text-transform:uppercase; }
-.gov-content tbody td,.gov-content .erp2-table td { padding:8px 8px!important; color:#2b3b55!important; border-bottom:1px solid #edf1f5!important; font-size:11px!important; line-height:1.35!important; white-space:normal!important; overflow-wrap:anywhere!important; word-break:normal!important; vertical-align:middle!important; }
-.gov-content tbody tr:hover td { background:#f8fbff!important; }
-.gov-content td button,.gov-content td a { min-width:28px!important; min-height:28px!important; padding:4px 6px!important; font-size:10px!important; }
-.gov-content td [class*="rounded-full"] { display:inline-flex!important; width:auto!important; max-width:100%; min-height:22px!important; align-items:center; padding:3px 7px!important; white-space:normal!important; line-height:1.15!important; }
-
-/* Charts and icons remain inside their cards. */
-.gov-content canvas,.gov-content svg,.gov-content img { max-width:100%; }
-.gov-content [class*="recharts-responsive-container"] { width:100%!important; min-width:0!important; }
-.gov-content svg:not(.lucide):not([viewBox="0 0 24 24"]) { height:auto; }
-
-/* Footer — exactly one, matching the approved mockups. */
-.mock-footer { width:min(100%,1440px); min-height:82px; margin:18px auto 0; display:grid; grid-template-columns:1fr 1.45fr 1fr; align-items:center; gap:18px; padding:13px 10px 12px; border-top:1px solid var(--mock-border); background:#fff; color:var(--mock-text); }
-.mock-footer-brand { display:flex; align-items:center; gap:9px; }.mock-footer-brand img{width:44px;height:44px;object-fit:contain}.mock-footer-brand>div{display:grid}.mock-footer-brand strong{color:var(--mock-navy);font-size:15px}.mock-footer-brand span{color:var(--mock-muted);font-size:9px}
-.mock-footer-centre { display:grid; justify-items:center; gap:5px; text-align:center; }.mock-footer-centre>strong{display:flex;align-items:center;gap:5px;color:#1f3354;font-size:10px}.mock-footer-centre i{margin:0 3px;color:var(--mock-blue);font-style:normal}.mock-footer-centre>div{display:flex;align-items:center;gap:10px}.mock-footer-centre a{display:flex;align-items:center;gap:5px;color:#0b51c5;font-size:9px;font-weight:800;text-decoration:none}.mock-footer-centre span,.mock-footer-centre small{color:#7a8799;font-size:8.5px}
-.mock-footer-developer { display:grid; justify-items:end; gap:2px; }.mock-footer-developer>span{color:#7c899b;font-size:8px}.mock-footer-developer>div{display:flex;align-items:center;gap:8px}.mock-footer-developer strong{color:var(--mock-navy);font-size:11px}.mock-footer-developer em{color:var(--mock-blue);font-style:normal}.mock-footer-developer img{width:54px;height:38px;object-fit:contain}
-
-/* Subtle motion only: no distracting page chrome animation. */
-.gov-content :where(section,article)[class*="shadow"],.mock-footer,.gov-nav-link { transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease,background-color .16s ease; }
-.gov-content :where(article,section)[class*="hover:-translate"]:hover { transform:translateY(-1px)!important; }
-
-/* Hard desktop protection against Windows/browser scaling. Mobile starts only at 640px. */
-@media (min-width:641px) {
-  .gov-shell,.mock-app-shell { grid-template-columns:270px minmax(0,1fr)!important; }
-  .gov-sidebar { position:sticky!important; left:auto!important; top:0!important; width:270px!important; min-width:270px!important; max-width:270px!important; transform:none!important; box-shadow:none!important; }
-  .gov-menu-button,.gov-mobile-close,.gov-mobile-backdrop { display:none!important; }
-}
-@media (max-width:980px) and (min-width:641px) {
-  .gov-topbar { padding-inline:16px!important; }
-  .gov-search-wrap { width:min(380px,36vw)!important; }
-  .gov-topbar-profile > div:last-child { display:none!important; }
-  .mock-role-switcher { width:132px;min-width:132px; }
-  .gov-main { padding:14px 14px 0!important; }
-}
-@media (max-width:640px) {
-  .gov-shell,.mock-app-shell { grid-template-columns:1fr!important; }
-  .gov-sidebar { position:fixed!important; left:0!important; top:0!important; width:min(286px,88vw)!important; min-width:0!important; max-width:none!important; transform:translateX(-105%)!important; transition:transform .2s ease!important; box-shadow:16px 0 42px rgba(7,26,54,.18)!important; }
-  .gov-sidebar.is-open { transform:translateX(0)!important; }
-  .gov-mobile-close,.gov-menu-button { display:grid!important; }
-  .gov-mobile-backdrop { position:fixed!important; inset:0!important; z-index:75!important; display:block!important; border:0!important; background:rgba(7,26,54,.42)!important; opacity:0; pointer-events:none; }
-  .gov-mobile-backdrop[data-open="true"] { opacity:1;pointer-events:auto; }
-  .gov-stage { grid-template-rows:64px minmax(0,1fr)!important; }
-  .gov-topbar { height:64px!important; padding:0 10px!important; }
-  .gov-search-wrap { flex:1;width:auto!important; }.gov-search-trigger span{display:none}.gov-search-trigger{width:38px!important;min-height:36px!important;justify-content:center;padding:0!important}.gov-search-popover{position:fixed!important;top:68px!important;left:8px!important;right:8px!important;width:auto!important}
-  .gov-topbar-profile,.gov-topbar-actions>.gov-icon-button { display:none!important; }.mock-role-switcher{width:125px;min-width:125px}.gov-main{padding:12px 9px 0!important}
-  .gov-content table { table-layout:auto!important; }.gov-content :where(div,section)[class*="overflow-x-auto"]:has(table),.gov-content .erp2-table-scroll{overflow-x:auto!important;-webkit-overflow-scrolling:touch}.gov-content thead th,.gov-content tbody td{min-width:92px}
-  .mock-footer{grid-template-columns:1fr;justify-items:center;text-align:center}.mock-footer-developer{justify-items:center}.mock-footer-brand{justify-content:center}.mock-footer-centre>div{flex-wrap:wrap;justify-content:center}
-  .mock-home-card{width:100%;padding:24px 18px 20px;border-radius:22px}.mock-home-logo-orbit{width:165px;height:165px}.mock-home-welcome{font-size:23px!important}.mock-home-card h1{font-size:42px!important}.mock-home-copy{font-size:13px!important}.mock-home-contact{flex-direction:column;gap:5px}.mock-home-contact i{display:none}
-  .mock-role-panel{grid-template-columns:1fr}
-}
-@media (prefers-reduced-motion:reduce){.gov-shell *,.mock-public-shell *{animation:none!important;transition:none!important}}
+.req-mock-page{width:100%;max-width:1440px;margin:0 auto;padding:22px 28px 30px;color:#0b1f4f;font-size:12px;}
+.req-mock-header{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:18px;}
+.req-mock-header h1{margin:0;font-size:26px;line-height:1.08;font-weight:900;letter-spacing:-.025em;color:#071b4d;}
+.req-mock-header p{margin:5px 0 0;color:#5f6f89;font-size:12px;font-weight:600;}
+.req-mock-primary,.req-mock-export{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:40px;border-radius:9px;border:1px solid transparent;padding:0 16px;font-size:12px;font-weight:850;cursor:pointer;transition:transform .15s ease,box-shadow .15s ease,background .15s ease;}
+.req-mock-primary{background:#0b57e3;color:#fff;box-shadow:0 7px 18px rgba(11,87,227,.18);}
+.req-mock-primary:hover,.req-mock-export:hover{transform:translateY(-1px);}
+.req-mock-kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px;margin-bottom:16px;}
+.req-mock-kpi{min-width:0;min-height:118px;display:flex;align-items:flex-start;gap:13px;padding:17px 16px;border:1px solid #dfe6f0;border-radius:14px;background:#fff;box-shadow:0 5px 16px rgba(16,42,84,.045);}
+.req-mock-kpi-icon{width:43px;height:43px;display:grid;place-items:center;flex:0 0 43px;border-radius:12px;}
+.req-mock-kpi[data-tone="blue"] .req-mock-kpi-icon{background:#e8f0ff;color:#0b57e3}.req-mock-kpi[data-tone="orange"] .req-mock-kpi-icon{background:#fff0df;color:#ef7b17}.req-mock-kpi[data-tone="green"] .req-mock-kpi-icon{background:#e7f8f1;color:#14966d}.req-mock-kpi[data-tone="purple"] .req-mock-kpi-icon{background:#f1e9ff;color:#7c3aed}.req-mock-kpi[data-tone="red"] .req-mock-kpi-icon{background:#ffe8ea;color:#e43d4d}
+.req-mock-kpi>div{min-width:0;display:grid}.req-mock-kpi-label{font-size:11px;font-weight:800;color:#354766}.req-mock-kpi strong{margin-top:3px;font-size:24px;line-height:1;font-weight:900;color:#071b4d}.req-mock-kpi small{margin-top:9px;color:#65758e;font-size:10px;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.req-mock-panel{overflow:hidden;border:1px solid #dfe6f0;border-radius:15px;background:#fff;box-shadow:0 7px 22px rgba(17,44,89,.05);}
+.req-mock-tabs{display:flex;align-items:center;gap:22px;min-height:54px;overflow-x:auto;padding:0 18px;border-bottom:1px solid #e6ebf2;scrollbar-width:none;}
+.req-mock-tabs::-webkit-scrollbar{display:none}.req-mock-tabs button{position:relative;display:inline-flex;align-items:center;gap:7px;min-height:54px;border:0;background:transparent;color:#14274d;font-size:11px;font-weight:780;white-space:nowrap;cursor:pointer;}
+.req-mock-tabs button::after{content:"";position:absolute;left:0;right:0;bottom:0;height:3px;border-radius:3px;background:transparent}.req-mock-tabs button.is-active{color:#0b57e3}.req-mock-tabs button.is-active::after{background:#0b57e3}.req-mock-tabs button b{min-width:22px;height:21px;display:grid;place-items:center;padding:0 6px;border-radius:999px;background:#f0f3f8;color:#44546c;font-size:10px}.req-mock-tabs button.is-active b{background:#e8f0ff;color:#0b57e3;}
+.req-mock-filters{display:grid;grid-template-columns:minmax(210px,1.4fr) repeat(4,minmax(120px,.8fr)) auto;gap:10px;align-items:center;padding:16px 18px;border-bottom:1px solid #edf1f5;}
+.req-mock-search{height:39px;display:flex;align-items:center;gap:8px;padding:0 11px;border:1px solid #dbe3ee;border-radius:9px;background:#fff;color:#64748b}.req-mock-search input{min-width:0;width:100%;border:0!important;outline:0!important;background:transparent!important;box-shadow:none!important;padding:0!important;font-size:11px!important;font-weight:650!important;color:#172b50!important;}
+.req-mock-filters select{height:39px;min-height:39px!important;border:1px solid #dbe3ee!important;border-radius:9px!important;background:#fff!important;padding:0 10px!important;color:#263a5f!important;font-size:11px!important;font-weight:700!important;box-shadow:none!important;}
+.req-mock-export{height:39px;min-height:39px;border-color:#dbe3ee;background:#fff;color:#17305d;padding:0 13px;box-shadow:none}.req-mock-export:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.req-mock-alert{display:flex;align-items:center;gap:8px;margin:12px 18px 0;padding:10px 12px;border:1px solid #fecdd3;border-radius:9px;background:#fff1f2;color:#b42335;font-size:11px;font-weight:700;}
+.req-mock-table-wrap{width:100%;overflow:hidden;padding:0 14px}.req-mock-table{width:100%;table-layout:fixed;border-collapse:separate;border-spacing:0;background:#fff;font-size:11px!important;}
+.req-mock-table thead th{height:39px;padding:0 10px!important;border-bottom:1px solid #dfe6ef;background:#f4f7fb!important;color:#10264e!important;font-size:10px!important;font-weight:900!important;letter-spacing:.02em;text-transform:uppercase;text-align:left;white-space:nowrap;}
+.req-mock-table thead th:nth-child(1){width:11%}.req-mock-table thead th:nth-child(2){width:20%}.req-mock-table thead th:nth-child(3){width:13%}.req-mock-table thead th:nth-child(4){width:11%}.req-mock-table thead th:nth-child(5){width:10%}.req-mock-table thead th:nth-child(6){width:11%}.req-mock-table thead th:nth-child(7){width:15%}.req-mock-table thead th:nth-child(8){width:9%;text-align:center}
+.req-mock-table td{height:50px;padding:8px 10px!important;border-bottom:1px solid #edf1f5!important;color:#233656!important;font-size:11px!important;font-weight:620!important;vertical-align:middle;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}.req-mock-table tbody tr:hover td{background:#fbfdff}.req-code{font-weight:780;color:#18335f}.req-title{font-weight:700;color:#17305d}.req-mock-table td:last-child{text-align:center;}
+.req-type-pill,.req-status-pill{display:inline-flex;align-items:center;justify-content:center;min-height:22px;padding:0 9px;border-radius:999px;font-size:9.5px;font-weight:800;white-space:nowrap}.req-type-pill.official{background:#e9f1ff;color:#0b57d0}.req-type-pill.fund{background:#f2e9ff;color:#7c3aed}.req-type-pill.other{background:#fff0df;color:#d96800}.req-status-pill.approved{background:#e7f8f1;color:#148460}.req-status-pill.pending{background:#fff0df;color:#d96800}.req-status-pill.progress{background:#e8f0ff;color:#0b57d0}.req-status-pill.rejected{background:#ffe8ea;color:#d52f42}
+.req-mock-actions{display:flex;justify-content:center;gap:6px}.req-mock-actions button{width:30px;height:30px;display:grid;place-items:center;border:1px solid #dbe3ee;border-radius:8px;background:#fff;color:#1e355c;cursor:pointer;transition:background .15s ease,color .15s ease,transform .15s ease}.req-mock-actions button:hover{background:#eef4ff;color:#0b57e3;transform:translateY(-1px)}
+.req-mock-pagination{min-height:54px;display:flex;align-items:center;justify-content:space-between;gap:14px;padding:10px 18px;color:#53637b;font-size:10.5px;font-weight:650}.req-mock-pagination>div{display:flex;align-items:center;gap:6px}.req-mock-pagination button{min-width:31px;height:31px;display:grid;place-items:center;border:1px solid #dbe3ee;border-radius:8px;background:#fff;color:#18335f;font-size:10.5px;font-weight:800;cursor:pointer}.req-mock-pagination button.is-active{border-color:#0b57e3;background:#0b57e3;color:#fff}.req-mock-pagination button:disabled{opacity:.35;cursor:not-allowed}.req-mock-empty{padding:44px 20px;text-align:center;color:#6c7b91;font-size:12px;font-weight:700}.req-loading-row span{display:block;height:10px;border-radius:5px;background:linear-gradient(90deg,#eef2f7,#f8fafc,#eef2f7);background-size:200% 100%;animation:reqMockShimmer 1.2s linear infinite}@keyframes reqMockShimmer{to{background-position:-200% 0}}
+@media(max-width:1180px){.req-mock-page{padding-inline:20px}.req-mock-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}.req-mock-filters{grid-template-columns:repeat(3,minmax(0,1fr))}.req-mock-table-wrap{overflow-x:auto}.req-mock-table{min-width:980px}}
+@media(max-width:760px){.req-mock-page{padding:16px 12px 24px}.req-mock-header{align-items:stretch;flex-direction:column}.req-mock-primary{width:100%}.req-mock-kpis{grid-template-columns:1fr 1fr}.req-mock-filters{grid-template-columns:1fr 1fr}.req-mock-pagination{align-items:flex-start;flex-direction:column}}
+@media(max-width:460px){.req-mock-kpis,.req-mock-filters{grid-template-columns:1fr}}
