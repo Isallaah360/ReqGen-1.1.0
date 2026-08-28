@@ -41,7 +41,7 @@ export default function HRArchivePage() {
   return (
     <HRAccessGuard section="archive" permission="view">
       <HRPageShell>
-        <HRHero eyebrow="Records Preservation & Retention" title="HR Archive Governance Centre" description="Enterprise custody of archived personnel records, archive references, legal or management holds, scheduled retention reviews and restoration history." icon={Archive} tone="violet" action={<HRRefreshButton onClick={() => void load()} loading={loading} />} />
+        <HRHero eyebrow="Records Preservation & Retention" title="HR Archive Governance Centre" description="Institutional custody of archived personnel records, archive references, legal or management holds, scheduled retention reviews and restoration history." icon={Archive} tone="violet" action={<HRRefreshButton onClick={() => void load()} loading={loading} />} />
         <HRNavigation />
         {message ? <HRAlert message={message} /> : null}
         <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

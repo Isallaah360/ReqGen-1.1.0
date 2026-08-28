@@ -12,7 +12,7 @@ const items: { href: string; label: string; description: string; icon: LucideIco
   { href: "/executive/hr", label: "HR", description: "Workforce intelligence", icon: Users },
   { href: "/executive/registry", label: "Registry", description: "Records movement", icon: Archive },
   { href: "/executive/audit", label: "Audit", description: "Evidence and risk", icon: ShieldCheck },
-  { href: "/executive/analytics", label: "Analytics", description: "Enterprise KPIs", icon: BarChart3 },
+  { href: "/executive/analytics", label: "Analytics", description: "Institutional KPIs", icon: BarChart3 },
   { href: "/executive/calendar", label: "Calendar", description: "Institutional schedule", icon: CalendarDays },
   { href: "/executive/meetings", label: "Meetings", description: "Governance activities", icon: BriefcaseBusiness },
   { href: "/executive/notifications", label: "Notifications", description: "Priority alerts", icon: Bell },

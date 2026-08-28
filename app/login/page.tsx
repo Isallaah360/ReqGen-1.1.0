@@ -133,101 +133,46 @@ function LoginPageContent() {
   }
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-white px-4">
-      <div className="relative mx-auto flex min-h-screen max-w-lg items-center py-10">
-        <div className="w-full rounded-[2rem] border border-slate-200 bg-white p-7 shadow-xl shadow-slate-200/60">
-          <div className="flex items-center justify-between gap-5 border-b border-slate-100 pb-5">
-            <div>
-              <div className="text-xs font-black uppercase tracking-[0.18em] text-blue-700">ReqGen Secure Access</div>
-              <h1 className="mt-2 text-3xl font-black tracking-tight text-slate-950">Welcome back</h1>
-              <p className="mt-1 text-sm text-slate-600">Login to continue to your workspace.</p>
-            </div>
-            <img src="/iet-logo.png" alt="IET logo" className="h-20 w-20 object-contain" />
-          </div>
-
-          {msg && (
-            <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-800">
-              {msg}
-            </div>
-          )}
-
-          <div className="mt-5">
-            <label className="text-sm font-bold text-slate-800">Email</label>
-            <input
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") login();
-              }}
-              type="email"
-              className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 text-base text-slate-900 outline-none focus:border-blue-500"
-              placeholder="you@example.com"
-              autoComplete="email"
-            />
-          </div>
-
-          <div className="mt-4">
-            <div className="flex items-center justify-between gap-3">
-              <label className="text-sm font-bold text-slate-800">Password</label>
-
-              <button
-                type="button"
-                onClick={goForgotPassword}
-                className="reqgen-btn reqgen-btn-blue text-xs font-black text-blue-700 hover:underline"
-              >
-                Forgot Password?
-              </button>
-            </div>
-
-            <input
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") login();
-              }}
-              type="password"
-              className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 text-base text-slate-900 outline-none focus:border-blue-500"
-              placeholder="Enter password"
-              autoComplete="current-password"
-            />
-          </div>
-
-          <button
-            type="button"
-            onClick={login}
-            disabled={saving}
-            className="reqgen-btn reqgen-btn-rose mt-5 w-full rounded-2xl bg-blue-700 px-4 py-3 text-base font-bold text-white hover:bg-blue-800 disabled:opacity-60"
-          >
-            {saving ? "Signing in..." : "Login Securely"}
-          </button>
-
-          <button
-            type="button"
-            onClick={goForgotPassword}
-            className="reqgen-btn reqgen-btn-slate mt-3 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 hover:bg-slate-100"
-          >
-            Reset Forgotten Password
-          </button>
-
-          <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-5 text-amber-900">
-            <b>Security notice:</b> Do not share your password, reset link, or authenticator code.
-            ReqGen will automatically log out inactive users.
-          </div>
-
-          <div className="mt-4 text-center text-sm text-slate-600">
-            Don’t have an account?{" "}
-            <Link href="/signup" className="font-bold text-blue-700 hover:underline">
-              Sign up
-            </Link>
-          </div>
-
-          <div className="mt-3 text-center text-sm">
-            <Link href="/" className="font-bold text-slate-600 hover:text-slate-900">
-              Back to Homepage
-            </Link>
-          </div>
+    <main className="gov-public-page gov-login-page">
+      <section className="gov-login-card">
+        <div className="gov-login-logo-wrap">
+          <img src="/iet-logo.png" alt="Islamic Education Trust logo" />
         </div>
-      </div>
+        <h1>Welcome Back!</h1>
+        <p className="gov-login-subtitle">Sign in to your ReqGen account to continue</p>
+
+        <div className="gov-login-tabs" aria-label="Account access">
+          <span className="is-active">Login</span>
+          <Link href="/signup">Create Account</Link>
+        </div>
+
+        {msg && <div className="gov-login-message">{msg}</div>}
+
+        <div className="gov-login-field">
+          <label htmlFor="login-email">Email Address</label>
+          <input id="login-email" value={email} onChange={(e) => setEmail(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") login(); }} type="email" placeholder="Enter your email address" autoComplete="email" />
+        </div>
+
+        <div className="gov-login-field">
+          <label htmlFor="login-password">Password</label>
+          <input id="login-password" value={password} onChange={(e) => setPassword(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") login(); }} type="password" placeholder="Enter your password" autoComplete="current-password" />
+        </div>
+
+        <div className="gov-login-options">
+          <label><input type="checkbox" /> Remember me</label>
+          <button type="button" onClick={goForgotPassword}>Forgot Password?</button>
+        </div>
+
+        <button type="button" onClick={login} disabled={saving} className="gov-login-submit">{saving ? "Signing in..." : "Login"}</button>
+
+        <div className="gov-login-trust">Secure <span>•</span> Reliable <span>•</span> Accountable</div>
+
+        <footer className="gov-login-footer">
+          <div><span>Powered by</span><img src="/be-logo.png" alt="Barderian Enterprises" /><strong>Barderian Enterprises</strong></div>
+          <p><a href="https://barderians.com.ng" target="_blank" rel="noreferrer">barderians.com.ng</a><span>•</span><a href="mailto:info@barderians.com.ng">info@barderians.com.ng</a></p>
+          <small>© 2026 Islamic Education Trust. All rights reserved.</small>
+        </footer>
+      </section>
     </main>
   );
 }
