@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -18,33 +17,24 @@ import {
   Settings,
   Search,
   Bell,
-  MessageSquareText,
   Menu,
   X,
   LogOut,
-  ChevronRight,
   ChevronDown,
   CircleHelp,
+  Sun,
+  Globe2,
+  PanelLeftClose,
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { NAVIGATION_ITEMS } from "@/lib/navigation";
 import { canAccessPath } from "@/lib/permissions";
 import { getCurrentAuthContext } from "@/lib/auth";
-import { ActiveRoleBadge } from "./ActiveRoleSwitcher";
-import StaffFooter from "./staff/StaffFooter";
 
 const PUBLIC_PATHS = new Set([
-  "/",
-  "/login",
-  "/signup",
-  "/forgot-password",
-  "/reset-password",
-  "/mfa",
-  "/mfa/setup",
-  "/unauthorized",
-  "/about",
+  "/", "/login", "/signup", "/forgot-password", "/reset-password", "/mfa",
+  "/mfa/setup", "/unauthorized", "/about",
 ]);
-
 
 const MODULE_SUBNAV: Record<string, { href: string; label: string }[]> = {
   "/requests": [
@@ -74,16 +64,19 @@ const MODULE_SUBNAV: Record<string, { href: string; label: string }[]> = {
   ],
 };
 
-const PRIMARY_NAV = [
+const CORE_NAV = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/requests", label: "Requests", icon: FileText },
-  { href: "/approvals", label: "Approvals", icon: ShieldCheck },
   { href: "/finance", label: "Finance", icon: Landmark },
-  { href: "/payment-vouchers", label: "Payment Vouchers", icon: CreditCard },
-  { href: "/registry", label: "Registry", icon: Archive },
   { href: "/hr", label: "HR", icon: Users },
+  { href: "/registry", label: "Registry", icon: Archive },
+  { href: "/approvals", label: "Approvals", icon: ShieldCheck },
+  { href: "/audit-centre", label: "Audit", icon: ShieldCheck },
+];
+
+const MORE_NAV = [
+  { href: "/payment-vouchers", label: "Payment Vouchers", icon: CreditCard },
   { href: "/reports", label: "Reports", icon: BarChart3 },
-  { href: "/audit-centre", label: "Audit Centre", icon: ShieldCheck },
   { href: "/workflow", label: "Workflow", icon: Workflow },
   { href: "/staff", label: "Staff", icon: UserRound },
   { href: "/admin", label: "Admin", icon: Settings },
@@ -123,10 +116,7 @@ export default function GovernmentAppShell({ children }: { children: React.React
     void loadContext();
     const refresh = () => void loadContext();
     window.addEventListener("reqgen-active-role-changed", refresh);
-    return () => {
-      mounted = false;
-      window.removeEventListener("reqgen-active-role-changed", refresh);
-    };
+    return () => { mounted = false; window.removeEventListener("reqgen-active-role-changed", refresh); };
   }, [isPublic, pathname]);
 
   useEffect(() => {
@@ -135,13 +125,11 @@ export default function GovernmentAppShell({ children }: { children: React.React
     setQuery("");
     if (pathname.startsWith("/finance")) setExpandedNav("/finance");
     else if (pathname.startsWith("/requests")) setExpandedNav("/requests");
+    else setExpandedNav(null);
   }, [pathname]);
 
-  const accessiblePrimary = useMemo(
-    () => PRIMARY_NAV.filter((item) => roleSet.size === 0 || canAccessPath(item.href, roleSet)),
-    [roleSet],
-  );
-
+  const visibleCore = useMemo(() => CORE_NAV.filter((item) => roleSet.size === 0 || canAccessPath(item.href, roleSet)), [roleSet]);
+  const visibleMore = useMemo(() => MORE_NAV.filter((item) => roleSet.size === 0 || canAccessPath(item.href, roleSet)), [roleSet]);
   const searchResults = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return [];
@@ -153,120 +141,61 @@ export default function GovernmentAppShell({ children }: { children: React.React
 
   if (isPublic) return <>{children}</>;
 
-  const initials = userName
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase())
-    .join("") || "RG";
+  const initials = userName.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join("") || "RG";
+  async function signOut() { await supabase.auth.signOut(); router.replace("/login"); }
 
-  async function signOut() {
-    await supabase.auth.signOut();
-    router.replace("/login");
-  }
+  const renderNav = (items: typeof CORE_NAV) => items.map((item) => {
+    const Icon = item.icon;
+    const active = isActive(pathname, item.href);
+    const subnav = MODULE_SUBNAV[item.href] || [];
+    const expanded = expandedNav === item.href;
+    return (
+      <div key={item.href} className={`rg-nav-group ${active ? "is-active" : ""}`}>
+        <div className={`rg-nav-row ${active ? "is-active" : ""}`}>
+          <Link href={item.href} className="rg-nav-link" onClick={() => subnav.length && setExpandedNav(item.href)}>
+            <Icon size={17} /><span>{item.label}</span>
+          </Link>
+          {subnav.length ? <button type="button" className="rg-nav-toggle" aria-label={`${expanded ? "Collapse" : "Expand"} ${item.label}`} onClick={() => setExpandedNav(expanded ? null : item.href)}><ChevronDown size={15} className={expanded ? "is-open" : ""}/></button> : null}
+        </div>
+        {subnav.length && expanded ? <div className="rg-subnav">{subnav.map((child) => <Link key={child.href} href={child.href} className={pathname === child.href ? "is-active" : ""}>{child.label}</Link>)}</div> : null}
+      </div>
+    );
+  });
 
   return (
-    <div className="gov-shell mock-app-shell">
-      <button className="gov-mobile-backdrop" data-open={mobileOpen ? "true" : "false"} onClick={() => setMobileOpen(false)} aria-label="Close navigation" />
-
-      <aside className={`gov-sidebar ${mobileOpen ? "is-open" : ""}`} aria-label="Primary navigation">
-        <div className="gov-brand">
-          <Image src="/iet-logo.png" alt="Islamic Education Trust" width={58} height={58} className="gov-brand-logo" priority />
-          <div><strong>ReqGen</strong><span>Request Management System</span></div>
-          <button className="gov-mobile-close" onClick={() => setMobileOpen(false)} aria-label="Close navigation"><X size={19} /></button>
+    <div className="rg-shell">
+      <button className={`rg-backdrop ${mobileOpen ? "is-open" : ""}`} onClick={() => setMobileOpen(false)} aria-label="Close navigation" />
+      <aside className={`rg-sidebar ${mobileOpen ? "is-open" : ""}`}>
+        <div className="rg-brand">
+          <Link href="/dashboard" className="rg-brand-mark" aria-label="ReqGen 2.0 home"><span className="rg-cube"><i/><b/><em/></span><strong>ReqGen<sup>2.0</sup></strong></Link>
+          <button className="rg-sidebar-collapse" aria-label="Navigation"><PanelLeftClose size={19}/></button>
+          <button className="rg-mobile-close" onClick={() => setMobileOpen(false)} aria-label="Close navigation"><X size={19}/></button>
         </div>
-
-        <nav className="gov-nav">
-          {accessiblePrimary.map((item) => {
-            const Icon = item.icon;
-            const active = isActive(pathname, item.href);
-            const children = MODULE_SUBNAV[item.href] || [];
-            const expanded = expandedNav === item.href;
-            return (
-              <div key={item.href} className={`gov-nav-group ${active ? "is-active" : ""}`}>
-                <div className={`gov-nav-link ${active ? "is-active" : ""}`}>
-                  <Link href={item.href} className="gov-nav-main-link" onClick={() => children.length && setExpandedNav(item.href)}>
-                    <Icon size={18} aria-hidden="true" />
-                    <span>{item.label}</span>
-                  </Link>
-                  {children.length ? (
-                    <button
-                      type="button"
-                      className="gov-nav-expand"
-                      aria-label={`${expanded ? "Collapse" : "Expand"} ${item.label} navigation`}
-                      aria-expanded={expanded}
-                      onClick={() => setExpandedNav(expanded ? null : item.href)}
-                    >
-                      <ChevronDown size={14} className={expanded ? "is-open" : ""} aria-hidden="true" />
-                    </button>
-                  ) : <ChevronRight size={14} className="gov-nav-chevron" aria-hidden="true" />}
-                </div>
-                {children.length && expanded ? (
-                  <div className="gov-subnav" aria-label={`${item.label} pages`}>
-                    {children.map((child) => (
-                      <Link key={child.href} href={child.href} className={pathname === child.href ? "is-active" : ""}>
-                        {child.label}
-                      </Link>
-                    ))}
-                  </div>
-                ) : null}
-              </div>
-            );
-          })}
-        </nav>
-
-        <div className="gov-nav-secondary">
-          <span>Quick Links</span>
-          <Link href="/profile"><UserRound size={17} />My Profile</Link>
-          <Link href="/staff/notifications"><Bell size={17} />Notifications</Link>
-          <Link href="/about"><CircleHelp size={17} />Help &amp; Support</Link>
-          <Link href="/admin/settings"><Settings size={17} />Settings</Link>
-        </div>
-
-        <div className="gov-sidebar-user">
-          <div className="gov-avatar">{initials}</div>
-          <div className="gov-sidebar-user-copy"><strong>{userName}</strong><span>{userEmail || "Authenticated user"}</span></div>
-          <button onClick={signOut} aria-label="Log out" data-tip="Sign out securely from ReqGen."><LogOut size={17} /></button>
+        <nav className="rg-nav">{renderNav(visibleCore)}</nav>
+        {visibleMore.length ? <div className="rg-more"><span>MORE MODULES</span>{renderNav(visibleMore)}</div> : null}
+        <div className="rg-sidebar-user">
+          <div className="rg-avatar">{initials}</div>
+          <div><strong>{userName}</strong><span>{userEmail || "Authorised user"}</span></div>
+          <button onClick={signOut} aria-label="Sign out"><LogOut size={16}/></button>
         </div>
       </aside>
 
-      <div className="gov-stage">
-        <header className="gov-topbar">
-          <button className="gov-menu-button" onClick={() => setMobileOpen(true)} aria-label="Open navigation"><Menu size={21} /></button>
-
-          <div className="gov-search-wrap">
-            <button className="gov-search-trigger" onClick={() => setSearchOpen((value) => !value)}>
-              <Search size={16} /><span>Search requests, transactions, documents...</span>
-            </button>
-            {searchOpen && (
-              <div className="gov-search-popover">
-                <div className="gov-search-input-wrap"><Search size={17} /><input autoFocus value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search authorised ReqGen pages and functions..." /></div>
-                <div className="gov-search-results">
-                  {query && searchResults.length === 0 ? <p>No authorised result found.</p> : null}
-                  {searchResults.map((item) => (
-                    <Link key={item.href} href={item.href}><strong>{item.label}</strong><span>{item.section} · {item.description}</span></Link>
-                  ))}
-                </div>
-              </div>
-            )}
+      <section className="rg-stage">
+        <header className="rg-topbar">
+          <button className="rg-menu" onClick={() => setMobileOpen(true)} aria-label="Open navigation"><Menu size={20}/></button>
+          <div className="rg-search-wrap">
+            <button className="rg-search-trigger" onClick={() => setSearchOpen((v) => !v)}><Search size={16}/><span>Search anything...</span><kbd>Ctrl + K</kbd></button>
+            {searchOpen ? <div className="rg-search-popover"><div className="rg-search-input"><Search size={17}/><input autoFocus value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search authorised ReqGen pages..."/></div><div className="rg-search-results">{query && searchResults.length === 0 ? <p>No authorised result found.</p> : null}{searchResults.map((item) => <Link key={item.href} href={item.href}><strong>{item.label}</strong><span>{item.section} · {item.description}</span></Link>)}</div></div> : null}
           </div>
-
-          <div className="gov-topbar-actions">
-            <Link href="/staff/notifications" className="gov-icon-button gov-icon-badge" aria-label="Notifications"><Bell size={18} /><b>•</b></Link>
-            <Link href="/dashboard/activity" className="gov-icon-button" aria-label="Activity"><MessageSquareText size={18} /></Link>
-            <ActiveRoleBadge />
-            <div className="gov-topbar-profile">
-              <div className="gov-avatar">{initials}</div>
-              <div><strong>{userName}</strong><span>Authorised user</span></div>
-            </div>
+          <div className="rg-top-actions">
+            <button type="button" className="rg-icon-btn" aria-label="Theme"><Sun size={19}/></button>
+            <button type="button" className="rg-icon-btn" aria-label="Language"><Globe2 size={19}/></button>
+            <Link href="/staff/notifications" className="rg-icon-btn rg-bell" aria-label="Notifications"><Bell size={19}/><b>3</b></Link>
+            <Link href="/profile" className="rg-profile"><div className="rg-avatar">{initials}</div><div><strong>{userName}</strong><span>System Administrator</span></div><ChevronDown size={15}/></Link>
           </div>
         </header>
-
-        <main id="reqgen-main-content" className="gov-main" role="main">
-          <div className={`gov-content ${pathname.startsWith("/finance") ? "module-finance" : pathname.startsWith("/requests") ? "module-requests" : ""}`}>{children}</div>
-          <StaffFooter />
-        </main>
-      </div>
+        <main id="reqgen-main-content" className="rg-main" role="main"><div className={`rg-content ${pathname.startsWith("/finance") ? "module-finance" : pathname.startsWith("/requests") ? "module-requests" : ""}`}>{children}</div><footer className="rg-footer">© 2026 ReqGen 2.0. All rights reserved.</footer></main>
+      </section>
     </div>
   );
 }

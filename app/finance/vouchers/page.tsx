@@ -1,5 +1,2 @@
-import { redirect } from "next/navigation";
-
-export default function LegacyFinanceVoucherPage() {
-  redirect("/payment-vouchers");
-}
+import FinanceDirectoryPage from "../_components/FinanceDirectoryPage";
+export default function FinanceVouchersPage(){ return <FinanceDirectoryPage mode="vouchers"/>; }

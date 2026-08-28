@@ -778,14 +778,14 @@ export default function SubheadsPage() {
 
   if (loading) {
     return (
-      <main className="finance-adopted-page finance-subheads-page min-h-screen bg-slate-50 px-4">
+      <main className="min-h-screen bg-slate-50 px-4">
         <div className="mx-auto max-w-7xl py-10 text-slate-600">Loading Subheads...</div>
       </main>
     );
   }
 
   return (
-    <main className="finance-adopted-page finance-subheads-page min-h-screen bg-slate-50 px-4">
+    <main className="min-h-screen bg-slate-50 px-4">
       <style>{`
         @media print {
           @page { size: A4 landscape; margin: 10mm; }
@@ -1009,7 +1009,7 @@ export default function SubheadsPage() {
               )}
             </div>
 
-            <div className="finance-register-card mt-6 hidden xl:block rounded-3xl border bg-white shadow-sm overflow-hidden print:block print:rounded-none print:border-black print:shadow-none">
+            <div className="mt-6 hidden xl:block rounded-3xl border bg-white shadow-sm overflow-hidden print:block print:rounded-none print:border-black print:shadow-none">
               <div className="border-b bg-slate-50 px-6 py-4 print:bg-white print:px-2">
                 <h3 className="text-base font-bold text-slate-900 print:text-sm">Subheads Register</h3>
                 <p className="mt-1 text-sm text-slate-600 print:text-[9px]">
@@ -1269,8 +1269,8 @@ function SubheadTable({
   onDelete: (s: Sub) => void;
 }) {
   return (
-    <div className="finance-fit-table-wrap finance-subheads-table-wrap">
-      <table className="finance-fit-table finance-subheads-table w-full border-collapse text-sm print:min-w-0 print:text-[8px]">
+    <div className="overflow-x-auto">
+      <table className="min-w-[1580px] w-full border-collapse text-sm print:min-w-0 print:text-[8px]">
         <thead>
           <tr className="bg-slate-100 text-xs uppercase tracking-wide text-slate-600 print:border-b print:border-black print:bg-white print:text-[8px]">
             <th className="px-4 py-3 text-left">Department</th>
@@ -1544,8 +1544,8 @@ function CompletedRequestsPanel({
           No payment-related completed or paid request is ready for printing yet.
         </div>
       ) : (
-        <div className="finance-fit-table-wrap">
-          <table className="finance-fit-table w-full border-collapse text-sm">
+        <div className="overflow-x-auto">
+          <table className="min-w-[1180px] w-full border-collapse text-sm">
             <thead>
               <tr className="bg-slate-100 text-xs uppercase tracking-wide text-slate-600">
                 <th className="px-4 py-3 text-left">Request No</th>

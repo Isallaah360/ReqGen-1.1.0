@@ -386,14 +386,14 @@ export default function DepartmentsPage() {
 
   if (loading) {
     return (
-      <main className="finance-adopted-page finance-departments-page min-h-screen bg-slate-50 px-4">
+      <main className="min-h-screen bg-slate-50 px-4">
         <div className="mx-auto max-w-6xl py-10 text-slate-600">Loading Departments...</div>
       </main>
     );
   }
 
   return (
-    <main className="finance-adopted-page finance-departments-page min-h-screen bg-slate-50 px-4">
+    <main className="min-h-screen bg-slate-50 px-4">
       <div className="mx-auto max-w-6xl py-10">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
@@ -541,7 +541,7 @@ export default function DepartmentsPage() {
         )}
 
         {(activeTab === "overview" || activeTab === "active" || activeTab === "inactive") && (
-          <div className="finance-register-card mt-6 overflow-hidden rounded-3xl border bg-white shadow-sm">
+          <div className="mt-6 overflow-hidden rounded-3xl border bg-white shadow-sm">
             <div className="border-b bg-slate-50 px-6 py-4">
               <h2 className="text-lg font-bold text-slate-900">Departments Register</h2>
               <p className="mt-1 text-sm text-slate-600">
@@ -567,8 +567,8 @@ export default function DepartmentsPage() {
                   ))}
                 </div>
 
-                <div className="finance-fit-table-wrap hidden xl:block">
-                  <table className="finance-fit-table finance-departments-table w-full border-collapse text-sm">
+                <div className="hidden overflow-x-auto xl:block">
+                  <table className="min-w-[1100px] w-full border-collapse text-sm">
                     <thead>
                       <tr className="bg-slate-100 text-xs uppercase tracking-wide text-slate-600">
                         <th className="px-4 py-3 text-left">Department</th>

@@ -1,5 +1,2 @@
-import { redirect } from "next/navigation";
-
-export default function FinanceReportsRedirect() {
-  redirect("/reports#finance-and-workflow");
-}
+import FinanceDirectoryPage from "../_components/FinanceDirectoryPage";
+export default function FinanceReportsPage(){ return <FinanceDirectoryPage mode="reports"/>; }
