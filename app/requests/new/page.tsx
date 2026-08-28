@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
-import { WorkflowAction, WorkflowHero, WorkflowLoading, WorkflowPageStyles } from "@/app/components/ui/WorkflowUI";
+import { WorkflowLoading, WorkflowPageStyles } from "@/app/components/ui/WorkflowUI";
 
 type Dept = {
   id: string;
@@ -982,21 +982,22 @@ export default function NewRequestPage() {
   if (loading) return <WorkflowLoading title="Preparing the new request workspace..." />;
 
   return (
-    <main className="min-h-screen bg-slate-100 px-4 py-8">
+    <main className="req-family-page">
       <WorkflowPageStyles />
-      <div className="workflow-shell mx-auto max-w-6xl space-y-5">
-        <WorkflowHero
-          eyebrow="Request Operations"
-          title="Create a New Request"
-          description="Prepare, sign and submit an official or personal request through the authorised ReqGen workflow."
-          icon="plus"
-          meta={<>Active capacity: <b>{roleSummary(me?.role, myRoles)}</b> • {routingNoteFor(requestType, personalCategory, selectedDept)}</>}
-          actions={
-            <WorkflowAction icon="arrow-left" tone="white" onClick={() => router.push(`/requests?updated=${Date.now()}`)}>
-              Back to Requests
-            </WorkflowAction>
-          }
-        />
+      <div className="req-family-inner">
+        <header className="req-family-head">
+          <div>
+            <span className="req-family-eyebrow">Requests</span>
+            <h1>Create New Request</h1>
+            <p>Prepare, sign and submit an official or personal request through the authorised ReqGen workflow.</p>
+            
+          </div>
+        </header>
+        <nav className="req-family-subnav" aria-label="Request workspace navigation">
+          <button type="button" className="" onClick={() => router.push("/requests")}>Requests Overview</button>
+          <button type="button" className="is-active" onClick={() => router.push("/requests/new")}>New Request</button>
+          
+        </nav>
 
         {requestOtpEnabled ? (
           <div className="mt-4 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-900">

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
-import { WorkflowAction, WorkflowHero, WorkflowLoading, WorkflowPageStyles } from "@/app/components/ui/WorkflowUI";
+import { WorkflowLoading, WorkflowPageStyles } from "@/app/components/ui/WorkflowUI";
 
 type PersonalCategory =
   | "Fund"
@@ -660,21 +660,24 @@ export default function EditRequestPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-100 px-4 py-8">
+    <main className="req-family-page">
       <WorkflowPageStyles />
-      <div className="workflow-shell mx-auto max-w-5xl space-y-5">
-        <WorkflowHero
-          eyebrow="Controlled Editing"
-          title="Edit Request"
-          description="Update permitted request information while preserving workflow, reservation and audit controls."
-          icon="edit"
-          meta={<>{editStageNote(req)} • Active roles: <b>{roleSummary(me?.role, myRoles)}</b></>}
-          actions={
-            <WorkflowAction icon="arrow-left" tone="white" onClick={() => router.push(`/requests/${req.id}?updated=${Date.now()}`)}>
-              Back to Request
-            </WorkflowAction>
-          }
-        />
+      <div className="req-family-inner">
+        <header className="req-family-head">
+          <div>
+            <span className="req-family-eyebrow">Controlled Editing</span>
+            <h1>Edit Request</h1>
+            <p>Update permitted request information while preserving workflow, reservation and audit controls.</p>
+            <div className="req-family-meta">{req.request_no} · {editStageNote(req)}</div>
+          </div>
+        </header>
+        <nav className="req-family-subnav" aria-label="Request workspace navigation">
+          <button type="button" onClick={() => router.push("/requests")}>Requests Overview</button>
+          <button type="button" onClick={() => router.push("/requests/new")}>New Request</button>
+          <button type="button" onClick={() => router.push(`/requests/${req.id}`)}>View Request</button>
+          <button type="button" className="is-active">Edit</button>
+          <button type="button" onClick={() => router.push(`/requests/${req.id}/print`)}>Print</button>
+        </nav>
 
         <div className="mt-4 grid gap-3 md:grid-cols-3">
           <StatusCard label="Request No" value={req.request_no || "—"} />

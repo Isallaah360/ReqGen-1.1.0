@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
-import { WorkflowAction, WorkflowHero, WorkflowLoading, WorkflowPageStyles } from "@/app/components/ui/WorkflowUI";
+import { WorkflowLoading, WorkflowPageStyles } from "@/app/components/ui/WorkflowUI";
 import { RequestProgress } from "../../components/RequestProgress";
 
 
@@ -1240,22 +1240,24 @@ export default function RequestDetailsPage() {
   if (loading) return <WorkflowLoading title="Loading request details and approval history..." />;
 
   return (
-    <main className="min-h-screen bg-slate-100 px-4 py-8">
+    <main className="req-family-page">
       <WorkflowPageStyles />
-      <div className="workflow-shell mx-auto max-w-7xl space-y-5">
-        <WorkflowHero
-          eyebrow="Request Workspace"
-          title={req?.title || "Request Details"}
-          description="Review request information, attachments, finance controls, approval history and authorised actions from one secure workspace."
-          icon="request"
-          meta={<>Request <b>{req?.request_no || "—"}</b> • Current stage: <b>{req?.current_stage || "—"}</b> • {req ? stageHelpText(req) : ""}</>}
-          actions={
-            <>
-              <WorkflowAction icon="arrow-left" tone="white" onClick={() => router.push("/requests")}>Requests</WorkflowAction>
-              {req && canEditRequest ? <WorkflowAction icon="edit" tone="cyan" onClick={() => router.push(`/requests/${req.id}/edit`)}>Edit Request</WorkflowAction> : null}
-            </>
-          }
-        />
+      <div className="req-family-inner">
+        <header className="req-family-head">
+          <div>
+            <span className="req-family-eyebrow">Request Details</span>
+            <h1>{req?.title || "Request Details"}</h1>
+            <p>Review request information, attachments, finance controls, approval history and authorised actions.</p>
+            <div className="req-family-meta">Request <b>{req?.request_no || "—"}</b> · Current stage: <b>{req?.current_stage || "—"}</b></div>
+          </div>
+        </header>
+        <nav className="req-family-subnav" aria-label="Request workspace navigation">
+          <button type="button" onClick={() => router.push("/requests")}>Requests Overview</button>
+          <button type="button" onClick={() => router.push("/requests/new")}>New Request</button>
+          <button type="button" className="is-active">View Request</button>
+          {req && canEditRequest ? <button type="button" onClick={() => router.push(`/requests/${req.id}/edit`)}>Edit</button> : null}
+          {req ? <button type="button" onClick={() => router.push(`/requests/${req.id}/print`)}>Print</button> : null}
+        </nav>
 
         <div
           className={`mt-4 rounded-2xl border px-4 py-3 text-sm font-semibold ${mfaVerified

@@ -686,7 +686,7 @@ export default function PrintRequestPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-100 px-4 py-4">
+    <main className="req-family-page req-print-preview">
       <style>{`
         @page {
           size: A4;
@@ -711,12 +711,26 @@ export default function PrintRequestPage() {
         }
       `}</style>
 
-      <div className="mx-auto max-w-[820px]">
-        <div className="no-print mb-3 flex flex-wrap items-center justify-between gap-2">
+      <div className="req-family-inner req-print-inner">
+        <header className="no-print req-family-head">
+          <div>
+            <span className="req-family-eyebrow">Print Preview</span>
+            <h1>Request Print</h1>
+            <p>Preview the approved ReqGen request document before printing.</p>
+            <div className="req-family-meta">{req.request_no} · {req.title}</div>
+          </div>
+        </header>
+        <nav className="no-print req-family-subnav" aria-label="Request workspace navigation">
+          <button type="button" onClick={() => router.push("/requests")}>Requests Overview</button>
+          <button type="button" onClick={() => router.push(`/requests/${req.id}`)}>View Request</button>
+          <button type="button" onClick={() => router.push(`/requests/${req.id}/edit`)}>Edit</button>
+          <button type="button" className="is-active">Print</button>
+        </nav>
+        <div className="no-print req-print-actions">
           <button
             onClick={goBack}
             disabled={refreshing || printing}
-            className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
+            className="req-secondary-button"
           >
             {backLabel}
           </button>
@@ -725,7 +739,7 @@ export default function PrintRequestPage() {
             <button
               onClick={() => load({ silent: true })}
               disabled={refreshing || printing}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
+              className="req-secondary-button"
             >
               {refreshing ? "Refreshing..." : "Refresh"}
             </button>
@@ -733,7 +747,7 @@ export default function PrintRequestPage() {
             <button
               onClick={handlePrint}
               disabled={!ready || refreshing || printing}
-              className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+              className="req-primary-button"
             >
               {printing ? "Preparing Print..." : "Print"}
             </button>
