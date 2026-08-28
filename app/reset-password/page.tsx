@@ -254,9 +254,9 @@ function ResetPasswordContent() {
 
   if (initializing) {
     return (
-      <main className="min-h-screen bg-slate-50 px-4">
-        <div className="mx-auto flex min-h-screen max-w-lg items-center justify-center py-10">
-          <div className="w-full rounded-3xl border bg-white p-6 text-center text-sm font-semibold text-slate-600 shadow-sm">
+      <main className="auth-shell auth-shell-legacy">
+        <div className="auth-legacy-wrap">
+          <div className="auth-legacy-card auth-legacy-loading">
             Preparing secure password reset...
           </div>
         </div>
@@ -265,9 +265,9 @@ function ResetPasswordContent() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4">
+    <main className="auth-shell auth-shell-legacy">
       <div className="mx-auto flex min-h-screen max-w-xl items-center justify-center py-10">
-        <div className="w-full rounded-3xl border bg-white p-6 shadow-sm">
+        <div className="auth-legacy-card">
           <div className="text-center">
             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-600 text-xl font-black text-white">
               RG
@@ -451,9 +451,9 @@ export default function ResetPasswordPage() {
   return (
     <Suspense
       fallback={
-        <main className="min-h-screen bg-slate-50 px-4">
-          <div className="mx-auto flex min-h-screen max-w-lg items-center justify-center py-10">
-            <div className="w-full rounded-3xl border bg-white p-6 text-center text-sm font-semibold text-slate-600 shadow-sm">
+        <main className="auth-shell auth-shell-legacy">
+          <div className="auth-legacy-wrap">
+            <div className="auth-legacy-card auth-legacy-loading">
               Loading reset page...
             </div>
           </div>
