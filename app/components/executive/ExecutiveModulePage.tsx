@@ -19,7 +19,7 @@ type ModuleMeta = {
 };
 
 const META: Record<ExecutiveModule, ModuleMeta> = {
-  overview: { eyebrow: "Executive Command", title: "Executive Command Centre", description: "A secure executive view of requests, Finance, HR, Registry, audit evidence, alerts and institutional performance.", icon: Building2 },
+  overview: { eyebrow: "Executive Command", title: "Command Centre", description: "A secure executive view of requests, Finance, HR, Registry, audit evidence, alerts and institutional performance.", icon: Building2 },
   requests: { eyebrow: "Workflow Intelligence", title: "Executive Requests Intelligence", description: "Monitor request volume, approval queues, workflow stages, bottlenecks and recent institutional submissions.", icon: ClipboardList },
   finance: { eyebrow: "Authorized Financial Intelligence", title: "Executive Finance Intelligence", description: "Review Finance workload and values permitted by your active role and existing Supabase security policies.", icon: Banknote },
   hr: { eyebrow: "Workforce Intelligence", title: "Executive HR Intelligence", description: "Monitor HR workload, leave activity, seminar participation, capacity records and departmental KPIs.", icon: Users },
@@ -247,7 +247,7 @@ function Audit({ data }: { data: Record<string, Row[]> }) {
       <ExecutiveStatCard label="Risk Signals" value={critical} icon={AlertTriangle} tone="rose" />
       <ExecutiveStatCard label="Distinct Actors" value={actors} icon={Users} tone="violet" />
     </section>
-    <ExecutivePanel title="Institutional Evidence Timeline" eyebrow="Who Did What" description="Consolidated audit and active-role evidence available to the executive role."><RecordList rows={rows} emptyTitle="No audit evidence" emptyDescription="No authorized audit evidence is currently available." limit={60} /></ExecutivePanel>
+    <ExecutivePanel title="Evidence Timeline" eyebrow="Who Did What" description="Consolidated audit and active-role evidence available to the executive role."><RecordList rows={rows} emptyTitle="No audit evidence" emptyDescription="No authorized audit evidence is currently available." limit={60} /></ExecutivePanel>
   </>;
 }
 
