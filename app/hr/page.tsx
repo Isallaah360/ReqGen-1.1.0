@@ -175,28 +175,17 @@ export default function HRBossDashboard() {
   return (
     <HRAccessGuard bossOnly>
       <main className="rg-module-page rg-adopted-page rg-hr-page">
-        <div className="mx-auto max-w-7xl space-y-6">
+        <div className="mx-auto max-w-[1500px] space-y-4">
           <section className="rg-module-header">
-            <div className="absolute -right-20 -top-20 h-72 w-72 rounded-full bg-cyan-400/15 blur-3xl" />
-            <div className="absolute -bottom-24 left-1/3 h-64 w-64 rounded-full bg-blue-500/20 blur-3xl" />
-            <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+            <div className="rg-module-heading">
               <div>
-                <p className="text-xs font-black uppercase tracking-[0.28em] text-cyan-200">
-                  Restricted Directorate Workspace
-                </p>
-                <h1 className="mt-3 text-3xl font-black tracking-tight lg:text-5xl">
-                  HR Directorate Command Centre
-                </h1>
-                <p className="mt-4 max-w-3xl text-sm font-semibold leading-7 text-blue-100 lg:text-base">
-                  Live HR request movement, officer delegation, review workload, filing readiness and personnel operations from one secured command centre.
-                </p>
+                <p className="rg-module-eyebrow">HR Management</p>
+                <h1>HR Overview</h1>
+                <p className="rg-module-description">Manage staff, directorate operations, leave, assignments, development programmes, assessments, compliance and HR reporting.</p>
               </div>
-              <button
-                type="button"
-                onClick={() => void load(true)}
-                disabled={refreshing}
-                className="inline-flex min-h-12 items-center justify-center rounded-xl bg-cyan-500 px-5 py-3 text-sm font-black text-white shadow-lg transition hover:-translate-y-0.5 hover:bg-cyan-400 disabled:opacity-60"
-              >
+            </div>
+            <div className="rg-module-actions">
+              <button type="button" onClick={() => void load(true)} disabled={refreshing} className="rg-action-button">
                 {refreshing ? "Refreshing..." : "Refresh HR Data"}
               </button>
             </div>
@@ -218,16 +207,16 @@ export default function HRBossDashboard() {
               ["Ready for Filing", stats.awaitingFiling, "Final HR filing queue", "from-violet-600 to-purple-700"],
               ["Active Officers", stats.activeOfficers, "Officers with current assignments", "from-emerald-500 to-teal-700"],
             ].map(([label, value, note, tone]) => (
-              <article key={String(label)} className={`rounded-3xl bg-gradient-to-br ${tone} p-5 text-white shadow-lg`}>
-                <p className="text-[11px] font-black uppercase tracking-[0.16em] text-white/75">{label}</p>
-                <p className="mt-3 text-3xl font-black">{loading ? "—" : value}</p>
-                <p className="mt-2 text-xs font-semibold text-white/75">{note}</p>
+              <article key={String(label)} className="rg-stat-card">
+                <p className="rg-stat-label">{label}</p>
+                <p className="rg-stat-value">{loading ? "—" : value}</p>
+                <p className="rg-stat-note">{note}</p>
               </article>
             ))}
           </section>
 
           <section className="grid gap-5 xl:grid-cols-[1.15fr_.85fr]">
-            <article className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <article className="rg-section-card p-5">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <p className="text-xs font-black uppercase tracking-[0.18em] text-blue-700">Live Workflow Visualisation</p>
@@ -265,7 +254,7 @@ export default function HRBossDashboard() {
               </div>
             </article>
 
-            <article className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <article className="rg-section-card p-5">
               <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-700">Operational Attention</p>
               <h2 className="mt-2 text-2xl font-black text-slate-950">HR Boss priority panel</h2>
               <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
@@ -289,7 +278,7 @@ export default function HRBossDashboard() {
           </section>
 
           <section className="grid gap-5 xl:grid-cols-[.8fr_1.2fr]">
-            <article className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <article className="rg-section-card p-5">
               <p className="text-xs font-black uppercase tracking-[0.18em] text-violet-700">Department Intelligence</p>
               <h2 className="mt-2 text-2xl font-black text-slate-950">HR workload by department</h2>
               <div className="mt-6 space-y-4">
@@ -307,7 +296,7 @@ export default function HRBossDashboard() {
               </div>
             </article>
 
-            <article className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+            <article className="rg-section-card">
               <div className="flex items-center justify-between gap-4 border-b border-slate-200 px-6 py-5">
                 <div>
                   <p className="text-xs font-black uppercase tracking-[0.18em] text-blue-700">Latest HR Requests</p>
@@ -337,16 +326,16 @@ export default function HRBossDashboard() {
             </article>
           </section>
 
-          <section className="overflow-hidden rounded-3xl border border-cyan-200 bg-gradient-to-br from-slate-950 via-blue-950 to-cyan-800 p-6 text-white shadow-xl">
+          <section className="rg-section-card p-5">
             <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
               <div>
-                <p className="text-xs font-black uppercase tracking-[0.2em] text-cyan-200">Registrar-Governed HR Administration</p>
-                <h2 className="mt-2 text-2xl font-black text-white">Strategic HR, compliance, analytics and institutional development</h2>
-                <p className="mt-3 max-w-3xl text-sm font-semibold leading-6 text-blue-100">
+                <p className="text-xs font-black uppercase tracking-[0.2em] text-blue-700">Registrar-Governed HR Administration</p>
+                <h2 className="mt-2 text-base font-black text-slate-950">Strategic HR, compliance, analytics and institutional development</h2>
+                <p className="mt-3 max-w-3xl text-sm font-semibold leading-6 text-slate-600">
                   Settings, officer performance, analytics, reports, compliance, outputs, weekly seminar, capacity building, department KPI and annual 360° assessment are controlled from the secured Registrar Centre.
                 </p>
               </div>
-              <Link href="/hr/registrar" className="inline-flex min-h-12 shrink-0 items-center justify-center rounded-xl bg-white px-5 py-3 text-sm font-black text-blue-950 shadow-lg transition hover:-translate-y-0.5 hover:bg-cyan-50">
+              <Link href="/hr/registrar" className="rg-action-button">
                 Open Registrar Governance
               </Link>
             </div>

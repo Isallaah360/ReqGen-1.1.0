@@ -426,30 +426,12 @@ export default function PaymentVoucherSettingsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,_#eff6ff,_#f8fafc_36%,_#f1f5f9)] px-3 sm:px-4">
-      <div className="mx-auto max-w-6xl py-8">
-        <nav className="mb-6 flex flex-col gap-3 rounded-3xl border border-slate-200/80 bg-white/90 p-3 shadow-sm backdrop-blur lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex flex-wrap gap-2">
-            <PVActionButton onClick={backToVouchers} disabled={saving || refreshing} tone="slate">
-              ← Voucher Centre
-            </PVActionButton>
-            <PVActionButton onClick={() => router.push("/finance")} disabled={saving || refreshing} tone="blue">
-              Finance Centre
-            </PVActionButton>
-          </div>
-          <PVActionButton
-            onClick={() => load({ silent: true })}
-            disabled={saving || refreshing}
-            tone="cyan"
-          >
-            {refreshing ? "Refreshing..." : "Refresh Settings"}
-          </PVActionButton>
-        </nav>
-
+    <main className="rg-module-page rg-adopted-page"><div className="mx-auto w-full max-w-[1500px] space-y-4">
         <PVHero
           eyebrow="Controlled Authority"
           title="Payment Voucher Settings"
           description="Manage authorized cheque signers and counter-signatories for the official Payment Voucher workflow from one secure administration workspace."
+          actions={<PVActionButton onClick={() => load({ silent: true })} disabled={saving || refreshing} tone="cyan">{refreshing ? "Refreshing..." : "Refresh Settings"}</PVActionButton>}
         />
 
         {msg && (

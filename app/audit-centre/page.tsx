@@ -327,11 +327,11 @@ export default function AuditCentrePage() {
 
   return (
     <EnterpriseShell>
-      <div className="mx-auto max-w-[1500px] space-y-6">
+      <div className="mx-auto max-w-[1500px] space-y-4">
         <EnterpriseHero
-          eyebrow="Governance, Accountability & Live Oversight"
-          title="Audit & Activity Centre"
-          description="A secured, live record of who performed each action, the active role used, the affected record and the time of the event across ReqGen."
+          eyebrow="Audit Centre"
+          title="Audit Centre Overview"
+          description="Central hub for audit activities, controls, risk visibility and assurance evidence across authorised ReqGen records."
           actions={
             <>
               <ActionButton tone="cyan" onClick={() => void load()}>
@@ -347,7 +347,7 @@ export default function AuditCentrePage() {
           }
         />
 
-        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
+        <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
           <StatCard label="All Activities" value={loading ? "—" : events.length} note="Loaded audit evidence" tone="violet" />
           <StatCard label="Today" value={loading ? "—" : todayCount} note="Actions recorded today" tone="blue" />
           <StatCard label="Users Seen" value={loading ? "—" : uniqueActors} note="Distinct actors" tone="emerald" />
@@ -428,7 +428,7 @@ export default function AuditCentrePage() {
             <>
               <div className="hidden overflow-x-auto rounded-2xl border border-slate-200 lg:block">
                 <table className="min-w-full divide-y divide-slate-200">
-                  <thead className="bg-slate-950 text-white">
+                  <thead className="bg-slate-100 text-slate-700">
                     <tr>
                       {["Time", "Module", "Action", "User / Active Role", "Record", "Details"].map((heading) => (
                         <th key={heading} className="px-4 py-3 text-left text-[11px] font-black uppercase tracking-wider">{heading}</th>

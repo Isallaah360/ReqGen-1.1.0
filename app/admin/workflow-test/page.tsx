@@ -232,7 +232,7 @@ export default function WorkflowTestPage() {
       <div className="mx-auto max-w-[1500px] space-y-6">
         <AdminNavigation />
 
-        <section className="overflow-hidden rounded-[28px] border border-white/60 bg-gradient-to-br from-slate-950 via-blue-950 to-indigo-900 p-6 text-white shadow-2xl sm:p-8">
+        <section className="rg-module-header">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-3xl">
               <p className="text-xs font-black uppercase tracking-[0.28em] text-cyan-300">Production Readiness · Phase B</p>

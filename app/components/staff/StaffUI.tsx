@@ -42,8 +42,8 @@ export function StaffHero({
     <header className="rg-module-header staff-adopted-header">
       <div className="rg-module-heading">
         <p className="rg-module-eyebrow">Staff Self-Service</p>
-        {prominentGreeting && greeting ? <p className="staff-greeting">{greeting}</p> : null}
-        <h1>{prominentGreeting ? `Welcome back, ${name}` : designation || name}</h1>
+        <h1>{prominentGreeting ? "Staff Overview" : designation || name}</h1>
+        {prominentGreeting ? <p className="staff-greeting">Welcome back, {name}</p> : null}
         {prominentGreeting && designation ? <p className="staff-designation">{designation}</p> : null}
         <p className="rg-module-description">{detail}</p>
       </div>

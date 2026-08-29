@@ -119,16 +119,13 @@ function Icon({ children }: { children: ReactNode }) {
 }
 
 function KpiCard({ label, value, note, className, icon }: { label: string; value: number; note: string; className: string; icon: ReactNode }) {
+  const accent = /rose|red/.test(className) ? "#e84655" : /emerald|green/.test(className) ? "#129a67" : /cyan|sky/.test(className) ? "#0891b2" : /slate/.test(className) ? "#334155" : "#0b5cf0";
   return (
-    <section className={`relative overflow-hidden rounded-3xl p-5 text-white shadow-lg ${className}`}>
-      <div className="absolute -right-8 -top-8 h-28 w-28 rounded-full bg-white/10" />
-      <div className="relative flex items-start justify-between gap-4">
-        <div>
-          <p className="text-xs font-black uppercase tracking-[0.18em] text-white/80">{label}</p>
-          <p className="mt-3 text-4xl font-black tracking-tight">{value.toLocaleString()}</p>
-          <p className="mt-2 text-xs font-bold text-white/80">{note}</p>
-        </div>
-        <Icon>{icon}</Icon>
+    <section className="rg-stat-card">
+      <div className="rg-stat-accent" style={{ background: accent }} />
+      <div className="rg-stat-body flex items-start justify-between gap-4">
+        <div><p className="rg-stat-label">{label}</p><p className="rg-stat-value">{value.toLocaleString()}</p><p className="rg-stat-note">{note}</p></div>
+        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-slate-50" style={{ color: accent }}><span className="h-5 w-5">{icon}</span></span>
       </div>
     </section>
   );
@@ -289,16 +286,14 @@ export default function RegistryPage() {
 
   return (
     <main className="rg-module-page rg-adopted-page rg-registry-page">
-      <div className="mx-auto max-w-7xl py-8">
+      <div className="mx-auto max-w-[1500px] space-y-4">
         <section className="rg-module-header">
-          <div className="absolute -right-20 -top-24 h-72 w-72 rounded-full bg-cyan-400/15 blur-2xl" />
-          <div className="absolute -bottom-24 left-1/3 h-64 w-64 rounded-full bg-violet-400/15 blur-2xl" />
-          <div className="relative flex flex-col justify-between gap-6 lg:flex-row lg:items-center">
+          <div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-end">
             <div>
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-black uppercase tracking-[0.18em] text-cyan-100">Registry Command Centre</div>
-              <h1 className="mt-4 text-3xl font-black tracking-tight md:text-4xl">Request Movement Intelligence</h1>
-              <p className="mt-3 max-w-3xl text-sm font-semibold leading-6 text-slate-200">A privacy-conscious visual dashboard showing only summarized request movement, workload distribution and workflow position. Request contents, narratives and financial details are not displayed.</p>
-              <p className="mt-3 text-xs font-bold text-cyan-100">Viewing capacity: {roles.filter((item) => item.is_active).map((item) => item.role_name).join(", ") || role}</p>
+              <div className="rg-module-eyebrow">Registry Command Centre</div>
+              <h1 className="mt-1 text-3xl font-black tracking-tight">Request Movement Intelligence</h1>
+              <p className="rg-module-description">A privacy-conscious visual dashboard showing only summarized request movement, workload distribution and workflow position. Request contents, narratives and financial details are not displayed.</p>
+              <p className="mt-2 text-[10px] font-bold text-slate-500">Viewing capacity: {roles.filter((item) => item.is_active).map((item) => item.role_name).join(", ") || role}</p>
             </div>
             <div className="flex flex-wrap gap-3">
               <button type="button" onClick={() => void load(true)} disabled={refreshing} className="reqgen-btn reqgen-btn-cyan rounded-xl bg-cyan-600 px-5 py-3 text-sm font-black text-white shadow-lg hover:bg-cyan-500 disabled:opacity-60">{refreshing ? "Refreshing..." : "Refresh Dashboard"}</button>
@@ -353,7 +348,7 @@ export default function RegistryPage() {
           <div className="flex flex-wrap items-end justify-between gap-3"><div><h2 className="text-xl font-black text-slate-900">Department Movement Overview</h2><p className="mt-1 text-sm font-semibold text-slate-500">Summarized request volume by originating department.</p></div><span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-700">{departmentSummary.length} department(s)</span></div>
           <div className="mt-5 overflow-x-auto rounded-2xl border border-slate-200">
             <table className="min-w-full divide-y divide-slate-200 text-sm">
-              <thead className="bg-slate-900 text-white"><tr><th className="px-4 py-3 text-left font-black">Department</th><th className="px-4 py-3 text-center font-black">Total</th><th className="px-4 py-3 text-center font-black">Active</th><th className="px-4 py-3 text-center font-black">Completed</th><th className="px-4 py-3 text-center font-black">Today</th><th className="px-4 py-3 text-left font-black">Movement Share</th></tr></thead>
+              <thead className="bg-slate-100 text-slate-700"><tr><th className="px-4 py-3 text-left font-black">Department</th><th className="px-4 py-3 text-center font-black">Total</th><th className="px-4 py-3 text-center font-black">Active</th><th className="px-4 py-3 text-center font-black">Completed</th><th className="px-4 py-3 text-center font-black">Today</th><th className="px-4 py-3 text-left font-black">Movement Share</th></tr></thead>
               <tbody className="divide-y divide-slate-100 bg-white">
                 {departmentSummary.length === 0 ? <tr><td colSpan={6} className="px-4 py-10 text-center font-bold text-slate-500">No summarized movement is available yet.</td></tr> : departmentSummary.map((department) => {
                   const share = pct(department.total, stats.total);

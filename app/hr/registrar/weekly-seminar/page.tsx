@@ -80,7 +80,7 @@ function Icon({ name, className = "h-5 w-5" }: { name: string; className?: strin
 
 function Stat({ title, value, note, tone, icon }: { title: string; value: string | number; note: string; tone: Tone; icon: string }) {
   return (
-    <article className={`relative overflow-hidden rounded-3xl bg-gradient-to-br ${tones[tone]} p-5 text-white shadow-lg`}>
+    <article className="rg-stat-card">
       <div className="absolute -right-8 -top-8 h-28 w-28 rounded-full bg-white/10 blur-2xl" />
       <div className="relative flex items-start justify-between gap-4">
         <div>
@@ -278,7 +278,7 @@ export default function WeeklySeminarPage() {
     <>
       <main className="min-h-screen bg-slate-50 px-4 py-8 lg:px-8">
         <div className="mx-auto max-w-7xl space-y-6">
-          <section className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-slate-950 via-violet-950 to-blue-800 p-7 text-white shadow-2xl lg:p-9">
+          <section className="rg-module-header">
             <div className="absolute -right-20 -top-20 h-72 w-72 rounded-full bg-fuchsia-400/15 blur-3xl" />
             <div className="absolute -bottom-24 left-1/3 h-64 w-64 rounded-full bg-cyan-400/15 blur-3xl" />
             <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">

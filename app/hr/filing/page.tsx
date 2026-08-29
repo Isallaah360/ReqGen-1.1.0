@@ -162,9 +162,9 @@ export default function HRFilingPage() {
 
   return (
     <HRAccessGuard section="filing" permission="process">
-      <main className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/40 to-cyan-50/40 px-4 py-8 lg:px-8">
+      <main className="rg-module-page rg-adopted-page">
         <div className="mx-auto max-w-7xl space-y-6">
-          <section className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-slate-950 via-indigo-950 to-violet-800 p-7 text-white shadow-2xl lg:p-9">
+          <section className="rg-module-header">
             <div className="absolute -right-16 -top-16 h-64 w-64 rounded-full bg-cyan-400/15 blur-3xl" />
             <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
               <div>
@@ -189,7 +189,7 @@ export default function HRFilingPage() {
             {filingSummaryCards.map(({ label, value, note, icon: Icon, tone }) => (
               <article
                 key={label}
-                className={`rounded-3xl bg-gradient-to-br ${tone} p-5 text-white shadow-lg`}
+                className="rg-stat-card"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>

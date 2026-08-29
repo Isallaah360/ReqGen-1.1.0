@@ -236,24 +236,12 @@ export default function StaffWorkspacePage() {
 }
 
 function QuickAction({ href, title, description, tone, symbol }: { href: string; title: string; description: string; tone: Tone; symbol: string }) {
-  const styles: Record<Tone, string> = {
-    blue: "from-blue-800 to-blue-600",
-    cyan: "from-cyan-700 to-sky-500",
-    emerald: "from-emerald-700 to-teal-500",
-    violet: "from-violet-800 to-purple-600",
-    amber: "from-amber-600 to-orange-500",
-    rose: "from-rose-700 to-red-500",
-    slate: "from-slate-900 to-slate-700",
-  };
-
+  const accents: Record<Tone, string> = { blue: "#0b5cf0", cyan: "#0891b2", emerald: "#129a67", violet: "#7047e8", amber: "#ef8c18", rose: "#e84655", slate: "#334155" };
   return (
-    <Link href={href} className={`group relative overflow-hidden rounded-2xl bg-gradient-to-br ${styles[tone]} p-4 text-white shadow-md transition hover:-translate-y-1 hover:shadow-xl`}>
-      <div className="absolute -right-5 -top-5 h-20 w-20 rounded-full bg-white/10" />
-      <div className="relative">
-        <span className="grid h-10 w-10 place-items-center rounded-xl bg-white/15 text-lg font-black ring-1 ring-white/20">{symbol}</span>
-        <h3 className="mt-4 text-sm font-black uppercase tracking-[0.08em] text-white">{title}</h3>
-        <p className="mt-1 text-xs font-semibold leading-5 text-white/85">{description}</p>
-      </div>
+    <Link href={href} className="group rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-md">
+      <span className="grid h-9 w-9 place-items-center rounded-lg bg-slate-50 text-sm font-black" style={{ color: accents[tone] }}>{symbol}</span>
+      <h3 className="mt-3 text-[12px] font-black text-slate-950">{title}</h3>
+      <p className="mt-1 text-[11px] font-semibold leading-5 text-slate-500">{description}</p>
     </Link>
   );
 }

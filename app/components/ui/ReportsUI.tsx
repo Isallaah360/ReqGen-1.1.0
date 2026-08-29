@@ -34,7 +34,7 @@ export function ReportIcon({ name, className = "h-5 w-5" }: { name: string; clas
 }
 
 export function ReportsHero({ actions }: { actions: ReactNode }) {
-  return <header className="rg-module-header"><div className="rg-module-heading"><p className="rg-module-eyebrow"><ReportIcon name="report" className="h-4 w-4"/>Reports & Analytics</p><h1>Reports Centre</h1><p className="rg-module-description">Consolidated request, workflow, departmental and finance reporting using the records already available to your authorised role.</p></div><div className="rg-module-actions">{actions}</div></header>;
+  return <header className="rg-module-header"><div className="rg-module-heading"><p className="rg-module-eyebrow"><ReportIcon name="report" className="h-4 w-4"/>Reports</p><h1>Reports Centre / Executive Overview</h1><p className="rg-module-description">Executive summary of key performance indicators and institutional insights from authorised ReqGen records.</p></div><div className="rg-module-actions">{actions}</div></header>;
 }
 
 export function ReportButton({ children, onClick, icon, variant = "blue", disabled = false }: { children: ReactNode; onClick?: () => void; icon: string; variant?: "light" | "blue" | "violet" | "cyan"; disabled?: boolean }) {
@@ -49,14 +49,14 @@ export function ReportButton({ children, onClick, icon, variant = "blue", disabl
 
 export function ReportStat({ label, value, note, icon, tone = "blue", progress }: { label: string; value: ReactNode; note: string; icon: string; tone?: Tone; progress?: number }) {
   const t = toneMap[tone];
-  return <article className={`group rounded-xl border p-4 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md ${t.card}`}>
+  return <article className={`group rg-stat-card border bg-white p-4 transition duration-150 hover:-translate-y-0.5`}>
     <div className="flex items-start justify-between gap-4"><div><p className="text-xs font-extrabold uppercase tracking-[0.15em] text-slate-500">{label}</p><div className="mt-2 text-3xl font-black tracking-tight text-slate-950">{value}</div><p className="mt-2 text-xs leading-5 text-slate-500">{note}</p></div><div className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl shadow-lg ${t.icon}`}><ReportIcon name={icon}/></div></div>
     {typeof progress === "number" && <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-slate-200"><div className={`h-full rounded-full ${t.bar}`} style={{ width: `${Math.max(0, Math.min(100, progress))}%` }}/></div>}
   </article>;
 }
 
 export function ReportSection({ title, description, icon, action, children, className = "" }: { title: string; description: string; icon: string; action?: ReactNode; children: ReactNode; className?: string }) {
-  return <section className={`rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition-shadow duration-200 hover:shadow-md sm:p-5 ${className}`}><div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div className="flex items-center gap-3"><div className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-slate-950 to-blue-900 text-white shadow-md"><ReportIcon name={icon}/></div><div><h2 className="text-lg font-black uppercase tracking-wide text-slate-950">{title}</h2><p className="mt-0.5 text-sm text-slate-500">{description}</p></div></div>{action}</div>{children}</section>;
+  return <section className={`rg-section-card bg-white ${className}`}><div className="rg-section-card-head flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div className="flex items-center gap-3"><div className="grid h-9 w-9 place-items-center rounded-lg bg-blue-50 text-blue-700"><ReportIcon name={icon}/></div><div><h2 className="text-[13px] font-black text-slate-950">{title}</h2><p className="mt-0.5 text-[11px] text-slate-500">{description}</p></div></div>{action}</div>{children}</section>;
 }
 
 export function ReportsSkeleton() {

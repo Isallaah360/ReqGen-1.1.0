@@ -191,23 +191,23 @@ export default function SessionTimeout() {
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/55 px-4 backdrop-blur-md">
-      <div className="w-full max-w-xl overflow-hidden rounded-[2rem] border border-amber-200 bg-white shadow-2xl">
-        <div className="bg-gradient-to-r from-slate-950 via-blue-950 to-cyan-800 px-6 py-5 text-white">
+      <div className="w-full max-w-[430px] overflow-hidden rounded-2xl border border-amber-200 bg-white shadow-2xl">
+        <div className="bg-gradient-to-r from-slate-950 via-blue-950 to-cyan-800 px-5 py-4 text-white">
           <div className="text-xs font-black uppercase tracking-[0.2em] text-cyan-200">
             Security Session Notice
           </div>
-          <div className="mt-2 text-2xl font-black">Session timeout warning</div>
+          <div className="mt-1 text-xl font-black">Session timeout warning</div>
           <p className="mt-2 text-sm font-semibold leading-6 text-blue-100">
             No activity has been detected. ReqGen will sign you out unless you continue your session.
           </p>
         </div>
 
-        <div className="p-6">
+        <div className="p-5">
           <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-center">
             <div className="text-xs font-black uppercase tracking-[0.16em] text-amber-700">
               Automatic logout in
             </div>
-            <div className="mt-1 text-5xl font-black tabular-nums text-amber-950">
+            <div className="mt-1 text-4xl font-black tabular-nums text-amber-950">
               {formatCountdown(secondsLeft)}
             </div>
           </div>

@@ -74,11 +74,11 @@ const attendance = [
 
 export default function AttendancePage() {
     return (
-        <div className="space-y-8">
+        <div className="rg-module-page rg-adopted-page space-y-4">
 
             {/* HERO */}
 
-            <section className="rounded-3xl bg-gradient-to-r from-slate-900 via-cyan-900 to-sky-900 p-8 shadow-xl">
+            <section className="rg-module-header">
 
                 <div className="flex flex-col lg:flex-row justify-between gap-8">
 
@@ -136,7 +136,7 @@ export default function AttendancePage() {
 
                         <div
                             key={card.title}
-                            className={`${card.color} rounded-2xl p-5 text-white shadow-lg`}
+                            className="rg-stat-card"
                         >
 
                             <div className="flex justify-between">

@@ -96,11 +96,11 @@ export default function StaffNotificationsPage() {
     }
 
     return (
-        <div className="space-y-8">
+        <div className="rg-module-page rg-adopted-page space-y-4">
 
             {/* HERO */}
 
-            <section className="rounded-3xl bg-gradient-to-r from-slate-900 via-cyan-900 to-blue-900 p-8 shadow-xl">
+            <section className="rg-module-header">
 
                 <div className="flex flex-col lg:flex-row justify-between gap-8">
 

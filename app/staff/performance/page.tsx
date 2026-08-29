@@ -62,11 +62,11 @@ const achievements = [
 
 export default function PerformancePage() {
     return (
-        <div className="space-y-8">
+        <div className="rg-module-page rg-adopted-page space-y-4">
 
             {/* HERO */}
 
-            <section className="rounded-3xl bg-gradient-to-r from-slate-900 via-blue-900 to-cyan-900 p-8 shadow-xl">
+            <section className="rg-module-header">
 
                 <div className="flex flex-col lg:flex-row justify-between gap-8">
 
@@ -122,7 +122,7 @@ export default function PerformancePage() {
 
                         <div
                             key={item.title}
-                            className={`rounded-2xl bg-gradient-to-br ${item.color} p-5 text-white shadow-lg`}
+                            className="rg-stat-card"
                         >
 
                             <div className="flex justify-between">

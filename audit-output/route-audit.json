@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-08-29T09:42:29.135Z",
-  "totalPages": 130,
+  "generatedAt": "2026-08-29T21:24:53.076Z",
+  "totalPages": 135,
   "sensitiveRoots": [
     "/admin",
     "/audit-centre",
@@ -156,6 +156,11 @@
     "/payment-vouchers",
     "/payment-vouchers/[id]",
     "/payment-vouchers/[id]/print",
+    "/payment-vouchers/approved",
+    "/payment-vouchers/history",
+    "/payment-vouchers/new",
+    "/payment-vouchers/pending",
+    "/payment-vouchers/print-centre",
     "/payment-vouchers/reports",
     "/payment-vouchers/settings",
     "/profile",

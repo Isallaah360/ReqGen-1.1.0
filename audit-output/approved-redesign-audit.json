@@ -1,0 +1,15 @@
+{
+  "sections": {
+    "payment-vouchers": 10,
+    "registry": 6,
+    "hr": 32,
+    "reports": 2,
+    "audit-centre": 1,
+    "workflow": 1,
+    "staff": 10,
+    "admin": 12
+  },
+  "totalPages": 74,
+  "failures": [],
+  "passed": true
+}

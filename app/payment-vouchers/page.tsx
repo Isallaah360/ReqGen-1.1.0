@@ -1,7 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { CheckCircle2, Clock3, Coins, Download, Eye, MoreVertical, Plus, Printer, RefreshCw, Search, SlidersHorizontal, Users, WalletCards, X, Building2 } from "lucide-react";
+import styles from "./payment-vouchers-overview.module.css";
 import { supabase } from "@/lib/supabaseClient";
 import { REPORT_ACCESS_ROLES } from "@/lib/roles";
 import { PVActionButton, PVHero } from "@/app/components/ui/PaymentVoucherUI";
@@ -207,6 +209,7 @@ function mapBankAccount(row: any, source: BankAccountRow["source_table"]): BankA
 
 export default function PaymentVouchersPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -267,6 +270,13 @@ export default function PaymentVouchersPage() {
   const [readySearch, setReadySearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [typeFilter, setTypeFilter] = useState("ALL");
+  const [departmentFilter, setDepartmentFilter] = useState("ALL");
+  const [fromDate, setFromDate] = useState(() => `${new Date().getFullYear()}-01-01`);
+  const [toDate, setToDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [currentPage, setCurrentPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [moreOpen, setMoreOpen] = useState<string | null>(null);
+  const [showCreateWorkspace, setShowCreateWorkspace] = useState(false);
 
   const [mode, setMode] = useState<DisbursementMode>("Transfer");
 
@@ -283,6 +293,11 @@ export default function PaymentVouchersPage() {
   const [counterSignatoryName, setCounterSignatoryName] = useState("");
 
   const [showManualModal, setShowManualModal] = useState(false);
+
+  useEffect(() => {
+    if (searchParams.get("create") === "1") setShowCreateWorkspace(true);
+    if (searchParams.get("manual") === "1") setShowManualModal(true);
+  }, [searchParams]);
   const [manualDeptId, setManualDeptId] = useState("");
   const [manualSubheadId, setManualSubheadId] = useState("");
   const [manualBankAccountId, setManualBankAccountId] = useState("");
@@ -1004,7 +1019,9 @@ export default function PaymentVouchersPage() {
     const single = rows.filter((x) => normalize(x.voucher_scope) === "single").length;
     const multiple = rows.filter((x) => normalize(x.voucher_scope) === "multiple").length;
     const manual = rows.filter((x) => normalize(x.voucher_scope) === "manual").length;
-    const paid = rows.filter((x) => (x.status || "") === "Paid").length;
+    const paid = rows.filter((x) => normalize(x.status) === "paid").length;
+    const pending = rows.filter((x) => ["prepared", "checked"].includes(normalize(x.status))).length;
+    const approved = rows.filter((x) => ["authorized", "chequeprepared", "chequesigned", "countersigned", "paid"].includes(normalize(x.status))).length;
 
     const totalAmount = rows
       .filter((x) => (x.status || "") !== "Cancelled")
@@ -1020,12 +1037,48 @@ export default function PaymentVouchersPage() {
       multiple,
       manual,
       paid,
+      pending,
+      approved,
       totalAmount,
       readyOfficial,
       readyPersonalFund,
       readyTotalAmount,
     };
   }, [rows, readyRows]);
+
+  const overviewRows = useMemo(() => {
+    return filteredRows.filter((v) => {
+      if (departmentFilter !== "ALL" && (v.dept_name || "") !== departmentFilter) return false;
+      const created = v.created_at ? new Date(v.created_at) : null;
+      if (created && fromDate && created < new Date(`${fromDate}T00:00:00`)) return false;
+      if (created && toDate && created > new Date(`${toDate}T23:59:59`)) return false;
+      return true;
+    });
+  }, [filteredRows, departmentFilter, fromDate, toDate]);
+
+  useEffect(() => { setCurrentPage(1); }, [search, statusFilter, typeFilter, departmentFilter, fromDate, toDate, rowsPerPage]);
+  const pageCount = Math.max(1, Math.ceil(overviewRows.length / rowsPerPage));
+  const safePage = Math.min(currentPage, pageCount);
+  const pagedRows = overviewRows.slice((safePage - 1) * rowsPerPage, safePage * rowsPerPage);
+  const todayKey = new Date().toDateString();
+  const pendingToday = rows.filter((v) => new Date(v.created_at).toDateString() === todayKey && ["prepared", "checked"].includes(normalize(v.status))).length;
+  const approvedToday = rows.filter((v) => new Date(v.created_at).toDateString() === todayKey && ["authorized", "chequeprepared", "chequesigned", "countersigned"].includes(normalize(v.status))).length;
+  const paidToday = rows.filter((v) => new Date(v.created_at).toDateString() === todayKey && normalize(v.status) === "paid").length;
+  const activeOfficers = new Set(rows.flatMap((v) => [v.prepared_by_name, v.checked_by_name, v.authorized_by_name]).filter(Boolean)).size;
+
+  function clearOverviewFilters() {
+    setSearch(""); setStatusFilter("ALL"); setTypeFilter("ALL"); setDepartmentFilter("ALL");
+    setFromDate(`${new Date().getFullYear()}-01-01`); setToDate(new Date().toISOString().slice(0, 10));
+  }
+
+  function exportOverviewCsv() {
+    const headers = ["Voucher No", "Date", "Department", "Beneficiary", "Description", "Amount", "Status"];
+    const csv = [headers, ...overviewRows.map((v) => [v.voucher_no, shortDate(v.created_at), v.dept_name || "", v.payee_name || "", v.narration || "", String(v.total_amount || v.amount || 0), v.status || ""]) ]
+      .map((row) => row.map((cell) => `"${String(cell).replaceAll('"','""')}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = `payment-vouchers-${new Date().toISOString().slice(0,10)}.csv`; a.click(); URL.revokeObjectURL(url);
+  }
 
   if (loading) {
     return (
@@ -1062,509 +1115,52 @@ export default function PaymentVouchersPage() {
   }
 
   return (
-    <main className="rg-module-page rg-adopted-page rg-pv-page">
-      <div className="mx-auto max-w-[1500px] py-6 sm:py-8">
-        <nav className="mb-6 flex flex-col gap-3 rounded-3xl border border-slate-200 bg-white p-3 shadow-sm lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex flex-wrap gap-2">
-            <PVActionButton
-              onClick={() => router.push("/finance")}
-              tone="slate"
-            >
-              ← Finance Centre
-            </PVActionButton>
-
-            {canManualVoucher && (
-              <PVActionButton
-                onClick={openManualVoucher}
-                disabled={Boolean(deletingId) || generating || refreshing}
-                tone="emerald"
-              >
-                + Manual Voucher
-              </PVActionButton>
-            )}
-
-            {canViewReports && (
-              <PVActionButton
-                onClick={() => router.push("/reports#payment-voucher-report")}
-                disabled={Boolean(deletingId) || generating}
-                tone="violet"
-              >
-                PV Reports
-              </PVActionButton>
-            )}
-
-            <PVActionButton
-              onClick={() => router.push("/payment-vouchers/settings")}
-              tone="blue"
-            >
-              PV Settings
-            </PVActionButton>
-          </div>
-
-          <PVActionButton
-            onClick={() => load({ silent: true })}
-            disabled={Boolean(deletingId) || generating || refreshing}
-            tone="cyan"
-          >
-            {refreshing ? "Refreshing..." : "Refresh Voucher Data"}
-          </PVActionButton>
-        </nav>
-
-        <PVHero
-          eyebrow="Finance Operations"
-          title="Payment Voucher Centre"
-          description="Generate, review, authorize, disburse and audit official IET payment vouchers from one controlled workspace."
-        />
-
-        {msg && (
-          <div className="mt-4 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 shadow-sm">
-            {msg}
-          </div>
-        )}
-
-        <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-8">
-          <StatCard title="Ready Requests" value={String(readyRows.length)} tone="emerald" />
-          <StatCard title="Ready Official" value={String(stats.readyOfficial)} tone="blue" />
-          <StatCard title="Ready Personal" value={String(stats.readyPersonalFund)} tone="purple" />
-          <StatCard title="Ready Value" value={naira(stats.readyTotalAmount)} tone="amber" />
-          <StatCard title="Total Vouchers" value={String(stats.total)} tone="blue" />
-          <StatCard title="Combined PVs" value={String(stats.multiple)} tone="purple" />
-          <StatCard title="Manual PVs" value={String(stats.manual)} tone="emerald" />
-          <StatCard title="Total Value" value={naira(stats.totalAmount)} tone="amber" />
-        </div>
-
-        <div className="mt-6 rounded-3xl border bg-white shadow-sm overflow-hidden">
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b bg-slate-50 px-6 py-4">
-            <div>
-              <h2 className="text-lg font-bold text-slate-900">Requests Ready for Voucher</h2>
-              <p className="mt-1 text-sm text-slate-600">
-                Select 1 to 10 compatible Official or Personal Fund requests to generate one payment voucher.
-              </p>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">
-                {readyRows.length} ready
-              </span>
-
-              <span className="rounded-full bg-purple-50 px-3 py-1 text-xs font-bold text-purple-700">
-                {selectedRequests.length} selected
-              </span>
-            </div>
-          </div>
-
-          <div className="border-b bg-white px-6 py-4">
-            <div className="grid gap-3 lg:grid-cols-[1fr_auto] lg:items-end">
-              <div>
-                <label className="text-sm font-semibold text-slate-800">Search ready requests</label>
-                <input
-                  value={readySearch}
-                  onChange={(e) => setReadySearch(e.target.value)}
-                  placeholder="Search request no, title, requester, department..."
-                  className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-3 text-slate-900 outline-none focus:border-blue-500"
-                />
-              </div>
-
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={clearSelection}
-                  disabled={selectedRequests.length === 0 || generating}
-                  className="reqgen-btn reqgen-btn-rose rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-50"
-                >
-                  Clear Selection
-                </button>
-
-                <button
-                  type="button"
-                  onClick={openGenerateModalFromSelection}
-                  disabled={!selectionSummary.valid || generating}
-                  className="reqgen-btn reqgen-btn-rose rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
-                >
-                  {selectedRequests.length > 1 ? "Generate Combined PV" : "Generate PV"}
-                </button>
-              </div>
-            </div>
-
-            <div
-              className={`mt-4 rounded-2xl border px-4 py-3 text-sm font-semibold ${selectionSummary.valid
-                  ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-                  : "border-amber-200 bg-amber-50 text-amber-900"
-                }`}
-            >
-              {selectionSummary.message}
-              {selectedRequests.length > 0 && (
-                <div className="mt-1 font-bold">
-                  Payee: {selectionPayee || "—"} • Category:{" "}
-                  {selectionCategory === "official"
-                    ? "Official"
-                    : selectionCategory === "personalfund"
-                      ? "Personal Fund"
-                      : "—"}{" "}
-                  • Total: {naira(selectedTotal)}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {filteredReadyRows.length === 0 ? (
-            <div className="p-6 text-sm text-slate-700">
-              No request is currently ready for voucher generation.
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <div className="min-w-[1280px]">
-                <div className="grid grid-cols-16 bg-slate-100 px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600">
-                  <div className="col-span-1">Select</div>
-                  <div className="col-span-2">Request No</div>
-                  <div className="col-span-3">Title</div>
-                  <div className="col-span-2">Department</div>
-                  <div className="col-span-1">Type</div>
-                  <div className="col-span-1 text-right">Amount</div>
-                  <div className="col-span-2">Requester</div>
-                  <div className="col-span-1">Status</div>
-                  <div className="col-span-3 text-right">Action</div>
-                </div>
-
-                {filteredReadyRows.map((r) => {
-                  const checked = selectedIds.includes(r.id);
-
-                  return (
-                    <div
-                      key={r.id}
-                      className={`grid grid-cols-16 items-center border-t px-6 py-4 text-sm hover:bg-slate-50 ${checked ? "bg-blue-50/50" : ""
-                        }`}
-                    >
-                      <div className="col-span-1">
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          onChange={() => toggleSelectRequest(r)}
-                          className="h-4 w-4"
-                        />
-                      </div>
-
-                      <div className="col-span-2 font-extrabold text-slate-900">
-                        {r.request_no}
-                      </div>
-
-                      <div className="col-span-3">
-                        <div className="font-semibold text-slate-900">{r.title}</div>
-                        <div className="mt-1 line-clamp-1 text-xs text-slate-500">
-                          {r.details}
-                        </div>
-                      </div>
-
-                      <div className="col-span-2 text-slate-700">{r.dept_name || "—"}</div>
-
-                      <div className="col-span-1">
-                        <span
-                          className={`rounded-full border px-2 py-1 text-[11px] font-bold ${categoryBadgeClass(r)}`}
-                        >
-                          {categoryLabel(r)}
-                        </span>
-                      </div>
-
-                      <div className="col-span-1 text-right font-bold text-slate-900">
-                        {naira(r.amount)}
-                      </div>
-
-                      <div className="col-span-2 text-slate-700">{r.requester_name || "—"}</div>
-
-                      <div className="col-span-1">
-                        <span
-                          className={`rounded-full border px-2 py-1 text-[11px] font-bold ${statusBadgeClass(r.status)}`}
-                        >
-                          {r.status || "—"}
-                        </span>
-                      </div>
-
-                      <div className="col-span-3 flex justify-end gap-2">
-                        <button
-                          type="button"
-                          onClick={() => openRequest(r.id)}
-                          className="reqgen-btn reqgen-btn-slate rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-900 hover:bg-slate-100"
-                        >
-                          Request
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => openGenerateModalSingle(r)}
-                          disabled={generating || Boolean(deletingId)}
-                          className="reqgen-btn reqgen-btn-rose rounded-xl bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
-                        >
-                          Single PV
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => toggleSelectRequest(r)}
-                          disabled={generating}
-                          className={`reqgen-btn reqgen-btn-rose rounded-xl px-3 py-2 text-xs font-semibold text-white disabled:opacity-50 ${checked
-                              ? "bg-red-600 hover:bg-red-700"
-                              : "bg-purple-600 hover:bg-purple-700"
-                            }`}
-                        >
-                          {checked ? "Remove" : "Add"}
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className="mt-6 rounded-3xl border bg-white p-5 shadow-sm">
-          <div className="grid gap-4 md:grid-cols-3">
-            <div>
-              <label className="text-sm font-semibold text-slate-800">Search Vouchers</label>
-              <input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search voucher no, request no, payee..."
-                className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-3 text-slate-900 outline-none focus:border-blue-500"
-              />
-            </div>
-
-            <div>
-              <label className="text-sm font-semibold text-slate-800">Voucher / Request Type</label>
-              <select
-                value={typeFilter}
-                onChange={(e) => setTypeFilter(e.target.value)}
-                className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-3 text-slate-900 outline-none focus:border-blue-500"
-              >
-                <option value="ALL">All Vouchers</option>
-                <option value="Official">Official</option>
-                <option value="PersonalFund">Personal Fund</option>
-                <option value="Single">Single PV</option>
-                <option value="Multiple">Combined PV</option>
-                <option value="Manual">Manual PV</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="text-sm font-semibold text-slate-800">Voucher Status</label>
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-3 text-slate-900 outline-none focus:border-blue-500"
-              >
-                <option value="ALL">All Statuses</option>
-                <option value="Prepared">Prepared</option>
-                <option value="Checked">Checked</option>
-                <option value="Authorized">Authorized</option>
-                <option value="Cheque Prepared">Cheque Prepared</option>
-                <option value="Cheque Signed">Cheque Signed</option>
-                <option value="Counter Signed">Counter Signed</option>
-                <option value="Paid">Paid</option>
-                <option value="Cancelled">Cancelled</option>
-              </select>
-            </div>
+    <main className={styles.page}>
+      <div className={styles.header}>
+        <div>
+          <div className={styles.breadcrumb}>Home <span>/</span> Payment Vouchers <span>/</span> Overview</div>
+          <div className={styles.titleRow}>
+            <div className={styles.titleIcon}><Coins size={28} /></div>
+            <div><div className={styles.eyebrow}>PAYMENT VOUCHERS</div><h1>Payment Vouchers Overview</h1><p>Manage payment vouchers from creation to final approval and payment.</p></div>
           </div>
         </div>
-
-        <div className="mt-6 hidden xl:block rounded-3xl border bg-white shadow-sm overflow-hidden">
-          <div className="border-b bg-slate-50 px-6 py-4">
-            <h2 className="text-lg font-bold text-slate-900">Voucher Register</h2>
-            <p className="mt-1 text-sm text-slate-600">
-              Generated payment vouchers linked to approved requests and manual finance entries.
-            </p>
+        <div className={styles.headerActions}>
+          <button onClick={() => load({ silent: true })} disabled={refreshing}><RefreshCw size={16}/>{refreshing ? "Refreshing..." : "Refresh"}</button>
+          <button onClick={exportOverviewCsv}><Download size={16}/>Export CSV</button>
+          <button onClick={() => window.print()}><Printer size={16}/>Print</button>
+          <button className={styles.primaryButton} onClick={() => setShowCreateWorkspace(true)}><Plus size={17}/>Create New Voucher</button>
+        </div>
+      </div>
+      {msg ? <div className={styles.message}>{msg}</div> : null}
+      <div className={styles.workspaceGrid}>
+        <section className={styles.mainColumn}>
+          <div className={styles.kpiGrid}>
+            <KpiCard icon={<Coins size={23}/>} tone="blue" label="Total Vouchers" value={String(stats.total)} hint="All recorded vouchers" />
+            <KpiCard icon={<Clock3 size={23}/>} tone="amber" label="Pending Approval" value={String(stats.pending)} hint="Awaiting action" />
+            <KpiCard icon={<CheckCircle2 size={23}/>} tone="green" label="Approved" value={String(stats.approved)} hint="Ready for payment" />
+            <KpiCard icon={<WalletCards size={23}/>} tone="violet" label="Paid Out" value={String(stats.paid)} hint="Successfully paid" />
+            <KpiCard icon={<WalletCards size={23}/>} tone="red" label="Total Amount" value={naira(stats.totalAmount)} hint="Value of active vouchers" compact />
           </div>
-
-          {filteredRows.length === 0 ? (
-            <EmptyState />
-          ) : (
-            <div className="overflow-x-auto">
-              <div className="min-w-[1500px]">
-                <div className="grid grid-cols-19 bg-slate-100 px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600">
-                  <div className="col-span-2">Voucher No</div>
-                  <div className="col-span-2">Request No</div>
-                  <div className="col-span-2">Payee</div>
-                  <div className="col-span-2">Narration</div>
-                  <div className="col-span-1 text-right">Amount</div>
-                  <div className="col-span-2">Department</div>
-                  <div className="col-span-1">Type</div>
-                  <div className="col-span-1">Scope</div>
-                  <div className="col-span-1">Status</div>
-                  <div className="col-span-1">Date</div>
-                  <div className="col-span-4 text-right">Actions</div>
-                </div>
-
-                {filteredRows.map((v) => (
-                  <div
-                    key={v.id}
-                    className="grid grid-cols-19 items-center border-t px-6 py-4 text-sm hover:bg-slate-50"
-                  >
-                    <div className="col-span-2 font-extrabold text-slate-900">
-                      {v.voucher_no}
-                    </div>
-
-                    <div className="col-span-2 text-slate-700">{v.request_no || "Manual"}</div>
-
-                    <div className="col-span-2 font-semibold text-slate-900">
-                      {v.payee_name || "—"}
-                    </div>
-
-                    <div className="col-span-2">
-                      <div className="line-clamp-2 text-slate-700">{v.narration || "—"}</div>
-                      <div className="mt-1 text-xs font-semibold text-slate-500">
-                        Items: {v.item_count || 1}
-                      </div>
-                    </div>
-
-                    <div className="col-span-1 text-right font-bold text-slate-900">
-                      {naira(v.total_amount || v.amount)}
-                    </div>
-
-                    <div className="col-span-2 text-slate-700">{v.dept_name || "—"}</div>
-
-                    <div className="col-span-1">
-                      {normalize(v.voucher_scope) === "manual" ? (
-                        <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-1 text-[11px] font-bold text-amber-700">
-                          Manual
-                        </span>
-                      ) : (
-                        <span
-                          className={`rounded-full border px-2 py-1 text-[11px] font-bold ${categoryBadgeClass(v)}`}
-                        >
-                          {categoryLabel(v)}
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="col-span-1">
-                      <span
-                        className={`rounded-full border px-2 py-1 text-[11px] font-bold ${scopeBadgeClass(v.voucher_scope)}`}
-                      >
-                        {v.voucher_scope || "Single"}
-                      </span>
-                    </div>
-
-                    <div className="col-span-1">
-                      <span
-                        className={`rounded-full border px-2 py-1 text-[11px] font-bold ${statusBadgeClass(v.status)}`}
-                      >
-                        {v.status || "—"}
-                      </span>
-                    </div>
-
-                    <div className="col-span-1 text-slate-600">{shortDate(v.created_at)}</div>
-
-                    <div className="col-span-4 flex justify-end gap-2">
-                      <button
-                        type="button"
-                        onClick={() => openVoucher(v.id)}
-                        className="reqgen-btn reqgen-btn-violet rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-900 hover:bg-slate-100"
-                      >
-                        View
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => printVoucher(v.id)}
-                        className="reqgen-btn reqgen-btn-violet rounded-xl bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-700"
-                      >
-                        Print
-                      </button>
-
-                      {canDeleteVoucher && (
-                        <button
-                          type="button"
-                          onClick={() => deleteVoucher(v)}
-                          disabled={deletingId === v.id || generating}
-                          className="reqgen-btn reqgen-btn-rose rounded-xl bg-red-600 px-3 py-2 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-50"
-                        >
-                          {deletingId === v.id ? "Deleting..." : "Delete"}
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
+          <section className={styles.filterCard}>
+            <div className={styles.filterGrid}>
+              <label>From Date<input type="date" value={fromDate} onChange={(e)=>setFromDate(e.target.value)} /></label>
+              <label>To Date<input type="date" value={toDate} onChange={(e)=>setToDate(e.target.value)} /></label>
+              <label>Status<select value={statusFilter} onChange={(e)=>setStatusFilter(e.target.value)}><option value="ALL">All statuses</option><option value="Prepared">Prepared</option><option value="Checked">Checked</option><option value="Authorized">Authorized</option><option value="Paid">Paid</option><option value="Cancelled">Cancelled</option></select></label>
+              <label>Department<select value={departmentFilter} onChange={(e)=>setDepartmentFilter(e.target.value)}><option value="ALL">All departments</option>{departments.map(d=><option key={d.id} value={d.name}>{d.name}</option>)}</select></label>
             </div>
-          )}
-        </div>
-
-        <div className="mt-6 grid gap-4 xl:hidden">
-          {filteredRows.length === 0 ? (
-            <EmptyState />
-          ) : (
-            filteredRows.map((v) => (
-              <div key={v.id} className="rounded-3xl border bg-white p-5 shadow-sm">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <div className="text-lg font-extrabold text-slate-900">{v.voucher_no}</div>
-                    <div className="mt-1 text-sm font-semibold text-slate-800">
-                      Request: {v.request_no || "Manual"}
-                    </div>
-                    <div className="mt-1 text-sm text-slate-500">{v.dept_name || "—"}</div>
-                  </div>
-
-                  <div className="flex flex-col items-end gap-1">
-                    <span
-                      className={`rounded-full border px-3 py-1 text-xs font-bold ${scopeBadgeClass(v.voucher_scope)}`}
-                    >
-                      {v.voucher_scope || "Single"} • {v.item_count || 1}
-                    </span>
-
-                    <span
-                      className={`rounded-full border px-3 py-1 text-xs font-bold ${statusBadgeClass(v.status)}`}
-                    >
-                      {v.status || "—"}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="mt-4 grid gap-2 text-sm sm:grid-cols-2">
-                  <InfoLine label="Payee" value={v.payee_name || "—"} />
-                  <InfoLine label="Amount" value={naira(v.total_amount || v.amount)} />
-                  <InfoLine label="Prepared By" value={v.prepared_by_name || "—"} />
-                  <InfoLine label="Mode" value={v.disbursement_mode || "—"} />
-                  <InfoLine label="Bank Account" value={v.bank_account_name || "—"} />
-                  <InfoLine label="Date" value={shortDate(v.created_at)} />
-                </div>
-
-                <div className="mt-4 rounded-2xl bg-slate-50 p-4 text-sm text-slate-700">
-                  <div className="font-semibold text-slate-900">Narration</div>
-                  <div className="mt-1 line-clamp-3 whitespace-pre-wrap">{v.narration || "—"}</div>
-                </div>
-
-                <div className="mt-4 flex flex-wrap justify-end gap-2">
-                  <button
-                    type="button"
-                    onClick={() => openVoucher(v.id)}
-                    className="reqgen-btn reqgen-btn-violet rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
-                  >
-                    View
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => printVoucher(v.id)}
-                    className="reqgen-btn reqgen-btn-violet rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
-                  >
-                    Print
-                  </button>
-
-                  {canDeleteVoucher && (
-                    <button
-                      type="button"
-                      onClick={() => deleteVoucher(v)}
-                      disabled={deletingId === v.id || generating}
-                      className="reqgen-btn reqgen-btn-rose rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
-                    >
-                      {deletingId === v.id ? "Deleting..." : "Delete"}
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-
+            <div className={styles.searchRow}><div className={styles.searchBox}><Search size={17}/><input value={search} onChange={(e)=>setSearch(e.target.value)} placeholder="Search by voucher no., beneficiary, description..." /></div><button className={styles.primaryButton}><Search size={16}/>Search</button><button onClick={clearOverviewFilters}><SlidersHorizontal size={16}/>Clear</button></div>
+          </section>
+          <section className={styles.registerCard}>
+            <div className={styles.sectionHead}><div className={styles.sectionTitle}><span className={styles.sectionIcon}><WalletCards size={17}/></span><div><h2>Recent Payment Vouchers</h2><p>Showing latest vouchers across all departments.</p></div></div><label className={styles.showSelect}>Show<select value={rowsPerPage} onChange={(e)=>setRowsPerPage(Number(e.target.value))}><option value={5}>5</option><option value={10}>10</option><option value={20}>20</option></select></label></div>
+            <div className={styles.tableWrap}><table className={styles.table}><thead><tr><th>S/N</th><th>Voucher No.</th><th>Date</th><th>Department</th><th>Beneficiary</th><th>Description</th><th className={styles.right}>Amount</th><th>Status</th><th>Actions</th></tr></thead><tbody>
+              {pagedRows.length ? pagedRows.map((v,index)=><tr key={v.id}><td>{(safePage-1)*rowsPerPage+index+1}</td><td className={styles.strong}>{v.voucher_no}</td><td>{shortDate(v.created_at)}</td><td>{v.dept_name||"—"}</td><td>{v.payee_name||"—"}</td><td className={styles.description}>{v.narration||"—"}</td><td className={`${styles.right} ${styles.strong}`}>{naira(v.total_amount||v.amount)}</td><td><span className={`${styles.status} ${styles[`status_${normalize(v.status)||"default"}`]||styles.status_default}`}>{v.status||"—"}</span></td><td><div className={styles.actionGroup}><button title="View voucher" onClick={()=>openVoucher(v.id)}><Eye size={15}/></button><button title="Print voucher" onClick={()=>printVoucher(v.id)}><Printer size={15}/></button><div className={styles.moreWrap}><button title="More actions" onClick={()=>setMoreOpen(moreOpen===v.id?null:v.id)}><MoreVertical size={15}/></button>{moreOpen===v.id?<div className={styles.moreMenu}><button onClick={()=>openVoucher(v.id)}>View details</button><button onClick={()=>printVoucher(v.id)}>Print / PDF</button>{canDeleteVoucher?<button className={styles.dangerText} onClick={()=>deleteVoucher(v)}>Delete voucher</button>:null}</div>:null}</div></div></td></tr>) : <tr><td colSpan={9} className={styles.empty}>No payment voucher found for the selected filter.</td></tr>}
+            </tbody></table></div>
+            <div className={styles.tableFooter}><span>Showing {overviewRows.length?(safePage-1)*rowsPerPage+1:0} to {Math.min(safePage*rowsPerPage,overviewRows.length)} of {overviewRows.length} vouchers</span><div className={styles.pagination}><button disabled={safePage===1} onClick={()=>setCurrentPage(1)}>«</button><button disabled={safePage===1} onClick={()=>setCurrentPage(p=>Math.max(1,p-1))}>‹</button>{Array.from({length:Math.min(5,pageCount)},(_,i)=>i+1).map(p=><button key={p} className={p===safePage?styles.activePage:""} onClick={()=>setCurrentPage(p)}>{p}</button>)}{pageCount>5?<span>…</span>:null}{pageCount>5?<button onClick={()=>setCurrentPage(pageCount)}>{pageCount}</button>:null}<button disabled={safePage===pageCount} onClick={()=>setCurrentPage(p=>Math.min(pageCount,p+1))}>›</button><button disabled={safePage===pageCount} onClick={()=>setCurrentPage(pageCount)}>»</button></div></div>
+          </section>
+        </section>
+        <aside className={styles.sidebarCard}><h2>Workspace Summary</h2><SummaryItem tone="amber" icon={<Clock3 size={18}/>} label="Pending Today" value={pendingToday}/><SummaryItem tone="green" icon={<CheckCircle2 size={18}/>} label="Approved Today" value={approvedToday}/><SummaryItem tone="green" icon={<CheckCircle2 size={18}/>} label="Paid Today" value={paidToday}/><SummaryItem tone="blue" icon={<Building2 size={18}/>} label="Departments" value={departments.length}/><SummaryItem tone="blue" icon={<Users size={18}/>} label="Active Officers" value={activeOfficers}/><h3>Quick Actions</h3><button className={styles.quickPrimary} onClick={()=>setShowCreateWorkspace(true)}><Plus size={16}/>Create New Voucher</button><button className={styles.quickAmber} onClick={()=>setShowCreateWorkspace(true)}><Clock3 size={16}/>Pending Approval</button><button className={styles.quickBlue} onClick={()=>router.push('/reports#payment-voucher-report')}><Printer size={16}/>Print / PDF Centre</button></aside>
+      </div>
+      {showCreateWorkspace ? <div className={styles.overlay} onMouseDown={(e)=>{if(e.target===e.currentTarget)setShowCreateWorkspace(false)}}><section className={styles.createModal}><div className={styles.modalHead}><div><div className={styles.eyebrow}>CREATE PAYMENT VOUCHER</div><h2>Select Voucher-Ready Requests</h2><p>Select 1 to 10 compatible Official or Personal Fund requests.</p></div><button onClick={()=>setShowCreateWorkspace(false)}><X size={18}/></button></div><div className={styles.modalSearch}><Search size={16}/><input value={readySearch} onChange={(e)=>setReadySearch(e.target.value)} placeholder="Search request no., title, requester, department..."/></div><div className={styles.readyList}>{filteredReadyRows.map(r=><label key={r.id} className={`${styles.readyRow} ${selectedIds.includes(r.id)?styles.readySelected:""}`}><input type="checkbox" checked={selectedIds.includes(r.id)} onChange={()=>toggleSelectRequest(r)}/><div><b>{r.request_no}</b><span>{r.title}</span><small>{r.dept_name||"—"} • {categoryLabel(r)} • {naira(r.amount)}</small></div></label>)}</div><div className={styles.selectionNotice}>{selectionSummary.message}{selectedRequests.length?<b>Payee: {selectionPayee||"—"} • Total: {naira(selectedTotal)}</b>:null}</div><div className={styles.modalActions}>{canManualVoucher?<button onClick={openManualVoucher}>Manual Voucher</button>:null}<button onClick={clearSelection}>Clear</button><button className={styles.primaryButton} disabled={!selectionSummary.valid||generating} onClick={()=>{setShowCreateWorkspace(false);openGenerateModalFromSelection();}}>{selectedRequests.length>1?"Generate Combined PV":"Generate Voucher"}</button></div></section></div>:null}
         {showManualModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
             <div className="max-h-[92vh] w-full max-w-3xl overflow-auto rounded-3xl bg-white p-6 shadow-2xl">
@@ -1934,18 +1530,13 @@ export default function PaymentVouchersPage() {
           </div>
         )}
 
-        <div className="mt-6 rounded-3xl border border-blue-100 bg-blue-50 p-5 text-sm text-blue-900">
-          <div className="font-bold">Payment Voucher Note</div>
-          <p className="mt-1">
-            You can generate PVs from approved requests or create manual PVs for controlled finance
-            entries. Manual PVs deduct from the selected subhead and selected bank/finance account
-            where applicable.
-          </p>
-        </div>
-      </div>
+
     </main>
   );
 }
+
+function KpiCard({ icon, tone, label, value, hint, compact = false }: { icon: React.ReactNode; tone: "blue"|"amber"|"green"|"violet"|"red"; label:string; value:string; hint:string; compact?:boolean }) { return <article className={styles.kpi}><span className={`${styles.kpiIcon} ${styles[`tone_${tone}`]}`}>{icon}</span><div><small>{label}</small><strong className={compact?styles.compactValue:""}>{value}</strong><p>{hint}</p></div></article>; }
+function SummaryItem({ icon, tone, label, value }: { icon:React.ReactNode; tone:"amber"|"green"|"blue"; label:string; value:number }) { return <div className={styles.summaryItem}><span className={`${styles.summaryIcon} ${styles[`tone_${tone}`]}`}>{icon}</span><div><small>{label}</small><strong>{value}</strong></div></div>; }
 
 function StatCard({
   title,

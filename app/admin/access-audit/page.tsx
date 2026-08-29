@@ -66,7 +66,7 @@ export default function AdminAccessAuditPage() {
       <div className="mx-auto max-w-[1500px] space-y-6">
         <AdminNavigation />
 
-        <section className="overflow-hidden rounded-[2rem] border border-blue-200/70 bg-gradient-to-br from-slate-950 via-blue-950 to-indigo-800 p-6 text-white shadow-2xl sm:p-8">
+        <section className="rg-module-header">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-3xl">
               <p className="text-xs font-black uppercase tracking-[0.28em] text-cyan-300">

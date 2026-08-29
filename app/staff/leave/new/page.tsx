@@ -267,7 +267,7 @@ export default function NewLeaveApplicationPage() {
   return (
     <main className="min-h-screen bg-slate-50 px-4 py-8">
       <div className="mx-auto max-w-5xl space-y-6">
-        <section className="overflow-hidden rounded-3xl bg-gradient-to-r from-slate-950 via-indigo-950 to-cyan-900 p-6 shadow-2xl sm:p-8">
+        <section className="rg-module-header">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
             <div>
               <p className="text-xs font-black uppercase tracking-[0.24em] text-cyan-300">Staff Self-Service</p>
@@ -295,17 +295,17 @@ export default function NewLeaveApplicationPage() {
         )}
 
         <section className="grid gap-4 sm:grid-cols-3">
-          <div className="rounded-2xl bg-gradient-to-br from-cyan-600 to-blue-700 p-5 text-white shadow-lg">
+          <div className="rg-stat-card">
             <UserRound className="h-7 w-7" />
             <p className="mt-4 text-xs font-black uppercase tracking-[0.18em] text-white/75">Applicant</p>
             <p className="mt-1 text-lg font-black">{profile?.full_name || "Staff Member"}</p>
           </div>
-          <div className="rounded-2xl bg-gradient-to-br from-violet-600 to-indigo-700 p-5 text-white shadow-lg">
+          <div className="rg-stat-card">
             <ShieldCheck className="h-7 w-7" />
             <p className="mt-4 text-xs font-black uppercase tracking-[0.18em] text-white/75">Department</p>
             <p className="mt-1 text-lg font-black">{department?.name || "Not assigned"}</p>
           </div>
-          <div className="rounded-2xl bg-gradient-to-br from-emerald-600 to-teal-700 p-5 text-white shadow-lg">
+          <div className="rg-stat-card">
             <CalendarDays className="h-7 w-7" />
             <p className="mt-4 text-xs font-black uppercase tracking-[0.18em] text-white/75">Requested Duration</p>
             <p className="mt-1 text-lg font-black">{duration || 0} day(s)</p>

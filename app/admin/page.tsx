@@ -612,24 +612,20 @@ export default function AdminPage() {
   }
 
   return (
-    <main className="min-h-screen bg-transparent px-4">
-      <AdminNavigation />
-      <div className="mx-auto max-w-7xl py-10">
-        <div className="flex flex-wrap items-start justify-between gap-3">
+    <main className="rg-module-page rg-adopted-page"><AdminNavigation /><div className="mx-auto w-full max-w-[1500px] space-y-4">
+        <div className="rg-module-header">
           <div>
-            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">
-              Admin Routing Panel
-            </h1>
-            <p className="mt-2 text-sm text-slate-600">
+            <p className="rg-module-eyebrow">Administration</p><h1>Admin Overview</h1>
+            <p className="rg-module-description">
               Logged in as <b className="text-slate-900">{meEmail || "—"}</b> • Primary role{" "}
               <b className="text-slate-900">{meRole || "Staff"}</b>
             </p>
-            <p className="mt-1 text-xs font-semibold text-slate-500">
+            <p className="mt-1 text-[10px] font-semibold text-slate-500">
               Manage global officers, department DOD/HOD/PO routing, multiple roles and signature readiness.
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-2">
+          <div className="rg-module-actions">
             <button
               onClick={() => loadAll({ silent: true })}
               disabled={refreshing || saving}
@@ -683,7 +679,7 @@ export default function AdminPage() {
           Registry is not an approval-stage officer; Registry is for monitoring and DG reminder support.
         </div>
 
-        <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-6">
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
           <StatCard title="Total Users" value={String(stats.totalUsers)} tone="blue" />
           <StatCard title="Signature Ready" value={String(stats.signatureReadyCount)} tone="emerald" />
           <StatCard title="Needs Signature" value={String(stats.needsSignature)} tone="amber" />

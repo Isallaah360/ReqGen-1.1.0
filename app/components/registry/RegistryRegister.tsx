@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import RegistryNavigation from "@/app/components/registry/RegistryNavigation";
 import { ActionButton, EmptyState, EnterpriseHero, EnterpriseShell, SectionCard, StatCard, StatusBadge } from "@/app/components/enterprise/EnterpriseUI";
 import { dateText, normalizeRows, text } from "@/app/components/enterprise/data";
 
@@ -87,9 +86,8 @@ export default function RegistryRegister({ kind }: { kind: RegisterKind }) {
 
   return (
     <EnterpriseShell>
-      <div className="mx-auto max-w-[1500px] space-y-6">
+      <div className="mx-auto max-w-[1500px] space-y-4">
         <EnterpriseHero eyebrow={meta.eyebrow} title={meta.title} description={meta.description} actions={<ActionButton tone="cyan" onClick={() => void load()}>{loading ? "Refreshing..." : "Refresh Register"}</ActionButton>} />
-        <RegistryNavigation />
         {warning ? <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-bold text-amber-900">{warning}</div> : null}
         <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <StatCard label="Total Records" value={loading ? "—" : stats.total} note="Within this registry scope" tone="blue" />
@@ -102,7 +100,7 @@ export default function RegistryRegister({ kind }: { kind: RegisterKind }) {
           {filtered.length === 0 ? <EmptyState title={loading ? "Loading registry records" : "No registry records found"} description="Records matching this registry scope will appear here." /> : (
             <div className="overflow-x-auto rounded-2xl border border-slate-200">
               <table className="min-w-full divide-y divide-slate-200 text-sm">
-                <thead className="bg-slate-950 text-white"><tr><th className="px-4 py-3 text-left font-black">Reference</th><th className="px-4 py-3 text-left font-black">Subject</th><th className="px-4 py-3 text-left font-black">Department</th><th className="px-4 py-3 text-left font-black">Direction</th><th className="px-4 py-3 text-left font-black">Priority</th><th className="px-4 py-3 text-left font-black">Status</th><th className="px-4 py-3 text-left font-black">Date</th></tr></thead>
+                <thead className="bg-slate-100 text-slate-700"><tr><th className="px-4 py-3 text-left font-black">Reference</th><th className="px-4 py-3 text-left font-black">Subject</th><th className="px-4 py-3 text-left font-black">Department</th><th className="px-4 py-3 text-left font-black">Direction</th><th className="px-4 py-3 text-left font-black">Priority</th><th className="px-4 py-3 text-left font-black">Status</th><th className="px-4 py-3 text-left font-black">Date</th></tr></thead>
                 <tbody className="divide-y divide-slate-100 bg-white">{filtered.map((row) => <tr key={row.id} className="hover:bg-slate-50"><td className="px-4 py-4 font-black text-slate-950">{row.referenceNo}</td><td className="max-w-sm px-4 py-4 font-bold text-slate-800">{row.subject}</td><td className="px-4 py-4 font-semibold text-slate-600">{row.department}</td><td className="px-4 py-4"><StatusBadge tone="cyan">{row.direction}</StatusBadge></td><td className="px-4 py-4"><StatusBadge tone={/urgent|high/i.test(row.priority) ? "rose" : "slate"}>{row.priority}</StatusBadge></td><td className="px-4 py-4"><StatusBadge tone={tone(row.status)}>{row.status}</StatusBadge></td><td className="px-4 py-4 font-semibold text-slate-500">{dateText(row.createdAt)}</td></tr>)}</tbody>
               </table>
             </div>

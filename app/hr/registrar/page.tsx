@@ -130,7 +130,7 @@ function MetricCard({
   }[tone];
 
   return (
-    <article className={`rounded-3xl bg-gradient-to-br ${styles} p-5 text-white shadow-lg transition hover:-translate-y-1 hover:shadow-xl`}>
+    <article className="rg-stat-card">
       <p className="text-xs font-black uppercase tracking-[0.18em] text-white/75">{label}</p>
       <p className="mt-3 text-3xl font-black">{value}</p>
       <p className="mt-2 text-sm font-semibold text-white/80">{note}</p>
@@ -362,7 +362,7 @@ export default function RegistrarPage() {
     <>
       <main className="min-h-screen bg-slate-50 px-4 py-8 lg:px-8">
         <div className="mx-auto max-w-7xl space-y-6">
-          <section className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-slate-950 via-blue-950 to-cyan-700 p-7 text-white shadow-xl sm:p-9">
+          <section className="rg-module-header">
             <div className="absolute -right-16 -top-16 h-56 w-56 rounded-full bg-cyan-300/20 blur-3xl" />
             <div className="absolute -bottom-20 left-1/3 h-52 w-52 rounded-full bg-blue-400/20 blur-3xl" />
             <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">

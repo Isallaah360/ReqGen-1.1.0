@@ -155,7 +155,7 @@ export default function DownloadsPage() {
           )}
         </StaffSection>
 
-        <section className="rounded-[1.75rem] bg-gradient-to-r from-slate-950 via-blue-950 to-cyan-800 p-5 text-white shadow-xl sm:p-6">
+        <section className="rg-section-card p-5">
           <div className="flex items-start gap-4">
             <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-white/15 ring-1 ring-white/20">
               <FileCheck className="h-6 w-6" />

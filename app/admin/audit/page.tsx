@@ -121,7 +121,7 @@ export default function AdminAuditPage() {
   return (
     <main className="mx-auto min-h-screen max-w-7xl px-4 py-8">
       <AdminNavigation />
-      <section className="overflow-hidden rounded-3xl border border-fuchsia-200 bg-gradient-to-br from-slate-950 via-purple-950 to-fuchsia-900 p-7 text-white shadow-xl">
+      <section className="rg-module-header">
         <p className="text-xs font-black uppercase tracking-[0.2em] text-fuchsia-200">System Administration</p>
         <div className="mt-2 flex flex-col justify-between gap-4 lg:flex-row lg:items-end"><div><h1 className="text-3xl font-black sm:text-4xl">Administrative Audit Trail</h1><p className="mt-3 max-w-3xl font-semibold leading-7 text-slate-200">Review role switches, assignment changes, Finance administration events and other high-value control activities from one secured workspace.</p></div><button onClick={() => void load()} className="rounded-xl bg-cyan-600 px-5 py-3 text-sm font-black text-white shadow-md transition hover:-translate-y-0.5 hover:bg-cyan-700">Refresh Audit</button></div>
       </section>

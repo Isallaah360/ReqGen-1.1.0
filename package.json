@@ -17,9 +17,10 @@
     "audit:navigation": "node scripts/audit-internal-navigation.mjs",
     "audit:s5-12": "node scripts/audit-sections-5-12-mockups.mjs",
     "audit:components": "node scripts/audit-component-contracts.cjs",
-    "audit:deploy": "npm run audit:routes && npm run audit:workflow && npm run audit:navigation && npm run audit:mockup-lock && npm run audit:s5-12 && npm run audit:mockup-frame && npm run audit:components",
+    "audit:deploy": "npm run audit:routes && npm run audit:workflow && npm run audit:navigation && npm run audit:mockup-lock && npm run audit:s5-12 && npm run audit:redesign && npm run audit:components",
     "audit:mockup-frame": "node scripts/audit-approved-mockup-frame.mjs",
-    "audit:pixel-lock": "node scripts/audit-approved-mockup-frame.mjs"
+    "audit:pixel-lock": "node scripts/audit-approved-mockup-frame.mjs",
+    "audit:redesign": "node scripts/audit-approved-redesign.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.97.0",
