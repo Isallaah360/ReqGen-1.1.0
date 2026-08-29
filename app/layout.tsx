@@ -43,13 +43,15 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en" suppressHydrationWarning>
       <body suppressHydrationWarning>
-        <MfaGuard>
-          <RouteAccessGuard>
-            <SessionTimeout />
-            <GovernmentAppShell>{children}</GovernmentAppShell>
-            <GlobalTips />
-          </RouteAccessGuard>
-        </MfaGuard>
+        <GovernmentAppShell>
+          <MfaGuard>
+            <RouteAccessGuard>
+              <SessionTimeout />
+              {children}
+              <GlobalTips />
+            </RouteAccessGuard>
+          </MfaGuard>
+        </GovernmentAppShell>
       </body>
     </html>
   );

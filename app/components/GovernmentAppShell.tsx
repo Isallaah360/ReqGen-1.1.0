@@ -164,11 +164,16 @@ export default function GovernmentAppShell({ children }: { children: React.React
   const [query, setQuery] = useState("");
   const [expandedNav, setExpandedNav] = useState<string | null>(null);
   const [roleSet, setRoleSet] = useState<Set<string>>(new Set());
+  const [contextReady, setContextReady] = useState(false);
   const [userName, setUserName] = useState("ReqGen User");
   const [userEmail, setUserEmail] = useState("");
 
   useEffect(() => {
-    if (isPublic) return;
+    if (isPublic) {
+      setContextReady(false);
+      setRoleSet(new Set());
+      return;
+    }
     let mounted = true;
     async function loadContext() {
       const [context, auth] = await Promise.all([getCurrentAuthContext(), supabase.auth.getUser()]);
@@ -176,16 +181,17 @@ export default function GovernmentAppShell({ children }: { children: React.React
       const next = new Set<string>();
       if (context?.activeRoleKey) next.add(context.activeRoleKey);
       setRoleSet(next);
+      setContextReady(true);
       const user = auth.data.user;
       const metaName = user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email?.split("@")[0];
       setUserName(metaName || "ReqGen User");
       setUserEmail(user?.email || "");
     }
     void loadContext();
-    const refresh = () => void loadContext();
+    const refresh = () => { setContextReady(false); void loadContext(); };
     window.addEventListener("reqgen-active-role-changed", refresh);
     return () => { mounted = false; window.removeEventListener("reqgen-active-role-changed", refresh); };
-  }, [isPublic, pathname]);
+  }, [isPublic]);
 
   useEffect(() => {
     setMobileOpen(false);
@@ -196,18 +202,18 @@ export default function GovernmentAppShell({ children }: { children: React.React
   }, [pathname]);
 
   const visibleNav = useMemo(
-    () => MAIN_NAV.filter((item) => roleSet.size === 0 || canAccessPath(item.href, roleSet)),
-    [roleSet]
+    () => contextReady ? MAIN_NAV.filter((item) => canAccessPath(item.href, roleSet)) : [],
+    [contextReady, roleSet]
   );
 
   const searchResults = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return [];
+    if (!q || !contextReady) return [];
     return NAVIGATION_ITEMS
-      .filter((item) => roleSet.size === 0 || canAccessPath(item.href, roleSet))
+      .filter((item) => canAccessPath(item.href, roleSet))
       .filter((item) => `${item.label} ${item.description} ${item.section} ${(item.keywords || []).join(" ")}`.toLowerCase().includes(q))
       .slice(0, 8);
-  }, [query, roleSet]);
+  }, [query, contextReady, roleSet]);
 
   if (isPublic) return <>{children}</>;
 
@@ -222,7 +228,7 @@ export default function GovernmentAppShell({ children }: { children: React.React
   const renderNav = () => visibleNav.map((item) => {
     const Icon = item.icon;
     const active = isActive(pathname, item.href);
-    const subnav = (MODULE_SUBNAV[item.href] || []).filter((child) => roleSet.size === 0 || canAccessPath(child.href, roleSet));
+    const subnav = (MODULE_SUBNAV[item.href] || []).filter((child) => canAccessPath(child.href, roleSet));
     const expanded = expandedNav === item.href;
     return (
       <div key={item.href} className={`rg-nav-group ${active ? "is-active" : ""}`}>

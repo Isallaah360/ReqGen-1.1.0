@@ -15,6 +15,7 @@ export const PUBLIC_PATHS = [
   "/mfa",
   "/mfa/setup",
   "/unauthorized",
+  "/about",
 ];
 
 /**

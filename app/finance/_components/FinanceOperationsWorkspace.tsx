@@ -114,28 +114,7 @@ export default function FinanceOperationsWorkspace({ mode }: { mode: Mode }) {
     return Array.from(map.values()).sort((a, b) => b.key.localeCompare(a.key));
   }, [rows]);
 
-  const exportRows = () => {
-    const cols: Column[] = c.columns.length
-      ? c.columns
-      : [
-          { key: "month", label: "Month" },
-          { key: "count", label: "Transactions" },
-          { key: "income", label: "Income" },
-          { key: "expense", label: "Expense" },
-        ];
-    const source: Row[] = mode === "monthly" ? months : filtered;
-    const content = [
-      cols.map((x) => csv(x.label)).join(","),
-      ...source.map((r) => cols.map((x) => csv(r[x.key])).join(",")),
-    ].join("\n");
-    const blob = new Blob([content], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${mode}-${new Date().toISOString().slice(0, 10)}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
+  const exportRows = () => { const cols: Column[] = c.columns.length ? c.columns : [{ key: "month", label: "Month" }, { key: "count", label: "Transactions" }, { key: "income", label: "Income" }, { key: "expense", label: "Expense" }]; const source: Row[] = mode === "monthly" ? months : filtered; const content = [cols.map(x => csv(x.label)).join(","), ...source.map(r => cols.map(x => csv(r[x.key])).join(","))].join("\n"); const blob = new Blob([content], { type: "text/csv;charset=utf-8" }); const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = `${mode}-${new Date().toISOString().slice(0, 10)}.csv`; a.click(); URL.revokeObjectURL(url); };
 
   const postTransfer = async (e: FormEvent) => { e.preventDefault(); setError(""); setSuccess(""); const value = Number(amount); if (!sourceId || !destinationId || sourceId === destinationId || !Number.isFinite(value) || value <= 0 || narration.trim().length < 5) { setError("Complete the transfer form correctly. Source and destination must be different and narration must be clear."); return; } setPosting(true); try { const { data, error: rpcError } = await supabase.rpc("post_account_transfer", { p_source_account_id: sourceId, p_destination_account_id: destinationId, p_amount: value, p_narration: narration.trim(), p_external_reference: reference.trim() || null }); if (rpcError) throw rpcError; setSuccess(`Transfer ${Array.isArray(data) ? data[0]?.transfer_no || "" : data?.transfer_no || ""} posted successfully.`); setTransferOpen(false); setSourceId(""); setDestinationId(""); setAmount(""); setNarration(""); setReference(""); await load(true); } catch (e: any) { setError(e?.message || "Unable to post transfer."); } finally { setPosting(false); } };
 

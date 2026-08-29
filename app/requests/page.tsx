@@ -1,8 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, Clock3, FileText, Landmark, Search, XCircle, Eye, Pencil, MoreVertical, Download, Plus } from "lucide-react";
+import { CheckCircle2, Clock3, FileText, Landmark, Search, XCircle, Eye, Pencil, MoreVertical, Download, Plus, Printer } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import styles from "./requests.module.css";
 
@@ -49,7 +50,18 @@ export default function RequestsPage(){
     <select value={type} onChange={e=>setType(e.target.value as TypeFilter)}><option value="ALL">All Request Types</option><option value="OFFICIAL">Official</option><option value="PERSONAL_FUND">Personal Fund</option><option value="PERSONAL_OTHER">Personal Other</option></select>
     <button className={styles.exportBtn} onClick={exportCsv}><Download size={15}/> Export</button>
    </div>
-   {error?<div className={styles.alert}>{error}</div>:loading?<div className={styles.loading}>Loading requests…</div>:<div className={styles.tableWrap}><table className={styles.table}><thead><tr><th>Req Code</th><th>Title</th><th>Department</th><th>Type</th><th>Amount (₦)</th><th>Status</th><th>Requested On</th><th>Actions</th></tr></thead><tbody>{paged.length?paged.map(r=><tr key={r.id}><td className={styles.code}>{r.request_no||"—"}</td><td>{r.title||"Untitled request"}</td><td>{r.dept_id?departments[r.dept_id]||"Unassigned":"Unassigned"}</td><td><span className={styles.typePill}>{requestTypeLabel(r)}</span></td><td>{naira(r.amount)}</td><td><span className={`${styles.statusPill} ${statusClass(r)}`}>{statusLabel(r)}</span></td><td>{new Date(r.created_at).toLocaleString("en-NG",{dateStyle:"medium",timeStyle:"short"})}</td><td><div className={styles.actions}><button title="View" onClick={()=>router.push(`/requests/${r.id}`)}><Eye size={14}/></button><button title="Edit" onClick={()=>router.push(`/requests/${r.id}/edit`)}><Pencil size={14}/></button><button title="More" onClick={()=>router.push(`/requests/${r.id}`)}><MoreVertical size={14}/></button></div></td></tr>):<tr><td colSpan={8} className={styles.empty}>No matching requests.</td></tr>}</tbody></table></div>}
+   {error?<div className={styles.alert}>{error}</div>:loading?<div className={styles.loading}>Loading requests…</div>:<div className={styles.tableWrap}><table className={styles.table}><thead><tr><th>Req Code</th><th>Title</th><th>Department</th><th>Type</th><th>Amount (₦)</th><th>Status</th><th>Requested On</th><th>Actions</th></tr></thead><tbody>{paged.length?paged.map(r=><tr key={r.id}><td className={styles.code}>{r.request_no||"—"}</td><td>{r.title||"Untitled request"}</td><td>{r.dept_id?departments[r.dept_id]||"Unassigned":"Unassigned"}</td><td><span className={styles.typePill}>{requestTypeLabel(r)}</span></td><td>{naira(r.amount)}</td><td><span className={`${styles.statusPill} ${statusClass(r)}`}>{statusLabel(r)}</span></td><td>{new Date(r.created_at).toLocaleString("en-NG",{dateStyle:"medium",timeStyle:"short"})}</td><td><div className={styles.actions}>
+      <Link title="View request" aria-label={`View ${r.request_no||"request"}`} href={`/requests/${r.id}`}><Eye size={14}/></Link>
+      <Link title="Edit request" aria-label={`Edit ${r.request_no||"request"}`} href={`/requests/${r.id}/edit`}><Pencil size={14}/></Link>
+      <details className={styles.moreMenu}>
+        <summary title="More actions" aria-label={`More actions for ${r.request_no||"request"}`}><MoreVertical size={14}/></summary>
+        <div className={styles.moreMenuPanel}>
+          <Link href={`/requests/${r.id}`}><Eye size={14}/> View Details</Link>
+          <Link href={`/requests/${r.id}/edit`}><Pencil size={14}/> Edit Request</Link>
+          <Link href={`/requests/${r.id}/print`}><Printer size={14}/> Print / PDF</Link>
+        </div>
+      </details>
+    </div></td></tr>):<tr><td colSpan={8} className={styles.empty}>No matching requests.</td></tr>}</tbody></table></div>}
    <div className={styles.pagination}><span>Showing {filtered.length?((currentPage-1)*pageSize)+1:0} to {Math.min(currentPage*pageSize,filtered.length)} of {filtered.length} entries</span><div><button disabled={currentPage===1} onClick={()=>setPage(p=>Math.max(1,p-1))}>‹</button>{Array.from({length:Math.min(totalPages,4)},(_,i)=>i+1).map(n=><button key={n} className={n===currentPage?styles.current:""} onClick={()=>setPage(n)}>{n}</button>)}{totalPages>4&&<span>…</span>}<button disabled={currentPage===totalPages} onClick={()=>setPage(p=>Math.min(totalPages,p+1))}>›</button></div></div>
   </section>
  </main>

@@ -1197,15 +1197,27 @@ export default function NewRequestPage() {
                   <strong className={styles.errorText}>No signature found. Upload your signature in My Profile first.</strong>
                 ) : null}
               </div>
-              <button
-                type="button"
-                className={`${styles.signButton} ${signedRequest ? styles.signedButton : ""}`}
-                onClick={signRequest}
-                disabled={!me?.signature_url || saving || sendingOtp || verifyingOtp}
-              >
-                <ShieldCheck size={17} />
-                {signedRequest ? "Signed" : "Sign Request"}
-              </button>
+              <div className={styles.signatureActions}>
+                <button
+                  type="button"
+                  className={`${styles.signButton} ${signedRequest ? styles.signedButton : ""}`}
+                  onClick={signRequest}
+                  disabled={!me?.signature_url || saving || sendingOtp || verifyingOtp}
+                >
+                  <ShieldCheck size={17} />
+                  {signedRequest ? "Signed" : "Sign Request"}
+                </button>
+                {signedRequest ? (
+                  <button type="button" className={styles.submitButton} onClick={openSubmitVerification} disabled={!canSubmit}>
+                    <Send size={17} />
+                    {saving
+                      ? uploadingAttachments ? "Uploading Attachments..." : "Submitting..."
+                      : sendingOtp ? `Sending ${otpLabel}...`
+                      : verifyingOtp ? `Verifying ${otpLabel}...`
+                      : requestOtpEnabled ? (otpSent ? `Continue with ${otpLabel}` : "Submit Request") : "Submit Request"}
+                  </button>
+                ) : null}
+              </div>
             </div>
 
             <footer className={styles.formActions}>
