@@ -92,7 +92,7 @@ export default function FinanceOperationsWorkspace({ mode }: { mode: Mode }) {
   }, [mode, c.table, c.dateField]);
   useEffect(() => { void load(); }, [load]);
 
-  const ledgerRows = useMemo(() => rows.map(r => ({ ...r, debit: isCredit(r) ? 0 : rowAmount(r), credit: isCredit(r) ? rowAmount(r) : 0, balance: r.balance_after ?? r.running_balance ?? r.balance ?? 0 })), [rows]);
+  const ledgerRows = useMemo<Row[]>(() => rows.map((r): Row => ({ ...r, debit: isCredit(r) ? 0 : rowAmount(r), credit: isCredit(r) ? rowAmount(r) : 0, balance: r.balance_after ?? r.running_balance ?? r.balance ?? 0 })), [rows]);
   const filtered = useMemo(() => ledgerRows.filter(r => {
     const needle = search.trim().toLowerCase(); const matchesSearch = !needle || c.searchFields.some(k => text(r[k]).toLowerCase().includes(needle)) || Object.values(r).some(v => typeof v === "string" && v.toLowerCase().includes(needle));
     const sv = text(r.status || r.transaction_type).toLowerCase(); const matchesStatus = status === "All" || sv.includes(status.toLowerCase()); let matchesPeriod = true;
