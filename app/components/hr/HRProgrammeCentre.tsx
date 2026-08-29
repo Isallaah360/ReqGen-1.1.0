@@ -166,7 +166,7 @@ export default function HRProgrammeCentre({ config }: { config: ProgrammeCentreC
                     <td className="px-4 py-4 text-xs font-bold text-slate-600">{row.start_date || "TBD"}{row.end_date ? ` → ${row.end_date}` : ""}</td>
                     <td className="px-4 py-4 font-semibold text-slate-700">{row.provider || row.venue || "Not assigned"}</td>
                     <td className="px-4 py-4 font-black text-slate-900">{money(row.approved_cost || row.estimated_cost)}</td>
-                    <td className="px-4 py-4"><StatusBadge value={row.status} /></td>
+                    <td className="px-4 py-4"><StatusBadge>{row.status || "Unknown"}</StatusBadge></td>
                   </tr>)}
                 </tbody>
               </table>

@@ -15,7 +15,9 @@
     "audit:phase-d": "npm run audit:responsive && npm run audit:print && npm run audit:performance",
     "audit:mockup-lock": "node scripts/audit-mockup-lock.mjs",
     "audit:navigation": "node scripts/audit-internal-navigation.mjs",
-    "audit:s5-12": "node scripts/audit-sections-5-12-mockups.mjs"
+    "audit:s5-12": "node scripts/audit-sections-5-12-mockups.mjs",
+    "audit:components": "node scripts/audit-component-contracts.cjs",
+    "audit:deploy": "npm run audit:routes && npm run audit:workflow && npm run audit:navigation && npm run audit:mockup-lock && npm run audit:s5-12 && npm run audit:components"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.97.0",
