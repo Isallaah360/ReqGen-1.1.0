@@ -488,39 +488,7 @@ export default function ReportsAnalyticsPage() {
         <ReportButton icon="report" variant="violet" onClick={() => router.push("/audit-centre")}>Audit Centre</ReportButton>
       </>} />
 
-      <section className="report-no-print sticky top-20 z-30 rounded-3xl border border-slate-200 bg-white/95 p-5 shadow-xl shadow-slate-300/30 backdrop-blur-xl">
-        <div className="grid gap-5 xl:grid-cols-[1fr_auto] xl:items-end">
-          <div>
-            <div className="flex items-center gap-3"><div className="grid h-11 w-11 place-items-center rounded-2xl bg-slate-950 text-white"><ReportIcon name="print" /></div><div><h2 className="text-lg font-black uppercase tracking-wide text-slate-950">REPORT NAVIGATION & PRINT CENTRE</h2><p className="text-sm text-slate-500">Every option corresponds exactly with a visible report section below.</p></div></div>
-            <nav className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-              {REPORT_SECTIONS.map((section, index) => (
-                <button
-                  key={section.key}
-                  type="button"
-                  onClick={() => scrollToSection(section.id)}
-                  className="group flex min-h-[64px] items-center gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-left shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-blue-300 hover:bg-blue-50 hover:shadow-md focus:outline-none focus:ring-4 focus:ring-blue-200"
-                >
-                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-slate-950 text-xs font-black text-white transition group-hover:bg-blue-700">
-                    {String(index + 1).padStart(2, "0")}
-                  </span>
-                  <span className="min-w-0">
-                    <span className="flex items-center gap-2 text-xs font-black uppercase tracking-wide text-slate-950">
-                      <ReportIcon name={section.icon} className="h-4 w-4 shrink-0 text-blue-700" />
-                      <span>{section.shortTitle}</span>
-                    </span>
-                    <span className="mt-0.5 block text-[11px] font-semibold leading-4 text-slate-500">
-                      Open report section
-                    </span>
-                  </span>
-                </button>
-              ))}
-            </nav>
-          </div>
-          <label className="block min-w-[300px] text-xs font-black uppercase tracking-[0.14em] text-slate-600">Select section to print
-            <div className="relative mt-2"><select value={printSection} onChange={(event) => setPrintSection(event.target.value as PrintKey)} className="h-12 w-full appearance-none rounded-2xl border-2 border-blue-200 bg-gradient-to-r from-blue-50 to-cyan-50 px-4 pr-11 text-sm font-black text-slate-950 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"><option value="ALL">PRINT ALL SECTIONS</option>{REPORT_SECTIONS.map((section) => <option key={section.key} value={section.key}>{section.title}</option>)}</select><ReportIcon name="chevron" className="pointer-events-none absolute right-4 top-3.5 h-5 w-5 text-blue-700" /></div>
-          </label>
-        </div>
-      </section>
+      {/* Legacy report navigation panel removed: the adopted shell and report controls below are the single navigation surface. */}
 
       <section className="report-no-print rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
         <div className="mb-4 flex items-center gap-3"><div className="grid h-10 w-10 place-items-center rounded-xl bg-blue-600 text-white"><ReportIcon name="filter" /></div><div><h2 className="font-black uppercase tracking-wide text-slate-950">INSTITUTIONAL REPORT CONTROLS</h2><p className="text-sm text-slate-500">One scope controls requests, finance, vouchers, audit and departmental intelligence.</p></div></div>
