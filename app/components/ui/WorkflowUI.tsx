@@ -39,38 +39,11 @@ export function WorkflowIcon({ name, className = "h-5 w-5" }: { name: WorkflowIc
 }
 
 export function WorkflowHero({
-  eyebrow,
-  title,
-  description,
-  icon,
-  actions,
-  meta,
+  eyebrow, title, description, icon, actions, meta,
 }: {
-  eyebrow: string;
-  title: string;
-  description: string;
-  icon: WorkflowIconName;
-  actions?: ReactNode;
-  meta?: ReactNode;
+  eyebrow: string; title: string; description: string; icon: WorkflowIconName; actions?: ReactNode; meta?: ReactNode;
 }) {
-  return (
-    <section className="workflow-hero relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-slate-950 via-blue-950 to-blue-700 px-6 py-8 text-white shadow-[0_24px_70px_-35px_rgba(15,23,42,.9)] sm:px-8 lg:px-10 lg:py-10">
-      <div className="pointer-events-none absolute -right-16 -top-20 h-64 w-64 rounded-full bg-cyan-400/20 blur-3xl workflow-float" />
-      <div className="pointer-events-none absolute -bottom-24 left-1/3 h-60 w-60 rounded-full bg-blue-500/25 blur-3xl workflow-float workflow-delay" />
-      <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-        <div className="max-w-3xl">
-          <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-bold uppercase tracking-[.22em] text-cyan-100 backdrop-blur">
-            <WorkflowIcon name={icon} className="h-4 w-4" />
-            {eyebrow}
-          </div>
-          <h1 className="mt-4 text-3xl font-black tracking-tight sm:text-4xl lg:text-5xl">{title}</h1>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-blue-100 sm:text-base">{description}</p>
-          {meta ? <div className="mt-3 text-xs font-semibold text-cyan-100/90">{meta}</div> : null}
-        </div>
-        {actions ? <div className="flex flex-wrap gap-3 lg:justify-end">{actions}</div> : null}
-      </div>
-    </section>
-  );
+  return <header className="rg-module-header"><div className="rg-module-heading"><p className="rg-module-eyebrow"><WorkflowIcon name={icon} className="h-4 w-4"/>{eyebrow}</p><h1>{title}</h1><p className="rg-module-description">{description}</p>{meta?<div className="rg-module-meta">{meta}</div>:null}</div>{actions?<div className="rg-module-actions">{actions}</div>:null}</header>;
 }
 
 export function WorkflowAction({
@@ -103,17 +76,7 @@ export function WorkflowAction({
 }
 
 export function WorkflowLoading({ title = "Loading workspace..." }: { title?: string }) {
-  return (
-    <main className="min-h-screen bg-slate-100 px-4 py-8">
-      <div className="mx-auto max-w-7xl space-y-5 animate-pulse">
-        <div className="h-64 rounded-[2rem] bg-gradient-to-br from-slate-900 via-blue-950 to-blue-700 blur-[1px]" />
-        <div className="grid gap-4 md:grid-cols-4">
-          {[0, 1, 2, 3].map((item) => <div key={item} className="h-28 rounded-2xl border border-slate-200 bg-white/80 blur-[.4px]" />)}
-        </div>
-        <div className="h-72 rounded-3xl border border-slate-200 bg-white/80 p-6 text-sm font-semibold text-slate-500 blur-[.35px]">{title}</div>
-      </div>
-    </main>
-  );
+  return <main className="rg-module-page rg-adopted-page"><div className="rg-module-header rg-skeleton-header"/><div className="rg-loading-grid">{Array.from({length:8}).map((_,i)=><div key={i}/>)}</div><div className="rg-section-card"><div className="rg-empty-state"><strong>{title}</strong><p>Preparing your authorised workflow data.</p></div></div></main>;
 }
 
 export function WorkflowPageStyles() {

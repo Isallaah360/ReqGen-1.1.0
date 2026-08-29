@@ -29,6 +29,7 @@ import { NAVIGATION_ITEMS } from "@/lib/navigation";
 import { canAccessPath } from "@/lib/permissions";
 import { getCurrentAuthContext } from "@/lib/auth";
 import { ActiveRoleSwitcher } from "./ActiveRoleSwitcher";
+import { getMockupRouteMeta } from "@/lib/mockupRouteTypes";
 import StaffFooter from "./staff/StaffFooter";
 
 const PUBLIC_PATHS = new Set([
@@ -89,14 +90,31 @@ const MODULE_SUBNAV: Record<string, SubNavItem[]> = {
     { href: "/hr/staff", label: "Staff Directory" },
     { href: "/hr/leave", label: "Leave Management" },
     { href: "/hr/assignments", label: "Assignments" },
+    { href: "/hr/archive", label: "HR Archive" },
     { href: "/hr/analytics", label: "HR Analytics" },
     { href: "/hr/department-kpi", label: "Department KPI" },
     { href: "/hr/officer-performance", label: "Officer Performance" },
     { href: "/hr/reports", label: "HR Reports" },
     { href: "/hr/output", label: "HR Output" },
+    { href: "/hr/weekly-seminar", label: "Weekly Seminar" },
+    { href: "/hr/capacity-building/departments", label: "Department Capacity Building" },
+    { href: "/hr/capacity-building/staff", label: "Staff Capacity Building" },
+    { href: "/hr/assessments/annual-360", label: "Annual 360 Assessment" },
     { href: "/hr/compliance", label: "Compliance" },
     { href: "/hr/audit", label: "HR Audit" },
     { href: "/hr/settings", label: "HR Settings" },
+    { href: "/hr/registrar", label: "Registrar Centre" },
+    { href: "/hr/registrar/analytics", label: "Registrar Analytics" },
+    { href: "/hr/registrar/department-kpi", label: "Registrar Department KPI" },
+    { href: "/hr/registrar/officer-performance", label: "Registrar Officer Performance" },
+    { href: "/hr/registrar/reports", label: "Registrar Reports" },
+    { href: "/hr/registrar/output", label: "Registrar Output" },
+    { href: "/hr/registrar/weekly-seminar", label: "Registrar Weekly Seminar" },
+    { href: "/hr/registrar/capacity-building/departments", label: "Registrar Department Capacity" },
+    { href: "/hr/registrar/capacity-building/staff", label: "Registrar Staff Capacity" },
+    { href: "/hr/registrar/assessments/annual-360", label: "Registrar Annual 360" },
+    { href: "/hr/registrar/compliance", label: "Registrar Compliance" },
+    { href: "/hr/registrar/settings", label: "Registrar Settings" },
   ],
   "/reports": [
     { href: "/reports", label: "Reports Centre" },
@@ -159,6 +177,7 @@ export default function GovernmentAppShell({ children }: { children: React.React
   const pathname = usePathname();
   const router = useRouter();
   const isPublic = PUBLIC_PATHS.has(pathname);
+  const mockupMeta = getMockupRouteMeta(pathname);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -304,7 +323,7 @@ export default function GovernmentAppShell({ children }: { children: React.React
         </header>
 
         <main id="reqgen-main-content" className="rg-main" role="main">
-          <div className={`rg-content module-${moduleKey}`}>{children}</div>
+          <div className={`rg-content module-${moduleKey}`} data-route={pathname} data-mockup-section={mockupMeta?.section || undefined} data-mockup-type={mockupMeta?.type || undefined}>{children}</div>
           <StaffFooter />
         </main>
       </section>

@@ -1,0 +1,2757 @@
+[
+  {
+    "section": "payment-vouchers",
+    "route": "/payment-vouchers/[id]",
+    "redirect": null,
+    "tables": [
+      "profiles"
+    ],
+    "rpcs": [
+      "counter_sign_payment_voucher_cheque",
+      "delete_payment_voucher_for_regeneration",
+      "get_payment_voucher_detail",
+      "get_payment_voucher_history",
+      "get_payment_voucher_items",
+      "sign_payment_voucher_cheque",
+      "update_payment_voucher_status"
+    ],
+    "headings": [
+      "Payment Voucher",
+      "Voucher Details",
+      "Voucher Items",
+      "Disbursement Details",
+      "Voucher Actions",
+      "Voucher History",
+      "Voucher No",
+      "Scope",
+      "Total Amount",
+      "Status"
+    ],
+    "labels": [
+      "Back to Vouchers",
+      "Open Primary Request",
+      "Print Voucher",
+      "{saving ? \"Signing...\" : \"Sign Cheque\"}",
+      "{saving ? \"Counter Signing...\" : \"Counter Sign Cheque\"}",
+      "Delete PV for Regeneration",
+      "Comment",
+      "Payee",
+      "Category",
+      "Primary Request",
+      "Item Count",
+      "Department",
+      "Subhead",
+      "Prepared By",
+      "Prepared At",
+      "Checked By",
+      "Authorized By",
+      "Requester",
+      "Type",
+      "Mode",
+      "Account Name",
+      "Account Number",
+      "Bank Name",
+      "Cash Payee Name"
+    ],
+    "title": "Payment Voucher Details",
+    "type": "detail",
+    "description": "Generate, review, sign, print and administer payment vouchers using the existing approved request and signatory workflows.",
+    "actions": [
+      "Back to Vouchers",
+      "Open Primary Request",
+      "Print Voucher",
+      "Delete PV for Regeneration"
+    ],
+    "filters": [
+      "Comment",
+      "Payee",
+      "Category",
+      "Primary Request",
+      "Item Count"
+    ],
+    "kpis": [
+      "Total Amount"
+    ],
+    "sections": [
+      "Voucher Details",
+      "Voucher Items",
+      "Disbursement Details",
+      "Voucher Actions",
+      "Voucher History"
+    ]
+  },
+  {
+    "section": "payment-vouchers",
+    "route": "/payment-vouchers/[id]/print",
+    "redirect": null,
+    "tables": [],
+    "rpcs": [
+      "get_payment_voucher_detail",
+      "get_payment_voucher_items"
+    ],
+    "headings": [
+      "Prepared By",
+      "Checked By",
+      "Authorized By",
+      "Received By",
+      "Cheque Signed By",
+      "Counter Signed By"
+    ],
+    "labels": [
+      "Back to Vouchers",
+      "Manage",
+      "{printing ? \"Preparing Print...\" : \"Print\"}",
+      "PV No.",
+      "Date",
+      "Status",
+      "Payee:",
+      "Request:",
+      "Department:",
+      "Type:",
+      "Subhead:",
+      "Mode",
+      "Account Number",
+      "Bank",
+      "Account Name",
+      "Payee Name",
+      "Payee Signature / Date",
+      "Cheque No.",
+      "Cheque Date",
+      "Cheque Signed By",
+      "Counter Signed By",
+      "Account Number / Cheque No.",
+      "Account Name / Payee Name"
+    ],
+    "title": "Payment Voucher Print View",
+    "type": "print",
+    "description": "Generate, review, sign, print and administer payment vouchers using the existing approved request and signatory workflows.",
+    "actions": [
+      "Back to Vouchers",
+      "Manage",
+      "Payee Signature / Date",
+      "Cheque Signed By"
+    ],
+    "filters": [
+      "PV No.",
+      "Date",
+      "Status",
+      "Payee:",
+      "Request:"
+    ],
+    "kpis": [],
+    "sections": [
+      "Checked By",
+      "Authorized By",
+      "Received By",
+      "Cheque Signed By",
+      "Counter Signed By"
+    ]
+  },
+  {
+    "section": "payment-vouchers",
+    "route": "/payment-vouchers",
+    "redirect": null,
+    "tables": [
+      "departments",
+      "payment_voucher_counter_signatories",
+      "profile_roles",
+      "profiles",
+      "subheads"
+    ],
+    "rpcs": [
+      "create_manual_payment_voucher",
+      "delete_payment_voucher_for_regeneration",
+      "generate_multi_payment_voucher",
+      "get_payment_vouchers",
+      "get_requests_ready_for_payment_voucher"
+    ],
+    "headings": [
+      "Payment Voucher Access",
+      "Requests Ready for Voucher",
+      "Voucher Register",
+      "Create Manual Payment Voucher",
+      "Generate Payment Voucher",
+      "Payment Voucher Centre",
+      "Ready Requests",
+      "Ready Official",
+      "Ready Personal",
+      "Ready Value",
+      "Total Vouchers",
+      "Combined PVs",
+      "Manual PVs",
+      "Total Value"
+    ],
+    "labels": [
+      "Clear Selection",
+      "{selectedRequests.length > 1 ? \"Generate Combined PV\" : \"Generate PV\"}",
+      "\u2715",
+      "Cancel",
+      "{manualSaving ? \"Creating...\" : \"Create Manual Voucher\"}",
+      "{generating ? \"Generating...\" : \"Generate Voucher\"}",
+      "All Vouchers",
+      "Official",
+      "Personal Fund",
+      "Single PV",
+      "Combined PV",
+      "Manual PV",
+      "All Statuses",
+      "Prepared",
+      "Checked",
+      "Authorized",
+      "Cheque Prepared",
+      "Cheque Signed",
+      "Counter Signed",
+      "Paid",
+      "Cancelled",
+      "Select Department",
+      "{d.name}",
+      "Select Subhead"
+    ],
+    "title": "Payment Voucher Centre",
+    "type": "hybrid",
+    "description": "Generate, review, sign, print and administer payment vouchers using the existing approved request and signatory workflows.",
+    "actions": [
+      "Cancel",
+      "Cheque Signed",
+      "Counter Signed",
+      "Cancelled"
+    ],
+    "filters": [
+      "Clear Selection",
+      "\u2715",
+      "All Vouchers",
+      "Official",
+      "Personal Fund"
+    ],
+    "kpis": [
+      "Ready Requests",
+      "Ready Official",
+      "Ready Personal",
+      "Voucher Register"
+    ],
+    "sections": [
+      "Requests Ready for Voucher",
+      "Voucher Register",
+      "Create Manual Payment Voucher",
+      "Generate Payment Voucher",
+      "Ready Requests"
+    ]
+  },
+  {
+    "section": "payment-vouchers",
+    "route": "/payment-vouchers/reports",
+    "redirect": "/reports#executive-overview",
+    "tables": [],
+    "rpcs": [],
+    "headings": [],
+    "labels": [],
+    "title": "Voucher Reports",
+    "type": "redirect",
+    "description": "Generate, review, sign, print and administer payment vouchers using the existing approved request and signatory workflows.",
+    "actions": [],
+    "filters": [],
+    "kpis": [],
+    "sections": []
+  },
+  {
+    "section": "payment-vouchers",
+    "route": "/payment-vouchers/settings",
+    "redirect": null,
+    "tables": [
+      "payment_voucher_counter_signatories",
+      "profiles"
+    ],
+    "rpcs": [],
+    "headings": [
+      "PV Settings Access",
+      "{editId ? \"Edit PV Signatory\" : \"Add PV Signatory\"}",
+      "PV Signatories Register",
+      "Payment Voucher Settings",
+      "Total Names",
+      "Active",
+      "Inactive",
+      "Cheque Signers",
+      "Counter Signers"
+    ],
+    "labels": [
+      "Back to Vouchers",
+      "Dashboard",
+      "Cancel Edit",
+      "{saving ? \"Saving...\" : editId ? \"Update\" : \"Add\"}",
+      "Cheque Signer",
+      "Counter Signer",
+      "Both",
+      "Full Name",
+      "Signatory Type",
+      "Search"
+    ],
+    "title": "Payment Voucher Settings",
+    "type": "settings",
+    "description": "Generate, review, sign, print and administer payment vouchers using the existing approved request and signatory workflows.",
+    "actions": [
+      "Back to Vouchers",
+      "Dashboard",
+      "Cancel Edit",
+      "Cheque Signer"
+    ],
+    "filters": [
+      "Both",
+      "Full Name",
+      "Search"
+    ],
+    "kpis": [
+      "Total Names",
+      "Active",
+      "Inactive",
+      "Cheque Signers",
+      "Counter Signers"
+    ],
+    "sections": [
+      "PV Signatories Register",
+      "Total Names",
+      "Active",
+      "Inactive",
+      "Cheque Signers"
+    ]
+  },
+  {
+    "section": "registry",
+    "route": "/registry/archive",
+    "redirect": null,
+    "tables": [],
+    "rpcs": [],
+    "headings": [],
+    "labels": [],
+    "title": "Registry Archive Register",
+    "type": "dashboard",
+    "description": "Track correspondence movement, dispatch, collection, archive status and request movement using the existing Registry records.",
+    "actions": [],
+    "filters": [],
+    "kpis": [
+      "Total Records",
+      "Pending",
+      "Completed",
+      "Urgent / High"
+    ],
+    "sections": []
+  },
+  {
+    "section": "registry",
+    "route": "/registry/dispatch",
+    "redirect": null,
+    "tables": [],
+    "rpcs": [],
+    "headings": [],
+    "labels": [],
+    "title": "Dispatch & Collection Register",
+    "type": "dashboard",
+    "description": "Track correspondence movement, dispatch, collection, archive status and request movement using the existing Registry records.",
+    "actions": [],
+    "filters": [],
+    "kpis": [
+      "Total Records",
+      "Pending",
+      "Completed",
+      "Urgent / High"
+    ],
+    "sections": []
+  },
+  {
+    "section": "registry",
+    "route": "/registry/incoming",
+    "redirect": null,
+    "tables": [],
+    "rpcs": [],
+    "headings": [],
+    "labels": [],
+    "title": "Incoming Register",
+    "type": "dashboard",
+    "description": "Track correspondence movement, dispatch, collection, archive status and request movement using the existing Registry records.",
+    "actions": [],
+    "filters": [],
+    "kpis": [
+      "Total Records",
+      "Pending",
+      "Completed",
+      "Urgent / High"
+    ],
+    "sections": []
+  },
+  {
+    "section": "registry",
+    "route": "/registry/operations",
+    "redirect": null,
+    "tables": [],
+    "rpcs": [],
+    "headings": [],
+    "labels": [],
+    "title": "Registry Operations",
+    "type": "dashboard",
+    "description": "Track correspondence movement, dispatch, collection, archive status and request movement using the existing Registry records.",
+    "actions": [],
+    "filters": [],
+    "kpis": [
+      "Total Records",
+      "Pending",
+      "Completed",
+      "Urgent / High"
+    ],
+    "sections": []
+  },
+  {
+    "section": "registry",
+    "route": "/registry/outgoing",
+    "redirect": null,
+    "tables": [],
+    "rpcs": [],
+    "headings": [],
+    "labels": [],
+    "title": "Outgoing Register",
+    "type": "dashboard",
+    "description": "Track correspondence movement, dispatch, collection, archive status and request movement using the existing Registry records.",
+    "actions": [],
+    "filters": [],
+    "kpis": [
+      "Total Records",
+      "Pending",
+      "Completed",
+      "Urgent / High"
+    ],
+    "sections": []
+  },
+  {
+    "section": "registry",
+    "route": "/registry",
+    "redirect": null,
+    "tables": [
+      "departments",
+      "profile_roles",
+      "profiles",
+      "requests"
+    ],
+    "rpcs": [],
+    "headings": [
+      "Registry Dashboard Access",
+      "Request Movement Intelligence",
+      "Workflow Movement Pipeline",
+      "Request Category Mix",
+      "Department Movement Overview"
+    ],
+    "labels": [
+      "Total Movement",
+      "Active Workflow",
+      "Submitted Today",
+      "Completed / Paid",
+      "Closed / Rejected"
+    ],
+    "title": "Registry Overview",
+    "type": "dashboard",
+    "description": "Track correspondence movement, dispatch, collection, archive status and request movement using the existing Registry records.",
+    "actions": [
+      "Submitted Today"
+    ],
+    "filters": [
+      "Total Movement",
+      "Active Workflow",
+      "Completed / Paid",
+      "Closed / Rejected"
+    ],
+    "kpis": [
+      "Total Movement",
+      "Active Workflow",
+      "Submitted Today",
+      "Completed / Paid",
+      "Closed / Rejected"
+    ],
+    "sections": [
+      "Request Movement Intelligence",
+      "Workflow Movement Pipeline",
+      "Request Category Mix",
+      "Department Movement Overview"
+    ]
+  },
+  {
+    "section": "hr",
+    "route": "/hr/analytics",
+    "redirect": "/hr/registrar/analytics",
+    "tables": [],
+    "rpcs": [],
+    "headings": [],
+    "labels": [],
+    "title": "Analytics",
+    "type": "redirect",
+    "description": "Operate the existing HR filing, assignments, staff records, leave, performance, capacity-building, compliance and reporting workflows.",
+    "actions": [],
+    "filters": [],
+    "kpis": [],
+    "sections": []
+  },
+  {
+    "section": "hr",
+    "route": "/hr/archive",
+    "redirect": null,
+    "tables": [
+      "hr_staff_files",
+      "profiles"
+    ],
+    "rpcs": [],
+    "headings": [
+      "HR Archive Governance Centre",
+      "Archive & Retention Register",
+      "No archive record matches the current view",
+      "Protected hold"
+    ],
+    "labels": [
+      "All retention states",
+      "Active",
+      "Archive Ready",
+      "Archived",
+      "Hold",
+      "Archived Files",
+      "On Hold",
+      "Restored"
+    ],
+    "title": "HR Archive Governance Centre",
+    "type": "dashboard",
+    "description": "Operate the existing HR filing, assignments, staff records, leave, performance, capacity-building, compliance and reporting workflows.",
+    "actions": [],
+    "filters": [
+      "All retention states",
+      "Active",
+      "Archive Ready",
+      "Archived",
+      "Hold"
+    ],
+    "kpis": [
+      "Active"
+    ],
+    "sections": [
+      "Archive & Retention Register",
+      "No archive record matches the current view",
+      "Protected hold"
+    ]
+  },
+  {
+    "section": "hr",
+    "route": "/hr/assessments/annual-360",
+    "redirect": "/hr/registrar/assessments/annual-360",
+    "tables": [],
+    "rpcs": [],
+    "headings": [],
+    "labels": [],
+    "title": "Annual 360",
+    "type": "redirect",
+    "description": "Operate the existing HR filing, assignments, staff records, leave, performance, capacity-building, compliance and reporting workflows.",
+    "actions": [],
+    "filters": [],
+    "kpis": [],
+    "sections": []
+  },
+  {
+    "section": "hr",
+    "route": "/hr/assignments",
+    "redirect": null,
+    "tables": [
+      "hr_officer_assignments",
+      "hr_request_assignments",
+      "profiles",
+      "requests"
+    ],
+    "rpcs": [],
+    "headings": [
+      "Officer Assignment & Delegation Centre",
+      "Grant Functional Authority",
+      "Delegate a Specific HR Request",
+      "Functional Authority Register",
+      "No HR authority assigned",
+      "Delegated Request Register",
+      "No request has been delegated",
+      "Assigned Officers",
+      "Active Authorities",
+      "Delegated Requests",
+      "Suspended"
+    ],
+    "labels": [
+      "Select officer",
+      "Select HR request"
+    ],
+    "title": "Officer Assignment & Delegation Centre",
+    "type": "dashboard",
+    "description": "Operate the existing HR filing, assignments, staff records, leave, performance, capacity-building, compliance and reporting workflows.",
+    "actions": [],
+    "filters": [
+      "Select officer",
+      "Select HR request"
+    ],
+    "kpis": [
+      "Active Authorities",
+      "Delegated Requests"
+    ],
+    "sections": [
+      "Grant Functional Authority",
+      "Delegate a Specific HR Request",
+      "Functional Authority Register",
+      "No HR authority assigned",
+      "Delegated Request Register"
+    ]
+  },
+  {
+    "section": "hr",
+    "route": "/hr/audit",
+    "redirect": null,
+    "tables": [
+      "hr_assignment_history",
+      "hr_officer_assignments",
+      "hr_request_assignments",
+      "hr_request_reviews",
+      "hr_staff_file_movements",
+      "profiles"
+    ],
+    "rpcs": [],
+    "headings": [
+      "HR Audit & Compliance Centre",
+      "HR Activity Evidence Register",
+      "No audit event matches the selected filters"
+    ],
+    "labels": [
+      "All modules",
+      "All risk levels",
+      "Normal",
+      "Attention",
+      "Critical",
+      "All dates",
+      "Today",
+      "Last 7 days",
+      "Last 30 days",
+      "Audit Evidence",
+      "Actors",
+      "Critical Events"
+    ],
+    "title": "HR Audit & Compliance Centre",
+    "type": "dashboard",
+    "description": "Operate the existing HR filing, assignments, staff records, leave, performance, capacity-building, compliance and reporting workflows.",
+    "actions": [],
+    "filters": [
+      "All modules",
+      "All risk levels",
+      "Normal",
+      "Attention",
+      "Critical"
+    ],
+    "kpis": [
+      "Today"
+    ],
+    "sections": [
+      "HR Activity Evidence Register",
+      "No audit event matches the selected filters"
+    ]
+  },
+  {
+    "section": "hr",
+    "route": "/hr/capacity-building/departments",
+    "redirect": "/hr/registrar/capacity-building/departments",
+    "tables": [],
+    "rpcs": [],
+    "headings": [],
+    "labels": [],
+    "title": "Departments",
+    "type": "redirect",
+    "description": "Operate the existing HR filing, assignments, staff records, leave, performance, capacity-building, compliance and reporting workflows.",
+    "actions": [],
+    "filters": [],
+    "kpis": [],
+    "sections": []
+  },
+  {
+    "section": "hr",
+    "route": "/hr/capacity-building/staff",
+    "redirect": "/hr/registrar/capacity-building/staff",
+    "tables": [],
+    "rpcs": [],
+    "headings": [],
+    "labels": [],
+    "title": "Staff",
+    "type": "redirect",
+    "description": "Operate the existing HR filing, assignments, staff records, leave, performance, capacity-building, compliance and reporting workflows.",
+    "actions": [],
+    "filters": [],
+    "kpis": [],
+    "sections": []
+  },
+  {
+    "section": "hr",
+    "route": "/hr/compliance",
+    "redirect": "/hr/registrar/compliance",
+    "tables": [],
+    "rpcs": [],
+    "headings": [],
+    "labels": [],
+    "title": "Compliance",
+    "type": "redirect",
+    "description": "Operate the existing HR filing, assignments, staff records, leave, performance, capacity-building, compliance and reporting workflows.",
+    "actions": [],
+    "filters": [],
+    "kpis": [],
+    "sections": []
+  },
+  {
+    "section": "hr",
+    "route": "/hr/department-kpi",
+    "redirect": "/hr/registrar/department-kpi",
+    "tables": [],
+    "rpcs": [],
+    "headings": [],
+    "labels": [],
+    "title": "Department Kpi",
+    "type": "redirect",
+    "description": "Operate the existing HR filing, assignments, staff records, leave, performance, capacity-building, compliance and reporting workflows.",
+    "actions": [],
+    "filters": [],
+    "kpis": [],
+    "sections": []
+  },
+  {
+    "section": "hr",
+    "route": "/hr/filing",
+    "redirect": null,
+    "tables": [],
+    "rpcs": [
+      "get_hr_filing_requests"
+    ],
+    "headings": [
+      "HR Filing & Request Processing",
+      "HR Operational Register"
+    ],
+    "labels": [
+      "All Departments"
+    ],
+    "title": "HR Filing & Request Processing",
+    "type": "dashboard",
+    "description": "Operate the existing HR filing, assignments, staff records, leave, performance, capacity-building, compliance and reporting workflows.",
+    "actions": [],
+    "filters": [
+      "All Departments"
+    ],
+    "kpis": [
+      "All Departments"
+    ],
+    "sections": [
+      "HR Operational Register"
+    ]
+  },
+  {
+    "section": "hr",
+    "route": "/hr/leave",
+    "redirect": null,
+    "tables": [],
+    "rpcs": [],
+    "headings": [
+      "Leave Operations Centre"
+    ],
+    "labels": [],
+    "title": "Leave Operations Centre",
+    "type": "dashboard",
+    "description": "Operate the existing HR filing, assignments, staff records, leave, performance, capacity-building, compliance and reporting workflows.",
+    "actions": [],
+    "filters": [],
+    "kpis": [],
+    "sections": []
+  },
+  {
+    "section": "hr",
+    "route": "/hr/my-work",
+    "redirect": null,
+    "tables": [
+      "hr_officer_assignments",
+      "hr_request_assignments"
+    ],
+    "rpcs": [],
+    "headings": [
+      "My HR Work",
+      "My Assigned HR Functions",
+      "No active HR function assigned",
+      "Delegated Request Queue",
+      "No delegated request matches this view"
+    ],
+    "labels": [
+      "Assigned Functions",
+      "Delegated Cases",
+      "In Progress",
+      "Overdue"
+    ],
+    "title": "My HR Work",
+    "type": "dashboard",
+    "description": "Operate the existing HR filing, assignments, staff records, leave, performance, capacity-building, compliance and reporting workflows.",
+    "actions": [
+      "Assigned Functions"
+    ],
+    "filters": [
+      "Delegated Cases",
+      "In Progress",
+      "Overdue"
+    ],
+    "kpis": [
+      "Assigned Functions",
+      "Delegated Cases",
+      "In Progress",
+      "Overdue"
+    ],
+    "sections": [
+      "My Assigned HR Functions",
+      "No active HR function assigned",
+      "Delegated Request Queue",
+      "No delegated request matches this view"
+    ]
+  },
+  {
+    "section": "hr",
+    "route": "/hr/officer-performance",
+    "redirect": "/hr/registrar/officer-performance",
+    "tables": [],
+    "rpcs": [],
+    "headings": [],
+    "labels": [],
+    "title": "Officer Performance",
+    "type": "redirect",
+    "description": "Operate the existing HR filing, assignments, staff records, leave, performance, capacity-building, compliance and reporting workflows.",
+    "actions": [],
+    "filters": [],
+    "kpis": [],
+    "sections": []
+  },
+  {
+    "section": "hr",
+    "route": "/hr/output",
+    "redirect": "/hr/registrar/output",
+    "tables": [],
+    "rpcs": [],
+    "headings": [],
+    "labels": [],
+    "title": "Output",
+    "type": "redirect",
+    "description": "Operate the existing HR filing, assignments, staff records, leave, performance, capacity-building, compliance and reporting workflows.",
+    "actions": [],
+    "filters": [],
+    "kpis": [],
+    "sections": []
+  },
+  {
+    "section": "hr",
+    "route": "/hr",
+    "redirect": null,
+    "tables": [
+      "hr_officer_assignments",
+      "hr_request_assignments"
+    ],
+    "rpcs": [
+      "get_hr_filing_requests"
+    ],
+    "headings": [
+      "HR Directorate Command Centre",
+      "HR request movement by stage",
+      "HR Boss priority panel",
+      "HR workload by department",
+      "Recent HR-bound movement",
+      "Strategic HR, compliance, analytics and institutional development"
+    ],
+    "labels": [],
+    "title": "HR Directorate Command Centre",
+    "type": "dashboard",
+    "description": "Operate the existing HR filing, assignments, staff records, leave, performance, capacity-building, compliance and reporting workflows.",
+    "actions": [],
+    "filters": [],
+    "kpis": [],
+    "sections": [
+      "HR request movement by stage",
+      "HR Boss priority panel",
+      "HR workload by department",
+      "Recent HR-bound movement"
+    ]
+  },
+  {
+    "section": "hr",
+    "route": "/hr/registrar/analytics",
+    "redirect": null,
+    "tables": [
+      "hr_assessment_assignments",
+      "hr_department_capacity_programmes",
+      "hr_department_kpis",
+      "hr_seminar_attendance",
+      "hr_staff_training_programmes"
+    ],
+    "rpcs": [],
+    "headings": [
+      "HR Executive Analytics",
+      "Performance Portfolio",
+      "Management Insights",
+      "Development Coverage",
+      "KPI Attention",
+      "Attendance Attention"
+    ],
+    "labels": [
+      "Development Programmes",
+      "Completed",
+      "Programme Value",
+      "Average KPI",
+      "360\u00b0 Assignments",
+      "Seminar Attendance",
+      "KPI Achievement",
+      "Weekly Seminar Attendance",
+      "Programme Completion"
+    ],
+    "title": "HR Executive Analytics",
+    "type": "dashboard",
+    "description": "Operate the existing HR filing, assignments, staff records, leave, performance, capacity-building, compliance and reporting workflows.",
+    "actions": [
+      "360\u00b0 Assignments"
+    ],
+    "filters": [
+      "Development Programmes",
+      "Completed",
+      "Programme Value",
+      "Average KPI",
+      "Seminar Attendance"
+    ],
+    "kpis": [
+      "Development Programmes",
+      "Completed",
+      "Programme Value",
+      "Average KPI",
+      "360\u00b0 Assignments"
+    ],
+    "sections": [
+      "Performance Portfolio",
+      "Management Insights",
+      "Development Coverage",
+      "KPI Attention",
+      "Attendance Attention"
+    ]
+  },
+  {
+    "section": "hr",
+    "route": "/hr/registrar/assessments/annual-360",
+    "redirect": null,
+    "tables": [
+      "hr_assessment_assignments",
+      "hr_assessment_cycles",
+      "profiles"
+    ],
+    "rpcs": [],
+    "headings": [
+      "Annual Staff 360\u00b0 Assessment Centre",
+      "New Annual Assessment Cycle",
+      "Assessment Cycles",
+      "No assessment cycle created",
+      "Assessment Assignment Monitor",
+      "No assessor assignments yet"
+    ],
+    "labels": [
+      "Assessment Cycles",
+      "Active Cycles",
+      "Assigned Reviews",
+      "Submitted",
+      "Outstanding",
+      "Cycle title",
+      "Cycle year",
+      "Opening date",
+      "Closing date",
+      "Minimum assessors per staff"
+    ],
+    "title": "Annual Staff 360\u00b0 Assessment Centre",
+    "type": "hybrid",
+    "description": "Operate the existing HR filing, assignments, staff records, leave, performance, capacity-building, compliance and reporting workflows.",
+    "actions": [
+      "Assigned Reviews",
+      "Submitted",
+      "Opening date"
+    ],
+    "filters": [
+      "Assessment Cycles",
+      "Active Cycles",
+      "Outstanding",
+      "Cycle title",
+      "Cycle year"
+    ],
+    "kpis": [
+      "Assessment Cycles",
+      "Active Cycles",
+      "Assigned Reviews",
+      "Submitted",
+      "Outstanding"
+    ],
+    "sections": [
+      "New Annual Assessment Cycle",
+      "Assessment Cycles",
+      "No assessment cycle created",
+      "Assessment Assignment Monitor",
+      "No assessor assignments yet"
+    ]
+  },
+  {
+    "section": "hr",
+    "route": "/hr/registrar/capacity-building/departments",
+    "redirect": null,
+    "tables": [],
+    "rpcs": [],
+    "headings": [
+      "Department Capacity Building Centre"
+    ],
+    "labels": [],
+    "title": "Department Capacity Building Centre",
+    "type": "dashboard",
+    "description": "Operate the existing HR filing, assignments, staff records, leave, performance, capacity-building, compliance and reporting workflows.",
+    "actions": [],
+    "filters": [],
+    "kpis": [],
+    "sections": []
+  },
+  {
+    "section": "hr",
+    "route": "/hr/registrar/capacity-building/staff",
+    "redirect": null,
+    "tables": [],
+    "rpcs": [],
+    "headings": [
+      "Staff Capacity Building Centre"
+    ],
+    "labels": [],
+    "title": "Staff Capacity Building Centre",
+    "type": "dashboard",
+    "description": "Operate the existing HR filing, assignments, staff records, leave, performance, capacity-building, compliance and reporting workflows.",
+    "actions": [],
+    "filters": [],
+    "kpis": [],
+    "sections": []
+  },
+  {
+    "section": "hr",
+    "route": "/hr/registrar/compliance",
+    "redirect": null,
+    "tables": [],
+    "rpcs": [],
+    "headings": [
+      "HR Compliance Centre",
+      "Compliance Timeline"
+    ],
+    "labels": [
+      "Audit Events",
+      "Assignment Actions",
+      "Role Switches",
+      "Corrections & Reviews"
+    ],
+    "title": "HR Compliance Centre",
+    "type": "dashboard",
+    "description": "Operate the existing HR filing, assignments, staff records, leave, performance, capacity-building, compliance and reporting workflows.",
+    "actions": [
+      "Assignment Actions"
+    ],
+    "filters": [
+      "Audit Events",
+      "Role Switches",
+      "Corrections & Reviews"
+    ],
+    "kpis": [],
+    "sections": [
+      "Compliance Timeline"
+    ]
+  },
+  {
+    "section": "hr",
+    "route": "/hr/registrar/department-kpi",
+    "redirect": null,
+    "tables": [
+      "departments",
+      "hr_department_kpis"
+    ],
+    "rpcs": [],
+    "headings": [
+      "Department KPI Centre",
+      "New Department KPI",
+      "Department KPI Register",
+      "No KPI records configured"
+    ],
+    "labels": [
+      "KPI Records",
+      "Departments",
+      "Approved",
+      "Below Target",
+      "Average Score",
+      "Department",
+      "KPI title",
+      "Cycle year",
+      "Period",
+      "Measurement unit",
+      "Weight (%)",
+      "Target value"
+    ],
+    "title": "Department KPI Centre",
+    "type": "hybrid",
+    "description": "Operate the existing HR filing, assignments, staff records, leave, performance, capacity-building, compliance and reporting workflows.",
+    "actions": [
+      "KPI Records"
+    ],
+    "filters": [
+      "Departments",
+      "Approved",
+      "Below Target",
+      "Average Score",
+      "Department"
+    ],
+    "kpis": [
+      "KPI Records",
+      "Departments",
+      "Approved",
+      "Below Target",
+      "Average Score"
+    ],
+    "sections": [
+      "New Department KPI",
+      "Department KPI Register",
+      "No KPI records configured"
+    ]
+  },
+  {
+    "section": "hr",
+    "route": "/hr/registrar/officer-performance",
+    "redirect": null,
+    "tables": [
+      "hr_request_assignments",
+      "profiles"
+    ],
+    "rpcs": [],
+    "headings": [
+      "HR Officer Performance & Workload",
+      "Officer Workload Register"
+    ],
+    "labels": [
+      "Active Officers",
+      "Total Assignments",
+      "Completed",
+      "Overdue"
+    ],
+    "title": "HR Officer Performance & Workload",
+    "type": "dashboard",
+    "description": "Operate the existing HR filing, assignments, staff records, leave, performance, capacity-building, compliance and reporting workflows.",
+    "actions": [
+      "Total Assignments"
+    ],
+    "filters": [
+      "Active Officers",
+      "Completed",
+      "Overdue"
+    ],
+    "kpis": [
+      "Active Officers",
+      "Total Assignments",
+      "Completed",
+      "Overdue"
+    ],
+    "sections": [
+      "Officer Workload Register"
+    ]
+  },
+  {
+    "section": "hr",
+    "route": "/hr/registrar/output",
+    "redirect": null,
+    "tables": [],
+    "rpcs": [],
+    "headings": [
+      "{reportNames[selected]}",
+      "HR Print & Export Centre",
+      "Report Selection"
+    ],
+    "labels": [
+      "{label}"
+    ],
+    "title": "HR Print & Export Centre",
+    "type": "dashboard",
+    "description": "Operate the existing HR filing, assignments, staff records, leave, performance, capacity-building, compliance and reporting workflows.",
+    "actions": [],
+    "filters": [],
+    "kpis": [],
+    "sections": [
+      "Report Selection"
+    ]
+  },
+  {
+    "section": "hr",
+    "route": "/hr/registrar",
+    "redirect": null,
+    "tables": [
+      "departments",
+      "hr_staff_file_movements",
+      "hr_staff_files",
+      "profiles"
+    ],
+    "rpcs": [
+      "hr_move_staff_file"
+    ],
+    "headings": [
+      "Registrar Centre",
+      "Custody & Classification Control",
+      "Registry Activity",
+      "Records Governance"
+    ],
+    "labels": [
+      "Close",
+      "Cancel",
+      "{saving ? \"Recording\u2026\" : \"Record Movement\"}",
+      "All custody states",
+      "In Registry",
+      "Checked Out",
+      "With HR Boss",
+      "With HR Officer",
+      "In Archive",
+      "Missing",
+      "All retention states",
+      "Active",
+      "Archive Ready",
+      "Archived",
+      "Hold",
+      "Registered Files",
+      "Outstanding",
+      "Missing Files",
+      "Incomplete Files"
+    ],
+    "title": "Registrar Centre",
+    "type": "dashboard",
+    "description": "Operate the existing HR filing, assignments, staff records, leave, performance, capacity-building, compliance and reporting workflows.",
+    "actions": [
+      "Cancel"
+    ],
+    "filters": [
+      "Close",
+      "All custody states",
+      "In Registry",
+      "Checked Out",
+      "With HR Boss"
+    ],
+    "kpis": [
+      "Active",
+      "Records Governance"
+    ],
+    "sections": [
+      "Custody & Classification Control",
+      "Registry Activity",
+      "Records Governance"
+    ]
+  },
+  {
+    "section": "hr",
+    "route": "/hr/registrar/reports",
+    "redirect": null,
+    "tables": [
+      "hr_assessment_assignments",
+      "hr_assessment_cycles",
+      "hr_department_capacity_programmes",
+      "hr_department_kpis",
+      "hr_seminar_attendance",
+      "hr_seminar_sessions",
+      "hr_staff_training_programmes"
+    ],
+    "rpcs": [],
+    "headings": [
+      "HR Reports & Analytics Centre",
+      "Strategic HR Portfolio",
+      "Management Attention",
+      "No strategic HR records yet"
+    ],
+    "labels": [
+      "Development Programmes",
+      "Completed Programmes",
+      "Average KPI Score",
+      "360\u00b0 Submissions",
+      "Seminar Attendance"
+    ],
+    "title": "HR Reports & Analytics Centre",
+    "type": "dashboard",
+    "description": "Operate the existing HR filing, assignments, staff records, leave, performance, capacity-building, compliance and reporting workflows.",
+    "actions": [],
+    "filters": [
+      "Development Programmes",
+      "Completed Programmes",
+      "Average KPI Score",
+      "360\u00b0 Submissions",
+      "Seminar Attendance"
+    ],
+    "kpis": [
+      "Development Programmes",
+      "Completed Programmes",
+      "Average KPI Score",
+      "360\u00b0 Submissions",
+      "Seminar Attendance"
+    ],
+    "sections": [
+      "Strategic HR Portfolio",
+      "Management Attention",
+      "No strategic HR records yet"
+    ]
+  },
+  {
+    "section": "hr",
+    "route": "/hr/registrar/settings",
+    "redirect": null,
+    "tables": [
+      "hr_policy_settings"
+    ],
+    "rpcs": [],
+    "headings": [
+      "HR Settings Centre",
+      "HR Policy Parameters"
+    ],
+    "labels": [
+      "Seminar start",
+      "Seminar end",
+      "Late after",
+      "Very late after",
+      "Default assignment expiry (days)",
+      "Personnel record retention (years)",
+      "Active KPI cycle year",
+      "360\u00b0 assessment weight (%)"
+    ],
+    "title": "HR Settings Centre",
+    "type": "settings",
+    "description": "Operate the existing HR filing, assignments, staff records, leave, performance, capacity-building, compliance and reporting workflows.",
+    "actions": [
+      "Default assignment expiry (days)",
+      "Personnel record retention (years)"
+    ],
+    "filters": [
+      "Seminar start",
+      "Seminar end",
+      "Late after",
+      "Very late after",
+      "Active KPI cycle year"
+    ],
+    "kpis": [
+      "Active KPI cycle year"
+    ],
+    "sections": [
+      "HR Policy Parameters"
+    ]
+  },
+  {
+    "section": "hr",
+    "route": "/hr/registrar/weekly-seminar",
+    "redirect": null,
+    "tables": [
+      "departments",
+      "hr_seminar_attendance",
+      "hr_seminar_sessions",
+      "hr_seminar_settings",
+      "profiles"
+    ],
+    "rpcs": [
+      "hr_record_seminar_attendance",
+      "hr_set_seminar_session_status"
+    ],
+    "headings": [
+      "Wednesday Weekly Seminar Centre",
+      "Seminar sessions",
+      "Record staff attendance",
+      "Staff attendance status",
+      "Attendance by department",
+      "Create Weekly Seminar",
+      "Expected Staff",
+      "Present",
+      "On Time",
+      "Late / Very Late",
+      "Wednesday Weekly Seminar"
+    ],
+    "labels": [
+      "Select seminar session",
+      "Select staff member",
+      "Present Now (auto classify)",
+      "Excused",
+      "Official Assignment",
+      "Approved Leave",
+      "Absent",
+      "All statuses",
+      "Unrecorded",
+      "On Time",
+      "Late",
+      "Very Late"
+    ],
+    "title": "Wednesday Weekly Seminar Centre",
+    "type": "hybrid",
+    "description": "Operate the existing HR filing, assignments, staff records, leave, performance, capacity-building, compliance and reporting workflows.",
+    "actions": [
+      "Official Assignment",
+      "Unrecorded"
+    ],
+    "filters": [
+      "Select seminar session",
+      "Select staff member",
+      "Present Now (auto classify)",
+      "Excused",
+      "Approved Leave"
+    ],
+    "kpis": [
+      "Expected Staff",
+      "Present",
+      "On Time",
+      "Late / Very Late"
+    ],
+    "sections": [
+      "Seminar sessions",
+      "Record staff attendance",
+      "Staff attendance status",
+      "Attendance by department",
+      "Create Weekly Seminar"
+    ]
+  },
+  {
+    "section": "hr",
+    "route": "/hr/reports",
+    "redirect": "/hr/registrar/reports",
+    "tables": [],
+    "rpcs": [],
+    "headings": [],
+    "labels": [],
+    "title": "Reports",
+    "type": "redirect",
+    "description": "Operate the existing HR filing, assignments, staff records, leave, performance, capacity-building, compliance and reporting workflows.",
+    "actions": [],
+    "filters": [],
+    "kpis": [],
+    "sections": []
+  },
+  {
+    "section": "hr",
+    "route": "/hr/review",
+    "redirect": null,
+    "tables": [
+      "hr_request_assignments",
+      "hr_request_reviews",
+      "profiles"
+    ],
+    "rpcs": [],
+    "headings": [
+      "HR Review & Decision Centre",
+      "HR Boss Review Queue",
+      "Nothing is awaiting HR Boss review"
+    ],
+    "labels": [
+      "Review Queue",
+      "Submitted",
+      "Returned",
+      "Approved"
+    ],
+    "title": "HR Review & Decision Centre",
+    "type": "dashboard",
+    "description": "Operate the existing HR filing, assignments, staff records, leave, performance, capacity-building, compliance and reporting workflows.",
+    "actions": [
+      "Submitted"
+    ],
+    "filters": [
+      "Review Queue",
+      "Returned",
+      "Approved"
+    ],
+    "kpis": [
+      "Review Queue",
+      "Submitted",
+      "Returned",
+      "Approved"
+    ],
+    "sections": [
+      "HR Boss Review Queue",
+      "Nothing is awaiting HR Boss review"
+    ]
+  },
+  {
+    "section": "hr",
+    "route": "/hr/settings",
+    "redirect": "/hr/registrar/settings",
+    "tables": [],
+    "rpcs": [],
+    "headings": [],
+    "labels": [],
+    "title": "Settings",
+    "type": "redirect",
+    "description": "Operate the existing HR filing, assignments, staff records, leave, performance, capacity-building, compliance and reporting workflows.",
+    "actions": [],
+    "filters": [],
+    "kpis": [],
+    "sections": []
+  },
+  {
+    "section": "hr",
+    "route": "/hr/staff",
+    "redirect": null,
+    "tables": [
+      "departments",
+      "hr_staff_files",
+      "profiles"
+    ],
+    "rpcs": [],
+    "headings": [
+      "Staff Files & Records Intelligence",
+      "Personnel File Register",
+      "No staff files found"
+    ],
+    "labels": [
+      "All custody",
+      "In Registry",
+      "Checked Out",
+      "With HR Boss",
+      "With HR Officer",
+      "In Archive",
+      "Missing",
+      "All retention",
+      "Active",
+      "Archive Ready",
+      "Archived",
+      "Hold",
+      "Registered Files",
+      "Complete Files",
+      "Incomplete"
+    ],
+    "title": "Staff Files & Records Intelligence",
+    "type": "dashboard",
+    "description": "Operate the existing HR filing, assignments, staff records, leave, performance, capacity-building, compliance and reporting workflows.",
+    "actions": [],
+    "filters": [
+      "All custody",
+      "In Registry",
+      "Checked Out",
+      "With HR Boss",
+      "With HR Officer"
+    ],
+    "kpis": [
+      "Active",
+      "No staff files found"
+    ],
+    "sections": [
+      "Personnel File Register",
+      "No staff files found"
+    ]
+  },
+  {
+    "section": "hr",
+    "route": "/hr/weekly-seminar",
+    "redirect": "/hr/registrar/weekly-seminar",
+    "tables": [],
+    "rpcs": [],
+    "headings": [],
+    "labels": [],
+    "title": "Weekly Seminar",
+    "type": "redirect",
+    "description": "Operate the existing HR filing, assignments, staff records, leave, performance, capacity-building, compliance and reporting workflows.",
+    "actions": [],
+    "filters": [],
+    "kpis": [],
+    "sections": []
+  },
+  {
+    "section": "reports",
+    "route": "/reports/enterprise-analytics",
+    "redirect": null,
+    "tables": [],
+    "rpcs": [],
+    "headings": [
+      "Analytics Centre",
+      "Operational Portfolio",
+      "Performance Intelligence"
+    ],
+    "labels": [
+      "Requests",
+      "Completed Requests",
+      "Payment Vouchers",
+      "Departments",
+      "Transactions",
+      "Seminar Attendance",
+      "Average KPI",
+      "Voucher Value",
+      "Transaction Value"
+    ],
+    "title": "Analytics Centre",
+    "type": "dashboard",
+    "description": "Review and export the consolidated operational reports already available to the authorised role.",
+    "actions": [],
+    "filters": [
+      "Requests",
+      "Completed Requests",
+      "Payment Vouchers",
+      "Departments",
+      "Transactions"
+    ],
+    "kpis": [
+      "Requests",
+      "Completed Requests",
+      "Payment Vouchers",
+      "Departments",
+      "Transactions"
+    ],
+    "sections": [
+      "Operational Portfolio",
+      "Performance Intelligence"
+    ]
+  },
+  {
+    "section": "reports",
+    "route": "/reports",
+    "redirect": null,
+    "tables": [],
+    "rpcs": [],
+    "headings": [
+      "REPORT NAVIGATION & PRINT CENTRE",
+      "INSTITUTIONAL REPORT CONTROLS",
+      "REPORT LOADING ERROR",
+      "DATA SOURCE STATUS",
+      "EXECUTIVE OVERVIEW & DECISION INSIGHTS",
+      "REQUESTS & WORKFLOW PERFORMANCE",
+      "COMPLETION RATE",
+      "REQUEST HISTORY ACTIVITY",
+      "ATTACHMENT CONTROL",
+      "MONTHLY FINANCE REPORT",
+      "ANNUAL FINANCE REPORT",
+      "PAYMENT VOUCHER REPORT",
+      "VOUCHER ITEM COVERAGE",
+      "VOUCHER HISTORY",
+      "PROCESSING POSITION",
+      "AUDIT, COMPLIANCE & RECONCILIATION",
+      "DEPARTMENT & SUBHEAD PERFORMANCE",
+      "ACCOUNTS, TRANSFERS & BANK LEDGER"
+    ],
+    "labels": [
+      "PRINT ALL SECTIONS",
+      "All departments",
+      "All statuses",
+      "Active",
+      "Completed",
+      "Rejected / cancelled",
+      "All types",
+      "Official",
+      "Personal",
+      "Total Requests",
+      "Requested Value",
+      "Approved Allocation",
+      "Available Balance",
+      "Finance Movement",
+      "Payment Vouchers",
+      "Audit Exceptions",
+      "Account Transfers",
+      "Annual Allocation",
+      "Annual Expenditure",
+      "Reserved Commitments",
+      "Closing Balance",
+      "Total Vouchers",
+      "Voucher Value",
+      "Paid / Completed"
+    ],
+    "title": "Reports Centre",
+    "type": "dashboard",
+    "description": "Review and export the consolidated operational reports already available to the authorised role.",
+    "actions": [
+      "PRINT ALL SECTIONS",
+      "Rejected / cancelled"
+    ],
+    "filters": [
+      "All departments",
+      "All statuses",
+      "Active",
+      "Completed",
+      "All types"
+    ],
+    "kpis": [
+      "All departments",
+      "Active",
+      "Completed",
+      "Rejected / cancelled",
+      "Total Requests"
+    ],
+    "sections": [
+      "INSTITUTIONAL REPORT CONTROLS",
+      "REPORT LOADING ERROR",
+      "DATA SOURCE STATUS",
+      "EXECUTIVE OVERVIEW & DECISION INSIGHTS",
+      "REQUESTS & WORKFLOW PERFORMANCE"
+    ]
+  },
+  {
+    "section": "audit-centre",
+    "route": "/audit-centre",
+    "redirect": null,
+    "tables": [
+      "profiles"
+    ],
+    "rpcs": [
+      "get_my_active_role"
+    ],
+    "headings": [
+      "Verifying audit authority",
+      "Audit & Activity Centre",
+      "Live Activity Intelligence",
+      "Audit Coverage",
+      "Activity Register"
+    ],
+    "labels": [
+      "All Modules",
+      "All Risk Levels",
+      "Information",
+      "Successful",
+      "Attention",
+      "Critical",
+      "Last 7 Days",
+      "Last 30 Days",
+      "Last 90 Days",
+      "Last Year",
+      "All Time",
+      "All Activities",
+      "Today",
+      "Users Seen",
+      "Modules",
+      "Critical Events",
+      "Role Switches"
+    ],
+    "title": "Audit & Activity Centre",
+    "type": "dashboard",
+    "description": "Review recorded ReqGen audit activity, module events, risk levels and audit coverage.",
+    "actions": [
+      "Users Seen"
+    ],
+    "filters": [
+      "All Modules",
+      "All Risk Levels",
+      "Information",
+      "Successful",
+      "Attention"
+    ],
+    "kpis": [
+      "Today",
+      "Users Seen",
+      "Audit Coverage"
+    ],
+    "sections": [
+      "Live Activity Intelligence",
+      "Audit Coverage",
+      "Activity Register"
+    ]
+  },
+  {
+    "section": "workflow",
+    "route": "/workflow",
+    "redirect": null,
+    "tables": [
+      "workflow_rules",
+      "workflow_sla_events"
+    ],
+    "rpcs": [],
+    "headings": [
+      "Workflow Intelligence Centre",
+      "Create Workflow Rule",
+      "Routing Rules",
+      "No workflow rules",
+      "SLA Monitoring",
+      "No SLA events"
+    ],
+    "labels": [
+      "All Request Types",
+      "Official",
+      "Personal Fund",
+      "Personal Other",
+      "Workflow Intelligence Centre",
+      "Active Rules",
+      "Open SLA Events",
+      "Overdue",
+      "Escalated"
+    ],
+    "title": "Workflow Intelligence Centre",
+    "type": "hybrid",
+    "description": "Review and maintain the existing workflow routing rules and SLA monitoring records.",
+    "actions": [
+      "Open SLA Events"
+    ],
+    "filters": [
+      "All Request Types",
+      "Official",
+      "Personal Fund",
+      "Personal Other",
+      "Workflow Intelligence Centre"
+    ],
+    "kpis": [
+      "Active Rules",
+      "Open SLA Events",
+      "Overdue"
+    ],
+    "sections": [
+      "Create Workflow Rule",
+      "Routing Rules",
+      "No workflow rules",
+      "SLA Monitoring",
+      "No SLA events"
+    ]
+  },
+  {
+    "section": "staff",
+    "route": "/staff/attendance",
+    "redirect": null,
+    "tables": [],
+    "rpcs": [],
+    "headings": [
+      "My Attendance",
+      "{card.value}",
+      "Current Week",
+      "Average Check In",
+      "HR Verification",
+      "Attendance History",
+      "Present",
+      "Late",
+      "Absent",
+      "Attendance"
+    ],
+    "labels": [],
+    "title": "My Attendance",
+    "type": "dashboard",
+    "description": "Use the existing staff self-service functions for requests, leave, attendance, training, performance, notifications and downloads.",
+    "actions": [],
+    "filters": [],
+    "kpis": [
+      "Attendance History",
+      "Attendance"
+    ],
+    "sections": [
+      "Current Week",
+      "Average Check In",
+      "HR Verification",
+      "Attendance History",
+      "Present"
+    ]
+  },
+  {
+    "section": "staff",
+    "route": "/staff/downloads",
+    "redirect": null,
+    "tables": [],
+    "rpcs": [],
+    "headings": [
+      "Official IET Document Access",
+      "Available Documents"
+    ],
+    "labels": [
+      "Available",
+      "Requests",
+      "Leave",
+      "Training"
+    ],
+    "title": "My Downloads",
+    "type": "dashboard",
+    "description": "Use the existing staff self-service functions for requests, leave, attendance, training, performance, notifications and downloads.",
+    "actions": [],
+    "filters": [
+      "Available",
+      "Requests",
+      "Leave",
+      "Training"
+    ],
+    "kpis": [
+      "Requests"
+    ],
+    "sections": [
+      "Available Documents"
+    ]
+  },
+  {
+    "section": "staff",
+    "route": "/staff/leave/new",
+    "redirect": null,
+    "tables": [
+      "departments",
+      "hr_leave_records",
+      "profiles"
+    ],
+    "rpcs": [
+      "submit_request_with_reservation"
+    ],
+    "headings": [
+      "New Leave Application",
+      "Leave Information",
+      "Before You Submit"
+    ],
+    "labels": [
+      "Not Required",
+      "Available",
+      "To Be Submitted"
+    ],
+    "title": "New Leave Application",
+    "type": "form",
+    "description": "Use the existing staff self-service functions for requests, leave, attendance, training, performance, notifications and downloads.",
+    "actions": [
+      "To Be Submitted"
+    ],
+    "filters": [
+      "Not Required",
+      "Available"
+    ],
+    "kpis": [],
+    "sections": [
+      "Leave Information",
+      "Before You Submit"
+    ]
+  },
+  {
+    "section": "staff",
+    "route": "/staff/leave",
+    "redirect": null,
+    "tables": [],
+    "rpcs": [],
+    "headings": [
+      "My Leave",
+      "{item.value}",
+      "Leave Centre",
+      "Current Leave",
+      "Next Eligibility",
+      "Last Leave",
+      "Leave History",
+      "Annual Balance",
+      "Pending",
+      "Approved",
+      "Rejected"
+    ],
+    "labels": [],
+    "title": "My Leave",
+    "type": "dashboard",
+    "description": "Use the existing staff self-service functions for requests, leave, attendance, training, performance, notifications and downloads.",
+    "actions": [],
+    "filters": [],
+    "kpis": [
+      "Annual Balance",
+      "Pending",
+      "Approved",
+      "Rejected"
+    ],
+    "sections": [
+      "Leave Centre",
+      "Current Leave",
+      "Next Eligibility",
+      "Last Leave",
+      "Leave History"
+    ]
+  },
+  {
+    "section": "staff",
+    "route": "/staff/notifications",
+    "redirect": null,
+    "tables": [],
+    "rpcs": [],
+    "headings": [
+      "My Notifications",
+      "{value}",
+      "Unread",
+      "Total",
+      "Today",
+      "System",
+      "Official Request Approved",
+      "Leave Application",
+      "Wednesday Seminar"
+    ],
+    "labels": [],
+    "title": "My Notifications",
+    "type": "dashboard",
+    "description": "Use the existing staff self-service functions for requests, leave, attendance, training, performance, notifications and downloads.",
+    "actions": [],
+    "filters": [],
+    "kpis": [
+      "Unread",
+      "Total",
+      "Today",
+      "System"
+    ],
+    "sections": [
+      "Unread",
+      "Total",
+      "Today",
+      "System",
+      "Official Request Approved"
+    ]
+  },
+  {
+    "section": "staff",
+    "route": "/staff",
+    "redirect": null,
+    "tables": [],
+    "rpcs": [],
+    "headings": [
+      "Personal Quick Actions",
+      "Create Request",
+      "Track Requests",
+      "My Leave",
+      "Attendance",
+      "Downloads",
+      "Notifications",
+      "Employment Snapshot",
+      "Recent Requests",
+      "Latest Notifications"
+    ],
+    "labels": [
+      "Pending",
+      "Approved",
+      "Attendance",
+      "Unread",
+      "Leave",
+      "Training",
+      "Downloads",
+      "Staff File",
+      "Full Name",
+      "Department",
+      "Designation",
+      "Email",
+      "Phone"
+    ],
+    "title": "Staff Overview",
+    "type": "hybrid",
+    "description": "Use the existing staff self-service functions for requests, leave, attendance, training, performance, notifications and downloads.",
+    "actions": [
+      "Designation"
+    ],
+    "filters": [
+      "Pending",
+      "Approved",
+      "Attendance",
+      "Unread",
+      "Leave"
+    ],
+    "kpis": [
+      "Pending",
+      "Approved",
+      "Attendance",
+      "Unread",
+      "Staff File"
+    ],
+    "sections": [
+      "Create Request",
+      "Track Requests",
+      "My Leave",
+      "Attendance",
+      "Downloads"
+    ]
+  },
+  {
+    "section": "staff",
+    "route": "/staff/performance",
+    "redirect": null,
+    "tables": [],
+    "rpcs": [],
+    "headings": [
+      "My Performance",
+      "{item.value}",
+      "KPI Achievement",
+      "Department Rank",
+      "Achievement Level",
+      "Achievement Timeline",
+      "Supervisor Remarks",
+      "Performance Score",
+      "Completed Tasks",
+      "Training Score",
+      "Attendance",
+      "Outstanding Attendance",
+      "Leadership Training",
+      "Request Processing"
+    ],
+    "labels": [],
+    "title": "My Performance",
+    "type": "dashboard",
+    "description": "Use the existing staff self-service functions for requests, leave, attendance, training, performance, notifications and downloads.",
+    "actions": [],
+    "filters": [],
+    "kpis": [
+      "Performance Score",
+      "Completed Tasks",
+      "Training Score",
+      "Attendance"
+    ],
+    "sections": [
+      "KPI Achievement",
+      "Department Rank",
+      "Achievement Level",
+      "Achievement Timeline",
+      "Supervisor Remarks"
+    ]
+  },
+  {
+    "section": "staff",
+    "route": "/staff/profile",
+    "redirect": "/profile",
+    "tables": [],
+    "rpcs": [],
+    "headings": [],
+    "labels": [],
+    "title": "My Profile",
+    "type": "redirect",
+    "description": "Use the existing staff self-service functions for requests, leave, attendance, training, performance, notifications and downloads.",
+    "actions": [],
+    "filters": [],
+    "kpis": [],
+    "sections": []
+  },
+  {
+    "section": "staff",
+    "route": "/staff/requests",
+    "redirect": null,
+    "tables": [],
+    "rpcs": [],
+    "headings": [
+      "Personal Request Register",
+      "No submitted request"
+    ],
+    "labels": [
+      "All Requests",
+      "Pending",
+      "Approved",
+      "Rejected"
+    ],
+    "title": "My Requests",
+    "type": "dashboard",
+    "description": "Use the existing staff self-service functions for requests, leave, attendance, training, performance, notifications and downloads.",
+    "actions": [],
+    "filters": [
+      "All Requests",
+      "Pending",
+      "Approved",
+      "Rejected"
+    ],
+    "kpis": [
+      "All Requests",
+      "Pending",
+      "Approved",
+      "Rejected"
+    ],
+    "sections": [
+      "No submitted request"
+    ]
+  },
+  {
+    "section": "staff",
+    "route": "/staff/training",
+    "redirect": null,
+    "tables": [],
+    "rpcs": [],
+    "headings": [
+      "My Training",
+      "{item.value}",
+      "Wednesday Weekly Seminar",
+      "Completed",
+      "Upcoming",
+      "Certificates",
+      "Learning Hours",
+      "Leadership & Administration",
+      "Financial Compliance"
+    ],
+    "labels": [],
+    "title": "My Training",
+    "type": "dashboard",
+    "description": "Use the existing staff self-service functions for requests, leave, attendance, training, performance, notifications and downloads.",
+    "actions": [],
+    "filters": [],
+    "kpis": [
+      "Completed",
+      "Upcoming",
+      "Certificates",
+      "Learning Hours"
+    ],
+    "sections": [
+      "Wednesday Weekly Seminar",
+      "Completed",
+      "Upcoming",
+      "Certificates",
+      "Learning Hours"
+    ]
+  },
+  {
+    "section": "admin",
+    "route": "/admin/access-audit",
+    "redirect": null,
+    "tables": [],
+    "rpcs": [],
+    "headings": [
+      "Route Access Audit Matrix"
+    ],
+    "labels": [
+      "All routes",
+      "{roleKey}"
+    ],
+    "title": "Route Access Audit Matrix",
+    "type": "dashboard",
+    "description": "Administer the existing users, roles, departments, routing, security, settings, audit and system-readiness functions.",
+    "actions": [],
+    "filters": [
+      "All routes"
+    ],
+    "kpis": [],
+    "sections": []
+  },
+  {
+    "section": "admin",
+    "route": "/admin/account-routing",
+    "redirect": null,
+    "tables": [
+      "department_account_routing",
+      "departments",
+      "iet_accounts",
+      "profiles"
+    ],
+    "rpcs": [],
+    "headings": [
+      "Department Account Routing"
+    ],
+    "labels": [
+      "-- Select account --",
+      "{accountLabel(a)}",
+      "-- Select officer --",
+      "{officerLabel(o)}",
+      "IET Account",
+      "Account Officer"
+    ],
+    "title": "Department Account Routing",
+    "type": "settings",
+    "description": "Administer the existing users, roles, departments, routing, security, settings, audit and system-readiness functions.",
+    "actions": [],
+    "filters": [
+      "-- Select account --",
+      "-- Select officer --",
+      "IET Account",
+      "Account Officer"
+    ],
+    "kpis": [],
+    "sections": []
+  },
+  {
+    "section": "admin",
+    "route": "/admin/audit",
+    "redirect": null,
+    "tables": [
+      "profiles"
+    ],
+    "rpcs": [
+      "get_my_active_role"
+    ],
+    "headings": [
+      "Administrative Audit Trail",
+      "Audit Events"
+    ],
+    "labels": [],
+    "title": "Administrative Audit Trail",
+    "type": "dashboard",
+    "description": "Administer the existing users, roles, departments, routing, security, settings, audit and system-readiness functions.",
+    "actions": [],
+    "filters": [],
+    "kpis": [],
+    "sections": [
+      "Audit Events"
+    ]
+  },
+  {
+    "section": "admin",
+    "route": "/admin/departments",
+    "redirect": null,
+    "tables": [
+      "departments",
+      "profiles"
+    ],
+    "rpcs": [],
+    "headings": [
+      "Department Routing",
+      "{dept.name}"
+    ],
+    "labels": [
+      "None",
+      "{u.email} ({u.role})",
+      "HOD",
+      "Director"
+    ],
+    "title": "Departments",
+    "type": "settings",
+    "description": "Administer the existing users, roles, departments, routing, security, settings, audit and system-readiness functions.",
+    "actions": [],
+    "filters": [
+      "None",
+      "HOD",
+      "Director"
+    ],
+    "kpis": [],
+    "sections": []
+  },
+  {
+    "section": "admin",
+    "route": "/admin",
+    "redirect": null,
+    "tables": [
+      "app_settings",
+      "departments",
+      "profile_roles",
+      "profiles",
+      "reqgen_roles"
+    ],
+    "rpcs": [
+      "reqgen_assign_profile_role"
+    ],
+    "headings": [
+      "Admin Routing Panel",
+      "Quick Multiple-Role Assignment",
+      "Role Catalogue",
+      "Global Routing Officers",
+      "Department Routing",
+      "Signature Readiness",
+      "Total Users",
+      "Signature Ready",
+      "Needs Signature",
+      "Departments",
+      "Active Roles",
+      "DIN Depts",
+      "Active Departments",
+      "Routed Departments",
+      "ASAP/ALLI Depts",
+      "Registrar",
+      "DG / HR",
+      "DIN Admin"
+    ],
+    "labels": [
+      "Users & Multiple Roles",
+      "Roles & Permissions",
+      "Security",
+      "Back",
+      "Advanced Users Page",
+      "{savingTarget === \"role\" ? \"Saving Role...\" : \"Assign Role\"}",
+      "Open Roles & Permissions",
+      "-- Select user --",
+      "{r.role_name} {r.requires_signature ? \" \u2022 Signature\" : \"\"}",
+      "{userDisplayName(u)} ({officerRoleSummary(u.id)})",
+      "-- None --",
+      "{userDisplayName(u)} ({roleSummary(u.id)})",
+      "Select User",
+      "Role to Add",
+      "DOD / Director of Department",
+      "HOD",
+      "PO / Programme Officer"
+    ],
+    "title": "Admin Dashboard",
+    "type": "dashboard",
+    "description": "Administer the existing users, roles, departments, routing, security, settings, audit and system-readiness functions.",
+    "actions": [
+      "Users & Multiple Roles",
+      "Roles & Permissions",
+      "Back",
+      "Advanced Users Page"
+    ],
+    "filters": [
+      "Security",
+      "-- Select user --",
+      "-- None --",
+      "Select User",
+      "DOD / Director of Department"
+    ],
+    "kpis": [
+      "Users & Multiple Roles",
+      "Roles & Permissions",
+      "Advanced Users Page",
+      "Open Roles & Permissions",
+      "Total Users"
+    ],
+    "sections": [
+      "Quick Multiple-Role Assignment",
+      "Role Catalogue",
+      "Global Routing Officers",
+      "Department Routing",
+      "Signature Readiness"
+    ]
+  },
+  {
+    "section": "admin",
+    "route": "/admin/release-readiness",
+    "redirect": null,
+    "tables": [],
+    "rpcs": [],
+    "headings": [
+      "Mobile, Print & Performance Readiness",
+      "Acceptance Checklist",
+      "Automated Audit Commands",
+      "360px phone layout",
+      "390px phone layout",
+      "768px tablet layout",
+      "1024px compact desktop",
+      "Request document print",
+      "Payment Voucher print",
+      "Reports selected-section print",
+      "HR and Registry outputs",
+      "Supabase query review",
+      "Realtime subscriptions",
+      "Loading and error states",
+      "Images and static assets"
+    ],
+    "labels": [
+      "Pending",
+      "Passed",
+      "Failed",
+      "Blocked"
+    ],
+    "title": "Release Readiness",
+    "type": "dashboard",
+    "description": "Administer the existing users, roles, departments, routing, security, settings, audit and system-readiness functions.",
+    "actions": [],
+    "filters": [
+      "Pending",
+      "Passed",
+      "Failed",
+      "Blocked"
+    ],
+    "kpis": [
+      "Pending"
+    ],
+    "sections": [
+      "Acceptance Checklist",
+      "Automated Audit Commands",
+      "360px phone layout",
+      "390px phone layout",
+      "768px tablet layout"
+    ]
+  },
+  {
+    "section": "admin",
+    "route": "/admin/roles",
+    "redirect": null,
+    "tables": [
+      "profiles",
+      "reqgen_roles"
+    ],
+    "rpcs": [],
+    "headings": [
+      "Access denied",
+      "Roles & Permissions",
+      "{editId ? \"Edit Role\" : \"Add New Role\"}",
+      "Role Register",
+      "Total Roles",
+      "Active",
+      "Inactive",
+      "System Roles",
+      "Custom Roles",
+      "Signature Required",
+      "Type",
+      "Signature",
+      "Updated"
+    ],
+    "labels": [
+      "Add Role",
+      "Users & Roles",
+      "Back to Admin",
+      "Cancel Edit",
+      "{saving ? \"Saving...\" : editId ? \"Update Role\" : \"Create Role\"}",
+      "Edit",
+      "{role.is_active ? \"Deactivate\" : \"Activate\"}",
+      "Delete",
+      "{label}",
+      "Search Roles",
+      "Role Name",
+      "Sort Order",
+      "Description",
+      "Overview",
+      "Active Roles",
+      "Inactive Roles"
+    ],
+    "title": "Roles & Permissions",
+    "type": "hybrid",
+    "description": "Administer the existing users, roles, departments, routing, security, settings, audit and system-readiness functions.",
+    "actions": [
+      "Add Role",
+      "Users & Roles",
+      "Back to Admin",
+      "Cancel Edit"
+    ],
+    "filters": [
+      "Edit",
+      "Role Name",
+      "Sort Order",
+      "Description",
+      "Overview"
+    ],
+    "kpis": [
+      "Total Roles",
+      "Active",
+      "Inactive"
+    ],
+    "sections": [
+      "Role Register",
+      "Total Roles",
+      "Active",
+      "Inactive",
+      "System Roles"
+    ]
+  },
+  {
+    "section": "admin",
+    "route": "/admin/security",
+    "redirect": null,
+    "tables": [
+      "profiles"
+    ],
+    "rpcs": [],
+    "headings": [
+      "Security Checklist Access",
+      "Security, Backup & RLS Checklist",
+      "Current User Security",
+      "Security Checklist",
+      "Backup Standard",
+      "Sensitive Action Policy",
+      "Security Score",
+      "Checklist Items",
+      "Completed",
+      "Needs Review",
+      "Pending",
+      "High Priority",
+      "Daily Backup",
+      "Weekly Off-site Copy",
+      "Before Major Updates",
+      "Before Migration",
+      "Storage Backup",
+      "Recovery Test"
+    ],
+    "labels": [
+      "Back to Dashboard",
+      "{printing ? \"Preparing...\" : \"Print Checklist\"}",
+      "Admin",
+      "Dashboard",
+      "Set Up 2FA",
+      "Verify 2FA",
+      "Reset Filters",
+      "{label}",
+      "All Statuses",
+      "Done",
+      "Review",
+      "Pending",
+      "All Priorities",
+      "High",
+      "Medium",
+      "Low",
+      "All Groups",
+      "2FA",
+      "Access",
+      "Backup",
+      "RLS",
+      "Training",
+      "Status",
+      "Priority"
+    ],
+    "title": "Security Centre",
+    "type": "dashboard",
+    "description": "Administer the existing users, roles, departments, routing, security, settings, audit and system-readiness functions.",
+    "actions": [
+      "Back to Dashboard",
+      "Dashboard",
+      "Reset Filters",
+      "Backup"
+    ],
+    "filters": [
+      "Admin",
+      "Set Up 2FA",
+      "Verify 2FA",
+      "All Statuses",
+      "Done"
+    ],
+    "kpis": [
+      "Security Score",
+      "Checklist Items",
+      "Completed"
+    ],
+    "sections": [
+      "Security, Backup & RLS Checklist",
+      "Current User Security",
+      "Security Checklist",
+      "Backup Standard",
+      "Sensitive Action Policy"
+    ]
+  },
+  {
+    "section": "admin",
+    "route": "/admin/settings",
+    "redirect": null,
+    "tables": [
+      "app_settings",
+      "profiles"
+    ],
+    "rpcs": [],
+    "headings": [
+      "Routing Settings"
+    ],
+    "labels": [
+      "-- Select user --",
+      "{userLabel(u)}"
+    ],
+    "title": "System Settings",
+    "type": "settings",
+    "description": "Administer the existing users, roles, departments, routing, security, settings, audit and system-readiness functions.",
+    "actions": [],
+    "filters": [
+      "-- Select user --"
+    ],
+    "kpis": [],
+    "sections": []
+  },
+  {
+    "section": "admin",
+    "route": "/admin/system-health",
+    "redirect": null,
+    "tables": [],
+    "rpcs": [],
+    "headings": [
+      "System Health Centre",
+      "Data Source Health"
+    ],
+    "labels": [
+      "Healthy Sources",
+      "Attention Required",
+      "Health Percentage"
+    ],
+    "title": "System Health",
+    "type": "dashboard",
+    "description": "Administer the existing users, roles, departments, routing, security, settings, audit and system-readiness functions.",
+    "actions": [],
+    "filters": [
+      "Healthy Sources",
+      "Attention Required",
+      "Health Percentage"
+    ],
+    "kpis": [
+      "Healthy Sources",
+      "Attention Required",
+      "Health Percentage"
+    ],
+    "sections": [
+      "Data Source Health"
+    ]
+  },
+  {
+    "section": "admin",
+    "route": "/admin/users",
+    "redirect": null,
+    "tables": [
+      "departments",
+      "profile_roles",
+      "profiles",
+      "reqgen_roles"
+    ],
+    "rpcs": [
+      "reqgen_assign_profile_role",
+      "reqgen_deactivate_profile_role",
+      "reqgen_set_primary_profile_role"
+    ],
+    "headings": [
+      "Users & Multiple Roles",
+      "Total Users",
+      "Assignments",
+      "Staff",
+      "Admin",
+      "Auditor",
+      "Finance/PV",
+      "Leadership",
+      "HR/Registry",
+      "No Signature"
+    ],
+    "labels": [
+      "Back to Dashboard",
+      "Roles & Permissions",
+      "Back",
+      "Reset Filters",
+      "{saving ? \"Saving...\" : \"Assign Role\"}",
+      "All Roles",
+      "{r.role_name}",
+      "All Departments",
+      "{d.name}",
+      "All",
+      "Signature Ready",
+      "No Signature",
+      "Select role...",
+      "{r.role_name} {r.requires_signature ? \" \u2022 Signature\" : \"\"}",
+      "\u2014 None \u2014",
+      "Search",
+      "Role",
+      "Department",
+      "Signature",
+      "Department Routing"
+    ],
+    "title": "User Management",
+    "type": "dashboard",
+    "description": "Administer the existing users, roles, departments, routing, security, settings, audit and system-readiness functions.",
+    "actions": [
+      "Back to Dashboard",
+      "Roles & Permissions",
+      "Back",
+      "Reset Filters"
+    ],
+    "filters": [
+      "All Departments",
+      "All",
+      "Select role...",
+      "\u2014 None \u2014",
+      "Search"
+    ],
+    "kpis": [
+      "Total Users",
+      "Assignments",
+      "Staff",
+      "Admin"
+    ],
+    "sections": [
+      "Total Users",
+      "Assignments",
+      "Staff",
+      "Admin",
+      "Auditor"
+    ]
+  },
+  {
+    "section": "admin",
+    "route": "/admin/workflow-test",
+    "redirect": null,
+    "tables": [],
+    "rpcs": [],
+    "headings": [
+      "End-to-End Workflow Test Centre",
+      "Workflow Data Connections",
+      "Create and submit request",
+      "Routing and ownership",
+      "Approval Operations Centre",
+      "Realtime counters",
+      "Read-state synchronization",
+      "HR officer and HR Boss review",
+      "Personal Fund limited context",
+      "Subhead reservation and release",
+      "Payment Voucher lifecycle",
+      "Registry privacy boundary",
+      "Strict active-role switch",
+      "Who did what"
+    ],
+    "labels": [
+      "Reset Checklist",
+      "All Test Groups",
+      "Pending",
+      "Passed",
+      "Failed",
+      "Blocked"
+    ],
+    "title": "Workflow Test",
+    "type": "hybrid",
+    "description": "Administer the existing users, roles, departments, routing, security, settings, audit and system-readiness functions.",
+    "actions": [
+      "Reset Checklist"
+    ],
+    "filters": [
+      "All Test Groups",
+      "Pending",
+      "Passed",
+      "Failed",
+      "Blocked"
+    ],
+    "kpis": [
+      "Pending",
+      "Strict active-role switch"
+    ],
+    "sections": [
+      "Workflow Data Connections",
+      "Create and submit request",
+      "Routing and ownership",
+      "Approval Operations Centre",
+      "Realtime counters"
+    ]
+  }
+]

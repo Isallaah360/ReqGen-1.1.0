@@ -3335,3 +3335,97 @@ body{font-family:Aptos,"Segoe UI",Inter,Arial,sans-serif!important;background:va
 @keyframes rg-route-progress{0%{transform:translateX(-110%)}50%{transform:translateX(150%)}100%{transform:translateX(310%)}}@keyframes rg-route-shimmer{to{background-position:-220% 0}}
 .rg-help-page{display:grid;gap:14px;color:#172f57;font-size:13px}.rg-help-head{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;padding:2px 2px 14px;border-bottom:1px solid #e4eaf2}.rg-help-head span{color:#0b5be6;font-size:9px;font-weight:900;letter-spacing:.12em}.rg-help-head h1{margin:3px 0 0;color:#071b4d;font-size:27px;line-height:1.08}.rg-help-head p{margin:6px 0 0;color:#66758c;font-size:12px}.rg-help-head>a{min-height:36px;display:inline-flex;align-items:center;padding:0 12px;border:1px solid #dce4ef;border-radius:8px;background:#fff;color:#153864;text-decoration:none;font-size:11px;font-weight:800}.rg-help-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.rg-help-grid article{display:flex;align-items:flex-start;gap:12px;padding:17px;border:1px solid #dfe6f0;border-radius:12px;background:#fff;box-shadow:0 5px 16px rgba(31,51,88,.05)}.rg-help-grid article>svg{flex:0 0 auto;color:#0b5be6}.rg-help-grid h2{margin:0;color:#102b64;font-size:14px}.rg-help-grid p{margin:6px 0 12px;color:#66758c;font-size:11px;line-height:1.55}.rg-help-grid a{color:#0b5be6;font-size:11px;font-weight:800;text-decoration:none}.rg-help-note{display:flex;align-items:center;gap:9px;padding:12px 14px;border:1px solid #d6e4f8;border-radius:10px;background:#f4f8ff;color:#34577f}.rg-help-note p{margin:0;font-size:11px}
 @media(max-width:780px){.rg-route-transition__grid{grid-template-columns:1fr 1fr}.rg-route-transition__bar{left:-12px;right:-12px}.rg-help-head{align-items:flex-start;flex-direction:column}.rg-help-grid{grid-template-columns:1fr}}@media(prefers-reduced-motion:reduce){.rg-route-transition__bar::after,.rg-route-transition__grid i{animation:none}}
+
+
+/* ==========================================================================\n   REQGEN SECTIONS 5-12 FUNCTION-LOCKED MOCKUP IMPLEMENTATION — 2026-08-29\n   ========================================================================== */
+:root{
+  --rg-s5-bg:#f6f8fb;--rg-s5-card:#fff;--rg-s5-line:#dfe6ef;--rg-s5-soft:#eef4ff;
+  --rg-s5-navy:#0a2b61;--rg-s5-blue:#0b5cf0;--rg-s5-text:#17243a;--rg-s5-muted:#6d7b90;
+}
+.rg-content[data-route^="/payment-vouchers"],.rg-content[data-route^="/registry"],.rg-content[data-route^="/hr"],.rg-content[data-route^="/reports"],.rg-content[data-route^="/audit-centre"],.rg-content[data-route^="/workflow"],.rg-content[data-route^="/staff"],.rg-content[data-route^="/admin"]{
+  font-size:13px!important;color:var(--rg-s5-text)!important;background:var(--rg-s5-bg)!important;
+}
+.rg-content[data-route^="/payment-vouchers"]>*,.rg-content[data-route^="/registry"]>*,.rg-content[data-route^="/hr"]>*,.rg-content[data-route^="/reports"]>*,.rg-content[data-route^="/audit-centre"]>*,.rg-content[data-route^="/workflow"]>*,.rg-content[data-route^="/staff"]>*,.rg-content[data-route^="/admin"]>*{max-width:100%!important}
+.rg-content[data-route^="/payment-vouchers"] main,.rg-content[data-route^="/registry"] main,.rg-content[data-route^="/hr"] main,.rg-content[data-route^="/reports"] main,.rg-content[data-route^="/audit-centre"] main,.rg-content[data-route^="/workflow"] main,.rg-content[data-route^="/staff"] main,.rg-content[data-route^="/admin"] main{min-height:0!important;background:transparent!important;padding:0!important}
+
+/* Mockup header: flat, compact and consistent. */
+.rg-content[data-route^="/payment-vouchers"] :where(header,section).workflow-hero,
+.rg-content[data-route^="/hr"] :where(section,div)[class*="from-slate-950"][class*="text-white"],
+.rg-content[data-route^="/workflow"] :where(section,div)[class*="from-slate-950"][class*="text-white"]{background:transparent!important;color:inherit!important;border:0!important;border-bottom:1px solid var(--rg-s5-line)!important;border-radius:0!important;box-shadow:none!important;padding:2px 2px 12px!important;min-height:auto!important}
+.rg-content[data-route^="/hr"] [class*="from-slate-950"] :where(.absolute,[class*="blur-"]){display:none!important}
+.rg-content[data-route^="/hr"] [class*="from-slate-950"] h1,.rg-content[data-route^="/workflow"] .workflow-hero h1{color:var(--rg-s5-navy)!important;font-size:26px!important;line-height:1.08!important;margin:0!important}
+.rg-content[data-route^="/hr"] [class*="from-slate-950"] p,.rg-content[data-route^="/workflow"] .workflow-hero p{color:var(--rg-s5-muted)!important;font-size:12px!important;line-height:1.5!important}
+
+/* Cards and sections mirror the approved mockups. */
+.rg-content[data-route^="/payment-vouchers"] :where(article,section,div)[class*="rounded-3xl"],
+.rg-content[data-route^="/registry"] :where(article,section,div)[class*="rounded-3xl"],
+.rg-content[data-route^="/hr"] :where(article,section,div)[class*="rounded-3xl"],
+.rg-content[data-route^="/reports"] :where(article,section,div)[class*="rounded-3xl"],
+.rg-content[data-route^="/audit-centre"] :where(article,section,div)[class*="rounded-3xl"],
+.rg-content[data-route^="/workflow"] :where(article,section,div)[class*="rounded-3xl"],
+.rg-content[data-route^="/staff"] :where(article,section,div)[class*="rounded-3xl"],
+.rg-content[data-route^="/admin"] :where(article,section,div)[class*="rounded-3xl"]{border-radius:12px!important;box-shadow:0 5px 16px rgba(31,51,88,.05)!important}
+.rg-content[data-route^="/payment-vouchers"] :where(.shadow-xl,.shadow-2xl),.rg-content[data-route^="/registry"] :where(.shadow-xl,.shadow-2xl),.rg-content[data-route^="/hr"] :where(.shadow-xl,.shadow-2xl),.rg-content[data-route^="/reports"] :where(.shadow-xl,.shadow-2xl),.rg-content[data-route^="/audit-centre"] :where(.shadow-xl,.shadow-2xl),.rg-content[data-route^="/workflow"] :where(.shadow-xl,.shadow-2xl),.rg-content[data-route^="/staff"] :where(.shadow-xl,.shadow-2xl),.rg-content[data-route^="/admin"] :where(.shadow-xl,.shadow-2xl){box-shadow:0 5px 16px rgba(31,51,88,.05)!important}
+
+/* Typography lock: 13/12/11 hierarchy used by the approved shell. */
+.rg-content[data-route^="/payment-vouchers"] :where(p,li,td,label,input,select,textarea,button,a),.rg-content[data-route^="/registry"] :where(p,li,td,label,input,select,textarea,button,a),.rg-content[data-route^="/hr"] :where(p,li,td,label,input,select,textarea,button,a),.rg-content[data-route^="/reports"] :where(p,li,td,label,input,select,textarea,button,a),.rg-content[data-route^="/audit-centre"] :where(p,li,td,label,input,select,textarea,button,a),.rg-content[data-route^="/workflow"] :where(p,li,td,label,input,select,textarea,button,a),.rg-content[data-route^="/staff"] :where(p,li,td,label,input,select,textarea,button,a),.rg-content[data-route^="/admin"] :where(p,li,td,label,input,select,textarea,button,a){font-size:12px!important}
+.rg-content[data-route^="/payment-vouchers"] :where(th,.text-xs),.rg-content[data-route^="/registry"] :where(th,.text-xs),.rg-content[data-route^="/hr"] :where(th,.text-xs),.rg-content[data-route^="/reports"] :where(th,.text-xs),.rg-content[data-route^="/audit-centre"] :where(th,.text-xs),.rg-content[data-route^="/workflow"] :where(th,.text-xs),.rg-content[data-route^="/staff"] :where(th,.text-xs),.rg-content[data-route^="/admin"] :where(th,.text-xs){font-size:11px!important}
+.rg-content[data-route^="/payment-vouchers"] :where(h2,.text-2xl),.rg-content[data-route^="/registry"] :where(h2,.text-2xl),.rg-content[data-route^="/hr"] :where(h2,.text-2xl),.rg-content[data-route^="/reports"] :where(h2,.text-2xl),.rg-content[data-route^="/audit-centre"] :where(h2,.text-2xl),.rg-content[data-route^="/workflow"] :where(h2,.text-2xl),.rg-content[data-route^="/staff"] :where(h2,.text-2xl),.rg-content[data-route^="/admin"] :where(h2,.text-2xl){font-size:15px!important;line-height:1.25!important}
+
+/* Tables must fit desktop viewport without horizontal hunting. */
+.rg-content[data-route^="/payment-vouchers"] table,.rg-content[data-route^="/registry"] table,.rg-content[data-route^="/hr"] table,.rg-content[data-route^="/reports"] table,.rg-content[data-route^="/audit-centre"] table,.rg-content[data-route^="/workflow"] table,.rg-content[data-route^="/staff"] table,.rg-content[data-route^="/admin"] table{width:100%!important;table-layout:fixed!important;border-collapse:separate!important;border-spacing:0!important;font-size:11.5px!important}
+.rg-content[data-route^="/payment-vouchers"] th,.rg-content[data-route^="/registry"] th,.rg-content[data-route^="/hr"] th,.rg-content[data-route^="/reports"] th,.rg-content[data-route^="/audit-centre"] th,.rg-content[data-route^="/workflow"] th,.rg-content[data-route^="/staff"] th,.rg-content[data-route^="/admin"] th{padding:10px 9px!important;background:#f0f5fb!important;color:#29405d!important;font-weight:900!important;letter-spacing:.035em!important;white-space:normal!important}
+.rg-content[data-route^="/payment-vouchers"] td,.rg-content[data-route^="/registry"] td,.rg-content[data-route^="/hr"] td,.rg-content[data-route^="/reports"] td,.rg-content[data-route^="/audit-centre"] td,.rg-content[data-route^="/workflow"] td,.rg-content[data-route^="/staff"] td,.rg-content[data-route^="/admin"] td{padding:10px 9px!important;overflow-wrap:anywhere!important;word-break:normal!important;white-space:normal!important;vertical-align:top!important}
+
+/* Forms and actions. */
+.rg-form-field{display:grid;gap:6px}.rg-form-field>span{font-size:11px!important;font-weight:850!important;color:#34445c}.rg-form-field input,.rg-form-field select,
+.rg-content[data-route^="/payment-vouchers"] input:not([type="checkbox"]):not([type="radio"]),.rg-content[data-route^="/payment-vouchers"] select,.rg-content[data-route^="/payment-vouchers"] textarea,
+.rg-content[data-route^="/registry"] input:not([type="checkbox"]):not([type="radio"]),.rg-content[data-route^="/registry"] select,.rg-content[data-route^="/registry"] textarea,
+.rg-content[data-route^="/hr"] input:not([type="checkbox"]):not([type="radio"]),.rg-content[data-route^="/hr"] select,.rg-content[data-route^="/hr"] textarea,
+.rg-content[data-route^="/staff"] input:not([type="checkbox"]):not([type="radio"]),.rg-content[data-route^="/staff"] select,.rg-content[data-route^="/staff"] textarea,
+.rg-content[data-route^="/admin"] input:not([type="checkbox"]):not([type="radio"]),.rg-content[data-route^="/admin"] select,.rg-content[data-route^="/admin"] textarea{min-height:38px!important;border:1px solid #d6dfeb!important;border-radius:8px!important;background:#fff!important;padding:8px 10px!important;color:#182538!important;box-shadow:none!important}
+.rg-section-body,.staff-section-body,.admin-section-body{padding:15px!important;margin:0!important}
+.rg-module-meta{margin-top:6px;color:var(--rg-s5-muted);font-size:10.5px;font-weight:700}.rg-skeleton-header{height:72px;border-bottom:1px solid var(--rg-s5-line)}
+
+/* Approved mockup two-column workspaces. */
+.rg-content[data-route^="/payment-vouchers"] .rg-workspace-grid,.rg-content[data-route^="/hr"] .rg-workspace-grid,.rg-content[data-route^="/registry"] .rg-workspace-grid,.rg-content[data-route^="/admin"] .rg-workspace-grid{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:14px;align-items:start}
+
+/* Print view exactly follows the white institutional document mockup. */
+.rg-content[data-route^="/payment-vouchers/"][data-route$="/print"]{background:#eef2f7!important}
+.rg-content[data-route^="/payment-vouchers/"][data-route$="/print"] .rg-module-header{margin-bottom:12px}
+.rg-content[data-route^="/payment-vouchers/"][data-route$="/print"] .print-sheet,.rg-content[data-route^="/payment-vouchers/"][data-route$="/print"] [class*="print"]{box-shadow:none!important}
+
+/* Remove legacy local navigation, dark dashboard banners and duplicate footers. */
+.module-registry nav[aria-label="Registry navigation"],.module-hr nav[aria-label="HR workspace menu"],.module-staff .staff-navigation,.module-admin .admin-navigation{display:none!important}
+.module-staff .staff-footer,.module-admin .staff-footer,.module-hr footer:not(.rg-footer),.module-registry footer:not(.rg-footer){display:none!important}
+
+/* Keep visual feedback smooth but restrained. */
+.rg-content[data-route^="/payment-vouchers"] .rg-stat-card,.rg-content[data-route^="/registry"] .rg-stat-card,.rg-content[data-route^="/hr"] .rg-stat-card,.rg-content[data-route^="/reports"] .rg-stat-card,.rg-content[data-route^="/audit-centre"] .rg-stat-card,.rg-content[data-route^="/workflow"] .rg-stat-card,.rg-content[data-route^="/staff"] .rg-stat-card,.rg-content[data-route^="/admin"] .rg-stat-card,.rg-content[data-route^="/payment-vouchers"] .rg-section-card,.rg-content[data-route^="/registry"] .rg-section-card,.rg-content[data-route^="/hr"] .rg-section-card,.rg-content[data-route^="/reports"] .rg-section-card,.rg-content[data-route^="/audit-centre"] .rg-section-card,.rg-content[data-route^="/workflow"] .rg-section-card,.rg-content[data-route^="/staff"] .rg-section-card,.rg-content[data-route^="/admin"] .rg-section-card{transition:transform .14s ease,box-shadow .14s ease,border-color .14s ease}
+@media(hover:hover){.rg-content[data-route^="/payment-vouchers"] .rg-stat-card:hover,.rg-content[data-route^="/registry"] .rg-stat-card:hover,.rg-content[data-route^="/hr"] .rg-stat-card:hover,.rg-content[data-route^="/reports"] .rg-stat-card:hover,.rg-content[data-route^="/audit-centre"] .rg-stat-card:hover,.rg-content[data-route^="/workflow"] .rg-stat-card:hover,.rg-content[data-route^="/staff"] .rg-stat-card:hover,.rg-content[data-route^="/admin"] .rg-stat-card:hover{transform:translateY(-1px);box-shadow:0 7px 18px rgba(31,51,88,.075)!important}}
+
+@media(max-width:900px){
+ .rg-content[data-route^="/payment-vouchers"] table,.rg-content[data-route^="/registry"] table,.rg-content[data-route^="/hr"] table,.rg-content[data-route^="/reports"] table,.rg-content[data-route^="/audit-centre"] table,.rg-content[data-route^="/workflow"] table,.rg-content[data-route^="/staff"] table,.rg-content[data-route^="/admin"] table{table-layout:auto!important;min-width:760px}
+ .rg-content[data-route^="/payment-vouchers"] :where(.overflow-x-auto,[class*="overflow-x"]),.rg-content[data-route^="/registry"] :where(.overflow-x-auto,[class*="overflow-x"]),.rg-content[data-route^="/hr"] :where(.overflow-x-auto,[class*="overflow-x"]),.rg-content[data-route^="/reports"] :where(.overflow-x-auto,[class*="overflow-x"]),.rg-content[data-route^="/audit-centre"] :where(.overflow-x-auto,[class*="overflow-x"]),.rg-content[data-route^="/workflow"] :where(.overflow-x-auto,[class*="overflow-x"]),.rg-content[data-route^="/staff"] :where(.overflow-x-auto,[class*="overflow-x"]),.rg-content[data-route^="/admin"] :where(.overflow-x-auto,[class*="overflow-x"]){overflow-x:auto!important}
+ .rg-content[data-route^="/payment-vouchers"] .rg-workspace-grid,.rg-content[data-route^="/hr"] .rg-workspace-grid,.rg-content[data-route^="/registry"] .rg-workspace-grid,.rg-content[data-route^="/admin"] .rg-workspace-grid{grid-template-columns:1fr}
+}
+@media(max-width:640px){.rg-module-heading h1,.rg-module-header h1{font-size:22px!important}.rg-module-actions{width:100%;justify-content:flex-start}.rg-module-actions>*{flex:1 1 auto}}
+@media(prefers-reduced-motion:reduce){.rg-content[data-route] *{animation:none!important;transition:none!important}}
+
+
+/* Function-locked route-type composition. Every approved Section 5-12 route is tagged by GovernmentAppShell. */
+.rg-content[data-mockup-type="dashboard"] :where(.rg-module-page,.rg-adopted-page){display:grid!important;gap:14px!important}
+.rg-content[data-mockup-type="dashboard"] :where(.grid)[class*="xl:grid-cols-5"],
+.rg-content[data-mockup-type="dashboard"] :where(.grid)[class*="xl:grid-cols-4"]{gap:12px!important}
+.rg-content[data-mockup-type="hybrid"] :where(.rg-module-page,.rg-adopted-page){display:grid!important;gap:14px!important}
+.rg-content[data-mockup-type="settings"] :where(.rg-module-page,.rg-adopted-page){display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:14px!important}
+.rg-content[data-mockup-type="settings"] form{max-width:100%!important}
+.rg-content[data-mockup-type="detail"] :where(.rg-module-page,.rg-adopted-page){display:grid!important;gap:14px!important}
+.rg-content[data-mockup-type="detail"] .rg-section-card:first-of-type{border-top:3px solid var(--rg-s5-blue)!important}
+.rg-content[data-mockup-type="form"] :where(.rg-module-page,.rg-adopted-page){display:grid!important;gap:14px!important}
+.rg-content[data-mockup-type="form"] form{border:1px solid var(--rg-s5-line)!important;border-radius:12px!important;background:#fff!important;padding:16px!important;box-shadow:0 5px 16px rgba(31,51,88,.05)!important}
+.rg-content[data-mockup-type="redirect"]{background:var(--rg-s5-bg)!important}
+@media print{
+ .rg-content[data-mockup-type="print"]{background:#fff!important}
+ .rg-content[data-mockup-type="print"] .rg-module-header,.rg-content[data-mockup-type="print"] .rg-sidebar,.rg-content[data-mockup-type="print"] .rg-topbar{display:none!important}
+ .rg-content[data-mockup-type="print"] *{box-shadow:none!important}
+}

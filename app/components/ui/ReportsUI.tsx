@@ -60,7 +60,7 @@ export function ReportSection({ title, description, icon, action, children, clas
 }
 
 export function ReportsSkeleton() {
-  return <div className="rg-module-page rg-adopted-page"><div className="space-y-6"><div className="report-skeleton h-64 rounded-[30px]"/><div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{Array.from({length:8}).map((_,i)=><div key={i} className="report-skeleton h-36 rounded-2xl"/>)}</div><div className="grid gap-6 xl:grid-cols-3"><div className="report-skeleton h-96 rounded-3xl xl:col-span-2"/><div className="report-skeleton h-96 rounded-3xl"/></div></div></div>;
+  return <div className="rg-module-page rg-adopted-page"><div className="space-y-4"><div className="report-skeleton h-20 rounded-xl"/><div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{Array.from({length:8}).map((_,i)=><div key={i} className="report-skeleton h-36 rounded-2xl"/>)}</div><div className="grid gap-6 xl:grid-cols-3"><div className="report-skeleton h-96 rounded-3xl xl:col-span-2"/><div className="report-skeleton h-96 rounded-3xl"/></div></div></div>;
 }
 
 export function ReportsPageStyles() {
