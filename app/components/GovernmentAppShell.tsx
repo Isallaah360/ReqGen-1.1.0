@@ -31,6 +31,7 @@ import { getCurrentAuthContext } from "@/lib/auth";
 import { ActiveRoleSwitcher } from "./ActiveRoleSwitcher";
 import { getMockupRouteMeta } from "@/lib/mockupRouteTypes";
 import StaffFooter from "./staff/StaffFooter";
+import ApprovedMockupFrame from "./ApprovedMockupFrame";
 
 const PUBLIC_PATHS = new Set([
   "/", "/login", "/signup", "/forgot-password", "/reset-password", "/mfa",
@@ -323,7 +324,7 @@ export default function GovernmentAppShell({ children }: { children: React.React
         </header>
 
         <main id="reqgen-main-content" className="rg-main" role="main">
-          <div className={`rg-content module-${moduleKey}`} data-route={pathname} data-mockup-section={mockupMeta?.section || undefined} data-mockup-type={mockupMeta?.type || undefined}>{children}</div>
+          <div className={`rg-content module-${moduleKey}`} data-route={pathname} data-mockup-section={mockupMeta?.section || undefined} data-mockup-type={mockupMeta?.type || undefined}><ApprovedMockupFrame>{children}</ApprovedMockupFrame></div>
           <StaffFooter />
         </main>
       </section>

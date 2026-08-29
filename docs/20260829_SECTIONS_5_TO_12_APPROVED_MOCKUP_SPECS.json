@@ -184,7 +184,7 @@
     "labels": [
       "Clear Selection",
       "{selectedRequests.length > 1 ? \"Generate Combined PV\" : \"Generate PV\"}",
-      "\u2715",
+      "✕",
       "Cancel",
       "{manualSaving ? \"Creating...\" : \"Create Manual Voucher\"}",
       "{generating ? \"Generating...\" : \"Generate Voucher\"}",
@@ -218,7 +218,7 @@
     ],
     "filters": [
       "Clear Selection",
-      "\u2715",
+      "✕",
       "All Vouchers",
       "Official",
       "Personal Fund"
@@ -893,7 +893,7 @@
       "Completed",
       "Programme Value",
       "Average KPI",
-      "360\u00b0 Assignments",
+      "360° Assignments",
       "Seminar Attendance",
       "KPI Achievement",
       "Weekly Seminar Attendance",
@@ -903,7 +903,7 @@
     "type": "dashboard",
     "description": "Operate the existing HR filing, assignments, staff records, leave, performance, capacity-building, compliance and reporting workflows.",
     "actions": [
-      "360\u00b0 Assignments"
+      "360° Assignments"
     ],
     "filters": [
       "Development Programmes",
@@ -917,7 +917,7 @@
       "Completed",
       "Programme Value",
       "Average KPI",
-      "360\u00b0 Assignments"
+      "360° Assignments"
     ],
     "sections": [
       "Performance Portfolio",
@@ -938,7 +938,7 @@
     ],
     "rpcs": [],
     "headings": [
-      "Annual Staff 360\u00b0 Assessment Centre",
+      "Annual Staff 360° Assessment Centre",
       "New Annual Assessment Cycle",
       "Assessment Cycles",
       "No assessment cycle created",
@@ -957,7 +957,7 @@
       "Closing date",
       "Minimum assessors per staff"
     ],
-    "title": "Annual Staff 360\u00b0 Assessment Centre",
+    "title": "Annual Staff 360° Assessment Centre",
     "type": "hybrid",
     "description": "Operate the existing HR filing, assignments, staff records, leave, performance, capacity-building, compliance and reporting workflows.",
     "actions": [
@@ -1196,7 +1196,7 @@
     "labels": [
       "Close",
       "Cancel",
-      "{saving ? \"Recording\u2026\" : \"Record Movement\"}",
+      "{saving ? \"Recording…\" : \"Record Movement\"}",
       "All custody states",
       "In Registry",
       "Checked Out",
@@ -1261,7 +1261,7 @@
       "Development Programmes",
       "Completed Programmes",
       "Average KPI Score",
-      "360\u00b0 Submissions",
+      "360° Submissions",
       "Seminar Attendance"
     ],
     "title": "HR Reports & Analytics Centre",
@@ -1272,14 +1272,14 @@
       "Development Programmes",
       "Completed Programmes",
       "Average KPI Score",
-      "360\u00b0 Submissions",
+      "360° Submissions",
       "Seminar Attendance"
     ],
     "kpis": [
       "Development Programmes",
       "Completed Programmes",
       "Average KPI Score",
-      "360\u00b0 Submissions",
+      "360° Submissions",
       "Seminar Attendance"
     ],
     "sections": [
@@ -1308,7 +1308,7 @@
       "Default assignment expiry (days)",
       "Personnel record retention (years)",
       "Active KPI cycle year",
-      "360\u00b0 assessment weight (%)"
+      "360° assessment weight (%)"
     ],
     "title": "HR Settings Centre",
     "type": "settings",
@@ -2316,7 +2316,7 @@
       "{savingTarget === \"role\" ? \"Saving Role...\" : \"Assign Role\"}",
       "Open Roles & Permissions",
       "-- Select user --",
-      "{r.role_name} {r.requires_signature ? \" \u2022 Signature\" : \"\"}",
+      "{r.role_name} {r.requires_signature ? \" • Signature\" : \"\"}",
       "{userDisplayName(u)} ({officerRoleSummary(u.id)})",
       "-- None --",
       "{userDisplayName(u)} ({roleSummary(u.id)})",
@@ -2661,8 +2661,8 @@
       "Signature Ready",
       "No Signature",
       "Select role...",
-      "{r.role_name} {r.requires_signature ? \" \u2022 Signature\" : \"\"}",
-      "\u2014 None \u2014",
+      "{r.role_name} {r.requires_signature ? \" • Signature\" : \"\"}",
+      "— None —",
       "Search",
       "Role",
       "Department",
@@ -2682,7 +2682,7 @@
       "All Departments",
       "All",
       "Select role...",
-      "\u2014 None \u2014",
+      "— None —",
       "Search"
     ],
     "kpis": [
