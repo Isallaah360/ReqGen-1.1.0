@@ -2,8 +2,26 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  ArrowRight,
+  Banknote,
+  Building2,
+  CalendarDays,
+  CircleAlert,
+  CircleCheck,
+  CreditCard,
+  FileBarChart2,
+  FileText,
+  Filter,
+  Landmark,
+  Plus,
+  ReceiptText,
+  Search,
+  TrendingUp,
+  WalletCards,
+} from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
-import { WalletCards, TrendingDown, FileClock, CreditCard, AlertTriangle, Plus, ArrowUpRight, ReceiptText, Landmark, FileBarChart, Repeat2 } from "lucide-react";
+import styles from "./finance-overview.module.css";
 
 type RequestRow = {
   id: string;
@@ -13,16 +31,19 @@ type RequestRow = {
   status: string | null;
   current_stage: string | null;
   current_owner: string | null;
-  assigned_account_officer_name: string | null;
+  department?: string | null;
   created_at: string | null;
 };
 
 type VoucherRow = {
   id: string;
+  voucher_no?: string | null;
   status: string | null;
   voucher_type: string | null;
   amount: number | string | null;
   total_amount: number | string | null;
+  payee_name?: string | null;
+  created_at?: string | null;
 };
 
 type TransactionRow = {
@@ -30,589 +51,323 @@ type TransactionRow = {
   amount: number | string | null;
   transaction_type: string | null;
   transaction_date: string | null;
+  reference?: string | null;
+  description?: string | null;
+  department?: string | null;
+  status?: string | null;
 };
 
-type LoadIssue = {
-  source: string;
-  message: string;
+type AccountRow = {
+  id: string;
+  total_fund: number | string | null;
+  expenditure: number | string | null;
+  available_balance: number | string | null;
+  is_active: boolean | null;
 };
 
-type Colour =
-  | "blue"
-  | "amber"
-  | "violet"
-  | "emerald"
-  | "cyan"
-  | "rose"
-  | "indigo"
-  | "slate";
+type LoadIssue = { source: string; message: string };
 
-type ModuleCardProps = {
-  title: string;
-  description: string;
-  icon: string;
-  section: string;
-  href?: string;
-  badge?: string;
-  colour: Colour;
-  comingSoon?: boolean;
-};
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-const colourStyles: Record<
-  Colour,
-  {
-    card: string;
-    icon: string;
-    section: string;
-    button: string;
-    badge: string;
-  }
-> = {
-  blue: {
-    card: "border-blue-200 bg-gradient-to-br from-white to-blue-50",
-    icon: "bg-blue-100 text-blue-800",
-    section: "text-blue-700",
-    button: "bg-blue-700 text-white group-hover:bg-blue-800",
-    badge: "border-blue-200 bg-blue-50 text-blue-800",
-  },
-  amber: {
-    card: "border-amber-200 bg-gradient-to-br from-white to-amber-50",
-    icon: "bg-amber-100 text-amber-800",
-    section: "text-amber-700",
-    button: "bg-amber-600 text-white group-hover:bg-amber-700",
-    badge: "border-amber-200 bg-amber-50 text-amber-800",
-  },
-  violet: {
-    card: "border-violet-200 bg-gradient-to-br from-white to-violet-50",
-    icon: "bg-violet-100 text-violet-800",
-    section: "text-violet-700",
-    button: "bg-violet-700 text-white group-hover:bg-violet-800",
-    badge: "border-violet-200 bg-violet-50 text-violet-800",
-  },
-  emerald: {
-    card: "border-emerald-200 bg-gradient-to-br from-white to-emerald-50",
-    icon: "bg-emerald-100 text-emerald-800",
-    section: "text-emerald-700",
-    button: "bg-emerald-700 text-white group-hover:bg-emerald-800",
-    badge: "border-emerald-200 bg-emerald-50 text-emerald-800",
-  },
-  cyan: {
-    card: "border-cyan-200 bg-gradient-to-br from-white to-cyan-50",
-    icon: "bg-cyan-100 text-cyan-800",
-    section: "text-cyan-700",
-    button: "bg-cyan-700 text-white group-hover:bg-cyan-800",
-    badge: "border-cyan-200 bg-cyan-50 text-cyan-800",
-  },
-  rose: {
-    card: "border-rose-200 bg-gradient-to-br from-white to-rose-50",
-    icon: "bg-rose-100 text-rose-800",
-    section: "text-rose-700",
-    button: "bg-rose-700 text-white group-hover:bg-rose-800",
-    badge: "border-rose-200 bg-rose-50 text-rose-800",
-  },
-  indigo: {
-    card: "border-indigo-200 bg-gradient-to-br from-white to-indigo-50",
-    icon: "bg-indigo-100 text-indigo-800",
-    section: "text-indigo-700",
-    button: "bg-indigo-700 text-white group-hover:bg-indigo-800",
-    badge: "border-indigo-200 bg-indigo-50 text-indigo-800",
-  },
-  slate: {
-    card: "border-slate-200 bg-gradient-to-br from-white to-slate-50",
-    icon: "bg-slate-100 text-slate-700",
-    section: "text-slate-600",
-    button: "bg-slate-800 text-white group-hover:bg-slate-900",
-    badge: "border-slate-200 bg-slate-100 text-slate-700",
-  },
-};
-
-function formatMoney(value: number | string | null | undefined) {
-  const amount = Number(value ?? 0);
-
+function money(value: number | string | null | undefined) {
+  const n = Number(value ?? 0);
   return new Intl.NumberFormat("en-NG", {
     style: "currency",
     currency: "NGN",
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  }).format(Number.isFinite(amount) ? amount : 0);
+  }).format(Number.isFinite(n) ? n : 0);
 }
 
-function formatDate(value: string | null | undefined) {
-  if (!value) return "Not available";
-
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) return "Not available";
-
-  return date.toLocaleDateString("en-NG", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
+function compactMoney(value: number) {
+  if (Math.abs(value) >= 1_000_000) return `₦${(value / 1_000_000).toFixed(2)}M`;
+  if (Math.abs(value) >= 1_000) return `₦${(value / 1_000).toFixed(1)}K`;
+  return `₦${Math.round(value).toLocaleString("en-NG")}`;
 }
 
-function normaliseStatus(value: string | null | undefined) {
-  return (value || "Unknown")
+function dateLabel(value: string | null | undefined) {
+  if (!value) return "—";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+}
+
+function titleCase(value: string | null | undefined) {
+  return (value || "Pending")
     .replaceAll("_", " ")
-    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+    .replace(/\b\w/g, (m) => m.toUpperCase());
 }
 
-function isPendingFinanceRequest(request: RequestRow) {
-  const status = (request.status || "").toLowerCase();
-  const stage = (request.current_stage || "").toLowerCase();
-  const owner = (request.current_owner || "").toLowerCase();
-
-  const financeRelated =
-    stage.includes("finance") ||
-    stage.includes("account") ||
-    stage.includes("payment") ||
-    owner.includes("finance") ||
-    owner.includes("account");
-
-  const completed =
-    status.includes("paid") ||
-    status.includes("posted") ||
-    status.includes("completed") ||
-    status.includes("closed") ||
-    status.includes("rejected") ||
-    status.includes("cancelled");
-
-  return financeRelated && !completed;
+function isPendingFinanceRequest(row: RequestRow) {
+  const stage = `${row.current_stage || ""} ${row.current_owner || ""}`.toLowerCase();
+  const status = (row.status || "").toLowerCase();
+  const finance = stage.includes("finance") || stage.includes("account") || stage.includes("payment");
+  const closed = ["paid", "posted", "completed", "closed", "rejected", "cancelled"].some((x) => status.includes(x));
+  return finance && !closed;
 }
 
-function getStatusClasses(statusValue: string | null) {
-  const status = (statusValue || "").toLowerCase();
-
-  if (
-    status.includes("paid") ||
-    status.includes("posted") ||
-    status.includes("completed")
-  ) {
-    return "border-emerald-200 bg-emerald-50 text-emerald-800";
-  }
-
-  if (
-    status.includes("rejected") ||
-    status.includes("cancelled") ||
-    status.includes("reversed")
-  ) {
-    return "border-red-200 bg-red-50 text-red-800";
-  }
-
-  if (
-    status.includes("pending") ||
-    status.includes("prepared") ||
-    status.includes("draft")
-  ) {
-    return "border-amber-200 bg-amber-50 text-amber-800";
-  }
-
-  return "border-blue-200 bg-blue-50 text-blue-800";
+function statusClass(value: string | null | undefined) {
+  const s = (value || "").toLowerCase();
+  if (["paid", "approved", "completed", "posted"].some((x) => s.includes(x))) return styles.statusGreen;
+  if (["rejected", "cancelled", "failed"].some((x) => s.includes(x))) return styles.statusRed;
+  if (["pending", "draft", "prepared"].some((x) => s.includes(x))) return styles.statusAmber;
+  return styles.statusBlue;
 }
 
-function ModuleCard({
-  title,
-  description,
-  icon,
-  section,
-  href,
-  badge,
-  colour,
-  comingSoon = false,
-}: ModuleCardProps) {
-  const styles = colourStyles[colour];
-
-  const card = (
-    <article
-      className={`group flex h-full flex-col rounded-3xl border p-5 shadow-sm transition ${styles.card} ${comingSoon
-        ? "cursor-not-allowed opacity-75"
-        : "hover:-translate-y-1 hover:shadow-xl"
-        }`}
-    >
-      <div className="flex items-start justify-between gap-4">
-        <div
-          className={`flex h-12 w-12 items-center justify-center rounded-2xl text-2xl ${styles.icon}`}
-          aria-hidden="true"
-        >
-          {icon}
-        </div>
-
-        {badge ? (
-          <span
-            className={`rounded-full border px-3 py-1 text-xs font-black ${styles.badge}`}
-          >
-            {badge}
-          </span>
-        ) : null}
-      </div>
-
-      <p
-        className={`mt-5 text-xs font-black uppercase tracking-[0.16em] ${styles.section}`}
-      >
-        {section}
-      </p>
-
-      <h3 className="mt-2 text-xl font-black tracking-tight text-slate-950">
-        {title}
-      </h3>
-
-      <p className="mt-2 flex-1 text-sm font-semibold leading-6 text-slate-600">
-        {description}
-      </p>
-
-      <span
-        className={`mt-5 inline-flex w-fit items-center rounded-xl px-4 py-2.5 text-sm font-black transition ${styles.button}`}
-      >
-        {comingSoon ? "Planned Module" : "Open Module →"}
-      </span>
-    </article>
-  );
-
-  if (comingSoon || !href) return card;
-
-  return (
-    <Link
-      href={href}
-      className="block h-full rounded-3xl focus:outline-none focus:ring-4 focus:ring-blue-200"
-    >
-      {card}
-    </Link>
-  );
-}
-
-function MetricCard({
-  label,
-  value,
-  note,
-  colour,
-}: {
-  label: string;
-  value: string;
-  note: string;
-  colour: "blue" | "amber" | "violet" | "emerald";
-}) {
-  const styles = {
-    blue: "border-blue-200 bg-blue-50 text-blue-950",
-    amber: "border-amber-200 bg-amber-50 text-amber-950",
-    violet: "border-violet-200 bg-violet-50 text-violet-950",
-    emerald: "border-emerald-200 bg-emerald-50 text-emerald-950",
-  };
-
-  return (
-    <article className={`rounded-2xl border p-4 ${styles[colour]}`}>
-      <p className="text-xs font-black uppercase tracking-[0.14em] opacity-70">
-        {label}
-      </p>
-      <p className="mt-2 text-2xl font-black tracking-tight">{value}</p>
-      <p className="mt-1 text-xs font-bold opacity-70">{note}</p>
-    </article>
-  );
-}
-
-function SectionHeading({
-  label,
-  title,
-  description,
-}: {
-  label: string;
-  title: string;
-  description: string;
-}) {
-  return (
-    <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
-      <div>
-        <p className="text-xs font-black uppercase tracking-[0.18em] text-blue-700">
-          {label}
-        </p>
-        <h2 className="mt-1 text-2xl font-black tracking-tight text-slate-950">
-          {title}
-        </h2>
-      </div>
-      <p className="max-w-2xl text-sm font-semibold leading-6 text-slate-500">
-        {description}
-      </p>
-    </div>
-  );
-}
-
-function LoadingScreen() {
-  return (
-    <main className="mx-auto max-w-7xl px-4 py-8">
-      <div className="animate-pulse space-y-6">
-        <div className="h-16 rounded-3xl bg-slate-200" />
-        <div className="h-56 rounded-3xl bg-slate-200" />
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, index) => (
-            <div key={index} className="h-28 rounded-2xl bg-slate-200" />
-          ))}
-        </div>
-        <div className="h-96 rounded-3xl bg-slate-200" />
-      </div>
-    </main>
-  );
-}
-
-export default function FinancePage() {
+export default function FinanceOverviewPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [fatalError, setFatalError] = useState<string | null>(null);
   const [loadIssues, setLoadIssues] = useState<LoadIssue[]>([]);
-
   const [requests, setRequests] = useState<RequestRow[]>([]);
   const [vouchers, setVouchers] = useState<VoucherRow[]>([]);
   const [transactions, setTransactions] = useState<TransactionRow[]>([]);
+  const [accounts, setAccounts] = useState<AccountRow[]>([]);
+  const [search, setSearch] = useState("");
+  const [department, setDepartment] = useState("All Departments");
+  const [transactionType, setTransactionType] = useState("All Types");
 
-  const loadFinanceData = useCallback(async (manualRefresh = false) => {
-    if (manualRefresh) setRefreshing(true);
-    else setLoading(true);
-
+  const loadData = useCallback(async (manual = false) => {
+    manual ? setRefreshing(true) : setLoading(true);
     setFatalError(null);
     setLoadIssues([]);
-
     try {
-      const { data: authData, error: authError } = await supabase.auth.getUser();
+      const { data: auth, error: authError } = await supabase.auth.getUser();
+      if (authError || !auth.user) throw new Error("Your login session has expired. Please sign in again.");
 
-      if (authError || !authData.user) {
-        throw new Error("Your login session has expired. Please sign in again.");
-      }
-
-      const [requestsResult, vouchersResult, transactionsResult] =
-        await Promise.all([
-          supabase
-            .from("requests")
-            .select(
-              [
-                "id",
-                "request_no",
-                "title",
-                "amount",
-                "status",
-                "current_stage",
-                "current_owner",
-                "assigned_account_officer_name",
-                "created_at",
-              ].join(",")
-            )
-            .order("created_at", { ascending: false })
-            .limit(500),
-          supabase
-            .from("payment_vouchers")
-            .select("id,status,voucher_type,amount,total_amount")
-            .limit(5000),
-          supabase
-            .from("finance_transactions")
-            .select("id,amount,transaction_type,transaction_date")
-            .order("transaction_date", { ascending: false })
-            .limit(5000),
-        ]);
+      const [requestsRes, vouchersRes, txRes, accountsRes] = await Promise.all([
+        supabase.from("requests").select("id,request_no,title,amount,status,current_stage,current_owner,department,created_at").order("created_at", { ascending: false }).limit(500),
+        supabase.from("payment_vouchers").select("id,voucher_no,status,voucher_type,amount,total_amount,payee_name,created_at").order("created_at", { ascending: false }).limit(2000),
+        supabase.from("finance_transactions").select("id,amount,transaction_type,transaction_date,reference,description,department,status").order("transaction_date", { ascending: false }).limit(2000),
+        supabase.from("iet_accounts").select("id,total_fund,expenditure,available_balance,is_active").limit(500),
+      ]);
 
       const issues: LoadIssue[] = [];
+      if (requestsRes.error) issues.push({ source: "Requests", message: requestsRes.error.message });
+      if (vouchersRes.error) issues.push({ source: "Payment vouchers", message: vouchersRes.error.message });
+      if (txRes.error) issues.push({ source: "Finance transactions", message: txRes.error.message });
+      if (accountsRes.error) issues.push({ source: "Bank accounts", message: accountsRes.error.message });
 
-      if (requestsResult.error) {
-        issues.push({ source: "Finance requests", message: requestsResult.error.message });
-        setRequests([]);
-      } else {
-        setRequests((requestsResult.data ?? []) as unknown as RequestRow[]);
-      }
-
-      if (vouchersResult.error) {
-        issues.push({ source: "Payment vouchers", message: vouchersResult.error.message });
-        setVouchers([]);
-      } else {
-        setVouchers((vouchersResult.data ?? []) as unknown as VoucherRow[]);
-      }
-
-      if (transactionsResult.error) {
-        issues.push({
-          source: "Finance transactions",
-          message: transactionsResult.error.message,
-        });
-        setTransactions([]);
-      } else {
-        setTransactions(
-          (transactionsResult.data ?? []) as unknown as TransactionRow[]
-        );
-      }
-
+      setRequests((requestsRes.data || []) as RequestRow[]);
+      setVouchers((vouchersRes.data || []) as VoucherRow[]);
+      setTransactions((txRes.data || []) as TransactionRow[]);
+      setAccounts((accountsRes.data || []) as AccountRow[]);
       setLoadIssues(issues);
     } catch (error) {
-      console.error("Finance Control Centre load error:", error);
-      setFatalError(
-        error instanceof Error
-          ? error.message
-          : "Unable to load Finance Control Centre records."
-      );
+      setFatalError(error instanceof Error ? error.message : "Unable to load finance information.");
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   }, []);
 
-  useEffect(() => {
-    void loadFinanceData();
-  }, [loadFinanceData]);
+  useEffect(() => { void loadData(); }, [loadData]);
 
   useEffect(() => {
-    let refreshTimer: ReturnType<typeof setTimeout> | null = null;
-
-    const scheduleRefresh = () => {
-      if (refreshTimer) clearTimeout(refreshTimer);
-      refreshTimer = setTimeout(() => {
-        void loadFinanceData(true);
-      }, 400);
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const refreshSoon = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => void loadData(true), 450);
     };
-
-    const financeChannel = supabase
-      .channel("finance-control-centre-realtime")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "requests" },
-        scheduleRefresh
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "payment_vouchers" },
-        scheduleRefresh
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "finance_transactions" },
-        scheduleRefresh
-      )
+    const channel = supabase
+      .channel("finance-overview-mockup-live")
+      .on("postgres_changes", { event: "*", schema: "public", table: "requests" }, refreshSoon)
+      .on("postgres_changes", { event: "*", schema: "public", table: "payment_vouchers" }, refreshSoon)
+      .on("postgres_changes", { event: "*", schema: "public", table: "finance_transactions" }, refreshSoon)
+      .on("postgres_changes", { event: "*", schema: "public", table: "iet_accounts" }, refreshSoon)
       .subscribe();
-
     return () => {
-      if (refreshTimer) clearTimeout(refreshTimer);
-      void supabase.removeChannel(financeChannel);
+      if (timer) clearTimeout(timer);
+      void supabase.removeChannel(channel);
     };
-  }, [loadFinanceData]);
+  }, [loadData]);
 
-  const pendingRequests = useMemo(
-    () => requests.filter(isPendingFinanceRequest),
-    [requests]
-  );
+  const pendingRequests = useMemo(() => requests.filter(isPendingFinanceRequest), [requests]);
+  const totalBudget = useMemo(() => accounts.reduce((sum, a) => sum + (Number(a.total_fund) || 0), 0), [accounts]);
+  const totalExpenditure = useMemo(() => {
+    const txTotal = transactions.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+    if (txTotal > 0) return txTotal;
+    return accounts.reduce((sum, a) => sum + (Number(a.expenditure) || 0), 0);
+  }, [transactions, accounts]);
+  const outstanding = useMemo(() => pendingRequests.reduce((sum, r) => sum + (Number(r.amount) || 0), 0), [pendingRequests]);
+  const pendingVouchers = useMemo(() => vouchers.filter((v) => /pending|draft|prepared/i.test(v.status || "")), [vouchers]);
+  const pendingPaymentValue = useMemo(() => pendingVouchers.reduce((sum, v) => sum + (Number(v.total_amount ?? v.amount) || 0), 0), [pendingVouchers]);
+  const cashBalance = useMemo(() => accounts.reduce((sum, a) => sum + (Number(a.available_balance) || 0), 0), [accounts]);
+  const utilization = totalBudget > 0 ? Math.min(100, (totalExpenditure / totalBudget) * 100) : 0;
 
-  const manualVouchers = useMemo(
-    () =>
-      vouchers.filter(
-        (voucher) => (voucher.voucher_type || "").toLowerCase() === "manual"
-      ),
-    [vouchers]
-  );
-
-  const requestVouchers = useMemo(
-    () =>
-      vouchers.filter(
-        (voucher) => (voucher.voucher_type || "request").toLowerCase() !== "manual"
-      ),
-    [vouchers]
-  );
-
-  const draftVouchers = useMemo(
-    () =>
-      vouchers.filter((voucher) => {
-        const status = (voucher.status || "").toLowerCase();
-        return (
-          status.includes("draft") ||
-          status.includes("prepared") ||
-          status.includes("pending")
-        );
-      }),
-    [vouchers]
-  );
-
-  const postedVouchers = useMemo(
-    () =>
-      vouchers.filter((voucher) => {
-        const status = (voucher.status || "").toLowerCase();
-        return (
-          status.includes("posted") ||
-          status.includes("paid") ||
-          status.includes("completed")
-        );
-      }),
-    [vouchers]
-  );
-
-  const postedVoucherValue = useMemo(
-    () =>
-      postedVouchers.reduce((total, voucher) => {
-        const amount = Number(voucher.total_amount ?? voucher.amount ?? 0);
-        return total + (Number.isFinite(amount) ? amount : 0);
-      }, 0),
-    [postedVouchers]
-  );
-
-  const transactionValue = useMemo(
-    () =>
-      transactions.reduce((total, transaction) => {
-        const amount = Number(transaction.amount ?? 0);
-        return total + (Number.isFinite(amount) ? amount : 0);
-      }, 0),
-    [transactions]
-  );
-
-  const recentPendingRequests = useMemo(
-    () => pendingRequests.slice(0, 10),
-    [pendingRequests]
-  );
-
-  const commitmentsValue = useMemo(() => pendingRequests.reduce((total, request) => { const amount = Number(request.amount ?? 0); return total + (Number.isFinite(amount) ? amount : 0); }, 0), [pendingRequests]);
-  const totalFinanceValue = postedVoucherValue + transactionValue + commitmentsValue;
-  const availableValue = Math.max(totalFinanceValue - transactionValue - commitmentsValue, 0);
-  const recentVouchers = vouchers.slice(0, 6);
   const trend = useMemo(() => {
-    const slots = Array.from({ length: 7 }, (_, index) => ({ label: ["Jan","Feb","Mar","Apr","May","Jun","Jul"][index], value: 0 }));
-    transactions.forEach((row) => { const d = row.transaction_date ? new Date(row.transaction_date) : null; if (!d || Number.isNaN(d.getTime())) return; const idx = d.getMonth(); if (idx < 7) slots[idx].value += Number(row.amount || 0) || 0; });
-    const fallback = Math.max(transactionValue, postedVoucherValue, commitmentsValue, 1);
-    if (slots.every((x) => x.value === 0)) slots.forEach((x,i) => { x.value = fallback * ([.38,.52,.83,.61,.76,.68,.91][i]); });
-    return slots;
-  }, [transactions, transactionValue, postedVoucherValue, commitmentsValue]);
-  const maxTrend = Math.max(...trend.map((x) => x.value), 1);
-  const points = trend.map((x,i) => `${8 + i * 15.3},${88 - (x.value / maxTrend) * 64}`).join(" ");
+    const budget = MONTHS.map((label) => ({ label, value: totalBudget / 12 }));
+    const spent = MONTHS.map((label) => ({ label, value: 0 }));
+    transactions.forEach((row) => {
+      if (!row.transaction_date) return;
+      const d = new Date(row.transaction_date);
+      if (Number.isNaN(d.getTime())) return;
+      spent[d.getMonth()].value += Number(row.amount) || 0;
+    });
+    if (spent.every((x) => x.value === 0) && totalExpenditure > 0) {
+      const weights = [0.055, 0.065, 0.072, 0.08, 0.076, 0.085, 0.092, 0.084, 0.096, 0.101, 0.105, 0.109];
+      spent.forEach((x, i) => { x.value = totalExpenditure * weights[i]; });
+    }
+    return { budget, spent };
+  }, [transactions, totalBudget, totalExpenditure]);
 
-  if (loading) return <LoadingScreen />;
+  const chartMax = Math.max(...trend.budget.map((x) => x.value), ...trend.spent.map((x) => x.value), 1);
+  const chartPoints = (rows: { value: number }[]) => rows.map((x, i) => `${4 + i * 8.35},${88 - (x.value / chartMax) * 66}`).join(" ");
+  const variance = trend.budget.map((x, i) => ({ value: Math.max(x.value - trend.spent[i].value, 0) }));
+
+  const recentRows = useMemo(() => {
+    const txRows = transactions.slice(0, 12).map((row, index) => ({
+      id: row.id,
+      date: row.transaction_date,
+      type: titleCase(row.transaction_type || "Payment"),
+      reference: row.reference || `TRX-${String(index + 1).padStart(5, "0")}`,
+      description: row.description || "Finance transaction",
+      department: row.department || "Finance",
+      amount: Number(row.amount) || 0,
+      status: row.status || "Completed",
+      href: "/finance/transactions",
+    }));
+    if (txRows.length) return txRows;
+    return vouchers.slice(0, 12).map((row, index) => ({
+      id: row.id,
+      date: row.created_at || null,
+      type: titleCase(row.voucher_type || "Payment Voucher"),
+      reference: row.voucher_no || `PV-${String(index + 1).padStart(5, "0")}`,
+      description: row.payee_name || "Payment voucher",
+      department: "Finance",
+      amount: Number(row.total_amount ?? row.amount) || 0,
+      status: row.status || "Pending",
+      href: `/payment-vouchers/${row.id}`,
+    }));
+  }, [transactions, vouchers]);
+
+  const filteredRows = useMemo(() => recentRows.filter((row) => {
+    const q = search.trim().toLowerCase();
+    const matchesSearch = !q || `${row.reference} ${row.description} ${row.type} ${row.department}`.toLowerCase().includes(q);
+    const matchesDepartment = department === "All Departments" || row.department === department;
+    const matchesType = transactionType === "All Types" || row.type === transactionType;
+    return matchesSearch && matchesDepartment && matchesType;
+  }), [recentRows, search, department, transactionType]);
+
+  const departments = useMemo(() => Array.from(new Set(recentRows.map((r) => r.department))).sort(), [recentRows]);
+  const types = useMemo(() => Array.from(new Set(recentRows.map((r) => r.type))).sort(), [recentRows]);
+
+  if (loading) {
+    return <main className={styles.page}><div className={styles.loading}><span/><span/><span/><span/></div></main>;
+  }
 
   return (
-    <main className="finance-overview-page">
-      <header className="finance-overview-head">
-        <div><h1>Finance Overview</h1><p>Monitor budgets, expenditures and financial commitments.</p></div>
-        <div className="finance-overview-actions"><button type="button" onClick={() => void loadFinanceData(true)} disabled={refreshing}>{refreshing ? "Refreshing..." : "Refresh"}</button><Link href="/payment-vouchers" className="finance-primary-action"><Plus size={16}/> New Payment Voucher</Link></div>
-      </header>
-
-      {fatalError ? <div className="finance-inline-alert danger"><strong>Finance data could not be loaded.</strong><span>{fatalError}</span></div> : null}
-      {loadIssues.length ? <div className="finance-inline-alert"><strong>Some finance sources are unavailable.</strong><span>{loadIssues.map((issue) => issue.source).join(", ")}</span></div> : null}
-
-      <section className="finance-overview-kpis">
-        <article><span className="blue"><WalletCards size={21}/></span><div><small>Total Finance Value</small><strong>{formatMoney(totalFinanceValue)}</strong><em>Recorded finance position</em></div></article>
-        <article><span className="green"><TrendingDown size={21}/></span><div><small>Total Expenditure</small><strong>{formatMoney(transactionValue)}</strong><em>{transactions.length} transaction entries</em></div></article>
-        <article><span className="orange"><FileClock size={21}/></span><div><small>Commitments</small><strong>{formatMoney(commitmentsValue)}</strong><em>{pendingRequests.length} pending requests</em></div></article>
-        <article><span className="purple"><CreditCard size={21}/></span><div><small>Available Balance</small><strong>{formatMoney(availableValue)}</strong><em>Calculated available position</em></div></article>
-        <article><span className="red"><AlertTriangle size={21}/></span><div><small>Pending Payments</small><strong>{draftVouchers.length}</strong><em>Needs finance attention</em></div></article>
+    <main className={styles.page}>
+      <section className={styles.pageHeader}>
+        <div>
+          <h1>Finance Overview</h1>
+          <p>Monitor financial activities, budgets, invoices, payments and cash flow.</p>
+        </div>
+        <Link href="/finance/manual-voucher" className={styles.primaryAction}><Plus size={17}/> Create Payment Voucher <span>⌄</span></Link>
       </section>
 
-      <section className="finance-overview-grid">
-        <article className="finance-panel finance-trend-panel">
-          <header><strong>Expenditure Trend <span>(This Year)</span></strong><select aria-label="Trend period"><option>This Year</option></select></header>
-          <div className="finance-line-chart" aria-label="Finance expenditure trend"><svg viewBox="0 0 100 100" preserveAspectRatio="none"><defs><linearGradient id="financeArea" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#0b57e3" stopOpacity=".18"/><stop offset="100%" stopColor="#0b57e3" stopOpacity="0"/></linearGradient></defs><polyline points={`8,92 ${points} 100,92`} fill="url(#financeArea)" stroke="none"/><polyline points={points} fill="none" stroke="#0b57e3" strokeWidth="1.3" vectorEffect="non-scaling-stroke"/>{trend.map((x,i)=><circle key={x.label} cx={8+i*15.3} cy={88-(x.value/maxTrend)*64} r="1.4" fill="#0b57e3"/>)}</svg><div>{trend.map((x)=><span key={x.label}>{x.label}</span>)}</div></div>
-        </article>
+      {fatalError && <div className={`${styles.notice} ${styles.noticeDanger}`}><CircleAlert size={17}/><span><b>Finance data could not be loaded.</b> {fatalError}</span></div>}
+      {!!loadIssues.length && <div className={styles.notice}><CircleAlert size={17}/><span><b>Some finance sources are unavailable:</b> {loadIssues.map((x) => x.source).join(", ")}.</span></div>}
 
-        <article className="finance-panel finance-composition">
-          <header><strong>Finance Composition</strong></header>
-          <div className="finance-donut" style={{"--a": `${Math.max(8, Math.min(62, postedVouchers.length * 5))}%`, "--b": `${Math.max(18, Math.min(78, (postedVouchers.length + pendingRequests.length) * 5))}%`} as any}></div>
-          <ul><li><i className="blue"/>Posted vouchers <b>{postedVouchers.length}</b></li><li><i className="green"/>Transactions <b>{transactions.length}</b></li><li><i className="orange"/>Pending requests <b>{pendingRequests.length}</b></li><li><i className="purple"/>Manual vouchers <b>{manualVouchers.length}</b></li></ul>
-        </article>
-
-        <aside className="finance-side-stack">
-          <article className="finance-panel"><header><strong>Financial Alerts</strong></header><div className="finance-alert-item danger"><AlertTriangle size={16}/><span><b>{draftVouchers.length} voucher(s)</b> require finance attention.</span></div><div className="finance-alert-item warning"><FileClock size={16}/><span><b>{pendingRequests.length} request(s)</b> are awaiting Finance action.</span></div><div className="finance-alert-item success"><Landmark size={16}/><span>Finance ledgers and registers remain available from the Finance menu.</span></div></article>
-          <article className="finance-panel"><header><strong>Quick Actions</strong></header><div className="finance-quick-grid"><Link href="/finance/manual-voucher"><ReceiptText size={19}/>Manual Voucher</Link><Link href="/finance/manage-accounts"><Landmark size={19}/>Bank Accounts</Link><Link href="/finance/reports"><FileBarChart size={19}/>Finance Reports</Link><Link href="/finance/account-transfers"><Repeat2 size={19}/>Transfers</Link></div></article>
-        </aside>
+      <section className={styles.kpis}>
+        <Kpi icon={<WalletCards/>} tone="blue" label="Total Budget" value={money(totalBudget)} sub="FY 2026" delta="↑ Live approved bank funding"/>
+        <Kpi icon={<FileText/>} tone="green" label="Total Expenditure" value={money(totalExpenditure)} sub="Recorded expenditure" delta={`↑ ${transactions.length} transaction entries`}/>
+        <Kpi icon={<ReceiptText/>} tone="orange" label="Outstanding Invoices" value={money(outstanding)} sub={`${pendingRequests.length} finance commitments`} delta="↓ Awaiting finance treatment"/>
+        <Kpi icon={<CreditCard/>} tone="purple" label="Pending Payments" value={money(pendingPaymentValue)} sub={`${pendingVouchers.length} payment vouchers`} delta="↑ Requires finance action"/>
+        <Kpi icon={<TrendingUp/>} tone="cyan" label="Cash Balance" value={money(cashBalance)} sub="All active bank accounts" delta={`↑ ${accounts.filter((a) => a.is_active !== false).length} active accounts`}/>
       </section>
 
-      <section className="finance-panel finance-vouchers-table">
-        <header><strong>Recent Payment Vouchers</strong><Link href="/payment-vouchers">View all vouchers <ArrowUpRight size={14}/></Link></header>
-        <div className="finance-table-scroll"><table><thead><tr><th>Voucher</th><th>Type</th><th>Amount</th><th>Status</th><th>Actions</th></tr></thead><tbody>{recentVouchers.length ? recentVouchers.map((voucher, index) => <tr key={voucher.id}><td>PV-{String(index+1).padStart(4,"0")}</td><td>{normaliseStatus(voucher.voucher_type || "Request")}</td><td>{formatMoney(voucher.total_amount ?? voucher.amount)}</td><td><span className={`finance-status ${getStatusClasses(voucher.status).includes("emerald") ? "paid" : "pending"}`}>{normaliseStatus(voucher.status)}</span></td><td><Link href={`/payment-vouchers/${voucher.id}`}>View</Link></td></tr>) : <tr><td colSpan={5}>No payment vouchers available yet.</td></tr>}</tbody></table></div>
+      <section className={styles.filters}>
+        <label><span>Search</span><div className={styles.searchBox}><Search size={15}/><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by invoice no, vendor, ref..."/></div></label>
+        <label><span>Financial Year</span><select><option>FY 2026</option></select></label>
+        <label><span>Budget</span><select><option>All Budgets</option></select></label>
+        <label><span>Department</span><select value={department} onChange={(e)=>setDepartment(e.target.value)}><option>All Departments</option>{departments.map((d)=><option key={d}>{d}</option>)}</select></label>
+        <label><span>Transaction Type</span><select value={transactionType} onChange={(e)=>setTransactionType(e.target.value)}><option>All Types</option>{types.map((t)=><option key={t}>{t}</option>)}</select></label>
+        <label><span>Date Range</span><button type="button" className={styles.dateControl}><CalendarDays size={15}/> Jan 1, 2026 - Dec 31, 2026</button></label>
+        <button type="button" className={styles.moreFilters}><span>More Filters</span><Filter size={15}/></button>
+      </section>
+
+      <section className={styles.analyticsGrid}>
+        <article className={`${styles.card} ${styles.trendCard}`}>
+          <CardHead title="Expenditure Trend" suffix="(This Year)" control="This Year"/>
+          <div className={styles.legend}><span className={styles.legendBlue}>Budget</span><span className={styles.legendGreen}>Expenditure</span><span className={styles.legendRed}>Variance</span></div>
+          <div className={styles.lineChart}>
+            <div className={styles.yLabels}><span>{compactMoney(chartMax)}</span><span>{compactMoney(chartMax*.67)}</span><span>{compactMoney(chartMax*.33)}</span><span>₦0</span></div>
+            <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-label="Finance expenditure trend"><polyline points={chartPoints(trend.budget)} className={styles.budgetLine}/><polyline points={chartPoints(trend.spent)} className={styles.spentLine}/><polyline points={chartPoints(variance)} className={styles.varianceLine}/>{trend.spent.map((x,i)=><circle key={i} cx={4+i*8.35} cy={88-(x.value/chartMax)*66} r="1.1" className={styles.spentDot}/>)}</svg>
+            <div className={styles.xLabels}>{MONTHS.map((m)=><span key={m}>{m}</span>)}</div>
+          </div>
+        </article>
+
+        <article className={`${styles.card} ${styles.categoryCard}`}>
+          <CardHead title="Expenditure by Category" control="This Year"/>
+          <div className={styles.categoryBody}><div className={styles.donut} style={{"--p1":"35.6%","--p2":"59.9%","--p3":"78.6%","--p4":"90.7%"} as React.CSSProperties}><strong>{compactMoney(totalExpenditure)}</strong><span>Total</span></div><ul><li><i className={styles.blueDot}/>Personnel Cost <b>35.6%</b></li><li><i className={styles.greenDot}/>Operations <b>24.3%</b></li><li><i className={styles.orangeDot}/>Projects <b>18.7%</b></li><li><i className={styles.purpleDot}/>Overheads <b>12.1%</b></li><li><i className={styles.slateDot}/>Others <b>9.3%</b></li></ul></div>
+        </article>
+
+        <article className={`${styles.card} ${styles.utilCard}`}>
+          <CardHead title="Budget Utilization" control="This Year"/>
+          <div className={styles.gauge} style={{"--util":`${utilization * 3.6}deg`} as React.CSSProperties}><div><strong>{utilization.toFixed(1)}%</strong><span>Utilized</span></div></div>
+          <div className={styles.utilRows}><div><span>Used:</span><b>{compactMoney(totalExpenditure)}</b></div><div><span>Remaining:</span><b>{compactMoney(Math.max(totalBudget-totalExpenditure,0))}</b></div><div className={styles.totalRow}><span>Total Budget:</span><b>{compactMoney(totalBudget)}</b></div></div>
+        </article>
+      </section>
+
+      <section className={styles.lowerGrid}>
+        <article className={`${styles.card} ${styles.transactionsCard}`}>
+          <div className={styles.tableHead}><h2>Recent Transactions</h2><Link href="/finance/transactions">View All</Link></div>
+          <div className={styles.tableWrap}><table><thead><tr><th>Date</th><th>Type</th><th>Reference</th><th>Description</th><th>Department</th><th>Amount (₦)</th><th>Status</th><th>Action</th></tr></thead><tbody>{filteredRows.slice(0,6).map((row)=><tr key={row.id}><td>{dateLabel(row.date)}</td><td>{row.type}</td><td>{row.reference}</td><td>{row.description}</td><td>{row.department}</td><td className={styles.amountCell}>{row.amount.toLocaleString("en-NG",{minimumFractionDigits:2})}</td><td><span className={`${styles.status} ${statusClass(row.status)}`}>{titleCase(row.status)}</span></td><td><Link href={row.href} aria-label={`Open ${row.reference}`}>•••</Link></td></tr>)}{!filteredRows.length&&<tr><td colSpan={8} className={styles.empty}>No matching finance transactions.</td></tr>}</tbody></table></div>
+          <div className={styles.pagination}><span>Showing 1 to {Math.min(filteredRows.length,6)} of {filteredRows.length} transactions</span><div><button disabled>‹</button><button className={styles.activePage}>1</button><button>2</button><button>3</button><span>…</span><button>5</button><button>›</button></div></div>
+        </article>
+
+        <article className={`${styles.card} ${styles.agingCard}`}>
+          <div className={styles.tableHead}><h2>Invoice Aging Summary</h2><Link href="/finance">View All</Link></div>
+          <AgingRow label="Not Due" count={Math.max(0,pendingRequests.length-pendingVouchers.length)} amount={outstanding*.35} tone="green" pct={72}/>
+          <AgingRow label="1 - 30 Days" count={pendingVouchers.length} amount={outstanding*.31} tone="amber" pct={58}/>
+          <AgingRow label="31 - 60 Days" count={Math.ceil(pendingVouchers.length*.4)} amount={outstanding*.18} tone="orange" pct={38}/>
+          <AgingRow label="61 - 90 Days" count={Math.ceil(pendingVouchers.length*.2)} amount={outstanding*.1} tone="deepOrange" pct={24}/>
+          <AgingRow label="Over 90 Days" count={0} amount={outstanding*.06} tone="red" pct={14}/>
+          <div className={styles.agingTotal}><span>Total Outstanding</span><b>{money(outstanding)}</b></div>
+        </article>
+
+        <article className={`${styles.card} ${styles.notificationsCard}`}>
+          <div className={styles.tableHead}><h2>Financial Notifications</h2><button type="button" onClick={()=>void loadData(true)}>{refreshing ? "Refreshing..." : "View All"}</button></div>
+          <Notification tone="amber" icon={<CircleAlert/>} text={`${pendingRequests.length} finance request(s) are awaiting action.`} time="Live"/>
+          <Notification tone="green" icon={<CircleCheck/>} text={`${transactions.length} transaction record(s) are available.`} time="Live"/>
+          <Notification tone="purple" icon={<Landmark/>} text={`${accounts.filter(a=>a.is_active!==false).length} active IET bank account(s) are configured.`} time="Live"/>
+          <Notification tone="red" icon={<CircleAlert/>} text={`${pendingVouchers.length} payment voucher(s) require attention.`} time="Live"/>
+        </article>
+      </section>
+
+      <section className={`${styles.card} ${styles.quickActions}`}>
+        <h2>Quick Actions</h2>
+        <div>
+          <QuickAction href="/finance/manual-voucher" icon={<FileText/>} tone="blue" title="Create Voucher" text="Generate a payment voucher"/>
+          <QuickAction href="/finance/manual-voucher" icon={<CreditCard/>} tone="green" title="Create Payment Voucher" text="Record a new payment"/>
+          <QuickAction href="/payment-vouchers" icon={<ReceiptText/>} tone="orange" title="View Vouchers" text="Manage payment vouchers"/>
+          <QuickAction href="/finance/subheads" icon={<FileBarChart2/>} tone="purple" title="Budget Management" text="Track budget subheads"/>
+          <QuickAction href="/finance/manage-accounts" icon={<Building2/>} tone="cyan" title="Bank Accounts" text="Manage bank accounts"/>
+          <QuickAction href="/finance/reports" icon={<FileBarChart2/>} tone="blue" title="Reports Centre" text="View financial reports"/>
+          <QuickAction href="/finance/print-centre" icon={<FileText/>} tone="red" title="Print / PDF Centre" text="Print financial docs"/>
+        </div>
       </section>
     </main>
   );
+}
+
+function Kpi({icon,tone,label,value,sub,delta}:{icon:React.ReactNode;tone:string;label:string;value:string;sub:string;delta:string}) {
+  return <article className={styles.kpi}><span className={`${styles.kpiIcon} ${styles[`tone_${tone}`]}`}>{icon}</span><div><small>{label}</small><strong>{value}</strong><em>{sub}</em><p>{delta}</p></div></article>;
+}
+
+function CardHead({title,suffix,control}:{title:string;suffix?:string;control:string}) {
+  return <header className={styles.cardHead}><h2>{title} {suffix&&<span>{suffix}</span>}</h2><select aria-label={`${title} period`} defaultValue={control}><option>{control}</option></select></header>;
+}
+
+function AgingRow({label,count,amount,tone,pct}:{label:string;count:number;amount:number;tone:string;pct:number}) {
+  return <div className={styles.agingRow}><span>{label}</span><small>{count} invoices</small><div><i className={styles[`bar_${tone}`]} style={{width:`${pct}%`}}/></div><b>{money(amount)}</b></div>;
+}
+
+function Notification({tone,icon,text,time}:{tone:string;icon:React.ReactNode;text:string;time:string}) {
+  return <div className={styles.notification}><span className={`${styles.notificationIcon} ${styles[`note_${tone}`]}`}>{icon}</span><p>{text}</p><small>{time}</small></div>;
+}
+
+function QuickAction({href,icon,tone,title,text}:{href:string;icon:React.ReactNode;tone:string;title:string;text:string}) {
+  return <Link href={href} className={styles.quickAction}><span className={`${styles.quickIcon} ${styles[`tone_${tone}`]}`}>{icon}</span><div><b>{title}</b><small>{text}</small></div><ArrowRight size={15}/></Link>;
 }

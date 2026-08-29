@@ -3,7 +3,25 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
-import { WorkflowLoading, WorkflowPageStyles } from "@/app/components/ui/WorkflowUI";
+import { WorkflowLoading } from "@/app/components/ui/WorkflowUI";
+import {
+  AlertCircle,
+  BriefcaseBusiness,
+  Building2,
+  CheckCircle2,
+  CircleHelp,
+  FileText,
+  FolderOpen,
+  Info,
+  Landmark,
+  Paperclip,
+  Send,
+  ShieldCheck,
+  UploadCloud,
+  UserRound,
+  X,
+} from "lucide-react";
+import styles from "./new-request.module.css";
 
 type Dept = {
   id: string;
@@ -979,291 +997,167 @@ export default function NewRequestPage() {
     }
   }
 
+  function saveDraftLocally() {
+    try {
+      localStorage.setItem(
+        "reqgen-new-request-draft",
+        JSON.stringify({
+          requestType,
+          personalCategory,
+          deptId,
+          subheadId,
+          title,
+          amount,
+          details,
+          savedAt: new Date().toISOString(),
+        })
+      );
+      setMsg("✅ Draft saved on this device. Attachments are not stored in local drafts.");
+    } catch {
+      setMsg("❌ Draft could not be saved on this device.");
+    }
+  }
+
   if (loading) return <WorkflowLoading title="Preparing the new request workspace..." />;
 
   return (
-    <main className="req-family-page">
-      <WorkflowPageStyles />
-      <div className="req-family-inner">
-        <header className="req-family-head">
+    <main className={styles.page}>
+      <div className={styles.pageInner}>
+        <header className={styles.pageHeader}>
           <div>
-            <span className="req-family-eyebrow">Requests</span>
             <h1>Create New Request</h1>
-            <p>Prepare, sign and submit an official or personal request through the authorised ReqGen workflow.</p>
-            
+            <p>Submit a new request by providing the required details below.</p>
+          </div>
+          <div className={styles.breadcrumbs} aria-label="Breadcrumb">
+            <button type="button" onClick={() => router.push("/requests")}>Requests</button>
+            <span>›</span>
+            <strong>Create New Request</strong>
           </div>
         </header>
-        <nav className="req-family-subnav" aria-label="Request workspace navigation">
-          <button type="button" className="" onClick={() => router.push("/requests")}>Requests Overview</button>
-          <button type="button" className="is-active" onClick={() => router.push("/requests/new")}>New Request</button>
-          
-        </nav>
-
-        <section className="req-family-progress" aria-label="New request steps">
-          <div className="is-active"><span>01</span><b>Request Type</b><small>Choose official or personal</small></div>
-          <div><span>02</span><b>Request Details</b><small>Department, title and amount</small></div>
-          <div><span>03</span><b>Review & Sign</b><small>Confirm request information</small></div>
-          <div><span>04</span><b>Submit</b><small>OTP protected submission</small></div>
-        </section>
-
-        {requestOtpEnabled ? (
-          <div className="mt-4 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-900">
-            {otpLabel} protection is active. Sign the request first, then verify OTP before submission.
-          </div>
-        ) : (
-          <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900">
-            OTP submission is currently disabled. Signature is required before request submission.
-          </div>
-        )}
-
-        {requestOtpEnabled && (
-          <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">
-            OTP will be sent to {otpDestinationLabel}.
-
-            {requestOtpChannel === "sms" && me?.email ? (
-              <span className="block pt-1 text-xs font-semibold text-emerald-700">
-                Registered email on file: {maskEmail(me.email)}. SMS is the primary OTP channel.
-              </span>
-            ) : null}
-
-            {requestOtpChannel === "sms" && !hasLikelyPhone(me?.phone) ? (
-              <span className="block pt-1 text-xs font-semibold text-red-700">
-                No valid phone number found. Update Profile before submitting with SMS OTP.
-              </span>
-            ) : null}
-          </div>
-        )}
-
-        {!canSeeSubheads && (
-          <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
-            Your current role does not permit finance visibility. Official request subhead and
-            balance information are hidden. HOD/Registrar or another finance-visible officer will
-            assign the correct subhead where required.
-          </div>
-        )}
-
-        {canSeeSubheads && (
-          <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">
-            Your active role permits finance visibility. You can select a subhead for Official Requests.
-          </div>
-        )}
 
         {msg && (
-          <div className="mt-4 rounded-xl bg-slate-100 px-3 py-2 text-sm text-slate-800">
-            {msg}
+          <div className={`${styles.notice} ${msg.startsWith("❌") ? styles.noticeError : styles.noticeInfo}`}>
+            {msg.startsWith("❌") ? <AlertCircle size={18} /> : <Info size={18} />}
+            <span>{msg}</span>
           </div>
         )}
 
-        <div className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
-          <div className="grid gap-4 md:grid-cols-2">
-            <div>
-              <label className="text-sm font-semibold text-slate-800">Request Type</label>
-              <select
-                value={requestType}
-                onChange={(e) => {
-                  const v = e.target.value as RequestType;
-                  setRequestType(v);
+        <div className={styles.workspace}>
+          <section className={styles.formCard}>
+            <div className={styles.sectionBlock}>
+              <h2>1. Request Information</h2>
+              <div className={styles.twoCol}>
+                <label className={styles.field}>
+                  <span>Request Type <b>*</b></span>
+                  <select
+                    value={requestType}
+                    onChange={(e) => {
+                      const v = e.target.value as RequestType;
+                      setRequestType(v);
+                      if (v === "Personal") setSubheadId("");
+                    }}
+                  >
+                    <option value="Official">Official Request</option>
+                    <option value="Personal">Personal Request</option>
+                  </select>
+                </label>
 
-                  if (v === "Personal") {
-                    setSubheadId("");
-                  }
-                }}
-                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
-              >
-                <option value="Official">Official Request</option>
-                <option value="Personal">Personal Request</option>
-              </select>
+                <label className={styles.field}>
+                  <span>{isPersonal ? "Personal Category" : "Department"} <b>*</b></span>
+                  {isPersonal ? (
+                    <select value={personalCategory} onChange={(e) => setPersonalCategory(e.target.value as PersonalCategory)}>
+                      {PERSONAL_CATEGORIES.map((cat) => <option key={cat} value={cat}>{cat}</option>)}
+                    </select>
+                  ) : (
+                    <select value={deptId} onChange={(e) => setDeptId(e.target.value)}>
+                      {depts.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+                    </select>
+                  )}
+                </label>
+              </div>
+
+              {isPersonal && (
+                <label className={styles.field}>
+                  <span>Department <b>*</b></span>
+                  <select value={deptId} onChange={(e) => setDeptId(e.target.value)}>
+                    {depts.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+                  </select>
+                </label>
+              )}
+
+              <label className={styles.field}>
+                <span>Request Title <b>*</b></span>
+                <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Enter a short, descriptive title for your request" />
+              </label>
+
+              <label className={styles.field}>
+                <span>Request Description <b>*</b></span>
+                <textarea value={details} onChange={(e) => setDetails(e.target.value)} maxLength={2000} placeholder="Provide a detailed description of your request, including purpose and expected outcome..." />
+                <small>{details.length} / 2000 characters</small>
+              </label>
             </div>
 
-            {isPersonal ? (
-              <div>
-                <label className="text-sm font-semibold text-slate-800">
-                  Personal Request Category
+            <div className={styles.sectionBlock}>
+              <h2>2. Request Details</h2>
+              <div className={styles.threeCol}>
+                <label className={styles.field}>
+                  <span>Department <b>*</b></span>
+                  <select value={deptId} onChange={(e) => setDeptId(e.target.value)}>
+                    {depts.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+                  </select>
                 </label>
-                <select
-                  value={personalCategory}
-                  onChange={(e) => setPersonalCategory(e.target.value as PersonalCategory)}
-                  className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
-                >
-                  {PERSONAL_CATEGORIES.map((cat) => (
-                    <option key={cat} value={cat}>
-                      {cat}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            ) : (
-              <div>
-                <label className="text-sm font-semibold text-slate-800">Department</label>
-                <select
-                  value={deptId}
-                  onChange={(e) => setDeptId(e.target.value)}
-                  className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
-                >
-                  {depts.map((d) => (
-                    <option key={d.id} value={d.id}>
-                      {d.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
 
-            {isPersonal && (
-              <div>
-                <label className="text-sm font-semibold text-slate-800">Department</label>
-                <select
-                  value={deptId}
-                  onChange={(e) => setDeptId(e.target.value)}
-                  className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
-                >
-                  {depts.map((d) => (
-                    <option key={d.id} value={d.id}>
-                      {d.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            {isOfficial && (
-              <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-900 md:col-span-2">
-                <b>Official Request:</b>{" "}
-                {selectedDeptIsDin
-                  ? "This DIN Official request will route through DOD, DIN Admin, Registrar, DG and AccountOfficer."
-                  : selectedDeptIsAsapAlli
-                    ? "This ASAP-ALLI Official request will route through PO, DOD, HOD, DG and AccountOfficer."
-                    : "This Official request will follow the department route to DG and AccountOfficer."}
-              </div>
-            )}
-
-            {isPersonal && (
-              <div className="rounded-xl border border-purple-100 bg-purple-50 px-4 py-3 text-sm text-purple-900 md:col-span-2">
-                <b>Personal Request:</b>{" "}
-                {isPersonalFund
-                  ? "Fund request requires amount. It routes through HR, DG, AccountOfficer and HR Filing after DOD/HOD where applicable."
-                  : `${personalCategory} request does not require amount. It routes through HR, DG and HR Filing after DOD/HOD where applicable.`}{" "}
-                Personal DIN requests use HR, not Registrar.
-              </div>
-            )}
-
-            {isOfficial && canSeeSubheads && (
-              <div className="md:col-span-2">
-                <label className="text-sm font-semibold text-slate-800">
-                  Subhead / Budget Line
-                </label>
-                <select
-                  value={subheadId}
-                  onChange={(e) => setSubheadId(e.target.value)}
-                  className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
-                >
-                  <option value="">No subhead now — assign later</option>
-                  {filteredSubs.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {(s.code ? `${s.code} — ` : "") + s.name}
-                    </option>
-                  ))}
-                </select>
-
-                {subheadId && selectedSubhead && (
-                  <div className="mt-3 grid gap-2 text-sm font-semibold text-slate-700 sm:grid-cols-4">
-                    <div className="rounded-xl bg-slate-50 p-3">
-                      <div className="text-xs text-slate-500">Allocation</div>
-                      <div className="mt-1 text-slate-900">
-                        {naira(Number(selectedSubhead.approved_allocation || 0))}
-                      </div>
-                    </div>
-
-                    <div className="rounded-xl bg-amber-50 p-3">
-                      <div className="text-xs text-amber-700">Reserved</div>
-                      <div className="mt-1 text-amber-800">
-                        {naira(Number(selectedSubhead.reserved_amount || 0))}
-                      </div>
-                    </div>
-
-                    <div className="rounded-xl bg-red-50 p-3">
-                      <div className="text-xs text-red-700">Expenditure</div>
-                      <div className="mt-1 text-red-800">
-                        {naira(Number(selectedSubhead.expenditure || 0))}
-                      </div>
-                    </div>
-
-                    <div className="rounded-xl bg-emerald-50 p-3">
-                      <div className="text-xs text-emerald-700">Available Balance</div>
-                      <div className="mt-1 text-emerald-800">{naira(availableBalance)}</div>
-                    </div>
+                {isOfficial && canSeeSubheads ? (
+                  <label className={styles.field}>
+                    <span>Subhead / Budget Line</span>
+                    <select value={subheadId} onChange={(e) => setSubheadId(e.target.value)}>
+                      <option value="">Assign later</option>
+                      {filteredSubs.map((s) => (
+                        <option key={s.id} value={s.id}>{(s.code ? `${s.code} — ` : "") + s.name}</option>
+                      ))}
+                    </select>
+                  </label>
+                ) : (
+                  <div className={styles.readOnlyField}>
+                    <span>Budget Visibility</span>
+                    <strong>{canSeeSubheads ? "Not required" : "Assigned during review"}</strong>
                   </div>
                 )}
-              </div>
-            )}
 
-            <div>
-              <label className="text-sm font-semibold text-slate-800">Title</label>
-              <input
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
-                placeholder="Request title"
-              />
-            </div>
-
-            {requiresAmount ? (
-              <div>
-                <label className="text-sm font-semibold text-slate-800">Amount (₦)</label>
-                <input
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  type="number"
-                  className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
-                  placeholder="0"
-                />
-              </div>
-            ) : (
-              <div>
-                <label className="text-sm font-semibold text-slate-800">Amount</label>
-                <input
-                  value="Not Applicable"
-                  readOnly
-                  disabled
-                  className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-slate-500"
-                />
-              </div>
-            )}
-
-            <div className="md:col-span-2">
-              <label className="text-sm font-semibold text-slate-800">Details</label>
-              <textarea
-                value={details}
-                onChange={(e) => setDetails(e.target.value)}
-                className="mt-1 min-h-[160px] w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
-                placeholder="Write request details..."
-              />
-            </div>
-
-            <div className="md:col-span-2">
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <label className="text-sm font-extrabold text-slate-900">
-                      Supporting Attachments
-                    </label>
-                    <p className="mt-1 text-sm text-slate-600">
-                      Optional. Upload up to {MAX_ATTACHMENTS} documents. Each file must be{" "}
-                      {MAX_FILE_SIZE_MB}MB or below.
-                    </p>
-                  </div>
-
-                  {attachments.length > 0 && (
-                    <button
-                      type="button"
-                      onClick={clearAttachments}
-                      className="reqgen-btn reqgen-btn-slate rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-900 hover:bg-slate-100"
-                    >
-                      Clear All
-                    </button>
+                <label className={styles.field}>
+                  <span>Amount {requiresAmount && <b>*</b>}</span>
+                  {requiresAmount ? (
+                    <input value={amount} onChange={(e) => setAmount(e.target.value)} type="number" min="0" placeholder="₦ 0.00" />
+                  ) : (
+                    <input value="Not Applicable" disabled readOnly />
                   )}
-                </div>
+                </label>
+              </div>
 
+              <div className={styles.routeNote}>
+                <ShieldCheck size={17} />
+                <span>{routingNoteFor(requestType, personalCategory, selectedDept)}</span>
+              </div>
+
+              {isOfficial && canSeeSubheads && selectedSubhead && subheadId && (
+                <div className={styles.balanceGrid}>
+                  <div><span>Allocation</span><strong>{naira(Number(selectedSubhead.approved_allocation || 0))}</strong></div>
+                  <div><span>Reserved</span><strong>{naira(Number(selectedSubhead.reserved_amount || 0))}</strong></div>
+                  <div><span>Expenditure</span><strong>{naira(Number(selectedSubhead.expenditure || 0))}</strong></div>
+                  <div><span>Available Balance</span><strong>{naira(availableBalance)}</strong></div>
+                </div>
+              )}
+            </div>
+
+            <div className={styles.sectionBlock}>
+              <h2>3. Attachments</h2>
+              <label className={styles.dropzone}>
+                <UploadCloud size={34} />
+                <div>
+                  <strong>Drag and drop files here, or <span>click to browse</span></strong>
+                  <p>Allowed: PDF, DOC, DOCX, XLS, XLSX, JPG, PNG, WEBP, TXT · Max {MAX_FILE_SIZE_MB}MB each</p>
+                  <p>You can upload up to {MAX_ATTACHMENTS} files</p>
+                </div>
                 <input
                   type="file"
                   multiple
@@ -1272,171 +1166,124 @@ export default function NewRequestPage() {
                     handleAttachmentSelect(e.target.files);
                     e.target.value = "";
                   }}
-                  className="mt-4 w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm text-slate-900"
                 />
+              </label>
 
-                {attachments.length > 0 && (
-                  <div className="mt-4 space-y-2">
-                    {attachments.map((file, index) => (
-                      <div
-                        key={`${file.name}-${file.size}-${file.lastModified}`}
-                        className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-white px-4 py-3"
-                      >
-                        <div className="min-w-0">
-                          <div className="break-words text-sm font-bold text-slate-900">
-                            {index + 1}. {file.name}
-                          </div>
-                          <div className="mt-1 text-xs font-semibold text-slate-500">
-                            {file.type || "Unknown type"} • {fileSizeLabel(file.size)}
-                          </div>
-                        </div>
-
-                        <button
-                          type="button"
-                          onClick={() => removeAttachment(index)}
-                          className="reqgen-btn reqgen-btn-rose rounded-xl bg-red-600 px-3 py-2 text-xs font-bold text-white hover:bg-red-700"
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    ))}
-
-                    <div className="text-xs font-semibold text-slate-500">
-                      Total size: {fileSizeLabel(totalAttachmentSize)}
+              {attachments.length > 0 && (
+                <div className={styles.attachmentsList}>
+                  <div className={styles.attachmentsHeader}>
+                    <strong>{attachments.length} attachment(s) · {fileSizeLabel(totalAttachmentSize)}</strong>
+                    <button type="button" onClick={clearAttachments}>Clear all</button>
+                  </div>
+                  {attachments.map((file, index) => (
+                    <div key={`${file.name}-${file.size}-${file.lastModified}`} className={styles.attachmentItem}>
+                      <Paperclip size={16} />
+                      <span>{file.name}</span>
+                      <small>{fileSizeLabel(file.size)}</small>
+                      <button type="button" aria-label={`Remove ${file.name}`} onClick={() => removeAttachment(index)}><X size={15} /></button>
                     </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="md:col-span-2">
-              <div
-                className={`rounded-2xl border p-5 ${signedRequest
-                  ? "border-emerald-200 bg-emerald-50"
-                  : "border-amber-200 bg-amber-50"
-                  }`}
-              >
-                <div className="flex flex-wrap items-start justify-between gap-4">
-                  <div>
-                    <h2 className="text-lg font-extrabold text-slate-900">
-                      Staff / Requester Signature
-                    </h2>
-                    <p className="mt-1 text-sm text-slate-700">
-                      You must sign this request before submission.
-                    </p>
-
-                    {signedRequest && signedAt && (
-                      <div className="mt-2 text-sm font-bold text-emerald-700">
-                        Signed by {me?.full_name || "Requester"} on{" "}
-                        {new Date(signedAt).toLocaleString()} ✅
-                      </div>
-                    )}
-
-                    {!me?.signature_url && (
-                      <div className="mt-2 text-sm font-bold text-red-700">
-                        No signature found. Upload your signature in Profile first.
-                      </div>
-                    )}
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={signRequest}
-                    disabled={!me?.signature_url || saving || sendingOtp || verifyingOtp}
-                    className={`reqgen-btn reqgen-btn-rose rounded-xl px-5 py-3 text-sm font-bold text-white disabled:opacity-60 ${signedRequest
-                      ? "bg-emerald-600 hover:bg-emerald-700"
-                      : "bg-blue-600 hover:bg-blue-700"
-                      }`}
-                  >
-                    {signedRequest ? "Signed ✅" : "Sign Request"}
-                  </button>
+                  ))}
                 </div>
-              </div>
+              )}
             </div>
-          </div>
 
-          <button
-            onClick={openSubmitVerification}
-            disabled={!canSubmit}
-            className="reqgen-btn reqgen-btn-rose mt-5 w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {saving
-              ? uploadingAttachments
-                ? "Uploading Attachments..."
-                : "Submitting..."
-              : sendingOtp
-                ? `Sending ${otpLabel}...`
-                : verifyingOtp
-                  ? `Verifying ${otpLabel}...`
-                  : signedRequest
-                    ? requestOtpEnabled
-                      ? otpSent
-                        ? `Resend ${otpLabel} / Continue`
-                        : `Submit with ${otpLabel}`
-                      : "Submit Signed Request"
-                    : "Sign Request First"}
-          </button>
+            <div className={styles.signatureBlock}>
+              <div>
+                <h2>4. Review & Sign</h2>
+                <p>Your saved profile signature is required before submission.</p>
+                {signedRequest && signedAt ? (
+                  <strong className={styles.signedText}>Signed by {me?.full_name || "Requester"} · {new Date(signedAt).toLocaleString()}</strong>
+                ) : !me?.signature_url ? (
+                  <strong className={styles.errorText}>No signature found. Upload your signature in My Profile first.</strong>
+                ) : null}
+              </div>
+              <button
+                type="button"
+                className={`${styles.signButton} ${signedRequest ? styles.signedButton : ""}`}
+                onClick={signRequest}
+                disabled={!me?.signature_url || saving || sendingOtp || verifyingOtp}
+              >
+                <ShieldCheck size={17} />
+                {signedRequest ? "Signed" : "Sign Request"}
+              </button>
+            </div>
+
+            <footer className={styles.formActions}>
+              <button type="button" className={styles.cancelButton} onClick={() => router.push("/requests")}>Cancel</button>
+              <div>
+                <button type="button" className={styles.draftButton} onClick={saveDraftLocally}>Save as Draft</button>
+                <button type="button" className={styles.submitButton} onClick={openSubmitVerification} disabled={!canSubmit}>
+                  <Send size={17} />
+                  {saving
+                    ? uploadingAttachments ? "Uploading Attachments..." : "Submitting..."
+                    : sendingOtp ? `Sending ${otpLabel}...`
+                    : verifyingOtp ? `Verifying ${otpLabel}...`
+                    : signedRequest
+                      ? requestOtpEnabled ? (otpSent ? `Continue with ${otpLabel}` : `Submit Request`) : "Submit Request"
+                      : "Sign Request First"}
+                </button>
+              </div>
+            </footer>
+          </section>
+
+          <aside className={styles.sideColumn}>
+            <section className={styles.infoCard}>
+              <div className={styles.cardTitle}><Info size={19} /><h3>Request Guidance</h3></div>
+              <ul className={styles.guidanceList}>
+                <li><CheckCircle2 size={15} />Provide a clear and concise title.</li>
+                <li><CheckCircle2 size={15} />Add all relevant details in the description.</li>
+                <li><CheckCircle2 size={15} />Select the correct request type and department.</li>
+                <li><CheckCircle2 size={15} />Attach supporting documents if available.</li>
+                <li><CheckCircle2 size={15} />Review and sign your request before submission.</li>
+              </ul>
+            </section>
+
+            <section className={styles.infoCard}>
+              <h3>Request Types</h3>
+              <div className={styles.typeList}>
+                <div><span className={styles.typeBlue}><BriefcaseBusiness size={17} /></span><p><strong>Official</strong><small>Institutional goods, services, works or official activity.</small></p></div>
+                <div><span className={styles.typeGreen}><Landmark size={17} /></span><p><strong>Personal Fund</strong><small>Personal financial support routed through HR and Finance.</small></p></div>
+                <div><span className={styles.typeOrange}><UserRound size={17} /></span><p><strong>Leave / HR</strong><small>Leave, renewal, resignation and HR-related requests.</small></p></div>
+                <div><span className={styles.typePurple}><FolderOpen size={17} /></span><p><strong>Other Personal</strong><small>Other authorised personal request categories.</small></p></div>
+              </div>
+            </section>
+
+            <section className={`${styles.infoCard} ${styles.helpCard}`}>
+              <div className={styles.cardTitle}><CircleHelp size={20} /><h3>Need Help?</h3></div>
+              <p>If you need assistance, use Help & Support or contact the System Administrator.</p>
+              <button type="button" onClick={() => router.push("/docs")}>Visit Help Centre</button>
+            </section>
+
+            <section className={styles.securityCard}>
+              <ShieldCheck size={20} />
+              <div>
+                <strong>Secure submission</strong>
+                <p>{requestOtpEnabled ? `${otpLabel} verification is enabled for signed requests.` : "Profile signature verification is required before submission."}</p>
+              </div>
+            </section>
+          </aside>
         </div>
       </div>
+
       {showOtpModal && requestOtpEnabled && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-          <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl">
-            <div className="text-xs font-black uppercase tracking-wide text-blue-700">
-              Required OTP Verification
-            </div>
-
-            <h2 className="mt-1 text-2xl font-extrabold text-slate-900">
-              Enter {otpLabel}
-            </h2>
-
-            <p className="mt-2 text-sm leading-6 text-slate-600">
-              Enter the 6-digit OTP sent to{" "}
-              <b>
-                {otpChannel === "sms"
-                  ? `your registered phone ${maskPhone(me?.phone)}`
-                  : isDualOtpChannel(otpChannel)
-                    ? `your registered phone ${maskPhone(me?.phone)} and email ${maskEmail(
-                      me?.email
-                    )}`
-                    : `your registered email ${maskEmail(me?.email)}`}
-              </b>
-              . This signed request will be submitted automatically after the 6th digit is entered.
+        <div className={styles.modalBackdrop}>
+          <div className={styles.modal}>
+            <div className={styles.modalIcon}><ShieldCheck size={24} /></div>
+            <h2>Verify request submission</h2>
+            <p>
+              Enter the 6-digit {otpLabel} sent to {otpChannel === "sms"
+                ? `your registered phone ${maskPhone(me?.phone)}`
+                : isDualOtpChannel(otpChannel)
+                  ? `your registered phone ${maskPhone(me?.phone)} and email ${maskEmail(me?.email)}`
+                  : `your registered email ${maskEmail(me?.email)}`}.
             </p>
-
-            {otpChannel === "sms" && (
-              <div className="mt-4 rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-900">
-                SMS OTP was sent using the approved IET REQGEN Sender ID.
-              </div>
-            )}
-
-            {isDualOtpChannel(otpChannel) && (
-              <div className="mt-4 rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-900">
-                OTP was sent by SMS and email for stronger delivery.
-              </div>
-            )}
-
-            {otpChannel === "email" && (
-              <div className="mt-4 rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-900">
-                Email OTP was sent to your registered email address.
-              </div>
-            )}
-
-            {attachments.length > 0 && (
-              <div className="mt-4 rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-900">
-                {attachments.length} attachment(s) will be uploaded after OTP verification.
-              </div>
-            )}
-
             <input
               value={otpCode}
               onChange={(e) => {
                 const nextCode = e.target.value.replace(/\D/g, "").slice(0, 6);
                 setOtpCode(nextCode);
-
                 if (nextCode.length === 6 && !verifyingOtp && !saving) {
-                  setTimeout(() => {
-                    verifyOtpAndSubmit(nextCode);
-                  }, 150);
+                  setTimeout(() => verifyOtpAndSubmit(nextCode), 150);
                 }
               }}
               inputMode="numeric"
@@ -1444,48 +1291,13 @@ export default function NewRequestPage() {
               autoFocus
               disabled={verifyingOtp || saving}
               placeholder="123456"
-              className="mt-5 w-full rounded-2xl border border-slate-200 px-4 py-4 text-center text-2xl font-black tracking-[0.35em] text-slate-900 outline-none focus:border-blue-500 disabled:bg-slate-100 disabled:text-slate-500"
             />
-
-            <div className="mt-3 text-center text-xs font-semibold text-slate-500">
-              {verifyingOtp || saving
-                ? "Verifying automatically, please wait..."
-                : "Auto-submit activates immediately after 6 digits."}
+            <small>{verifyingOtp || saving ? "Verifying automatically..." : "Verification starts after the sixth digit."}</small>
+            <div className={styles.modalActions}>
+              <button type="button" onClick={() => { if (!verifyingOtp && !saving) { setShowOtpModal(false); setOtpCode(""); otpAutoSubmittingRef.current = false; } }} disabled={verifyingOtp || saving}>Cancel</button>
+              <button type="button" onClick={() => verifyOtpAndSubmit()} disabled={verifyingOtp || saving || otpCode.trim().length !== 6}>Verify & Submit</button>
             </div>
-
-            <div className="mt-5 flex flex-col gap-2 sm:flex-row">
-              <button
-                type="button"
-                onClick={() => {
-                  if (verifyingOtp || saving) return;
-                  setShowOtpModal(false);
-                  setOtpCode("");
-                  otpAutoSubmittingRef.current = false;
-                }}
-                disabled={verifyingOtp || saving}
-                className="reqgen-btn reqgen-btn-rose w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
-              >
-                Cancel
-              </button>
-
-              <button
-                type="button"
-                onClick={() => verifyOtpAndSubmit()}
-                disabled={verifyingOtp || saving || otpCode.trim().length !== 6}
-                className="reqgen-btn reqgen-btn-rose w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white hover:bg-blue-700 disabled:opacity-60"
-              >
-                {verifyingOtp || saving ? "Verifying automatically..." : "Verify OTP & Submit"}
-              </button>
-            </div>
-
-            <button
-              type="button"
-              onClick={openSubmitVerification}
-              disabled={sendingOtp || verifyingOtp || saving}
-              className="reqgen-btn reqgen-btn-rose mt-3 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
-            >
-              {sendingOtp ? "Resending OTP..." : `Resend ${otpLabel}`}
-            </button>
+            <button type="button" className={styles.resendButton} onClick={openSubmitVerification} disabled={sendingOtp || verifyingOtp || saving}>{sendingOtp ? "Resending..." : `Resend ${otpLabel}`}</button>
           </div>
         </div>
       )}

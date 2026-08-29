@@ -142,7 +142,7 @@ export default function HRMyWorkPage() {
       <HRHero
         eyebrow="Assigned HR Officer Workspace"
         title="My HR Work"
-        description="Your enterprise HR authority profile and delegated case queue. Functional assignments show what you are permitted to do; delegated requests show the individual work requiring action."
+        description="Your HR authority profile and delegated case queue. Functional assignments show what you are permitted to do; delegated requests show the individual work requiring action."
         icon={BriefcaseBusiness}
         tone="cyan"
         action={<HRRefreshButton onClick={() => void load()} loading={loading} />}

@@ -288,9 +288,9 @@ export default function RegistryPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4 pb-12">
+    <main className="rg-module-page rg-adopted-page rg-registry-page">
       <div className="mx-auto max-w-7xl py-8">
-        <section className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-slate-950 via-blue-950 to-indigo-900 px-6 py-7 text-white shadow-2xl md:px-8">
+        <section className="rg-module-header">
           <div className="absolute -right-20 -top-24 h-72 w-72 rounded-full bg-cyan-400/15 blur-2xl" />
           <div className="absolute -bottom-24 left-1/3 h-64 w-64 rounded-full bg-violet-400/15 blur-2xl" />
           <div className="relative flex flex-col justify-between gap-6 lg:flex-row lg:items-center">

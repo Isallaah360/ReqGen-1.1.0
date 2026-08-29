@@ -447,7 +447,7 @@ export default function ReportsAnalyticsPage() {
 
   if (loading) return <><ReportsPageStyles /><ReportsSkeleton /></>;
 
-  return <div className="min-h-screen bg-slate-100 p-4 sm:p-7">
+  return <div className="rg-module-page rg-adopted-page rg-reports-page">
     <ReportsPageStyles />
     <style jsx global>{`
       #reqgen-print-root { display:none; }
@@ -479,7 +479,7 @@ export default function ReportsAnalyticsPage() {
     `}</style>
     <div id="reqgen-print-root" aria-hidden="true" />
 
-    <main className="mx-auto max-w-[1600px] space-y-6">
+    <main className="rg-module-page rg-adopted-page rg-reports-page">
       <ReportsHero actions={<>
         <ReportButton icon="refresh" variant="cyan" disabled={refreshing} onClick={() => void load(true)}>{refreshing ? "Refreshing…" : "Refresh Data"}</ReportButton>
         <ReportButton icon="download" variant="violet" onClick={exportReport}>Export CSV</ReportButton>

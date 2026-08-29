@@ -1,10 +1,10 @@
 {
   "summary": {
-    "scannedFiles": 142,
-    "findings": 219,
-    "warnings": 102,
-    "info": 117,
-    "generatedAt": "2026-08-02T01:32:53.854Z"
+    "scannedFiles": 219,
+    "findings": 193,
+    "warnings": 81,
+    "info": 112,
+    "generatedAt": "2026-08-29T04:33:15.052Z"
   },
   "findings": [
     {
@@ -128,68 +128,12 @@
       "excerpt": "<div className=\"mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-5\">"
     },
     {
-      "file": "app/approvals/action-centre/page.tsx",
-      "line": 244,
-      "rule": "fixed-width",
-      "severity": "warning",
-      "match": "max-w-[1400px]",
-      "excerpt": "<div className=\"mx-auto max-w-[1400px] space-y-6\">"
-    },
-    {
-      "file": "app/approvals/page.tsx",
-      "line": 470,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-7",
-      "excerpt": "<div className=\"mt-5 grid gap-3 md:grid-cols-4 xl:grid-cols-7\">"
-    },
-    {
-      "file": "app/approvals/page.tsx",
-      "line": 489,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-9",
-      "excerpt": "<div className=\"mt-4 grid gap-3 md:grid-cols-3 xl:grid-cols-9\">"
-    },
-    {
-      "file": "app/approvals/page.tsx",
-      "line": 512,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-12",
-      "excerpt": "<div className=\"grid gap-4 md:grid-cols-2 xl:grid-cols-12\">"
-    },
-    {
-      "file": "app/approvals/page.tsx",
-      "line": 516,
+      "file": "app/approvals/action-centre/action-centre.module.css",
+      "line": 1,
       "rule": "absolute-layout",
       "severity": "info",
       "match": "absolute",
-      "excerpt": "<span className=\"pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-400\">"
-    },
-    {
-      "file": "app/approvals/page.tsx",
-      "line": 580,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-12",
-      "excerpt": "<div className=\"hidden grid-cols-12 bg-slate-100 px-4 py-3 text-xs font-bold uppercase tracking-wide text-slate-600 md:grid\">"
-    },
-    {
-      "file": "app/approvals/page.tsx",
-      "line": 591,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-12",
-      "excerpt": "<div className=\"grid gap-3 md:grid-cols-12 md:items-center\">"
-    },
-    {
-      "file": "app/approvals/page.tsx",
-      "line": 708,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "<div className=\"pointer-events-none absolute -right-7 -top-7 h-24 w-24 rounded-full bg-white/70 blur-2xl\" />"
+      "excerpt": ".page{width:min(100%,1440px);margin:0 auto;padding:28px 28px 34px;color:#0f1f3d;font-size:13px}.headerRow{display:flex;justify-content:space-between;gap:24px;align-items:flex-start;margin-bottom:18px}.headerRow h1{margin"
     },
     {
       "file": "app/audit-centre/page.tsx",
@@ -232,68 +176,172 @@
       "excerpt": "<td className=\"max-w-[420px] break-words px-4 py-4 text-sm font-semibold leading-6 text-slate-600\">{event.details || \"—\"}</td>"
     },
     {
-      "file": "app/components/admin/AdminUI.tsx",
-      "line": 31,
+      "file": "app/components/NavBar.tsx",
+      "line": 310,
+      "rule": "nowrap-risk",
+      "severity": "info",
+      "match": "whitespace-nowrap",
+      "excerpt": "<span className=\"pointer-events-none absolute left-1/2 top-full z-[70] mt-2 -translate-x-1/2 whitespace-nowrap rounded-xl border border-white/10 bg-slate-950/95 px-3 py-1.5 text-xs font-black tracking-wide text-white sha"
+    },
+    {
+      "file": "app/components/NavBar.tsx",
+      "line": 310,
       "rule": "absolute-layout",
       "severity": "info",
       "match": "absolute",
-      "excerpt": "<div className=\"pointer-events-none absolute -right-20 -top-24 h-72 w-72 rounded-full bg-cyan-400/20 blur-3xl\" />"
+      "excerpt": "<span className=\"pointer-events-none absolute left-1/2 top-full z-[70] mt-2 -translate-x-1/2 whitespace-nowrap rounded-xl border border-white/10 bg-slate-950/95 px-3 py-1.5 text-xs font-black tracking-wide text-white sha"
     },
     {
-      "file": "app/components/admin/AdminUI.tsx",
-      "line": 32,
+      "file": "app/components/NavBar.tsx",
+      "line": 717,
+      "rule": "fixed-width",
+      "severity": "warning",
+      "match": "max-w-[1680px]",
+      "excerpt": "<div className=\"mx-auto flex max-w-[1680px] items-center justify-between gap-3 px-4 py-3\">"
+    },
+    {
+      "file": "app/components/NavBar.tsx",
+      "line": 763,
+      "rule": "truncate-risk",
+      "severity": "info",
+      "match": "truncate",
+      "excerpt": "<span className=\"hidden truncate 2xl:inline\">Search ReqGen…</span>"
+    },
+    {
+      "file": "app/components/NavBar.tsx",
+      "line": 767,
       "rule": "absolute-layout",
       "severity": "info",
       "match": "absolute",
-      "excerpt": "<div className=\"pointer-events-none absolute -bottom-28 left-1/3 h-64 w-64 rounded-full bg-violet-500/20 blur-3xl\" />"
+      "excerpt": "<div className=\"absolute left-0 top-[52px] z-[70] w-[min(520px,calc(100vw-2rem))] overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl shadow-slate-900/20\">"
     },
     {
-      "file": "app/components/admin/AdminUI.tsx",
-      "line": 63,
+      "file": "app/components/NavBar.tsx",
+      "line": 820,
       "rule": "absolute-layout",
       "severity": "info",
       "match": "absolute",
-      "excerpt": "<div className={`absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r ${toneMap[tone]}`} />"
+      "excerpt": "<span className=\"absolute bottom-1.5 right-1.5 grid h-4 w-4 place-items-center rounded-full bg-emerald-500 text-[9px] font-black leading-none text-white shadow-sm ring-2 ring-white\">✓</span>"
     },
     {
-      "file": "app/components/enterprise/EnterpriseUI.tsx",
-      "line": 24,
+      "file": "app/components/NavBar.tsx",
+      "line": 823,
+      "rule": "absolute-layout",
+      "severity": "info",
+      "match": "absolute",
+      "excerpt": "<span className=\"absolute -right-2 -top-2 min-w-6 rounded-full bg-rose-600 px-1.5 py-0.5 text-center text-xs font-black text-white shadow-sm ring-2 ring-white\">"
+    },
+    {
+      "file": "app/components/NavBar.tsx",
+      "line": 830,
+      "rule": "fixed-width",
+      "severity": "warning",
+      "match": "w-[420px]",
+      "excerpt": "<div className=\"absolute left-0 top-12 z-50 w-[420px] overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl shadow-slate-900/20\">"
+    },
+    {
+      "file": "app/components/NavBar.tsx",
+      "line": 830,
+      "rule": "absolute-layout",
+      "severity": "info",
+      "match": "absolute",
+      "excerpt": "<div className=\"absolute left-0 top-12 z-50 w-[420px] overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl shadow-slate-900/20\">"
+    },
+    {
+      "file": "app/components/NavBar.tsx",
+      "line": 878,
+      "rule": "truncate-risk",
+      "severity": "info",
+      "match": "truncate",
+      "excerpt": "<span className=\"truncate text-sm font-black text-slate-950\">{r.request_no || \"No Request Number\"}</span>"
+    },
+    {
+      "file": "app/components/NavBar.tsx",
+      "line": 1018,
+      "rule": "absolute-layout",
+      "severity": "info",
+      "match": "absolute",
+      "excerpt": "<div className=\"absolute right-0 top-12 z-50 max-h-[80vh] w-[340px] overflow-auto rounded-3xl border border-slate-200 bg-white p-3 shadow-2xl\">"
+    },
+    {
+      "file": "app/components/SessionTimeout.tsx",
+      "line": 170,
+      "rule": "absolute-layout",
+      "severity": "info",
+      "match": "absolute",
+      "excerpt": "// the absolute activity timestamp so the warning is never skipped."
+    },
+    {
+      "file": "app/components/executive/ExecutiveModulePage.tsx",
+      "line": 97,
       "rule": "fixed-width",
       "severity": "warning",
       "match": "max-w-[1500px]",
-      "excerpt": "<section className=\"relative mx-auto max-w-[1500px] overflow-hidden rounded-[2rem] border border-blue-300/20 bg-gradient-to-br from-slate-950 via-blue-950 to-blue-800 px-5 py-8 text-white shadow-2xl sm:px-8 lg:px-10\">"
+      "excerpt": "<div className=\"mx-auto max-w-[1500px] space-y-6\">"
     },
     {
-      "file": "app/components/enterprise/EnterpriseUI.tsx",
-      "line": 25,
+      "file": "app/components/executive/ExecutiveModulePage.tsx",
+      "line": 177,
       "rule": "absolute-layout",
       "severity": "info",
       "match": "absolute",
-      "excerpt": "<div className=\"pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-cyan-400/15 blur-3xl\" />"
+      "excerpt": "<ExecutivePanel title=\"Request Register\" eyebrow=\"Workflow Queue\" description=\"Search and review the executive request register permitted by RLS.\" action={<div className=\"relative w-full sm:w-80\"><Search className=\"absol"
     },
     {
-      "file": "app/components/enterprise/EnterpriseUI.tsx",
+      "file": "app/components/executive/ExecutiveNavigation.tsx",
+      "line": 25,
+      "rule": "fixed-width",
+      "severity": "warning",
+      "match": "max-w-[1240px]",
+      "excerpt": "<nav aria-label=\"Executive Command Centre\" className=\"mx-auto grid max-w-[1240px] grid-cols-1 gap-2 rounded-[1.75rem] border border-slate-200 bg-white/95 p-3 shadow-sm sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6\">"
+    },
+    {
+      "file": "app/components/executive/ExecutiveNavigation.tsx",
+      "line": 25,
+      "rule": "desktop-only-grid",
+      "severity": "warning",
+      "match": "grid-cols-6",
+      "excerpt": "<nav aria-label=\"Executive Command Centre\" className=\"mx-auto grid max-w-[1240px] grid-cols-1 gap-2 rounded-[1.75rem] border border-slate-200 bg-white/95 p-3 shadow-sm sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6\">"
+    },
+    {
+      "file": "app/components/executive/ExecutiveNavigation.tsx",
+      "line": 36,
+      "rule": "truncate-risk",
+      "severity": "info",
+      "match": "truncate",
+      "excerpt": "<span className=\"block truncate text-sm font-black\">{item.label}</span>"
+    },
+    {
+      "file": "app/components/executive/ExecutiveNavigation.tsx",
+      "line": 37,
+      "rule": "truncate-risk",
+      "severity": "info",
+      "match": "truncate",
+      "excerpt": "<span className={`block truncate text-[11px] font-semibold ${active ? \"text-blue-100\" : \"text-slate-500\"}`}>{item.description}</span>"
+    },
+    {
+      "file": "app/components/executive/ExecutiveUI.tsx",
       "line": 26,
       "rule": "absolute-layout",
       "severity": "info",
       "match": "absolute",
-      "excerpt": "<div className=\"pointer-events-none absolute -bottom-24 left-1/3 h-64 w-64 rounded-full bg-violet-500/15 blur-3xl\" />"
+      "excerpt": "<div className=\"pointer-events-none absolute -right-20 -top-24 h-64 w-64 rounded-full bg-cyan-400/20 blur-3xl\" />"
+    },
+    {
+      "file": "app/components/executive/ExecutiveUI.tsx",
+      "line": 27,
+      "rule": "absolute-layout",
+      "severity": "info",
+      "match": "absolute",
+      "excerpt": "<div className=\"pointer-events-none absolute -bottom-24 left-1/3 h-64 w-64 rounded-full bg-violet-500/20 blur-3xl\" />"
     },
     {
       "file": "app/components/hr/HRNavigation.tsx",
-      "line": 41,
+      "line": 32,
       "rule": "desktop-only-grid",
       "severity": "warning",
       "match": "grid-cols-5",
       "excerpt": "<div className=\"grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-5\">"
-    },
-    {
-      "file": "app/components/hr/HRNavigation.tsx",
-      "line": 64,
-      "rule": "truncate-risk",
-      "severity": "info",
-      "match": "truncate",
-      "excerpt": "<span className=\"truncate\">{label}</span>"
     },
     {
       "file": "app/components/hr/HRProgrammeCentre.tsx",
@@ -313,7 +361,7 @@
     },
     {
       "file": "app/components/hr/HRStrategicUI.tsx",
-      "line": 32,
+      "line": 33,
       "rule": "absolute-layout",
       "severity": "info",
       "match": "absolute",
@@ -321,7 +369,7 @@
     },
     {
       "file": "app/components/hr/HRStrategicUI.tsx",
-      "line": 33,
+      "line": 34,
       "rule": "absolute-layout",
       "severity": "info",
       "match": "absolute",
@@ -360,72 +408,16 @@
       "excerpt": "<div className=\"grid gap-3 sm:grid-cols-2 xl:grid-cols-5\">"
     },
     {
-      "file": "app/components/NavBar.tsx",
-      "line": 300,
-      "rule": "nowrap-risk",
-      "severity": "info",
-      "match": "whitespace-nowrap",
-      "excerpt": "<span className=\"pointer-events-none absolute left-1/2 top-full z-[70] mt-2 -translate-x-1/2 whitespace-nowrap rounded-xl border border-white/10 bg-slate-950/95 px-3 py-1.5 text-xs font-black tracking-wide text-white sha"
-    },
-    {
-      "file": "app/components/NavBar.tsx",
-      "line": 300,
+      "file": "app/components/print/PrintEngineStyles.tsx",
+      "line": 13,
       "rule": "absolute-layout",
       "severity": "info",
       "match": "absolute",
-      "excerpt": "<span className=\"pointer-events-none absolute left-1/2 top-full z-[70] mt-2 -translate-x-1/2 whitespace-nowrap rounded-xl border border-white/10 bg-slate-950/95 px-3 py-1.5 text-xs font-black tracking-wide text-white sha"
-    },
-    {
-      "file": "app/components/NavBar.tsx",
-      "line": 751,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "<span className=\"absolute bottom-1.5 right-1.5 grid h-4 w-4 place-items-center rounded-full bg-emerald-500 text-[9px] font-black leading-none text-white shadow-sm ring-2 ring-white\">✓</span>"
-    },
-    {
-      "file": "app/components/NavBar.tsx",
-      "line": 754,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "<span className=\"absolute -right-2 -top-2 min-w-6 rounded-full bg-rose-600 px-1.5 py-0.5 text-center text-xs font-black text-white shadow-sm ring-2 ring-white\">"
-    },
-    {
-      "file": "app/components/NavBar.tsx",
-      "line": 761,
-      "rule": "fixed-width",
-      "severity": "warning",
-      "match": "w-[420px]",
-      "excerpt": "<div className=\"absolute left-0 top-12 z-50 w-[420px] overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl shadow-slate-900/20\">"
-    },
-    {
-      "file": "app/components/NavBar.tsx",
-      "line": 761,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "<div className=\"absolute left-0 top-12 z-50 w-[420px] overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl shadow-slate-900/20\">"
-    },
-    {
-      "file": "app/components/NavBar.tsx",
-      "line": 809,
-      "rule": "truncate-risk",
-      "severity": "info",
-      "match": "truncate",
-      "excerpt": "<span className=\"truncate text-sm font-black text-slate-950\">{r.request_no || \"No Request Number\"}</span>"
-    },
-    {
-      "file": "app/components/NavBar.tsx",
-      "line": 942,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "<div className=\"absolute right-0 top-12 z-50 max-h-[80vh] w-[340px] overflow-auto rounded-3xl border border-slate-200 bg-white p-3 shadow-2xl\">"
+      "excerpt": ".iet-print-footer{position:absolute;left:12mm;right:12mm;bottom:6mm;border-top:1px solid #94a3b8;padding-top:4px;display:flex;justify-content:space-between;font-size:7px;color:#475569}.iet-page-number:after{content:\" \" c"
     },
     {
       "file": "app/components/profile/ProfileNavigation.tsx",
-      "line": 18,
+      "line": 19,
       "rule": "desktop-only-grid",
       "severity": "warning",
       "match": "grid-cols-5",
@@ -438,6 +430,22 @@
       "severity": "warning",
       "match": "max-w-[1500px]",
       "excerpt": "<div className=\"mx-auto max-w-[1500px] space-y-6\">"
+    },
+    {
+      "file": "app/components/staff/StaffHero.tsx",
+      "line": 27,
+      "rule": "absolute-layout",
+      "severity": "info",
+      "match": "absolute",
+      "excerpt": "<div className=\"pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-cyan-300/20 blur-3xl\" />"
+    },
+    {
+      "file": "app/components/staff/StaffHero.tsx",
+      "line": 28,
+      "rule": "absolute-layout",
+      "severity": "info",
+      "match": "absolute",
+      "excerpt": "<div className=\"pointer-events-none absolute -bottom-24 left-1/3 h-64 w-64 rounded-full bg-violet-500/20 blur-3xl\" />"
     },
     {
       "file": "app/components/ui/DirectorateWorkspaceMenu.tsx",
@@ -454,22 +462,6 @@
       "severity": "info",
       "match": "absolute",
       "excerpt": "<div className=\"absolute -right-8 -top-8 h-28 w-28 rounded-full bg-white/10 blur-sm transition group-hover:scale-110\" />"
-    },
-    {
-      "file": "app/components/ui/PaymentVoucherUI.tsx",
-      "line": 18,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "<div className=\"pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full bg-cyan-300/15 blur-3xl\" />"
-    },
-    {
-      "file": "app/components/ui/PaymentVoucherUI.tsx",
-      "line": 19,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "<div className=\"pointer-events-none absolute -bottom-24 left-1/3 h-60 w-60 rounded-full bg-violet-400/15 blur-3xl\" />"
     },
     {
       "file": "app/components/ui/PublicPageShell.tsx",
@@ -510,30 +502,6 @@
       "severity": "info",
       "match": "absolute",
       "excerpt": "<div className=\"absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.025)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.025)_1px,transparent_1px)] bg-[size:38px_38px]\" />"
-    },
-    {
-      "file": "app/components/ui/ReportsUI.tsx",
-      "line": 38,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "<div className=\"pointer-events-none absolute -right-16 -top-20 h-72 w-72 rounded-full bg-cyan-400/20 blur-3xl report-float\" />"
-    },
-    {
-      "file": "app/components/ui/ReportsUI.tsx",
-      "line": 39,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "<div className=\"pointer-events-none absolute -bottom-28 left-1/3 h-64 w-64 rounded-full bg-violet-500/20 blur-3xl\" />"
-    },
-    {
-      "file": "app/components/ui/ReportsUI.tsx",
-      "line": 74,
-      "rule": "fixed-width",
-      "severity": "warning",
-      "match": "max-w-[1500px]",
-      "excerpt": "return <div className=\"min-h-screen bg-slate-100 p-4 sm:p-7\"><div className=\"mx-auto max-w-[1500px] space-y-6\"><div className=\"report-skeleton h-64 rounded-[30px]\"/><div className=\"grid gap-4 sm:grid-cols-2 xl:grid-cols-"
     },
     {
       "file": "app/components/ui/ReqGenDesignSystem.tsx",
@@ -592,164 +560,52 @@
       "excerpt": "return <EnterpriseShell><div className=\"mx-auto max-w-[1400px] space-y-6\">"
     },
     {
-      "file": "app/dashboard/page.tsx",
-      "line": 635,
+      "file": "app/dashboard/dashboard.module.css",
+      "line": 1,
       "rule": "absolute-layout",
       "severity": "info",
       "match": "absolute",
-      "excerpt": "<div className=\"pointer-events-none absolute inset-0 bg-gradient-to-br from-blue-100/70 via-white to-cyan-100/60\" />"
+      "excerpt": ".page{display:grid;gap:14px;color:#0f1f3d;font-size:13px}.header{display:flex;align-items:flex-start;justify-content:space-between;gap:20px}.header h1{margin:0;font-size:27px;line-height:1.15;font-weight:850;letter-spaci"
     },
     {
-      "file": "app/dashboard/page.tsx",
-      "line": 636,
+      "file": "app/dashboard/dashboard.module.css",
+      "line": 1,
       "rule": "absolute-layout",
       "severity": "info",
       "match": "absolute",
-      "excerpt": "<div className=\"absolute inset-0 backdrop-blur-[2px]\" />"
+      "excerpt": ".page{display:grid;gap:14px;color:#0f1f3d;font-size:13px}.header{display:flex;align-items:flex-start;justify-content:space-between;gap:20px}.header h1{margin:0;font-size:27px;line-height:1.15;font-weight:850;letter-spaci"
     },
     {
-      "file": "app/dashboard/page.tsx",
-      "line": 664,
+      "file": "app/finance/_components/FinanceOperationsWorkspace.module.css",
+      "line": 1,
       "rule": "absolute-layout",
       "severity": "info",
       "match": "absolute",
-      "excerpt": "<div className=\"pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.15),transparent_34%),radial-gradient(circle_at_top_right,rgba(6,182,212,0.12),transparent_30%),radial-gradient"
+      "excerpt": ".page{display:grid;gap:16px;color:#0b1739;font-size:12px}.header{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;padding:4px 2px}.crumb{font-size:10px;color:#7b8799;margin-bottom:8px}.crumb span{"
     },
     {
-      "file": "app/dashboard/page.tsx",
-      "line": 667,
+      "file": "app/finance/_components/FinanceOutputWorkspace.tsx",
+      "line": 571,
       "rule": "absolute-layout",
       "severity": "info",
       "match": "absolute",
-      "excerpt": "<div className=\"pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-cyan-300/25 blur-3xl\" />"
+      "excerpt": "<div className=\"hero-orb absolute -right-16 -top-20 h-72 w-72 rounded-full bg-cyan-300/20 blur-3xl\" />"
     },
     {
-      "file": "app/dashboard/page.tsx",
-      "line": 668,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "<div className=\"pointer-events-none absolute -bottom-24 left-1/3 h-56 w-56 rounded-full bg-violet-400/20 blur-3xl\" />"
-    },
-    {
-      "file": "app/dashboard/page.tsx",
-      "line": 778,
+      "file": "app/finance/_components/FinanceOutputWorkspace.tsx",
+      "line": 602,
       "rule": "desktop-only-grid",
       "severity": "warning",
       "match": "grid-cols-5",
-      "excerpt": "<div className=\"mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-5\">"
+      "excerpt": "<div className=\"grid gap-4 md:grid-cols-2 xl:grid-cols-5\">"
     },
     {
-      "file": "app/dashboard/page.tsx",
-      "line": 924,
-      "rule": "truncate-risk",
-      "severity": "info",
-      "match": "truncate",
-      "excerpt": "<span className=\"truncate text-sm font-black text-slate-900\">{item.request_no}</span>"
-    },
-    {
-      "file": "app/dashboard/page.tsx",
-      "line": 927,
-      "rule": "truncate-risk",
-      "severity": "info",
-      "match": "truncate",
-      "excerpt": "<span className=\"mt-0.5 block truncate text-xs font-semibold text-slate-600\">{item.action_type}{item.to_stage ? ` · ${item.to_stage}` : \"\"}</span>"
-    },
-    {
-      "file": "app/dashboard/page.tsx",
-      "line": 928,
-      "rule": "truncate-risk",
-      "severity": "info",
-      "match": "truncate",
-      "excerpt": "<span className=\"mt-1 block truncate text-[11px] text-slate-500\">{item.actor_name}{item.actor_role_name ? ` · ${item.actor_role_name}` : \"\"}</span>"
-    },
-    {
-      "file": "app/dashboard/page.tsx",
-      "line": 1110,
+      "file": "app/finance/_components/FinanceOutputWorkspace.tsx",
+      "line": 666,
       "rule": "absolute-layout",
       "severity": "info",
       "match": "absolute",
-      "excerpt": "<span className=\"absolute bottom-3 right-4 text-sm font-black text-blue-600 transition group-hover:translate-x-1\">Open →</span>"
-    },
-    {
-      "file": "app/dashboard/page.tsx",
-      "line": 1200,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "<div className={`absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r ${tones[tone]}`} />"
-    },
-    {
-      "file": "app/dashboard/page.tsx",
-      "line": 1213,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "<div className=\"pointer-events-none absolute -bottom-12 -right-12 h-28 w-28 rounded-full bg-blue-100/50 blur-2xl transition group-hover:bg-cyan-100/70\" />"
-    },
-    {
-      "file": "app/finance/account-ledger/page.tsx",
-      "line": 567,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-6",
-      "excerpt": "<div className=\"grid gap-4 lg:grid-cols-6\">"
-    },
-    {
-      "file": "app/finance/account-ledger/page.tsx",
-      "line": 683,
-      "rule": "fixed-width",
-      "severity": "warning",
-      "match": "min-w-[1180px]",
-      "excerpt": "<table className=\"min-w-[1180px] w-full border-collapse text-left text-sm\">"
-    },
-    {
-      "file": "app/finance/account-ledger/page.tsx",
-      "line": 699,
-      "rule": "nowrap-risk",
-      "severity": "info",
-      "match": "whitespace-nowrap",
-      "excerpt": "<td className=\"whitespace-nowrap px-4 py-4 font-semibold text-slate-700\">"
-    },
-    {
-      "file": "app/finance/account-ledger/page.tsx",
-      "line": 718,
-      "rule": "nowrap-risk",
-      "severity": "info",
-      "match": "whitespace-nowrap",
-      "excerpt": "<td className=\"whitespace-nowrap px-4 py-4 text-right font-black text-red-700\">"
-    },
-    {
-      "file": "app/finance/account-ledger/page.tsx",
-      "line": 721,
-      "rule": "nowrap-risk",
-      "severity": "info",
-      "match": "whitespace-nowrap",
-      "excerpt": "<td className=\"whitespace-nowrap px-4 py-4 text-right font-black text-emerald-700\">"
-    },
-    {
-      "file": "app/finance/account-ledger/page.tsx",
-      "line": 724,
-      "rule": "nowrap-risk",
-      "severity": "info",
-      "match": "whitespace-nowrap",
-      "excerpt": "<td className=\"whitespace-nowrap px-4 py-4 text-right font-black text-slate-950\">"
-    },
-    {
-      "file": "app/finance/account-transfers/page.tsx",
-      "line": 457,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": ".hero:before{content:\"\";position:absolute;inset:-80px auto auto 48%;width:320px;height:320px;border-radius:50%;background:rgba(34,193,255,.13);filter:blur(12px);animation:floatOrb 8s ease-in-out infinite}"
-    },
-    {
-      "file": "app/finance/account-transfers/page.tsx",
-      "line": 458,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": ".hero:after{content:\"\";position:absolute;inset:auto -90px -130px auto;width:330px;height:330px;border-radius:50%;background:rgba(245,158,11,.12);filter:blur(2px);pointer-events:none;animation:floatOrb 10s ease-in-out inf"
+      "excerpt": "body.finance-output-printing .print-sheet { position:absolute !important; left:0; top:0; margin:0 !important; box-shadow:none !important; }"
     },
     {
       "file": "app/finance/audit/page.tsx",
@@ -824,56 +680,96 @@
       "excerpt": "<div className=\"overflow-x-auto\"><table className=\"min-w-full text-left text-sm\"><thead className=\"bg-slate-950 text-white\"><tr><th className=\"px-4 py-3\">Date & time</th><th className=\"px-4 py-3\">Action</th><th className"
     },
     {
-      "file": "app/finance/departments/page.tsx",
-      "line": 449,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-6",
-      "excerpt": "<div className=\"mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-6\">"
+      "file": "app/finance/departments/finance-departments.module.css",
+      "line": 1,
+      "rule": "absolute-layout",
+      "severity": "info",
+      "match": "absolute",
+      "excerpt": ".page{padding:22px 26px 30px;background:#f8fafc;min-height:100%;color:#0b1739;font-family:Inter,\"Segoe UI\",Arial,sans-serif;font-size:13px}.pageHeader{display:flex;align-items:flex-end;justify-content:space-between;gap:2"
     },
     {
-      "file": "app/finance/departments/page.tsx",
-      "line": 571,
-      "rule": "fixed-width",
-      "severity": "warning",
-      "match": "min-w-[1100px]",
-      "excerpt": "<table className=\"min-w-[1100px] w-full border-collapse text-sm\">"
+      "file": "app/finance/finance-overview.module.css",
+      "line": 1,
+      "rule": "absolute-layout",
+      "severity": "info",
+      "match": "absolute",
+      "excerpt": ".page{width:100%;max-width:1480px;margin:0 auto;padding:20px 22px 28px;color:#0b1f45;font-size:13px}.page *{box-sizing:border-box}.pageHeader{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;mar"
     },
     {
-      "file": "app/finance/manage-accounts/assign/page.tsx",
-      "line": 443,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-5",
-      "excerpt": "<div className=\"mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-5\">"
+      "file": "app/finance/finance-overview.module.css",
+      "line": 1,
+      "rule": "absolute-layout",
+      "severity": "info",
+      "match": "absolute",
+      "excerpt": ".page{width:100%;max-width:1480px;margin:0 auto;padding:20px 22px 28px;color:#0b1f45;font-size:13px}.page *{box-sizing:border-box}.pageHeader{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;mar"
     },
     {
-      "file": "app/finance/manage-accounts/assign/page.tsx",
-      "line": 573,
-      "rule": "fixed-width",
-      "severity": "warning",
-      "match": "min-w-[1100px]",
-      "excerpt": "<table className=\"min-w-[1100px] w-full border-collapse text-sm\">"
+      "file": "app/finance/finance-overview.module.css",
+      "line": 1,
+      "rule": "absolute-layout",
+      "severity": "info",
+      "match": "absolute",
+      "excerpt": ".page{width:100%;max-width:1480px;margin:0 auto;padding:20px 22px 28px;color:#0b1f45;font-size:13px}.page *{box-sizing:border-box}.pageHeader{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;mar"
     },
     {
-      "file": "app/finance/manage-accounts/page.tsx",
-      "line": 786,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-5",
-      "excerpt": "<div className=\"mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-5\">"
+      "file": "app/finance/finance-overview.module.css",
+      "line": 1,
+      "rule": "absolute-layout",
+      "severity": "info",
+      "match": "absolute",
+      "excerpt": ".page{width:100%;max-width:1480px;margin:0 auto;padding:20px 22px 28px;color:#0b1f45;font-size:13px}.page *{box-sizing:border-box}.pageHeader{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;mar"
     },
     {
-      "file": "app/finance/manage-accounts/page.tsx",
-      "line": 932,
-      "rule": "fixed-width",
-      "severity": "warning",
-      "match": "min-w-[1500px]",
-      "excerpt": "<table className=\"min-w-[1500px] w-full border-collapse text-sm\">"
+      "file": "app/finance/finance-overview.module.css",
+      "line": 1,
+      "rule": "absolute-layout",
+      "severity": "info",
+      "match": "absolute",
+      "excerpt": ".page{width:100%;max-width:1480px;margin:0 auto;padding:20px 22px 28px;color:#0b1f45;font-size:13px}.page *{box-sizing:border-box}.pageHeader{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;mar"
+    },
+    {
+      "file": "app/finance/manage-accounts/assign/assign-bank.module.css",
+      "line": 1,
+      "rule": "absolute-layout",
+      "severity": "info",
+      "match": "absolute",
+      "excerpt": ".page{max-width:1480px;margin:0 auto;padding:18px 22px 30px;color:#0f172a;font-size:13px}.loading{padding:50px 24px;text-align:center;color:#64748b;font-size:13px}.headingRow{display:flex;align-items:flex-start;justify-c"
+    },
+    {
+      "file": "app/finance/manage-accounts/assign/assign-bank.module.css",
+      "line": 1,
+      "rule": "absolute-layout",
+      "severity": "info",
+      "match": "absolute",
+      "excerpt": ".page{max-width:1480px;margin:0 auto;padding:18px 22px 30px;color:#0f172a;font-size:13px}.loading{padding:50px 24px;text-align:center;color:#64748b;font-size:13px}.headingRow{display:flex;align-items:flex-start;justify-c"
+    },
+    {
+      "file": "app/finance/manage-accounts/bank-accounts.module.css",
+      "line": 1,
+      "rule": "absolute-layout",
+      "severity": "info",
+      "match": "absolute",
+      "excerpt": ".page{padding:18px 22px 30px;max-width:1480px;margin:0 auto;color:#0f172a;font-size:13px}.loading{padding:48px;text-align:center;color:#64748b}.headingRow{display:flex;align-items:flex-start;justify-content:space-between"
+    },
+    {
+      "file": "app/finance/manage-accounts/bank-accounts.module.css",
+      "line": 1,
+      "rule": "absolute-layout",
+      "severity": "info",
+      "match": "absolute",
+      "excerpt": ".page{padding:18px 22px 30px;max-width:1480px;margin:0 auto;color:#0f172a;font-size:13px}.loading{padding:48px;text-align:center;color:#64748b}.headingRow{display:flex;align-items:flex-start;justify-content:space-between"
+    },
+    {
+      "file": "app/finance/manage-accounts/bank-accounts.module.css",
+      "line": 1,
+      "rule": "absolute-layout",
+      "severity": "info",
+      "match": "absolute",
+      "excerpt": ".page{padding:18px 22px 30px;max-width:1480px;margin:0 auto;color:#0f172a;font-size:13px}.loading{padding:48px;text-align:center;color:#64748b}.headingRow{display:flex;align-items:flex-start;justify-content:space-between"
     },
     {
       "file": "app/finance/manual-voucher/page.tsx",
-      "line": 803,
+      "line": 804,
       "rule": "fixed-height",
       "severity": "warning",
       "match": "h-[620px]",
@@ -881,227 +777,187 @@
     },
     {
       "file": "app/finance/manual-voucher/page.tsx",
-      "line": 1674,
+      "line": 1686,
       "rule": "nowrap-risk",
       "severity": "info",
       "match": "whitespace-nowrap",
       "excerpt": "<td className=\"whitespace-nowrap px-5 py-5\">"
     },
     {
-      "file": "app/finance/page.tsx",
-      "line": 814,
-      "rule": "nowrap-risk",
-      "severity": "info",
-      "match": "whitespace-nowrap",
-      "excerpt": "<td className=\"whitespace-nowrap px-4 py-4 text-sm font-black text-blue-800\">"
-    },
-    {
-      "file": "app/finance/page.tsx",
-      "line": 827,
-      "rule": "nowrap-risk",
-      "severity": "info",
-      "match": "whitespace-nowrap",
-      "excerpt": "<td className=\"whitespace-nowrap px-4 py-4 text-sm font-black text-slate-900\">"
-    },
-    {
-      "file": "app/finance/page.tsx",
-      "line": 836,
-      "rule": "nowrap-risk",
-      "severity": "info",
-      "match": "whitespace-nowrap",
-      "excerpt": "<td className=\"whitespace-nowrap px-4 py-4\">"
-    },
-    {
-      "file": "app/finance/page.tsx",
-      "line": 845,
-      "rule": "nowrap-risk",
-      "severity": "info",
-      "match": "whitespace-nowrap",
-      "excerpt": "<td className=\"whitespace-nowrap px-4 py-4 text-sm font-semibold text-slate-600\">"
-    },
-    {
-      "file": "app/finance/subhead-ledger/page.tsx",
-      "line": 410,
+      "file": "app/finance/subheads/finance-subheads.module.css",
+      "line": 1,
       "rule": "absolute-layout",
       "severity": "info",
       "match": "absolute",
-      "excerpt": ".hero:after{content:\"\";position:absolute;inset:auto -90px -130px auto;width:330px;height:330px;border-radius:50%;background:rgba(245,158,11,.12);filter:blur(2px);pointer-events:none}"
+      "excerpt": ".page{padding:22px 26px 30px;background:#f8fafc;min-height:100%;color:#0b1739;font-family:Inter,\"Segoe UI\",Arial,sans-serif;font-size:13px}.pageHeader{display:flex;align-items:flex-end;justify-content:space-between;gap:2"
     },
     {
-      "file": "app/finance/subheads/page.tsx",
-      "line": 904,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-6",
-      "excerpt": "<div className=\"mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-6 print:grid-cols-6\">"
-    },
-    {
-      "file": "app/finance/subheads/page.tsx",
-      "line": 904,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-6",
-      "excerpt": "<div className=\"mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-6 print:grid-cols-6\">"
-    },
-    {
-      "file": "app/finance/subheads/page.tsx",
-      "line": 913,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-6",
-      "excerpt": "<div className=\"mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-6 print:grid-cols-6\">"
-    },
-    {
-      "file": "app/finance/subheads/page.tsx",
-      "line": 913,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-6",
-      "excerpt": "<div className=\"mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-6 print:grid-cols-6\">"
-    },
-    {
-      "file": "app/finance/subheads/page.tsx",
-      "line": 1168,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-5",
-      "excerpt": "<div className=\"md:col-span-2 xl:col-span-4 grid gap-3 md:grid-cols-2 xl:grid-cols-5\">"
-    },
-    {
-      "file": "app/finance/subheads/page.tsx",
-      "line": 1273,
-      "rule": "fixed-width",
-      "severity": "warning",
-      "match": "min-w-[1580px]",
-      "excerpt": "<table className=\"min-w-[1580px] w-full border-collapse text-sm print:min-w-0 print:text-[8px]\">"
-    },
-    {
-      "file": "app/finance/subheads/page.tsx",
-      "line": 1548,
-      "rule": "fixed-width",
-      "severity": "warning",
-      "match": "min-w-[1180px]",
-      "excerpt": "<table className=\"min-w-[1180px] w-full border-collapse text-sm\">"
-    },
-    {
-      "file": "app/finance/transactions/page.tsx",
-      "line": 719,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-5",
-      "excerpt": "<div className=\"mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-5\">"
-    },
-    {
-      "file": "app/finance/transactions/page.tsx",
-      "line": 821,
-      "rule": "fixed-width",
-      "severity": "warning",
-      "match": "min-w-[1150px]",
-      "excerpt": "<table className=\"min-w-[1150px] divide-y divide-slate-200\">"
-    },
-    {
-      "file": "app/finance/transactions/page.tsx",
-      "line": 876,
-      "rule": "nowrap-risk",
-      "severity": "info",
-      "match": "whitespace-nowrap",
-      "excerpt": "<td className=\"whitespace-nowrap px-5 py-5\">"
-    },
-    {
-      "file": "app/finance/transactions/page.tsx",
-      "line": 882,
-      "rule": "nowrap-risk",
-      "severity": "info",
-      "match": "whitespace-nowrap",
-      "excerpt": "<td className=\"whitespace-nowrap px-5 py-5 text-sm font-semibold text-slate-700\">"
-    },
-    {
-      "file": "app/finance/transactions/page.tsx",
-      "line": 890,
-      "rule": "nowrap-risk",
-      "severity": "info",
-      "match": "whitespace-nowrap",
-      "excerpt": "<td className=\"whitespace-nowrap px-5 py-5 text-right text-base font-black text-emerald-800\">"
-    },
-    {
-      "file": "app/finance/transactions/page.tsx",
-      "line": 894,
-      "rule": "nowrap-risk",
-      "severity": "info",
-      "match": "whitespace-nowrap",
-      "excerpt": "<td className=\"whitespace-nowrap px-5 py-5 text-right sm:px-6 print:hidden\">"
-    },
-    {
-      "file": "app/finance/_components/FinanceOutputWorkspace.tsx",
-      "line": 571,
+      "file": "app/globals.css",
+      "line": 87,
       "rule": "absolute-layout",
       "severity": "info",
       "match": "absolute",
-      "excerpt": "<div className=\"hero-orb absolute -right-16 -top-20 h-72 w-72 rounded-full bg-cyan-300/20 blur-3xl\" />"
+      "excerpt": "position: absolute !important;"
     },
     {
-      "file": "app/finance/_components/FinanceOutputWorkspace.tsx",
-      "line": 602,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-5",
-      "excerpt": "<div className=\"grid gap-4 md:grid-cols-2 xl:grid-cols-5\">"
-    },
-    {
-      "file": "app/finance/_components/FinanceOutputWorkspace.tsx",
-      "line": 666,
+      "file": "app/globals.css",
+      "line": 502,
       "rule": "absolute-layout",
       "severity": "info",
       "match": "absolute",
-      "excerpt": "body.finance-output-printing .print-sheet { position:absolute !important; left:0; top:0; margin:0 !important; box-shadow:none !important; }"
+      "excerpt": "position: absolute;"
     },
     {
-      "file": "app/finance/_components/FinancePageFrame.tsx",
-      "line": 41,
+      "file": "app/globals.css",
+      "line": 573,
       "rule": "absolute-layout",
       "severity": "info",
       "match": "absolute",
-      "excerpt": "<div className=\"pointer-events-none absolute -left-16 top-10 h-56 w-56 animate-pulse rounded-full bg-cyan-400/15 blur-3xl\" />"
+      "excerpt": "position: absolute;"
     },
     {
-      "file": "app/finance/_components/FinancePageFrame.tsx",
-      "line": 42,
+      "file": "app/globals.css",
+      "line": 1773,
       "rule": "absolute-layout",
       "severity": "info",
       "match": "absolute",
-      "excerpt": "<div className=\"pointer-events-none absolute -right-14 -top-14 h-72 w-72 rounded-full bg-blue-300/15 blur-3xl\" />"
+      "excerpt": "position: absolute;"
     },
     {
-      "file": "app/finance/_components/FinancePageFrame.tsx",
-      "line": 43,
+      "file": "app/globals.css",
+      "line": 2016,
       "rule": "absolute-layout",
       "severity": "info",
       "match": "absolute",
-      "excerpt": "<div className=\"pointer-events-none absolute bottom-0 left-1/3 h-24 w-72 rounded-full bg-violet-400/10 blur-3xl\" />"
+      "excerpt": ".gov-search-popover { position: absolute; top: calc(100% + 8px); left: 0; width: min(620px, 78vw); overflow: hidden; border: 1px solid var(--gov-border); border-radius: 14px; background: #fff; box-shadow: 0 22px 60px rgb"
     },
     {
-      "file": "app/hr/analytics/page.tsx",
-      "line": 193,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-6",
-      "excerpt": "<section className=\"grid gap-4 sm:grid-cols-2 xl:grid-cols-6\">"
+      "file": "app/globals.css",
+      "line": 2155,
+      "rule": "absolute-layout",
+      "severity": "info",
+      "match": "absolute",
+      "excerpt": ".reqgen-home-watermark { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; opacity: .035; filter: blur(4px); }"
+    },
+    {
+      "file": "app/globals.css",
+      "line": 2335,
+      "rule": "absolute-layout",
+      "severity": "info",
+      "match": "absolute",
+      "excerpt": ".mock-donut-wrap{display:flex;align-items:center;gap:16px}.mock-donut{width:128px;height:128px;flex:0 0 128px;border-radius:50%;background:conic-gradient(#155eef 0 35%,#8b5cf6 35% 58%,#f59e0b 58% 78%,#ef4444 78%);positio"
+    },
+    {
+      "file": "app/globals.css",
+      "line": 2522,
+      "rule": "absolute-layout",
+      "severity": "info",
+      "match": "absolute",
+      "excerpt": ".gov-icon-badge b { position:absolute; right:2px; top:0; width:8px; height:8px; overflow:hidden; border-radius:99px; background:#ef233c; color:transparent; }"
+    },
+    {
+      "file": "app/globals.css",
+      "line": 2536,
+      "rule": "absolute-layout",
+      "severity": "info",
+      "match": "absolute",
+      "excerpt": ".mock-role-switcher svg { position: absolute; right: 0; top: 50%; width: 14px; height: 14px; transform: translateY(-50%); color: #3864a7; pointer-events: none; }"
+    },
+    {
+      "file": "app/globals.css",
+      "line": 2574,
+      "rule": "absolute-layout",
+      "severity": "info",
+      "match": "absolute",
+      "excerpt": ".gov-content .workflow-hero > div[class*=\"absolute\"],"
+    },
+    {
+      "file": "app/globals.css",
+      "line": 2575,
+      "rule": "absolute-layout",
+      "severity": "info",
+      "match": "absolute",
+      "excerpt": ".gov-content section[class*=\"from-slate-950\"] > div[class*=\"absolute\"],"
+    },
+    {
+      "file": "app/globals.css",
+      "line": 2576,
+      "rule": "absolute-layout",
+      "severity": "info",
+      "match": "absolute",
+      "excerpt": ".gov-content section[class*=\"bg-gradient-to-br\"][class*=\"text-white\"] > div[class*=\"absolute\"] { display:none!important; }"
+    },
+    {
+      "file": "app/globals.css",
+      "line": 2714,
+      "rule": "absolute-layout",
+      "severity": "info",
+      "match": "absolute",
+      "excerpt": ".req-mock-tabs button::after{content:\"\";position:absolute;left:0;right:0;bottom:0;height:3px;border-radius:3px;background:transparent}.req-mock-tabs button.is-active{color:#0b57e3}.req-mock-tabs button.is-active::after{b"
+    },
+    {
+      "file": "app/globals.css",
+      "line": 2820,
+      "rule": "absolute-layout",
+      "severity": "info",
+      "match": "absolute",
+      "excerpt": "position: absolute;"
+    },
+    {
+      "file": "app/globals.css",
+      "line": 2949,
+      "rule": "absolute-layout",
+      "severity": "info",
+      "match": "absolute",
+      "excerpt": ".finance-overview-page,.finance-mock-page{width:100%;padding:18px 18px 26px;color:#13284d}.finance-overview-head,.finance-mock-header{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bott"
+    },
+    {
+      "file": "app/globals.css",
+      "line": 2950,
+      "rule": "absolute-layout",
+      "severity": "info",
+      "match": "absolute",
+      "excerpt": ".finance-mock-eyebrow{display:block;margin-bottom:4px;color:#0b57e3;font-size:9.5px!important;font-weight:900;text-transform:uppercase;letter-spacing:.11em}.finance-mock-badge{display:inline-flex;margin-top:6px;padding:3"
+    },
+    {
+      "file": "app/globals.css",
+      "line": 3053,
+      "rule": "absolute-layout",
+      "severity": "info",
+      "match": "absolute",
+      "excerpt": ".rg-cube:before,.rg-cube:after,.rg-cube i{content:\"\";position:absolute;background:#fff;border-radius:2px;opacity:.94}.rg-cube:before{width:8px;height:8px;left:5px;top:5px}.rg-cube:after{width:8px;height:8px;right:5px;bot"
+    },
+    {
+      "file": "app/globals.css",
+      "line": 3053,
+      "rule": "absolute-layout",
+      "severity": "info",
+      "match": "absolute",
+      "excerpt": ".rg-cube:before,.rg-cube:after,.rg-cube i{content:\"\";position:absolute;background:#fff;border-radius:2px;opacity:.94}.rg-cube:before{width:8px;height:8px;left:5px;top:5px}.rg-cube:after{width:8px;height:8px;right:5px;bot"
+    },
+    {
+      "file": "app/globals.css",
+      "line": 3063,
+      "rule": "absolute-layout",
+      "severity": "info",
+      "match": "absolute",
+      "excerpt": ".rg-search-wrap{position:relative;width:min(420px,40vw)}.rg-search-trigger{width:100%;height:37px;display:flex;align-items:center;gap:9px;padding:0 11px;border:1px solid #dce4ee;border-radius:8px;background:#fff;color:#6"
+    },
+    {
+      "file": "app/globals.css",
+      "line": 3064,
+      "rule": "absolute-layout",
+      "severity": "info",
+      "match": "absolute",
+      "excerpt": ".rg-top-actions{margin-left:auto;display:flex;align-items:center;gap:7px}.rg-icon-btn{position:relative;width:34px;height:34px;display:grid;place-items:center;border:0;border-radius:8px;background:transparent;color:#142d"
     },
     {
       "file": "app/hr/archive/page.tsx",
-      "line": 489,
-      "rule": "truncate-risk",
+      "line": 53,
+      "rule": "absolute-layout",
       "severity": "info",
-      "match": "truncate",
-      "excerpt": "<td className=\"px-5 py-4\"><p className=\"font-bold text-slate-800\">{file.archive_reference || \"—\"}</p><p className=\"mt-1 max-w-xs truncate text-xs text-slate-500\">{file.archive_reason || file.current_location}</p></td>"
-    },
-    {
-      "file": "app/hr/assessments/annual-360/page.tsx",
-      "line": 65,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-5",
-      "excerpt": "<section className=\"grid gap-4 sm:grid-cols-2 xl:grid-cols-5\">"
+      "match": "absolute",
+      "excerpt": "<HRPanel title=\"Archive & Retention Register\" eyebrow=\"Controlled Records Lifecycle\" action={<div className=\"grid gap-2 sm:grid-cols-2\"><div className=\"relative\"><Search className=\"absolute left-3 top-3 h-4 w-4 text-slat"
     },
     {
       "file": "app/hr/assignments-page.tsx",
@@ -1113,15 +969,23 @@
     },
     {
       "file": "app/hr/audit/page.tsx",
-      "line": 6,
-      "rule": "nowrap-risk",
+      "line": 155,
+      "rule": "absolute-layout",
       "severity": "info",
-      "match": "whitespace-nowrap",
-      "excerpt": "export default function HRAuditPage(){const [rows,setRows]=useState<Audit[]>([]);const [error,setError]=useState(\"\");useEffect(()=>{supabase.from(\"hr_assignment_history\").select(\"id,action,entity_type,entity_id,actor_id,"
+      "match": "absolute",
+      "excerpt": "<HRPanel title=\"HR Activity Evidence Register\" eyebrow=\"Who Did What, Where and When\" action={<div className=\"grid gap-2 sm:grid-cols-4\"><div className=\"relative\"><Search className=\"absolute left-3 top-3 h-4 w-4 text-sla"
     },
     {
-      "file": "app/hr/department-kpi/page.tsx",
-      "line": 63,
+      "file": "app/hr/filing/page.tsx",
+      "line": 168,
+      "rule": "absolute-layout",
+      "severity": "info",
+      "match": "absolute",
+      "excerpt": "<div className=\"absolute -right-16 -top-16 h-64 w-64 rounded-full bg-cyan-400/15 blur-3xl\" />"
+    },
+    {
+      "file": "app/hr/filing/page.tsx",
+      "line": 188,
       "rule": "desktop-only-grid",
       "severity": "warning",
       "match": "grid-cols-5",
@@ -1129,27 +993,27 @@
     },
     {
       "file": "app/hr/filing/page.tsx",
-      "line": 763,
-      "rule": "truncate-risk",
-      "severity": "info",
-      "match": "truncate",
-      "excerpt": "<h3 className=\"mt-2 truncate text-lg font-black text-slate-950\">{r.title}</h3>"
+      "line": 212,
+      "rule": "desktop-only-grid",
+      "severity": "warning",
+      "match": "grid-cols-5",
+      "excerpt": "<section className=\"grid gap-3 sm:grid-cols-2 xl:grid-cols-5\">"
     },
     {
       "file": "app/hr/filing/page.tsx",
-      "line": 790,
-      "rule": "truncate-risk",
+      "line": 218,
+      "rule": "absolute-layout",
       "severity": "info",
-      "match": "truncate",
-      "excerpt": "<span className=\"truncate font-black text-slate-800\">{d.name}</span>"
+      "match": "absolute",
+      "excerpt": "<label className=\"relative\"><Search className=\"absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400\" /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder=\"Search request number"
     },
     {
-      "file": "app/hr/output/page.tsx",
-      "line": 248,
-      "rule": "truncate-risk",
+      "file": "app/hr/filing/page.tsx",
+      "line": 219,
+      "rule": "absolute-layout",
       "severity": "info",
-      "match": "truncate",
-      "excerpt": "className=\"max-w-52 truncate px-3 py-2 font-semibold text-slate-700\""
+      "match": "absolute",
+      "excerpt": "<label className=\"relative\"><Filter className=\"absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400\" /><select value={department} onChange={(event) => setDepartment(event.target.value)} className=\"min-h-12 w-f"
     },
     {
       "file": "app/hr/page.tsx",
@@ -1192,12 +1056,36 @@
       "excerpt": "<p className=\"mt-1 truncate text-sm font-semibold text-slate-700\">{row.title}</p>"
     },
     {
-      "file": "app/hr/page.tsx",
-      "line": 355,
+      "file": "app/hr/registrar/analytics/page.tsx",
+      "line": 192,
+      "rule": "desktop-only-grid",
+      "severity": "warning",
+      "match": "grid-cols-6",
+      "excerpt": "<section className=\"grid gap-4 sm:grid-cols-2 xl:grid-cols-6\">"
+    },
+    {
+      "file": "app/hr/registrar/assessments/annual-360/page.tsx",
+      "line": 64,
       "rule": "desktop-only-grid",
       "severity": "warning",
       "match": "grid-cols-5",
-      "excerpt": "<div className=\"mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-5\">"
+      "excerpt": "<section className=\"grid gap-4 sm:grid-cols-2 xl:grid-cols-5\">"
+    },
+    {
+      "file": "app/hr/registrar/department-kpi/page.tsx",
+      "line": 62,
+      "rule": "desktop-only-grid",
+      "severity": "warning",
+      "match": "grid-cols-5",
+      "excerpt": "<section className=\"grid gap-4 sm:grid-cols-2 xl:grid-cols-5\">"
+    },
+    {
+      "file": "app/hr/registrar/output/page.tsx",
+      "line": 247,
+      "rule": "truncate-risk",
+      "severity": "info",
+      "match": "truncate",
+      "excerpt": "className=\"max-w-52 truncate px-3 py-2 font-semibold text-slate-700\""
     },
     {
       "file": "app/hr/registrar/page.tsx",
@@ -1216,76 +1104,52 @@
       "excerpt": "<div className=\"absolute -bottom-20 left-1/3 h-52 w-52 rounded-full bg-blue-400/20 blur-3xl\" />"
     },
     {
-      "file": "app/hr/reports/page.tsx",
-      "line": 73,
+      "file": "app/hr/registrar/reports/page.tsx",
+      "line": 72,
       "rule": "desktop-only-grid",
       "severity": "warning",
       "match": "grid-cols-5",
       "excerpt": "<section className=\"grid gap-4 sm:grid-cols-2 xl:grid-cols-5\">"
     },
     {
-      "file": "app/hr/staff/page.tsx",
-      "line": 49,
+      "file": "app/hr/registrar/weekly-seminar/page.tsx",
+      "line": 84,
       "rule": "absolute-layout",
       "severity": "info",
       "match": "absolute",
       "excerpt": "<div className=\"absolute -right-8 -top-8 h-28 w-28 rounded-full bg-white/10 blur-2xl\" />"
     },
     {
-      "file": "app/hr/staff/page.tsx",
-      "line": 129,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "<div className=\"absolute -right-20 -top-20 h-64 w-64 rounded-full bg-cyan-400/20 blur-3xl\"/><div className=\"absolute -bottom-24 left-1/3 h-64 w-64 rounded-full bg-violet-400/20 blur-3xl\"/>"
-    },
-    {
-      "file": "app/hr/staff/page.tsx",
-      "line": 129,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "<div className=\"absolute -right-20 -top-20 h-64 w-64 rounded-full bg-cyan-400/20 blur-3xl\"/><div className=\"absolute -bottom-24 left-1/3 h-64 w-64 rounded-full bg-violet-400/20 blur-3xl\"/>"
-    },
-    {
-      "file": "app/hr/staff/page.tsx",
-      "line": 134,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "<section className=\"rounded-3xl border border-slate-200 bg-white p-5 shadow-sm\"><div className=\"grid gap-4 lg:grid-cols-[minmax(0,1fr)_220px_220px_auto]\"><label className=\"relative\"><span className=\"sr-only\">Search files"
-    },
-    {
-      "file": "app/hr/weekly-seminar/page.tsx",
-      "line": 85,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "<div className=\"absolute -right-8 -top-8 h-28 w-28 rounded-full bg-white/10 blur-2xl\" />"
-    },
-    {
-      "file": "app/hr/weekly-seminar/page.tsx",
-      "line": 283,
+      "file": "app/hr/registrar/weekly-seminar/page.tsx",
+      "line": 282,
       "rule": "absolute-layout",
       "severity": "info",
       "match": "absolute",
       "excerpt": "<div className=\"absolute -right-20 -top-20 h-72 w-72 rounded-full bg-fuchsia-400/15 blur-3xl\" />"
     },
     {
-      "file": "app/hr/weekly-seminar/page.tsx",
-      "line": 284,
+      "file": "app/hr/registrar/weekly-seminar/page.tsx",
+      "line": 283,
       "rule": "absolute-layout",
       "severity": "info",
       "match": "absolute",
       "excerpt": "<div className=\"absolute -bottom-24 left-1/3 h-64 w-64 rounded-full bg-cyan-400/15 blur-3xl\" />"
     },
     {
-      "file": "app/hr/weekly-seminar/page.tsx",
-      "line": 345,
+      "file": "app/hr/registrar/weekly-seminar/page.tsx",
+      "line": 343,
       "rule": "absolute-layout",
       "severity": "info",
       "match": "absolute",
       "excerpt": "<div className=\"border-b border-slate-200 p-6\"><div className=\"flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between\"><div><p className=\"text-xs font-black uppercase tracking-[0.18em] text-blue-700\">Live Attend"
+    },
+    {
+      "file": "app/hr/staff/page.tsx",
+      "line": 125,
+      "rule": "absolute-layout",
+      "severity": "info",
+      "match": "absolute",
+      "excerpt": "action={<div className=\"grid gap-2 sm:grid-cols-3\"><div className=\"relative\"><Search className=\"absolute left-3 top-3 h-4 w-4 text-slate-400\" /><input value={search} onChange={(event) => setSearch(event.target.value)} pl"
     },
     {
       "file": "app/loading.tsx",
@@ -1296,116 +1160,20 @@
       "excerpt": "export default function GlobalLoading() { return <main className=\"min-h-screen bg-slate-50 px-4 py-8\"><div className=\"mx-auto max-w-[1400px] space-y-6\"><div className=\"h-52 animate-pulse rounded-[2rem] bg-slate-300\" /><d"
     },
     {
-      "file": "app/login/page.tsx",
-      "line": 19,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "<div className=\"pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(37,99,235,0.08),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(15,23,42,0.06),transparent_30%)]\" />"
-    },
-    {
       "file": "app/output/page.tsx",
-      "line": 59,
+      "line": 620,
       "rule": "fixed-width",
       "severity": "warning",
       "match": "max-w-[1500px]",
-      "excerpt": "return <EnterpriseShell><div className=\"mx-auto max-w-[1500px] space-y-6\">"
+      "excerpt": "<div className=\"mx-auto max-w-[1500px] space-y-6\">"
     },
     {
       "file": "app/output/page.tsx",
-      "line": 67,
-      "rule": "truncate-risk",
-      "severity": "info",
-      "match": "truncate",
-      "excerpt": "<div className=\"overflow-x-auto rounded-2xl border border-slate-200\"><table className=\"min-w-full divide-y divide-slate-200 text-xs\"><thead className=\"bg-slate-950 text-white\"><tr>{headers.map((header) => <th key={header"
-    },
-    {
-      "file": "app/page.tsx",
-      "line": 6,
+      "line": 785,
       "rule": "absolute-layout",
       "severity": "info",
       "match": "absolute",
-      "excerpt": "<div className=\"pointer-events-none absolute inset-0\">"
-    },
-    {
-      "file": "app/page.tsx",
-      "line": 7,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "<div className=\"absolute -left-24 top-8 h-80 w-80 rounded-full bg-blue-200/45 blur-3xl\" />"
-    },
-    {
-      "file": "app/page.tsx",
-      "line": 8,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "<div className=\"absolute -right-20 bottom-8 h-80 w-80 rounded-full bg-emerald-200/40 blur-3xl\" />"
-    },
-    {
-      "file": "app/page.tsx",
-      "line": 9,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "<div className=\"absolute left-1/2 top-1/2 h-[34rem] w-[34rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/80 blur-3xl\" />"
-    },
-    {
-      "file": "app/payment-vouchers/page.tsx",
-      "line": 1066,
-      "rule": "fixed-width",
-      "severity": "warning",
-      "match": "max-w-[1500px]",
-      "excerpt": "<div className=\"mx-auto max-w-[1500px] py-6 sm:py-8\">"
-    },
-    {
-      "file": "app/payment-vouchers/page.tsx",
-      "line": 1125,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-8",
-      "excerpt": "<div className=\"mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-8\">"
-    },
-    {
-      "file": "app/payment-vouchers/page.tsx",
-      "line": 1216,
-      "rule": "fixed-width",
-      "severity": "warning",
-      "match": "min-w-[1280px]",
-      "excerpt": "<div className=\"min-w-[1280px]\">"
-    },
-    {
-      "file": "app/payment-vouchers/page.tsx",
-      "line": 1381,
-      "rule": "fixed-width",
-      "severity": "warning",
-      "match": "min-w-[1500px]",
-      "excerpt": "<div className=\"min-w-[1500px]\">"
-    },
-    {
-      "file": "app/payment-vouchers/settings/page.tsx",
-      "line": 474,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-5",
-      "excerpt": "<div className=\"mt-6 grid gap-4 md:grid-cols-5\">"
-    },
-    {
-      "file": "app/payment-vouchers/settings/page.tsx",
-      "line": 504,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-5",
-      "excerpt": "<div className=\"mt-5 grid gap-4 md:grid-cols-5\">"
-    },
-    {
-      "file": "app/payment-vouchers/settings/page.tsx",
-      "line": 663,
-      "rule": "fixed-width",
-      "severity": "warning",
-      "match": "min-w-[1060px]",
-      "excerpt": "<div className=\"min-w-[1060px]\">"
+      "excerpt": "<div className=\"absolute -right-8 -top-8 h-24 w-24 rounded-full bg-white/10\" />"
     },
     {
       "file": "app/payment-vouchers/[id]/page.tsx",
@@ -1470,6 +1238,62 @@
       "severity": "info",
       "match": "absolute",
       "excerpt": "className=\"absolute bottom-[2px] left-1/2 h-[21px] max-w-[96%] -translate-x-1/2 object-contain\""
+    },
+    {
+      "file": "app/payment-vouchers/page.tsx",
+      "line": 1066,
+      "rule": "fixed-width",
+      "severity": "warning",
+      "match": "max-w-[1500px]",
+      "excerpt": "<div className=\"mx-auto max-w-[1500px] py-6 sm:py-8\">"
+    },
+    {
+      "file": "app/payment-vouchers/page.tsx",
+      "line": 1125,
+      "rule": "desktop-only-grid",
+      "severity": "warning",
+      "match": "grid-cols-8",
+      "excerpt": "<div className=\"mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-8\">"
+    },
+    {
+      "file": "app/payment-vouchers/page.tsx",
+      "line": 1216,
+      "rule": "fixed-width",
+      "severity": "warning",
+      "match": "min-w-[1280px]",
+      "excerpt": "<div className=\"min-w-[1280px]\">"
+    },
+    {
+      "file": "app/payment-vouchers/page.tsx",
+      "line": 1381,
+      "rule": "fixed-width",
+      "severity": "warning",
+      "match": "min-w-[1500px]",
+      "excerpt": "<div className=\"min-w-[1500px]\">"
+    },
+    {
+      "file": "app/payment-vouchers/settings/page.tsx",
+      "line": 474,
+      "rule": "desktop-only-grid",
+      "severity": "warning",
+      "match": "grid-cols-5",
+      "excerpt": "<div className=\"mt-6 grid gap-4 md:grid-cols-5\">"
+    },
+    {
+      "file": "app/payment-vouchers/settings/page.tsx",
+      "line": 504,
+      "rule": "desktop-only-grid",
+      "severity": "warning",
+      "match": "grid-cols-5",
+      "excerpt": "<div className=\"mt-5 grid gap-4 md:grid-cols-5\">"
+    },
+    {
+      "file": "app/payment-vouchers/settings/page.tsx",
+      "line": 663,
+      "rule": "fixed-width",
+      "severity": "warning",
+      "match": "min-w-[1060px]",
+      "excerpt": "<div className=\"min-w-[1060px]\">"
     },
     {
       "file": "app/registry/page.tsx",
@@ -1553,15 +1377,15 @@
     },
     {
       "file": "app/reports/page.tsx",
-      "line": 482,
-      "rule": "fixed-width",
+      "line": 495,
+      "rule": "desktop-only-grid",
       "severity": "warning",
-      "match": "max-w-[1600px]",
-      "excerpt": "<main className=\"mx-auto max-w-[1600px] space-y-6\">"
+      "match": "grid-cols-5",
+      "excerpt": "<nav className=\"mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5\">"
     },
     {
       "file": "app/reports/page.tsx",
-      "line": 498,
+      "line": 520,
       "rule": "absolute-layout",
       "severity": "info",
       "match": "absolute",
@@ -1569,7 +1393,7 @@
     },
     {
       "file": "app/reports/page.tsx",
-      "line": 505,
+      "line": 527,
       "rule": "desktop-only-grid",
       "severity": "warning",
       "match": "grid-cols-5",
@@ -1577,7 +1401,7 @@
     },
     {
       "file": "app/reports/page.tsx",
-      "line": 545,
+      "line": 567,
       "rule": "fixed-width",
       "severity": "warning",
       "match": "min-w-[820px]",
@@ -1585,7 +1409,7 @@
     },
     {
       "file": "app/reports/page.tsx",
-      "line": 559,
+      "line": 581,
       "rule": "desktop-only-grid",
       "severity": "warning",
       "match": "grid-cols-5",
@@ -1593,7 +1417,7 @@
     },
     {
       "file": "app/reports/page.tsx",
-      "line": 566,
+      "line": 588,
       "rule": "desktop-only-grid",
       "severity": "warning",
       "match": "grid-cols-6",
@@ -1601,7 +1425,7 @@
     },
     {
       "file": "app/reports/page.tsx",
-      "line": 567,
+      "line": 589,
       "rule": "nowrap-risk",
       "severity": "info",
       "match": "whitespace-nowrap",
@@ -1609,7 +1433,7 @@
     },
     {
       "file": "app/reports/page.tsx",
-      "line": 588,
+      "line": 610,
       "rule": "nowrap-risk",
       "severity": "info",
       "match": "whitespace-nowrap",
@@ -1617,7 +1441,7 @@
     },
     {
       "file": "app/reports/page.tsx",
-      "line": 589,
+      "line": 611,
       "rule": "nowrap-risk",
       "severity": "info",
       "match": "whitespace-nowrap",
@@ -1625,103 +1449,15 @@
     },
     {
       "file": "app/reports/page.tsx",
-      "line": 590,
+      "line": 612,
       "rule": "nowrap-risk",
       "severity": "info",
       "match": "whitespace-nowrap",
       "excerpt": "<div><h3 className=\"mb-3 font-black uppercase tracking-wide text-slate-950\">PAYMENT VOUCHER REGISTER</h3><div className=\"overflow-x-auto rounded-2xl border border-slate-200\"><table className=\"min-w-full text-sm\"><thead c"
     },
     {
-      "file": "app/requests/page.tsx",
-      "line": 496,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "<div className=\"absolute -left-20 top-10 h-64 w-64 rounded-full bg-cyan-400/15 blur-3xl\" />"
-    },
-    {
-      "file": "app/requests/page.tsx",
-      "line": 497,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "<div className=\"absolute -right-16 -top-20 h-80 w-80 rounded-full bg-blue-400/20 blur-3xl\" />"
-    },
-    {
-      "file": "app/requests/page.tsx",
-      "line": 498,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "<div className=\"absolute bottom-0 left-1/2 h-40 w-96 -translate-x-1/2 rounded-full bg-indigo-500/10 blur-3xl\" />"
-    },
-    {
-      "file": "app/requests/page.tsx",
-      "line": 577,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-9",
-      "excerpt": "<div className=\"grid grid-cols-2 gap-px bg-slate-100 sm:grid-cols-3 lg:grid-cols-9\">"
-    },
-    {
-      "file": "app/requests/page.tsx",
-      "line": 606,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "<Icon name=\"search\" className=\"pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400\" />"
-    },
-    {
-      "file": "app/requests/page.tsx",
-      "line": 665,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-12",
-      "excerpt": "<div className=\"hidden grid-cols-12 border-b border-slate-100 bg-slate-50 px-5 py-3 text-[11px] font-black uppercase tracking-wider text-slate-500 lg:grid\">"
-    },
-    {
-      "file": "app/requests/page.tsx",
-      "line": 672,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-12",
-      "excerpt": "<div className=\"grid gap-4 lg:grid-cols-12 lg:items-center\">"
-    },
-    {
-      "file": "app/requests/page.tsx",
-      "line": 680,
-      "rule": "truncate-risk",
-      "severity": "info",
-      "match": "truncate",
-      "excerpt": "<h3 className=\"truncate text-sm font-black text-slate-900\">{r.title || \"—\"}</h3>"
-    },
-    {
-      "file": "app/requests/page.tsx",
-      "line": 730,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "return <div className={`relative overflow-hidden rounded-2xl bg-gradient-to-br ${styles} p-5 text-white shadow-lg`}><div className=\"absolute -right-5 -top-5 h-24 w-24 rounded-full bg-white/10 blur-xl\"/><div className=\"re"
-    },
-    {
-      "file": "app/requests/page.tsx",
-      "line": 762,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-12",
-      "excerpt": "return <div className=\"mt-6 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm\"><div className=\"h-20 animate-pulse border-b border-slate-100 bg-slate-100/80 blur-[1px]\"/><div className=\"space-y-1 p-4\""
-    },
-    {
       "file": "app/requests/[id]/print/page.tsx",
-      "line": 723,
-      "rule": "fixed-width",
-      "severity": "warning",
-      "match": "max-w-[820px]",
-      "excerpt": "<div className=\"mx-auto max-w-[820px]\">"
-    },
-    {
-      "file": "app/requests/[id]/print/page.tsx",
-      "line": 795,
+      "line": 806,
       "rule": "desktop-only-grid",
       "severity": "warning",
       "match": "grid-cols-12",
@@ -1729,7 +1465,7 @@
     },
     {
       "file": "app/requests/[id]/print/page.tsx",
-      "line": 1041,
+      "line": 1052,
       "rule": "nowrap-risk",
       "severity": "info",
       "match": "whitespace-nowrap",
@@ -1737,19 +1473,75 @@
     },
     {
       "file": "app/requests/[id]/print/page.tsx",
-      "line": 1054,
+      "line": 1065,
       "rule": "absolute-layout",
       "severity": "info",
       "match": "absolute",
       "excerpt": "className=\"absolute bottom-0 left-1/2 h-[13px] max-w-[90%] -translate-x-1/2 object-contain\""
     },
     {
-      "file": "app/signup/page.tsx",
-      "line": 109,
+      "file": "app/staff/downloads/page.tsx",
+      "line": 104,
       "rule": "absolute-layout",
       "severity": "info",
       "match": "absolute",
-      "excerpt": "<div className=\"pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(37,99,235,0.08),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(15,23,42,0.06),transparent_30%)]\" />"
+      "excerpt": "<Search className=\"pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400\" />"
+    },
+    {
+      "file": "app/staff/loading.tsx",
+      "line": 4,
+      "rule": "fixed-width",
+      "severity": "warning",
+      "match": "max-w-[1500px]",
+      "excerpt": "<div className=\"mx-auto max-w-[1500px] space-y-5\">"
+    },
+    {
+      "file": "app/staff/loading.tsx",
+      "line": 6,
+      "rule": "desktop-only-grid",
+      "severity": "warning",
+      "match": "grid-cols-5",
+      "excerpt": "<div className=\"grid gap-3 sm:grid-cols-2 lg:grid-cols-5\">{Array.from({ length: 10 }).map((_, i) => <div key={i} className=\"h-14 animate-pulse rounded-2xl bg-slate-200\" />)}</div>"
+    },
+    {
+      "file": "app/staff/notifications/page.tsx",
+      "line": 212,
+      "rule": "absolute-layout",
+      "severity": "info",
+      "match": "absolute",
+      "excerpt": "className=\"absolute left-3 top-3 text-slate-500\""
+    },
+    {
+      "file": "app/staff/page.tsx",
+      "line": 106,
+      "rule": "fixed-width",
+      "severity": "warning",
+      "match": "max-w-[1480px]",
+      "excerpt": "<div className=\"mx-auto max-w-[1480px] space-y-5\">"
+    },
+    {
+      "file": "app/staff/page.tsx",
+      "line": 143,
+      "rule": "desktop-only-grid",
+      "severity": "warning",
+      "match": "grid-cols-8",
+      "excerpt": "<section className=\"grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8\">"
+    },
+    {
+      "file": "app/staff/page.tsx",
+      "line": 251,
+      "rule": "absolute-layout",
+      "severity": "info",
+      "match": "absolute",
+      "excerpt": "<div className=\"absolute -right-5 -top-5 h-20 w-20 rounded-full bg-white/10\" />"
+    },
+    {
+      "file": "app/staff/requests/page.tsx",
+      "line": 13,
+      "rule": "fixed-width",
+      "severity": "warning",
+      "match": "max-w-[1500px]",
+      "excerpt": "return <StaffShell><div className=\"mx-auto max-w-[1500px] space-y-6\">"
     },
     {
       "file": "app/workflow/page.tsx",

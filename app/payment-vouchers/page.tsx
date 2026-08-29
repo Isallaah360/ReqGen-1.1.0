@@ -1062,7 +1062,7 @@ export default function PaymentVouchersPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,_#eff6ff,_#f8fafc_36%,_#f1f5f9)] px-3 sm:px-4">
+    <main className="rg-module-page rg-adopted-page rg-pv-page">
       <div className="mx-auto max-w-[1500px] py-6 sm:py-8">
         <nav className="mb-6 flex flex-col gap-3 rounded-3xl border border-slate-200 bg-white p-3 shadow-sm lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-wrap gap-2">

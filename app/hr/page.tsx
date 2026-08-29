@@ -174,9 +174,9 @@ export default function HRBossDashboard() {
 
   return (
     <HRAccessGuard bossOnly>
-      <main className="min-h-screen bg-slate-50 px-4 py-8 lg:px-8">
+      <main className="rg-module-page rg-adopted-page rg-hr-page">
         <div className="mx-auto max-w-7xl space-y-6">
-          <section className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-slate-950 via-blue-950 to-cyan-800 p-7 text-white shadow-2xl lg:p-9">
+          <section className="rg-module-header">
             <div className="absolute -right-20 -top-20 h-72 w-72 rounded-full bg-cyan-400/15 blur-3xl" />
             <div className="absolute -bottom-24 left-1/3 h-64 w-64 rounded-full bg-blue-500/20 blur-3xl" />
             <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">

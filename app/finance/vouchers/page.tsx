@@ -1,2 +1,2 @@
-import FinanceDirectoryPage from "../_components/FinanceDirectoryPage";
-export default function FinanceVouchersPage(){ return <FinanceDirectoryPage mode="vouchers"/>; }
+import FinanceOperationsWorkspace from "../_components/FinanceOperationsWorkspace";
+export default function Page(){ return <FinanceOperationsWorkspace mode="vouchers"/>; }

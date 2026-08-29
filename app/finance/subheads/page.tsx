@@ -2,8 +2,31 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import {
+  Eye,
+  Pencil,
+  MoreVertical,
+  Plus,
+  Search,
+  Filter,
+  RefreshCw,
+  Download,
+  Layers3,
+  ShieldCheck,
+  PauseCircle,
+  GitBranch,
+  FolderKanban,
+  Network,
+  WalletCards,
+  AlertCircle,
+  X,
+  Save,
+  Power,
+  Trash2,
+} from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
-import { exportTableToExcel, printReport } from "@/lib/reportExport";
+import { exportTableToExcel } from "@/lib/reportExport";
+import styles from "./finance-subheads.module.css";
 
 type Dept = { id: string; name: string };
 
@@ -12,17 +35,13 @@ type BankAccount = {
   code: string | null;
   name: string;
   bank_name: string | null;
-  account_number: string | null;
   is_active: boolean | null;
   total_fund: number | null;
-  allocated_amount: number | null;
-  reserved_amount: number | null;
-  expenditure: number | null;
   unallocated_balance: number | null;
   available_balance: number | null;
 };
 
-type Sub = {
+type Subhead = {
   id: string;
   dept_id: string | null;
   bank_account_id: string | null;
@@ -39,1667 +58,599 @@ type Sub = {
   request_count?: number;
 };
 
-type PrintableRequest = {
-  id: string;
-  request_no: string;
-  title: string;
-  amount: number;
-  status: string;
-  current_stage: string;
-  created_at: string;
-  requester_name: string | null;
-  account_name: string | null;
-  subhead_id: string | null;
-  request_type: "Official" | "Personal" | string;
-  personal_category: "Fund" | "NonFund" | string | null;
-};
-
-type TabKey = "overview" | "active" | "inactive" | "form" | "print";
+type FilterStatus = "all" | "active" | "inactive";
+type FilterLevel = "all" | "1" | "2" | "3+";
 
 function roleKey(role: string | null | undefined) {
   return (role || "").trim().toLowerCase().replace(/\s+/g, "").replace(/_/g, "");
 }
 
-function naira(n: number | null | undefined) {
-  return "₦" + Math.round(Number(n || 0)).toLocaleString();
+function money(value: number | null | undefined) {
+  return `₦${Number(value || 0).toLocaleString("en-NG", {
+    maximumFractionDigits: 0,
+  })}`;
 }
 
-function plainAmount(n: number | null | undefined) {
-  return Math.round(Number(n || 0)).toLocaleString();
+function subheadLevel(code: string | null | undefined) {
+  if (!code) return 1;
+  return Math.max(1, code.split(".").length);
 }
 
-function shortDate(d: string | null | undefined) {
-  if (!d) return "—";
-  return new Date(d).toLocaleDateString();
+function parentCode(code: string | null | undefined) {
+  if (!code || !code.includes(".")) return null;
+  return code.split(".").slice(0, -1).join(".");
 }
 
-function maskAccountNumber(value: string | null | undefined) {
-  const raw = (value || "").trim();
-
-  if (!raw) return "—";
-  if (raw.length <= 4) return raw;
-
-  return `${"*".repeat(Math.max(raw.length - 4, 0))}${raw.slice(-4)}`;
+function formatDate(value: string | null | undefined) {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
 }
 
-function bankLabel(account: BankAccount | null | undefined) {
-  if (!account) return "No IET Bank Linked";
-  return `${account.code ? `${account.code} — ` : ""}${account.name}`;
+function getParentLabel(sub: Subhead, byCode: Map<string, Subhead>) {
+  const code = parentCode(sub.code);
+  if (!code) return "Top-level head";
+  const parent = byCode.get(code);
+  return parent ? `${parent.code || code} — ${parent.name}` : code;
 }
 
-function bankSubLabel(account: BankAccount | null | undefined) {
-  if (!account) return "Allocation source not selected";
-  return `${account.bank_name || "Bank"} • ${maskAccountNumber(account.account_number)}`;
-}
-
-function requestTypeLabel(r: PrintableRequest) {
-  if ((r.request_type || "").toUpperCase() === "OFFICIAL") return "Official";
-  if ((r.personal_category || "").toUpperCase() === "FUND") return "Personal Fund";
-  if ((r.personal_category || "").toUpperCase() === "NONFUND") return "Personal NonFund";
-  return "Personal";
-}
-
-function requestPrintSource(r: PrintableRequest, subheadMap: Record<string, string>) {
-  if ((r.request_type || "").toUpperCase() === "OFFICIAL") {
-    return subheadMap[r.subhead_id || ""] || "No subhead";
-  }
-
-  if ((r.personal_category || "").toUpperCase() === "FUND") {
-    return "Personal Fund • No subhead";
-  }
-
-  return "Not applicable";
-}
-
-function computeTotals(subs: Sub[]) {
-  const allocationTotal = subs.reduce((a, s) => a + Number(s.approved_allocation || 0), 0);
-  const reservedTotal = subs.reduce((a, s) => a + Number(s.reserved_amount || 0), 0);
-  const expenditureTotal = subs.reduce((a, s) => a + Number(s.expenditure || 0), 0);
-  const balanceTotal = subs.reduce((a, s) => a + Number(s.balance || 0), 0);
-  const activeCount = subs.filter((s) => s.is_active).length;
-  const inactiveCount = subs.filter((s) => !s.is_active).length;
-  const linkedCount = subs.filter((s) => Number(s.request_count || 0) > 0).length;
-  const noBankCount = subs.filter((s) => !s.bank_account_id).length;
-  const negativeBalanceCount = subs.filter((s) => Number(s.balance || 0) < 0).length;
-  const lowBalanceCount = subs.filter((s) => {
-    const allocation = Number(s.approved_allocation || 0);
-    const balance = Number(s.balance || 0);
-    return allocation > 0 && balance >= 0 && balance / allocation <= 0.1;
-  }).length;
-
-  return {
-    allocationTotal,
-    reservedTotal,
-    expenditureTotal,
-    balanceTotal,
-    activeCount,
-    inactiveCount,
-    linkedCount,
-    noBankCount,
-    negativeBalanceCount,
-    lowBalanceCount,
-    totalCount: subs.length,
-  };
-}
-
-function computeBankCapacity(account: BankAccount | null, currentSub: Sub | null) {
-  if (!account) return 0;
-
-  const baseUnallocated = Number(account.unallocated_balance || 0);
-  const currentAllocationFromSameBank =
-    currentSub?.bank_account_id === account.id ? Number(currentSub.approved_allocation || 0) : 0;
-
-  return baseUnallocated + currentAllocationFromSameBank;
-}
-
-export default function SubheadsPage() {
+export default function FinanceSubheadsPage() {
   const router = useRouter();
-
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [printing, setPrinting] = useState(false);
-  const [exporting, setExporting] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [msg, setMsg] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
 
-  const [activeTab, setActiveTab] = useState<TabKey>("overview");
-  const [search, setSearch] = useState("");
+  const [role, setRole] = useState("Staff");
+  const [userId, setUserId] = useState<string | null>(null);
+  const canManage = ["admin", "auditor"].includes(roleKey(role));
 
-  const [authUserId, setAuthUserId] = useState<string | null>(null);
-  const [myRole, setMyRole] = useState("Staff");
-  const rk = roleKey(myRole);
-
-  const canManage = rk === "admin" || rk === "auditor";
-  const canAuditView = ["admin", "auditor", "account", "accounts", "accountofficer"].includes(rk);
-  const canPrintCompleted = ["admin", "auditor", "account", "accounts", "accountofficer"].includes(rk);
-
-  const [depts, setDepts] = useState<Dept[]>([]);
+  const [departments, setDepartments] = useState<Dept[]>([]);
   const [banks, setBanks] = useState<BankAccount[]>([]);
-  const [subs, setSubs] = useState<Sub[]>([]);
-  const [printableRequests, setPrintableRequests] = useState<PrintableRequest[]>([]);
+  const [subheads, setSubheads] = useState<Subhead[]>([]);
 
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState<FilterStatus>("all");
+  const [level, setLevel] = useState<FilterLevel>("all");
+  const [parent, setParent] = useState("all");
+  const [department, setDepartment] = useState("all");
+
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
+
+  const [selected, setSelected] = useState<Subhead | null>(null);
+  const [formOpen, setFormOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
-  const [deptId, setDeptId] = useState("");
-  const [bankAccountId, setBankAccountId] = useState("");
-  const [code, setCode] = useState("");
-  const [name, setName] = useState("");
-  const [allocation, setAllocation] = useState<number>(0);
-  const [allocationNote, setAllocationNote] = useState("");
-  const [active, setActive] = useState(true);
+  const [formDept, setFormDept] = useState("");
+  const [formBank, setFormBank] = useState("");
+  const [formCode, setFormCode] = useState("");
+  const [formName, setFormName] = useState("");
+  const [formAllocation, setFormAllocation] = useState(0);
+  const [formNote, setFormNote] = useState("");
+  const [formActive, setFormActive] = useState(true);
 
-  const load = useCallback(
-    async (options?: { silent?: boolean }) => {
-      if (options?.silent) setRefreshing(true);
-      else setLoading(true);
+  const load = useCallback(async (silent = false) => {
+    silent ? setRefreshing(true) : setLoading(true);
+    setMessage(null);
 
-      setMsg(null);
-
+    try {
       const { data: auth } = await supabase.auth.getUser();
-
       if (!auth.user) {
         router.push("/login");
-        return null;
+        return;
       }
 
-      setAuthUserId(auth.user.id);
-
-      const { data: prof } = await supabase
+      setUserId(auth.user.id);
+      const { data: profile } = await supabase
         .from("profiles")
         .select("role")
         .eq("id", auth.user.id)
         .maybeSingle();
-
-      const roleText = (prof?.role || "Staff") as string;
-      const role = roleKey(roleText);
-      setMyRole(roleText);
+      setRole((profile?.role || "Staff") as string);
 
       await supabase.rpc("reqgen_recalculate_all_iet_accounts");
 
       const [deptRes, bankRes, subRes] = await Promise.all([
         supabase.from("departments").select("id,name").order("name", { ascending: true }),
-
         supabase
           .from("iet_accounts")
-          .select(
-            "id,code,name,bank_name,account_number,is_active,total_fund,allocated_amount,reserved_amount,expenditure,unallocated_balance,available_balance"
-          )
+          .select("id,code,name,bank_name,is_active,total_fund,unallocated_balance,available_balance")
           .order("name", { ascending: true }),
-
         supabase
           .from("subheads")
           .select(
             "id,dept_id,bank_account_id,code,name,approved_allocation,reserved_amount,expenditure,balance,is_active,updated_at,allocation_note,allocation_date"
           )
-          .order("name", { ascending: true }),
+          .order("code", { ascending: true, nullsFirst: false }),
       ]);
 
-      if (deptRes.error) {
-        setMsg("Failed to load departments: " + deptRes.error.message);
-      }
+      if (deptRes.error) throw new Error(deptRes.error.message);
+      if (bankRes.error) throw new Error(bankRes.error.message);
+      if (subRes.error) throw new Error(subRes.error.message);
 
-      if (bankRes.error) {
-        setMsg("Failed to load IET bank accounts: " + bankRes.error.message);
-      }
-
-      if (subRes.error) {
-        setMsg("Failed to load subheads: " + subRes.error.message);
-        setSubs([]);
-        setLoading(false);
-        setRefreshing(false);
-        return null;
-      }
-
-      const freshDepts = (deptRes.data || []) as Dept[];
-      const freshBanks = ((bankRes.data || []) as BankAccount[]).map((b) => ({
-        ...b,
-        is_active: b.is_active !== false,
-        total_fund: Number(b.total_fund || 0),
-        allocated_amount: Number(b.allocated_amount || 0),
-        reserved_amount: Number(b.reserved_amount || 0),
-        expenditure: Number(b.expenditure || 0),
-        unallocated_balance: Number(b.unallocated_balance || 0),
-        available_balance: Number(b.available_balance || 0),
+      const freshSubheads = ((subRes.data || []) as Subhead[]).map((item) => ({
+        ...item,
+        approved_allocation: Number(item.approved_allocation || 0),
+        reserved_amount: Number(item.reserved_amount || 0),
+        expenditure: Number(item.expenditure || 0),
+        balance: Number(item.balance || 0),
+        is_active: item.is_active !== false,
       }));
-
-      const baseSubs = ((subRes.data || []) as Sub[]).map((s) => ({
-        ...s,
-        approved_allocation: Number(s.approved_allocation || 0),
-        reserved_amount: Number(s.reserved_amount || 0),
-        expenditure: Number(s.expenditure || 0),
-        balance: Number(s.balance || 0),
-        is_active: s.is_active !== false,
-      }));
-
-      setDepts(freshDepts);
-      setBanks(freshBanks);
 
       let requestCountBySubhead: Record<string, number> = {};
-
-      if (baseSubs.length > 0) {
+      if (freshSubheads.length) {
         const { data: linkedRows } = await supabase
           .from("requests")
           .select("subhead_id")
           .not("subhead_id", "is", null);
-
-        (linkedRows || []).forEach((r: any) => {
-          if (r.subhead_id) {
-            requestCountBySubhead[r.subhead_id] = (requestCountBySubhead[r.subhead_id] || 0) + 1;
-          }
+        (linkedRows || []).forEach((row: any) => {
+          if (row.subhead_id) requestCountBySubhead[row.subhead_id] = (requestCountBySubhead[row.subhead_id] || 0) + 1;
         });
       }
 
-      const freshSubs = baseSubs.map((s) => ({
-        ...s,
-        request_count: requestCountBySubhead[s.id] || 0,
-      }));
-
-      setSubs(freshSubs);
-
-      let freshPrintable: PrintableRequest[] = [];
-
-      if (["admin", "auditor", "account", "accounts", "accountofficer"].includes(role)) {
-        const [officialRes, personalFundRes] = await Promise.all([
-          supabase
-            .from("requests")
-            .select(
-              "id,request_no,title,amount,status,current_stage,created_at,requester_name,account_name,subhead_id,request_type,personal_category"
-            )
-            .in("status", ["Paid", "Completed"])
-            .eq("request_type", "Official")
-            .order("created_at", { ascending: false })
-            .limit(50),
-
-          supabase
-            .from("requests")
-            .select(
-              "id,request_no,title,amount,status,current_stage,created_at,requester_name,account_name,subhead_id,request_type,personal_category"
-            )
-            .in("status", ["Paid", "Completed"])
-            .eq("request_type", "Personal")
-            .eq("personal_category", "Fund")
-            .order("created_at", { ascending: false })
-            .limit(50),
-        ]);
-
-        if (!officialRes.error && !personalFundRes.error) {
-          freshPrintable = [
-            ...((officialRes.data || []) as PrintableRequest[]),
-            ...((personalFundRes.data || []) as PrintableRequest[]),
-          ]
-            .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-            .slice(0, 50);
-        }
-      }
-
-      setPrintableRequests(freshPrintable);
-
+      setDepartments((deptRes.data || []) as Dept[]);
+      setBanks((bankRes.data || []) as BankAccount[]);
+      setSubheads(
+        freshSubheads.map((item) => ({ ...item, request_count: requestCountBySubhead[item.id] || 0 }))
+      );
+    } catch (error: any) {
+      setMessage(`Unable to load finance subheads: ${error?.message || "Unknown error"}`);
+    } finally {
       setLoading(false);
       setRefreshing(false);
-
-      return {
-        depts: freshDepts,
-        banks: freshBanks,
-        subs: freshSubs,
-        printableRequests: freshPrintable,
-      };
-    },
-    [router]
-  );
+    }
+  }, [router]);
 
   useEffect(() => {
     load();
-
-    const refreshOnFocus = () => load({ silent: true });
-
-    const refreshOnVisible = () => {
-      if (document.visibilityState === "visible") load({ silent: true });
-    };
-
-    window.addEventListener("focus", refreshOnFocus);
-    document.addEventListener("visibilitychange", refreshOnVisible);
-
-    return () => {
-      window.removeEventListener("focus", refreshOnFocus);
-      document.removeEventListener("visibilitychange", refreshOnVisible);
-    };
   }, [load]);
 
-  const deptMap = useMemo(() => {
-    const m: Record<string, string> = {};
-    depts.forEach((d) => {
-      m[d.id] = d.name;
-    });
-    return m;
-  }, [depts]);
+  const departmentMap = useMemo(() => {
+    const map = new Map<string, string>();
+    departments.forEach((item) => map.set(item.id, item.name));
+    return map;
+  }, [departments]);
 
   const bankMap = useMemo(() => {
-    const m: Record<string, BankAccount> = {};
-    banks.forEach((b) => {
-      m[b.id] = b;
-    });
-    return m;
+    const map = new Map<string, BankAccount>();
+    banks.forEach((item) => map.set(item.id, item));
+    return map;
   }, [banks]);
 
-  const subheadMap = useMemo(() => {
-    const m: Record<string, string> = {};
-    subs.forEach((s) => {
-      m[s.id] = `${s.code ? `${s.code} — ` : ""}${s.name}`;
+  const byCode = useMemo(() => {
+    const map = new Map<string, Subhead>();
+    subheads.forEach((item) => {
+      if (item.code) map.set(item.code, item);
     });
-    return m;
-  }, [subs]);
+    return map;
+  }, [subheads]);
 
-  const currentSub = useMemo(() => {
-    if (!editId) return null;
-    return subs.find((x) => x.id === editId) || null;
-  }, [subs, editId]);
+  const parentOptions = useMemo(
+    () => subheads.filter((item) => subheadLevel(item.code) === 1 && item.code),
+    [subheads]
+  );
 
-  const selectedBank = useMemo(() => {
-    if (!bankAccountId) return null;
-    return bankMap[bankAccountId] || null;
-  }, [bankAccountId, bankMap]);
+  const total = subheads.length;
+  const activeCount = subheads.filter((item) => item.is_active).length;
+  const inactiveCount = total - activeCount;
+  const childCount = subheads.filter((item) => subheadLevel(item.code) > 1).length;
 
-  const selectedBankCapacity = useMemo(() => {
-    return computeBankCapacity(selectedBank, currentSub);
-  }, [selectedBank, currentSub]);
-
-  const totals = useMemo(() => computeTotals(subs), [subs]);
-
-  const filteredSubs = useMemo(() => {
-    const s = search.trim().toLowerCase();
-
-    return subs.filter((sub) => {
-      if (activeTab === "active" && !sub.is_active) return false;
-      if (activeTab === "inactive" && sub.is_active) return false;
-
-      if (!s) return true;
-
-      const bank = sub.bank_account_id ? bankMap[sub.bank_account_id] : null;
-
-      const haystack = [
-        sub.name,
-        sub.code,
-        sub.dept_id ? deptMap[sub.dept_id] : "",
-        bankLabel(bank),
-        bankSubLabel(bank),
-        sub.is_active ? "active" : "inactive",
-        sub.bank_account_id ? "bank linked" : "no bank",
+  const filtered = useMemo(() => {
+    const needle = search.trim().toLowerCase();
+    return subheads.filter((item) => {
+      if (status === "active" && !item.is_active) return false;
+      if (status === "inactive" && item.is_active) return false;
+      const itemLevel = subheadLevel(item.code);
+      if (level === "1" && itemLevel !== 1) return false;
+      if (level === "2" && itemLevel !== 2) return false;
+      if (level === "3+" && itemLevel < 3) return false;
+      if (department !== "all" && item.dept_id !== department) return false;
+      if (parent !== "all") {
+        const p = parentCode(item.code);
+        if (item.code !== parent && p !== parent && !item.code?.startsWith(`${parent}.`)) return false;
+      }
+      if (!needle) return true;
+      const bank = item.bank_account_id ? bankMap.get(item.bank_account_id) : null;
+      return [
+        item.code,
+        item.name,
+        getParentLabel(item, byCode),
+        item.dept_id ? departmentMap.get(item.dept_id) : "",
+        bank?.name,
+        bank?.bank_name,
+        item.is_active ? "active" : "inactive",
       ]
         .join(" ")
-        .toLowerCase();
-
-      return haystack.includes(s);
+        .toLowerCase()
+        .includes(needle);
     });
-  }, [subs, search, activeTab, deptMap, bankMap]);
+  }, [subheads, search, status, level, department, parent, bankMap, byCode, departmentMap]);
+
+  useEffect(() => setPage(1), [search, status, level, department, parent]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const paged = filtered.slice((page - 1) * pageSize, page * pageSize);
+
+  const allocationTotal = subheads.reduce((sum, item) => sum + Number(item.approved_allocation || 0), 0);
+  const categoryData = useMemo(() => {
+    const groups = new Map<string, number>();
+    subheads.forEach((item) => {
+      const root = item.code?.split(".")[0] || "Other";
+      const rootItem = byCode.get(root);
+      const label = rootItem?.name || root;
+      groups.set(label, (groups.get(label) || 0) + 1);
+    });
+    return [...groups.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([label, value]) => ({ label, value }));
+  }, [subheads, byCode]);
+
+  const donutStops = useMemo(() => {
+    const colors = ["#1677ff", "#16a36a", "#f59e0b", "#7c3aed", "#94a3b8"];
+    const totalValue = Math.max(1, categoryData.reduce((sum, item) => sum + item.value, 0));
+    let cursor = 0;
+    return categoryData
+      .map((item, index) => {
+        const start = cursor;
+        cursor += (item.value / totalValue) * 100;
+        return `${colors[index]} ${start}% ${cursor}%`;
+      })
+      .join(", ");
+  }, [categoryData]);
 
   function resetForm() {
     setEditId(null);
-    setDeptId("");
-    setBankAccountId("");
-    setCode("");
-    setName("");
-    setAllocation(0);
-    setAllocationNote("");
-    setActive(true);
+    setFormDept("");
+    setFormBank("");
+    setFormCode("");
+    setFormName("");
+    setFormAllocation(0);
+    setFormNote("");
+    setFormActive(true);
   }
 
-  function startCreate() {
+  function openCreate() {
     resetForm();
-    setActiveTab("form");
+    setFormOpen(true);
   }
 
-  function startEdit(s: Sub) {
-    setEditId(s.id);
-    setDeptId(s.dept_id || "");
-    setBankAccountId(s.bank_account_id || "");
-    setCode(s.code || "");
-    setName(s.name);
-    setAllocation(Number(s.approved_allocation || 0));
-    setAllocationNote(s.allocation_note || "");
-    setActive(Boolean(s.is_active));
-    setActiveTab("form");
-    window.scrollTo({ top: 0, behavior: "smooth" });
+  function openEdit(item: Subhead) {
+    setEditId(item.id);
+    setFormDept(item.dept_id || "");
+    setFormBank(item.bank_account_id || "");
+    setFormCode(item.code || "");
+    setFormName(item.name);
+    setFormAllocation(Number(item.approved_allocation || 0));
+    setFormNote(item.allocation_note || "");
+    setFormActive(item.is_active);
+    setFormOpen(true);
   }
 
-  async function save() {
-    if (!canManage) {
-      setMsg("Not allowed.");
-      return;
-    }
-
-    if (!bankAccountId) {
-      setMsg("❌ Select the IET Bank Account funding this subhead.");
-      return;
-    }
-
-    if (name.trim().length < 2) {
-      setMsg("❌ Subhead name too short.");
-      return;
-    }
-
-    const alloc = Number(allocation || 0);
-
-    if (Number.isNaN(alloc) || alloc < 0) {
-      setMsg("❌ Allocation must be a valid non-negative amount.");
-      return;
-    }
-
-    const reserved = Number(currentSub?.reserved_amount || 0);
-    const expenditure = Number(currentSub?.expenditure || 0);
-    const committed = reserved + expenditure;
-
-    if (editId && alloc < committed) {
-      setMsg(
-        `❌ Allocation cannot be less than already committed amount. Reserved + Expenditure is ${naira(
-          committed
-        )}.`
-      );
-      return;
-    }
-
-    if (alloc > selectedBankCapacity) {
-      setMsg(
-        `❌ Allocation exceeds selected bank available unallocated capacity. Available capacity is ${naira(
-          selectedBankCapacity
-        )}.`
-      );
-      return;
-    }
+  async function saveSubhead() {
+    if (!canManage) return setMessage("Your current role does not allow subhead changes.");
+    if (!formName.trim()) return setMessage("Enter a subhead name.");
+    if (!formBank) return setMessage("Select the IET Bank funding this subhead.");
+    if (Number(formAllocation) < 0) return setMessage("Allocation cannot be negative.");
 
     setSaving(true);
-    setMsg(null);
-
+    setMessage(null);
     try {
-      let subheadId = editId;
+      const current = editId ? subheads.find((item) => item.id === editId) || null : null;
+      const bank = bankMap.get(formBank) || null;
+      const currentAllocation = current?.bank_account_id === formBank ? Number(current.approved_allocation || 0) : 0;
+      const availableCapacity = Number(bank?.unallocated_balance || 0) + currentAllocation;
+      const committed = Number(current?.reserved_amount || 0) + Number(current?.expenditure || 0);
 
-      const basePayload: any = {
-        dept_id: deptId || null,
-        code: code.trim() || null,
-        name: name.trim(),
-        is_active: active,
+      if (editId && formAllocation < committed) {
+        throw new Error(`Allocation cannot be below committed amount (${money(committed)}).`);
+      }
+      if (formAllocation > availableCapacity) {
+        throw new Error(`Allocation exceeds available bank capacity (${money(availableCapacity)}).`);
+      }
+
+      let subheadId = editId;
+      const payload = {
+        dept_id: formDept || null,
+        code: formCode.trim() || null,
+        name: formName.trim(),
+        is_active: formActive,
       };
 
-      if (!subheadId) {
+      if (subheadId) {
+        const { error } = await supabase.from("subheads").update(payload).eq("id", subheadId);
+        if (error) throw error;
+      } else {
         const { data, error } = await supabase
           .from("subheads")
           .insert({
-            ...basePayload,
+            ...payload,
             bank_account_id: null,
             approved_allocation: 0,
             reserved_amount: 0,
             expenditure: 0,
             balance: 0,
-            allocation_note: null,
-            allocation_date: null,
           })
           .select("id")
           .single();
-
-        if (error) throw new Error(error.message);
-
+        if (error) throw error;
         subheadId = data.id;
-      } else {
-        const { error } = await supabase.from("subheads").update(basePayload).eq("id", subheadId);
-        if (error) throw new Error(error.message);
       }
 
-      const { error: allocationErr } = await supabase.rpc(
-        "reqgen_assign_subhead_bank_allocation",
-        {
-          p_subhead_id: subheadId,
-          p_bank_account_id: bankAccountId,
-          p_new_allocation: alloc,
-          p_actor_id: authUserId,
-          p_note:
-            allocationNote.trim() ||
-            (editId
-              ? "Subhead bank allocation updated from Subheads page."
-              : "Subhead bank allocation created from Subheads page."),
-        }
-      );
+      const { error: allocationError } = await supabase.rpc("reqgen_assign_subhead_bank_allocation", {
+        p_subhead_id: subheadId,
+        p_bank_account_id: formBank,
+        p_new_allocation: Number(formAllocation || 0),
+        p_actor_id: userId,
+        p_note: formNote.trim() || "Updated from Finance Subheads.",
+      });
+      if (allocationError) throw allocationError;
 
-      if (allocationErr) throw new Error(allocationErr.message);
-
-      setMsg(
-        editId
-          ? "✅ Subhead updated and bank allocation recalculated."
-          : "✅ Subhead created and bank allocation recorded."
-      );
-
+      setMessage(editId ? "Subhead updated successfully." : "New subhead created successfully.");
+      setFormOpen(false);
       resetForm();
-      setActiveTab(active ? "active" : "inactive");
-      await load({ silent: true });
-      router.refresh();
-    } catch (e: any) {
-      setMsg("❌ " + (e?.message || "Failed"));
+      await load(true);
+    } catch (error: any) {
+      setMessage(error?.message || "Unable to save subhead.");
     } finally {
       setSaving(false);
     }
   }
 
-  async function toggleActive(s: Sub, nextActive: boolean) {
-    if (!canManage) {
-      setMsg("Not allowed.");
-      return;
-    }
-
+  async function toggleActive(item: Subhead) {
+    if (!canManage) return setMessage("Your current role does not allow subhead changes.");
     setSaving(true);
-    setMsg(null);
-
     try {
       const { error } = await supabase
         .from("subheads")
-        .update({ is_active: nextActive })
-        .eq("id", s.id);
-
-      if (error) throw new Error(error.message);
-
-      setMsg(nextActive ? "✅ Subhead activated." : "✅ Subhead deactivated.");
-      await load({ silent: true });
-      router.refresh();
-    } catch (e: any) {
-      setMsg("❌ " + (e?.message || "Failed"));
+        .update({ is_active: !item.is_active })
+        .eq("id", item.id);
+      if (error) throw error;
+      setMessage(item.is_active ? "Subhead deactivated." : "Subhead activated.");
+      await load(true);
+    } catch (error: any) {
+      setMessage(error?.message || "Unable to update subhead status.");
     } finally {
       setSaving(false);
     }
   }
 
-  async function deleteOrDeactivate(s: Sub) {
-    if (!canManage) {
-      setMsg("Not allowed.");
-      return;
-    }
-
-    const linked =
-      Number(s.request_count || 0) > 0 ||
-      Number(s.approved_allocation || 0) > 0 ||
-      Number(s.reserved_amount || 0) > 0 ||
-      Number(s.expenditure || 0) > 0;
-
-    if (linked) {
-      if (
-        !confirm(
-          "This subhead has request links or financial allocation/activity. It cannot be safely deleted. Do you want to deactivate it instead?"
-        )
-      ) {
-        return;
-      }
-
-      await toggleActive(s, false);
-      return;
-    }
-
-    if (!confirm("Delete this unused subhead permanently?")) return;
-
+  async function removeUnused(item: Subhead) {
+    if (!canManage) return setMessage("Your current role does not allow subhead changes.");
+    const linked = Number(item.request_count || 0) > 0 || Number(item.approved_allocation || 0) > 0 || Number(item.reserved_amount || 0) > 0 || Number(item.expenditure || 0) > 0;
+    if (linked) return setMessage("This subhead has financial or request activity. Deactivate it instead of deleting it.");
+    if (!window.confirm(`Delete unused subhead “${item.name}”?`)) return;
     setSaving(true);
-    setMsg(null);
-
     try {
-      const { error } = await supabase.from("subheads").delete().eq("id", s.id);
-      if (error) throw new Error(error.message);
-
-      setMsg("✅ Unused subhead deleted.");
-
-      if (editId === s.id) resetForm();
-
-      await load({ silent: true });
-      router.refresh();
-    } catch (e: any) {
-      const text = e?.message || "Failed";
-
-      if (
-        text.toLowerCase().includes("foreign key") ||
-        text.toLowerCase().includes("requests_subhead_id")
-      ) {
-        const { error } = await supabase
-          .from("subheads")
-          .update({ is_active: false })
-          .eq("id", s.id);
-
-        if (error) {
-          setMsg("❌ Delete failed and deactivate also failed: " + error.message);
-        } else {
-          setMsg("✅ Subhead was linked to records, so it has been deactivated instead of deleted.");
-          await load({ silent: true });
-          router.refresh();
-        }
-      } else {
-        setMsg("❌ " + text);
-      }
+      const { error } = await supabase.from("subheads").delete().eq("id", item.id);
+      if (error) throw error;
+      setMessage("Unused subhead deleted.");
+      await load(true);
+    } catch (error: any) {
+      setMessage(error?.message || "Unable to delete subhead.");
     } finally {
       setSaving(false);
     }
   }
 
-  async function printSubheadsReport() {
-    setPrinting(true);
-    await load({ silent: true });
-
-    setTimeout(() => {
-      printReport();
-      setPrinting(false);
-    }, 250);
-  }
-
-  async function exportSubheadsExcel() {
+  async function exportCsv() {
     setExporting(true);
-
-    const fresh = await load({ silent: true });
-    const exportSubs = fresh?.subs || subs;
-    const exportDepts = fresh?.depts || depts;
-    const exportBanks = fresh?.banks || banks;
-
-    const exportDeptMap: Record<string, string> = {};
-    exportDepts.forEach((d) => {
-      exportDeptMap[d.id] = d.name;
-    });
-
-    const exportBankMap: Record<string, BankAccount> = {};
-    exportBanks.forEach((b) => {
-      exportBankMap[b.id] = b;
-    });
-
-    const exportTotals = computeTotals(exportSubs);
-
-    exportTableToExcel<Sub>({
-      fileName: `total_subheads_report_${new Date().toISOString().slice(0, 10)}`,
-      sheetName: "Total Subheads",
-      title: "TOTAL SUBHEADS REPORT",
-      subtitle: `Total Subheads: ${exportTotals.totalCount} | Active: ${
-        exportTotals.activeCount
-      } | Allocation: ${naira(exportTotals.allocationTotal)} | Balance: ${naira(
-        exportTotals.balanceTotal
-      )}`,
-      rows: exportSubs,
-      columns: [
-        { header: "S/N", value: (_row, index) => index + 1 },
-        { header: "Department", value: (row) => (row.dept_id ? exportDeptMap[row.dept_id] : "—") },
-        {
-          header: "IET Bank",
-          value: (row) => bankLabel(row.bank_account_id ? exportBankMap[row.bank_account_id] : null),
-        },
-        {
-          header: "Bank Details",
-          value: (row) =>
-            bankSubLabel(row.bank_account_id ? exportBankMap[row.bank_account_id] : null),
-        },
-        { header: "Code", value: (row) => row.code || "—" },
-        { header: "Subhead", value: (row) => row.name },
-        { header: "Linked Requests", value: (row) => Number(row.request_count || 0) },
-        { header: "Allocation", value: (row) => plainAmount(row.approved_allocation) },
-        { header: "Reserved", value: (row) => plainAmount(row.reserved_amount) },
-        { header: "Expenditure", value: (row) => plainAmount(row.expenditure) },
-        { header: "Balance", value: (row) => plainAmount(row.balance) },
-        { header: "Status", value: (row) => (row.is_active ? "Active" : "Inactive") },
-        { header: "Allocation Note", value: (row) => row.allocation_note || "" },
-        { header: "Updated", value: (row) => shortDate(row.updated_at) },
-      ],
-      footerRows: [
-        [
-          "Report Total",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          plainAmount(exportTotals.allocationTotal),
-          plainAmount(exportTotals.reservedTotal),
-          plainAmount(exportTotals.expenditureTotal),
-          plainAmount(exportTotals.balanceTotal),
-          "",
-          "",
-          "",
+    try {
+      exportTableToExcel<Subhead>({
+        fileName: `finance_subheads_${new Date().toISOString().slice(0, 10)}`,
+        sheetName: "Finance Subheads",
+        title: "FINANCE SUBHEADS",
+        subtitle: `${filtered.length} visible subheads | Allocation ${money(allocationTotal)}`,
+        rows: filtered,
+        columns: [
+          { header: "Code", value: (row) => row.code || "—" },
+          { header: "Subhead", value: (row) => row.name },
+          { header: "Parent Head", value: (row) => getParentLabel(row, byCode) },
+          { header: "Department", value: (row) => (row.dept_id ? departmentMap.get(row.dept_id) || "—" : "—") },
+          { header: "Level", value: (row) => subheadLevel(row.code) },
+          { header: "Status", value: (row) => (row.is_active ? "Active" : "Inactive") },
+          { header: "Budget", value: (row) => Number(row.approved_allocation || 0) },
+          { header: "Balance", value: (row) => Number(row.balance || 0) },
+          { header: "Updated", value: (row) => formatDate(row.updated_at) },
         ],
-      ],
-    });
-
-    setExporting(false);
-  }
-
-  function openFinanceAudit() {
-    router.push(`/finance/audit?updated=${Date.now()}`);
-    router.refresh();
-  }
-
-  function backToFinance() {
-    router.push(`/finance?updated=${Date.now()}`);
-    router.refresh();
-  }
-
-  function openBanks() {
-    router.push(`/finance/manage-accounts?updated=${Date.now()}`);
-    router.refresh();
-  }
-
-  function printCompletedRequest(requestId: string) {
-    router.push(`/requests/${requestId}/print?updated=${Date.now()}`);
-    router.refresh();
+      });
+    } finally {
+      setExporting(false);
+    }
   }
 
   if (loading) {
-    return (
-      <main className="min-h-screen bg-slate-50 px-4">
-        <div className="mx-auto max-w-7xl py-10 text-slate-600">Loading Subheads...</div>
-      </main>
-    );
+    return <div className={styles.loading}>Loading Finance Subheads…</div>;
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4">
-      <style>{`
-        @media print {
-          @page { size: A4 landscape; margin: 10mm; }
-          body { background: white !important; }
-          .no-print { display: none !important; }
-          .print-sheet {
-            box-shadow: none !important;
-            border: none !important;
-            padding: 0 !important;
-            margin: 0 !important;
-            width: 100% !important;
-            max-width: none !important;
-          }
-          .print-card { break-inside: avoid !important; }
-          .print-title { text-align: center !important; }
-        }
-      `}</style>
-
-      <div className="print-sheet mx-auto max-w-7xl py-8">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="print-title">
-            <div className="hidden text-center print:block">
-              <div className="text-lg font-black uppercase text-slate-900">
-                Islamic Education Trust
-              </div>
-              <div className="text-xs font-semibold text-slate-600">
-                IW2, Ilmi Avenue Intermediate Housing Estate, PMB 229, Minna, Niger State - Nigeria
-              </div>
-              <div className="mt-3 border-y border-black py-2 text-base font-black uppercase">
-                Total Subheads Report
-              </div>
-            </div>
-
-            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 print:mt-3 print:text-xl">
-              Finance • Subheads
-            </h1>
-            <p className="mt-2 text-sm text-slate-600">
-              Allocate subheads from IET bank accounts and monitor allocation, reservation, expenditure and balance.
-            </p>
-            <p className="mt-1 hidden text-xs font-semibold text-slate-500 print:block">
-              Generated: {new Date().toLocaleString()}
-            </p>
-          </div>
-
-          <div className="no-print flex flex-wrap gap-2">
-            <button
-              onClick={() => load({ silent: true })}
-              disabled={refreshing || printing || exporting || saving}
-              className="reqgen-btn reqgen-btn-rose rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-100 disabled:opacity-60"
-            >
-              {refreshing ? "Refreshing..." : "Refresh"}
-            </button>
-
-            <button
-              onClick={startCreate}
-              disabled={!canManage || refreshing || printing || exporting || saving}
-              className="reqgen-btn reqgen-btn-rose rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:opacity-60"
-            >
-              Add Subhead
-            </button>
-
-            <button
-              onClick={printSubheadsReport}
-              disabled={refreshing || printing || exporting || saving}
-              className="reqgen-btn reqgen-btn-rose rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:opacity-60"
-            >
-              {printing ? "Preparing..." : "Print / Save PDF"}
-            </button>
-
-            <button
-              onClick={exportSubheadsExcel}
-              disabled={refreshing || printing || exporting || saving}
-              className="reqgen-btn reqgen-btn-rose rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 disabled:opacity-60"
-            >
-              {exporting ? "Exporting..." : "Export Excel"}
-            </button>
-
-            <button
-              onClick={openBanks}
-              disabled={refreshing || printing || exporting || saving}
-              className="reqgen-btn reqgen-btn-rose rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-100 disabled:opacity-60"
-            >
-              IET Banks
-            </button>
-
-            {canAuditView && (
-              <button
-                onClick={openFinanceAudit}
-                disabled={refreshing || printing || exporting || saving}
-                className="reqgen-btn reqgen-btn-rose rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-100 disabled:opacity-60"
-              >
-                Audit & Reconciliation
-              </button>
-            )}
-
-            <button
-              onClick={backToFinance}
-              disabled={refreshing || printing || exporting || saving}
-              className="reqgen-btn reqgen-btn-rose rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-100 disabled:opacity-60"
-            >
-              Back to Finance
-            </button>
-          </div>
-        </div>
-
-        {msg && (
-          <div className="mt-4 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-800 shadow-sm">
-            {msg}
-          </div>
-        )}
-
-        <div className="no-print mt-4 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-xs font-semibold text-blue-900">
-          Subheads now require an IET Bank funding source. Allocations are validated against bank unallocated funds and recorded through the finance allocation function.
-        </div>
-
-        <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-6 print:grid-cols-6">
-          <StatCard title="Total Subheads" value={String(totals.totalCount)} tone="slate" />
-          <StatCard title="Active Subheads" value={String(totals.activeCount)} tone="emerald" />
-          <StatCard title="Allocation" value={naira(totals.allocationTotal)} tone="blue" />
-          <StatCard title="Reserved" value={naira(totals.reservedTotal)} tone="amber" />
-          <StatCard title="Expenditure" value={naira(totals.expenditureTotal)} tone="red" />
-          <StatCard title="Balance" value={naira(totals.balanceTotal)} tone="emerald" />
-        </div>
-
-        <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-6 print:grid-cols-6">
-          <SmallStat title="Inactive Subheads" value={String(totals.inactiveCount)} />
-          <SmallStat title="Linked to Requests" value={String(totals.linkedCount)} />
-          <SmallStat title="No Bank Linked" value={String(totals.noBankCount)} />
-          <SmallStat title="Negative Balance" value={String(totals.negativeBalanceCount)} />
-          <SmallStat title="Low Balance" value={String(totals.lowBalanceCount)} />
-          <SmallStat title="IET Banks" value={String(banks.length)} />
-        </div>
-
-        <div className="no-print mt-6 rounded-3xl border bg-white p-2 shadow-sm">
-          <div className="flex flex-wrap gap-2">
-            <TabButton label="Overview" active={activeTab === "overview"} onClick={() => setActiveTab("overview")} />
-            <TabButton label="Active Subheads" active={activeTab === "active"} onClick={() => setActiveTab("active")} />
-            <TabButton label="Inactive Subheads" active={activeTab === "inactive"} onClick={() => setActiveTab("inactive")} />
-            <TabButton label={editId ? "Edit Subhead" : "Add Subhead"} active={activeTab === "form"} onClick={() => setActiveTab("form")} />
-            {canPrintCompleted && (
-              <TabButton label="Completed Requests" active={activeTab === "print"} onClick={() => setActiveTab("print")} />
-            )}
-          </div>
-        </div>
-
-        {(activeTab === "overview" || activeTab === "active" || activeTab === "inactive") && (
-          <div className="no-print mt-6 rounded-3xl border bg-white p-5 shadow-sm">
-            <label className="text-sm font-semibold text-slate-800">Search Subheads</label>
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by subhead, code, department, IET bank or status..."
-              className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 text-slate-900 outline-none focus:border-blue-500"
-            />
-          </div>
-        )}
-
-        {activeTab === "print" && canPrintCompleted && (
-          <CompletedRequestsPanel
-            printableRequests={printableRequests}
-            subheadMap={subheadMap}
-            refreshing={refreshing}
-            saving={saving}
-            printing={printing}
-            exporting={exporting}
-            onRefresh={() => load({ silent: true })}
-            onPrint={printCompletedRequest}
-          />
-        )}
-
-        {activeTab === "form" && (
-          <SubheadForm
-            canManage={canManage}
-            saving={saving}
-            editId={editId}
-            depts={depts}
-            banks={banks}
-            deptId={deptId}
-            bankAccountId={bankAccountId}
-            selectedBank={selectedBank}
-            selectedBankCapacity={selectedBankCapacity}
-            code={code}
-            name={name}
-            allocation={allocation}
-            allocationNote={allocationNote}
-            active={active}
-            currentSub={currentSub}
-            onCancel={resetForm}
-            onSave={save}
-            setDeptId={setDeptId}
-            setBankAccountId={setBankAccountId}
-            setCode={setCode}
-            setName={setName}
-            setAllocation={setAllocation}
-            setAllocationNote={setAllocationNote}
-            setActive={setActive}
-          />
-        )}
-
-        {(activeTab === "overview" || activeTab === "active" || activeTab === "inactive") && (
-          <>
-            <div className="mt-6 grid gap-4 xl:hidden print:hidden">
-              {filteredSubs.length === 0 ? (
-                <div className="rounded-2xl border bg-white p-5 text-sm text-slate-700 shadow-sm">
-                  No subheads found.
-                </div>
-              ) : (
-                filteredSubs.map((s) => (
-                  <SubheadMobileCard
-                    key={s.id}
-                    s={s}
-                    deptName={s.dept_id ? deptMap[s.dept_id] || "Unknown Department" : "No department"}
-                    bank={s.bank_account_id ? bankMap[s.bank_account_id] : null}
-                    canManage={canManage}
-                    saving={saving}
-                    onEdit={() => startEdit(s)}
-                    onToggle={() => toggleActive(s, !s.is_active)}
-                    onDelete={() => deleteOrDeactivate(s)}
-                  />
-                ))
-              )}
-            </div>
-
-            <div className="mt-6 hidden xl:block rounded-3xl border bg-white shadow-sm overflow-hidden print:block print:rounded-none print:border-black print:shadow-none">
-              <div className="border-b bg-slate-50 px-6 py-4 print:bg-white print:px-2">
-                <h3 className="text-base font-bold text-slate-900 print:text-sm">Subheads Register</h3>
-                <p className="mt-1 text-sm text-slate-600 print:text-[9px]">
-                  Bank funding source, allocation, reserved commitments, actual expenditure and remaining balance.
-                </p>
-              </div>
-
-              <SubheadTable
-                subs={filteredSubs}
-                deptMap={deptMap}
-                bankMap={bankMap}
-                totals={computeTotals(filteredSubs)}
-                canManage={canManage}
-                saving={saving}
-                onEdit={startEdit}
-                onToggle={toggleActive}
-                onDelete={deleteOrDeactivate}
-              />
-            </div>
-          </>
-        )}
-
-        <div className="mt-6 rounded-3xl border border-blue-100 bg-blue-50 p-5 text-sm text-blue-900 print:border-t print:border-black print:bg-white print:text-black">
-          <div className="font-bold">Subheads Bank Allocation Note</div>
-          <p className="mt-1">
-            Every operational subhead should now be linked to an IET Bank account. The bank account holds
-            the lump sum fund, while subheads receive allocations from it. Reserved amounts and expenditure
-            then roll back into bank-level reconciliation.
-          </p>
-        </div>
-      </div>
-    </main>
-  );
-}
-
-function SubheadForm({
-  canManage,
-  saving,
-  editId,
-  depts,
-  banks,
-  deptId,
-  bankAccountId,
-  selectedBank,
-  selectedBankCapacity,
-  code,
-  name,
-  allocation,
-  allocationNote,
-  active,
-  currentSub,
-  onCancel,
-  onSave,
-  setDeptId,
-  setBankAccountId,
-  setCode,
-  setName,
-  setAllocation,
-  setAllocationNote,
-  setActive,
-}: {
-  canManage: boolean;
-  saving: boolean;
-  editId: string | null;
-  depts: Dept[];
-  banks: BankAccount[];
-  deptId: string;
-  bankAccountId: string;
-  selectedBank: BankAccount | null;
-  selectedBankCapacity: number;
-  code: string;
-  name: string;
-  allocation: number;
-  allocationNote: string;
-  active: boolean;
-  currentSub: Sub | null;
-  onCancel: () => void;
-  onSave: () => void;
-  setDeptId: (v: string) => void;
-  setBankAccountId: (v: string) => void;
-  setCode: (v: string) => void;
-  setName: (v: string) => void;
-  setAllocation: (v: number) => void;
-  setAllocationNote: (v: string) => void;
-  setActive: (v: boolean) => void;
-}) {
-  const committed = Number(currentSub?.reserved_amount || 0) + Number(currentSub?.expenditure || 0);
-
-  return (
-    <div className="no-print mt-6 rounded-3xl border bg-white p-6 shadow-sm">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <div className={styles.page}>
+      <header className={styles.pageHeader}>
         <div>
-          <h2 className="text-lg font-bold text-slate-900">
-            {editId ? "Edit Subhead Bank Allocation" : "Add New Subhead"}
-          </h2>
-          <p className="mt-1 text-sm text-slate-600">
-            Select department, IET bank account, code, name, allocation and active status.
-          </p>
+          <div className={styles.breadcrumb}>Finance <span>›</span> Finance Subheads</div>
+          <h1>Finance Subheads</h1>
+          <p>Create, manage and organize all finance subheads and budgeting categories.</p>
         </div>
+        <button className={styles.primaryButton} onClick={openCreate} disabled={!canManage}>
+          <Plus size={17} /> Create New Subhead
+        </button>
+      </header>
 
-        {editId && (
-          <button
-            onClick={onCancel}
-            disabled={saving}
-            className="reqgen-btn reqgen-btn-rose rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
-          >
-            Cancel Edit
-          </button>
-        )}
-      </div>
-
-      {!canManage && (
-        <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
-          View only. Only Admin and Auditor can create, edit, activate, deactivate or delete subheads.
+      {message && (
+        <div className={styles.messageBar}>
+          <span>{message}</span>
+          <button onClick={() => setMessage(null)} aria-label="Dismiss"><X size={16} /></button>
         </div>
       )}
 
-      <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <div className="xl:col-span-2">
-          <label className="text-sm font-semibold text-slate-800">Department</label>
-          <select
-            value={deptId}
-            onChange={(e) => setDeptId(e.target.value)}
-            disabled={!canManage || saving}
-            className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-3 text-slate-900 outline-none focus:border-blue-500 disabled:bg-slate-50"
-          >
-            <option value="">— Not assigned —</option>
-            {depts.map((d) => (
-              <option key={d.id} value={d.id}>
-                {d.name}
-              </option>
-            ))}
+      <section className={styles.kpiGrid}>
+        <Kpi icon={<Layers3 size={24} />} tone="blue" label="Total Subheads" value={String(total)} note="All Finance Subheads" />
+        <Kpi icon={<ShieldCheck size={24} />} tone="green" label="Active Subheads" value={String(activeCount)} note={`${total ? ((activeCount / total) * 100).toFixed(1) : "0"}% of total subheads`} />
+        <Kpi icon={<PauseCircle size={24} />} tone="orange" label="Inactive Subheads" value={String(inactiveCount)} note={`${total ? ((inactiveCount / total) * 100).toFixed(1) : "0"}% of total subheads`} />
+        <Kpi icon={<GitBranch size={24} />} tone="purple" label="Under Subheads" value={String(childCount)} note="Subheads with parent items" />
+      </section>
+
+      <section className={styles.filterCard}>
+        <FilterField label="Search Subhead" grow>
+          <div className={styles.searchBox}><Search size={16} /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by name, code or description…" /></div>
+        </FilterField>
+        <FilterField label="Parent Head">
+          <select value={parent} onChange={(e) => setParent(e.target.value)}>
+            <option value="all">All Parent Heads</option>
+            {parentOptions.map((item) => <option key={item.id} value={item.code || ""}>{item.code} — {item.name}</option>)}
           </select>
-        </div>
+        </FilterField>
+        <FilterField label="Status"><select value={status} onChange={(e) => setStatus(e.target.value as FilterStatus)}><option value="all">All Statuses</option><option value="active">Active</option><option value="inactive">Inactive</option></select></FilterField>
+        <FilterField label="Level"><select value={level} onChange={(e) => setLevel(e.target.value as FilterLevel)}><option value="all">All Levels</option><option value="1">Level 1</option><option value="2">Level 2</option><option value="3+">Level 3+</option></select></FilterField>
+        <FilterField label="Department"><select value={department} onChange={(e) => setDepartment(e.target.value)}><option value="all">All Departments</option>{departments.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></FilterField>
+        <button className={styles.moreFilters} onClick={() => { setSearch(""); setStatus("all"); setLevel("all"); setParent("all"); setDepartment("all"); }}><Filter size={15} /> Reset</button>
+      </section>
 
-        <div className="xl:col-span-2">
-          <label className="text-sm font-semibold text-slate-800">Funding IET Bank</label>
-          <select
-            value={bankAccountId}
-            onChange={(e) => setBankAccountId(e.target.value)}
-            disabled={!canManage || saving}
-            className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-3 text-slate-900 outline-none focus:border-blue-500 disabled:bg-slate-50"
-          >
-            <option value="">— Select IET Bank Account —</option>
-            {banks
-              .filter((b) => b.is_active !== false || b.id === bankAccountId)
-              .map((b) => (
-                <option key={b.id} value={b.id}>
-                  {bankLabel(b)} • Unallocated: {naira(b.unallocated_balance)}
-                </option>
-              ))}
-          </select>
-        </div>
-
-        {selectedBank && (
-          <div className="md:col-span-2 xl:col-span-4 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-            <MiniInfo title="Bank" value={bankSubLabel(selectedBank)} />
-            <MiniInfo title="Total Fund" value={naira(selectedBank.total_fund)} />
-            <MiniInfo title="Already Allocated" value={naira(selectedBank.allocated_amount)} />
-            <MiniInfo title="Available Capacity" value={naira(selectedBankCapacity)} />
-            <MiniInfo title="Bank Available Balance" value={naira(selectedBank.available_balance)} />
-          </div>
-        )}
-
-        <div>
-          <label className="text-sm font-semibold text-slate-800">Code</label>
-          <input
-            value={code}
-            onChange={(e) => setCode(e.target.value)}
-            disabled={!canManage || saving}
-            placeholder="e.g. GA-004"
-            className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-3 text-slate-900 outline-none focus:border-blue-500 disabled:bg-slate-50"
-          />
-        </div>
-
-        <div>
-          <label className="text-sm font-semibold text-slate-800">Allocation (₦)</label>
-          <input
-            value={allocation}
-            onChange={(e) => setAllocation(Number(e.target.value || 0))}
-            disabled={!canManage || saving}
-            type="number"
-            className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-3 text-slate-900 outline-none focus:border-blue-500 disabled:bg-slate-50"
-          />
-          {editId && committed > 0 && (
-            <div className="mt-1 text-xs font-semibold text-amber-700">
-              Minimum safe allocation: {naira(committed)}.
+      <section className={styles.contentGrid}>
+        <div className={styles.tableCard}>
+          <div className={styles.cardHeader}>
+            <div><h2>Finance Subheads ({filtered.length})</h2></div>
+            <div className={styles.cardActions}>
+              <button onClick={exportCsv} disabled={exporting}><Download size={15} /> {exporting ? "Exporting…" : "Export CSV"}</button>
+              <button className={styles.iconButton} onClick={() => load(true)} disabled={refreshing} title="Refresh"><RefreshCw size={16} className={refreshing ? styles.spin : ""} /></button>
             </div>
-          )}
+          </div>
+
+          <div className={styles.tableWrap}>
+            <table>
+              <thead><tr><th>#</th><th>Code</th><th>Subhead Name</th><th>Parent Head</th><th>Level</th><th>Type</th><th>Status</th><th>Budget (₦)</th><th>Actions</th></tr></thead>
+              <tbody>
+                {paged.length === 0 ? (
+                  <tr><td colSpan={9}><div className={styles.empty}>No finance subheads match the selected filters.</div></td></tr>
+                ) : paged.map((item, index) => (
+                  <tr key={item.id}>
+                    <td>{(page - 1) * pageSize + index + 1}</td>
+                    <td className={styles.codeCell}>{item.code || "—"}</td>
+                    <td><div className={styles.nameCell}><strong>{item.name}</strong><small>{item.dept_id ? departmentMap.get(item.dept_id) || "" : "Institution-wide"}</small></div></td>
+                    <td className={styles.parentCell}>{getParentLabel(item, byCode)}</td>
+                    <td>{subheadLevel(item.code)}</td>
+                    <td>Operating</td>
+                    <td><span className={`${styles.statusPill} ${item.is_active ? styles.active : styles.inactive}`}>{item.is_active ? "Active" : "Inactive"}</span></td>
+                    <td className={styles.amountCell}>{Number(item.approved_allocation || 0).toLocaleString("en-NG")}</td>
+                    <td><div className={styles.rowActions}>
+                      <button onClick={() => setSelected(item)} title="View"><Eye size={15} /></button>
+                      <button onClick={() => openEdit(item)} disabled={!canManage} title="Edit"><Pencil size={15} /></button>
+                      <div className={styles.moreMenu}>
+                        <button title="More actions"><MoreVertical size={15} /></button>
+                        <div className={styles.moreMenuPanel}>
+                          <button onClick={() => toggleActive(item)} disabled={!canManage}><Power size={14} /> {item.is_active ? "Deactivate" : "Activate"}</button>
+                          <button onClick={() => removeUnused(item)} disabled={!canManage}><Trash2 size={14} /> Delete unused</button>
+                        </div>
+                      </div>
+                    </div></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className={styles.pagination}>
+            <span>Showing {filtered.length ? (page - 1) * pageSize + 1 : 0} to {Math.min(page * pageSize, filtered.length)} of {filtered.length} subheads</span>
+            <div>
+              <button onClick={() => setPage(1)} disabled={page === 1}>«</button>
+              <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>‹</button>
+              {Array.from({ length: Math.min(5, totalPages) }, (_, idx) => idx + 1).map((n) => <button key={n} className={page === n ? styles.currentPage : ""} onClick={() => setPage(n)}>{n}</button>)}
+              {totalPages > 5 && <span>…</span>}
+              {totalPages > 5 && <button onClick={() => setPage(totalPages)}>{totalPages}</button>}
+              <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}>›</button>
+              <button onClick={() => setPage(totalPages)} disabled={page === totalPages}>»</button>
+            </div>
+          </div>
         </div>
 
-        <div className="md:col-span-2">
-          <label className="text-sm font-semibold text-slate-800">Subhead Name</label>
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            disabled={!canManage || saving}
-            placeholder="e.g. Vehicles Maintenance"
-            className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-3 text-slate-900 outline-none focus:border-blue-500 disabled:bg-slate-50"
-          />
+        <aside className={styles.sideColumn}>
+          <section className={styles.sideCard}>
+            <h3>Subhead Overview</h3>
+            <div className={styles.donutRow}>
+              <div className={styles.donut} style={{ background: `conic-gradient(${donutStops || "#e2e8f0 0 100%"})` }}><div><strong>{total}</strong><span>Total</span></div></div>
+              <div className={styles.legend}>
+                {categoryData.map((item, index) => {
+                  const colors = ["#1677ff", "#16a36a", "#f59e0b", "#7c3aed", "#94a3b8"];
+                  return <div key={item.label}><span style={{ background: colors[index] }} /><b>{item.label}</b><small>{item.value} ({total ? ((item.value / total) * 100).toFixed(1) : 0}%)</small></div>;
+                })}
+              </div>
+            </div>
+          </section>
+
+          <section className={styles.sideCard}>
+            <h3>Quick Actions</h3>
+            <QuickAction icon={<Plus size={16} />} tone="blue" title="Create New Subhead" note="Add a new finance subhead" onClick={openCreate} />
+            <QuickAction icon={<FolderKanban size={16} />} tone="green" title="Manage Parent Heads" note="Review top-level budget heads" onClick={() => { setLevel("1"); setParent("all"); }} />
+            <QuickAction icon={<Network size={16} />} tone="purple" title="View Subhead Hierarchy" note="Browse subheads by parent" onClick={() => { setLevel("all"); setParent(parentOptions[0]?.code || "all"); }} />
+            <QuickAction icon={<WalletCards size={16} />} tone="orange" title="Budget Allocation" note="Allocate budgets to subheads" onClick={() => router.push("/finance/account-ledger")} />
+            <QuickAction icon={<Download size={16} />} tone="green" title="Export Subhead List" note="Download finance subheads report" onClick={exportCsv} />
+          </section>
+
+          <section className={styles.noteCard}>
+            <div className={styles.noteTitle}><AlertCircle size={18} /> Important Note</div>
+            <p>Subheads are used for budgeting, reporting and financial control.</p>
+            <p>Changes may affect existing budgets and transactions.</p>
+          </section>
+        </aside>
+      </section>
+
+      {selected && (
+        <div className={styles.modalBackdrop} onMouseDown={() => setSelected(null)}>
+          <div className={styles.detailsModal} onMouseDown={(e) => e.stopPropagation()}>
+            <div className={styles.modalHeader}><div><small>FINANCE SUBHEAD</small><h2>{selected.code ? `${selected.code} — ` : ""}{selected.name}</h2></div><button onClick={() => setSelected(null)}><X size={18} /></button></div>
+            <div className={styles.detailGrid}>
+              <Detail label="Parent Head" value={getParentLabel(selected, byCode)} />
+              <Detail label="Department" value={selected.dept_id ? departmentMap.get(selected.dept_id) || "—" : "Institution-wide"} />
+              <Detail label="IET Bank" value={selected.bank_account_id ? bankMap.get(selected.bank_account_id)?.name || "—" : "Not linked"} />
+              <Detail label="Level" value={String(subheadLevel(selected.code))} />
+              <Detail label="Approved Allocation" value={money(selected.approved_allocation)} />
+              <Detail label="Reserved" value={money(selected.reserved_amount)} />
+              <Detail label="Expenditure" value={money(selected.expenditure)} />
+              <Detail label="Available Balance" value={money(selected.balance)} />
+              <Detail label="Linked Requests" value={String(selected.request_count || 0)} />
+              <Detail label="Last Updated" value={formatDate(selected.updated_at)} />
+            </div>
+            {selected.allocation_note && <div className={styles.noteBox}><b>Allocation Note</b><p>{selected.allocation_note}</p></div>}
+            <div className={styles.modalFooter}><button onClick={() => setSelected(null)}>Close</button>{canManage && <button className={styles.primaryButton} onClick={() => { setSelected(null); openEdit(selected); }}><Pencil size={15} /> Edit Subhead</button>}</div>
+          </div>
         </div>
+      )}
 
-        <div className="md:col-span-2 xl:col-span-3">
-          <label className="text-sm font-semibold text-slate-800">Allocation Note</label>
-          <textarea
-            value={allocationNote}
-            onChange={(e) => setAllocationNote(e.target.value)}
-            disabled={!canManage || saving}
-            placeholder="Example: 2026 DIN departmental allocation from IET Bank."
-            className="mt-1 h-24 w-full rounded-2xl border border-slate-200 px-3 py-3 text-slate-900 outline-none focus:border-blue-500 disabled:bg-slate-50"
-          />
-        </div>
-
-        <div className="flex items-end gap-3">
-          <label className="inline-flex items-center gap-2 text-sm font-semibold text-slate-800">
-            <input
-              type="checkbox"
-              checked={active}
-              onChange={(e) => setActive(e.target.checked)}
-              disabled={!canManage || saving}
-            />
-            Active
-          </label>
-
-          <button
-            onClick={onSave}
-            disabled={!canManage || saving}
-            className="reqgen-btn reqgen-btn-rose ml-auto rounded-2xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:opacity-60"
-          >
-            {saving ? "Saving..." : editId ? "Update Subhead" : "Create Subhead"}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function SubheadTable({
-  subs,
-  deptMap,
-  bankMap,
-  totals,
-  canManage,
-  saving,
-  onEdit,
-  onToggle,
-  onDelete,
-}: {
-  subs: Sub[];
-  deptMap: Record<string, string>;
-  bankMap: Record<string, BankAccount>;
-  totals: ReturnType<typeof computeTotals>;
-  canManage: boolean;
-  saving: boolean;
-  onEdit: (s: Sub) => void;
-  onToggle: (s: Sub, nextActive: boolean) => void;
-  onDelete: (s: Sub) => void;
-}) {
-  return (
-    <div className="overflow-x-auto">
-      <table className="w-full table-fixed border-collapse text-sm print:table-auto print:text-[8px]">
-        <thead>
-          <tr className="bg-slate-100 text-xs uppercase tracking-wide text-slate-600 print:border-b print:border-black print:bg-white print:text-[8px]">
-            <th className="px-4 py-3 text-left">Department</th>
-            <th className="px-4 py-3 text-left">IET Bank</th>
-            <th className="px-4 py-3 text-left">Code</th>
-            <th className="px-4 py-3 text-left">Subhead</th>
-            <th className="px-4 py-3 text-center">Links</th>
-            <th className="px-4 py-3 text-right">Allocation</th>
-            <th className="px-4 py-3 text-right">Reserved</th>
-            <th className="px-4 py-3 text-right">Expenditure</th>
-            <th className="px-4 py-3 text-right">Balance</th>
-            <th className="no-print px-4 py-3 text-right">Actions</th>
-          </tr>
-        </thead>
-
-        <tbody>
-          {subs.length === 0 ? (
-            <tr>
-              <td colSpan={10} className="px-6 py-6 text-sm text-slate-700">
-                No subheads found.
-              </td>
-            </tr>
-          ) : (
-            subs.map((s) => {
-              const bank = s.bank_account_id ? bankMap[s.bank_account_id] : null;
-
-              return (
-                <tr key={s.id} className="border-t hover:bg-slate-50">
-                  <td className="px-4 py-4">
-                    <div className="font-semibold text-slate-900">
-                      {s.dept_id ? deptMap[s.dept_id] || "Unknown Department" : "—"}
-                    </div>
-                    <div className="mt-1 text-xs text-slate-500">{s.is_active ? "Active" : "Inactive"}</div>
-                  </td>
-
-                  <td className="px-4 py-4">
-                    <div className={`font-semibold ${bank ? "text-slate-900" : "text-red-700"}`}>
-                      {bankLabel(bank)}
-                    </div>
-                    <div className="mt-1 text-xs text-slate-500">{bankSubLabel(bank)}</div>
-                  </td>
-
-                  <td className="px-4 py-4 font-semibold text-slate-900">{s.code || "—"}</td>
-
-                  <td className="px-4 py-4">
-                    <div className="font-semibold text-slate-900">{s.name}</div>
-                    <div className="mt-1 text-xs text-slate-500">
-                      Updated {shortDate(s.updated_at)}
-                    </div>
-                  </td>
-
-                  <td className="px-4 py-4 text-center">
-                    <span className="rounded-full bg-slate-50 px-3 py-1 text-xs font-bold text-slate-700">
-                      {Number(s.request_count || 0)}
-                    </span>
-                  </td>
-
-                  <td className="px-4 py-4 text-right font-semibold text-blue-700">
-                    {naira(s.approved_allocation)}
-                  </td>
-
-                  <td className="px-4 py-4 text-right font-semibold text-amber-700">
-                    {naira(s.reserved_amount)}
-                  </td>
-
-                  <td className="px-4 py-4 text-right font-semibold text-red-600">
-                    {naira(s.expenditure)}
-                  </td>
-
-                  <td
-                    className={`px-4 py-4 text-right font-bold ${
-                      Number(s.balance || 0) < 0 ? "text-red-700" : "text-emerald-700"
-                    }`}
-                  >
-                    {naira(s.balance)}
-                  </td>
-
-                  <td className="no-print px-4 py-4">
-                    <div className="flex justify-end gap-2">
-                      <button
-                        disabled={!canManage || saving}
-                        onClick={() => onEdit(s)}
-                        className="reqgen-btn reqgen-btn-rose rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-50"
-                      >
-                        Edit
-                      </button>
-
-                      <button
-                        disabled={!canManage || saving}
-                        onClick={() => onToggle(s, !s.is_active)}
-                        className={`reqgen-btn reqgen-btn-rose rounded-xl px-3 py-2 text-xs font-semibold text-white disabled:opacity-50 ${
-                          s.is_active ? "bg-amber-600 hover:bg-amber-700" : "bg-emerald-600 hover:bg-emerald-700"
-                        }`}
-                      >
-                        {s.is_active ? "Deactivate" : "Activate"}
-                      </button>
-
-                      <button
-                        disabled={!canManage || saving}
-                        onClick={() => onDelete(s)}
-                        className="reqgen-btn reqgen-btn-rose rounded-xl bg-red-600 px-3 py-2 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-50"
-                      >
-                        {Number(s.request_count || 0) > 0 ||
-                        Number(s.approved_allocation || 0) > 0 ||
-                        Number(s.reserved_amount || 0) > 0 ||
-                        Number(s.expenditure || 0) > 0
-                          ? "Deactivate"
-                          : "Delete"}
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              );
-            })
-          )}
-        </tbody>
-
-        <tfoot>
-          <tr className="border-t bg-slate-50 font-black print:bg-white">
-            <td className="px-4 py-4 uppercase" colSpan={5}>
-              Total
-            </td>
-            <td className="px-4 py-4 text-right text-blue-700">{naira(totals.allocationTotal)}</td>
-            <td className="px-4 py-4 text-right text-amber-700">{naira(totals.reservedTotal)}</td>
-            <td className="px-4 py-4 text-right text-red-700">{naira(totals.expenditureTotal)}</td>
-            <td className="px-4 py-4 text-right text-emerald-700">{naira(totals.balanceTotal)}</td>
-            <td className="no-print px-4 py-4" />
-          </tr>
-        </tfoot>
-      </table>
-    </div>
-  );
-}
-
-function SubheadMobileCard({
-  s,
-  deptName,
-  bank,
-  canManage,
-  saving,
-  onEdit,
-  onToggle,
-  onDelete,
-}: {
-  s: Sub;
-  deptName: string;
-  bank: BankAccount | null;
-  canManage: boolean;
-  saving: boolean;
-  onEdit: () => void;
-  onToggle: () => void;
-  onDelete: () => void;
-}) {
-  return (
-    <div className="rounded-3xl border bg-white p-5 shadow-sm">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <div className="text-lg font-bold text-slate-900">{s.name}</div>
-          <div className="mt-1 text-sm text-slate-500">{deptName}</div>
-          <div className="mt-1 text-xs text-slate-500">Code: {s.code || "—"}</div>
-        </div>
-
-        <span
-          className={`rounded-full px-3 py-1 text-xs font-bold ${
-            s.is_active ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"
-          }`}
-        >
-          {s.is_active ? "Active" : "Inactive"}
-        </span>
-      </div>
-
-      <div className="mt-3 rounded-2xl bg-slate-50 p-3">
-        <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-          Funding IET Bank
-        </div>
-        <div className={`mt-2 text-sm font-extrabold ${bank ? "text-slate-900" : "text-red-700"}`}>
-          {bankLabel(bank)}
-        </div>
-        <div className="mt-1 text-xs text-slate-500">{bankSubLabel(bank)}</div>
-      </div>
-
-      <div className="mt-3 text-xs font-bold text-slate-600">
-        Linked Requests: {Number(s.request_count || 0)}
-      </div>
-
-      <div className="mt-4 grid gap-3 sm:grid-cols-4">
-        <MiniMetric title="Allocation" value={naira(s.approved_allocation)} tone="blue" />
-        <MiniMetric title="Reserved" value={naira(s.reserved_amount)} tone="amber" />
-        <MiniMetric title="Expenditure" value={naira(s.expenditure)} tone="red" />
-        <MiniMetric title="Balance" value={naira(s.balance)} tone="emerald" />
-      </div>
-
-      <div className="mt-4 flex flex-wrap justify-end gap-2">
-        <button
-          disabled={!canManage || saving}
-          onClick={onEdit}
-          className="reqgen-btn reqgen-btn-rose rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-50"
-        >
-          Edit
-        </button>
-
-        <button
-          disabled={!canManage || saving}
-          onClick={onToggle}
-          className={`reqgen-btn reqgen-btn-rose rounded-xl px-4 py-2 text-sm font-semibold text-white disabled:opacity-50 ${
-            s.is_active ? "bg-amber-600 hover:bg-amber-700" : "bg-emerald-600 hover:bg-emerald-700"
-          }`}
-        >
-          {s.is_active ? "Deactivate" : "Activate"}
-        </button>
-
-        <button
-          disabled={!canManage || saving}
-          onClick={onDelete}
-          className="reqgen-btn reqgen-btn-rose rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
-        >
-          {Number(s.request_count || 0) > 0 ||
-          Number(s.approved_allocation || 0) > 0 ||
-          Number(s.reserved_amount || 0) > 0 ||
-          Number(s.expenditure || 0) > 0
-            ? "Deactivate"
-            : "Delete"}
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function CompletedRequestsPanel({
-  printableRequests,
-  subheadMap,
-  refreshing,
-  saving,
-  printing,
-  exporting,
-  onRefresh,
-  onPrint,
-}: {
-  printableRequests: PrintableRequest[];
-  subheadMap: Record<string, string>;
-  refreshing: boolean;
-  saving: boolean;
-  printing: boolean;
-  exporting: boolean;
-  onRefresh: () => void;
-  onPrint: (requestId: string) => void;
-}) {
-  return (
-    <div className="no-print mt-6 rounded-3xl border bg-white shadow-sm overflow-hidden">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b bg-slate-50 px-6 py-4">
-        <div>
-          <h2 className="text-lg font-bold text-slate-900">
-            Payment-Related Completed Requests Ready for Print
-          </h2>
-          <p className="mt-1 text-sm text-slate-600">
-            Shows Official requests and Personal Fund requests only. Personal NonFund requests are handled by HR Filing.
-          </p>
-        </div>
-
-        <button
-          onClick={onRefresh}
-          disabled={refreshing || printing || exporting || saving}
-          className="reqgen-btn reqgen-btn-rose rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
-        >
-          {refreshing ? "Refreshing..." : "Refresh"}
-        </button>
-      </div>
-
-      {printableRequests.length === 0 ? (
-        <div className="p-6 text-sm text-slate-700">
-          No payment-related completed or paid request is ready for printing yet.
-        </div>
-      ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full table-fixed border-collapse text-sm">
-            <thead>
-              <tr className="bg-slate-100 text-xs uppercase tracking-wide text-slate-600">
-                <th className="px-4 py-3 text-left">Request No</th>
-                <th className="px-4 py-3 text-left">Title</th>
-                <th className="px-4 py-3 text-left">Type / Source</th>
-                <th className="px-4 py-3 text-right">Amount</th>
-                <th className="px-4 py-3 text-left">Status</th>
-                <th className="px-4 py-3 text-left">Requester</th>
-                <th className="px-4 py-3 text-left">Account</th>
-                <th className="px-4 py-3 text-left">Date</th>
-                <th className="px-4 py-3 text-right">Action</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {printableRequests.map((r) => (
-                <tr key={r.id} className="border-t hover:bg-slate-50">
-                  <td className="px-4 py-4 font-extrabold text-slate-900">{r.request_no}</td>
-
-                  <td className="px-4 py-4">
-                    <div className="font-semibold text-slate-900">{r.title}</div>
-                    <div className="mt-1 text-xs text-slate-500">
-                      {requestPrintSource(r, subheadMap)}
-                    </div>
-                  </td>
-
-                  <td className="px-4 py-4">
-                    <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">
-                      {requestTypeLabel(r)}
-                    </span>
-                  </td>
-
-                  <td className="px-4 py-4 text-right font-bold text-slate-900">
-                    {naira(r.amount)}
-                  </td>
-
-                  <td className="px-4 py-4">
-                    <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
-                      {r.status}
-                    </span>
-                  </td>
-
-                  <td className="px-4 py-4 text-slate-700">{r.requester_name || "—"}</td>
-                  <td className="px-4 py-4 text-slate-700">{r.account_name || "—"}</td>
-                  <td className="px-4 py-4 text-slate-600">{shortDate(r.created_at)}</td>
-
-                  <td className="px-4 py-4 text-right">
-                    <button
-                      onClick={() => onPrint(r.id)}
-                      className="reqgen-btn reqgen-btn-violet rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700"
-                    >
-                      Print
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {formOpen && (
+        <div className={styles.modalBackdrop} onMouseDown={() => !saving && setFormOpen(false)}>
+          <div className={styles.formModal} onMouseDown={(e) => e.stopPropagation()}>
+            <div className={styles.modalHeader}><div><small>{editId ? "EDIT FINANCE SUBHEAD" : "NEW FINANCE SUBHEAD"}</small><h2>{editId ? "Update Subhead" : "Create New Subhead"}</h2></div><button onClick={() => !saving && setFormOpen(false)}><X size={18} /></button></div>
+            <div className={styles.formGrid}>
+              <label><span>Subhead Code</span><input value={formCode} onChange={(e) => setFormCode(e.target.value)} placeholder="e.g. 1001.01" /></label>
+              <label><span>Subhead Name</span><input value={formName} onChange={(e) => setFormName(e.target.value)} placeholder="Subhead name" /></label>
+              <label><span>Department</span><select value={formDept} onChange={(e) => setFormDept(e.target.value)}><option value="">Institution-wide</option>{departments.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
+              <label><span>Funding Bank</span><select value={formBank} onChange={(e) => setFormBank(e.target.value)}><option value="">Select IET bank</option>{banks.filter((item) => item.is_active !== false).map((item) => <option key={item.id} value={item.id}>{item.code ? `${item.code} — ` : ""}{item.name}</option>)}</select></label>
+              <label><span>Approved Allocation (₦)</span><input type="number" min="0" value={formAllocation} onChange={(e) => setFormAllocation(Number(e.target.value || 0))} /></label>
+              <label><span>Status</span><select value={formActive ? "active" : "inactive"} onChange={(e) => setFormActive(e.target.value === "active")}><option value="active">Active</option><option value="inactive">Inactive</option></select></label>
+              <label className={styles.fullField}><span>Allocation Note</span><textarea value={formNote} onChange={(e) => setFormNote(e.target.value)} placeholder="Purpose or allocation note" rows={3} /></label>
+            </div>
+            <div className={styles.modalFooter}><button onClick={() => setFormOpen(false)} disabled={saving}>Cancel</button><button className={styles.primaryButton} onClick={saveSubhead} disabled={saving}><Save size={15} /> {saving ? "Saving…" : editId ? "Update Subhead" : "Create Subhead"}</button></div>
+          </div>
         </div>
       )}
     </div>
   );
 }
 
-function TabButton({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`reqgen-btn reqgen-btn-slate rounded-2xl px-4 py-3 text-sm font-bold transition ${
-        active ? "bg-blue-600 text-white shadow-sm" : "bg-white text-slate-700 hover:bg-slate-100"
-      }`}
-    >
-      {label}
-    </button>
-  );
+function Kpi({ icon, tone, label, value, note }: { icon: React.ReactNode; tone: "blue" | "green" | "orange" | "purple"; label: string; value: string; note: string }) {
+  return <article className={styles.kpi}><div className={`${styles.kpiIcon} ${styles[tone]}`}>{icon}</div><div><span>{label}</span><strong className={styles[`${tone}Text`]}>{value}</strong><small>{note}</small></div></article>;
 }
 
-function StatCard({
-  title,
-  value,
-  tone,
-}: {
-  title: string;
-  value: string;
-  tone: "slate" | "blue" | "red" | "emerald" | "amber";
-}) {
-  const toneClass =
-    tone === "blue"
-      ? "text-blue-700 bg-blue-50"
-      : tone === "red"
-      ? "text-red-700 bg-red-50"
-      : tone === "emerald"
-      ? "text-emerald-700 bg-emerald-50"
-      : tone === "amber"
-      ? "text-amber-700 bg-amber-50"
-      : "text-slate-700 bg-slate-50";
-
-  return (
-    <div className="print-card rounded-3xl border bg-white p-5 shadow-sm print:rounded-none print:border-black print:p-2 print:shadow-none">
-      <div className="text-sm font-semibold text-slate-500 print:text-[9px]">{title}</div>
-      <div className={`mt-3 inline-flex rounded-2xl px-3 py-2 text-xl font-extrabold print:mt-1 print:p-0 print:text-[11px] ${toneClass}`}>
-        {value}
-      </div>
-    </div>
-  );
+function FilterField({ label, children, grow = false }: { label: string; children: React.ReactNode; grow?: boolean }) {
+  return <label className={`${styles.filterField} ${grow ? styles.grow : ""}`}><span>{label}</span>{children}</label>;
 }
 
-function SmallStat({ title, value }: { title: string; value: string }) {
-  return (
-    <div className="print-card rounded-2xl border bg-white p-4 shadow-sm print:rounded-none print:border-black print:p-2 print:shadow-none">
-      <div className="text-xs font-semibold uppercase tracking-wide text-slate-500 print:text-[8px]">
-        {title}
-      </div>
-      <div className="mt-2 text-lg font-extrabold text-slate-900 print:mt-1 print:text-[10px]">
-        {value}
-      </div>
-    </div>
-  );
+function QuickAction({ icon, tone, title, note, onClick }: { icon: React.ReactNode; tone: "blue" | "green" | "purple" | "orange"; title: string; note: string; onClick: () => void }) {
+  return <button className={styles.quickAction} onClick={onClick}><span className={`${styles.quickIcon} ${styles[tone]}`}>{icon}</span><span><b>{title}</b><small>{note}</small></span><span className={styles.chevron}>›</span></button>;
 }
 
-function MiniMetric({
-  title,
-  value,
-  tone,
-}: {
-  title: string;
-  value: string;
-  tone: "blue" | "red" | "emerald" | "amber";
-}) {
-  const toneClass =
-    tone === "blue"
-      ? "bg-blue-50 text-blue-700"
-      : tone === "red"
-      ? "bg-red-50 text-red-700"
-      : tone === "amber"
-      ? "bg-amber-50 text-amber-700"
-      : "bg-emerald-50 text-emerald-700";
-
-  return (
-    <div className={`rounded-2xl p-3 ${toneClass}`}>
-      <div className="text-xs font-semibold uppercase tracking-wide">{title}</div>
-      <div className="mt-2 text-sm font-extrabold">{value}</div>
-    </div>
-  );
-}
-
-function MiniInfo({ title, value }: { title: string; value: string }) {
-  return (
-    <div className="rounded-2xl bg-slate-50 p-3">
-      <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-        {title}
-      </div>
-      <div className="mt-2 text-sm font-extrabold text-slate-900">{value}</div>
-    </div>
-  );
+function Detail({ label, value }: { label: string; value: string }) {
+  return <div className={styles.detail}><span>{label}</span><strong>{value}</strong></div>;
 }

@@ -1,16 +1,43 @@
 {
   "summary": {
-    "candidates": 17,
-    "withPrintCall": 14,
-    "withPrintCss": 14,
+    "candidates": 20,
+    "withPrintCall": 10,
+    "withPrintCss": 11,
     "withA4": 11,
-    "withLogo": 3,
-    "generatedAt": "2026-08-02T01:32:54.583Z"
+    "withLogo": 4,
+    "generatedAt": "2026-08-29T04:33:15.094Z"
   },
   "results": [
     {
       "file": "app/admin/security/page.tsx",
+      "hasPrintCall": false,
+      "hasPrintCss": true,
+      "hasNoPrintClass": true,
+      "hasA4": true,
+      "hasPageBreakControl": true,
+      "hasLogoReference": false
+    },
+    {
+      "file": "app/components/executive/ExecutiveModulePage.tsx",
       "hasPrintCall": true,
+      "hasPrintCss": true,
+      "hasNoPrintClass": true,
+      "hasA4": true,
+      "hasPageBreakControl": false,
+      "hasLogoReference": false
+    },
+    {
+      "file": "app/components/print/EnterprisePrintDocument.tsx",
+      "hasPrintCall": false,
+      "hasPrintCss": false,
+      "hasNoPrintClass": false,
+      "hasA4": false,
+      "hasPageBreakControl": false,
+      "hasLogoReference": true
+    },
+    {
+      "file": "app/components/print/PrintEngineStyles.tsx",
+      "hasPrintCall": false,
       "hasPrintCss": true,
       "hasNoPrintClass": true,
       "hasA4": true,
@@ -27,22 +54,13 @@
       "hasLogoReference": false
     },
     {
-      "file": "app/finance/account-ledger/page.tsx",
-      "hasPrintCall": true,
-      "hasPrintCss": true,
-      "hasNoPrintClass": false,
-      "hasA4": false,
-      "hasPageBreakControl": false,
-      "hasLogoReference": false
-    },
-    {
-      "file": "app/finance/account-transfers/page.tsx",
+      "file": "app/finance/_components/FinanceOutputWorkspace.tsx",
       "hasPrintCall": true,
       "hasPrintCss": true,
       "hasNoPrintClass": true,
       "hasA4": true,
-      "hasPageBreakControl": false,
-      "hasLogoReference": false
+      "hasPageBreakControl": true,
+      "hasLogoReference": true
     },
     {
       "file": "app/finance/audit/page.tsx",
@@ -55,7 +73,7 @@
     },
     {
       "file": "app/finance/print-centre/page.tsx",
-      "hasPrintCall": true,
+      "hasPrintCall": false,
       "hasPrintCss": false,
       "hasNoPrintClass": false,
       "hasA4": true,
@@ -64,62 +82,26 @@
     },
     {
       "file": "app/finance/reports/print/page.tsx",
-      "hasPrintCall": true,
-      "hasPrintCss": true,
-      "hasNoPrintClass": false,
-      "hasA4": true,
-      "hasPageBreakControl": false,
-      "hasLogoReference": false
-    },
-    {
-      "file": "app/finance/subhead-ledger/page.tsx",
-      "hasPrintCall": true,
-      "hasPrintCss": true,
-      "hasNoPrintClass": true,
-      "hasA4": true,
-      "hasPageBreakControl": false,
-      "hasLogoReference": false
-    },
-    {
-      "file": "app/finance/subheads/page.tsx",
       "hasPrintCall": false,
       "hasPrintCss": true,
-      "hasNoPrintClass": true,
-      "hasA4": true,
-      "hasPageBreakControl": true,
-      "hasLogoReference": false
-    },
-    {
-      "file": "app/finance/transactions/page.tsx",
-      "hasPrintCall": true,
-      "hasPrintCss": true,
       "hasNoPrintClass": false,
-      "hasA4": false,
+      "hasA4": true,
       "hasPageBreakControl": false,
       "hasLogoReference": false
-    },
-    {
-      "file": "app/finance/_components/FinanceOutputWorkspace.tsx",
-      "hasPrintCall": true,
-      "hasPrintCss": true,
-      "hasNoPrintClass": true,
-      "hasA4": true,
-      "hasPageBreakControl": true,
-      "hasLogoReference": true
     },
     {
       "file": "app/hr/output/page.tsx",
-      "hasPrintCall": true,
-      "hasPrintCss": true,
+      "hasPrintCall": false,
+      "hasPrintCss": false,
       "hasNoPrintClass": false,
       "hasA4": false,
       "hasPageBreakControl": false,
       "hasLogoReference": false
     },
     {
-      "file": "app/hr/reports/page.tsx",
-      "hasPrintCall": true,
-      "hasPrintCss": false,
+      "file": "app/hr/registrar/output/page.tsx",
+      "hasPrintCall": false,
+      "hasPrintCss": true,
       "hasNoPrintClass": false,
       "hasA4": false,
       "hasPageBreakControl": false,
@@ -129,8 +111,8 @@
       "file": "app/output/page.tsx",
       "hasPrintCall": true,
       "hasPrintCss": false,
-      "hasNoPrintClass": false,
-      "hasA4": false,
+      "hasNoPrintClass": true,
+      "hasA4": true,
       "hasPageBreakControl": false,
       "hasLogoReference": false
     },
@@ -145,7 +127,7 @@
     },
     {
       "file": "app/reports/page.tsx",
-      "hasPrintCall": true,
+      "hasPrintCall": false,
       "hasPrintCss": true,
       "hasNoPrintClass": true,
       "hasA4": true,
@@ -160,6 +142,51 @@
       "hasA4": true,
       "hasPageBreakControl": true,
       "hasLogoReference": true
+    },
+    {
+      "file": "app/staff/attendance/page.tsx",
+      "hasPrintCall": true,
+      "hasPrintCss": false,
+      "hasNoPrintClass": false,
+      "hasA4": false,
+      "hasPageBreakControl": false,
+      "hasLogoReference": false
+    },
+    {
+      "file": "app/staff/leave/page.tsx",
+      "hasPrintCall": true,
+      "hasPrintCss": false,
+      "hasNoPrintClass": false,
+      "hasA4": false,
+      "hasPageBreakControl": false,
+      "hasLogoReference": false
+    },
+    {
+      "file": "app/staff/notifications/page.tsx",
+      "hasPrintCall": true,
+      "hasPrintCss": false,
+      "hasNoPrintClass": false,
+      "hasA4": false,
+      "hasPageBreakControl": false,
+      "hasLogoReference": false
+    },
+    {
+      "file": "app/staff/performance/page.tsx",
+      "hasPrintCall": true,
+      "hasPrintCss": false,
+      "hasNoPrintClass": false,
+      "hasA4": false,
+      "hasPageBreakControl": false,
+      "hasLogoReference": false
+    },
+    {
+      "file": "app/staff/training/page.tsx",
+      "hasPrintCall": true,
+      "hasPrintCss": false,
+      "hasNoPrintClass": false,
+      "hasA4": false,
+      "hasPageBreakControl": false,
+      "hasLogoReference": false
     }
   ]
 }

@@ -9,6 +9,7 @@ import {
     useState,
 } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import styles from "./manual-voucher-adopted.module.css";
 
 type ProfileRole = {
     role_key: string;
@@ -836,7 +837,18 @@ export default function ManualVoucherPage() {
     }
 
     return (
-        <main className="mx-auto max-w-7xl px-4 py-8">
+        <main className={`${styles.page} mx-auto max-w-7xl px-4 py-8`}>
+            <header className={styles.head}>
+                <div>
+                    <div className={styles.crumb}>Finance <span>›</span> <b>Manual Voucher Centre</b></div>
+                    <h1>Manual Voucher Centre</h1>
+                    <p>Create, save and post controlled manual payment vouchers into the ReqGen finance register.</p>
+                </div>
+                <div className={styles.headActions}>
+                    <button type="button" onClick={() => loadPage(true)} disabled={refreshing}>{refreshing ? "Refreshing…" : "Refresh"}</button>
+                    <Link href="/payment-vouchers">Voucher Register</Link>
+                </div>
+            </header>
             <nav className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-3xl border border-slate-200 bg-white p-3 shadow-sm">
                 <div className="flex flex-wrap gap-2">
                     <Link

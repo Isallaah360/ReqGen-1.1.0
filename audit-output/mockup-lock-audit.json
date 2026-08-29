@@ -1,0 +1,801 @@
+{
+  "generatedAt": "2026-08-29T05:28:18.783Z",
+  "scope": "ReqGen adopted-shell approved mockups Sections 1-4",
+  "overall": 100,
+  "totals": {
+    "passed": 103,
+    "total": 103
+  },
+  "shellChecks": [
+    {
+      "file": "app/components/GovernmentAppShell.tsx",
+      "pass": true
+    },
+    {
+      "file": "app/globals.css",
+      "pass": true
+    },
+    {
+      "file": "app/components/staff/StaffFooter.tsx",
+      "pass": true
+    },
+    {
+      "file": "app/components/ActiveRoleSwitcher.tsx",
+      "pass": true
+    }
+  ],
+  "global": {
+    "conflicts": 0,
+    "badHidden": 0,
+    "enterprise": 0
+  },
+  "pages": [
+    {
+      "section": 1,
+      "page": "1",
+      "route": "/dashboard",
+      "file": "app/dashboard/page.tsx",
+      "required": [
+        "Pending Approvals",
+        "Completed / Paid",
+        "Total Disbursed",
+        "Overdue",
+        "Request Trend",
+        "Recent Activities",
+        "Requests by Category",
+        "Requests by Status",
+        "Quick Actions",
+        "Security Tip"
+      ],
+      "forbidden": [
+        "ERP 2.0"
+      ],
+      "passed": 12,
+      "total": 12,
+      "percent": 100,
+      "checks": [
+        {
+          "check": "file exists",
+          "pass": true
+        },
+        {
+          "check": "Pending Approvals",
+          "pass": true
+        },
+        {
+          "check": "Completed / Paid",
+          "pass": true
+        },
+        {
+          "check": "Total Disbursed",
+          "pass": true
+        },
+        {
+          "check": "Overdue",
+          "pass": true
+        },
+        {
+          "check": "Request Trend",
+          "pass": true
+        },
+        {
+          "check": "Recent Activities",
+          "pass": true
+        },
+        {
+          "check": "Requests by Category",
+          "pass": true
+        },
+        {
+          "check": "Requests by Status",
+          "pass": true
+        },
+        {
+          "check": "Quick Actions",
+          "pass": true
+        },
+        {
+          "check": "Security Tip",
+          "pass": true
+        },
+        {
+          "check": "ERP 2.0",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "section": 2,
+      "page": "1",
+      "route": "/requests",
+      "file": "app/requests/page.tsx",
+      "required": [
+        "Total Requests",
+        "Active Workflow",
+        "Completed / Paid",
+        "Official Requests",
+        "Rejected / Deleted",
+        "All Requests",
+        "Personal Fund",
+        "Personal Other",
+        "New Request"
+      ],
+      "forbidden": [
+        "Requests Trend",
+        "Requests by Type"
+      ],
+      "passed": 12,
+      "total": 12,
+      "percent": 100,
+      "checks": [
+        {
+          "check": "file exists",
+          "pass": true
+        },
+        {
+          "check": "Total Requests",
+          "pass": true
+        },
+        {
+          "check": "Active Workflow",
+          "pass": true
+        },
+        {
+          "check": "Completed / Paid",
+          "pass": true
+        },
+        {
+          "check": "Official Requests",
+          "pass": true
+        },
+        {
+          "check": "Rejected / Deleted",
+          "pass": true
+        },
+        {
+          "check": "All Requests",
+          "pass": true
+        },
+        {
+          "check": "Personal Fund",
+          "pass": true
+        },
+        {
+          "check": "Personal Other",
+          "pass": true
+        },
+        {
+          "check": "New Request",
+          "pass": true
+        },
+        {
+          "check": "Requests Trend",
+          "pass": true
+        },
+        {
+          "check": "Requests by Type",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "section": 2,
+      "page": "2",
+      "route": "/requests/new",
+      "file": "app/requests/new/page.tsx",
+      "required": [
+        "Create New Request"
+      ],
+      "forbidden": [
+        "Enterprise"
+      ],
+      "passed": 3,
+      "total": 3,
+      "percent": 100,
+      "checks": [
+        {
+          "check": "file exists",
+          "pass": true
+        },
+        {
+          "check": "Create New Request",
+          "pass": true
+        },
+        {
+          "check": "Enterprise",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "section": 3,
+      "page": "1",
+      "route": "/approvals",
+      "file": "app/approvals/page.tsx",
+      "required": [
+        "Approvals Overview",
+        "Action Centre"
+      ],
+      "forbidden": [
+        "Enterprise"
+      ],
+      "passed": 4,
+      "total": 4,
+      "percent": 100,
+      "checks": [
+        {
+          "check": "file exists",
+          "pass": true
+        },
+        {
+          "check": "Approvals Overview",
+          "pass": true
+        },
+        {
+          "check": "Action Centre",
+          "pass": true
+        },
+        {
+          "check": "Enterprise",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "section": 3,
+      "page": "2",
+      "route": "/approvals/action-centre",
+      "file": "app/approvals/action-centre/page.tsx",
+      "required": [
+        "Action Centre",
+        "Pending Requests",
+        "Request Details",
+        "Approval Workflow",
+        "Quick Actions",
+        "Approval Notifications"
+      ],
+      "forbidden": [
+        "Enterprise"
+      ],
+      "passed": 8,
+      "total": 8,
+      "percent": 100,
+      "checks": [
+        {
+          "check": "file exists",
+          "pass": true
+        },
+        {
+          "check": "Action Centre",
+          "pass": true
+        },
+        {
+          "check": "Pending Requests",
+          "pass": true
+        },
+        {
+          "check": "Request Details",
+          "pass": true
+        },
+        {
+          "check": "Approval Workflow",
+          "pass": true
+        },
+        {
+          "check": "Quick Actions",
+          "pass": true
+        },
+        {
+          "check": "Approval Notifications",
+          "pass": true
+        },
+        {
+          "check": "Enterprise",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "section": 4,
+      "page": "1",
+      "route": "/finance",
+      "file": "app/finance/page.tsx",
+      "required": [
+        "Finance Overview",
+        "Total Budget",
+        "Total Expenditure"
+      ],
+      "forbidden": [
+        "Enterprise"
+      ],
+      "passed": 5,
+      "total": 5,
+      "percent": 100,
+      "checks": [
+        {
+          "check": "file exists",
+          "pass": true
+        },
+        {
+          "check": "Finance Overview",
+          "pass": true
+        },
+        {
+          "check": "Total Budget",
+          "pass": true
+        },
+        {
+          "check": "Total Expenditure",
+          "pass": true
+        },
+        {
+          "check": "Enterprise",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "section": 4,
+      "page": "2",
+      "route": "/finance/manage-accounts",
+      "file": "app/finance/manage-accounts/page.tsx",
+      "required": [
+        "IET Bank Accounts",
+        "account numbers are not stored"
+      ],
+      "forbidden": [
+        "Enterprise"
+      ],
+      "passed": 4,
+      "total": 4,
+      "percent": 100,
+      "checks": [
+        {
+          "check": "file exists",
+          "pass": true
+        },
+        {
+          "check": "IET Bank Accounts",
+          "pass": true
+        },
+        {
+          "check": "account numbers are not stored",
+          "pass": true
+        },
+        {
+          "check": "Enterprise",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "section": 4,
+      "page": "3",
+      "route": "/finance/manage-accounts/assign",
+      "file": "app/finance/manage-accounts/assign/page.tsx",
+      "required": [
+        "Assign Bank to Officer"
+      ],
+      "forbidden": [
+        "Enterprise"
+      ],
+      "passed": 3,
+      "total": 3,
+      "percent": 100,
+      "checks": [
+        {
+          "check": "file exists",
+          "pass": true
+        },
+        {
+          "check": "Assign Bank to Officer",
+          "pass": true
+        },
+        {
+          "check": "Enterprise",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "section": 4,
+      "page": "4",
+      "route": "/finance/subheads",
+      "file": "app/finance/subheads/page.tsx",
+      "required": [
+        "Finance Subheads"
+      ],
+      "forbidden": [
+        "Enterprise"
+      ],
+      "passed": 3,
+      "total": 3,
+      "percent": 100,
+      "checks": [
+        {
+          "check": "file exists",
+          "pass": true
+        },
+        {
+          "check": "Finance Subheads",
+          "pass": true
+        },
+        {
+          "check": "Enterprise",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "section": 4,
+      "page": "5",
+      "route": "/finance/departments",
+      "file": "app/finance/departments/page.tsx",
+      "required": [
+        "Finance Departments",
+        "With Subheads"
+      ],
+      "forbidden": [
+        "departmentType(",
+        "Department Type",
+        "Manage Department Types",
+        "Enterprise"
+      ],
+      "passed": 7,
+      "total": 7,
+      "percent": 100,
+      "checks": [
+        {
+          "check": "file exists",
+          "pass": true
+        },
+        {
+          "check": "Finance Departments",
+          "pass": true
+        },
+        {
+          "check": "With Subheads",
+          "pass": true
+        },
+        {
+          "check": "departmentType(",
+          "pass": true
+        },
+        {
+          "check": "Department Type",
+          "pass": true
+        },
+        {
+          "check": "Manage Department Types",
+          "pass": true
+        },
+        {
+          "check": "Enterprise",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "section": 4,
+      "page": "6",
+      "route": "/finance/account-ledger",
+      "file": "app/finance/_components/FinanceOperationsWorkspace.tsx",
+      "required": [
+        "Account Ledger",
+        "Opening Balance",
+        "Total Debit",
+        "Total Credit",
+        "Closing Balance"
+      ],
+      "forbidden": [
+        "Enterprise"
+      ],
+      "passed": 7,
+      "total": 7,
+      "percent": 100,
+      "checks": [
+        {
+          "check": "file exists",
+          "pass": true
+        },
+        {
+          "check": "Account Ledger",
+          "pass": true
+        },
+        {
+          "check": "Opening Balance",
+          "pass": true
+        },
+        {
+          "check": "Total Debit",
+          "pass": true
+        },
+        {
+          "check": "Total Credit",
+          "pass": true
+        },
+        {
+          "check": "Closing Balance",
+          "pass": true
+        },
+        {
+          "check": "Enterprise",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "section": 4,
+      "page": "7",
+      "route": "/finance/subhead-ledger",
+      "file": "app/finance/_components/FinanceOperationsWorkspace.tsx",
+      "required": [
+        "Subhead Ledger",
+        "Opening Balance",
+        "Total Debit",
+        "Total Credit",
+        "Closing Balance"
+      ],
+      "forbidden": [
+        "Enterprise"
+      ],
+      "passed": 7,
+      "total": 7,
+      "percent": 100,
+      "checks": [
+        {
+          "check": "file exists",
+          "pass": true
+        },
+        {
+          "check": "Subhead Ledger",
+          "pass": true
+        },
+        {
+          "check": "Opening Balance",
+          "pass": true
+        },
+        {
+          "check": "Total Debit",
+          "pass": true
+        },
+        {
+          "check": "Total Credit",
+          "pass": true
+        },
+        {
+          "check": "Closing Balance",
+          "pass": true
+        },
+        {
+          "check": "Enterprise",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "section": 4,
+      "page": "8",
+      "route": "/finance/account-transfers",
+      "file": "app/finance/_components/FinanceOperationsWorkspace.tsx",
+      "required": [
+        "Account Transfers",
+        "New Transfer",
+        "post_account_transfer"
+      ],
+      "forbidden": [
+        "Enterprise"
+      ],
+      "passed": 5,
+      "total": 5,
+      "percent": 100,
+      "checks": [
+        {
+          "check": "file exists",
+          "pass": true
+        },
+        {
+          "check": "Account Transfers",
+          "pass": true
+        },
+        {
+          "check": "New Transfer",
+          "pass": true
+        },
+        {
+          "check": "post_account_transfer",
+          "pass": true
+        },
+        {
+          "check": "Enterprise",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "section": 4,
+      "page": "9",
+      "route": "/finance/transactions",
+      "file": "app/finance/_components/FinanceOperationsWorkspace.tsx",
+      "required": [
+        "Transactions Register",
+        "Total Transactions",
+        "Total Debit",
+        "Total Credit"
+      ],
+      "forbidden": [
+        "Enterprise"
+      ],
+      "passed": 6,
+      "total": 6,
+      "percent": 100,
+      "checks": [
+        {
+          "check": "file exists",
+          "pass": true
+        },
+        {
+          "check": "Transactions Register",
+          "pass": true
+        },
+        {
+          "check": "Total Transactions",
+          "pass": true
+        },
+        {
+          "check": "Total Debit",
+          "pass": true
+        },
+        {
+          "check": "Total Credit",
+          "pass": true
+        },
+        {
+          "check": "Enterprise",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "section": 4,
+      "page": "10",
+      "route": "/finance/manual-voucher",
+      "file": "app/finance/manual-voucher/page.tsx",
+      "required": [
+        "Manual Voucher Centre",
+        "save_manual_payment_voucher",
+        "post_manual_payment_voucher"
+      ],
+      "forbidden": [
+        "Enterprise"
+      ],
+      "passed": 5,
+      "total": 5,
+      "percent": 100,
+      "checks": [
+        {
+          "check": "file exists",
+          "pass": true
+        },
+        {
+          "check": "Manual Voucher Centre",
+          "pass": true
+        },
+        {
+          "check": "save_manual_payment_voucher",
+          "pass": true
+        },
+        {
+          "check": "post_manual_payment_voucher",
+          "pass": true
+        },
+        {
+          "check": "Enterprise",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "section": 4,
+      "page": "11",
+      "route": "/finance/vouchers",
+      "file": "app/finance/_components/FinanceOperationsWorkspace.tsx",
+      "required": [
+        "Finance Vouchers",
+        "Create Voucher"
+      ],
+      "forbidden": [
+        "Enterprise"
+      ],
+      "passed": 4,
+      "total": 4,
+      "percent": 100,
+      "checks": [
+        {
+          "check": "file exists",
+          "pass": true
+        },
+        {
+          "check": "Finance Vouchers",
+          "pass": true
+        },
+        {
+          "check": "Create Voucher",
+          "pass": true
+        },
+        {
+          "check": "Enterprise",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "section": 4,
+      "page": "12",
+      "route": "/finance/reports",
+      "file": "app/finance/_components/FinanceOperationsWorkspace.tsx",
+      "required": [
+        "Finance Reports",
+        "Popular Reports"
+      ],
+      "forbidden": [
+        "Enterprise"
+      ],
+      "passed": 4,
+      "total": 4,
+      "percent": 100,
+      "checks": [
+        {
+          "check": "file exists",
+          "pass": true
+        },
+        {
+          "check": "Finance Reports",
+          "pass": true
+        },
+        {
+          "check": "Popular Reports",
+          "pass": true
+        },
+        {
+          "check": "Enterprise",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "section": 4,
+      "page": "13",
+      "route": "/finance/reports/monthly",
+      "file": "app/finance/_components/FinanceOperationsWorkspace.tsx",
+      "required": [
+        "Monthly Reports",
+        "Monthly Summary"
+      ],
+      "forbidden": [
+        "Enterprise"
+      ],
+      "passed": 4,
+      "total": 4,
+      "percent": 100,
+      "checks": [
+        {
+          "check": "file exists",
+          "pass": true
+        },
+        {
+          "check": "Monthly Reports",
+          "pass": true
+        },
+        {
+          "check": "Monthly Summary",
+          "pass": true
+        },
+        {
+          "check": "Enterprise",
+          "pass": true
+        }
+      ]
+    }
+  ]
+}

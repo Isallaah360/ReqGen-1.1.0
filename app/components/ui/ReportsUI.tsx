@@ -34,18 +34,7 @@ export function ReportIcon({ name, className = "h-5 w-5" }: { name: string; clas
 }
 
 export function ReportsHero({ actions }: { actions: ReactNode }) {
-  return <section className="relative overflow-hidden rounded-[30px] bg-gradient-to-br from-slate-950 via-blue-950 to-indigo-900 px-6 py-8 text-white shadow-2xl shadow-blue-950/20 sm:px-9 sm:py-10">
-    <div className="pointer-events-none absolute -right-16 -top-20 h-72 w-72 rounded-full bg-cyan-400/20 blur-3xl report-float" />
-    <div className="pointer-events-none absolute -bottom-28 left-1/3 h-64 w-64 rounded-full bg-violet-500/20 blur-3xl" />
-    <div className="relative z-10 flex flex-col gap-7 xl:flex-row xl:items-end xl:justify-between">
-      <div className="max-w-3xl">
-        <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-bold uppercase tracking-[0.2em] text-cyan-100"><ReportIcon name="report" className="h-4 w-4"/>Intelligence</div>
-        <h1 className="text-3xl font-black tracking-tight sm:text-4xl lg:text-5xl">Reports & Analytics Centre</h1>
-        <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-200 sm:text-base">A consolidated view of request activity, workflow performance, departmental demand, budget utilisation and financial movement.</p>
-      </div>
-      <div className="flex flex-wrap gap-3">{actions}</div>
-    </div>
-  </section>;
+  return <header className="rg-module-header"><div className="rg-module-heading"><p className="rg-module-eyebrow"><ReportIcon name="report" className="h-4 w-4"/>Reports & Analytics</p><h1>Reports Centre</h1><p className="rg-module-description">Consolidated request, workflow, departmental and finance reporting using the records already available to your authorised role.</p></div><div className="rg-module-actions">{actions}</div></header>;
 }
 
 export function ReportButton({ children, onClick, icon, variant = "blue", disabled = false }: { children: ReactNode; onClick?: () => void; icon: string; variant?: "light" | "blue" | "violet" | "cyan"; disabled?: boolean }) {
@@ -55,23 +44,23 @@ export function ReportButton({ children, onClick, icon, variant = "blue", disabl
     violet: "bg-violet-600 text-white hover:bg-violet-700",
     cyan: "bg-cyan-600 text-white hover:bg-cyan-700",
   };
-  return <button type="button" onClick={onClick} disabled={disabled} className={`reqgen-btn reqgen-btn-blue inline-flex h-11 min-w-[132px] items-center justify-center gap-2 rounded-xl px-4 text-sm font-extrabold shadow-lg transition duration-200 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 ${variants[variant]}`}><ReportIcon name={icon} className="h-4 w-4"/>{children}</button>;
+  return <button type="button" onClick={onClick} disabled={disabled} className={`rg-action-button ${variants[variant]}`}><ReportIcon name={icon} className="h-4 w-4"/>{children}</button>;
 }
 
 export function ReportStat({ label, value, note, icon, tone = "blue", progress }: { label: string; value: ReactNode; note: string; icon: string; tone?: Tone; progress?: number }) {
   const t = toneMap[tone];
-  return <article className={`group rounded-2xl border p-5 shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl ${t.card}`}>
+  return <article className={`group rounded-xl border p-4 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md ${t.card}`}>
     <div className="flex items-start justify-between gap-4"><div><p className="text-xs font-extrabold uppercase tracking-[0.15em] text-slate-500">{label}</p><div className="mt-2 text-3xl font-black tracking-tight text-slate-950">{value}</div><p className="mt-2 text-xs leading-5 text-slate-500">{note}</p></div><div className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl shadow-lg ${t.icon}`}><ReportIcon name={icon}/></div></div>
     {typeof progress === "number" && <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-slate-200"><div className={`h-full rounded-full ${t.bar}`} style={{ width: `${Math.max(0, Math.min(100, progress))}%` }}/></div>}
   </article>;
 }
 
 export function ReportSection({ title, description, icon, action, children, className = "" }: { title: string; description: string; icon: string; action?: ReactNode; children: ReactNode; className?: string }) {
-  return <section className={`rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition-shadow duration-300 hover:shadow-md sm:p-6 ${className}`}><div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div className="flex items-center gap-3"><div className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-slate-950 to-blue-900 text-white shadow-md"><ReportIcon name={icon}/></div><div><h2 className="text-lg font-black uppercase tracking-wide text-slate-950">{title}</h2><p className="mt-0.5 text-sm text-slate-500">{description}</p></div></div>{action}</div>{children}</section>;
+  return <section className={`rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition-shadow duration-200 hover:shadow-md sm:p-5 ${className}`}><div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div className="flex items-center gap-3"><div className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-slate-950 to-blue-900 text-white shadow-md"><ReportIcon name={icon}/></div><div><h2 className="text-lg font-black uppercase tracking-wide text-slate-950">{title}</h2><p className="mt-0.5 text-sm text-slate-500">{description}</p></div></div>{action}</div>{children}</section>;
 }
 
 export function ReportsSkeleton() {
-  return <div className="min-h-screen bg-slate-100 p-4 sm:p-7"><div className="mx-auto max-w-[1500px] space-y-6"><div className="report-skeleton h-64 rounded-[30px]"/><div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{Array.from({length:8}).map((_,i)=><div key={i} className="report-skeleton h-36 rounded-2xl"/>)}</div><div className="grid gap-6 xl:grid-cols-3"><div className="report-skeleton h-96 rounded-3xl xl:col-span-2"/><div className="report-skeleton h-96 rounded-3xl"/></div></div></div>;
+  return <div className="rg-module-page rg-adopted-page"><div className="space-y-6"><div className="report-skeleton h-64 rounded-[30px]"/><div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{Array.from({length:8}).map((_,i)=><div key={i} className="report-skeleton h-36 rounded-2xl"/>)}</div><div className="grid gap-6 xl:grid-cols-3"><div className="report-skeleton h-96 rounded-3xl xl:col-span-2"/><div className="report-skeleton h-96 rounded-3xl"/></div></div></div>;
 }
 
 export function ReportsPageStyles() {

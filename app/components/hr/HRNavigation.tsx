@@ -24,7 +24,7 @@ export default function HRNavigation() {
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-[11px] font-black uppercase tracking-[0.22em] text-blue-700">HR Workspace Menu</p>
-          <p className="mt-1 text-sm font-semibold text-slate-500">Ten connected centres. One enterprise workflow.</p>
+          <p className="mt-1 text-sm font-semibold text-slate-500">Connected HR centres. One coordinated workflow.</p>
         </div>
         <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-600">10 centres</span>
       </div>
