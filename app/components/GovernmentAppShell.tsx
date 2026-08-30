@@ -46,6 +46,7 @@ import { getMockupRouteMeta } from "@/lib/mockupRouteTypes";
 
 import { ActiveRoleSwitcher } from "./ActiveRoleSwitcher";
 import StaffFooter from "./staff/StaffFooter";
+import GlobalPageHeader from "./GlobalPageHeader";
 
 const PUBLIC_PATHS = new Set([
   "/",
@@ -325,37 +326,37 @@ const MODULE_SUBNAV: Record<string, SubNavItem[]> = {
 const MAIN_NAV = [
   {
     href: "/executive",
-    label: "Command Centre",
+    label: "COMMAND CENTRE",
     icon: Building2,
   },
   {
     href: "/dashboard",
-    label: "Dashboard",
+    label: "DASHBOARD",
     icon: LayoutDashboard,
   },
   {
     href: "/requests",
-    label: "Requests",
+    label: "REQUESTS",
     icon: FileText,
   },
   {
     href: "/approvals",
-    label: "Approvals",
+    label: "APPROVALS",
     icon: ShieldCheck,
   },
   {
     href: "/finance",
-    label: "Finance",
+    label: "FINANCE",
     icon: Landmark,
   },
   {
     href: "/payment-vouchers",
-    label: "Payment Vouchers",
+    label: "PAYMENT VOUCHERS",
     icon: CreditCard,
   },
   {
     href: "/registry",
-    label: "Registry",
+    label: "REGISTRY",
     icon: Archive,
   },
   {
@@ -365,37 +366,37 @@ const MAIN_NAV = [
   },
   {
     href: "/reports",
-    label: "Reports",
+    label: "REPORTS",
     icon: BarChart3,
   },
   {
     href: "/audit-centre",
-    label: "Audit Centre",
+    label: "AUDIT",
     icon: ShieldCheck,
   },
   {
     href: "/workflow",
-    label: "Workflow",
+    label: "WORKFLOW",
     icon: Workflow,
   },
   {
     href: "/staff",
-    label: "Staff",
+    label: "STAFF",
     icon: UserRound,
   },
   {
     href: "/admin",
-    label: "Admin",
+    label: "ADMIN",
     icon: Settings,
   },
   {
     href: "/profile",
-    label: "Profile",
+    label: "PROFILE",
     icon: UserRound,
   },
   {
     href: "/docs",
-    label: "Help & Support",
+    label: "HELP",
     icon: CircleHelp,
   },
 ];
@@ -539,14 +540,8 @@ function GovernmentAppShellContent({
         ).trim();
       }
 
-      const metaName =
-        user?.user_metadata?.full_name ||
-        user?.user_metadata?.name ||
-        user?.email?.split("@")[0];
-
       setUserName(
         profileName ||
-        metaName ||
         "ReqGen User"
       );
 
@@ -1033,6 +1028,8 @@ function GovernmentAppShellContent({
           className="rg-main"
           role="main"
         >
+          <GlobalPageHeader userName={userName} />
+
           <div
             className={`rg-content module-${moduleKey}`}
             data-route={pathname}

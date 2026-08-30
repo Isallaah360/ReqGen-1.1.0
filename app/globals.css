@@ -3632,3 +3632,177 @@ body{font-family:Aptos,"Segoe UI",Inter,Arial,sans-serif!important;background:va
 .rg-form-drawer-head strong{font-size:15px;color:#0b1739}.rg-form-drawer-head span{display:block;margin-top:2px;font-size:10px;color:#66768d}.rg-form-drawer-head button{width:34px;height:34px;border:1px solid #dbe4ef;border-radius:8px;background:#fff;display:grid;place-items:center}
 .rg-form-drawer iframe{width:100%;height:100%;border:0;background:#f8faff}
 @media(max-width:900px){.rg-greeting{display:none}}
+
+/* ========================================================================== */
+/* RMB MODE — SECTIONS 5–12 DIRECT MOCKUP LOCK V2 — 2026-08-30               */
+/* This is the final visual layer for the approved Government shell family.   */
+/* It intentionally loads after legacy/module rules and preserves behaviour.  */
+/* ========================================================================== */
+:root{
+  --rmb-bg:#f5f7fb;
+  --rmb-surface:#ffffff;
+  --rmb-navy:#102b5f;
+  --rmb-text:#253858;
+  --rmb-muted:#718096;
+  --rmb-line:#dfe6ef;
+  --rmb-blue:#0b5cf0;
+  --rmb-blue-soft:#edf4ff;
+  --rmb-green:#139b68;
+  --rmb-amber:#e99016;
+  --rmb-red:#df4052;
+  --rmb-radius:12px;
+  --rmb-shadow:0 5px 16px rgba(31,51,88,.055);
+}
+
+/* Canonical route canvas */
+.rg-content:is([data-route^="/payment-vouchers"],[data-route^="/registry"],[data-route^="/hr"],[data-route^="/reports"],[data-route^="/audit-centre"],[data-route^="/workflow"],[data-route^="/staff"],[data-route^="/admin"]){
+  width:100%!important;max-width:none!important;min-width:0!important;
+  padding:0!important;background:var(--rmb-bg)!important;color:var(--rmb-text)!important;
+  font-family:var(--font-aptos,"Aptos","Segoe UI",Arial,sans-serif)!important;font-size:13px!important;
+}
+.rg-content:is([data-route^="/payment-vouchers"],[data-route^="/registry"],[data-route^="/hr"],[data-route^="/reports"],[data-route^="/audit-centre"],[data-route^="/workflow"],[data-route^="/staff"],[data-route^="/admin"]) > *{max-width:none!important;width:100%!important}
+
+/* Real canonical title: no fake KPIs/filters, no technical phase captions. */
+.rg-approved-mockup{width:100%!important;min-width:0!important;display:grid!important;gap:14px!important;padding:0!important}
+.rg-approved-header{min-height:88px!important;display:flex!important;align-items:flex-end!important;justify-content:space-between!important;gap:16px!important;margin:0!important;padding:6px 2px 14px!important;border:0!important;border-bottom:1px solid var(--rmb-line)!important;border-radius:0!important;background:transparent!important;box-shadow:none!important}
+.rg-approved-heading{min-width:0!important}
+.rg-approved-eyebrow{margin:0 0 5px!important;color:var(--rmb-blue)!important;font-size:10px!important;line-height:1.1!important;font-weight:900!important;letter-spacing:.11em!important;text-transform:uppercase!important}
+.rg-approved-heading h1{display:block!important;margin:0!important;color:var(--rmb-navy)!important;font-size:26px!important;line-height:1.08!important;font-weight:900!important;letter-spacing:-.025em!important}
+.rg-approved-heading>p:last-child{display:block!important;max-width:860px!important;margin:6px 0 0!important;color:var(--rmb-muted)!important;font-size:12px!important;line-height:1.5!important;font-weight:600!important}
+.rg-approved-body{width:100%!important;min-width:0!important;margin:0!important;padding:0!important}
+.rg-approved-body>*{width:100%!important;max-width:none!important;margin-left:0!important;margin-right:0!important}
+
+/* Suppress duplicated legacy page identities but keep their functional actions. */
+.rg-approved-body .rg-module-header,
+.rg-approved-body .rg-pv-section-head,
+.rg-approved-body .workflow-hero,
+.rg-approved-body [class*="hero"]:has(h1){
+  min-height:0!important;margin:0 0 12px!important;padding:0!important;border:0!important;background:transparent!important;box-shadow:none!important;color:inherit!important;
+}
+.rg-approved-body .rg-module-header{display:flex!important;justify-content:flex-end!important;align-items:center!important}
+.rg-approved-body .rg-module-header .rg-module-heading{position:absolute!important;width:1px!important;height:1px!important;overflow:hidden!important;clip:rect(0 0 0 0)!important;white-space:nowrap!important}
+.rg-approved-body :is(.workflow-hero,.rg-pv-section-head,[class*="hero"]:has(h1)) :is(h1,p[class*="uppercase"],p:first-of-type){display:none!important}
+.rg-approved-body :is(.workflow-hero,.rg-pv-section-head,[class*="hero"]:has(h1)) :is(.rg-module-actions,[class*="actions"]){margin-left:auto!important}
+
+/* Remove duplicate local module navigation; the Government sidebar is canonical. */
+.rg-content:is([data-route^="/payment-vouchers"],[data-route^="/registry"],[data-route^="/hr"],[data-route^="/reports"],[data-route^="/audit-centre"],[data-route^="/workflow"],[data-route^="/staff"],[data-route^="/admin"]) :is(.staff-navigation,.admin-navigation,.hr-navigation,.registry-navigation,.strategic-navigation,.registrar-governance-navigation){display:none!important}
+
+/* Reset legacy full-screen/dark canvases. */
+.rg-approved-body :is(main,.rg-module-page,.rg-adopted-page,[class*="page"]){max-width:none!important;min-height:0!important}
+.rg-approved-body main{padding:0!important;background:transparent!important}
+.rg-approved-body :is(section,header,article,div)[class*="from-slate-9"],
+.rg-approved-body :is(section,header,article,div)[class*="bg-slate-9"],
+.rg-approved-body :is(section,header,article,div)[class*="bg-gradient-to-"]{
+  background-image:none!important;
+}
+.rg-approved-body :is(section,header)[class*="from-slate-9"]{background:transparent!important;color:inherit!important;border-radius:0!important;box-shadow:none!important}
+.rg-approved-body :is(section,header)[class*="from-slate-9"] :is(.absolute,[class*="blur-"]){display:none!important}
+
+/* Standard operational cards */
+.rg-approved-body :is(.rg-section-card,.rg-stat-card,section[class*="bg-white"],article[class*="bg-white"],div[class*="bg-white"][class*="rounded"],section[class*="rounded-2xl"],section[class*="rounded-3xl"],article[class*="rounded-2xl"],article[class*="rounded-3xl"]){
+  border:1px solid var(--rmb-line)!important;border-radius:var(--rmb-radius)!important;background:var(--rmb-surface)!important;box-shadow:var(--rmb-shadow)!important;color:var(--rmb-text)!important;
+}
+.rg-approved-body :is(.rg-section-card,section[class*="bg-white"],article[class*="bg-white"]){overflow:hidden!important}
+.rg-approved-body .rg-section-card{padding:15px!important}
+.rg-approved-body .rg-section-card-head{margin:-15px -15px 14px!important;padding:12px 15px!important;border-bottom:1px solid #e9eef5!important;background:#fff!important}
+.rg-approved-body .rg-section-card-head h2{margin:0!important;color:var(--rmb-navy)!important;font-size:14px!important;font-weight:900!important}
+.rg-approved-body .rg-section-eyebrow{margin:0 0 3px!important;color:var(--rmb-blue)!important;font-size:9px!important;font-weight:900!important;letter-spacing:.08em!important;text-transform:uppercase!important}
+
+/* Four/five card KPI rhythm */
+.rg-approved-body :is(.rg-stat-card,[class*="statCard"],[class*="kpi"]){border-radius:12px!important;box-shadow:var(--rmb-shadow)!important}
+.rg-approved-body .rg-stat-card{position:relative!important;min-height:100px!important;overflow:hidden!important;padding:14px 14px 13px 17px!important;border:1px solid var(--rmb-line)!important;background:#fff!important}
+.rg-approved-body .rg-stat-accent{position:absolute!important;inset:0 auto 0 0!important;width:3px!important;background:var(--rg-stat-accent,var(--rmb-blue))!important}
+.rg-approved-body .rg-stat-label{margin:0!important;color:#76859a!important;font-size:10px!important;font-weight:900!important;letter-spacing:.065em!important;text-transform:uppercase!important}
+.rg-approved-body .rg-stat-value{margin-top:7px!important;color:var(--rmb-navy)!important;font-size:24px!important;line-height:1!important;font-weight:900!important}
+.rg-approved-body .rg-stat-note{margin:6px 0 0!important;color:#8793a5!important;font-size:10px!important;font-weight:600!important}
+.rg-approved-body section.grid:is([class*="xl:grid-cols-4"],[class*="xl:grid-cols-5"],[class*="lg:grid-cols-4"],[class*="md:grid-cols-4"]){gap:12px!important}
+
+/* Controls */
+.rg-approved-body :is(input,select,textarea){min-height:38px!important;border:1px solid #d4dde9!important;border-radius:8px!important;background:#fff!important;color:#243852!important;font-size:12px!important;font-weight:600!important;outline:none!important;box-shadow:none!important}
+.rg-approved-body :is(input,select){padding:0 10px!important}
+.rg-approved-body textarea{padding:9px 10px!important;line-height:1.45!important}
+.rg-approved-body :is(input,select,textarea):focus{border-color:#6ea1fa!important;box-shadow:0 0 0 3px rgba(11,92,240,.10)!important}
+.rg-approved-body label{color:#43546d!important;font-size:11px!important;font-weight:800!important}
+.rg-approved-body :is(button,.rg-action-button,a[class*="button"],a[class*="rounded-xl"]){min-height:36px!important;border-radius:8px!important;font-size:11px!important;font-weight:850!important;line-height:1.15!important}
+.rg-approved-body .rg-action-button{display:inline-flex!important;align-items:center!important;justify-content:center!important;gap:6px!important;padding:0 12px!important;border:1px solid color-mix(in srgb,var(--rg-action-accent,var(--rmb-blue)) 72%,#fff)!important;background:var(--rg-action-accent,var(--rmb-blue))!important;color:#fff!important;box-shadow:0 3px 8px color-mix(in srgb,var(--rg-action-accent,var(--rmb-blue)) 18%,transparent)!important}
+
+/* Tables: clean Government register. */
+.rg-approved-body :is(.overflow-x-auto,[class*="tableWrap"],[class*="overflow-auto"]){border-radius:10px!important}
+.rg-approved-body table{width:100%!important;border-collapse:separate!important;border-spacing:0!important;background:#fff!important;color:#34445b!important;font-size:11.5px!important}
+.rg-approved-body thead{background:#f5f7fa!important}
+.rg-approved-body th{height:38px!important;padding:9px 10px!important;border-bottom:1px solid #dfe6ee!important;color:#52627a!important;font-size:10px!important;font-weight:900!important;line-height:1.2!important;letter-spacing:.035em!important;text-align:left!important;text-transform:uppercase!important;white-space:normal!important}
+.rg-approved-body td{padding:10px!important;border-bottom:1px solid #edf1f5!important;color:#3b4b61!important;font-size:11px!important;font-weight:600!important;line-height:1.35!important;vertical-align:middle!important;white-space:normal!important;overflow-wrap:anywhere!important}
+.rg-approved-body tbody tr:last-child td{border-bottom:0!important}
+.rg-approved-body tbody tr:hover{background:#f8fbff!important}
+
+/* Status chips */
+.rg-approved-body :is(.rg-status-badge,[class*="statusPill"],[class*="badge"]){display:inline-flex!important;align-items:center!important;justify-content:center!important;min-height:24px!important;padding:3px 8px!important;border-radius:999px!important;font-size:9.5px!important;font-weight:900!important;line-height:1!important}
+.rg-approved-body .rg-status-badge{border:1px solid color-mix(in srgb,var(--rg-status-accent,#64748b) 25%,#fff)!important;background:color-mix(in srgb,var(--rg-status-accent,#64748b) 9%,#fff)!important;color:var(--rg-status-accent,#64748b)!important}
+
+/* Typographic hierarchy */
+.rg-approved-body h1{color:var(--rmb-navy)!important;font-size:24px!important;font-weight:900!important}
+.rg-approved-body h2{color:var(--rmb-navy)!important;font-size:14px!important;font-weight:900!important}
+.rg-approved-body h3{color:#20395f!important;font-size:12px!important;font-weight:900!important}
+.rg-approved-body :is(p,li,td,label,input,select,textarea,button,a){font-size:11.5px!important}
+.rg-approved-body small{font-size:10px!important}
+.rg-approved-body :is(.text-white,[class*="text-white"]):not(button):not(a){color:inherit!important}
+
+/* Alerts and information blocks */
+.rg-approved-body :is([class*="bg-blue-50"],[class*="bg-sky-50"]){border-color:#cfe0fa!important;background:#f2f7ff!important;color:#315b8f!important}
+.rg-approved-body :is([class*="bg-amber-50"],[class*="bg-yellow-50"]){border-color:#f0dfb9!important;background:#fffaf0!important;color:#7e5a18!important}
+.rg-approved-body :is([class*="bg-red-50"],[class*="bg-rose-50"]){border-color:#f1cbd1!important;background:#fff5f6!important;color:#954252!important}
+.rg-approved-body :is([class*="bg-emerald-50"],[class*="bg-green-50"]){border-color:#c8e8dc!important;background:#f2fbf7!important;color:#31775d!important}
+
+/* Settings/forms are full-width and calm, not giant dashboard heroes. */
+.rg-approved-settings .rg-approved-body form,.rg-approved-form .rg-approved-body form{max-width:100%!important}
+.rg-approved-settings .rg-approved-body :is(.grid,[class*="grid-cols"]),.rg-approved-form .rg-approved-body :is(.grid,[class*="grid-cols"]){gap:12px!important}
+
+/* Hide redundant module-level footers; one Government footer remains. */
+.rg-approved-body :is(.staff-footer,.reqgen-site-footer,footer:not(.mock-footer)){display:none!important}
+
+/* Desktop fixed register, mobile horizontal fallback. */
+@media(min-width:1001px){
+  .rg-approved-body table{table-layout:fixed!important}
+  .rg-approved-body :is(.overflow-x-auto,[class*="tableWrap"],[class*="overflow-auto"]){overflow-x:hidden!important}
+}
+@media(max-width:1000px){
+  .rg-approved-header{min-height:auto!important;align-items:flex-start!important;padding:4px 2px 12px!important}
+  .rg-approved-heading h1{font-size:23px!important}
+  .rg-approved-body table{table-layout:auto!important;min-width:760px!important}
+  .rg-approved-body :is(.overflow-x-auto,[class*="tableWrap"],[class*="overflow-auto"]){overflow-x:auto!important}
+}
+@media(max-width:640px){
+  .rg-approved-heading h1{font-size:21px!important}
+  .rg-approved-heading>p:last-child{font-size:11px!important}
+  .rg-approved-body section.grid:is([class*="grid-cols"]){grid-template-columns:1fr!important}
+}
+
+/* ========================================================================== */
+/* RMB MODE — DIRECT SECTION 5–12 PAGE IMPLEMENTATION V3                     */
+/* GlobalPageHeader is authoritative; route pages retain only actions/content. */
+/* ========================================================================== */
+.rg-global-page-header{width:100%;min-height:82px;display:flex;align-items:flex-end;justify-content:space-between;gap:20px;padding:7px 2px 13px;margin:0 0 14px;border-bottom:1px solid #dfe6ef;background:transparent}
+.rg-global-page-title h1{margin:0;color:#102b5f;font-size:26px;line-height:1.08;font-weight:900;letter-spacing:-.025em}
+.rg-global-greeting{display:flex;align-items:center;gap:9px;padding:8px 11px;border:1px solid #dde5ef;border-radius:10px;background:#fff;box-shadow:0 4px 12px rgba(31,51,88,.045)}
+.rg-global-greeting>span{font-size:17px}.rg-global-greeting small{display:block;color:#7d8ba0;font-size:9px;font-weight:800;letter-spacing:.04em}.rg-global-greeting strong{display:block;max-width:220px;margin-top:1px;overflow:hidden;color:#20395f;font-size:11px;font-weight:900;text-overflow:ellipsis;white-space:nowrap}
+
+/* Old local page headings are removed visually; action controls remain. */
+.rg-content:is([data-route^="/payment-vouchers"],[data-route^="/registry"],[data-route^="/hr"],[data-route^="/reports"],[data-route^="/audit-centre"],[data-route^="/workflow"],[data-route^="/staff"],[data-route^="/admin"]) .rg-module-header{min-height:0!important;margin:0 0 12px!important;padding:0!important;border:0!important;background:transparent!important;box-shadow:none!important;justify-content:flex-end!important}
+.rg-content:is([data-route^="/payment-vouchers"],[data-route^="/registry"],[data-route^="/hr"],[data-route^="/reports"],[data-route^="/audit-centre"],[data-route^="/workflow"],[data-route^="/staff"],[data-route^="/admin"]) .rg-module-header .rg-module-heading{position:absolute!important;width:1px!important;height:1px!important;overflow:hidden!important;clip:rect(0 0 0 0)!important;white-space:nowrap!important}
+
+/* Shared old hero families become compact action rows rather than alternate designs. */
+.rg-content:is([data-route^="/payment-vouchers"],[data-route^="/registry"],[data-route^="/hr"],[data-route^="/reports"],[data-route^="/audit-centre"],[data-route^="/workflow"],[data-route^="/staff"],[data-route^="/admin"]) :is(.workflow-hero,[class*="hero"][class*="from-slate-9"],[class*="Hero"][class*="from-slate-9"]){min-height:0!important;margin:0 0 12px!important;padding:0!important;border:0!important;background:transparent!important;background-image:none!important;box-shadow:none!important;color:inherit!important}
+.rg-content:is([data-route^="/payment-vouchers"],[data-route^="/registry"],[data-route^="/hr"],[data-route^="/reports"],[data-route^="/audit-centre"],[data-route^="/workflow"],[data-route^="/staff"],[data-route^="/admin"]) :is(.workflow-hero,[class*="hero"][class*="from-slate-9"],[class*="Hero"][class*="from-slate-9"]) :is(h1,p,[class*="blur-"]){display:none!important}
+
+/* Make all legacy module surfaces conform to the adopted white-card system. */
+.rg-content:is([data-route^="/payment-vouchers"],[data-route^="/registry"],[data-route^="/hr"],[data-route^="/reports"],[data-route^="/audit-centre"],[data-route^="/workflow"],[data-route^="/staff"],[data-route^="/admin"]) :is(section,article,div)[class*="rounded-3xl"],
+.rg-content:is([data-route^="/payment-vouchers"],[data-route^="/registry"],[data-route^="/hr"],[data-route^="/reports"],[data-route^="/audit-centre"],[data-route^="/workflow"],[data-route^="/staff"],[data-route^="/admin"]) :is(section,article,div)[class*="rounded-2xl"]{border-radius:12px!important}
+.rg-content:is([data-route^="/payment-vouchers"],[data-route^="/registry"],[data-route^="/hr"],[data-route^="/reports"],[data-route^="/audit-centre"],[data-route^="/workflow"],[data-route^="/staff"],[data-route^="/admin"]) :is(section,article,div)[class*="bg-gradient-to-"]{background-image:none!important}
+.rg-content:is([data-route^="/payment-vouchers"],[data-route^="/registry"],[data-route^="/hr"],[data-route^="/reports"],[data-route^="/audit-centre"],[data-route^="/workflow"],[data-route^="/staff"],[data-route^="/admin"]) :is(section,article,div)[class*="bg-slate-9"],
+.rg-content:is([data-route^="/payment-vouchers"],[data-route^="/registry"],[data-route^="/hr"],[data-route^="/reports"],[data-route^="/audit-centre"],[data-route^="/workflow"],[data-route^="/staff"],[data-route^="/admin"]) :is(section,article,div)[class*="from-slate-9"]{background:#fff!important;color:#253858!important}
+.rg-content:is([data-route^="/payment-vouchers"],[data-route^="/registry"],[data-route^="/hr"],[data-route^="/reports"],[data-route^="/audit-centre"],[data-route^="/workflow"],[data-route^="/staff"],[data-route^="/admin"]) :is(.shadow-xl,.shadow-2xl){box-shadow:0 5px 16px rgba(31,51,88,.055)!important}
+
+/* Root navigation names are RMB root labels. */
+.rg-nav-link>span{font-weight:900!important;letter-spacing:.025em!important}
+
+@media(max-width:760px){.rg-global-page-header{align-items:flex-start;flex-direction:column;gap:9px}.rg-global-page-title h1{font-size:22px}.rg-global-greeting{width:100%}}
