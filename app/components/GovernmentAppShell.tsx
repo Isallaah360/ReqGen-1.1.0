@@ -326,37 +326,37 @@ const MODULE_SUBNAV: Record<string, SubNavItem[]> = {
 const MAIN_NAV = [
   {
     href: "/executive",
-    label: "COMMAND CENTRE",
+    label: "Command Centre",
     icon: Building2,
   },
   {
     href: "/dashboard",
-    label: "DASHBOARD",
+    label: "Dashboard",
     icon: LayoutDashboard,
   },
   {
     href: "/requests",
-    label: "REQUESTS",
+    label: "Requests",
     icon: FileText,
   },
   {
     href: "/approvals",
-    label: "APPROVALS",
+    label: "Approvals",
     icon: ShieldCheck,
   },
   {
     href: "/finance",
-    label: "FINANCE",
+    label: "Finance",
     icon: Landmark,
   },
   {
     href: "/payment-vouchers",
-    label: "PAYMENT VOUCHERS",
+    label: "Payment Vouchers",
     icon: CreditCard,
   },
   {
     href: "/registry",
-    label: "REGISTRY",
+    label: "Registry",
     icon: Archive,
   },
   {
@@ -366,37 +366,37 @@ const MAIN_NAV = [
   },
   {
     href: "/reports",
-    label: "REPORTS",
+    label: "Reports",
     icon: BarChart3,
   },
   {
     href: "/audit-centre",
-    label: "AUDIT",
+    label: "Audit Centre",
     icon: ShieldCheck,
   },
   {
     href: "/workflow",
-    label: "WORKFLOW",
+    label: "Workflow",
     icon: Workflow,
   },
   {
     href: "/staff",
-    label: "STAFF",
+    label: "Staff",
     icon: UserRound,
   },
   {
     href: "/admin",
-    label: "ADMIN",
+    label: "Admin",
     icon: Settings,
   },
   {
     href: "/profile",
-    label: "PROFILE",
+    label: "Profile",
     icon: UserRound,
   },
   {
     href: "/docs",
-    label: "HELP",
+    label: "Help & Support",
     icon: CircleHelp,
   },
 ];
@@ -540,8 +540,14 @@ function GovernmentAppShellContent({
         ).trim();
       }
 
+      const metaName =
+        user?.user_metadata?.full_name ||
+        user?.user_metadata?.name ||
+        user?.email?.split("@")[0];
+
       setUserName(
         profileName ||
+        metaName ||
         "ReqGen User"
       );
 
@@ -1028,8 +1034,6 @@ function GovernmentAppShellContent({
           className="rg-main"
           role="main"
         >
-          <GlobalPageHeader userName={userName} />
-
           <div
             className={`rg-content module-${moduleKey}`}
             data-route={pathname}
@@ -1042,7 +1046,8 @@ function GovernmentAppShellContent({
               undefined
             }
           >
-            {children}
+            <GlobalPageHeader userName={userName} />
+            <div className="rg-route-body">{children}</div>
           </div>
 
           <StaffFooter />

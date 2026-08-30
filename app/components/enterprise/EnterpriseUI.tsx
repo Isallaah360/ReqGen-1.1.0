@@ -14,17 +14,9 @@ export function EnterpriseShell({ children }: { children: ReactNode }) {
   return <div className="rg-module-page rg-adopted-page">{children}</div>;
 }
 
-export function EnterpriseHero({ eyebrow, title, description, actions }: { eyebrow: string; title: string; description: string; actions?: ReactNode }) {
-  return (
-    <header className="rg-module-header">
-      <div className="rg-module-heading">
-        <p className="rg-module-eyebrow">{eyebrow}</p>
-        <h1>{title}</h1>
-        <p className="rg-module-description">{description}</p>
-      </div>
-      {actions ? <div className="rg-module-actions">{actions}</div> : null}
-    </header>
-  );
+export function EnterpriseHero({ actions }: { eyebrow: string; title: string; description: string; actions?: ReactNode }) {
+  if (!actions) return null;
+  return <div className="rg-rmb-actions-row">{actions}</div>;
 }
 
 export function ActionButton({ children, tone = "blue", onClick, disabled = false, type = "button" }: { children: ReactNode; tone?: Tone; onClick?: () => void; disabled?: boolean; type?: "button" | "submit" }) {

@@ -67,14 +67,9 @@ export default function ProfileSecurityPage() {
   const sessionSecure = security.currentLevel === "aal2";
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-8">
+    <main data-rmb-page="profile" className="min-h-screen bg-slate-50 px-4 py-8">
       <div className="mx-auto max-w-6xl">
-        <section className="overflow-hidden rounded-3xl border border-blue-200 bg-gradient-to-br from-slate-950 via-blue-950 to-cyan-900 p-6 text-white shadow-xl sm:p-8">
-          <p className="text-xs font-black uppercase tracking-[0.2em] text-cyan-300">Personal Security Workspace</p>
-          <h1 className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">Security Centre</h1>
-          <p className="mt-3 max-w-3xl font-semibold leading-7 text-slate-200">Review your authentication strength, active working role and account-protection controls.</p>
-          <div className="mt-5"><Link href="/staff" className="inline-flex min-h-11 items-center rounded-xl bg-white/15 px-4 py-2.5 text-sm font-black text-white ring-1 ring-white/25 transition hover:bg-white/25">← Back to Staff Workspace</Link></div>
-        </section>
+        
 
         <ProfileNavigation />
 

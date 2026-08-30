@@ -20,11 +20,7 @@ export function StaffShell({ children }: { children: ReactNode }) {
 }
 
 export function StaffHero({
-  name,
-  designation,
-  description,
   actions,
-  prominentGreeting = false,
 }: {
   name: string;
   designation?: string;
@@ -32,22 +28,8 @@ export function StaffHero({
   actions?: ReactNode;
   prominentGreeting?: boolean;
 }) {
-  const detail = prominentGreeting && description.includes(".")
-    ? description.slice(description.indexOf(".") + 1).trim()
-    : description;
-
-  return (
-    <header className="rg-module-header staff-adopted-header">
-      <div className="rg-module-heading">
-        <p className="rg-module-eyebrow">Staff Self-Service</p>
-        <h1>{prominentGreeting ? "Staff Overview" : designation || name}</h1>
-        {prominentGreeting ? <p className="staff-greeting">Welcome back, {name}</p> : null}
-        {prominentGreeting && designation ? <p className="staff-designation">{designation}</p> : null}
-        <p className="rg-module-description">{detail}</p>
-      </div>
-      {actions ? <div className="rg-module-actions">{actions}</div> : null}
-    </header>
-  );
+  if (!actions) return null;
+  return <div className="rg-rmb-actions-row">{actions}</div>;
 }
 
 export function StaffStat({ label, value, note, tone = "blue" }: { label: string; value: ReactNode; note?: string; tone?: StaffTone }) {

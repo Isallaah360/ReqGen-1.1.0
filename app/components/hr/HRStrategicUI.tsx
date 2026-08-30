@@ -6,8 +6,9 @@ import { Inbox } from "lucide-react";
 export type Tone = "blue" | "cyan" | "emerald" | "violet" | "amber" | "rose" | "slate";
 const accent: Record<Tone,string> = { blue:"#0b5cf0", cyan:"#0891b2", emerald:"#129a67", violet:"#7047e8", amber:"#ef8c18", rose:"#e84655", slate:"#334155" };
 
-export function StrategicHero({ eyebrow,title,description,action }:{ eyebrow:string;title:string;description:string;action?:ReactNode }) {
-  return <header className="rg-module-header"><div className="rg-module-heading"><p className="rg-module-eyebrow">{eyebrow}</p><h1>{title}</h1><p className="rg-module-description">{description}</p></div>{action?<div className="rg-module-actions">{action}</div>:null}</header>;
+export function StrategicHero({ action }:{ eyebrow:string;title:string;description:string;action?:ReactNode }) {
+  if (!action) return null;
+  return <div className="rg-rmb-actions-row">{action}</div>;
 }
 export function StrategicShell({ children }:{ children:ReactNode }) { return <main className="rg-module-page rg-adopted-page rg-hr-page">{children}</main>; }
 export function StrategicNavigation(){ return null; }

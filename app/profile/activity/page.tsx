@@ -37,8 +37,8 @@ export default function ProfileActivityPage() {
   useEffect(() => { queueMicrotask(() => { void load(); }); }, [load]);
   const filtered = useMemo(() => activities.filter((a) => `${a.action} ${a.detail} ${a.source}`.toLowerCase().includes(search.toLowerCase())), [activities, search]);
 
-  return <main className="min-h-screen bg-slate-50 px-4 py-8"><div className="mx-auto max-w-6xl">
-    <section className="rounded-3xl border border-emerald-200 bg-gradient-to-br from-slate-950 via-emerald-950 to-cyan-950 p-6 text-white shadow-xl sm:p-8"><p className="text-xs font-black uppercase tracking-[0.2em] text-emerald-300">Personal Accountability</p><h1 className="mt-2 text-3xl font-black sm:text-4xl">My Activity</h1><p className="mt-3 max-w-3xl font-semibold leading-7 text-slate-200">Review recent role-context changes and personal operational activities available to your account.</p></section>
+  return <main data-rmb-page="profile" className="min-h-screen bg-slate-50 px-4 py-8"><div className="mx-auto max-w-6xl">
+    
     <ProfileNavigation />
     {warning && <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 font-bold text-amber-900">{warning}</div>}
     <section className="mt-6 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"><div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-xs font-black uppercase tracking-[0.16em] text-emerald-700">Activity Timeline</p><h2 className="mt-1 text-2xl font-black text-slate-950">{loading ? "Loading…" : `${filtered.length} recorded activities`}</h2></div><div className="flex gap-2"><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search my activity" className="min-h-11 rounded-xl border border-slate-300 bg-white px-4 text-sm font-bold text-slate-900 outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100" /><button type="button" onClick={() => void load()} className="rounded-xl bg-cyan-700 px-4 py-3 text-sm font-black text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-cyan-800">Refresh</button></div></div>

@@ -396,35 +396,26 @@ export default function ProfilePage() {
   return (
     <main className="min-h-screen bg-slate-50 px-4">
       <div className="mx-auto max-w-5xl py-10">
-        <section className="overflow-hidden rounded-3xl border border-blue-200 bg-gradient-to-br from-slate-950 via-blue-950 to-violet-950 p-6 text-white shadow-xl sm:p-8">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <p className="text-xs font-black uppercase tracking-[0.2em] text-cyan-300">Personal Account Centre</p>
-            <h1 className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">My Profile</h1>
-            <p className="mt-3 max-w-2xl font-semibold leading-7 text-slate-200">Update your identity details, institutional signature and personal account information.</p>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => load({ silent: true })}
-              disabled={busy}
-              className="rounded-xl bg-cyan-700 px-4 py-2.5 text-sm font-black text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-cyan-800 disabled:opacity-60"
-            >
-              {refreshing ? "Refreshing..." : "Refresh"}
-            </button>
-
-            <button
-              type="button"
-              onClick={goDashboard}
-              disabled={busy}
-              className="rounded-xl bg-slate-700 px-4 py-2.5 text-sm font-black text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-slate-800 disabled:opacity-60"
-            >
-              Back
-            </button>
-          </div>
-          </div>
-        </section>
+        <div className="rg-rmb-actions-row">
+          <button
+            type="button"
+            onClick={() => load({ silent: true })}
+            disabled={busy}
+            className="rg-action-button"
+            style={{ ["--rg-action-accent" as string]: "#0891b2" }}
+          >
+            {refreshing ? "Refreshing..." : "Refresh"}
+          </button>
+          <button
+            type="button"
+            onClick={goDashboard}
+            disabled={busy}
+            className="rg-action-button"
+            style={{ ["--rg-action-accent" as string]: "#334155" }}
+          >
+            Dashboard
+          </button>
+        </div>
 
         <ProfileNavigation />
 

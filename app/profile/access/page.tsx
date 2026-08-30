@@ -38,8 +38,8 @@ export default function ProfileAccessPage() {
   useEffect(() => { queueMicrotask(() => { void load(); }); }, [load]);
   const activeRoles = useMemo(() => roles.filter((r) => r.is_active !== false), [roles]);
 
-  return <main className="min-h-screen bg-slate-50 px-4 py-8"><div className="mx-auto max-w-6xl">
-    <section className="rounded-3xl border border-violet-200 bg-gradient-to-br from-slate-950 via-violet-950 to-blue-950 p-6 text-white shadow-xl sm:p-8"><p className="text-xs font-black uppercase tracking-[0.2em] text-violet-300">Identity & Authorization</p><h1 className="mt-2 text-3xl font-black sm:text-4xl">Roles & Access</h1><p className="mt-3 max-w-3xl font-semibold leading-7 text-slate-200">Review your assigned roles, active functional assignments and current working authority.</p></section>
+  return <main data-rmb-page="profile" className="min-h-screen bg-slate-50 px-4 py-8"><div className="mx-auto max-w-6xl">
+    
     <ProfileNavigation />
     {error && <div className="mt-5 rounded-2xl border border-red-200 bg-red-50 p-4 font-bold text-red-800">{error}</div>}
     <section className="mt-6 grid gap-4 md:grid-cols-3"><Summary label="Primary Role" value={loading ? "…" : profileRole} /><Summary label="Active Assigned Roles" value={loading ? "…" : String(activeRoles.length)} /><Summary label="Active HR Assignments" value={loading ? "…" : String(assignments.filter((a) => a.is_active !== false).length)} /></section>

@@ -34,7 +34,7 @@ export function ReportIcon({ name, className = "h-5 w-5" }: { name: string; clas
 }
 
 export function ReportsHero({ actions }: { actions: ReactNode }) {
-  return <header className="rg-module-header"><div className="rg-module-heading"><p className="rg-module-eyebrow"><ReportIcon name="report" className="h-4 w-4"/>Reports</p><h1>Reports</h1><p className="rg-module-description">Summary of key performance indicators and institutional insights from authorised ReqGen records.</p></div><div className="rg-module-actions">{actions}</div></header>;
+  return <div className="rg-rmb-actions-row">{actions}</div>;
 }
 
 export function ReportButton({ children, onClick, icon, variant = "blue", disabled = false }: { children: ReactNode; onClick?: () => void; icon: string; variant?: "light" | "blue" | "violet" | "cyan"; disabled?: boolean }) {

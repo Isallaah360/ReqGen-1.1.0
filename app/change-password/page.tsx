@@ -268,20 +268,11 @@ export default function ChangePasswordPage() {
     return (
         <main className="min-h-screen bg-slate-50 px-4">
             <div className="mx-auto max-w-3xl py-8">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                        <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">
-                            Change Password
-                        </h1>
-                        <p className="mt-2 text-sm text-slate-600">
-                            Confirm your current password, verify 2FA where required, and set a new secure
-                            password.
-                        </p>
-                    </div>
-
+                <div className="rg-rmb-actions-row">
                     <Link
                         href="/dashboard"
-                        className="reqgen-btn reqgen-btn-slate rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-900 shadow-sm hover:bg-slate-100"
+                        className="rg-action-button"
+                        style={{ ["--rg-action-accent" as string]: "#334155" }}
                     >
                         Dashboard
                     </Link>

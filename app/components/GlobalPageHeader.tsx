@@ -16,14 +16,18 @@ export default function GlobalPageHeader({ userName }: { userName: string }) {
   const hello = greeting();
 
   return (
-    <div className="rg-global-page-header">
+    <header className="rg-global-page-header" data-rmb-page-header="true">
       <div className="rg-global-page-title">
         <h1>{route?.title || "ReqGen"}</h1>
+        {route?.description ? <p>{route.description}</p> : null}
       </div>
       <div className="rg-global-greeting" aria-label={`${hello.text}, ${userName}`}>
         <span aria-hidden="true">{hello.icon}</span>
-        <div><small>{hello.text}</small><strong>{userName}</strong></div>
+        <div>
+          <small>{hello.text}</small>
+          <strong>{userName}</strong>
+        </div>
       </div>
-    </div>
+    </header>
   );
 }
