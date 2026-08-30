@@ -40,6 +40,24 @@ type ChannelResult = {
   error?: string;
 };
 
+type SendChampPayload = {
+  subject: string;
+  to: Array<{ email: string; name?: string }>;
+  message_body?: { type: "text/html" | "text/plain"; value: string };
+  from?: { email: string; name: string };
+};
+
+function objectField(value: unknown, key: string) {
+  if (!value || typeof value !== "object") return undefined;
+  const field = (value as Record<string, unknown>)[key];
+  return typeof field === "string" ? field : undefined;
+}
+
+function errorMessage(error: unknown, fallback: string) {
+  return error instanceof Error ? error.message : fallback;
+}
+
+
 export function normalizeNigerianPhone(rawPhone: string | null | undefined) {
   const raw = String(rawPhone || "").trim();
 
@@ -87,19 +105,6 @@ function cleanSmsMessage(message: string, senderName: string) {
   return cleaned.trim();
 }
 
-function plainTextToHtml(text: string) {
-  return String(text || "")
-    .split("\n")
-    .map((line) => {
-      const escaped = line
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;");
-
-      return escaped.trim() ? escaped : "&nbsp;";
-    })
-    .join("<br />");
-}
 
 function normalizeEmailRecipients(
   to: SendEmailInput["to"]
@@ -194,8 +199,8 @@ export async function sendSendchampSms(input: SendSmsInput) {
 
   if (!response.ok) {
     throw new Error(
-      (result as any)?.message ||
-        (result as any)?.error ||
+      objectField(result, "message") ||
+        objectField(result, "error") ||
         `SendChamp SMS failed with status ${response.status}`
     );
   }
@@ -249,7 +254,7 @@ export async function sendSendchampEmail(input: SendEmailInput) {
     process.env.SENDCHAMP_FROM_NAME ||
     "ISLAMIC EDUCATION TRUST";
 
-  const payload: any = {
+  const payload: SendChampPayload = {
     subject,
     to: recipients,
   };
@@ -287,9 +292,9 @@ export async function sendSendchampEmail(input: SendEmailInput) {
 
   if (!response.ok) {
     throw new Error(
-      (result as any)?.message ||
-        (result as any)?.error ||
-        (result as any)?.raw ||
+      objectField(result, "message") ||
+        objectField(result, "error") ||
+        objectField(result, "raw") ||
         `SendChamp Email failed with status ${response.status}`
     );
   }
@@ -413,11 +418,11 @@ export async function sendApprovalNotificationBySms(input: SendApprovalNotificat
       ok: true,
       result,
     } satisfies ChannelResult;
-  } catch (e: any) {
+  } catch (e: unknown) {
     return {
       channel: "sms",
       ok: false,
-      error: e?.message || "Approval SMS failed",
+      error: errorMessage(e, "Approval SMS failed"),
     } satisfies ChannelResult;
   }
 }
@@ -453,11 +458,11 @@ export async function sendApprovalNotificationByEmail(input: SendApprovalNotific
       ok: true,
       result,
     } satisfies ChannelResult;
-  } catch (e: any) {
+  } catch (e: unknown) {
     return {
       channel: "email",
       ok: false,
-      error: e?.message || "Approval Email failed",
+      error: errorMessage(e, "Approval Email failed"),
     } satisfies ChannelResult;
   }
 }

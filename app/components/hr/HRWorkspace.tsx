@@ -102,7 +102,7 @@ export function useHRRequests() {
   const [roleSummary, setRoleSummary] = useState("Staff");
 
   const load = useCallback(async (silent = false) => {
-    silent ? setRefreshing(true) : setLoading(true);
+    if (silent) { setRefreshing(true); } else { setLoading(true); }
     setMessage(null);
 
     const { data: auth } = await supabase.auth.getUser();
@@ -153,7 +153,7 @@ export function useHRRequests() {
   }, [router]);
 
   useEffect(() => {
-    void load(false);
+    queueMicrotask(() => { void load(false); });
     const onFocus = () => void load(true);
     window.addEventListener("focus", onFocus);
     return () => window.removeEventListener("focus", onFocus);

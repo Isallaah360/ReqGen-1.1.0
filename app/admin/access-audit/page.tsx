@@ -70,7 +70,7 @@ export default function AdminAccessAuditPage() {
           <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-3xl">
               <p className="text-xs font-black uppercase tracking-[0.28em] text-cyan-300">
-                Phase A · Security and Role Audit
+                Security and Role Audit
               </p>
               <h1 className="mt-3 text-3xl font-black sm:text-4xl">
                 Route Access Audit Matrix

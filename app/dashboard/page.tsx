@@ -71,10 +71,12 @@ function statusLabel(status?: string | null) {
   if (rejected(status)) return "Rejected";
   return "Pending";
 }
+const DASHBOARD_NOW = Date.now();
+
 function ageDays(value: string) {
   const created = new Date(value).getTime();
   if (!created) return 0;
-  return Math.max(0, Math.floor((Date.now() - created) / 86400000));
+  return Math.max(0, Math.floor((DASHBOARD_NOW - created) / 86400000));
 }
 
 export default function DashboardPage() {

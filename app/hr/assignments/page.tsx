@@ -3,10 +3,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   BriefcaseBusiness,
-  CheckCircle2,
   ClipboardList,
   PauseCircle,
-  RefreshCw,
   Send,
   ShieldCheck,
   Users,
@@ -131,7 +129,7 @@ export default function HRAssignmentsPage() {
   }, []);
 
   useEffect(() => {
-    void load();
+    queueMicrotask(() => { void load(); });
   }, [load]);
 
   const names = useMemo(

@@ -6,7 +6,6 @@ import {
   Archive,
   BriefcaseBusiness,
   FileClock,
-  Filter,
   Search,
   ShieldCheck,
   UserRound,
@@ -53,6 +52,8 @@ function riskFor(action: string, details: Record<string, unknown>): AuditEvent["
   if (["return", "archive", "restore", "transfer", "hold", "correction"].some((word) => haystack.includes(word))) return "attention";
   return "normal";
 }
+
+const HR_AUDIT_NOW = Date.now();
 
 export default function HRAuditPage() {
   const [events, setEvents] = useState<AuditEvent[]>([]);
@@ -112,7 +113,7 @@ export default function HRAuditPage() {
     setLoading(false);
   }, []);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => { queueMicrotask(() => { void load(); }); }, [load]);
   useEffect(() => {
     const channel = supabase.channel("hr-enterprise-audit-live")
       .on("postgres_changes", { event: "*", schema: "public", table: "hr_assignment_history" }, () => void load())
@@ -127,8 +128,8 @@ export default function HRAuditPage() {
   const modules = useMemo(() => Array.from(new Set(events.map((event) => event.module))).sort(), [events]);
   const filtered = useMemo(() => events.filter((event) => {
     const created = new Date(event.createdAt);
-    const today = new Date();
-    const dateMatch = date === "all" || (date === "today" && created.toDateString() === today.toDateString()) || (date === "7days" && created.getTime() >= Date.now() - 7 * 86400000) || (date === "30days" && created.getTime() >= Date.now() - 30 * 86400000);
+    const today = new Date(HR_AUDIT_NOW);
+    const dateMatch = date === "all" || (date === "today" && created.toDateString() === today.toDateString()) || (date === "7days" && created.getTime() >= HR_AUDIT_NOW - 7 * 86400000) || (date === "30days" && created.getTime() >= HR_AUDIT_NOW - 30 * 86400000);
     const textValue = [event.action, event.module, event.entityType, event.entityId, event.actorRole, names.get(event.actorId || ""), JSON.stringify(event.details)].join(" ").toLowerCase();
     return (module === "all" || event.module === module) && (risk === "all" || event.risk === risk) && dateMatch && (!search || textValue.includes(search.toLowerCase()));
   }), [events, module, risk, date, search, names]);

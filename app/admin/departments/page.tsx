@@ -4,10 +4,13 @@ import AdminNavigation from "@/app/components/admin/AdminNavigation";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 
+type DepartmentRow = { id: string; name: string; hod_user_id: string | null; director_user_id: string | null };
+type UserRow = { id: string; email: string | null; role: string | null };
+
 export default function DepartmentsPage() {
 
-  const [departments, setDepartments] = useState<any[]>([]);
-  const [users, setUsers] = useState<any[]>([]);
+  const [departments, setDepartments] = useState<DepartmentRow[]>([]);
+  const [users, setUsers] = useState<UserRow[]>([]);
   const [msg,setMsg] = useState("");
 
   async function loadData() {
@@ -21,15 +24,15 @@ export default function DepartmentsPage() {
       .from("profiles")
       .select("id,email,role");
 
-    setDepartments(dept || []);
-    setUsers(users || []);
+    setDepartments((dept || []) as DepartmentRow[]);
+    setUsers((users || []) as UserRow[]);
   }
 
   useEffect(()=>{
-    loadData();
+    queueMicrotask(() => { void loadData(); });
   },[])
 
-  async function saveDept(dept:any){
+  async function saveDept(dept: DepartmentRow){
 
     const { error } = await supabase
       .from("departments")

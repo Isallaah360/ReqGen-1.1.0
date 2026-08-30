@@ -64,6 +64,10 @@ function roleBadgeClass(role: string | null | undefined) {
   return "border-slate-200 bg-slate-50 text-slate-700";
 }
 
+function errorMessage(error: unknown) {
+  return error instanceof Error ? error.message : "Unknown error";
+}
+
 export default function AdminRolesPage() {
   const router = useRouter();
 
@@ -322,8 +326,8 @@ export default function AdminRolesPage() {
       setActiveTab(active ? "active" : "inactive");
       await loadAll({ silent: true });
       router.refresh();
-    } catch (e: any) {
-      setMsg("❌ Save failed: " + (e?.message || "Unknown error"));
+    } catch (e: unknown) {
+      setMsg("❌ Save failed: " + errorMessage(e));
     } finally {
       setSaving(false);
     }
@@ -355,8 +359,8 @@ export default function AdminRolesPage() {
       setMsg(nextActive ? "✅ Role activated." : "✅ Role deactivated.");
       await loadAll({ silent: true });
       router.refresh();
-    } catch (e: any) {
-      setMsg("❌ Failed: " + (e?.message || "Unknown error"));
+    } catch (e: unknown) {
+      setMsg("❌ Failed: " + errorMessage(e));
     } finally {
       setSaving(false);
     }
@@ -395,10 +399,10 @@ export default function AdminRolesPage() {
 
       await loadAll({ silent: true });
       router.refresh();
-    } catch (e: any) {
+    } catch (e: unknown) {
       setMsg(
         "❌ Delete failed: " +
-          (e?.message || "Unknown error") +
+          errorMessage(e) +
           ". If the role is already in use, deactivate it instead."
       );
     } finally {

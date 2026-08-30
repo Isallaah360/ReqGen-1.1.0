@@ -35,7 +35,7 @@ export default function DepartmentKpiPage() {
     setLoading(false);
   }, []);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => { queueMicrotask(() => { void load(); }); }, [load]);
 
   const deptMap = useMemo(() => new Map(departments.map((item) => [item.id, item.name])), [departments]);
   const stats = useMemo(() => ({

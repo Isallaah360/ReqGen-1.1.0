@@ -521,7 +521,7 @@ export default function OutputCentrePage() {
   }, [selected]);
 
   useEffect(() => {
-    void load();
+    queueMicrotask(() => { void load(); });
   }, [load]);
 
   const normalizedRows = useMemo<Row[]>(

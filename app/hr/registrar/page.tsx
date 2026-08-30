@@ -130,7 +130,7 @@ function MetricCard({
   }[tone];
 
   return (
-    <article className="rg-stat-card">
+    <article className={`rg-stat-card bg-gradient-to-br ${styles}`}>
       <p className="text-xs font-black uppercase tracking-[0.18em] text-white/75">{label}</p>
       <p className="mt-3 text-3xl font-black">{value}</p>
       <p className="mt-2 text-sm font-semibold text-white/80">{note}</p>
@@ -159,7 +159,7 @@ export default function RegistrarPage() {
   const [remarks, setRemarks] = useState("");
 
   const loadData = useCallback(async (manual = false) => {
-    manual ? setRefreshing(true) : setLoading(true);
+    if (manual) { setRefreshing(true); } else { setLoading(true); }
     setError(null);
 
     try {
@@ -228,7 +228,7 @@ export default function RegistrarPage() {
   }, []);
 
   useEffect(() => {
-    loadData();
+    queueMicrotask(() => { void loadData(); });
   }, [loadData]);
 
   useEffect(() => {

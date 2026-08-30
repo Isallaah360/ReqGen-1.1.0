@@ -3,11 +3,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, Clock3, FileText, Landmark, Search, XCircle, Eye, Pencil, MoreVertical, Download, Plus, Printer } from "lucide-react";
+import { CheckCircle2, Clock3, FileText, Landmark, Search, XCircle, Eye, Pencil, MoreVertical, Download, Plus, Printer, X } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import styles from "./requests.module.css";
 
 type Row = { id:string; request_no:string; title:string; amount:number; status:string; current_stage:string; created_at:string; request_type?:string|null; personal_category?:string|null; dept_id?:string|null; };
+type DepartmentLite = { id: string; name: string | null };
 type TypeFilter = "ALL"|"OFFICIAL"|"PERSONAL_FUND"|"PERSONAL_OTHER";
 type StatusFilter = "ALL"|"ACTIVE"|"COMPLETED"|"REJECTED";
 
@@ -24,16 +25,27 @@ function statusClass(r:Row){return isRejected(r)?styles.rejected:isCompleted(r)?
 function statusLabel(r:Row){return isRejected(r)?"Rejected":isCompleted(r)?"Approved":r.status||r.current_stage||"In Progress"}
 
 export default function RequestsPage(){
- const router=useRouter(); const [rows,setRows]=useState<Row[]>([]); const [departments,setDepartments]=useState<Record<string,string>>({}); const [loading,setLoading]=useState(true); const [error,setError]=useState<string|null>(null); const [query,setQuery]=useState(""); const [status,setStatus]=useState<StatusFilter>("ALL"); const [type,setType]=useState<TypeFilter>("ALL"); const [department,setDepartment]=useState("ALL"); const [tab,setTab]=useState<TabKey>("ALL"); const [page,setPage]=useState(1);
- const load=useCallback(async()=>{setLoading(true);setError(null);const{data:auth}=await supabase.auth.getUser();if(!auth.user){router.push("/login");return}const{data,error:reqError}=await supabase.from("requests").select("id,request_no,title,amount,status,current_stage,created_at,request_type,personal_category,dept_id").eq("created_by",auth.user.id).order("created_at",{ascending:false});if(reqError){setError(reqError.message);setRows([]);setLoading(false);return}const requestRows=(data||[]) as Row[];setRows(requestRows);const ids=Array.from(new Set(requestRows.map(r=>r.dept_id).filter(Boolean))) as string[];if(ids.length){const{data:deptRows}=await supabase.from("departments").select("id,name").in("id",ids);setDepartments(Object.fromEntries((deptRows||[]).map((d:any)=>[String(d.id),String(d.name||"Unassigned")])))}else setDepartments({});setLoading(false)},[router]);
- useEffect(()=>{void load()},[load]);
+ const router=useRouter(); const [showCreateDrawer,setShowCreateDrawer]=useState(false); const [editDrawerId,setEditDrawerId]=useState<string|null>(null); const [rows,setRows]=useState<Row[]>([]); const [departments,setDepartments]=useState<Record<string,string>>({}); const [loading,setLoading]=useState(true); const [error,setError]=useState<string|null>(null); const [query,setQuery]=useState(""); const [status,setStatus]=useState<StatusFilter>("ALL"); const [type,setType]=useState<TypeFilter>("ALL"); const [department,setDepartment]=useState("ALL"); const [tab,setTab]=useState<TabKey>("ALL"); const [page,setPage]=useState(1);
+ const load=useCallback(async()=>{setLoading(true);setError(null);const{data:auth}=await supabase.auth.getUser();if(!auth.user){router.push("/login");return}const{data,error:reqError}=await supabase.from("requests").select("id,request_no,title,amount,status,current_stage,created_at,request_type,personal_category,dept_id").eq("created_by",auth.user.id).order("created_at",{ascending:false});if(reqError){setError(reqError.message);setRows([]);setLoading(false);return}const requestRows=(data||[]) as Row[];setRows(requestRows);const ids=Array.from(new Set(requestRows.map(r=>r.dept_id).filter(Boolean))) as string[];if(ids.length){const{data:deptRows}=await supabase.from("departments").select("id,name").in("id",ids);setDepartments(Object.fromEntries(((deptRows||[]) as DepartmentLite[]).map((d)=>[String(d.id),String(d.name||"Unassigned")])))}else setDepartments({});setLoading(false)},[router]);
+ useEffect(()=>{queueMicrotask(()=>{void load();});},[load]);
+ useEffect(()=>{
+  const onMessage=(event:MessageEvent)=>{
+   if(event.origin!==window.location.origin)return;
+   const type=event.data?.type;
+   if(type==="reqgen-request-created"){setShowCreateDrawer(false);void load();}
+   if(type==="reqgen-request-edit-saved"){setEditDrawerId(null);void load();}
+   if(type==="reqgen-form-cancel"){setShowCreateDrawer(false);setEditDrawerId(null);}
+  };
+  window.addEventListener("message",onMessage);
+  return()=>window.removeEventListener("message",onMessage);
+ },[load]);
  const counts=useMemo(()=>({total:rows.length,active:rows.filter(isActive).length,completed:rows.filter(isCompleted).length,rejected:rows.filter(isRejected).length,official:rows.filter(r=>requestGroup(r)==="OFFICIAL").length,fund:rows.filter(r=>requestGroup(r)==="PERSONAL_FUND").length,other:rows.filter(r=>requestGroup(r)==="PERSONAL_OTHER").length}),[rows]);
  const filtered=useMemo(()=>rows.filter(r=>{const q=query.trim().toLowerCase();if(tab==="ACTIVE"&&!isActive(r))return false;if(tab==="COMPLETED"&&!isCompleted(r))return false;if(tab==="REJECTED"&&!isRejected(r))return false;if(["OFFICIAL","PERSONAL_FUND","PERSONAL_OTHER"].includes(tab)&&requestGroup(r)!==tab)return false;if(status==="ACTIVE"&&!isActive(r))return false;if(status==="COMPLETED"&&!isCompleted(r))return false;if(status==="REJECTED"&&!isRejected(r))return false;if(type!=="ALL"&&requestGroup(r)!==type)return false;if(department!=="ALL"&&r.dept_id!==department)return false;if(!q)return true;return[r.request_no,r.title,r.status,r.current_stage,requestTypeLabel(r),r.dept_id?departments[r.dept_id]:""].join(" ").toLowerCase().includes(q)}),[rows,query,status,type,department,departments,tab]);
- useEffect(()=>setPage(1),[query,status,type,department,tab]); const pageSize=8; const totalPages=Math.max(1,Math.ceil(filtered.length/pageSize)); const currentPage=Math.min(page,totalPages); const paged=filtered.slice((currentPage-1)*pageSize,currentPage*pageSize);
+ useEffect(()=>{queueMicrotask(()=>setPage(1));},[query,status,type,department,tab]); const pageSize=8; const totalPages=Math.max(1,Math.ceil(filtered.length/pageSize)); const currentPage=Math.min(page,totalPages); const paged=filtered.slice((currentPage-1)*pageSize,currentPage*pageSize);
  const tabs:[TabKey,string,number][]=[["ALL","All Requests",counts.total],["ACTIVE","Active Workflow",counts.active],["COMPLETED","Completed / Paid",counts.completed],["REJECTED","Rejected / Deleted",counts.rejected],["OFFICIAL","Official",counts.official],["PERSONAL_FUND","Personal Fund",counts.fund],["PERSONAL_OTHER","Personal Other",counts.other]];
  function exportCsv(){const lines=[["Request Code","Title","Department","Type","Amount","Status","Requested On"],...filtered.map(r=>[r.request_no,r.title,r.dept_id?departments[r.dept_id]||"Unassigned":"Unassigned",requestTypeLabel(r),String(r.amount||0),statusLabel(r),new Date(r.created_at).toLocaleString("en-NG")])].map(row=>row.map(v=>`"${String(v??"").replaceAll('"','""')}"`).join(",")).join("\n");const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([lines],{type:"text/csv"}));a.download="reqgen-requests.csv";a.click();URL.revokeObjectURL(a.href)}
  return <main className={styles.page}>
-  <header className={styles.header}><div><h1>Requests</h1><p>Create, track and manage all institutional requests in one place.</p></div><button className={styles.primary} onClick={()=>router.push("/requests/new")}><Plus size={17}/> New Request</button></header>
+  <header className={styles.header}><div><h1>Requests</h1><p>Create, track and manage all institutional requests in one place.</p></div><button className={styles.primary} onClick={()=>setShowCreateDrawer(true)} data-tip="Open the Create Request form without leaving the Requests workspace."><Plus size={17}/> New Request</button></header>
   <section className={styles.kpis}>
    <Kpi tone="blue" icon={<FileText/>} label="Total Requests" value={counts.total} note="All submitted requests"/>
    <Kpi tone="orange" icon={<Clock3/>} label="Active Workflow" value={counts.active} note="Currently in progress"/>
@@ -52,7 +64,7 @@ export default function RequestsPage(){
    </div>
    {error?<div className={styles.alert}>{error}</div>:loading?<div className={styles.loading}>Loading requests…</div>:<div className={styles.tableWrap}><table className={styles.table}><thead><tr><th>Req Code</th><th>Title</th><th>Department</th><th>Type</th><th>Amount (₦)</th><th>Status</th><th>Requested On</th><th>Actions</th></tr></thead><tbody>{paged.length?paged.map(r=><tr key={r.id}><td className={styles.code}>{r.request_no||"—"}</td><td>{r.title||"Untitled request"}</td><td>{r.dept_id?departments[r.dept_id]||"Unassigned":"Unassigned"}</td><td><span className={styles.typePill}>{requestTypeLabel(r)}</span></td><td>{naira(r.amount)}</td><td><span className={`${styles.statusPill} ${statusClass(r)}`}>{statusLabel(r)}</span></td><td>{new Date(r.created_at).toLocaleString("en-NG",{dateStyle:"medium",timeStyle:"short"})}</td><td><div className={styles.actions}>
       <Link title="View request" aria-label={`View ${r.request_no||"request"}`} href={`/requests/${r.id}`}><Eye size={14}/></Link>
-      <Link title="Edit request" aria-label={`Edit ${r.request_no||"request"}`} href={`/requests/${r.id}/edit`}><Pencil size={14}/></Link>
+      <button type="button" title="Edit request" aria-label={`Edit ${r.request_no||"request"}`} onClick={()=>setEditDrawerId(r.id)}><Pencil size={14}/></button>
       <details className={styles.moreMenu}>
         <summary title="More actions" aria-label={`More actions for ${r.request_no||"request"}`}><MoreVertical size={14}/></summary>
         <div className={styles.moreMenuPanel}>
@@ -64,6 +76,8 @@ export default function RequestsPage(){
     </div></td></tr>):<tr><td colSpan={8} className={styles.empty}>No matching requests.</td></tr>}</tbody></table></div>}
    <div className={styles.pagination}><span>Showing {filtered.length?((currentPage-1)*pageSize)+1:0} to {Math.min(currentPage*pageSize,filtered.length)} of {filtered.length} entries</span><div><button disabled={currentPage===1} onClick={()=>setPage(p=>Math.max(1,p-1))}>‹</button>{Array.from({length:Math.min(totalPages,4)},(_,i)=>i+1).map(n=><button key={n} className={n===currentPage?styles.current:""} onClick={()=>setPage(n)}>{n}</button>)}{totalPages>4&&<span>…</span>}<button disabled={currentPage===totalPages} onClick={()=>setPage(p=>Math.min(totalPages,p+1))}>›</button></div></div>
   </section>
+  {showCreateDrawer ? <div className="rg-form-drawer-backdrop" role="dialog" aria-modal="true" aria-label="Create Request"><section className="rg-form-drawer"><header className="rg-form-drawer-head"><div><strong>Create Request</strong><span>Complete, sign and submit without leaving Requests.</span></div><button type="button" onClick={()=>setShowCreateDrawer(false)} aria-label="Close Create Request"><X size={18}/></button></header><iframe title="Create Request Form" src="/requests/new?embedded=1" /></section></div> : null}
+  {editDrawerId ? <div className="rg-form-drawer-backdrop" role="dialog" aria-modal="true" aria-label="Edit Request"><section className="rg-form-drawer"><header className="rg-form-drawer-head"><div><strong>Edit Request</strong><span>Secure edits preserve workflow, reservations and audit history.</span></div><button type="button" onClick={()=>setEditDrawerId(null)} aria-label="Close Edit Request"><X size={18}/></button></header><iframe title="Edit Request Form" src={`/requests/${editDrawerId}/edit?embedded=1`} /></section></div> : null}
  </main>
 }
 function Kpi({tone,icon,label,value,note}:{tone:"blue"|"orange"|"green"|"purple"|"red";icon:React.ReactNode;label:string;value:number;note:string}){return <article className={styles.kpi}><span className={`${styles.kpiIcon} ${styles[tone]}`}>{icon}</span><div><small>{label}</small><strong>{value.toLocaleString()}</strong><p>{note}</p></div></article>}

@@ -22,7 +22,7 @@ export default function AuditTrailPage() {
     setRows([]); setIssue("No compatible audit table was found yet. The page is ready and will display records once the audit migration is connected."); setLoading(false);
   }, []);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => { queueMicrotask(() => { void load(); }); }, [load]);
   const filtered = useMemo(() => rows.filter((r) => JSON.stringify(r).toLowerCase().includes(query.toLowerCase())), [rows, query]);
 
   return (

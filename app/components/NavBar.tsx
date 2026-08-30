@@ -110,158 +110,17 @@ function IconApprovals({ className = "h-6 w-6" }: IconProps) {
   );
 }
 
-function IconDashboard({ className = "h-6 w-6" }: IconProps) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path
-        d="M4 13h7V4H4v9ZM13 20h7v-9h-7v9ZM4 20h7v-5H4v5ZM13 9h7V4h-7v5Z"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function IconRequests({ className = "h-6 w-6" }: IconProps) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path
-        d="M8 6h10M8 12h10M8 18h7"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-      <path
-        d="M4.5 6h.01M4.5 12h.01M4.5 18h.01"
-        stroke="currentColor"
-        strokeWidth="4"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
 
 
 
-function IconStaff({ className = "h-6 w-6" }: IconProps) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <circle cx="12" cy="8" r="4" stroke="currentColor" strokeWidth="2" />
-      <path d="M4.5 21a7.5 7.5 0 0 1 15 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-    </svg>
-  );
-}
 
-function IconAudit({ className = "h-6 w-6" }: IconProps) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <rect x="4" y="4" width="16" height="16" rx="2" stroke="currentColor" strokeWidth="2" />
-      <path d="M8 9h8M8 13h5M8 17h7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      <path d="m15.5 12.5 1.5 1.5 3-3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
 
-function IconReports({ className = "h-6 w-6" }: IconProps) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M5 3h14v18H5V3Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
-      <path d="M8 16v-3M12 16V9M16 16v-5M8 7h8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-    </svg>
-  );
-}
 
-function IconFinance({ className = "h-6 w-6" }: IconProps) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path
-        d="M4 10h16M6 10v9M10 10v9M14 10v9M18 10v9M4 19h16M12 4 4 8h16l-8-4Z"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
 
-function IconHR({ className = "h-6 w-6" }: IconProps) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path
-        d="M16 11a4 4 0 1 0-8 0M4 20a8 8 0 0 1 16 0"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-      <path
-        d="M17.5 5.5v3M19 7h-3"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
 
-function IconRegistry({ className = "h-6 w-6" }: IconProps) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path
-        d="M5 4h14v16H5V4Z"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M8 8h8M8 12h8M8 16h5"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
 
-function IconAdmin({ className = "h-6 w-6" }: IconProps) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path
-        d="M12 3 5 6v5c0 5 3.5 8.5 7 10 3.5-1.5 7-5 7-10V6l-7-3Z"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M9.5 12 11.5 14 15 10"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
 
-function IconNotifications({ className = "h-6 w-6" }: IconProps) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path
-        d="M18 8a6 6 0 1 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9Z"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M10 21h4"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
+
 
 function IconLogout({ className = "h-6 w-6" }: IconProps) {
   return (
@@ -977,8 +836,8 @@ export default function NavBar() {
 
               {canExecutive && (
                 <Link className={iconLinkClass("/executive")} href="/executive">
-                  <NavPngIcon src="/report.png" alt="Executive Command Centre" />
-                  <IconButtonTooltip label="Executive Command Centre" />
+                  <NavPngIcon src="/report.png" alt="Command Centre" />
+                  <IconButtonTooltip label="Command Centre" />
                 </Link>
               )}
 
@@ -1167,8 +1026,8 @@ export default function NavBar() {
                         className={mobileItemClass("/executive")}
                       >
                         <span className="inline-flex items-center gap-2">
-                          <NavPngIcon src="/report.png" alt="Executive Command Centre" size={22} />
-                          Executive Command Centre
+                          <NavPngIcon src="/report.png" alt="Command Centre" size={22} />
+                          Command Centre
                         </span>
                       </button>
                     </>

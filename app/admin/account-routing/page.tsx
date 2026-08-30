@@ -55,6 +55,10 @@ function accountLabel(a: IetAccount) {
   return `${code} • ${a.name}${num ? ` • ${num}` : ""} • ${bank}`;
 }
 
+function errorMessage(error: unknown) {
+  return error instanceof Error ? error.message : "Unknown error";
+}
+
 export default function AccountRoutingPage() {
   const router = useRouter();
 
@@ -177,8 +181,8 @@ export default function AccountRoutingPage() {
 
       setMsg("✅ Department account routing saved.");
       await loadAll();
-    } catch (e: any) {
-      setMsg("❌ Save failed: " + (e?.message || "Unknown error"));
+    } catch (e: unknown) {
+      setMsg("❌ Save failed: " + errorMessage(e));
     } finally {
       setSaving(false);
     }
@@ -201,8 +205,8 @@ export default function AccountRoutingPage() {
 
       setMsg("✅ Routing deleted.");
       await loadAll();
-    } catch (e: any) {
-      setMsg("❌ Delete failed: " + (e?.message || "Unknown error"));
+    } catch (e: unknown) {
+      setMsg("❌ Delete failed: " + errorMessage(e));
     } finally {
       setSaving(false);
     }
@@ -290,8 +294,10 @@ function RoutingCard({
   const [officerUserId, setOfficerUserId] = useState(route?.officer_user_id || "");
 
   useEffect(() => {
-    setIetAccountId(route?.iet_account_id || "");
-    setOfficerUserId(route?.officer_user_id || "");
+    queueMicrotask(() => {
+      setIetAccountId(route?.iet_account_id || "");
+      setOfficerUserId(route?.officer_user_id || "");
+    });
   }, [route?.iet_account_id, route?.officer_user_id]);
 
   return (

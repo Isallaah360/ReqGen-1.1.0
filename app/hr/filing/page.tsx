@@ -64,7 +64,7 @@ export default function HRFilingPage() {
   const [department, setDepartment] = useState("all");
 
   const load = useCallback(async (soft = false) => {
-    soft ? setRefreshing(true) : setLoading(true);
+    if (soft) { setRefreshing(true); } else { setLoading(true); }
     setMessage(null);
     const { data, error } = await supabase.rpc("get_hr_filing_requests");
     if (error) {
@@ -78,7 +78,7 @@ export default function HRFilingPage() {
   }, []);
 
   useEffect(() => {
-    void load();
+    queueMicrotask(() => { void load(); });
     const channel = supabase.channel("hr-filing-live")
       .on("postgres_changes", { event: "*", schema: "public", table: "requests" }, () => void load(true))
       .subscribe();
@@ -186,7 +186,7 @@ export default function HRFilingPage() {
           {message ? <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-bold text-amber-900">{message}</div> : null}
 
           <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-            {filingSummaryCards.map(({ label, value, note, icon: Icon, tone }) => (
+            {filingSummaryCards.map(({ label, value, note, icon: Icon }) => (
               <article
                 key={label}
                 className="rg-stat-card"

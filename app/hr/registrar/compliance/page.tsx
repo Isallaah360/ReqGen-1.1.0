@@ -138,7 +138,7 @@ export default function HRCompliancePage() {
   }, []);
 
   useEffect(() => {
-    void load();
+    queueMicrotask(() => { void load(); });
   }, [load]);
 
   const filtered = rows.filter((row) =>

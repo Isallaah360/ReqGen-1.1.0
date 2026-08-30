@@ -32,8 +32,6 @@ export function StaffHero({
   actions?: ReactNode;
   prominentGreeting?: boolean;
 }) {
-  const parts = description.split(".");
-  const greeting = prominentGreeting ? parts[0]?.trim() : "";
   const detail = prominentGreeting && description.includes(".")
     ? description.slice(description.indexOf(".") + 1).trim()
     : description;

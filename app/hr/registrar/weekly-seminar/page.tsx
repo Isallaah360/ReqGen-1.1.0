@@ -50,15 +50,6 @@ type Settings = {
 
 type Tone = "blue" | "emerald" | "amber" | "rose" | "violet" | "cyan" | "slate";
 
-const tones: Record<Tone, string> = {
-  blue: "from-blue-700 to-indigo-700",
-  emerald: "from-emerald-600 to-teal-700",
-  amber: "from-amber-500 to-orange-600",
-  rose: "from-rose-600 to-red-700",
-  violet: "from-violet-600 to-purple-700",
-  cyan: "from-cyan-600 to-blue-700",
-  slate: "from-slate-700 to-slate-950",
-};
 
 function Icon({ name, className = "h-5 w-5" }: { name: string; className?: string }) {
   const icons: Record<string, React.ReactNode> = {
@@ -80,7 +71,7 @@ function Icon({ name, className = "h-5 w-5" }: { name: string; className?: strin
 
 function Stat({ title, value, note, tone, icon }: { title: string; value: string | number; note: string; tone: Tone; icon: string }) {
   return (
-    <article className="rg-stat-card">
+    <article className="rg-stat-card" data-tone={tone}>
       <div className="absolute -right-8 -top-8 h-28 w-28 rounded-full bg-white/10 blur-2xl" />
       <div className="relative flex items-start justify-between gap-4">
         <div>
@@ -140,7 +131,7 @@ export default function WeeklySeminarPage() {
   const [remarks, setRemarks] = useState("");
 
   const load = useCallback(async (soft = false) => {
-    soft ? setRefreshing(true) : setLoading(true);
+    if (soft) { setRefreshing(true); } else { setLoading(true); }
     setError(null);
     try {
       const [sessionResult, attendanceResult, profileResult, departmentResult, settingsResult] = await Promise.all([
@@ -169,10 +160,9 @@ export default function WeeklySeminarPage() {
     }
   }, []);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => { queueMicrotask(() => { void load(); }); }, [load]);
 
   const selectedSession = useMemo(() => sessions.find((item) => item.id === selectedSessionId) || null, [sessions, selectedSessionId]);
-  const profileMap = useMemo(() => new Map(profiles.map((item) => [item.id, item])), [profiles]);
   const departmentMap = useMemo(() => new Map(departments.map((item) => [item.id, item.name || "Unassigned"])), [departments]);
   const sessionAttendance = useMemo(() => attendance.filter((item) => item.session_id === selectedSessionId), [attendance, selectedSessionId]);
   const attendanceMap = useMemo(() => new Map(sessionAttendance.map((item) => [item.staff_id, item])), [sessionAttendance]);

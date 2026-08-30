@@ -34,7 +34,12 @@ export default function FinanceSettingsPage() {
   useEffect(() => {
     const stored = window.localStorage.getItem("reqgen-finance-settings");
     if (stored) {
-      try { setSettings({ ...defaults, ...JSON.parse(stored) }); } catch { /* ignore malformed local cache */ }
+      try {
+        const parsed = { ...defaults, ...JSON.parse(stored) } as SettingsState;
+        queueMicrotask(() => setSettings(parsed));
+      } catch {
+        /* ignore malformed local cache */
+      }
     }
   }, []);
 
@@ -64,7 +69,7 @@ export default function FinanceSettingsPage() {
   const field = "mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100";
 
   return (
-    <FinancePageFrame eyebrow="Finance Administration" title="Finance Settings" description="Control fiscal-year preferences, numbering conventions and workflow safeguards from one secure workspace." icon="⚙️" tone="violet" badge="Phase 11">
+    <FinancePageFrame eyebrow="Finance Administration" title="Finance Settings" description="Control fiscal-year preferences, numbering conventions and workflow safeguards from one secure workspace." icon="⚙️" tone="violet">
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <MetricCard label="Fiscal year" value={settings.fiscalYear} icon="📅" tone="blue" helper="Active reporting cycle" />
         <MetricCard label="Voucher prefix" value={settings.voucherPrefix} icon="🧾" tone="violet" helper="Payment voucher numbering" />

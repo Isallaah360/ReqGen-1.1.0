@@ -164,10 +164,12 @@ function formatDate(value: string) {
   return date.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
 }
 
+const APPROVALS_NOW = Date.now();
+
 function relativeTime(value: string) {
   const time = new Date(value).getTime();
   if (!time) return "Recently";
-  const minutes = Math.max(1, Math.floor((Date.now() - time) / 60000));
+  const minutes = Math.max(1, Math.floor((APPROVALS_NOW - time) / 60000));
   if (minutes < 60) return `${minutes} min ago`;
   const hours = Math.floor(minutes / 60);
   if (hours < 24) return `${hours} hr${hours === 1 ? "" : "s"} ago`;
@@ -180,7 +182,7 @@ function monthKey(date: Date) {
 }
 
 function buildMonthPoints(rows: RequestRow[]): MonthPoint[] {
-  const now = new Date();
+  const now = new Date(APPROVALS_NOW);
   const points = Array.from({ length: 6 }, (_, index) => {
     const d = new Date(now.getFullYear(), now.getMonth() - (5 - index), 1);
     return {
@@ -247,7 +249,7 @@ export default function ApprovalsPage() {
 
   const load = useCallback(
     async (options?: { silent?: boolean }) => {
-      options?.silent ? setRefreshing(true) : setLoading(true);
+      if (options?.silent) { setRefreshing(true); } else { setLoading(true); }
       setMessage(null);
 
       const { data: auth } = await supabase.auth.getUser();
@@ -341,7 +343,7 @@ export default function ApprovalsPage() {
   );
 
   useEffect(() => {
-    void load();
+    queueMicrotask(() => { void load(); });
     const refreshOnFocus = () => void load({ silent: true });
     const refreshOnVisible = () => document.visibilityState === "visible" && void load({ silent: true });
     window.addEventListener("focus", refreshOnFocus);
@@ -379,19 +381,19 @@ export default function ApprovalsPage() {
     });
   }, [rows, search, typeFilter, stageFilter, statusFilter]);
 
-  useEffect(() => setPage(1), [search, typeFilter, stageFilter, statusFilter]);
+  useEffect(() => { queueMicrotask(() => setPage(1)); }, [search, typeFilter, stageFilter, statusFilter]);
 
   const totalPages = Math.max(1, Math.ceil(filteredRows.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
   const pageRows = filteredRows.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
-  const now = new Date();
+  const now = new Date(APPROVALS_NOW);
   const weekAgo = new Date(now.getTime() - 7 * 86400000);
   const approvedWeek = allRows.filter((r) => new Date(r.created_at) >= weekAgo && isApproved(r.status)).length;
   const rejectedWeek = allRows.filter((r) => new Date(r.created_at) >= weekAgo && isRejected(r.status)).length;
   const escalated = rows.filter((r) => isEscalated(r.status) || stageKey(r.current_stage) === "DG").length;
   const avgAgeDays = rows.length
-    ? rows.reduce((sum, r) => sum + Math.max(0, (Date.now() - new Date(r.created_at).getTime()) / 86400000), 0) / rows.length
+    ? rows.reduce((sum, r) => sum + Math.max(0, (APPROVALS_NOW - new Date(r.created_at).getTime()) / 86400000), 0) / rows.length
     : 0;
 
   const monthPoints = useMemo(() => buildMonthPoints(allRows), [allRows]);

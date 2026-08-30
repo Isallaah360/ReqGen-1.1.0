@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { WorkflowLoading, WorkflowPageStyles } from "@/app/components/ui/WorkflowUI";
 
@@ -225,10 +225,16 @@ function roleSummary(profileRole: string | null | undefined, roles: ProfileRole[
     .join(", ");
 }
 
+function errorMessage(error: unknown) {
+  return error instanceof Error ? error.message : "Unknown error";
+}
+
 export default function EditRequestPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const embedded = searchParams.get("embedded") === "1";
   const params = useParams();
-  const id = String((params as any)?.id || "");
+  const id = typeof params?.id === "string" ? params.id : "";
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -477,7 +483,7 @@ export default function EditRequestPage() {
   }
 
   useEffect(() => {
-    load();
+    queueMicrotask(() => { void load(); });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
@@ -594,8 +600,8 @@ export default function EditRequestPage() {
       setMfaCode("");
 
       await saveAfterFresh2fa();
-    } catch (e: any) {
-      setMsg("❌ 2FA verification failed: " + (e?.message || "Invalid code."));
+    } catch (e: unknown) {
+      setMsg("❌ 2FA verification failed: " + (errorMessage(e) || "Invalid code."));
       setMfaCode("");
     } finally {
       setVerifyingCode(false);
@@ -635,11 +641,15 @@ export default function EditRequestPage() {
       await load();
 
       setTimeout(() => {
+        if (embedded) {
+          window.parent.postMessage({ type: "reqgen-request-edit-saved", requestId: req.id }, window.location.origin);
+          return;
+        }
         router.push(`/requests/${req.id}?updated=${Date.now()}`);
         router.refresh();
       }, 500);
-    } catch (e: any) {
-      setMsg("❌ Update failed: " + (e?.message || "Unknown error"));
+    } catch (e: unknown) {
+      setMsg("❌ Update failed: " + errorMessage(e));
     } finally {
       setSaving(false);
     }

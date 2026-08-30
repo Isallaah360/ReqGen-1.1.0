@@ -224,7 +224,7 @@ function requestCategoryLabel(req: Req | null) {
 export default function PrintRequestPage() {
   const router = useRouter();
   const params = useParams();
-  const id = String((params as any)?.id || "");
+  const id = typeof params?.id === "string" ? params.id : "";
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -246,7 +246,7 @@ export default function PrintRequestPage() {
     });
 
     return set;
-  }, [me?.role, myRoles]);
+  }, [me, myRoles]);
 
   const isOfficial = useMemo(() => {
     return normalize(req?.request_type) === "official";
@@ -503,7 +503,7 @@ export default function PrintRequestPage() {
   );
 
   useEffect(() => {
-    load();
+    queueMicrotask(() => { void load(); });
 
     const refreshOnFocus = () => {
       load({ silent: true });
@@ -1059,10 +1059,13 @@ function SignatureLine({
 
         <div className="relative h-[18px] border-b border-black">
           {sigUrl ? (
-            <img
+            <Image
               src={sigUrl}
               alt="signature"
-              className="absolute bottom-0 left-1/2 h-[13px] max-w-[90%] -translate-x-1/2 object-contain"
+              width={100}
+              height={24}
+              unoptimized
+              className="absolute bottom-0 left-1/2 h-[13px] w-auto max-w-[90%] -translate-x-1/2 object-contain"
             />
           ) : null}
         </div>

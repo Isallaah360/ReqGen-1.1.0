@@ -1,11 +1,11 @@
 {
   "summary": {
-    "candidates": 20,
-    "withPrintCall": 10,
-    "withPrintCss": 11,
-    "withA4": 11,
-    "withLogo": 4,
-    "generatedAt": "2026-08-29T04:33:15.094Z"
+    "candidates": 23,
+    "withPrintCall": 11,
+    "withPrintCss": 12,
+    "withA4": 12,
+    "withLogo": 5,
+    "generatedAt": "2026-08-30T17:55:24.461Z"
   },
   "results": [
     {
@@ -54,15 +54,6 @@
       "hasLogoReference": false
     },
     {
-      "file": "app/finance/_components/FinanceOutputWorkspace.tsx",
-      "hasPrintCall": true,
-      "hasPrintCss": true,
-      "hasNoPrintClass": true,
-      "hasA4": true,
-      "hasPageBreakControl": true,
-      "hasLogoReference": true
-    },
-    {
       "file": "app/finance/audit/page.tsx",
       "hasPrintCall": false,
       "hasPrintCss": true,
@@ -90,6 +81,24 @@
       "hasLogoReference": false
     },
     {
+      "file": "app/finance/_components/FinanceOutputWorkspace.tsx",
+      "hasPrintCall": true,
+      "hasPrintCss": true,
+      "hasNoPrintClass": true,
+      "hasA4": true,
+      "hasPageBreakControl": true,
+      "hasLogoReference": true
+    },
+    {
+      "file": "app/globals.css",
+      "hasPrintCall": false,
+      "hasPrintCss": true,
+      "hasNoPrintClass": true,
+      "hasA4": true,
+      "hasPageBreakControl": false,
+      "hasLogoReference": true
+    },
+    {
       "file": "app/hr/output/page.tsx",
       "hasPrintCall": false,
       "hasPrintCss": false,
@@ -113,6 +122,24 @@
       "hasPrintCss": false,
       "hasNoPrintClass": true,
       "hasA4": true,
+      "hasPageBreakControl": false,
+      "hasLogoReference": false
+    },
+    {
+      "file": "app/payment-vouchers/page.tsx",
+      "hasPrintCall": true,
+      "hasPrintCss": false,
+      "hasNoPrintClass": false,
+      "hasA4": false,
+      "hasPageBreakControl": false,
+      "hasLogoReference": false
+    },
+    {
+      "file": "app/payment-vouchers/print-centre/page.tsx",
+      "hasPrintCall": false,
+      "hasPrintCss": false,
+      "hasNoPrintClass": false,
+      "hasA4": false,
       "hasPageBreakControl": false,
       "hasLogoReference": false
     },

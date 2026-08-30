@@ -92,9 +92,11 @@ function isToday(value: string) {
   return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
 }
 
+const REGISTRY_NOW = Date.now();
+
 function isWithinDays(value: string, days: number) {
   const time = new Date(value).getTime();
-  return time >= Date.now() - days * 24 * 60 * 60 * 1000;
+  return time >= REGISTRY_NOW - days * 24 * 60 * 60 * 1000;
 }
 
 function requestType(row: RequestMovementRow) {
@@ -114,9 +116,6 @@ function pct(value: number, total: number) {
   return total > 0 ? Math.round((value / total) * 100) : 0;
 }
 
-function Icon({ children }: { children: ReactNode }) {
-  return <span className="grid h-11 w-11 place-items-center rounded-2xl bg-white/20 text-white shadow-inner">{children}</span>;
-}
 
 function KpiCard({ label, value, note, className, icon }: { label: string; value: number; note: string; className: string; icon: ReactNode }) {
   const accent = /rose|red/.test(className) ? "#e84655" : /emerald|green/.test(className) ? "#129a67" : /cyan|sky/.test(className) ? "#0891b2" : /slate/.test(className) ? "#334155" : "#0b5cf0";
@@ -165,7 +164,7 @@ export default function RegistryPage() {
   const canAccess = useMemo(() => hasAnyRole(roleSet, ["registry", "admin", "auditor"]), [roleSet]);
 
   const load = useCallback(async (silent = false) => {
-    silent ? setRefreshing(true) : setLoading(true);
+    if (silent) { setRefreshing(true); } else { setLoading(true); }
     setMessage(null);
 
     const { data: auth } = await supabase.auth.getUser();
@@ -216,7 +215,7 @@ export default function RegistryPage() {
     setRefreshing(false);
   }, [router]);
 
-  useEffect(() => { void load(false); }, [load]);
+  useEffect(() => { queueMicrotask(() => { void load(false); }); }, [load]);
 
   const stats = useMemo(() => {
     const total = rows.length;

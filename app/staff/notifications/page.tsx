@@ -9,11 +9,11 @@ import {
     Check,
     CheckCheck,
     Clock3,
-    Filter,
     RefreshCw,
     Search,
     ShieldCheck,
     Printer,
+    type LucideIcon,
 } from "lucide-react";
 import { useMemo, useState } from "react";
 
@@ -63,7 +63,8 @@ const sample: Notification[] = [
 
 export default function StaffNotificationsPage() {
     const [notifications, setNotifications] = useState(sample);
-    const [filter, setFilter] = useState<"All" | "Unread" | "Read">("All");
+    type NotificationFilter = "All" | "Unread" | "Read";
+    const [filter, setFilter] = useState<NotificationFilter>("All");
     const [search, setSearch] = useState("");
 
     const filtered = useMemo(() => {
@@ -188,10 +189,10 @@ export default function StaffNotificationsPage() {
 
                     <div className="flex gap-3">
 
-                        {["All", "Unread", "Read"].map((item) => (
+                        {(["All", "Unread", "Read"] as NotificationFilter[]).map((item) => (
                             <button
                                 key={item}
-                                onClick={() => setFilter(item as any)}
+                                onClick={() => setFilter(item)}
                                 className={`rounded-full px-5 py-2 font-bold ${filter === item
                                         ? "bg-cyan-700 text-white"
                                         : "bg-slate-100 dark:bg-slate-800"
@@ -331,7 +332,7 @@ function Stat({
     title: string;
     value: string;
     color: string;
-    icon: any;
+    icon: LucideIcon;
 }) {
 
     return (

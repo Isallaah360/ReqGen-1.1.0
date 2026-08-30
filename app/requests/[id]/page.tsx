@@ -204,42 +204,6 @@ function stageBadgeClass(stage: string | null | undefined) {
   return "border-slate-200 bg-white text-slate-700";
 }
 
-function stageHelpText(req: Req | null) {
-  if (!req) return "";
-
-  const stage = stageKey(req.current_stage);
-  const reqType = String(req.request_type || "").toUpperCase();
-  const cat = categoryKey(req.personal_category);
-
-  if (reqType === "OFFICIAL") {
-    if (stage === "PO") return "Official ASAP-ALLI request is awaiting Programme Officer review.";
-    if (stage === "DOD") return "Official request is awaiting Director of Department review.";
-    if (stage === "DINADMIN") return "DIN Official request is awaiting DIN Admin review before Registrar.";
-    if (stage === "REGISTRAR") return "DIN Official request is awaiting Registrar review as HOD of all DIN Departments.";
-    if (stage === "HOD") return "Official request is awaiting HOD review. Subhead must be assigned before it can move to DG.";
-    if (stage === "DG") return "Official request is awaiting DG approval and automatic forwarding to the AccountOfficer attached from the selected subhead.";
-    if (stage === "ACCOUNT") return "Official request is awaiting AccountOfficer treatment/payment.";
-    if (stage === "COMPLETED") return "Official request is completed.";
-  }
-
-  if (reqType === "PERSONAL") {
-    if (stage === "DOD") return "Personal request is awaiting Director of Department review.";
-    if (stage === "HOD") return "Personal ASAP-ALLI request is awaiting HOD review before HR.";
-    if (stage === "HR") return "Personal request is awaiting HR review.";
-
-    if (stage === "DG") {
-      if (cat === "FUND") return "Personal Fund request is awaiting DG approval and automatic department AccountOfficer routing.";
-      return "Personal request is awaiting DG approval before HR Filing.";
-    }
-
-    if (stage === "ACCOUNT") return "Personal Fund request is awaiting AccountOfficer payment before HR Filing.";
-    if (stage === "HRFILING") return "Personal request is awaiting final HR Filing.";
-    if (stage === "COMPLETED") return "Personal request is completed and filed.";
-  }
-
-  return "Request is awaiting the assigned officer.";
-}
-
 function roleDisplay(h: Hist) {
   if (h.actor_role_name) return `as ${h.actor_role_name}`;
   if (h.actor_role_key) return `as ${h.actor_role_key}`;
@@ -258,14 +222,22 @@ function primaryOrFirstRole(roles: ProfileRole[], fallbackRole?: string | null) 
   };
 }
 
+type RequestActionResult = {
+  message?: string | null;
+  new_stage?: string | null;
+  new_status?: string | null;
+};
+
+function errorMessage(error: unknown) {
+  return error instanceof Error ? error.message : "Unknown error";
+}
+
 export default function RequestDetailsPage() {
   const router = useRouter();
   const params = useParams();
 
-  const id =
-    typeof (params as any)?.id === "string"
-      ? ((params as any).id as string)
-      : String((params as any)?.id || "");
+  const rawId = params?.id;
+  const id = Array.isArray(rawId) ? rawId[0] || "" : typeof rawId === "string" ? rawId : "";
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -493,6 +465,8 @@ export default function RequestDetailsPage() {
     needsSubheadAssignment,
     isPersonalFund,
     isHRContext,
+    isOfficial,
+    stg,
   ]);
 
   const selectedAssignableSubhead = useMemo(() => {
@@ -741,11 +715,11 @@ export default function RequestDetailsPage() {
     const requestRow = r as Req;
     setReq(requestRow);
 
-    if ((r as any)?.subhead_id) {
+    if (requestRow.subhead_id) {
       const { data: sh } = await supabase
         .from("subheads")
         .select("id,code,name")
-        .eq("id", (r as any).subhead_id)
+        .eq("id", requestRow.subhead_id)
         .single();
 
       if (sh) setSubhead(sh as SubheadMini);
@@ -753,8 +727,8 @@ export default function RequestDetailsPage() {
       setSubhead(null);
     }
 
-    if ((r as Req).dept_id) {
-      await loadAssignableSubheads((r as Req).dept_id);
+    if (requestRow.dept_id) {
+      await loadAssignableSubheads(requestRow.dept_id);
     }
 
     const { data: h, error: hErr } = await supabase
@@ -799,7 +773,8 @@ export default function RequestDetailsPage() {
       .eq("id", id)
       .single();
 
-    setReq((r2 as Req) || null);
+    const reloadedRequest = (r2 as Req | null) || null;
+    setReq(reloadedRequest);
 
     const { data: h2 } = await supabase
       .from("request_history")
@@ -811,7 +786,7 @@ export default function RequestDetailsPage() {
 
     setHistory((h2 || []) as Hist[]);
 
-    const subId = (r2 as any)?.subhead_id as string | null;
+    const subId = reloadedRequest?.subhead_id || null;
 
     if (subId) {
       const { data: sh } = await supabase
@@ -820,13 +795,13 @@ export default function RequestDetailsPage() {
         .eq("id", subId)
         .single();
 
-      setSubhead((sh as any) || null);
+      setSubhead((sh as SubheadMini | null) || null);
     } else {
       setSubhead(null);
     }
 
-    if ((r2 as any)?.dept_id) {
-      await loadAssignableSubheads((r2 as any).dept_id);
+    if (reloadedRequest?.dept_id) {
+      await loadAssignableSubheads(reloadedRequest.dept_id);
     }
 
     await loadAttachmentsAndChecks(id);
@@ -913,11 +888,11 @@ export default function RequestDetailsPage() {
 
       if (error) throw new Error(error.message);
 
-      setMsg(`✅ ${(data as any)?.message || "Subhead assigned and funds reserved successfully."}`);
+      setMsg(`✅ ${((data as RequestActionResult | null)?.message) || "Subhead assigned and funds reserved successfully."}`);
 
       await reload();
-    } catch (e: any) {
-      setMsg("❌ Subhead assignment failed: " + (e?.message || "Unknown error"));
+    } catch (e: unknown) {
+      setMsg("❌ Subhead assignment failed: " + errorMessage(e));
     } finally {
       setAssigningSubhead(false);
     }
@@ -975,8 +950,8 @@ export default function RequestDetailsPage() {
       setMsg("✅ Attachment checked successfully for your own approval stage.");
       await loadAttachmentsAndChecks(req.id);
       router.refresh();
-    } catch (e: any) {
-      setMsg("❌ Attachment check failed: " + (e?.message || "Unknown error"));
+    } catch (e: unknown) {
+      setMsg("❌ Attachment check failed: " + errorMessage(e));
     } finally {
       setCheckingAttachmentId(null);
     }
@@ -1094,8 +1069,8 @@ export default function RequestDetailsPage() {
       } else {
         await actAfterFresh2fa(actionToRun);
       }
-    } catch (e: any) {
-      setMsg("❌ 2FA verification failed: " + (e?.message || "Invalid code."));
+    } catch (e: unknown) {
+      setMsg("❌ 2FA verification failed: " + (e instanceof Error ? e.message : "Invalid code."));
       setMfaCode("");
     } finally {
       setVerifyingCode(false);
@@ -1127,8 +1102,8 @@ export default function RequestDetailsPage() {
         if (error) throw new Error(error.message);
 
         const result = Array.isArray(data) ? data[0] : data;
-        const nextStage = (result as any)?.new_stage;
-        const nextStatus = (result as any)?.new_status;
+        const nextStage = (result as RequestActionResult | null)?.new_stage;
+        const nextStatus = (result as RequestActionResult | null)?.new_status;
 
         await sendRequestApprovalNotification(req.id);
 
@@ -1160,15 +1135,15 @@ export default function RequestDetailsPage() {
         if (error) throw new Error(error.message);
 
         const result = Array.isArray(data) ? data[0] : data;
-        const nextStage = (result as any)?.new_stage || "Rejected";
+        const nextStage = (result as RequestActionResult | null)?.new_stage || "Rejected";
 
         setMsg(`✅ Request ${String(nextStage).toLowerCase()} successfully after your attachment checks and 2FA.`);
       }
 
       setComment("");
       await reload();
-    } catch (e: any) {
-      setMsg("❌ Action failed: " + (e?.message || "Unknown error"));
+    } catch (e: unknown) {
+      setMsg("❌ Action failed: " + errorMessage(e));
     } finally {
       setSaving(false);
     }
@@ -1201,8 +1176,8 @@ export default function RequestDetailsPage() {
         router.push(`/requests?updated=${Date.now()}`);
         router.refresh();
       }, 500);
-    } catch (e: any) {
-      setMsg("❌ Delete failed: " + (e?.message || "Unknown error"));
+    } catch (e: unknown) {
+      setMsg("❌ Delete failed: " + errorMessage(e));
     } finally {
       setSaving(false);
     }
@@ -1656,7 +1631,7 @@ export default function RequestDetailsPage() {
                         </div>
                       </div>
                       <p className="mt-2 text-sm font-semibold leading-6 text-emerald-800">
-                        This officer was resolved from the selected subhead's linked IET bank
+                        This officer was resolved from the selected subhead&apos;s linked IET bank
                         account. DG only approves or rejects; no manual officer selection is used.
                       </p>
                     </div>

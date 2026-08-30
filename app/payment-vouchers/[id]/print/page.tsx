@@ -243,7 +243,7 @@ function itemParticulars(item: VoucherItem) {
 export default function PaymentVoucherPrintPage() {
   const router = useRouter();
   const params = useParams();
-  const id = String((params as any)?.id || "");
+  const id = typeof params?.id === "string" ? params.id : "";
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -328,7 +328,7 @@ export default function PaymentVoucherPrintPage() {
   );
 
   useEffect(() => {
-    load();
+    queueMicrotask(() => { void load(); });
 
     const refreshOnFocus = () => {
       load({ silent: true });
@@ -953,10 +953,13 @@ function SignatureBox({
 
         <div className="relative h-[25px] border-b border-black">
           {sigUrl ? (
-            <img
+            <Image
               src={sigUrl}
               alt="signature"
-              className="absolute bottom-[2px] left-1/2 h-[21px] max-w-[96%] -translate-x-1/2 object-contain"
+              width={120}
+              height={30}
+              unoptimized
+              className="absolute bottom-[2px] left-1/2 h-[21px] w-auto max-w-[96%] -translate-x-1/2 object-contain"
             />
           ) : null}
         </div>

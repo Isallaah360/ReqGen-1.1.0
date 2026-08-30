@@ -31,7 +31,7 @@ export default function ProfileSecurityPage() {
   });
 
   const load = useCallback(async (silent = false) => {
-    silent ? setRefreshing(true) : setLoading(true);
+    if (silent) { setRefreshing(true); } else { setLoading(true); }
     setError(null);
     try {
       const { data: authData, error: authError } = await supabase.auth.getUser();
@@ -62,7 +62,7 @@ export default function ProfileSecurityPage() {
     }
   }, [router]);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => { queueMicrotask(() => { void load(); }); }, [load]);
 
   const sessionSecure = security.currentLevel === "aal2";
 

@@ -45,19 +45,19 @@ export default function AccountsAdminPage() {
       }
 
       const { data: a } = await supabase.from("iet_accounts").select("id,code,name,is_active").order("code");
-      setAccounts((a || []) as any);
+      setAccounts((a || []) as Acc[]);
 
       const { data: u } = await supabase.from("profiles").select("id,email,role").order("email");
-      setUsers((u || []) as any);
+      setUsers((u || []) as UserRow[]);
 
       setLoading(false);
     }
-    load();
+    queueMicrotask(() => { void load(); });
   }, []);
 
   async function refresh() {
     const { data: a } = await supabase.from("iet_accounts").select("id,code,name,is_active").order("code");
-    setAccounts((a || []) as any);
+    setAccounts((a || []) as Acc[]);
   }
 
   async function createAccount() {

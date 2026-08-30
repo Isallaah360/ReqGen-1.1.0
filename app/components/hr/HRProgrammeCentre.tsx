@@ -80,7 +80,7 @@ export default function HRProgrammeCentre({ config }: { config: ProgrammeCentreC
     setLoading(false);
   }, [config.table]);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => { queueMicrotask(() => { void load(); }); }, [load]);
 
   const stats = useMemo(() => ({
     total: rows.length,

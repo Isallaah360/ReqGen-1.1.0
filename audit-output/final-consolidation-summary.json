@@ -1,0 +1,14 @@
+{
+  "route_count": 135,
+  "route_registry_match": true,
+  "duplicate_routes": 0,
+  "broken_internal_navigation": 0,
+  "typescript_parse_errors": 0,
+  "css_parse_errors": 0,
+  "missing_local_imports": 0,
+  "workflow_readiness": "PASSED",
+  "mockup_lock_percent": 100,
+  "actual_next_build_executed": false,
+  "actual_eslint_executed": false,
+  "limitation": "NPM dependency installation timed out in the audit environment."
+}

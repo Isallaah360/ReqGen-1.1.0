@@ -153,6 +153,10 @@ function userDisplayName(user: UserRow | undefined) {
   return user.full_name || user.email || user.id;
 }
 
+function errorMessage(error: unknown) {
+  return error instanceof Error ? error.message : "Unknown error";
+}
+
 export default function AdminPage() {
   const router = useRouter();
 
@@ -176,9 +180,6 @@ export default function AdminPage() {
   const [selectedRoleKey, setSelectedRoleKey] = useState("staff");
   const [makePrimaryRole, setMakePrimaryRole] = useState(false);
 
-  const canAdmin = useMemo(() => {
-    return hasAdminAccess(meRole, meRoles);
-  }, [meRole, meRoles]);
 
   const usersById = useMemo(() => {
     const m = new Map<string, UserRow>();
@@ -458,8 +459,8 @@ export default function AdminPage() {
       setMakePrimaryRole(false);
       await loadAll({ silent: true });
       router.refresh();
-    } catch (e: any) {
-      setMsg("❌ Role assignment failed: " + (e?.message || "Unknown error"));
+    } catch (e: unknown) {
+      setMsg("❌ Role assignment failed: " + errorMessage(e));
     } finally {
       setSaving(false);
       setSavingTarget(null);
@@ -509,8 +510,8 @@ export default function AdminPage() {
       setMsg("✅ Department routing saved.");
       await loadAll({ silent: true });
       router.refresh();
-    } catch (e: any) {
-      setMsg("❌ Department save failed: " + (e?.message || "Unknown error"));
+    } catch (e: unknown) {
+      setMsg("❌ Department save failed: " + errorMessage(e));
     } finally {
       setSaving(false);
       setSavingTarget(null);
@@ -548,8 +549,8 @@ export default function AdminPage() {
       setMsg(`✅ ${officerLabel(key)} saved.`);
       await loadAll({ silent: true });
       router.refresh();
-    } catch (e: any) {
-      setMsg("❌ Global officer save failed: " + (e?.message || "Unknown error"));
+    } catch (e: unknown) {
+      setMsg("❌ Global officer save failed: " + errorMessage(e));
     } finally {
       setSaving(false);
       setSavingTarget(null);

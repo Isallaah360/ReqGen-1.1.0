@@ -106,7 +106,7 @@ export default function ManageAccountsPage() {
   const canManage = ["admin", "auditor"].includes(roleKey(me?.role));
 
   const loadAll = useCallback(async (silent = false) => {
-    silent ? setRefreshing(true) : setLoading(true);
+    if (silent) { setRefreshing(true); } else { setLoading(true); }
     setMessage(null);
 
     const { data: auth } = await supabase.auth.getUser();
@@ -174,7 +174,7 @@ export default function ManageAccountsPage() {
   }, [router]);
 
   useEffect(() => {
-    loadAll();
+    queueMicrotask(() => void loadAll());
   }, [loadAll]);
 
   const assignmentCounts = useMemo(() => {
@@ -198,7 +198,7 @@ export default function ManageAccountsPage() {
     });
   }, [accounts, bankFilter, search, statusFilter]);
 
-  useEffect(() => setPage(1), [search, statusFilter, bankFilter]);
+  useEffect(() => { queueMicrotask(() => setPage(1)); }, [search, statusFilter, bankFilter]);
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
   const visible = filtered.slice((page - 1) * pageSize, page * pageSize);

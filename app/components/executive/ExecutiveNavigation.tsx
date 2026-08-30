@@ -22,7 +22,7 @@ const items: { href: string; label: string; description: string; icon: LucideIco
 export default function ExecutiveNavigation() {
   const pathname = usePathname();
   return (
-    <nav aria-label="Executive Command Centre" className="mx-auto grid max-w-[1240px] grid-cols-1 gap-2 rounded-[1.75rem] border border-slate-200 bg-white/95 p-3 shadow-sm sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6">
+    <nav aria-label="Command Centre" className="mx-auto grid max-w-[1240px] grid-cols-1 gap-2 rounded-[1.75rem] border border-slate-200 bg-white/95 p-3 shadow-sm sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6">
       {items.map((item, index) => {
         const active = pathname === item.href || (item.href !== "/executive" && pathname.startsWith(`${item.href}/`));
         const Icon = item.icon;

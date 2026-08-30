@@ -7,6 +7,8 @@ import { supabase } from "@/lib/supabaseClient";
 type Acc = { id: string; name: string; code: string | null; bucket: string | null };
 type UserMini = { id: string; full_name: string | null; role: string | null; email: string | null };
 
+function errorMessage(error: unknown) { return error instanceof Error ? error.message : "Unknown error"; }
+
 export default function AssignAccountToOfficerPage() {
   const router = useRouter();
 
@@ -64,7 +66,7 @@ export default function AssignAccountToOfficerPage() {
       setMsg("Failed to load accounts: " + aErr.message);
       setAccounts([]);
     } else {
-      const list = (a || []) as any;
+      const list = (a || []) as Acc[];
       setAccounts(list);
       if (!accountId && list.length) setAccountId(list[0].id);
     }
@@ -81,7 +83,7 @@ export default function AssignAccountToOfficerPage() {
       setMsg((x) => (x ? x + " | " : "") + "Failed to load officers: " + uErr.message);
       setOfficers([]);
     } else {
-      const list = (u || []) as any;
+      const list = (u || []) as UserMini[];
       setOfficers(list);
       if (!officerId && list.length) setOfficerId(list[0].id);
     }
@@ -90,7 +92,7 @@ export default function AssignAccountToOfficerPage() {
   }
 
   useEffect(() => {
-    loadAll();
+    queueMicrotask(() => { void loadAll(); });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
 
@@ -111,8 +113,8 @@ export default function AssignAccountToOfficerPage() {
       if (error) throw new Error(error.message);
 
       setMsg("✅ Assigned successfully.");
-    } catch (e: any) {
-      setMsg("❌ Assign failed: " + (e?.message || "Unknown error"));
+    } catch (e: unknown) {
+      setMsg("❌ Assign failed: " + errorMessage(e));
     } finally {
       setSaving(false);
     }

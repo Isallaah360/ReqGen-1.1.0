@@ -31,7 +31,7 @@ export default function EnterpriseAnalyticsPage() {
       setData(next); if (errors.length) setWarning("Some sources are hidden by your active role or are not yet available. Authorized intelligence is still displayed.");
     } finally { setLoading(false); }
   }, []);
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => { queueMicrotask(() => { void load(); }); }, [load]);
 
   const metrics = useMemo(() => {
     const requests = data.requests ?? []; const vouchers = data.vouchers ?? []; const transactions = data.transactions ?? []; const seminars = data.seminars ?? []; const kpis = data.kpis ?? [];

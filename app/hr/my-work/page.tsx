@@ -69,6 +69,8 @@ const tabs = ["all", "assigned", "in_progress", "returned", "submitted", "approv
 type WorkTab = (typeof tabs)[number];
 const closed = new Set(["completed", "approved"]);
 
+const HR_WORK_NOW = Date.now();
+
 export default function HRMyWorkPage() {
   const [functions, setFunctions] = useState<FunctionalAssignment[]>([]);
   const [items, setItems] = useState<WorkItem[]>([]);
@@ -101,7 +103,7 @@ export default function HRMyWorkPage() {
     setLoading(false);
   }, []);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => { queueMicrotask(() => { void load(); }); }, [load]);
   useEffect(() => {
     const channel = supabase.channel("hr-my-work-live")
       .on("postgres_changes", { event: "*", schema: "public", table: "hr_request_assignments" }, () => void load())
@@ -119,7 +121,7 @@ export default function HRMyWorkPage() {
     });
   }, [items, active, query]);
 
-  const overdue = items.filter((item) => item.due_at && !closed.has(item.status) && new Date(item.due_at).getTime() < Date.now()).length;
+  const overdue = items.filter((item) => item.due_at && !closed.has(item.status) && new Date(item.due_at).getTime() < HR_WORK_NOW).length;
 
   async function updateStatus(item: WorkItem, status: string) {
     setUpdatingId(item.id);
@@ -186,7 +188,7 @@ export default function HRMyWorkPage() {
         ) : (
           <div className="grid gap-4">
             {shown.map((item) => {
-              const late = Boolean(item.due_at && !closed.has(item.status) && new Date(item.due_at).getTime() < Date.now());
+              const late = Boolean(item.due_at && !closed.has(item.status) && new Date(item.due_at).getTime() < HR_WORK_NOW);
               return (
                 <article key={item.id} className="rounded-3xl border border-slate-200 bg-slate-50 p-5 transition hover:bg-white hover:shadow-lg">
                   <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">

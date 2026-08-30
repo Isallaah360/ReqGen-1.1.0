@@ -76,10 +76,12 @@ function formatDateTime(value: string) {
   }).format(date);
 }
 
+const ACTION_CENTRE_NOW = Date.now();
+
 function ageLabel(value: string) {
   const created = new Date(value).getTime();
   if (!created || Number.isNaN(created)) return "—";
-  const days = Math.max(0, Math.floor((Date.now() - created) / 86400000));
+  const days = Math.max(0, Math.floor((ACTION_CENTRE_NOW - created) / 86400000));
   return `${days}d`;
 }
 
@@ -93,7 +95,6 @@ function priorityTone(priority: string) {
 export default function ActionCentrePage() {
   const [loading, setLoading] = useState(true);
   const [warning, setWarning] = useState<string | null>(null);
-  const [userId, setUserId] = useState<string | null>(null);
   const [rows, setRows] = useState<ApprovalRow[]>([]);
   const [updates, setUpdates] = useState<NotificationRow[]>([]);
   const [selectedId, setSelectedId] = useState<string>("");
@@ -114,7 +115,6 @@ export default function ActionCentrePage() {
       if (authError) throw authError;
 
       const uid = authData.user?.id ?? null;
-      setUserId(uid);
 
       if (!uid) {
         setRows([]);
@@ -196,7 +196,7 @@ export default function ActionCentrePage() {
   }, []);
 
   useEffect(() => {
-    void load();
+    queueMicrotask(() => { void load(); });
     const channel = supabase
       .channel("reqgen-action-centre-mockup")
       .on("postgres_changes", { event: "*", schema: "public", table: "requests" }, () => void load())
@@ -232,7 +232,7 @@ export default function ActionCentrePage() {
     });
   }, [rows, search, statusFilter, priorityFilter, typeFilter, departmentFilter]);
 
-  useEffect(() => setPage(1), [search, statusFilter, priorityFilter, typeFilter, departmentFilter]);
+  useEffect(() => { queueMicrotask(() => setPage(1)); }, [search, statusFilter, priorityFilter, typeFilter, departmentFilter]);
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const visibleRows = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);

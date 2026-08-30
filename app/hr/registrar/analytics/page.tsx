@@ -112,7 +112,7 @@ export default function HRAnalyticsPage() {
   }, []);
 
   useEffect(() => {
-    void load();
+    queueMicrotask(() => { void load(); });
   }, [load]);
 
   const stats = useMemo(() => {
@@ -172,7 +172,7 @@ export default function HRAnalyticsPage() {
       <StrategicShell>
         <StrategicHero
           eyebrow="HR Performance & Insights"
-          title="HR Executive Analytics"
+          title="HR Analytics"
           description="A consolidated management view of learning, performance, attendance and assessment outcomes across the IET workforce."
           action={
             <PrimaryButton tone="cyan" onClick={() => void load()}>

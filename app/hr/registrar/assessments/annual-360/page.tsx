@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
-import { EmptyState, PrimaryButton, SectionCard, SelectInput, StatCard, StatusBadge, StrategicHero, StrategicNavigation, StrategicShell, TextInput } from "@/app/components/hr/HRStrategicUI";
+import { EmptyState, PrimaryButton, SectionCard, StatCard, StatusBadge, StrategicHero, StrategicNavigation, StrategicShell, TextInput } from "@/app/components/hr/HRStrategicUI";
 import { supabase } from "@/lib/supabaseClient";
 
 type Cycle = { id: string; title: string; cycle_year: number; start_date: string | null; end_date: string | null; status: string; minimum_assessors: number; created_at: string };
@@ -35,7 +35,7 @@ export default function Annual360Page() {
     setLoading(false);
   }, []);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => { queueMicrotask(() => { void load(); }); }, [load]);
 
   const stats = useMemo(() => ({
     cycles: cycles.length,

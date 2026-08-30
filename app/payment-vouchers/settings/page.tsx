@@ -63,6 +63,7 @@ function typeBadgeClass(t: string | null | undefined) {
   return "bg-slate-50 text-slate-700";
 }
 
+
 export default function PaymentVoucherSettingsPage() {
   const router = useRouter();
 
@@ -146,7 +147,7 @@ export default function PaymentVoucherSettingsPage() {
   );
 
   useEffect(() => {
-    load();
+    queueMicrotask(() => { void load(); });
 
     const refreshOnFocus = () => {
       load({ silent: true });
@@ -284,8 +285,8 @@ export default function PaymentVoucherSettingsPage() {
       resetForm();
       await load({ silent: true });
       router.refresh();
-    } catch (e: any) {
-      setMsg("❌ " + (e?.message || "Failed to save PV signatory."));
+    } catch (e: unknown) {
+      setMsg("❌ " + (e instanceof Error ? e.message : "Failed to save PV signatory."));
     } finally {
       setSaving(false);
     }
@@ -323,8 +324,8 @@ export default function PaymentVoucherSettingsPage() {
       setMsg(nextStatus ? "✅ Signatory activated." : "✅ Signatory deactivated.");
       await load({ silent: true });
       router.refresh();
-    } catch (e: any) {
-      setMsg("❌ " + (e?.message || "Failed to update signatory."));
+    } catch (e: unknown) {
+      setMsg("❌ " + (e instanceof Error ? e.message : "Failed to update signatory."));
     } finally {
       setSaving(false);
     }
@@ -363,8 +364,8 @@ export default function PaymentVoucherSettingsPage() {
 
       await load({ silent: true });
       router.refresh();
-    } catch (e: any) {
-      setMsg("❌ " + (e?.message || "Failed to delete PV signatory."));
+    } catch (e: unknown) {
+      setMsg("❌ " + (e instanceof Error ? e.message : "Failed to delete PV signatory."));
     } finally {
       setSaving(false);
     }

@@ -112,6 +112,10 @@ function roleRequiresSignature(role: ReqgenRole | undefined) {
   return !!role?.requires_signature;
 }
 
+function errorMessage(error: unknown) {
+  return error instanceof Error ? error.message : "Unknown error";
+}
+
 export default function AdminUsersPage() {
   const router = useRouter();
 
@@ -255,7 +259,7 @@ export default function AdminUsersPage() {
   );
 
   useEffect(() => {
-    load();
+    queueMicrotask(() => { void load(); });
 
     const refreshOnFocus = () => {
       load({ silent: true });
@@ -426,8 +430,8 @@ export default function AdminUsersPage() {
       setMsg("✅ User department routing updated successfully.");
       await load({ silent: true });
       router.refresh();
-    } catch (e: any) {
-      setMsg("❌ Department update failed: " + (e?.message || "Unknown error"));
+    } catch (e: unknown) {
+      setMsg("❌ Department update failed: " + errorMessage(e));
     } finally {
       setSavingId(null);
     }
@@ -480,8 +484,8 @@ export default function AdminUsersPage() {
 
       await load({ silent: true });
       router.refresh();
-    } catch (e: any) {
-      setMsg("❌ Role assignment failed: " + (e?.message || "Unknown error"));
+    } catch (e: unknown) {
+      setMsg("❌ Role assignment failed: " + errorMessage(e));
     } finally {
       setSavingId(null);
     }
@@ -510,8 +514,8 @@ export default function AdminUsersPage() {
 
       await load({ silent: true });
       router.refresh();
-    } catch (e: any) {
-      setMsg("❌ Primary role update failed: " + (e?.message || "Unknown error"));
+    } catch (e: unknown) {
+      setMsg("❌ Primary role update failed: " + errorMessage(e));
     } finally {
       setSavingId(null);
     }
@@ -558,8 +562,8 @@ export default function AdminUsersPage() {
 
       await load({ silent: true });
       router.refresh();
-    } catch (e: any) {
-      setMsg("❌ Role deactivation failed: " + (e?.message || "Unknown error"));
+    } catch (e: unknown) {
+      setMsg("❌ Role deactivation failed: " + errorMessage(e));
     } finally {
       setSavingId(null);
     }
@@ -829,7 +833,7 @@ function UserRolePanel({
   const [makePrimary, setMakePrimary] = useState<boolean>(false);
 
   useEffect(() => {
-    setDeptId(u.dept_id || "");
+    queueMicrotask(() => setDeptId(u.dept_id || ""));
   }, [u.id, u.dept_id]);
 
   const ready = !!u.signature_url;

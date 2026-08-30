@@ -32,7 +32,7 @@ export default function ActivityHistoryPage() {
     setRows([]); setIssue("Activity storage is not connected yet. This page will populate automatically after the history table or compatible audit source is available."); setLoading(false);
   }, []);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => { queueMicrotask(() => { void load(); }); }, [load]);
   const filtered = useMemo(() => rows.filter((r) => JSON.stringify(r).toLowerCase().includes(query.toLowerCase())), [rows, query]);
   const today = rows.filter((r) => r.created_at && new Date(r.created_at).toDateString() === new Date().toDateString()).length;
 

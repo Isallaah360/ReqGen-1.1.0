@@ -5,8 +5,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { CheckCircle2, Clock3, Coins, Download, Eye, MoreVertical, Plus, Printer, RefreshCw, Search, SlidersHorizontal, Users, WalletCards, X, Building2 } from "lucide-react";
 import styles from "./payment-vouchers-overview.module.css";
 import { supabase } from "@/lib/supabaseClient";
-import { REPORT_ACCESS_ROLES } from "@/lib/roles";
-import { PVActionButton, PVHero } from "@/app/components/ui/PaymentVoucherUI";
 
 type VoucherRow = {
   id: string;
@@ -99,6 +97,9 @@ type BankAccountRow = {
   source_table: "bank_accounts" | "finance_accounts" | "accounts";
 };
 
+type GenerateVoucherResult = { voucher_no?: string | null; voucher_id?: string | null };
+type DeleteVoucherResult = { deleted_voucher_no?: string | null };
+
 type DisbursementMode = "Transfer" | "Cash" | "Cheque";
 
 function roleKey(role: string | null | undefined) {
@@ -154,54 +155,19 @@ function categoryLabel(v: { request_type: string | null; personal_category: stri
   return v.request_type || "—";
 }
 
-function categoryBadgeClass(v: { request_type: string | null; personal_category: string | null }) {
-  const key = categoryKey(v);
 
-  if (key === "official") return "border-blue-200 bg-blue-50 text-blue-700";
-  if (key === "personalfund") return "border-purple-200 bg-purple-50 text-purple-700";
 
-  return "border-slate-200 bg-slate-50 text-slate-700";
-}
-
-function statusBadgeClass(status: string | null | undefined) {
-  const s = (status || "").toLowerCase();
-
-  if (s.includes("paid")) return "border-emerald-200 bg-emerald-50 text-emerald-700";
-  if (s.includes("cancel")) return "border-red-200 bg-red-50 text-red-700";
-  if (s.includes("counter")) return "border-purple-200 bg-purple-50 text-purple-700";
-  if (s.includes("authorized") || s.includes("checked")) {
-    return "border-blue-200 bg-blue-50 text-blue-700";
-  }
-  if (s.includes("cheque")) return "border-amber-200 bg-amber-50 text-amber-700";
-  if (s.includes("complete")) return "border-emerald-200 bg-emerald-50 text-emerald-700";
-
-  return "border-slate-200 bg-slate-50 text-slate-700";
-}
-
-function scopeBadgeClass(scope: string | null | undefined) {
-  const s = normalize(scope);
-
-  if (s === "multiple") return "border-indigo-200 bg-indigo-50 text-indigo-700";
-  if (s === "manual") return "border-amber-200 bg-amber-50 text-amber-700";
-
-  return "border-slate-200 bg-slate-50 text-slate-700";
-}
 
 function hasAnyRole(roleSet: Set<string>, keys: string[]) {
   return keys.some((key) => roleSet.has(roleKey(key)));
 }
 
-function mapBankAccount(row: any, source: BankAccountRow["source_table"]): BankAccountRow {
+function mapBankAccount(row: Record<string, unknown>, source: BankAccountRow["source_table"]): BankAccountRow {
+  const accountName = [row.account_name, row.bank_name, row.name, row.title, row.account_no, row.account_number]
+    .find((value) => typeof value === "string" && value.trim().length > 0);
   return {
-    id: String(row.id),
-    account_name:
-      row.account_name ||
-      row.bank_name ||
-      row.name ||
-      row.title ||
-      row.account_no ||
-      row.account_number ||
-      "Finance Account",
+    id: String(row.id ?? ""),
+    account_name: typeof accountName === "string" ? accountName : "Finance Account",
     balance: Number(row.balance ?? row.current_balance ?? row.available_balance ?? 0),
     source_table: source,
   };
@@ -215,7 +181,6 @@ export default function PaymentVouchersPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [manualSaving, setManualSaving] = useState(false);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
 
   const [userId, setUserId] = useState<string | null>(null);
@@ -253,7 +218,6 @@ export default function PaymentVouchersPage() {
   ]);
 
   const canDeleteVoucher = hasAnyRole(roleSet, ["admin", "auditor"]);
-  const canViewReports = hasAnyRole(roleSet, [...REPORT_ACCESS_ROLES]);
 
   const [rows, setRows] = useState<VoucherRow[]>([]);
   const [readyRows, setReadyRows] = useState<ReadyRequest[]>([]);
@@ -425,7 +389,7 @@ export default function PaymentVouchersPage() {
       const { data, error } = await supabase.from(source).select("*").limit(100);
 
       if (!error && data) {
-        return (data as any[]).map((row) => mapBankAccount(row, source));
+        return (data as Array<Record<string, unknown>>).map((row) => mapBankAccount(row, source));
       }
     }
 
@@ -581,7 +545,7 @@ export default function PaymentVouchersPage() {
   );
 
   useEffect(() => {
-    load();
+    queueMicrotask(() => { void load(); });
 
     const refreshOnFocus = () => {
       load({ silent: true });
@@ -602,11 +566,7 @@ export default function PaymentVouchersPage() {
     };
   }, [load]);
 
-  function openRequest(requestId: string) {
-    router.push(`/requests/${requestId}?updated=${Date.now()}`);
-    router.refresh();
-  }
-
+  
   function openVoucher(voucherId: string) {
     router.push(`/payment-vouchers/${voucherId}?updated=${Date.now()}`);
     router.refresh();
@@ -778,31 +738,7 @@ export default function PaymentVouchersPage() {
     setMsg(null);
   }
 
-  function openGenerateModalSingle(r: ReadyRequest) {
-    if (!isVoucherEligible(r)) {
-      setMsg("❌ Only Official and Personal Fund requests can generate payment vouchers.");
-      return;
-    }
-
-    setSelectedIds([r.id]);
-    setSelectedRequest(r);
-    setMode("Transfer");
-
-    setTransferAccountName(r.requester_name || "");
-    setTransferAccountNumber("");
-    setTransferBankName("");
-
-    setCashPayeeName(r.requester_name || "");
-
-    setChequeNo("");
-    setChequeDate("");
-    setChequeBankName("");
-    setChequeSignedByName(chequeSigners[0]?.full_name || "");
-    setCounterSignatoryName(counterSigners[0]?.full_name || "");
-
-    setMsg(null);
-  }
-
+  
   function closeGenerateModal() {
     if (generating) return;
     setSelectedRequest(null);
@@ -878,8 +814,9 @@ export default function PaymentVouchersPage() {
 
       if (error) throw new Error(error.message);
 
-      const voucherNo = (data as any)?.voucher_no || "Payment Voucher";
-      const voucherId = (data as any)?.voucher_id;
+      const generated = data as GenerateVoucherResult | null;
+      const voucherNo = generated?.voucher_no || "Payment Voucher";
+      const voucherId = generated?.voucher_id;
 
       setMsg(
         count === 1
@@ -917,7 +854,6 @@ export default function PaymentVouchersPage() {
 
     if (!ok) return;
 
-    setDeletingId(v.id);
     setMsg(null);
 
     try {
@@ -927,7 +863,7 @@ export default function PaymentVouchersPage() {
 
       if (error) throw new Error(error.message);
 
-      const deletedVoucherNo = (data as any)?.deleted_voucher_no || v.voucher_no;
+      const deletedVoucherNo = (data as DeleteVoucherResult | null)?.deleted_voucher_no || v.voucher_no;
 
       setMsg(`✅ ${deletedVoucherNo} deleted. Linked request(s) can now generate a new PV.`);
       await load({ silent: true });
@@ -936,7 +872,6 @@ export default function PaymentVouchersPage() {
       const message = e instanceof Error ? e.message : "Unknown error";
       setMsg("❌ Failed to delete voucher: " + message);
     } finally {
-      setDeletingId(null);
     }
   }
 
@@ -1056,7 +991,7 @@ export default function PaymentVouchersPage() {
     });
   }, [filteredRows, departmentFilter, fromDate, toDate]);
 
-  useEffect(() => { setCurrentPage(1); }, [search, statusFilter, typeFilter, departmentFilter, fromDate, toDate, rowsPerPage]);
+  useEffect(() => { queueMicrotask(() => setCurrentPage(1)); }, [search, statusFilter, typeFilter, departmentFilter, fromDate, toDate, rowsPerPage]);
   const pageCount = Math.max(1, Math.ceil(overviewRows.length / rowsPerPage));
   const safePage = Math.min(currentPage, pageCount);
   const pagedRows = overviewRows.slice((safePage - 1) * rowsPerPage, safePage * rowsPerPage);
@@ -1538,46 +1473,6 @@ export default function PaymentVouchersPage() {
 function KpiCard({ icon, tone, label, value, hint, compact = false }: { icon: React.ReactNode; tone: "blue"|"amber"|"green"|"violet"|"red"; label:string; value:string; hint:string; compact?:boolean }) { return <article className={styles.kpi}><span className={`${styles.kpiIcon} ${styles[`tone_${tone}`]}`}>{icon}</span><div><small>{label}</small><strong className={compact?styles.compactValue:""}>{value}</strong><p>{hint}</p></div></article>; }
 function SummaryItem({ icon, tone, label, value }: { icon:React.ReactNode; tone:"amber"|"green"|"blue"; label:string; value:number }) { return <div className={styles.summaryItem}><span className={`${styles.summaryIcon} ${styles[`tone_${tone}`]}`}>{icon}</span><div><small>{label}</small><strong>{value}</strong></div></div>; }
 
-function StatCard({
-  title,
-  value,
-  tone,
-}: {
-  title: string;
-  value: string;
-  tone: "blue" | "emerald" | "purple" | "slate" | "amber" | "red";
-}) {
-  const cls =
-    tone === "emerald"
-      ? "bg-emerald-50 text-emerald-700"
-      : tone === "purple"
-        ? "bg-purple-50 text-purple-700"
-        : tone === "amber"
-          ? "bg-amber-50 text-amber-700"
-          : tone === "red"
-            ? "bg-red-50 text-red-700"
-            : tone === "slate"
-              ? "bg-slate-50 text-slate-700"
-              : "bg-blue-50 text-blue-700";
-
-  return (
-    <div className="rounded-3xl border bg-white p-5 shadow-sm">
-      <div className="text-sm font-semibold text-slate-500">{title}</div>
-      <div className={`mt-3 inline-flex rounded-2xl px-3 py-2 text-xl font-extrabold ${cls}`}>
-        {value}
-      </div>
-    </div>
-  );
-}
-
-function InfoLine({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <span className="text-slate-500">{label}:</span>{" "}
-      <b className="text-slate-900">{value}</b>
-    </div>
-  );
-}
 
 function Field({
   label,
@@ -1628,10 +1523,3 @@ function TextArea({
   );
 }
 
-function EmptyState() {
-  return (
-    <div className="rounded-2xl border bg-white p-6 text-sm text-slate-700 shadow-sm xl:rounded-none xl:border-0 xl:shadow-none">
-      No payment voucher found for the selected filter.
-    </div>
-  );
-}

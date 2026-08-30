@@ -28,13 +28,13 @@ export function useExecutiveData() {
   const [loading, setLoading] = useState(true);
   const [warning, setWarning] = useState("");
   const [coverage, setCoverage] = useState(0);
-  const [activeRole, setActiveRole] = useState("Executive");
+  const [activeRole, setActiveRole] = useState("Management");
 
   const load = useCallback(async () => {
     setLoading(true);
     setWarning("");
     const { data: roleData } = await supabase.rpc("get_my_active_role");
-    setActiveRole(activeRoleFromRpc(roleData) || "Executive");
+    setActiveRole(activeRoleFromRpc(roleData) || "Management");
 
     const entries = await Promise.all(Object.entries(SOURCES).map(async ([key, config]) => {
       let query = supabase.from(config.table).select("*");
@@ -59,7 +59,7 @@ export function useExecutiveData() {
   }, []);
 
   useEffect(() => {
-    void load();
+    queueMicrotask(() => void load());
     const channel = supabase.channel("executive-command-live")
       .on("postgres_changes", { event: "*", schema: "public", table: "requests" }, () => void load())
       .on("postgres_changes", { event: "*", schema: "public", table: "notifications" }, () => void load())

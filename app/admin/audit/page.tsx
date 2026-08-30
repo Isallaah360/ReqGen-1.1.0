@@ -110,7 +110,7 @@ export default function AdminAuditPage() {
     } finally { setLoading(false); }
   }, [router]);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => { queueMicrotask(() => { void load(); }); }, [load]);
 
   const sources = useMemo(() => ["ALL", ...Array.from(new Set(rows.map((r) => r.source)))], [rows]);
   const filtered = useMemo(() => {
@@ -122,7 +122,7 @@ export default function AdminAuditPage() {
     <main className="mx-auto min-h-screen max-w-7xl px-4 py-8">
       <AdminNavigation />
       <section className="rg-module-header">
-        <p className="text-xs font-black uppercase tracking-[0.2em] text-fuchsia-200">System Administration</p>
+        <p className="text-xs font-black uppercase tracking-[0.2em] text-fuchsia-200">Audit</p>
         <div className="mt-2 flex flex-col justify-between gap-4 lg:flex-row lg:items-end"><div><h1 className="text-3xl font-black sm:text-4xl">Administrative Audit Trail</h1><p className="mt-3 max-w-3xl font-semibold leading-7 text-slate-200">Review role switches, assignment changes, Finance administration events and other high-value control activities from one secured workspace.</p></div><button onClick={() => void load()} className="rounded-xl bg-cyan-600 px-5 py-3 text-sm font-black text-white shadow-md transition hover:-translate-y-0.5 hover:bg-cyan-700">Refresh Audit</button></div>
       </section>
       {warning && <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 font-bold text-amber-900">{warning}</div>}

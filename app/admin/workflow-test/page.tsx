@@ -153,7 +153,10 @@ export default function WorkflowTestPage() {
   useEffect(() => {
     try {
       const saved = window.localStorage.getItem("reqgen-phase-b-checks");
-      if (saved) setChecks(JSON.parse(saved) as WorkflowCheck[]);
+      if (saved) {
+        const parsed = JSON.parse(saved) as WorkflowCheck[];
+        queueMicrotask(() => setChecks(parsed));
+      }
     } catch {
       // Keep the authoritative default checklist when local storage is unavailable.
     }
@@ -199,7 +202,7 @@ export default function WorkflowTestPage() {
   }, []);
 
   useEffect(() => {
-    void runDiagnostics();
+    queueMicrotask(() => void runDiagnostics());
   }, [runDiagnostics]);
 
   const groups = useMemo(() => Array.from(new Set(checks.map((item) => item.group))), [checks]);
@@ -235,7 +238,7 @@ export default function WorkflowTestPage() {
         <section className="rg-module-header">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-3xl">
-              <p className="text-xs font-black uppercase tracking-[0.28em] text-cyan-300">Production Readiness · Phase B</p>
+              <p className="text-xs font-black uppercase tracking-[0.28em] text-cyan-300">Production Readiness</p>
               <h1 className="mt-3 text-3xl font-black tracking-tight sm:text-4xl">End-to-End Workflow Test Centre</h1>
               <p className="mt-3 text-sm font-semibold leading-7 text-blue-100 sm:text-base">
                 Validate request routing, approvals, Action Centre counters, HR review, Finance processing, Registry privacy, active-role isolation and audit evidence before pilot deployment.

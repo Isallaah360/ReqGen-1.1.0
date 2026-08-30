@@ -1,10 +1,10 @@
 {
   "summary": {
-    "scannedFiles": 219,
-    "findings": 193,
-    "warnings": 81,
-    "info": 112,
-    "generatedAt": "2026-08-29T04:33:15.052Z"
+    "scannedFiles": 230,
+    "findings": 213,
+    "warnings": 105,
+    "info": 108,
+    "generatedAt": "2026-08-30T17:55:23.838Z"
   },
   "findings": [
     {
@@ -33,15 +33,23 @@
     },
     {
       "file": "app/admin/page.tsx",
-      "line": 686,
-      "rule": "desktop-only-grid",
+      "line": 616,
+      "rule": "fixed-width",
       "severity": "warning",
-      "match": "grid-cols-6",
-      "excerpt": "<div className=\"mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-6\">"
+      "match": "max-w-[1500px]",
+      "excerpt": "<main className=\"rg-module-page rg-adopted-page\"><AdminNavigation /><div className=\"mx-auto w-full max-w-[1500px] space-y-4\">"
     },
     {
       "file": "app/admin/page.tsx",
-      "line": 695,
+      "line": 683,
+      "rule": "desktop-only-grid",
+      "severity": "warning",
+      "match": "grid-cols-6",
+      "excerpt": "<div className=\"grid gap-3 md:grid-cols-2 xl:grid-cols-6\">"
+    },
+    {
+      "file": "app/admin/page.tsx",
+      "line": 692,
       "rule": "desktop-only-grid",
       "severity": "warning",
       "match": "grid-cols-6",
@@ -49,7 +57,7 @@
     },
     {
       "file": "app/admin/page.tsx",
-      "line": 838,
+      "line": 835,
       "rule": "desktop-only-grid",
       "severity": "warning",
       "match": "grid-cols-5",
@@ -65,7 +73,7 @@
     },
     {
       "file": "app/admin/roles/page.tsx",
-      "line": 519,
+      "line": 523,
       "rule": "desktop-only-grid",
       "severity": "warning",
       "match": "grid-cols-6",
@@ -73,7 +81,7 @@
     },
     {
       "file": "app/admin/roles/page.tsx",
-      "line": 677,
+      "line": 681,
       "rule": "fixed-width",
       "severity": "warning",
       "match": "min-w-[1150px]",
@@ -93,11 +101,11 @@
       "rule": "fixed-width",
       "severity": "warning",
       "match": "max-w-[1400px]",
-      "excerpt": "return <EnterpriseShell><div className=\"mx-auto max-w-[1400px] space-y-6\"><AdminNavigation /><EnterpriseHero eyebrow=\"ReqGen Production Operations\" title=\"System Health Centre\" description=\"A lightweight operational chec"
+      "excerpt": "return <EnterpriseShell><div className=\"mx-auto max-w-[1400px] space-y-6\"><AdminNavigation /><EnterpriseHero eyebrow=\"System Health\" title=\"System Health Centre\" description=\"A lightweight operational check of key ReqGen"
     },
     {
       "file": "app/admin/users/page.tsx",
-      "line": 683,
+      "line": 687,
       "rule": "desktop-only-grid",
       "severity": "warning",
       "match": "grid-cols-9",
@@ -105,7 +113,7 @@
     },
     {
       "file": "app/admin/users/page.tsx",
-      "line": 696,
+      "line": 700,
       "rule": "desktop-only-grid",
       "severity": "warning",
       "match": "grid-cols-5",
@@ -113,7 +121,7 @@
     },
     {
       "file": "app/admin/workflow-test/page.tsx",
-      "line": 232,
+      "line": 235,
       "rule": "fixed-width",
       "severity": "warning",
       "match": "max-w-[1500px]",
@@ -121,7 +129,7 @@
     },
     {
       "file": "app/admin/workflow-test/page.tsx",
-      "line": 277,
+      "line": 280,
       "rule": "desktop-only-grid",
       "severity": "warning",
       "match": "grid-cols-5",
@@ -137,7 +145,7 @@
     },
     {
       "file": "app/audit-centre/page.tsx",
-      "line": 321,
+      "line": 320,
       "rule": "fixed-width",
       "severity": "warning",
       "match": "max-w-[1500px]",
@@ -145,23 +153,23 @@
     },
     {
       "file": "app/audit-centre/page.tsx",
-      "line": 330,
+      "line": 329,
       "rule": "fixed-width",
       "severity": "warning",
       "match": "max-w-[1500px]",
-      "excerpt": "<div className=\"mx-auto max-w-[1500px] space-y-6\">"
+      "excerpt": "<div className=\"mx-auto max-w-[1500px] space-y-4\">"
     },
     {
       "file": "app/audit-centre/page.tsx",
-      "line": 350,
+      "line": 349,
       "rule": "desktop-only-grid",
       "severity": "warning",
       "match": "grid-cols-6",
-      "excerpt": "<section className=\"grid gap-4 sm:grid-cols-2 xl:grid-cols-6\">"
+      "excerpt": "<section className=\"grid gap-3 sm:grid-cols-2 xl:grid-cols-6\">"
     },
     {
       "file": "app/audit-centre/page.tsx",
-      "line": 441,
+      "line": 440,
       "rule": "nowrap-risk",
       "severity": "info",
       "match": "whitespace-nowrap",
@@ -169,107 +177,11 @@
     },
     {
       "file": "app/audit-centre/page.tsx",
-      "line": 452,
+      "line": 451,
       "rule": "fixed-width",
       "severity": "warning",
       "match": "max-w-[420px]",
       "excerpt": "<td className=\"max-w-[420px] break-words px-4 py-4 text-sm font-semibold leading-6 text-slate-600\">{event.details || \"—\"}</td>"
-    },
-    {
-      "file": "app/components/NavBar.tsx",
-      "line": 310,
-      "rule": "nowrap-risk",
-      "severity": "info",
-      "match": "whitespace-nowrap",
-      "excerpt": "<span className=\"pointer-events-none absolute left-1/2 top-full z-[70] mt-2 -translate-x-1/2 whitespace-nowrap rounded-xl border border-white/10 bg-slate-950/95 px-3 py-1.5 text-xs font-black tracking-wide text-white sha"
-    },
-    {
-      "file": "app/components/NavBar.tsx",
-      "line": 310,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "<span className=\"pointer-events-none absolute left-1/2 top-full z-[70] mt-2 -translate-x-1/2 whitespace-nowrap rounded-xl border border-white/10 bg-slate-950/95 px-3 py-1.5 text-xs font-black tracking-wide text-white sha"
-    },
-    {
-      "file": "app/components/NavBar.tsx",
-      "line": 717,
-      "rule": "fixed-width",
-      "severity": "warning",
-      "match": "max-w-[1680px]",
-      "excerpt": "<div className=\"mx-auto flex max-w-[1680px] items-center justify-between gap-3 px-4 py-3\">"
-    },
-    {
-      "file": "app/components/NavBar.tsx",
-      "line": 763,
-      "rule": "truncate-risk",
-      "severity": "info",
-      "match": "truncate",
-      "excerpt": "<span className=\"hidden truncate 2xl:inline\">Search ReqGen…</span>"
-    },
-    {
-      "file": "app/components/NavBar.tsx",
-      "line": 767,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "<div className=\"absolute left-0 top-[52px] z-[70] w-[min(520px,calc(100vw-2rem))] overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl shadow-slate-900/20\">"
-    },
-    {
-      "file": "app/components/NavBar.tsx",
-      "line": 820,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "<span className=\"absolute bottom-1.5 right-1.5 grid h-4 w-4 place-items-center rounded-full bg-emerald-500 text-[9px] font-black leading-none text-white shadow-sm ring-2 ring-white\">✓</span>"
-    },
-    {
-      "file": "app/components/NavBar.tsx",
-      "line": 823,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "<span className=\"absolute -right-2 -top-2 min-w-6 rounded-full bg-rose-600 px-1.5 py-0.5 text-center text-xs font-black text-white shadow-sm ring-2 ring-white\">"
-    },
-    {
-      "file": "app/components/NavBar.tsx",
-      "line": 830,
-      "rule": "fixed-width",
-      "severity": "warning",
-      "match": "w-[420px]",
-      "excerpt": "<div className=\"absolute left-0 top-12 z-50 w-[420px] overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl shadow-slate-900/20\">"
-    },
-    {
-      "file": "app/components/NavBar.tsx",
-      "line": 830,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "<div className=\"absolute left-0 top-12 z-50 w-[420px] overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl shadow-slate-900/20\">"
-    },
-    {
-      "file": "app/components/NavBar.tsx",
-      "line": 878,
-      "rule": "truncate-risk",
-      "severity": "info",
-      "match": "truncate",
-      "excerpt": "<span className=\"truncate text-sm font-black text-slate-950\">{r.request_no || \"No Request Number\"}</span>"
-    },
-    {
-      "file": "app/components/NavBar.tsx",
-      "line": 1018,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "<div className=\"absolute right-0 top-12 z-50 max-h-[80vh] w-[340px] overflow-auto rounded-3xl border border-slate-200 bg-white p-3 shadow-2xl\">"
-    },
-    {
-      "file": "app/components/SessionTimeout.tsx",
-      "line": 170,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "// the absolute activity timestamp so the warning is never skipped."
     },
     {
       "file": "app/components/executive/ExecutiveModulePage.tsx",
@@ -293,7 +205,7 @@
       "rule": "fixed-width",
       "severity": "warning",
       "match": "max-w-[1240px]",
-      "excerpt": "<nav aria-label=\"Executive Command Centre\" className=\"mx-auto grid max-w-[1240px] grid-cols-1 gap-2 rounded-[1.75rem] border border-slate-200 bg-white/95 p-3 shadow-sm sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6\">"
+      "excerpt": "<nav aria-label=\"Command Centre\" className=\"mx-auto grid max-w-[1240px] grid-cols-1 gap-2 rounded-[1.75rem] border border-slate-200 bg-white/95 p-3 shadow-sm sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6\">"
     },
     {
       "file": "app/components/executive/ExecutiveNavigation.tsx",
@@ -301,7 +213,7 @@
       "rule": "desktop-only-grid",
       "severity": "warning",
       "match": "grid-cols-6",
-      "excerpt": "<nav aria-label=\"Executive Command Centre\" className=\"mx-auto grid max-w-[1240px] grid-cols-1 gap-2 rounded-[1.75rem] border border-slate-200 bg-white/95 p-3 shadow-sm sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6\">"
+      "excerpt": "<nav aria-label=\"Command Centre\" className=\"mx-auto grid max-w-[1240px] grid-cols-1 gap-2 rounded-[1.75rem] border border-slate-200 bg-white/95 p-3 shadow-sm sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6\">"
     },
     {
       "file": "app/components/executive/ExecutiveNavigation.tsx",
@@ -336,14 +248,6 @@
       "excerpt": "<div className=\"pointer-events-none absolute -bottom-24 left-1/3 h-64 w-64 rounded-full bg-violet-500/20 blur-3xl\" />"
     },
     {
-      "file": "app/components/hr/HRNavigation.tsx",
-      "line": 32,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-5",
-      "excerpt": "<div className=\"grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-5\">"
-    },
-    {
       "file": "app/components/hr/HRProgrammeCentre.tsx",
       "line": 129,
       "rule": "desktop-only-grid",
@@ -358,22 +262,6 @@
       "severity": "info",
       "match": "truncate",
       "excerpt": "<td className=\"px-4 py-4\"><p className=\"font-black text-slate-950\">{row.title}</p><p className=\"mt-1 max-w-sm truncate text-xs font-semibold text-slate-500\">{row.objectives || \"No objectives recorded\"}</p></td>"
-    },
-    {
-      "file": "app/components/hr/HRStrategicUI.tsx",
-      "line": 33,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "<div className=\"absolute -right-24 -top-24 h-72 w-72 rounded-full bg-cyan-300/15 blur-3xl\" />"
-    },
-    {
-      "file": "app/components/hr/HRStrategicUI.tsx",
-      "line": 34,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "<div className=\"absolute -bottom-24 left-1/3 h-64 w-64 rounded-full bg-violet-500/15 blur-3xl\" />"
     },
     {
       "file": "app/components/hr/HRWorkspace.tsx",
@@ -408,6 +296,110 @@
       "excerpt": "<div className=\"grid gap-3 sm:grid-cols-2 xl:grid-cols-5\">"
     },
     {
+      "file": "app/components/NavBar.tsx",
+      "line": 169,
+      "rule": "nowrap-risk",
+      "severity": "info",
+      "match": "whitespace-nowrap",
+      "excerpt": "<span className=\"pointer-events-none absolute left-1/2 top-full z-[70] mt-2 -translate-x-1/2 whitespace-nowrap rounded-xl border border-white/10 bg-slate-950/95 px-3 py-1.5 text-xs font-black tracking-wide text-white sha"
+    },
+    {
+      "file": "app/components/NavBar.tsx",
+      "line": 169,
+      "rule": "absolute-layout",
+      "severity": "info",
+      "match": "absolute",
+      "excerpt": "<span className=\"pointer-events-none absolute left-1/2 top-full z-[70] mt-2 -translate-x-1/2 whitespace-nowrap rounded-xl border border-white/10 bg-slate-950/95 px-3 py-1.5 text-xs font-black tracking-wide text-white sha"
+    },
+    {
+      "file": "app/components/NavBar.tsx",
+      "line": 576,
+      "rule": "fixed-width",
+      "severity": "warning",
+      "match": "max-w-[1680px]",
+      "excerpt": "<div className=\"mx-auto flex max-w-[1680px] items-center justify-between gap-3 px-4 py-3\">"
+    },
+    {
+      "file": "app/components/NavBar.tsx",
+      "line": 622,
+      "rule": "truncate-risk",
+      "severity": "info",
+      "match": "truncate",
+      "excerpt": "<span className=\"hidden truncate 2xl:inline\">Search ReqGen…</span>"
+    },
+    {
+      "file": "app/components/NavBar.tsx",
+      "line": 626,
+      "rule": "absolute-layout",
+      "severity": "info",
+      "match": "absolute",
+      "excerpt": "<div className=\"absolute left-0 top-[52px] z-[70] w-[min(520px,calc(100vw-2rem))] overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl shadow-slate-900/20\">"
+    },
+    {
+      "file": "app/components/NavBar.tsx",
+      "line": 679,
+      "rule": "absolute-layout",
+      "severity": "info",
+      "match": "absolute",
+      "excerpt": "<span className=\"absolute bottom-1.5 right-1.5 grid h-4 w-4 place-items-center rounded-full bg-emerald-500 text-[9px] font-black leading-none text-white shadow-sm ring-2 ring-white\">✓</span>"
+    },
+    {
+      "file": "app/components/NavBar.tsx",
+      "line": 682,
+      "rule": "absolute-layout",
+      "severity": "info",
+      "match": "absolute",
+      "excerpt": "<span className=\"absolute -right-2 -top-2 min-w-6 rounded-full bg-rose-600 px-1.5 py-0.5 text-center text-xs font-black text-white shadow-sm ring-2 ring-white\">"
+    },
+    {
+      "file": "app/components/NavBar.tsx",
+      "line": 689,
+      "rule": "fixed-width",
+      "severity": "warning",
+      "match": "w-[420px]",
+      "excerpt": "<div className=\"absolute left-0 top-12 z-50 w-[420px] overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl shadow-slate-900/20\">"
+    },
+    {
+      "file": "app/components/NavBar.tsx",
+      "line": 689,
+      "rule": "absolute-layout",
+      "severity": "info",
+      "match": "absolute",
+      "excerpt": "<div className=\"absolute left-0 top-12 z-50 w-[420px] overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl shadow-slate-900/20\">"
+    },
+    {
+      "file": "app/components/NavBar.tsx",
+      "line": 737,
+      "rule": "truncate-risk",
+      "severity": "info",
+      "match": "truncate",
+      "excerpt": "<span className=\"truncate text-sm font-black text-slate-950\">{r.request_no || \"No Request Number\"}</span>"
+    },
+    {
+      "file": "app/components/NavBar.tsx",
+      "line": 877,
+      "rule": "absolute-layout",
+      "severity": "info",
+      "match": "absolute",
+      "excerpt": "<div className=\"absolute right-0 top-12 z-50 max-h-[80vh] w-[340px] overflow-auto rounded-3xl border border-slate-200 bg-white p-3 shadow-2xl\">"
+    },
+    {
+      "file": "app/components/payment-vouchers/VoucherRegisterView.tsx",
+      "line": 336,
+      "rule": "fixed-width",
+      "severity": "warning",
+      "match": "max-w-[1500px]",
+      "excerpt": "<div className=\"mx-auto max-w-[1500px] space-y-4\">"
+    },
+    {
+      "file": "app/components/payment-vouchers/VoucherRegisterView.tsx",
+      "line": 434,
+      "rule": "absolute-layout",
+      "severity": "info",
+      "match": "absolute",
+      "excerpt": "className=\"absolute left-3 top-3 text-slate-400\""
+    },
+    {
       "file": "app/components/print/PrintEngineStyles.tsx",
       "line": 13,
       "rule": "absolute-layout",
@@ -425,11 +417,27 @@
     },
     {
       "file": "app/components/registry/RegistryRegister.tsx",
-      "line": 90,
+      "line": 89,
       "rule": "fixed-width",
       "severity": "warning",
       "match": "max-w-[1500px]",
-      "excerpt": "<div className=\"mx-auto max-w-[1500px] space-y-6\">"
+      "excerpt": "<div className=\"mx-auto max-w-[1500px] space-y-4\">"
+    },
+    {
+      "file": "app/components/SessionTimeout.tsx",
+      "line": 170,
+      "rule": "absolute-layout",
+      "severity": "info",
+      "match": "absolute",
+      "excerpt": "// the absolute activity timestamp so the warning is never skipped."
+    },
+    {
+      "file": "app/components/SessionTimeout.tsx",
+      "line": 194,
+      "rule": "fixed-width",
+      "severity": "warning",
+      "match": "max-w-[430px]",
+      "excerpt": "<div className=\"w-full max-w-[430px] overflow-hidden rounded-2xl border border-amber-200 bg-white shadow-2xl\">"
     },
     {
       "file": "app/components/staff/StaffHero.tsx",
@@ -536,22 +544,6 @@
       "excerpt": "<span className=\"whitespace-nowrap\">{children}</span>"
     },
     {
-      "file": "app/components/ui/WorkflowUI.tsx",
-      "line": 58,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "<div className=\"pointer-events-none absolute -right-16 -top-20 h-64 w-64 rounded-full bg-cyan-400/20 blur-3xl workflow-float\" />"
-    },
-    {
-      "file": "app/components/ui/WorkflowUI.tsx",
-      "line": 59,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "<div className=\"pointer-events-none absolute -bottom-24 left-1/3 h-60 w-60 rounded-full bg-blue-500/25 blur-3xl workflow-float workflow-delay\" />"
-    },
-    {
       "file": "app/dashboard/activity/page.tsx",
       "line": 51,
       "rule": "fixed-width",
@@ -574,38 +566,6 @@
       "severity": "info",
       "match": "absolute",
       "excerpt": ".page{display:grid;gap:14px;color:#0f1f3d;font-size:13px}.header{display:flex;align-items:flex-start;justify-content:space-between;gap:20px}.header h1{margin:0;font-size:27px;line-height:1.15;font-weight:850;letter-spaci"
-    },
-    {
-      "file": "app/finance/_components/FinanceOperationsWorkspace.module.css",
-      "line": 1,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": ".page{display:grid;gap:16px;color:#0b1739;font-size:12px}.header{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;padding:4px 2px}.crumb{font-size:10px;color:#7b8799;margin-bottom:8px}.crumb span{"
-    },
-    {
-      "file": "app/finance/_components/FinanceOutputWorkspace.tsx",
-      "line": 571,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "<div className=\"hero-orb absolute -right-16 -top-20 h-72 w-72 rounded-full bg-cyan-300/20 blur-3xl\" />"
-    },
-    {
-      "file": "app/finance/_components/FinanceOutputWorkspace.tsx",
-      "line": 602,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-5",
-      "excerpt": "<div className=\"grid gap-4 md:grid-cols-2 xl:grid-cols-5\">"
-    },
-    {
-      "file": "app/finance/_components/FinanceOutputWorkspace.tsx",
-      "line": 666,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "body.finance-output-printing .print-sheet { position:absolute !important; left:0; top:0; margin:0 !important; box-shadow:none !important; }"
     },
     {
       "file": "app/finance/audit/page.tsx",
@@ -633,43 +593,11 @@
     },
     {
       "file": "app/finance/audit/page.tsx",
-      "line": 1785,
-      "rule": "fixed-width",
-      "severity": "warning",
-      "match": "min-w-[1200px]",
-      "excerpt": "<table className=\"min-w-[1200px] w-full border-collapse text-sm print:min-w-0 print:text-[8px]\">"
-    },
-    {
-      "file": "app/finance/audit/page.tsx",
-      "line": 1885,
-      "rule": "fixed-width",
-      "severity": "warning",
-      "match": "min-w-[900px]",
-      "excerpt": "<table className=\"min-w-[900px] w-full border-collapse text-sm print:min-w-0 print:text-[8px]\">"
-    },
-    {
-      "file": "app/finance/audit/page.tsx",
-      "line": 2015,
-      "rule": "fixed-width",
-      "severity": "warning",
-      "match": "min-w-[1200px]",
-      "excerpt": "<table className=\"min-w-[1200px] w-full border-collapse text-sm print:min-w-0 print:text-[8px]\">"
-    },
-    {
-      "file": "app/finance/audit/page.tsx",
       "line": 2134,
       "rule": "fixed-height",
       "severity": "warning",
       "match": "max-h-[620px]",
       "excerpt": "<div className=\"max-h-[620px] overflow-auto print:max-h-none print:overflow-visible\">"
-    },
-    {
-      "file": "app/finance/audit/page.tsx",
-      "line": 2213,
-      "rule": "fixed-width",
-      "severity": "warning",
-      "match": "min-w-[1350px]",
-      "excerpt": "<table className=\"min-w-[1350px] w-full border-collapse text-sm print:min-w-0 print:text-[8px]\">"
     },
     {
       "file": "app/finance/audit-trail/page.tsx",
@@ -790,6 +718,38 @@
       "severity": "info",
       "match": "absolute",
       "excerpt": ".page{padding:22px 26px 30px;background:#f8fafc;min-height:100%;color:#0b1739;font-family:Inter,\"Segoe UI\",Arial,sans-serif;font-size:13px}.pageHeader{display:flex;align-items:flex-end;justify-content:space-between;gap:2"
+    },
+    {
+      "file": "app/finance/_components/FinanceOperationsWorkspace.module.css",
+      "line": 1,
+      "rule": "absolute-layout",
+      "severity": "info",
+      "match": "absolute",
+      "excerpt": ".page{display:grid;gap:16px;color:#0b1739;font-size:12px}.header{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;padding:4px 2px}.crumb{font-size:10px;color:#7b8799;margin-bottom:8px}.crumb span{"
+    },
+    {
+      "file": "app/finance/_components/FinanceOutputWorkspace.tsx",
+      "line": 565,
+      "rule": "absolute-layout",
+      "severity": "info",
+      "match": "absolute",
+      "excerpt": "<div className=\"hero-orb absolute -right-16 -top-20 h-72 w-72 rounded-full bg-cyan-300/20 blur-3xl\" />"
+    },
+    {
+      "file": "app/finance/_components/FinanceOutputWorkspace.tsx",
+      "line": 596,
+      "rule": "desktop-only-grid",
+      "severity": "warning",
+      "match": "grid-cols-5",
+      "excerpt": "<div className=\"grid gap-4 md:grid-cols-2 xl:grid-cols-5\">"
+    },
+    {
+      "file": "app/finance/_components/FinanceOutputWorkspace.tsx",
+      "line": 660,
+      "rule": "absolute-layout",
+      "severity": "info",
+      "match": "absolute",
+      "excerpt": "body.finance-output-printing .print-sheet { position:absolute !important; left:0; top:0; margin:0 !important; box-shadow:none !important; }"
     },
     {
       "file": "app/globals.css",
@@ -952,6 +912,270 @@
       "excerpt": ".rg-top-actions{margin-left:auto;display:flex;align-items:center;gap:7px}.rg-icon-btn{position:relative;width:34px;height:34px;display:grid;place-items:center;border:0;border-radius:8px;background:transparent;color:#142d"
     },
     {
+      "file": "app/globals.css",
+      "line": 3329,
+      "rule": "absolute-layout",
+      "severity": "info",
+      "match": "absolute",
+      "excerpt": ".rg-route-transition__bar{position:absolute;top:-18px;left:-22px;right:-22px;height:3px;overflow:hidden;background:#e8eef7}"
+    },
+    {
+      "file": "app/globals.css",
+      "line": 3355,
+      "rule": "absolute-layout",
+      "severity": "info",
+      "match": "absolute",
+      "excerpt": ".rg-content[data-route^=\"/hr\"] [class*=\"from-slate-950\"] :where(.absolute,[class*=\"blur-\"]){display:none!important}"
+    },
+    {
+      "file": "app/globals.css",
+      "line": 3417,
+      "rule": "desktop-only-grid",
+      "severity": "warning",
+      "match": "grid-cols-5",
+      "excerpt": ".rg-content[data-mockup-type=\"dashboard\"] :where(.grid)[class*=\"xl:grid-cols-5\"],"
+    },
+    {
+      "file": "app/globals.css",
+      "line": 3443,
+      "rule": "absolute-layout",
+      "severity": "info",
+      "match": "absolute",
+      "excerpt": ".rg-approved-body .rg-module-header{min-height:0!important;margin:-67px 0 18px!important;padding:0 2px 11px!important;border:0!important;background:transparent!important;box-shadow:none!important;justify-content:flex-end"
+    },
+    {
+      "file": "app/globals.css",
+      "line": 3462,
+      "rule": "desktop-only-grid",
+      "severity": "warning",
+      "match": "grid-cols-9",
+      "excerpt": ".rg-approved-mockup[data-approved-route^=\"/admin\"] .rg-approved-body .grid[class*=\"xl:grid-cols-9\"]> :nth-child(n+5){display:none!important}.rg-approved-mockup[data-approved-route^=\"/admin/users\"] .rg-approved-body .grid"
+    },
+    {
+      "file": "app/globals.css",
+      "line": 3462,
+      "rule": "desktop-only-grid",
+      "severity": "warning",
+      "match": "grid-cols-9",
+      "excerpt": ".rg-approved-mockup[data-approved-route^=\"/admin\"] .rg-approved-body .grid[class*=\"xl:grid-cols-9\"]> :nth-child(n+5){display:none!important}.rg-approved-mockup[data-approved-route^=\"/admin/users\"] .rg-approved-body .grid"
+    },
+    {
+      "file": "app/globals.css",
+      "line": 3462,
+      "rule": "desktop-only-grid",
+      "severity": "warning",
+      "match": "grid-cols-8",
+      "excerpt": ".rg-approved-mockup[data-approved-route^=\"/admin\"] .rg-approved-body .grid[class*=\"xl:grid-cols-9\"]> :nth-child(n+5){display:none!important}.rg-approved-mockup[data-approved-route^=\"/admin/users\"] .rg-approved-body .grid"
+    },
+    {
+      "file": "app/globals.css",
+      "line": 3462,
+      "rule": "desktop-only-grid",
+      "severity": "warning",
+      "match": "grid-cols-6",
+      "excerpt": ".rg-approved-mockup[data-approved-route^=\"/admin\"] .rg-approved-body .grid[class*=\"xl:grid-cols-9\"]> :nth-child(n+5){display:none!important}.rg-approved-mockup[data-approved-route^=\"/admin/users\"] .rg-approved-body .grid"
+    },
+    {
+      "file": "app/globals.css",
+      "line": 3462,
+      "rule": "desktop-only-grid",
+      "severity": "warning",
+      "match": "grid-cols-8",
+      "excerpt": ".rg-approved-mockup[data-approved-route^=\"/admin\"] .rg-approved-body .grid[class*=\"xl:grid-cols-9\"]> :nth-child(n+5){display:none!important}.rg-approved-mockup[data-approved-route^=\"/admin/users\"] .rg-approved-body .grid"
+    },
+    {
+      "file": "app/globals.css",
+      "line": 3479,
+      "rule": "absolute-layout",
+      "severity": "info",
+      "match": "absolute",
+      "excerpt": ".rg-approved-kpis{display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:9px!important;margin:16px 0 10px!important}.rg-approved-kpi{position:relative!important;min-height:88px!important;paddi"
+    },
+    {
+      "file": "app/globals.css",
+      "line": 3503,
+      "rule": "desktop-only-grid",
+      "severity": "warning",
+      "match": "grid-cols-8",
+      "excerpt": ".rg-approved-mockup[data-approved-section=\"staff\"] .rg-approved-body :where(.staff-portal-hero,.staff-tabs,.staff-module-tabs){display:none!important}.rg-approved-mockup[data-approved-section=\"staff\"] .rg-approved-body :"
+    },
+    {
+      "file": "app/globals.css",
+      "line": 3503,
+      "rule": "desktop-only-grid",
+      "severity": "warning",
+      "match": "grid-cols-8",
+      "excerpt": ".rg-approved-mockup[data-approved-section=\"staff\"] .rg-approved-body :where(.staff-portal-hero,.staff-tabs,.staff-module-tabs){display:none!important}.rg-approved-mockup[data-approved-section=\"staff\"] .rg-approved-body :"
+    },
+    {
+      "file": "app/globals.css",
+      "line": 3504,
+      "rule": "desktop-only-grid",
+      "severity": "warning",
+      "match": "grid-cols-9",
+      "excerpt": ".rg-approved-mockup[data-approved-section=\"admin\"] .rg-approved-body :where(.grid[class*=\"xl:grid-cols-9\"]){grid-template-columns:repeat(4,minmax(0,1fr))!important}.rg-approved-mockup[data-approved-section=\"hr\"] .rg-appr"
+    },
+    {
+      "file": "app/globals.css",
+      "line": 3504,
+      "rule": "desktop-only-grid",
+      "severity": "warning",
+      "match": "grid-cols-6",
+      "excerpt": ".rg-approved-mockup[data-approved-section=\"admin\"] .rg-approved-body :where(.grid[class*=\"xl:grid-cols-9\"]){grid-template-columns:repeat(4,minmax(0,1fr))!important}.rg-approved-mockup[data-approved-section=\"hr\"] .rg-appr"
+    },
+    {
+      "file": "app/globals.css",
+      "line": 3504,
+      "rule": "desktop-only-grid",
+      "severity": "warning",
+      "match": "grid-cols-8",
+      "excerpt": ".rg-approved-mockup[data-approved-section=\"admin\"] .rg-approved-body :where(.grid[class*=\"xl:grid-cols-9\"]){grid-template-columns:repeat(4,minmax(0,1fr))!important}.rg-approved-mockup[data-approved-section=\"hr\"] .rg-appr"
+    },
+    {
+      "file": "app/globals.css",
+      "line": 3523,
+      "rule": "desktop-only-grid",
+      "severity": "warning",
+      "match": "grid-cols-8",
+      "excerpt": ".rg-approved-mockup[data-approved-route=\"/staff\"] .rg-approved-body .grid.sm\\:grid-cols-2.lg\\:grid-cols-4.xl\\:grid-cols-8{display:none!important}"
+    },
+    {
+      "file": "app/globals.css",
+      "line": 3570,
+      "rule": "desktop-only-grid",
+      "severity": "warning",
+      "match": "grid-cols-8",
+      "excerpt": ".rg-content[data-route^=\"/staff\"] :where(.grid[class*=\"xl:grid-cols-8\"],.grid[class*=\"lg:grid-cols-8\"]){grid-template-columns:repeat(5,minmax(0,1fr))!important}.rg-content[data-route^=\"/admin\"] :where(.grid[class*=\"xl:gr"
+    },
+    {
+      "file": "app/globals.css",
+      "line": 3570,
+      "rule": "desktop-only-grid",
+      "severity": "warning",
+      "match": "grid-cols-8",
+      "excerpt": ".rg-content[data-route^=\"/staff\"] :where(.grid[class*=\"xl:grid-cols-8\"],.grid[class*=\"lg:grid-cols-8\"]){grid-template-columns:repeat(5,minmax(0,1fr))!important}.rg-content[data-route^=\"/admin\"] :where(.grid[class*=\"xl:gr"
+    },
+    {
+      "file": "app/globals.css",
+      "line": 3570,
+      "rule": "desktop-only-grid",
+      "severity": "warning",
+      "match": "grid-cols-9",
+      "excerpt": ".rg-content[data-route^=\"/staff\"] :where(.grid[class*=\"xl:grid-cols-8\"],.grid[class*=\"lg:grid-cols-8\"]){grid-template-columns:repeat(5,minmax(0,1fr))!important}.rg-content[data-route^=\"/admin\"] :where(.grid[class*=\"xl:gr"
+    },
+    {
+      "file": "app/globals.css",
+      "line": 3570,
+      "rule": "desktop-only-grid",
+      "severity": "warning",
+      "match": "grid-cols-6",
+      "excerpt": ".rg-content[data-route^=\"/staff\"] :where(.grid[class*=\"xl:grid-cols-8\"],.grid[class*=\"lg:grid-cols-8\"]){grid-template-columns:repeat(5,minmax(0,1fr))!important}.rg-content[data-route^=\"/admin\"] :where(.grid[class*=\"xl:gr"
+    },
+    {
+      "file": "app/globals.css",
+      "line": 3582,
+      "rule": "desktop-only-grid",
+      "severity": "warning",
+      "match": "grid-cols-8",
+      "excerpt": "@media(max-width:1200px){.rg-content[data-route^=\"/staff\"] :where(.grid[class*=\"xl:grid-cols-8\"],.grid[class*=\"lg:grid-cols-8\"]),.rg-content[data-route^=\"/admin\"] :where(.grid[class*=\"xl:grid-cols-9\"]),.rg-content[data-r"
+    },
+    {
+      "file": "app/globals.css",
+      "line": 3582,
+      "rule": "desktop-only-grid",
+      "severity": "warning",
+      "match": "grid-cols-8",
+      "excerpt": "@media(max-width:1200px){.rg-content[data-route^=\"/staff\"] :where(.grid[class*=\"xl:grid-cols-8\"],.grid[class*=\"lg:grid-cols-8\"]),.rg-content[data-route^=\"/admin\"] :where(.grid[class*=\"xl:grid-cols-9\"]),.rg-content[data-r"
+    },
+    {
+      "file": "app/globals.css",
+      "line": 3582,
+      "rule": "desktop-only-grid",
+      "severity": "warning",
+      "match": "grid-cols-9",
+      "excerpt": "@media(max-width:1200px){.rg-content[data-route^=\"/staff\"] :where(.grid[class*=\"xl:grid-cols-8\"],.grid[class*=\"lg:grid-cols-8\"]),.rg-content[data-route^=\"/admin\"] :where(.grid[class*=\"xl:grid-cols-9\"]),.rg-content[data-r"
+    },
+    {
+      "file": "app/globals.css",
+      "line": 3582,
+      "rule": "desktop-only-grid",
+      "severity": "warning",
+      "match": "grid-cols-6",
+      "excerpt": "@media(max-width:1200px){.rg-content[data-route^=\"/staff\"] :where(.grid[class*=\"xl:grid-cols-8\"],.grid[class*=\"lg:grid-cols-8\"]),.rg-content[data-route^=\"/admin\"] :where(.grid[class*=\"xl:grid-cols-9\"]),.rg-content[data-r"
+    },
+    {
+      "file": "app/globals.css",
+      "line": 3583,
+      "rule": "desktop-only-grid",
+      "severity": "warning",
+      "match": "grid-cols-8",
+      "excerpt": "@media(max-width:900px){.rg-content:is([data-route^=\"/payment-vouchers\"],[data-route^=\"/registry\"],[data-route^=\"/hr\"],[data-route^=\"/reports\"],[data-route^=\"/audit-centre\"],[data-route^=\"/workflow\"],[data-route^=\"/staff"
+    },
+    {
+      "file": "app/globals.css",
+      "line": 3583,
+      "rule": "desktop-only-grid",
+      "severity": "warning",
+      "match": "grid-cols-8",
+      "excerpt": "@media(max-width:900px){.rg-content:is([data-route^=\"/payment-vouchers\"],[data-route^=\"/registry\"],[data-route^=\"/hr\"],[data-route^=\"/reports\"],[data-route^=\"/audit-centre\"],[data-route^=\"/workflow\"],[data-route^=\"/staff"
+    },
+    {
+      "file": "app/globals.css",
+      "line": 3583,
+      "rule": "desktop-only-grid",
+      "severity": "warning",
+      "match": "grid-cols-9",
+      "excerpt": "@media(max-width:900px){.rg-content:is([data-route^=\"/payment-vouchers\"],[data-route^=\"/registry\"],[data-route^=\"/hr\"],[data-route^=\"/reports\"],[data-route^=\"/audit-centre\"],[data-route^=\"/workflow\"],[data-route^=\"/staff"
+    },
+    {
+      "file": "app/globals.css",
+      "line": 3583,
+      "rule": "desktop-only-grid",
+      "severity": "warning",
+      "match": "grid-cols-6",
+      "excerpt": "@media(max-width:900px){.rg-content:is([data-route^=\"/payment-vouchers\"],[data-route^=\"/registry\"],[data-route^=\"/hr\"],[data-route^=\"/reports\"],[data-route^=\"/audit-centre\"],[data-route^=\"/workflow\"],[data-route^=\"/staff"
+    },
+    {
+      "file": "app/globals.css",
+      "line": 3584,
+      "rule": "desktop-only-grid",
+      "severity": "warning",
+      "match": "grid-cols-8",
+      "excerpt": "@media(max-width:640px){.rg-content:is([data-route^=\"/payment-vouchers\"],[data-route^=\"/registry\"],[data-route^=\"/hr\"],[data-route^=\"/reports\"],[data-route^=\"/audit-centre\"],[data-route^=\"/workflow\"],[data-route^=\"/staff"
+    },
+    {
+      "file": "app/globals.css",
+      "line": 3584,
+      "rule": "desktop-only-grid",
+      "severity": "warning",
+      "match": "grid-cols-8",
+      "excerpt": "@media(max-width:640px){.rg-content:is([data-route^=\"/payment-vouchers\"],[data-route^=\"/registry\"],[data-route^=\"/hr\"],[data-route^=\"/reports\"],[data-route^=\"/audit-centre\"],[data-route^=\"/workflow\"],[data-route^=\"/staff"
+    },
+    {
+      "file": "app/globals.css",
+      "line": 3584,
+      "rule": "desktop-only-grid",
+      "severity": "warning",
+      "match": "grid-cols-9",
+      "excerpt": "@media(max-width:640px){.rg-content:is([data-route^=\"/payment-vouchers\"],[data-route^=\"/registry\"],[data-route^=\"/hr\"],[data-route^=\"/reports\"],[data-route^=\"/audit-centre\"],[data-route^=\"/workflow\"],[data-route^=\"/staff"
+    },
+    {
+      "file": "app/globals.css",
+      "line": 3584,
+      "rule": "desktop-only-grid",
+      "severity": "warning",
+      "match": "grid-cols-6",
+      "excerpt": "@media(max-width:640px){.rg-content:is([data-route^=\"/payment-vouchers\"],[data-route^=\"/registry\"],[data-route^=\"/hr\"],[data-route^=\"/reports\"],[data-route^=\"/audit-centre\"],[data-route^=\"/workflow\"],[data-route^=\"/staff"
+    },
+    {
+      "file": "app/globals.css",
+      "line": 3621,
+      "rule": "absolute-layout",
+      "severity": "info",
+      "match": "absolute",
+      "excerpt": ".rg-content:is([data-route^=\"/payment-vouchers\"],[data-route^=\"/registry\"],[data-route^=\"/hr\"],[data-route^=\"/reports\"],[data-route^=\"/audit-centre\"],[data-route^=\"/workflow\"],[data-route^=\"/staff\"],[data-route^=\"/admin\""
+    },
+    {
       "file": "app/hr/archive/page.tsx",
       "line": 53,
       "rule": "absolute-layout",
@@ -969,7 +1193,7 @@
     },
     {
       "file": "app/hr/audit/page.tsx",
-      "line": 155,
+      "line": 156,
       "rule": "absolute-layout",
       "severity": "info",
       "match": "absolute",
@@ -1017,23 +1241,15 @@
     },
     {
       "file": "app/hr/page.tsx",
-      "line": 180,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "<div className=\"absolute -right-20 -top-20 h-72 w-72 rounded-full bg-cyan-400/15 blur-3xl\" />"
+      "line": 178,
+      "rule": "fixed-width",
+      "severity": "warning",
+      "match": "max-w-[1500px]",
+      "excerpt": "<div className=\"mx-auto max-w-[1500px] space-y-4\">"
     },
     {
       "file": "app/hr/page.tsx",
-      "line": 181,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "<div className=\"absolute -bottom-24 left-1/3 h-64 w-64 rounded-full bg-blue-500/20 blur-3xl\" />"
-    },
-    {
-      "file": "app/hr/page.tsx",
-      "line": 213,
+      "line": 202,
       "rule": "desktop-only-grid",
       "severity": "warning",
       "match": "grid-cols-5",
@@ -1041,7 +1257,7 @@
     },
     {
       "file": "app/hr/page.tsx",
-      "line": 299,
+      "line": 288,
       "rule": "truncate-risk",
       "severity": "info",
       "match": "truncate",
@@ -1049,7 +1265,7 @@
     },
     {
       "file": "app/hr/page.tsx",
-      "line": 326,
+      "line": 315,
       "rule": "truncate-risk",
       "severity": "info",
       "match": "truncate",
@@ -1113,7 +1329,7 @@
     },
     {
       "file": "app/hr/registrar/weekly-seminar/page.tsx",
-      "line": 84,
+      "line": 75,
       "rule": "absolute-layout",
       "severity": "info",
       "match": "absolute",
@@ -1121,7 +1337,7 @@
     },
     {
       "file": "app/hr/registrar/weekly-seminar/page.tsx",
-      "line": 282,
+      "line": 272,
       "rule": "absolute-layout",
       "severity": "info",
       "match": "absolute",
@@ -1129,7 +1345,7 @@
     },
     {
       "file": "app/hr/registrar/weekly-seminar/page.tsx",
-      "line": 283,
+      "line": 273,
       "rule": "absolute-layout",
       "severity": "info",
       "match": "absolute",
@@ -1137,7 +1353,7 @@
     },
     {
       "file": "app/hr/registrar/weekly-seminar/page.tsx",
-      "line": 343,
+      "line": 333,
       "rule": "absolute-layout",
       "severity": "info",
       "match": "absolute",
@@ -1150,14 +1366,6 @@
       "severity": "info",
       "match": "absolute",
       "excerpt": "action={<div className=\"grid gap-2 sm:grid-cols-3\"><div className=\"relative\"><Search className=\"absolute left-3 top-3 h-4 w-4 text-slate-400\" /><input value={search} onChange={(event) => setSearch(event.target.value)} pl"
-    },
-    {
-      "file": "app/loading.tsx",
-      "line": 1,
-      "rule": "fixed-width",
-      "severity": "warning",
-      "match": "max-w-[1400px]",
-      "excerpt": "export default function GlobalLoading() { return <main className=\"min-h-screen bg-slate-50 px-4 py-8\"><div className=\"mx-auto max-w-[1400px] space-y-6\"><div className=\"h-52 animate-pulse rounded-[2rem] bg-slate-300\" /><d"
     },
     {
       "file": "app/output/page.tsx",
@@ -1176,8 +1384,48 @@
       "excerpt": "<div className=\"absolute -right-8 -top-8 h-24 w-24 rounded-full bg-white/10\" />"
     },
     {
+      "file": "app/payment-vouchers/payment-vouchers-overview.module.css",
+      "line": 1,
+      "rule": "absolute-layout",
+      "severity": "info",
+      "match": "absolute",
+      "excerpt": ".page{width:100%;max-width:100%;padding:22px 24px 30px;color:#0b1739;font-size:12px;background:#f8fbff}.header{display:flex;align-items:flex-end;justify-content:space-between;gap:22px;padding-bottom:16px;border-bottom:1p"
+    },
+    {
+      "file": "app/payment-vouchers/settings/page.tsx",
+      "line": 430,
+      "rule": "fixed-width",
+      "severity": "warning",
+      "match": "max-w-[1500px]",
+      "excerpt": "<main className=\"rg-module-page rg-adopted-page\"><div className=\"mx-auto w-full max-w-[1500px] space-y-4\">"
+    },
+    {
+      "file": "app/payment-vouchers/settings/page.tsx",
+      "line": 457,
+      "rule": "desktop-only-grid",
+      "severity": "warning",
+      "match": "grid-cols-5",
+      "excerpt": "<div className=\"mt-6 grid gap-4 md:grid-cols-5\">"
+    },
+    {
+      "file": "app/payment-vouchers/settings/page.tsx",
+      "line": 487,
+      "rule": "desktop-only-grid",
+      "severity": "warning",
+      "match": "grid-cols-5",
+      "excerpt": "<div className=\"mt-5 grid gap-4 md:grid-cols-5\">"
+    },
+    {
+      "file": "app/payment-vouchers/settings/page.tsx",
+      "line": 646,
+      "rule": "fixed-width",
+      "severity": "warning",
+      "match": "min-w-[1060px]",
+      "excerpt": "<div className=\"min-w-[1060px]\">"
+    },
+    {
       "file": "app/payment-vouchers/[id]/page.tsx",
-      "line": 825,
+      "line": 829,
       "rule": "fixed-width",
       "severity": "warning",
       "match": "min-w-[1120px]",
@@ -1233,95 +1481,23 @@
     },
     {
       "file": "app/payment-vouchers/[id]/print/page.tsx",
-      "line": 959,
+      "line": 962,
       "rule": "absolute-layout",
       "severity": "info",
       "match": "absolute",
-      "excerpt": "className=\"absolute bottom-[2px] left-1/2 h-[21px] max-w-[96%] -translate-x-1/2 object-contain\""
+      "excerpt": "className=\"absolute bottom-[2px] left-1/2 h-[21px] w-auto max-w-[96%] -translate-x-1/2 object-contain\""
     },
     {
-      "file": "app/payment-vouchers/page.tsx",
-      "line": 1066,
+      "file": "app/registry/page.tsx",
+      "line": 288,
       "rule": "fixed-width",
       "severity": "warning",
       "match": "max-w-[1500px]",
-      "excerpt": "<div className=\"mx-auto max-w-[1500px] py-6 sm:py-8\">"
-    },
-    {
-      "file": "app/payment-vouchers/page.tsx",
-      "line": 1125,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-8",
-      "excerpt": "<div className=\"mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-8\">"
-    },
-    {
-      "file": "app/payment-vouchers/page.tsx",
-      "line": 1216,
-      "rule": "fixed-width",
-      "severity": "warning",
-      "match": "min-w-[1280px]",
-      "excerpt": "<div className=\"min-w-[1280px]\">"
-    },
-    {
-      "file": "app/payment-vouchers/page.tsx",
-      "line": 1381,
-      "rule": "fixed-width",
-      "severity": "warning",
-      "match": "min-w-[1500px]",
-      "excerpt": "<div className=\"min-w-[1500px]\">"
-    },
-    {
-      "file": "app/payment-vouchers/settings/page.tsx",
-      "line": 474,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-5",
-      "excerpt": "<div className=\"mt-6 grid gap-4 md:grid-cols-5\">"
-    },
-    {
-      "file": "app/payment-vouchers/settings/page.tsx",
-      "line": 504,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-5",
-      "excerpt": "<div className=\"mt-5 grid gap-4 md:grid-cols-5\">"
-    },
-    {
-      "file": "app/payment-vouchers/settings/page.tsx",
-      "line": 663,
-      "rule": "fixed-width",
-      "severity": "warning",
-      "match": "min-w-[1060px]",
-      "excerpt": "<div className=\"min-w-[1060px]\">"
+      "excerpt": "<div className=\"mx-auto max-w-[1500px] space-y-4\">"
     },
     {
       "file": "app/registry/page.tsx",
-      "line": 124,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "<div className=\"absolute -right-8 -top-8 h-28 w-28 rounded-full bg-white/10\" />"
-    },
-    {
-      "file": "app/registry/page.tsx",
-      "line": 294,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "<div className=\"absolute -right-20 -top-24 h-72 w-72 rounded-full bg-cyan-400/15 blur-2xl\" />"
-    },
-    {
-      "file": "app/registry/page.tsx",
-      "line": 295,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "<div className=\"absolute -bottom-24 left-1/3 h-64 w-64 rounded-full bg-violet-400/15 blur-2xl\" />"
-    },
-    {
-      "file": "app/registry/page.tsx",
-      "line": 313,
+      "line": 307,
       "rule": "desktop-only-grid",
       "severity": "warning",
       "match": "grid-cols-5",
@@ -1333,7 +1509,7 @@
       "rule": "fixed-width",
       "severity": "warning",
       "match": "max-w-[1500px]",
-      "excerpt": "return <EnterpriseShell><div className=\"mx-auto max-w-[1500px] space-y-6\">"
+      "excerpt": "return <EnterpriseShell><div className=\"mx-auto max-w-[1500px] space-y-4\">"
     },
     {
       "file": "app/reports/enterprise-analytics/page.tsx",
@@ -1341,7 +1517,7 @@
       "rule": "desktop-only-grid",
       "severity": "warning",
       "match": "grid-cols-5",
-      "excerpt": "{loading ? <LoadingGrid /> : <><section className=\"grid gap-4 sm:grid-cols-2 xl:grid-cols-5\"><StatCard label=\"Requests\" value={metrics.requests} note={`${metrics.activeRequests} active workflow`} tone=\"blue\" /><StatCard "
+      "excerpt": "{loading ? <LoadingGrid /> : <><section className=\"grid gap-3 sm:grid-cols-2 xl:grid-cols-5\"><StatCard label=\"Requests\" value={metrics.requests} note={`${metrics.activeRequests} active workflow`} tone=\"blue\" /><StatCard "
     },
     {
       "file": "app/reports/page.tsx",
@@ -1353,7 +1529,7 @@
     },
     {
       "file": "app/reports/page.tsx",
-      "line": 143,
+      "line": 147,
       "rule": "absolute-layout",
       "severity": "info",
       "match": "absolute",
@@ -1361,7 +1537,7 @@
     },
     {
       "file": "app/reports/page.tsx",
-      "line": 461,
+      "line": 462,
       "rule": "absolute-layout",
       "severity": "info",
       "match": "absolute",
@@ -1369,7 +1545,7 @@
     },
     {
       "file": "app/reports/page.tsx",
-      "line": 477,
+      "line": 478,
       "rule": "absolute-layout",
       "severity": "info",
       "match": "absolute",
@@ -1377,23 +1553,7 @@
     },
     {
       "file": "app/reports/page.tsx",
-      "line": 495,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-5",
-      "excerpt": "<nav className=\"mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5\">"
-    },
-    {
-      "file": "app/reports/page.tsx",
-      "line": 520,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "<div className=\"relative mt-2\"><select value={printSection} onChange={(event) => setPrintSection(event.target.value as PrintKey)} className=\"h-12 w-full appearance-none rounded-2xl border-2 border-blue-200 bg-gradient-to"
-    },
-    {
-      "file": "app/reports/page.tsx",
-      "line": 527,
+      "line": 496,
       "rule": "desktop-only-grid",
       "severity": "warning",
       "match": "grid-cols-5",
@@ -1401,7 +1561,7 @@
     },
     {
       "file": "app/reports/page.tsx",
-      "line": 567,
+      "line": 536,
       "rule": "fixed-width",
       "severity": "warning",
       "match": "min-w-[820px]",
@@ -1409,7 +1569,7 @@
     },
     {
       "file": "app/reports/page.tsx",
-      "line": 581,
+      "line": 550,
       "rule": "desktop-only-grid",
       "severity": "warning",
       "match": "grid-cols-5",
@@ -1417,7 +1577,7 @@
     },
     {
       "file": "app/reports/page.tsx",
-      "line": 588,
+      "line": 557,
       "rule": "desktop-only-grid",
       "severity": "warning",
       "match": "grid-cols-6",
@@ -1425,7 +1585,7 @@
     },
     {
       "file": "app/reports/page.tsx",
-      "line": 589,
+      "line": 558,
       "rule": "nowrap-risk",
       "severity": "info",
       "match": "whitespace-nowrap",
@@ -1433,7 +1593,7 @@
     },
     {
       "file": "app/reports/page.tsx",
-      "line": 610,
+      "line": 579,
       "rule": "nowrap-risk",
       "severity": "info",
       "match": "whitespace-nowrap",
@@ -1441,7 +1601,7 @@
     },
     {
       "file": "app/reports/page.tsx",
-      "line": 611,
+      "line": 580,
       "rule": "nowrap-risk",
       "severity": "info",
       "match": "whitespace-nowrap",
@@ -1449,7 +1609,7 @@
     },
     {
       "file": "app/reports/page.tsx",
-      "line": 612,
+      "line": 581,
       "rule": "nowrap-risk",
       "severity": "info",
       "match": "whitespace-nowrap",
@@ -1473,11 +1633,11 @@
     },
     {
       "file": "app/requests/[id]/print/page.tsx",
-      "line": 1065,
+      "line": 1068,
       "rule": "absolute-layout",
       "severity": "info",
       "match": "absolute",
-      "excerpt": "className=\"absolute bottom-0 left-1/2 h-[13px] max-w-[90%] -translate-x-1/2 object-contain\""
+      "excerpt": "className=\"absolute bottom-0 left-1/2 h-[13px] w-auto max-w-[90%] -translate-x-1/2 object-contain\""
     },
     {
       "file": "app/staff/downloads/page.tsx",
@@ -1505,7 +1665,7 @@
     },
     {
       "file": "app/staff/notifications/page.tsx",
-      "line": 212,
+      "line": 213,
       "rule": "absolute-layout",
       "severity": "info",
       "match": "absolute",
@@ -1528,14 +1688,6 @@
       "excerpt": "<section className=\"grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8\">"
     },
     {
-      "file": "app/staff/page.tsx",
-      "line": 251,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "<div className=\"absolute -right-5 -top-5 h-20 w-20 rounded-full bg-white/10\" />"
-    },
-    {
       "file": "app/staff/requests/page.tsx",
       "line": 13,
       "rule": "fixed-width",
@@ -1545,11 +1697,19 @@
     },
     {
       "file": "app/workflow/page.tsx",
-      "line": 30,
+      "line": 45,
       "rule": "fixed-width",
       "severity": "warning",
       "match": "max-w-[1500px]",
       "excerpt": "return <StrictActiveRoleBoundary allowedRoles={[\"admin\",\"auditor\",\"dg\"]} label=\"Workflow Intelligence Centre\"><EnterpriseShell><div className=\"mx-auto max-w-[1500px] space-y-6\">"
+    },
+    {
+      "file": "app/workflow/page.tsx",
+      "line": 48,
+      "rule": "desktop-only-grid",
+      "severity": "warning",
+      "match": "grid-cols-7",
+      "excerpt": "<section className=\"grid gap-3 sm:grid-cols-2 xl:grid-cols-7\"><StatCard label=\"Total Workflows\" value={loading?\"—\":stats.totalRules} note=\"Configured rules\" tone=\"blue\"/><StatCard label=\"Active Workflows\" value={loading?"
     }
   ]
 }

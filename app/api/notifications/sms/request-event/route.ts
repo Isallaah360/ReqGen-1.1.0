@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import {
   normalizeEmail,
   normalizeNigerianPhone,
@@ -31,22 +31,40 @@ type LogChannel = "sms" | "email";
 type LogStatus = "sent" | "failed";
 
 function jsonError(message: string, status = 400) {
-  return NextResponse.json({ ok: false, error: message }, { status });
+  return NextResponse.json(
+    {
+      ok: false,
+      error: message,
+    },
+    { status }
+  );
 }
 
 function smsEnabled() {
-  return String(process.env.SENDCHAMP_SMS_ENABLED || "false").toLowerCase() === "true";
+  return (
+    String(process.env.SENDCHAMP_SMS_ENABLED || "false").toLowerCase() ===
+    "true"
+  );
 }
 
 function emailEnabled() {
-  return String(process.env.SENDCHAMP_EMAIL_ENABLED || "false").toLowerCase() === "true";
+  return (
+    String(process.env.SENDCHAMP_EMAIL_ENABLED || "false").toLowerCase() ===
+    "true"
+  );
 }
 
 function appUrl() {
-  return process.env.NEXT_PUBLIC_APP_URL || "https://req-gen-1-1-0.vercel.app";
+  return (
+    process.env.NEXT_PUBLIC_APP_URL ||
+    "https://req-gen-1-1-0.vercel.app"
+  );
 }
 
-function safeText(value: string | null | undefined, fallback = "—") {
+function safeText(
+  value: string | null | undefined,
+  fallback = "—"
+) {
   const clean = String(value || "").trim();
   return clean || fallback;
 }
@@ -59,7 +77,10 @@ function requestLink(requestId: string) {
   return `${appUrl()}/requests/${requestId}`;
 }
 
-function buildSubject(event: NotificationEvent, requestNo: string) {
+function buildSubject(
+  event: NotificationEvent,
+  requestNo: string
+) {
   if (event === "submission_success") {
     return `IET REQGEN | Request Submitted - ${requestNo}`;
   }
@@ -141,7 +162,7 @@ function buildSmsText(input: {
 }
 
 async function insertLog(
-  adminClient: any,
+  adminClient: SupabaseClient,
   input: {
     requestId: string;
     recipientUserId: string;
@@ -187,7 +208,10 @@ export async function POST(req: NextRequest) {
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!supabaseUrl || !anonKey || !serviceKey) {
-    return jsonError("Server environment variables are incomplete.", 500);
+    return jsonError(
+      "Server environment variables are incomplete.",
+      500
+    );
   }
 
   const authHeader = req.headers.get("authorization") || "";
@@ -210,6 +234,7 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json().catch(() => null);
+
   const requestId = String(body?.requestId || "").trim();
   const event = String(body?.event || "").trim() as NotificationEvent;
 
@@ -221,9 +246,14 @@ export async function POST(req: NextRequest) {
     return jsonError("Invalid notification event.");
   }
 
-  const { data: requestRow, error: reqErr } = await adminClient
+  const {
+    data: requestRow,
+    error: reqErr,
+  } = await adminClient
     .from("requests")
-    .select("id,request_no,title,current_owner,created_by,current_stage")
+    .select(
+      "id,request_no,title,current_owner,created_by,current_stage"
+    )
     .eq("id", requestId)
     .single();
 
@@ -234,20 +264,30 @@ export async function POST(req: NextRequest) {
   const requestData = requestRow as RequestRow;
 
   const recipientUserId =
-    event === "submission_success" ? requestData.created_by : requestData.current_owner;
+    event === "submission_success"
+      ? requestData.created_by
+      : requestData.current_owner;
 
   if (!recipientUserId) {
-    return jsonError("No recipient found for this notification event.");
+    return jsonError(
+      "No recipient found for this notification event."
+    );
   }
 
-  const { data: recipientRow, error: recErr } = await adminClient
+  const {
+    data: recipientRow,
+    error: recErr,
+  } = await adminClient
     .from("profiles")
     .select("id,full_name,email,phone")
     .eq("id", recipientUserId)
     .single();
 
   if (recErr || !recipientRow) {
-    return jsonError("Recipient profile not found.", 404);
+    return jsonError(
+      "Recipient profile not found.",
+      404
+    );
   }
 
   const recipient = recipientRow as RecipientRow;
@@ -256,12 +296,27 @@ export async function POST(req: NextRequest) {
   const recipientEmail = normalizeEmail(recipient.email);
   const phone = normalizeNigerianPhone(recipient.phone);
 
-  const requestNo = safeText(requestData.request_no, "Request");
-  const title = safeText(requestData.title, "Request");
-  const stage = safeText(requestData.current_stage, "Pending Review");
+  const requestNo = safeText(
+    requestData.request_no,
+    "Request"
+  );
+
+  const title = safeText(
+    requestData.title,
+    "Request"
+  );
+
+  const stage = safeText(
+    requestData.current_stage,
+    "Pending Review"
+  );
+
   const link = requestLink(requestData.id);
 
-  const subject = buildSubject(event, requestNo);
+  const subject = buildSubject(
+    event,
+    requestNo
+  );
 
   const emailText = buildEmailText({
     event,
@@ -288,6 +343,9 @@ export async function POST(req: NextRequest) {
   let emailError: string | null = null;
   let smsError: string | null = null;
 
+  /*
+   * EMAIL NOTIFICATION
+   */
   if (emailEnabled() && recipientEmail) {
     try {
       emailResult = await sendSendchampEmail({
@@ -301,7 +359,7 @@ export async function POST(req: NextRequest) {
 
       emailSent = true;
 
-      await insertLog(adminClient as any, {
+      await insertLog(adminClient, {
         requestId: requestData.id,
         recipientUserId: recipient.id,
         phone,
@@ -314,10 +372,13 @@ export async function POST(req: NextRequest) {
         providerResponse: emailResult,
         sentBy: user.id,
       });
-    } catch (e: any) {
-      emailError = e?.message || "Email notification failed.";
+    } catch (emailErr: unknown) {
+      emailError =
+        emailErr instanceof Error
+          ? emailErr.message
+          : "Email notification failed.";
 
-      await insertLog(adminClient as any, {
+      await insertLog(adminClient, {
         requestId: requestData.id,
         recipientUserId: recipient.id,
         phone,
@@ -333,9 +394,10 @@ export async function POST(req: NextRequest) {
       });
     }
   } else if (emailEnabled() && !recipientEmail) {
-    emailError = "Recipient email is missing or invalid.";
+    emailError =
+      "Recipient email is missing or invalid.";
 
-    await insertLog(adminClient as any, {
+    await insertLog(adminClient, {
       requestId: requestData.id,
       recipientUserId: recipient.id,
       phone,
@@ -351,17 +413,27 @@ export async function POST(req: NextRequest) {
     });
   }
 
+  /*
+   * SMS NOTIFICATION
+   */
   if (smsEnabled() && phone) {
     try {
       smsResult = await sendSendchampSms({
         to: phone,
         message: smsText,
-        route: (process.env.SENDCHAMP_ROUTE as any) || "dnd",
+        route:
+          (
+            process.env.SENDCHAMP_ROUTE as
+            | "dnd"
+            | "non_dnd"
+            | "international"
+            | undefined
+          ) || "dnd",
       });
 
       smsSent = true;
 
-      await insertLog(adminClient as any, {
+      await insertLog(adminClient, {
         requestId: requestData.id,
         recipientUserId: recipient.id,
         phone,
@@ -369,15 +441,20 @@ export async function POST(req: NextRequest) {
         channel: "sms",
         message: smsText,
         provider: "sendchamp-sms",
-        route: process.env.SENDCHAMP_ROUTE || "dnd",
+        route:
+          process.env.SENDCHAMP_ROUTE ||
+          "dnd",
         status: "sent",
         providerResponse: smsResult,
         sentBy: user.id,
       });
-    } catch (e: any) {
-      smsError = e?.message || "SMS notification failed.";
+    } catch (smsErr: unknown) {
+      smsError =
+        smsErr instanceof Error
+          ? smsErr.message
+          : "SMS notification failed.";
 
-      await insertLog(adminClient as any, {
+      await insertLog(adminClient, {
         requestId: requestData.id,
         recipientUserId: recipient.id,
         phone,
@@ -385,7 +462,9 @@ export async function POST(req: NextRequest) {
         channel: "sms",
         message: smsText,
         provider: "sendchamp-sms",
-        route: process.env.SENDCHAMP_ROUTE || "dnd",
+        route:
+          process.env.SENDCHAMP_ROUTE ||
+          "dnd",
         status: "failed",
         error: smsError,
         providerResponse: smsResult,
@@ -393,9 +472,10 @@ export async function POST(req: NextRequest) {
       });
     }
   } else if (smsEnabled() && !phone) {
-    smsError = "Recipient phone number is missing or invalid.";
+    smsError =
+      "Recipient phone number is missing or invalid.";
 
-    await insertLog(adminClient as any, {
+    await insertLog(adminClient, {
       requestId: requestData.id,
       recipientUserId: recipient.id,
       phone: recipient.phone || null,
@@ -403,7 +483,9 @@ export async function POST(req: NextRequest) {
       channel: "sms",
       message: smsText,
       provider: "sendchamp-sms",
-      route: process.env.SENDCHAMP_ROUTE || "dnd",
+      route:
+        process.env.SENDCHAMP_ROUTE ||
+        "dnd",
       status: "failed",
       error: smsError,
       providerResponse: null,
@@ -411,9 +493,14 @@ export async function POST(req: NextRequest) {
     });
   }
 
+  /*
+   * DELIVERY RESULT
+   */
   if (!emailSent && !smsSent) {
     return jsonError(
-      emailError || smsError || "Notification could not be delivered through SMS or Email.",
+      emailError ||
+      smsError ||
+      "Notification could not be delivered through SMS or Email.",
       500
     );
   }
@@ -430,7 +517,7 @@ export async function POST(req: NextRequest) {
       emailSent && smsSent
         ? "Email and SMS notifications sent."
         : emailSent
-        ? "Email notification sent."
-        : "SMS notification sent.",
+          ? "Email notification sent."
+          : "SMS notification sent.",
   });
 }

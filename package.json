@@ -20,7 +20,9 @@
     "audit:deploy": "npm run audit:routes && npm run audit:workflow && npm run audit:navigation && npm run audit:mockup-lock && npm run audit:s5-12 && npm run audit:redesign && npm run audit:components",
     "audit:mockup-frame": "node scripts/audit-approved-mockup-frame.mjs",
     "audit:pixel-lock": "node scripts/audit-approved-mockup-frame.mjs",
-    "audit:redesign": "node scripts/audit-approved-redesign.mjs"
+    "audit:redesign": "node scripts/audit-approved-redesign.mjs",
+    "audit:route-registry": "node scripts/audit-route-registry.mjs",
+    "audit:rmb-architecture": "node scripts/audit-rmb-page-architecture.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.97.0",

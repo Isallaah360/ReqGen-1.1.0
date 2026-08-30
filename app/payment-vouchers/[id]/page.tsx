@@ -183,6 +183,10 @@ function signingStageBadgeClass(stage: string | null | undefined) {
   return "border-slate-200 bg-slate-50 text-slate-700";
 }
 
+function errorMessage(error: unknown) {
+  return error instanceof Error ? error.message : "Unknown error";
+}
+
 function scopeBadgeClass(scope: string | null | undefined) {
   const s = normalize(scope);
 
@@ -198,7 +202,7 @@ function itemSubheadText(item: VoucherItem) {
 export default function PaymentVoucherDetailPage() {
   const router = useRouter();
   const params = useParams();
-  const id = String((params as any)?.id || "");
+  const id = typeof params?.id === "string" ? params.id : "";
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -376,7 +380,7 @@ export default function PaymentVoucherDetailPage() {
   );
 
   useEffect(() => {
-    load();
+    queueMicrotask(() => { void load(); });
 
     const refreshOnFocus = () => {
       load({ silent: true });
@@ -445,8 +449,8 @@ export default function PaymentVoucherDetailPage() {
 
       await load({ silent: true });
       router.refresh();
-    } catch (e: any) {
-      setMsg("❌ Action failed: " + (e?.message || "Unknown error"));
+    } catch (e: unknown) {
+      setMsg("❌ Action failed: " + errorMessage(e));
     } finally {
       setSaving(false);
     }
@@ -481,8 +485,8 @@ export default function PaymentVoucherDetailPage() {
 
       await load({ silent: true });
       router.refresh();
-    } catch (e: any) {
-      setMsg("❌ Cheque signing failed: " + (e?.message || "Unknown error"));
+    } catch (e: unknown) {
+      setMsg("❌ Cheque signing failed: " + errorMessage(e));
     } finally {
       setSaving(false);
     }
@@ -517,8 +521,8 @@ export default function PaymentVoucherDetailPage() {
 
       await load({ silent: true });
       router.refresh();
-    } catch (e: any) {
-      setMsg("❌ Counter-signing failed: " + (e?.message || "Unknown error"));
+    } catch (e: unknown) {
+      setMsg("❌ Counter-signing failed: " + errorMessage(e));
     } finally {
       setSaving(false);
     }
@@ -554,8 +558,8 @@ export default function PaymentVoucherDetailPage() {
         router.push(`/payment-vouchers?updated=${Date.now()}`);
         router.refresh();
       }, 500);
-    } catch (e: any) {
-      setMsg("❌ Failed to delete voucher: " + (e?.message || "Unknown error"));
+    } catch (e: unknown) {
+      setMsg("❌ Failed to delete voucher: " + errorMessage(e));
       setSaving(false);
     }
   }

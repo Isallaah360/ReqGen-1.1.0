@@ -114,7 +114,7 @@ export default function HRBossDashboard() {
   }, []);
 
   useEffect(() => {
-    void load(false);
+    queueMicrotask(() => { void load(false); });
     const onFocus = () => void load(true);
     window.addEventListener("focus", onFocus);
     return () => window.removeEventListener("focus", onFocus);
@@ -206,7 +206,7 @@ export default function HRBossDashboard() {
               ["Awaiting HR", stats.awaitingHR, "Initial HR review queue", "from-amber-500 to-orange-600"],
               ["Ready for Filing", stats.awaitingFiling, "Final HR filing queue", "from-violet-600 to-purple-700"],
               ["Active Officers", stats.activeOfficers, "Officers with current assignments", "from-emerald-500 to-teal-700"],
-            ].map(([label, value, note, tone]) => (
+            ].map(([label, value, note]) => (
               <article key={String(label)} className="rg-stat-card">
                 <p className="rg-stat-label">{label}</p>
                 <p className="rg-stat-value">{loading ? "—" : value}</p>

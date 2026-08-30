@@ -40,7 +40,7 @@ export default function GlobalActivityPage() {
     } finally { setLoading(false); }
   }, []);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => { queueMicrotask(() => { void load(); }); }, [load]);
 
   const filtered = useMemo(() => events.filter((event) => {
     if (source !== "All" && event.source !== source) return false;

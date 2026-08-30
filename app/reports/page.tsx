@@ -50,7 +50,7 @@ const REPORT_SECTIONS: Array<{
   id: string;
   icon: string;
 }> = [
-  { key: "EXECUTIVE", title: "EXECUTIVE OVERVIEW & DECISION INSIGHTS", shortTitle: "Executive Overview", id: "executive-overview", icon: "chart" },
+  { key: "EXECUTIVE", title: "OVERVIEW & DECISION INSIGHTS", shortTitle: "Overview", id: "executive-overview", icon: "chart" },
   { key: "REQUESTS", title: "REQUESTS & WORKFLOW PERFORMANCE", shortTitle: "Requests & Workflow", id: "requests-workflow", icon: "request" },
   { key: "MONTHLY_FINANCE", title: "MONTHLY FINANCE REPORT", shortTitle: "Monthly Finance", id: "monthly-finance-report", icon: "chart" },
   { key: "ANNUAL_FINANCE", title: "ANNUAL FINANCE REPORT", shortTitle: "Annual Finance", id: "annual-finance-report", icon: "building" },
@@ -132,12 +132,16 @@ function DataBar({ label, value, max, valueLabel, tone = "blue" }: { label: stri
 
 function Donut({ segments, center, note }: { segments: Array<{ label: string; value: number; color: string }>; center: string; note: string }) {
   const total = Math.max(1, segments.reduce((sum, item) => sum + item.value, 0));
-  let cursor = 0;
-  const gradient = segments.map((item) => {
-    const start = cursor;
-    cursor += (item.value / total) * 100;
-    return `${item.color} ${start}% ${cursor}%`;
-  }).join(",");
+  const gradient = segments
+    .reduce<{ cursor: number; parts: string[] }>(
+      (acc, item) => {
+        const start = acc.cursor;
+        const end = start + (item.value / total) * 100;
+        return { cursor: end, parts: [...acc.parts, `${item.color} ${start}% ${end}%`] };
+      },
+      { cursor: 0, parts: [] }
+    )
+    .parts.join(",");
   return <div className="grid gap-5 sm:grid-cols-[170px_1fr] sm:items-center">
     <div className="relative mx-auto h-40 w-40 rounded-full" style={{ background: `conic-gradient(${gradient || "#e2e8f0 0 100%"})` }}>
       <div className="absolute inset-7 grid place-items-center rounded-full bg-white text-center shadow-inner"><div><div className="text-2xl font-black text-slate-950">{center}</div><div className="text-[11px] font-bold text-slate-500">{note}</div></div></div>
@@ -174,7 +178,7 @@ export default function ReportsAnalyticsPage() {
   const [departmentFilter, setDepartmentFilter] = useState("ALL");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("ALL");
-  const [printSection, setPrintSection] = useState<PrintKey>("ALL");
+  const printSection: PrintKey = "ALL";
 
   const [requests, setRequests] = useState<RequestRow[]>([]);
   const [departments, setDepartments] = useState<DepartmentRow[]>([]);
@@ -192,7 +196,7 @@ export default function ReportsAnalyticsPage() {
   const [auditRows, setAuditRows] = useState<AnyRow[]>([]);
 
   const load = useCallback(async (silent = false) => {
-    silent ? setRefreshing(true) : setLoading(true);
+    if (silent) { setRefreshing(true); } else { setLoading(true); }
     setFatalError(null);
     setIssues([]);
     try {
@@ -264,7 +268,7 @@ export default function ReportsAnalyticsPage() {
     }
   }, [router]);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => { queueMicrotask(() => { void load(); }); }, [load]);
 
   const inPeriod = useCallback((row: AnyRow) => {
     const raw = rowDate(row);
@@ -397,9 +401,6 @@ export default function ReportsAnalyticsPage() {
     return rows;
   }, [utilisationRate, financeStats.balance, stageRows, requestStats.total, auditStats.exceptions]);
 
-  function scrollToSection(id: string) {
-    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
 
   function clearPrintWorkspace() {
     document.body.classList.remove("report-print-active");

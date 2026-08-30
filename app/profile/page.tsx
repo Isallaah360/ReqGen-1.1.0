@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
@@ -181,7 +182,7 @@ export default function ProfilePage() {
   );
 
   useEffect(() => {
-    load();
+    queueMicrotask(() => { void load(); });
 
     const refreshOnFocus = () => {
       load({ silent: true });
@@ -608,9 +609,12 @@ export default function ProfilePage() {
               <div className="text-sm font-semibold text-slate-800">Current Signature</div>
 
               {sigPreview ? (
-                <img
+                <Image
                   src={sigPreview}
                   alt="Signature"
+                  width={320}
+                  height={96}
+                  unoptimized
                   className="mt-3 h-24 w-auto rounded-xl border bg-white p-2"
                 />
               ) : (

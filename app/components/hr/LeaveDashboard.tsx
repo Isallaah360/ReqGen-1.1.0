@@ -86,7 +86,7 @@ export default function LeaveDashboard() {
         .select("id,request_id,leave_type,start_date,end_date,duration_days,supporting_documents_status,hr_status,filing_status,assigned_officer_id,hr_recommendation,updated_at");
       if (!active) return;
       if (error) {
-        setMetadataWarning("Leave workflow data is available. Run the Phase 8B.2 SQL migration to activate leave dates, balances and HR recommendations.");
+        setMetadataWarning("Leave workflow data is available. Run the latest leave metadata SQL migration to activate leave dates, balances and HR recommendations.");
         setRecords([]);
       } else {
         setMetadataWarning(null);

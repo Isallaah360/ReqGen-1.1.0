@@ -35,7 +35,7 @@ export default function ProfileAccessPage() {
     finally { setLoading(false); }
   }, [router]);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => { queueMicrotask(() => { void load(); }); }, [load]);
   const activeRoles = useMemo(() => roles.filter((r) => r.is_active !== false), [roles]);
 
   return <main className="min-h-screen bg-slate-50 px-4 py-8"><div className="mx-auto max-w-6xl">

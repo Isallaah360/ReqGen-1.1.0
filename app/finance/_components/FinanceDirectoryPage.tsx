@@ -5,6 +5,15 @@ import { Download, Eye, FileSpreadsheet, FileText, Plus, Search } from "lucide-r
 import { FinancePageFrame } from "./FinancePageFrame";
 
 type DirectoryMode = "vouchers" | "reports" | "monthly" | "annual";
+type DirectoryConfig = {
+  title: string;
+  description: string;
+  icon: string;
+  action: string;
+  href: string;
+  metrics: string[][];
+  rows: string[][];
+};
 
 const config = {
   vouchers: {
@@ -27,7 +36,7 @@ const config = {
     metrics: [["Current Year","2026"],["Annual Summary","Available"],["Audit Output","Supported"],["Formats","PDF / Excel"]],
     rows: [["2026","Annual Financial Summary","All Departments","Current"],["2025","Annual Financial Summary","All Departments","Archive"],["2024","Annual Financial Summary","All Departments","Archive"],["2023","Annual Financial Summary","All Departments","Archive"]],
   },
-} satisfies Record<DirectoryMode, any>;
+} satisfies Record<DirectoryMode, DirectoryConfig>;
 
 export default function FinanceDirectoryPage({ mode }: { mode: DirectoryMode }) {
   const c = config[mode];

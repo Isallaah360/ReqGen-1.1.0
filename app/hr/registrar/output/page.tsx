@@ -110,7 +110,7 @@ export default function HROutputPage() {
   }, []);
 
   useEffect(() => {
-    void load(selected);
+    queueMicrotask(() => { void load(selected); });
   }, [load, selected]);
 
   const headers = useMemo(

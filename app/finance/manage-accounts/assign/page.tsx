@@ -83,7 +83,7 @@ function safeUserCode(id: string | undefined) {
 export default function AssignBankToOfficerPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const [, setRefreshing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [myRole, setMyRole] = useState("Staff");
@@ -108,7 +108,7 @@ export default function AssignBankToOfficerPage() {
   const pageSize = 8;
 
   const loadAll = useCallback(async (silent = false) => {
-    silent ? setRefreshing(true) : setLoading(true);
+    if (silent) { setRefreshing(true); } else { setLoading(true); }
     setMessage(null);
 
     const { data: auth } = await supabase.auth.getUser();
@@ -169,7 +169,7 @@ export default function AssignBankToOfficerPage() {
   }, [router]);
 
   useEffect(() => {
-    void loadAll();
+    queueMicrotask(() => void loadAll());
     const onFocus = () => void loadAll(true);
     window.addEventListener("focus", onFocus);
     return () => window.removeEventListener("focus", onFocus);
@@ -219,7 +219,7 @@ export default function AssignBankToOfficerPage() {
     });
   }, [accountMap, officerMap, departmentMap, assignments, search, bankFilter, statusFilter, roleFilter, departmentFilter]);
 
-  useEffect(() => setPage(1), [search, bankFilter, statusFilter, roleFilter, departmentFilter]);
+  useEffect(() => { queueMicrotask(() => setPage(1)); }, [search, bankFilter, statusFilter, roleFilter, departmentFilter]);
   const totalPages = Math.max(1, Math.ceil(rows.length / pageSize));
   const visibleRows = rows.slice((page - 1) * pageSize, page * pageSize);
 
@@ -256,7 +256,7 @@ export default function AssignBankToOfficerPage() {
     setSaving(true);
     setMessage(null);
     const { error } = await supabase.from("iet_account_officer_assignments").upsert(
-      { account_id: selectedAccountId, officer_user_id: selectedOfficerId } as any,
+      { account_id: selectedAccountId, officer_user_id: selectedOfficerId },
       { onConflict: "account_id" }
     );
 

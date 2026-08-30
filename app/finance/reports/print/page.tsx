@@ -1,11 +1,7 @@
 // app/finance/reports/print/page.tsx
 export const dynamic = "force-dynamic";
 
-import { supabase } from "@/lib/supabaseClient";
 
-function naira(n: number) {
-  return "₦" + Math.round(n).toLocaleString();
-}
 
 export default async function FinanceReportPrintPage({
   searchParams,

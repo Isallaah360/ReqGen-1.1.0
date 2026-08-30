@@ -1,10 +1,10 @@
 {
   "summary": {
-    "scannedFiles": 216,
-    "findings": 144,
-    "selectStarQueries": 39,
+    "scannedFiles": 230,
+    "findings": 148,
+    "selectStarQueries": 40,
     "realtimeChannels": 16,
-    "generatedAt": "2026-08-29T04:33:15.191Z"
+    "generatedAt": "2026-08-30T17:55:25.160Z"
   },
   "findings": [
     {
@@ -17,7 +17,7 @@
     },
     {
       "file": "app/admin/departments/page.tsx",
-      "line": 17,
+      "line": 20,
       "rule": "select-star",
       "severity": "warning",
       "match": ".select(\"*\")",
@@ -25,7 +25,7 @@
     },
     {
       "file": "app/admin/page.tsx",
-      "line": 597,
+      "line": 598,
       "rule": "full-array-sort",
       "severity": "info",
       "match": ".sort(",
@@ -41,7 +41,7 @@
     },
     {
       "file": "app/admin/users/page.tsx",
-      "line": 305,
+      "line": 309,
       "rule": "full-array-sort",
       "severity": "info",
       "match": ".sort(",
@@ -89,7 +89,7 @@
     },
     {
       "file": "app/approvals/page.tsx",
-      "line": 357,
+      "line": 359,
       "rule": "realtime-channel",
       "severity": "info",
       "match": ".channel(",
@@ -97,7 +97,7 @@
     },
     {
       "file": "app/audit-centre/page.tsx",
-      "line": 153,
+      "line": 154,
       "rule": "select-star",
       "severity": "warning",
       "match": ".select(\"*\")",
@@ -105,7 +105,7 @@
     },
     {
       "file": "app/audit-centre/page.tsx",
-      "line": 153,
+      "line": 154,
       "rule": "large-limit",
       "severity": "info",
       "match": ".limit(500)",
@@ -113,7 +113,7 @@
     },
     {
       "file": "app/audit-centre/page.tsx",
-      "line": 241,
+      "line": 240,
       "rule": "full-array-sort",
       "severity": "info",
       "match": ".sort(",
@@ -121,7 +121,7 @@
     },
     {
       "file": "app/audit-centre/page.tsx",
-      "line": 255,
+      "line": 254,
       "rule": "realtime-channel",
       "severity": "info",
       "match": ".channel(",
@@ -129,51 +129,11 @@
     },
     {
       "file": "app/audit-centre/page.tsx",
-      "line": 315,
+      "line": 314,
       "rule": "full-array-sort",
       "severity": "info",
       "match": ".sort(",
       "excerpt": "return [...counts.entries()].sort((a, b) => b[1] - a[1]);"
-    },
-    {
-      "file": "app/components/GlobalPageShell.tsx",
-      "line": 30,
-      "rule": "full-array-sort",
-      "severity": "info",
-      "match": ".sort(",
-      "excerpt": ".sort((a, b) => b.href.length - a.href.length)[0];"
-    },
-    {
-      "file": "app/components/NavBar.tsx",
-      "line": 84,
-      "rule": "full-array-sort",
-      "severity": "info",
-      "match": ".sort(",
-      "excerpt": ".sort((a, b) => {"
-    },
-    {
-      "file": "app/components/NavBar.tsx",
-      "line": 575,
-      "rule": "realtime-channel",
-      "severity": "info",
-      "match": ".channel(",
-      "excerpt": ".channel(`notif-${userId}`)"
-    },
-    {
-      "file": "app/components/NavBar.tsx",
-      "line": 589,
-      "rule": "realtime-channel",
-      "severity": "info",
-      "match": ".channel(",
-      "excerpt": ".channel(`req-${userId}`)"
-    },
-    {
-      "file": "app/components/NavBar.tsx",
-      "line": 602,
-      "rule": "realtime-channel",
-      "severity": "info",
-      "match": ".channel(",
-      "excerpt": ".channel(`roles-${userId}`)"
     },
     {
       "file": "app/components/executive/ExecutiveModulePage.tsx",
@@ -224,6 +184,14 @@
       "excerpt": "const channel = supabase.channel(\"executive-command-live\")"
     },
     {
+      "file": "app/components/GlobalPageShell.tsx",
+      "line": 31,
+      "rule": "full-array-sort",
+      "severity": "info",
+      "match": ".sort(",
+      "excerpt": ".sort((a, b) => b.href.length - a.href.length)[0];"
+    },
+    {
       "file": "app/components/hr/HRWorkspace.tsx",
       "line": 133,
       "rule": "full-array-sort",
@@ -256,8 +224,56 @@
       "excerpt": ".channel(\"registrar-governance-overview\")"
     },
     {
+      "file": "app/components/NavBar.tsx",
+      "line": 84,
+      "rule": "full-array-sort",
+      "severity": "info",
+      "match": ".sort(",
+      "excerpt": ".sort((a, b) => {"
+    },
+    {
+      "file": "app/components/NavBar.tsx",
+      "line": 434,
+      "rule": "realtime-channel",
+      "severity": "info",
+      "match": ".channel(",
+      "excerpt": ".channel(`notif-${userId}`)"
+    },
+    {
+      "file": "app/components/NavBar.tsx",
+      "line": 448,
+      "rule": "realtime-channel",
+      "severity": "info",
+      "match": ".channel(",
+      "excerpt": ".channel(`req-${userId}`)"
+    },
+    {
+      "file": "app/components/NavBar.tsx",
+      "line": 461,
+      "rule": "realtime-channel",
+      "severity": "info",
+      "match": ".channel(",
+      "excerpt": ".channel(`roles-${userId}`)"
+    },
+    {
+      "file": "app/components/payment-vouchers/VoucherRegisterView.tsx",
+      "line": 159,
+      "rule": "select-star",
+      "severity": "warning",
+      "match": ".select(\"*\")",
+      "excerpt": ".select(\"*\")"
+    },
+    {
+      "file": "app/components/payment-vouchers/VoucherRegisterView.tsx",
+      "line": 164,
+      "rule": "large-limit",
+      "severity": "info",
+      "match": ".limit(500)",
+      "excerpt": ".limit(500);"
+    },
+    {
       "file": "app/components/registry/RegistryRegister.tsx",
-      "line": 49,
+      "line": 48,
       "rule": "select-star",
       "severity": "warning",
       "match": ".select(\"*\")",
@@ -265,7 +281,7 @@
     },
     {
       "file": "app/components/registry/RegistryRegister.tsx",
-      "line": 49,
+      "line": 48,
       "rule": "large-limit",
       "severity": "info",
       "match": ".limit(500)",
@@ -353,7 +369,7 @@
     },
     {
       "file": "app/dashboard/page.tsx",
-      "line": 104,
+      "line": 106,
       "rule": "large-limit",
       "severity": "info",
       "match": ".limit(500)",
@@ -361,7 +377,7 @@
     },
     {
       "file": "app/dashboard/page.tsx",
-      "line": 109,
+      "line": 111,
       "rule": "large-limit",
       "severity": "info",
       "match": ".limit(500)",
@@ -369,75 +385,11 @@
     },
     {
       "file": "app/dashboard/page.tsx",
-      "line": 185,
+      "line": 187,
       "rule": "full-array-sort",
       "severity": "info",
       "match": ".sort(",
       "excerpt": ".sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime())"
-    },
-    {
-      "file": "app/finance/_components/FinanceOperationsWorkspace.tsx",
-      "line": 85,
-      "rule": "select-star",
-      "severity": "warning",
-      "match": ".select(\"*\")",
-      "excerpt": "if (c.table) requests.push(Promise.resolve(supabase.from(c.table).select(\"*\").order(c.dateField || \"created_at\", { ascending: false }).limit(1000)));"
-    },
-    {
-      "file": "app/finance/_components/FinanceOperationsWorkspace.tsx",
-      "line": 85,
-      "rule": "large-limit",
-      "severity": "info",
-      "match": ".limit(1000)",
-      "excerpt": "if (c.table) requests.push(Promise.resolve(supabase.from(c.table).select(\"*\").order(c.dateField || \"created_at\", { ascending: false }).limit(1000)));"
-    },
-    {
-      "file": "app/finance/_components/FinanceOperationsWorkspace.tsx",
-      "line": 86,
-      "rule": "select-star",
-      "severity": "warning",
-      "match": ".select(\"*\")",
-      "excerpt": "if ([\"account-transfers\", \"account-ledger\"].includes(mode)) requests.push(Promise.resolve(supabase.from(\"iet_accounts\").select(\"*\").order(\"name\", { ascending: true, nullsFirst: false })));"
-    },
-    {
-      "file": "app/finance/_components/FinanceOperationsWorkspace.tsx",
-      "line": 114,
-      "rule": "full-array-sort",
-      "severity": "info",
-      "match": ".sort(",
-      "excerpt": "return Array.from(map.values()).sort((a, b) => b.key.localeCompare(a.key));"
-    },
-    {
-      "file": "app/finance/_components/FinanceOutputWorkspace.tsx",
-      "line": 264,
-      "rule": "full-array-sort",
-      "severity": "info",
-      "match": ".sort(",
-      "excerpt": ".sort((a, b) => b.expenditure - a.expenditure)"
-    },
-    {
-      "file": "app/finance/_components/FinanceOutputWorkspace.tsx",
-      "line": 270,
-      "rule": "full-array-sort",
-      "severity": "info",
-      "match": ".sort(",
-      "excerpt": ".sort((a, b) => Number(b.expenditure || 0) - Number(a.expenditure || 0))"
-    },
-    {
-      "file": "app/finance/_components/FinanceOutputWorkspace.tsx",
-      "line": 438,
-      "rule": "browser-print",
-      "severity": "info",
-      "match": "window.print(",
-      "excerpt": "document.getElementById('printBtn').addEventListener('click', function () { window.print(); });"
-    },
-    {
-      "file": "app/finance/_components/FinanceOutputWorkspace.tsx",
-      "line": 445,
-      "rule": "browser-print",
-      "severity": "info",
-      "match": "window.print(",
-      "excerpt": "})).then(function () { setTimeout(function () { window.focus(); window.print(); }, 350); });"
     },
     {
       "file": "app/finance/activity-history/page.tsx",
@@ -585,7 +537,7 @@
     },
     {
       "file": "app/finance/page.tsx",
-      "line": 139,
+      "line": 138,
       "rule": "large-limit",
       "severity": "info",
       "match": ".limit(500)",
@@ -593,7 +545,7 @@
     },
     {
       "file": "app/finance/page.tsx",
-      "line": 140,
+      "line": 139,
       "rule": "large-limit",
       "severity": "info",
       "match": ".limit(2000)",
@@ -601,7 +553,7 @@
     },
     {
       "file": "app/finance/page.tsx",
-      "line": 141,
+      "line": 140,
       "rule": "large-limit",
       "severity": "info",
       "match": ".limit(2000)",
@@ -609,7 +561,7 @@
     },
     {
       "file": "app/finance/page.tsx",
-      "line": 142,
+      "line": 141,
       "rule": "large-limit",
       "severity": "info",
       "match": ".limit(500)",
@@ -617,7 +569,7 @@
     },
     {
       "file": "app/finance/page.tsx",
-      "line": 173,
+      "line": 172,
       "rule": "realtime-channel",
       "severity": "info",
       "match": ".channel(",
@@ -625,7 +577,7 @@
     },
     {
       "file": "app/finance/page.tsx",
-      "line": 252,
+      "line": 251,
       "rule": "full-array-sort",
       "severity": "info",
       "match": ".sort(",
@@ -633,7 +585,7 @@
     },
     {
       "file": "app/finance/page.tsx",
-      "line": 253,
+      "line": 252,
       "rule": "full-array-sort",
       "severity": "info",
       "match": ".sort(",
@@ -665,27 +617,75 @@
     },
     {
       "file": "app/finance/subheads/page.tsx",
-      "line": 286,
+      "line": 617,
       "rule": "full-array-sort",
       "severity": "info",
       "match": ".sort(",
-      "excerpt": ".sort((a, b) => b[1] - a[1])"
+      "excerpt": ".sort("
     },
     {
-      "file": "app/hr/audit/page.tsx",
-      "line": 71,
+      "file": "app/finance/_components/FinanceOperationsWorkspace.tsx",
+      "line": 463,
       "rule": "select-star",
       "severity": "warning",
       "match": ".select(\"*\")",
-      "excerpt": "supabase.from(\"hr_assignment_history\").select(\"*\").order(\"created_at\", { ascending: false }).limit(1000),"
+      "excerpt": ".select(\"*\")"
     },
     {
-      "file": "app/hr/audit/page.tsx",
-      "line": 71,
+      "file": "app/finance/_components/FinanceOperationsWorkspace.tsx",
+      "line": 471,
       "rule": "large-limit",
       "severity": "info",
       "match": ".limit(1000)",
-      "excerpt": "supabase.from(\"hr_assignment_history\").select(\"*\").order(\"created_at\", { ascending: false }).limit(1000),"
+      "excerpt": ".limit(1000)"
+    },
+    {
+      "file": "app/finance/_components/FinanceOperationsWorkspace.tsx",
+      "line": 486,
+      "rule": "select-star",
+      "severity": "warning",
+      "match": ".select(\"*\")",
+      "excerpt": ".select(\"*\")"
+    },
+    {
+      "file": "app/finance/_components/FinanceOperationsWorkspace.tsx",
+      "line": 897,
+      "rule": "full-array-sort",
+      "severity": "info",
+      "match": ".sort(",
+      "excerpt": ").sort("
+    },
+    {
+      "file": "app/finance/_components/FinanceOutputWorkspace.tsx",
+      "line": 258,
+      "rule": "full-array-sort",
+      "severity": "info",
+      "match": ".sort(",
+      "excerpt": ".sort((a, b) => b.expenditure - a.expenditure)"
+    },
+    {
+      "file": "app/finance/_components/FinanceOutputWorkspace.tsx",
+      "line": 264,
+      "rule": "full-array-sort",
+      "severity": "info",
+      "match": ".sort(",
+      "excerpt": ".sort((a, b) => Number(b.expenditure || 0) - Number(a.expenditure || 0))"
+    },
+    {
+      "file": "app/finance/_components/FinanceOutputWorkspace.tsx",
+      "line": 432,
+      "rule": "browser-print",
+      "severity": "info",
+      "match": "window.print(",
+      "excerpt": "document.getElementById('printBtn').addEventListener('click', function () { window.print(); });"
+    },
+    {
+      "file": "app/finance/_components/FinanceOutputWorkspace.tsx",
+      "line": 439,
+      "rule": "browser-print",
+      "severity": "info",
+      "match": "window.print(",
+      "excerpt": "})).then(function () { setTimeout(function () { window.focus(); window.print(); }, 350); });"
     },
     {
       "file": "app/hr/audit/page.tsx",
@@ -693,15 +693,15 @@
       "rule": "select-star",
       "severity": "warning",
       "match": ".select(\"*\")",
-      "excerpt": "supabase.from(\"hr_request_reviews\").select(\"*\").order(\"created_at\", { ascending: false }).limit(500),"
+      "excerpt": "supabase.from(\"hr_assignment_history\").select(\"*\").order(\"created_at\", { ascending: false }).limit(1000),"
     },
     {
       "file": "app/hr/audit/page.tsx",
       "line": 72,
       "rule": "large-limit",
       "severity": "info",
-      "match": ".limit(500)",
-      "excerpt": "supabase.from(\"hr_request_reviews\").select(\"*\").order(\"created_at\", { ascending: false }).limit(500),"
+      "match": ".limit(1000)",
+      "excerpt": "supabase.from(\"hr_assignment_history\").select(\"*\").order(\"created_at\", { ascending: false }).limit(1000),"
     },
     {
       "file": "app/hr/audit/page.tsx",
@@ -709,11 +709,27 @@
       "rule": "select-star",
       "severity": "warning",
       "match": ".select(\"*\")",
-      "excerpt": "supabase.from(\"hr_staff_file_movements\").select(\"*\").order(\"created_at\", { ascending: false }).limit(1000),"
+      "excerpt": "supabase.from(\"hr_request_reviews\").select(\"*\").order(\"created_at\", { ascending: false }).limit(500),"
     },
     {
       "file": "app/hr/audit/page.tsx",
       "line": 73,
+      "rule": "large-limit",
+      "severity": "info",
+      "match": ".limit(500)",
+      "excerpt": "supabase.from(\"hr_request_reviews\").select(\"*\").order(\"created_at\", { ascending: false }).limit(500),"
+    },
+    {
+      "file": "app/hr/audit/page.tsx",
+      "line": 74,
+      "rule": "select-star",
+      "severity": "warning",
+      "match": ".select(\"*\")",
+      "excerpt": "supabase.from(\"hr_staff_file_movements\").select(\"*\").order(\"created_at\", { ascending: false }).limit(1000),"
+    },
+    {
+      "file": "app/hr/audit/page.tsx",
+      "line": 74,
       "rule": "large-limit",
       "severity": "info",
       "match": ".limit(1000)",
@@ -721,7 +737,7 @@
     },
     {
       "file": "app/hr/audit/page.tsx",
-      "line": 74,
+      "line": 75,
       "rule": "select-star",
       "severity": "warning",
       "match": ".select(\"*\")",
@@ -729,7 +745,7 @@
     },
     {
       "file": "app/hr/audit/page.tsx",
-      "line": 74,
+      "line": 75,
       "rule": "large-limit",
       "severity": "info",
       "match": ".limit(500)",
@@ -737,7 +753,7 @@
     },
     {
       "file": "app/hr/audit/page.tsx",
-      "line": 75,
+      "line": 76,
       "rule": "select-star",
       "severity": "warning",
       "match": ".select(\"*\")",
@@ -745,7 +761,7 @@
     },
     {
       "file": "app/hr/audit/page.tsx",
-      "line": 75,
+      "line": 76,
       "rule": "large-limit",
       "severity": "info",
       "match": ".limit(500)",
@@ -753,7 +769,7 @@
     },
     {
       "file": "app/hr/audit/page.tsx",
-      "line": 109,
+      "line": 110,
       "rule": "full-array-sort",
       "severity": "info",
       "match": ".sort(",
@@ -761,7 +777,7 @@
     },
     {
       "file": "app/hr/audit/page.tsx",
-      "line": 117,
+      "line": 118,
       "rule": "realtime-channel",
       "severity": "info",
       "match": ".channel(",
@@ -769,7 +785,7 @@
     },
     {
       "file": "app/hr/audit/page.tsx",
-      "line": 127,
+      "line": 128,
       "rule": "full-array-sort",
       "severity": "info",
       "match": ".sort(",
@@ -793,7 +809,7 @@
     },
     {
       "file": "app/hr/my-work/page.tsx",
-      "line": 106,
+      "line": 108,
       "rule": "realtime-channel",
       "severity": "info",
       "match": ".channel(",
@@ -857,7 +873,7 @@
     },
     {
       "file": "app/hr/registrar/weekly-seminar/page.tsx",
-      "line": 147,
+      "line": 138,
       "rule": "select-star",
       "severity": "warning",
       "match": ".select(\"*\")",
@@ -865,7 +881,7 @@
     },
     {
       "file": "app/hr/registrar/weekly-seminar/page.tsx",
-      "line": 148,
+      "line": 139,
       "rule": "select-star",
       "severity": "warning",
       "match": ".select(\"*\")",
@@ -873,7 +889,7 @@
     },
     {
       "file": "app/hr/registrar/weekly-seminar/page.tsx",
-      "line": 148,
+      "line": 139,
       "rule": "large-limit",
       "severity": "info",
       "match": ".limit(3000)",
@@ -881,7 +897,7 @@
     },
     {
       "file": "app/hr/registrar/weekly-seminar/page.tsx",
-      "line": 211,
+      "line": 201,
       "rule": "full-array-sort",
       "severity": "info",
       "match": ".sort(",
@@ -936,20 +952,28 @@
       "excerpt": "onClick={() => window.print()}"
     },
     {
+      "file": "app/payment-vouchers/page.tsx",
+      "line": 389,
+      "rule": "select-star",
+      "severity": "warning",
+      "match": ".select(\"*\")",
+      "excerpt": "const { data, error } = await supabase.from(source).select(\"*\").limit(100);"
+    },
+    {
+      "file": "app/payment-vouchers/page.tsx",
+      "line": 1065,
+      "rule": "browser-print",
+      "severity": "info",
+      "match": "window.print(",
+      "excerpt": "<button onClick={() => window.print()}><Printer size={16}/>Print</button>"
+    },
+    {
       "file": "app/payment-vouchers/[id]/print/page.tsx",
       "line": 482,
       "rule": "browser-print",
       "severity": "info",
       "match": "window.print(",
       "excerpt": "window.print();"
-    },
-    {
-      "file": "app/payment-vouchers/page.tsx",
-      "line": 410,
-      "rule": "select-star",
-      "severity": "warning",
-      "match": ".select(\"*\")",
-      "excerpt": "const { data, error } = await supabase.from(source).select(\"*\").limit(100);"
     },
     {
       "file": "app/profile/activity/page.tsx",
@@ -961,7 +985,7 @@
     },
     {
       "file": "app/registry/page.tsx",
-      "line": 265,
+      "line": 261,
       "rule": "full-array-sort",
       "severity": "info",
       "match": ".sort(",
@@ -969,7 +993,7 @@
     },
     {
       "file": "app/registry/page.tsx",
-      "line": 271,
+      "line": 267,
       "rule": "full-array-sort",
       "severity": "info",
       "match": ".sort(",
@@ -993,7 +1017,7 @@
     },
     {
       "file": "app/reports/page.tsx",
-      "line": 226,
+      "line": 230,
       "rule": "select-star",
       "severity": "warning",
       "match": ".select(\"*\")",
@@ -1001,7 +1025,7 @@
     },
     {
       "file": "app/reports/page.tsx",
-      "line": 251,
+      "line": 255,
       "rule": "select-star",
       "severity": "warning",
       "match": ".select(\"*\")",
@@ -1009,7 +1033,7 @@
     },
     {
       "file": "app/reports/page.tsx",
-      "line": 251,
+      "line": 255,
       "rule": "large-limit",
       "severity": "info",
       "match": ".limit(1500)",
@@ -1017,7 +1041,7 @@
     },
     {
       "file": "app/reports/page.tsx",
-      "line": 257,
+      "line": 261,
       "rule": "full-array-sort",
       "severity": "info",
       "match": ".sort(",
@@ -1025,7 +1049,7 @@
     },
     {
       "file": "app/reports/page.tsx",
-      "line": 336,
+      "line": 340,
       "rule": "full-array-sort",
       "severity": "info",
       "match": ".sort(",
@@ -1033,7 +1057,7 @@
     },
     {
       "file": "app/reports/page.tsx",
-      "line": 361,
+      "line": 365,
       "rule": "full-array-sort",
       "severity": "info",
       "match": ".sort(",
@@ -1041,7 +1065,7 @@
     },
     {
       "file": "app/reports/page.tsx",
-      "line": 377,
+      "line": 381,
       "rule": "full-array-sort",
       "severity": "info",
       "match": ".sort(",
@@ -1064,14 +1088,6 @@
       "excerpt": "window.print();"
     },
     {
-      "file": "app/requests/new/page.tsx",
-      "line": 283,
-      "rule": "full-array-sort",
-      "severity": "info",
-      "match": ".sort(",
-      "excerpt": ".sort((a, b) => {"
-    },
-    {
       "file": "app/staff/attendance/page.tsx",
       "line": 112,
       "rule": "browser-print",
@@ -1089,7 +1105,7 @@
     },
     {
       "file": "app/staff/notifications/page.tsx",
-      "line": 134,
+      "line": 135,
       "rule": "browser-print",
       "severity": "info",
       "match": "window.print(",
@@ -1113,7 +1129,7 @@
     },
     {
       "file": "app/workflow/page.tsx",
-      "line": 16,
+      "line": 19,
       "rule": "select-star",
       "severity": "warning",
       "match": ".select(\"*\")",
@@ -1121,7 +1137,7 @@
     },
     {
       "file": "app/workflow/page.tsx",
-      "line": 16,
+      "line": 19,
       "rule": "select-star",
       "severity": "warning",
       "match": ".select(\"*\")",
@@ -1129,7 +1145,7 @@
     },
     {
       "file": "app/workflow/page.tsx",
-      "line": 16,
+      "line": 19,
       "rule": "large-limit",
       "severity": "info",
       "match": ".limit(500)",
@@ -1144,8 +1160,16 @@
       "excerpt": "return Array.from(map.values()).sort((a, b) => {"
     },
     {
+      "file": "lib/approvedMockupSpecs.ts",
+      "line": 31,
+      "rule": "full-array-sort",
+      "severity": "info",
+      "match": ".sort(",
+      "excerpt": ".sort((a,b)=>b.route.length-a.route.length)"
+    },
+    {
       "file": "lib/permissions.ts",
-      "line": 126,
+      "line": 130,
       "rule": "full-array-sort",
       "severity": "info",
       "match": ".sort(",
@@ -1158,6 +1182,14 @@
       "severity": "info",
       "match": "window.print(",
       "excerpt": "window.print();"
+    },
+    {
+      "file": "lib/routeRegistry.ts",
+      "line": 1467,
+      "rule": "full-array-sort",
+      "severity": "info",
+      "match": ".sort(",
+      "excerpt": ".sort((a, b) => a.title.localeCompare(b.title));"
     }
   ]
 }

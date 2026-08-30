@@ -1,5 +1,17 @@
 "use client";
-import Link from "next/link";
-import { FilePlus2, Layers3, WalletCards, ArrowRight } from "lucide-react";
-import { EnterpriseHero, EnterpriseShell, SectionCard } from "@/app/components/enterprise/EnterpriseUI";
-export default function NewVoucherPage(){return <EnterpriseShell><div className="mx-auto max-w-[1500px] space-y-4"><EnterpriseHero eyebrow="Payment Vouchers" title="Create Voucher" description="Start a voucher using the existing approved-request generator or the controlled manual-voucher workflow." actions={<Link href="/payment-vouchers" className="rg-action-button" style={{["--rg-action-accent" as string]:"#334155"}}>Back to Overview</Link>}/><section className="grid gap-4 lg:grid-cols-2"><SectionCard title="Generate from Approved Request" eyebrow="Recommended workflow"><div className="grid gap-4 p-1"><div className="grid h-12 w-12 place-items-center rounded-xl bg-blue-50 text-blue-700"><Layers3/></div><p className="text-[12px] font-semibold text-slate-600">Select one or more compatible Official or Personal Fund requests and generate a ReqGen payment voucher using the existing controlled generator.</p><Link href="/payment-vouchers?create=1" className="rg-action-button w-fit" style={{["--rg-action-accent" as string]:"#0b5cf0"}}>Open Request Generator <ArrowRight size={15}/></Link></div></SectionCard><SectionCard title="Manual Voucher" eyebrow="Controlled finance entry"><div className="grid gap-4 p-1"><div className="grid h-12 w-12 place-items-center rounded-xl bg-amber-50 text-amber-700"><FilePlus2/></div><p className="text-[12px] font-semibold text-slate-600">Use the existing manual-voucher workflow for authorised finance entries that are not generated from a ReqGen request.</p><Link href="/payment-vouchers?manual=1" className="rg-action-button w-fit" style={{["--rg-action-accent" as string]:"#ef8c18"}}>Open Manual Voucher <ArrowRight size={15}/></Link></div></SectionCard></section></div></EnterpriseShell>}
+
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+
+/**
+ * Canonical deep-link compatibility route.
+ * Voucher creation is intentionally opened inside the Payment Vouchers workspace
+ * so users can create, save/submit, close and continue from the parent register.
+ */
+export default function CreateVoucherCompatibilityRoute() {
+  const router = useRouter();
+  useEffect(() => {
+    router.replace("/payment-vouchers?create=1");
+  }, [router]);
+  return <main className="p-6 text-sm font-semibold text-slate-600">Opening the controlled voucher form…</main>;
+}

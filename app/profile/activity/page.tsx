@@ -34,7 +34,7 @@ export default function ProfileActivityPage() {
     finally { setLoading(false); }
   }, [router]);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => { queueMicrotask(() => { void load(); }); }, [load]);
   const filtered = useMemo(() => activities.filter((a) => `${a.action} ${a.detail} ${a.source}`.toLowerCase().includes(search.toLowerCase())), [activities, search]);
 
   return <main className="min-h-screen bg-slate-50 px-4 py-8"><div className="mx-auto max-w-6xl">

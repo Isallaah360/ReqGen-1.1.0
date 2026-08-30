@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Archive, ArchiveRestore, CalendarClock, FileWarning, Search, ShieldCheck } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { HRAccessGuard, HRNavigation } from "@/app/components/hr";
-import { HRAlert, HRBadge, HREmpty, HRHero, HRPageShell, HRPanel, HRRefreshButton, HRStatCard, formatDate, pretty } from "@/app/components/hr/HREnterprisePage";
+import { HRAlert, HRBadge, HREmpty, HRHero, HRPageShell, HRPanel, HRRefreshButton, HRStatCard, formatDate } from "@/app/components/hr/HREnterprisePage";
 
 type FileRow = { id: string; staff_id: string; file_no: string; retention_status: string; archive_reference: string | null; archive_reason: string | null; retention_review_at: string | null; archived_at: string | null; restored_at: string | null; current_location: string; updated_at: string };
 type Profile = { id: string; full_name: string | null; email: string | null };
@@ -30,7 +30,7 @@ export default function HRArchivePage() {
     setLoading(false);
   }, []);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => { queueMicrotask(() => { void load(); }); }, [load]);
   const profileMap = useMemo(() => new Map(profiles.map((profile) => [profile.id, profile])), [profiles]);
   const rows = useMemo(() => files.filter((file) => {
     const profile = profileMap.get(file.staff_id);

@@ -19,7 +19,7 @@ type ModuleMeta = {
 };
 
 const META: Record<ExecutiveModule, ModuleMeta> = {
-  overview: { eyebrow: "Executive Command", title: "Command Centre", description: "A secure executive view of requests, Finance, HR, Registry, audit evidence, alerts and institutional performance.", icon: Building2 },
+  overview: { eyebrow: "Executive Command", title: "Command Centre", description: "A secure view of requests, Finance, HR, Registry, audit evidence, alerts and institutional performance.", icon: Building2 },
   requests: { eyebrow: "Workflow Intelligence", title: "Executive Requests Intelligence", description: "Monitor request volume, approval queues, workflow stages, bottlenecks and recent institutional submissions.", icon: ClipboardList },
   finance: { eyebrow: "Authorized Financial Intelligence", title: "Executive Finance Intelligence", description: "Review Finance workload and values permitted by your active role and existing Supabase security policies.", icon: Banknote },
   hr: { eyebrow: "Workforce Intelligence", title: "Executive HR Intelligence", description: "Monitor HR workload, leave activity, seminar participation, capacity records and departmental KPIs.", icon: Users },
@@ -27,8 +27,8 @@ const META: Record<ExecutiveModule, ModuleMeta> = {
   audit: { eyebrow: "Assurance and Risk", title: "Executive Audit Intelligence", description: "Review who did what, under which active role, when it happened and the risk signals requiring oversight.", icon: ShieldCheck },
   analytics: { eyebrow: "Institutional Performance", title: "Analytics", description: "Compare completion, workload, attendance and data-source coverage across major ReqGen modules.", icon: BarChart3 },
   calendar: { eyebrow: "Institutional Schedule", title: "Executive Calendar", description: "View leave, seminars, workflow deadlines and available institutional events in one executive schedule.", icon: CalendarDays },
-  meetings: { eyebrow: "Governance Activities", title: "Executive Meetings Centre", description: "Monitor seminar sessions, governance activities and action follow-up information available in ReqGen.", icon: BriefcaseBusiness },
-  notifications: { eyebrow: "Priority Communications", title: "Executive Notification Centre", description: "Review unread updates, priority workflow alerts and system notifications addressed to your account.", icon: Bell },
+  meetings: { eyebrow: "Governance Activities", title: "Meetings", description: "Monitor seminar sessions, governance activities and action follow-up information available in ReqGen.", icon: BriefcaseBusiness },
+  notifications: { eyebrow: "Priority Communications", title: "Notifications", description: "Review unread updates, priority workflow alerts and system notifications addressed to your account.", icon: Bell },
   reports: { eyebrow: "Executive Reporting", title: "Executive Management Report", description: "Generate a structured institutional summary for printing or saving as PDF.", icon: FileText },
 };
 

@@ -97,6 +97,8 @@ function moduleTone(module: string): "blue" | "violet" | "emerald" | "amber" | "
   return "slate";
 }
 
+const AUDIT_CENTRE_NOW = Date.now();
+
 export default function AuditCentrePage() {
   const router = useRouter();
   const [events, setEvents] = useState<AuditEvent[]>([]);
@@ -106,7 +108,6 @@ export default function AuditCentrePage() {
   const [source, setSource] = useState("ALL");
   const [period, setPeriod] = useState("30");
   const [severity, setSeverity] = useState("ALL");
-  const [profiles, setProfiles] = useState<Record<string, ProfileLite>>({});
   const [coverage, setCoverage] = useState<{ available: number; attempted: number }>({ available: 0, attempted: 0 });
 
   const verifyAccess = useCallback(async () => {
@@ -228,8 +229,6 @@ export default function AuditCentrePage() {
             email: text(row.email) || null,
           };
         });
-        setProfiles(profileMap);
-
         collected.forEach((event) => {
           const profile = profileMap[event.actorId];
           if (profile && (event.actor === event.actorId || event.actor === "System")) {
@@ -249,7 +248,7 @@ export default function AuditCentrePage() {
   }, [verifyAccess]);
 
   useEffect(() => {
-    void load();
+    queueMicrotask(() => { void load(); });
 
     const channel = supabase
       .channel("enterprise-audit-centre-live")
@@ -266,7 +265,7 @@ export default function AuditCentrePage() {
 
   const filtered = useMemo(() => {
     const days = Number(period);
-    const cutoff = days > 0 ? Date.now() - days * 86400000 : 0;
+    const cutoff = days > 0 ? AUDIT_CENTRE_NOW - days * 86400000 : 0;
     const needle = query.trim().toLowerCase();
 
     return events.filter((event) => {

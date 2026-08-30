@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ArrowRight,
-  Banknote,
   Building2,
   CalendarDays,
   CircleAlert,
@@ -128,7 +127,7 @@ export default function FinanceOverviewPage() {
   const [transactionType, setTransactionType] = useState("All Types");
 
   const loadData = useCallback(async (manual = false) => {
-    manual ? setRefreshing(true) : setLoading(true);
+    if (manual) { setRefreshing(true); } else { setLoading(true); }
     setFatalError(null);
     setLoadIssues([]);
     try {
@@ -161,7 +160,7 @@ export default function FinanceOverviewPage() {
     }
   }, []);
 
-  useEffect(() => { void loadData(); }, [loadData]);
+  useEffect(() => { queueMicrotask(() => { void loadData(); }); }, [loadData]);
 
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | null = null;

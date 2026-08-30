@@ -58,7 +58,7 @@ export default function RegistrarGovernanceOverview() {
   });
 
   const load = useCallback(async (manual = false) => {
-    manual ? setRefreshing(true) : setLoading(true);
+    if (manual) { setRefreshing(true); } else { setLoading(true); }
     const results = await Promise.all([
       countSource("hr_staff_training_programmes"),
       countSource("hr_department_capacity_programmes"),
@@ -86,7 +86,7 @@ export default function RegistrarGovernanceOverview() {
   }, []);
 
   useEffect(() => {
-    void load();
+    queueMicrotask(() => { void load(); });
   }, [load]);
 
   useEffect(() => {

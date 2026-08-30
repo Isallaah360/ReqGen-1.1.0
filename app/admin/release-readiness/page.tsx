@@ -81,7 +81,7 @@ export default function ReleaseReadinessPage() {
           <StatCard label="Failed" value={summary.failed} note="Corrections required before pilot" tone="rose" />
         </section>
 
-        <SectionCard title="Acceptance Checklist" eyebrow="Phase D controls">
+        <SectionCard title="Acceptance Checklist" eyebrow="Acceptance controls">
           <div className="mb-5 flex flex-wrap gap-2">
             {categories.map((category) => (
               <button

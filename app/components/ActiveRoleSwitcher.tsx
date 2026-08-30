@@ -34,7 +34,7 @@ export function ActiveRoleSwitcher({ compact = false, hero = false, allowInERP =
   }, []);
 
   useEffect(() => {
-    void load();
+    queueMicrotask(() => { void load(); });
     const handler = () => void load();
     window.addEventListener("reqgen-active-role-changed", handler);
     return () => window.removeEventListener("reqgen-active-role-changed", handler);

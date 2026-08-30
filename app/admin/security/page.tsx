@@ -153,7 +153,7 @@ export default function AdminSecurityPage() {
   );
 
   useEffect(() => {
-    load();
+    queueMicrotask(() => { void load(); });
 
     const refreshOnFocus = () => {
       load({ silent: true });
@@ -419,7 +419,7 @@ export default function AdminSecurityPage() {
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <div className="text-xs font-black uppercase tracking-wide text-blue-700">
-              ReqGen 1.1.0 Security Governance
+              Security
             </div>
 
             <h1 className="mt-1 text-3xl font-extrabold tracking-tight text-slate-900">

@@ -1,16 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { WorkflowLoading } from "@/app/components/ui/WorkflowUI";
 import {
   AlertCircle,
   BriefcaseBusiness,
-  Building2,
   CheckCircle2,
   CircleHelp,
-  FileText,
   FolderOpen,
   Info,
   Landmark,
@@ -223,13 +221,7 @@ function deptGroupName(name: string | null | undefined) {
   return "General Admin";
 }
 
-function isDinDepartment(name: string | null | undefined) {
-  return deptGroupName(name) === "DIN";
-}
 
-function isAsapAlliDepartment(name: string | null | undefined) {
-  return deptGroupName(name) === "ASAP-ALLI";
-}
 
 function routingNoteFor(type: RequestType, category: PersonalCategory, dept: Dept | null) {
   const group = deptGroupName(dept?.name);
@@ -273,24 +265,22 @@ function routingNoteFor(type: RequestType, category: PersonalCategory, dept: Dep
   return `${group} Personal Other route: Staff → DOD → HR → DG → HR Filing → Staff & DOD.`;
 }
 
-function roleSummary(fallbackRole: string | null | undefined, roles: ProfileRole[]) {
-  const active = roles.filter((r) => r.is_active);
 
-  if (active.length === 0) return fallbackRole || "Staff";
+type SubmitRequestResult = {
+  request_id?: string | null;
+  funds_state?: string | null;
+  first_stage?: string | null;
+};
 
-  return active
-    .slice()
-    .sort((a, b) => {
-      if (a.is_primary && !b.is_primary) return -1;
-      if (!a.is_primary && b.is_primary) return 1;
-      return a.role_name.localeCompare(b.role_name);
-    })
-    .map((r) => r.role_name)
-    .join(", ");
+function errorMessage(error: unknown, fallback = "Unknown error") {
+  return error instanceof Error ? error.message : fallback;
 }
 
 export default function NewRequestPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const embedded = searchParams.get("embedded") === "1";
+  const closeEmbedded = () => window.parent.postMessage({ type: "reqgen-form-cancel" }, window.location.origin);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -351,19 +341,10 @@ export default function NewRequestPage() {
         ? "SMS/Email OTP"
         : "Email OTP";
 
-  const otpDestinationLabel =
-    requestOtpChannel === "sms"
-      ? `your registered phone: ${maskPhone(me?.phone)}`
-      : isDualOtpChannel(requestOtpChannel)
-        ? `your registered phone: ${maskPhone(me?.phone)} and email: ${maskEmail(me?.email)}`
-        : `your registered email: ${maskEmail(me?.email)}`;
-
   const selectedDept = useMemo(() => {
     return depts.find((d) => d.id === deptId) || null;
   }, [depts, deptId]);
 
-  const selectedDeptIsDin = isDinDepartment(selectedDept?.name);
-  const selectedDeptIsAsapAlli = isAsapAlliDepartment(selectedDept?.name);
 
   const filteredSubs = useMemo(() => {
     return subs.filter((s) => s.dept_id === deptId);
@@ -760,8 +741,8 @@ export default function NewRequestPage() {
       } else {
         setMsg("✅ Email OTP sent to your registered email.");
       }
-    } catch (e: any) {
-      setMsg(`❌ Could not send ${otpLabel}: ` + (e?.message || "Unknown error."));
+    } catch (e: unknown) {
+      setMsg(`❌ Could not send ${otpLabel}: ` + errorMessage(e, "Unknown error."));
     } finally {
       setSendingOtp(false);
     }
@@ -813,8 +794,8 @@ export default function NewRequestPage() {
       setOtpCode("");
 
       await submitSignedRequest();
-    } catch (e: any) {
-      setMsg(`❌ ${otpLabel} verification failed: ` + (e?.message || "Invalid OTP."));
+    } catch (e: unknown) {
+      setMsg(`❌ ${otpLabel} verification failed: ` + errorMessage(e, "Invalid OTP."));
       setOtpCode("");
     } finally {
       setVerifyingOtp(false);
@@ -937,7 +918,7 @@ export default function NewRequestPage() {
 
       if (error) throw new Error(error.message);
 
-      const result = Array.isArray(data) ? (data[0] as any) : (data as any);
+      const result = (Array.isArray(data) ? data[0] : data) as SubmitRequestResult | null;
       const requestId = result?.request_id;
 
       if (!requestId) {
@@ -986,11 +967,15 @@ export default function NewRequestPage() {
       await loadAll();
 
       setTimeout(() => {
+        if (embedded) {
+          window.parent.postMessage({ type: "reqgen-request-created", requestId }, window.location.origin);
+          return;
+        }
         router.push(`/requests/${requestId}?updated=${Date.now()}`);
         router.refresh();
       }, 500);
-    } catch (e: any) {
-      setMsg("❌ Submit failed: " + (e?.message || "Unknown error"));
+    } catch (e: unknown) {
+      setMsg("❌ Submit failed: " + errorMessage(e));
     } finally {
       setSaving(false);
       setUploadingAttachments(false);
@@ -1029,7 +1014,7 @@ export default function NewRequestPage() {
             <p>Submit a new request by providing the required details below.</p>
           </div>
           <div className={styles.breadcrumbs} aria-label="Breadcrumb">
-            <button type="button" onClick={() => router.push("/requests")}>Requests</button>
+            <button type="button" onClick={() => embedded ? closeEmbedded() : router.push("/requests")}>Requests</button>
             <span>›</span>
             <strong>Create New Request</strong>
           </div>
@@ -1221,7 +1206,7 @@ export default function NewRequestPage() {
             </div>
 
             <footer className={styles.formActions}>
-              <button type="button" className={styles.cancelButton} onClick={() => router.push("/requests")}>Cancel</button>
+              <button type="button" className={styles.cancelButton} onClick={() => embedded ? closeEmbedded() : router.push("/requests")}>Cancel</button>
               <div>
                 <button type="button" className={styles.draftButton} onClick={saveDraftLocally}>Save as Draft</button>
                 <button type="button" className={styles.submitButton} onClick={openSubmitVerification} disabled={!canSubmit}>

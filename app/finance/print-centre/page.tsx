@@ -5,7 +5,7 @@ import { useState } from "react";
 import { FinanceCard, FinancePageFrame, MetricCard, PrimaryButton, StatusPill } from "../_components/FinancePageFrame";
 
 const templates = [
-  { id: "summary", icon: "📊", title: "Executive Summary", text: "One-page management overview with totals and approvals." },
+  { id: "summary", icon: "📊", title: "Management Summary", text: "One-page management overview with totals and approvals." },
   { id: "voucher", icon: "🧾", title: "Payment Voucher", text: "Clean voucher layout for authorisation and filing." },
   { id: "ledger", icon: "📒", title: "Ledger Statement", text: "Account or subhead movement with opening and closing balances." },
   { id: "report", icon: "🏛️", title: "Institutional Report", text: "Official IET A4 report with logo and signature blocks." },

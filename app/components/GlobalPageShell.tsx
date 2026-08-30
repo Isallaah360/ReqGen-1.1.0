@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { NAVIGATION_ITEMS } from "@/lib/navigation";
@@ -48,7 +49,7 @@ function ReqGenFooter() {
     <footer className="reqgen-site-footer" aria-label="ReqGen footer">
       <div className="reqgen-site-footer__inner">
         <div className="reqgen-site-footer__brand">
-          <img src="/be-logo.png" alt="Barderian Enterprises" />
+          <Image src="/be-logo.png" alt="Barderian Enterprises" width={38} height={32} />
           <div>
             <strong>ReqGen 1.1.0</strong>
             <span>Powered by Barderian Enterprises</span>
@@ -72,10 +73,7 @@ export default function GlobalPageShell({ children }: { children: ReactNode }) {
   const meta = useMemo(() => routeMeta(pathname), [pathname]);
 
   useEffect(() => {
-    if (isPublic) {
-      setHasLocalHero(true);
-      return;
-    }
+    if (isPublic) return;
 
     const id = window.requestAnimationFrame(() => {
       const root = contentRef.current;

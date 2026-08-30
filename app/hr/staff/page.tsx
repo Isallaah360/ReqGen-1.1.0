@@ -69,7 +69,7 @@ export default function HRStaffPage() {
     setLoading(false);
   }, []);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => { queueMicrotask(() => { void load(); }); }, [load]);
 
   const profileMap = useMemo(() => new Map(profiles.map((profile) => [profile.id, profile])), [profiles]);
   const departmentMap = useMemo(() => new Map(departments.map((department) => [department.id, department.name || "Unnamed Department"])), [departments]);

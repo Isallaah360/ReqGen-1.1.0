@@ -251,7 +251,7 @@ export default function ChangePasswordPage() {
     }
 
     useEffect(() => {
-        load();
+        queueMicrotask(() => { void load(); });
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 

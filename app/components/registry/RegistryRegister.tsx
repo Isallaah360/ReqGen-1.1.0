@@ -69,7 +69,7 @@ export default function RegistryRegister({ kind }: { kind: RegisterKind }) {
     }
   }, [kind]);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => { queueMicrotask(() => { void load(); }); }, [load]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();

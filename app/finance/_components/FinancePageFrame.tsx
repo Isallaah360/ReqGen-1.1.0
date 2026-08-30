@@ -4,7 +4,7 @@ import { type ReactNode } from "react";
 
 export type FinanceTone = "blue" | "cyan" | "emerald" | "amber" | "violet" | "rose";
 
-export function FinancePageFrame({ eyebrow, title, description, icon, badge, actions, children }: { eyebrow: string; title: string; description: string; icon: string; tone?: FinanceTone; badge?: string; actions?: ReactNode; children: ReactNode; }) {
+export function FinancePageFrame({ title, description, icon, badge, actions, children }: { eyebrow: string; title: string; description: string; icon: string; tone?: FinanceTone; badge?: string; actions?: ReactNode; children: ReactNode; }) {
   return (
     <main className="finance-mock-page">
       <header className="finance-mock-header">

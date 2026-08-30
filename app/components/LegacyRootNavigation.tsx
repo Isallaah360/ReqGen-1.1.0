@@ -21,7 +21,7 @@ export default function LegacyRootNavigation() {
 
   useEffect(() => {
     const isEmbedded = new URLSearchParams(window.location.search).get("embedded") === "1";
-    setEmbedded(isEmbedded);
+    queueMicrotask(() => setEmbedded(isEmbedded));
     document.documentElement.classList.toggle("reqgen-erp-embedded", isEmbedded);
     document.body.classList.toggle("reqgen-erp-embedded", isEmbedded);
     return () => {

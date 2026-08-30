@@ -12,7 +12,6 @@ type UserRow = {
   role: string | null;
 };
 
-type SettingRow = { key: string; value: string };
 
 const SETTING_KEYS = [
   "REGISTRY_USER_ID",
@@ -34,6 +33,12 @@ function userLabel(u: UserRow) {
   const email = u.email?.trim() || u.id;
   const role = u.role?.trim() || "Staff";
   return `${name} • ${email} (${role})`;
+}
+
+type AppSettingRow = { key: string; value: string | null };
+
+function errorMessage(error: unknown) {
+  return error instanceof Error ? error.message : "Unknown error";
 }
 
 export default function AdminSettingsPage() {
@@ -97,8 +102,8 @@ export default function AdminSettingsPage() {
     if (settingsRes.error) setMsg("Failed to load settings: " + settingsRes.error.message);
     else {
       const map: Record<string, string> = {};
-      (settingsRes.data || []).forEach((r: any) => {
-        map[r.key] = r.value;
+      ((settingsRes.data || []) as AppSettingRow[]).forEach((r) => {
+        map[r.key] = r.value || "";
       });
       setSettings(map);
     }
@@ -125,8 +130,8 @@ export default function AdminSettingsPage() {
 
       setMsg(`✅ ${key} saved successfully.`);
       await loadAll();
-    } catch (e: any) {
-      setMsg("❌ Failed: " + (e?.message || "Unknown error"));
+    } catch (e: unknown) {
+      setMsg("❌ Failed: " + errorMessage(e));
     } finally {
       setSaving(false);
     }

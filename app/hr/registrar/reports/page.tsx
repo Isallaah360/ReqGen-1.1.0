@@ -42,7 +42,7 @@ export default function HrReportsPage() {
     setLoading(false);
   }, []);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => { queueMicrotask(() => { void load(); }); }, [load]);
 
   const analytics = useMemo(() => {
     const trainingTotal = data.staffProgrammes.length + data.departmentProgrammes.length;
