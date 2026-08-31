@@ -396,26 +396,18 @@ export default function ProfilePage() {
   return (
     <main className="min-h-screen bg-slate-50 px-4">
       <div className="mx-auto max-w-5xl py-10">
-        <div className="rg-rmb-actions-row">
-          <button
-            type="button"
-            onClick={() => load({ silent: true })}
-            disabled={busy}
-            className="rg-action-button"
-            style={{ ["--rg-action-accent" as string]: "#0891b2" }}
-          >
-            {refreshing ? "Refreshing..." : "Refresh"}
-          </button>
-          <button
-            type="button"
-            onClick={goDashboard}
-            disabled={busy}
-            className="rg-action-button"
-            style={{ ["--rg-action-accent" as string]: "#334155" }}
-          >
-            Dashboard
-          </button>
-        </div>
+        <header className="rg-module-header">
+          <div className="rg-module-heading">
+            <h1>Profile</h1>
+            <p className="rg-module-description">Update your identity details, institutional signature and personal account information.</p>
+          </div>
+          <div className="rg-module-actions">
+            <button type="button" onClick={() => load({ silent: true })} disabled={busy} className="rg-action-button">
+              {refreshing ? "Refreshing..." : "Refresh"}
+            </button>
+            <button type="button" onClick={goDashboard} disabled={busy} className="rg-action-button rg-action-secondary">Dashboard</button>
+          </div>
+        </header>
 
         <ProfileNavigation />
 

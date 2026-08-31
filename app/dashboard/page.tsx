@@ -60,12 +60,6 @@ function money(value: number) {
     maximumFractionDigits: value >= 1_000_000 ? 1 : 0,
   }).format(value || 0);
 }
-function greeting() {
-  const hour = new Date().getHours();
-  if (hour < 12) return "Good morning";
-  if (hour < 17) return "Good afternoon";
-  return "Good evening";
-}
 function statusLabel(status?: string | null) {
   if (completed(status)) return "Completed";
   if (rejected(status)) return "Rejected";
@@ -82,7 +76,6 @@ function ageDays(value: string) {
 export default function DashboardPage() {
   const [requests, setRequests] = useState<RequestRow[]>([]);
   const [vouchers, setVouchers] = useState<VoucherRow[]>([]);
-  const [name, setName] = useState("User");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -91,12 +84,6 @@ export default function DashboardPage() {
       const auth = await supabase.auth.getUser();
       if (!mounted) return;
       const user = auth.data.user;
-      setName(
-        user?.user_metadata?.full_name ||
-          user?.user_metadata?.name ||
-          user?.email?.split("@")[0] ||
-          "User",
-      );
 
       const [rq, pv] = await Promise.all([
         supabase
@@ -188,15 +175,14 @@ export default function DashboardPage() {
       .slice(0, 5);
   }, [requests, vouchers]);
 
-  const firstName = name.trim().split(/\s+/)[0] || "User";
   const dateLabel = new Date().toLocaleDateString("en-NG", { weekday: "long", day: "2-digit", month: "long", year: "numeric" });
 
   return (
     <main className={styles.page}>
       <header className={styles.header}>
         <div>
-          <h1>{greeting()}, {firstName}! <span aria-hidden="true">👋</span></h1>
-          <p>Here&apos;s what&apos;s happening across ReqGen today.</p>
+          <h1>Dashboard</h1>
+          <p>Operational overview of requests, approvals, finance activity and current workload.</p>
         </div>
         <div className={styles.dateBox}><CalendarDays size={17} />{dateLabel}</div>
       </header>

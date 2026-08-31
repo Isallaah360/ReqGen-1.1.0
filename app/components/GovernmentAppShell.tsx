@@ -46,7 +46,6 @@ import { getMockupRouteMeta } from "@/lib/mockupRouteTypes";
 
 import { ActiveRoleSwitcher } from "./ActiveRoleSwitcher";
 import StaffFooter from "./staff/StaffFooter";
-import GlobalPageHeader from "./GlobalPageHeader";
 
 const PUBLIC_PATHS = new Set([
   "/",
@@ -540,16 +539,11 @@ function GovernmentAppShellContent({
         ).trim();
       }
 
-      const metaName =
-        user?.user_metadata?.full_name ||
-        user?.user_metadata?.name ||
-        user?.email?.split("@")[0];
+      const metadataName = String(
+        user?.user_metadata?.full_name || user?.user_metadata?.name || ""
+      ).trim();
 
-      setUserName(
-        profileName ||
-        metaName ||
-        "ReqGen User"
-      );
+      setUserName(profileName || metadataName || "Authorised User");
 
       setUserEmail(
         user?.email || ""
@@ -584,9 +578,9 @@ function GovernmentAppShellContent({
 
     const nextGreeting =
       hour < 12
-        ? "Good Morning ☀️"
+        ? "Good Morning 🌅"
         : hour < 17
-          ? "Good Afternoon 🌤️"
+          ? "Good Afternoon ☀️"
           : "Good Evening 🌙";
 
     queueMicrotask(() => setGreeting(nextGreeting));
@@ -1046,8 +1040,7 @@ function GovernmentAppShellContent({
               undefined
             }
           >
-            <GlobalPageHeader userName={userName} />
-            <div className="rg-route-body">{children}</div>
+            {children}
           </div>
 
           <StaffFooter />

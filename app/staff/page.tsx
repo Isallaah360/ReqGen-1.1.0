@@ -33,12 +33,6 @@ function requestHref(id: unknown) {
   return value ? `/requests/${value}` : "/staff/requests";
 }
 
-function greeting() {
-  const hour = new Date().getHours();
-  if (hour < 12) return "Good Morning👋";
-  if (hour < 17) return "Good Afternoon👋";
-  return "Good Evening👋";
-}
 
 function icon(path: string) {
   return (
@@ -107,8 +101,7 @@ export default function StaffWorkspacePage() {
         <StaffHero
           name={profile?.fullName || "Staff Member"}
           designation={profile?.designation || profile?.role || "IET Staff Member"}
-          description={`${greeting()}. ${new Date().toLocaleDateString("en-NG", { weekday: "long", day: "2-digit", month: "long", year: "numeric" })}. Welcome to your secure personal workspace for requests, leave, attendance, training, notifications, documents and profile services.`}
-          prominentGreeting
+          description="Your secure personal workspace for requests, leave, attendance, training, notifications, documents and profile services."
           actions={
             <div className="flex flex-col gap-3 sm:min-w-[310px]">
               <div className="grid grid-cols-2 gap-2">
