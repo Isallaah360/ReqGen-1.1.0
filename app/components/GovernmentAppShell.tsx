@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import {
   Suspense,
@@ -11,7 +10,6 @@ import {
 
 import {
   usePathname,
-  useRouter,
   useSearchParams,
 } from "next/navigation";
 
@@ -34,8 +32,9 @@ import {
   MessageSquare,
   Menu,
   X,
-  LogOut,
   ChevronDown,
+  Sun,
+  Globe2,
 } from "lucide-react";
 
 import { supabase } from "@/lib/supabaseClient";
@@ -44,7 +43,6 @@ import { canAccessPath } from "@/lib/permissions";
 import { getCurrentAuthContext } from "@/lib/auth";
 import { getMockupRouteMeta } from "@/lib/mockupRouteTypes";
 
-import { ActiveRoleSwitcher } from "./ActiveRoleSwitcher";
 import StaffFooter from "./staff/StaffFooter";
 
 const PUBLIC_PATHS = new Set([
@@ -459,7 +457,6 @@ function GovernmentAppShellContent({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const router = useRouter();
 
   // Safe now because this component is rendered below Suspense.
   const searchParams = useSearchParams();
@@ -492,12 +489,6 @@ function GovernmentAppShellContent({
 
   const [userName, setUserName] =
     useState("ReqGen User");
-
-  const [userEmail, setUserEmail] =
-    useState("");
-
-  const [greeting, setGreeting] =
-    useState("Good Morning ☀️");
 
   useEffect(() => {
     if (isPublic) return;
@@ -544,10 +535,6 @@ function GovernmentAppShellContent({
       ).trim();
 
       setUserName(profileName || metadataName || "Authorised User");
-
-      setUserEmail(
-        user?.email || ""
-      );
     }
 
     void loadContext();
@@ -571,20 +558,6 @@ function GovernmentAppShellContent({
       );
     };
   }, [isPublic]);
-
-  useEffect(() => {
-    const hour =
-      new Date().getHours();
-
-    const nextGreeting =
-      hour < 12
-        ? "Good Morning 🌅"
-        : hour < 17
-          ? "Good Afternoon ☀️"
-          : "Good Evening 🌙";
-
-    queueMicrotask(() => setGreeting(nextGreeting));
-  }, []);
 
   useEffect(() => {
     const parent = Object.keys(MODULE_SUBNAV).find(
@@ -666,11 +639,6 @@ function GovernmentAppShellContent({
       .split("/")
       .filter(Boolean)[0] ||
     "dashboard";
-
-  async function signOut() {
-    await supabase.auth.signOut();
-    router.replace("/login");
-  }
 
   const renderNav = () =>
     visibleNav.map((item) => {
@@ -808,27 +776,15 @@ function GovernmentAppShellContent({
           <Link
             href="/dashboard"
             className="rg-brand-mark"
-            aria-label="ReqGen 1.1.0 dashboard"
+            aria-label="ReqGen dashboard"
           >
-            <span className="rg-brand-logo">
-              <Image
-                src="/be-logo.png"
-                alt="Barderian Enterprises"
-                width={38}
-                height={32}
-                priority
-              />
+            <span className="rg-brand-logo rg-brand-shield" aria-hidden="true">
+              <ShieldCheck size={30} strokeWidth={1.7} />
             </span>
 
             <span className="rg-brand-copy">
-              <strong>
-                ReqGen 1.1.0
-              </strong>
-
-              <small>
-                Request Management
-                System
-              </small>
+              <strong>REQGEN</strong>
+              <small>Islamic Education Trust (IET)</small>
             </span>
           </Link>
 
@@ -850,28 +806,16 @@ function GovernmentAppShellContent({
           {renderNav()}
         </nav>
 
-        <div className="rg-sidebar-user">
-          <div className="rg-avatar">
-            {initials}
+        <div className="rg-sidebar-bottom">
+          <Link href="/profile" className="rg-theme-row">
+            <Sun size={17} />
+            <span>Light Mode</span>
+            <ChevronDown size={14} className="rg-theme-chevron" />
+          </Link>
+          <div className="rg-version-block">
+            <strong>ReqGen ERP 2.0</strong>
+            <span>Version 1.1.0</span>
           </div>
-
-          <div>
-            <strong>
-              {userName}
-            </strong>
-
-            <span>
-              {userEmail ||
-                "Authorised user"}
-            </span>
-          </div>
-
-          <button
-            onClick={signOut}
-            aria-label="Sign out"
-          >
-            <LogOut size={16} />
-          </button>
         </div>
       </aside>
 
@@ -886,13 +830,6 @@ function GovernmentAppShellContent({
           >
             <Menu size={20} />
           </button>
-
-          <div
-            className="rg-greeting"
-            aria-label="Current greeting"
-          >
-            {greeting}
-          </div>
 
           <div className="rg-search-wrap">
             <button
@@ -979,6 +916,12 @@ function GovernmentAppShellContent({
           </div>
 
           <div className="rg-top-actions">
+            <button type="button" className="rg-icon-btn" aria-label="Toggle appearance">
+              <Sun size={19} />
+            </button>
+            <button type="button" className="rg-language-btn" aria-label="Language">
+              <Globe2 size={18} /><span>EN</span><ChevronDown size={13} />
+            </button>
             <Link
               href="/staff/notifications"
               className="rg-icon-btn rg-bell"
@@ -997,10 +940,6 @@ function GovernmentAppShellContent({
                 size={19}
               />
             </Link>
-
-            <ActiveRoleSwitcher
-              compact
-            />
 
             <Link
               href="/profile"

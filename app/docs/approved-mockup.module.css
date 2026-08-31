@@ -1,0 +1,27 @@
+/* Approved ReqGen mockup family lock. Route-specific pages retain their business logic while this module enforces the approved canvas geometry. */
+.family {
+  width: 100%;
+  min-width: 0;
+  color: #071936;
+  animation: approvedFamilyIn 220ms ease-out both;
+}
+.family :global(main), .family :global(.rg-module-page), .family :global(.rg-adopted-page) {
+  min-width: 0;
+}
+.family :global(.rg-section-card), .family :global(article) {
+  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+}
+.family :global(.rg-section-card:hover) {
+  border-color: #d3dfed;
+  box-shadow: 0 7px 22px rgba(19, 48, 86, .055);
+}
+.family :global(input:focus), .family :global(select:focus), .family :global(textarea:focus) {
+  outline: 2px solid rgba(18, 105, 243, .12);
+  outline-offset: 1px;
+  border-color: #8bb7f8 !important;
+}
+@keyframes approvedFamilyIn {
+  from { opacity: .55; transform: translateY(3px); }
+  to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) { .family { animation: none; } }
