@@ -93,7 +93,7 @@ export default function ProfileSecurityPage() {
             <div className="mt-6 flex flex-wrap gap-3">
               {!security.hasTotp && <Link href="/mfa/setup" className="rounded-xl bg-orange-600 px-4 py-3 text-sm font-black text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-orange-700">Set Up 2FA</Link>}
               {security.hasTotp && !sessionSecure && <Link href="/mfa" className="rounded-xl bg-cyan-700 px-4 py-3 text-sm font-black text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-cyan-800">Verify 2FA</Link>}
-              {security.hasTotp && <Link href="/profile/security/replace-authenticator" className="rounded-xl bg-indigo-700 px-4 py-3 text-sm font-black text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-indigo-800">Replace Authenticator</Link>}
+              {security.hasTotp && <Link href="/profile/security/replace-authenticator" className="rounded-xl bg-indigo-700 px-4 py-3 text-sm font-black text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-indigo-800">Change 2FA &amp; Password</Link>}
               <Link href="/change-password" className="rounded-xl bg-blue-700 px-4 py-3 text-sm font-black text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-blue-800">Change Password</Link>
               <button type="button" onClick={() => void load(true)} disabled={refreshing} className="rounded-xl bg-violet-700 px-4 py-3 text-sm font-black text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-violet-800 disabled:opacity-60">{refreshing ? "Refreshing…" : "Refresh Security"}</button>
             </div>

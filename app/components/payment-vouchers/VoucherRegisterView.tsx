@@ -3,9 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  ArrowRight,
   Banknote,
-  Building2,
   CalendarDays,
   CheckCircle2,
   ChevronLeft,
