@@ -24,9 +24,9 @@ export const PUBLIC_PATHS = [
 export const ROUTE_POLICIES: RoutePolicy[] = [
   { prefix: "/erp-2/settings", roles: ["admin"] },
   { prefix: "/erp-2/audit", roles: ["admin", "auditor"] },
-  { prefix: "/erp-2/reports", roles: ["admin", "auditor", "dg", "accountofficer"] },
-  { prefix: "/erp-2/finance", roles: ["admin", "auditor", "account", "accounts", "accountofficer", "pvsigner", "pvcountersigner", "dg", "director"] },
-  { prefix: "/erp-2/vouchers", roles: ["admin", "auditor", "account", "accounts", "accountofficer", "pvsigner", "pvcountersigner", "dg"] },
+  { prefix: "/erp-2/reports", roles: ["admin", "auditor"] },
+  { prefix: "/erp-2/finance", roles: ["admin", "auditor", "account", "accounts", "accountofficer"] },
+  { prefix: "/erp-2/vouchers", roles: ["admin", "auditor", "account", "accounts", "accountofficer", "pvsigner", "pvcountersigner"] },
   { prefix: "/erp-2/dashboard", authenticatedOnly: true },
   { prefix: "/erp-2/requests", authenticatedOnly: true },
   { prefix: "/erp-2/approvals", authenticatedOnly: true },
@@ -40,9 +40,9 @@ export const ROUTE_POLICIES: RoutePolicy[] = [
   { prefix: "/admin/security", roles: ["admin", "auditor"] },
   { prefix: "/admin", roles: ["admin"] },
 
-  { prefix: "/executive", roles: ["admin", "dg", "director", "auditor"] },
+  { prefix: "/executive", roles: ["admin"] },
   { prefix: "/audit-centre", roles: ["admin", "auditor"] },
-  { prefix: "/workflow", roles: ["admin", "auditor", "dg"] },
+  { prefix: "/workflow", roles: ["admin", "auditor"] },
 
 
   {
@@ -55,7 +55,6 @@ export const ROUTE_POLICIES: RoutePolicy[] = [
       "accountofficer",
       "pvsigner",
       "pvcountersigner",
-      "dg",
     ],
   },
   {
@@ -66,17 +65,16 @@ export const ROUTE_POLICIES: RoutePolicy[] = [
       "account",
       "accounts",
       "accountofficer",
-      "pvsigner",
-      "pvcountersigner",
-      "dg",
-      "director",
     ],
   },
   { prefix: "/registry", roles: ["admin", "auditor", "registry"] },
-  { prefix: "/reports", roles: ["admin", "auditor", "dg", "accountofficer"] },
+  { prefix: "/reports", roles: ["admin", "auditor"] },
 
+  { prefix: "/hr", roles: ["admin"] },
+  { prefix: "/staff", roles: ["admin"] },
+  { prefix: "/test-supabase", roles: ["admin"] },
   { prefix: "/change-password", authenticatedOnly: true },
-  { prefix: "/output", authenticatedOnly: true },
+  { prefix: "/output", roles: ["admin", "auditor"] },
   { prefix: "/approvals", authenticatedOnly: true },
   { prefix: "/requests", authenticatedOnly: true },
   { prefix: "/dashboard", authenticatedOnly: true },

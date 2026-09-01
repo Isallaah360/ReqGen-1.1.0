@@ -390,6 +390,7 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
       "dinadmin1",
       "dinadmin2",
       "dinadmin3",
+      "deanadmin",
       "registrar",
       "hod",
       "hr",
@@ -438,6 +439,7 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
       activeRoleKeys.has("dinadmin1") ||
       activeRoleKeys.has("dinadmin2") ||
       activeRoleKeys.has("dinadmin3") ||
+      activeRoleKeys.has("deanadmin") ||
       activeRoleKeys.has("hod") ||
       activeRoleKeys.has("registrar") ||
       activeRoleKeys.has("admin") ||
@@ -454,7 +456,8 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
       (activeRoleKeys.has("dinadmin") ||
         activeRoleKeys.has("dinadmin1") ||
         activeRoleKeys.has("dinadmin2") ||
-        activeRoleKeys.has("dinadmin3"));
+        activeRoleKeys.has("dinadmin3") ||
+        activeRoleKeys.has("deanadmin"));
 
     const hasOversightAuthority =
       activeRoleKeys.has("admin") ||
@@ -1220,7 +1223,7 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
     if (stg === "DOD") return "Approve as DOD";
     if (stg === "PO") return "Approve as PO";
     if (stg === "REGISTRAR") return "Approve as Registrar";
-    if (stg === "DINADMIN") return "Approve as DIN Admin";
+    if (stg === "DINADMIN") return "Approve as Dean Admin";
     if (stg === "HOD") return "Approve as HOD";
     if (stg === "HR") return "Approve as HR";
     if (stg === "DG") return "Approve as DG";

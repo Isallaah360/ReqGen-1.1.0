@@ -268,8 +268,9 @@ function requestMatchesApprovalRole(row: { current_owner?: string | null; curren
 
   const stageForRole: Record<string, string[]> = {
     po: ["PO"], dod: ["DOD"], director: ["DOD"], dinadmin: ["DINADMIN"],
-    registrar: ["REGISTRAR"], registry: ["REGISTRAR"], hod: ["HOD"],
+    registrar: ["REGISTRAR"], registry: ["REGISTRY"], gensec: ["GENERALSECRETARY", "GENSEC"], hod: ["HOD"],
     hr: ["HR", "HRFILING"], hrboss: ["HR", "HRFILING"], hrofficer: ["HR", "HRFILING"],
+    hrofficer1: ["HR", "HRFILING"], hrofficer2: ["HR", "HRFILING"], hrofficer3: ["HR", "HRFILING"],
     dg: ["DG"], account: ["ACCOUNT"], accounts: ["ACCOUNT"], accountofficer: ["ACCOUNT"],
   };
   const normalizedRole = shellRoleKey(role);

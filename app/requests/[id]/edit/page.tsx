@@ -46,6 +46,7 @@ type Me = {
   id: string;
   role: string | null;
   full_name: string | null;
+  signature_url: string | null;
 };
 
 type ProfileRole = {
@@ -100,8 +101,9 @@ function stageLabel(stage: string | null | undefined) {
   if (s === "PO") return "PO";
   if (s === "DOD") return "DOD";
   if (s === "DIRECTOR") return "Director";
-  if (s === "DINADMIN") return "DIN Admin";
+  if (s === "DINADMIN") return "Dean Admin";
   if (s === "REGISTRAR") return "Registrar";
+  if (["GENERALSECRETARY", "GENSEC"].includes(s)) return "General Secretary";
   if (s === "HOD") return "HOD";
   if (s === "HR") return "HR";
   if (s === "DG") return "DG";
@@ -193,7 +195,7 @@ function editStageNote(req: Req | null) {
     if (stage === "PO") return "Official ASAP-ALLI request is still at PO review stage.";
     if (stage === "DOD") return "Official request is still at DOD review stage.";
     if (stage === "DIRECTOR") return "Official request is still at Director review stage.";
-    if (stage === "DINADMIN") return "Official DIN request is still at DIN Admin review stage.";
+    if (stage === "DINADMIN") return "Official request is still at Dean Admin review stage.";
     if (stage === "REGISTRAR") return "DIN Official request is assigned to the Registrar and remains editable.";
     if (stage === "HOD") return "Official request is still at HOD review stage.";
     return "Official request editing is locked after DG, Account, Paid, Completed, Rejected or Deleted stage.";
@@ -254,6 +256,8 @@ export default function EditRequestPage() {
   const [totpFactorId, setTotpFactorId] = useState<string | null>(null);
   const [showMfaModal, setShowMfaModal] = useState(false);
   const [mfaCode, setMfaCode] = useState("");
+  const [editSigned, setEditSigned] = useState(false);
+  const [editSignedAt, setEditSignedAt] = useState<string | null>(null);
 
   const mfaAutoSubmittingRef = useRef(false);
 
@@ -344,7 +348,7 @@ export default function EditRequestPage() {
         isAdminAuditorEdit ||
         (
           isAssignedOfficerEdit &&
-          hasAnyRole(roleSet, ["hod", "registrar", "dinadmin", "dinadmin1", "dinadmin2", "dinadmin3", "admin", "auditor"])
+          hasAnyRole(roleSet, ["hod", "registrar", "dinadmin", "dinadmin1", "dinadmin2", "dinadmin3", "deanadmin", "admin", "auditor"])
         )
       )
     );
@@ -430,7 +434,7 @@ export default function EditRequestPage() {
 
     const { data: profileRow, error: profileErr } = await supabase
       .from("profiles")
-      .select("id,role,full_name")
+      .select("id,role,full_name,signature_url")
       .eq("id", auth.user.id)
       .single();
 
@@ -486,6 +490,28 @@ export default function EditRequestPage() {
     queueMicrotask(() => { void load(); });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  function invalidateEditSignature() {
+    if (!editSigned && !editSignedAt) return;
+    setEditSigned(false);
+    setEditSignedAt(null);
+  }
+
+  function signEdit() {
+    setMsg(null);
+
+    if (!me?.signature_url?.trim()) {
+      setMsg("❌ Upload your signature in Profile before signing request changes.");
+      return;
+    }
+
+    const ok = validateForm();
+    if (!ok) return;
+
+    setEditSigned(true);
+    setEditSignedAt(new Date().toISOString());
+    setMsg("✅ Changes signed. You can now save this edited request.");
+  }
 
   function validateForm() {
     if (!req) {
@@ -558,6 +584,11 @@ export default function EditRequestPage() {
     const ok = validateForm();
     if (!ok) return;
 
+    if (!editSigned || !editSignedAt) {
+      setMsg("❌ Please sign the edited request before saving changes.");
+      return;
+    }
+
     const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
     if (aal?.currentLevel === "aal2") {
       await saveAfterFresh2fa();
@@ -629,7 +660,36 @@ export default function EditRequestPage() {
     setSaving(true);
     setMsg(null);
 
+    let editSignatureHistoryId: string | null = null;
+
     try {
+      if (!me?.signature_url?.trim()) {
+        throw new Error("Your saved profile signature is required before editing a request.");
+      }
+
+      const activeRole = myRoles.find((role) => role.is_active && role.is_primary) || myRoles.find((role) => role.is_active);
+      const actorRoleKey = activeRole?.role_key || roleKey(me.role || "staff");
+      const actorRoleName = activeRole?.role_name || me.role || "Staff";
+
+      const { data: signatureHistory, error: signatureHistoryError } = await supabase
+        .from("request_history")
+        .insert({
+          request_id: req.id,
+          action_type: "Request Edit Signature",
+          comment: `Signed authorization for editing request ${req.request_no || req.id}.`,
+          to_stage: req.current_stage,
+          signature_url: me.signature_url,
+          actor_name: me.full_name || null,
+          actor_role_key: actorRoleKey,
+          actor_role_name: actorRoleName,
+          action_by: me.id,
+        })
+        .select("id")
+        .single();
+
+      if (signatureHistoryError) throw new Error("Unable to record edit signature: " + signatureHistoryError.message);
+      editSignatureHistoryId = String(signatureHistory?.id || "") || null;
+
       const { error } = await supabase.rpc("update_request_adjust_reservation", {
         p_request_id: req.id,
         p_new_subhead_id: canEditFinanceFields
@@ -642,7 +702,25 @@ export default function EditRequestPage() {
 
       if (error) throw new Error(error.message);
 
-      setMsg("✅ Request updated successfully.");
+      const { error: editHistoryError } = await supabase.from("request_history").insert({
+        request_id: req.id,
+        action_type: "Request Edited",
+        comment: `Request changes saved by ${me?.full_name || "authorised user"} after signature confirmation.`,
+        to_stage: req.current_stage,
+        signature_url: me?.signature_url || null,
+        actor_name: me?.full_name || null,
+        actor_role_key: (myRoles.find((role) => role.is_active && role.is_primary) || myRoles.find((role) => role.is_active))?.role_key || roleKey(me?.role || "staff"),
+        actor_role_name: (myRoles.find((role) => role.is_active && role.is_primary) || myRoles.find((role) => role.is_active))?.role_name || me?.role || "Staff",
+        action_by: me?.id || null,
+      });
+
+      if (editHistoryError) {
+        console.error("Request updated but edit history insert failed:", editHistoryError);
+      }
+
+      setEditSigned(false);
+      setEditSignedAt(null);
+      setMsg("✅ Signed request changes saved successfully.");
 
       await load();
 
@@ -655,6 +733,9 @@ export default function EditRequestPage() {
         router.refresh();
       }, 500);
     } catch (e: unknown) {
+      if (editSignatureHistoryId) {
+        await supabase.from("request_history").delete().eq("id", editSignatureHistoryId);
+      }
       setMsg("❌ Update failed: " + errorMessage(e));
     } finally {
       setSaving(false);
@@ -797,7 +878,7 @@ export default function EditRequestPage() {
                   </label>
                   <select
                     value={subheadId}
-                    onChange={(e) => setSubheadId(e.target.value)}
+                    onChange={(e) => { invalidateEditSignature(); setSubheadId(e.target.value); }}
                     className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 text-base text-slate-900 outline-none focus:border-blue-500"
                   >
                     <option value="">-- No subhead selected --</option>
@@ -819,7 +900,7 @@ export default function EditRequestPage() {
 
               {isOfficial && !canEditFinanceFields && (
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
-                  Subhead information is handled by the assigned DIN Admin/HOD/Registrar/Admin/Auditor and is
+                  Subhead information is handled by the assigned Dean Admin/HOD/Registrar/Admin/Auditor and is
                   not editable for your current authority.
                 </div>
               )}
@@ -834,7 +915,7 @@ export default function EditRequestPage() {
                 <label className="text-sm font-semibold text-slate-800">Title</label>
                 <input
                   value={title}
-                  onChange={(e) => setTitle(e.target.value)}
+                  onChange={(e) => { invalidateEditSignature(); setTitle(e.target.value); }}
                   className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 text-base text-slate-900 outline-none focus:border-blue-500"
                 />
               </div>
@@ -843,7 +924,7 @@ export default function EditRequestPage() {
                 <label className="text-sm font-semibold text-slate-800">Details</label>
                 <textarea
                   value={details}
-                  onChange={(e) => setDetails(e.target.value)}
+                  onChange={(e) => { invalidateEditSignature(); setDetails(e.target.value); }}
                   className="mt-1 min-h-[160px] w-full rounded-2xl border border-slate-200 px-4 py-3 text-base text-slate-900 outline-none focus:border-blue-500"
                 />
               </div>
@@ -855,7 +936,7 @@ export default function EditRequestPage() {
                   </label>
                   <input
                     value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
+                    onChange={(e) => { invalidateEditSignature(); setAmount(e.target.value); }}
                     type="number"
                     disabled={!canEditAmount}
                     className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 text-base text-slate-900 outline-none focus:border-blue-500 disabled:bg-slate-50 disabled:text-slate-500"
@@ -875,17 +956,43 @@ export default function EditRequestPage() {
                 </div>
               )}
 
+              <div className="rounded-2xl border border-blue-100 bg-blue-50/60 p-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <div className="text-sm font-extrabold text-slate-900">Sign Edited Request</div>
+                    <p className="mt-1 text-xs leading-5 text-slate-600">
+                      Your saved profile signature must authorize these changes before they can be saved.
+                    </p>
+                    {editSignedAt ? (
+                      <div className="mt-2 text-xs font-bold text-emerald-700">
+                        Signed by {me?.full_name || "Authorised user"} · {new Date(editSignedAt).toLocaleString()}
+                      </div>
+                    ) : null}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={signEdit}
+                    disabled={saving || verifyingCode || !me?.signature_url}
+                    className={`reqgen-btn rounded-xl px-5 py-3 text-sm font-extrabold text-white ${editSigned ? "bg-emerald-600" : "bg-blue-600 hover:bg-blue-700"} disabled:opacity-50`}
+                  >
+                    {editSigned ? "Signed ✓" : "Sign Changes"}
+                  </button>
+                </div>
+              </div>
+
               <button
                 type="button"
                 onClick={openSaveVerification}
-                disabled={saving || verifyingCode}
+                disabled={saving || verifyingCode || !editSigned}
                 className="reqgen-btn reqgen-btn-rose w-full rounded-2xl bg-gradient-to-r from-blue-700 to-cyan-500 px-4 py-3.5 text-sm font-extrabold text-white shadow-lg shadow-blue-900/10 hover:from-blue-600 hover:to-cyan-400 disabled:opacity-60"
               >
                 {saving
                   ? "Saving..."
                   : verifyingCode
                     ? "Verifying automatically..."
-                    : "Save Changes"}
+                    : editSigned
+                      ? "Save Signed Changes"
+                      : "Sign Changes to Enable Save"}
               </button>
             </div>
           </div>

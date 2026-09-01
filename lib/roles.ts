@@ -13,12 +13,15 @@ export type AppRole =
   | "hrofficer2"
   | "hrofficer3"
   | "registry"
+  | "registrar"
+  | "generalsecretary"
+  | "deanadmin"
   | "dg"
   | "director"
   | "staff";
 
 
-export const REPORT_ACCESS_ROLES = ["admin", "auditor", "dg", "accountofficer"] as const;
+export const REPORT_ACCESS_ROLES = ["admin", "auditor"] as const;
 
 export type ProfileRoleRecord = {
   role_key?: string | null;
