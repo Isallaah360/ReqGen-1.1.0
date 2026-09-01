@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
@@ -336,12 +335,6 @@ export default function AuditCentrePage() {
               <ActionButton tone="cyan" onClick={() => void load()}>
                 {loading ? "Refreshing..." : "Refresh Live Audit"}
               </ActionButton>
-              <Link
-                href="/admin/audit"
-                className="reqgen-btn reqgen-btn-violet rounded-xl px-4 py-2 text-sm font-black text-white"
-              >
-                Admin Audit
-              </Link>
             </>
           }
         />

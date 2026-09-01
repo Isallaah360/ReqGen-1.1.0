@@ -3,13 +3,14 @@ import path from 'node:path';
 
 const cwd=process.cwd();
 const specs=JSON.parse(fs.readFileSync(path.join(cwd,'docs','20260829_SECTIONS_5_TO_12_APPROVED_MOCKUP_SPECS.json'),'utf8'));
+const frame=fs.readFileSync(path.join(cwd,'app','components','ApprovedMockupFrame.tsx'),'utf8');
 const shell=fs.readFileSync(path.join(cwd,'app','components','GovernmentAppShell.tsx'),'utf8');
 const registry=fs.readFileSync(path.join(cwd,'lib','approvedMockupSpecs.ts'),'utf8');
 const css=fs.readFileSync(path.join(cwd,'app','globals.css'),'utf8');
 const failures=[];
 
-if(shell.includes('<ApprovedMockupFrame>{children}</ApprovedMockupFrame>')) failures.push('Synthetic ApprovedMockupFrame still wraps protected content.');
-if(!shell.includes('data-route={pathname}')) failures.push('GovernmentAppShell is missing the route-scoped shell marker.');
+if(!shell.includes('<ApprovedMockupFrame>{children}</ApprovedMockupFrame>')) failures.push('GovernmentAppShell does not wrap protected content with ApprovedMockupFrame.');
+for(const token of ['rg-approved-kpis','rg-approved-filterbar','rg-approved-primary','Workspace Summary']) if(!frame.includes(token)) failures.push(`Approved frame missing ${token}.`);
 if(!css.includes('APPROVED MOCKUP PIXEL-LOCK V2')) failures.push('Pixel-lock V2 CSS is missing.');
 if(!css.includes('color:#fff!important')) failures.push('Contrast hardening rule is missing.');
 

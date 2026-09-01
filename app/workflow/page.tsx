@@ -1,53 +1,234 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { supabase } from "@/lib/supabaseClient";
+import { ArrowRight, CheckCircle2, Clock3, RefreshCw, Route, ShieldCheck, UserRoundCheck, WalletCards } from "lucide-react";
 import StrictActiveRoleBoundary from "@/app/components/security/StrictActiveRoleBoundary";
-import { ActionButton, EmptyState, EnterpriseHero, EnterpriseShell, SectionCard, StatCard, StatusBadge } from "@/app/components/enterprise/EnterpriseUI";
-import { dateText, normalizeRows, numberValue, text } from "@/app/components/enterprise/data";
+import { supabase } from "@/lib/supabaseClient";
+import styles from "./workflow.module.css";
 
-type Rule = { id: string; name: string; requestType: string; fromStage: string; toStage: string; slaHours: number; active: boolean; createdAt: string };
-type SlaEvent = { id: string; requestId: string; stage: string; dueAt: string; status: string; escalated: boolean };
+type RequestRow = {
+  id: string;
+  request_no: string | null;
+  title: string | null;
+  request_type: string | null;
+  personal_category: string | null;
+  status: string | null;
+  current_stage: string | null;
+  current_owner: string | null;
+  created_at: string | null;
+};
 
-const INITIAL_NOW = Date.now();
+type ProfileRow = { id: string; full_name: string | null; role: string | null };
 
-export default function WorkflowIntelligencePage() {
-  const [rules, setRules] = useState<Rule[]>([]); const [events, setEvents] = useState<SlaEvent[]>([]); const [loading, setLoading] = useState(true); const [warning, setWarning] = useState<string | null>(null);
-  const [form, setForm] = useState({ name: "", requestType: "ALL", fromStage: "", toStage: "", slaHours: "24" });
-  const [now, setNow] = useState(INITIAL_NOW);
+type Flow = {
+  key: string;
+  title: string;
+  description: string;
+  stages: string[];
+};
 
-  const load = useCallback(async () => { setLoading(true); setWarning(null); const [ruleResult,eventResult] = await Promise.all([supabase.from("workflow_rules").select("*").order("created_at",{ascending:false}),supabase.from("workflow_sla_events").select("*").order("due_at",{ascending:true}).limit(500)]);
-    if (ruleResult.error || eventResult.error) setWarning("Workflow intelligence tables are unavailable or restricted to the current active role.");
-    setRules(normalizeRows(ruleResult.data).map(row=>({id:text(row.id),name:text(row.name,"Unnamed rule"),requestType:text(row.request_type,"ALL"),fromStage:text(row.from_stage,"—"),toStage:text(row.to_stage,"—"),slaHours:numberValue(row.sla_hours),active:Boolean(row.is_active),createdAt:text(row.created_at)})));
-    setEvents(normalizeRows(eventResult.data).map(row=>({id:text(row.id),requestId:text(row.request_id),stage:text(row.stage_key,"—"),dueAt:text(row.due_at),status:text(row.status,"pending"),escalated:Boolean(row.escalated_at)}))); setLoading(false);
-  },[]);
-  useEffect(()=>{queueMicrotask(()=>{void load();});},[load]);
-  useEffect(() => {
-    const timer = window.setInterval(() => setNow(Date.now()), 60_000);
-    return () => window.clearInterval(timer);
+const CLOSED = new Set(["APPROVED", "REJECTED", "CANCELLED", "DELETED", "PAID", "CLOSED", "COMPLETED"]);
+
+const FLOWS: Flow[] = [
+  {
+    key: "official",
+    title: "Official Request",
+    description: "Institutional requests follow the authorised departmental chain before DG approval and finance processing.",
+    stages: ["Requester", "Department Review", "DG", "Account Officer", "Registry / Completion"],
+  },
+  {
+    key: "personal-fund",
+    title: "Personal Fund Request",
+    description: "HR participates only as a request reviewer/minuting authority. There is no HR application module.",
+    stages: ["Requester", "Department Review", "HR Review / Minute", "DG", "Account Officer", "Registry / Completion"],
+  },
+  {
+    key: "personal-nonfund",
+    title: "Personal Non-Fund Request",
+    description: "Non-fund personal requests can receive an HR minute where required, then move to the DG for final decision.",
+    stages: ["Requester", "Department Review", "HR Review / Minute", "DG", "Completion"],
+  },
+];
+
+function key(value: string | null | undefined) {
+  return String(value || "").trim().toUpperCase().replace(/[\s_-]+/g, "");
+}
+
+function stageLabel(value: string | null | undefined) {
+  const raw = String(value || "Pending").trim();
+  const k = key(raw);
+  const labels: Record<string, string> = {
+    HR: "HR Review / Minute",
+    HRREVIEW: "HR Review / Minute",
+    HRFILING: "Workflow Filing",
+    ACCOUNT: "Account Officer",
+    ACCOUNTOFFICER: "Account Officer",
+    DG: "DG Final Approval",
+    DOD: "Director of Department",
+    HOD: "Head of Department",
+    PO: "Programme Officer",
+    DINADMIN: "DIN Administration",
+    REGISTRAR: "Registrar Review",
+    DIRECTOR: "Director Review",
+  };
+  return labels[k] || raw;
+}
+
+function requestKind(row: RequestRow) {
+  const type = key(row.request_type);
+  if (type === "OFFICIAL") return "Official";
+  if (type === "PERSONAL" && key(row.personal_category) === "FUND") return "Personal Fund";
+  if (type === "PERSONAL") return "Personal Non-Fund";
+  return row.request_type || "Request";
+}
+
+export default function WorkflowCentrePage() {
+  const [rows, setRows] = useState<RequestRow[]>([]);
+  const [owners, setOwners] = useState<Record<string, ProfileRow>>({});
+  const [loading, setLoading] = useState(true);
+  const [message, setMessage] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
+  const [filter, setFilter] = useState("ALL");
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setMessage(null);
+
+    const { data, error } = await supabase
+      .from("requests")
+      .select("id,request_no,title,request_type,personal_category,status,current_stage,current_owner,created_at")
+      .order("created_at", { ascending: false })
+      .limit(500);
+
+    if (error) {
+      setRows([]);
+      setOwners({});
+      setMessage(error.message);
+      setLoading(false);
+      return;
+    }
+
+    const requestRows = (data || []) as RequestRow[];
+    setRows(requestRows);
+
+    const ownerIds = Array.from(new Set(requestRows.map((row) => row.current_owner).filter(Boolean))) as string[];
+    if (ownerIds.length) {
+      const { data: profileRows } = await supabase.from("profiles").select("id,full_name,role").in("id", ownerIds);
+      const index: Record<string, ProfileRow> = {};
+      ((profileRows || []) as ProfileRow[]).forEach((profile) => { index[profile.id] = profile; });
+      setOwners(index);
+    } else {
+      setOwners({});
+    }
+
+    setLoading(false);
   }, []);
 
-  async function createRule() { if (!form.name.trim() || !form.fromStage.trim() || !form.toStage.trim()) { setWarning("Rule name, from stage and to stage are required."); return; }
-    const result = await supabase.from("workflow_rules").insert({name:form.name.trim(),request_type:form.requestType,from_stage:form.fromStage.trim().toUpperCase(),to_stage:form.toStage.trim().toUpperCase(),sla_hours:Number(form.slaHours)||24,is_active:true});
-    if (result.error) { setWarning(result.error.message); return; } setForm({name:"",requestType:"ALL",fromStage:"",toStage:"",slaHours:"24"}); await load();
-  }
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void load();
+    }, 0);
 
-  const stats = useMemo(()=>{
-    const activeRules = rules.filter(r=>r.active).length;
-    const pending = events.filter(e=>/pending|open/i.test(e.status)).length;
-    const completed = events.filter(e=>/complete|closed|done/i.test(e.status)).length;
-    const overdue = events.filter(e=>new Date(e.dueAt).getTime()<now&&!/complete|closed|done/i.test(e.status)).length;
-    const escalated = events.filter(e=>e.escalated).length;
-    const successRate = events.length ? Math.round((completed / events.length) * 1000) / 10 : 0;
-    return { activeRules,pending,completed,overdue,escalated,totalRules:rules.length,totalEvents:events.length,successRate };
-  },[rules,events,now]);
+    return () => window.clearTimeout(timer);
+  }, [load]);
 
-  return <StrictActiveRoleBoundary allowedRoles={["admin","auditor","dg"]} label="Workflow Intelligence Centre"><EnterpriseShell><div className="mx-auto max-w-[1500px] space-y-6">
-    <EnterpriseHero eyebrow="Workflow Engine" title="Workflow Engine Overview" description="Design, automate and monitor institutional workflows using the routing, SLA and escalation records already available in ReqGen." actions={<ActionButton tone="cyan" onClick={()=>void load()}>{loading?"Refreshing...":"Refresh Intelligence"}</ActionButton>} />
-    {warning?<div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-bold text-amber-900">{warning}</div>:null}
-    <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-7"><StatCard label="Total Workflows" value={loading?"—":stats.totalRules} note="Configured rules" tone="blue"/><StatCard label="Active Workflows" value={loading?"—":stats.activeRules} note="Enabled definitions" tone="emerald"/><StatCard label="Total Instances" value={loading?"—":stats.totalEvents} note="SLA events" tone="violet"/><StatCard label="Completed" value={loading?"—":stats.completed} note="Closed events" tone="emerald"/><StatCard label="Pending" value={loading?"—":stats.pending} note="Awaiting action" tone="amber"/><StatCard label="Overdue" value={loading?"—":stats.overdue} note="Past target" tone="rose"/><StatCard label="Success Rate" value={loading?"—":`${stats.successRate}%`} note={`${stats.escalated} escalated`} tone="cyan"/></section>
-    <section className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]"><SectionCard title="Create Workflow Rule" eyebrow="Controlled configuration"><div className="grid gap-3"><input value={form.name} onChange={e=>setForm({...form,name:e.target.value})} placeholder="Rule name" className="min-h-12 rounded-xl border border-slate-300 px-4 font-bold"/><select value={form.requestType} onChange={e=>setForm({...form,requestType:e.target.value})} className="min-h-12 rounded-xl border border-slate-300 px-4 font-bold"><option value="ALL">All Request Types</option><option value="OFFICIAL">Official</option><option value="PERSONAL_FUND">Personal Fund</option><option value="PERSONAL_OTHER">Personal Other</option></select><div className="grid gap-3 sm:grid-cols-2"><input value={form.fromStage} onChange={e=>setForm({...form,fromStage:e.target.value})} placeholder="From stage" className="min-h-12 rounded-xl border border-slate-300 px-4 font-bold"/><input value={form.toStage} onChange={e=>setForm({...form,toStage:e.target.value})} placeholder="To stage" className="min-h-12 rounded-xl border border-slate-300 px-4 font-bold"/></div><input type="number" min="1" value={form.slaHours} onChange={e=>setForm({...form,slaHours:e.target.value})} placeholder="SLA hours" className="min-h-12 rounded-xl border border-slate-300 px-4 font-bold"/><ActionButton tone="emerald" onClick={()=>void createRule()}>Save Workflow Rule</ActionButton></div></SectionCard>
-    <SectionCard title="Routing Rules" eyebrow="Current configuration">{rules.length===0?<EmptyState title="No workflow rules" description="Create the first controlled routing rule for ReqGen."/>:<div className="grid gap-3 md:grid-cols-2">{rules.map(rule=><article key={rule.id} className="rounded-lg border border-slate-200 bg-white p-3"><div className="flex flex-wrap items-start justify-between gap-3"><div><div className="font-black text-slate-950">{rule.name}</div><div className="mt-1 text-sm font-semibold text-slate-600">{rule.requestType}: {rule.fromStage} → {rule.toStage} · {rule.slaHours} hour SLA</div><div className="mt-1 text-xs font-bold text-slate-400">Created {dateText(rule.createdAt)}</div></div><StatusBadge tone={rule.active?"emerald":"slate"}>{rule.active?"Active":"Inactive"}</StatusBadge></div></article>)}</div>}</SectionCard></section>
-    <SectionCard title="SLA Monitoring" eyebrow="Overdue and escalation intelligence">{events.length===0?<EmptyState title="No SLA events" description="SLA events will appear as workflow requests enter monitored stages."/>:<div className="overflow-x-auto rounded-2xl border border-slate-200"><table className="min-w-full divide-y divide-slate-200 text-sm"><thead className="bg-slate-100 text-slate-700"><tr><th className="px-4 py-3 text-left font-black">Request</th><th className="px-4 py-3 text-left font-black">Stage</th><th className="px-4 py-3 text-left font-black">Due</th><th className="px-4 py-3 text-left font-black">Status</th><th className="px-4 py-3 text-left font-black">Escalation</th></tr></thead><tbody className="divide-y divide-slate-100">{events.map(event=><tr key={event.id}><td className="px-4 py-4 font-black text-slate-950">{event.requestId}</td><td className="px-4 py-4 font-bold text-slate-700">{event.stage}</td><td className="px-4 py-4 font-semibold text-slate-600">{dateText(event.dueAt)}</td><td className="px-4 py-4"><StatusBadge tone={new Date(event.dueAt).getTime()<now?"rose":"amber"}>{event.status}</StatusBadge></td><td className="px-4 py-4"><StatusBadge tone={event.escalated?"rose":"slate"}>{event.escalated?"Escalated":"Not escalated"}</StatusBadge></td></tr>)}</tbody></table></div>}</SectionCard>
-  </div></EnterpriseShell></StrictActiveRoleBoundary>;
+  const active = useMemo(() => rows.filter((row) => !CLOSED.has(key(row.status))), [rows]);
+  const metrics = useMemo(() => ({
+    active: active.length,
+    hrReview: active.filter((row) => ["HR", "HRREVIEW", "HRFILING"].includes(key(row.current_stage))).length,
+    dg: active.filter((row) => key(row.current_stage) === "DG").length,
+    account: active.filter((row) => ["ACCOUNT", "ACCOUNTOFFICER"].includes(key(row.current_stage))).length,
+    completed: rows.filter((row) => ["APPROVED", "PAID", "CLOSED", "COMPLETED"].includes(key(row.status))).length,
+  }), [active, rows]);
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return active.filter((row) => {
+      const kind = requestKind(row);
+      if (filter !== "ALL" && kind !== filter) return false;
+      if (!q) return true;
+      const owner = row.current_owner ? owners[row.current_owner] : undefined;
+      return [row.request_no, row.title, kind, row.status, stageLabel(row.current_stage), owner?.full_name, owner?.role]
+        .join(" ").toLowerCase().includes(q);
+    });
+  }, [active, filter, owners, query]);
+
+  return (
+    <StrictActiveRoleBoundary allowedRoles={["admin", "auditor", "dg"]} label="Workflow Centre">
+      <main className={styles.page}>
+        <header className={styles.header}>
+          <div>
+            <p className={styles.eyebrow}>REQGEN CORE WORKFLOW</p>
+            <h1>Request Workflow Centre</h1>
+            <p>Monitor the request-processing backbone without introducing unrelated HR or staff-management modules.</p>
+          </div>
+          <button type="button" className={styles.refresh} onClick={() => void load()} disabled={loading}>
+            <RefreshCw size={16} className={loading ? styles.spin : ""} /> {loading ? "Refreshing" : "Refresh"}
+          </button>
+        </header>
+
+        {message ? <div className={styles.warning}>{message}</div> : null}
+
+        <section className={styles.metrics} aria-label="Workflow summary">
+          <article><Route size={20} /><div><span>Active Requests</span><strong>{loading ? "—" : metrics.active}</strong></div></article>
+          <article><UserRoundCheck size={20} /><div><span>HR Review / Minute</span><strong>{loading ? "—" : metrics.hrReview}</strong></div></article>
+          <article><ShieldCheck size={20} /><div><span>At DG</span><strong>{loading ? "—" : metrics.dg}</strong></div></article>
+          <article><WalletCards size={20} /><div><span>Account Processing</span><strong>{loading ? "—" : metrics.account}</strong></div></article>
+          <article><CheckCircle2 size={20} /><div><span>Completed</span><strong>{loading ? "—" : metrics.completed}</strong></div></article>
+        </section>
+
+        <section className={styles.blueprints}>
+          {FLOWS.map((flow) => (
+            <article key={flow.key} className={styles.flowCard}>
+              <div className={styles.flowHead}><div><span>Controlled Route</span><h2>{flow.title}</h2></div><Route size={20} /></div>
+              <p>{flow.description}</p>
+              <div className={styles.stageTrack}>
+                {flow.stages.map((stage, index) => (
+                  <div className={styles.stage} key={stage}>
+                    <span>{index + 1}</span><b>{stage}</b>{index < flow.stages.length - 1 ? <ArrowRight size={14} /> : null}
+                  </div>
+                ))}
+              </div>
+            </article>
+          ))}
+        </section>
+
+        <section className={styles.queueCard}>
+          <div className={styles.queueHead}>
+            <div><span>LIVE REQUEST PIPELINE</span><h2>Current Workflow Queue</h2></div>
+            <div className={styles.filters}>
+              <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search request, stage or owner" />
+              <select value={filter} onChange={(event) => setFilter(event.target.value)}>
+                <option value="ALL">All Request Types</option>
+                <option value="Official">Official</option>
+                <option value="Personal Fund">Personal Fund</option>
+                <option value="Personal Non-Fund">Personal Non-Fund</option>
+              </select>
+            </div>
+          </div>
+
+          <div className={styles.tableWrap}>
+            <table>
+              <thead><tr><th>Request</th><th>Type</th><th>Current Stage</th><th>Current Owner</th><th>Status</th><th>Action</th></tr></thead>
+              <tbody>
+                {!loading && filtered.length === 0 ? <tr><td colSpan={6} className={styles.empty}>No active workflow matches the current filter.</td></tr> : null}
+                {filtered.map((row) => {
+                  const owner = row.current_owner ? owners[row.current_owner] : undefined;
+                  return <tr key={row.id}>
+                    <td><strong>{row.request_no || "Request"}</strong><span>{row.title || "Untitled request"}</span></td>
+                    <td>{requestKind(row)}</td>
+                    <td><span className={styles.stagePill}><Clock3 size={13} />{stageLabel(row.current_stage)}</span></td>
+                    <td>{owner?.full_name || "Assigned officer"}<small>{owner?.role || ""}</small></td>
+                    <td><span className={styles.statusPill}>{row.status || "In Progress"}</span></td>
+                    <td><Link href={`/requests/${row.id}`}>Open Request</Link></td>
+                  </tr>;
+                })}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+    </StrictActiveRoleBoundary>
+  );
 }

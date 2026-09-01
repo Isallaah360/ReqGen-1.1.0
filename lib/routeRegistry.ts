@@ -43,11 +43,6 @@ export const ROOT_NAVIGATION: RootNavigationItem[] = [
     "iconKey": "registry"
   },
   {
-    "href": "/hr",
-    "label": "HR",
-    "iconKey": "hr"
-  },
-  {
     "href": "/reports",
     "label": "REPORTS",
     "iconKey": "reports"
@@ -63,11 +58,6 @@ export const ROOT_NAVIGATION: RootNavigationItem[] = [
     "iconKey": "workflow"
   },
   {
-    "href": "/staff",
-    "label": "STAFF",
-    "iconKey": "staff"
-  },
-  {
     "href": "/executive",
     "label": "COMMAND CENTRE",
     "iconKey": "command"
@@ -81,35 +71,10 @@ export const ROOT_NAVIGATION: RootNavigationItem[] = [
     "href": "/profile",
     "label": "PROFILE",
     "iconKey": "profile"
-  },
-  {
-    "href": "/help",
-    "label": "HELP",
-    "iconKey": "help"
   }
 ];
 
 export const ROUTE_REGISTRY: RouteRegistryItem[] = [
-  {
-    "pattern": "/about",
-    "title": "About",
-    "rootHref": "/help",
-    "category": "Utility / Information",
-    "public": true,
-    "nav": true,
-    "searchable": true,
-    "description": "About"
-  },
-  {
-    "pattern": "/admin/access-audit",
-    "title": "Access Audit",
-    "rootHref": "/admin",
-    "category": "Audit / Governance",
-    "public": false,
-    "nav": true,
-    "searchable": true,
-    "description": "Route Access Audit Matrix"
-  },
   {
     "pattern": "/admin/account-routing",
     "title": "Account Routing",
@@ -119,16 +84,6 @@ export const ROUTE_REGISTRY: RouteRegistryItem[] = [
     "nav": true,
     "searchable": true,
     "description": "Department Account Routing"
-  },
-  {
-    "pattern": "/admin/audit",
-    "title": "Audit Trail",
-    "rootHref": "/admin",
-    "category": "Audit / Governance",
-    "public": false,
-    "nav": true,
-    "searchable": true,
-    "description": "Administrative Audit Trail"
   },
   {
     "pattern": "/admin/departments",
@@ -149,16 +104,6 @@ export const ROUTE_REGISTRY: RouteRegistryItem[] = [
     "nav": true,
     "searchable": true,
     "description": "Admin Overview"
-  },
-  {
-    "pattern": "/admin/release-readiness",
-    "title": "Release Readiness",
-    "rootHref": "/admin",
-    "category": "Page / Dashboard",
-    "public": false,
-    "nav": true,
-    "searchable": true,
-    "description": "Release Readiness"
   },
   {
     "pattern": "/admin/roles",
@@ -191,16 +136,6 @@ export const ROUTE_REGISTRY: RouteRegistryItem[] = [
     "description": "System Settings"
   },
   {
-    "pattern": "/admin/system-health",
-    "title": "System Health",
-    "rootHref": "/admin",
-    "category": "Page / Dashboard",
-    "public": false,
-    "nav": true,
-    "searchable": true,
-    "description": "System Health"
-  },
-  {
     "pattern": "/admin/users",
     "title": "Users & Roles",
     "rootHref": "/admin",
@@ -209,16 +144,6 @@ export const ROUTE_REGISTRY: RouteRegistryItem[] = [
     "nav": true,
     "searchable": true,
     "description": "User Management"
-  },
-  {
-    "pattern": "/admin/workflow-test",
-    "title": "Workflow Test",
-    "rootHref": "/admin",
-    "category": "ITTT / Workflow Control",
-    "public": false,
-    "nav": true,
-    "searchable": true,
-    "description": "Workflow Test"
   },
   {
     "pattern": "/approvals/action-centre",
@@ -281,16 +206,6 @@ export const ROUTE_REGISTRY: RouteRegistryItem[] = [
     "description": "Dashboard"
   },
   {
-    "pattern": "/docs",
-    "title": "Help & Docs",
-    "rootHref": "/help",
-    "category": "Utility / Information",
-    "public": false,
-    "nav": true,
-    "searchable": true,
-    "description": "Help & Docs"
-  },
-  {
     "pattern": "/executive/analytics",
     "title": "Analytics",
     "rootHref": "/executive",
@@ -329,16 +244,6 @@ export const ROUTE_REGISTRY: RouteRegistryItem[] = [
     "nav": true,
     "searchable": true,
     "description": "Finance"
-  },
-  {
-    "pattern": "/executive/hr",
-    "title": "HR",
-    "rootHref": "/executive",
-    "category": "Page / Dashboard",
-    "public": false,
-    "nav": true,
-    "searchable": true,
-    "description": "HR"
   },
   {
     "pattern": "/executive/meetings",
@@ -649,326 +554,6 @@ export const ROUTE_REGISTRY: RouteRegistryItem[] = [
     "nav": false,
     "searchable": true,
     "description": "Forgot Password"
-  },
-  {
-    "pattern": "/hr/analytics",
-    "title": "Analytics",
-    "rootHref": "/hr",
-    "category": "Redirect / Alias",
-    "public": false,
-    "nav": true,
-    "searchable": true,
-    "description": "Analytics"
-  },
-  {
-    "pattern": "/hr/archive",
-    "title": "HR Archive",
-    "rootHref": "/hr",
-    "category": "Register / Ledger",
-    "public": false,
-    "nav": true,
-    "searchable": true,
-    "description": "HR Archive Governance Centre"
-  },
-  {
-    "pattern": "/hr/assessments/annual-360",
-    "title": "Annual 360",
-    "rootHref": "/hr",
-    "category": "Redirect / Alias",
-    "public": false,
-    "nav": true,
-    "searchable": true,
-    "description": "Annual 360"
-  },
-  {
-    "pattern": "/hr/assignments",
-    "title": "Assignments",
-    "rootHref": "/hr",
-    "category": "Sub-form / Transaction Form",
-    "public": false,
-    "nav": true,
-    "searchable": true,
-    "description": "Officer Assignment & Delegation Centre"
-  },
-  {
-    "pattern": "/hr/audit",
-    "title": "HR Audit",
-    "rootHref": "/hr",
-    "category": "Audit / Governance",
-    "public": false,
-    "nav": true,
-    "searchable": true,
-    "description": "HR Audit & Compliance Centre"
-  },
-  {
-    "pattern": "/hr/capacity-building/departments",
-    "title": "Departments",
-    "rootHref": "/hr",
-    "category": "Redirect / Alias",
-    "public": false,
-    "nav": true,
-    "searchable": true,
-    "description": "Departments"
-  },
-  {
-    "pattern": "/hr/capacity-building/staff",
-    "title": "Staff",
-    "rootHref": "/hr",
-    "category": "Redirect / Alias",
-    "public": false,
-    "nav": true,
-    "searchable": true,
-    "description": "Staff"
-  },
-  {
-    "pattern": "/hr/compliance",
-    "title": "Compliance",
-    "rootHref": "/hr",
-    "category": "Redirect / Alias",
-    "public": false,
-    "nav": true,
-    "searchable": true,
-    "description": "Compliance"
-  },
-  {
-    "pattern": "/hr/department-kpi",
-    "title": "Department Kpi",
-    "rootHref": "/hr",
-    "category": "Redirect / Alias",
-    "public": false,
-    "nav": true,
-    "searchable": true,
-    "description": "Department Kpi"
-  },
-  {
-    "pattern": "/hr/filing",
-    "title": "HR Filing",
-    "rootHref": "/hr",
-    "category": "Page / Dashboard",
-    "public": false,
-    "nav": true,
-    "searchable": true,
-    "description": "HR Filing & Request Processing"
-  },
-  {
-    "pattern": "/hr/leave",
-    "title": "Leave Operations Centre",
-    "rootHref": "/hr",
-    "category": "Page / Dashboard",
-    "public": false,
-    "nav": true,
-    "searchable": true,
-    "description": "Leave Operations Centre"
-  },
-  {
-    "pattern": "/hr/my-work",
-    "title": "My HR Work",
-    "rootHref": "/hr",
-    "category": "Page / Dashboard",
-    "public": false,
-    "nav": true,
-    "searchable": true,
-    "description": "My HR Work"
-  },
-  {
-    "pattern": "/hr/officer-performance",
-    "title": "Officer Performance",
-    "rootHref": "/hr",
-    "category": "Redirect / Alias",
-    "public": false,
-    "nav": true,
-    "searchable": true,
-    "description": "Officer Performance"
-  },
-  {
-    "pattern": "/hr/output",
-    "title": "Output",
-    "rootHref": "/hr",
-    "category": "Redirect / Alias",
-    "public": false,
-    "nav": true,
-    "searchable": true,
-    "description": "Output"
-  },
-  {
-    "pattern": "/hr",
-    "title": "HR",
-    "rootHref": "/hr",
-    "category": "Page / Dashboard",
-    "public": false,
-    "nav": true,
-    "searchable": true,
-    "description": "HR"
-  },
-  {
-    "pattern": "/hr/registrar/analytics",
-    "title": "Analytics",
-    "rootHref": "/hr",
-    "category": "Report / Analytics",
-    "public": false,
-    "nav": true,
-    "searchable": true,
-    "description": "HR Analytics"
-  },
-  {
-    "pattern": "/hr/registrar/assessments/annual-360",
-    "title": "Annual 360",
-    "rootHref": "/hr",
-    "category": "Operational Workspace",
-    "public": false,
-    "nav": true,
-    "searchable": true,
-    "description": "Annual Staff 360\u00b0 Assessment Centre"
-  },
-  {
-    "pattern": "/hr/registrar/capacity-building/departments",
-    "title": "Department Training",
-    "rootHref": "/hr",
-    "category": "Page / Dashboard",
-    "public": false,
-    "nav": true,
-    "searchable": true,
-    "description": "Department Capacity Building Centre"
-  },
-  {
-    "pattern": "/hr/registrar/capacity-building/staff",
-    "title": "Staff Capacity Building",
-    "rootHref": "/hr",
-    "category": "Page / Dashboard",
-    "public": false,
-    "nav": true,
-    "searchable": true,
-    "description": "Staff Capacity Building Centre"
-  },
-  {
-    "pattern": "/hr/registrar/compliance",
-    "title": "Compliance",
-    "rootHref": "/hr",
-    "category": "Page / Dashboard",
-    "public": false,
-    "nav": true,
-    "searchable": true,
-    "description": "HR Compliance Centre"
-  },
-  {
-    "pattern": "/hr/registrar/department-kpi",
-    "title": "Department KPI",
-    "rootHref": "/hr",
-    "category": "Report / Analytics",
-    "public": false,
-    "nav": true,
-    "searchable": true,
-    "description": "Department KPI Centre"
-  },
-  {
-    "pattern": "/hr/registrar/officer-performance",
-    "title": "Officer Performance",
-    "rootHref": "/hr",
-    "category": "Report / Analytics",
-    "public": false,
-    "nav": true,
-    "searchable": true,
-    "description": "HR Officer Performance & Workload"
-  },
-  {
-    "pattern": "/hr/registrar/output",
-    "title": "Output",
-    "rootHref": "/hr",
-    "category": "Page / Dashboard",
-    "public": false,
-    "nav": true,
-    "searchable": true,
-    "description": "HR Print & Export Centre"
-  },
-  {
-    "pattern": "/hr/registrar",
-    "title": "Registrar",
-    "rootHref": "/hr",
-    "category": "Page / Dashboard",
-    "public": false,
-    "nav": true,
-    "searchable": true,
-    "description": "Registrar Centre"
-  },
-  {
-    "pattern": "/hr/registrar/reports",
-    "title": "Reports",
-    "rootHref": "/hr",
-    "category": "Report / Analytics",
-    "public": false,
-    "nav": true,
-    "searchable": true,
-    "description": "HR Reports & Analytics Centre"
-  },
-  {
-    "pattern": "/hr/registrar/settings",
-    "title": "Settings",
-    "rootHref": "/hr",
-    "category": "Settings / Configuration",
-    "public": false,
-    "nav": true,
-    "searchable": true,
-    "description": "HR Settings Centre"
-  },
-  {
-    "pattern": "/hr/registrar/weekly-seminar",
-    "title": "Weekly Seminar",
-    "rootHref": "/hr",
-    "category": "Operational Workspace",
-    "public": false,
-    "nav": true,
-    "searchable": true,
-    "description": "Wednesday Weekly Seminar Centre"
-  },
-  {
-    "pattern": "/hr/reports",
-    "title": "Reports",
-    "rootHref": "/hr",
-    "category": "Redirect / Alias",
-    "public": false,
-    "nav": true,
-    "searchable": true,
-    "description": "Reports"
-  },
-  {
-    "pattern": "/hr/review",
-    "title": "HR Review",
-    "rootHref": "/hr",
-    "category": "Page / Dashboard",
-    "public": false,
-    "nav": true,
-    "searchable": true,
-    "description": "HR Review & Decision Centre"
-  },
-  {
-    "pattern": "/hr/settings",
-    "title": "Settings",
-    "rootHref": "/hr",
-    "category": "Redirect / Alias",
-    "public": false,
-    "nav": true,
-    "searchable": true,
-    "description": "Settings"
-  },
-  {
-    "pattern": "/hr/staff",
-    "title": "Staff Records",
-    "rootHref": "/hr",
-    "category": "Page / Dashboard",
-    "public": false,
-    "nav": true,
-    "searchable": true,
-    "description": "Staff Files & Records Intelligence"
-  },
-  {
-    "pattern": "/hr/weekly-seminar",
-    "title": "Weekly Seminar",
-    "rootHref": "/hr",
-    "category": "Redirect / Alias",
-    "public": false,
-    "nav": true,
-    "searchable": true,
-    "description": "Weekly Seminar"
   },
   {
     "pattern": "/login",
@@ -1309,116 +894,6 @@ export const ROUTE_REGISTRY: RouteRegistryItem[] = [
     "nav": false,
     "searchable": true,
     "description": "Signup"
-  },
-  {
-    "pattern": "/staff/attendance",
-    "title": "My Attendance",
-    "rootHref": "/staff",
-    "category": "Page / Dashboard",
-    "public": false,
-    "nav": true,
-    "searchable": true,
-    "description": "My Attendance"
-  },
-  {
-    "pattern": "/staff/downloads",
-    "title": "My Downloads",
-    "rootHref": "/staff",
-    "category": "Page / Dashboard",
-    "public": false,
-    "nav": true,
-    "searchable": true,
-    "description": "My Downloads"
-  },
-  {
-    "pattern": "/staff/leave/new",
-    "title": "New Leave Application",
-    "rootHref": "/staff",
-    "category": "Sub-form / Transaction Form",
-    "public": false,
-    "nav": true,
-    "searchable": true,
-    "description": "New Leave Application"
-  },
-  {
-    "pattern": "/staff/leave",
-    "title": "My Leave",
-    "rootHref": "/staff",
-    "category": "Page / Dashboard",
-    "public": false,
-    "nav": true,
-    "searchable": true,
-    "description": "My Leave"
-  },
-  {
-    "pattern": "/staff/notifications",
-    "title": "My Notifications",
-    "rootHref": "/staff",
-    "category": "Page / Dashboard",
-    "public": false,
-    "nav": true,
-    "searchable": true,
-    "description": "My Notifications"
-  },
-  {
-    "pattern": "/staff",
-    "title": "Staff",
-    "rootHref": "/staff",
-    "category": "Operational Workspace",
-    "public": false,
-    "nav": true,
-    "searchable": true,
-    "description": "Staff"
-  },
-  {
-    "pattern": "/staff/performance",
-    "title": "My Performance",
-    "rootHref": "/staff",
-    "category": "Report / Analytics",
-    "public": false,
-    "nav": true,
-    "searchable": true,
-    "description": "My Performance"
-  },
-  {
-    "pattern": "/staff/profile",
-    "title": "My Profile",
-    "rootHref": "/staff",
-    "category": "Redirect / Alias",
-    "public": false,
-    "nav": true,
-    "searchable": true,
-    "description": "My Profile"
-  },
-  {
-    "pattern": "/staff/requests",
-    "title": "My Requests",
-    "rootHref": "/staff",
-    "category": "Page / Dashboard",
-    "public": false,
-    "nav": true,
-    "searchable": true,
-    "description": "My Requests"
-  },
-  {
-    "pattern": "/staff/training",
-    "title": "My Training",
-    "rootHref": "/staff",
-    "category": "Page / Dashboard",
-    "public": false,
-    "nav": true,
-    "searchable": true,
-    "description": "My Training"
-  },
-  {
-    "pattern": "/test-supabase",
-    "title": "System Health",
-    "rootHref": "/admin",
-    "category": "Utility / Information",
-    "public": false,
-    "nav": false,
-    "searchable": false,
-    "description": "Departments (Supabase Test)"
   },
   {
     "pattern": "/unauthorized",

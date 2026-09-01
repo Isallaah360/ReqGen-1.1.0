@@ -10,7 +10,7 @@ const required = [
   "app/approvals/action-centre/page.tsx",
   "app/finance/page.tsx",
   "app/payment-vouchers/page.tsx",
-  "app/hr/page.tsx",
+  "app/workflow/page.tsx",
   "app/registry/page.tsx",
   "app/audit-centre/page.tsx",
   "lib/permissions.ts",

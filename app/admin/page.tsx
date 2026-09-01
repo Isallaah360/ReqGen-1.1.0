@@ -168,7 +168,6 @@ export default function AdminPage() {
 
   const [meEmail, setMeEmail] = useState("");
   const [meRole, setMeRole] = useState("");
-  const [meRoles, setMeRoles] = useState<ProfileRole[]>([]);
 
   const [users, setUsers] = useState<UserRow[]>([]);
   const [profileRoles, setProfileRoles] = useState<ProfileRole[]>([]);
@@ -297,7 +296,6 @@ export default function AdminPage() {
       const activeMeRoles = (meRolesRes.data || []) as ProfileRole[];
 
       setMeRole(role);
-      setMeRoles(activeMeRoles);
 
       if (!hasAdminAccess(role, activeMeRoles)) {
         router.push(`/dashboard?updated=${Date.now()}`);

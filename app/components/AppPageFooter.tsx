@@ -1,5 +1,3 @@
-import Link from "next/link";
-
 export default function AppPageFooter() {
   return (
     <footer className="rg-app-footer" aria-label="ReqGen footer">
@@ -12,8 +10,6 @@ export default function AppPageFooter() {
         <span>© 2026 Islamic Education Trust. All rights reserved.</span>
       </div>
       <div className="rg-app-footer-links">
-        <Link href="/about">About</Link>
-        <Link href="/docs">Help &amp; Docs</Link>
         <span>Powered by Barderian Enterprises</span>
       </div>
     </footer>

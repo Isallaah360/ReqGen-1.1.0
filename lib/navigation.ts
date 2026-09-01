@@ -14,16 +14,6 @@ export type NavigationItem = {
 export const NAVIGATION_ITEMS: NavigationItem[] = [
   { href: "/dashboard", label: "Main Dashboard", section: "General", description: "System overview and personal workflow summary.", keywords: ["home"] },
   { href: "/dashboard/activity", label: "Dashboard Activity", section: "General", description: "Recent system and workflow activity." },
-  { href: "/staff", label: "Staff Workspace", section: "Staff", description: "Personal digital office and quick actions." },
-  { href: "/staff/profile", label: "Staff Profile", section: "Staff", description: "Personal staff profile workspace." },
-  { href: "/staff/requests", label: "My Staff Requests", section: "Staff", description: "Track requests submitted by the signed-in staff member." },
-  { href: "/staff/leave", label: "My Leave", section: "Staff", description: "View personal leave records and status." },
-  { href: "/staff/leave/new", label: "New Leave Request", section: "Staff", description: "Create a personal leave request." },
-  { href: "/staff/attendance", label: "Attendance", section: "Staff", description: "View attendance and punctuality records." },
-  { href: "/staff/performance", label: "My Performance", section: "Staff", description: "View personal performance information." },
-  { href: "/staff/training", label: "Training", section: "Staff", description: "View staff training and capacity-building information." },
-  { href: "/staff/downloads", label: "Downloads", section: "Staff", description: "Open approved printable staff documents." },
-  { href: "/staff/notifications", label: "Staff Notifications", section: "Staff", description: "Read workflow and personal notifications." },
 
   { href: "/requests", label: "Requests", section: "Requests", description: "Browse and manage authorised requests." },
   { href: "/requests/new", label: "Create Request", section: "Requests", description: "Start a new Official or Personal request.", keywords: ["new request"] },
@@ -63,38 +53,6 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
   { href: "/payment-vouchers/reports", label: "Payment Voucher Reports", section: "Payment Vouchers", description: "Payment voucher reporting workspace." },
   { href: "/payment-vouchers/settings", label: "Payment Voucher Settings", section: "Payment Vouchers", description: "Payment voucher configuration." },
 
-  { href: "/hr", label: "HR Directorate", section: "Human Resources", description: "HR command centre and authorised functions." },
-  { href: "/hr/analytics", label: "HR Analytics", section: "Human Resources", description: "Analytics compatibility route to the authorised HR reporting workspace." },
-  { href: "/hr/department-kpi", label: "Department KPI", section: "Human Resources", description: "Department performance compatibility route." },
-  { href: "/hr/officer-performance", label: "Officer Performance", section: "Human Resources", description: "Officer performance compatibility route." },
-  { href: "/hr/reports", label: "HR Reports", section: "Human Resources", description: "Human Resources reports compatibility route." },
-  { href: "/hr/output", label: "HR Output", section: "Human Resources", description: "Human Resources output compatibility route." },
-  { href: "/hr/weekly-seminar", label: "Weekly Seminar", section: "Human Resources", description: "Weekly seminar compatibility route." },
-  { href: "/hr/capacity-building/staff", label: "Staff Capacity Building", section: "Human Resources", description: "Staff capacity-building compatibility route." },
-  { href: "/hr/capacity-building/departments", label: "Department Capacity Building", section: "Human Resources", description: "Department capacity-building compatibility route." },
-  { href: "/hr/assessments/annual-360", label: "Annual 360", section: "Human Resources", description: "Annual 360 assessment compatibility route." },
-  { href: "/hr/compliance", label: "HR Compliance", section: "Human Resources", description: "HR compliance compatibility route." },
-  { href: "/hr/settings", label: "HR Settings", section: "Human Resources", description: "HR settings compatibility route." },
-  { href: "/hr/my-work", label: "My HR Work", section: "Human Resources", description: "Role-specific HR assignments and tasks." },
-  { href: "/hr/staff", label: "HR Staff", section: "Human Resources", description: "Staff management workspace." },
-  { href: "/hr/filing", label: "Staff Filing Centre", section: "Human Resources", description: "Staff filing and records administration." },
-  { href: "/hr/leave", label: "HR Leave Management", section: "Human Resources", description: "Leave records and HR leave workflow." },
-  { href: "/hr/archive", label: "HR Archive", section: "Human Resources", description: "Archived HR records." },
-  { href: "/hr/assignments", label: "HR Officer Assignments", section: "Human Resources", description: "Assign and manage HR officers." },
-  { href: "/hr/review", label: "HR Review Queue", section: "Human Resources", description: "Review HR submissions and workflow items." },
-  { href: "/hr/audit", label: "HR Audit", section: "Human Resources", description: "HR audit and accountability records." },
-  { href: "/hr/registrar", label: "HR Registrar", section: "Human Resources · Registrar", description: "Registrar command centre." },
-  { href: "/hr/registrar/analytics", label: "Registrar Analytics", section: "Human Resources · Registrar", description: "Registrar analytics and insights." },
-  { href: "/hr/registrar/compliance", label: "Registrar Compliance", section: "Human Resources · Registrar", description: "Registrar compliance monitoring." },
-  { href: "/hr/registrar/department-kpi", label: "Registrar Department KPI", section: "Human Resources · Registrar", description: "Department KPI from the registrar workspace." },
-  { href: "/hr/registrar/officer-performance", label: "Registrar Officer Performance", section: "Human Resources · Registrar", description: "Officer performance from the registrar workspace." },
-  { href: "/hr/registrar/assessments/annual-360", label: "Registrar Annual 360", section: "Human Resources · Registrar", description: "Annual 360 assessment from the registrar workspace." },
-  { href: "/hr/registrar/weekly-seminar", label: "Registrar Weekly Seminar", section: "Human Resources · Registrar", description: "Weekly seminar from the registrar workspace." },
-  { href: "/hr/registrar/capacity-building/staff", label: "Registrar Staff Capacity Building", section: "Human Resources · Registrar", description: "Staff capacity building from registrar workspace." },
-  { href: "/hr/registrar/capacity-building/departments", label: "Registrar Department Capacity Building", section: "Human Resources · Registrar", description: "Department capacity building from registrar workspace." },
-  { href: "/hr/registrar/output", label: "Registrar Output", section: "Human Resources · Registrar", description: "Registrar output workspace." },
-  { href: "/hr/registrar/reports", label: "Registrar Reports", section: "Human Resources · Registrar", description: "Registrar reports workspace." },
-  { href: "/hr/registrar/settings", label: "Registrar Settings", section: "Human Resources · Registrar", description: "Registrar configuration." },
 
   { href: "/registry", label: "Registry Desk", section: "Registry", description: "Registry command centre and file movement overview." },
   { href: "/registry/operations", label: "Registry Operations", section: "Registry", description: "Central registry operations workspace." },
@@ -110,7 +68,6 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
   { href: "/executive", label: "Executive Command Centre", section: "Executive", description: "Executive oversight workspace." },
   { href: "/executive/requests", label: "Executive Requests", section: "Executive", description: "Executive request oversight." },
   { href: "/executive/finance", label: "Executive Finance", section: "Executive", description: "Executive finance oversight." },
-  { href: "/executive/hr", label: "Executive HR", section: "Executive", description: "Executive HR oversight." },
   { href: "/executive/registry", label: "Executive Registry", section: "Executive", description: "Executive registry oversight." },
   { href: "/executive/reports", label: "Executive Reports", section: "Executive", description: "Executive reports workspace." },
   { href: "/executive/analytics", label: "Executive Analytics", section: "Executive", description: "Executive analytics." },
@@ -128,11 +85,6 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
   { href: "/admin/departments", label: "Department Management", section: "Administration", description: "Manage IET departments." },
   { href: "/admin/account-routing", label: "Account Routing", section: "Administration", description: "Configure department-to-account routing." },
   { href: "/admin/security", label: "Security Centre", section: "Administration", description: "Security configuration and oversight." },
-  { href: "/admin/audit", label: "Administrative Audit", section: "Administration", description: "Administrative audit records." },
-  { href: "/admin/access-audit", label: "Access Audit", section: "Administration", description: "Audit route and role access." },
-  { href: "/admin/system-health", label: "System Health", section: "Administration", description: "ReqGen system health checks." },
-  { href: "/admin/workflow-test", label: "Workflow Test", section: "Administration", description: "Administrative workflow verification utility." },
-  { href: "/admin/release-readiness", label: "Release Readiness", section: "Administration", description: "Deployment and release readiness checks." },
   { href: "/admin/settings", label: "System Settings", section: "Administration", description: "ReqGen administrative settings." },
 
   { href: "/profile", label: "My Profile", section: "Account", description: "Personal ReqGen profile." },
@@ -140,9 +92,7 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
   { href: "/profile/activity", label: "My Activity", section: "Account", description: "View personal ReqGen activity." },
   { href: "/profile/security", label: "Profile Security", section: "Account", description: "Manage personal security settings." },
   { href: "/change-password", label: "Change Password", section: "Account", description: "Change the signed-in user's password." },
-  { href: "/docs", label: "ReqGen Help Centre", section: "Help", description: "Guidance for requests, tracking, approvals and account support." },
   { href: "/output", label: "Output Centre", section: "Reports", description: "Generate authorised IET A4 reports and protected print outputs." },
-  { href: "/about", label: "About ReqGen", section: "General", description: "ReqGen application information." },
 ];
 
 export function getContextTips(pathname: string): string[] {
@@ -159,13 +109,6 @@ export function getContextTips(pathname: string): string[] {
       "Use IET Bank Accounts for institutional bank names and funding sources.",
       "Use Account Ledger and Subhead Ledger to trace movements before changing balances.",
       "Finance pages shown in search are filtered to your active role.",
-    ];
-  }
-  if (pathname.startsWith("/hr")) {
-    return [
-      "Your active HR role controls which HR pages can be opened.",
-      "Use My HR Work for role-specific tasks and the system search for authorised specialist pages.",
-      "Registrar functions remain separated from general HR functions for accountability.",
     ];
   }
   if (pathname.startsWith("/registry")) {

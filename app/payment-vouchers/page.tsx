@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { CheckCircle2, Clock3, Coins, Download, Eye, MoreVertical, Plus, Printer, RefreshCw, Search, SlidersHorizontal, Users, WalletCards, X, Building2 } from "lucide-react";
+import { CalendarDays, CheckCircle2, ChevronRight, CircleX, Clock3, Download, FileSpreadsheet, MoreVertical, Plus, Search, Settings2, Users, WalletCards, X } from "lucide-react";
 import styles from "./payment-vouchers-overview.module.css";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -178,7 +178,7 @@ export default function PaymentVouchersPage() {
   const searchParams = useSearchParams();
 
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const [, setRefreshing] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [manualSaving, setManualSaving] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
@@ -995,11 +995,17 @@ export default function PaymentVouchersPage() {
   const pageCount = Math.max(1, Math.ceil(overviewRows.length / rowsPerPage));
   const safePage = Math.min(currentPage, pageCount);
   const pagedRows = overviewRows.slice((safePage - 1) * rowsPerPage, safePage * rowsPerPage);
-  const todayKey = new Date().toDateString();
-  const pendingToday = rows.filter((v) => new Date(v.created_at).toDateString() === todayKey && ["prepared", "checked"].includes(normalize(v.status))).length;
-  const approvedToday = rows.filter((v) => new Date(v.created_at).toDateString() === todayKey && ["authorized", "chequeprepared", "chequesigned", "countersigned"].includes(normalize(v.status))).length;
-  const paidToday = rows.filter((v) => new Date(v.created_at).toDateString() === todayKey && normalize(v.status) === "paid").length;
-  const activeOfficers = new Set(rows.flatMap((v) => [v.prepared_by_name, v.checked_by_name, v.authorized_by_name]).filter(Boolean)).size;
+  const rejectedCount = rows.filter((v) => ["cancelled", "rejected"].includes(normalize(v.status))).length;
+  const approvedAmount = rows.filter((v) => ["authorized", "chequeprepared", "chequesigned", "countersigned", "paid"].includes(normalize(v.status))).reduce((sum, v) => sum + Number(v.total_amount || v.amount || 0), 0);
+  const pendingAmount = rows.filter((v) => ["prepared", "checked"].includes(normalize(v.status))).reduce((sum, v) => sum + Number(v.total_amount || v.amount || 0), 0);
+  const rejectedAmount = rows.filter((v) => ["cancelled", "rejected"].includes(normalize(v.status))).reduce((sum, v) => sum + Number(v.total_amount || v.amount || 0), 0);
+  const otherAmount = Math.max(0, stats.totalAmount - approvedAmount - pendingAmount);
+  const summaryAmount = Math.max(1, approvedAmount + pendingAmount + rejectedAmount + otherAmount);
+  const approvedPct = (approvedAmount / summaryAmount) * 100;
+  const pendingPct = (pendingAmount / summaryAmount) * 100;
+  const rejectedPct = (rejectedAmount / summaryAmount) * 100;
+  const otherPct = Math.max(0, 100 - approvedPct - pendingPct - rejectedPct);
+  const recentVouchers = [...rows].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 4);
 
   function clearOverviewFilters() {
     setSearch(""); setStatusFilter("ALL"); setTypeFilter("ALL"); setDepartmentFilter("ALL");
@@ -1051,50 +1057,132 @@ export default function PaymentVouchersPage() {
 
   return (
     <main className={styles.page}>
-      <div className={styles.header}>
-        <div>
-          <div className={styles.breadcrumb}>Home <span>/</span> Payment Vouchers <span>/</span> Overview</div>
-          <div className={styles.titleRow}>
-            <div className={styles.titleIcon}><Coins size={28} /></div>
-            <div><div className={styles.eyebrow}>PAYMENT VOUCHERS</div><h1>Payment Vouchers Overview</h1><p>Manage payment vouchers from creation to final approval and payment.</p></div>
+      <div className={styles.breadcrumb}>
+        <button type="button" onClick={() => router.push("/dashboard")}>Home</button>
+        <ChevronRight size={13} />
+        <button type="button" onClick={() => router.push("/finance")}>Finance</button>
+        <ChevronRight size={13} />
+        <span>Payment Vouchers</span>
+      </div>
+
+      <header className={styles.hero}>
+        <div className={styles.heroIdentity}>
+          <div className={styles.titleIcon}><FileSpreadsheet size={26} /></div>
+          <div>
+            <h1>Payment Vouchers</h1>
+            <p>Create, manage and track all payment vouchers.</p>
           </div>
         </div>
-        <div className={styles.headerActions}>
-          <button onClick={() => load({ silent: true })} disabled={refreshing}><RefreshCw size={16}/>{refreshing ? "Refreshing..." : "Refresh"}</button>
-          <button onClick={exportOverviewCsv}><Download size={16}/>Export CSV</button>
-          <button onClick={() => window.print()}><Printer size={16}/>Print</button>
-          <button className={styles.primaryButton} onClick={() => setShowCreateWorkspace(true)}><Plus size={17}/>Create New Voucher</button>
+        <div className={styles.heroMeta}>
+          <div className={styles.metaItem}><CalendarDays size={17} /><span>{new Date().toLocaleDateString("en-GB", { weekday: "long", day: "2-digit", month: "long", year: "numeric" })}</span></div>
+          <div className={styles.metaDivider} />
+          <div className={styles.metaItem}><Users size={17} /><span>Secure Finance Workspace</span></div>
+          <button className={styles.primaryButton} onClick={() => setShowCreateWorkspace(true)}><Plus size={18}/>Create New Voucher</button>
         </div>
-      </div>
+      </header>
+
       {msg ? <div className={styles.message}>{msg}</div> : null}
-      <div className={styles.workspaceGrid}>
-        <section className={styles.mainColumn}>
-          <div className={styles.kpiGrid}>
-            <KpiCard icon={<Coins size={23}/>} tone="blue" label="Total Vouchers" value={String(stats.total)} hint="All recorded vouchers" />
-            <KpiCard icon={<Clock3 size={23}/>} tone="amber" label="Pending Approval" value={String(stats.pending)} hint="Awaiting action" />
-            <KpiCard icon={<CheckCircle2 size={23}/>} tone="green" label="Approved" value={String(stats.approved)} hint="Ready for payment" />
-            <KpiCard icon={<WalletCards size={23}/>} tone="violet" label="Paid Out" value={String(stats.paid)} hint="Successfully paid" />
-            <KpiCard icon={<WalletCards size={23}/>} tone="red" label="Total Amount" value={naira(stats.totalAmount)} hint="Value of active vouchers" compact />
-          </div>
-          <section className={styles.filterCard}>
-            <div className={styles.filterGrid}>
-              <label>From Date<input type="date" value={fromDate} onChange={(e)=>setFromDate(e.target.value)} /></label>
-              <label>To Date<input type="date" value={toDate} onChange={(e)=>setToDate(e.target.value)} /></label>
-              <label>Status<select value={statusFilter} onChange={(e)=>setStatusFilter(e.target.value)}><option value="ALL">All statuses</option><option value="Prepared">Prepared</option><option value="Checked">Checked</option><option value="Authorized">Authorized</option><option value="Paid">Paid</option><option value="Cancelled">Cancelled</option></select></label>
-              <label>Department<select value={departmentFilter} onChange={(e)=>setDepartmentFilter(e.target.value)}><option value="ALL">All departments</option>{departments.map(d=><option key={d.id} value={d.name}>{d.name}</option>)}</select></label>
+
+      <section className={styles.kpiGrid}>
+        <article className={styles.kpi}>
+          <span className={`${styles.kpiIcon} ${styles.tone_blue}`}><FileSpreadsheet size={21}/></span>
+          <div className={styles.kpiContent}><small>Total Vouchers</small><strong>{stats.total}</strong><p>This Month</p><button onClick={() => clearOverviewFilters()}>View all vouchers <ChevronRight size={13}/></button></div>
+        </article>
+        <article className={styles.kpi}>
+          <span className={`${styles.kpiIcon} ${styles.tone_green}`}><CheckCircle2 size={21}/></span>
+          <div className={styles.kpiContent}><small>Approved Vouchers</small><strong>{stats.approved}</strong><p>{stats.total ? ((stats.approved / stats.total) * 100).toFixed(1) : "0.0"}% of total vouchers</p><button onClick={() => router.push("/payment-vouchers/approved")}>View approved <ChevronRight size={13}/></button></div>
+        </article>
+        <article className={styles.kpi}>
+          <span className={`${styles.kpiIcon} ${styles.tone_amber}`}><Clock3 size={21}/></span>
+          <div className={styles.kpiContent}><small>Pending Vouchers</small><strong>{stats.pending}</strong><p>{stats.total ? ((stats.pending / stats.total) * 100).toFixed(1) : "0.0"}% of total vouchers</p><button onClick={() => router.push("/payment-vouchers/pending")}>View pending <ChevronRight size={13}/></button></div>
+        </article>
+        <article className={styles.kpi}>
+          <span className={`${styles.kpiIcon} ${styles.tone_red}`}><CircleX size={21}/></span>
+          <div className={styles.kpiContent}><small>Rejected Vouchers</small><strong>{rejectedCount}</strong><p>{stats.total ? ((rejectedCount / stats.total) * 100).toFixed(1) : "0.0"}% of total vouchers</p><button onClick={() => setStatusFilter("Cancelled")}>View rejected <ChevronRight size={13}/></button></div>
+        </article>
+        <article className={styles.kpi}>
+          <span className={`${styles.kpiIcon} ${styles.tone_violet}`}><WalletCards size={21}/></span>
+          <div className={styles.kpiContent}><small>Total Amount</small><strong className={styles.moneyValue}>{naira(stats.totalAmount)}</strong><p className={styles.positive}>↑ Active voucher value</p><button onClick={() => router.push("/reports#payment-voucher-report")}>View summary <ChevronRight size={13}/></button></div>
+        </article>
+      </section>
+
+      <div className={styles.contentGrid}>
+        <section className={styles.registerCard}>
+          <div className={styles.tableToolbar}>
+            <h2>Payment Vouchers</h2>
+            <div className={styles.toolbarControls}>
+              <select aria-label="Department filter" value={departmentFilter} onChange={(e) => setDepartmentFilter(e.target.value)}>
+                <option value="ALL">All Departments</option>{departments.map((d) => <option key={d.id} value={d.name}>{d.name}</option>)}
+              </select>
+              <div className={styles.dateRange}><input aria-label="From date" type="date" value={fromDate} onChange={(e)=>setFromDate(e.target.value)} /><span>–</span><input aria-label="To date" type="date" value={toDate} onChange={(e)=>setToDate(e.target.value)} /></div>
+              <select aria-label="Status filter" value={statusFilter} onChange={(e)=>setStatusFilter(e.target.value)}>
+                <option value="ALL">Filters</option><option value="Prepared">Prepared</option><option value="Checked">Checked</option><option value="Authorized">Authorized</option><option value="Paid">Paid</option><option value="Cancelled">Rejected</option>
+              </select>
+              <div className={styles.searchBox}><input value={search} onChange={(e)=>setSearch(e.target.value)} placeholder="Search vouchers..."/><Search size={16}/></div>
             </div>
-            <div className={styles.searchRow}><div className={styles.searchBox}><Search size={17}/><input value={search} onChange={(e)=>setSearch(e.target.value)} placeholder="Search by voucher no., beneficiary, description..." /></div><button className={styles.primaryButton}><Search size={16}/>Search</button><button onClick={clearOverviewFilters}><SlidersHorizontal size={16}/>Clear</button></div>
-          </section>
-          <section className={styles.registerCard}>
-            <div className={styles.sectionHead}><div className={styles.sectionTitle}><span className={styles.sectionIcon}><WalletCards size={17}/></span><div><h2>Recent Payment Vouchers</h2><p>Showing latest vouchers across all departments.</p></div></div><label className={styles.showSelect}>Show<select value={rowsPerPage} onChange={(e)=>setRowsPerPage(Number(e.target.value))}><option value={5}>5</option><option value={10}>10</option><option value={20}>20</option></select></label></div>
-            <div className={styles.tableWrap}><table className={styles.table}><thead><tr><th>S/N</th><th>Voucher No.</th><th>Date</th><th>Department</th><th>Beneficiary</th><th>Description</th><th className={styles.right}>Amount</th><th>Status</th><th>Actions</th></tr></thead><tbody>
-              {pagedRows.length ? pagedRows.map((v,index)=><tr key={v.id}><td>{(safePage-1)*rowsPerPage+index+1}</td><td className={styles.strong}>{v.voucher_no}</td><td>{shortDate(v.created_at)}</td><td>{v.dept_name||"—"}</td><td>{v.payee_name||"—"}</td><td className={styles.description}>{v.narration||"—"}</td><td className={`${styles.right} ${styles.strong}`}>{naira(v.total_amount||v.amount)}</td><td><span className={`${styles.status} ${styles[`status_${normalize(v.status)||"default"}`]||styles.status_default}`}>{v.status||"—"}</span></td><td><div className={styles.actionGroup}><button title="View voucher" onClick={()=>openVoucher(v.id)}><Eye size={15}/></button><button title="Print voucher" onClick={()=>printVoucher(v.id)}><Printer size={15}/></button><div className={styles.moreWrap}><button title="More actions" onClick={()=>setMoreOpen(moreOpen===v.id?null:v.id)}><MoreVertical size={15}/></button>{moreOpen===v.id?<div className={styles.moreMenu}><button onClick={()=>openVoucher(v.id)}>View details</button><button onClick={()=>printVoucher(v.id)}>Print / PDF</button>{canDeleteVoucher?<button className={styles.dangerText} onClick={()=>deleteVoucher(v)}>Delete voucher</button>:null}</div>:null}</div></div></td></tr>) : <tr><td colSpan={9} className={styles.empty}>No payment voucher found for the selected filter.</td></tr>}
-            </tbody></table></div>
-            <div className={styles.tableFooter}><span>Showing {overviewRows.length?(safePage-1)*rowsPerPage+1:0} to {Math.min(safePage*rowsPerPage,overviewRows.length)} of {overviewRows.length} vouchers</span><div className={styles.pagination}><button disabled={safePage===1} onClick={()=>setCurrentPage(1)}>«</button><button disabled={safePage===1} onClick={()=>setCurrentPage(p=>Math.max(1,p-1))}>‹</button>{Array.from({length:Math.min(5,pageCount)},(_,i)=>i+1).map(p=><button key={p} className={p===safePage?styles.activePage:""} onClick={()=>setCurrentPage(p)}>{p}</button>)}{pageCount>5?<span>…</span>:null}{pageCount>5?<button onClick={()=>setCurrentPage(pageCount)}>{pageCount}</button>:null}<button disabled={safePage===pageCount} onClick={()=>setCurrentPage(p=>Math.min(pageCount,p+1))}>›</button><button disabled={safePage===pageCount} onClick={()=>setCurrentPage(pageCount)}>»</button></div></div>
-          </section>
+          </div>
+
+          <div className={styles.tableWrap}>
+            <table className={styles.table}>
+              <thead><tr><th>PV No.</th><th>Date</th><th>Payee / Description</th><th>Department</th><th className={styles.right}>Amount (₦)</th><th>Status</th><th>Created By</th><th>Action</th></tr></thead>
+              <tbody>
+                {pagedRows.length ? pagedRows.map((v) => <tr key={v.id}>
+                  <td><button className={styles.voucherLink} onClick={() => openVoucher(v.id)}>{v.voucher_no}</button></td>
+                  <td>{shortDate(v.created_at)}</td>
+                  <td><strong className={styles.payee}>{v.payee_name || "—"}</strong><span className={styles.description}>{v.narration || "—"}</span></td>
+                  <td><span className={styles.departmentTag}>{v.dept_name || "—"}</span></td>
+                  <td className={`${styles.right} ${styles.amount}`}>{Number(v.total_amount || v.amount || 0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
+                  <td><span className={`${styles.status} ${styles[`status_${normalize(v.status)||"default"}`]||styles.status_default}`}>{normalize(v.status)==="cancelled"?"Rejected":v.status||"—"}</span></td>
+                  <td>{v.prepared_by_name || "—"}</td>
+                  <td><div className={styles.moreWrap}><button className={styles.actionDots} title="Voucher actions" onClick={()=>setMoreOpen(moreOpen===v.id?null:v.id)}><MoreVertical size={17}/></button>{moreOpen===v.id?<div className={styles.moreMenu}><button onClick={()=>openVoucher(v.id)}>View details</button><button onClick={()=>printVoucher(v.id)}>Print / PDF</button>{canDeleteVoucher?<button className={styles.dangerText} onClick={()=>deleteVoucher(v)}>Delete voucher</button>:null}</div>:null}</div></td>
+                </tr>) : <tr><td colSpan={8} className={styles.empty}>No payment voucher found for the selected filter.</td></tr>}
+              </tbody>
+            </table>
+          </div>
+          <div className={styles.tableFooter}>
+            <span>Showing {overviewRows.length?(safePage-1)*rowsPerPage+1:0} to {Math.min(safePage*rowsPerPage,overviewRows.length)} of {overviewRows.length} vouchers</span>
+            <div className={styles.pagination}><button disabled={safePage===1} onClick={()=>setCurrentPage(p=>Math.max(1,p-1))}>‹</button>{Array.from({length:Math.min(4,pageCount)},(_,i)=>i+1).map(p=><button key={p} className={p===safePage?styles.activePage:""} onClick={()=>setCurrentPage(p)}>{p}</button>)}{pageCount>4?<span>…</span>:null}{pageCount>4?<button onClick={()=>setCurrentPage(pageCount)}>{pageCount}</button>:null}<button disabled={safePage===pageCount} onClick={()=>setCurrentPage(p=>Math.min(pageCount,p+1))}>›</button></div>
+            <select aria-label="Rows per page" value={rowsPerPage} onChange={(e)=>setRowsPerPage(Number(e.target.value))}><option value={10}>10 per page</option><option value={20}>20 per page</option><option value={50}>50 per page</option></select>
+          </div>
         </section>
-        <aside className={styles.sidebarCard}><h2>Workspace Summary</h2><SummaryItem tone="amber" icon={<Clock3 size={18}/>} label="Pending Today" value={pendingToday}/><SummaryItem tone="green" icon={<CheckCircle2 size={18}/>} label="Approved Today" value={approvedToday}/><SummaryItem tone="green" icon={<CheckCircle2 size={18}/>} label="Paid Today" value={paidToday}/><SummaryItem tone="blue" icon={<Building2 size={18}/>} label="Departments" value={departments.length}/><SummaryItem tone="blue" icon={<Users size={18}/>} label="Active Officers" value={activeOfficers}/><h3>Quick Actions</h3><button className={styles.quickPrimary} onClick={()=>setShowCreateWorkspace(true)}><Plus size={16}/>Create New Voucher</button><button className={styles.quickAmber} onClick={()=>setShowCreateWorkspace(true)}><Clock3 size={16}/>Pending Approval</button><button className={styles.quickBlue} onClick={()=>router.push('/reports#payment-voucher-report')}><Printer size={16}/>Print / PDF Centre</button></aside>
+
+        <aside className={styles.sideStack}>
+          <section className={styles.sideCard}>
+            <h3>Voucher Summary <span>(This Month)</span></h3>
+            <div className={styles.summaryLayout}>
+              <div className={styles.donut} style={{background:`conic-gradient(#10b981 0 ${approvedPct}%, #f59e0b ${approvedPct}% ${approvedPct+pendingPct}%, #ef4444 ${approvedPct+pendingPct}% ${approvedPct+pendingPct+rejectedPct}%, #2563eb ${approvedPct+pendingPct+rejectedPct}% 100%)`}}><div><strong>{naira(stats.totalAmount)}</strong><span>Total Amount</span></div></div>
+              <div className={styles.legend}>
+                <SummaryLegend color="green" label="Approved" amount={approvedAmount} percent={approvedPct} />
+                <SummaryLegend color="amber" label="Pending" amount={pendingAmount} percent={pendingPct} />
+                <SummaryLegend color="red" label="Rejected" amount={rejectedAmount} percent={rejectedPct} />
+                <SummaryLegend color="blue" label="Others" amount={otherAmount} percent={otherPct} />
+              </div>
+            </div>
+          </section>
+
+          <section className={styles.sideCard}>
+            <div className={styles.sideHeading}><h3>Recent Vouchers</h3><button onClick={() => clearOverviewFilters()}>View all</button></div>
+            <div className={styles.recentList}>
+              {recentVouchers.length ? recentVouchers.map((v) => <button key={v.id} className={styles.recentItem} onClick={() => openVoucher(v.id)}>
+                <span className={`${styles.recentIcon} ${["cancelled","rejected"].includes(normalize(v.status))?styles.recentRed:["prepared","checked"].includes(normalize(v.status))?styles.recentAmber:styles.recentGreen}`}>{["cancelled","rejected"].includes(normalize(v.status))?<CircleX size={16}/>: ["prepared","checked"].includes(normalize(v.status))?<Clock3 size={16}/>:<CheckCircle2 size={16}/>}</span>
+                <span className={styles.recentCopy}><strong>{v.voucher_no}</strong><small>{v.payee_name || "—"}</small><small>{shortDate(v.created_at)}</small></span>
+                <span className={styles.recentAmount}>{naira(v.total_amount || v.amount)}<small>{normalize(v.status)==="cancelled"?"Rejected":v.status||"—"}</small></span>
+              </button>) : <div className={styles.emptyCompact}>No recent vouchers.</div>}
+            </div>
+          </section>
+
+          <section className={styles.sideCard}>
+            <h3>Quick Actions</h3>
+            <div className={styles.quickGrid}>
+              <button onClick={() => setShowCreateWorkspace(true)}><span className={styles.quickViolet}><Plus size={19}/></span>Create Voucher</button>
+              <button onClick={() => router.push("/reports#payment-voucher-report")}><span className={styles.quickGreen}><FileSpreadsheet size={19}/></span>Voucher Report</button>
+              <button onClick={exportOverviewCsv}><span className={styles.quickBlue}><Download size={19}/></span>Download Report</button>
+              <button onClick={() => router.push("/payment-vouchers/settings")}><span className={styles.quickAmber}><Settings2 size={19}/></span>Voucher Settings</button>
+            </div>
+          </section>
+        </aside>
       </div>
+
       {showCreateWorkspace ? <div className={styles.overlay} onMouseDown={(e)=>{if(e.target===e.currentTarget)setShowCreateWorkspace(false)}}><section className={styles.createModal}><div className={styles.modalHead}><div><div className={styles.eyebrow}>CREATE PAYMENT VOUCHER</div><h2>Select Voucher-Ready Requests</h2><p>Select 1 to 10 compatible Official or Personal Fund requests.</p></div><button onClick={()=>setShowCreateWorkspace(false)}><X size={18}/></button></div><div className={styles.modalSearch}><Search size={16}/><input value={readySearch} onChange={(e)=>setReadySearch(e.target.value)} placeholder="Search request no., title, requester, department..."/></div><div className={styles.readyList}>{filteredReadyRows.map(r=><label key={r.id} className={`${styles.readyRow} ${selectedIds.includes(r.id)?styles.readySelected:""}`}><input type="checkbox" checked={selectedIds.includes(r.id)} onChange={()=>toggleSelectRequest(r)}/><div><b>{r.request_no}</b><span>{r.title}</span><small>{r.dept_name||"—"} • {categoryLabel(r)} • {naira(r.amount)}</small></div></label>)}</div><div className={styles.selectionNotice}>{selectionSummary.message}{selectedRequests.length?<b>Payee: {selectionPayee||"—"} • Total: {naira(selectedTotal)}</b>:null}</div><div className={styles.modalActions}>{canManualVoucher?<button onClick={openManualVoucher}>Manual Voucher</button>:null}<button onClick={clearSelection}>Clear</button><button className={styles.primaryButton} disabled={!selectionSummary.valid||generating} onClick={()=>{setShowCreateWorkspace(false);openGenerateModalFromSelection();}}>{selectedRequests.length>1?"Generate Combined PV":"Generate Voucher"}</button></div></section></div>:null}
         {showManualModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
@@ -1470,9 +1558,16 @@ export default function PaymentVouchersPage() {
   );
 }
 
-function KpiCard({ icon, tone, label, value, hint, compact = false }: { icon: React.ReactNode; tone: "blue"|"amber"|"green"|"violet"|"red"; label:string; value:string; hint:string; compact?:boolean }) { return <article className={styles.kpi}><span className={`${styles.kpiIcon} ${styles[`tone_${tone}`]}`}>{icon}</span><div><small>{label}</small><strong className={compact?styles.compactValue:""}>{value}</strong><p>{hint}</p></div></article>; }
-function SummaryItem({ icon, tone, label, value }: { icon:React.ReactNode; tone:"amber"|"green"|"blue"; label:string; value:number }) { return <div className={styles.summaryItem}><span className={`${styles.summaryIcon} ${styles[`tone_${tone}`]}`}>{icon}</span><div><small>{label}</small><strong>{value}</strong></div></div>; }
 
+function SummaryLegend({ color, label, amount, percent }: { color: "green" | "amber" | "red" | "blue"; label: string; amount: number; percent: number }) {
+  return (
+    <div className={styles.legendItem}>
+      <span className={`${styles.legendDot} ${styles[`legend${color.charAt(0).toUpperCase()}${color.slice(1)}`]}`} />
+      <div><strong>{label}</strong><small>{percent.toFixed(1)}%</small></div>
+      <span className={styles.legendAmount}>{naira(amount)}</span>
+    </div>
+  );
+}
 
 function Field({
   label,

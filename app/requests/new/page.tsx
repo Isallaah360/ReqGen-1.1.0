@@ -1247,8 +1247,7 @@ export default function NewRequestPage() {
 
             <section className={`${styles.infoCard} ${styles.helpCard}`}>
               <div className={styles.cardTitle}><CircleHelp size={20} /><h3>Need Help?</h3></div>
-              <p>If you need assistance, use Help & Support or contact the System Administrator.</p>
-              <button type="button" onClick={() => router.push("/docs")}>Visit Help Centre</button>
+              <p>If you need assistance, contact the ReqGen System Administrator.</p>
             </section>
 
             <section className={styles.securityCard}>

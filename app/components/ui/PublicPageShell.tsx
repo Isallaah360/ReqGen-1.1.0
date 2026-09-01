@@ -1,3 +1,4 @@
+import Image from "next/image";
 import type { ReactNode } from "react";
 
 export function PublicPageShell({ children }: { children: ReactNode }) {
@@ -42,7 +43,7 @@ export function BrandLockup({ compact = false }: { compact?: boolean }) {
   return (
     <div className="flex items-center gap-3">
       <div className={`${compact ? "h-12 w-12" : "h-16 w-16"} rounded-2xl border border-white/15 bg-white p-2 shadow-xl shadow-blue-950/30`}>
-        <img src="/iet-logo.png" alt="Islamic Education Trust logo" className="h-full w-full object-contain" />
+        <Image src="/iet-logo.png" alt="Islamic Education Trust logo" width={64} height={64} className="h-full w-full object-contain" priority />
       </div>
       <div>
         <div className="text-xs font-black uppercase tracking-[0.25em] text-cyan-300">Islamic Education Trust</div>

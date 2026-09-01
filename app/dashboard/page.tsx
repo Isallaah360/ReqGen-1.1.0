@@ -81,10 +81,8 @@ export default function DashboardPage() {
   useEffect(() => {
     let mounted = true;
     (async () => {
-      const auth = await supabase.auth.getUser();
+      await supabase.auth.getUser();
       if (!mounted) return;
-      const user = auth.data.user;
-
       const [rq, pv] = await Promise.all([
         supabase
           .from("requests")
@@ -248,7 +246,7 @@ export default function DashboardPage() {
         </article>
       </section>
 
-      <div className={styles.security}><ShieldCheck size={22}/><div><strong>Security Tip</strong><p>Always verify request details before approval and never share your login credentials.</p></div><Link href="/about">Learn more →</Link></div>
+      <div className={styles.security}><ShieldCheck size={22}/><div><strong>Security Tip</strong><p>Always verify request details before approval and never share your login credentials.</p></div></div>
     </main>
   );
 }

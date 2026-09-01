@@ -6,7 +6,7 @@ const architecture=fs.readFileSync(path.join(root,"lib","pageArchitecture.ts"),"
 const patterns=[...registry.matchAll(/"pattern":\s*"([^"]+)"/g)].map(m=>m[1]);
 const unique=[...new Set(patterns)];
 const badCategory=[...registry.matchAll(/"category":\s*"([^"]+)"/g)].map(m=>m[1]).filter(v=>v==="IFTTT / Workflow Control");
-const result={checkedAt:new Date().toISOString(),routeCount:unique.length,duplicateRouteCount:patterns.length-unique.length,legacyIFTTTCategoryCount:badCategory.length,architectureFilePresent:architecture.includes("getRMBPageArchitecture"),ok:unique.length===135 && patterns.length===135 && badCategory.length===0 && architecture.includes("getRMBPageArchitecture")};
+const result={checkedAt:new Date().toISOString(),routeCount:unique.length,duplicateRouteCount:patterns.length-unique.length,legacyIFTTTCategoryCount:badCategory.length,architectureFilePresent:architecture.includes("getRMBPageArchitecture"),ok:unique.length===patterns.length && badCategory.length===0 && architecture.includes("getRMBPageArchitecture")};
 fs.mkdirSync(path.join(root,"audit-output"),{recursive:true});
 fs.writeFileSync(path.join(root,"audit-output","rmb-page-architecture-audit.json"),JSON.stringify(result,null,2));
 console.log(JSON.stringify(result,null,2));

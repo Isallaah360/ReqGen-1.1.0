@@ -45,7 +45,7 @@ export default function DirectorateWorkspaceMenu({
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         {items.map((item) => {
-          const active = item.href === "/hr" ? pathname === item.href : pathname.startsWith(item.href);
+          const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
 
           return (
             <Link

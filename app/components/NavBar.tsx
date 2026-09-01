@@ -70,10 +70,6 @@ function compactCount(value: number) {
   return String(value);
 }
 
-function hasAnyRole(roleSet: Set<string>, roles: string[]) {
-  return roles.some((role) => roleSet.has(roleKey(role)));
-}
-
 function roleSummary(fallbackRole: string | null | undefined, profileRoles: ProfileRole[]) {
   const active = profileRoles.filter((r) => r.is_active);
 
@@ -212,7 +208,6 @@ export default function NavBar() {
   const canAudit = canAccessPath("/audit-centre", roleSet);
   const canExecutive = canAccessPath("/executive", roleSet);
   const canFinance = canAccessPath("/finance", roleSet);
-  const canHR = canAccessPath("/hr", roleSet);
   const canRegistry = canAccessPath("/registry", roleSet);
 
   const accessibleNavigationItems = useMemo(
@@ -246,8 +241,6 @@ export default function NavBar() {
     return pathname.startsWith(href + "/");
   }
 
-  const isHRBoss = hasAnyRole(roleSet, ["admin", "hr", "hrboss"]);
-  const hrHomeHref = isHRBoss ? "/hr" : "/hr/my-work";
 
   const iconLinkClass = (href: string) =>
     `group relative inline-flex h-12 w-12 items-center justify-center rounded-xl border-2 text-sm font-black transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-cyan-200 ${isActiveLink(href)
@@ -787,10 +780,6 @@ export default function NavBar() {
                 )}
               </div>
 
-              <Link className={iconLinkClass("/staff")} href="/staff">
-                <NavPngIcon src="/dashboard.png" alt="Dashboard" />
-                <IconButtonTooltip label="Staff Workspace" />
-              </Link>
 
               <Link className={iconLinkClass("/requests")} href="/requests">
                 <NavPngIcon src="/request.png" alt="My Requests" />
@@ -814,13 +803,6 @@ export default function NavBar() {
                   <NavPngIcon src="/finance.png" alt="Finance" />
                   <IconButtonTooltip label="Finance" />
                 </button>
-              )}
-
-              {canHR && (
-                <Link className={iconLinkClass(hrHomeHref)} href={hrHomeHref}>
-                  <NavPngIcon src="/hr.png" alt="HR Directorate" />
-                  <IconButtonTooltip label={isHRBoss ? "HR Directorate" : "My HR Work"} />
-                </Link>
               )}
 
               {canRegistry && (
@@ -928,14 +910,6 @@ export default function NavBar() {
 
                   <button
                     type="button"
-                    onClick={() => goTo("/staff")}
-                    className={mobileItemClass("/staff")}
-                  >
-                    <span className="inline-flex items-center gap-2"><NavPngIcon src="/dashboard.png" alt="Staff Workspace" size={22} />Staff Workspace</span>
-                  </button>
-
-                  <button
-                    type="button"
                     onClick={() => goTo("/requests")}
                     className={mobileItemClass("/requests")}
                   >
@@ -968,29 +942,6 @@ export default function NavBar() {
                         Departments, subheads, accounts, vouchers, reports and audit tabs
                       </div>
                     </button>
-                  )}
-
-                  {canHR && (
-                    <>
-                      <div className="mt-3 border-t pt-3 text-xs font-black uppercase tracking-wide text-slate-500">
-                        HR Directorate
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => goTo(hrHomeHref)}
-                        className={mobileItemClass(hrHomeHref)}
-                      >
-                        <div className="inline-flex items-center gap-2">
-                          <NavPngIcon src="/hr.png" alt="HR Directorate" size={22} />
-                          {isHRBoss ? "HR Command Centre" : "My HR Work"}
-                        </div>
-                        <div className={mobileItemDescriptionClass(hrHomeHref)}>
-                          {isHRBoss
-                            ? "Open the centralized HR dashboard and all authorized functions"
-                            : "Open your assigned HR roles, tasks and submissions"}
-                        </div>
-                      </button>
-                    </>
                   )}
 
                   {canRegistry && (

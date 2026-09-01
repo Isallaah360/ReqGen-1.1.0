@@ -5,7 +5,7 @@ import { RefreshCw, Search, AlertTriangle, CheckCircle2, Clock3, Activity, Build
 import type { LucideIcon } from "lucide-react";
 import { dateText, numberValue, text, type GenericRow } from "@/app/components/enterprise/data";
 import { useExecutiveData } from "./useExecutiveData";
-import { ExecutiveActionButton, ExecutiveActionLink, ExecutiveBadge, ExecutiveEmpty, ExecutiveHero, ExecutiveLoading, ExecutivePanel, ExecutiveShell, ExecutiveStatCard, type ExecutiveTone } from "./ExecutiveUI";
+import { ExecutiveActionButton, ExecutiveBadge, ExecutiveEmpty, ExecutiveHero, ExecutiveLoading, ExecutivePanel, ExecutiveShell, ExecutiveStatCard, type ExecutiveTone } from "./ExecutiveUI";
 
 export type ExecutiveModule = "overview" | "requests" | "finance" | "hr" | "registry" | "audit" | "analytics" | "calendar" | "meetings" | "notifications" | "reports";
 
@@ -102,7 +102,6 @@ export default function ExecutiveModulePage({ module }: { module: ExecutiveModul
           actions={
             <>
               <ExecutiveActionButton onClick={() => void refresh()} tone="cyan" disabled={loading}><RefreshCw className="h-4 w-4" />{loading ? "Refreshing…" : "Refresh"}</ExecutiveActionButton>
-              <ExecutiveActionLink href="/staff" tone="slate">Staff Workspace</ExecutiveActionLink>
             </>
           }
         />

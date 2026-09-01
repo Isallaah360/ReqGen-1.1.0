@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-31T09:50:19.004Z",
+  "generatedAt": "2026-09-01T06:58:30.000Z",
   "requiredFiles": 11,
   "missingFiles": 0,
   "status": "passed",
@@ -33,7 +33,7 @@
       "exists": true
     },
     {
-      "file": "app/hr/page.tsx",
+      "file": "app/workflow/page.tsx",
       "exists": true
     },
     {

@@ -7,7 +7,7 @@ import { supabase } from "@/lib/supabaseClient";
 
 const PUBLIC_PATHS = new Set([
   "/", "/login", "/signup", "/forgot-password", "/reset-password",
-  "/mfa", "/mfa/setup", "/unauthorized", "/about",
+  "/mfa", "/mfa/setup", "/unauthorized",
 ]);
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));

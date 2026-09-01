@@ -59,7 +59,7 @@ export default function ApprovedMockupFrame({ children }: { children: ReactNode 
         </div>
       </header>
 
-      <div className="rg-approved-body rg-approved-primary rg-approved-kpis rg-approved-filterbar" aria-label="Workspace Summary">{children}</div>
+      <div className="rg-approved-body">{children}</div>
     </section>
   );
 }

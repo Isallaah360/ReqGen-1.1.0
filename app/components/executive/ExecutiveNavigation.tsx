@@ -2,14 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, ClipboardList, Banknote, Users, Archive, ShieldCheck, BarChart3, CalendarDays, Bell, FileText, BriefcaseBusiness } from "lucide-react";
+import { LayoutDashboard, ClipboardList, Banknote, Archive, ShieldCheck, BarChart3, CalendarDays, Bell, FileText, BriefcaseBusiness } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 const items: { href: string; label: string; description: string; icon: LucideIcon }[] = [
   { href: "/executive", label: "Overview", description: "Command centre", icon: LayoutDashboard },
   { href: "/executive/requests", label: "Requests", description: "Workflow intelligence", icon: ClipboardList },
   { href: "/executive/finance", label: "Finance", description: "Authorized snapshot", icon: Banknote },
-  { href: "/executive/hr", label: "HR", description: "Workforce intelligence", icon: Users },
   { href: "/executive/registry", label: "Registry", description: "Records movement", icon: Archive },
   { href: "/executive/audit", label: "Audit", description: "Evidence and risk", icon: ShieldCheck },
   { href: "/executive/analytics", label: "Analytics", description: "Institutional KPIs", icon: BarChart3 },

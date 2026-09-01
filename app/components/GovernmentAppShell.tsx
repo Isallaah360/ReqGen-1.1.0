@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import {
   Suspense,
@@ -10,19 +11,18 @@ import {
 
 import {
   usePathname,
+  useRouter,
   useSearchParams,
 } from "next/navigation";
 
 import {
   LayoutDashboard,
   Building2,
-  CircleHelp,
   FileText,
   ShieldCheck,
   Landmark,
   CreditCard,
   Archive,
-  Users,
   BarChart3,
   Workflow,
   UserRound,
@@ -32,9 +32,8 @@ import {
   MessageSquare,
   Menu,
   X,
+  LogOut,
   ChevronDown,
-  Sun,
-  Globe2,
 } from "lucide-react";
 
 import { supabase } from "@/lib/supabaseClient";
@@ -43,7 +42,8 @@ import { canAccessPath } from "@/lib/permissions";
 import { getCurrentAuthContext } from "@/lib/auth";
 import { getMockupRouteMeta } from "@/lib/mockupRouteTypes";
 
-import StaffFooter from "./staff/StaffFooter";
+import { ActiveRoleSwitcher } from "./ActiveRoleSwitcher";
+import ReqGenFooter from "./ReqGenFooter";
 
 const PUBLIC_PATHS = new Set([
   "/",
@@ -54,7 +54,6 @@ const PUBLIC_PATHS = new Set([
   "/mfa",
   "/mfa/setup",
   "/unauthorized",
-  "/about",
 ]);
 
 type SubNavItem = {
@@ -67,7 +66,6 @@ const MODULE_SUBNAV: Record<string, SubNavItem[]> = {
     { href: "/executive", label: "Command Centre" },
     { href: "/executive/requests", label: "Requests" },
     { href: "/executive/finance", label: "Finance" },
-    { href: "/executive/hr", label: "HR" },
     { href: "/executive/registry", label: "Registry" },
     { href: "/executive/reports", label: "Reports" },
     { href: "/executive/analytics", label: "Analytics" },
@@ -146,93 +144,6 @@ const MODULE_SUBNAV: Record<string, SubNavItem[]> = {
     { href: "/registry/archive", label: "Archive" },
   ],
 
-  "/hr": [
-    { href: "/hr", label: "HR Overview" },
-    { href: "/hr/my-work", label: "My HR Work" },
-    { href: "/hr/review", label: "Review Queue" },
-    { href: "/hr/filing", label: "HR Filing" },
-    { href: "/hr/staff", label: "Staff Directory" },
-    { href: "/hr/leave", label: "Leave Management" },
-    { href: "/hr/assignments", label: "Assignments" },
-    { href: "/hr/archive", label: "HR Archive" },
-    { href: "/hr/analytics", label: "HR Analytics" },
-    {
-      href: "/hr/department-kpi",
-      label: "Department KPI",
-    },
-    {
-      href: "/hr/officer-performance",
-      label: "Officer Performance",
-    },
-    { href: "/hr/reports", label: "HR Reports" },
-    { href: "/hr/output", label: "HR Output" },
-    {
-      href: "/hr/weekly-seminar",
-      label: "Weekly Seminar",
-    },
-    {
-      href: "/hr/capacity-building/departments",
-      label: "Department Capacity Building",
-    },
-    {
-      href: "/hr/capacity-building/staff",
-      label: "Staff Capacity Building",
-    },
-    {
-      href: "/hr/assessments/annual-360",
-      label: "Annual 360 Assessment",
-    },
-    { href: "/hr/compliance", label: "Compliance" },
-    { href: "/hr/audit", label: "HR Audit" },
-    { href: "/hr/settings", label: "HR Settings" },
-
-    { href: "/hr/registrar", label: "Registrar Centre" },
-    {
-      href: "/hr/registrar/analytics",
-      label: "Registrar Analytics",
-    },
-    {
-      href: "/hr/registrar/department-kpi",
-      label: "Registrar Department KPI",
-    },
-    {
-      href: "/hr/registrar/officer-performance",
-      label: "Registrar Officer Performance",
-    },
-    {
-      href: "/hr/registrar/reports",
-      label: "Registrar Reports",
-    },
-    {
-      href: "/hr/registrar/output",
-      label: "Registrar Output",
-    },
-    {
-      href: "/hr/registrar/weekly-seminar",
-      label: "Registrar Weekly Seminar",
-    },
-    {
-      href: "/hr/registrar/capacity-building/departments",
-      label: "Registrar Department Capacity",
-    },
-    {
-      href: "/hr/registrar/capacity-building/staff",
-      label: "Registrar Staff Capacity",
-    },
-    {
-      href: "/hr/registrar/assessments/annual-360",
-      label: "Registrar Annual 360",
-    },
-    {
-      href: "/hr/registrar/compliance",
-      label: "Registrar Compliance",
-    },
-    {
-      href: "/hr/registrar/settings",
-      label: "Registrar Settings",
-    },
-  ],
-
   "/reports": [
     { href: "/reports", label: "Reports Centre" },
     {
@@ -249,21 +160,6 @@ const MODULE_SUBNAV: Record<string, SubNavItem[]> = {
     { href: "/workflow", label: "Workflow Centre" },
   ],
 
-  "/staff": [
-    { href: "/staff", label: "Staff Overview" },
-    { href: "/staff/requests", label: "My Requests" },
-    { href: "/staff/leave", label: "My Leave" },
-    { href: "/staff/attendance", label: "Attendance" },
-    { href: "/staff/profile", label: "My Profile" },
-    { href: "/staff/training", label: "Training" },
-    { href: "/staff/performance", label: "Performance" },
-    {
-      href: "/staff/notifications",
-      label: "Notifications",
-    },
-    { href: "/staff/downloads", label: "Downloads" },
-  ],
-
   "/profile": [
     { href: "/profile", label: "Profile" },
     { href: "/profile/access", label: "Access" },
@@ -273,11 +169,6 @@ const MODULE_SUBNAV: Record<string, SubNavItem[]> = {
       href: "/change-password",
       label: "Change Password",
     },
-  ],
-
-  "/docs": [
-    { href: "/docs", label: "Help Centre" },
-    { href: "/about", label: "About ReqGen" },
   ],
 
   "/admin": [
@@ -299,23 +190,6 @@ const MODULE_SUBNAV: Record<string, SubNavItem[]> = {
     {
       href: "/admin/settings",
       label: "System Settings",
-    },
-    { href: "/admin/audit", label: "Admin Audit" },
-    {
-      href: "/admin/access-audit",
-      label: "Access Audit",
-    },
-    {
-      href: "/admin/system-health",
-      label: "System Health",
-    },
-    {
-      href: "/admin/release-readiness",
-      label: "Release Readiness",
-    },
-    {
-      href: "/admin/workflow-test",
-      label: "Workflow Test",
     },
   ],
 };
@@ -357,11 +231,6 @@ const MAIN_NAV = [
     icon: Archive,
   },
   {
-    href: "/hr",
-    label: "HR",
-    icon: Users,
-  },
-  {
     href: "/reports",
     label: "Reports",
     icon: BarChart3,
@@ -377,11 +246,6 @@ const MAIN_NAV = [
     icon: Workflow,
   },
   {
-    href: "/staff",
-    label: "Staff",
-    icon: UserRound,
-  },
-  {
     href: "/admin",
     label: "Admin",
     icon: Settings,
@@ -390,11 +254,6 @@ const MAIN_NAV = [
     href: "/profile",
     label: "Profile",
     icon: UserRound,
-  },
-  {
-    href: "/docs",
-    label: "Help & Support",
-    icon: CircleHelp,
   },
 ];
 
@@ -457,6 +316,7 @@ function GovernmentAppShellContent({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
 
   // Safe now because this component is rendered below Suspense.
   const searchParams = useSearchParams();
@@ -489,6 +349,12 @@ function GovernmentAppShellContent({
 
   const [userName, setUserName] =
     useState("ReqGen User");
+
+  const [userEmail, setUserEmail] =
+    useState("");
+
+  const [greeting, setGreeting] =
+    useState("Good Morning ☀️");
 
   useEffect(() => {
     if (isPublic) return;
@@ -535,6 +401,10 @@ function GovernmentAppShellContent({
       ).trim();
 
       setUserName(profileName || metadataName || "Authorised User");
+
+      setUserEmail(
+        user?.email || ""
+      );
     }
 
     void loadContext();
@@ -558,6 +428,20 @@ function GovernmentAppShellContent({
       );
     };
   }, [isPublic]);
+
+  useEffect(() => {
+    const hour =
+      new Date().getHours();
+
+    const nextGreeting =
+      hour < 12
+        ? "Good Morning 🌅"
+        : hour < 17
+          ? "Good Afternoon ☀️"
+          : "Good Evening 🌙";
+
+    queueMicrotask(() => setGreeting(nextGreeting));
+  }, []);
 
   useEffect(() => {
     const parent = Object.keys(MODULE_SUBNAV).find(
@@ -639,6 +523,11 @@ function GovernmentAppShellContent({
       .split("/")
       .filter(Boolean)[0] ||
     "dashboard";
+
+  async function signOut() {
+    await supabase.auth.signOut();
+    router.replace("/login");
+  }
 
   const renderNav = () =>
     visibleNav.map((item) => {
@@ -776,15 +665,27 @@ function GovernmentAppShellContent({
           <Link
             href="/dashboard"
             className="rg-brand-mark"
-            aria-label="ReqGen dashboard"
+            aria-label="ReqGen 1.1.0 dashboard"
           >
-            <span className="rg-brand-logo rg-brand-shield" aria-hidden="true">
-              <ShieldCheck size={30} strokeWidth={1.7} />
+            <span className="rg-brand-logo">
+              <Image
+                src="/be-logo.png"
+                alt="Barderian Enterprises"
+                width={38}
+                height={32}
+                priority
+              />
             </span>
 
             <span className="rg-brand-copy">
-              <strong>REQGEN</strong>
-              <small>Islamic Education Trust (IET)</small>
+              <strong>
+                ReqGen 1.1.0
+              </strong>
+
+              <small>
+                Request Management
+                System
+              </small>
             </span>
           </Link>
 
@@ -806,16 +707,28 @@ function GovernmentAppShellContent({
           {renderNav()}
         </nav>
 
-        <div className="rg-sidebar-bottom">
-          <Link href="/profile" className="rg-theme-row">
-            <Sun size={17} />
-            <span>Light Mode</span>
-            <ChevronDown size={14} className="rg-theme-chevron" />
-          </Link>
-          <div className="rg-version-block">
-            <strong>ReqGen ERP 2.0</strong>
-            <span>Version 1.1.0</span>
+        <div className="rg-sidebar-user">
+          <div className="rg-avatar">
+            {initials}
           </div>
+
+          <div>
+            <strong>
+              {userName}
+            </strong>
+
+            <span>
+              {userEmail ||
+                "Authorised user"}
+            </span>
+          </div>
+
+          <button
+            onClick={signOut}
+            aria-label="Sign out"
+          >
+            <LogOut size={16} />
+          </button>
         </div>
       </aside>
 
@@ -830,6 +743,13 @@ function GovernmentAppShellContent({
           >
             <Menu size={20} />
           </button>
+
+          <div
+            className="rg-greeting"
+            aria-label="Current greeting"
+          >
+            {greeting}
+          </div>
 
           <div className="rg-search-wrap">
             <button
@@ -916,14 +836,8 @@ function GovernmentAppShellContent({
           </div>
 
           <div className="rg-top-actions">
-            <button type="button" className="rg-icon-btn" aria-label="Toggle appearance">
-              <Sun size={19} />
-            </button>
-            <button type="button" className="rg-language-btn" aria-label="Language">
-              <Globe2 size={18} /><span>EN</span><ChevronDown size={13} />
-            </button>
             <Link
-              href="/staff/notifications"
+              href="/dashboard/activity"
               className="rg-icon-btn rg-bell"
               aria-label="Notifications"
             >
@@ -940,6 +854,10 @@ function GovernmentAppShellContent({
                 size={19}
               />
             </Link>
+
+            <ActiveRoleSwitcher
+              compact
+            />
 
             <Link
               href="/profile"
@@ -982,7 +900,7 @@ function GovernmentAppShellContent({
             {children}
           </div>
 
-          <StaffFooter />
+          <ReqGenFooter />
         </main>
       </section>
     </div>
