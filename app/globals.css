@@ -3629,7 +3629,7 @@ body{font-family:Aptos,"Segoe UI",Inter,Arial,sans-serif!important;background:va
    RMB FINAL CONSOLIDATION — APPROVED 001–058 VISUAL CONTRACT
    ================================================================ */
 .rg-nav-link span{font-size:13px!important;font-weight:900!important;text-transform:uppercase!important;letter-spacing:.025em!important}
-.rg-subnav a{font-size:12px!important;font-weight:800!important;text-transform:none!important;font-variant-caps:all-small-caps;letter-spacing:.025em!important;line-height:1.25}
+.rg-subnav a{font-size:12px!important;font-weight:800!important;text-transform:none!important;font-variant-caps:normal!important;letter-spacing:.01em!important;line-height:1.25}
 .rg-subnav a.is-active{font-weight:900!important}
 .rg-content{animation:rg-page-enter .22s ease-out both}
 @keyframes rg-page-enter{from{opacity:.55;transform:translateY(3px)}to{opacity:1;transform:none}}

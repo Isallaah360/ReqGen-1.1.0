@@ -2,8 +2,10 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { CalendarDays, ChevronRight, RefreshCw, Settings2, ShieldCheck } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
-import { PVActionButton, PVHero } from "@/app/components/ui/PaymentVoucherUI";
+import styles from "./payment-voucher-settings.module.css";
 
 type SignatoryType = "ChequeSigner" | "CounterSigner" | "Both";
 
@@ -427,13 +429,27 @@ export default function PaymentVoucherSettingsPage() {
   }
 
   return (
-    <main className="rg-module-page rg-adopted-page"><div className="mx-auto w-full max-w-[1500px] space-y-4">
-        <PVHero
-          eyebrow="Controlled Authority"
-          title="Payment Voucher Settings"
-          description="Manage authorized cheque signers and counter-signatories for the official Payment Voucher workflow from one secure administration workspace."
-          actions={<PVActionButton onClick={() => load({ silent: true })} disabled={saving || refreshing} tone="cyan">{refreshing ? "Refreshing..." : "Refresh Settings"}</PVActionButton>}
-        />
+    <main className={styles.page}><div className="mx-auto w-full max-w-[1500px] space-y-4">
+        <div className={styles.breadcrumb}>
+          <Link href="/dashboard">Home</Link><ChevronRight size={13}/>
+          <Link href="/payment-vouchers">Payment Vouchers</Link><ChevronRight size={13}/>
+          <span>Settings</span>
+        </div>
+        <header className={styles.hero}>
+          <div className={styles.heroIdentity}>
+            <div className={styles.titleIcon}><Settings2 size={25}/></div>
+            <div>
+              <h1>Payment Voucher Settings</h1>
+              <p>Manage authorised cheque signers and counter-signatories for the official Payment Voucher workflow.</p>
+            </div>
+          </div>
+          <div className={styles.heroMeta}>
+            <div className={styles.metaItem}><CalendarDays size={17}/><span>{new Date().toLocaleDateString("en-GB", { weekday: "long", day: "2-digit", month: "long", year: "numeric" })}</span></div>
+            <div className={styles.metaDivider}/>
+            <div className={styles.metaItem}><ShieldCheck size={17}/><span>Restricted Authority</span></div>
+            <button className={styles.refreshButton} onClick={() => load({ silent: true })} disabled={saving || refreshing}><RefreshCw size={15}/>{refreshing ? "Refreshing..." : "Refresh Settings"}</button>
+          </div>
+        </header>
 
         {msg && (
           <div className="mt-4 rounded-2xl border bg-white px-4 py-3 text-sm text-slate-800 shadow-sm">

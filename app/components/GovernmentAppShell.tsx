@@ -112,7 +112,6 @@ const MODULE_SUBNAV: Record<string, SubNavItem[]> = {
 
   "/payment-vouchers": [
     { href: "/payment-vouchers", label: "Overview" },
-    { href: "/payment-vouchers/new", label: "Create Voucher" },
     {
       href: "/payment-vouchers/pending",
       label: "Pending Approval",
