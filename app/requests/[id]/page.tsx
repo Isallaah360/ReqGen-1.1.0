@@ -1242,17 +1242,13 @@ export default function RequestDetailsPage() {
             <div className="req-family-meta">Request <b>{req?.request_no || "—"}</b> · Current stage: <b>{req?.current_stage || "—"}</b> · Status: <b>{req?.status || "—"}</b></div>
           </div>
           <div className={styles.heroActions}>
+            <button type="button" className={styles.secondaryAction} onClick={() => router.push(canAct ? "/approvals" : "/requests")}>
+              {canAct ? "Back to Approvals" : "Back to Requests"}
+            </button>
             {req && canEditRequest ? <button type="button" className={styles.secondaryAction} onClick={() => router.push(`/requests/${req.id}/edit`)}>Edit Request</button> : null}
             {req ? <button type="button" className={styles.primaryAction} onClick={() => router.push(`/requests/${req.id}/print`)}>Print Request</button> : null}
           </div>
         </header>
-        <nav className={`${styles.workspaceNav} req-family-subnav`} aria-label="Request workspace navigation">
-          <button type="button" onClick={() => router.push("/requests")}>Requests Overview</button>
-          <button type="button" onClick={() => router.push("/requests/new")}>Create New Request</button>
-          <button type="button" className="is-active">Request Details</button>
-          {req && canEditRequest ? <button type="button" onClick={() => router.push(`/requests/${req.id}/edit`)}>Edit Request</button> : null}
-          {req ? <button type="button" onClick={() => router.push(`/requests/${req.id}/print`)}>Print Request</button> : null}
-        </nav>
 
         <section className={`${styles.summaryGrid} req-family-summary-grid`} aria-label="Request summary">
           <div><small>Request No.</small><strong>{req?.request_no || "—"}</strong></div>

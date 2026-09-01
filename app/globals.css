@@ -3629,7 +3629,7 @@ body{font-family:Aptos,"Segoe UI",Inter,Arial,sans-serif!important;background:va
    RMB FINAL CONSOLIDATION — APPROVED 001–058 VISUAL CONTRACT
    ================================================================ */
 .rg-nav-link span{font-size:13px!important;font-weight:900!important;text-transform:uppercase!important;letter-spacing:.025em!important}
-.rg-subnav a{font-size:12px!important;font-weight:800!important;text-transform:none!important;font-variant-caps:normal!important;letter-spacing:.01em!important;line-height:1.25}
+.rg-subnav a{font-size:13px!important;font-weight:800!important;text-transform:none!important;font-variant-caps:normal!important;letter-spacing:.01em!important;line-height:1.3;min-height:34px!important}
 .rg-subnav a.is-active{font-weight:900!important}
 .rg-content{animation:rg-page-enter .22s ease-out both}
 @keyframes rg-page-enter{from{opacity:.55;transform:translateY(3px)}to{opacity:1;transform:none}}
@@ -3652,3 +3652,15 @@ body{font-family:Aptos,"Segoe UI",Inter,Arial,sans-serif!important;background:va
 [data-route="/profile"]>main>div,[data-route^="/profile/"]>main>div{max-width:none!important;padding:0!important}
 .staff-greeting,.staff-designation{display:none!important}
 @media (prefers-reduced-motion:reduce){.rg-content,.rg-stat-card,.rg-action-button{animation:none!important;transition:none!important}}
+
+/* 2026-09-01 ReqGen readability + navigation lock */
+.rg-nav-link{font-size:13px!important}
+.rg-subnav a{font-size:13px!important;font-weight:800!important;line-height:1.35!important;min-height:34px!important}
+.rg-greeting{font-size:13px!important;font-weight:900!important}
+.rg-search-trigger{font-size:13px!important;font-weight:700!important}
+.rg-search-input input{font-size:13px!important}
+.rg-search-results strong{font-size:13px!important}.rg-search-results span,.rg-search-results p{font-size:11.5px!important}
+.rg-profile strong{font-size:13px!important}.rg-profile span{font-size:11px!important}
+.rg-bell b{min-width:16px;width:auto;height:16px;padding:0 3px;font-size:8px!important;font-weight:900}
+.rg-nav-count{margin-left:auto;min-width:20px;height:20px;display:grid;place-items:center;padding:0 5px;border:2px solid #fff;border-radius:999px;background:#e53945;color:#fff;font-size:9px!important;font-weight:900!important;line-height:1}
+.mock-role-switcher>span{font-size:10.5px!important;font-weight:900!important}.mock-role-switcher select{font-size:13px!important;font-weight:900!important}

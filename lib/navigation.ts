@@ -16,9 +16,7 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
   { href: "/dashboard/activity", label: "Dashboard Activity", section: "General", description: "Recent system and workflow activity." },
 
   { href: "/requests", label: "Requests", section: "Requests", description: "Browse and manage authorised requests." },
-  { href: "/requests/new", label: "Create Request", section: "Requests", description: "Start a new Official or Personal request.", keywords: ["new request"] },
   { href: "/approvals", label: "Approvals Inbox", section: "Approvals", description: "Requests currently requiring attention or approval." },
-  { href: "/approvals/action-centre", label: "Approval Action Centre", section: "Approvals", description: "Focused action centre for approval workflow." },
 
   { href: "/finance", label: "Finance Control Centre", section: "Finance", description: "Finance command centre and operational overview." },
   { href: "/finance/manage-accounts", label: "IET Bank Accounts", section: "Finance · Accounts", description: "Manage IET bank names, funds and account status.", keywords: ["bank accounts", "banks"] },
@@ -65,16 +63,6 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
   { href: "/reports/enterprise-analytics", label: "Analytics", section: "Reports", description: "Cross-module analytical view." },
   { href: "/output", label: "Output Centre", section: "Reports", description: "Printable and exportable system output." },
 
-  { href: "/executive", label: "Executive Command Centre", section: "Executive", description: "Executive oversight workspace." },
-  { href: "/executive/requests", label: "Executive Requests", section: "Executive", description: "Executive request oversight." },
-  { href: "/executive/finance", label: "Executive Finance", section: "Executive", description: "Executive finance oversight." },
-  { href: "/executive/registry", label: "Executive Registry", section: "Executive", description: "Executive registry oversight." },
-  { href: "/executive/reports", label: "Executive Reports", section: "Executive", description: "Executive reports workspace." },
-  { href: "/executive/analytics", label: "Executive Analytics", section: "Executive", description: "Executive analytics." },
-  { href: "/executive/audit", label: "Executive Audit", section: "Executive", description: "Executive audit overview." },
-  { href: "/executive/calendar", label: "Executive Calendar", section: "Executive", description: "Executive calendar workspace." },
-  { href: "/executive/meetings", label: "Executive Meetings", section: "Executive", description: "Executive meetings workspace." },
-  { href: "/executive/notifications", label: "Executive Notifications", section: "Executive", description: "Executive notifications workspace." },
 
   { href: "/audit-centre", label: "Audit Centre", section: "Governance", description: "Audit oversight." },
   { href: "/workflow", label: "Workflow Intelligence", section: "Governance", description: "Workflow intelligence and process monitoring." },

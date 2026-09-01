@@ -17,7 +17,6 @@ import {
 
 import {
   LayoutDashboard,
-  Building2,
   FileText,
   ShieldCheck,
   Landmark,
@@ -62,28 +61,9 @@ type SubNavItem = {
 };
 
 const MODULE_SUBNAV: Record<string, SubNavItem[]> = {
-  "/executive": [
-    { href: "/executive", label: "Command Centre" },
-    { href: "/executive/requests", label: "Requests" },
-    { href: "/executive/finance", label: "Finance" },
-    { href: "/executive/registry", label: "Registry" },
-    { href: "/executive/reports", label: "Reports" },
-    { href: "/executive/analytics", label: "Analytics" },
-    { href: "/executive/calendar", label: "Calendar" },
-    { href: "/executive/meetings", label: "Meetings" },
-    { href: "/executive/notifications", label: "Notifications" },
-    { href: "/executive/audit", label: "Audit" },
-  ],
+  "/requests": [],
 
-  "/requests": [
-    { href: "/requests", label: "Requests Overview" },
-    { href: "/requests/new", label: "Create New Request" },
-  ],
-
-  "/approvals": [
-    { href: "/approvals", label: "Approvals Overview" },
-    { href: "/approvals/action-centre", label: "Action Centre" },
-  ],
+  "/approvals": [],
 
   "/finance": [
     { href: "/finance", label: "Finance Overview" },
@@ -195,11 +175,6 @@ const MODULE_SUBNAV: Record<string, SubNavItem[]> = {
 
 const MAIN_NAV = [
   {
-    href: "/executive",
-    label: "Command Centre",
-    icon: Building2,
-  },
-  {
     href: "/dashboard",
     label: "Dashboard",
     icon: LayoutDashboard,
@@ -256,6 +231,10 @@ const MAIN_NAV = [
   },
 ];
 
+function getSubnavForPath(moduleHref: string, _pathname: string): SubNavItem[] {
+  return MODULE_SUBNAV[moduleHref] || [];
+}
+
 function isActive(pathname: string, href: string) {
   if (href === "/dashboard") {
     return (
@@ -268,6 +247,34 @@ function isActive(pathname: string, href: string) {
     pathname === href ||
     pathname.startsWith(`${href}/`)
   );
+}
+
+function shellStageKey(value: string | null | undefined) {
+  return String(value || "").trim().toUpperCase().replace(/[\s_-]+/g, "");
+}
+
+function shellRoleKey(value: string | null | undefined) {
+  return String(value || "").trim().toLowerCase().replace(/[\s_-]+/g, "");
+}
+
+function isOpenApprovalStatus(status: string | null | undefined) {
+  const value = String(status || "").toLowerCase();
+  return !["approved", "paid", "completed", "closed", "rejected", "deleted", "cancelled"].some((token) => value.includes(token));
+}
+
+function requestMatchesApprovalRole(row: { current_owner?: string | null; current_stage?: string | null; status?: string | null }, userId: string, role: string) {
+  if (!isOpenApprovalStatus(row.status)) return false;
+  if (row.current_owner && row.current_owner === userId) return true;
+
+  const stageForRole: Record<string, string[]> = {
+    po: ["PO"], dod: ["DOD"], director: ["DOD"], dinadmin: ["DINADMIN"],
+    registrar: ["REGISTRAR"], registry: ["REGISTRAR"], hod: ["HOD"],
+    hr: ["HR", "HRFILING"], hrboss: ["HR", "HRFILING"], hrofficer: ["HR", "HRFILING"],
+    dg: ["DG"], account: ["ACCOUNT"], accounts: ["ACCOUNT"], accountofficer: ["ACCOUNT"],
+  };
+  const normalizedRole = shellRoleKey(role);
+  if (["admin", "auditor"].includes(normalizedRole)) return true;
+  return (stageForRole[normalizedRole] || []).includes(shellStageKey(row.current_stage));
 }
 
 /**
@@ -355,6 +362,9 @@ function GovernmentAppShellContent({
   const [greeting, setGreeting] =
     useState("Good Morning ☀️");
 
+  const [pendingApprovalCount, setPendingApprovalCount] =
+    useState(0);
+
   useEffect(() => {
     if (isPublic) return;
 
@@ -404,6 +414,25 @@ function GovernmentAppShellContent({
       setUserEmail(
         user?.email || ""
       );
+
+      if (user?.id) {
+        const activeRole = context?.activeRoleKey || "staff";
+        const approvalResult = await supabase
+          .from("requests")
+          .select("current_owner,current_stage,status")
+          .order("created_at", { ascending: false });
+
+        if (mounted && !approvalResult.error) {
+          const approvalRows = (approvalResult.data || []) as Array<{
+            current_owner?: string | null;
+            current_stage?: string | null;
+            status?: string | null;
+          }>;
+          setPendingApprovalCount(
+            approvalRows.filter((row) => requestMatchesApprovalRole(row, user.id, activeRole)).length
+          );
+        }
+      }
     }
 
     void loadContext();
@@ -425,6 +454,21 @@ function GovernmentAppShellContent({
         "reqgen-active-role-changed",
         refresh
       );
+    };
+  }, [isPublic]);
+
+  useEffect(() => {
+    if (isPublic) return;
+
+    const channel = supabase
+      .channel("reqgen-shell-approval-badge")
+      .on("postgres_changes", { event: "*", schema: "public", table: "requests" }, () => {
+        window.dispatchEvent(new Event("reqgen-active-role-changed"));
+      })
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
     };
   }, [isPublic]);
 
@@ -539,11 +583,7 @@ function GovernmentAppShellContent({
         );
 
       const subnav =
-        (
-          MODULE_SUBNAV[
-          item.href
-          ] || []
-        ).filter((child) =>
+        getSubnavForPath(item.href, pathname).filter((child) =>
           canAccessPath(
             child.href,
             roleSet
@@ -582,6 +622,11 @@ function GovernmentAppShellContent({
               <span>
                 {item.label}
               </span>
+              {item.href === "/approvals" && pendingApprovalCount > 0 ? (
+                <b className="rg-nav-count" aria-label={`${pendingApprovalCount} pending approvals`}>
+                  {pendingApprovalCount > 99 ? "99+" : pendingApprovalCount}
+                </b>
+              ) : null}
             </Link>
 
             {subnav.length ? (
@@ -836,18 +881,19 @@ function GovernmentAppShellContent({
 
           <div className="rg-top-actions">
             <Link
-              href="/dashboard/activity"
+              href="/approvals"
               className="rg-icon-btn rg-bell"
-              aria-label="Notifications"
+              aria-label={`${pendingApprovalCount} request${pendingApprovalCount === 1 ? "" : "s"} awaiting your approval`}
+              title={`${pendingApprovalCount} request${pendingApprovalCount === 1 ? "" : "s"} awaiting your approval`}
             >
-              <Bell size={19} />
-              <b>3</b>
+              <Bell size={20} />
+              {pendingApprovalCount > 0 ? <b>{pendingApprovalCount > 99 ? "99+" : pendingApprovalCount}</b> : null}
             </Link>
 
             <Link
-              href="/dashboard/activity"
+              href="/profile/activity"
               className="rg-icon-btn"
-              aria-label="Activity and messages"
+              aria-label="My activity"
             >
               <MessageSquare
                 size={19}
