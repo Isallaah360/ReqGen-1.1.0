@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-09-01T07:30:47.110Z",
-  "totalPages": 84,
+  "generatedAt": "2026-09-01T12:21:13.938Z",
+  "totalPages": 85,
   "sensitiveRoots": [
     "/admin",
     "/audit-centre",
@@ -116,6 +116,7 @@
     "/profile/access",
     "/profile/activity",
     "/profile/security",
+    "/profile/security/replace-authenticator",
     "/registry",
     "/registry/archive",
     "/registry/dispatch",

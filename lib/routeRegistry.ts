@@ -746,6 +746,16 @@ export const ROUTE_REGISTRY: RouteRegistryItem[] = [
     "description": "Profile Security"
   },
   {
+    "pattern": "/profile/security/replace-authenticator",
+    "title": "Replace Authenticator",
+    "rootHref": "/profile",
+    "category": "Security / Configuration",
+    "public": false,
+    "nav": false,
+    "searchable": true,
+    "description": "Safely replace the logged-in user's authenticator app without creating a new account."
+  },
+  {
     "pattern": "/registry/archive",
     "title": "Archive",
     "rootHref": "/registry",
