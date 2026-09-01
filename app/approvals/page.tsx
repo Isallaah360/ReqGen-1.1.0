@@ -200,7 +200,7 @@ export default function ApprovalsPage() {
             <table className={styles.table}>
               <thead><tr><th>Request</th><th>Title</th><th>Type</th><th>Stage</th><th>Amount</th><th>Date</th><th>Status</th><th>Action</th></tr></thead>
               <tbody>{filteredRows.map((row) => (
-                <tr key={row.id}>
+                <tr key={row.id} className={styles.clickableRow} onClick={() => router.push(`/requests/${row.id}?from=approvals`)} tabIndex={0} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") router.push(`/requests/${row.id}?from=approvals`); }}>
                   <td className={styles.requestNo}>{row.request_no || "—"}</td>
                   <td><strong>{row.title || "Untitled request"}</strong></td>
                   <td><span className={styles.typeBadge}>{typeLabel(row)}</span></td>
@@ -209,8 +209,8 @@ export default function ApprovalsPage() {
                   <td>{formatDate(row.created_at)}</td>
                   <td><span className={`${styles.statusBadge} ${isApproved(row) ? styles.badgeGreen : isClosed(row) ? styles.badgeRed : styles.badgeAmber}`}>{row.status || "Pending"}</span></td>
                   <td>
-                    <button className={styles.reviewButton} onClick={() => router.push(`/requests/${row.id}?from=approvals`)}>
-                      <Eye size={15} /> {isClosed(row) ? "View" : "Review & Decide"}
+                    <button className={styles.reviewButton} onClick={(event) => { event.stopPropagation(); router.push(`/requests/${row.id}?from=approvals`); }}>
+                      <Eye size={15} /> {isClosed(row) ? "View Request" : "Process Request"}
                     </button>
                   </td>
                 </tr>
