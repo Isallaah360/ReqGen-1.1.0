@@ -1195,6 +1195,8 @@ export default function NewRequestPage() {
               </div>
             </div>
 
+            {!signedRequest ? <p className={styles.submitHint}>Sign the request above to enable final submission. You can save a draft at any time.</p> : null}
+
             <footer className={styles.formActions}>
               <button type="button" className={styles.cancelButton} onClick={() => embedded ? closeEmbedded() : router.push("/requests")}>Cancel</button>
               <div>
@@ -1207,7 +1209,7 @@ export default function NewRequestPage() {
                     : verifyingOtp ? `Verifying ${otpLabel}...`
                     : signedRequest
                       ? requestOtpEnabled ? (otpSent ? `Continue with ${otpLabel}` : `Submit Request`) : "Submit Request"
-                      : "Sign Request First"}
+                      : "Submit Request"}
                 </button>
               </div>
             </footer>

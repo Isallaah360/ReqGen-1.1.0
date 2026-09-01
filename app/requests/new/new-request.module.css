@@ -6,3 +6,5 @@
 .formActions{position:sticky;bottom:0;z-index:12;background:rgba(255,255,255,.97);backdrop-filter:blur(10px);box-shadow:0 -8px 22px rgba(15,35,70,.06)}
 @media(max-width:780px){.signatureActions{width:100%;display:grid;grid-template-columns:1fr 1fr}.signatureActions>button{width:100%}}
 @media(max-width:520px){.signatureActions{grid-template-columns:1fr}.formActions{bottom:0}}
+
+.submitHint{margin:12px 0 0;padding:10px 12px;border:1px solid #d9e6f6;border-radius:9px;background:#f5f9ff;color:#49617f;font-size:12px;font-weight:650;line-height:1.45}

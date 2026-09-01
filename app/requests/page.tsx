@@ -48,6 +48,18 @@ export default function RequestsPage(){
  useEffect(()=>{queueMicrotask(()=>setPage(1));},[query,status,type,department,tab]); const pageSize=8; const totalPages=Math.max(1,Math.ceil(filtered.length/pageSize)); const currentPage=Math.min(page,totalPages); const paged=filtered.slice((currentPage-1)*pageSize,currentPage*pageSize);
  const tabs:[TabKey,string,number][]=[["ALL","All Requests",counts.total],["ACTIVE","Active Workflow",counts.active],["COMPLETED","Completed / Paid",counts.completed],["REJECTED","Rejected / Deleted",counts.rejected],["OFFICIAL","Official",counts.official],["PERSONAL_FUND","Personal Fund",counts.fund],["PERSONAL_OTHER","Personal Other",counts.other]];
  function exportCsv(){const lines=[["Request Code","Title","Department","Type","Amount","Status","Requested On"],...filtered.map(r=>[r.request_no,r.title,r.dept_id?departments[r.dept_id]||"Unassigned":"Unassigned",requestTypeLabel(r),String(r.amount||0),statusLabel(r),new Date(r.created_at).toLocaleString("en-NG")])].map(row=>row.map(v=>`"${String(v??"").replaceAll('"','""')}"`).join(",")).join("\n");const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([lines],{type:"text/csv"}));a.download="reqgen-requests.csv";a.click();URL.revokeObjectURL(a.href)}
+ if(showCreateDrawer){return <main className={`${styles.page} ${styles.formMode}`}>
+  <section className={styles.fullFormWorkspace} aria-label="Create Request">
+   <header className={styles.fullFormHeader}><div><span className={styles.eyebrow}>Requests</span><strong>Create New Request</strong><p>Complete, save, sign and submit your request in one full workspace.</p></div><button type="button" onClick={()=>setShowCreateDrawer(false)}><X size={18}/> Back to Requests</button></header>
+   <iframe className={styles.fullFormFrame} title="Create Request Form" src="/requests/new?embedded=1"/>
+  </section>
+ </main>}
+ if(editDrawerId){return <main className={`${styles.page} ${styles.formMode}`}>
+  <section className={styles.fullFormWorkspace} aria-label="Edit Request">
+   <header className={styles.fullFormHeader}><div><span className={styles.eyebrow}>Requests</span><strong>Edit Request</strong><p>Update the request while preserving its workflow, reservations and audit history.</p></div><button type="button" onClick={()=>setEditDrawerId(null)}><X size={18}/> Back to Requests</button></header>
+   <iframe className={styles.fullFormFrame} title="Edit Request Form" src={`/requests/${editDrawerId}/edit?embedded=1`}/>
+  </section>
+ </main>}
  return <main className={styles.page}>
   <header className={styles.header}><div><span className={styles.eyebrow}>Requests</span><h1>Requests Overview</h1><p>Track all your requests from creation to final decision in one workspace.</p></div><button className={styles.primary} onClick={()=>setShowCreateDrawer(true)} data-tip="Open the Create Request form without leaving the Requests workspace."><Plus size={17}/> New Request</button></header>
   <section className={styles.kpis}>
@@ -98,8 +110,6 @@ export default function RequestsPage(){
     </div></td></tr>):<tr><td colSpan={8} className={styles.empty}>No matching requests.</td></tr>}</tbody></table></div>}
    <div className={styles.pagination}><span>Showing {filtered.length?((currentPage-1)*pageSize)+1:0} to {Math.min(currentPage*pageSize,filtered.length)} of {filtered.length} entries</span><div><button disabled={currentPage===1} onClick={()=>setPage(p=>Math.max(1,p-1))}>‹</button>{Array.from({length:Math.min(totalPages,4)},(_,i)=>i+1).map(n=><button key={n} className={n===currentPage?styles.current:""} onClick={()=>setPage(n)}>{n}</button>)}{totalPages>4&&<span>…</span>}<button disabled={currentPage===totalPages} onClick={()=>setPage(p=>Math.min(totalPages,p+1))}>›</button></div></div>
   </section>
-  {showCreateDrawer ? <div className="rg-form-drawer-backdrop" role="dialog" aria-modal="true" aria-label="Create Request"><section className="rg-form-drawer"><header className="rg-form-drawer-head"><div><strong>Create Request</strong><span>Complete, sign and submit without leaving Requests.</span></div><button type="button" onClick={()=>setShowCreateDrawer(false)} aria-label="Close Create Request"><X size={18}/></button></header><iframe title="Create Request Form" src="/requests/new?embedded=1" /></section></div> : null}
-  {editDrawerId ? <div className="rg-form-drawer-backdrop" role="dialog" aria-modal="true" aria-label="Edit Request"><section className="rg-form-drawer"><header className="rg-form-drawer-head"><div><strong>Edit Request</strong><span>Secure edits preserve workflow, reservations and audit history.</span></div><button type="button" onClick={()=>setEditDrawerId(null)} aria-label="Close Edit Request"><X size={18}/></button></header><iframe title="Edit Request Form" src={`/requests/${editDrawerId}/edit?embedded=1`} /></section></div> : null}
  </main>
 }
 function Kpi({tone,icon,label,value,note}:{tone:"blue"|"orange"|"green"|"purple"|"red";icon:React.ReactNode;label:string;value:number;note:string}){return <article className={styles.kpi}><span className={`${styles.kpiIcon} ${styles[tone]}`}>{icon}</span><div><small>{label}</small><strong>{value.toLocaleString()}</strong><p>{note}</p></div></article>}
