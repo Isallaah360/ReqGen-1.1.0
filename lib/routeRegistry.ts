@@ -496,6 +496,16 @@ export const ROUTE_REGISTRY: RouteRegistryItem[] = [
     "description": "Unable to open finance request"
   },
   {
+    "pattern": "/finance/processing",
+    "title": "Finance Processing",
+    "rootHref": "/finance",
+    "category": "Operational Workspace",
+    "public": false,
+    "nav": true,
+    "searchable": true,
+    "description": "Treat requests routed to Finance and continue payment-voucher processing"
+  },
+  {
     "pattern": "/finance/settings",
     "title": "Finance Settings",
     "rootHref": "/finance",

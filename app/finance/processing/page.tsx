@@ -1,0 +1,23 @@
+"use client";
+
+import Link from "next/link";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { ArrowRight, CircleAlert, CreditCard, FileText, RefreshCw } from "lucide-react";
+import { supabase } from "@/lib/supabaseClient";
+import styles from "./processing.module.css";
+
+type RequestRow = { id:string; request_no:string|null; title:string|null; amount:number|string|null; status:string|null; current_stage:string|null; current_owner:string|null; created_at:string|null };
+type VoucherRow = { id:string; voucher_no:string|null; payee_name:string|null; total_amount:number|string|null; amount:number|string|null; status:string|null; created_at:string|null };
+
+function money(value: unknown){return new Intl.NumberFormat("en-NG",{style:"currency",currency:"NGN",maximumFractionDigits:0}).format(Number(value||0));}
+function openRequest(row:RequestRow){const stage=`${row.current_stage||""} ${row.current_owner||""}`.toLowerCase();const status=String(row.status||"").toLowerCase();return (stage.includes("account")||stage.includes("finance")||stage.includes("payment"))&&!/(paid|posted|completed|closed|rejected|cancelled)/.test(status);}
+function openVoucher(row:VoucherRow){return !/(paid|posted|completed|cancelled|rejected)/i.test(row.status||"");}
+
+export default function FinanceProcessingPage(){
+ const[loading,setLoading]=useState(true);const[refreshing,setRefreshing]=useState(false);const[error,setError]=useState<string|null>(null);const[requests,setRequests]=useState<RequestRow[]>([]);const[vouchers,setVouchers]=useState<VoucherRow[]>([]);
+ const load=useCallback(async(manual=false)=>{manual?setRefreshing(true):setLoading(true);setError(null);const[req,vou]=await Promise.all([supabase.from("requests").select("id,request_no,title,amount,status,current_stage,current_owner,created_at").order("created_at",{ascending:false}).limit(500),supabase.from("payment_vouchers").select("id,voucher_no,payee_name,total_amount,amount,status,created_at").order("created_at",{ascending:false}).limit(1000)]);if(req.error||vou.error)setError([req.error?.message,vou.error?.message].filter(Boolean).join(" · "));setRequests((req.data||[]) as RequestRow[]);setVouchers((vou.data||[]) as VoucherRow[]);setLoading(false);setRefreshing(false)},[]);
+ useEffect(()=>{queueMicrotask(()=>void load())},[load]);
+ const pendingRequests=useMemo(()=>requests.filter(openRequest),[requests]);const pendingVouchers=useMemo(()=>vouchers.filter(openVoucher),[vouchers]);
+ if(loading)return <main className={styles.page}>Loading Finance queue…</main>;
+ return <main className={styles.page}><header className={styles.header}><div><span>SECTION 4 · FINANCE</span><h1>Finance Processing</h1><p>Treat requests routed to Finance and continue payment-voucher processing from one workspace.</p></div><button onClick={()=>void load(true)} disabled={refreshing}><RefreshCw size={15}/>{refreshing?"Refreshing…":"Refresh"}</button></header>{error&&<div className={styles.notice}><CircleAlert size={16}/>{error}</div>}<section className={styles.metrics}><article><FileText/><div><b>{pendingRequests.length}</b><span>Requests awaiting Finance</span></div></article><article><CreditCard/><div><b>{pendingVouchers.length}</b><span>Open payment vouchers</span></div></article></section><section className={styles.grid}><article className={styles.card}><div className={styles.cardHead}><div><h2>Requests Waiting for Finance</h2><p>Open the request to complete the Finance-stage treatment.</p></div></div><div className={styles.tableWrap}><table><thead><tr><th>Request</th><th>Title</th><th>Stage</th><th>Amount</th><th>Action</th></tr></thead><tbody>{pendingRequests.map(r=><tr key={r.id}><td>{r.request_no||"—"}</td><td>{r.title||"Untitled"}</td><td>{r.current_stage||r.current_owner||"Finance"}</td><td>{money(r.amount)}</td><td><Link href={`/finance/request/${r.id}`}>Process <ArrowRight size={13}/></Link></td></tr>)}{!pendingRequests.length&&<tr><td colSpan={5} className={styles.empty}>No request is currently waiting for Finance.</td></tr>}</tbody></table></div></article><article className={styles.card}><div className={styles.cardHead}><div><h2>Payment Voucher Work</h2><p>Continue an existing voucher or create a manual voucher where permitted.</p></div><Link href="/finance/manual-voucher">Create Manual Voucher</Link></div><div className={styles.voucherList}>{pendingVouchers.slice(0,12).map(v=><Link key={v.id} href={`/payment-vouchers/${v.id}`}><div><b>{v.voucher_no||"Voucher"}</b><span>{v.payee_name||"No payee"}</span></div><strong>{money(v.total_amount??v.amount)}</strong></Link>)}{!pendingVouchers.length&&<div className={styles.empty}>No open payment voucher.</div>}</div></article></section></main>;
+}

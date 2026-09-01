@@ -67,26 +67,12 @@ const MODULE_SUBNAV: Record<string, SubNavItem[]> = {
 
   "/finance": [
     { href: "/finance", label: "Finance Overview" },
-    { href: "/finance/manage-accounts", label: "IET Bank Accounts" },
-    {
-      href: "/finance/manage-accounts/assign",
-      label: "Assign Bank to Officer",
-    },
-    { href: "/finance/subheads", label: "Finance Subheads" },
-    { href: "/finance/departments", label: "Finance Departments" },
-    { href: "/finance/account-ledger", label: "Account Ledger" },
-    { href: "/finance/subhead-ledger", label: "Subhead Ledger" },
-    { href: "/finance/account-transfers", label: "Account Transfers" },
-    { href: "/finance/transactions", label: "Transactions Register" },
-    { href: "/finance/manual-voucher", label: "Manual Voucher Centre" },
-    { href: "/finance/vouchers", label: "Finance Vouchers" },
-    { href: "/finance/reports", label: "Finance Reports" },
-    { href: "/finance/reports/monthly", label: "Monthly Reports" },
-    { href: "/finance/reports/annual", label: "Annual Reports" },
-    { href: "/finance/print-centre", label: "Print / PDF Centre" },
-    { href: "/finance/export-centre", label: "Export Centre" },
-    { href: "/finance/audit-trail", label: "Audit Trail" },
-    { href: "/finance/activity-history", label: "Activity History" },
+    { href: "/finance/manage-accounts", label: "IET Accounts" },
+    { href: "/finance/subheads", label: "Budget & Subheads" },
+    { href: "/finance/transactions", label: "Transactions & Ledgers" },
+    { href: "/finance/account-transfers", label: "Transfers" },
+    { href: "/finance/processing", label: "Finance Processing" },
+    { href: "/finance/reports", label: "Reports & Output" },
     { href: "/finance/settings", label: "Finance Settings" },
   ],
 
@@ -268,7 +254,7 @@ function requestMatchesApprovalRole(row: { current_owner?: string | null; curren
 
   const stageForRole: Record<string, string[]> = {
     po: ["PO"], dod: ["DOD"], director: ["DOD"], dinadmin: ["DINADMIN"],
-    registrar: ["REGISTRAR"], registry: ["REGISTRY"], gensec: ["GENERALSECRETARY", "GENSEC"], hod: ["HOD"],
+    registrar: ["REGISTRAR"], registry: ["REGISTRY"], generalsecretary: ["GENERALSECRETARY", "GENSEC"], hod: ["HOD"],
     hr: ["HR", "HRFILING"], hrboss: ["HR", "HRFILING"], hrofficer: ["HR", "HRFILING"],
     hrofficer1: ["HR", "HRFILING"], hrofficer2: ["HR", "HRFILING"], hrofficer3: ["HR", "HRFILING"],
     dg: ["DG"], account: ["ACCOUNT"], accounts: ["ACCOUNT"], accountofficer: ["ACCOUNT"],
