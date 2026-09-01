@@ -2,8 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, Clock3, Eye, RefreshCw, Search, ShieldCheck, XCircle } from "lucide-react";
+import { CheckCircle2, Clock3, Eye, RefreshCw, Search, ShieldCheck, X, XCircle } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
+import RequestDetailsWorkspace from "@/app/components/requests/RequestDetailsWorkspace";
 import styles from "./approvals.module.css";
 
 type ApprovalRow = {
@@ -69,6 +70,7 @@ export default function ApprovalsPage() {
   const [view, setView] = useState<ViewKey>("pending");
   const [activeRole, setActiveRole] = useState("staff");
   const [userId, setUserId] = useState("");
+  const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
 
   const load = useCallback(async (silent = false) => {
     if (silent) setRefreshing(true); else setLoading(true);
@@ -144,6 +146,20 @@ export default function ApprovalsPage() {
   const approvedCount = useMemo(() => historyRows.filter(isApproved).length, [historyRows]);
   const rejectedCount = Math.max(0, historyRows.length - approvedCount);
 
+  useEffect(() => {
+    if (!selectedRequestId) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setSelectedRequestId(null);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [selectedRequestId]);
+
   const filteredRows = useMemo(() => {
     const source = view === "pending" ? pendingRows : view === "history" ? historyRows : relevantRows;
     const q = search.trim().toLowerCase();
@@ -200,7 +216,7 @@ export default function ApprovalsPage() {
             <table className={styles.table}>
               <thead><tr><th>Request</th><th>Title</th><th>Type</th><th>Stage</th><th>Amount</th><th>Date</th><th>Status</th><th>Action</th></tr></thead>
               <tbody>{filteredRows.map((row) => (
-                <tr key={row.id} className={styles.clickableRow} onClick={() => router.push(`/requests/${row.id}?from=approvals`)} tabIndex={0} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") router.push(`/requests/${row.id}?from=approvals`); }}>
+                <tr key={row.id} className={styles.clickableRow} onClick={() => setSelectedRequestId(row.id)} tabIndex={0} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") setSelectedRequestId(row.id); }}>
                   <td className={styles.requestNo}>{row.request_no || "—"}</td>
                   <td><strong>{row.title || "Untitled request"}</strong></td>
                   <td><span className={styles.typeBadge}>{typeLabel(row)}</span></td>
@@ -209,7 +225,7 @@ export default function ApprovalsPage() {
                   <td>{formatDate(row.created_at)}</td>
                   <td><span className={`${styles.statusBadge} ${isApproved(row) ? styles.badgeGreen : isClosed(row) ? styles.badgeRed : styles.badgeAmber}`}>{row.status || "Pending"}</span></td>
                   <td>
-                    <button className={styles.reviewButton} onClick={(event) => { event.stopPropagation(); router.push(`/requests/${row.id}?from=approvals`); }}>
+                    <button className={styles.reviewButton} onClick={(event) => { event.stopPropagation(); setSelectedRequestId(row.id); }}>
                       <Eye size={15} /> {isClosed(row) ? "View Request" : "Process Request"}
                     </button>
                   </td>
@@ -224,6 +240,24 @@ export default function ApprovalsPage() {
         <ShieldCheck size={21} />
         <div><strong>Simple and secure</strong><p>Your authenticated AAL2 session is reused for normal approval work. ReqGen asks for another authenticator code only when the secure session has expired.</p></div>
       </section>
+
+      {selectedRequestId ? (
+        <div className={styles.processBackdrop} role="presentation" onMouseDown={(event) => { if (event.currentTarget === event.target) setSelectedRequestId(null); }}>
+          <aside className={styles.processPanel} role="dialog" aria-modal="true" aria-label="Process request">
+            <button type="button" className={styles.closePanelButton} onClick={() => setSelectedRequestId(null)} aria-label="Close request panel">
+              <X size={18} />
+            </button>
+            <div className={styles.processPanelBody}>
+              <RequestDetailsWorkspace
+                requestId={selectedRequestId}
+                embedded
+                onClose={() => setSelectedRequestId(null)}
+                onProcessed={() => { setSelectedRequestId(null); void load(true); }}
+              />
+            </div>
+          </aside>
+        </div>
+      ) : null}
     </main>
   );
 }

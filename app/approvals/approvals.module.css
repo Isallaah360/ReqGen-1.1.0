@@ -108,3 +108,12 @@
 
 /* 2026-09-01 approvals interaction hardening */
 .viewTabs .activeTab:hover,.viewTabs .activeTab:focus-visible{background:#0b5cf0;border-color:#0b5cf0;color:#fff}.viewTabs .activeTab:hover b,.viewTabs .activeTab:focus-visible b{background:rgba(255,255,255,.2);color:#fff}.clickableRow{cursor:pointer;transition:background-color .15s ease,box-shadow .15s ease}.clickableRow:hover{background:#f7faff}.clickableRow:focus-visible{outline:2px solid #0b5cf0;outline-offset:-2px;background:#f7faff}.clickableRow:hover .requestNo{color:#0b5cf0!important}.reviewButton{min-width:128px}.reviewButton:focus-visible{outline:3px solid rgba(11,92,240,.18);outline-offset:2px}
+
+/* 2026-09-01 approved Process Request treatment panel */
+.processBackdrop{position:fixed;inset:0;z-index:90;display:flex;justify-content:flex-end;background:rgba(8,24,48,.28);backdrop-filter:blur(2px);animation:approvalFade .16s ease-out}
+.processPanel{position:relative;width:min(720px,48vw);height:100dvh;display:flex;flex-direction:column;background:#f7faff;border-left:1px solid #d8e3ef;box-shadow:-18px 0 46px rgba(16,42,86,.18);animation:approvalSlide .22s cubic-bezier(.2,.8,.2,1)}
+.closePanelButton{position:absolute;top:9px;right:9px;z-index:12;width:34px;height:34px;display:grid;place-items:center;border:1px solid #d8e2ee;border-radius:9px;background:#fff;color:#40516a;box-shadow:0 4px 12px rgba(16,42,86,.08);cursor:pointer;transition:.15s ease}.closePanelButton:hover{border-color:#9cbdf0;background:#f1f6ff;color:#0b5cf0}
+.processPanelBody{min-height:0;overflow:auto;overscroll-behavior:contain;padding:0 0 28px}.processPanelBody :global(.req-family-page){padding:14px!important;background:transparent!important}.processPanelBody :global(.req-family-inner){max-width:none!important;margin:0!important}.processPanelBody :global(.req-family-head){margin-top:0!important}
+@keyframes approvalFade{from{opacity:0}to{opacity:1}}@keyframes approvalSlide{from{transform:translateX(28px);opacity:.4}to{transform:translateX(0);opacity:1}}
+@media(max-width:920px){.processPanel{width:min(760px,92vw)}}@media(max-width:760px){.processBackdrop{background:#f7faff;backdrop-filter:none}.processPanel{width:100vw;border-left:0;box-shadow:none}.processPanelBody :global(.req-family-page){padding:10px!important}}
+@media(prefers-reduced-motion:reduce){.processBackdrop,.processPanel{animation:none}}
