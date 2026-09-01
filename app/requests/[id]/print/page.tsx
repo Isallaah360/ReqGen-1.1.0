@@ -633,10 +633,6 @@ export default function PrintRequestPage() {
     router.refresh();
   }
 
-  const commentTrail = useMemo(() => {
-    return history.filter((h) => (h.comment || "").trim().length > 0);
-  }, [history]);
-
   if (loading) {
     return (
       <main className="min-h-screen bg-slate-100 px-4 py-8">
@@ -722,9 +718,9 @@ export default function PrintRequestPage() {
         </header>
         <nav className="no-print req-family-subnav" aria-label="Request workspace navigation">
           <button type="button" onClick={() => router.push("/requests")}>Requests Overview</button>
-          <button type="button" onClick={() => router.push(`/requests/${req.id}`)}>View Request</button>
-          <button type="button" onClick={() => router.push(`/requests/${req.id}/edit`)}>Edit</button>
-          <button type="button" className="is-active">Print</button>
+          <button type="button" onClick={() => router.push(`/requests/${req.id}`)}>Request Details</button>
+          <button type="button" onClick={() => router.push(`/requests/${req.id}/edit`)}>Edit Request</button>
+          <button type="button" className="is-active">Print Request</button>
         </nav>
         <section className="no-print req-family-summary-grid req-print-summary" aria-label="Print summary">
           <div><small>Request No.</small><strong>{req.request_no}</strong></div>
@@ -777,248 +773,30 @@ export default function PrintRequestPage() {
           roles and status are used.
         </div>
 
-        <div className="sheet mx-auto w-full bg-white px-[18px] py-[12px] text-black">
+        <div className="sheet mx-auto w-full bg-white px-[28px] py-[22px] text-black">
           <div className="text-center">
-            <div className="mx-auto flex justify-center">
-              <Image
-                src="/iet-logo.png"
-                alt="IET Logo"
-                width={48}
-                height={48}
-                className="h-[48px] w-auto object-contain"
-                priority
-              />
-            </div>
-
-            <div className="mt-1 text-[15px] font-black uppercase leading-none tracking-tight">
-              Islamic Education Trust
-            </div>
-            <div className="mt-0.5 text-[9.5px] font-semibold leading-tight">
-              IW2, Ilmi Avenue Intermediate Housing Estate
-            </div>
-            <div className="text-[9.5px] font-semibold leading-tight">
-              PMB 229, Minna, Niger State - Nigeria
-            </div>
+            <div className="mx-auto flex justify-center"><Image src="/iet-logo.png" alt="Islamic Education Trust logo" width={64} height={64} className="h-[58px] w-auto object-contain" priority /></div>
+            <div className="mt-1 text-[16px] font-black uppercase leading-none tracking-tight">Islamic Education Trust</div>
+            <div className="mt-1 text-[9.5px] font-semibold leading-tight">IW2, Ilmi Avenue Intermediate Housing Estate</div>
+            <div className="text-[9.5px] font-semibold leading-tight">PMB 229, Minna, Niger State - Nigeria</div>
           </div>
-
-          <div className="mt-2 h-[2px] w-full bg-blue-500" />
-
-          <div className="mt-2 grid grid-cols-12 gap-x-3 gap-y-1">
-            <TopLineField label="Reference:" value={req.request_no} className="col-span-5" />
-            <TopLineField label="Date:" value={formatDate(req.created_at)} className="col-span-4" />
-            <TopLineField label="Status:" value={req.status || ""} className="col-span-3" />
-
-            <TopLineField label="Department:" value={req.dept_name || ""} className="col-span-5" />
-
-            {isOfficial ? (
-              <TopLineField
-                label="Sub-Head:"
-                value={`${req.subhead_code || ""} ${req.subhead_name || ""}`.trim()}
-                className="col-span-4"
-              />
-            ) : (
-              <TopLineField label="Type:" value={requestCategoryLabel(req)} className="col-span-4" />
-            )}
-
-            <TopLineField label="Stage:" value={req.current_stage || ""} className="col-span-3" />
+          <div className="mt-4 flex items-center gap-3 text-[10px] font-black"><span className="shrink-0">SUB-HEAD:</span><div className="h-[24px] flex-1 rounded border border-black px-2 leading-[22px] font-semibold">{isOfficial ? `${req.subhead_code || ""}${req.subhead_name ? ` — ${req.subhead_name}` : ""}`.trim() : requestCategoryLabel(req)}</div></div>
+          <div className="mt-5 text-[10.5px] font-bold leading-[1.35]"><div>The Director General,</div><div>Islamic Education Trust,</div><div>Minna.</div></div>
+          <div className="mt-5 text-[10.5px] font-bold">Assalamu` Alaikum Sir,</div>
+          <div className="mt-2 text-center text-[12px] font-black uppercase">{printTitle}</div>
+          {!isPersonalOther ? <p className="mt-2 text-[10px] font-semibold leading-[1.45]">I write to request for the release of the total sum of <span className="inline-block min-w-[185px] border-b border-black px-2 text-center font-black">{amountText}</span> for the expense below/attached:</p> : <p className="mt-2 text-[10px] font-semibold leading-[1.45]">I write to request consideration and approval for the personal matter stated below/attached:</p>}
+          <div className="mt-2 min-h-[175px] whitespace-pre-wrap border-b border-black/50 pb-2 text-[10px] font-semibold leading-[1.55]"><strong>{req.title}</strong>{"\n\n"}{req.details}</div>
+          <div className="mt-3 text-[10.5px] font-bold">Wassalamu` Alaikum.</div>
+          {isOfficial ? <div className="mt-3 flex justify-end"><div className="w-[330px] space-y-1.5"><SmallFieldRow label="ALLOCATION B/D:" value={naira(req.approved_allocation)} /><SmallFieldRow label="EXPENDITURE:" value={naira(req.expenditure)} /><SmallFieldRow label="BALANCE C/D:" value={naira(req.balance)} /></div></div> : null}
+          <div className="mt-8 space-y-4 text-[9.5px] font-bold">
+            <SignatureLine label="Requested by:" name={req.requester_name || ""} capacity="Requester" sigUrl={sigRequester} date={formatDate(req.created_at)} />
+            <SignatureLine label="Checked by:" name={checkedHistory?.actor_name || req.checked_by_name || hrHistory?.actor_name || req.hr_name || ""} capacity={checkedHistory ? roleCapacity(checkedHistory, "Reviewer") : roleCapacity(hrHistory, "Reviewer")} sigUrl={sigChecked || sigHR} date={formatDate(checkedHistory?.created_at || hrHistory?.created_at || req.created_at)} />
+            <SignatureLine label="Approved by Director General, IET:" name={dgHistory?.actor_name || req.dg_name || ""} capacity={roleCapacity(dgHistory, "Director General")} sigUrl={sigDG} date={formatDate(dgHistory?.created_at || req.created_at)} />
           </div>
-
-          <div className="mt-1 h-[1px] w-full bg-blue-300" />
-
-          <div className="mt-2 text-[10.5px] font-bold leading-[1.2]">
-            <div>The Director General,</div>
-            <div>Islamic Education Trust,</div>
-            <div>Minna.</div>
-          </div>
-
-          <div className="mt-2.5 text-[10.5px] font-bold">Assalamu` Alaikum Sir,</div>
-
-          <div className="mt-1 text-center text-[11.5px] font-black uppercase">{printTitle}</div>
-
-          {!isPersonalOther ? (
-            <div className="mt-1 text-[9.5px] font-bold leading-[1.2]">
-              I write to request for the release of the total sum of{" "}
-              <span className="inline-block min-w-[150px] border-b border-black text-center font-bold">
-                {amountText}
-              </span>{" "}
-              for the purpose below/attached:
-            </div>
-          ) : (
-            <div className="mt-1 text-[9.5px] font-bold leading-[1.2]">
-              I write to request consideration and approval for the personal matter stated
-              below/attached:
-            </div>
-          )}
-
-          <div className="mt-1 min-h-[54px] whitespace-pre-wrap text-[9px] font-semibold leading-[1.12]">
-            {req.details}
-          </div>
-
-          <div className="mt-1.5 text-[10.5px] font-bold">Wassalamu` Alaikum.</div>
-
-          {isOfficial && (
-            <div className="mt-1.5 flex justify-end">
-              <div className="w-[320px] space-y-1">
-                <SmallFieldRow label="ALLOCATION B/D:" value={naira(req.approved_allocation)} />
-                <SmallFieldRow label="RESERVED:" value={naira(req.reserved_amount)} />
-                <SmallFieldRow label="EXPENDITURE:" value={naira(req.expenditure)} />
-                <SmallFieldRow label="BALANCE C/D:" value={naira(req.balance)} />
-              </div>
-            </div>
-          )}
-
-          <div className="mt-2 h-[1px] w-full bg-blue-300" />
-
-          <div className="mt-1.5 space-y-1 text-[9.5px] font-bold">
-            <SignatureLine
-              label="Requested by:"
-              name={req.requester_name || ""}
-              capacity="Requester / Staff"
-              sigUrl={sigRequester}
-              date={formatDate(req.created_at)}
-            />
-
-            <SignatureLine
-              label="Recommended by:"
-              name={checkedHistory?.actor_name || req.checked_by_name || ""}
-              capacity={roleCapacity(checkedHistory, "Department Reviewer")}
-              sigUrl={sigChecked}
-              date={formatDate(checkedHistory?.created_at || req.created_at)}
-            />
-
-            {isPersonal && (
-              <SignatureLine
-                label="Reviewed by HR:"
-                name={hrHistory?.actor_name || req.hr_name || ""}
-                capacity={roleCapacity(hrHistory, "HR")}
-                sigUrl={sigHR}
-                date={formatDate(hrHistory?.created_at || req.created_at)}
-              />
-            )}
-
-            <SignatureLine
-              label="Approved by:"
-              name={dgHistory?.actor_name || req.dg_name || ""}
-              capacity={roleCapacity(dgHistory, "DG")}
-              sigUrl={sigDG}
-              date={formatDate(dgHistory?.created_at || req.created_at)}
-            />
-
-            {requiresAccountLine && (
-              <SignatureLine
-                label="Paid by:"
-                name={accountHistory?.actor_name || req.account_name || ""}
-                capacity={roleCapacity(accountHistory, "AccountOfficer")}
-                sigUrl={sigAccount}
-                date={formatDate(accountHistory?.created_at || req.created_at)}
-              />
-            )}
-
-            {isPersonal && (
-              <SignatureLine
-                label="Filed by:"
-                name={hrFilingHistory?.actor_name || ""}
-                capacity={roleCapacity(hrFilingHistory, "HR Filing")}
-                sigUrl={sigHRFiling}
-                date={formatDate(hrFilingHistory?.created_at)}
-              />
-            )}
-          </div>
-
-          {(req.checked_comment || req.hr_comment || req.dg_comment || req.account_comment) && (
-            <>
-              <div className="mt-2 h-[1px] w-full bg-blue-300" />
-              <div className="mt-1">
-                <div className="text-[9px] font-black uppercase">Approval Notes</div>
-
-                <div className="mt-1 space-y-1">
-                  {req.checked_comment && (
-                    <CompactComment
-                      name={checkedHistory?.actor_name || req.checked_by_name || "Recommended by"}
-                      role={roleCapacity(checkedHistory, "Department Recommendation")}
-                      comment={req.checked_comment}
-                    />
-                  )}
-
-                  {req.hr_comment && isPersonal && (
-                    <CompactComment
-                      name={hrHistory?.actor_name || req.hr_name || "HR"}
-                      role={roleCapacity(hrHistory, "HR Review")}
-                      comment={req.hr_comment}
-                    />
-                  )}
-
-                  {req.dg_comment && (
-                    <CompactComment
-                      name={dgHistory?.actor_name || req.dg_name || "DG"}
-                      role={roleCapacity(dgHistory, "DG Approval")}
-                      comment={req.dg_comment}
-                    />
-                  )}
-
-                  {req.account_comment && requiresAccountLine && (
-                    <CompactComment
-                      name={accountHistory?.actor_name || req.account_name || "Account"}
-                      role={roleCapacity(accountHistory, "Account Treatment")}
-                      comment={req.account_comment}
-                    />
-                  )}
-                </div>
-              </div>
-            </>
-          )}
-
-          {commentTrail.length > 0 && (
-            <>
-              <div className="mt-2 h-[1px] w-full bg-blue-300" />
-              <div className="mt-1">
-                <div className="text-[9px] font-black uppercase">Workflow Trail</div>
-
-                <div className="mt-1 space-y-1">
-                  {commentTrail.slice(0, 6).map((h) => (
-                    <div key={h.id} className="rounded border border-slate-300 px-2 py-1">
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="text-[8px] font-bold">
-                          {h.actor_name || "—"} • {h.action_type || "—"} •{" "}
-                          {h.actor_role_name || h.actor_role_key || "Role not recorded"} •{" "}
-                          {h.to_stage || "—"}
-                        </div>
-                        <div className="text-[7.6px] font-semibold">{formatDate(h.created_at)}</div>
-                      </div>
-
-                      <div className="mt-0.5 whitespace-pre-wrap text-[7.8px] leading-[1.1] text-slate-800">
-                        {h.comment || "No comment"}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </>
-          )}
-
-          <div className="mt-2 text-center text-[9px] italic font-medium">Building Bridges</div>
+          <div className="mt-8 flex items-center justify-between text-[8px] text-slate-600"><span>{req.request_no}</span><span className="italic font-medium">Building Bridges</span></div>
         </div>
       </div>
     </main>
-  );
-}
-
-function TopLineField({
-  label,
-  value,
-  className,
-}: {
-  label: string;
-  value: string;
-  className?: string;
-}) {
-  return (
-    <div className={`flex items-end gap-1 ${className || ""}`}>
-      <div className="shrink-0 text-[8.5px] font-bold">{label}</div>
-      <div className="min-w-0 flex-1 break-words border-b border-black px-1 pb-[1px] text-[8.5px] font-semibold leading-tight">
-        {value}
-      </div>
-    </div>
   );
 }
 
@@ -1081,27 +859,6 @@ function SignatureLine({
         <div>Capacity</div>
         <div>Signature</div>
         <div>Date</div>
-      </div>
-    </div>
-  );
-}
-
-function CompactComment({
-  name,
-  role,
-  comment,
-}: {
-  name: string;
-  role: string;
-  comment: string;
-}) {
-  return (
-    <div className="rounded border border-slate-300 px-2 py-1">
-      <div className="text-[7.8px] font-bold">
-        {name} • {role}
-      </div>
-      <div className="mt-0.5 whitespace-pre-wrap text-[7.8px] leading-[1.08] text-slate-800">
-        {comment}
       </div>
     </div>
   );

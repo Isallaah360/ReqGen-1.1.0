@@ -1192,16 +1192,6 @@ export default function NewRequestPage() {
                   <ShieldCheck size={17} />
                   {signedRequest ? "Signed" : "Sign Request"}
                 </button>
-                {signedRequest ? (
-                  <button type="button" className={styles.submitButton} onClick={openSubmitVerification} disabled={!canSubmit}>
-                    <Send size={17} />
-                    {saving
-                      ? uploadingAttachments ? "Uploading Attachments..." : "Submitting..."
-                      : sendingOtp ? `Sending ${otpLabel}...`
-                      : verifyingOtp ? `Verifying ${otpLabel}...`
-                      : requestOtpEnabled ? (otpSent ? `Continue with ${otpLabel}` : "Submit Request") : "Submit Request"}
-                  </button>
-                ) : null}
               </div>
             </div>
 

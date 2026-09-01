@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { WorkflowLoading, WorkflowPageStyles } from "@/app/components/ui/WorkflowUI";
 import { RequestProgress } from "../../components/RequestProgress";
+import styles from "./request-detail.module.css";
 
 
 type PersonalCategory =
@@ -1008,12 +1009,27 @@ export default function RequestDetailsPage() {
     return true;
   }
 
-  function openFresh2faModal(action: SensitiveAction) {
+  async function openFresh2faModal(action: SensitiveAction) {
     setMsg(null);
 
     const ok = validateBeforeSensitiveAction(action);
     if (!ok) return;
 
+    const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    const sessionIsAal2 = aal?.currentLevel === "aal2";
+
+    // ReqGen already requires MFA for authenticated workspaces. Reuse that secure
+    // AAL2 session for normal request work so users are not challenged repeatedly.
+    if (sessionIsAal2 || mfaVerified) {
+      if (action === "Delete") {
+        await deleteRequestAfterFresh2fa();
+      } else {
+        await actAfterFresh2fa(action);
+      }
+      return;
+    }
+
+    // Fallback only when the secure session has expired or dropped below AAL2.
     setPendingAction(action);
     setMfaCode("");
     setShowMfaModal(true);
@@ -1110,19 +1126,19 @@ export default function RequestDetailsPage() {
         if (nextStage === "Completed") {
           setMsg(
             nextStatus === "Paid"
-              ? "✅ Request paid successfully and closed after your attachment checks and 2FA."
-              : "✅ Request completed successfully after your attachment checks and 2FA."
+              ? "✅ Request paid successfully and closed after your attachment checks."
+              : "✅ Request completed successfully after your attachment checks."
           );
         } else if (isHRFiling) {
-          setMsg("✅ HR Filing completed successfully after your attachment checks and 2FA.");
+          setMsg("✅ HR review completed successfully after your attachment checks.");
         } else if (isAccountStage && nextStage === "HR Filing") {
-          setMsg("✅ Payment treated. Request sent back to HR for final filing.");
+          setMsg("✅ Payment treated. Request sent for final HR review.");
         } else if (usesAutomaticAccountOfficerRouting && nextStage === "Account") {
           setMsg(
             "✅ Approved by DG. The request was automatically sent to the AccountOfficer already attached from the selected subhead."
           );
         } else {
-          setMsg(`✅ Approved after your attachment checks and 2FA. Sent to ${nextStage || "next stage"}.`);
+          setMsg(`✅ Approved after your attachment checks. Sent to ${nextStage || "next stage"}.`);
         }
       } else {
         const { data, error } = await supabase.rpc("reject_request_step", {
@@ -1137,7 +1153,7 @@ export default function RequestDetailsPage() {
         const result = Array.isArray(data) ? data[0] : data;
         const nextStage = (result as RequestActionResult | null)?.new_stage || "Rejected";
 
-        setMsg(`✅ Request ${String(nextStage).toLowerCase()} successfully after your attachment checks and 2FA.`);
+        setMsg(`✅ Request ${String(nextStage).toLowerCase()} successfully after your attachment checks.`);
       }
 
       setComment("");
@@ -1168,7 +1184,7 @@ export default function RequestDetailsPage() {
 
       if (error) throw new Error(error.message);
 
-      setMsg("✅ Deleted successfully after 2FA verification.");
+      setMsg("✅ Deleted successfully successfully.");
 
       await reload();
 
@@ -1189,8 +1205,8 @@ export default function RequestDetailsPage() {
     if (usesAutomaticAccountOfficerRouting) {
       return "Approve & Send to Attached AccountOfficer";
     }
-    if (isHRFiling) return "Complete HR Filing";
-    if (isAccountStage && isPersonalFund) return "Treat / Pay & Send to HR Filing";
+    if (isHRFiling) return "Complete HR Review";
+    if (isAccountStage && isPersonalFund) return "Treat / Pay & Send for HR Review";
     if (isAccountStage) return "Treat / Pay";
     if (stg === "DOD") return "Approve as DOD";
     if (stg === "PO") return "Approve as PO";
@@ -1215,26 +1231,30 @@ export default function RequestDetailsPage() {
   if (loading) return <WorkflowLoading title="Loading request details and approval history..." />;
 
   return (
-    <main className="req-family-page">
+    <main className={`${styles.page} req-family-page`}>
       <WorkflowPageStyles />
-      <div className="req-family-inner">
-        <header className="req-family-head">
+      <div className={`${styles.inner} req-family-inner`}>
+        <header className={`${styles.hero} req-family-head`}>
           <div>
             <span className="req-family-eyebrow">Request Details</span>
             <h1>{req?.title || "Request Details"}</h1>
-            <p>Review request information, attachments, finance controls, approval history and authorised actions.</p>
-            <div className="req-family-meta">Request <b>{req?.request_no || "—"}</b> · Current stage: <b>{req?.current_stage || "—"}</b></div>
+            <p>Review the request, workflow position, supporting records and actions available to your current role.</p>
+            <div className="req-family-meta">Request <b>{req?.request_no || "—"}</b> · Current stage: <b>{req?.current_stage || "—"}</b> · Status: <b>{req?.status || "—"}</b></div>
+          </div>
+          <div className={styles.heroActions}>
+            {req && canEditRequest ? <button type="button" className={styles.secondaryAction} onClick={() => router.push(`/requests/${req.id}/edit`)}>Edit Request</button> : null}
+            {req ? <button type="button" className={styles.primaryAction} onClick={() => router.push(`/requests/${req.id}/print`)}>Print Request</button> : null}
           </div>
         </header>
-        <nav className="req-family-subnav" aria-label="Request workspace navigation">
+        <nav className={`${styles.workspaceNav} req-family-subnav`} aria-label="Request workspace navigation">
           <button type="button" onClick={() => router.push("/requests")}>Requests Overview</button>
-          <button type="button" onClick={() => router.push("/requests/new")}>New Request</button>
-          <button type="button" className="is-active">View Request</button>
-          {req && canEditRequest ? <button type="button" onClick={() => router.push(`/requests/${req.id}/edit`)}>Edit</button> : null}
-          {req ? <button type="button" onClick={() => router.push(`/requests/${req.id}/print`)}>Print</button> : null}
+          <button type="button" onClick={() => router.push("/requests/new")}>Create New Request</button>
+          <button type="button" className="is-active">Request Details</button>
+          {req && canEditRequest ? <button type="button" onClick={() => router.push(`/requests/${req.id}/edit`)}>Edit Request</button> : null}
+          {req ? <button type="button" onClick={() => router.push(`/requests/${req.id}/print`)}>Print Request</button> : null}
         </nav>
 
-        <section className="req-family-summary-grid" aria-label="Request summary">
+        <section className={`${styles.summaryGrid} req-family-summary-grid`} aria-label="Request summary">
           <div><small>Request No.</small><strong>{req?.request_no || "—"}</strong></div>
           <div><small>Current Stage</small><strong>{req?.current_stage || "—"}</strong></div>
           <div><small>Status</small><strong>{req?.status || "—"}</strong></div>
@@ -1248,8 +1268,8 @@ export default function RequestDetailsPage() {
             }`}
         >
           {mfaVerified
-            ? "✅ 2FA session is active. Fresh 2FA code is still required before approve, reject, or delete."
-            : "⚠️ 2FA is required. Fresh 2FA code is required before approve, reject, or delete."}
+            ? "✅ Secure 2FA session verified. Normal request actions will not ask for another code unless the secure session expires."
+            : "⚠️ This secure session needs 2FA verification before sensitive request actions."}
         </div>
 
         {isOfficial && ["PO", "DOD", "DINADMIN", "REGISTRAR", "HOD"].includes(stg) && (
@@ -1262,8 +1282,8 @@ export default function RequestDetailsPage() {
           <div className="mt-4 rounded-2xl border border-purple-200 bg-purple-50 px-4 py-3 text-sm font-semibold text-purple-900">
             Personal request workflow is active.
             {isPersonalFund
-              ? " This Personal Fund request moves through HR/DG/AccountOfficer and returns to HR Filing."
-              : " This Personal request moves through HR/DG and then HR Filing."}
+              ? " This Personal Fund request uses HR review where required, then DG and Account processing."
+              : " This Personal request uses HR review where required, then moves to DG for final decision."}
           </div>
         )}
 
@@ -1336,7 +1356,7 @@ export default function RequestDetailsPage() {
                     isOfficial || isPersonalFund
                       ? subhead
                         ? `${subhead.code ? `${subhead.code} — ` : ""}${subhead.name}`
-                        : "Pending HR Recommendation"
+                        : "Pending workflow assignment"
                       : "Not Applicable"
                   }
                 />
@@ -1595,8 +1615,7 @@ export default function RequestDetailsPage() {
             <div className="mt-6 rounded-2xl border bg-white p-6 shadow-sm">
               <h2 className="text-lg font-bold text-slate-900">Actions</h2>
               <p className="mt-1 text-sm text-slate-600">
-                Only the assigned officer can approve/reject. All actions require signature, your
-                own attachment checks, and a fresh 2FA code.
+                Only the assigned officer can approve or reject. Your verified secure session is reused while active; a new 2FA code is requested only after that secure session expires.
               </p>
 
               {!canAct ? (

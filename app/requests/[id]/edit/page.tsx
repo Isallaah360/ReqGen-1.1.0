@@ -552,11 +552,17 @@ export default function EditRequestPage() {
     return true;
   }
 
-  function openSaveVerification() {
+  async function openSaveVerification() {
     setMsg(null);
 
     const ok = validateForm();
     if (!ok) return;
+
+    const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    if (aal?.currentLevel === "aal2") {
+      await saveAfterFresh2fa();
+      return;
+    }
 
     setMfaCode("");
     setShowMfaModal(true);
@@ -636,7 +642,7 @@ export default function EditRequestPage() {
 
       if (error) throw new Error(error.message);
 
-      setMsg("✅ Request updated successfully after 2FA verification.");
+      setMsg("✅ Request updated successfully.");
 
       await load();
 
@@ -683,10 +689,10 @@ export default function EditRequestPage() {
         </header>
         <nav className="req-family-subnav" aria-label="Request workspace navigation">
           <button type="button" onClick={() => router.push("/requests")}>Requests Overview</button>
-          <button type="button" onClick={() => router.push("/requests/new")}>New Request</button>
-          <button type="button" onClick={() => router.push(`/requests/${req.id}`)}>View Request</button>
-          <button type="button" className="is-active">Edit</button>
-          <button type="button" onClick={() => router.push(`/requests/${req.id}/print`)}>Print</button>
+          <button type="button" onClick={() => router.push("/requests/new")}>Create New Request</button>
+          <button type="button" onClick={() => router.push(`/requests/${req.id}`)}>Request Details</button>
+          <button type="button" className="is-active">Edit Request</button>
+          <button type="button" onClick={() => router.push(`/requests/${req.id}/print`)}>Print Request</button>
         </nav>
 
         <div className="mt-4 grid gap-3 md:grid-cols-3">
@@ -695,9 +701,8 @@ export default function EditRequestPage() {
           <StatusCard label="Edit Mode" value={editModeLabel} />
         </div>
 
-        <div className="mt-4 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-900">
-          A fresh 2FA code is required before changes can be saved. The code will verify
-          automatically after the 6th digit is entered.
+        <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-900">
+          Your verified secure session is reused for editing. A new 2FA code is requested only if the secure session has expired.
         </div>
 
         {isRegistrarAssignedEdit && (
@@ -880,7 +885,7 @@ export default function EditRequestPage() {
                   ? "Saving..."
                   : verifyingCode
                     ? "Verifying automatically..."
-                    : "Save Changes with 2FA"}
+                    : "Save Changes"}
               </button>
             </div>
           </div>

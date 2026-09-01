@@ -40,18 +40,40 @@ export default function RequestsPage(){
   return()=>window.removeEventListener("message",onMessage);
  },[load]);
  const counts=useMemo(()=>({total:rows.length,active:rows.filter(isActive).length,completed:rows.filter(isCompleted).length,rejected:rows.filter(isRejected).length,official:rows.filter(r=>requestGroup(r)==="OFFICIAL").length,fund:rows.filter(r=>requestGroup(r)==="PERSONAL_FUND").length,other:rows.filter(r=>requestGroup(r)==="PERSONAL_OTHER").length}),[rows]);
+ const recentRows=useMemo(()=>rows.slice(0,5),[rows]);
+ const departmentStats=useMemo(()=>{const map=new Map<string,number>();rows.forEach(r=>{const name=r.dept_id?departments[r.dept_id]||"Unassigned":"Unassigned";map.set(name,(map.get(name)||0)+1)});return Array.from(map.entries()).sort((a,b)=>b[1]-a[1]).slice(0,5)},[rows,departments]);
+ const maxDepartmentCount=Math.max(1,...departmentStats.map(([,count])=>count));
+ const statusGradient=useMemo(()=>{if(!counts.total)return "conic-gradient(#dbe7f6 0deg 360deg)";const activeDeg=counts.active/counts.total*360;const completedDeg=counts.completed/counts.total*360;return `conic-gradient(#f59e0b 0deg ${activeDeg}deg,#16a36a ${activeDeg}deg ${activeDeg+completedDeg}deg,#ef4b5f ${activeDeg+completedDeg}deg 360deg)`},[counts]);
  const filtered=useMemo(()=>rows.filter(r=>{const q=query.trim().toLowerCase();if(tab==="ACTIVE"&&!isActive(r))return false;if(tab==="COMPLETED"&&!isCompleted(r))return false;if(tab==="REJECTED"&&!isRejected(r))return false;if(["OFFICIAL","PERSONAL_FUND","PERSONAL_OTHER"].includes(tab)&&requestGroup(r)!==tab)return false;if(status==="ACTIVE"&&!isActive(r))return false;if(status==="COMPLETED"&&!isCompleted(r))return false;if(status==="REJECTED"&&!isRejected(r))return false;if(type!=="ALL"&&requestGroup(r)!==type)return false;if(department!=="ALL"&&r.dept_id!==department)return false;if(!q)return true;return[r.request_no,r.title,r.status,r.current_stage,requestTypeLabel(r),r.dept_id?departments[r.dept_id]:""].join(" ").toLowerCase().includes(q)}),[rows,query,status,type,department,departments,tab]);
  useEffect(()=>{queueMicrotask(()=>setPage(1));},[query,status,type,department,tab]); const pageSize=8; const totalPages=Math.max(1,Math.ceil(filtered.length/pageSize)); const currentPage=Math.min(page,totalPages); const paged=filtered.slice((currentPage-1)*pageSize,currentPage*pageSize);
  const tabs:[TabKey,string,number][]=[["ALL","All Requests",counts.total],["ACTIVE","Active Workflow",counts.active],["COMPLETED","Completed / Paid",counts.completed],["REJECTED","Rejected / Deleted",counts.rejected],["OFFICIAL","Official",counts.official],["PERSONAL_FUND","Personal Fund",counts.fund],["PERSONAL_OTHER","Personal Other",counts.other]];
  function exportCsv(){const lines=[["Request Code","Title","Department","Type","Amount","Status","Requested On"],...filtered.map(r=>[r.request_no,r.title,r.dept_id?departments[r.dept_id]||"Unassigned":"Unassigned",requestTypeLabel(r),String(r.amount||0),statusLabel(r),new Date(r.created_at).toLocaleString("en-NG")])].map(row=>row.map(v=>`"${String(v??"").replaceAll('"','""')}"`).join(",")).join("\n");const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([lines],{type:"text/csv"}));a.download="reqgen-requests.csv";a.click();URL.revokeObjectURL(a.href)}
  return <main className={styles.page}>
-  <header className={styles.header}><div><h1>Requests</h1><p>Create, track and manage all institutional requests in one place.</p></div><button className={styles.primary} onClick={()=>setShowCreateDrawer(true)} data-tip="Open the Create Request form without leaving the Requests workspace."><Plus size={17}/> New Request</button></header>
+  <header className={styles.header}><div><span className={styles.eyebrow}>Requests</span><h1>Requests Overview</h1><p>Track all your requests from creation to final decision in one workspace.</p></div><button className={styles.primary} onClick={()=>setShowCreateDrawer(true)} data-tip="Open the Create Request form without leaving the Requests workspace."><Plus size={17}/> New Request</button></header>
   <section className={styles.kpis}>
    <Kpi tone="blue" icon={<FileText/>} label="Total Requests" value={counts.total} note="All submitted requests"/>
    <Kpi tone="orange" icon={<Clock3/>} label="Active Workflow" value={counts.active} note="Currently in progress"/>
    <Kpi tone="green" icon={<CheckCircle2/>} label="Completed / Paid" value={counts.completed} note="Successfully completed"/>
    <Kpi tone="purple" icon={<Landmark/>} label="Official Requests" value={counts.official} note={`${counts.total?Math.round(counts.official/counts.total*100):0}% of total`}/>
    <Kpi tone="red" icon={<XCircle/>} label="Rejected / Deleted" value={counts.rejected} note="Closed without completion"/>
+  </section>
+  <section className={styles.insightGrid} aria-label="Request overview insights">
+   <article className={styles.insightCard}>
+    <div className={styles.cardHeading}><div><strong>Requests by Status</strong><span>Live workflow distribution</span></div></div>
+    <div className={styles.statusVisual}>
+      <div className={styles.donut} style={{background:statusGradient}}><div><b>{counts.total}</b><span>Total</span></div></div>
+      <div className={styles.legend}><span><i className={styles.legendPending}/>In Progress <b>{counts.active}</b></span><span><i className={styles.legendApproved}/>Completed <b>{counts.completed}</b></span><span><i className={styles.legendRejected}/>Rejected <b>{counts.rejected}</b></span></div>
+    </div>
+   </article>
+   <article className={styles.insightCard}>
+    <div className={styles.cardHeading}><div><strong>Recent Requests</strong><span>Your latest request activity</span></div><button type="button" onClick={()=>{setTab("ALL");setQuery("")}}>View All</button></div>
+    <div className={styles.recentList}>{recentRows.length?recentRows.map(r=><Link key={r.id} href={`/requests/${r.id}`} className={styles.recentRow}><span><b>{r.title||"Untitled request"}</b><small>{r.request_no}</small></span><span>{r.current_stage||"—"}</span><em className={`${styles.statusPill} ${statusClass(r)}`}>{statusLabel(r)}</em></Link>):<div className={styles.miniEmpty}>No requests yet.</div>}</div>
+   </article>
+  </section>
+  <section className={styles.secondaryGrid}>
+   <article className={styles.insightCard}><div className={styles.cardHeading}><div><strong>Requests by Department</strong><span>Top request destinations</span></div></div><div className={styles.departmentBars}>{departmentStats.length?departmentStats.map(([name,count])=><div key={name}><div><span>{name}</span><b>{count}</b></div><i><span style={{width:`${Math.max(8,count/maxDepartmentCount*100)}%`}}/></i></div>):<div className={styles.miniEmpty}>No department activity yet.</div>}</div></article>
+   <article className={styles.insightCard}><div className={styles.cardHeading}><div><strong>Quick Actions</strong><span>Common request tasks</span></div></div><div className={styles.quickActions}><button type="button" onClick={()=>setShowCreateDrawer(true)}><Plus size={15}/>Create New Request</button><button type="button" onClick={()=>{setTab("ACTIVE");setQuery("")}}><Clock3 size={15}/>Active Requests</button><button type="button" onClick={exportCsv}><Download size={15}/>Export Register</button></div></article>
+   <article className={styles.insightCard}><div className={styles.cardHeading}><div><strong>Request Types</strong><span>Current request mix</span></div></div><div className={styles.typeSummary}><span><b>Official</b><strong>{counts.official}</strong></span><span><b>Personal Fund</b><strong>{counts.fund}</strong></span><span><b>Personal Other</b><strong>{counts.other}</strong></span></div></article>
   </section>
   <section className={styles.registerCard}>
    <nav className={styles.tabs} aria-label="Request views">{tabs.map(([key,label,count])=><button key={key} className={tab===key?styles.activeTab:""} onClick={()=>setTab(key)}>{label}<b>{count}</b></button>)}</nav>
