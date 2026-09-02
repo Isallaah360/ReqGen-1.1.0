@@ -82,15 +82,8 @@ const MODULE_SUBNAV: Record<string, SubNavItem[]> = {
   ],
 
   "/registry": [
-    { href: "/registry", label: "Registry Overview" },
-    { href: "/registry/incoming", label: "Incoming Register" },
-    { href: "/registry/outgoing", label: "Outgoing Register" },
-    { href: "/registry/dispatch", label: "Dispatch" },
-    {
-      href: "/registry/operations",
-      label: "Registry Operations",
-    },
-    { href: "/registry/archive", label: "Archive" },
+    { href: "/registry", label: "Registry Centre" },
+    { href: "/registry/archive", label: "Registry Archive" },
   ],
 
   "/reports": [
@@ -201,7 +194,7 @@ const MAIN_NAV = [
   },
 ];
 
-function getSubnavForPath(moduleHref: string, _pathname: string): SubNavItem[] {
+function getSubnavForPath(moduleHref: string): SubNavItem[] {
   return MODULE_SUBNAV[moduleHref] || [];
 }
 
@@ -554,7 +547,7 @@ function GovernmentAppShellContent({
         );
 
       const subnav =
-        getSubnavForPath(item.href, pathname).filter((child) =>
+        getSubnavForPath(item.href).filter((child) =>
           canAccessPath(
             child.href,
             roleSet

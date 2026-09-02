@@ -138,7 +138,8 @@ export default function FinanceOverviewPage() {
   const [transactionType, setTransactionType] = useState("ALL");
 
   const loadData = useCallback(async (manual = false) => {
-    manual ? setRefreshing(true) : setLoading(true);
+    if (manual) setRefreshing(true);
+    else setLoading(true);
     setFatalError(null);
     setIssues([]);
     try {

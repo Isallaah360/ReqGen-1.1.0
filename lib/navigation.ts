@@ -31,13 +31,8 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
   { href: "/payment-vouchers/settings", label: "Payment Voucher Settings", section: "Payment Vouchers", description: "Manage authorised cheque signers and counter-signatories." },
 
 
-  { href: "/registry", label: "Registry Desk", section: "Registry", description: "Registry command centre and file movement overview." },
-  { href: "/registry/operations", label: "Registry Operations", section: "Registry", description: "Central registry operations workspace." },
-  { href: "/registry/incoming", label: "Incoming Register", section: "Registry", description: "Register and track incoming records." },
-  { href: "/registry/outgoing", label: "Outgoing Register", section: "Registry", description: "Register and track outgoing records." },
-  { href: "/registry/dispatch", label: "Registry Dispatch", section: "Registry", description: "Dispatch and movement control." },
-  { href: "/registry/archive", label: "Registry Archive", section: "Registry", description: "Archived registry records." },
-
+  { href: "/registry", label: "Registry Centre", section: "Registry", description: "Incoming, outgoing, dispatch and registry operations in one workspace." },
+  { href: "/registry/archive", label: "Registry Archive", section: "Registry", description: "Archived correspondence, retention and authorised restoration." },
   { href: "/reports", label: "Reports & Analytics", section: "Reports", description: "Institutional reporting and analytics centre." },
   { href: "/reports/enterprise-analytics", label: "Analytics", section: "Reports", description: "Cross-module analytical view." },
   { href: "/output", label: "Output Centre", section: "Reports", description: "Printable and exportable system output." },

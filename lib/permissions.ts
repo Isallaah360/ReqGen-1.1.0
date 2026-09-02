@@ -43,7 +43,7 @@ export const ROUTE_POLICIES: RoutePolicy[] = [
   { prefix: "/executive", roles: ["admin"] },
   { prefix: "/audit-centre", roles: ["admin", "auditor"] },
   { prefix: "/workflow", roles: ["admin", "auditor"] },
-
+  { prefix: "/payment-vouchers/settings", roles: ["admin", "auditor"] },
 
   {
     prefix: "/payment-vouchers",
@@ -67,7 +67,7 @@ export const ROUTE_POLICIES: RoutePolicy[] = [
       "accountofficer",
     ],
   },
-  { prefix: "/registry", roles: ["admin", "auditor", "registry"] },
+  { prefix: "/registry", roles: ["admin", "auditor", "registry", "registrar"] },
   { prefix: "/reports", roles: ["admin", "auditor"] },
 
   { prefix: "/hr", roles: ["admin"] },

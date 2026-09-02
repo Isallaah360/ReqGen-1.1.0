@@ -1,3 +1,2 @@
-"use client";
-import RegistryRegister from "@/app/components/registry/RegistryRegister";
-export default function Page() { return <RegistryRegister kind="dispatch" />; }
+import { redirect } from "next/navigation";
+export default function Page(){ redirect("/registry?view=dispatch"); }

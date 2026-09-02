@@ -75,7 +75,7 @@ export const ACCESS_MATRIX: AccessMatrixRow[] = [
   { route: "/payment-vouchers", label: "Payment Voucher Centre", ...financeAccess },
   {
     route: "/registry",
-    label: "Registry Desk",
+    label: "Registry Centre",
     admin: "allow",
     auditor: "allow",
     dg: "deny",
@@ -83,7 +83,7 @@ export const ACCESS_MATRIX: AccessMatrixRow[] = [
     account: "deny",
     accountofficer: "deny",
     hr: "deny",
-    registrar: "deny",
+    registrar: "allow",
     generalsecretary: "deny",
     deanadmin: "deny",
     registry: "allow",
