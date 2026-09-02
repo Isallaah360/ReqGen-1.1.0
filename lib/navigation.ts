@@ -33,9 +33,8 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
 
   { href: "/registry", label: "Registry Centre", section: "Registry", description: "Incoming, outgoing, dispatch and registry operations in one workspace." },
   { href: "/registry/archive", label: "Registry Archive", section: "Registry", description: "Archived correspondence, retention and authorised restoration." },
-  { href: "/reports", label: "Reports & Analytics", section: "Reports", description: "Institutional reporting and analytics centre." },
-  { href: "/reports/enterprise-analytics", label: "Analytics", section: "Reports", description: "Cross-module analytical view." },
-  { href: "/output", label: "Output Centre", section: "Reports", description: "Printable and exportable system output." },
+  { href: "/reports", label: "Reports Centre", section: "Reports", description: "Authorised institutional reporting centre for Admin and Auditor." },
+  { href: "/reports/enterprise-analytics", label: "Executive Analytics", section: "Reports", description: "Admin and Auditor strategic decision-support analytics." },
 
 
   { href: "/audit-centre", label: "Audit Centre", section: "Governance", description: "Audit oversight." },
@@ -54,7 +53,6 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
   { href: "/profile/activity", label: "My Activity", section: "Account", description: "View personal ReqGen activity." },
   { href: "/profile/security", label: "Profile Security", section: "Account", description: "Manage personal security settings." },
   { href: "/change-password", label: "Change Password", section: "Account", description: "Change the signed-in user's password." },
-  { href: "/output", label: "Output Centre", section: "Reports", description: "Generate authorised IET A4 reports and protected print outputs." },
 ];
 
 export function getContextTips(pathname: string): string[] {

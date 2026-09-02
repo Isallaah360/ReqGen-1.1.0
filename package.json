@@ -27,7 +27,8 @@
     "audit:section4": "node scripts/audit-section4-lock.mjs",
     "audit:section5-pv-settings": "node scripts/audit-section5-pv-settings.mjs",
     "audit:data-accuracy": "node scripts/audit-data-accuracy.mjs",
-    "audit:section6": "node scripts/audit-section6-registry.mjs"
+    "audit:section6": "node scripts/audit-section6-registry.mjs",
+    "audit:section7": "node scripts/audit-section7-reports.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.97.0",

@@ -90,7 +90,7 @@ const MODULE_SUBNAV: Record<string, SubNavItem[]> = {
     { href: "/reports", label: "Reports Centre" },
     {
       href: "/reports/enterprise-analytics",
-      label: "Analytics",
+      label: "Executive Analytics",
     },
   ],
 
