@@ -1,9 +1,23 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { CalendarDays, ChevronRight, RefreshCw, Settings2, ShieldCheck } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  CalendarDays,
+  CheckCircle2,
+  ChevronRight,
+  CircleAlert,
+  Pencil,
+  RefreshCw,
+  Search,
+  Settings2,
+  ShieldCheck,
+  Signature,
+  ToggleLeft,
+  Trash2,
+  UserRoundPlus,
+} from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import styles from "./payment-voucher-settings.module.css";
 
@@ -18,784 +32,533 @@ type CounterSignatory = {
   updated_at: string;
 };
 
+type ProfileCandidate = {
+  id: string;
+  full_name: string | null;
+  email: string | null;
+  role: string | null;
+  signature_url: string | null;
+  is_active: boolean | null;
+};
+
+type FilterType = "ALL" | SignatoryType;
+type FilterStatus = "ALL" | "ACTIVE" | "INACTIVE";
+type FilterSignature = "ALL" | "READY" | "MISSING";
+
 function roleKey(role: string | null | undefined) {
-  return (role || "")
-    .trim()
-    .toLowerCase()
-    .replace(/\s+/g, "")
-    .replace(/_/g, "");
+  return (role || "").trim().toLowerCase().replace(/[\s_]+/g, "");
 }
 
-function personKey(v: string | null | undefined) {
-  return (v || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+function personKey(value: string | null | undefined) {
+  return (value || "").toLowerCase().replace(/[^a-z0-9]/g, "");
 }
 
-function shortDateTime(d: string | null | undefined) {
-  if (!d) return "—";
-  return new Date(d).toLocaleString();
+function shortDateTime(value: string | null | undefined) {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
-function typeLabel(t: string | null | undefined) {
-  if (t === "ChequeSigner") return "Cheque Signer";
-  if (t === "CounterSigner") return "Counter Signer";
-  if (t === "Both") return "Both Cheque & Counter Signer";
+function typeLabel(type: string | null | undefined) {
+  if (type === "ChequeSigner") return "Cheque Signer";
+  if (type === "CounterSigner") return "Counter Signer";
+  if (type === "Both") return "Both";
   return "Counter Signer";
 }
 
-function typeHelpText(t: string | null | undefined) {
-  if (t === "ChequeSigner") {
-    return "Can be selected as the first cheque signer on cheque-based PVs.";
-  }
-
-  if (t === "CounterSigner") {
-    return "Can be selected as the counter signer after cheque signature.";
-  }
-
-  if (t === "Both") {
-    return "Can appear in both Cheque Signed By and Counter Signed By dropdowns.";
-  }
-
-  return "Can be selected as a counter signer.";
+function typeHelpText(type: string | null | undefined) {
+  if (type === "ChequeSigner") return "First cheque-signing authority on cheque-based vouchers.";
+  if (type === "CounterSigner") return "Counter-signing authority after the cheque signer.";
+  if (type === "Both") return "Available in both cheque-signer and counter-signer selections.";
+  return "Counter-signing authority.";
 }
 
-function typeBadgeClass(t: string | null | undefined) {
-  if (t === "ChequeSigner") return "bg-blue-50 text-blue-700";
-  if (t === "CounterSigner") return "bg-amber-50 text-amber-700";
-  if (t === "Both") return "bg-purple-50 text-purple-700";
-  return "bg-slate-50 text-slate-700";
+function initials(name: string) {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() || "")
+    .join("") || "PV";
 }
 
+function resolveActiveRole(rawRole: unknown, fallbackRole: string | null | undefined) {
+  if (typeof rawRole === "string") return roleKey(rawRole);
+  if (Array.isArray(rawRole)) {
+    const first = rawRole[0] as Record<string, unknown> | undefined;
+    return roleKey(String(first?.active_role_key || first?.role_key || first?.get_my_active_role || fallbackRole || "staff"));
+  }
+  if (rawRole && typeof rawRole === "object") {
+    const item = rawRole as Record<string, unknown>;
+    return roleKey(String(item.active_role_key || item.role_key || item.get_my_active_role || fallbackRole || "staff"));
+  }
+  return roleKey(fallbackRole || "staff");
+}
 
 export default function PaymentVoucherSettingsPage() {
   const router = useRouter();
-
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [msg, setMsg] = useState<string | null>(null);
-
-  const [myRole, setMyRole] = useState("Staff");
-  const rk = roleKey(myRole);
-
-  const canAccess = ["admin", "auditor"].includes(rk);
-
+  const [message, setMessage] = useState<string | null>(null);
+  const [activeRole, setActiveRole] = useState("staff");
   const [rows, setRows] = useState<CounterSignatory[]>([]);
-
+  const [profiles, setProfiles] = useState<ProfileCandidate[]>([]);
   const [editId, setEditId] = useState<string | null>(null);
-  const [fullName, setFullName] = useState("");
+  const [selectedProfileId, setSelectedProfileId] = useState("");
   const [signatoryType, setSignatoryType] = useState<SignatoryType>("CounterSigner");
   const [active, setActive] = useState(true);
   const [search, setSearch] = useState("");
+  const [typeFilter, setTypeFilter] = useState<FilterType>("ALL");
+  const [statusFilter, setStatusFilter] = useState<FilterStatus>("ALL");
+  const [signatureFilter, setSignatureFilter] = useState<FilterSignature>("ALL");
 
-  const load = useCallback(
-    async (options?: { silent?: boolean }) => {
-      if (options?.silent) {
-        setRefreshing(true);
-      } else {
-        setLoading(true);
-      }
+  const canAccess = ["admin", "auditor"].includes(activeRole);
 
-      setMsg(null);
+  const load = useCallback(async (silent = false) => {
+    if (silent) setRefreshing(true); else setLoading(true);
+    setMessage(null);
 
-      const { data: auth } = await supabase.auth.getUser();
-
-      if (!auth.user) {
-        router.push("/login");
+    try {
+      const { data: auth, error: authError } = await supabase.auth.getUser();
+      if (authError || !auth.user) {
+        router.replace("/login");
         return;
       }
 
-      const { data: prof, error: profErr } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", auth.user.id)
-        .maybeSingle();
+      const [profileRes, activeRoleRes] = await Promise.all([
+        supabase.from("profiles").select("role").eq("id", auth.user.id).maybeSingle(),
+        supabase.rpc("get_my_active_role"),
+      ]);
 
-      if (profErr) {
-        setMsg("Failed to load your profile: " + profErr.message);
-        setLoading(false);
-        setRefreshing(false);
-        return;
-      }
+      const resolvedRole = resolveActiveRole(activeRoleRes.data as unknown, profileRes.data?.role || "staff");
+      setActiveRole(resolvedRole);
 
-      const role = (prof?.role || "Staff") as string;
-      setMyRole(role);
-
-      if (!["admin", "auditor"].includes(roleKey(role))) {
-        setMsg("Access denied. Only Admin and Auditor can manage Payment Voucher signatories.");
+      if (!["admin", "auditor"].includes(resolvedRole)) {
         setRows([]);
-        setLoading(false);
-        setRefreshing(false);
+        setProfiles([]);
         return;
       }
 
-      const { data, error } = await supabase
-        .from("payment_voucher_counter_signatories")
-        .select("id,full_name,signatory_type,is_active,created_at,updated_at")
-        .order("full_name", { ascending: true });
+      const [signatoryRes, profilesRes] = await Promise.all([
+        supabase
+          .from("payment_voucher_counter_signatories")
+          .select("id,full_name,signatory_type,is_active,created_at,updated_at")
+          .order("full_name", { ascending: true }),
+        supabase
+          .from("profiles")
+          .select("id,full_name,email,role,signature_url,is_active")
+          .order("full_name", { ascending: true }),
+      ]);
 
-      if (error) {
-        setMsg("Failed to load PV signatories: " + error.message);
-        setRows([]);
-        setLoading(false);
-        setRefreshing(false);
-        return;
-      }
+      if (signatoryRes.error) throw new Error(signatoryRes.error.message);
+      if (profilesRes.error) throw new Error(profilesRes.error.message);
 
-      setRows((data || []) as CounterSignatory[]);
+      setRows((signatoryRes.data || []) as CounterSignatory[]);
+      setProfiles((profilesRes.data || []) as ProfileCandidate[]);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Unable to load Payment Voucher settings.");
+    } finally {
       setLoading(false);
       setRefreshing(false);
-    },
-    [router]
-  );
+    }
+  }, [router]);
 
   useEffect(() => {
-    queueMicrotask(() => { void load(); });
+    queueMicrotask(() => void load());
 
-    const refreshOnFocus = () => {
-      load({ silent: true });
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const refreshSoon = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => void load(true), 350);
     };
 
-    const refreshOnVisible = () => {
-      if (document.visibilityState === "visible") {
-        load({ silent: true });
-      }
-    };
+    const channel = supabase
+      .channel("pv-settings-live")
+      .on("postgres_changes", { event: "*", schema: "public", table: "payment_voucher_counter_signatories" }, refreshSoon)
+      .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, refreshSoon)
+      .subscribe();
 
-    window.addEventListener("focus", refreshOnFocus);
-    document.addEventListener("visibilitychange", refreshOnVisible);
+    const onFocus = () => refreshSoon();
+    window.addEventListener("focus", onFocus);
 
     return () => {
-      window.removeEventListener("focus", refreshOnFocus);
-      document.removeEventListener("visibilitychange", refreshOnVisible);
+      if (timer) clearTimeout(timer);
+      window.removeEventListener("focus", onFocus);
+      void supabase.removeChannel(channel);
     };
   }, [load]);
 
+  const profileByName = useMemo(
+    () => new Map(profiles.map((profile) => [personKey(profile.full_name), profile])),
+    [profiles]
+  );
+
+  const selectableProfiles = useMemo(
+    () => profiles.filter((profile) => profile.is_active !== false && profile.full_name?.trim()),
+    [profiles]
+  );
+
+  const selectedProfile = useMemo(
+    () => selectableProfiles.find((profile) => profile.id === selectedProfileId) || null,
+    [selectableProfiles, selectedProfileId]
+  );
+
+  const stats = useMemo(() => ({
+    total: rows.length,
+    active: rows.filter((row) => row.is_active).length,
+    inactive: rows.filter((row) => !row.is_active).length,
+    cheque: rows.filter((row) => row.is_active && (row.signatory_type === "ChequeSigner" || row.signatory_type === "Both")).length,
+    counter: rows.filter((row) => row.is_active && (row.signatory_type === "CounterSigner" || row.signatory_type === "Both")).length,
+  }), [rows]);
+
   const filteredRows = useMemo(() => {
-    const s = search.trim().toLowerCase();
-
-    return rows.filter((r) => {
-      if (!s) return true;
-
-      return [
-        r.full_name,
-        typeLabel(r.signatory_type),
-        typeHelpText(r.signatory_type),
-        r.is_active ? "active" : "inactive",
-      ]
-        .join(" ")
-        .toLowerCase()
-        .includes(s);
+    const query = search.trim().toLowerCase();
+    return rows.filter((row) => {
+      const profile = profileByName.get(personKey(row.full_name));
+      const haystack = [row.full_name, profile?.email, profile?.role, typeLabel(row.signatory_type), row.is_active ? "active" : "inactive"].join(" ").toLowerCase();
+      if (query && !haystack.includes(query)) return false;
+      if (typeFilter !== "ALL" && row.signatory_type !== typeFilter) return false;
+      if (statusFilter === "ACTIVE" && !row.is_active) return false;
+      if (statusFilter === "INACTIVE" && row.is_active) return false;
+      const signatureReady = Boolean(profile?.signature_url?.trim());
+      if (signatureFilter === "READY" && !signatureReady) return false;
+      if (signatureFilter === "MISSING" && signatureReady) return false;
+      return true;
     });
-  }, [rows, search]);
-
-  const stats = useMemo(() => {
-    const total = rows.length;
-    const activeCount = rows.filter((r) => r.is_active).length;
-    const inactiveCount = total - activeCount;
-
-    const chequeSignerCount = rows.filter(
-      (r) => r.is_active && (r.signatory_type === "ChequeSigner" || r.signatory_type === "Both")
-    ).length;
-
-    const counterSignerCount = rows.filter(
-      (r) => r.is_active && (r.signatory_type === "CounterSigner" || r.signatory_type === "Both")
-    ).length;
-
-    return {
-      total,
-      activeCount,
-      inactiveCount,
-      chequeSignerCount,
-      counterSignerCount,
-    };
-  }, [rows]);
+  }, [profileByName, rows, search, signatureFilter, statusFilter, typeFilter]);
 
   function resetForm() {
     setEditId(null);
-    setFullName("");
+    setSelectedProfileId("");
     setSignatoryType("CounterSigner");
     setActive(true);
   }
 
-  function validateForm() {
-    const name = fullName.trim();
-
-    if (!canAccess) return "Not allowed.";
-    if (name.length < 2) return "Signatory name is too short.";
-
-    const duplicate = rows.find((r) => {
-      if (editId && r.id === editId) return false;
-      return personKey(r.full_name) === personKey(name);
-    });
-
-    if (duplicate) {
-      return `"${name}" already exists in PV signatories. Edit the existing record instead.`;
-    }
-
-    return null;
+  function startEdit(row: CounterSignatory) {
+    const profile = profileByName.get(personKey(row.full_name));
+    setEditId(row.id);
+    setSelectedProfileId(profile?.id || "");
+    setSignatoryType(row.signatory_type || "CounterSigner");
+    setActive(row.is_active);
+    setMessage(profile ? null : "This legacy signatory is not matched to a current profile. Select the correct user before saving changes.");
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   async function save() {
-    const validation = validateForm();
-
-    if (validation) {
-      setMsg("❌ " + validation);
+    if (!canAccess) return;
+    if (!selectedProfile) {
+      setMessage("Select a ReqGen user before saving the signatory.");
+      return;
+    }
+    const fullName = selectedProfile.full_name?.trim() || "";
+    if (!fullName) {
+      setMessage("The selected profile does not have a full name.");
+      return;
+    }
+    if (!selectedProfile.signature_url?.trim()) {
+      setMessage("This user has no saved signature. Ask the user to upload a signature in Profile before granting PV signing authority.");
+      return;
+    }
+    const duplicate = rows.find((row) => row.id !== editId && personKey(row.full_name) === personKey(fullName));
+    if (duplicate) {
+      setMessage(`${fullName} is already registered. Edit the existing signatory instead.`);
       return;
     }
 
-    const name = fullName.trim();
-
     setSaving(true);
-    setMsg(null);
-
+    setMessage(null);
     try {
       const { data: auth } = await supabase.auth.getUser();
+      if (!auth.user) throw new Error("Your session has expired. Please sign in again.");
 
-      if (!auth.user) {
-        router.push("/login");
-        return;
-      }
-
-      if (!editId) {
+      if (editId) {
+        const { error } = await supabase
+          .from("payment_voucher_counter_signatories")
+          .update({ full_name: fullName, signatory_type: signatoryType, is_active: active })
+          .eq("id", editId);
+        if (error) throw new Error(error.message);
+        setMessage("PV signatory updated successfully.");
+      } else {
         const { error } = await supabase
           .from("payment_voucher_counter_signatories")
           .insert({
-            full_name: name,
+            full_name: fullName,
             signatory_type: signatoryType,
             is_active: active,
             created_by: auth.user.id,
           });
-
         if (error) throw new Error(error.message);
-
-        setMsg("✅ PV signatory added.");
-      } else {
-        const { error } = await supabase
-          .from("payment_voucher_counter_signatories")
-          .update({
-            full_name: name,
-            signatory_type: signatoryType,
-            is_active: active,
-          })
-          .eq("id", editId);
-
-        if (error) throw new Error(error.message);
-
-        setMsg("✅ PV signatory updated.");
+        setMessage("PV signatory added successfully.");
       }
 
       resetForm();
-      await load({ silent: true });
+      await load(true);
       router.refresh();
-    } catch (e: unknown) {
-      setMsg("❌ " + (e instanceof Error ? e.message : "Failed to save PV signatory."));
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Unable to save PV signatory.");
     } finally {
       setSaving(false);
     }
   }
 
   async function toggleActive(row: CounterSignatory) {
-    if (!canAccess) {
-      setMsg("❌ Only Admin and Auditor can update PV signatories.");
-      return;
-    }
-
+    if (!canAccess) return;
     const nextStatus = !row.is_active;
-
-    const ok = confirm(
+    const confirmed = window.confirm(
       nextStatus
-        ? `Activate "${row.full_name}" for PV cheque signing?`
-        : `Deactivate "${row.full_name}"?\n\nThis person will stop appearing in new PV cheque signing dropdowns.`
+        ? `Activate ${row.full_name} for Payment Voucher signing?`
+        : `Deactivate ${row.full_name}? The user will stop appearing in new PV signing dropdowns.`
     );
-
-    if (!ok) return;
+    if (!confirmed) return;
 
     setSaving(true);
-    setMsg(null);
-
+    setMessage(null);
     try {
       const { error } = await supabase
         .from("payment_voucher_counter_signatories")
-        .update({
-          is_active: nextStatus,
-        })
+        .update({ is_active: nextStatus })
         .eq("id", row.id);
-
       if (error) throw new Error(error.message);
-
-      setMsg(nextStatus ? "✅ Signatory activated." : "✅ Signatory deactivated.");
-      await load({ silent: true });
-      router.refresh();
-    } catch (e: unknown) {
-      setMsg("❌ " + (e instanceof Error ? e.message : "Failed to update signatory."));
+      setMessage(nextStatus ? "Signatory activated." : "Signatory deactivated.");
+      await load(true);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Unable to update signatory status.");
     } finally {
       setSaving(false);
     }
   }
 
-  async function del(row: CounterSignatory) {
-    if (!canAccess) {
-      setMsg("❌ Only Admin and Auditor can delete PV signatories.");
-      return;
-    }
-
-    const ok = confirm(
-      row.is_active
-        ? `Delete active signatory "${row.full_name}" permanently?\n\nProfessional recommendation: deactivate instead of deleting if the person has signed previous vouchers.\n\nContinue deleting?`
-        : `Delete "${row.full_name}" permanently?\n\nThis action cannot be undone.`
-    );
-
-    if (!ok) return;
+  async function remove(row: CounterSignatory) {
+    if (!canAccess) return;
 
     setSaving(true);
-    setMsg(null);
-
+    setMessage(null);
     try {
-      const { error } = await supabase
-        .from("payment_voucher_counter_signatories")
-        .delete()
-        .eq("id", row.id);
+      const historicalChecks = await Promise.all([
+        supabase.from("payment_vouchers").select("id", { count: "exact", head: true }).eq("cheque_signed_by_name", row.full_name),
+        supabase.from("payment_vouchers").select("id", { count: "exact", head: true }).eq("counter_signatory_name", row.full_name),
+        supabase.from("payment_vouchers").select("id", { count: "exact", head: true }).eq("cheque_counter_signed_by_name", row.full_name),
+      ]);
 
-      if (error) throw new Error(error.message);
+      const checkError = historicalChecks.find((result) => result.error)?.error;
+      if (checkError) throw new Error(checkError.message);
 
-      setMsg("✅ PV signatory deleted.");
-
-      if (editId === row.id) {
-        resetForm();
+      const historicalUse = historicalChecks.reduce((total, result) => total + (result.count || 0), 0);
+      if (historicalUse > 0) {
+        setMessage(`${row.full_name} already appears on ${historicalUse} historical voucher record${historicalUse === 1 ? "" : "s"}. Deactivate this authority instead of deleting it.`);
+        return;
       }
 
-      await load({ silent: true });
-      router.refresh();
-    } catch (e: unknown) {
-      setMsg("❌ " + (e instanceof Error ? e.message : "Failed to delete PV signatory."));
+      const confirmed = window.confirm(
+        `Delete ${row.full_name} permanently?\n\nThis authority has not been used on a historical Payment Voucher.`
+      );
+      if (!confirmed) return;
+
+      const { error } = await supabase.from("payment_voucher_counter_signatories").delete().eq("id", row.id);
+      if (error) throw new Error(error.message);
+      if (editId === row.id) resetForm();
+      setMessage("PV signatory deleted.");
+      await load(true);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Unable to delete PV signatory.");
     } finally {
       setSaving(false);
     }
-  }
-
-  function backToVouchers() {
-    router.push(`/payment-vouchers?updated=${Date.now()}`);
-    router.refresh();
-  }
-
-  function goDashboard() {
-    router.push(`/dashboard?updated=${Date.now()}`);
-    router.refresh();
   }
 
   if (loading) {
-    return (
-      <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,_#eff6ff,_#f8fafc_36%,_#f1f5f9)] px-3 sm:px-4">
-        <div className="mx-auto max-w-6xl py-10 text-slate-600">
-          Loading PV settings...
-        </div>
-      </main>
-    );
+    return <main className={styles.page}><div className={styles.loading}>Loading Payment Voucher settings...</div></main>;
   }
 
   if (!canAccess) {
     return (
-      <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,_#eff6ff,_#f8fafc_36%,_#f1f5f9)] px-3 sm:px-4">
-        <div className="mx-auto max-w-3xl py-10">
-          <div className="rounded-3xl border bg-white p-6 shadow-sm">
-            <h1 className="text-xl font-extrabold text-slate-900">
-              PV Settings Access
-            </h1>
-
-            <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-              {msg ||
-                "Access denied. Only Admin and Auditor can manage Payment Voucher cheque signatories."}
-            </div>
-
-            <div className="mt-5 flex flex-wrap gap-2">
-              <button
-                onClick={backToVouchers}
-                className="reqgen-btn reqgen-btn-violet rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
-              >
-                Back to Vouchers
-              </button>
-
-              <button
-                onClick={goDashboard}
-                className="reqgen-btn reqgen-btn-slate rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
-              >
-                Dashboard
-              </button>
-            </div>
-          </div>
-        </div>
+      <main className={styles.page}>
+        <section className={styles.accessCard}>
+          <ShieldCheck size={28} />
+          <h1>Restricted Payment Voucher Settings</h1>
+          <p>Only Admin and Auditor can manage cheque-signing authority.</p>
+          <Link href="/payment-vouchers" className={styles.primaryLink}>Back to Payment Vouchers</Link>
+        </section>
       </main>
     );
   }
 
   return (
-    <main className={styles.page}><div className="mx-auto w-full max-w-[1500px] space-y-4">
-        <div className={styles.breadcrumb}>
-          <Link href="/dashboard">Home</Link><ChevronRight size={13}/>
-          <Link href="/payment-vouchers">Payment Vouchers</Link><ChevronRight size={13}/>
+    <main className={styles.page}>
+      <div className={styles.shell}>
+        <nav className={styles.breadcrumb} aria-label="Breadcrumb">
+          <Link href="/dashboard">Home</Link><ChevronRight size={13} />
+          <Link href="/payment-vouchers">Payment Vouchers</Link><ChevronRight size={13} />
           <span>Settings</span>
-        </div>
+        </nav>
+
         <header className={styles.hero}>
           <div className={styles.heroIdentity}>
-            <div className={styles.titleIcon}><Settings2 size={25}/></div>
+            <div className={styles.titleIcon}><Settings2 size={24} /></div>
             <div>
+              <span className={styles.eyebrow}>Payment Vouchers</span>
               <h1>Payment Voucher Settings</h1>
-              <p>Manage authorised cheque signers and counter-signatories for the official Payment Voucher workflow.</p>
+              <p>Control official cheque-signing authority from verified ReqGen user profiles.</p>
             </div>
           </div>
           <div className={styles.heroMeta}>
-            <div className={styles.metaItem}><CalendarDays size={17}/><span>{new Date().toLocaleDateString("en-GB", { weekday: "long", day: "2-digit", month: "long", year: "numeric" })}</span></div>
-            <div className={styles.metaDivider}/>
-            <div className={styles.metaItem}><ShieldCheck size={17}/><span>Restricted Authority</span></div>
-            <button className={styles.refreshButton} onClick={() => load({ silent: true })} disabled={saving || refreshing}><RefreshCw size={15}/>{refreshing ? "Refreshing..." : "Refresh Settings"}</button>
+            <span><CalendarDays size={16} />{new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}</span>
+            <span><ShieldCheck size={16} />Restricted Authority</span>
+            <button onClick={() => void load(true)} disabled={refreshing || saving}><RefreshCw size={15} />{refreshing ? "Refreshing..." : "Refresh"}</button>
           </div>
         </header>
 
-        {msg && (
-          <div className="mt-4 rounded-2xl border bg-white px-4 py-3 text-sm text-slate-800 shadow-sm">
-            {msg}
+        {message && <div className={styles.message}><CircleAlert size={16} /><span>{message}</span></div>}
+
+        <section className={styles.authorityNotice}>
+          <ShieldCheck size={20} />
+          <div>
+            <strong>Controlled signing authority</strong>
+            <p>Only Admin and Auditor manage this register. Account Officers may prepare vouchers but cannot grant cheque-signing authority.</p>
           </div>
-        )}
+        </section>
 
-        <div className="mt-4 rounded-2xl border border-blue-200/80 bg-blue-50/80 px-5 py-4 text-sm font-bold text-blue-950 shadow-sm">
-          This settings page refreshes automatically when you return to it. Changes are reloaded immediately after every save.
-        </div>
+        <section className={styles.kpiGrid}>
+          <article><span>Total Names</span><strong>{stats.total}</strong><small>Registered authorities</small></article>
+          <article><span>Active</span><strong>{stats.active}</strong><small>Available for new PVs</small></article>
+          <article><span>Inactive</span><strong>{stats.inactive}</strong><small>Preserved for history</small></article>
+          <article><span>Cheque Signers</span><strong>{stats.cheque}</strong><small>First signing authority</small></article>
+          <article><span>Counter Signers</span><strong>{stats.counter}</strong><small>Counter-signing authority</small></article>
+        </section>
 
-        <div className="mt-6 overflow-hidden rounded-3xl border border-rose-200/80 bg-gradient-to-r from-rose-50 via-white to-amber-50 p-5 text-sm font-semibold text-rose-950 shadow-sm">
-          <div className="text-base font-black uppercase tracking-[0.08em]">Restricted Authority Setting</div>
-          <p className="mt-1">
-            This page controls who can appear as Cheque Signer and Counter Signer on Payment
-            Vouchers. Only Admin and Auditor should manage these names. Account Officers can generate
-            vouchers, but they should not control cheque-signing authority.
-          </p>
-        </div>
-
-        <div className="mt-6 grid gap-4 md:grid-cols-5">
-          <StatCard title="Total Names" value={String(stats.total)} tone="blue" />
-          <StatCard title="Active" value={String(stats.activeCount)} tone="emerald" />
-          <StatCard title="Inactive" value={String(stats.inactiveCount)} tone="red" />
-          <StatCard title="Cheque Signers" value={String(stats.chequeSignerCount)} tone="purple" />
-          <StatCard title="Counter Signers" value={String(stats.counterSignerCount)} tone="amber" />
-        </div>
-
-        <div className="mt-6 rounded-3xl border border-slate-200/80 bg-white/95 p-6 shadow-[0_16px_40px_-28px_rgba(15,23,42,.45)] backdrop-blur">
-          <div className="flex flex-wrap items-center justify-between gap-3">
+        <section className={styles.editorCard}>
+          <div className={styles.sectionHeading}>
             <div>
-              <h2 className="text-lg font-bold text-slate-900">
-                {editId ? "Edit PV Signatory" : "Add PV Signatory"}
-              </h2>
-              <p className="mt-1 text-sm text-slate-600">
-                Select whether the person can sign cheques, counter-sign cheques, or both.
-              </p>
+              <span className={styles.sectionEyebrow}>{editId ? "Update Authority" : "Add Authority"}</span>
+              <h2>{editId ? "Edit PV Signatory" : "Add PV Signatory"}</h2>
+              <p>Select a real ReqGen user. Signature readiness is checked directly from the profile.</p>
             </div>
-
-            {editId && (
-              <button
-                onClick={resetForm}
-                disabled={saving}
-                className="reqgen-btn reqgen-btn-rose rounded-xl border border-slate-300 bg-slate-900 px-4 py-2 text-sm font-black text-white shadow-sm hover:bg-slate-800 disabled:opacity-60"
-              >
-                Cancel Edit
-              </button>
-            )}
+            {editId && <button className={styles.secondaryButton} onClick={resetForm} disabled={saving}>Cancel Edit</button>}
           </div>
 
-          <div className="mt-5 grid gap-4 md:grid-cols-5">
-            <div className="md:col-span-2">
-              <label className="text-sm font-semibold text-slate-800">Full Name</label>
-              <input
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                placeholder="Must match the user's profile full name"
-                disabled={saving}
-                className="mt-1 w-full rounded-2xl border border-slate-300 bg-white px-3 py-3 font-semibold text-slate-950 shadow-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:bg-slate-50"
-              />
-            </div>
-
-            <div>
-              <label className="text-sm font-semibold text-slate-800">Signatory Type</label>
-              <select
-                value={signatoryType}
-                onChange={(e) => setSignatoryType(e.target.value as SignatoryType)}
-                disabled={saving}
-                className="mt-1 w-full rounded-2xl border border-slate-300 bg-white px-3 py-3 font-semibold text-slate-950 shadow-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:bg-slate-50"
-              >
+          <div className={styles.editorGrid}>
+            <label className={styles.fieldWide}>
+              <span>ReqGen User</span>
+              <select value={selectedProfileId} onChange={(event) => setSelectedProfileId(event.target.value)} disabled={saving}>
+                <option value="">Select user...</option>
+                {selectableProfiles.map((profile) => (
+                  <option key={profile.id} value={profile.id}>
+                    {profile.full_name} {profile.role ? `— ${profile.role}` : ""}{profile.signature_url ? " — Signature ready" : " — No signature"}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              <span>Signatory Type</span>
+              <select value={signatoryType} onChange={(event) => setSignatoryType(event.target.value as SignatoryType)} disabled={saving}>
                 <option value="ChequeSigner">Cheque Signer</option>
                 <option value="CounterSigner">Counter Signer</option>
                 <option value="Both">Both</option>
               </select>
-            </div>
-
-            <div className="flex items-end gap-3">
-              <label className="inline-flex items-center gap-2 text-sm font-semibold text-slate-800">
-                <input
-                  type="checkbox"
-                  checked={active}
-                  onChange={(e) => setActive(e.target.checked)}
-                  disabled={saving}
-                />
-                Active
-              </label>
-            </div>
-
-            <div className="flex items-end">
-              <button
-                onClick={save}
-                disabled={saving}
-                className="reqgen-btn reqgen-btn-rose w-full rounded-2xl bg-gradient-to-r from-blue-700 to-cyan-600 px-5 py-3 text-sm font-black text-white shadow-md transition hover:-translate-y-0.5 hover:shadow-lg disabled:opacity-60"
-              >
-                {saving ? "Saving..." : editId ? "Update" : "Add"}
+            </label>
+            <label className={styles.activeField}>
+              <span>Status</span>
+              <button type="button" className={active ? styles.statusToggleActive : styles.statusToggle} onClick={() => setActive((value) => !value)} disabled={saving}>
+                <ToggleLeft size={18} />{active ? "Active" : "Inactive"}
               </button>
-            </div>
+            </label>
+            <button className={styles.saveButton} onClick={() => void save()} disabled={saving || !selectedProfileId || !selectedProfile?.signature_url?.trim()}>
+              <UserRoundPlus size={17} />{saving ? "Saving..." : editId ? "Update Authority" : "Add Authority"}
+            </button>
           </div>
 
-          <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-            For signatures to auto-fill on the PV, the Full Name here must match the person’s name
-            in the Users/Profile table, and that user must already have a signature uploaded. If the
-            name does not match, the PV may show the name but not the signature.
-          </div>
-        </div>
-
-        <div className="mt-6 rounded-3xl border border-slate-200/80 bg-white/95 p-5 shadow-[0_16px_40px_-28px_rgba(15,23,42,.45)] backdrop-blur">
-          <label className="text-sm font-semibold text-slate-800">Search</label>
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search name, signatory type, status..."
-            className="mt-1 w-full rounded-2xl border border-slate-300 bg-white px-3 py-3 font-semibold text-slate-950 shadow-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
-          />
-        </div>
-
-        <div className="mt-6 grid gap-4 xl:hidden">
-          {filteredRows.length === 0 ? (
-            <EmptyState />
-          ) : (
-            filteredRows.map((row) => (
-              <div key={row.id} className="rounded-3xl border bg-white p-5 shadow-sm">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <div className="text-lg font-extrabold text-slate-900">
-                      {row.full_name}
-                    </div>
-                    <div className="mt-1 text-sm font-semibold text-slate-700">
-                      {typeHelpText(row.signatory_type)}
-                    </div>
-                    <div className="mt-1 text-xs text-slate-500">
-                      Updated {shortDateTime(row.updated_at)}
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col items-end gap-1">
-                    <span
-                      className={`rounded-full px-3 py-1 text-xs font-bold ${typeBadgeClass(
-                        row.signatory_type
-                      )}`}
-                    >
-                      {typeLabel(row.signatory_type)}
-                    </span>
-
-                    <span
-                      className={`rounded-full px-3 py-1 text-xs font-bold ${
-                        row.is_active
-                          ? "bg-emerald-50 text-emerald-700"
-                          : "bg-red-50 text-red-700"
-                      }`}
-                    >
-                      {row.is_active ? "Active" : "Inactive"}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="mt-4 flex flex-wrap justify-end gap-2">
-                  <button
-                    disabled={saving}
-                    onClick={() => {
-                      setEditId(row.id);
-                      setFullName(row.full_name);
-                      setSignatoryType(row.signatory_type || "CounterSigner");
-                      setActive(row.is_active);
-                    }}
-                    className="reqgen-btn reqgen-btn-rose rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-50"
-                  >
-                    Edit
-                  </button>
-
-                  <button
-                    disabled={saving}
-                    onClick={() => toggleActive(row)}
-                    className={`reqgen-btn reqgen-btn-rose rounded-xl px-4 py-2 text-sm font-semibold text-white disabled:opacity-50 ${
-                      row.is_active
-                        ? "bg-amber-600 hover:bg-amber-700"
-                        : "bg-emerald-600 hover:bg-emerald-700"
-                    }`}
-                  >
-                    {row.is_active ? "Deactivate" : "Activate"}
-                  </button>
-
-                  <button
-                    disabled={saving}
-                    onClick={() => del(row)}
-                    className="reqgen-btn reqgen-btn-rose rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
-                  >
-                    Delete
-                  </button>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-
-        <div className="mt-6 hidden xl:block rounded-3xl border bg-white shadow-sm overflow-hidden">
-          <div className="border-b bg-slate-50 px-6 py-4">
-            <h2 className="text-lg font-bold text-slate-900">
-              PV Signatories Register
-            </h2>
-            <p className="mt-1 text-sm text-slate-600">
-              Names available for cheque signing and counter-signing selection.
-            </p>
-          </div>
-
-          {filteredRows.length === 0 ? (
-            <EmptyState />
-          ) : (
-            <div className="overflow-x-auto">
-              <div className="min-w-[1060px]">
-                <div className="grid grid-cols-13 bg-slate-100 px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600">
-                  <div className="col-span-3">Full Name</div>
-                  <div className="col-span-2">Type</div>
-                  <div className="col-span-3">Authority Description</div>
-                  <div className="col-span-1">Status</div>
-                  <div className="col-span-2">Updated</div>
-                  <div className="col-span-2 text-right">Actions</div>
-                </div>
-
-                {filteredRows.map((row) => (
-                  <div
-                    key={row.id}
-                    className="grid grid-cols-13 items-center border-t px-6 py-4 text-sm hover:bg-slate-50"
-                  >
-                    <div className="col-span-3 font-extrabold text-slate-900">
-                      {row.full_name}
-                    </div>
-
-                    <div className="col-span-2">
-                      <span
-                        className={`rounded-full px-3 py-1 text-xs font-bold ${typeBadgeClass(
-                          row.signatory_type
-                        )}`}
-                      >
-                        {typeLabel(row.signatory_type)}
-                      </span>
-                    </div>
-
-                    <div className="col-span-3 text-slate-700">
-                      {typeHelpText(row.signatory_type)}
-                    </div>
-
-                    <div className="col-span-1">
-                      <span
-                        className={`rounded-full px-3 py-1 text-xs font-bold ${
-                          row.is_active
-                            ? "bg-emerald-50 text-emerald-700"
-                            : "bg-red-50 text-red-700"
-                        }`}
-                      >
-                        {row.is_active ? "Active" : "Inactive"}
-                      </span>
-                    </div>
-
-                    <div className="col-span-2 text-slate-600">
-                      {shortDateTime(row.updated_at)}
-                    </div>
-
-                    <div className="col-span-2 flex justify-end gap-2">
-                      <button
-                        disabled={saving}
-                        onClick={() => {
-                          setEditId(row.id);
-                          setFullName(row.full_name);
-                          setSignatoryType(row.signatory_type || "CounterSigner");
-                          setActive(row.is_active);
-                        }}
-                        className="reqgen-btn reqgen-btn-rose rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-50"
-                      >
-                        Edit
-                      </button>
-
-                      <button
-                        disabled={saving}
-                        onClick={() => toggleActive(row)}
-                        className={`reqgen-btn reqgen-btn-rose rounded-xl px-3 py-2 text-xs font-semibold text-white disabled:opacity-50 ${
-                          row.is_active
-                            ? "bg-amber-600 hover:bg-amber-700"
-                            : "bg-emerald-600 hover:bg-emerald-700"
-                        }`}
-                      >
-                        {row.is_active ? "Off" : "On"}
-                      </button>
-
-                      <button
-                        disabled={saving}
-                        onClick={() => del(row)}
-                        className="reqgen-btn reqgen-btn-rose rounded-xl bg-red-600 px-3 py-2 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-50"
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </div>
-                ))}
+          {selectedProfile && (
+            <div className={selectedProfile.signature_url ? styles.signatureReady : styles.signatureMissing}>
+              <Signature size={17} />
+              <div>
+                <strong>{selectedProfile.signature_url ? "Signature ready" : "Signature missing"}</strong>
+                <span>{selectedProfile.full_name} · {selectedProfile.email || "No email"}</span>
               </div>
             </div>
           )}
-        </div>
+        </section>
 
-        <div className="mt-6 rounded-3xl border border-blue-100 bg-blue-50 p-5 text-sm text-blue-900">
-          <div className="font-bold">PV Settings Note</div>
-          <p className="mt-1">
-            Active Cheque Signers appear under “Cheque Signed By”. Active Counter Signers appear
-            under “Counter Signed By”. Anyone marked “Both” appears in both dropdowns. Deactivate
-            old signatories instead of deleting them when they have already signed previous vouchers.
-          </p>
-        </div>
+        <section className={styles.registerCard}>
+          <div className={styles.registerHeader}>
+            <div>
+              <span className={styles.sectionEyebrow}>Live Register</span>
+              <h2>PV Signatories Register</h2>
+              <p>Search and manage the authorities available to the Payment Voucher workflow.</p>
+            </div>
+            <span className={styles.recordCount}>{filteredRows.length} record{filteredRows.length === 1 ? "" : "s"}</span>
+          </div>
+
+          <div className={styles.filters}>
+            <label className={styles.searchField}><Search size={16} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search name, role or email..." /></label>
+            <select value={typeFilter} onChange={(event) => setTypeFilter(event.target.value as FilterType)}>
+              <option value="ALL">All authority types</option>
+              <option value="ChequeSigner">Cheque Signers</option>
+              <option value="CounterSigner">Counter Signers</option>
+              <option value="Both">Both</option>
+            </select>
+            <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as FilterStatus)}>
+              <option value="ALL">All statuses</option>
+              <option value="ACTIVE">Active</option>
+              <option value="INACTIVE">Inactive</option>
+            </select>
+            <select value={signatureFilter} onChange={(event) => setSignatureFilter(event.target.value as FilterSignature)}>
+              <option value="ALL">All signatures</option>
+              <option value="READY">Signature ready</option>
+              <option value="MISSING">Signature missing</option>
+            </select>
+          </div>
+
+          <div className={styles.tableWrap}>
+            <table className={styles.table}>
+              <thead><tr><th>User</th><th>Authority</th><th>Signature</th><th>Status</th><th>Updated</th><th>Actions</th></tr></thead>
+              <tbody>
+                {filteredRows.map((row) => {
+                  const profile = profileByName.get(personKey(row.full_name));
+                  const signatureReady = Boolean(profile?.signature_url?.trim());
+                  return (
+                    <tr key={row.id}>
+                      <td>
+                        <div className={styles.personCell}>
+                          <span className={styles.avatar}>{initials(row.full_name)}</span>
+                          <div><strong>{row.full_name}</strong><small>{profile?.email || "Profile match unavailable"}{profile?.role ? ` · ${profile.role}` : ""}</small></div>
+                        </div>
+                      </td>
+                      <td><span className={styles.authorityBadge}>{typeLabel(row.signatory_type)}</span><small className={styles.authorityHelp}>{typeHelpText(row.signatory_type)}</small></td>
+                      <td>{signatureReady ? <span className={styles.readyBadge}><CheckCircle2 size={14} />Ready</span> : <span className={styles.missingBadge}><CircleAlert size={14} />Missing</span>}</td>
+                      <td><span className={row.is_active ? styles.activeBadge : styles.inactiveBadge}>{row.is_active ? "Active" : "Inactive"}</span></td>
+                      <td>{shortDateTime(row.updated_at || row.created_at)}</td>
+                      <td>
+                        <div className={styles.actions}>
+                          <button onClick={() => startEdit(row)} disabled={saving} title="Edit"><Pencil size={15} />Edit</button>
+                          <button onClick={() => void toggleActive(row)} disabled={saving} title={row.is_active ? "Deactivate" : "Activate"}><ToggleLeft size={15} />{row.is_active ? "Deactivate" : "Activate"}</button>
+                          <button className={styles.deleteButton} onClick={() => void remove(row)} disabled={saving} title="Delete"><Trash2 size={15} />Delete</button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+                {filteredRows.length === 0 && <tr><td colSpan={6}><div className={styles.emptyState}>No Payment Voucher signatories match the current filters.</div></td></tr>}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section className={styles.noteCard}>
+          <Signature size={18} />
+          <div>
+            <strong>PV Settings Note</strong>
+            <p>Active Cheque Signers appear under “Cheque Signed By”. Active Counter Signers appear under “Counter Signed By”. “Both” appears in both lists. ReqGen blocks deletion when a name already appears on a historical voucher; deactivate that authority instead.</p>
+          </div>
+        </section>
       </div>
     </main>
-  );
-}
-
-function StatCard({
-  title,
-  value,
-  tone,
-}: {
-  title: string;
-  value: string;
-  tone: "blue" | "emerald" | "red" | "purple" | "amber";
-}) {
-  const cls =
-    tone === "emerald"
-      ? "bg-emerald-50 text-emerald-700"
-      : tone === "red"
-      ? "bg-red-50 text-red-700"
-      : tone === "purple"
-      ? "bg-purple-50 text-purple-700"
-      : tone === "amber"
-      ? "bg-amber-50 text-amber-700"
-      : "bg-blue-50 text-blue-700";
-
-  return (
-    <div className="rounded-3xl border bg-white p-5 shadow-sm">
-      <div className="text-sm font-semibold text-slate-500">{title}</div>
-      <div className={`mt-3 inline-flex rounded-2xl px-3 py-2 text-2xl font-extrabold ${cls}`}>
-        {value}
-      </div>
-    </div>
-  );
-}
-
-function EmptyState() {
-  return (
-    <div className="rounded-2xl border bg-white p-6 text-sm text-slate-700 shadow-sm xl:rounded-none xl:border-0 xl:shadow-none">
-      No PV signatory found.
-    </div>
   );
 }
