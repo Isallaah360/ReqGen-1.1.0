@@ -88,19 +88,21 @@ type SubheadRow = {
   balance: number | null;
   expenditure: number | null;
   approved_allocation?: number | null;
+  reserved_amount?: number | null;
 };
 
 type BankAccountRow = {
   id: string;
   account_name: string;
   balance: number | null;
-  source_table: "bank_accounts" | "finance_accounts" | "accounts";
+  source_table: "iet_accounts" | "bank_accounts" | "finance_accounts" | "accounts";
 };
 
 type GenerateVoucherResult = { voucher_no?: string | null; voucher_id?: string | null };
 type DeleteVoucherResult = { deleted_voucher_no?: string | null };
 
 type DisbursementMode = "Transfer" | "Cash" | "Cheque";
+type VoucherWorkspaceView = "overview" | "pending" | "approved" | "history" | "print";
 
 function roleKey(role: string | null | undefined) {
   return (role || "")
@@ -120,6 +122,11 @@ function personKey(v: string | null | undefined) {
 
 function naira(n: number | null | undefined) {
   return "₦" + Math.round(Number(n || 0)).toLocaleString();
+}
+
+function subheadAvailable(row: SubheadRow | null | undefined) {
+  if (!row) return 0;
+  return Number(row.approved_allocation || 0) - Number(row.reserved_amount || 0) - Number(row.expenditure || 0);
 }
 
 function shortDate(d: string | null | undefined) {
@@ -241,6 +248,10 @@ export default function PaymentVouchersPage() {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [moreOpen, setMoreOpen] = useState<string | null>(null);
   const [showCreateWorkspace, setShowCreateWorkspace] = useState(false);
+  const [workspaceView, setWorkspaceView] = useState<VoucherWorkspaceView>(() => {
+    const view = searchParams.get("view");
+    return view === "pending" || view === "approved" || view === "history" || view === "print" ? view : "overview";
+  });
 
   const [mode, setMode] = useState<DisbursementMode>("Transfer");
 
@@ -261,6 +272,8 @@ export default function PaymentVouchersPage() {
   useEffect(() => {
     if (searchParams.get("create") === "1") setShowCreateWorkspace(true);
     if (searchParams.get("manual") === "1") setShowManualModal(true);
+    const view = searchParams.get("view");
+    setWorkspaceView(view === "pending" || view === "approved" || view === "history" || view === "print" ? view : "overview");
   }, [searchParams]);
   const [manualDeptId, setManualDeptId] = useState("");
   const [manualSubheadId, setManualSubheadId] = useState("");
@@ -380,6 +393,7 @@ export default function PaymentVouchersPage() {
 
   async function loadBankAccounts() {
     const sources: BankAccountRow["source_table"][] = [
+      "iet_accounts",
       "bank_accounts",
       "finance_accounts",
       "accounts",
@@ -479,7 +493,7 @@ export default function PaymentVouchersPage() {
           supabase.from("departments").select("id,name").order("name", { ascending: true }),
           supabase
             .from("subheads")
-            .select("id,dept_id,code,name,balance,expenditure,approved_allocation")
+            .select("id,dept_id,code,name,balance,expenditure,approved_allocation,reserved_amount")
             .order("name", { ascending: true }),
           loadBankAccounts(),
         ]);
@@ -639,7 +653,7 @@ export default function PaymentVouchersPage() {
     if (manualNarration.trim().length < 5) return "Enter a clear purpose / narration.";
     if (!manualAmountNumber || manualAmountNumber <= 0) return "Amount must be greater than zero.";
 
-    if (selectedManualSubhead && Number(selectedManualSubhead.balance || 0) < manualAmountNumber) {
+    if (selectedManualSubhead && subheadAvailable(selectedManualSubhead) < manualAmountNumber) {
       return `Insufficient subhead balance. Available: ${naira(selectedManualSubhead.balance)}.`;
     }
 
@@ -904,6 +918,11 @@ export default function PaymentVouchersPage() {
     const s = search.trim().toLowerCase();
 
     return rows.filter((v) => {
+      const state = normalize(v.status);
+      if (workspaceView === "pending" && !["prepared", "checked", "pending", "review"].some((x) => state.includes(x))) return false;
+      if (workspaceView === "approved" && !["authorized", "chequeprepared", "chequesigned", "countersigned"].some((x) => state.includes(x))) return false;
+      if (workspaceView === "history" && !["paid", "completed", "closed", "cancelled", "rejected"].some((x) => state.includes(x))) return false;
+      if (workspaceView === "print" && !["authorized", "chequeprepared", "chequesigned", "countersigned", "paid", "completed"].some((x) => state.includes(x))) return false;
       if (statusFilter !== "ALL" && (v.status || "") !== statusFilter) return false;
 
       if (typeFilter === "Official" && normalize(v.request_type) !== "official") return false;
@@ -947,7 +966,7 @@ export default function PaymentVouchersPage() {
 
       return true;
     });
-  }, [rows, search, statusFilter, typeFilter]);
+  }, [rows, search, statusFilter, typeFilter, workspaceView]);
 
   const stats = useMemo(() => {
     const total = rows.length;
@@ -1083,6 +1102,16 @@ export default function PaymentVouchersPage() {
 
       {msg ? <div className={styles.message}>{msg}</div> : null}
 
+      <nav className={styles.workspaceTabs} aria-label="Payment Voucher workspace views">
+        {[
+          ["overview", "Overview"],
+          ["pending", "Pending"],
+          ["approved", "Approved"],
+          ["history", "History"],
+          ["print", "Print / PDF"],
+        ].map(([value, label]) => <button key={value} type="button" className={workspaceView === value ? styles.workspaceTabActive : styles.workspaceTab} onClick={() => { setWorkspaceView(value as VoucherWorkspaceView); setStatusFilter("ALL"); setCurrentPage(1); }}>{label}</button>)}
+      </nav>
+
       <section className={styles.kpiGrid}>
         <article className={styles.kpi}>
           <span className={`${styles.kpiIcon} ${styles.tone_blue}`}><FileSpreadsheet size={21}/></span>
@@ -1090,11 +1119,11 @@ export default function PaymentVouchersPage() {
         </article>
         <article className={styles.kpi}>
           <span className={`${styles.kpiIcon} ${styles.tone_green}`}><CheckCircle2 size={21}/></span>
-          <div className={styles.kpiContent}><small>Approved Vouchers</small><strong>{stats.approved}</strong><p>{stats.total ? ((stats.approved / stats.total) * 100).toFixed(1) : "0.0"}% of total vouchers</p><button onClick={() => router.push("/payment-vouchers/approved")}>View approved <ChevronRight size={13}/></button></div>
+          <div className={styles.kpiContent}><small>Approved Vouchers</small><strong>{stats.approved}</strong><p>{stats.total ? ((stats.approved / stats.total) * 100).toFixed(1) : "0.0"}% of total vouchers</p><button onClick={() => setWorkspaceView("approved")}>View approved <ChevronRight size={13}/></button></div>
         </article>
         <article className={styles.kpi}>
           <span className={`${styles.kpiIcon} ${styles.tone_amber}`}><Clock3 size={21}/></span>
-          <div className={styles.kpiContent}><small>Pending Vouchers</small><strong>{stats.pending}</strong><p>{stats.total ? ((stats.pending / stats.total) * 100).toFixed(1) : "0.0"}% of total vouchers</p><button onClick={() => router.push("/payment-vouchers/pending")}>View pending <ChevronRight size={13}/></button></div>
+          <div className={styles.kpiContent}><small>Pending Vouchers</small><strong>{stats.pending}</strong><p>{stats.total ? ((stats.pending / stats.total) * 100).toFixed(1) : "0.0"}% of total vouchers</p><button onClick={() => setWorkspaceView("pending")}>View pending <ChevronRight size={13}/></button></div>
         </article>
         <article className={styles.kpi}>
           <span className={`${styles.kpiIcon} ${styles.tone_red}`}><CircleX size={21}/></span>
@@ -1109,7 +1138,7 @@ export default function PaymentVouchersPage() {
       <div className={styles.contentGrid}>
         <section className={styles.registerCard}>
           <div className={styles.tableToolbar}>
-            <h2>Payment Vouchers</h2>
+            <h2>{workspaceView === "overview" ? "Payment Vouchers" : workspaceView === "pending" ? "Pending Vouchers" : workspaceView === "approved" ? "Approved Vouchers" : workspaceView === "history" ? "Voucher History" : "Printable Vouchers"}</h2>
             <div className={styles.toolbarControls}>
               <select aria-label="Department filter" value={departmentFilter} onChange={(e) => setDepartmentFilter(e.target.value)}>
                 <option value="ALL">All Departments</option>{departments.map((d) => <option key={d.id} value={d.name}>{d.name}</option>)}
@@ -1134,7 +1163,7 @@ export default function PaymentVouchersPage() {
                   <td className={`${styles.right} ${styles.amount}`}>{Number(v.total_amount || v.amount || 0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
                   <td><span className={`${styles.status} ${styles[`status_${normalize(v.status)||"default"}`]||styles.status_default}`}>{normalize(v.status)==="cancelled"?"Rejected":v.status||"—"}</span></td>
                   <td>{v.prepared_by_name || "—"}</td>
-                  <td><div className={styles.moreWrap}><button className={styles.actionDots} title="Voucher actions" onClick={()=>setMoreOpen(moreOpen===v.id?null:v.id)}><MoreVertical size={17}/></button>{moreOpen===v.id?<div className={styles.moreMenu}><button onClick={()=>openVoucher(v.id)}>View details</button><button onClick={()=>printVoucher(v.id)}>Print / PDF</button>{canDeleteVoucher?<button className={styles.dangerText} onClick={()=>deleteVoucher(v)}>Delete voucher</button>:null}</div>:null}</div></td>
+                  <td>{workspaceView === "print" ? <button className={styles.printAction} onClick={() => printVoucher(v.id)}>Print / PDF</button> : <div className={styles.moreWrap}><button className={styles.actionDots} title="Voucher actions" onClick={()=>setMoreOpen(moreOpen===v.id?null:v.id)}><MoreVertical size={17}/></button>{moreOpen===v.id?<div className={styles.moreMenu}><button onClick={()=>openVoucher(v.id)}>View details</button><button onClick={()=>printVoucher(v.id)}>Print / PDF</button>{canDeleteVoucher?<button className={styles.dangerText} onClick={()=>deleteVoucher(v)}>Delete voucher</button>:null}</div>:null}</div>}</td>
                 </tr>) : <tr><td colSpan={8} className={styles.empty}>No payment voucher found for the selected filter.</td></tr>}
               </tbody>
             </table>
@@ -1237,14 +1266,14 @@ export default function PaymentVouchersPage() {
                     {manualSubheads.map((s) => (
                       <option key={s.id} value={s.id}>
                         {s.code ? `${s.code} - ` : ""}
-                        {s.name} | Balance: {naira(s.balance)}
+                        {s.name} | Balance: {naira(subheadAvailable(s))}
                       </option>
                     ))}
                   </select>
 
                   {selectedManualSubhead && (
                     <div className="mt-2 rounded-xl border border-blue-100 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-900">
-                      Available Subhead Balance: {naira(selectedManualSubhead.balance)}
+                      Available Subhead Balance: {naira(subheadAvailable(selectedManualSubhead))}
                     </div>
                   )}
                 </div>

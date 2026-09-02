@@ -77,24 +77,8 @@ const MODULE_SUBNAV: Record<string, SubNavItem[]> = {
   ],
 
   "/payment-vouchers": [
-    { href: "/payment-vouchers", label: "Overview" },
-    {
-      href: "/payment-vouchers/pending",
-      label: "Pending Approval",
-    },
-    {
-      href: "/payment-vouchers/approved",
-      label: "Approved Vouchers",
-    },
-    {
-      href: "/payment-vouchers/print-centre",
-      label: "Print / PDF Centre",
-    },
-    {
-      href: "/payment-vouchers/history",
-      label: "Payment History",
-    },
-    { href: "/payment-vouchers/settings", label: "Settings" },
+    { href: "/payment-vouchers", label: "Payment Voucher Centre" },
+    { href: "/payment-vouchers/settings", label: "PV Settings" },
   ],
 
   "/registry": [
@@ -253,8 +237,8 @@ function requestMatchesApprovalRole(row: { current_owner?: string | null; curren
   if (row.current_owner && row.current_owner === userId) return true;
 
   const stageForRole: Record<string, string[]> = {
-    po: ["PO"], dod: ["DOD"], director: ["DOD"], dinadmin: ["DINADMIN"],
-    registrar: ["REGISTRAR"], registry: ["REGISTRY"], generalsecretary: ["GENERALSECRETARY", "GENSEC"], hod: ["HOD"],
+    po: ["PO"], dod: ["DOD"], director: ["DOD"], dinadmin: ["DINADMIN"], deanadmin: ["DINADMIN"],
+    registrar: ["REGISTRAR"], registry: ["REGISTRAR"], generalsecretary: ["GENERALSECRETARY", "GENSEC"], hod: ["HOD"],
     hr: ["HR", "HRFILING"], hrboss: ["HR", "HRFILING"], hrofficer: ["HR", "HRFILING"],
     hrofficer1: ["HR", "HRFILING"], hrofficer2: ["HR", "HRFILING"], hrofficer3: ["HR", "HRFILING"],
     dg: ["DG"], account: ["ACCOUNT"], accounts: ["ACCOUNT"], accountofficer: ["ACCOUNT"],

@@ -101,6 +101,10 @@ function titleCase(value: string | null | undefined) {
   return String(value || "—").replaceAll("_", " ").replace(/\b\w/g, (m) => m.toUpperCase());
 }
 
+function canonicalSubheadBalance(row: Subhead) {
+  return n(row.approved_allocation) - n(row.reserved_amount) - n(row.expenditure);
+}
+
 function isOpenFinanceRequest(row: RequestRow) {
   const stage = `${row.current_stage || ""} ${row.current_owner || ""}`.toLowerCase();
   const status = String(row.status || "").toLowerCase();
@@ -252,7 +256,7 @@ export default function FinanceOverviewPage() {
     acc.budget += n(s.approved_allocation);
     acc.reserved += n(s.reserved_amount);
     acc.expenditure += n(s.expenditure);
-    acc.balance += n(s.balance);
+    acc.balance += canonicalSubheadBalance(s);
     return acc;
   }, { budget: 0, reserved: 0, expenditure: 0, balance: 0 }), [visibleSubheads]);
 
@@ -272,25 +276,29 @@ export default function FinanceOverviewPage() {
 
   const departmentSpend = useMemo(() => {
     const map = new Map<string, { name: string; budget: number; spend: number; balance: number }>();
+    if (departmentId === "ALL") {
+      departments.forEach((d) => map.set(d.id, { name: d.name, budget: 0, spend: 0, balance: 0 }));
+    }
     visibleSubheads.forEach((s) => {
       const key = s.dept_id || "UNASSIGNED";
       const current = map.get(key) || { name: s.dept_id ? departmentMap[s.dept_id] || "Unknown Department" : "Unassigned", budget: 0, spend: 0, balance: 0 };
       current.budget += n(s.approved_allocation);
       current.spend += n(s.expenditure);
-      current.balance += n(s.balance);
+      current.balance += canonicalSubheadBalance(s);
       map.set(key, current);
     });
-    return [...map.values()].sort((a, b) => b.spend - a.spend);
-  }, [departmentMap, visibleSubheads]);
+    return [...map.values()].sort((a, b) => b.spend - a.spend || a.name.localeCompare(b.name));
+  }, [departmentId, departments, departmentMap, visibleSubheads]);
   const maxDepartmentSpend = Math.max(...departmentSpend.map((d) => d.spend), 0);
 
   const budgetHealth = useMemo(() => visibleSubheads
-    .map((s) => ({ ...s, utilization: n(s.approved_allocation) > 0 ? (n(s.expenditure) / n(s.approved_allocation)) * 100 : 0 }))
-    .sort((a, b) => b.utilization - a.utilization)
-    .slice(0, 6), [visibleSubheads]);
+    .map((s) => ({ ...s, balance: canonicalSubheadBalance(s), utilization: n(s.approved_allocation) > 0 ? (n(s.expenditure) / n(s.approved_allocation)) * 100 : 0 }))
+    .sort((a, b) => b.utilization - a.utilization || String(a.code || a.name).localeCompare(String(b.code || b.name))), [visibleSubheads]);
 
   const transactionTypes = useMemo(() => [...new Set(transactions.map((t) => t.transaction_type).filter(Boolean) as string[])].sort(), [transactions]);
   const accountCash = useMemo(() => accounts.filter((a) => a.is_active !== false).reduce((sum, a) => sum + n(a.available_balance), 0), [accounts]);
+  const activeAccounts = useMemo(() => accounts.filter((a) => a.is_active !== false).sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""))), [accounts]);
+  const balanceMismatchCount = useMemo(() => visibleSubheads.filter((s) => s.balance !== null && Math.abs(n(s.balance) - canonicalSubheadBalance(s)) > 0.5).length, [visibleSubheads]);
 
   if (loading) return <main className={styles.page}><div className={styles.loading}>Loading live Finance data…</div></main>;
 
@@ -303,6 +311,7 @@ export default function FinanceOverviewPage() {
 
       {fatalError && <div className={`${styles.notice} ${styles.danger}`}><CircleAlert size={17}/><span>{fatalError}</span></div>}
       {!!issues.length && <div className={styles.notice}><CircleAlert size={17}/><span><b>Some live sources could not be read:</b> {issues.map((i) => `${i.source}: ${i.message}`).join(" · ")}</span></div>}
+      {balanceMismatchCount > 0 && <div className={styles.notice}><CircleAlert size={17}/><span><b>Balance reconciliation:</b> {balanceMismatchCount} subhead record{balanceMismatchCount === 1 ? " has" : "s have"} a stored balance different from Allocation − Reserved − Expenditure. ReqGen is displaying the canonical calculated balance.</span></div>}
 
       <section className={styles.filters}>
         <label><span>Search transactions</span><div className={styles.searchBox}><Search size={15}/><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Reference, narration, subhead…"/></div></label>
@@ -328,7 +337,7 @@ export default function FinanceOverviewPage() {
 
         <article className={styles.card}>
           <div className={styles.cardHead}><div><h2>Expenditure by Department</h2><p>Calculated directly from live subheads.</p></div></div>
-          {departmentSpend.some((d) => d.spend > 0) ? <div className={styles.deptList}>{departmentSpend.slice(0, 7).map((d) => <div key={d.name} className={styles.deptRow}><div><b>{d.name}</b><span>{money(d.spend)} spent · {money(d.balance)} balance</span></div><div className={styles.horizontalTrack}><i style={{ width: `${maxDepartmentSpend ? (d.spend / maxDepartmentSpend) * 100 : 0}%` }}/></div></div>)}</div> : <EmptyState text="No departmental expenditure has been recorded for this filter."/>}
+          {departmentSpend.some((d) => d.spend > 0) ? <div className={styles.deptList}>{departmentSpend.map((d) => <div key={d.name} className={styles.deptRow}><div><b>{d.name}</b><span>{money(d.spend)} spent · {money(d.balance)} balance</span></div><div className={styles.horizontalTrack}><i style={{ width: `${maxDepartmentSpend ? (d.spend / maxDepartmentSpend) * 100 : 0}%` }}/></div></div>)}</div> : <EmptyState text="No departmental expenditure has been recorded for this filter."/>}
         </article>
       </section>
 
@@ -346,6 +355,7 @@ export default function FinanceOverviewPage() {
 
       <section className={styles.workGrid}>
         <article className={styles.card}><div className={styles.cardHead}><div><h2>Finance Processing Queue</h2><p>Requests currently routed to Finance or Accounts.</p></div><Link href="/finance/processing">Open Queue <ArrowRight size={14}/></Link></div><div className={styles.queueList}>{visibleRequests.slice(0, 5).map((r) => <Link key={r.id} href={`/finance/request/${r.id}`}><div><b>{r.request_no || "Request"}</b><span>{r.title || "Untitled request"}</span></div><strong>{money(r.amount)}</strong></Link>)}{!visibleRequests.length && <EmptyState text="No request is currently waiting for Finance under this filter."/>}</div></article>
+        <article className={styles.card}><div className={styles.cardHead}><div><h2>IET Account Balances</h2><p>Every active IET account from the live account register.</p></div><Link href="/finance/manage-accounts">Open Accounts <ArrowRight size={14}/></Link></div><div className={styles.queueList}>{activeAccounts.map((a) => <Link key={a.id} href="/finance/manage-accounts"><div><b>{a.name || "IET Account"}</b><span>Live available balance</span></div><strong>{money(a.available_balance)}</strong></Link>)}{!activeAccounts.length && <EmptyState text="No active IET accounts are available."/>}</div></article>
         <article className={styles.card}><div className={styles.cardHead}><div><h2>Quick Actions</h2><p>Core Finance workspaces only.</p></div></div><div className={styles.quickGrid}><Quick href="/finance/manage-accounts" icon={<Building2/>} title="IET Accounts"/><Quick href="/finance/subheads" icon={<FileBarChart2/>} title="Budget & Subheads"/><Quick href="/finance/transactions" icon={<FileText/>} title="Transactions & Ledgers"/><Quick href="/finance/account-transfers" icon={<ArrowRight/>} title="Transfers"/><Quick href="/finance/processing" icon={<CreditCard/>} title="Finance Processing"/><Quick href="/finance/reports" icon={<FileBarChart2/>} title="Reports & Output"/></div></article>
       </section>
     </main>

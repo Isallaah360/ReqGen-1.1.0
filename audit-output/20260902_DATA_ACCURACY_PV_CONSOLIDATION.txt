@@ -1,0 +1,35 @@
+REQGEN DATA ACCURACY + PV CONSOLIDATION AUDIT
+Date: 2026-09-02
+
+PASS - Shell architecture lock
+PASS - Route access audit: 137 routes, 0 duplicates, 0 unclassified sensitive routes
+PASS - Workflow readiness
+PASS - Internal navigation: 137 routes, 295 references, 0 broken targets
+PASS - Component contracts: 227 app TypeScript files, 0 failures
+PASS - Section 4 lock: eight Finance workspaces, 13px readability baseline
+PASS - Section 5 PV Settings audit
+PASS - Global data accuracy audit: 20/20 checks
+PASS - TypeScript syntax/transpile: 241 TS/TSX files, 0 errors
+
+Finance accuracy changes:
+- Department expenditure visual renders all departments, including departments with zero spend.
+- Budget health renders all active filtered subheads; no top-6 truncation.
+- Canonical displayed subhead balance is Allocation - Reserved - Expenditure.
+- Stored/canonical balance differences are surfaced to the user.
+- IET Account Balances shows every active IET account.
+- Bank distribution is live, includes every bank and available balance; no static top-4 donut.
+
+Payment Voucher consolidation:
+- Sidebar exposes Payment Voucher Centre + PV Settings only.
+- Centre has Overview, Pending, Approved, History and Print/PDF views.
+- Legacy PV routes redirect to the consolidated centre.
+- PV bank data checks iet_accounts first.
+- PV subhead availability uses Allocation - Reserved - Expenditure.
+
+Important database safety note:
+- The live body of approve_request_step is not present in this source package.
+- No speculative money-posting RPC/trigger was added because it could double-post expenditure.
+- database/20260902_dg_expenditure_reconciliation_audit.sql is read-only and should be run on Supabase to verify how DG-approved requests are currently posted before altering financial semantics.
+
+ESLint/Next build note:
+- npm dependency installation timed out in the isolated build environment, so the authoritative npm run lint and npm run build must be run on the user's workstation before push.

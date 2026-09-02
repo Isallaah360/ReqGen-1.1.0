@@ -19,7 +19,7 @@ const checks = [
   ['Historical voucher use blocks destructive delete', page.includes('payment_vouchers') && page.includes('historical voucher record')],
   ['Live refresh subscription present', page.includes('pv-settings-live') && page.includes('postgres_changes')],
   ['PV settings page uses 13px base typography', css.includes('font-size:13px')],
-  ['PV settings remains in Payment Vouchers navigation', shell.includes('{ href: "/payment-vouchers/settings", label: "Settings" }')],
+  ['PV settings remains in Payment Vouchers navigation', shell.includes('{ href: "/payment-vouchers/settings", label: "PV Settings" }')],
 ];
 
 let failed = 0;

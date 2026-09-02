@@ -206,10 +206,17 @@ export default function ManageAccountsPage() {
   const inactiveCount = accounts.length - activeCount;
   const linkedAccounts = accounts.filter((a) => (assignmentCounts.get(a.id) || 0) > 0).length;
   const bankMix = useMemo(() => {
-    const map = new Map<string, number>();
-    accounts.forEach((a) => map.set(a.bank_name || "Unspecified", (map.get(a.bank_name || "Unspecified") || 0) + 1));
-    return Array.from(map.entries()).sort((a, b) => b[1] - a[1]).slice(0, 4);
+    const map = new Map<string, { count: number; balance: number }>();
+    accounts.forEach((a) => {
+      const bank = a.bank_name || "Unspecified";
+      const current = map.get(bank) || { count: 0, balance: 0 };
+      current.count += 1;
+      current.balance += Number(a.available_balance || 0);
+      map.set(bank, current);
+    });
+    return Array.from(map.entries()).sort((a, b) => b[1].balance - a[1].balance || a[0].localeCompare(b[0]));
   }, [accounts]);
+  const maxBankBalance = Math.max(...bankMix.map(([, value]) => value.balance), 0);
 
   function openCreate() {
     setSelected(null);
@@ -384,7 +391,7 @@ export default function ManageAccountsPage() {
         <aside className={styles.sideColumn}>
           <section className={styles.sideCard}>
             <h2>Account Summary</h2>
-            <div className={styles.donutWrap}><div className={styles.donut}><span>{accounts.length}<small>Total</small></span></div><div className={styles.legend}>{bankMix.map(([bank, count], i) => <div key={bank}><i data-tone={i} /><span>{bank}</span><b>{count}</b></div>)}</div></div>
+            <div className={styles.bankDistribution}>{bankMix.map(([bank, value]) => <div key={bank} className={styles.bankDistributionRow}><div><strong>{bank}</strong><span>{value.count} account{value.count === 1 ? "" : "s"} · {naira(value.balance)} available</span></div><div className={styles.bankTrack}><i style={{ width: `${maxBankBalance > 0 ? Math.max(2, (value.balance / maxBankBalance) * 100) : 0}%` }} /></div></div>)}{bankMix.length === 0 && <p className={styles.empty}>No bank records available.</p>}</div>
           </section>
 
           <section className={styles.sideCard}>

@@ -25,7 +25,8 @@
     "audit:rmb-architecture": "node scripts/audit-rmb-page-architecture.mjs",
     "audit:shell": "node scripts/audit-shell-lock.mjs",
     "audit:section4": "node scripts/audit-section4-lock.mjs",
-    "audit:section5-pv-settings": "node scripts/audit-section5-pv-settings.mjs"
+    "audit:section5-pv-settings": "node scripts/audit-section5-pv-settings.mjs",
+    "audit:data-accuracy": "node scripts/audit-data-accuracy.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.97.0",

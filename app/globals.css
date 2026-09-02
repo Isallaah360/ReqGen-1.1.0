@@ -2973,11 +2973,11 @@ body{font-size:var(--reqgen-body-size)!important;letter-spacing:.001em}
 .gov-content,.gov-content p,.gov-content li,.gov-content label,.gov-content input,.gov-content select,.gov-content textarea,.gov-content button,.gov-content a{font-size:var(--reqgen-body-size)!important;line-height:1.5!important}
 .gov-content small,.gov-content time,.gov-content th,.gov-content td,.gov-content [class*="text-xs"],.gov-content [class*="text-[10px]"]{font-size:var(--reqgen-detail-size)!important;line-height:1.42!important}
 .gov-nav-link{font-size:13px!important;min-height:42px!important}
-.gov-subnav a{font-size:12px!important;min-height:31px!important}
-.gov-nav-secondary a{font-size:12px!important}
-.gov-search-trigger{font-size:12px!important}
-.gov-topbar-profile strong{font-size:12px!important}.gov-topbar-profile span{font-size:10px!important}
-.mock-role-switcher select{font-size:12px!important}.mock-role-switcher>span{font-size:9px!important}
+.gov-subnav a{font-size:13px!important;min-height:33px!important}
+.gov-nav-secondary a{font-size:13px!important}
+.gov-search-trigger{font-size:13px!important}
+.gov-topbar-profile strong{font-size:13px!important}.gov-topbar-profile span{font-size:11px!important}
+.mock-role-switcher select{font-size:13px!important}.mock-role-switcher>span{font-size:11px!important}
 .gov-content h1{font-size:27px!important}.gov-content h2{font-size:17px!important}.gov-content h3{font-size:14px!important}
 .gov-content input:not([type="checkbox"]):not([type="radio"]),.gov-content select,.gov-content textarea{font-size:13px!important}
 .gov-content table,.gov-content .erp2-table{font-size:12px!important}.gov-content thead th,.gov-content .erp2-table th{font-size:11px!important}.gov-content tbody td,.gov-content .erp2-table td{font-size:12px!important}
@@ -3664,3 +3664,9 @@ body{font-family:Aptos,"Segoe UI",Inter,Arial,sans-serif!important;background:va
 .rg-bell b{min-width:16px;width:auto;height:16px;padding:0 3px;font-size:8px!important;font-weight:900}
 .rg-nav-count{margin-left:auto;min-width:20px;height:20px;display:grid;place-items:center;padding:0 5px;border:2px solid #fff;border-radius:999px;background:#e53945;color:#fff;font-size:9px!important;font-weight:900!important;line-height:1}
 .mock-role-switcher>span{font-size:10.5px!important;font-weight:900!important}.mock-role-switcher select{font-size:13px!important;font-weight:900!important}
+
+
+/* REQGEN GLOBAL READABILITY LOCK — 2026-09-02 */
+.gov-nav-link,.gov-subnav a,.gov-nav-secondary a,.gov-search-trigger,.gov-topbar-profile strong,.mock-role-switcher select{font-size:13px!important;}
+.gov-subnav a{min-height:33px!important;}
+.gov-content{font-size:13px!important;}

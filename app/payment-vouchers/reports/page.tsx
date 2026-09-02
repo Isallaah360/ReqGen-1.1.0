@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
 
-export default function PaymentVoucherReportsRedirect() {
-  redirect("/reports#executive-overview");
+export default function Page() {
+  redirect("/payment-vouchers?view=history");
 }

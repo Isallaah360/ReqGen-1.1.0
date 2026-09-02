@@ -1,2 +1,5 @@
-import VoucherRegisterView from "@/app/components/payment-vouchers/VoucherRegisterView";
-export default function Page(){return <VoucherRegisterView mode="print"/>}
+import { redirect } from "next/navigation";
+
+export default function Page() {
+  redirect("/payment-vouchers?view=print");
+}

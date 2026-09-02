@@ -27,14 +27,8 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
   { href: "/finance/reports", label: "Reports & Output", section: "Finance", description: "Finance reports, print, export and audit output.", keywords: ["reports", "print", "export", "audit"] },
   { href: "/finance/settings", label: "Finance Settings", section: "Finance", description: "Finance numbering, fiscal-year and workflow settings." },
 
-  { href: "/payment-vouchers", label: "Payment Voucher Centre", section: "Payment Vouchers", description: "Create, review and manage payment vouchers." },
-  { href: "/payment-vouchers/new", label: "Create Voucher", section: "Payment Vouchers", description: "Open the controlled payment-voucher creation workflow." },
-  { href: "/payment-vouchers/pending", label: "Pending Vouchers", section: "Payment Vouchers", description: "Review vouchers still moving through approval or payment processing." },
-  { href: "/payment-vouchers/approved", label: "Approved Vouchers", section: "Payment Vouchers", description: "Review vouchers approved and ready for payment or printing." },
-  { href: "/payment-vouchers/history", label: "Voucher History", section: "Payment Vouchers", description: "Historical register of completed, paid and closed vouchers." },
-  { href: "/payment-vouchers/print-centre", label: "Voucher Print Centre", section: "Payment Vouchers", description: "Locate and print authorised payment vouchers." },
-  { href: "/payment-vouchers/reports", label: "Payment Voucher Reports", section: "Payment Vouchers", description: "Payment voucher reporting workspace." },
-  { href: "/payment-vouchers/settings", label: "Payment Voucher Settings", section: "Payment Vouchers", description: "Payment voucher configuration." },
+  { href: "/payment-vouchers", label: "Payment Voucher Centre", section: "Payment Vouchers", description: "Create, process, review, print and track payment vouchers from one live workspace.", keywords: ["pending vouchers", "approved vouchers", "voucher history", "print voucher", "create voucher"] },
+  { href: "/payment-vouchers/settings", label: "Payment Voucher Settings", section: "Payment Vouchers", description: "Manage authorised cheque signers and counter-signatories." },
 
 
   { href: "/registry", label: "Registry Desk", section: "Registry", description: "Registry command centre and file movement overview." },
