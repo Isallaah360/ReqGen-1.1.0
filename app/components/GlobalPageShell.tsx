@@ -4,6 +4,7 @@ import Image from "next/image";
 import { ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { NAVIGATION_ITEMS } from "@/lib/navigation";
+import { REQGEN_PRODUCT_LABEL } from "@/lib/version";
 
 const PUBLIC_PATHS = new Set([
   "/",
@@ -51,7 +52,7 @@ function ReqGenFooter() {
         <div className="reqgen-site-footer__brand">
           <Image src="/be-logo.png" alt="Barderian Enterprises" width={38} height={32} />
           <div>
-            <strong>ReqGen 1.1.0</strong>
+            <strong>{REQGEN_PRODUCT_LABEL}</strong>
             <span>Powered by Barderian Enterprises</span>
           </div>
         </div>
@@ -114,7 +115,7 @@ export default function GlobalPageShell({ children }: { children: ReactNode }) {
             <h1>{meta.label}</h1>
             <p>{meta.description}</p>
           </div>
-          <div className="reqgen-route-hero__badge">ReqGen 1.1.0</div>
+          <div className="reqgen-route-hero__badge">{REQGEN_PRODUCT_LABEL}</div>
         </header>
       )}
 

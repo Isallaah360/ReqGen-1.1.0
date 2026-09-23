@@ -130,6 +130,10 @@ export default function AdminUsersPage() {
     return hasAdminAccess(meRole, meRoles);
   }, [meRole, meRoles]);
 
+  const canDeleteUsers = useMemo(() => {
+    return roleKey(meRole) === "admin" || meRoles.some((r) => r.is_active && roleKey(r.role_key) === "admin");
+  }, [meRole, meRoles]);
+
   const [depts, setDepts] = useState<Dept[]>([]);
   const [roles, setRoles] = useState<ReqgenRole[]>([]);
   const [rows, setRows] = useState<ProfileRow[]>([]);
@@ -521,6 +525,56 @@ export default function AdminUsersPage() {
     }
   }
 
+  async function deleteUser(profile: ProfileRow) {
+    if (!canDeleteUsers) {
+      setMsg("Admin privilege is required to delete a user.");
+      return;
+    }
+
+    const { data: auth } = await supabase.auth.getUser();
+    if (!auth.user) {
+      router.push("/login");
+      return;
+    }
+    if (auth.user.id === profile.id) {
+      setMsg("Self-deletion is blocked.");
+      return;
+    }
+
+    const label = profile.full_name || profile.email || profile.id;
+    const confirmed = window.confirm(
+      `Permanently delete ${label}? ReqGen will refuse the operation if immutable historical evidence exists.`
+    );
+    if (!confirmed) return;
+
+    setSavingId(profile.id);
+    setMsg(null);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      if (!token) throw new Error("Your session is unavailable. Please sign in again.");
+
+      const response = await fetch(`/api/admin/users/${encodeURIComponent(profile.id)}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const body = await response.json().catch(() => null);
+      if (!response.ok) {
+        const detail = body?.details && typeof body.details === "object"
+          ? ` (${Object.entries(body.details).map(([k, v]) => `${k}: ${v}`).join(", ")})`
+          : "";
+        throw new Error((body?.error || "User deletion failed.") + detail);
+      }
+
+      setMsg(`Deleted ${label}.`);
+      await load({ silent: true });
+    } catch (error: unknown) {
+      setMsg(errorMessage(error));
+    } finally {
+      setSavingId(null);
+    }
+  }
+
   async function deactivateRole(profileId: string, roleKeyToDeactivate: string) {
     if (!canAdmin) {
       setMsg("❌ Only Admin/Auditor can deactivate roles.");
@@ -783,6 +837,8 @@ export default function AdminUsersPage() {
                 onAssignRole={assignRole}
                 onSetPrimaryRole={setPrimaryRole}
                 onDeactivateRole={deactivateRole}
+                onDeleteUser={deleteUser}
+                canDelete={canDeleteUsers}
               />
             ))
           )}
@@ -814,6 +870,8 @@ function UserRolePanel({
   onAssignRole,
   onSetPrimaryRole,
   onDeactivateRole,
+  onDeleteUser,
+  canDelete,
 }: {
   u: ProfileRow;
   roles: ReqgenRole[];
@@ -827,6 +885,8 @@ function UserRolePanel({
   onAssignRole: (id: string, roleKey: string, makePrimary: boolean) => Promise<void>;
   onSetPrimaryRole: (id: string, roleKey: string) => Promise<void>;
   onDeactivateRole: (id: string, roleKey: string) => Promise<void>;
+  onDeleteUser: (profile: ProfileRow) => Promise<void>;
+  canDelete: boolean;
 }) {
   const [deptId, setDeptId] = useState<string>(u.dept_id || "");
   const [newRoleKey, setNewRoleKey] = useState<string>("");
@@ -879,6 +939,16 @@ function UserRolePanel({
               Signature-required roles cannot be assigned until signature is uploaded.
             </span>
           )}
+
+          <button
+            type="button"
+            onClick={() => onDeleteUser(u)}
+            disabled={disabled || saving || !canDelete}
+            className="reqgen-btn reqgen-btn-rose rounded-xl px-3 py-2 text-xs font-black text-white disabled:opacity-50"
+            title="Server-side safe delete; blocked when immutable history exists"
+          >
+            Delete User
+          </button>
         </div>
       </div>
 

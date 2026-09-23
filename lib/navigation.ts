@@ -38,12 +38,12 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
 
 
   { href: "/audit-centre", label: "Audit Centre", section: "Governance", description: "Audit oversight." },
-  { href: "/workflow", label: "Workflow Intelligence", section: "Governance", description: "Workflow intelligence and process monitoring." },
 
   { href: "/admin", label: "Administration Centre", section: "Administration", description: "System administration command centre." },
   { href: "/admin/users", label: "User Management", section: "Administration", description: "Manage ReqGen users." },
   { href: "/admin/roles", label: "Role Management", section: "Administration", description: "Manage roles and access assignments." },
-  { href: "/admin/departments", label: "Department Management", section: "Administration", description: "Manage IET departments." },
+  { href: "/admin/departments", label: "Department Management", section: "Administration", description: "Manage IET departments, routing officers and dependency-safe lifecycle controls." },
+  { href: "/finance/subheads", label: "Subheads & Budget Structure", section: "Administration", description: "Canonical live subhead, allocation and budget-structure management workspace." },
   { href: "/admin/account-routing", label: "Account Routing", section: "Administration", description: "Configure department-to-account routing." },
   { href: "/admin/security", label: "Security Centre", section: "Administration", description: "Security configuration and oversight." },
   { href: "/admin/settings", label: "System Settings", section: "Administration", description: "ReqGen administrative settings." },

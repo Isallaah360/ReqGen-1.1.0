@@ -1,967 +1,1015 @@
-export type RouteRegistryItem = {
-  pattern: string;
-  title: string;
-  rootHref: string | null;
-  category: string;
-  public: boolean;
-  nav: boolean;
-  searchable: boolean;
-  description: string;
-};
-
+export type RouteRegistryItem = { pattern: string; title: string; rootHref: string | null; category: string; public: boolean; nav: boolean; searchable: boolean; description: string; };
 export type RootNavigationItem = { href: string; label: string; iconKey: string; };
 
 export const ROOT_NAVIGATION: RootNavigationItem[] = [
-  {
-    "href": "/dashboard",
-    "label": "DASHBOARD",
-    "iconKey": "dashboard"
-  },
-  {
-    "href": "/requests",
-    "label": "REQUESTS",
-    "iconKey": "requests"
-  },
-  {
-    "href": "/approvals",
-    "label": "APPROVALS",
-    "iconKey": "approvals"
-  },
-  {
-    "href": "/finance",
-    "label": "FINANCE",
-    "iconKey": "finance"
-  },
-  {
-    "href": "/payment-vouchers",
-    "label": "PAYMENT VOUCHERS",
-    "iconKey": "voucher"
-  },
-  {
-    "href": "/registry",
-    "label": "REGISTRY",
-    "iconKey": "registry"
-  },
-  {
-    "href": "/reports",
-    "label": "REPORTS",
-    "iconKey": "reports"
-  },
-  {
-    "href": "/audit-centre",
-    "label": "AUDIT",
-    "iconKey": "audit"
-  },
-  {
-    "href": "/workflow",
-    "label": "WORKFLOW",
-    "iconKey": "workflow"
-  },
-  {
-    "href": "/executive",
-    "label": "COMMAND CENTRE",
-    "iconKey": "command"
-  },
-  {
-    "href": "/admin",
-    "label": "ADMIN",
-    "iconKey": "admin"
-  },
-  {
-    "href": "/profile",
-    "label": "PROFILE",
-    "iconKey": "profile"
-  }
+  { href: "/dashboard", label: "DASHBOARD", iconKey: "dashboard" },
+  { href: "/requests", label: "REQUESTS", iconKey: "requests" },
+  { href: "/approvals", label: "APPROVALS", iconKey: "approvals" },
+  { href: "/finance", label: "FINANCE", iconKey: "finance" },
+  { href: "/payment-vouchers", label: "PAYMENT VOUCHERS", iconKey: "voucher" },
+  { href: "/registry", label: "REGISTRY", iconKey: "registry" },
+  { href: "/reports", label: "REPORTS", iconKey: "reports" },
+  { href: "/audit-centre", label: "AUDIT", iconKey: "audit" },
+  { href: "/admin", label: "ADMIN", iconKey: "admin" },
+  { href: "/profile", label: "PROFILE", iconKey: "profile" },
 ];
 
 export const ROUTE_REGISTRY: RouteRegistryItem[] = [
   {
-    "pattern": "/admin/account-routing",
-    "title": "Account Routing",
-    "rootHref": "/admin",
-    "category": "Settings / Configuration",
+    "pattern": "/about",
+    "title": "About",
+    "rootHref": "/about",
+    "category": "Application Route",
     "public": false,
-    "nav": true,
+    "nav": false,
     "searchable": true,
-    "description": "Department Account Routing"
+    "description": "ReqGen route /about"
+  },
+  {
+    "pattern": "/admin/access-audit",
+    "title": "Admin - Access Audit",
+    "rootHref": "/admin",
+    "category": "Application Route",
+    "public": false,
+    "nav": false,
+    "searchable": true,
+    "description": "ReqGen route /admin/access-audit"
+  },
+  {
+    "pattern": "/admin/account-routing",
+    "title": "Admin - Account Routing",
+    "rootHref": "/admin",
+    "category": "Application Route",
+    "public": false,
+    "nav": false,
+    "searchable": true,
+    "description": "ReqGen route /admin/account-routing"
+  },
+  {
+    "pattern": "/admin/audit",
+    "title": "Admin - Audit",
+    "rootHref": "/admin",
+    "category": "Application Route",
+    "public": false,
+    "nav": false,
+    "searchable": true,
+    "description": "ReqGen route /admin/audit"
   },
   {
     "pattern": "/admin/departments",
-    "title": "Department Routing",
+    "title": "Admin - Departments",
     "rootHref": "/admin",
-    "category": "Settings / Configuration",
+    "category": "Application Route",
     "public": false,
-    "nav": true,
+    "nav": false,
     "searchable": true,
-    "description": "Departments"
+    "description": "ReqGen route /admin/departments"
   },
   {
     "pattern": "/admin",
-    "title": "Admin Overview",
+    "title": "Admin",
     "rootHref": "/admin",
-    "category": "Page / Dashboard",
+    "category": "Application Route",
     "public": false,
     "nav": true,
     "searchable": true,
-    "description": "Admin Overview"
+    "description": "ReqGen route /admin"
+  },
+  {
+    "pattern": "/admin/release-readiness",
+    "title": "Admin - Release Readiness",
+    "rootHref": "/admin",
+    "category": "Application Route",
+    "public": false,
+    "nav": false,
+    "searchable": true,
+    "description": "ReqGen route /admin/release-readiness"
   },
   {
     "pattern": "/admin/roles",
-    "title": "Roles & Permissions",
+    "title": "Admin - Roles",
     "rootHref": "/admin",
-    "category": "Operational Workspace",
+    "category": "Application Route",
     "public": false,
-    "nav": true,
+    "nav": false,
     "searchable": true,
-    "description": "Roles & Permissions"
+    "description": "ReqGen route /admin/roles"
   },
   {
     "pattern": "/admin/security",
-    "title": "Security Centre",
+    "title": "Admin - Security",
     "rootHref": "/admin",
-    "category": "Page / Dashboard",
+    "category": "Application Route",
     "public": false,
-    "nav": true,
+    "nav": false,
     "searchable": true,
-    "description": "Security Centre"
+    "description": "ReqGen route /admin/security"
   },
   {
     "pattern": "/admin/settings",
-    "title": "Routing Settings",
+    "title": "Admin - Settings",
     "rootHref": "/admin",
-    "category": "Settings / Configuration",
+    "category": "Application Route",
     "public": false,
-    "nav": true,
+    "nav": false,
     "searchable": true,
-    "description": "System Settings"
+    "description": "ReqGen route /admin/settings"
+  },
+  {
+    "pattern": "/admin/system-health",
+    "title": "Admin - System Health",
+    "rootHref": "/admin",
+    "category": "Application Route",
+    "public": false,
+    "nav": false,
+    "searchable": true,
+    "description": "ReqGen route /admin/system-health"
   },
   {
     "pattern": "/admin/users",
-    "title": "Users & Roles",
+    "title": "Admin - Users",
     "rootHref": "/admin",
-    "category": "Page / Dashboard",
+    "category": "Application Route",
     "public": false,
-    "nav": true,
+    "nav": false,
     "searchable": true,
-    "description": "User Management"
+    "description": "ReqGen route /admin/users"
+  },
+  {
+    "pattern": "/admin/workflow-test",
+    "title": "Admin - Workflow Test",
+    "rootHref": "/admin",
+    "category": "Application Route",
+    "public": false,
+    "nav": false,
+    "searchable": true,
+    "description": "ReqGen route /admin/workflow-test"
   },
   {
     "pattern": "/approvals/action-centre",
-    "title": "Action Centre",
+    "title": "Approvals - Action Centre",
     "rootHref": "/approvals",
-    "category": "ITTT / Workflow Control",
+    "category": "Application Route",
     "public": false,
-    "nav": true,
+    "nav": false,
     "searchable": true,
-    "description": "Action Centre"
+    "description": "ReqGen route /approvals/action-centre"
   },
   {
     "pattern": "/approvals",
     "title": "Approvals",
     "rootHref": "/approvals",
-    "category": "Page / Dashboard",
+    "category": "Application Route",
     "public": false,
     "nav": true,
     "searchable": true,
-    "description": "Approvals"
+    "description": "ReqGen route /approvals"
   },
   {
     "pattern": "/audit-centre",
-    "title": "Audit",
+    "title": "Audit Centre",
     "rootHref": "/audit-centre",
-    "category": "Audit / Governance",
+    "category": "Application Route",
     "public": false,
     "nav": true,
     "searchable": true,
-    "description": "Audit"
+    "description": "ReqGen route /audit-centre"
   },
   {
     "pattern": "/change-password",
     "title": "Change Password",
-    "rootHref": "/profile",
-    "category": "Form",
+    "rootHref": "/change-password",
+    "category": "Application Route",
     "public": false,
     "nav": false,
     "searchable": true,
-    "description": "Change Password"
+    "description": "ReqGen route /change-password"
   },
   {
     "pattern": "/dashboard/activity",
-    "title": "Activity",
+    "title": "Dashboard - Activity",
     "rootHref": "/dashboard",
-    "category": "Page / Dashboard",
+    "category": "Application Route",
     "public": false,
-    "nav": true,
+    "nav": false,
     "searchable": true,
-    "description": "Activity"
+    "description": "ReqGen route /dashboard/activity"
   },
   {
     "pattern": "/dashboard",
     "title": "Dashboard",
     "rootHref": "/dashboard",
-    "category": "Page / Dashboard",
+    "category": "Application Route",
     "public": false,
     "nav": true,
     "searchable": true,
-    "description": "Dashboard"
+    "description": "ReqGen route /dashboard"
+  },
+  {
+    "pattern": "/docs",
+    "title": "Docs",
+    "rootHref": "/docs",
+    "category": "Application Route",
+    "public": false,
+    "nav": false,
+    "searchable": true,
+    "description": "ReqGen route /docs"
   },
   {
     "pattern": "/executive/analytics",
-    "title": "Analytics",
+    "title": "Executive - Analytics",
     "rootHref": "/executive",
-    "category": "Report / Analytics",
+    "category": "Application Route",
     "public": false,
-    "nav": true,
-    "searchable": true,
-    "description": "Analytics"
+    "nav": false,
+    "searchable": false,
+    "description": "ReqGen route /executive/analytics"
   },
   {
     "pattern": "/executive/audit",
-    "title": "Audit",
+    "title": "Executive - Audit",
     "rootHref": "/executive",
-    "category": "Audit / Governance",
+    "category": "Application Route",
     "public": false,
-    "nav": true,
-    "searchable": true,
-    "description": "Audit"
+    "nav": false,
+    "searchable": false,
+    "description": "ReqGen route /executive/audit"
   },
   {
     "pattern": "/executive/calendar",
-    "title": "Calendar",
+    "title": "Executive - Calendar",
     "rootHref": "/executive",
-    "category": "Page / Dashboard",
+    "category": "Application Route",
     "public": false,
-    "nav": true,
-    "searchable": true,
-    "description": "Calendar"
+    "nav": false,
+    "searchable": false,
+    "description": "ReqGen route /executive/calendar"
   },
   {
     "pattern": "/executive/finance",
-    "title": "Finance",
+    "title": "Executive - Finance",
     "rootHref": "/executive",
-    "category": "Page / Dashboard",
+    "category": "Application Route",
     "public": false,
-    "nav": true,
-    "searchable": true,
-    "description": "Finance"
+    "nav": false,
+    "searchable": false,
+    "description": "ReqGen route /executive/finance"
+  },
+  {
+    "pattern": "/executive/hr",
+    "title": "Executive - Hr",
+    "rootHref": "/executive",
+    "category": "Application Route",
+    "public": false,
+    "nav": false,
+    "searchable": false,
+    "description": "ReqGen route /executive/hr"
   },
   {
     "pattern": "/executive/meetings",
-    "title": "Meetings",
+    "title": "Executive - Meetings",
     "rootHref": "/executive",
-    "category": "Page / Dashboard",
+    "category": "Application Route",
     "public": false,
-    "nav": true,
-    "searchable": true,
-    "description": "Meetings"
+    "nav": false,
+    "searchable": false,
+    "description": "ReqGen route /executive/meetings"
   },
   {
     "pattern": "/executive/notifications",
-    "title": "Notifications",
+    "title": "Executive - Notifications",
     "rootHref": "/executive",
-    "category": "Page / Dashboard",
+    "category": "Application Route",
     "public": false,
-    "nav": true,
-    "searchable": true,
-    "description": "Notifications"
+    "nav": false,
+    "searchable": false,
+    "description": "ReqGen route /executive/notifications"
   },
   {
     "pattern": "/executive",
-    "title": "Command Centre",
+    "title": "Executive",
     "rootHref": "/executive",
-    "category": "Page / Dashboard",
+    "category": "Application Route",
     "public": false,
-    "nav": true,
-    "searchable": true,
-    "description": "Command Centre"
+    "nav": false,
+    "searchable": false,
+    "description": "ReqGen route /executive"
   },
   {
     "pattern": "/executive/registry",
-    "title": "Registry",
+    "title": "Executive - Registry",
     "rootHref": "/executive",
-    "category": "Page / Dashboard",
+    "category": "Application Route",
     "public": false,
-    "nav": true,
-    "searchable": true,
-    "description": "Registry"
+    "nav": false,
+    "searchable": false,
+    "description": "ReqGen route /executive/registry"
   },
   {
     "pattern": "/executive/reports",
-    "title": "Reports",
+    "title": "Executive - Reports",
     "rootHref": "/executive",
-    "category": "Report / Analytics",
+    "category": "Application Route",
     "public": false,
-    "nav": true,
-    "searchable": true,
-    "description": "Reports"
+    "nav": false,
+    "searchable": false,
+    "description": "ReqGen route /executive/reports"
   },
   {
     "pattern": "/executive/requests",
-    "title": "Requests",
+    "title": "Executive - Requests",
     "rootHref": "/executive",
-    "category": "Page / Dashboard",
+    "category": "Application Route",
     "public": false,
-    "nav": true,
-    "searchable": true,
-    "description": "Requests"
+    "nav": false,
+    "searchable": false,
+    "description": "ReqGen route /executive/requests"
   },
   {
     "pattern": "/finance/account-ledger",
-    "title": "Account Ledger",
+    "title": "Finance - Account Ledger",
     "rootHref": "/finance",
-    "category": "Register / Ledger",
+    "category": "Application Route",
     "public": false,
-    "nav": true,
+    "nav": false,
     "searchable": true,
-    "description": "Account Ledger"
+    "description": "ReqGen route /finance/account-ledger"
   },
   {
     "pattern": "/finance/account-transfers",
-    "title": "Account Transfers",
+    "title": "Finance - Account Transfers",
     "rootHref": "/finance",
-    "category": "Page / Dashboard",
+    "category": "Application Route",
     "public": false,
-    "nav": true,
+    "nav": false,
     "searchable": true,
-    "description": "Account Transfers"
+    "description": "ReqGen route /finance/account-transfers"
   },
   {
     "pattern": "/finance/accounts",
-    "title": "Accounts Setup (Legacy)",
+    "title": "Finance - Accounts",
     "rootHref": "/finance",
-    "category": "Page / Dashboard",
+    "category": "Application Route",
     "public": false,
-    "nav": true,
+    "nav": false,
     "searchable": true,
-    "description": "Accounts Setup (Legacy)"
+    "description": "ReqGen route /finance/accounts"
   },
   {
     "pattern": "/finance/activity-history",
-    "title": "Finance Activity History",
+    "title": "Finance - Activity History",
     "rootHref": "/finance",
-    "category": "Register / Ledger",
+    "category": "Application Route",
     "public": false,
-    "nav": true,
+    "nav": false,
     "searchable": true,
-    "description": "Finance Activity History"
+    "description": "ReqGen route /finance/activity-history"
   },
   {
     "pattern": "/finance/assign-account",
-    "title": "Account Assignment",
+    "title": "Finance - Assign Account",
     "rootHref": "/finance",
-    "category": "Sub-form / Transaction Form",
+    "category": "Application Route",
     "public": false,
-    "nav": true,
+    "nav": false,
     "searchable": true,
-    "description": "Account Assignment (Legacy)"
+    "description": "ReqGen route /finance/assign-account"
   },
   {
     "pattern": "/finance/audit",
-    "title": "Finance Audit",
+    "title": "Finance - Audit",
     "rootHref": "/finance",
-    "category": "Audit / Governance",
+    "category": "Application Route",
     "public": false,
-    "nav": true,
+    "nav": false,
     "searchable": true,
-    "description": "Finance Audit"
+    "description": "ReqGen route /finance/audit"
   },
   {
     "pattern": "/finance/audit-trail",
-    "title": "Finance Audit Trail",
+    "title": "Finance - Audit Trail",
     "rootHref": "/finance",
-    "category": "Audit / Governance",
+    "category": "Application Route",
     "public": false,
-    "nav": true,
+    "nav": false,
     "searchable": true,
-    "description": "Finance Audit Trail"
+    "description": "ReqGen route /finance/audit-trail"
   },
   {
     "pattern": "/finance/departments",
-    "title": "Finance Departments",
+    "title": "Finance - Departments",
     "rootHref": "/finance",
-    "category": "Page / Dashboard",
+    "category": "Application Route",
     "public": false,
-    "nav": true,
+    "nav": false,
     "searchable": true,
-    "description": "Finance Departments"
+    "description": "ReqGen route /finance/departments"
   },
   {
     "pattern": "/finance/export-centre",
-    "title": "Finance Export Centre",
+    "title": "Finance - Export Centre",
     "rootHref": "/finance",
-    "category": "Page / Dashboard",
+    "category": "Application Route",
     "public": false,
-    "nav": true,
+    "nav": false,
     "searchable": true,
-    "description": "Finance Export Centre"
+    "description": "ReqGen route /finance/export-centre"
   },
   {
     "pattern": "/finance/manage-accounts/assign",
-    "title": "Assign Bank to Officer",
+    "title": "Finance - Manage Accounts - Assign",
     "rootHref": "/finance",
-    "category": "Sub-form / Transaction Form",
+    "category": "Application Route",
     "public": false,
-    "nav": true,
+    "nav": false,
     "searchable": true,
-    "description": "Assign Bank to Officer"
+    "description": "ReqGen route /finance/manage-accounts/assign"
   },
   {
     "pattern": "/finance/manage-accounts",
-    "title": "IET Bank Accounts",
+    "title": "Finance - Manage Accounts",
     "rootHref": "/finance",
-    "category": "Page / Dashboard",
+    "category": "Application Route",
     "public": false,
-    "nav": true,
+    "nav": false,
     "searchable": true,
-    "description": "IET Bank Accounts"
+    "description": "ReqGen route /finance/manage-accounts"
   },
   {
     "pattern": "/finance/manual-voucher",
-    "title": "Manual Voucher",
+    "title": "Finance - Manual Voucher",
     "rootHref": "/finance",
-    "category": "Sub-form / Transaction Form",
+    "category": "Application Route",
     "public": false,
-    "nav": true,
+    "nav": false,
     "searchable": true,
-    "description": "Manual Voucher"
+    "description": "ReqGen route /finance/manual-voucher"
   },
   {
     "pattern": "/finance",
     "title": "Finance",
     "rootHref": "/finance",
-    "category": "Page / Dashboard",
+    "category": "Application Route",
     "public": false,
     "nav": true,
     "searchable": true,
-    "description": "Finance"
+    "description": "ReqGen route /finance"
   },
   {
     "pattern": "/finance/print-centre",
-    "title": "Finance Print Centre",
+    "title": "Finance - Print Centre",
     "rootHref": "/finance",
-    "category": "Page / Dashboard",
-    "public": false,
-    "nav": true,
-    "searchable": true,
-    "description": "Finance Print Centre"
-  },
-  {
-    "pattern": "/finance/reports/annual",
-    "title": "Annual Reports",
-    "rootHref": "/finance",
-    "category": "Report / Analytics",
-    "public": false,
-    "nav": true,
-    "searchable": true,
-    "description": "Annual Finance Reports"
-  },
-  {
-    "pattern": "/finance/reports/monthly",
-    "title": "Monthly Reports",
-    "rootHref": "/finance",
-    "category": "Report / Analytics",
-    "public": false,
-    "nav": true,
-    "searchable": true,
-    "description": "Monthly Finance Reports"
-  },
-  {
-    "pattern": "/finance/reports",
-    "title": "Finance Reports",
-    "rootHref": "/finance",
-    "category": "Report / Analytics",
-    "public": false,
-    "nav": true,
-    "searchable": true,
-    "description": "Finance Reports"
-  },
-  {
-    "pattern": "/finance/reports/print",
-    "title": "Print Report",
-    "rootHref": "/finance",
-    "category": "Print View",
-    "public": false,
-    "nav": true,
-    "searchable": true,
-    "description": "Finance Report Print"
-  },
-  {
-    "pattern": "/finance/request/[id]",
-    "title": "Finance Request",
-    "rootHref": "/finance",
-    "category": "Detail Page",
+    "category": "Application Route",
     "public": false,
     "nav": false,
-    "searchable": false,
-    "description": "Unable to open finance request"
+    "searchable": true,
+    "description": "ReqGen route /finance/print-centre"
   },
   {
     "pattern": "/finance/processing",
-    "title": "Finance Processing",
+    "title": "Finance - Processing",
     "rootHref": "/finance",
-    "category": "Operational Workspace",
+    "category": "Application Route",
     "public": false,
-    "nav": true,
+    "nav": false,
     "searchable": true,
-    "description": "Treat requests routed to Finance and continue payment-voucher processing"
+    "description": "ReqGen route /finance/processing"
+  },
+  {
+    "pattern": "/finance/reports/annual",
+    "title": "Finance - Reports - Annual",
+    "rootHref": "/finance",
+    "category": "Application Route",
+    "public": false,
+    "nav": false,
+    "searchable": true,
+    "description": "ReqGen route /finance/reports/annual"
+  },
+  {
+    "pattern": "/finance/reports/monthly",
+    "title": "Finance - Reports - Monthly",
+    "rootHref": "/finance",
+    "category": "Application Route",
+    "public": false,
+    "nav": false,
+    "searchable": true,
+    "description": "ReqGen route /finance/reports/monthly"
+  },
+  {
+    "pattern": "/finance/reports",
+    "title": "Finance - Reports",
+    "rootHref": "/finance",
+    "category": "Application Route",
+    "public": false,
+    "nav": false,
+    "searchable": true,
+    "description": "ReqGen route /finance/reports"
+  },
+  {
+    "pattern": "/finance/reports/print",
+    "title": "Finance - Reports - Print",
+    "rootHref": "/finance",
+    "category": "Application Route",
+    "public": false,
+    "nav": false,
+    "searchable": true,
+    "description": "ReqGen route /finance/reports/print"
+  },
+  {
+    "pattern": "/finance/request/[id]",
+    "title": "Finance - Request - Detail",
+    "rootHref": "/finance",
+    "category": "Application Route",
+    "public": false,
+    "nav": false,
+    "searchable": true,
+    "description": "ReqGen route /finance/request/[id]"
   },
   {
     "pattern": "/finance/settings",
-    "title": "Finance Settings",
+    "title": "Finance - Settings",
     "rootHref": "/finance",
-    "category": "Settings / Configuration",
+    "category": "Application Route",
     "public": false,
-    "nav": true,
+    "nav": false,
     "searchable": true,
-    "description": "Finance Settings"
+    "description": "ReqGen route /finance/settings"
   },
   {
     "pattern": "/finance/subhead-ledger",
-    "title": "Subhead Ledger",
+    "title": "Finance - Subhead Ledger",
     "rootHref": "/finance",
-    "category": "Register / Ledger",
+    "category": "Application Route",
     "public": false,
-    "nav": true,
+    "nav": false,
     "searchable": true,
-    "description": "Subhead Ledger"
+    "description": "ReqGen route /finance/subhead-ledger"
   },
   {
     "pattern": "/finance/subheads",
-    "title": "Finance Subheads",
+    "title": "Finance - Subheads",
     "rootHref": "/finance",
-    "category": "Page / Dashboard",
+    "category": "Application Route",
     "public": false,
-    "nav": true,
+    "nav": false,
     "searchable": true,
-    "description": "Finance Subheads"
+    "description": "ReqGen route /finance/subheads"
   },
   {
     "pattern": "/finance/transactions",
-    "title": "Finance Transactions",
+    "title": "Finance - Transactions",
     "rootHref": "/finance",
-    "category": "Register / Ledger",
+    "category": "Application Route",
     "public": false,
-    "nav": true,
+    "nav": false,
     "searchable": true,
-    "description": "Finance Transactions"
+    "description": "ReqGen route /finance/transactions"
   },
   {
     "pattern": "/finance/vouchers",
-    "title": "Finance Vouchers",
+    "title": "Finance - Vouchers",
     "rootHref": "/finance",
-    "category": "Page / Dashboard",
+    "category": "Application Route",
     "public": false,
-    "nav": true,
+    "nav": false,
     "searchable": true,
-    "description": "Finance Vouchers"
+    "description": "ReqGen route /finance/vouchers"
   },
   {
     "pattern": "/forgot-password",
     "title": "Forgot Password",
-    "rootHref": null,
-    "category": "Form",
+    "rootHref": "/forgot-password",
+    "category": "Application Route",
     "public": true,
     "nav": false,
-    "searchable": true,
-    "description": "Forgot Password"
+    "searchable": false,
+    "description": "ReqGen route /forgot-password"
+  },
+  {
+    "pattern": "/hr",
+    "title": "Hr",
+    "rootHref": "/hr",
+    "category": "Application Route",
+    "public": false,
+    "nav": false,
+    "searchable": false,
+    "description": "ReqGen route /hr"
   },
   {
     "pattern": "/login",
     "title": "Login",
-    "rootHref": null,
-    "category": "Form",
+    "rootHref": "/login",
+    "category": "Application Route",
     "public": true,
     "nav": false,
-    "searchable": true,
-    "description": "Login"
+    "searchable": false,
+    "description": "ReqGen route /login"
   },
   {
     "pattern": "/mfa",
     "title": "Mfa",
-    "rootHref": null,
-    "category": "Page / Dashboard",
+    "rootHref": "/mfa",
+    "category": "Application Route",
     "public": true,
     "nav": false,
-    "searchable": true,
-    "description": "Mfa"
+    "searchable": false,
+    "description": "ReqGen route /mfa"
   },
   {
     "pattern": "/mfa/setup",
-    "title": "Setup",
-    "rootHref": null,
-    "category": "Form",
+    "title": "Mfa - Setup",
+    "rootHref": "/mfa",
+    "category": "Application Route",
     "public": true,
     "nav": false,
-    "searchable": true,
-    "description": "Setup"
+    "searchable": false,
+    "description": "ReqGen route /mfa/setup"
   },
   {
     "pattern": "/output",
-    "title": "Output Centre",
-    "rootHref": "/reports",
-    "category": "Utility / Information",
+    "title": "Output",
+    "rootHref": "/output",
+    "category": "Application Route",
     "public": false,
-    "nav": true,
-    "searchable": true,
-    "description": "Output Centre"
+    "nav": false,
+    "searchable": false,
+    "description": "ReqGen route /output"
   },
   {
     "pattern": "/",
-    "title": "ReqGen",
+    "title": "Home",
     "rootHref": null,
-    "category": "Utility / Information",
+    "category": "Application Route",
     "public": true,
     "nav": false,
     "searchable": false,
-    "description": "ReqGen"
+    "description": "ReqGen route /"
   },
   {
     "pattern": "/payment-vouchers/[id]",
-    "title": "Payment Voucher Details",
+    "title": "Payment Vouchers - Detail",
     "rootHref": "/payment-vouchers",
-    "category": "Detail Page",
+    "category": "Application Route",
     "public": false,
     "nav": false,
-    "searchable": false,
-    "description": "Payment Voucher Details"
+    "searchable": true,
+    "description": "ReqGen route /payment-vouchers/[id]"
   },
   {
     "pattern": "/payment-vouchers/[id]/print",
-    "title": "Voucher Print",
+    "title": "Payment Vouchers - Detail - Print",
     "rootHref": "/payment-vouchers",
-    "category": "Print View",
+    "category": "Application Route",
     "public": false,
     "nav": false,
-    "searchable": false,
-    "description": "Payment Voucher Print View"
+    "searchable": true,
+    "description": "ReqGen route /payment-vouchers/[id]/print"
   },
   {
     "pattern": "/payment-vouchers/approved",
-    "title": "Approved",
+    "title": "Payment Vouchers - Approved",
     "rootHref": "/payment-vouchers",
-    "category": "Page / Dashboard",
+    "category": "Application Route",
     "public": false,
-    "nav": true,
+    "nav": false,
     "searchable": true,
-    "description": "Approved"
+    "description": "ReqGen route /payment-vouchers/approved"
   },
   {
     "pattern": "/payment-vouchers/history",
-    "title": "History",
+    "title": "Payment Vouchers - History",
     "rootHref": "/payment-vouchers",
-    "category": "Register / Ledger",
+    "category": "Application Route",
     "public": false,
-    "nav": true,
+    "nav": false,
     "searchable": true,
-    "description": "History"
+    "description": "ReqGen route /payment-vouchers/history"
   },
   {
     "pattern": "/payment-vouchers/new",
-    "title": "Create Voucher",
+    "title": "Payment Vouchers - New",
     "rootHref": "/payment-vouchers",
-    "category": "Sub-form / Transaction Form",
+    "category": "Application Route",
     "public": false,
-    "nav": true,
+    "nav": false,
     "searchable": true,
-    "description": "New"
+    "description": "ReqGen route /payment-vouchers/new"
   },
   {
     "pattern": "/payment-vouchers",
     "title": "Payment Vouchers",
     "rootHref": "/payment-vouchers",
-    "category": "Operational Workspace",
+    "category": "Application Route",
     "public": false,
     "nav": true,
     "searchable": true,
-    "description": "Payment Vouchers"
+    "description": "ReqGen route /payment-vouchers"
   },
   {
     "pattern": "/payment-vouchers/pending",
-    "title": "Pending",
+    "title": "Payment Vouchers - Pending",
     "rootHref": "/payment-vouchers",
-    "category": "Page / Dashboard",
+    "category": "Application Route",
     "public": false,
-    "nav": true,
+    "nav": false,
     "searchable": true,
-    "description": "Pending"
+    "description": "ReqGen route /payment-vouchers/pending"
   },
   {
     "pattern": "/payment-vouchers/print-centre",
-    "title": "Print Centre",
+    "title": "Payment Vouchers - Print Centre",
     "rootHref": "/payment-vouchers",
-    "category": "Page / Dashboard",
+    "category": "Application Route",
     "public": false,
-    "nav": true,
+    "nav": false,
     "searchable": true,
-    "description": "Print Centre"
+    "description": "ReqGen route /payment-vouchers/print-centre"
   },
   {
     "pattern": "/payment-vouchers/reports",
-    "title": "Voucher Reports",
+    "title": "Payment Vouchers - Reports",
     "rootHref": "/payment-vouchers",
-    "category": "Redirect / Alias",
+    "category": "Application Route",
     "public": false,
-    "nav": true,
+    "nav": false,
     "searchable": true,
-    "description": "Voucher Reports"
+    "description": "ReqGen route /payment-vouchers/reports"
   },
   {
     "pattern": "/payment-vouchers/settings",
-    "title": "Payment Voucher Settings",
+    "title": "Payment Vouchers - Settings",
     "rootHref": "/payment-vouchers",
-    "category": "Settings / Configuration",
+    "category": "Application Route",
     "public": false,
-    "nav": true,
+    "nav": false,
     "searchable": true,
-    "description": "Payment Voucher Settings"
+    "description": "ReqGen route /payment-vouchers/settings"
   },
   {
     "pattern": "/profile/access",
-    "title": "Access",
+    "title": "Profile - Access",
     "rootHref": "/profile",
-    "category": "Page / Dashboard",
+    "category": "Application Route",
     "public": false,
-    "nav": true,
+    "nav": false,
     "searchable": true,
-    "description": "My Access"
+    "description": "ReqGen route /profile/access"
   },
   {
     "pattern": "/profile/activity",
-    "title": "Activity",
+    "title": "Profile - Activity",
     "rootHref": "/profile",
-    "category": "Page / Dashboard",
+    "category": "Application Route",
     "public": false,
-    "nav": true,
+    "nav": false,
     "searchable": true,
-    "description": "My Activity"
+    "description": "ReqGen route /profile/activity"
   },
   {
     "pattern": "/profile",
     "title": "Profile",
     "rootHref": "/profile",
-    "category": "Page / Dashboard",
+    "category": "Application Route",
     "public": false,
     "nav": true,
     "searchable": true,
-    "description": "Profile"
+    "description": "ReqGen route /profile"
   },
   {
     "pattern": "/profile/security",
-    "title": "Security",
+    "title": "Profile - Security",
     "rootHref": "/profile",
-    "category": "Page / Dashboard",
-    "public": false,
-    "nav": true,
-    "searchable": true,
-    "description": "Profile Security"
-  },
-  {
-    "pattern": "/profile/security/replace-authenticator",
-    "title": "Replace Authenticator",
-    "rootHref": "/profile",
-    "category": "Security / Configuration",
+    "category": "Application Route",
     "public": false,
     "nav": false,
     "searchable": true,
-    "description": "Safely replace the logged-in user's authenticator app without creating a new account."
+    "description": "ReqGen route /profile/security"
+  },
+  {
+    "pattern": "/profile/security/replace-authenticator",
+    "title": "Profile - Security - Replace Authenticator",
+    "rootHref": "/profile",
+    "category": "Application Route",
+    "public": false,
+    "nav": false,
+    "searchable": true,
+    "description": "ReqGen route /profile/security/replace-authenticator"
   },
   {
     "pattern": "/registry/archive",
-    "title": "Archive",
+    "title": "Registry - Archive",
     "rootHref": "/registry",
-    "category": "Register / Ledger",
+    "category": "Application Route",
     "public": false,
-    "nav": true,
+    "nav": false,
     "searchable": true,
-    "description": "Registry Archive Register"
+    "description": "ReqGen route /registry/archive"
   },
   {
     "pattern": "/registry/dispatch",
-    "title": "Dispatch",
+    "title": "Registry - Dispatch",
     "rootHref": "/registry",
-    "category": "Page / Dashboard",
+    "category": "Application Route",
     "public": false,
-    "nav": true,
+    "nav": false,
     "searchable": true,
-    "description": "Dispatch & Collection Register"
+    "description": "ReqGen route /registry/dispatch"
   },
   {
     "pattern": "/registry/incoming",
-    "title": "Incoming Register",
+    "title": "Registry - Incoming",
     "rootHref": "/registry",
-    "category": "Register / Ledger",
+    "category": "Application Route",
     "public": false,
-    "nav": true,
+    "nav": false,
     "searchable": true,
-    "description": "Incoming Register"
+    "description": "ReqGen route /registry/incoming"
   },
   {
     "pattern": "/registry/operations",
-    "title": "Registry Operations",
+    "title": "Registry - Operations",
     "rootHref": "/registry",
-    "category": "Page / Dashboard",
+    "category": "Application Route",
     "public": false,
-    "nav": true,
+    "nav": false,
     "searchable": true,
-    "description": "Registry Operations"
+    "description": "ReqGen route /registry/operations"
   },
   {
     "pattern": "/registry/outgoing",
-    "title": "Outgoing Register",
+    "title": "Registry - Outgoing",
     "rootHref": "/registry",
-    "category": "Register / Ledger",
+    "category": "Application Route",
     "public": false,
-    "nav": true,
+    "nav": false,
     "searchable": true,
-    "description": "Outgoing Register"
+    "description": "ReqGen route /registry/outgoing"
   },
   {
     "pattern": "/registry",
     "title": "Registry",
     "rootHref": "/registry",
-    "category": "Page / Dashboard",
+    "category": "Application Route",
     "public": false,
     "nav": true,
     "searchable": true,
-    "description": "Registry"
+    "description": "ReqGen route /registry"
   },
   {
     "pattern": "/reports/enterprise-analytics",
-    "title": "Analytics",
+    "title": "Reports - Enterprise Analytics",
     "rootHref": "/reports",
-    "category": "Report / Analytics",
+    "category": "Application Route",
     "public": false,
-    "nav": true,
+    "nav": false,
     "searchable": true,
-    "description": "Analytics Centre"
+    "description": "ReqGen route /reports/enterprise-analytics"
   },
   {
     "pattern": "/reports",
     "title": "Reports",
     "rootHref": "/reports",
-    "category": "Report / Analytics",
+    "category": "Application Route",
     "public": false,
     "nav": true,
     "searchable": true,
-    "description": "Reports"
+    "description": "ReqGen route /reports"
   },
   {
     "pattern": "/requests/[id]/edit",
-    "title": "Edit Request",
+    "title": "Requests - Detail - Edit",
     "rootHref": "/requests",
-    "category": "Sub-form / Transaction Form",
+    "category": "Application Route",
     "public": false,
     "nav": false,
-    "searchable": false,
-    "description": "Edit Request"
+    "searchable": true,
+    "description": "ReqGen route /requests/[id]/edit"
   },
   {
     "pattern": "/requests/[id]",
-    "title": "Details",
+    "title": "Requests - Detail",
     "rootHref": "/requests",
-    "category": "Detail Page",
+    "category": "Application Route",
     "public": false,
     "nav": false,
-    "searchable": false,
-    "description": "{isPersonalFund ? \"HR Funding Recommendation\" : \"Budget Subhead Assignment\"}"
+    "searchable": true,
+    "description": "ReqGen route /requests/[id]"
   },
   {
     "pattern": "/requests/[id]/print",
-    "title": "Request Print",
+    "title": "Requests - Detail - Print",
     "rootHref": "/requests",
-    "category": "Print View",
+    "category": "Application Route",
     "public": false,
     "nav": false,
-    "searchable": false,
-    "description": "Request Print"
+    "searchable": true,
+    "description": "ReqGen route /requests/[id]/print"
   },
   {
     "pattern": "/requests/new",
-    "title": "Create Request",
+    "title": "Requests - New",
     "rootHref": "/requests",
-    "category": "Sub-form / Transaction Form",
+    "category": "Application Route",
     "public": false,
-    "nav": true,
+    "nav": false,
     "searchable": true,
-    "description": "Create Request"
+    "description": "ReqGen route /requests/new"
   },
   {
     "pattern": "/requests",
     "title": "Requests",
     "rootHref": "/requests",
-    "category": "Page / Dashboard",
+    "category": "Application Route",
     "public": false,
     "nav": true,
     "searchable": true,
-    "description": "Requests"
+    "description": "ReqGen route /requests"
   },
   {
     "pattern": "/reset-password",
     "title": "Reset Password",
-    "rootHref": null,
-    "category": "Form",
+    "rootHref": "/reset-password",
+    "category": "Application Route",
     "public": true,
     "nav": false,
-    "searchable": true,
-    "description": "Reset Password"
+    "searchable": false,
+    "description": "ReqGen route /reset-password"
   },
   {
     "pattern": "/signup",
     "title": "Signup",
-    "rootHref": null,
-    "category": "Form",
+    "rootHref": "/signup",
+    "category": "Application Route",
     "public": true,
     "nav": false,
-    "searchable": true,
-    "description": "Signup"
+    "searchable": false,
+    "description": "ReqGen route /signup"
+  },
+  {
+    "pattern": "/staff",
+    "title": "Staff",
+    "rootHref": "/staff",
+    "category": "Application Route",
+    "public": false,
+    "nav": false,
+    "searchable": false,
+    "description": "ReqGen route /staff"
+  },
+  {
+    "pattern": "/test-supabase",
+    "title": "Test Supabase",
+    "rootHref": "/test-supabase",
+    "category": "Application Route",
+    "public": false,
+    "nav": false,
+    "searchable": false,
+    "description": "ReqGen route /test-supabase"
   },
   {
     "pattern": "/unauthorized",
-    "title": "Access Restricted",
-    "rootHref": null,
-    "category": "Utility / Information",
+    "title": "Unauthorized",
+    "rootHref": "/unauthorized",
+    "category": "Application Route",
     "public": true,
     "nav": false,
-    "searchable": true,
-    "description": "Access Restricted"
+    "searchable": false,
+    "description": "ReqGen route /unauthorized"
   },
   {
     "pattern": "/workflow",
     "title": "Workflow",
     "rootHref": "/workflow",
-    "category": "ITTT / Workflow Control",
+    "category": "Application Route",
     "public": false,
-    "nav": true,
-    "searchable": true,
-    "description": "Workflow"
-  }
+    "nav": false,
+    "searchable": false,
+    "description": "ReqGen route /workflow"
+  },
 ];
 
-
-function normalisePath(pathname: string) {
-  if (!pathname) return "/";
-  const clean = pathname.split("?")[0].split("#")[0] || "/";
-  return clean.length > 1 ? clean.replace(/\/+$/, "") : clean;
+function normalizePathname(pathname: string): string {
+  const clean = (pathname || "/").split("?")[0].split("#")[0] || "/";
+  if (clean === "/") return clean;
+  return clean.endsWith("/") ? clean.slice(0, -1) : clean;
 }
 
-function matchesPattern(pathname: string, pattern: string) {
-  const p = normalisePath(pathname).split("/").filter(Boolean);
-  const q = normalisePath(pattern).split("/").filter(Boolean);
-  if (p.length !== q.length) return false;
-  return q.every((segment, i) => segment.startsWith("[") && segment.endsWith("]") ? Boolean(p[i]) : segment === p[i]);
+function routePatternMatches(pattern: string, pathname: string): boolean {
+  const patternSegments = normalizePathname(pattern).split("/").filter(Boolean);
+  const pathSegments = normalizePathname(pathname).split("/").filter(Boolean);
+  if (patternSegments.length !== pathSegments.length) return false;
+
+  return patternSegments.every((segment, index) => {
+    if (segment.startsWith("[") && segment.endsWith("]")) return Boolean(pathSegments[index]);
+    return segment === pathSegments[index];
+  });
 }
 
-export function getRouteRegistryItem(pathname: string): RouteRegistryItem | null {
-  const exact = ROUTE_REGISTRY.find((item) => item.pattern === normalisePath(pathname));
+export function getRouteRegistryItem(pathname: string): RouteRegistryItem | undefined {
+  const normalized = normalizePathname(pathname);
+
+  const exact = ROUTE_REGISTRY.find((route) => normalizePathname(route.pattern) === normalized);
   if (exact) return exact;
-  return ROUTE_REGISTRY.find((item) => item.pattern.includes("[") && matchesPattern(pathname, item.pattern)) || null;
+
+  return ROUTE_REGISTRY.find((route) => routePatternMatches(route.pattern, normalized));
 }
 
-export function getRootChildren(rootHref: string) {
-  return ROUTE_REGISTRY.filter((item) => item.rootHref === rootHref && item.nav && item.pattern !== rootHref)
-    .sort((a, b) => a.title.localeCompare(b.title));
-}
-
-export function getSearchableRoutes() {
-  return ROUTE_REGISTRY.filter((item) => item.searchable);
-}

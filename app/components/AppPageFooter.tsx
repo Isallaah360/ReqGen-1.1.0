@@ -1,8 +1,10 @@
+import { REQGEN_PRODUCT_LABEL } from "@/lib/version";
+
 export default function AppPageFooter() {
   return (
     <footer className="rg-app-footer" aria-label="ReqGen footer">
       <div>
-        <strong>ReqGen 1.1.0</strong>
+        <strong>{REQGEN_PRODUCT_LABEL}</strong>
         <span>Request Management System</span>
       </div>
       <div className="rg-app-footer-centre">

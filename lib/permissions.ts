@@ -34,6 +34,7 @@ export const ROUTE_POLICIES: RoutePolicy[] = [
   { prefix: "/erp-2/notifications", authenticatedOnly: true },
   { prefix: "/admin/account-routing", roles: ["admin"] },
   { prefix: "/admin/departments", roles: ["admin"] },
+  { prefix: "/admin/subheads", roles: ["admin"] },
   { prefix: "/admin/settings", roles: ["admin"] },
   { prefix: "/admin/users", roles: ["admin"] },
   { prefix: "/admin/roles", roles: ["admin"] },
@@ -70,8 +71,8 @@ export const ROUTE_POLICIES: RoutePolicy[] = [
   { prefix: "/registry", roles: ["admin", "auditor", "registry", "registrar"] },
   { prefix: "/reports", roles: ["admin", "auditor"] },
 
-  { prefix: "/hr", roles: ["admin"] },
-  { prefix: "/staff", roles: ["admin"] },
+  { prefix: "/hr", authenticatedOnly: true },
+  { prefix: "/staff", authenticatedOnly: true },
   { prefix: "/test-supabase", roles: ["admin"] },
   { prefix: "/change-password", authenticatedOnly: true },
   { prefix: "/output", roles: ["admin", "auditor"] },

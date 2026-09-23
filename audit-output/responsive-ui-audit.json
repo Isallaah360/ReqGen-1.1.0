@@ -1,10 +1,10 @@
 {
   "summary": {
-    "scannedFiles": 230,
-    "findings": 213,
-    "warnings": 105,
-    "info": 108,
-    "generatedAt": "2026-08-30T17:55:23.838Z"
+    "scannedFiles": 265,
+    "findings": 182,
+    "warnings": 85,
+    "info": 97,
+    "generatedAt": "2026-09-23T16:46:53.977Z"
   },
   "findings": [
     {
@@ -24,6 +24,14 @@
       "excerpt": "<table className=\"w-full min-w-[1200px] border-separate border-spacing-y-2 text-left\">"
     },
     {
+      "file": "app/admin/admin-departments.module.css",
+      "line": 1,
+      "rule": "absolute-layout",
+      "severity": "info",
+      "match": "absolute",
+      "excerpt": ".page{padding:22px 26px 30px;background:#f8fafc;min-height:100%;color:#0b1739;font-family:Inter,\"Segoe UI\",Arial,sans-serif;font-size:13px}.pageHeader{display:flex;align-items:flex-end;justify-content:space-between;gap:2"
+    },
+    {
       "file": "app/admin/audit/page.tsx",
       "line": 134,
       "rule": "nowrap-risk",
@@ -33,7 +41,7 @@
     },
     {
       "file": "app/admin/page.tsx",
-      "line": 616,
+      "line": 614,
       "rule": "fixed-width",
       "severity": "warning",
       "match": "max-w-[1500px]",
@@ -41,7 +49,7 @@
     },
     {
       "file": "app/admin/page.tsx",
-      "line": 683,
+      "line": 681,
       "rule": "desktop-only-grid",
       "severity": "warning",
       "match": "grid-cols-6",
@@ -49,7 +57,7 @@
     },
     {
       "file": "app/admin/page.tsx",
-      "line": 692,
+      "line": 690,
       "rule": "desktop-only-grid",
       "severity": "warning",
       "match": "grid-cols-6",
@@ -57,7 +65,7 @@
     },
     {
       "file": "app/admin/page.tsx",
-      "line": 835,
+      "line": 833,
       "rule": "desktop-only-grid",
       "severity": "warning",
       "match": "grid-cols-5",
@@ -105,7 +113,7 @@
     },
     {
       "file": "app/admin/users/page.tsx",
-      "line": 687,
+      "line": 741,
       "rule": "desktop-only-grid",
       "severity": "warning",
       "match": "grid-cols-9",
@@ -113,7 +121,7 @@
     },
     {
       "file": "app/admin/users/page.tsx",
-      "line": 700,
+      "line": 754,
       "rule": "desktop-only-grid",
       "severity": "warning",
       "match": "grid-cols-5",
@@ -145,7 +153,7 @@
     },
     {
       "file": "app/audit-centre/page.tsx",
-      "line": 320,
+      "line": 319,
       "rule": "fixed-width",
       "severity": "warning",
       "match": "max-w-[1500px]",
@@ -153,7 +161,7 @@
     },
     {
       "file": "app/audit-centre/page.tsx",
-      "line": 329,
+      "line": 328,
       "rule": "fixed-width",
       "severity": "warning",
       "match": "max-w-[1500px]",
@@ -161,7 +169,7 @@
     },
     {
       "file": "app/audit-centre/page.tsx",
-      "line": 349,
+      "line": 342,
       "rule": "desktop-only-grid",
       "severity": "warning",
       "match": "grid-cols-6",
@@ -169,7 +177,7 @@
     },
     {
       "file": "app/audit-centre/page.tsx",
-      "line": 440,
+      "line": 433,
       "rule": "nowrap-risk",
       "severity": "info",
       "match": "whitespace-nowrap",
@@ -177,7 +185,7 @@
     },
     {
       "file": "app/audit-centre/page.tsx",
-      "line": 451,
+      "line": 444,
       "rule": "fixed-width",
       "severity": "warning",
       "match": "max-w-[420px]",
@@ -193,7 +201,7 @@
     },
     {
       "file": "app/components/executive/ExecutiveModulePage.tsx",
-      "line": 177,
+      "line": 176,
       "rule": "absolute-layout",
       "severity": "info",
       "match": "absolute",
@@ -201,7 +209,7 @@
     },
     {
       "file": "app/components/executive/ExecutiveNavigation.tsx",
-      "line": 25,
+      "line": 24,
       "rule": "fixed-width",
       "severity": "warning",
       "match": "max-w-[1240px]",
@@ -209,7 +217,7 @@
     },
     {
       "file": "app/components/executive/ExecutiveNavigation.tsx",
-      "line": 25,
+      "line": 24,
       "rule": "desktop-only-grid",
       "severity": "warning",
       "match": "grid-cols-6",
@@ -217,7 +225,7 @@
     },
     {
       "file": "app/components/executive/ExecutiveNavigation.tsx",
-      "line": 36,
+      "line": 35,
       "rule": "truncate-risk",
       "severity": "info",
       "match": "truncate",
@@ -225,7 +233,7 @@
     },
     {
       "file": "app/components/executive/ExecutiveNavigation.tsx",
-      "line": 37,
+      "line": 36,
       "rule": "truncate-risk",
       "severity": "info",
       "match": "truncate",
@@ -297,7 +305,7 @@
     },
     {
       "file": "app/components/NavBar.tsx",
-      "line": 169,
+      "line": 166,
       "rule": "nowrap-risk",
       "severity": "info",
       "match": "whitespace-nowrap",
@@ -305,7 +313,7 @@
     },
     {
       "file": "app/components/NavBar.tsx",
-      "line": 169,
+      "line": 166,
       "rule": "absolute-layout",
       "severity": "info",
       "match": "absolute",
@@ -313,7 +321,7 @@
     },
     {
       "file": "app/components/NavBar.tsx",
-      "line": 576,
+      "line": 570,
       "rule": "fixed-width",
       "severity": "warning",
       "match": "max-w-[1680px]",
@@ -321,7 +329,7 @@
     },
     {
       "file": "app/components/NavBar.tsx",
-      "line": 622,
+      "line": 616,
       "rule": "truncate-risk",
       "severity": "info",
       "match": "truncate",
@@ -329,7 +337,7 @@
     },
     {
       "file": "app/components/NavBar.tsx",
-      "line": 626,
+      "line": 620,
       "rule": "absolute-layout",
       "severity": "info",
       "match": "absolute",
@@ -337,7 +345,7 @@
     },
     {
       "file": "app/components/NavBar.tsx",
-      "line": 679,
+      "line": 673,
       "rule": "absolute-layout",
       "severity": "info",
       "match": "absolute",
@@ -345,7 +353,7 @@
     },
     {
       "file": "app/components/NavBar.tsx",
-      "line": 682,
+      "line": 676,
       "rule": "absolute-layout",
       "severity": "info",
       "match": "absolute",
@@ -353,7 +361,7 @@
     },
     {
       "file": "app/components/NavBar.tsx",
-      "line": 689,
+      "line": 683,
       "rule": "fixed-width",
       "severity": "warning",
       "match": "w-[420px]",
@@ -361,7 +369,7 @@
     },
     {
       "file": "app/components/NavBar.tsx",
-      "line": 689,
+      "line": 683,
       "rule": "absolute-layout",
       "severity": "info",
       "match": "absolute",
@@ -369,7 +377,7 @@
     },
     {
       "file": "app/components/NavBar.tsx",
-      "line": 737,
+      "line": 731,
       "rule": "truncate-risk",
       "severity": "info",
       "match": "truncate",
@@ -377,27 +385,11 @@
     },
     {
       "file": "app/components/NavBar.tsx",
-      "line": 877,
+      "line": 860,
       "rule": "absolute-layout",
       "severity": "info",
       "match": "absolute",
       "excerpt": "<div className=\"absolute right-0 top-12 z-50 max-h-[80vh] w-[340px] overflow-auto rounded-3xl border border-slate-200 bg-white p-3 shadow-2xl\">"
-    },
-    {
-      "file": "app/components/payment-vouchers/VoucherRegisterView.tsx",
-      "line": 336,
-      "rule": "fixed-width",
-      "severity": "warning",
-      "match": "max-w-[1500px]",
-      "excerpt": "<div className=\"mx-auto max-w-[1500px] space-y-4\">"
-    },
-    {
-      "file": "app/components/payment-vouchers/VoucherRegisterView.tsx",
-      "line": 434,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "className=\"absolute left-3 top-3 text-slate-400\""
     },
     {
       "file": "app/components/print/PrintEngineStyles.tsx",
@@ -408,12 +400,36 @@
       "excerpt": ".iet-print-footer{position:absolute;left:12mm;right:12mm;bottom:6mm;border-top:1px solid #94a3b8;padding-top:4px;display:flex;justify-content:space-between;font-size:7px;color:#475569}.iet-page-number:after{content:\" \" c"
     },
     {
-      "file": "app/components/profile/ProfileNavigation.tsx",
-      "line": 19,
+      "file": "app/components/registry/RegistryArchiveWorkspace.tsx",
+      "line": 29,
+      "rule": "absolute-layout",
+      "severity": "info",
+      "match": "absolute",
+      "excerpt": "<section className={styles.card}><div className={styles.filters}><label className={styles.field}><span className={styles.label}>Search Archive</span><div style={{position:\"relative\"}}><Search size={15} style={{position:\""
+    },
+    {
+      "file": "app/components/registry/RegistryCentre.tsx",
+      "line": 24,
+      "rule": "fixed-width",
+      "severity": "warning",
+      "match": "max-w-[1500px]",
+      "excerpt": "return <EnterpriseShell><div className=\"mx-auto max-w-[1500px] space-y-4\">"
+    },
+    {
+      "file": "app/components/registry/RegistryCentre.tsx",
+      "line": 28,
       "rule": "desktop-only-grid",
       "severity": "warning",
       "match": "grid-cols-5",
-      "excerpt": "<nav className=\"mx-auto mt-5 grid max-w-5xl grid-cols-2 gap-2 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm sm:grid-cols-3 lg:grid-cols-5\">"
+      "excerpt": "<section className=\"grid gap-3 sm:grid-cols-2 xl:grid-cols-5\"><StatCard label=\"Total Records\" value={loading?\"—\":stats.total} note=\"Live correspondence\" tone=\"blue\"/><StatCard label=\"Incoming\" value={loading?\"—\":stats.in"
+    },
+    {
+      "file": "app/components/registry/RegistryCentreWorkspace.tsx",
+      "line": 129,
+      "rule": "absolute-layout",
+      "severity": "info",
+      "match": "absolute",
+      "excerpt": "<label className={styles.field}><span className={styles.label}>Search</span><div style={{position:\"relative\"}}><Search size={15} style={{position:\"absolute\",left:12,top:14,color:\"#70839c\"}}/><input className={styles.inpu"
     },
     {
       "file": "app/components/registry/RegistryRegister.tsx",
@@ -440,22 +456,6 @@
       "excerpt": "<div className=\"w-full max-w-[430px] overflow-hidden rounded-2xl border border-amber-200 bg-white shadow-2xl\">"
     },
     {
-      "file": "app/components/staff/StaffHero.tsx",
-      "line": 27,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "<div className=\"pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-cyan-300/20 blur-3xl\" />"
-    },
-    {
-      "file": "app/components/staff/StaffHero.tsx",
-      "line": 28,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "<div className=\"pointer-events-none absolute -bottom-24 left-1/3 h-64 w-64 rounded-full bg-violet-500/20 blur-3xl\" />"
-    },
-    {
       "file": "app/components/ui/DirectorateWorkspaceMenu.tsx",
       "line": 46,
       "rule": "desktop-only-grid",
@@ -473,7 +473,7 @@
     },
     {
       "file": "app/components/ui/PublicPageShell.tsx",
-      "line": 6,
+      "line": 7,
       "rule": "absolute-layout",
       "severity": "info",
       "match": "absolute",
@@ -481,7 +481,7 @@
     },
     {
       "file": "app/components/ui/PublicPageShell.tsx",
-      "line": 7,
+      "line": 8,
       "rule": "absolute-layout",
       "severity": "info",
       "match": "absolute",
@@ -489,7 +489,7 @@
     },
     {
       "file": "app/components/ui/PublicPageShell.tsx",
-      "line": 8,
+      "line": 9,
       "rule": "absolute-layout",
       "severity": "info",
       "match": "absolute",
@@ -497,7 +497,7 @@
     },
     {
       "file": "app/components/ui/PublicPageShell.tsx",
-      "line": 9,
+      "line": 10,
       "rule": "absolute-layout",
       "severity": "info",
       "match": "absolute",
@@ -505,7 +505,7 @@
     },
     {
       "file": "app/components/ui/PublicPageShell.tsx",
-      "line": 10,
+      "line": 11,
       "rule": "absolute-layout",
       "severity": "info",
       "match": "absolute",
@@ -614,46 +614,6 @@
       "severity": "info",
       "match": "absolute",
       "excerpt": ".page{padding:22px 26px 30px;background:#f8fafc;min-height:100%;color:#0b1739;font-family:Inter,\"Segoe UI\",Arial,sans-serif;font-size:13px}.pageHeader{display:flex;align-items:flex-end;justify-content:space-between;gap:2"
-    },
-    {
-      "file": "app/finance/finance-overview.module.css",
-      "line": 1,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": ".page{width:100%;max-width:1480px;margin:0 auto;padding:20px 22px 28px;color:#0b1f45;font-size:13px}.page *{box-sizing:border-box}.pageHeader{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;mar"
-    },
-    {
-      "file": "app/finance/finance-overview.module.css",
-      "line": 1,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": ".page{width:100%;max-width:1480px;margin:0 auto;padding:20px 22px 28px;color:#0b1f45;font-size:13px}.page *{box-sizing:border-box}.pageHeader{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;mar"
-    },
-    {
-      "file": "app/finance/finance-overview.module.css",
-      "line": 1,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": ".page{width:100%;max-width:1480px;margin:0 auto;padding:20px 22px 28px;color:#0b1f45;font-size:13px}.page *{box-sizing:border-box}.pageHeader{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;mar"
-    },
-    {
-      "file": "app/finance/finance-overview.module.css",
-      "line": 1,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": ".page{width:100%;max-width:1480px;margin:0 auto;padding:20px 22px 28px;color:#0b1f45;font-size:13px}.page *{box-sizing:border-box}.pageHeader{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;mar"
-    },
-    {
-      "file": "app/finance/finance-overview.module.css",
-      "line": 1,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": ".page{width:100%;max-width:1480px;margin:0 auto;padding:20px 22px 28px;color:#0b1f45;font-size:13px}.page *{box-sizing:border-box}.pageHeader{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;mar"
     },
     {
       "file": "app/finance/manage-accounts/assign/assign-bank.module.css",
@@ -921,15 +881,7 @@
     },
     {
       "file": "app/globals.css",
-      "line": 3355,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": ".rg-content[data-route^=\"/hr\"] [class*=\"from-slate-950\"] :where(.absolute,[class*=\"blur-\"]){display:none!important}"
-    },
-    {
-      "file": "app/globals.css",
-      "line": 3417,
+      "line": 3411,
       "rule": "desktop-only-grid",
       "severity": "warning",
       "match": "grid-cols-5",
@@ -937,7 +889,7 @@
     },
     {
       "file": "app/globals.css",
-      "line": 3443,
+      "line": 3437,
       "rule": "absolute-layout",
       "severity": "info",
       "match": "absolute",
@@ -945,7 +897,7 @@
     },
     {
       "file": "app/globals.css",
-      "line": 3462,
+      "line": 3456,
       "rule": "desktop-only-grid",
       "severity": "warning",
       "match": "grid-cols-9",
@@ -953,7 +905,7 @@
     },
     {
       "file": "app/globals.css",
-      "line": 3462,
+      "line": 3456,
       "rule": "desktop-only-grid",
       "severity": "warning",
       "match": "grid-cols-9",
@@ -961,7 +913,7 @@
     },
     {
       "file": "app/globals.css",
-      "line": 3462,
+      "line": 3456,
       "rule": "desktop-only-grid",
       "severity": "warning",
       "match": "grid-cols-8",
@@ -969,7 +921,7 @@
     },
     {
       "file": "app/globals.css",
-      "line": 3462,
+      "line": 3456,
       "rule": "desktop-only-grid",
       "severity": "warning",
       "match": "grid-cols-6",
@@ -977,7 +929,7 @@
     },
     {
       "file": "app/globals.css",
-      "line": 3462,
+      "line": 3456,
       "rule": "desktop-only-grid",
       "severity": "warning",
       "match": "grid-cols-8",
@@ -985,7 +937,7 @@
     },
     {
       "file": "app/globals.css",
-      "line": 3479,
+      "line": 3473,
       "rule": "absolute-layout",
       "severity": "info",
       "match": "absolute",
@@ -993,7 +945,7 @@
     },
     {
       "file": "app/globals.css",
-      "line": 3503,
+      "line": 3497,
       "rule": "desktop-only-grid",
       "severity": "warning",
       "match": "grid-cols-8",
@@ -1001,7 +953,7 @@
     },
     {
       "file": "app/globals.css",
-      "line": 3503,
+      "line": 3497,
       "rule": "desktop-only-grid",
       "severity": "warning",
       "match": "grid-cols-8",
@@ -1009,7 +961,7 @@
     },
     {
       "file": "app/globals.css",
-      "line": 3504,
+      "line": 3498,
       "rule": "desktop-only-grid",
       "severity": "warning",
       "match": "grid-cols-9",
@@ -1017,7 +969,7 @@
     },
     {
       "file": "app/globals.css",
-      "line": 3504,
+      "line": 3498,
       "rule": "desktop-only-grid",
       "severity": "warning",
       "match": "grid-cols-6",
@@ -1025,7 +977,7 @@
     },
     {
       "file": "app/globals.css",
-      "line": 3504,
+      "line": 3498,
       "rule": "desktop-only-grid",
       "severity": "warning",
       "match": "grid-cols-8",
@@ -1033,7 +985,7 @@
     },
     {
       "file": "app/globals.css",
-      "line": 3523,
+      "line": 3517,
       "rule": "desktop-only-grid",
       "severity": "warning",
       "match": "grid-cols-8",
@@ -1041,7 +993,7 @@
     },
     {
       "file": "app/globals.css",
-      "line": 3570,
+      "line": 3564,
       "rule": "desktop-only-grid",
       "severity": "warning",
       "match": "grid-cols-8",
@@ -1049,7 +1001,7 @@
     },
     {
       "file": "app/globals.css",
-      "line": 3570,
+      "line": 3564,
       "rule": "desktop-only-grid",
       "severity": "warning",
       "match": "grid-cols-8",
@@ -1057,7 +1009,7 @@
     },
     {
       "file": "app/globals.css",
-      "line": 3570,
+      "line": 3564,
       "rule": "desktop-only-grid",
       "severity": "warning",
       "match": "grid-cols-9",
@@ -1065,7 +1017,7 @@
     },
     {
       "file": "app/globals.css",
-      "line": 3570,
+      "line": 3564,
       "rule": "desktop-only-grid",
       "severity": "warning",
       "match": "grid-cols-6",
@@ -1073,7 +1025,7 @@
     },
     {
       "file": "app/globals.css",
-      "line": 3582,
+      "line": 3576,
       "rule": "desktop-only-grid",
       "severity": "warning",
       "match": "grid-cols-8",
@@ -1081,7 +1033,7 @@
     },
     {
       "file": "app/globals.css",
-      "line": 3582,
+      "line": 3576,
       "rule": "desktop-only-grid",
       "severity": "warning",
       "match": "grid-cols-8",
@@ -1089,7 +1041,7 @@
     },
     {
       "file": "app/globals.css",
-      "line": 3582,
+      "line": 3576,
       "rule": "desktop-only-grid",
       "severity": "warning",
       "match": "grid-cols-9",
@@ -1097,7 +1049,7 @@
     },
     {
       "file": "app/globals.css",
-      "line": 3582,
+      "line": 3576,
       "rule": "desktop-only-grid",
       "severity": "warning",
       "match": "grid-cols-6",
@@ -1105,75 +1057,75 @@
     },
     {
       "file": "app/globals.css",
-      "line": 3583,
+      "line": 3577,
       "rule": "desktop-only-grid",
       "severity": "warning",
       "match": "grid-cols-8",
-      "excerpt": "@media(max-width:900px){.rg-content:is([data-route^=\"/payment-vouchers\"],[data-route^=\"/registry\"],[data-route^=\"/hr\"],[data-route^=\"/reports\"],[data-route^=\"/audit-centre\"],[data-route^=\"/workflow\"],[data-route^=\"/staff"
+      "excerpt": "@media(max-width:900px){.rg-content:is([data-route^=\"/payment-vouchers\"],[data-route^=\"/registry\"],[data-route^=\"/reports\"],[data-route^=\"/audit-centre\"],[data-route^=\"/workflow\"],[data-route^=\"/admin\"]) .rg-module-heade"
     },
     {
       "file": "app/globals.css",
-      "line": 3583,
+      "line": 3577,
       "rule": "desktop-only-grid",
       "severity": "warning",
       "match": "grid-cols-8",
-      "excerpt": "@media(max-width:900px){.rg-content:is([data-route^=\"/payment-vouchers\"],[data-route^=\"/registry\"],[data-route^=\"/hr\"],[data-route^=\"/reports\"],[data-route^=\"/audit-centre\"],[data-route^=\"/workflow\"],[data-route^=\"/staff"
+      "excerpt": "@media(max-width:900px){.rg-content:is([data-route^=\"/payment-vouchers\"],[data-route^=\"/registry\"],[data-route^=\"/reports\"],[data-route^=\"/audit-centre\"],[data-route^=\"/workflow\"],[data-route^=\"/admin\"]) .rg-module-heade"
     },
     {
       "file": "app/globals.css",
-      "line": 3583,
+      "line": 3577,
       "rule": "desktop-only-grid",
       "severity": "warning",
       "match": "grid-cols-9",
-      "excerpt": "@media(max-width:900px){.rg-content:is([data-route^=\"/payment-vouchers\"],[data-route^=\"/registry\"],[data-route^=\"/hr\"],[data-route^=\"/reports\"],[data-route^=\"/audit-centre\"],[data-route^=\"/workflow\"],[data-route^=\"/staff"
+      "excerpt": "@media(max-width:900px){.rg-content:is([data-route^=\"/payment-vouchers\"],[data-route^=\"/registry\"],[data-route^=\"/reports\"],[data-route^=\"/audit-centre\"],[data-route^=\"/workflow\"],[data-route^=\"/admin\"]) .rg-module-heade"
     },
     {
       "file": "app/globals.css",
-      "line": 3583,
+      "line": 3577,
       "rule": "desktop-only-grid",
       "severity": "warning",
       "match": "grid-cols-6",
-      "excerpt": "@media(max-width:900px){.rg-content:is([data-route^=\"/payment-vouchers\"],[data-route^=\"/registry\"],[data-route^=\"/hr\"],[data-route^=\"/reports\"],[data-route^=\"/audit-centre\"],[data-route^=\"/workflow\"],[data-route^=\"/staff"
+      "excerpt": "@media(max-width:900px){.rg-content:is([data-route^=\"/payment-vouchers\"],[data-route^=\"/registry\"],[data-route^=\"/reports\"],[data-route^=\"/audit-centre\"],[data-route^=\"/workflow\"],[data-route^=\"/admin\"]) .rg-module-heade"
     },
     {
       "file": "app/globals.css",
-      "line": 3584,
+      "line": 3578,
       "rule": "desktop-only-grid",
       "severity": "warning",
       "match": "grid-cols-8",
-      "excerpt": "@media(max-width:640px){.rg-content:is([data-route^=\"/payment-vouchers\"],[data-route^=\"/registry\"],[data-route^=\"/hr\"],[data-route^=\"/reports\"],[data-route^=\"/audit-centre\"],[data-route^=\"/workflow\"],[data-route^=\"/staff"
+      "excerpt": "@media(max-width:640px){.rg-content:is([data-route^=\"/payment-vouchers\"],[data-route^=\"/registry\"],[data-route^=\"/reports\"],[data-route^=\"/audit-centre\"],[data-route^=\"/workflow\"],[data-route^=\"/admin\"]) .rg-module-heade"
     },
     {
       "file": "app/globals.css",
-      "line": 3584,
+      "line": 3578,
       "rule": "desktop-only-grid",
       "severity": "warning",
       "match": "grid-cols-8",
-      "excerpt": "@media(max-width:640px){.rg-content:is([data-route^=\"/payment-vouchers\"],[data-route^=\"/registry\"],[data-route^=\"/hr\"],[data-route^=\"/reports\"],[data-route^=\"/audit-centre\"],[data-route^=\"/workflow\"],[data-route^=\"/staff"
+      "excerpt": "@media(max-width:640px){.rg-content:is([data-route^=\"/payment-vouchers\"],[data-route^=\"/registry\"],[data-route^=\"/reports\"],[data-route^=\"/audit-centre\"],[data-route^=\"/workflow\"],[data-route^=\"/admin\"]) .rg-module-heade"
     },
     {
       "file": "app/globals.css",
-      "line": 3584,
+      "line": 3578,
       "rule": "desktop-only-grid",
       "severity": "warning",
       "match": "grid-cols-9",
-      "excerpt": "@media(max-width:640px){.rg-content:is([data-route^=\"/payment-vouchers\"],[data-route^=\"/registry\"],[data-route^=\"/hr\"],[data-route^=\"/reports\"],[data-route^=\"/audit-centre\"],[data-route^=\"/workflow\"],[data-route^=\"/staff"
+      "excerpt": "@media(max-width:640px){.rg-content:is([data-route^=\"/payment-vouchers\"],[data-route^=\"/registry\"],[data-route^=\"/reports\"],[data-route^=\"/audit-centre\"],[data-route^=\"/workflow\"],[data-route^=\"/admin\"]) .rg-module-heade"
     },
     {
       "file": "app/globals.css",
-      "line": 3584,
+      "line": 3578,
       "rule": "desktop-only-grid",
       "severity": "warning",
       "match": "grid-cols-6",
-      "excerpt": "@media(max-width:640px){.rg-content:is([data-route^=\"/payment-vouchers\"],[data-route^=\"/registry\"],[data-route^=\"/hr\"],[data-route^=\"/reports\"],[data-route^=\"/audit-centre\"],[data-route^=\"/workflow\"],[data-route^=\"/staff"
+      "excerpt": "@media(max-width:640px){.rg-content:is([data-route^=\"/payment-vouchers\"],[data-route^=\"/registry\"],[data-route^=\"/reports\"],[data-route^=\"/audit-centre\"],[data-route^=\"/workflow\"],[data-route^=\"/admin\"]) .rg-module-heade"
     },
     {
       "file": "app/globals.css",
-      "line": 3621,
+      "line": 3612,
       "rule": "absolute-layout",
       "severity": "info",
       "match": "absolute",
-      "excerpt": ".rg-content:is([data-route^=\"/payment-vouchers\"],[data-route^=\"/registry\"],[data-route^=\"/hr\"],[data-route^=\"/reports\"],[data-route^=\"/audit-centre\"],[data-route^=\"/workflow\"],[data-route^=\"/staff\"],[data-route^=\"/admin\""
+      "excerpt": ".rg-content:is([data-route^=\"/payment-vouchers\"],[data-route^=\"/registry\"],[data-route^=\"/reports\"],[data-route^=\"/audit-centre\"],[data-route^=\"/workflow\"],[data-route^=\"/admin\"]) .rg-stat-card::before{content:\"\";positio"
     },
     {
       "file": "app/hr/archive/page.tsx",
@@ -1238,38 +1190,6 @@
       "severity": "info",
       "match": "absolute",
       "excerpt": "<label className=\"relative\"><Filter className=\"absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400\" /><select value={department} onChange={(event) => setDepartment(event.target.value)} className=\"min-h-12 w-f"
-    },
-    {
-      "file": "app/hr/page.tsx",
-      "line": 178,
-      "rule": "fixed-width",
-      "severity": "warning",
-      "match": "max-w-[1500px]",
-      "excerpt": "<div className=\"mx-auto max-w-[1500px] space-y-4\">"
-    },
-    {
-      "file": "app/hr/page.tsx",
-      "line": 202,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-5",
-      "excerpt": "<section className=\"grid gap-4 sm:grid-cols-2 xl:grid-cols-5\">"
-    },
-    {
-      "file": "app/hr/page.tsx",
-      "line": 288,
-      "rule": "truncate-risk",
-      "severity": "info",
-      "match": "truncate",
-      "excerpt": "<span className=\"truncate\">{item.label}</span>"
-    },
-    {
-      "file": "app/hr/page.tsx",
-      "line": 315,
-      "rule": "truncate-risk",
-      "severity": "info",
-      "match": "truncate",
-      "excerpt": "<p className=\"mt-1 truncate text-sm font-semibold text-slate-700\">{row.title}</p>"
     },
     {
       "file": "app/hr/registrar/analytics/page.tsx",
@@ -1368,60 +1288,20 @@
       "excerpt": "action={<div className=\"grid gap-2 sm:grid-cols-3\"><div className=\"relative\"><Search className=\"absolute left-3 top-3 h-4 w-4 text-slate-400\" /><input value={search} onChange={(event) => setSearch(event.target.value)} pl"
     },
     {
-      "file": "app/output/page.tsx",
-      "line": 620,
-      "rule": "fixed-width",
-      "severity": "warning",
-      "match": "max-w-[1500px]",
-      "excerpt": "<div className=\"mx-auto max-w-[1500px] space-y-6\">"
-    },
-    {
-      "file": "app/output/page.tsx",
-      "line": 785,
+      "file": "app/payment-vouchers/payment-vouchers-overview.module.css",
+      "line": 15,
       "rule": "absolute-layout",
       "severity": "info",
       "match": "absolute",
-      "excerpt": "<div className=\"absolute -right-8 -top-8 h-24 w-24 rounded-full bg-white/10\" />"
+      "excerpt": ".tableWrap{overflow-x:auto}.table{width:100%;border-collapse:collapse;min-width:820px;table-layout:auto}.table th{height:35px;padding:0 11px;background:#f8faff;color:#26385f;text-align:left;font-size:9px;font-weight:800;"
     },
     {
       "file": "app/payment-vouchers/payment-vouchers-overview.module.css",
-      "line": 1,
+      "line": 16,
       "rule": "absolute-layout",
       "severity": "info",
       "match": "absolute",
-      "excerpt": ".page{width:100%;max-width:100%;padding:22px 24px 30px;color:#0b1739;font-size:12px;background:#f8fbff}.header{display:flex;align-items:flex-end;justify-content:space-between;gap:22px;padding-bottom:16px;border-bottom:1p"
-    },
-    {
-      "file": "app/payment-vouchers/settings/page.tsx",
-      "line": 430,
-      "rule": "fixed-width",
-      "severity": "warning",
-      "match": "max-w-[1500px]",
-      "excerpt": "<main className=\"rg-module-page rg-adopted-page\"><div className=\"mx-auto w-full max-w-[1500px] space-y-4\">"
-    },
-    {
-      "file": "app/payment-vouchers/settings/page.tsx",
-      "line": 457,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-5",
-      "excerpt": "<div className=\"mt-6 grid gap-4 md:grid-cols-5\">"
-    },
-    {
-      "file": "app/payment-vouchers/settings/page.tsx",
-      "line": 487,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-5",
-      "excerpt": "<div className=\"mt-5 grid gap-4 md:grid-cols-5\">"
-    },
-    {
-      "file": "app/payment-vouchers/settings/page.tsx",
-      "line": 646,
-      "rule": "fixed-width",
-      "severity": "warning",
-      "match": "min-w-[1060px]",
-      "excerpt": "<div className=\"min-w-[1060px]\">"
+      "excerpt": ".sideStack{display:grid;gap:12px}.sideCard{padding:13px}.sideCard h3{margin:0;color:#0b1841;font-size:12px;font-weight:900}.sideCard h3 span{font-size:9px;font-weight:700}.summaryLayout{display:grid;grid-template-columns"
     },
     {
       "file": "app/payment-vouchers/[id]/page.tsx",
@@ -1488,144 +1368,40 @@
       "excerpt": "className=\"absolute bottom-[2px] left-1/2 h-[21px] w-auto max-w-[96%] -translate-x-1/2 object-contain\""
     },
     {
-      "file": "app/registry/page.tsx",
-      "line": 288,
-      "rule": "fixed-width",
-      "severity": "warning",
-      "match": "max-w-[1500px]",
-      "excerpt": "<div className=\"mx-auto max-w-[1500px] space-y-4\">"
-    },
-    {
-      "file": "app/registry/page.tsx",
-      "line": 307,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-5",
-      "excerpt": "<section className=\"mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-5\">"
-    },
-    {
-      "file": "app/reports/enterprise-analytics/page.tsx",
-      "line": 50,
-      "rule": "fixed-width",
-      "severity": "warning",
-      "match": "max-w-[1500px]",
-      "excerpt": "return <EnterpriseShell><div className=\"mx-auto max-w-[1500px] space-y-4\">"
-    },
-    {
-      "file": "app/reports/enterprise-analytics/page.tsx",
-      "line": 53,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-5",
-      "excerpt": "{loading ? <LoadingGrid /> : <><section className=\"grid gap-3 sm:grid-cols-2 xl:grid-cols-5\"><StatCard label=\"Requests\" value={metrics.requests} note={`${metrics.activeRequests} active workflow`} tone=\"blue\" /><StatCard "
-    },
-    {
-      "file": "app/reports/page.tsx",
-      "line": 126,
-      "rule": "truncate-risk",
-      "severity": "info",
-      "match": "truncate",
-      "excerpt": "<span className=\"truncate font-bold text-slate-700\">{label}</span>"
-    },
-    {
-      "file": "app/reports/page.tsx",
-      "line": 147,
+      "file": "app/registry/registry.module.css",
+      "line": 34,
       "rule": "absolute-layout",
       "severity": "info",
       "match": "absolute",
-      "excerpt": "<div className=\"absolute inset-7 grid place-items-center rounded-full bg-white text-center shadow-inner\"><div><div className=\"text-2xl font-black text-slate-950\">{center}</div><div className=\"text-[11px] font-bold text-s"
+      "excerpt": ".donut::after { content:\"\"; position:absolute; inset:31px; border-radius:50%; background:#fff; box-shadow:0 0 0 1px #e5ebf3; }"
     },
     {
-      "file": "app/reports/page.tsx",
-      "line": 462,
+      "file": "app/reports/reports.module.css",
+      "line": 1,
       "rule": "absolute-layout",
       "severity": "info",
       "match": "absolute",
-      "excerpt": "body.report-print-active #reqgen-print-root { display:block !important; position:absolute; inset:0; width:100%; background:#fff; }"
+      "excerpt": ".page{width:100%;min-width:0;padding:26px 28px 36px;color:#0b2144;font-size:13px;animation:enter .2s ease-out both}.page *{box-sizing:border-box}.head{display:flex;align-items:flex-start;justify-content:space-between;gap"
     },
     {
-      "file": "app/reports/page.tsx",
-      "line": 478,
+      "file": "app/reports/reports.module.css",
+      "line": 1,
       "rule": "absolute-layout",
       "severity": "info",
       "match": "absolute",
-      "excerpt": ".reqgen-a4-footer { position:absolute; left:12mm; right:12mm; bottom:6mm; display:flex; justify-content:space-between; border-top:1px solid #cbd5e1; padding-top:2mm; font-size:6.5pt; font-weight:800; color:#64748b; }"
+      "excerpt": ".page{width:100%;min-width:0;padding:26px 28px 36px;color:#0b2144;font-size:13px;animation:enter .2s ease-out both}.page *{box-sizing:border-box}.head{display:flex;align-items:flex-start;justify-content:space-between;gap"
     },
     {
-      "file": "app/reports/page.tsx",
-      "line": 496,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-5",
-      "excerpt": "<div className=\"grid gap-4 md:grid-cols-2 xl:grid-cols-5\">"
-    },
-    {
-      "file": "app/reports/page.tsx",
-      "line": 536,
-      "rule": "fixed-width",
-      "severity": "warning",
-      "match": "min-w-[820px]",
-      "excerpt": "<div className=\"overflow-x-auto\"><div className=\"min-w-[820px]\"><div className=\"grid h-80 items-end gap-3 rounded-2xl bg-slate-50 p-5\" style={{ gridTemplateColumns: `repeat(${Math.max(1, monthRows.length)}, minmax(38px, "
-    },
-    {
-      "file": "app/reports/page.tsx",
-      "line": 550,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-5",
-      "excerpt": "<div className=\"grid gap-4 sm:grid-cols-2 xl:grid-cols-5\"><ReportStat label=\"Total Vouchers\" value={voucherStats.total} note=\"Filtered voucher records\" icon=\"request\" tone=\"blue\" /><ReportStat label=\"Voucher Value\" value"
-    },
-    {
-      "file": "app/reports/page.tsx",
-      "line": 557,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-6",
-      "excerpt": "<div className=\"grid gap-4 sm:grid-cols-2 xl:grid-cols-6\"><ReportStat label=\"Audit Events\" value={auditStats.events} note=\"Accessible audit records\" icon=\"report\" tone=\"blue\" /><ReportStat label=\"Negative Balances\" value"
-    },
-    {
-      "file": "app/reports/page.tsx",
-      "line": 558,
-      "rule": "nowrap-risk",
+      "file": "app/requests/requests.module.css",
+      "line": 14,
+      "rule": "absolute-layout",
       "severity": "info",
-      "match": "whitespace-nowrap",
-      "excerpt": "<div className=\"mt-6 overflow-x-auto rounded-2xl border border-slate-200\"><table className=\"min-w-full text-sm\"><thead className=\"bg-slate-950 text-white\"><tr><th className=\"px-4 py-3 text-left\">Date</th><th className=\"p"
-    },
-    {
-      "file": "app/reports/page.tsx",
-      "line": 579,
-      "rule": "nowrap-risk",
-      "severity": "info",
-      "match": "whitespace-nowrap",
-      "excerpt": "<div><h3 className=\"mb-3 font-black uppercase tracking-wide text-slate-950\">REQUEST REGISTER</h3><div className=\"overflow-x-auto rounded-2xl border border-slate-200\"><table className=\"min-w-full text-sm\"><thead className"
-    },
-    {
-      "file": "app/reports/page.tsx",
-      "line": 580,
-      "rule": "nowrap-risk",
-      "severity": "info",
-      "match": "whitespace-nowrap",
-      "excerpt": "<div><h3 className=\"mb-3 font-black uppercase tracking-wide text-slate-950\">FINANCE TRANSACTION REGISTER</h3><div className=\"overflow-x-auto rounded-2xl border border-slate-200\"><table className=\"min-w-full text-sm\"><the"
-    },
-    {
-      "file": "app/reports/page.tsx",
-      "line": 581,
-      "rule": "nowrap-risk",
-      "severity": "info",
-      "match": "whitespace-nowrap",
-      "excerpt": "<div><h3 className=\"mb-3 font-black uppercase tracking-wide text-slate-950\">PAYMENT VOUCHER REGISTER</h3><div className=\"overflow-x-auto rounded-2xl border border-slate-200\"><table className=\"min-w-full text-sm\"><thead c"
+      "match": "absolute",
+      "excerpt": ".eyebrow{display:block;margin-bottom:5px;color:#1267e8;font-size:10px;font-weight:850;text-transform:uppercase;letter-spacing:.08em}.insightGrid{display:grid;grid-template-columns:minmax(280px,.78fr) minmax(0,1.45fr);gap"
     },
     {
       "file": "app/requests/[id]/print/page.tsx",
-      "line": 806,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-12",
-      "excerpt": "<div className=\"mt-2 grid grid-cols-12 gap-x-3 gap-y-1\">"
-    },
-    {
-      "file": "app/requests/[id]/print/page.tsx",
-      "line": 1052,
+      "line": 830,
       "rule": "nowrap-risk",
       "severity": "info",
       "match": "whitespace-nowrap",
@@ -1633,11 +1409,19 @@
     },
     {
       "file": "app/requests/[id]/print/page.tsx",
-      "line": 1068,
+      "line": 846,
       "rule": "absolute-layout",
       "severity": "info",
       "match": "absolute",
       "excerpt": "className=\"absolute bottom-0 left-1/2 h-[13px] w-auto max-w-[90%] -translate-x-1/2 object-contain\""
+    },
+    {
+      "file": "app/requests/[id]/request-detail.module.css",
+      "line": 4,
+      "rule": "absolute-layout",
+      "severity": "info",
+      "match": "absolute",
+      "excerpt": ".hero:before{content:\"\";position:absolute;inset:0 auto 0 0;width:4px;background:linear-gradient(180deg,#0b66ea,#13a5c8);}"
     },
     {
       "file": "app/staff/downloads/page.tsx",
@@ -1672,44 +1456,12 @@
       "excerpt": "className=\"absolute left-3 top-3 text-slate-500\""
     },
     {
-      "file": "app/staff/page.tsx",
-      "line": 106,
-      "rule": "fixed-width",
-      "severity": "warning",
-      "match": "max-w-[1480px]",
-      "excerpt": "<div className=\"mx-auto max-w-[1480px] space-y-5\">"
-    },
-    {
-      "file": "app/staff/page.tsx",
-      "line": 143,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-8",
-      "excerpt": "<section className=\"grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8\">"
-    },
-    {
       "file": "app/staff/requests/page.tsx",
       "line": 13,
       "rule": "fixed-width",
       "severity": "warning",
       "match": "max-w-[1500px]",
       "excerpt": "return <StaffShell><div className=\"mx-auto max-w-[1500px] space-y-6\">"
-    },
-    {
-      "file": "app/workflow/page.tsx",
-      "line": 45,
-      "rule": "fixed-width",
-      "severity": "warning",
-      "match": "max-w-[1500px]",
-      "excerpt": "return <StrictActiveRoleBoundary allowedRoles={[\"admin\",\"auditor\",\"dg\"]} label=\"Workflow Intelligence Centre\"><EnterpriseShell><div className=\"mx-auto max-w-[1500px] space-y-6\">"
-    },
-    {
-      "file": "app/workflow/page.tsx",
-      "line": 48,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-7",
-      "excerpt": "<section className=\"grid gap-3 sm:grid-cols-2 xl:grid-cols-7\"><StatCard label=\"Total Workflows\" value={loading?\"—\":stats.totalRules} note=\"Configured rules\" tone=\"blue\"/><StatCard label=\"Active Workflows\" value={loading?"
     }
   ]
 }

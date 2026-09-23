@@ -1,2 +1,5 @@
-import ExecutiveModulePage from "@/app/components/executive/ExecutiveModulePage";
-export default function Page() { return <ExecutiveModulePage module="meetings" />; }
+import { redirect } from "next/navigation";
+
+export default function LegacyExecutiveRedirect() {
+  redirect("/dashboard");
+}

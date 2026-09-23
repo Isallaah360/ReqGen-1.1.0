@@ -44,7 +44,8 @@ export default function ReportsCentrePage() {
   const [tab, setTab] = useState<Tab>("overview"); const [dateFrom, setDateFrom] = useState(yearStart); const [dateTo, setDateTo] = useState(today); const [department, setDepartment] = useState("all"); const [status, setStatus] = useState("all");
 
   const load = useCallback(async (silent = false) => {
-    silent ? setRefreshing(true) : setLoading(true); setIssue(null);
+    if (silent) setRefreshing(true); else setLoading(true);
+    setIssue(null);
     try {
       const auth = await getCurrentAuthContext();
       if (!auth) { router.replace("/login?next=%2Freports"); return; }

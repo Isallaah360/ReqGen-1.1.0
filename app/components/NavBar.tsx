@@ -8,6 +8,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { ActiveRoleBadge } from "@/app/components/ActiveRoleSwitcher";
 import { canAccessPath } from "@/lib/permissions";
 import { NAVIGATION_ITEMS } from "@/lib/navigation";
+import { REQGEN_VERSION } from "@/lib/version";
 
 type Notif = {
   id: string;
@@ -568,7 +569,7 @@ export default function NavBar() {
     <header className="sticky top-0 z-50 border-b border-slate-200/80 bg-white/95 shadow-sm backdrop-blur-xl">
       <div className="mx-auto flex max-w-[1680px] items-center justify-between gap-3 px-4 py-3">
         <Link href="/" className="shrink-0 rounded-xl bg-gradient-to-r from-slate-950 to-blue-900 px-3 py-2 text-lg font-black tracking-tight text-white shadow-md">
-          ReqGen <span className="text-cyan-300">1.1.0</span>
+          ReqGen <span className="text-cyan-300">{REQGEN_VERSION}</span>
         </Link>
 
         {checkingSecurity && signedIn && !isPublicPath(pathname) && (

@@ -18,7 +18,8 @@ export default function ExecutiveAnalyticsPage() {
   const router = useRouter(); const currentYear = new Date().getFullYear();
   const [data, setData] = useState<Data>(EMPTY); const [loading, setLoading] = useState(true); const [refreshing, setRefreshing] = useState(false); const [issue, setIssue] = useState<string | null>(null); const [year, setYear] = useState(currentYear); const [compareYear, setCompareYear] = useState(currentYear - 1);
   const load = useCallback(async (silent=false) => {
-    silent ? setRefreshing(true) : setLoading(true); setIssue(null);
+    if (silent) setRefreshing(true); else setLoading(true);
+    setIssue(null);
     try {
       const auth = await getCurrentAuthContext(); if (!auth) { router.replace("/login?next=%2Freports%2Fenterprise-analytics"); return; }
       if (!hasAnyRole(auth.roleSet, [...REPORT_ACCESS_ROLES])) { router.replace("/unauthorized?from=%2Freports%2Fenterprise-analytics"); return; }

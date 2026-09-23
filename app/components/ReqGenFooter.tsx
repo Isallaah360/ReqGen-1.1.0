@@ -2,13 +2,14 @@
 
 import Image from "next/image";
 import { Globe2, Mail, ShieldCheck } from "lucide-react";
+import { REQGEN_PRODUCT_LABEL } from "@/lib/version";
 
 export default function ReqGenFooter() {
   return (
     <footer className="mock-footer" aria-label="ReqGen footer">
       <div className="mock-footer-brand">
         <Image src="/iet-logo.png" alt="Islamic Education Trust logo" width={46} height={46} />
-        <div><strong>ReqGen 1.1.0</strong><span>Request Management System</span></div>
+        <div><strong>{REQGEN_PRODUCT_LABEL}</strong><span>Request Management System</span></div>
       </div>
 
       <div className="mock-footer-centre">

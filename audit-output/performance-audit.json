@@ -1,10 +1,10 @@
 {
   "summary": {
-    "scannedFiles": 230,
-    "findings": 148,
-    "selectStarQueries": 40,
-    "realtimeChannels": 16,
-    "generatedAt": "2026-08-30T17:55:25.160Z"
+    "scannedFiles": 179,
+    "findings": 142,
+    "selectStarQueries": 31,
+    "realtimeChannels": 11,
+    "generatedAt": "2026-09-23T15:05:36.145Z"
   },
   "findings": [
     {
@@ -16,16 +16,8 @@
       "excerpt": "next.sort((a,b) => new Date(b.created_at).getTime()-new Date(a.created_at).getTime());"
     },
     {
-      "file": "app/admin/departments/page.tsx",
-      "line": 20,
-      "rule": "select-star",
-      "severity": "warning",
-      "match": ".select(\"*\")",
-      "excerpt": ".select(\"*\")"
-    },
-    {
       "file": "app/admin/page.tsx",
-      "line": 598,
+      "line": 596,
       "rule": "full-array-sort",
       "severity": "info",
       "match": ".sort(",
@@ -48,56 +40,16 @@
       "excerpt": "m[profileId] = m[profileId].sort((a, b) => {"
     },
     {
-      "file": "app/approvals/action-centre/page.tsx",
-      "line": 127,
-      "rule": "select-star",
-      "severity": "warning",
-      "match": ".select(\"*\")",
-      "excerpt": "supabase.from(\"requests\").select(\"*\").order(\"created_at\", { ascending: false }).limit(150),"
-    },
-    {
-      "file": "app/approvals/action-centre/page.tsx",
-      "line": 130,
-      "rule": "select-star",
-      "severity": "warning",
-      "match": ".select(\"*\")",
-      "excerpt": ".select(\"*\")"
-    },
-    {
-      "file": "app/approvals/action-centre/page.tsx",
-      "line": 201,
-      "rule": "realtime-channel",
-      "severity": "info",
-      "match": ".channel(",
-      "excerpt": ".channel(\"reqgen-action-centre-mockup\")"
-    },
-    {
-      "file": "app/approvals/action-centre/page.tsx",
-      "line": 212,
-      "rule": "full-array-sort",
-      "severity": "info",
-      "match": ".sort(",
-      "excerpt": "() => Array.from(new Set(rows.map((item) => item.department).filter((value) => value && value !== \"—\"))).sort(),"
-    },
-    {
-      "file": "app/approvals/action-centre/page.tsx",
-      "line": 216,
-      "rule": "full-array-sort",
-      "severity": "info",
-      "match": ".sort(",
-      "excerpt": "() => Array.from(new Set(rows.map((item) => item.requestType).filter(Boolean))).sort(),"
-    },
-    {
       "file": "app/approvals/page.tsx",
-      "line": 359,
+      "line": 125,
       "rule": "realtime-channel",
       "severity": "info",
       "match": ".channel(",
-      "excerpt": ".channel(\"approvals-overview-live\")"
+      "excerpt": ".channel(\"reqgen-approvals-single-page\")"
     },
     {
       "file": "app/audit-centre/page.tsx",
-      "line": 154,
+      "line": 153,
       "rule": "select-star",
       "severity": "warning",
       "match": ".select(\"*\")",
@@ -105,7 +57,7 @@
     },
     {
       "file": "app/audit-centre/page.tsx",
-      "line": 154,
+      "line": 153,
       "rule": "large-limit",
       "severity": "info",
       "match": ".limit(500)",
@@ -113,7 +65,7 @@
     },
     {
       "file": "app/audit-centre/page.tsx",
-      "line": 240,
+      "line": 239,
       "rule": "full-array-sort",
       "severity": "info",
       "match": ".sort(",
@@ -121,7 +73,7 @@
     },
     {
       "file": "app/audit-centre/page.tsx",
-      "line": 254,
+      "line": 253,
       "rule": "realtime-channel",
       "severity": "info",
       "match": ".channel(",
@@ -129,15 +81,63 @@
     },
     {
       "file": "app/audit-centre/page.tsx",
-      "line": 314,
+      "line": 313,
       "rule": "full-array-sort",
       "severity": "info",
       "match": ".sort(",
       "excerpt": "return [...counts.entries()].sort((a, b) => b[1] - a[1]);"
     },
     {
+      "file": "app/components/GlobalPageShell.tsx",
+      "line": 31,
+      "rule": "full-array-sort",
+      "severity": "info",
+      "match": ".sort(",
+      "excerpt": ".sort((a, b) => b.href.length - a.href.length)[0];"
+    },
+    {
+      "file": "app/components/GovernmentAppShell.tsx",
+      "line": 420,
+      "rule": "realtime-channel",
+      "severity": "info",
+      "match": ".channel(",
+      "excerpt": ".channel(\"reqgen-shell-approval-badge\")"
+    },
+    {
+      "file": "app/components/NavBar.tsx",
+      "line": 80,
+      "rule": "full-array-sort",
+      "severity": "info",
+      "match": ".sort(",
+      "excerpt": ".sort((a, b) => {"
+    },
+    {
+      "file": "app/components/NavBar.tsx",
+      "line": 427,
+      "rule": "realtime-channel",
+      "severity": "info",
+      "match": ".channel(",
+      "excerpt": ".channel(`notif-${userId}`)"
+    },
+    {
+      "file": "app/components/NavBar.tsx",
+      "line": 441,
+      "rule": "realtime-channel",
+      "severity": "info",
+      "match": ".channel(",
+      "excerpt": ".channel(`req-${userId}`)"
+    },
+    {
+      "file": "app/components/NavBar.tsx",
+      "line": 454,
+      "rule": "realtime-channel",
+      "severity": "info",
+      "match": ".channel(",
+      "excerpt": ".channel(`roles-${userId}`)"
+    },
+    {
       "file": "app/components/executive/ExecutiveModulePage.tsx",
-      "line": 140,
+      "line": 139,
       "rule": "full-array-sort",
       "severity": "info",
       "match": ".sort(",
@@ -145,7 +145,7 @@
     },
     {
       "file": "app/components/executive/ExecutiveModulePage.tsx",
-      "line": 238,
+      "line": 237,
       "rule": "full-array-sort",
       "severity": "info",
       "match": ".sort(",
@@ -153,7 +153,7 @@
     },
     {
       "file": "app/components/executive/ExecutiveModulePage.tsx",
-      "line": 277,
+      "line": 276,
       "rule": "full-array-sort",
       "severity": "info",
       "match": ".sort(",
@@ -161,7 +161,7 @@
     },
     {
       "file": "app/components/executive/ExecutiveModulePage.tsx",
-      "line": 320,
+      "line": 319,
       "rule": "browser-print",
       "severity": "info",
       "match": "window.print(",
@@ -184,80 +184,8 @@
       "excerpt": "const channel = supabase.channel(\"executive-command-live\")"
     },
     {
-      "file": "app/components/GlobalPageShell.tsx",
-      "line": 31,
-      "rule": "full-array-sort",
-      "severity": "info",
-      "match": ".sort(",
-      "excerpt": ".sort((a, b) => b.href.length - a.href.length)[0];"
-    },
-    {
-      "file": "app/components/hr/HRWorkspace.tsx",
-      "line": 133,
-      "rule": "full-array-sort",
-      "severity": "info",
-      "match": ".sort(",
-      "excerpt": "setRoleSummary(activeRoles.length ? activeRoles.slice().sort((a, b) => Number(b.is_primary) - Number(a.is_primary)).map((role) => role.role_name).join(\", \") : fallbackRole);"
-    },
-    {
-      "file": "app/components/hr/LeaveDashboard.tsx",
-      "line": 102,
-      "rule": "full-array-sort",
-      "severity": "info",
-      "match": ".sort(",
-      "excerpt": "() => Array.from(new Set(leaveRows.map((row) => row.dept_name).filter(Boolean) as string[])).sort(),"
-    },
-    {
-      "file": "app/components/hr/LeaveDashboard.tsx",
-      "line": 156,
-      "rule": "full-array-sort",
-      "severity": "info",
-      "match": ".sort(",
-      "excerpt": "return Array.from(map.entries()).sort((a, b) => b[1].total - a[1].total).slice(0, 8);"
-    },
-    {
-      "file": "app/components/hr/RegistrarGovernanceOverview.tsx",
-      "line": 94,
-      "rule": "realtime-channel",
-      "severity": "info",
-      "match": ".channel(",
-      "excerpt": ".channel(\"registrar-governance-overview\")"
-    },
-    {
-      "file": "app/components/NavBar.tsx",
-      "line": 84,
-      "rule": "full-array-sort",
-      "severity": "info",
-      "match": ".sort(",
-      "excerpt": ".sort((a, b) => {"
-    },
-    {
-      "file": "app/components/NavBar.tsx",
-      "line": 434,
-      "rule": "realtime-channel",
-      "severity": "info",
-      "match": ".channel(",
-      "excerpt": ".channel(`notif-${userId}`)"
-    },
-    {
-      "file": "app/components/NavBar.tsx",
-      "line": 448,
-      "rule": "realtime-channel",
-      "severity": "info",
-      "match": ".channel(",
-      "excerpt": ".channel(`req-${userId}`)"
-    },
-    {
-      "file": "app/components/NavBar.tsx",
-      "line": 461,
-      "rule": "realtime-channel",
-      "severity": "info",
-      "match": ".channel(",
-      "excerpt": ".channel(`roles-${userId}`)"
-    },
-    {
       "file": "app/components/payment-vouchers/VoucherRegisterView.tsx",
-      "line": 159,
+      "line": 194,
       "rule": "select-star",
       "severity": "warning",
       "match": ".select(\"*\")",
@@ -265,11 +193,211 @@
     },
     {
       "file": "app/components/payment-vouchers/VoucherRegisterView.tsx",
-      "line": 164,
+      "line": 196,
       "rule": "large-limit",
       "severity": "info",
-      "match": ".limit(500)",
-      "excerpt": ".limit(500);"
+      "match": ".limit(1000)",
+      "excerpt": ".limit(1000);"
+    },
+    {
+      "file": "app/components/payment-vouchers/VoucherRegisterView.tsx",
+      "line": 217,
+      "rule": "full-array-sort",
+      "severity": "info",
+      "match": ".sort(",
+      "excerpt": "() => [...new Set(scoped.map((row) => txt(row.status)).filter(Boolean))].sort(),"
+    },
+    {
+      "file": "app/components/payment-vouchers/VoucherRegisterView.tsx",
+      "line": 222,
+      "rule": "full-array-sort",
+      "severity": "info",
+      "match": ".sort(",
+      "excerpt": "() => [...new Set(scoped.map((row) => department(row.dept_name)))].sort(),"
+    },
+    {
+      "file": "app/components/payment-vouchers/VoucherRegisterView.tsx",
+      "line": 227,
+      "rule": "full-array-sort",
+      "severity": "info",
+      "match": ".sort(",
+      "excerpt": "() => [...new Set(scoped.map((row) => method(row)))].sort(),"
+    },
+    {
+      "file": "app/components/payment-vouchers/VoucherRegisterView.tsx",
+      "line": 303,
+      "rule": "full-array-sort",
+      "severity": "info",
+      "match": ".sort(",
+      "excerpt": ".sort((a, b) => new Date(String(rowDate(a))).getTime() - new Date(String(rowDate(b))).getTime())[0];"
+    },
+    {
+      "file": "app/components/payment-vouchers/VoucherRegisterView.tsx",
+      "line": 306,
+      "rule": "full-array-sort",
+      "severity": "info",
+      "match": ".sort(",
+      "excerpt": ".sort((a, b) => new Date(String(rowDate(b))).getTime() - new Date(String(rowDate(a))).getTime())[0];"
+    },
+    {
+      "file": "app/components/payment-vouchers/VoucherRegisterView.tsx",
+      "line": 314,
+      "rule": "full-array-sort",
+      "severity": "info",
+      "match": ".sort(",
+      "excerpt": "return [...map.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);"
+    },
+    {
+      "file": "app/components/payment-vouchers/VoucherRegisterView.tsx",
+      "line": 324,
+      "rule": "full-array-sort",
+      "severity": "info",
+      "match": ".sort(",
+      "excerpt": "return [...map.entries()].sort((a, b) => b[1].amount - a[1].amount).slice(0, 6);"
+    },
+    {
+      "file": "app/components/payment-vouchers/VoucherRegisterView.tsx",
+      "line": 334,
+      "rule": "full-array-sort",
+      "severity": "info",
+      "match": ".sort(",
+      "excerpt": "return [...map.entries()].sort((a, b) => b[1].amount - a[1].amount);"
+    },
+    {
+      "file": "app/components/registry/RegistryArchiveWorkspace.tsx",
+      "line": 16,
+      "rule": "select-star",
+      "severity": "warning",
+      "match": ".select(\"*\")",
+      "excerpt": "const load=useCallback(async()=>{setLoading(true);setMessage(null);const [dr,rr]=await Promise.all([supabase.from(\"departments\").select(\"id,name\").order(\"name\"),supabase.from(\"registry_correspondence\").select(\"*\").order("
+    },
+    {
+      "file": "app/components/registry/RegistryArchiveWorkspace.tsx",
+      "line": 16,
+      "rule": "large-limit",
+      "severity": "info",
+      "match": ".limit(3000)",
+      "excerpt": "const load=useCallback(async()=>{setLoading(true);setMessage(null);const [dr,rr]=await Promise.all([supabase.from(\"departments\").select(\"id,name\").order(\"name\"),supabase.from(\"registry_correspondence\").select(\"*\").order("
+    },
+    {
+      "file": "app/components/registry/RegistryArchiveWorkspace.tsx",
+      "line": 18,
+      "rule": "full-array-sort",
+      "severity": "info",
+      "match": ".sort(",
+      "excerpt": "const categories=useMemo(()=>Array.from(new Set(rows.map(r=>r.retentionCategory))).filter(Boolean).sort(),[rows]); const statuses=useMemo(()=>Array.from(new Set(rows.map(r=>r.status))).filter(Boolean).sort(),[rows]); con"
+    },
+    {
+      "file": "app/components/registry/RegistryArchiveWorkspace.tsx",
+      "line": 18,
+      "rule": "full-array-sort",
+      "severity": "info",
+      "match": ".sort(",
+      "excerpt": "const categories=useMemo(()=>Array.from(new Set(rows.map(r=>r.retentionCategory))).filter(Boolean).sort(),[rows]); const statuses=useMemo(()=>Array.from(new Set(rows.map(r=>r.status))).filter(Boolean).sort(),[rows]); con"
+    },
+    {
+      "file": "app/components/registry/RegistryArchiveWorkspace.tsx",
+      "line": 18,
+      "rule": "full-array-sort",
+      "severity": "info",
+      "match": ".sort(",
+      "excerpt": "const categories=useMemo(()=>Array.from(new Set(rows.map(r=>r.retentionCategory))).filter(Boolean).sort(),[rows]); const statuses=useMemo(()=>Array.from(new Set(rows.map(r=>r.status))).filter(Boolean).sort(),[rows]); con"
+    },
+    {
+      "file": "app/components/registry/RegistryArchiveWorkspace.tsx",
+      "line": 18,
+      "rule": "full-array-sort",
+      "severity": "info",
+      "match": ".sort(",
+      "excerpt": "const categories=useMemo(()=>Array.from(new Set(rows.map(r=>r.retentionCategory))).filter(Boolean).sort(),[rows]); const statuses=useMemo(()=>Array.from(new Set(rows.map(r=>r.status))).filter(Boolean).sort(),[rows]); con"
+    },
+    {
+      "file": "app/components/registry/RegistryArchiveWorkspace.tsx",
+      "line": 25,
+      "rule": "browser-print",
+      "severity": "info",
+      "match": "window.print(",
+      "excerpt": "return <main className={styles.page}><div className={styles.shell}><section className={styles.hero}><div><div className={styles.breadcrumb}>Home › Registry › Registry Archive</div><h1 className={styles.title}>Registry Ar"
+    },
+    {
+      "file": "app/components/registry/RegistryCentre.tsx",
+      "line": 17,
+      "rule": "select-star",
+      "severity": "warning",
+      "match": ".select(\"*\")",
+      "excerpt": "const load=useCallback(async()=>{ setLoading(true); setWarning(null); const result=await supabase.from(\"registry_correspondence\").select(\"*\").order(\"created_at\",{ascending:false}).limit(1000); if(result.error){ setWarnin"
+    },
+    {
+      "file": "app/components/registry/RegistryCentre.tsx",
+      "line": 17,
+      "rule": "large-limit",
+      "severity": "info",
+      "match": ".limit(1000)",
+      "excerpt": "const load=useCallback(async()=>{ setLoading(true); setWarning(null); const result=await supabase.from(\"registry_correspondence\").select(\"*\").order(\"created_at\",{ascending:false}).limit(1000); if(result.error){ setWarnin"
+    },
+    {
+      "file": "app/components/registry/RegistryCentre.tsx",
+      "line": 20,
+      "rule": "full-array-sort",
+      "severity": "info",
+      "match": ".sort(",
+      "excerpt": "const departments=useMemo(()=>Array.from(new Set(rows.map(r=>r.department).filter(Boolean))).sort(),[rows]);"
+    },
+    {
+      "file": "app/components/registry/RegistryCentre.tsx",
+      "line": 21,
+      "rule": "full-array-sort",
+      "severity": "info",
+      "match": ".sort(",
+      "excerpt": "const statuses=useMemo(()=>Array.from(new Set(rows.map(r=>r.status).filter(Boolean))).sort(),[rows]);"
+    },
+    {
+      "file": "app/components/registry/RegistryCentreWorkspace.tsx",
+      "line": 56,
+      "rule": "select-star",
+      "severity": "warning",
+      "match": ".select(\"*\")",
+      "excerpt": "supabase.from(\"registry_correspondence\").select(\"*\").order(\"created_at\",{ascending:false}).limit(2000),"
+    },
+    {
+      "file": "app/components/registry/RegistryCentreWorkspace.tsx",
+      "line": 56,
+      "rule": "large-limit",
+      "severity": "info",
+      "match": ".limit(2000)",
+      "excerpt": "supabase.from(\"registry_correspondence\").select(\"*\").order(\"created_at\",{ascending:false}).limit(2000),"
+    },
+    {
+      "file": "app/components/registry/RegistryCentreWorkspace.tsx",
+      "line": 66,
+      "rule": "full-array-sort",
+      "severity": "info",
+      "match": ".sort(",
+      "excerpt": "const statuses=useMemo(()=>Array.from(new Set(rows.map(r=>r.status))).filter(Boolean).sort(),[rows]);"
+    },
+    {
+      "file": "app/components/registry/RegistryCentreWorkspace.tsx",
+      "line": 67,
+      "rule": "full-array-sort",
+      "severity": "info",
+      "match": ".sort(",
+      "excerpt": "const priorities=useMemo(()=>Array.from(new Set(rows.map(r=>r.priority))).filter(Boolean).sort(),[rows]);"
+    },
+    {
+      "file": "app/components/registry/RegistryCentreWorkspace.tsx",
+      "line": 87,
+      "rule": "full-array-sort",
+      "severity": "info",
+      "match": ".sort(",
+      "excerpt": "const depStats=useMemo(()=>departments.map(d=>({name:d.name,value:rows.filter(r=>r.departmentId===d.id).length})).filter(x=>x.value>0).sort((a,b)=>b.value-a.value),[departments,rows]);"
+    },
+    {
+      "file": "app/components/registry/RegistryCentreWorkspace.tsx",
+      "line": 88,
+      "rule": "full-array-sort",
+      "severity": "info",
+      "match": ".sort(",
+      "excerpt": "const statusStats=useMemo(()=>Array.from(new Set(rows.map(r=>r.status))).map(name=>({name,value:rows.filter(r=>r.status===name).length})).filter(x=>x.value>0).sort((a,b)=>b.value-a.value),[rows]);"
     },
     {
       "file": "app/components/registry/RegistryRegister.tsx",
@@ -296,62 +424,6 @@
       "excerpt": "() => allowedRoles.map(normalizeRole).sort().join(\"|\"),"
     },
     {
-      "file": "app/components/staff/useStaffWorkspace.ts",
-      "line": 76,
-      "rule": "select-star",
-      "severity": "warning",
-      "match": ".select(\"*\")",
-      "excerpt": "supabase.from(\"requests\").select(\"*\").eq(\"created_by\", user.id).order(\"created_at\", { ascending: false }).limit(50),"
-    },
-    {
-      "file": "app/components/staff/useStaffWorkspace.ts",
-      "line": 77,
-      "rule": "select-star",
-      "severity": "warning",
-      "match": ".select(\"*\")",
-      "excerpt": "supabase.from(\"notifications\").select(\"*\").eq(\"user_id\", user.id).order(\"created_at\", { ascending: false }).limit(50),"
-    },
-    {
-      "file": "app/components/staff/useStaffWorkspace.ts",
-      "line": 78,
-      "rule": "select-star",
-      "severity": "warning",
-      "match": ".select(\"*\")",
-      "excerpt": "supabase.from(\"hr_leave_requests\").select(\"*\").eq(\"staff_id\", user.id).order(\"created_at\", { ascending: false }).limit(50),"
-    },
-    {
-      "file": "app/components/staff/useStaffWorkspace.ts",
-      "line": 79,
-      "rule": "select-star",
-      "severity": "warning",
-      "match": ".select(\"*\")",
-      "excerpt": "supabase.from(\"hr_seminar_attendance\").select(\"*\").eq(\"staff_id\", user.id).order(\"recorded_at\", { ascending: false }).limit(50),"
-    },
-    {
-      "file": "app/components/staff/useStaffWorkspace.ts",
-      "line": 80,
-      "rule": "select-star",
-      "severity": "warning",
-      "match": ".select(\"*\")",
-      "excerpt": "supabase.from(\"hr_training_participants\").select(\"*\").eq(\"staff_id\", user.id).order(\"created_at\", { ascending: false }).limit(50),"
-    },
-    {
-      "file": "app/components/staff/useStaffWorkspace.ts",
-      "line": 81,
-      "rule": "select-star",
-      "severity": "warning",
-      "match": ".select(\"*\")",
-      "excerpt": "supabase.from(\"hr_staff_files\").select(\"*\").eq(\"staff_id\", user.id).limit(5),"
-    },
-    {
-      "file": "app/components/staff/useStaffWorkspace.ts",
-      "line": 132,
-      "rule": "realtime-channel",
-      "severity": "info",
-      "match": ".channel(",
-      "excerpt": ".channel(\"staff-workspace-live\")"
-    },
-    {
       "file": "app/dashboard/activity/page.tsx",
       "line": 29,
       "rule": "select-star",
@@ -369,7 +441,7 @@
     },
     {
       "file": "app/dashboard/page.tsx",
-      "line": 106,
+      "line": 91,
       "rule": "large-limit",
       "severity": "info",
       "match": ".limit(500)",
@@ -377,7 +449,7 @@
     },
     {
       "file": "app/dashboard/page.tsx",
-      "line": 111,
+      "line": 96,
       "rule": "large-limit",
       "severity": "info",
       "match": ".limit(500)",
@@ -385,11 +457,75 @@
     },
     {
       "file": "app/dashboard/page.tsx",
-      "line": 187,
+      "line": 172,
       "rule": "full-array-sort",
       "severity": "info",
       "match": ".sort(",
       "excerpt": ".sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime())"
+    },
+    {
+      "file": "app/finance/_components/FinanceOperationsWorkspace.tsx",
+      "line": 463,
+      "rule": "select-star",
+      "severity": "warning",
+      "match": ".select(\"*\")",
+      "excerpt": ".select(\"*\")"
+    },
+    {
+      "file": "app/finance/_components/FinanceOperationsWorkspace.tsx",
+      "line": 471,
+      "rule": "large-limit",
+      "severity": "info",
+      "match": ".limit(1000)",
+      "excerpt": ".limit(1000)"
+    },
+    {
+      "file": "app/finance/_components/FinanceOperationsWorkspace.tsx",
+      "line": 486,
+      "rule": "select-star",
+      "severity": "warning",
+      "match": ".select(\"*\")",
+      "excerpt": ".select(\"*\")"
+    },
+    {
+      "file": "app/finance/_components/FinanceOperationsWorkspace.tsx",
+      "line": 897,
+      "rule": "full-array-sort",
+      "severity": "info",
+      "match": ".sort(",
+      "excerpt": ").sort("
+    },
+    {
+      "file": "app/finance/_components/FinanceOutputWorkspace.tsx",
+      "line": 258,
+      "rule": "full-array-sort",
+      "severity": "info",
+      "match": ".sort(",
+      "excerpt": ".sort((a, b) => b.expenditure - a.expenditure)"
+    },
+    {
+      "file": "app/finance/_components/FinanceOutputWorkspace.tsx",
+      "line": 264,
+      "rule": "full-array-sort",
+      "severity": "info",
+      "match": ".sort(",
+      "excerpt": ".sort((a, b) => Number(b.expenditure || 0) - Number(a.expenditure || 0))"
+    },
+    {
+      "file": "app/finance/_components/FinanceOutputWorkspace.tsx",
+      "line": 432,
+      "rule": "browser-print",
+      "severity": "info",
+      "match": "window.print(",
+      "excerpt": "document.getElementById('printBtn').addEventListener('click', function () { window.print(); });"
+    },
+    {
+      "file": "app/finance/_components/FinanceOutputWorkspace.tsx",
+      "line": 439,
+      "rule": "browser-print",
+      "severity": "info",
+      "match": "window.print(",
+      "excerpt": "})).then(function () { setTimeout(function () { window.focus(); window.print(); }, 350); });"
     },
     {
       "file": "app/finance/activity-history/page.tsx",
@@ -481,11 +617,11 @@
     },
     {
       "file": "app/finance/manage-accounts/page.tsx",
-      "line": 211,
+      "line": 217,
       "rule": "full-array-sort",
       "severity": "info",
       "match": ".sort(",
-      "excerpt": "return Array.from(map.entries()).sort((a, b) => b[1] - a[1]).slice(0, 4);"
+      "excerpt": "return Array.from(map.entries()).sort((a, b) => b[1].balance - a[1].balance || a[0].localeCompare(b[0]));"
     },
     {
       "file": "app/finance/manual-voucher/page.tsx",
@@ -537,59 +673,91 @@
     },
     {
       "file": "app/finance/page.tsx",
-      "line": 138,
-      "rule": "large-limit",
-      "severity": "info",
-      "match": ".limit(500)",
-      "excerpt": "supabase.from(\"requests\").select(\"id,request_no,title,amount,status,current_stage,current_owner,department,created_at\").order(\"created_at\", { ascending: false }).limit(500),"
-    },
-    {
-      "file": "app/finance/page.tsx",
-      "line": 139,
+      "line": 154,
       "rule": "large-limit",
       "severity": "info",
       "match": ".limit(2000)",
-      "excerpt": "supabase.from(\"payment_vouchers\").select(\"id,voucher_no,status,voucher_type,amount,total_amount,payee_name,created_at\").order(\"created_at\", { ascending: false }).limit(2000),"
+      "excerpt": "supabase.from(\"finance_transactions\").select(\"id,transaction_no,transaction_type,amount,debit,credit,transaction_date,narration,subhead_id,is_reversed\").order(\"transaction_date\", { ascending: false }).limit(2000),"
     },
     {
       "file": "app/finance/page.tsx",
-      "line": 140,
+      "line": 155,
+      "rule": "large-limit",
+      "severity": "info",
+      "match": ".limit(1000)",
+      "excerpt": "supabase.from(\"requests\").select(\"id,request_no,title,amount,status,current_stage,current_owner,dept_id,subhead_id,created_at\").order(\"created_at\", { ascending: false }).limit(1000),"
+    },
+    {
+      "file": "app/finance/page.tsx",
+      "line": 156,
       "rule": "large-limit",
       "severity": "info",
       "match": ".limit(2000)",
-      "excerpt": "supabase.from(\"finance_transactions\").select(\"id,amount,transaction_type,transaction_date,reference,description,department,status\").order(\"transaction_date\", { ascending: false }).limit(2000),"
+      "excerpt": "supabase.from(\"payment_vouchers\").select(\"id,voucher_no,amount,total_amount,status,voucher_type,payee_name,dept_id,department_id,created_at\").order(\"created_at\", { ascending: false }).limit(2000),"
     },
     {
       "file": "app/finance/page.tsx",
-      "line": 141,
-      "rule": "large-limit",
-      "severity": "info",
-      "match": ".limit(500)",
-      "excerpt": "supabase.from(\"iet_accounts\").select(\"id,total_fund,expenditure,available_balance,is_active\").limit(500),"
-    },
-    {
-      "file": "app/finance/page.tsx",
-      "line": 172,
+      "line": 194,
       "rule": "realtime-channel",
       "severity": "info",
       "match": ".channel(",
-      "excerpt": ".channel(\"finance-overview-mockup-live\")"
+      "excerpt": ".channel(\"finance-control-centre-live\")"
     },
     {
       "file": "app/finance/page.tsx",
-      "line": 251,
+      "line": 216,
       "rule": "full-array-sort",
       "severity": "info",
       "match": ".sort(",
-      "excerpt": "const departments = useMemo(() => Array.from(new Set(recentRows.map((r) => r.department))).sort(), [recentRows]);"
+      "excerpt": "return [...values].filter(Number.isFinite).sort((a, b) => b - a);"
     },
     {
       "file": "app/finance/page.tsx",
-      "line": 252,
+      "line": 291,
       "rule": "full-array-sort",
       "severity": "info",
       "match": ".sort(",
-      "excerpt": "const types = useMemo(() => Array.from(new Set(recentRows.map((r) => r.type))).sort(), [recentRows]);"
+      "excerpt": "return [...map.values()].sort((a, b) => b.spend - a.spend || a.name.localeCompare(b.name));"
+    },
+    {
+      "file": "app/finance/page.tsx",
+      "line": 297,
+      "rule": "full-array-sort",
+      "severity": "info",
+      "match": ".sort(",
+      "excerpt": ".sort((a, b) => b.utilization - a.utilization || String(a.code || a.name).localeCompare(String(b.code || b.name))), [visibleSubheads]);"
+    },
+    {
+      "file": "app/finance/page.tsx",
+      "line": 299,
+      "rule": "full-array-sort",
+      "severity": "info",
+      "match": ".sort(",
+      "excerpt": "const transactionTypes = useMemo(() => [...new Set(transactions.map((t) => t.transaction_type).filter(Boolean) as string[])].sort(), [transactions]);"
+    },
+    {
+      "file": "app/finance/page.tsx",
+      "line": 301,
+      "rule": "full-array-sort",
+      "severity": "info",
+      "match": ".sort(",
+      "excerpt": "const activeAccounts = useMemo(() => accounts.filter((a) => a.is_active !== false).sort((a, b) => String(a.name || \"\").localeCompare(String(b.name || \"\"))), [accounts]);"
+    },
+    {
+      "file": "app/finance/processing/page.tsx",
+      "line": 18,
+      "rule": "large-limit",
+      "severity": "info",
+      "match": ".limit(500)",
+      "excerpt": "const load=useCallback(async(manual=false)=>{if(manual)setRefreshing(true);else setLoading(true);setError(null);const[req,vou]=await Promise.all([supabase.from(\"requests\").select(\"id,request_no,title,amount,status,curren"
+    },
+    {
+      "file": "app/finance/processing/page.tsx",
+      "line": 18,
+      "rule": "large-limit",
+      "severity": "info",
+      "match": ".limit(1000)",
+      "excerpt": "const load=useCallback(async(manual=false)=>{if(manual)setRefreshing(true);else setLoading(true);setError(null);const[req,vou]=await Promise.all([supabase.from(\"requests\").select(\"id,request_no,title,amount,status,curren"
     },
     {
       "file": "app/finance/request/[id]/page.tsx",
@@ -624,336 +792,16 @@
       "excerpt": ".sort("
     },
     {
-      "file": "app/finance/_components/FinanceOperationsWorkspace.tsx",
-      "line": 463,
-      "rule": "select-star",
-      "severity": "warning",
-      "match": ".select(\"*\")",
-      "excerpt": ".select(\"*\")"
-    },
-    {
-      "file": "app/finance/_components/FinanceOperationsWorkspace.tsx",
-      "line": 471,
-      "rule": "large-limit",
-      "severity": "info",
-      "match": ".limit(1000)",
-      "excerpt": ".limit(1000)"
-    },
-    {
-      "file": "app/finance/_components/FinanceOperationsWorkspace.tsx",
-      "line": 486,
-      "rule": "select-star",
-      "severity": "warning",
-      "match": ".select(\"*\")",
-      "excerpt": ".select(\"*\")"
-    },
-    {
-      "file": "app/finance/_components/FinanceOperationsWorkspace.tsx",
-      "line": 897,
-      "rule": "full-array-sort",
-      "severity": "info",
-      "match": ".sort(",
-      "excerpt": ").sort("
-    },
-    {
-      "file": "app/finance/_components/FinanceOutputWorkspace.tsx",
-      "line": 258,
-      "rule": "full-array-sort",
-      "severity": "info",
-      "match": ".sort(",
-      "excerpt": ".sort((a, b) => b.expenditure - a.expenditure)"
-    },
-    {
-      "file": "app/finance/_components/FinanceOutputWorkspace.tsx",
-      "line": 264,
-      "rule": "full-array-sort",
-      "severity": "info",
-      "match": ".sort(",
-      "excerpt": ".sort((a, b) => Number(b.expenditure || 0) - Number(a.expenditure || 0))"
-    },
-    {
-      "file": "app/finance/_components/FinanceOutputWorkspace.tsx",
-      "line": 432,
+      "file": "app/payment-vouchers/[id]/print/page.tsx",
+      "line": 482,
       "rule": "browser-print",
       "severity": "info",
       "match": "window.print(",
-      "excerpt": "document.getElementById('printBtn').addEventListener('click', function () { window.print(); });"
-    },
-    {
-      "file": "app/finance/_components/FinanceOutputWorkspace.tsx",
-      "line": 439,
-      "rule": "browser-print",
-      "severity": "info",
-      "match": "window.print(",
-      "excerpt": "})).then(function () { setTimeout(function () { window.focus(); window.print(); }, 350); });"
-    },
-    {
-      "file": "app/hr/audit/page.tsx",
-      "line": 72,
-      "rule": "select-star",
-      "severity": "warning",
-      "match": ".select(\"*\")",
-      "excerpt": "supabase.from(\"hr_assignment_history\").select(\"*\").order(\"created_at\", { ascending: false }).limit(1000),"
-    },
-    {
-      "file": "app/hr/audit/page.tsx",
-      "line": 72,
-      "rule": "large-limit",
-      "severity": "info",
-      "match": ".limit(1000)",
-      "excerpt": "supabase.from(\"hr_assignment_history\").select(\"*\").order(\"created_at\", { ascending: false }).limit(1000),"
-    },
-    {
-      "file": "app/hr/audit/page.tsx",
-      "line": 73,
-      "rule": "select-star",
-      "severity": "warning",
-      "match": ".select(\"*\")",
-      "excerpt": "supabase.from(\"hr_request_reviews\").select(\"*\").order(\"created_at\", { ascending: false }).limit(500),"
-    },
-    {
-      "file": "app/hr/audit/page.tsx",
-      "line": 73,
-      "rule": "large-limit",
-      "severity": "info",
-      "match": ".limit(500)",
-      "excerpt": "supabase.from(\"hr_request_reviews\").select(\"*\").order(\"created_at\", { ascending: false }).limit(500),"
-    },
-    {
-      "file": "app/hr/audit/page.tsx",
-      "line": 74,
-      "rule": "select-star",
-      "severity": "warning",
-      "match": ".select(\"*\")",
-      "excerpt": "supabase.from(\"hr_staff_file_movements\").select(\"*\").order(\"created_at\", { ascending: false }).limit(1000),"
-    },
-    {
-      "file": "app/hr/audit/page.tsx",
-      "line": 74,
-      "rule": "large-limit",
-      "severity": "info",
-      "match": ".limit(1000)",
-      "excerpt": "supabase.from(\"hr_staff_file_movements\").select(\"*\").order(\"created_at\", { ascending: false }).limit(1000),"
-    },
-    {
-      "file": "app/hr/audit/page.tsx",
-      "line": 75,
-      "rule": "select-star",
-      "severity": "warning",
-      "match": ".select(\"*\")",
-      "excerpt": "supabase.from(\"hr_request_assignments\").select(\"*\").order(\"assigned_at\", { ascending: false }).limit(500),"
-    },
-    {
-      "file": "app/hr/audit/page.tsx",
-      "line": 75,
-      "rule": "large-limit",
-      "severity": "info",
-      "match": ".limit(500)",
-      "excerpt": "supabase.from(\"hr_request_assignments\").select(\"*\").order(\"assigned_at\", { ascending: false }).limit(500),"
-    },
-    {
-      "file": "app/hr/audit/page.tsx",
-      "line": 76,
-      "rule": "select-star",
-      "severity": "warning",
-      "match": ".select(\"*\")",
-      "excerpt": "supabase.from(\"hr_officer_assignments\").select(\"*\").order(\"created_at\", { ascending: false }).limit(500),"
-    },
-    {
-      "file": "app/hr/audit/page.tsx",
-      "line": 76,
-      "rule": "large-limit",
-      "severity": "info",
-      "match": ".limit(500)",
-      "excerpt": "supabase.from(\"hr_officer_assignments\").select(\"*\").order(\"created_at\", { ascending: false }).limit(500),"
-    },
-    {
-      "file": "app/hr/audit/page.tsx",
-      "line": 110,
-      "rule": "full-array-sort",
-      "severity": "info",
-      "match": ".sort(",
-      "excerpt": "setEvents(next.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));"
-    },
-    {
-      "file": "app/hr/audit/page.tsx",
-      "line": 118,
-      "rule": "realtime-channel",
-      "severity": "info",
-      "match": ".channel(",
-      "excerpt": "const channel = supabase.channel(\"hr-enterprise-audit-live\")"
-    },
-    {
-      "file": "app/hr/audit/page.tsx",
-      "line": 128,
-      "rule": "full-array-sort",
-      "severity": "info",
-      "match": ".sort(",
-      "excerpt": "const modules = useMemo(() => Array.from(new Set(events.map((event) => event.module))).sort(), [events]);"
-    },
-    {
-      "file": "app/hr/filing/page.tsx",
-      "line": 82,
-      "rule": "realtime-channel",
-      "severity": "info",
-      "match": ".channel(",
-      "excerpt": "const channel = supabase.channel(\"hr-filing-live\")"
-    },
-    {
-      "file": "app/hr/filing/page.tsx",
-      "line": 101,
-      "rule": "full-array-sort",
-      "severity": "info",
-      "match": ".sort(",
-      "excerpt": "const departments = useMemo(() => Array.from(new Set(rows.map((row) => row.dept_name).filter(Boolean) as string[])).sort(), [rows]);"
-    },
-    {
-      "file": "app/hr/my-work/page.tsx",
-      "line": 108,
-      "rule": "realtime-channel",
-      "severity": "info",
-      "match": ".channel(",
-      "excerpt": "const channel = supabase.channel(\"hr-my-work-live\")"
-    },
-    {
-      "file": "app/hr/page.tsx",
-      "line": 155,
-      "rule": "full-array-sort",
-      "severity": "info",
-      "match": ".sort(",
-      "excerpt": ".sort((a, b) => b.value - a.value)"
-    },
-    {
-      "file": "app/hr/page.tsx",
-      "line": 167,
-      "rule": "full-array-sort",
-      "severity": "info",
-      "match": ".sort(",
-      "excerpt": ".sort((a, b) => b.value - a.value)"
-    },
-    {
-      "file": "app/hr/registrar/assessments/annual-360/page.tsx",
-      "line": 30,
-      "rule": "large-limit",
-      "severity": "info",
-      "match": ".limit(500)",
-      "excerpt": "supabase.from(\"profiles\").select(\"id,full_name,email\").limit(500),"
-    },
-    {
-      "file": "app/hr/registrar/compliance/page.tsx",
-      "line": 125,
-      "rule": "full-array-sort",
-      "severity": "info",
-      "match": ".sort(",
-      "excerpt": "events.sort("
-    },
-    {
-      "file": "app/hr/registrar/officer-performance/page.tsx",
-      "line": 15,
-      "rule": "full-array-sort",
-      "severity": "info",
-      "match": ".sort(",
-      "excerpt": "const rows = useMemo(() => profiles.map((profile) => { const mine = assignments.filter((item) => item.officer_id === profile.id); const completed = mine.filter((item) => [\"completed\", \"approved\"].includes(item.status)).l"
-    },
-    {
-      "file": "app/hr/registrar/output/page.tsx",
-      "line": 88,
-      "rule": "large-limit",
-      "severity": "info",
-      "match": ".limit(1000)",
-      "excerpt": ".limit(1000);"
-    },
-    {
-      "file": "app/hr/registrar/page.tsx",
-      "line": 236,
-      "rule": "realtime-channel",
-      "severity": "info",
-      "match": ".channel(",
-      "excerpt": ".channel(\"hr-registrar-live\")"
-    },
-    {
-      "file": "app/hr/registrar/weekly-seminar/page.tsx",
-      "line": 138,
-      "rule": "select-star",
-      "severity": "warning",
-      "match": ".select(\"*\")",
-      "excerpt": "supabase.from(\"hr_seminar_sessions\").select(\"*\").order(\"session_date\", { ascending: false }).limit(60),"
-    },
-    {
-      "file": "app/hr/registrar/weekly-seminar/page.tsx",
-      "line": 139,
-      "rule": "select-star",
-      "severity": "warning",
-      "match": ".select(\"*\")",
-      "excerpt": "supabase.from(\"hr_seminar_attendance\").select(\"*\").order(\"recorded_at\", { ascending: false }).limit(3000),"
-    },
-    {
-      "file": "app/hr/registrar/weekly-seminar/page.tsx",
-      "line": 139,
-      "rule": "large-limit",
-      "severity": "info",
-      "match": ".limit(3000)",
-      "excerpt": "supabase.from(\"hr_seminar_attendance\").select(\"*\").order(\"recorded_at\", { ascending: false }).limit(3000),"
-    },
-    {
-      "file": "app/hr/registrar/weekly-seminar/page.tsx",
-      "line": 201,
-      "rule": "full-array-sort",
-      "severity": "info",
-      "match": ".sort(",
-      "excerpt": "return Array.from(rows.values()).sort((a, b) => b.present - a.present).slice(0, 8);"
-    },
-    {
-      "file": "app/output/page.tsx",
-      "line": 401,
-      "rule": "large-limit",
-      "severity": "info",
-      "match": ".limit(1000)",
-      "excerpt": "const result = await supabase.from(config.table).select(config.columns).limit(1000);"
-    },
-    {
-      "file": "app/output/page.tsx",
-      "line": 406,
-      "rule": "select-star",
-      "severity": "warning",
-      "match": ".select(\"*\")",
-      "excerpt": "const fallback = await supabase.from(config.table).select(\"*\").limit(1000);"
-    },
-    {
-      "file": "app/output/page.tsx",
-      "line": 406,
-      "rule": "large-limit",
-      "severity": "info",
-      "match": ".limit(1000)",
-      "excerpt": "const fallback = await supabase.from(config.table).select(\"*\").limit(1000);"
-    },
-    {
-      "file": "app/output/page.tsx",
-      "line": 492,
-      "rule": "select-star",
-      "severity": "warning",
-      "match": ".select(\"*\")",
-      "excerpt": ".select(\"*\")"
-    },
-    {
-      "file": "app/output/page.tsx",
-      "line": 498,
-      "rule": "select-star",
-      "severity": "warning",
-      "match": ".select(\"*\")",
-      "excerpt": ".select(\"*\")"
-    },
-    {
-      "file": "app/output/page.tsx",
-      "line": 651,
-      "rule": "browser-print",
-      "severity": "info",
-      "match": "window.print(",
-      "excerpt": "onClick={() => window.print()}"
+      "excerpt": "window.print();"
     },
     {
       "file": "app/payment-vouchers/page.tsx",
-      "line": 389,
+      "line": 403,
       "rule": "select-star",
       "severity": "warning",
       "match": ".select(\"*\")",
@@ -961,19 +809,19 @@
     },
     {
       "file": "app/payment-vouchers/page.tsx",
-      "line": 1065,
-      "rule": "browser-print",
+      "line": 1027,
+      "rule": "full-array-sort",
       "severity": "info",
-      "match": "window.print(",
-      "excerpt": "<button onClick={() => window.print()}><Printer size={16}/>Print</button>"
+      "match": ".sort(",
+      "excerpt": "const recentVouchers = [...rows].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 4);"
     },
     {
-      "file": "app/payment-vouchers/[id]/print/page.tsx",
-      "line": 482,
-      "rule": "browser-print",
+      "file": "app/payment-vouchers/settings/page.tsx",
+      "line": 184,
+      "rule": "realtime-channel",
       "severity": "info",
-      "match": "window.print(",
-      "excerpt": "window.print();"
+      "match": ".channel(",
+      "excerpt": ".channel(\"pv-settings-live\")"
     },
     {
       "file": "app/profile/activity/page.tsx",
@@ -984,28 +832,20 @@
       "excerpt": "rows.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());"
     },
     {
-      "file": "app/registry/page.tsx",
-      "line": 261,
-      "rule": "full-array-sort",
-      "severity": "info",
-      "match": ".sort(",
-      "excerpt": "return Array.from(counts.values()).sort((a, b) => b.total - a.total);"
-    },
-    {
-      "file": "app/registry/page.tsx",
-      "line": 267,
-      "rule": "full-array-sort",
-      "severity": "info",
-      "match": ".sort(",
-      "excerpt": ".sort((a, b) => b.value - a.value)[0];"
-    },
-    {
       "file": "app/reports/enterprise-analytics/page.tsx",
       "line": 26,
       "rule": "select-star",
       "severity": "warning",
       "match": ".select(\"*\")",
-      "excerpt": "const { data: rows, error } = await supabase.from(table).select(\"*\").limit(1000);"
+      "excerpt": "supabase.from(\"requests\").select(\"*\").order(\"created_at\",{ascending:false}).limit(5000), supabase.from(\"departments\").select(\"id,name\").order(\"name\").limit(1000),"
+    },
+    {
+      "file": "app/reports/enterprise-analytics/page.tsx",
+      "line": 26,
+      "rule": "large-limit",
+      "severity": "info",
+      "match": ".limit(5000)",
+      "excerpt": "supabase.from(\"requests\").select(\"*\").order(\"created_at\",{ascending:false}).limit(5000), supabase.from(\"departments\").select(\"id,name\").order(\"name\").limit(1000),"
     },
     {
       "file": "app/reports/enterprise-analytics/page.tsx",
@@ -1013,67 +853,243 @@
       "rule": "large-limit",
       "severity": "info",
       "match": ".limit(1000)",
-      "excerpt": "const { data: rows, error } = await supabase.from(table).select(\"*\").limit(1000);"
+      "excerpt": "supabase.from(\"requests\").select(\"*\").order(\"created_at\",{ascending:false}).limit(5000), supabase.from(\"departments\").select(\"id,name\").order(\"name\").limit(1000),"
     },
     {
-      "file": "app/reports/page.tsx",
-      "line": 230,
+      "file": "app/reports/enterprise-analytics/page.tsx",
+      "line": 27,
       "rule": "select-star",
       "severity": "warning",
       "match": ".select(\"*\")",
-      "excerpt": "let query = supabase.from(source.table).select(\"*\").limit(source.limit);"
+      "excerpt": "supabase.from(\"subheads\").select(\"*\").order(\"code\").limit(5000), supabase.from(\"finance_transactions\").select(\"*\").order(\"transaction_date\",{ascending:false}).limit(5000),"
     },
     {
-      "file": "app/reports/page.tsx",
-      "line": 255,
+      "file": "app/reports/enterprise-analytics/page.tsx",
+      "line": 27,
       "rule": "select-star",
       "severity": "warning",
       "match": ".select(\"*\")",
-      "excerpt": "const auditResults = await Promise.all(auditSources.map((table) => supabase.from(table).select(\"*\").order(\"created_at\", { ascending: false }).limit(1500)));"
+      "excerpt": "supabase.from(\"subheads\").select(\"*\").order(\"code\").limit(5000), supabase.from(\"finance_transactions\").select(\"*\").order(\"transaction_date\",{ascending:false}).limit(5000),"
     },
     {
-      "file": "app/reports/page.tsx",
-      "line": 255,
+      "file": "app/reports/enterprise-analytics/page.tsx",
+      "line": 27,
       "rule": "large-limit",
       "severity": "info",
-      "match": ".limit(1500)",
-      "excerpt": "const auditResults = await Promise.all(auditSources.map((table) => supabase.from(table).select(\"*\").order(\"created_at\", { ascending: false }).limit(1500)));"
+      "match": ".limit(5000)",
+      "excerpt": "supabase.from(\"subheads\").select(\"*\").order(\"code\").limit(5000), supabase.from(\"finance_transactions\").select(\"*\").order(\"transaction_date\",{ascending:false}).limit(5000),"
     },
     {
-      "file": "app/reports/page.tsx",
-      "line": 261,
+      "file": "app/reports/enterprise-analytics/page.tsx",
+      "line": 27,
+      "rule": "large-limit",
+      "severity": "info",
+      "match": ".limit(5000)",
+      "excerpt": "supabase.from(\"subheads\").select(\"*\").order(\"code\").limit(5000), supabase.from(\"finance_transactions\").select(\"*\").order(\"transaction_date\",{ascending:false}).limit(5000),"
+    },
+    {
+      "file": "app/reports/enterprise-analytics/page.tsx",
+      "line": 28,
+      "rule": "select-star",
+      "severity": "warning",
+      "match": ".select(\"*\")",
+      "excerpt": "supabase.from(\"payment_vouchers\").select(\"*\").order(\"created_at\",{ascending:false}).limit(5000), supabase.from(\"iet_accounts\").select(\"*\").order(\"name\").limit(1000),"
+    },
+    {
+      "file": "app/reports/enterprise-analytics/page.tsx",
+      "line": 28,
+      "rule": "select-star",
+      "severity": "warning",
+      "match": ".select(\"*\")",
+      "excerpt": "supabase.from(\"payment_vouchers\").select(\"*\").order(\"created_at\",{ascending:false}).limit(5000), supabase.from(\"iet_accounts\").select(\"*\").order(\"name\").limit(1000),"
+    },
+    {
+      "file": "app/reports/enterprise-analytics/page.tsx",
+      "line": 28,
+      "rule": "large-limit",
+      "severity": "info",
+      "match": ".limit(5000)",
+      "excerpt": "supabase.from(\"payment_vouchers\").select(\"*\").order(\"created_at\",{ascending:false}).limit(5000), supabase.from(\"iet_accounts\").select(\"*\").order(\"name\").limit(1000),"
+    },
+    {
+      "file": "app/reports/enterprise-analytics/page.tsx",
+      "line": 28,
+      "rule": "large-limit",
+      "severity": "info",
+      "match": ".limit(1000)",
+      "excerpt": "supabase.from(\"payment_vouchers\").select(\"*\").order(\"created_at\",{ascending:false}).limit(5000), supabase.from(\"iet_accounts\").select(\"*\").order(\"name\").limit(1000),"
+    },
+    {
+      "file": "app/reports/enterprise-analytics/page.tsx",
+      "line": 29,
+      "rule": "select-star",
+      "severity": "warning",
+      "match": ".select(\"*\")",
+      "excerpt": "supabase.from(\"registry_correspondence\").select(\"*\").order(\"created_at\",{ascending:false}).limit(5000),"
+    },
+    {
+      "file": "app/reports/enterprise-analytics/page.tsx",
+      "line": 29,
+      "rule": "large-limit",
+      "severity": "info",
+      "match": ".limit(5000)",
+      "excerpt": "supabase.from(\"registry_correspondence\").select(\"*\").order(\"created_at\",{ascending:false}).limit(5000),"
+    },
+    {
+      "file": "app/reports/enterprise-analytics/page.tsx",
+      "line": 37,
       "rule": "full-array-sort",
       "severity": "info",
       "match": ".sort(",
-      "excerpt": "setAuditRows(mergedAudit.sort((a, b) => new Date(rowDate(b) || 0).getTime() - new Date(rowDate(a) || 0).getTime()));"
+      "excerpt": "const years=useMemo(()=>{const ys=new Set<number>([currentYear,currentYear-1]); data.transactions.forEach(r=>{const y=yearOf(r);if(y)ys.add(y)}); data.requests.forEach(r=>{const y=yearOf(r);if(y)ys.add(y)}); data.voucher"
     },
     {
-      "file": "app/reports/page.tsx",
-      "line": 340,
+      "file": "app/reports/enterprise-analytics/page.tsx",
+      "line": 42,
       "rule": "full-array-sort",
       "severity": "info",
       "match": ".sort(",
-      "excerpt": "return [...map].map(([label, value]) => ({ label, value })).sort((a, b) => b.value - a.value);"
+      "excerpt": "const deptSpend=useMemo(()=>data.departments.map(d=>{const sub=data.subheads.filter(s=>text(s.dept_id)===d.id);return{name:d.name,allocation:sub.reduce((a,r)=>a+numberValue(r.approved_allocation),0),spend:sub.reduce((a,r"
     },
     {
-      "file": "app/reports/page.tsx",
-      "line": 365,
+      "file": "app/reports/enterprise-analytics/page.tsx",
+      "line": 44,
       "rule": "full-array-sort",
       "severity": "info",
       "match": ".sort(",
-      "excerpt": "return [...map.values()].sort((a, b) => b.year - a.year).slice(0, 6);"
+      "excerpt": "const risks: Array<AnyRow & { util: number }> = data.subheads.map((r): AnyRow & { util: number } => ({...r, util:numberValue(r.approved_allocation)>0?numberValue(r.expenditure)/numberValue(r.approved_allocation)*100:0}))"
+    },
+    {
+      "file": "app/reports/enterprise-analytics/page.tsx",
+      "line": 54,
+      "rule": "browser-print",
+      "severity": "info",
+      "match": "window.print(",
+      "excerpt": "<header className={styles.head}><div><div className={styles.eyebrow}>Reports</div><h1 className={styles.title}>Executive Analytics</h1><p className={styles.subtitle}>Strategic analytics for Admin and Auditor decision-sup"
     },
     {
       "file": "app/reports/page.tsx",
-      "line": 381,
+      "line": 53,
+      "rule": "select-star",
+      "severity": "warning",
+      "match": ".select(\"*\")",
+      "excerpt": "supabase.from(\"requests\").select(\"*\").order(\"created_at\", { ascending: false }).limit(5000),"
+    },
+    {
+      "file": "app/reports/page.tsx",
+      "line": 53,
+      "rule": "large-limit",
+      "severity": "info",
+      "match": ".limit(5000)",
+      "excerpt": "supabase.from(\"requests\").select(\"*\").order(\"created_at\", { ascending: false }).limit(5000),"
+    },
+    {
+      "file": "app/reports/page.tsx",
+      "line": 54,
+      "rule": "large-limit",
+      "severity": "info",
+      "match": ".limit(1000)",
+      "excerpt": "supabase.from(\"departments\").select(\"id,name\").order(\"name\").limit(1000),"
+    },
+    {
+      "file": "app/reports/page.tsx",
+      "line": 55,
+      "rule": "select-star",
+      "severity": "warning",
+      "match": ".select(\"*\")",
+      "excerpt": "supabase.from(\"subheads\").select(\"*\").order(\"code\").limit(5000),"
+    },
+    {
+      "file": "app/reports/page.tsx",
+      "line": 55,
+      "rule": "large-limit",
+      "severity": "info",
+      "match": ".limit(5000)",
+      "excerpt": "supabase.from(\"subheads\").select(\"*\").order(\"code\").limit(5000),"
+    },
+    {
+      "file": "app/reports/page.tsx",
+      "line": 56,
+      "rule": "select-star",
+      "severity": "warning",
+      "match": ".select(\"*\")",
+      "excerpt": "supabase.from(\"finance_transactions\").select(\"*\").order(\"transaction_date\", { ascending: false }).limit(5000),"
+    },
+    {
+      "file": "app/reports/page.tsx",
+      "line": 56,
+      "rule": "large-limit",
+      "severity": "info",
+      "match": ".limit(5000)",
+      "excerpt": "supabase.from(\"finance_transactions\").select(\"*\").order(\"transaction_date\", { ascending: false }).limit(5000),"
+    },
+    {
+      "file": "app/reports/page.tsx",
+      "line": 57,
+      "rule": "select-star",
+      "severity": "warning",
+      "match": ".select(\"*\")",
+      "excerpt": "supabase.from(\"payment_vouchers\").select(\"*\").order(\"created_at\", { ascending: false }).limit(5000),"
+    },
+    {
+      "file": "app/reports/page.tsx",
+      "line": 57,
+      "rule": "large-limit",
+      "severity": "info",
+      "match": ".limit(5000)",
+      "excerpt": "supabase.from(\"payment_vouchers\").select(\"*\").order(\"created_at\", { ascending: false }).limit(5000),"
+    },
+    {
+      "file": "app/reports/page.tsx",
+      "line": 58,
+      "rule": "select-star",
+      "severity": "warning",
+      "match": ".select(\"*\")",
+      "excerpt": "supabase.from(\"registry_correspondence\").select(\"*\").order(\"created_at\", { ascending: false }).limit(5000),"
+    },
+    {
+      "file": "app/reports/page.tsx",
+      "line": 58,
+      "rule": "large-limit",
+      "severity": "info",
+      "match": ".limit(5000)",
+      "excerpt": "supabase.from(\"registry_correspondence\").select(\"*\").order(\"created_at\", { ascending: false }).limit(5000),"
+    },
+    {
+      "file": "app/reports/page.tsx",
+      "line": 59,
+      "rule": "select-star",
+      "severity": "warning",
+      "match": ".select(\"*\")",
+      "excerpt": "supabase.from(\"request_history\").select(\"*\").order(\"created_at\", { ascending: false }).limit(5000),"
+    },
+    {
+      "file": "app/reports/page.tsx",
+      "line": 59,
+      "rule": "large-limit",
+      "severity": "info",
+      "match": ".limit(5000)",
+      "excerpt": "supabase.from(\"request_history\").select(\"*\").order(\"created_at\", { ascending: false }).limit(5000),"
+    },
+    {
+      "file": "app/reports/page.tsx",
+      "line": 80,
       "rule": "full-array-sort",
       "severity": "info",
       "match": ".sort(",
-      "excerpt": "return [...map.values()].filter((row) => row.requests || row.allocation).sort((a, b) => b.spent - a.spent);"
+      "excerpt": "const statusOptions = useMemo(() => Array.from(new Set([...data.requests, ...data.vouchers, ...data.registry].map(r => text(r.status).toLowerCase()).filter(Boolean))).sort(), [data]);"
+    },
+    {
+      "file": "app/reports/page.tsx",
+      "line": 109,
+      "rule": "browser-print",
+      "severity": "info",
+      "match": "window.print(",
+      "excerpt": "<header className={styles.head}><div><div className={styles.eyebrow}>Reports</div><h1 className={styles.title}>Reports Centre</h1><p className={styles.subtitle}>Generate, review and export operational reports across auth"
     },
     {
       "file": "app/requests/[id]/edit/page.tsx",
-      "line": 219,
+      "line": 221,
       "rule": "full-array-sort",
       "severity": "info",
       "match": ".sort(",
@@ -1088,68 +1104,12 @@
       "excerpt": "window.print();"
     },
     {
-      "file": "app/staff/attendance/page.tsx",
-      "line": 112,
-      "rule": "browser-print",
+      "file": "app/requests/page.tsx",
+      "line": 44,
+      "rule": "full-array-sort",
       "severity": "info",
-      "match": "window.print(",
-      "excerpt": "<button type=\"button\" onClick={() => window.print()}"
-    },
-    {
-      "file": "app/staff/leave/page.tsx",
-      "line": 103,
-      "rule": "browser-print",
-      "severity": "info",
-      "match": "window.print(",
-      "excerpt": "<button type=\"button\" onClick={() => window.print()} className=\"px-5 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold flex items-center gap-2\">"
-    },
-    {
-      "file": "app/staff/notifications/page.tsx",
-      "line": 135,
-      "rule": "browser-print",
-      "severity": "info",
-      "match": "window.print(",
-      "excerpt": "<button type=\"button\" onClick={() => window.print()}"
-    },
-    {
-      "file": "app/staff/performance/page.tsx",
-      "line": 100,
-      "rule": "browser-print",
-      "severity": "info",
-      "match": "window.print(",
-      "excerpt": "<button type=\"button\" onClick={() => window.print()} className=\"px-5 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold flex items-center gap-2\">"
-    },
-    {
-      "file": "app/staff/training/page.tsx",
-      "line": 102,
-      "rule": "browser-print",
-      "severity": "info",
-      "match": "window.print(",
-      "excerpt": "<button type=\"button\" onClick={() => window.print()} className=\"px-5 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold flex items-center gap-2\">"
-    },
-    {
-      "file": "app/workflow/page.tsx",
-      "line": 19,
-      "rule": "select-star",
-      "severity": "warning",
-      "match": ".select(\"*\")",
-      "excerpt": "const load = useCallback(async () => { setLoading(true); setWarning(null); const [ruleResult,eventResult] = await Promise.all([supabase.from(\"workflow_rules\").select(\"*\").order(\"created_at\",{ascending:false}),supabase.fr"
-    },
-    {
-      "file": "app/workflow/page.tsx",
-      "line": 19,
-      "rule": "select-star",
-      "severity": "warning",
-      "match": ".select(\"*\")",
-      "excerpt": "const load = useCallback(async () => { setLoading(true); setWarning(null); const [ruleResult,eventResult] = await Promise.all([supabase.from(\"workflow_rules\").select(\"*\").order(\"created_at\",{ascending:false}),supabase.fr"
-    },
-    {
-      "file": "app/workflow/page.tsx",
-      "line": 19,
-      "rule": "large-limit",
-      "severity": "info",
-      "match": ".limit(500)",
-      "excerpt": "const load = useCallback(async () => { setLoading(true); setWarning(null); const [ruleResult,eventResult] = await Promise.all([supabase.from(\"workflow_rules\").select(\"*\").order(\"created_at\",{ascending:false}),supabase.fr"
+      "match": ".sort(",
+      "excerpt": "const departmentStats=useMemo(()=>{const map=new Map<string,number>();rows.forEach(r=>{const name=r.dept_id?departments[r.dept_id]||\"Unassigned\":\"Unassigned\";map.set(name,(map.get(name)||0)+1)});return Array.from(map.ent"
     },
     {
       "file": "lib/activeRole.ts",
@@ -1161,7 +1121,7 @@
     },
     {
       "file": "lib/approvedMockupSpecs.ts",
-      "line": 31,
+      "line": 30,
       "rule": "full-array-sort",
       "severity": "info",
       "match": ".sort(",
@@ -1169,7 +1129,7 @@
     },
     {
       "file": "lib/permissions.ts",
-      "line": 130,
+      "line": 94,
       "rule": "full-array-sort",
       "severity": "info",
       "match": ".sort(",
@@ -1182,14 +1142,6 @@
       "severity": "info",
       "match": "window.print(",
       "excerpt": "window.print();"
-    },
-    {
-      "file": "lib/routeRegistry.ts",
-      "line": 1467,
-      "rule": "full-array-sort",
-      "severity": "info",
-      "match": ".sort(",
-      "excerpt": ".sort((a, b) => a.title.localeCompare(b.title));"
     }
   ]
 }

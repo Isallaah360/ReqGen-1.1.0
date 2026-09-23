@@ -23,7 +23,6 @@ import {
   CreditCard,
   Archive,
   BarChart3,
-  Workflow,
   UserRound,
   Settings,
   Search,
@@ -43,6 +42,7 @@ import { getMockupRouteMeta } from "@/lib/mockupRouteTypes";
 
 import { ActiveRoleSwitcher } from "./ActiveRoleSwitcher";
 import ReqGenFooter from "./ReqGenFooter";
+import { REQGEN_PRODUCT_LABEL } from "@/lib/version";
 
 const PUBLIC_PATHS = new Set([
   "/",
@@ -98,9 +98,6 @@ const MODULE_SUBNAV: Record<string, SubNavItem[]> = {
     { href: "/audit-centre", label: "Audit Centre" },
   ],
 
-  "/workflow": [
-    { href: "/workflow", label: "Workflow Centre" },
-  ],
 
   "/profile": [
     { href: "/profile", label: "Profile" },
@@ -121,6 +118,7 @@ const MODULE_SUBNAV: Record<string, SubNavItem[]> = {
       label: "Roles & Permissions",
     },
     { href: "/admin/departments", label: "Departments" },
+    { href: "/finance/subheads", label: "Subheads & Budget Structure" },
     {
       href: "/admin/account-routing",
       label: "Account Routing",
@@ -176,11 +174,6 @@ const MAIN_NAV = [
     href: "/audit-centre",
     label: "Audit Centre",
     icon: ShieldCheck,
-  },
-  {
-    href: "/workflow",
-    label: "Workflow",
-    icon: Workflow,
   },
   {
     href: "/admin",
@@ -673,7 +666,7 @@ function GovernmentAppShellContent({
           <Link
             href="/dashboard"
             className="rg-brand-mark"
-            aria-label="ReqGen 1.1.0 dashboard"
+            aria-label={`${REQGEN_PRODUCT_LABEL} dashboard`}
           >
             <span className="rg-brand-logo">
               <Image
@@ -687,7 +680,7 @@ function GovernmentAppShellContent({
 
             <span className="rg-brand-copy">
               <strong>
-                ReqGen 1.1.0
+                {REQGEN_PRODUCT_LABEL}
               </strong>
 
               <small>
