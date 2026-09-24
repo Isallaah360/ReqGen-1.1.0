@@ -4,11 +4,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const items = [
-  { href: "/profile", label: "Profile" },
-  { href: "/profile/access", label: "Access" },
+  { href: "/profile", label: "Personal Information" },
+  { href: "/profile/access", label: "Access & Roles" },
   { href: "/profile/activity", label: "Activity" },
-  { href: "/profile/security", label: "Security" },
-  { href: "/change-password", label: "Password" },
+  { href: "/profile/security", label: "Security & Sessions" },
+  { href: "/change-password", label: "Change Password" },
 ];
 
 export default function ProfileNavigation() {

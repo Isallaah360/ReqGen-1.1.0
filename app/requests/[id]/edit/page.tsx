@@ -101,7 +101,7 @@ function stageLabel(stage: string | null | undefined) {
   if (s === "PO") return "PO";
   if (s === "DOD") return "DOD";
   if (s === "DIRECTOR") return "Director";
-  if (s === "DINADMIN") return "Dean Admin";
+  if (s === "DINADMIN") return "DIN Admin";
   if (s === "REGISTRAR") return "Registrar";
   if (["GENERALSECRETARY", "GENSEC"].includes(s)) return "General Secretary";
   if (s === "HOD") return "HOD";
@@ -195,7 +195,7 @@ function editStageNote(req: Req | null) {
     if (stage === "PO") return "Official ASAP-ALLI request is still at PO review stage.";
     if (stage === "DOD") return "Official request is still at DOD review stage.";
     if (stage === "DIRECTOR") return "Official request is still at Director review stage.";
-    if (stage === "DINADMIN") return "Official request is still at Dean Admin review stage.";
+    if (stage === "DINADMIN") return "Official request is still at DIN Admin review stage.";
     if (stage === "REGISTRAR") return "DIN Official request is assigned to the Registrar and remains editable.";
     if (stage === "HOD") return "Official request is still at HOD review stage.";
     return "Official request editing is locked after DG, Account, Paid, Completed, Rejected or Deleted stage.";
@@ -900,7 +900,7 @@ export default function EditRequestPage() {
 
               {isOfficial && !canEditFinanceFields && (
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
-                  Subhead information is handled by the assigned Dean Admin/HOD/Registrar/Admin/Auditor and is
+                  Subhead information is handled by the assigned DIN Admin/HOD/Registrar/Admin/Auditor and is
                   not editable for your current authority.
                 </div>
               )}

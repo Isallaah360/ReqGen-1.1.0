@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 
 import { supabase } from "@/lib/supabaseClient";
+import { REQGEN_VERSION } from "@/lib/version";
 import styles from "./voucher-register-view.module.css";
 
 type VoucherRow = Record<string, unknown>;
@@ -357,12 +358,12 @@ export default function VoucherRegisterView({ mode }: { mode: Mode }) {
       method(row),
       statusLabel(row.status),
     ]);
-    const csv = [header, ...body].map((r) => r.map(csvEscape).join(",")).join("\n");
+    const csv = [[`Generated from ReqGen ${REQGEN_VERSION}`], header, ...body].map((r) => r.map(csvEscape).join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `payment-vouchers-${mode}-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `payment-vouchers-${mode}-reqgen-${REQGEN_VERSION}-${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   }

@@ -352,7 +352,7 @@ export default function AdminSecurityPage() {
     return (
       <main className="min-h-screen bg-transparent px-4">
         <div className="mx-auto max-w-6xl py-10 text-slate-600">
-          Loading Security Checklist...
+          Loading Security Centre...
         </div>
       </main>
     );
@@ -423,7 +423,7 @@ export default function AdminSecurityPage() {
             </div>
 
             <h1 className="mt-1 text-3xl font-extrabold tracking-tight text-slate-900">
-              Security, Backup & RLS Checklist
+              Security Centre
             </h1>
 
             <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">

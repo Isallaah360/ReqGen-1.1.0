@@ -1223,7 +1223,7 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
     if (stg === "DOD") return "Approve as DOD";
     if (stg === "PO") return "Approve as PO";
     if (stg === "REGISTRAR") return "Approve as Registrar";
-    if (stg === "DINADMIN") return "Approve as Dean Admin";
+    if (stg === "DINADMIN") return "Approve as DIN Admin";
     if (stg === "HOD") return "Approve as HOD";
     if (stg === "HR") return "Approve as HR";
     if (stg === "DG") return "Approve as DG";

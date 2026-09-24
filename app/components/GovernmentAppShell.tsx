@@ -32,6 +32,7 @@ import {
   X,
   LogOut,
   ChevronDown,
+  ChevronRight,
 } from "lucide-react";
 
 import { supabase } from "@/lib/supabaseClient";
@@ -39,10 +40,11 @@ import { NAVIGATION_ITEMS } from "@/lib/navigation";
 import { canAccessPath } from "@/lib/permissions";
 import { getCurrentAuthContext } from "@/lib/auth";
 import { getMockupRouteMeta } from "@/lib/mockupRouteTypes";
+import { getRouteRegistryItem } from "@/lib/routeRegistry";
 
 import { ActiveRoleSwitcher } from "./ActiveRoleSwitcher";
 import ReqGenFooter from "./ReqGenFooter";
-import { REQGEN_PRODUCT_LABEL } from "@/lib/version";
+import { REQGEN_PRODUCT_NAME, REQGEN_VERSION } from "@/lib/version";
 
 const PUBLIC_PATHS = new Set([
   "/",
@@ -78,6 +80,7 @@ const MODULE_SUBNAV: Record<string, SubNavItem[]> = {
 
   "/payment-vouchers": [
     { href: "/payment-vouchers", label: "Payment Voucher Centre" },
+    { href: "/payment-vouchers/manual", label: "Create Manual Voucher" },
     { href: "/payment-vouchers/settings", label: "PV Settings" },
   ],
 
@@ -100,10 +103,10 @@ const MODULE_SUBNAV: Record<string, SubNavItem[]> = {
 
 
   "/profile": [
-    { href: "/profile", label: "Profile" },
-    { href: "/profile/access", label: "Access" },
+    { href: "/profile", label: "Personal Information" },
+    { href: "/profile/access", label: "Access & Roles" },
     { href: "/profile/activity", label: "Activity" },
-    { href: "/profile/security", label: "Security" },
+    { href: "/profile/security", label: "Security & Sessions" },
     {
       href: "/change-password",
       label: "Change Password",
@@ -118,7 +121,6 @@ const MODULE_SUBNAV: Record<string, SubNavItem[]> = {
       label: "Roles & Permissions",
     },
     { href: "/admin/departments", label: "Departments" },
-    { href: "/finance/subheads", label: "Subheads & Budget Structure" },
     {
       href: "/admin/account-routing",
       label: "Account Routing",
@@ -187,22 +189,28 @@ const MAIN_NAV = [
   },
 ];
 
-function getSubnavForPath(moduleHref: string): SubNavItem[] {
-  return MODULE_SUBNAV[moduleHref] || [];
+function navParentForPath(pathname: string): string | null {
+  const contextualParents: Array<[string, string]> = [
+    ["/change-password", "/profile"],
+    ["/output", "/reports"],
+    ["/workflow", "/audit-centre"],
+    ["/hr", "/approvals"],
+    ["/staff", "/dashboard"],
+    ["/docs", "/dashboard"],
+    ["/about", "/dashboard"],
+    ["/test-supabase", "/admin"],
+    ["/executive", "/admin"],
+  ];
+
+  const contextual = contextualParents.find(([prefix]) => pathname === prefix || pathname.startsWith(`${prefix}/`));
+  if (contextual) return contextual[1];
+
+  const direct = MAIN_NAV.find((item) => pathname === item.href || pathname.startsWith(`${item.href}/`));
+  return direct?.href || null;
 }
 
-function isActive(pathname: string, href: string) {
-  if (href === "/dashboard") {
-    return (
-      pathname === href ||
-      pathname.startsWith("/dashboard/")
-    );
-  }
-
-  return (
-    pathname === href ||
-    pathname.startsWith(`${href}/`)
-  );
+function getSubnavForPath(moduleHref: string): SubNavItem[] {
+  return MODULE_SUBNAV[moduleHref] || [];
 }
 
 function shellStageKey(value: string | null | undefined) {
@@ -210,7 +218,8 @@ function shellStageKey(value: string | null | undefined) {
 }
 
 function shellRoleKey(value: string | null | undefined) {
-  return String(value || "").trim().toLowerCase().replace(/[\s_-]+/g, "");
+  const normalized = String(value || "").trim().toLowerCase().replace(/[\s_-]+/g, "");
+  return normalized === "deanadmin" ? "dinadmin" : normalized;
 }
 
 function isOpenApprovalStatus(status: string | null | undefined) {
@@ -223,7 +232,7 @@ function requestMatchesApprovalRole(row: { current_owner?: string | null; curren
   if (row.current_owner && row.current_owner === userId) return true;
 
   const stageForRole: Record<string, string[]> = {
-    po: ["PO"], dod: ["DOD"], director: ["DOD"], dinadmin: ["DINADMIN"], deanadmin: ["DINADMIN"],
+    po: ["PO"], dod: ["DOD"], director: ["DOD"], dinadmin: ["DINADMIN"],
     registrar: ["REGISTRAR"], registry: ["REGISTRAR"], generalsecretary: ["GENERALSECRETARY", "GENSEC"], hod: ["HOD"],
     hr: ["HR", "HRFILING"], hrboss: ["HR", "HRFILING"], hrofficer: ["HR", "HRFILING"],
     hrofficer1: ["HR", "HRFILING"], hrofficer2: ["HR", "HRFILING"], hrofficer3: ["HR", "HRFILING"],
@@ -313,8 +322,6 @@ function GovernmentAppShellContent({
   const [userName, setUserName] =
     useState("ReqGen User");
 
-  const [userEmail, setUserEmail] =
-    useState("");
 
   const [greeting, setGreeting] =
     useState("Good Morning ☀️");
@@ -368,9 +375,6 @@ function GovernmentAppShellContent({
 
       setUserName(profileName || metadataName || "Authorised User");
 
-      setUserEmail(
-        user?.email || ""
-      );
 
       if (user?.id) {
         const activeRole = context?.activeRoleKey || "staff";
@@ -444,9 +448,7 @@ function GovernmentAppShellContent({
   }, []);
 
   useEffect(() => {
-    const parent = Object.keys(MODULE_SUBNAV).find(
-      (href) => pathname === href || pathname.startsWith(`${href}/`)
-    );
+    const parent = navParentForPath(pathname);
 
     queueMicrotask(() => {
       setMobileOpen(false);
@@ -524,6 +526,15 @@ function GovernmentAppShellContent({
       .filter(Boolean)[0] ||
     "dashboard";
 
+  const routeRegistryItem = getRouteRegistryItem(pathname);
+  const currentNavigationItem = NAVIGATION_ITEMS.find((item) => item.href === pathname);
+  const activeMainNavigation = visibleNav.find((item) => navParentForPath(pathname) === item.href);
+  const currentLocationLabel =
+    currentNavigationItem?.label ||
+    routeRegistryItem?.title ||
+    pathname.split("/").filter(Boolean).at(-1)?.replace(/[-_]+/g, " ") ||
+    "Dashboard";
+
   async function signOut() {
     await supabase.auth.signOut();
     router.replace("/login");
@@ -533,11 +544,7 @@ function GovernmentAppShellContent({
     visibleNav.map((item) => {
       const Icon = item.icon;
 
-      const active =
-        isActive(
-          pathname,
-          item.href
-        );
+      const active = navParentForPath(pathname) === item.href;
 
       const subnav =
         getSubnavForPath(item.href).filter((child) =>
@@ -553,90 +560,64 @@ function GovernmentAppShellContent({
       return (
         <div
           key={item.href}
-          className={`rg-nav-group ${active
-              ? "is-active"
-              : ""
-            }`}
+          className={`rg-nav-group ${active ? "is-active" : ""}`}
         >
-          <div
-            className={`rg-nav-row ${active
-                ? "is-active"
-                : ""
-              }`}
-          >
-            <Link
-              href={item.href}
-              className="rg-nav-link"
-              onClick={() => {
-                if (subnav.length) {
-                  setExpandedNav(
-                    item.href
-                  );
-                }
-              }}
-            >
-              <Icon size={18} />
-              <span>
-                {item.label}
-              </span>
-              {item.href === "/approvals" && pendingApprovalCount > 0 ? (
-                <b className="rg-nav-count" aria-label={`${pendingApprovalCount} pending approvals`}>
-                  {pendingApprovalCount > 99 ? "99+" : pendingApprovalCount}
-                </b>
-              ) : null}
-            </Link>
+          <div className={`rg-nav-row ${active ? "is-active" : ""}`}>
+            {subnav.length ? (
+              <button
+                type="button"
+                className="rg-nav-link rg-nav-parent"
+                aria-expanded={expanded}
+                aria-controls={`rg-subnav-${item.label.replace(/\s+/g, "-").toLowerCase()}`}
+                onClick={() => setExpandedNav(expanded ? null : item.href)}
+              >
+                <Icon size={18} />
+                <span>{item.label}</span>
+                {item.href === "/approvals" && pendingApprovalCount > 0 ? (
+                  <b className="rg-nav-count" aria-label={`${pendingApprovalCount} pending approvals`}>
+                    {pendingApprovalCount > 99 ? "99+" : pendingApprovalCount}
+                  </b>
+                ) : null}
+              </button>
+            ) : (
+              <Link href={item.href} className="rg-nav-link">
+                <Icon size={18} />
+                <span>{item.label}</span>
+                {item.href === "/approvals" && pendingApprovalCount > 0 ? (
+                  <b className="rg-nav-count" aria-label={`${pendingApprovalCount} pending approvals`}>
+                    {pendingApprovalCount > 99 ? "99+" : pendingApprovalCount}
+                  </b>
+                ) : null}
+              </Link>
+            )}
 
             {subnav.length ? (
               <button
                 type="button"
                 className="rg-nav-toggle"
-                aria-label={`${expanded
-                    ? "Collapse"
-                    : "Expand"
-                  } ${item.label}`}
-                onClick={() =>
-                  setExpandedNav(
-                    expanded
-                      ? null
-                      : item.href
-                  )
-                }
+                aria-label={`${expanded ? "Collapse" : "Expand"} ${item.label}`}
+                aria-expanded={expanded}
+                onClick={() => setExpandedNav(expanded ? null : item.href)}
               >
-                <ChevronDown
-                  size={16}
-                  className={
-                    expanded
-                      ? "is-open"
-                      : ""
-                  }
-                />
+                <ChevronDown size={16} className={expanded ? "is-open" : ""} />
               </button>
             ) : null}
           </div>
 
-          {subnav.length &&
-            expanded ? (
-            <div className="rg-subnav">
-              {subnav.map(
-                (child) => (
-                  <Link
-                    key={
-                      child.href
-                    }
-                    href={
-                      child.href
-                    }
-                    className={
-                      pathname ===
-                        child.href
-                        ? "is-active"
-                        : ""
-                    }
-                  >
-                    {child.label}
-                  </Link>
-                )
-              )}
+          {subnav.length && expanded ? (
+            <div
+              id={`rg-subnav-${item.label.replace(/\s+/g, "-").toLowerCase()}`}
+              className="rg-subnav"
+            >
+              {subnav.map((child) => (
+                <Link
+                  key={child.href}
+                  href={child.href}
+                  className={pathname === child.href ? "is-active" : ""}
+                >
+                  {child.label}
+                </Link>
+              ))}
             </div>
           ) : null}
         </div>
@@ -666,7 +647,7 @@ function GovernmentAppShellContent({
           <Link
             href="/dashboard"
             className="rg-brand-mark"
-            aria-label={`${REQGEN_PRODUCT_LABEL} dashboard`}
+            aria-label={`${REQGEN_PRODUCT_NAME} dashboard`}
           >
             <span className="rg-brand-logo">
               <Image
@@ -680,7 +661,7 @@ function GovernmentAppShellContent({
 
             <span className="rg-brand-copy">
               <strong>
-                {REQGEN_PRODUCT_LABEL}
+                {REQGEN_PRODUCT_NAME}
               </strong>
 
               <small>
@@ -707,6 +688,12 @@ function GovernmentAppShellContent({
         >
           {renderNav()}
         </nav>
+
+        <div className="rg-sidebar-release" aria-label={`ReqGen version ${REQGEN_VERSION}`}>
+          <span>Version</span>
+          <strong>{REQGEN_VERSION}</strong>
+          <small>Patch 04</small>
+        </div>
 
         <div className="rg-sidebar-signout">
           <button
@@ -886,6 +873,15 @@ function GovernmentAppShellContent({
               undefined
             }
           >
+            <div className="rg-location-bar" aria-label="Current location">
+              {activeMainNavigation ? (
+                <Link href={activeMainNavigation.href}>{activeMainNavigation.label}</Link>
+              ) : (
+                <span>ReqGen</span>
+              )}
+              <ChevronRight size={14} aria-hidden="true" />
+              <strong>{currentLocationLabel}</strong>
+            </div>
             {children}
           </div>
 

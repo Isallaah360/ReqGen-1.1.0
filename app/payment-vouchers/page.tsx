@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { CalendarDays, CheckCircle2, ChevronRight, CircleX, Clock3, Download, FileSpreadsheet, MoreVertical, Plus, Search, Settings2, Users, WalletCards, X } from "lucide-react";
 import styles from "./payment-vouchers-overview.module.css";
 import { supabase } from "@/lib/supabaseClient";
+import { REQGEN_VERSION } from "@/lib/version";
 
 type VoucherRow = {
   id: string;
@@ -638,7 +639,7 @@ export default function PaymentVouchersPage() {
   }
 
   function openManualVoucher() {
-    router.push("/finance/manual-voucher");
+    router.push("/payment-vouchers/manual");
   }
 
   function closeManualVoucher() {
@@ -1033,11 +1034,11 @@ export default function PaymentVouchersPage() {
 
   function exportOverviewCsv() {
     const headers = ["Voucher No", "Date", "Department", "Beneficiary", "Description", "Amount", "Status"];
-    const csv = [headers, ...overviewRows.map((v) => [v.voucher_no, shortDate(v.created_at), v.dept_name || "", v.payee_name || "", v.narration || "", String(v.total_amount || v.amount || 0), v.status || ""]) ]
+    const csv = [[`Generated from ReqGen ${REQGEN_VERSION}`], headers, ...overviewRows.map((v) => [v.voucher_no, shortDate(v.created_at), v.dept_name || "", v.payee_name || "", v.narration || "", String(v.total_amount || v.amount || 0), v.status || ""]) ]
       .map((row) => row.map((cell) => `"${String(cell).replaceAll('"','""')}"`).join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a"); a.href = url; a.download = `payment-vouchers-${new Date().toISOString().slice(0,10)}.csv`; a.click(); URL.revokeObjectURL(url);
+    const a = document.createElement("a"); a.href = url; a.download = `payment-vouchers-reqgen-${REQGEN_VERSION}-${new Date().toISOString().slice(0,10)}.csv`; a.click(); URL.revokeObjectURL(url);
   }
 
   if (loading) {

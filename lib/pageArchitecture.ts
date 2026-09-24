@@ -22,7 +22,6 @@ const LOCKED_ROUTES = new Set<string>([
   "/finance/departments",
   "/finance/manage-accounts",
   "/finance/manage-accounts/assign",
-  "/finance/manual-voucher",
   "/finance/reports",
   "/finance/reports/monthly",
   "/finance/subhead-ledger",
@@ -30,10 +29,12 @@ const LOCKED_ROUTES = new Set<string>([
   "/finance/transactions",
   "/finance/vouchers",
   "/payment-vouchers",
+  "/payment-vouchers/manual",
   "/payment-vouchers/[id]",
   "/payment-vouchers/[id]/print",
   "/payment-vouchers/reports",
   "/payment-vouchers/settings",
+  "/profile",
   "/registry",
   "/registry/archive",
   "/registry/dispatch",
@@ -65,6 +66,7 @@ const UNIQUE_MOCKUP_ROUTES = new Set<string>([
   "/finance/settings"
 ]);
 const CONSOLIDATE_ROUTES: Record<string,string> = {
+  "/finance/manual-voucher": "/payment-vouchers/manual",
   "/finance/accounts": "/finance/manage-accounts",
   "/finance/assign-account": "/finance/manage-accounts/assign"
 };

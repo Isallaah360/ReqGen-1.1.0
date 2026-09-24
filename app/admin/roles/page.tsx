@@ -1,6 +1,7 @@
 "use client";
 
 import AdminNavigation from "@/app/components/admin/AdminNavigation";
+import AdminPermissionMatrix from "@/app/components/admin/AdminPermissionMatrix";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
@@ -64,6 +65,12 @@ function roleBadgeClass(role: string | null | undefined) {
   return "border-slate-200 bg-slate-50 text-slate-700";
 }
 
+function canonicalRoleName(role: string | null | undefined, key?: string | null) {
+  const normalized = roleKey(key || role);
+  if (normalized === "deanadmin" || normalized === "dinadmin") return "DIN Admin";
+  return String(role || "Staff").trim() || "Staff";
+}
+
 function errorMessage(error: unknown) {
   return error instanceof Error ? error.message : "Unknown error";
 }
@@ -89,7 +96,7 @@ export default function AdminRolesPage() {
   const [sortOrder, setSortOrder] = useState(100);
 
   const rk = roleKey(me?.role);
-  const canManage = rk === "admin" || rk === "auditor";
+  const canManage = rk === "admin";
 
   const loadAll = useCallback(
     async (options?: { silent?: boolean }) => {
@@ -126,8 +133,8 @@ export default function AdminRolesPage() {
 
       const myRole = roleKey(myProfile?.role);
 
-      if (!["admin", "auditor"].includes(myRole)) {
-        setMsg("Access denied. Only Admin/Auditor can manage roles.");
+      if (myRole !== "admin") {
+        setMsg("Access denied. Admin privilege is required to manage roles.");
         setRoles([]);
         setLoading(false);
         setRefreshing(false);
@@ -156,7 +163,7 @@ export default function AdminRolesPage() {
   );
 
   useEffect(() => {
-    loadAll();
+    const initialTimer = window.setTimeout(() => { void loadAll(); }, 0);
 
     const refreshOnFocus = () => {
       loadAll({ silent: true });
@@ -172,6 +179,7 @@ export default function AdminRolesPage() {
     document.addEventListener("visibilitychange", refreshOnVisible);
 
     return () => {
+      window.clearTimeout(initialTimer);
       window.removeEventListener("focus", refreshOnFocus);
       document.removeEventListener("visibilitychange", refreshOnVisible);
     };
@@ -236,7 +244,7 @@ export default function AdminRolesPage() {
 
   function startEdit(role: ReqgenRole) {
     setEditId(role.id);
-    setRoleName(role.role_name || "");
+    setRoleName(canonicalRoleName(role.role_name, role.role_key));
     setDescription(role.description || "");
     setRequiresSignature(Boolean(role.requires_signature));
     setActive(Boolean(role.is_active));
@@ -340,7 +348,7 @@ export default function AdminRolesPage() {
     }
 
     const ok = confirm(
-      `Set role "${role.role_name}" to ${nextActive ? "Active" : "Inactive"}?`
+      `Set role "${canonicalRoleName(role.role_name, role.role_key)}" to ${nextActive ? "Active" : "Inactive"}?`
     );
 
     if (!ok) return;
@@ -378,7 +386,7 @@ export default function AdminRolesPage() {
     }
 
     const ok = confirm(
-      `Delete custom role "${role.role_name}" permanently?\n\nOnly unused custom roles should be deleted.`
+      `Delete custom role "${canonicalRoleName(role.role_name, role.role_key)}" permanently?\n\nOnly unused custom roles should be deleted.`
     );
 
     if (!ok) return;
@@ -519,6 +527,8 @@ export default function AdminRolesPage() {
         <div className="mt-4 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-xs font-semibold text-blue-900">
           System roles are protected. They can be edited or deactivated where necessary, but cannot be permanently deleted.
         </div>
+
+        <AdminPermissionMatrix />
 
         <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-6">
           <StatCard title="Total Roles" value={String(stats.total)} tone="blue" />
@@ -701,7 +711,7 @@ export default function AdminRolesPage() {
                                 role.role_name
                               )}`}
                             >
-                              {role.role_name}
+                              {canonicalRoleName(role.role_name, role.role_key)}
                             </span>
                           </td>
 
@@ -811,7 +821,7 @@ function RoleCard({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-bold ${roleBadgeClass(role.role_name)}`}>
-            {role.role_name}
+            {canonicalRoleName(role.role_name, role.role_key)}
           </span>
           <div className="mt-2 font-mono text-xs font-bold text-slate-500">
             {role.role_key}

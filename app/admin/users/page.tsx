@@ -4,6 +4,7 @@ import AdminNavigation from "@/app/components/admin/AdminNavigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import { roleDisplayName } from "@/lib/roles";
 
 type Dept = {
   id: string;
@@ -101,10 +102,10 @@ function signatureBadgeClass(ready: boolean) {
 function hasAdminAccess(profileRole: string | null | undefined, assignedRoles: ProfileRole[]) {
   const fallback = roleKey(profileRole);
 
-  if (fallback === "admin" || fallback === "auditor") return true;
+  if (fallback === "admin") return true;
 
   return assignedRoles.some(
-    (r) => r.is_active && ["admin", "auditor"].includes(roleKey(r.role_key))
+    (r) => r.is_active && roleKey(r.role_key) === "admin"
   );
 }
 
@@ -145,6 +146,16 @@ export default function AdminUsersPage() {
   const [signatureFilter, setSignatureFilter] = useState<"ALL" | "READY" | "MISSING">("ALL");
 
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [showCreateUser, setShowCreateUser] = useState(false);
+  const [creatingUser, setCreatingUser] = useState(false);
+  const [newFullName, setNewFullName] = useState("");
+  const [newEmail, setNewEmail] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [newRoleKey, setNewRoleKey] = useState("staff");
+  const [newDeptId, setNewDeptId] = useState("");
+  const [userPage, setUserPage] = useState(1);
+  const [manageUserId, setManageUserId] = useState<string | null>(null);
+  const userPageSize = 10;
 
   const load = useCallback(
     async (options?: { silent?: boolean }) => {
@@ -191,7 +202,7 @@ export default function AdminUsersPage() {
       setMeRoles(currentAssignedRoles);
 
       if (!hasAdminAccess(currentRole, currentAssignedRoles)) {
-        setMsg("Access denied. Only Admin/Auditor can manage users and roles.");
+        setMsg("Access denied. Admin privilege is required to manage users and roles.");
         setDepts([]);
         setRoles([]);
         setRows([]);
@@ -360,6 +371,11 @@ export default function AdminUsersPage() {
     });
   }, [rows, q, deptMap, roleFilter, deptFilter, signatureFilter, rolesByProfile]);
 
+  const userPageCount = Math.max(1, Math.ceil(filtered.length / userPageSize));
+  const safeUserPage = Math.min(userPage, userPageCount);
+  const pagedUsers = filtered.slice((safeUserPage - 1) * userPageSize, safeUserPage * userPageSize);
+  const managedUser = manageUserId ? rows.find((row) => row.id === manageUserId) || null : null;
+
   const stats = useMemo(() => {
     const total = rows.length;
 
@@ -417,7 +433,7 @@ export default function AdminUsersPage() {
 
   async function updateUserDepartment(id: string, deptId: string | null) {
     if (!canAdmin) {
-      setMsg("❌ Only Admin/Auditor can update users.");
+      setMsg("❌ Only Admin can update users.");
       return;
     }
 
@@ -443,7 +459,7 @@ export default function AdminUsersPage() {
 
   async function assignRole(profileId: string, roleKeyToAssign: string, makePrimary: boolean) {
     if (!canAdmin) {
-      setMsg("❌ Only Admin/Auditor can assign roles.");
+      setMsg("❌ Only Admin can assign roles.");
       return;
     }
 
@@ -462,7 +478,7 @@ export default function AdminUsersPage() {
 
     if (roleRequiresSignature(roleInfo) && !targetUser.signature_url) {
       setMsg(
-        `❌ ${roleInfo.role_name} requires a signature. Ask ${targetUser.full_name || "the user"
+        `❌ ${roleDisplayName(roleInfo.role_name)} requires a signature. Ask ${targetUser.full_name || "the user"
         } to upload signature first.`
       );
       return;
@@ -482,8 +498,8 @@ export default function AdminUsersPage() {
 
       setMsg(
         makePrimary
-          ? `✅ ${roleInfo.role_name} assigned and set as primary role.`
-          : `✅ ${roleInfo.role_name} assigned successfully.`
+          ? `✅ ${roleDisplayName(roleInfo.role_name)} assigned and set as primary role.`
+          : `✅ ${roleDisplayName(roleInfo.role_name)} assigned successfully.`
       );
 
       await load({ silent: true });
@@ -497,7 +513,7 @@ export default function AdminUsersPage() {
 
   async function setPrimaryRole(profileId: string, roleKeyToSet: string) {
     if (!canAdmin) {
-      setMsg("❌ Only Admin/Auditor can set primary roles.");
+      setMsg("❌ Only Admin can set primary roles.");
       return;
     }
 
@@ -514,7 +530,7 @@ export default function AdminUsersPage() {
 
       if (error) throw new Error(error.message);
 
-      setMsg(`✅ Primary role updated to ${roleInfo?.role_name || roleKeyToSet}.`);
+      setMsg(`✅ Primary role updated to ${roleDisplayName(roleInfo?.role_name || roleKeyToSet)}.`);
 
       await load({ silent: true });
       router.refresh();
@@ -575,9 +591,39 @@ export default function AdminUsersPage() {
     }
   }
 
+  async function createUser() {
+    if (!canDeleteUsers) { setMsg("Admin privilege is required to create a user."); return; }
+    if (!newFullName.trim() || !newEmail.trim() || newPassword.length < 8) {
+      setMsg("Enter the user's full name, a valid email and a temporary password of at least 8 characters.");
+      return;
+    }
+    setCreatingUser(true);
+    setMsg(null);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      if (!token) throw new Error("Your session is unavailable. Please sign in again.");
+      const response = await fetch("/api/admin/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ fullName: newFullName, email: newEmail, password: newPassword, roleKey: newRoleKey, departmentId: newDeptId || null }),
+      });
+      const body = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(body?.error || "User creation failed.");
+      setMsg(`✅ ${newFullName.trim()} was created successfully.`);
+      setShowCreateUser(false);
+      setNewFullName(""); setNewEmail(""); setNewPassword(""); setNewRoleKey("staff"); setNewDeptId("");
+      await load({ silent: true });
+    } catch (error: unknown) {
+      setMsg("❌ " + errorMessage(error));
+    } finally {
+      setCreatingUser(false);
+    }
+  }
+
   async function deactivateRole(profileId: string, roleKeyToDeactivate: string) {
     if (!canAdmin) {
-      setMsg("❌ Only Admin/Auditor can deactivate roles.");
+      setMsg("❌ Only Admin can deactivate roles.");
       return;
     }
 
@@ -596,7 +642,7 @@ export default function AdminUsersPage() {
     }
 
     const ok = window.confirm(
-      `Deactivate ${target.role_name} for this user? This keeps history but removes the role from active assignment.`
+      `Deactivate ${roleDisplayName(target.role_name)} for this user? This keeps history but removes the role from active assignment.`
     );
 
     if (!ok) return;
@@ -612,7 +658,7 @@ export default function AdminUsersPage() {
 
       if (error) throw new Error(error.message);
 
-      setMsg(`✅ ${target.role_name} deactivated successfully.`);
+      setMsg(`✅ ${roleDisplayName(target.role_name)} deactivated successfully.`);
 
       await load({ silent: true });
       router.refresh();
@@ -643,6 +689,7 @@ export default function AdminUsersPage() {
     setRoleFilter("ALL");
     setDeptFilter("ALL");
     setSignatureFilter("ALL");
+    setUserPage(1);
   }
 
   if (loading) {
@@ -660,7 +707,7 @@ export default function AdminUsersPage() {
           <div className="rounded-2xl border bg-white p-6 shadow-sm">
             <div className="text-lg font-bold text-slate-900">Access denied</div>
             <div className="mt-1 text-sm text-slate-600">
-              Only Admin/Auditor can manage users and roles.
+              Admin privilege is required to manage users and roles.
             </div>
 
             {msg && (
@@ -702,6 +749,13 @@ export default function AdminUsersPage() {
 
           <div className="flex flex-wrap gap-2">
             <button
+              onClick={() => setShowCreateUser(true)}
+              disabled={refreshing || !!savingId}
+              className="reqgen-btn reqgen-btn-blue rounded-xl px-4 py-2 text-sm font-black text-white disabled:opacity-60"
+            >
+              + Add New User
+            </button>
+            <button
               onClick={() => load({ silent: true })}
               disabled={refreshing || !!savingId}
               className="reqgen-btn reqgen-btn-cyan rounded-xl px-4 py-2 text-sm font-black text-white disabled:opacity-60"
@@ -734,20 +788,15 @@ export default function AdminUsersPage() {
         )}
 
         <div className="mt-4 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-xs font-semibold text-blue-900">
-          Admin and Auditor can assign multiple roles. Any role marked signature-required cannot be
+          Admin can assign multiple roles. Any role marked signature-required cannot be
           assigned until the user has uploaded a signature.
         </div>
 
-        <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-9">
+        <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <StatCard title="Total Users" value={String(stats.total)} tone="blue" />
-          <StatCard title="Assignments" value={String(stats.roleAssignments)} tone="purple" />
-          <StatCard title="Staff" value={String(stats.staff)} tone="slate" />
-          <StatCard title="Admin" value={String(stats.admin)} tone="red" />
-          <StatCard title="Auditor" value={String(stats.auditor)} tone="purple" />
-          <StatCard title="Finance/PV" value={String(stats.finance)} tone="emerald" />
-          <StatCard title="Leadership" value={String(stats.leadership)} tone="blue" />
-          <StatCard title="HR/Registry" value={String(stats.hrRegistry)} tone="amber" />
-          <StatCard title="No Signature" value={String(stats.signatureMissing)} tone="red" />
+          <StatCard title="Role Assignments" value={String(stats.roleAssignments)} tone="purple" />
+          <StatCard title="Departments" value={String(depts.length)} tone="emerald" />
+          <StatCard title="Signatures Missing" value={String(stats.signatureMissing)} tone="amber" />
         </div>
 
         <div className="mt-6 rounded-3xl border bg-white p-5 shadow-sm">
@@ -756,7 +805,7 @@ export default function AdminUsersPage() {
               <label className="text-sm font-semibold text-slate-800">Search</label>
               <input
                 value={q}
-                onChange={(e) => setQ(e.target.value)}
+                onChange={(e) => { setQ(e.target.value); setUserPage(1); }}
                 className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-3 text-slate-900 outline-none focus:border-blue-500"
                 placeholder="Search name, email, role, department..."
               />
@@ -766,13 +815,13 @@ export default function AdminUsersPage() {
               <label className="text-sm font-semibold text-slate-800">Role</label>
               <select
                 value={roleFilter}
-                onChange={(e) => setRoleFilter(e.target.value)}
+                onChange={(e) => { setRoleFilter(e.target.value); setUserPage(1); }}
                 className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-3 text-slate-900 outline-none focus:border-blue-500"
               >
                 <option value="ALL">All Roles</option>
                 {roles.map((r) => (
                   <option key={r.id} value={r.role_key}>
-                    {r.role_name}
+                    {roleDisplayName(r.role_name)}
                   </option>
                 ))}
               </select>
@@ -782,7 +831,7 @@ export default function AdminUsersPage() {
               <label className="text-sm font-semibold text-slate-800">Department</label>
               <select
                 value={deptFilter}
-                onChange={(e) => setDeptFilter(e.target.value)}
+                onChange={(e) => { setDeptFilter(e.target.value); setUserPage(1); }}
                 className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-3 text-slate-900 outline-none focus:border-blue-500"
               >
                 <option value="ALL">All Departments</option>
@@ -798,7 +847,7 @@ export default function AdminUsersPage() {
               <label className="text-sm font-semibold text-slate-800">Signature</label>
               <select
                 value={signatureFilter}
-                onChange={(e) => setSignatureFilter(e.target.value as "ALL" | "READY" | "MISSING")}
+                onChange={(e) => { setSignatureFilter(e.target.value as "ALL" | "READY" | "MISSING"); setUserPage(1); }}
                 className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-3 text-slate-900 outline-none focus:border-blue-500"
               >
                 <option value="ALL">All</option>
@@ -818,31 +867,70 @@ export default function AdminUsersPage() {
           </div>
         </div>
 
-        <div className="mt-6 grid gap-4">
-          {filtered.length === 0 ? (
-            <EmptyState />
-          ) : (
-            filtered.map((u) => (
-              <UserRolePanel
-                key={u.id}
-                u={u}
-                roles={roles}
-                depts={depts}
-                deptMap={deptMap}
-                userRoles={rolesByProfile[u.id] || []}
-                roleMap={roleMap}
-                saving={savingId === u.id}
-                disabled={!!savingId || refreshing}
-                onUpdateDepartment={updateUserDepartment}
-                onAssignRole={assignRole}
-                onSetPrimaryRole={setPrimaryRole}
-                onDeactivateRole={deactivateRole}
-                onDeleteUser={deleteUser}
-                canDelete={canDeleteUsers}
-              />
-            ))
-          )}
-        </div>
+        <section className="mt-6 admin-v3-card">
+          <div className="admin-v3-table-scroll">
+            <table className="admin-v3-table">
+              <thead><tr><th>#</th><th>Name</th><th>Email</th><th>Role</th><th>Department</th><th>Signature</th><th>Actions</th></tr></thead>
+              <tbody>
+                {pagedUsers.map((u, index) => {
+                  const assigned = rolesByProfile[u.id] || [];
+                  const primary = assigned.find((role) => role.is_primary) || assigned[0];
+                  return (
+                    <tr key={u.id}>
+                      <td>{(safeUserPage - 1) * userPageSize + index + 1}</td>
+                      <td><strong>{u.full_name || "Unnamed user"}</strong></td>
+                      <td>{u.email || "—"}</td>
+                      <td>{roleDisplayName(primary?.role_name || u.role || "Staff")}</td>
+                      <td>{u.dept_id ? deptMap[u.dept_id] || "Unknown department" : "—"}</td>
+                      <td><span className={`admin-v3-status ${u.signature_url ? "is-active" : "is-inactive"}`}>{u.signature_url ? "Ready" : "Missing"}</span></td>
+                      <td><div className="admin-v3-row-actions"><button type="button" onClick={() => setManageUserId(u.id)}>Manage</button>{canDeleteUsers ? <button type="button" className="is-danger" disabled={!!savingId} onClick={() => void deleteUser(u)}>Delete</button> : null}</div></td>
+                    </tr>
+                  );
+                })}
+                {!pagedUsers.length ? <tr><td colSpan={7} className="admin-v3-empty">No users match the selected filters.</td></tr> : null}
+              </tbody>
+            </table>
+          </div>
+          <div className="admin-v3-pagination"><span>Showing {filtered.length ? (safeUserPage - 1) * userPageSize + 1 : 0} to {Math.min(safeUserPage * userPageSize, filtered.length)} of {filtered.length} users</span><div><button disabled={safeUserPage <= 1} onClick={() => setUserPage((value) => Math.max(1, value - 1))}>‹</button>{Array.from({ length: userPageCount }, (_, index) => index + 1).slice(Math.max(0, safeUserPage - 3), Math.max(5, safeUserPage + 2)).map((value) => <button key={value} className={value === safeUserPage ? "is-active" : ""} onClick={() => setUserPage(value)}>{value}</button>)}<button disabled={safeUserPage >= userPageCount} onClick={() => setUserPage((value) => Math.min(userPageCount, value + 1))}>›</button></div></div>
+        </section>
+
+        {managedUser ? (
+          <section className="mt-4">
+            <div className="admin-v3-card-head"><div><h2>Manage User</h2><p>Update department and active role assignments for {managedUser.full_name || managedUser.email || "this user"}.</p></div><button className="admin-v3-secondary" type="button" onClick={() => setManageUserId(null)}>Close</button></div>
+            <UserRolePanel
+              u={managedUser}
+              roles={roles}
+              depts={depts}
+              deptMap={deptMap}
+              userRoles={rolesByProfile[managedUser.id] || []}
+              roleMap={roleMap}
+              saving={savingId === managedUser.id}
+              disabled={!!savingId || refreshing}
+              onUpdateDepartment={updateUserDepartment}
+              onAssignRole={assignRole}
+              onSetPrimaryRole={setPrimaryRole}
+              onDeactivateRole={deactivateRole}
+              onDeleteUser={deleteUser}
+              canDelete={canDeleteUsers}
+            />
+          </section>
+        ) : null}
+
+        {showCreateUser ? (
+          <div className="admin-v3-modal-backdrop" role="presentation" onMouseDown={() => !creatingUser && setShowCreateUser(false)}>
+            <section className="admin-v3-modal" role="dialog" aria-modal="true" aria-labelledby="create-user-title" onMouseDown={(event) => event.stopPropagation()}>
+              <div className="admin-v3-modal-head"><div><h2 id="create-user-title">Add New User</h2><p>Create the Auth identity, profile and primary ReqGen role in one protected transaction.</p></div><button type="button" onClick={() => setShowCreateUser(false)} disabled={creatingUser}>×</button></div>
+              <div className="admin-v3-form-grid">
+                <label>Full Name<input value={newFullName} onChange={(e) => setNewFullName(e.target.value)} placeholder="Full legal name" /></label>
+                <label>Email<input type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} placeholder="name@example.com" /></label>
+                <label>Temporary Password<input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="Minimum 8 characters" /></label>
+                <label>Primary Role<select value={newRoleKey} onChange={(e) => setNewRoleKey(e.target.value)}>{roles.map((role) => <option key={role.id} value={role.role_key}>{roleDisplayName(role.role_name)}</option>)}</select></label>
+                <label className="admin-v3-form-wide">Department<select value={newDeptId} onChange={(e) => setNewDeptId(e.target.value)}><option value="">No department</option>{depts.map((dept) => <option key={dept.id} value={dept.id}>{dept.name}</option>)}</select></label>
+              </div>
+              <div className="admin-v3-modal-actions"><button type="button" className="admin-v3-secondary" onClick={() => setShowCreateUser(false)} disabled={creatingUser}>Cancel</button><button type="button" className="reqgen-btn reqgen-btn-blue rounded-xl px-4 py-2 text-sm font-black text-white" onClick={() => void createUser()} disabled={creatingUser}>{creatingUser ? "Creating…" : "Create User"}</button></div>
+            </section>
+          </div>
+        ) : null}
 
         <div className="mt-6 rounded-3xl border border-amber-100 bg-amber-50 p-5 text-sm text-amber-900">
           <div className="font-bold">Role Assignment Note</div>
@@ -979,7 +1067,7 @@ function UserRolePanel({
                   className={`rounded-2xl border bg-white px-3 py-2 ${roleBadgeClass(r.role_key)}`}
                 >
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-xs font-black">{r.role_name}</span>
+                    <span className="text-xs font-black">{roleDisplayName(r.role_name)}</span>
 
                     {r.is_primary && (
                       <span className="rounded-full bg-white/70 px-2 py-0.5 text-[10px] font-black">
@@ -1027,7 +1115,7 @@ function UserRolePanel({
             <option value="">Select role...</option>
             {assignableRoles.map((r) => (
               <option key={r.id} value={r.role_key}>
-                {r.role_name}
+                {roleDisplayName(r.role_name)}
                 {r.requires_signature ? " • Signature" : ""}
               </option>
             ))}
@@ -1127,14 +1215,6 @@ function StatCard({
       <div className={`mt-3 inline-flex rounded-2xl px-3 py-2 text-xl font-extrabold ${cls}`}>
         {value}
       </div>
-    </div>
-  );
-}
-
-function EmptyState() {
-  return (
-    <div className="rounded-2xl border bg-white p-6 text-sm text-slate-600 shadow-sm">
-      No users found.
     </div>
   );
 }

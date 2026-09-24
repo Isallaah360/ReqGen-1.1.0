@@ -1,9 +1,9 @@
 {
-  "generatedAt": "2026-08-30T17:55:18.632Z",
+  "generatedAt": "2026-09-24T10:31:57.115Z",
   "scope": "ReqGen adopted-shell approved mockups Sections 1-4",
-  "overall": 100,
+  "overall": 89,
   "totals": {
-    "passed": 103,
+    "passed": 92,
     "total": 103
   },
   "shellChecks": [
@@ -17,7 +17,7 @@
     },
     {
       "file": "app/components/staff/StaffFooter.tsx",
-      "pass": true
+      "pass": false
     },
     {
       "file": "app/components/ActiveRoleSwitcher.tsx",
@@ -219,9 +219,9 @@
       "forbidden": [
         "Enterprise"
       ],
-      "passed": 4,
+      "passed": 3,
       "total": 4,
-      "percent": 100,
+      "percent": 75,
       "checks": [
         {
           "check": "file exists",
@@ -229,7 +229,7 @@
         },
         {
           "check": "Approvals Overview",
-          "pass": true
+          "pass": false
         },
         {
           "check": "Action Centre",
@@ -257,9 +257,9 @@
       "forbidden": [
         "Enterprise"
       ],
-      "passed": 8,
+      "passed": 2,
       "total": 8,
-      "percent": 100,
+      "percent": 25,
       "checks": [
         {
           "check": "file exists",
@@ -267,27 +267,27 @@
         },
         {
           "check": "Action Centre",
-          "pass": true
+          "pass": false
         },
         {
           "check": "Pending Requests",
-          "pass": true
+          "pass": false
         },
         {
           "check": "Request Details",
-          "pass": true
+          "pass": false
         },
         {
           "check": "Approval Workflow",
-          "pass": true
+          "pass": false
         },
         {
           "check": "Quick Actions",
-          "pass": true
+          "pass": false
         },
         {
           "check": "Approval Notifications",
-          "pass": true
+          "pass": false
         },
         {
           "check": "Enterprise",
@@ -308,9 +308,9 @@
       "forbidden": [
         "Enterprise"
       ],
-      "passed": 5,
+      "passed": 3,
       "total": 5,
-      "percent": 100,
+      "percent": 60,
       "checks": [
         {
           "check": "file exists",
@@ -322,11 +322,11 @@
         },
         {
           "check": "Total Budget",
-          "pass": true
+          "pass": false
         },
         {
           "check": "Total Expenditure",
-          "pass": true
+          "pass": false
         },
         {
           "check": "Enterprise",
@@ -441,9 +441,9 @@
         "Manage Department Types",
         "Enterprise"
       ],
-      "passed": 7,
+      "passed": 5,
       "total": 7,
-      "percent": 100,
+      "percent": 71,
       "checks": [
         {
           "check": "file exists",
@@ -451,11 +451,11 @@
         },
         {
           "check": "Finance Departments",
-          "pass": true
+          "pass": false
         },
         {
           "check": "With Subheads",
-          "pass": true
+          "pass": false
         },
         {
           "check": "departmentType(",
@@ -657,12 +657,12 @@
       ]
     },
     {
-      "section": 4,
-      "page": "10",
-      "route": "/finance/manual-voucher",
-      "file": "app/finance/manual-voucher/page.tsx",
+      "section": 5,
+      "page": "manual",
+      "route": "/payment-vouchers/manual",
+      "file": "app/payment-vouchers/manual/page.tsx",
       "required": [
-        "Manual Voucher Centre",
+        "Create Manual Payment Voucher",
         "save_manual_payment_voucher",
         "post_manual_payment_voucher"
       ],
@@ -678,7 +678,7 @@
           "pass": true
         },
         {
-          "check": "Manual Voucher Centre",
+          "check": "Create Manual Payment Voucher",
           "pass": true
         },
         {

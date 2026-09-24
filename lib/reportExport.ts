@@ -1,3 +1,5 @@
+import { REQGEN_VERSION } from "@/lib/version";
+
 export type ExportColumn<T> = {
   header: string;
   value: (row: T, index: number) => string | number | null | undefined;
@@ -122,7 +124,7 @@ export function exportTableToExcel<T>({
           }
           <tr>
             <td colspan="${columns.length}" style="font-size:10px;text-align:center;">
-              Generated: ${escapeHtml(now)}
+              Generated: ${escapeHtml(now)} • Generated from ReqGen ${escapeHtml(REQGEN_VERSION)}
             </td>
           </tr>
           <tr><td colspan="${columns.length}"></td></tr>
@@ -142,7 +144,7 @@ export function exportTableToExcel<T>({
   const link = document.createElement("a");
 
   link.href = url;
-  link.download = `${safeFileName(fileName)}.xls`;
+  link.download = `${safeFileName(fileName)}_reqgen_${REQGEN_VERSION.replaceAll(".", "-")}.xls`;
   document.body.appendChild(link);
   link.click();
 

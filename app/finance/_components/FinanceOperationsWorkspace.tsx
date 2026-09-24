@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 
 import { supabase } from "@/lib/supabaseClient";
+import { REQGEN_VERSION } from "@/lib/version";
 import styles from "./FinanceOperationsWorkspace.module.css";
 
 type Mode =
@@ -201,7 +202,7 @@ const CONFIG: Record<Mode, Config> = {
     ],
     primary: {
       label: "Create Voucher",
-      href: "/finance/manual-voucher",
+      href: "/payment-vouchers/manual",
     },
   },
 
@@ -937,6 +938,7 @@ export default function FinanceOperationsWorkspace({
         : filtered;
 
     const content = [
+      csv(`Generated from ReqGen ${REQGEN_VERSION}`),
       columns
         .map((column) =>
           csv(column.label)
@@ -984,7 +986,7 @@ export default function FinanceOperationsWorkspace({
     anchor.href =
       url;
 
-    anchor.download = `${mode}-${new Date()
+    anchor.download = `${mode}-reqgen-${REQGEN_VERSION}-${new Date()
       .toISOString()
       .slice(
         0,
@@ -1278,7 +1280,7 @@ export default function FinanceOperationsWorkspace({
         className={
           styles.primary
         }
-        href="/finance/manual-voucher"
+        href="/payment-vouchers/manual"
       >
         <Plus size={15} />
         New Voucher
@@ -1957,7 +1959,7 @@ export default function FinanceOperationsWorkspace({
                 styles.quick
               }
             >
-              <Link href="/finance/manual-voucher">
+              <Link href="/payment-vouchers/manual">
                 <span
                   className={
                     styles.quickIcon

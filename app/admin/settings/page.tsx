@@ -112,7 +112,8 @@ export default function AdminSettingsPage() {
   }
 
   useEffect(() => {
-    loadAll();
+    const timer = window.setTimeout(() => { void loadAll(); }, 0);
+    return () => window.clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -154,10 +155,10 @@ export default function AdminSettingsPage() {
         <div className="flex items-start justify-between gap-3">
           <div>
             <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">
-              Routing Settings
+              System Settings
             </h1>
             <p className="mt-2 text-sm text-slate-600">
-              Set the global routing officers for notifications and approvals.
+              Configure ReqGen system-wide operational settings and global workflow officers.
             </p>
           </div>
 

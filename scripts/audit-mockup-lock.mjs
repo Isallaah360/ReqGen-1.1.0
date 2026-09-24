@@ -17,7 +17,7 @@ const specs = [
   {section:4,page:'7',route:'/finance/subhead-ledger',file:'app/finance/_components/FinanceOperationsWorkspace.tsx',required:['Subhead Ledger','Opening Balance','Total Debit','Total Credit','Closing Balance'],forbidden:['Enterprise']},
   {section:4,page:'8',route:'/finance/account-transfers',file:'app/finance/_components/FinanceOperationsWorkspace.tsx',required:['Account Transfers','New Transfer','post_account_transfer'],forbidden:['Enterprise']},
   {section:4,page:'9',route:'/finance/transactions',file:'app/finance/_components/FinanceOperationsWorkspace.tsx',required:['Transactions Register','Total Transactions','Total Debit','Total Credit'],forbidden:['Enterprise']},
-  {section:4,page:'10',route:'/finance/manual-voucher',file:'app/finance/manual-voucher/page.tsx',required:['Manual Voucher Centre','save_manual_payment_voucher','post_manual_payment_voucher'],forbidden:['Enterprise']},
+  {section:5,page:'manual',route:'/payment-vouchers/manual',file:'app/payment-vouchers/manual/page.tsx',required:['Create Manual Payment Voucher','save_manual_payment_voucher','post_manual_payment_voucher'],forbidden:['Enterprise']},
   {section:4,page:'11',route:'/finance/vouchers',file:'app/finance/_components/FinanceOperationsWorkspace.tsx',required:['Finance Vouchers','Create Voucher'],forbidden:['Enterprise']},
   {section:4,page:'12',route:'/finance/reports',file:'app/finance/_components/FinanceOperationsWorkspace.tsx',required:['Finance Reports','Popular Reports'],forbidden:['Enterprise']},
   {section:4,page:'13',route:'/finance/reports/monthly',file:'app/finance/_components/FinanceOperationsWorkspace.tsx',required:['Monthly Reports','Monthly Summary'],forbidden:['Enterprise']},

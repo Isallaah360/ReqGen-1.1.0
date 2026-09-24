@@ -18,7 +18,7 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
   { href: "/requests", label: "Requests", section: "Requests", description: "Browse and manage authorised requests." },
   { href: "/approvals", label: "Approvals Inbox", section: "Approvals", description: "Requests currently requiring attention or approval." },
 
-  { href: "/finance", label: "Finance Control Centre", section: "Finance", description: "Finance command centre and operational overview." },
+  { href: "/finance", label: "Finance Overview", section: "Finance", description: "Finance operational overview and live financial position." },
   { href: "/finance/manage-accounts", label: "IET Accounts", section: "Finance", description: "Manage IET accounts, funding and authorised account assignments.", keywords: ["bank accounts", "accounts", "ledger"] },
   { href: "/finance/subheads", label: "Budget & Subheads", section: "Finance", description: "Manage departments, subheads, allocations, reservations, expenditure and balances.", keywords: ["budget", "subheads", "departments", "subhead ledger"] },
   { href: "/finance/transactions", label: "Transactions & Ledgers", section: "Finance", description: "Review Finance transactions and linked account or subhead ledger movements.", keywords: ["transactions", "account ledger", "subhead ledger"] },
@@ -28,6 +28,7 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
   { href: "/finance/settings", label: "Finance Settings", section: "Finance", description: "Finance numbering, fiscal-year and workflow settings." },
 
   { href: "/payment-vouchers", label: "Payment Voucher Centre", section: "Payment Vouchers", description: "Create, process, review, print and track payment vouchers from one live workspace.", keywords: ["pending vouchers", "approved vouchers", "voucher history", "print voucher", "create voucher"] },
+  { href: "/payment-vouchers/manual", label: "Create Manual Voucher", section: "Payment Vouchers", description: "Create, save, post and review controlled manual payment vouchers.", keywords: ["manual voucher", "create payment voucher", "direct voucher"] },
   { href: "/payment-vouchers/settings", label: "Payment Voucher Settings", section: "Payment Vouchers", description: "Manage authorised cheque signers and counter-signatories." },
 
 
@@ -43,7 +44,6 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
   { href: "/admin/users", label: "User Management", section: "Administration", description: "Manage ReqGen users." },
   { href: "/admin/roles", label: "Role Management", section: "Administration", description: "Manage roles and access assignments." },
   { href: "/admin/departments", label: "Department Management", section: "Administration", description: "Manage IET departments, routing officers and dependency-safe lifecycle controls." },
-  { href: "/finance/subheads", label: "Subheads & Budget Structure", section: "Administration", description: "Canonical live subhead, allocation and budget-structure management workspace." },
   { href: "/admin/account-routing", label: "Account Routing", section: "Administration", description: "Configure department-to-account routing." },
   { href: "/admin/security", label: "Security Centre", section: "Administration", description: "Security configuration and oversight." },
   { href: "/admin/settings", label: "System Settings", section: "Administration", description: "ReqGen administrative settings." },

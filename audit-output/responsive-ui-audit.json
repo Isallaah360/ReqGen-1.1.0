@@ -1,10 +1,10 @@
 {
   "summary": {
-    "scannedFiles": 196,
-    "findings": 151,
-    "warnings": 72,
-    "info": 79,
-    "generatedAt": "2026-09-23T15:05:36.037Z"
+    "scannedFiles": 200,
+    "findings": 148,
+    "warnings": 67,
+    "info": 81,
+    "generatedAt": "2026-09-24T10:31:57.246Z"
   },
   "findings": [
     {
@@ -40,38 +40,6 @@
       "excerpt": "<div className=\"overflow-x-auto\"><table className=\"min-w-full text-left text-sm\"><thead className=\"bg-slate-50 text-xs font-black uppercase tracking-wide text-slate-600\"><tr><th className=\"px-5 py-3\">Date</th><th classNa"
     },
     {
-      "file": "app/admin/page.tsx",
-      "line": 614,
-      "rule": "fixed-width",
-      "severity": "warning",
-      "match": "max-w-[1500px]",
-      "excerpt": "<main className=\"rg-module-page rg-adopted-page\"><AdminNavigation /><div className=\"mx-auto w-full max-w-[1500px] space-y-4\">"
-    },
-    {
-      "file": "app/admin/page.tsx",
-      "line": 681,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-6",
-      "excerpt": "<div className=\"grid gap-3 md:grid-cols-2 xl:grid-cols-6\">"
-    },
-    {
-      "file": "app/admin/page.tsx",
-      "line": 690,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-6",
-      "excerpt": "<div className=\"mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-6\">"
-    },
-    {
-      "file": "app/admin/page.tsx",
-      "line": 833,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-5",
-      "excerpt": "<div className=\"mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-5\">"
-    },
-    {
       "file": "app/admin/release-readiness/page.tsx",
       "line": 68,
       "rule": "fixed-width",
@@ -81,7 +49,7 @@
     },
     {
       "file": "app/admin/roles/page.tsx",
-      "line": 523,
+      "line": 533,
       "rule": "desktop-only-grid",
       "severity": "warning",
       "match": "grid-cols-6",
@@ -89,7 +57,7 @@
     },
     {
       "file": "app/admin/roles/page.tsx",
-      "line": 681,
+      "line": 691,
       "rule": "fixed-width",
       "severity": "warning",
       "match": "min-w-[1150px]",
@@ -113,15 +81,7 @@
     },
     {
       "file": "app/admin/users/page.tsx",
-      "line": 737,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-9",
-      "excerpt": "<div className=\"mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-9\">"
-    },
-    {
-      "file": "app/admin/users/page.tsx",
-      "line": 750,
+      "line": 803,
       "rule": "desktop-only-grid",
       "severity": "warning",
       "match": "grid-cols-5",
@@ -193,7 +153,7 @@
     },
     {
       "file": "app/components/NavBar.tsx",
-      "line": 165,
+      "line": 166,
       "rule": "nowrap-risk",
       "severity": "info",
       "match": "whitespace-nowrap",
@@ -201,7 +161,7 @@
     },
     {
       "file": "app/components/NavBar.tsx",
-      "line": 165,
+      "line": 166,
       "rule": "absolute-layout",
       "severity": "info",
       "match": "absolute",
@@ -209,7 +169,7 @@
     },
     {
       "file": "app/components/NavBar.tsx",
-      "line": 569,
+      "line": 570,
       "rule": "fixed-width",
       "severity": "warning",
       "match": "max-w-[1680px]",
@@ -217,7 +177,7 @@
     },
     {
       "file": "app/components/NavBar.tsx",
-      "line": 615,
+      "line": 616,
       "rule": "truncate-risk",
       "severity": "info",
       "match": "truncate",
@@ -225,7 +185,7 @@
     },
     {
       "file": "app/components/NavBar.tsx",
-      "line": 619,
+      "line": 620,
       "rule": "absolute-layout",
       "severity": "info",
       "match": "absolute",
@@ -233,7 +193,7 @@
     },
     {
       "file": "app/components/NavBar.tsx",
-      "line": 672,
+      "line": 673,
       "rule": "absolute-layout",
       "severity": "info",
       "match": "absolute",
@@ -241,7 +201,7 @@
     },
     {
       "file": "app/components/NavBar.tsx",
-      "line": 675,
+      "line": 676,
       "rule": "absolute-layout",
       "severity": "info",
       "match": "absolute",
@@ -249,7 +209,7 @@
     },
     {
       "file": "app/components/NavBar.tsx",
-      "line": 682,
+      "line": 683,
       "rule": "fixed-width",
       "severity": "warning",
       "match": "w-[420px]",
@@ -257,7 +217,7 @@
     },
     {
       "file": "app/components/NavBar.tsx",
-      "line": 682,
+      "line": 683,
       "rule": "absolute-layout",
       "severity": "info",
       "match": "absolute",
@@ -265,7 +225,7 @@
     },
     {
       "file": "app/components/NavBar.tsx",
-      "line": 730,
+      "line": 731,
       "rule": "truncate-risk",
       "severity": "info",
       "match": "truncate",
@@ -273,7 +233,7 @@
     },
     {
       "file": "app/components/NavBar.tsx",
-      "line": 859,
+      "line": 860,
       "rule": "absolute-layout",
       "severity": "info",
       "match": "absolute",
@@ -369,7 +329,7 @@
     },
     {
       "file": "app/components/registry/RegistryArchiveWorkspace.tsx",
-      "line": 29,
+      "line": 30,
       "rule": "absolute-layout",
       "severity": "info",
       "match": "absolute",
@@ -638,22 +598,6 @@
       "severity": "info",
       "match": "absolute",
       "excerpt": ".page{padding:18px 22px 30px;max-width:1480px;margin:0 auto;color:#0f172a;font-size:13px}.loading{padding:48px;text-align:center;color:#64748b}.headingRow{display:flex;align-items:flex-start;justify-content:space-between"
-    },
-    {
-      "file": "app/finance/manual-voucher/page.tsx",
-      "line": 804,
-      "rule": "fixed-height",
-      "severity": "warning",
-      "match": "h-[620px]",
-      "excerpt": "<div className=\"h-[620px] rounded-3xl bg-slate-200\" />"
-    },
-    {
-      "file": "app/finance/manual-voucher/page.tsx",
-      "line": 1686,
-      "rule": "nowrap-risk",
-      "severity": "info",
-      "match": "whitespace-nowrap",
-      "excerpt": "<td className=\"whitespace-nowrap px-5 py-5\">"
     },
     {
       "file": "app/finance/subheads/finance-subheads.module.css",
@@ -1080,6 +1024,22 @@
       "excerpt": ".rg-content:is([data-route^=\"/payment-vouchers\"],[data-route^=\"/registry\"],[data-route^=\"/reports\"],[data-route^=\"/audit-centre\"],[data-route^=\"/workflow\"],[data-route^=\"/admin\"]) .rg-stat-card::before{content:\"\";positio"
     },
     {
+      "file": "app/globals.css",
+      "line": 3728,
+      "rule": "absolute-layout",
+      "severity": "info",
+      "match": "absolute",
+      "excerpt": ".admin-v3-donut-wrap{display:grid;grid-template-columns:134px minmax(0,1fr);gap:15px;align-items:center;min-height:210px}.admin-v3-donut{width:128px;height:128px;border-radius:50%;display:grid;place-items:center;position"
+    },
+    {
+      "file": "app/globals.css",
+      "line": 3730,
+      "rule": "absolute-layout",
+      "severity": "info",
+      "match": "absolute",
+      "excerpt": ".admin-v3-bars{height:215px;display:flex;align-items:flex-end;gap:5px;padding:22px 2px 21px;border-bottom:1px solid #e5ebf2;position:relative}.admin-v3-bar-col{height:100%;flex:1;min-width:0;display:flex;flex-direction:c"
+    },
+    {
       "file": "app/payment-vouchers/[id]/page.tsx",
       "line": 829,
       "rule": "fixed-width",
@@ -1142,6 +1102,22 @@
       "severity": "info",
       "match": "absolute",
       "excerpt": "className=\"absolute bottom-[2px] left-1/2 h-[21px] w-auto max-w-[96%] -translate-x-1/2 object-contain\""
+    },
+    {
+      "file": "app/payment-vouchers/manual/page.tsx",
+      "line": 826,
+      "rule": "fixed-height",
+      "severity": "warning",
+      "match": "h-[620px]",
+      "excerpt": "<div className=\"h-[620px] rounded-3xl bg-slate-200\" />"
+    },
+    {
+      "file": "app/payment-vouchers/manual/page.tsx",
+      "line": 1569,
+      "rule": "nowrap-risk",
+      "severity": "info",
+      "match": "whitespace-nowrap",
+      "excerpt": "<td className=\"whitespace-nowrap px-5 py-5\">"
     },
     {
       "file": "app/payment-vouchers/payment-vouchers-overview.module.css",

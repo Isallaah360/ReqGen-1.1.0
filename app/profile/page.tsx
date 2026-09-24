@@ -37,6 +37,14 @@ function getPublicSignatureUrl(path: string | null | undefined) {
   return `${base}/storage/v1/object/public/signatures/${cleaned}?t=${Date.now()}`;
 }
 
+
+function displayRoleName(value: string | null | undefined) {
+  const raw = String(value || "Staff").trim();
+  const key = raw.toLowerCase().replace(/[^a-z0-9]+/g, "");
+  if (key === "deanadmin" || key === "dinadmin") return "DIN Admin";
+  return raw || "Staff";
+}
+
 function securityBadgeClass(ok: boolean) {
   return ok
     ? "border-emerald-200 bg-emerald-50 text-emerald-700"
@@ -387,307 +395,138 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-slate-50 px-4">
-        <div className="mx-auto max-w-5xl py-10 text-slate-600">Loading profile...</div>
+      <main className="rg-profile-page">
+        <div className="rg-profile-loading">Loading profile...</div>
       </main>
     );
   }
 
+  const profileInitials = fullName
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("") || "RG";
+
+  const canonicalRole = displayRoleName(role);
+
   return (
-    <main className="min-h-screen bg-slate-50 px-4">
-      <div className="mx-auto max-w-5xl py-10">
-        <header className="rg-module-header">
-          <div className="rg-module-heading">
-            <h1>Profile</h1>
-            <p className="rg-module-description">Update your identity details, institutional signature and personal account information.</p>
+    <main className="rg-profile-page">
+      <section className="rg-profile-hero" aria-labelledby="profile-page-title">
+        <div className="rg-profile-avatar-large" aria-hidden="true">{profileInitials}</div>
+        <div className="rg-profile-identity">
+          <div className="rg-profile-title-line">
+            <h1 id="profile-page-title">{fullName || "My Profile"}</h1>
+            <span className="rg-profile-role-badge">{canonicalRole}</span>
           </div>
-          <div className="rg-module-actions">
-            <button type="button" onClick={() => load({ silent: true })} disabled={busy} className="rg-action-button">
-              {refreshing ? "Refreshing..." : "Refresh"}
-            </button>
-            <button type="button" onClick={goDashboard} disabled={busy} className="rg-action-button rg-action-secondary">Dashboard</button>
+          <div className="rg-profile-meta">
+            <span>{email || "Email not available"}</span>
+            <span>Department: {deptName || "Not assigned"}</span>
           </div>
-        </header>
-
-        <ProfileNavigation />
-
-        {msg && (
-          <div className="mt-4 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-800 shadow-sm">
-            {msg}
-          </div>
-        )}
-
-        <div className="mt-6"><ActiveRoleSwitcher /></div>
-
-        <div className="mt-4 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-xs font-semibold text-blue-900">
-          This profile page refreshes automatically when you return to it. Signature and 2FA changes
-          are reloaded immediately.
         </div>
+        <div className="rg-profile-hero-actions">
+          <ActiveRoleSwitcher />
+          <button type="button" onClick={() => load({ silent: true })} disabled={busy} className="rg-action-button">
+            {refreshing ? "Refreshing..." : "Refresh"}
+          </button>
+        </div>
+      </section>
 
-        <div className="mt-6 rounded-3xl border bg-white p-6 shadow-sm">
-          <div className="flex flex-wrap items-start justify-between gap-3">
+      <ProfileNavigation />
+
+      {msg && <div className="rg-profile-message">{msg}</div>}
+
+      <section className="rg-profile-grid">
+        <article className="rg-profile-card rg-profile-card-wide">
+          <div className="rg-profile-card-head">
             <div>
-              <h2 className="text-xl font-extrabold text-slate-900">
-                Security & 2FA Status
-              </h2>
-              <p className="mt-1 text-sm text-slate-600">
-                ReqGen uses authenticator app 2FA to protect logins and sensitive actions.
-              </p>
+              <h2>Personal Information</h2>
+              <p>Maintain your ReqGen identity and contact information.</p>
             </div>
-
-            <span
-              className={`rounded-full border px-3 py-1 text-xs font-bold ${securityBadgeClass(
-                isSessionMfaVerified
-              )}`}
-            >
-              {isSessionMfaVerified ? "Secure Session" : "2FA Action Required"}
-            </span>
+            <button type="button" onClick={goDashboard} className="rg-action-button rg-action-secondary">Dashboard</button>
           </div>
 
-          <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            <SecurityLine
-              label="2FA Setup"
-              value={isMfaSetupComplete ? "Completed" : "Required"}
-              ok={isMfaSetupComplete}
-            />
-
-            <SecurityLine
-              label="Current Session"
-              value={isSessionMfaVerified ? "MFA Verified" : "Password Only"}
-              ok={isSessionMfaVerified}
-            />
-
-            <SecurityLine
-              label="Assurance Level"
-              value={`${security.currentLevel || "unknown"} → ${security.nextLevel || "unknown"}`}
-              ok={isSessionMfaVerified}
-            />
-
-            <SecurityLine
-              label="Authenticator Factors"
-              value={String(security.factorCount)}
-              ok={security.factorCount > 0}
-            />
-          </div>
-
-          <div className="mt-5 flex flex-wrap gap-2">
-            {!isMfaSetupComplete && (
-              <button
-                type="button"
-                onClick={goMfaSetup}
-                className="reqgen-btn reqgen-btn-blue rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white hover:bg-blue-700"
-              >
-                Set Up 2FA
-              </button>
-            )}
-
-            {isMfaSetupComplete && !isSessionMfaVerified && (
-              <button
-                type="button"
-                onClick={goMfaVerify}
-                className="reqgen-btn reqgen-btn-cyan rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white hover:bg-blue-700"
-              >
-                Verify 2FA
-              </button>
-            )}
-
-            <button
-              type="button"
-              onClick={goChangePassword}
-              className="reqgen-btn reqgen-btn-blue rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700"
-            >
-              Change Password Securely
-            </button>
-
-            <button
-              type="button"
-              onClick={refreshSecurity}
-              disabled={refreshing}
-              className="reqgen-btn reqgen-btn-rose rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
-            >
-              {refreshing ? "Refreshing..." : "Refresh Security Status"}
-            </button>
-          </div>
-
-          <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-900">
-            <b>Important:</b> Do not share your password, reset link or authenticator code. Request
-            submission, approval, voucher actions and finance changes will require a verified 2FA
-            session.
-          </div>
-        </div>
-
-        <div className="mt-6 grid gap-6 md:grid-cols-2">
-          <div className="rounded-3xl border bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-bold text-slate-900">Profile Details</h2>
-
-            <div className="mt-4">
-              <label className="text-sm font-semibold text-slate-800">Full Name</label>
-              <input
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                disabled={savingProfile}
-                className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 text-base text-slate-900 outline-none focus:border-blue-500 disabled:bg-slate-50"
-              />
-            </div>
-
-            <div className="mt-4">
-              <label className="text-sm font-semibold text-slate-800">Phone</label>
-              <input
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                disabled={savingProfile}
-                className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 text-base text-slate-900 outline-none focus:border-blue-500 disabled:bg-slate-50"
-              />
-            </div>
-
-            <div className="mt-4">
-              <label className="text-sm font-semibold text-slate-800">Gender</label>
-              <select
-                value={gender}
-                onChange={(e) => setGender(e.target.value)}
-                disabled={savingProfile}
-                className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 text-base text-slate-900 outline-none focus:border-blue-500 disabled:bg-slate-50"
-              >
-                <option value="">-- Select --</option>
+          <div className="rg-profile-form-grid">
+            <label>Full Name
+              <input value={fullName} onChange={(e) => setFullName(e.target.value)} disabled={savingProfile} />
+            </label>
+            <label>Email Address
+              <input value={email || "—"} readOnly />
+            </label>
+            <label>Phone
+              <input value={phone} onChange={(e) => setPhone(e.target.value)} disabled={savingProfile} />
+            </label>
+            <label>Gender
+              <select value={gender} onChange={(e) => setGender(e.target.value)} disabled={savingProfile}>
+                <option value="">Select gender</option>
                 <option value="Male">Male</option>
                 <option value="Female">Female</option>
               </select>
-            </div>
-
-            <div className="mt-4">
-              <label className="text-sm font-semibold text-slate-800">Department (Admin)</label>
-              <input
-                value={deptName || "—"}
-                readOnly
-                className="mt-1 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-base text-slate-900"
-              />
-            </div>
-
-            <div className="mt-4">
-              <label className="text-sm font-semibold text-slate-800">Role (Admin)</label>
-              <input
-                value={role || "—"}
-                readOnly
-                className="mt-1 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-base text-slate-900"
-              />
-            </div>
-
-            <button
-              type="button"
-              onClick={saveProfile}
-              disabled={!canSaveProfile || savingProfile}
-              className="reqgen-btn reqgen-btn-rose mt-5 w-full rounded-2xl bg-blue-600 px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700 disabled:opacity-60"
-            >
-              {savingProfile ? "Saving..." : "Save Profile"}
-            </button>
+            </label>
+            <label>Department
+              <input value={deptName || "—"} readOnly />
+            </label>
+            <label>Role
+              <input value={canonicalRole} readOnly />
+            </label>
           </div>
 
-          <div className="rounded-3xl border bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-bold text-slate-900">Signature</h2>
-            <p className="mt-1 text-sm text-slate-600">
-              Required for request submission and approvals.
-            </p>
-
-            <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <div className="text-sm font-semibold text-slate-800">Current Signature</div>
-
-              {sigPreview ? (
-                <Image
-                  src={sigPreview}
-                  alt="Signature"
-                  width={320}
-                  height={96}
-                  unoptimized
-                  className="mt-3 h-24 w-auto rounded-xl border bg-white p-2"
-                />
-              ) : (
-                <div className="mt-3 text-sm text-slate-700">No signature uploaded yet.</div>
-              )}
-            </div>
-
-            <div className="mt-4">
-              <label className="text-sm font-semibold text-slate-800">
-                Upload/Replace (PNG/JPG/JPEG/WEBP)
-              </label>
-              <input
-                type="file"
-                accept="image/png,image/jpeg,image/jpg,image/webp"
-                disabled={uploadingSig}
-                onChange={(e) => setFile(e.target.files?.[0] || null)}
-                className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 disabled:bg-slate-50"
-              />
-            </div>
-
-            <button
-              type="button"
-              onClick={uploadSignature}
-              disabled={uploadingSig}
-              className="reqgen-btn reqgen-btn-rose mt-4 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
-            >
-              {uploadingSig ? "Saving Signature..." : "Save Signature"}
+          <div className="rg-profile-card-actions">
+            <button type="button" onClick={saveProfile} disabled={!canSaveProfile || savingProfile} className="rg-primary-button">
+              {savingProfile ? "Saving..." : "Update Profile"}
             </button>
-
-            {!sigPath && (
-              <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-                You must upload a signature before submitting or treating requests.
-              </div>
-            )}
           </div>
-        </div>
+        </article>
 
-        <div className="mt-6 grid gap-6 md:grid-cols-2">
-          <div className="rounded-3xl border bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-bold text-slate-900">Email</h2>
-            <p className="mt-1 text-sm text-slate-600">
-              Current: <b className="text-slate-900">{email || "—"}</b>
-            </p>
-
-            <div className="mt-4">
-              <label className="text-sm font-semibold text-slate-800">New Email</label>
-              <input
-                value={newEmail}
-                onChange={(e) => setNewEmail(e.target.value)}
-                disabled={savingEmail}
-                className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 text-base text-slate-900 outline-none focus:border-blue-500 disabled:bg-slate-50"
-              />
-            </div>
-
-            <button
-              type="button"
-              onClick={changeEmail}
-              disabled={savingEmail}
-              className="reqgen-btn reqgen-btn-rose mt-4 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
-            >
-              {savingEmail ? "Updating Email..." : "Update Email"}
-            </button>
-
-            <p className="mt-3 text-xs text-slate-500">
-              If email confirmation is enabled, you must confirm via email.
-            </p>
+        <article className="rg-profile-card">
+          <div className="rg-profile-card-head">
+            <div><h2>Institutional Signature</h2><p>Used for authorised request and approval actions.</p></div>
           </div>
-
-          <div className="rounded-3xl border bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-bold text-slate-900">Password</h2>
-            <p className="mt-2 text-sm leading-6 text-slate-600">
-              Password changes are handled through the secure password page. You will confirm your
-              current password and verify 2FA where required.
-            </p>
-
-            <button
-              type="button"
-              onClick={goChangePassword}
-              className="reqgen-btn reqgen-btn-blue mt-5 w-full rounded-2xl bg-blue-600 px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700"
-            >
-              Change Password Securely
-            </button>
-
-            <div className="mt-4 rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 text-xs leading-5 text-blue-900">
-              For account protection, password change signs you out after success so you can log in
-              again with the new password.
-            </div>
+          <div className="rg-signature-preview">
+            {sigPreview ? (
+              <Image src={sigPreview} alt="Saved signature" width={320} height={96} unoptimized />
+            ) : <span>No signature uploaded</span>}
           </div>
-        </div>
-      </div>
+          <label className="rg-profile-file-label">Upload or replace signature
+            <input type="file" accept="image/png,image/jpeg,image/jpg,image/webp" disabled={uploadingSig} onChange={(e) => setFile(e.target.files?.[0] || null)} />
+          </label>
+          <button type="button" onClick={uploadSignature} disabled={uploadingSig || !file} className="rg-secondary-button">
+            {uploadingSig ? "Saving Signature..." : "Save Signature"}
+          </button>
+          {!sigPath ? <div className="rg-profile-warning">A saved signature is required for protected request and approval actions.</div> : null}
+        </article>
+
+        <article className="rg-profile-card">
+          <div className="rg-profile-card-head"><div><h2>Email & Password</h2><p>Securely maintain your sign-in credentials.</p></div></div>
+          <label>New Email Address
+            <input value={newEmail} onChange={(e) => setNewEmail(e.target.value)} disabled={savingEmail} />
+          </label>
+          <div className="rg-profile-card-actions rg-profile-stack-actions">
+            <button type="button" onClick={changeEmail} disabled={savingEmail} className="rg-secondary-button">{savingEmail ? "Updating Email..." : "Update Email"}</button>
+            <button type="button" onClick={goChangePassword} className="rg-primary-button">Change Password</button>
+          </div>
+        </article>
+
+        <article className="rg-profile-card rg-profile-card-wide">
+          <div className="rg-profile-card-head">
+            <div><h2>Security & 2FA Status</h2><p>Current authenticator and session assurance state.</p></div>
+            <span className={`rg-profile-security-badge ${isSessionMfaVerified ? "is-ok" : "is-action"}`}>
+              {isSessionMfaVerified ? "Secure Session" : "Action Required"}
+            </span>
+          </div>
+          <div className="rg-security-grid">
+            <SecurityLine label="2FA Setup" value={isMfaSetupComplete ? "Completed" : "Required"} ok={isMfaSetupComplete} />
+            <SecurityLine label="Current Session" value={isSessionMfaVerified ? "MFA Verified" : "Password Only"} ok={isSessionMfaVerified} />
+            <SecurityLine label="Assurance Level" value={`${security.currentLevel || "unknown"} → ${security.nextLevel || "unknown"}`} ok={isSessionMfaVerified} />
+            <SecurityLine label="Authenticator Factors" value={String(security.factorCount)} ok={security.factorCount > 0} />
+          </div>
+          <div className="rg-profile-card-actions">
+            {!isMfaSetupComplete ? <button type="button" onClick={goMfaSetup} className="rg-primary-button">Set Up 2FA</button> : null}
+            {isMfaSetupComplete && !isSessionMfaVerified ? <button type="button" onClick={goMfaVerify} className="rg-primary-button">Verify 2FA</button> : null}
+            <button type="button" onClick={refreshSecurity} disabled={refreshing} className="rg-secondary-button">{refreshing ? "Refreshing..." : "Refresh Security"}</button>
+          </div>
+        </article>
+      </section>
     </main>
   );
 }

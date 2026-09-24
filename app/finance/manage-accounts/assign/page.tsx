@@ -21,6 +21,7 @@ import {
   X,
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
+import { REQGEN_VERSION } from "@/lib/version";
 import styles from "./assign-bank.module.css";
 
 type Profile = {
@@ -285,6 +286,7 @@ export default function AssignBankToOfficerPage() {
 
   function exportAssignments() {
     const csv = [
+      [`Generated from ReqGen ${REQGEN_VERSION}`],
       ["Officer", "Email", "Role", "Department", "Account", "Bank", "Status", "Assigned On"],
       ...rows.map((assignment) => {
         const officer = officerMap.get(assignment.officer_user_id);
@@ -305,7 +307,7 @@ export default function AssignBankToOfficerPage() {
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = "reqgen-bank-officer-assignments.csv";
+    anchor.download = `reqgen-${REQGEN_VERSION}-bank-officer-assignments.csv`;
     anchor.click();
     URL.revokeObjectURL(url);
   }

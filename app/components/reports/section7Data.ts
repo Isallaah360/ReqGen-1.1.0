@@ -1,3 +1,5 @@
+import { REQGEN_VERSION } from "@/lib/version";
+
 export type AnyRow = Record<string, unknown>;
 export type Department = { id: string; name: string };
 
@@ -55,7 +57,8 @@ export function daysOld(value: unknown): number | null {
   return Math.max(0, (Date.now() - date.getTime()) / 86400000);
 }
 export function downloadCsv(filename: string, rows: Array<Array<string | number>>) {
-  const csv = rows.map((row) => row.map((cell) => `"${String(cell ?? "").replace(/"/g, '""')}"`).join(",")).join("\n");
+  const exportRows = [[`Generated from ReqGen ${REQGEN_VERSION}`], ...rows];
+  const csv = exportRows.map((row) => row.map((cell) => `"${String(cell ?? "").replace(/"/g, '""')}"`).join(",")).join("\n");
   const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");

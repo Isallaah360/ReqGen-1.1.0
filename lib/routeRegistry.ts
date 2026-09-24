@@ -436,14 +436,24 @@ export const ROUTE_REGISTRY: RouteRegistryItem[] = [
     "description": "ReqGen route /finance/manage-accounts"
   },
   {
-    "pattern": "/finance/manual-voucher",
-    "title": "Finance - Manual Voucher",
-    "rootHref": "/finance",
+    "pattern": "/payment-vouchers/manual",
+    "title": "Create Manual Payment Voucher",
+    "rootHref": "/payment-vouchers",
     "category": "Application Route",
     "public": false,
-    "nav": false,
+    "nav": true,
     "searchable": true,
-    "description": "ReqGen route /finance/manual-voucher"
+    "description": "Create and manage controlled manual payment vouchers"
+  },
+  {
+    "pattern": "/finance/manual-voucher",
+    "title": "Legacy Manual Voucher Redirect",
+    "rootHref": "/payment-vouchers",
+    "category": "Compatibility Redirect",
+    "public": false,
+    "nav": false,
+    "searchable": false,
+    "description": "Compatibility redirect to /payment-vouchers/manual"
   },
   {
     "pattern": "/finance",

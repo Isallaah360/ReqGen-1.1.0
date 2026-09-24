@@ -1,1255 +1,346 @@
 "use client";
 
-import AdminNavigation from "@/app/components/admin/AdminNavigation";
+import Link from "next/link";
+import type { ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import {
+  Activity,
+  Building2,
+  RefreshCw,
+  ShieldCheck,
+  UserRound,
+} from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
+import { REQGEN_VERSION } from "@/lib/version";
+import { roleDisplayName } from "@/lib/roles";
 
-type UserRow = {
+type ProfileRow = {
   id: string;
   email: string | null;
   full_name: string | null;
   role: string | null;
-  signature_url: string | null;
+  dept_id: string | null;
+  created_at: string | null;
 };
 
-type ProfileRole = {
+type DepartmentRow = {
   id: string;
+  name: string;
+  is_active: boolean | null;
+};
+
+type RoleRow = {
+  id: string;
+  role_key: string;
+  role_name: string;
+  is_active: boolean;
+};
+
+type ProfileRoleRow = {
   profile_id: string;
   role_key: string;
   role_name: string;
   is_primary: boolean;
   is_active: boolean;
-  assigned_at: string | null;
 };
 
-type DeptRow = {
-  id: string;
-  name: string;
-  hod_user_id: string | null;
-  director_user_id: string | null;
-  po_id: string | null;
-  is_active: boolean | null;
-};
+type AuditRow = Record<string, unknown>;
 
-type SettingRow = {
-  key: string;
-  value: string | null;
-};
+type DailyPoint = { label: string; count: number };
 
-type ReqgenRole = {
-  id: string;
-  role_key: string;
-  role_name: string;
-  description: string | null;
-  is_system: boolean;
-  is_active: boolean;
-  requires_signature: boolean;
-  sort_order: number;
-};
+const ROLE_COLORS = ["#0b5cf0", "#7047e8", "#0891b2", "#ef8c18", "#129a67", "#e84655", "#64748b", "#a21caf"];
 
-const GLOBAL_KEYS = [
-  "REGISTRAR_USER_ID",
-  "REGISTRY_USER_ID",
-  "DG_USER_ID",
-  "HR_USER_ID",
-  "DIN_ADMIN_USER_ID",
-] as const;
-
-function roleKey(role: string | null | undefined) {
-  return (role || "")
-    .trim()
-    .toLowerCase()
-    .replace(/\s+/g, "")
-    .replace(/_/g, "");
+function roleKey(value: string | null | undefined) {
+  return String(value || "").trim().toLowerCase().replace(/[\s_-]+/g, "");
 }
 
-function hasAdminAccess(profileRole: string | null | undefined, assignedRoles: ProfileRole[]) {
-  const fallback = roleKey(profileRole);
-
-  if (fallback === "admin" || fallback === "auditor") return true;
-
-  return assignedRoles.some(
-    (r) => r.is_active && ["admin", "auditor"].includes(roleKey(r.role_key))
-  );
+function formatDate(value: string | null | undefined) {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleString("en-NG", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
-function officerLabel(key: string) {
-  if (key === "REGISTRAR_USER_ID") return "Registrar";
-  if (key === "REGISTRY_USER_ID") return "Registry Officer";
-  if (key === "DG_USER_ID") return "Director General";
-  if (key === "HR_USER_ID") return "HR Boss";
-  if (key === "DIN_ADMIN_USER_ID") return "DIN Admin Officer";
-  return key;
+function auditTimestamp(row: AuditRow) {
+  const candidates = [row.created_at, row.event_at, row.updated_at, row.timestamp, row.occurred_at];
+  for (const candidate of candidates) {
+    if (typeof candidate === "string" && !Number.isNaN(new Date(candidate).getTime())) return candidate;
+  }
+  return null;
 }
 
-function officerPurpose(key: string) {
-  if (key === "REGISTRAR_USER_ID") {
-    return "Registrar acts as HOD of all DIN Departments for Official request routing.";
+function buildActivity(rows: AuditRow[]): DailyPoint[] {
+  const today = new Date();
+  const points: DailyPoint[] = [];
+  const counter = new Map<string, number>();
+
+  for (const row of rows) {
+    const ts = auditTimestamp(row);
+    if (!ts) continue;
+    const date = new Date(ts);
+    const key = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+    counter.set(key, (counter.get(key) || 0) + 1);
   }
 
-  if (key === "REGISTRY_USER_ID") {
-    return "Registry is for DG reminder/monitoring support only. Registry is not an approval-stage owner.";
+  for (let offset = 13; offset >= 0; offset -= 1) {
+    const date = new Date(today);
+    date.setHours(0, 0, 0, 0);
+    date.setDate(today.getDate() - offset);
+    const key = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+    points.push({
+      label: date.toLocaleDateString("en-NG", { day: "2-digit", month: "short" }),
+      count: counter.get(key) || 0,
+    });
   }
 
-  if (key === "DG_USER_ID") {
-    return "Final executive approval officer for request workflows.";
-  }
-
-  if (key === "HR_USER_ID") {
-    return "Human Resources Boss for Personal request review and HR Filing ownership.";
-  }
-
-  if (key === "DIN_ADMIN_USER_ID") {
-    return "Reviewer for DIN Official requests before Registrar/DG stage.";
-  }
-
-  return "Global workflow officer.";
+  return points;
 }
 
-function roleBadgeClass(role: string | null | undefined) {
-  const rk = roleKey(role);
-
-  if (rk === "admin") return "border-red-200 bg-red-50 text-red-700";
-  if (rk === "auditor") return "border-purple-200 bg-purple-50 text-purple-700";
-
-  if (["account", "accounts", "accountofficer", "pvsigner", "pvcountersigner"].includes(rk)) {
-    return "border-emerald-200 bg-emerald-50 text-emerald-700";
-  }
-
-  if (
-    [
-      "director",
-      "dod",
-      "hod",
-      "dg",
-      "registrar",
-      "dinadmin",
-      "dinadmin1",
-      "dinadmin2",
-      "dinadmin3",
-      "po",
-      "gensec",
-    ].includes(rk)
-  ) {
-    return "border-blue-200 bg-blue-50 text-blue-700";
-  }
-
-  if (["hr", "hrofficer1", "hrofficer2", "hrofficer3", "registry"].includes(rk)) {
-    return "border-amber-200 bg-amber-50 text-amber-700";
-  }
-
-  return "border-slate-200 bg-slate-50 text-slate-700";
+function dayGreeting() {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good morning";
+  if (hour < 17) return "Good afternoon";
+  return "Good evening";
 }
 
-function signatureBadgeClass(ready: boolean) {
-  return ready
-    ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-    : "border-red-200 bg-red-50 text-red-700";
-}
-
-function userDisplayName(user: UserRow | undefined) {
-  if (!user) return "Unknown user";
-  return user.full_name || user.email || user.id;
-}
-
-function errorMessage(error: unknown) {
-  return error instanceof Error ? error.message : "Unknown error";
-}
-
-export default function AdminPage() {
+export default function AdminDashboardPage() {
   const router = useRouter();
-
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [savingTarget, setSavingTarget] = useState<string | null>(null);
-  const [msg, setMsg] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [currentName, setCurrentName] = useState("Administrator");
+  const [profiles, setProfiles] = useState<ProfileRow[]>([]);
+  const [departments, setDepartments] = useState<DepartmentRow[]>([]);
+  const [roles, setRoles] = useState<RoleRow[]>([]);
+  const [profileRoles, setProfileRoles] = useState<ProfileRoleRow[]>([]);
+  const [auditRows, setAuditRows] = useState<AuditRow[]>([]);
 
-  const [meEmail, setMeEmail] = useState("");
-  const [meRole, setMeRole] = useState("");
+  const load = useCallback(async (silent = false) => {
+    if (silent) setRefreshing(true);
+    else setLoading(true);
+    setError(null);
 
-  const [users, setUsers] = useState<UserRow[]>([]);
-  const [profileRoles, setProfileRoles] = useState<ProfileRole[]>([]);
-  const [depts, setDepts] = useState<DeptRow[]>([]);
-  const [settings, setSettings] = useState<Record<string, string>>({});
-  const [roles, setRoles] = useState<ReqgenRole[]>([]);
+    const { data: auth } = await supabase.auth.getUser();
+    if (!auth.user) {
+      router.replace("/login");
+      return;
+    }
 
-  const [selectedUserId, setSelectedUserId] = useState("");
-  const [selectedRoleKey, setSelectedRoleKey] = useState("staff");
-  const [makePrimaryRole, setMakePrimaryRole] = useState(false);
+    const me = await supabase
+      .from("profiles")
+      .select("id,full_name,email,role")
+      .eq("id", auth.user.id)
+      .maybeSingle();
 
-
-  const usersById = useMemo(() => {
-    const m = new Map<string, UserRow>();
-    users.forEach((u) => m.set(u.id, u));
-    return m;
-  }, [users]);
-
-  const rolesByProfile = useMemo(() => {
-    const m: Record<string, ProfileRole[]> = {};
-
-    profileRoles.forEach((r) => {
-      if (!m[r.profile_id]) m[r.profile_id] = [];
-      m[r.profile_id].push(r);
-    });
-
-    return m;
-  }, [profileRoles]);
-
-  const roleMap = useMemo(() => {
-    const m: Record<string, ReqgenRole> = {};
-
-    roles.forEach((r) => {
-      m[roleKey(r.role_name)] = r;
-      m[roleKey(r.role_key)] = r;
-    });
-
-    return m;
-  }, [roles]);
-
-  const signatureReadyUsers = useMemo(() => {
-    return users.filter((u) => !!u.signature_url);
-  }, [users]);
-
-  const stats = useMemo(() => {
-    const totalUsers = users.length;
-    const signatureReadyCount = users.filter((u) => !!u.signature_url).length;
-    const needsSignature = Math.max(totalUsers - signatureReadyCount, 0);
-    const departments = depts.length;
-    const activeDepartments = depts.filter((d) => d.is_active !== false).length;
-    const routedDepartments = depts.filter(
-      (d) => d.hod_user_id || d.director_user_id || d.po_id
-    ).length;
-    const totalRoles = roles.length;
-    const activeRoles = roles.filter((r) => r.is_active).length;
-    const dinDepartments = depts.filter((d) => d.name.toLowerCase().includes("din")).length;
-    const asapDepartments = depts.filter((d) => {
-      const n = d.name.toLowerCase();
-      return n.includes("asap") || n.includes("alli");
-    }).length;
-
-    return {
-      totalUsers,
-      signatureReadyCount,
-      needsSignature,
-      departments,
-      activeDepartments,
-      routedDepartments,
-      totalRoles,
-      activeRoles,
-      dinDepartments,
-      asapDepartments,
-      registrarSet: !!settings.REGISTRAR_USER_ID,
-      dgSet: !!settings.DG_USER_ID,
-      hrSet: !!settings.HR_USER_ID,
-      dinAdminSet: !!settings.DIN_ADMIN_USER_ID,
-    };
-  }, [users, depts, roles, settings]);
-
-  const loadAll = useCallback(
-    async (options?: { silent?: boolean }) => {
-      if (options?.silent) {
-        setRefreshing(true);
-      } else {
-        setLoading(true);
-      }
-
-      setMsg(null);
-
-      const { data: authData, error: authErr } = await supabase.auth.getUser();
-
-      if (authErr) {
-        setMsg("Auth error: " + authErr.message);
-        setLoading(false);
-        setRefreshing(false);
-        return;
-      }
-
-      const user = authData.user;
-
-      if (!user) {
-        router.push("/login");
-        return;
-      }
-
-      setMeEmail(user.email || "");
-
-      const [meRes, meRolesRes] = await Promise.all([
-        supabase.from("profiles").select("role").eq("id", user.id).single(),
-
-        supabase
-          .from("profile_roles")
-          .select("id,profile_id,role_key,role_name,is_primary,is_active,assigned_at")
-          .eq("profile_id", user.id)
-          .eq("is_active", true),
-      ]);
-
-      if (meRes.error) {
-        setMsg("Failed to verify admin/auditor access: " + meRes.error.message);
-        setLoading(false);
-        setRefreshing(false);
-        return;
-      }
-
-      const role = (meRes.data?.role || "Staff") as string;
-      const activeMeRoles = (meRolesRes.data || []) as ProfileRole[];
-
-      setMeRole(role);
-
-      if (!hasAdminAccess(role, activeMeRoles)) {
-        router.push(`/dashboard?updated=${Date.now()}`);
-        router.refresh();
-        return;
-      }
-
-      const [usersRes, userRolesRes, deptsRes, settingsRes, rolesRes] = await Promise.all([
-        supabase
-          .from("profiles")
-          .select("id,email,full_name,role,signature_url")
-          .order("full_name", { ascending: true }),
-
-        supabase
-          .from("profile_roles")
-          .select("id,profile_id,role_key,role_name,is_primary,is_active,assigned_at")
-          .eq("is_active", true)
-          .order("assigned_at", { ascending: true }),
-
-        supabase
-          .from("departments")
-          .select("id,name,hod_user_id,director_user_id,po_id,is_active")
-          .order("name", { ascending: true }),
-
-        supabase.from("app_settings").select("key,value"),
-
-        supabase
-          .from("reqgen_roles")
-          .select(
-            "id,role_key,role_name,description,is_system,is_active,requires_signature,sort_order"
-          )
-          .eq("is_active", true)
-          .order("sort_order", { ascending: true })
-          .order("role_name", { ascending: true }),
-      ]);
-
-      if (usersRes.error) {
-        setMsg("Failed to load users: " + usersRes.error.message);
-        setUsers([]);
-      } else {
-        setUsers((usersRes.data || []) as UserRow[]);
-      }
-
-      if (userRolesRes.error) {
-        setMsg("Failed to load assigned user roles: " + userRolesRes.error.message);
-        setProfileRoles([]);
-      } else {
-        setProfileRoles((userRolesRes.data || []) as ProfileRole[]);
-      }
-
-      if (deptsRes.error) {
-        setMsg("Failed to load departments: " + deptsRes.error.message);
-        setDepts([]);
-      } else {
-        setDepts((deptsRes.data || []) as DeptRow[]);
-      }
-
-      if (settingsRes.error) {
-        setMsg("Failed to load app settings: " + settingsRes.error.message);
-        setSettings({});
-      } else {
-        const map: Record<string, string> = {};
-        ((settingsRes.data || []) as SettingRow[]).forEach((r) => {
-          map[r.key] = r.value || "";
-        });
-        setSettings(map);
-      }
-
-      if (rolesRes.error) {
-        setMsg("Failed to load role catalogue: " + rolesRes.error.message);
-        setRoles([]);
-      } else {
-        setRoles((rolesRes.data || []) as ReqgenRole[]);
-      }
-
+    if (me.error) {
+      setError(`Unable to verify Admin access: ${me.error.message}`);
       setLoading(false);
       setRefreshing(false);
-    },
-    [router]
-  );
+      return;
+    }
+
+    if (roleKey(me.data?.role) !== "admin") {
+      router.replace("/unauthorized");
+      return;
+    }
+
+    setCurrentName(String(me.data?.full_name || auth.user.user_metadata?.full_name || "Administrator"));
+
+    const [profileRes, deptRes, roleRes, profileRoleRes, auditRes] = await Promise.all([
+      supabase.from("profiles").select("id,email,full_name,role,dept_id,created_at").order("full_name", { ascending: true }),
+      supabase.from("departments").select("id,name,is_active").order("name", { ascending: true }),
+      supabase.from("reqgen_roles").select("id,role_key,role_name,is_active").order("sort_order", { ascending: true }),
+      supabase.from("profile_roles").select("profile_id,role_key,role_name,is_primary,is_active"),
+      supabase.from("audit_logs").select("*").limit(500),
+    ]);
+
+    const failures = [profileRes, deptRes, roleRes, profileRoleRes]
+      .map((res) => res.error?.message)
+      .filter(Boolean);
+
+    if (failures.length) setError(failures.join(" • "));
+
+    setProfiles((profileRes.data || []) as ProfileRow[]);
+    setDepartments((deptRes.data || []) as DepartmentRow[]);
+    setRoles((roleRes.data || []) as RoleRow[]);
+    setProfileRoles((profileRoleRes.data || []) as ProfileRoleRow[]);
+    setAuditRows(auditRes.error ? [] : ((auditRes.data || []) as AuditRow[]));
+    setLoading(false);
+    setRefreshing(false);
+  }, [router]);
 
   useEffect(() => {
-    loadAll();
+    const timer = window.setTimeout(() => {
+      void load(false);
+    }, 0);
 
-    const refreshOnFocus = () => {
-      loadAll({ silent: true });
-    };
+    return () => window.clearTimeout(timer);
+  }, [load]);
 
-    const refreshOnVisible = () => {
-      if (document.visibilityState === "visible") {
-        loadAll({ silent: true });
-      }
-    };
+  const departmentMap = useMemo(() => new Map(departments.map((dept) => [dept.id, dept.name])), [departments]);
 
-    window.addEventListener("focus", refreshOnFocus);
-    document.addEventListener("visibilitychange", refreshOnVisible);
+  const activeRoleCount = useMemo(() => roles.filter((role) => role.is_active).length, [roles]);
+  const activeDepartments = useMemo(() => departments.filter((dept) => dept.is_active !== false).length, [departments]);
 
-    return () => {
-      window.removeEventListener("focus", refreshOnFocus);
-      document.removeEventListener("visibilitychange", refreshOnVisible);
-    };
-  }, [loadAll]);
-
-  async function saveQuickRole() {
-    setMsg(null);
-
-    if (!selectedUserId) {
-      setMsg("❌ Please select a user.");
-      return;
+  const primaryRoleByProfile = useMemo(() => {
+    const map = new Map<string, string>();
+    const sorted = [...profileRoles].sort((a, b) => Number(b.is_primary) - Number(a.is_primary));
+    for (const row of sorted) {
+      if (row.is_active && !map.has(row.profile_id)) map.set(row.profile_id, roleDisplayName(row.role_name || row.role_key));
     }
+    return map;
+  }, [profileRoles]);
 
-    if (!selectedRoleKey) {
-      setMsg("❌ Please select a role.");
-      return;
+  const roleDistribution = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const profile of profiles) {
+      const label = roleDisplayName(primaryRoleByProfile.get(profile.id) || profile.role || "Staff");
+      counts.set(label, (counts.get(label) || 0) + 1);
     }
+    return [...counts.entries()]
+      .map(([label, count]) => ({ label, count }))
+      .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
+  }, [profiles, primaryRoleByProfile]);
 
-    const user = usersById.get(selectedUserId);
+  const roleTotal = Math.max(1, roleDistribution.reduce((sum, item) => sum + item.count, 0));
+  const conicGradient = useMemo(() => {
+    const { parts } = roleDistribution.reduce<{ parts: string[]; cursor: number }>(
+      (acc, item, index) => {
+        const degrees = (item.count / roleTotal) * 360;
+        const end = acc.cursor + degrees;
+        return {
+          parts: [
+            ...acc.parts,
+            `${ROLE_COLORS[index % ROLE_COLORS.length]} ${acc.cursor}deg ${end}deg`,
+          ],
+          cursor: end,
+        };
+      },
+      { parts: [], cursor: 0 }
+    );
+    return parts.length ? `conic-gradient(${parts.join(",")})` : "conic-gradient(#e2e8f0 0deg 360deg)";
+  }, [roleDistribution, roleTotal]);
 
-    if (!user) {
-      setMsg("❌ Selected user not found.");
-      return;
-    }
+  const activity = useMemo(() => buildActivity(auditRows), [auditRows]);
+  const maxActivity = Math.max(1, ...activity.map((point) => point.count));
 
-    const roleInfo = roleMap[roleKey(selectedRoleKey)];
-    const requiresSignature = !!roleInfo?.requires_signature;
-
-    if (!roleInfo) {
-      setMsg("❌ Selected role was not found.");
-      return;
-    }
-
-    if (requiresSignature && !user.signature_url) {
-      setMsg(
-        `❌ ${roleInfo.role_name} requires a signature. ${userDisplayName(
-          user
-        )} must upload signature first.`
-      );
-      return;
-    }
-
-    setSaving(true);
-    setSavingTarget("role");
-
-    try {
-      const { error } = await supabase.rpc("reqgen_assign_profile_role", {
-        p_profile_id: selectedUserId,
-        p_role_key: roleInfo.role_key,
-        p_is_primary: makePrimaryRole,
-      });
-
-      if (error) throw new Error(error.message);
-
-      setMsg(
-        makePrimaryRole
-          ? `✅ ${roleInfo.role_name} assigned and set as primary role.`
-          : `✅ ${roleInfo.role_name} assigned successfully.`
-      );
-
-      setMakePrimaryRole(false);
-      await loadAll({ silent: true });
-      router.refresh();
-    } catch (e: unknown) {
-      setMsg("❌ Role assignment failed: " + errorMessage(e));
-    } finally {
-      setSaving(false);
-      setSavingTarget(null);
-    }
-  }
-
-  async function saveDept(
-    deptId: string,
-    hodId: string | null,
-    directorId: string | null,
-    poId: string | null
-  ) {
-    setMsg(null);
-
-    const checks: Array<{ label: string; id: string | null }> = [
-      { label: "DOD", id: directorId },
-      { label: "HOD", id: hodId },
-      { label: "PO", id: poId },
-    ];
-
-    for (const check of checks) {
-      if (!check.id) continue;
-
-      const officer = usersById.get(check.id);
-
-      if (officer && !officer.signature_url) {
-        setMsg(`❌ ${check.label} must have a signature before assignment.`);
-        return;
-      }
-    }
-
-    setSaving(true);
-    setSavingTarget(`dept-${deptId}`);
-
-    try {
-      const { error } = await supabase
-        .from("departments")
-        .update({
-          hod_user_id: hodId || null,
-          director_user_id: directorId || null,
-          po_id: poId || null,
-        })
-        .eq("id", deptId);
-
-      if (error) throw new Error(error.message);
-
-      setMsg("✅ Department routing saved.");
-      await loadAll({ silent: true });
-      router.refresh();
-    } catch (e: unknown) {
-      setMsg("❌ Department save failed: " + errorMessage(e));
-    } finally {
-      setSaving(false);
-      setSavingTarget(null);
-    }
-  }
-
-  async function saveSetting(key: string, value: string) {
-    setMsg(null);
-
-    if (!value) {
-      setMsg("❌ Please select a user.");
-      return;
-    }
-
-    const user = usersById.get(value);
-
-    if (!user) {
-      setMsg("❌ Selected user not found.");
-      return;
-    }
-
-    if (!user.signature_url) {
-      setMsg("❌ Selected officer must have a signature before assignment.");
-      return;
-    }
-
-    setSaving(true);
-    setSavingTarget(key);
-
-    try {
-      const { error } = await supabase.from("app_settings").upsert({ key, value });
-
-      if (error) throw new Error(error.message);
-
-      setMsg(`✅ ${officerLabel(key)} saved.`);
-      await loadAll({ silent: true });
-      router.refresh();
-    } catch (e: unknown) {
-      setMsg("❌ Global officer save failed: " + errorMessage(e));
-    } finally {
-      setSaving(false);
-      setSavingTarget(null);
-    }
-  }
-
-  function goDashboard() {
-    router.push(`/dashboard?updated=${Date.now()}`);
-    router.refresh();
-  }
-
-  function goUsersRoles() {
-    router.push(`/admin/users?updated=${Date.now()}`);
-    router.refresh();
-  }
-
-  function goRoles() {
-    router.push(`/admin/roles?updated=${Date.now()}`);
-    router.refresh();
-  }
-
-  function goSecurity() {
-    router.push(`/admin/security?updated=${Date.now()}`);
-    router.refresh();
-  }
-
-  function officerName(id: string | null | undefined) {
-    if (!id) return "Not assigned";
-    const u = usersById.get(id);
-    return userDisplayName(u);
-  }
-
-  function officerRoleSummary(id: string | null | undefined) {
-    if (!id) return "—";
-
-    const assigned = rolesByProfile[id] || [];
-
-    if (assigned.length === 0) {
-      const u = usersById.get(id);
-      return u?.role || "Staff";
-    }
-
-    return assigned
-      .slice()
-      .sort((a, b) => {
-        if (a.is_primary && !b.is_primary) return -1;
-        if (!a.is_primary && b.is_primary) return 1;
-        return a.role_name.localeCompare(b.role_name);
-      })
-      .map((r) => r.role_name)
-      .join(", ");
-  }
+  const recentUsers = useMemo(
+    () => [...profiles]
+      .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())
+      .slice(0, 8),
+    [profiles]
+  );
 
   if (loading) {
-    return (
-      <main className="min-h-screen bg-transparent px-4">
-        <div className="mx-auto max-w-7xl py-10 text-slate-600">Loading Admin Panel...</div>
-      </main>
-    );
+    return <main className="admin-v3-page"><div className="admin-v3-loading">Loading live administration data…</div></main>;
   }
 
   return (
-    <main className="rg-module-page rg-adopted-page"><AdminNavigation /><div className="mx-auto w-full max-w-[1500px] space-y-4">
-        <div className="rg-module-header">
-          <div>
-            <p className="rg-module-eyebrow">Administration</p><h1>Admin Overview</h1>
-            <p className="rg-module-description">
-              Logged in as <b className="text-slate-900">{meEmail || "—"}</b> • Primary role{" "}
-              <b className="text-slate-900">{meRole || "Staff"}</b>
-            </p>
-            <p className="mt-1 text-[10px] font-semibold text-slate-500">
-              Manage global officers, department DOD/HOD/PO routing, multiple roles and signature readiness.
-            </p>
-          </div>
-
-          <div className="rg-module-actions">
-            <button
-              onClick={() => loadAll({ silent: true })}
-              disabled={refreshing || saving}
-              className="reqgen-btn reqgen-btn-cyan rounded-xl px-4 py-2 text-sm font-black text-white disabled:opacity-60"
-            >
-              {refreshing ? "Refreshing..." : "Refresh"}
-            </button>
-
-            <button
-              onClick={goUsersRoles}
-              disabled={refreshing || saving}
-              className="reqgen-btn reqgen-btn-violet rounded-xl px-4 py-2 text-sm disabled:opacity-60 font-black text-white"
-            >
-              Users & Multiple Roles
-            </button>
-
-            <button
-              onClick={goRoles}
-              disabled={refreshing || saving}
-              className="reqgen-btn reqgen-btn-violet rounded-xl px-4 py-2 text-sm disabled:opacity-60 font-black text-white"
-            >
-              Roles & Permissions
-            </button>
-
-            <button
-              onClick={goSecurity}
-              disabled={refreshing || saving}
-              className="reqgen-btn reqgen-btn-rose rounded-xl px-4 py-2 text-sm font-black text-white disabled:opacity-60"
-            >
-              Security
-            </button>
-
-            <button
-              onClick={goDashboard}
-              disabled={refreshing || saving}
-              className="reqgen-btn reqgen-btn-slate rounded-xl border border-slate-200 px-4 py-2 text-sm disabled:opacity-60 font-black text-white"
-            >
-              Back
-            </button>
-          </div>
+    <main className="admin-v3-page">
+      <header className="admin-v3-header">
+        <div>
+          <h1>{dayGreeting()}, {currentName} <span aria-hidden="true">👋</span></h1>
+          <p>System Administration Overview</p>
         </div>
+        <button className="admin-v3-secondary" type="button" onClick={() => void load(true)} disabled={refreshing}>
+          <RefreshCw size={16} className={refreshing ? "admin-v3-spin" : ""} />
+          {refreshing ? "Refreshing…" : "Refresh"}
+        </button>
+      </header>
 
-        {msg && (
-          <div className="mt-4 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-800 shadow-sm">
-            {msg}
-          </div>
-        )}
+      {error ? <div className="admin-v3-alert" role="alert">{error}</div> : null}
 
-        <div className="mt-4 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-xs font-semibold text-blue-900">
-          Final routing uses DOD, HOD, PO, Registrar, HR Boss, DG, DIN Admin and AccountOfficer.
-          Registry is not an approval-stage officer; Registry is for monitoring and DG reminder support.
-        </div>
+      <section className="admin-v3-kpis" aria-label="Administration KPIs">
+        <KpiCard label="Total Users" value={profiles.length} note={`${profiles.length} registered profiles`} icon={<UserRound size={22} />} />
+        <KpiCard label="Departments" value={departments.length} note={`${activeDepartments} active`} icon={<Building2 size={22} />} />
+        <KpiCard label="Roles" value={activeRoleCount} note={`${roles.length} configured roles`} icon={<ShieldCheck size={22} />} />
+        <KpiCard label="System Health" value={error ? "Review" : "Online"} note={error ? "One or more sources need attention" : "Core admin sources operational"} icon={<Activity size={22} />} tone={error ? "amber" : "green"} />
+      </section>
 
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
-          <StatCard title="Total Users" value={String(stats.totalUsers)} tone="blue" />
-          <StatCard title="Signature Ready" value={String(stats.signatureReadyCount)} tone="emerald" />
-          <StatCard title="Needs Signature" value={String(stats.needsSignature)} tone="amber" />
-          <StatCard title="Departments" value={String(stats.departments)} tone="slate" />
-          <StatCard title="Active Roles" value={String(stats.activeRoles)} tone="purple" />
-          <StatCard title="DIN Depts" value={String(stats.dinDepartments)} tone="blue" />
-        </div>
-
-        <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-6">
-          <MiniCard title="Active Departments" value={String(stats.activeDepartments)} />
-          <MiniCard title="Routed Departments" value={String(stats.routedDepartments)} />
-          <MiniCard title="ASAP/ALLI Depts" value={String(stats.asapDepartments)} />
-          <MiniCard title="Registrar" value={stats.registrarSet ? "Assigned" : "Not Set"} />
-          <MiniCard title="DG / HR" value={stats.dgSet && stats.hrSet ? "Assigned" : "Incomplete"} />
-          <MiniCard title="DIN Admin" value={stats.dinAdminSet ? "Assigned" : "Not Set"} />
-        </div>
-
-        <div className="mt-6 grid gap-6 xl:grid-cols-3">
-          <div className="rounded-2xl border bg-white p-6 shadow-sm xl:col-span-2">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <h2 className="text-lg font-bold text-slate-900">Quick Multiple-Role Assignment</h2>
-                <p className="mt-1 text-sm text-slate-600">
-                  Use this for quick additions. Use the advanced Users page for full role management.
-                </p>
-              </div>
-
-              <button
-                onClick={goUsersRoles}
-                disabled={saving || refreshing}
-                className="reqgen-btn reqgen-btn-blue rounded-xl px-4 py-2 text-sm font-black text-white disabled:opacity-60"
-              >
-                Advanced Users Page
-              </button>
+      <section className="admin-v3-grid admin-v3-grid-3">
+        <article className="admin-v3-card">
+          <div className="admin-v3-card-head"><div><h2>Users by Role</h2><p>Live primary-role distribution</p></div></div>
+          <div className="admin-v3-donut-wrap">
+            <div className="admin-v3-donut" style={{ background: conicGradient }}>
+              <div><strong>{profiles.length}</strong><span>Users</span></div>
             </div>
-
-            <div className="mt-4 grid gap-4 md:grid-cols-3">
-              <div className="md:col-span-2">
-                <label className="text-sm font-semibold text-slate-800">Select User</label>
-                <select
-                  value={selectedUserId}
-                  onChange={(e) => setSelectedUserId(e.target.value)}
-                  disabled={saving}
-                  className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 disabled:bg-slate-50"
-                >
-                  <option value="">-- Select user --</option>
-                  {users.map((u) => {
-                    const assigned = rolesByProfile[u.id] || [];
-                    const roleText =
-                      assigned.length > 0
-                        ? assigned.map((r) => r.role_name).join(", ")
-                        : u.role || "Staff";
-
-                    return (
-                      <option key={u.id} value={u.id}>
-                        {(u.full_name || u.email || u.id) +
-                          ` (${roleText})` +
-                          (u.signature_url ? " • Signature Ready" : " • No Signature")}
-                      </option>
-                    );
-                  })}
-                </select>
-              </div>
-
-              <div>
-                <label className="text-sm font-semibold text-slate-800">Role to Add</label>
-                <select
-                  value={selectedRoleKey}
-                  onChange={(e) => setSelectedRoleKey(e.target.value)}
-                  disabled={saving}
-                  className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 disabled:bg-slate-50"
-                >
-                  {roles.map((r) => (
-                    <option key={r.id} value={r.role_key}>
-                      {r.role_name}
-                      {r.requires_signature ? " • Signature" : ""}
-                    </option>
-                  ))}
-                </select>
-
-                <span
-                  className={`mt-2 inline-flex rounded-full border px-3 py-1 text-xs font-bold ${roleBadgeClass(
-                    selectedRoleKey
-                  )}`}
-                >
-                  {roleMap[roleKey(selectedRoleKey)]?.role_name || selectedRoleKey}
-                </span>
-              </div>
+            <div className="admin-v3-legend">
+              {roleDistribution.length ? roleDistribution.map((item, index) => (
+                <div key={item.label}><i style={{ background: ROLE_COLORS[index % ROLE_COLORS.length] }} /><span>{item.label}</span><strong>{item.count}</strong></div>
+              )) : <p className="admin-v3-empty">No user-role data available.</p>}
             </div>
-
-            <label className="mt-4 flex items-center gap-2 text-sm font-bold text-slate-700">
-              <input
-                type="checkbox"
-                checked={makePrimaryRole}
-                onChange={(e) => setMakePrimaryRole(e.target.checked)}
-                disabled={saving}
-              />
-              Set this role as primary fallback role
-            </label>
-
-            <button
-              onClick={saveQuickRole}
-              disabled={saving}
-              className="reqgen-btn reqgen-btn-blue mt-4 rounded-xl px-4 py-2 text-sm font-black text-white disabled:opacity-60"
-            >
-              {savingTarget === "role" ? "Saving Role..." : "Assign Role"}
-            </button>
           </div>
+        </article>
 
-          <div className="rounded-2xl border bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-bold text-slate-900">Role Catalogue</h2>
-            <p className="mt-1 text-sm text-slate-600">
-              These active roles are available for assignment.
-            </p>
-
-            <div className="mt-4 space-y-2">
-              {roles.slice(0, 9).map((r) => (
-                <div
-                  key={r.id}
-                  className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2"
-                >
-                  <span
-                    className={`rounded-full border px-2 py-1 text-[11px] font-bold ${roleBadgeClass(
-                      r.role_key
-                    )}`}
-                  >
-                    {r.role_name}
-                  </span>
-                  <span className="text-[11px] font-semibold text-slate-500">
-                    {r.requires_signature ? "Signature" : "No signature"}
-                  </span>
+        <article className="admin-v3-card">
+          <div className="admin-v3-card-head"><div><h2>User Activity</h2><p>Live audit events - last 14 days</p></div></div>
+          {auditRows.length ? (
+            <div className="admin-v3-bars" aria-label="Audit events by day">
+              {activity.map((point, index) => (
+                <div className="admin-v3-bar-col" key={`${point.label}-${index}`} title={`${point.label}: ${point.count} events`}>
+                  <div className="admin-v3-bar-value">{point.count || ""}</div>
+                  <div className="admin-v3-bar" style={{ height: `${Math.max(point.count ? 10 : 2, (point.count / maxActivity) * 100)}%` }} />
+                  <span>{index % 2 === 0 ? point.label : ""}</span>
                 </div>
               ))}
             </div>
+          ) : (
+            <div className="admin-v3-empty-state"><Activity size={26} /><strong>Audit activity unavailable</strong><span>No readable audit-log dataset was returned. ReqGen will not fabricate chart values.</span></div>
+          )}
+        </article>
 
-            <button
-              onClick={goRoles}
-              disabled={saving || refreshing}
-              className="reqgen-btn reqgen-btn-violet mt-4 w-full rounded-xl px-4 py-2 text-sm disabled:opacity-60 font-black text-white"
-            >
-              Open Roles & Permissions
-            </button>
+        <article className="admin-v3-card">
+          <div className="admin-v3-card-head"><div><h2>Departments</h2><p>Live organisational structure</p></div><Link href="/admin/departments">View all</Link></div>
+          <div className="admin-v3-dept-ring"><div><strong>{departments.length}</strong><span>Departments</span></div></div>
+          <div className="admin-v3-dept-list">
+            {departments.map((dept) => <div key={dept.id}><span>{dept.name}</span><b className={dept.is_active === false ? "is-inactive" : "is-active"}>{dept.is_active === false ? "Inactive" : "Active"}</b></div>)}
+            {!departments.length ? <p className="admin-v3-empty">No departments found.</p> : null}
           </div>
+        </article>
+      </section>
+
+      <section className="admin-v3-card admin-v3-recent">
+        <div className="admin-v3-card-head">
+          <div><h2>Recent Users</h2><p>Newest user profiles in ReqGen</p></div>
+          <Link href="/admin/users">View All Users</Link>
         </div>
-
-        <div className="mt-6 rounded-2xl border bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-bold text-slate-900">Global Routing Officers</h2>
-          <p className="mt-1 text-sm text-slate-600">
-            These officers are used by the final routing functions. Assign only signature-ready users.
-          </p>
-
-          <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-            {GLOBAL_KEYS.map((k) => (
-              <div key={k} className="rounded-2xl border border-slate-200 p-4">
-                <div className="flex flex-wrap items-start justify-between gap-2">
-                  <div>
-                    <div className="text-sm font-bold text-slate-900">{officerLabel(k)}</div>
-                    <div className="mt-1 text-xs text-slate-500">
-                      Current: {officerName(settings[k])}
-                    </div>
-                  </div>
-
-                  <span
-                    className={`rounded-full border px-2 py-1 text-[11px] font-bold ${roleBadgeClass(
-                      officerRoleSummary(settings[k])
-                    )}`}
-                  >
-                    Assigned
-                  </span>
-                </div>
-
-                <div className="mt-2 rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-600">
-                  {officerPurpose(k)}
-                </div>
-
-                <div className="mt-3 flex flex-col gap-2">
-                  <select
-                    value={settings[k] || ""}
-                    onChange={(e) => setSettings((s) => ({ ...s, [k]: e.target.value }))}
-                    disabled={saving}
-                    className="w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 disabled:bg-slate-50"
-                  >
-                    <option value="">-- Select user --</option>
-                    {signatureReadyUsers.map((u) => (
-                      <option key={u.id} value={u.id}>
-                        {userDisplayName(u)} ({officerRoleSummary(u.id)})
-                      </option>
-                    ))}
-                  </select>
-
-                  <button
-                    onClick={() => saveSetting(k, settings[k] || "")}
-                    disabled={saving}
-                    className="reqgen-btn reqgen-btn-emerald rounded-xl px-4 py-2 text-sm font-black text-white disabled:opacity-60"
-                  >
-                    {savingTarget === k ? "Saving..." : "Save"}
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="mt-6 rounded-2xl border bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-bold text-slate-900">Department Routing</h2>
-          <p className="mt-1 text-sm text-slate-600">
-            DOD is stored as department Director. PO is used mainly for ASAP-ALLI Official route.
-            HOD is used for General Admin and ASAP-ALLI route stages.
-          </p>
-
-          <div className="mt-4 grid gap-4">
-            {depts.length === 0 ? (
-              <div className="rounded-2xl border border-slate-200 p-5 text-sm text-slate-600">
-                No departments found.
-              </div>
-            ) : (
-              depts.map((d) => {
-                const lowerName = d.name.toLowerCase();
-                const isDin = lowerName.includes("din");
-                const isAsap = lowerName.includes("asap") || lowerName.includes("alli");
-                const isWelfare = lowerName.includes("welfare");
-                const isLiaison = lowerName.includes("liaison");
-
-                return (
-                  <div key={d.id} className="rounded-2xl border border-slate-200 p-5">
-                    <div className="flex flex-wrap items-start justify-between gap-2">
-                      <div>
-                        <div className="flex flex-wrap items-center gap-2">
-                          <div className="font-bold text-slate-900">{d.name}</div>
-
-                          {isDin && (
-                            <span className="rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">
-                              DIN
-                            </span>
-                          )}
-
-                          {isAsap && (
-                            <span className="rounded-full border border-purple-200 bg-purple-50 px-3 py-1 text-xs font-bold text-purple-700">
-                              ASAP/ALLI
-                            </span>
-                          )}
-
-                          {isWelfare && (
-                            <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
-                              Welfare
-                            </span>
-                          )}
-
-                          {isLiaison && (
-                            <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700">
-                              Liaison
-                            </span>
-                          )}
-                        </div>
-
-                        <div className="mt-1 text-xs text-slate-500">
-                          DOD: {officerName(d.director_user_id)} • HOD:{" "}
-                          {officerName(d.hod_user_id)} • PO: {officerName(d.po_id)}
-                        </div>
-
-                        {isDin && (
-                          <div className="mt-2 rounded-xl bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-800">
-                            DIN Official flow: DOD → DIN Admin → Registrar → DG → AccountOfficer.
-                            DIN Personal flow: DOD → HR → DG → AccountOfficer/HR Filing.
-                          </div>
-                        )}
-
-                        {isAsap && (
-                          <div className="mt-2 rounded-xl bg-purple-50 px-3 py-2 text-xs font-semibold text-purple-800">
-                            ASAP-ALLI Official flow: PO → DOD → HOD → DG → AccountOfficer.
-                            ASAP-ALLI Personal flow: DOD → HOD → HR → DG → AccountOfficer/HR Filing.
-                          </div>
-                        )}
-
-                        {(isWelfare || isLiaison) && (
-                          <div className="mt-2 rounded-xl bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800">
-                            Official flow: DOD → DG → AccountOfficer. Personal flow: DOD → HR → DG
-                            → AccountOfficer/HR Filing.
-                          </div>
-                        )}
-                      </div>
-
-                      <span
-                        className={`rounded-full border px-3 py-1 text-xs font-bold ${d.is_active === false
-                            ? "border-red-200 bg-red-50 text-red-700"
-                            : "border-emerald-200 bg-emerald-50 text-emerald-700"
-                          }`}
-                      >
-                        {d.is_active === false ? "Inactive" : "Active"}
-                      </span>
-                    </div>
-
-                    <div className="mt-4 grid gap-4 md:grid-cols-3">
-                      <OfficerSelect
-                        label="DOD / Director of Department"
-                        value={d.director_user_id || ""}
-                        users={signatureReadyUsers}
-                        usersById={usersById}
-                        rolesByProfile={rolesByProfile}
-                        disabled={saving}
-                        onChange={(value) =>
-                          setDepts((prev) =>
-                            prev.map((x) =>
-                              x.id === d.id ? { ...x, director_user_id: value || null } : x
-                            )
-                          )
-                        }
-                      />
-
-                      <OfficerSelect
-                        label="HOD"
-                        value={d.hod_user_id || ""}
-                        users={signatureReadyUsers}
-                        usersById={usersById}
-                        rolesByProfile={rolesByProfile}
-                        disabled={saving}
-                        onChange={(value) =>
-                          setDepts((prev) =>
-                            prev.map((x) =>
-                              x.id === d.id ? { ...x, hod_user_id: value || null } : x
-                            )
-                          )
-                        }
-                      />
-
-                      <OfficerSelect
-                        label="PO / Programme Officer"
-                        value={d.po_id || ""}
-                        users={signatureReadyUsers}
-                        usersById={usersById}
-                        rolesByProfile={rolesByProfile}
-                        disabled={saving}
-                        onChange={(value) =>
-                          setDepts((prev) =>
-                            prev.map((x) => (x.id === d.id ? { ...x, po_id: value || null } : x))
-                          )
-                        }
-                      />
-                    </div>
-
-                    <button
-                      onClick={() => saveDept(d.id, d.hod_user_id, d.director_user_id, d.po_id)}
-                      disabled={saving}
-                      className="reqgen-btn reqgen-btn-emerald mt-4 rounded-xl px-4 py-2 text-sm font-black text-white disabled:opacity-60"
-                    >
-                      {savingTarget === `dept-${d.id}` ? "Saving..." : "Save Department Routing"}
-                    </button>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </div>
-
-        <div className="mt-6 rounded-2xl border bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-bold text-slate-900">Signature Readiness</h2>
-          <p className="mt-1 text-sm text-slate-600">
-            Users without signature should not hold workflow-sensitive roles because their signatures
-            must appear in approvals and print templates.
-          </p>
-
-          <div className="mt-4 hidden overflow-x-auto xl:block">
-            <table className="min-w-full border-collapse">
-              <thead>
-                <tr className="border-b border-slate-200 text-left text-sm text-slate-600">
-                  <th className="py-2 pr-4">Name</th>
-                  <th className="py-2 pr-4">Email</th>
-                  <th className="py-2 pr-4">Primary Role</th>
-                  <th className="py-2 pr-4">Active Roles</th>
-                  <th className="py-2 pr-4">Signature</th>
-                  <th className="py-2 pr-4">Ready</th>
+        <div className="admin-v3-table-scroll">
+          <table className="admin-v3-table">
+            <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Department</th><th>Status</th><th>Created</th></tr></thead>
+            <tbody>
+              {recentUsers.map((user) => (
+                <tr key={user.id}>
+                  <td><strong>{user.full_name || "Unnamed user"}</strong></td>
+                  <td>{user.email || "—"}</td>
+                  <td>{primaryRoleByProfile.get(user.id) || user.role || "Staff"}</td>
+                  <td>{user.dept_id ? departmentMap.get(user.dept_id) || "Unknown department" : "—"}</td>
+                  <td><span className="admin-v3-status is-active">Active</span></td>
+                  <td>{formatDate(user.created_at)}</td>
                 </tr>
-              </thead>
-
-              <tbody>
-                {users.map((u) => {
-                  const ready = !!u.signature_url;
-                  const assigned = rolesByProfile[u.id] || [];
-
-                  return (
-                    <tr key={u.id} className="border-b border-slate-100 text-sm text-slate-800">
-                      <td className="py-2 pr-4 font-semibold">{u.full_name || "—"}</td>
-                      <td className="py-2 pr-4">{u.email || "—"}</td>
-                      <td className="py-2 pr-4">
-                        <span
-                          className={`rounded-full border px-3 py-1 text-xs font-bold ${roleBadgeClass(
-                            u.role || "Staff"
-                          )}`}
-                        >
-                          {u.role || "Staff"}
-                        </span>
-                      </td>
-                      <td className="py-2 pr-4">
-                        <div className="flex flex-wrap gap-1">
-                          {assigned.length === 0 ? (
-                            <span className="text-xs text-slate-500">No active assigned role</span>
-                          ) : (
-                            assigned.map((r) => (
-                              <span
-                                key={r.id}
-                                className={`rounded-full border px-2 py-1 text-[11px] font-bold ${roleBadgeClass(
-                                  r.role_key
-                                )}`}
-                              >
-                                {r.role_name}
-                                {r.is_primary ? " • Primary" : ""}
-                              </span>
-                            ))
-                          )}
-                        </div>
-                      </td>
-                      <td className="py-2 pr-4">{u.signature_url ? "✅ Present" : "❌ Missing"}</td>
-                      <td className="py-2 pr-4">
-                        <span
-                          className={`rounded-lg border px-2 py-1 text-xs font-semibold ${signatureBadgeClass(
-                            ready
-                          )}`}
-                        >
-                          {ready ? "Ready" : "Not Ready"}
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-
-          <div className="mt-4 grid gap-3 xl:hidden">
-            {users.map((u) => {
-              const ready = !!u.signature_url;
-              const assigned = rolesByProfile[u.id] || [];
-
-              return (
-                <div key={u.id} className="rounded-2xl border border-slate-200 p-4">
-                  <div className="font-bold text-slate-900">{u.full_name || "—"}</div>
-                  <div className="mt-1 text-sm text-slate-600">{u.email || "—"}</div>
-
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <span
-                      className={`rounded-full border px-3 py-1 text-xs font-bold ${roleBadgeClass(
-                        u.role || "Staff"
-                      )}`}
-                    >
-                      {u.role || "Staff"}
-                    </span>
-
-                    <span
-                      className={`rounded-full border px-3 py-1 text-xs font-bold ${signatureBadgeClass(
-                        ready
-                      )}`}
-                    >
-                      {ready ? "Signature Ready" : "No Signature"}
-                    </span>
-                  </div>
-
-                  <div className="mt-3 flex flex-wrap gap-1">
-                    {assigned.map((r) => (
-                      <span
-                        key={r.id}
-                        className={`rounded-full border px-2 py-1 text-[11px] font-bold ${roleBadgeClass(
-                          r.role_key
-                        )}`}
-                      >
-                        {r.role_name}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+              ))}
+              {!recentUsers.length ? <tr><td colSpan={6} className="admin-v3-empty">No users found.</td></tr> : null}
+            </tbody>
+          </table>
         </div>
+      </section>
 
-        <div className="mt-6 rounded-3xl border border-amber-100 bg-amber-50 p-5 text-sm text-amber-900">
-          <div className="font-bold">Admin Control Note</div>
-          <p className="mt-1">
-            Assign workflow-sensitive roles only to users with uploaded signatures and verified
-            operational responsibility. Registrar is used for DIN Official requests. HR Boss is used
-            for Personal requests. Registry is for monitoring and DG reminders, not approval.
-          </p>
-        </div>
-      </div>
+      <footer className="admin-v3-inline-release">ReqGen administration workspace • Version {REQGEN_VERSION}</footer>
     </main>
   );
 }
 
-function OfficerSelect({
-  label,
-  value,
-  users,
-  usersById,
-  rolesByProfile,
-  disabled,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  users: UserRow[];
-  usersById: Map<string, UserRow>;
-  rolesByProfile: Record<string, ProfileRole[]>;
-  disabled: boolean;
-  onChange: (value: string) => void;
-}) {
-  function roleSummary(id: string) {
-    const assigned = rolesByProfile[id] || [];
-
-    if (assigned.length > 0) {
-      return assigned.map((r) => r.role_name).join(", ");
-    }
-
-    return usersById.get(id)?.role || "Staff";
-  }
-
+function KpiCard({ label, value, note, icon, tone = "blue" }: { label: string; value: string | number; note: string; icon: ReactNode; tone?: "blue" | "green" | "amber" }) {
   return (
-    <div>
-      <label className="text-sm font-semibold text-slate-800">{label}</label>
-      <select
-        value={value}
-        disabled={disabled}
-        onChange={(e) => onChange(e.target.value)}
-        className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 disabled:bg-slate-50"
-      >
-        <option value="">-- None --</option>
-        {users.map((u) => (
-          <option key={u.id} value={u.id}>
-            {userDisplayName(u)} ({roleSummary(u.id)})
-          </option>
-        ))}
-      </select>
-    </div>
-  );
-}
-
-function StatCard({
-  title,
-  value,
-  tone,
-}: {
-  title: string;
-  value: string;
-  tone: "blue" | "emerald" | "amber" | "slate" | "purple" | "red";
-}) {
-  const cls =
-    tone === "emerald"
-      ? "bg-emerald-50 text-emerald-700"
-      : tone === "amber"
-        ? "bg-amber-50 text-amber-700"
-        : tone === "purple"
-          ? "bg-purple-50 text-purple-700"
-          : tone === "red"
-            ? "bg-red-50 text-red-700"
-            : tone === "slate"
-              ? "bg-slate-50 text-slate-700"
-              : "bg-blue-50 text-blue-700";
-
-  return (
-    <div className="rounded-2xl border bg-white p-5 shadow-sm">
-      <div className="text-sm font-semibold text-slate-500">{title}</div>
-      <div className={`mt-2 inline-flex rounded-2xl px-3 py-2 text-2xl font-extrabold ${cls}`}>
-        {value}
-      </div>
-    </div>
-  );
-}
-
-function MiniCard({ title, value }: { title: string; value: string }) {
-  return (
-    <div className="rounded-2xl border bg-white p-4 shadow-sm">
-      <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">{title}</div>
-      <div className="mt-2 text-lg font-extrabold text-slate-900">{value}</div>
-    </div>
+    <article className={`admin-v3-kpi is-${tone}`}>
+      <div><span>{label}</span><strong>{value}</strong><small>{note}</small></div>
+      <div className="admin-v3-kpi-icon">{icon}</div>
+    </article>
   );
 }

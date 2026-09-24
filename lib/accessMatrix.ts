@@ -10,7 +10,7 @@ export const ACCESS_MATRIX_ROLES = [
   "hr",
   "registrar",
   "generalsecretary",
-  "deanadmin",
+  "dinadmin",
   "registry",
   "staff",
 ] as const;
@@ -32,7 +32,7 @@ const coreAuthenticated = {
   hr: "authenticated",
   registrar: "authenticated",
   generalsecretary: "authenticated",
-  deanadmin: "authenticated",
+  dinadmin: "authenticated",
   registry: "authenticated",
   staff: "authenticated",
 } as const;
@@ -47,7 +47,7 @@ const financeAccess = {
   hr: "deny",
   registrar: "deny",
   generalsecretary: "deny",
-  deanadmin: "deny",
+  dinadmin: "deny",
   registry: "deny",
   staff: "deny",
 } as const;
@@ -62,7 +62,7 @@ const auditAccess = {
   hr: "deny",
   registrar: "deny",
   generalsecretary: "deny",
-  deanadmin: "deny",
+  dinadmin: "deny",
   registry: "deny",
   staff: "deny",
 } as const;
@@ -85,7 +85,7 @@ export const ACCESS_MATRIX: AccessMatrixRow[] = [
     hr: "deny",
     registrar: "allow",
     generalsecretary: "deny",
-    deanadmin: "deny",
+    dinadmin: "deny",
     registry: "allow",
     staff: "deny",
   },
@@ -103,7 +103,7 @@ export const ACCESS_MATRIX: AccessMatrixRow[] = [
     hr: "deny",
     registrar: "deny",
     generalsecretary: "deny",
-    deanadmin: "deny",
+    dinadmin: "deny",
     registry: "deny",
     staff: "deny",
   },

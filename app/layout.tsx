@@ -6,16 +6,16 @@ import MfaGuard from "./components/MfaGuard";
 import RouteAccessGuard from "./components/RouteAccessGuard";
 import GlobalTips from "./components/GlobalTips";
 import GovernmentAppShell from "./components/GovernmentAppShell";
-import { REQGEN_PRODUCT_LABEL } from "@/lib/version";
+import { REQGEN_PRODUCT_NAME } from "@/lib/version";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://req-gen-1-1-0.vercel.app"),
   title: {
-    default: REQGEN_PRODUCT_LABEL,
-    template: `%s | ${REQGEN_PRODUCT_LABEL}`,
+    default: REQGEN_PRODUCT_NAME,
+    template: `%s | ${REQGEN_PRODUCT_NAME}`,
   },
   description: "Islamic Education Trust (IET) secure request management system.",
-  applicationName: REQGEN_PRODUCT_LABEL,
+  applicationName: REQGEN_PRODUCT_NAME,
   creator: "Barderian Enterprises",
   authors: [{ name: "Barderian Enterprises" }],
   keywords: [

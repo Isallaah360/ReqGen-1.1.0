@@ -20,6 +20,7 @@ import {
   X,
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
+import { REQGEN_VERSION } from "@/lib/version";
 import styles from "./bank-accounts.module.css";
 
 type Account = {
@@ -313,12 +314,12 @@ export default function ManageAccountsPage() {
       String(a.total_fund || 0),
       String(a.available_balance || 0),
     ]);
-    const csv = [header, ...rows].map((r) => r.map((v) => `"${String(v).replaceAll('"', '""')}"`).join(",")).join("\n");
+    const csv = [[`Generated from ReqGen ${REQGEN_VERSION}`], header, ...rows].map((r) => r.map((v) => `"${String(v).replaceAll('"', '""')}"`).join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "iet-bank-accounts.csv";
+    a.download = `iet-bank-accounts-reqgen-${REQGEN_VERSION}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   }
