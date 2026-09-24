@@ -68,6 +68,9 @@ function roleBadgeClass(role: string | null | undefined) {
 function canonicalRoleName(role: string | null | undefined, key?: string | null) {
   const normalized = roleKey(key || role);
   if (normalized === "deanadmin" || normalized === "dinadmin") return "DIN Admin";
+  if (normalized === "registry" || normalized === "registrar") return "Registrar";
+  if (normalized === "gensec" || normalized === "generalsecretary") return "General Secretary";
+  if (["account", "accounts", "accountofficer"].includes(normalized)) return "Account Officer";
   return String(role || "Staff").trim() || "Staff";
 }
 
@@ -430,7 +433,7 @@ export default function AdminRolesPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-transparent px-4">
+      <main className="min-h-screen bg-transparent px-4" data-rg-standard="phase7">
         <div className="mx-auto max-w-7xl py-10 text-slate-600">
           Loading roles...
         </div>
@@ -440,7 +443,7 @@ export default function AdminRolesPage() {
 
   if (!canManage) {
     return (
-      <main className="min-h-screen bg-transparent px-4">
+      <main className="min-h-screen bg-transparent px-4" data-rg-standard="phase7">
         <div className="mx-auto max-w-3xl py-10">
           <div className="rounded-3xl border bg-white p-6 shadow-sm">
             <h1 className="text-xl font-extrabold text-slate-900">Access denied</h1>
@@ -467,9 +470,9 @@ export default function AdminRolesPage() {
   }
 
   return (
-    <main className="min-h-screen bg-transparent px-4">
+    <main className="min-h-screen bg-transparent px-4" data-rg-standard="phase7">
       <AdminNavigation />
-      <div className="mx-auto max-w-7xl py-10">
+      <div className="mx-auto max-w-7xl py-5">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">
@@ -539,8 +542,8 @@ export default function AdminRolesPage() {
           <StatCard title="Signature Required" value={String(stats.signatureCount)} tone="red" />
         </div>
 
-        <div className="mt-6 rounded-3xl border bg-white p-2 shadow-sm">
-          <div className="flex flex-wrap gap-2">
+        <div className="mt-5 rounded-xl border bg-white p-1 shadow-sm" data-rg-tabs="true">
+          <div className="flex flex-wrap gap-1">
             <TabButton label="Overview" active={activeTab === "overview"} onClick={() => setActiveTab("overview")} />
             <TabButton label="Active Roles" active={activeTab === "active"} onClick={() => setActiveTab("active")} />
             <TabButton label="Inactive Roles" active={activeTab === "inactive"} onClick={() => setActiveTab("inactive")} />
@@ -549,13 +552,13 @@ export default function AdminRolesPage() {
         </div>
 
         {(activeTab === "overview" || activeTab === "active" || activeTab === "inactive") && (
-          <div className="mt-6 rounded-3xl border bg-white p-5 shadow-sm">
-            <label className="text-sm font-semibold text-slate-800">Search Roles</label>
+          <div className="mt-5 rounded-xl border bg-white p-4 shadow-sm">
+            <label className="text-xs font-extrabold text-slate-700">Search Roles</label>
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search role name, key, description, status..."
-              className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 text-slate-900 outline-none focus:border-blue-500"
+              className="mt-1 h-10 w-full rounded-lg border border-slate-200 px-3 text-sm text-slate-900 outline-none focus:border-blue-500"
             />
           </div>
         )}
@@ -662,10 +665,10 @@ export default function AdminRolesPage() {
         )}
 
         {(activeTab === "overview" || activeTab === "active" || activeTab === "inactive") && (
-          <div className="mt-6 overflow-hidden rounded-3xl border bg-white shadow-sm">
-            <div className="border-b bg-slate-50 px-6 py-4">
-              <h2 className="text-lg font-bold text-slate-900">Role Register</h2>
-              <p className="mt-1 text-sm text-slate-600">
+          <div className="mt-5 overflow-hidden rounded-xl border bg-white shadow-sm">
+            <div className="border-b bg-slate-50 px-4 py-3">
+              <h2 className="text-sm font-extrabold text-slate-900">Role Register</h2>
+              <p className="mt-1 text-xs text-slate-600">
                 System and custom roles available for ReqGen user assignment.
               </p>
             </div>
@@ -688,17 +691,17 @@ export default function AdminRolesPage() {
                 </div>
 
                 <div className="hidden overflow-x-auto xl:block">
-                  <table className="w-full table-auto border-collapse text-sm">
+                  <table className="w-full table-fixed border-collapse text-sm" data-rg-table="standard">
                     <thead>
                       <tr className="bg-slate-100 text-xs uppercase tracking-wide text-slate-600">
                         <th className="px-4 py-3 text-left">Role</th>
                         <th className="px-4 py-3 text-left">Key</th>
-                        <th className="px-4 py-3 text-left">Description</th>
+                        <th className="w-[28%] px-4 py-3 text-left">Description</th>
                         <th className="px-4 py-3 text-left">Type</th>
                         <th className="px-4 py-3 text-left">Signature</th>
                         <th className="px-4 py-3 text-left">Status</th>
                         <th className="px-4 py-3 text-left">Updated</th>
-                        <th className="px-4 py-3 text-right">Actions</th>
+                        <th className="w-[230px] px-4 py-3 text-right">Actions</th>
                       </tr>
                     </thead>
 
@@ -756,11 +759,11 @@ export default function AdminRolesPage() {
                           </td>
 
                           <td className="px-4 py-4">
-                            <div className="flex justify-end gap-2">
+                            <div className="flex flex-nowrap justify-end gap-2">
                               <button
                                 onClick={() => startEdit(role)}
                                 disabled={saving}
-                                className="reqgen-btn reqgen-btn-orange rounded-xl px-3 py-2 text-xs font-black text-white disabled:opacity-50"
+                                className="reqgen-btn reqgen-btn-orange whitespace-nowrap rounded-lg px-3 py-2 text-xs font-black text-white disabled:opacity-50"
                               >
                                 Edit
                               </button>
@@ -768,7 +771,7 @@ export default function AdminRolesPage() {
                               <button
                                 onClick={() => toggleActive(role, !role.is_active)}
                                 disabled={saving}
-                                className={`reqgen-btn rounded-xl px-3 py-2 text-xs font-black text-white disabled:opacity-50 ${role.is_active ? "reqgen-btn-orange" : "reqgen-btn-emerald"}`}
+                                className={`reqgen-btn whitespace-nowrap rounded-lg px-3 py-2 text-xs font-black text-white disabled:opacity-50 ${role.is_active ? "reqgen-btn-orange" : "reqgen-btn-emerald"}`}
                               >
                                 {role.is_active ? "Deactivate" : "Activate"}
                               </button>
@@ -776,7 +779,7 @@ export default function AdminRolesPage() {
                               <button
                                 onClick={() => deleteRole(role)}
                                 disabled={saving || role.is_system}
-                                className="reqgen-btn reqgen-btn-rose rounded-xl px-3 py-2 text-xs font-black text-white disabled:opacity-40"
+                                className="reqgen-btn reqgen-btn-rose whitespace-nowrap rounded-lg px-3 py-2 text-xs font-black text-white disabled:opacity-40"
                               >
                                 Delete
                               </button>

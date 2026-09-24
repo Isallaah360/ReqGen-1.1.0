@@ -312,7 +312,7 @@ export default function FinanceOverviewPage() {
   const pagedBudgetHealth = budgetHealth.slice((budgetSafePage - 1) * listPageSize, budgetSafePage * listPageSize);
   const pagedAccounts = activeAccounts.slice((accountSafePage - 1) * listPageSize, accountSafePage * listPageSize);
 
-  if (loading) return <main className={styles.page}><div className={styles.loading}>Loading live Finance data…</div></main>;
+  if (loading) return <main className={styles.page} data-rg-standard="phase7"><div className={styles.loading}>Loading live Finance data…</div></main>;
 
   return (
     <main className={styles.page}>

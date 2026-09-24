@@ -106,10 +106,10 @@ export default function ReportsCentrePage() {
   }
 
   if (loading) return <div className={styles.page}><div className={styles.loading}>Loading authorised live report sources…</div></div>;
-  return <main className={styles.page}>
+  return <main className={styles.page} data-rg-standard="phase7">
     <header className={styles.head}><div><div className={styles.eyebrow}>Reports</div><h1 className={styles.title}>Reports Centre</h1><p className={styles.subtitle}>Generate, review and export operational reports across authorised ReqGen modules.</p></div><div className={styles.actions}><button className={styles.button} onClick={() => window.print()}><Printer size={15}/> Print / PDF</button><button className={styles.primary} onClick={exportCurrent}><Download size={15}/> Export</button></div></header>
     {issue ? <div className={`${styles.notice} ${styles.error}`}>{issue}</div> : null}
-    <nav className={styles.tabs}>{tabs.map(t => <button key={t.key} className={`${styles.tab} ${tab === t.key ? styles.tabActive : ""}`} onClick={() => setTab(t.key)}>{t.label}</button>)}</nav>
+    <nav className={styles.tabs} data-rg-tabs="true">{tabs.map(t => <button key={t.key} className={`${styles.tab} ${tab === t.key ? styles.tabActive : ""}`} onClick={() => setTab(t.key)}>{t.label}</button>)}</nav>
     <section className={styles.kpis}>
       <Kpi icon={<FileText size={18}/>} label="Total Requests" value={filteredRequests.length.toLocaleString()} note="Selected period"/>
       <Kpi icon={<ShieldCheck size={18}/>} label="Total Approved" value={approvedRequests.length.toLocaleString()} note={`${filteredRequests.length ? (approvedRequests.length/filteredRequests.length*100).toFixed(1) : "0.0"}% of requests`}/>

@@ -4,3 +4,13 @@
 .chartPoint{cursor:help}.chartPoint .chartDot{transition:r .15s ease,fill .15s ease}.chartPoint:hover .chartDot,.chartPoint:focus-within .chartDot{r:7px}
 
 .chartInsight{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 4px 6px;padding:9px 11px;border:1px solid #cfe0f7;border-radius:9px;background:#f6faff;color:#173b6d;font-size:11px}.chartInsight strong{font-size:11px}.chartHint{margin:0 4px 6px;color:#718096;font-size:11px}.donut{border:0;padding:0;cursor:pointer}.donut:focus-visible,.legendRow:focus-visible{outline:2px solid #1269f3;outline-offset:3px}.legendRow{width:100%;border:0;background:transparent;padding:3px 0;text-align:left;cursor:pointer}.legendRow:hover{background:#f7faff;border-radius:6px}
+
+/* Phase 7 locked Budget & Subheads visual standard */
+.card,.kpi{border-radius:12px;box-shadow:0 7px 18px rgba(22,34,57,.04)}
+.cardHead{min-height:56px;padding:12px 15px}.cardHead h2{font-size:14px;color:#111d3a}
+.donutBody{min-height:196px;grid-template-columns:116px minmax(0,1fr);gap:12px;padding:15px}
+.donut{display:block!important;width:108px!important;height:108px!important;aspect-ratio:auto!important;min-width:108px!important;min-height:108px!important;max-width:108px!important;border-radius:50%!important;overflow:hidden!important;appearance:none!important;-webkit-appearance:none!important;box-shadow:none!important}
+.donut::after{inset:24px!important}.donutCenter strong{font-size:22px}.legend{gap:8px}.legendRow{min-height:30px;padding:4px 6px!important;border-radius:6px!important}
+.quickGrid{grid-template-columns:1fr 1fr;padding:12px;gap:8px}.quick{min-height:58px;grid-template-columns:30px 1fr;place-items:initial;align-items:center;align-content:initial;padding:9px 10px;text-align:left;border-radius:8px;gap:9px}.quick:hover{transform:none;box-shadow:none;background:#f7fbff}.quick svg{width:20px;height:20px}
+.chart{height:218px}.chartBody{padding:10px 14px}.activity{min-height:220px}
+@media(max-width:720px){.quickGrid{grid-template-columns:1fr}.donutBody{grid-template-columns:1fr;justify-items:center}.legend{width:100%}}

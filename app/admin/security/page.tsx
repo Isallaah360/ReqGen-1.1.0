@@ -333,10 +333,6 @@ export default function AdminSecurityPage() {
     router.refresh();
   }
 
-  function goAdmin() {
-    router.push(`/admin?updated=${Date.now()}`);
-    router.refresh();
-  }
 
   function goMfa() {
     router.push(`/mfa?updated=${Date.now()}`);
@@ -350,7 +346,7 @@ export default function AdminSecurityPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-transparent px-4">
+      <main className="min-h-screen bg-transparent px-4" data-rg-standard="phase7">
         <div className="mx-auto max-w-6xl py-10 text-slate-600">
           Loading Security Centre...
         </div>
@@ -360,7 +356,7 @@ export default function AdminSecurityPage() {
 
   if (!canAccess) {
     return (
-      <main className="min-h-screen bg-transparent px-4">
+      <main className="min-h-screen bg-transparent px-4" data-rg-standard="phase7">
         <div className="mx-auto max-w-3xl py-10">
           <div className="rounded-3xl border bg-white p-6 shadow-sm">
             <h1 className="text-xl font-extrabold text-slate-900">
@@ -384,7 +380,7 @@ export default function AdminSecurityPage() {
   }
 
   return (
-    <main className="min-h-screen bg-transparent px-4">
+    <main className="min-h-screen bg-transparent px-4" data-rg-standard="phase7">
       <AdminNavigation />
       <style>{`
         @media print {
@@ -454,21 +450,6 @@ export default function AdminSecurityPage() {
               {printing ? "Preparing..." : "Print Checklist"}
             </button>
 
-            <button
-              onClick={goAdmin}
-              disabled={refreshing || printing}
-              className="reqgen-btn reqgen-btn-slate rounded-xl border border-slate-200 px-4 py-2 text-sm disabled:opacity-60 font-black text-white"
-            >
-              Admin
-            </button>
-
-            <button
-              onClick={goDashboard}
-              disabled={refreshing || printing}
-              className="reqgen-btn reqgen-btn-slate rounded-xl border border-slate-200 px-4 py-2 text-sm disabled:opacity-60 font-black text-white"
-            >
-              Dashboard
-            </button>
           </div>
         </div>
 
@@ -478,9 +459,6 @@ export default function AdminSecurityPage() {
           </div>
         )}
 
-        <div className="no-print mt-4 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-xs font-semibold text-blue-900">
-          This page refreshes automatically when you return to it. Print reloads the latest MFA/session status before printing.
-        </div>
 
         <div className="mt-6 rg-auto-grid rg-auto-grid-6">
           <StatCard title="Security Score" value={`${stats.score}%`} tone="blue" />
@@ -556,8 +534,8 @@ export default function AdminSecurityPage() {
           </div>
         </div>
 
-        <div className="no-print mt-6 rounded-3xl border bg-white p-2 shadow-sm">
-          <div className="flex flex-wrap gap-2">
+        <div className="no-print mt-5 rounded-xl border bg-white p-1 shadow-sm" data-rg-tabs="true">
+          <div className="flex flex-wrap gap-1">
             <TabButton label="Overview" active={activeTab === "overview"} onClick={() => setActiveTab("overview")} />
             <TabButton label="Checklist" active={activeTab === "checklist"} onClick={() => setActiveTab("checklist")} />
             <TabButton label="Backup Standard" active={activeTab === "backup"} onClick={() => setActiveTab("backup")} />
@@ -567,8 +545,8 @@ export default function AdminSecurityPage() {
 
         {(activeTab === "overview" || activeTab === "checklist") && (
           <>
-            <div className="no-print mt-6 rounded-3xl border bg-white p-5 shadow-sm">
-              <div className="grid gap-4 md:grid-cols-4">
+            <div className="no-print mt-5 rounded-xl border bg-white p-4 shadow-sm">
+              <div className="grid gap-3 md:grid-cols-4">
                 <div>
                   <label className="text-sm font-semibold text-slate-800">Status</label>
                   <select
@@ -647,10 +625,10 @@ export default function AdminSecurityPage() {
 
 function ChecklistPanel({ checklist }: { checklist: ChecklistItem[] }) {
   return (
-    <div className="mt-6 rounded-3xl border bg-white shadow-sm overflow-hidden print-card">
-      <div className="border-b bg-slate-50 px-6 py-4 print:bg-white">
-        <h2 className="text-xl font-extrabold text-slate-900">Security Checklist</h2>
-        <p className="mt-1 text-sm text-slate-600">
+    <div className="mt-5 rounded-xl border bg-white shadow-sm overflow-hidden print-card">
+      <div className="border-b bg-slate-50 px-4 py-3 print:bg-white">
+        <h2 className="text-base font-extrabold text-slate-900">Security Checklist</h2>
+        <p className="mt-1 text-xs text-slate-600">
           Review each item before major deployments, database migrations or live institutional use.
         </p>
       </div>
@@ -660,16 +638,16 @@ function ChecklistPanel({ checklist }: { checklist: ChecklistItem[] }) {
       ) : (
         <div className="divide-y">
           {checklist.map((item) => (
-            <div key={item.title} className="px-6 py-5">
+            <div key={item.title} className="px-4 py-3">
               <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="max-w-3xl">
+                <div className="max-w-4xl">
                   <div className="text-xs font-black uppercase tracking-wide text-slate-500">
                     {item.group}
                   </div>
-                  <h3 className="mt-1 text-base font-extrabold text-slate-900">
+                  <h3 className="mt-0.5 text-sm font-extrabold text-slate-900">
                     {item.title}
                   </h3>
-                  <p className="mt-1 text-sm leading-6 text-slate-600">{item.description}</p>
+                  <p className="mt-1 text-xs leading-5 text-slate-600">{item.description}</p>
                 </div>
 
                 <div className="flex flex-wrap gap-2">

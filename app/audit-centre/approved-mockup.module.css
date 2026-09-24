@@ -11,3 +11,7 @@
 .dailyCol i{min-height:0}
 .dailyCol:has(> span:empty) i{height:2px!important;background:#d8e2ee}
 @media(max-width:1100px){.grid2{grid-template-columns:1fr}.dailyChart{height:190px}.tableWrap table{min-width:720px}}
+
+/* Phase 7 locked Budget & Subheads visual standard */
+.page{padding:14px 4px 22px}.tabs{border-radius:10px;padding:5px;margin-bottom:0}.tabs button{min-height:34px;border-bottom:0;border-radius:7px;padding:0 13px}.tabs .activeTab{background:#1267e8;color:#fff;border-bottom-color:transparent}.filters{border-top:1px solid #dce6f1;border-radius:10px;margin-top:8px;padding:10px}.card,.kpi{border-radius:12px;box-shadow:0 7px 18px rgba(22,34,57,.04)}.moduleBar{min-height:32px}.dailyChart{height:170px}.dailyCol{min-width:0}.tableWrap th{padding:10px 9px}.tableWrap td{padding:9px}.empty{min-height:96px;display:grid;place-items:center}.headerActions button:hover{transform:none}
+.dailyCol{border:0;background:transparent;font:inherit;cursor:pointer;padding:0}.dailyCol:hover,.dailyCol:focus-visible{background:#f7fbff;outline:none}.chartDetail{margin:0 0 12px;padding:9px 11px;border:1px solid #dce7f5;border-radius:8px;background:#f8fbff;color:#536a86;font-size:11px}

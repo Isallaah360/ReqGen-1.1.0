@@ -102,6 +102,7 @@ export default function AuditCentrePage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [selectedEvent, setSelectedEvent] = useState<AuditEvent | null>(null);
+  const [chartDetail, setChartDetail] = useState("Select a chart bar to display its exact live value.");
 
   const verifyAccess = useCallback(async () => {
     const { data: auth } = await supabase.auth.getUser();
@@ -277,7 +278,7 @@ export default function AuditCentrePage() {
     const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = `ReqGen_Audit_${new Date().toISOString().slice(0,10)}.csv`; a.click(); URL.revokeObjectURL(url);
   }
 
-  if (!authorized && loading) return <main className={styles.page}><div className={styles.loading}>Verifying Audit Centre authority…</div></main>;
+  if (!authorized && loading) return <main className={styles.page} data-rg-standard="phase7"><div className={styles.loading}>Verifying Audit Centre authority…</div></main>;
 
   return (
     <main className={styles.page}>
@@ -290,7 +291,7 @@ export default function AuditCentrePage() {
         </div>
       </section>
 
-      <nav className={styles.tabs} aria-label="Audit Centre workspaces">
+      <nav className={styles.tabs} data-rg-tabs="true" aria-label="Audit Centre workspaces">
         {([
           ["overview","Overview",BarChart3],["logs","Audit Logs",FileSearch],["users","User Activity",Users],
           ["integrity","Data Integrity",ShieldCheck],["workflow","Workflow Trace",Activity],["reports","Compliance Reports",CheckCircle2],
@@ -314,13 +315,14 @@ export default function AuditCentrePage() {
           <Kpi label="Live Sources" value={`${availableSources}/${sourceHealth.length}`} note="Readable configured sources" icon={<ShieldCheck/>} tone="green"/>
         </section>
         <section className={styles.grid2}>
-          <Card title="Activities by Module" note="Hover each bar for the exact live count.">
-            <div className={styles.moduleChart}>{moduleCounts.length ? moduleCounts.map(([module,count]) => <button type="button" key={module} className={styles.moduleBar} title={`${module}: ${count} activities`} onClick={() => { setSource(module); setTab("logs"); }}><span>{module}</span><i><b style={{width:`${(count/maxModule)*100}%`}}/></i><strong>{count}</strong></button>) : <Empty text="No audit activity matches the current filters."/>}</div>
+          <Card title="Activities by Module" note="Select a bar to open its exact live activity count.">
+            <div className={styles.moduleChart}>{moduleCounts.length ? moduleCounts.map(([module,count]) => <button type="button" key={module} className={styles.moduleBar} title={`${module}: ${count} activities`} onClick={() => setChartDetail(`${module}: ${count} activities`)}><span>{module}</span><i><b style={{width:`${(count/maxModule)*100}%`}}/></i><strong>{count}</strong></button>) : <Empty text="No audit activity matches the current filters."/>}</div>
           </Card>
           <Card title="Daily Activity Trend" note="Live activity count across the latest 14 days.">
-            <div className={styles.dailyChart}>{daily.map((point) => <div key={point.label} className={styles.dailyCol} title={`${point.label}: ${point.count} activities`}><span>{point.count || ""}</span><i style={{height:`${Math.max(point.count ? 7 : 2,(point.count/maxDaily)*100)}%`}}/><small>{point.label}</small></div>)}</div>
+            <div className={styles.dailyChart}>{daily.map((point) => <button type="button" key={point.label} className={styles.dailyCol} title={`${point.label}: ${point.count} activities`} onClick={() => setChartDetail(`${point.label}: ${point.count} activities`)}><span>{point.count || ""}</span><i style={{height:`${Math.max(point.count ? 7 : 2,(point.count/maxDaily)*100)}%`}}/><small>{point.label}</small></button>)}</div>
           </Card>
         </section>
+        <div className={styles.chartDetail} role="status" aria-live="polite">{chartDetail}</div>
         <Card title="Recent Audit Activities" note="Newest live evidence. Open details without leaving the Audit Centre.">
           <AuditTable events={filtered.slice(0,5)} onSelect={setSelectedEvent}/>
           {filtered.length > 5 ? <div className={styles.cardFooter}><button type="button" onClick={() => setTab("logs")}>View All Activities</button></div> : null}

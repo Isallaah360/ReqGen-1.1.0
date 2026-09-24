@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Building2, Landmark, UserCheck, CircleAlert } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 
 type Dept = { id: string; name: string };
@@ -73,6 +74,8 @@ export default function AccountRoutingPage() {
   }, [depts, search, routeByDept, accountMap, officerMap]);
   const pages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const paged = filtered.slice((Math.min(page, pages) - 1) * pageSize, Math.min(page, pages) * pageSize);
+  const activeRoutes = routes.filter((route) => route.is_active).length;
+  const unconfigured = depts.filter((dept) => !routeByDept.get(dept.id)?.is_active).length;
 
   function startEdit(deptId: string) {
     const route = routeByDept.get(deptId);
@@ -100,12 +103,18 @@ export default function AccountRoutingPage() {
     setSaving(false);
   }
 
-  if (loading) return <main className="admin-v3-page"><div className="admin-v3-loading">Loading account routing…</div></main>;
+  if (loading) return <main className="admin-v3-page" data-rg-standard="phase7"><div className="admin-v3-loading">Loading account routing…</div></main>;
 
   return (
-    <main className="admin-v3-page">
+    <main className="admin-v3-page" data-rg-standard="phase7">
       <header className="admin-v3-header"><div><h1>Account Routing Management</h1><p>Manage department-to-IET-account routing and responsible Account Officers.</p></div><button className="admin-v3-secondary" onClick={() => void loadAll()}>Refresh</button></header>
       {msg ? <div className="admin-v3-alert">{msg}</div> : null}
+      <section className="admin-v3-kpis" aria-label="Account routing overview">
+        <article className="admin-v3-kpi"><div><span>Departments</span><strong>{depts.length}</strong><small>Live department register</small></div><span className="admin-v3-kpi-icon"><Building2 size={19}/></span></article>
+        <article className="admin-v3-kpi is-green"><div><span>Active Routes</span><strong>{activeRoutes}</strong><small>Configured and active</small></div><span className="admin-v3-kpi-icon"><Landmark size={19}/></span></article>
+        <article className="admin-v3-kpi"><div><span>Account Officers</span><strong>{officers.length}</strong><small>Eligible routing officers</small></div><span className="admin-v3-kpi-icon"><UserCheck size={19}/></span></article>
+        <article className="admin-v3-kpi is-amber"><div><span>Needs Routing</span><strong>{unconfigured}</strong><small>Departments not fully configured</small></div><span className="admin-v3-kpi-icon"><CircleAlert size={19}/></span></article>
+      </section>
       <section className="admin-v3-card">
         <div className="admin-v3-toolbar"><input value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} placeholder="Search departments, accounts or officers…"/><span>{filtered.length} department{filtered.length === 1 ? "" : "s"}</span></div>
         <div className="admin-v3-table-scroll"><table className="admin-v3-table"><thead><tr><th>#</th><th>Department</th><th>Primary Account</th><th>Sign-off Officer</th><th>Status</th><th>Actions</th></tr></thead><tbody>

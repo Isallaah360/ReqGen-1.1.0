@@ -33,7 +33,8 @@
     "audit:navbar": "node scripts/audit-navbar-coverage.mjs",
     "audit:phase6-ui": "node scripts/audit-phase6-ui.mjs",
     "audit:phase7-architecture": "node scripts/audit-phase7-architecture.mjs",
-    "audit:production": "npm run audit:phase7-architecture && npm run audit:routes && npm run audit:workflow && npm run audit:navigation && npm run audit:route-registry && npm run audit:responsive && npm run audit:data-accuracy && npm run audit:components && npm run audit:section4"
+    "audit:production": "npm run audit:phase7-architecture && npm run audit:phase7-ui && npm run audit:routes && npm run audit:workflow && npm run audit:navigation && npm run audit:route-registry && npm run audit:responsive && npm run audit:data-accuracy && npm run audit:components && npm run audit:section4",
+    "audit:phase7-ui": "node scripts/audit-phase7-ui-stabilisation.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.97.0",

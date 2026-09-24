@@ -1,10 +1,10 @@
 {
   "summary": {
     "scannedFiles": 195,
-    "findings": 30,
+    "findings": 33,
     "warnings": 0,
-    "info": 30,
-    "generatedAt": "2026-09-24T17:05:40.164Z"
+    "info": 33,
+    "generatedAt": "2026-09-24T21:51:34.497Z"
   },
   "findings": [
     {
@@ -14,6 +14,30 @@
       "severity": "info",
       "match": "whitespace-nowrap",
       "excerpt": "<div className=\"overflow-x-auto\"><table className=\"min-w-full text-left text-sm\"><thead className=\"bg-slate-50 text-xs font-black uppercase tracking-wide text-slate-600\"><tr><th className=\"px-5 py-3\">Date</th><th classNa"
+    },
+    {
+      "file": "app/admin/roles/page.tsx",
+      "line": 766,
+      "rule": "nowrap-risk",
+      "severity": "info",
+      "match": "whitespace-nowrap",
+      "excerpt": "className=\"reqgen-btn reqgen-btn-orange whitespace-nowrap rounded-lg px-3 py-2 text-xs font-black text-white disabled:opacity-50\""
+    },
+    {
+      "file": "app/admin/roles/page.tsx",
+      "line": 774,
+      "rule": "nowrap-risk",
+      "severity": "info",
+      "match": "whitespace-nowrap",
+      "excerpt": "className={`reqgen-btn whitespace-nowrap rounded-lg px-3 py-2 text-xs font-black text-white disabled:opacity-50 ${role.is_active ? \"reqgen-btn-orange\" : \"reqgen-btn-emerald\"}`}"
+    },
+    {
+      "file": "app/admin/roles/page.tsx",
+      "line": 782,
+      "rule": "nowrap-risk",
+      "severity": "info",
+      "match": "whitespace-nowrap",
+      "excerpt": "className=\"reqgen-btn reqgen-btn-rose whitespace-nowrap rounded-lg px-3 py-2 text-xs font-black text-white disabled:opacity-40\""
     },
     {
       "file": "app/components/NavBar.tsx",

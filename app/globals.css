@@ -4077,3 +4077,44 @@ body{font-family:Aptos,"Segoe UI",Inter,Arial,sans-serif!important;background:va
 .reqgen-action-toast{position:fixed;z-index:10050;left:50%;top:88px;transform:translateX(-50%);width:min(560px,calc(100vw - 32px));display:flex;align-items:flex-start;justify-content:space-between;gap:14px;padding:14px 16px;border:1px solid #b9d4f6;border-radius:12px;background:#fff;color:#153657;box-shadow:0 18px 50px rgba(8,38,77,.22);font-size:13px;font-weight:750;line-height:1.45}
 .reqgen-action-toast.is-error{border-color:#f2b8bf;background:#fff7f8;color:#8d2030}.reqgen-action-toast.is-success{border-color:#a9dfc3;background:#f5fff9;color:#11613c}.reqgen-action-toast button{flex:0 0 28px;width:28px;height:28px;border:0;border-radius:7px;background:rgba(15,45,80,.08);color:inherit;font-size:20px;line-height:1;cursor:pointer}
 .reqgen-global-tip{display:none!important}
+
+/* ==========================================================================\n   REQGEN v2.0.0.8 PHASE 7 — LOCKED BUDGET & SUBHEADS COMPONENT STANDARD\n   Shared geometry only: hover never changes layout.\n   ========================================================================== */
+[data-rg-standard="phase7"]{--rg7-border:#e1e7ef;--rg7-line:#edf1f5;--rg7-blue:#1267e8;--rg7-text:#17213a;--rg7-muted:#667085;font-size:13px;color:var(--rg7-text)}
+[data-rg-standard="phase7"] :where(article,section,div)[class*="card"]{border-radius:12px}
+[data-rg-standard="phase7"] :where(input,select,textarea){border-radius:8px!important;min-height:37px}
+[data-rg-standard="phase7"] table{width:100%;border-collapse:collapse;font-size:12px}
+[data-rg-standard="phase7"] thead th{background:#fafbfd!important;color:#34405c!important;font-size:11px!important;font-weight:800!important;text-transform:none!important;letter-spacing:0!important;padding:10px 9px!important;border-bottom:1px solid #e7edf4!important;white-space:nowrap}
+[data-rg-standard="phase7"] tbody td{padding:9px!important;border-bottom:1px solid var(--rg7-line)!important;color:#26324e;vertical-align:middle}
+[data-rg-standard="phase7"] tbody tr:hover{background:#f8fbff}
+[data-rg-standard="phase7"] button{font-family:inherit}
+[data-rg-standard="phase7"] :where(button,a,[role="button"]){transition:background-color .14s ease,color .14s ease,border-color .14s ease,box-shadow .14s ease!important}
+[data-rg-standard="phase7"] :where(button,a,[role="button"]):hover{transform:none!important}
+[data-rg-tabs="true"]{display:flex!important;align-items:center;gap:4px!important;padding:5px!important;border:1px solid #e1e7ef!important;border-radius:10px!important;background:#fff!important;overflow-x:auto}
+[data-rg-tabs="true"]>button{min-height:34px!important;padding:0 13px!important;border:0!important;border-radius:7px!important;background:transparent!important;color:#41516a!important;font-size:11px!important;font-weight:800!important;white-space:nowrap;box-shadow:none!important}
+[data-rg-tabs="true"]>button:hover{background:#f3f7fd!important;color:#1267e8!important}
+[data-rg-tabs="true"]>button[class*="active"],[data-rg-tabs="true"]>button[aria-selected="true"]{background:#1267e8!important;color:#fff!important;box-shadow:0 5px 12px rgba(18,103,232,.16)!important}
+/* Shell stability: no hover translation, fixed nav geometry, stable scrollbar allocation. */
+.gov-sidebar,.rg-sidebar{scrollbar-gutter:stable;overscroll-behavior:contain}
+.gov-nav-link,.rg-nav-row,.rg-nav-link,.gov-subnav a,.rg-subnav a{transform:none!important;transition:background-color .14s ease,color .14s ease,border-color .14s ease,box-shadow .14s ease!important}
+.gov-nav-link:hover,.rg-nav-row:hover,.rg-nav-link:hover,.gov-subnav a:hover,.rg-subnav a:hover{transform:none!important}
+.gov-nav-main-link,.rg-nav-link{font-weight:750!important}
+.gov-nav-main-link:hover,.rg-nav-link:hover{font-weight:750!important}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}.gov-nav-link,.rg-nav-row,.rg-nav-link,.gov-subnav a,.rg-subnav a{transition:none!important}}
+[data-rg-standard="phase7"] table td:last-child button{min-width:58px!important;min-height:30px!important;padding:0 9px!important;white-space:nowrap!important;overflow-wrap:normal!important}
+[data-rg-standard="phase7"] table td:last-child>div{flex-wrap:nowrap!important}
+[data-rg-standard="phase7"] :where(.reqgen-btn,button)[class*="rounded-xl"]{border-radius:8px!important}
+[data-rg-tabs="true"] button{min-height:34px!important;padding:0 13px!important;border:0!important;border-radius:7px!important;background:transparent!important;color:#41516a!important;font-size:11px!important;font-weight:800!important;white-space:nowrap;box-shadow:none!important;outline:none!important}
+[data-rg-tabs="true"] button:hover{background:#f3f7fd!important;color:#1267e8!important}
+[data-rg-tabs="true"] button.reqgen-btn-blue,[data-rg-tabs="true"] button[class*="active"],[data-rg-tabs="true"] button[aria-selected="true"]{background:#1267e8!important;color:#fff!important;box-shadow:0 5px 12px rgba(18,103,232,.16)!important}
+/* Phase 7 compact enterprise density for audited Admin workspaces. */
+[data-rg-standard="phase7"] .rounded-3xl{border-radius:12px!important}
+[data-rg-standard="phase7"] .rounded-2xl{border-radius:9px!important}
+[data-rg-standard="phase7"] :where(.text-3xl){font-size:27px!important;line-height:1.12!important}
+[data-rg-standard="phase7"] :where(.text-xl){font-size:16px!important}
+[data-rg-standard="phase7"] :where(.text-lg){font-size:14px!important}
+[data-rg-standard="phase7"] :where(.text-sm){font-size:12px!important}
+[data-rg-standard="phase7"] :where(.text-xs){font-size:11px!important}
+.rg-content[data-route="/admin/roles"] [data-rg-table="standard"] td:nth-child(3){line-height:1.35}
+.rg-content[data-route="/admin/roles"] [data-rg-table="standard"] td:last-child{min-width:230px}
+.rg-content[data-route="/admin/security"] .rg-auto-grid{gap:10px!important}
+.rg-content[data-route="/admin/security"] .rg-auto-grid>div{min-height:86px!important;padding:12px!important}

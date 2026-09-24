@@ -104,10 +104,10 @@ export default function RegistryCentreWorkspace() {
     setSaving(false);
   }
 
-  return <main className={styles.page}><div className={styles.shell}>
-    <section className={styles.hero}><div><div className={styles.breadcrumb}>Home › Registry › Registry Centre</div><h1 className={styles.title}>Registry Centre</h1><p className={styles.subtitle}>Manage incoming and outgoing correspondence, dispatch tracking and all registry operations.</p></div><div className={styles.actions}><button className={styles.buttonSecondary} onClick={()=>void load()}><RefreshCw size={16}/>Refresh</button><button className={styles.button} onClick={()=>setShowForm(v=>!v)}><FilePlus2 size={16}/>{showForm?"Close Form":"New Correspondence"}</button></div></section>
+  return <main className={styles.page} data-rg-standard="phase7"><div className={styles.shell}>
+    <section className={styles.hero}><div><h1 className={styles.title}>Registry Centre</h1><p className={styles.subtitle}>Manage incoming and outgoing correspondence, dispatch tracking and all registry operations.</p></div><div className={styles.actions}><button className={styles.buttonSecondary} onClick={()=>void load()}><RefreshCw size={16}/>Refresh</button><button className={styles.button} onClick={()=>setShowForm(v=>!v)}><FilePlus2 size={16}/>{showForm?"Close Form":"New Correspondence"}</button></div></section>
     {message&&<div className={`${styles.notice} ${/unable|required/i.test(message)?styles.error:styles.success}`}>{message}</div>}
-    <nav className={styles.tabs}>{VIEWS.map(v=><button key={v.key} className={`${styles.tab} ${view===v.key?styles.tabActive:""}`} onClick={()=>{setPage(1);router.replace(`/registry?view=${v.key}`);}}>{v.label}</button>)}</nav>
+    <nav className={styles.tabs} data-rg-tabs="true">{VIEWS.map(v=><button key={v.key} className={`${styles.tab} ${view===v.key?styles.tabActive:""}`} onClick={()=>{setPage(1);router.replace(`/registry?view=${v.key}`);}}>{v.label}</button>)}</nav>
     {showForm&&<section className={styles.form}><div><h2 className={styles.cardTitle}>New Correspondence</h2><p className={styles.cardNote}>Create the core registry record. The live Registry table remains the authoritative source.</p></div><div className={styles.formGrid}>
       <label className={styles.field}><span className={styles.label}>Reference No. *</span><input className={styles.input} value={form.referenceNo} onChange={e=>setForm(f=>({...f,referenceNo:e.target.value}))}/></label>
       <label className={styles.field}><span className={styles.label}>Direction</span><select className={styles.select} value={form.direction} onChange={e=>setForm(f=>({...f,direction:e.target.value}))}><option>Incoming</option><option>Outgoing</option></select></label>

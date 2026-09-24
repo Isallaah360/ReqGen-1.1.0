@@ -29,14 +29,6 @@ type RequestRow = {
   request_no: string | null;
 };
 
-type VoucherRow = {
-  id: string;
-  status: string | null;
-  amount: number | null;
-  total_amount: number | null;
-  created_at?: string | null;
-  voucher_no?: string | null;
-};
 
 function normalized(value?: string | null) {
   return String(value || "").trim().toLowerCase();
@@ -51,14 +43,6 @@ function rejected(value?: string | null) {
 }
 function pending(value?: string | null) {
   return !completed(value) && !rejected(value);
-}
-function money(value: number) {
-  return new Intl.NumberFormat("en-NG", {
-    style: "currency",
-    currency: "NGN",
-    notation: value >= 1_000_000 ? "compact" : "standard",
-    maximumFractionDigits: value >= 1_000_000 ? 1 : 0,
-  }).format(value || 0);
 }
 function statusLabel(status?: string | null) {
   if (completed(status)) return "Completed";
@@ -75,31 +59,25 @@ function ageDays(value: string) {
 
 export default function DashboardPage() {
   const [requests, setRequests] = useState<RequestRow[]>([]);
-  const [vouchers, setVouchers] = useState<VoucherRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [chartSelection, setChartSelection] = useState<string | null>(null);
 
   useEffect(() => {
     let mounted = true;
     (async () => {
-      await supabase.auth.getUser();
+      const { data: auth, error: authError } = await supabase.auth.getUser();
       if (!mounted) return;
-      const [rq, pv] = await Promise.all([
-        supabase
-          .from("requests")
-          .select("id,status,request_type,personal_category,created_at,title,request_no")
-          .order("created_at", { ascending: false })
-          .limit(500),
-        supabase
-          .from("payment_vouchers")
-          .select("id,status,amount,total_amount,created_at,voucher_no")
-          .order("created_at", { ascending: false })
-          .limit(500),
-      ]);
+      if (authError || !auth.user) { setRequests([]); setLoading(false); return; }
+      const rq = await supabase
+        .from("requests")
+        .select("id,status,request_type,personal_category,created_at,title,request_no")
+        .eq("created_by", auth.user.id)
+        .order("created_at", { ascending: false })
+        .limit(500);
 
       if (!mounted) return;
       if (!rq.error) setRequests((rq.data || []) as RequestRow[]);
-      if (!pv.error) setVouchers((pv.data || []) as VoucherRow[]);
+      else setRequests([]);
       setLoading(false);
     })();
     return () => { mounted = false; };
@@ -108,12 +86,10 @@ export default function DashboardPage() {
   const stats = useMemo(() => {
     const completedCount = requests.filter((r) => completed(r.status)).length;
     const pendingCount = requests.filter((r) => pending(r.status)).length;
+    const rejectedCount = requests.filter((r) => rejected(r.status)).length;
     const overdue = requests.filter((r) => pending(r.status) && ageDays(r.created_at) > 7).length;
-    const disbursed = vouchers
-      .filter((v) => completed(v.status))
-      .reduce((total, v) => total + Number(v.total_amount ?? v.amount ?? 0), 0);
-    return { total: requests.length, completed: completedCount, pending: pendingCount, overdue, disbursed };
-  }, [requests, vouchers]);
+    return { total: requests.length, completed: completedCount, pending: pendingCount, rejected: rejectedCount, overdue };
+  }, [requests]);
 
   const trend = useMemo(() => Array.from({ length: 7 }, (_, index) => {
     const d = new Date();
@@ -163,34 +139,28 @@ export default function DashboardPage() {
       time: r.created_at,
       tone: completed(r.status) ? "green" : rejected(r.status) ? "red" : "blue",
     }));
-    const voucherActivity = vouchers.slice(0, 2).map((v) => ({
-      id: `v-${v.id}`,
-      label: `${v.voucher_no || "Voucher"} ${completed(v.status) ? "completed" : "updated"}`,
-      time: v.created_at || new Date().toISOString(),
-      tone: completed(v.status) ? "green" : "orange",
-    }));
-    return [...requestActivity, ...voucherActivity]
+    return requestActivity
       .sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime())
       .slice(0, 5);
-  }, [requests, vouchers]);
+  }, [requests]);
 
   const dateLabel = new Date().toLocaleDateString("en-NG", { weekday: "long", day: "2-digit", month: "long", year: "numeric" });
 
   return (
-    <main className={styles.page}>
+    <main className={styles.page} data-rg-standard="phase7">
       <header className={styles.header}>
         <div>
           <h1>Dashboard</h1>
-          <p>Operational overview of requests, approvals, finance activity and current workload.</p>
+          <p>Your personal ReqGen request activity, status and current workload.</p>
         </div>
         <div className={styles.dateBox}><CalendarDays size={17} />{dateLabel}</div>
       </header>
 
       <section className={styles.kpis} aria-label="Dashboard summary">
-        <Kpi tone="blue" icon={<FileText size={23} />} label="Total Requests" value={String(stats.total)} meta="Live system total" />
-        <Kpi tone="orange" icon={<Clock3 size={23} />} label="Pending Approvals" value={String(stats.pending)} meta="Awaiting action" />
-        <Kpi tone="green" icon={<CheckCircle2 size={23} />} label="Completed / Paid" value={String(stats.completed)} meta="Completed requests" />
-        <Kpi tone="purple" icon={<WalletCards size={23} />} label="Total Disbursed" value={money(stats.disbursed)} meta={`${vouchers.filter((v) => completed(v.status)).length} paid voucher(s)`} />
+        <Kpi tone="blue" icon={<FileText size={23} />} label="My Requests" value={String(stats.total)} meta="Your submitted requests only" />
+        <Kpi tone="orange" icon={<Clock3 size={23} />} label="Pending Requests" value={String(stats.pending)} meta="Your requests awaiting action" />
+        <Kpi tone="green" icon={<CheckCircle2 size={23} />} label="Completed" value={String(stats.completed)} meta="Your completed requests" />
+        <Kpi tone="purple" icon={<CircleAlert size={23} />} label="Rejected" value={String(stats.rejected)} meta="Your rejected requests" />
         <Kpi tone="red" icon={<CircleAlert size={23} />} label="Overdue" value={String(stats.overdue)} meta="Pending over 7 days" />
       </section>
 
@@ -220,7 +190,7 @@ export default function DashboardPage() {
       <section className={styles.bottomGrid}>
         <article className={styles.card}>
           <div className={styles.cardHead}><h2>Requests by Category</h2><span>Current register</span></div>
-          <Donut title="Total" total={stats.total} onSelect={setChartSelection} rows={[
+          <Donut title="Total" total={stats.total} rows={[
             ["#2f80ed","Official",category.official],
             ["#24b47e","Personal Fund",category.personalFund],
             ["#f5a623","Personal Other",category.personalOther],
@@ -229,7 +199,7 @@ export default function DashboardPage() {
         </article>
         <article className={styles.card}>
           <div className={styles.cardHead}><h2>Requests by Status</h2><span>Current register</span></div>
-          <Donut title="Total" total={stats.total} onSelect={setChartSelection} rows={[
+          <Donut title="Total" total={stats.total} rows={[
             ["#24b47e","Completed",statusMix.completed],
             ["#2f80ed","Pending",statusMix.pending],
             ["#ef476f","Rejected",statusMix.rejected],
@@ -256,10 +226,12 @@ export default function DashboardPage() {
 function Kpi({ tone, icon, label, value, meta }: { tone: "blue"|"green"|"orange"|"purple"|"red"; icon: React.ReactNode; label: string; value: string; meta: string }) {
   return <article className={styles.kpi}><div className={`${styles.icon} ${styles[tone]}`}>{icon}</div><div><span className={styles.kpiLabel}>{label}</span><strong className={styles.kpiValue}>{value}</strong><div className={styles.kpiMeta}>{meta}</div></div></article>;
 }
-function Donut({ title, total, rows, onSelect }: { title: string; total: number; rows: [string,string,number][]; onSelect: (detail: string) => void }) {
+function Donut({ title, total, rows }: { title: string; total: number; rows: [string,string,number][] }) {
+  const [detail, setDetail] = useState<string | null>(null);
   let cursor = 0;
   const gradient = rows.map(([color,,value]) => { const start = total ? (cursor/total)*360 : 0; cursor += value; const end = total ? (cursor/total)*360 : 0; return `${color} ${start}deg ${end}deg`; }).join(",");
-  return <div className={styles.donutBody}><button type="button" className={styles.donut} aria-label={`Chart total ${total}. Select for complete breakdown.`} onClick={() => onSelect(rows.map(([, label, value]) => `${label}: ${value}`).join(" · "))} style={{background: total ? `conic-gradient(${gradient})` : "#edf2f7"}}><div className={styles.donutCenter}><strong>{total}</strong><span>{title}</span></div></button><div className={styles.legend}>{rows.map(([color,label,value]) => <Legend key={label} color={color} label={label} value={value} total={total} onSelect={onSelect}/>)}</div></div>;
+  const select = (value: string) => setDetail(value);
+  return <><div className={styles.donutBody}><button type="button" className={styles.donut} aria-label={`Chart total ${total}. Select for complete breakdown.`} onClick={() => select(rows.map(([, label, value]) => `${label}: ${value}`).join(" · "))} style={{background: total ? `conic-gradient(${gradient})` : "#edf2f7"}}><div className={styles.donutCenter}><strong>{total}</strong><span>{title}</span></div></button><div className={styles.legend}>{rows.map(([color,label,value]) => <Legend key={label} color={color} label={label} value={value} total={total} onSelect={select}/>)}</div></div><div className={styles.chartInsight} role="status" aria-live="polite"><strong>Selected data</strong><span>{detail || "Select the chart or a legend row to display the exact value."}</span></div></>;
 }
 function Legend({ color, label, value, total, onSelect }: { color: string; label: string; value: number; total: number; onSelect: (detail: string) => void }) {
   const pct = total ? Math.round((value / total) * 100) : 0;
