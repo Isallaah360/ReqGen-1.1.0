@@ -823,7 +823,7 @@ export default function ManualVoucherPage() {
                 <div className="animate-pulse space-y-6">
                     <div className="h-20 rounded-3xl bg-slate-200" />
                     <div className="h-64 rounded-3xl bg-slate-200" />
-                    <div className="h-[620px] rounded-3xl bg-slate-200" />
+                    <div className="min-h-[420px] rounded-3xl bg-slate-200" />
                     <div className="h-96 rounded-3xl bg-slate-200" />
                 </div>
             </main>

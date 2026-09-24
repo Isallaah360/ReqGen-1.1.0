@@ -65,7 +65,7 @@ export default function ReleaseReadinessPage() {
 
   return (
     <EnterpriseShell>
-      <div className="mx-auto max-w-[1500px] space-y-6">
+      <div className="mx-auto w-full max-w-screen-2xl space-y-5">
         <AdminNavigation />
         <EnterpriseHero
           eyebrow="ReqGen Production Assurance"

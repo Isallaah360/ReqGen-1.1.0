@@ -1,36 +1,12 @@
 {
   "summary": {
     "scannedFiles": 200,
-    "findings": 148,
-    "warnings": 67,
-    "info": 81,
-    "generatedAt": "2026-09-24T10:31:57.246Z"
+    "findings": 35,
+    "warnings": 0,
+    "info": 35,
+    "generatedAt": "2026-09-24T13:12:26.807Z"
   },
   "findings": [
-    {
-      "file": "app/admin/access-audit/page.tsx",
-      "line": 66,
-      "rule": "fixed-width",
-      "severity": "warning",
-      "match": "max-w-[1500px]",
-      "excerpt": "<div className=\"mx-auto max-w-[1500px] space-y-6\">"
-    },
-    {
-      "file": "app/admin/access-audit/page.tsx",
-      "line": 148,
-      "rule": "fixed-width",
-      "severity": "warning",
-      "match": "min-w-[1200px]",
-      "excerpt": "<table className=\"w-full min-w-[1200px] border-separate border-spacing-y-2 text-left\">"
-    },
-    {
-      "file": "app/admin/admin-departments.module.css",
-      "line": 1,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": ".page{padding:22px 26px 30px;background:#f8fafc;min-height:100%;color:#0b1739;font-family:Inter,\"Segoe UI\",Arial,sans-serif;font-size:13px}.pageHeader{display:flex;align-items:flex-end;justify-content:space-between;gap:2"
-    },
     {
       "file": "app/admin/audit/page.tsx",
       "line": 134,
@@ -40,118 +16,6 @@
       "excerpt": "<div className=\"overflow-x-auto\"><table className=\"min-w-full text-left text-sm\"><thead className=\"bg-slate-50 text-xs font-black uppercase tracking-wide text-slate-600\"><tr><th className=\"px-5 py-3\">Date</th><th classNa"
     },
     {
-      "file": "app/admin/release-readiness/page.tsx",
-      "line": 68,
-      "rule": "fixed-width",
-      "severity": "warning",
-      "match": "max-w-[1500px]",
-      "excerpt": "<div className=\"mx-auto max-w-[1500px] space-y-6\">"
-    },
-    {
-      "file": "app/admin/roles/page.tsx",
-      "line": 533,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-6",
-      "excerpt": "<div className=\"mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-6\">"
-    },
-    {
-      "file": "app/admin/roles/page.tsx",
-      "line": 691,
-      "rule": "fixed-width",
-      "severity": "warning",
-      "match": "min-w-[1150px]",
-      "excerpt": "<table className=\"min-w-[1150px] w-full border-collapse text-sm\">"
-    },
-    {
-      "file": "app/admin/security/page.tsx",
-      "line": 485,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-6",
-      "excerpt": "<div className=\"mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-6\">"
-    },
-    {
-      "file": "app/admin/system-health/page.tsx",
-      "line": 28,
-      "rule": "fixed-width",
-      "severity": "warning",
-      "match": "max-w-[1400px]",
-      "excerpt": "return <EnterpriseShell><div className=\"mx-auto max-w-[1400px] space-y-6\"><AdminNavigation /><EnterpriseHero eyebrow=\"System Health\" title=\"System Health Centre\" description=\"A lightweight operational check of key ReqGen"
-    },
-    {
-      "file": "app/admin/users/page.tsx",
-      "line": 803,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-5",
-      "excerpt": "<div className=\"grid gap-4 md:grid-cols-2 xl:grid-cols-5\">"
-    },
-    {
-      "file": "app/admin/workflow-test/page.tsx",
-      "line": 235,
-      "rule": "fixed-width",
-      "severity": "warning",
-      "match": "max-w-[1500px]",
-      "excerpt": "<div className=\"mx-auto max-w-[1500px] space-y-6\">"
-    },
-    {
-      "file": "app/admin/workflow-test/page.tsx",
-      "line": 280,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-5",
-      "excerpt": "<div className=\"mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-5\">"
-    },
-    {
-      "file": "app/approvals/action-centre/action-centre.module.css",
-      "line": 1,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": ".page{width:min(100%,1440px);margin:0 auto;padding:28px 28px 34px;color:#0f1f3d;font-size:13px}.headerRow{display:flex;justify-content:space-between;gap:24px;align-items:flex-start;margin-bottom:18px}.headerRow h1{margin"
-    },
-    {
-      "file": "app/audit-centre/page.tsx",
-      "line": 319,
-      "rule": "fixed-width",
-      "severity": "warning",
-      "match": "max-w-[1500px]",
-      "excerpt": "<div className=\"mx-auto max-w-[1500px]\">"
-    },
-    {
-      "file": "app/audit-centre/page.tsx",
-      "line": 328,
-      "rule": "fixed-width",
-      "severity": "warning",
-      "match": "max-w-[1500px]",
-      "excerpt": "<div className=\"mx-auto max-w-[1500px] space-y-4\">"
-    },
-    {
-      "file": "app/audit-centre/page.tsx",
-      "line": 342,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-6",
-      "excerpt": "<section className=\"grid gap-3 sm:grid-cols-2 xl:grid-cols-6\">"
-    },
-    {
-      "file": "app/audit-centre/page.tsx",
-      "line": 433,
-      "rule": "nowrap-risk",
-      "severity": "info",
-      "match": "whitespace-nowrap",
-      "excerpt": "<td className=\"whitespace-nowrap px-4 py-4 text-xs font-black text-slate-600\">{dateText(event.createdAt)}</td>"
-    },
-    {
-      "file": "app/audit-centre/page.tsx",
-      "line": 444,
-      "rule": "fixed-width",
-      "severity": "warning",
-      "match": "max-w-[420px]",
-      "excerpt": "<td className=\"max-w-[420px] break-words px-4 py-4 text-sm font-semibold leading-6 text-slate-600\">{event.details || \"—\"}</td>"
-    },
-    {
       "file": "app/components/NavBar.tsx",
       "line": 166,
       "rule": "nowrap-risk",
@@ -166,14 +30,6 @@
       "severity": "info",
       "match": "absolute",
       "excerpt": "<span className=\"pointer-events-none absolute left-1/2 top-full z-[70] mt-2 -translate-x-1/2 whitespace-nowrap rounded-xl border border-white/10 bg-slate-950/95 px-3 py-1.5 text-xs font-black tracking-wide text-white sha"
-    },
-    {
-      "file": "app/components/NavBar.tsx",
-      "line": 570,
-      "rule": "fixed-width",
-      "severity": "warning",
-      "match": "max-w-[1680px]",
-      "excerpt": "<div className=\"mx-auto flex max-w-[1680px] items-center justify-between gap-3 px-4 py-3\">"
     },
     {
       "file": "app/components/NavBar.tsx",
@@ -210,18 +66,10 @@
     {
       "file": "app/components/NavBar.tsx",
       "line": 683,
-      "rule": "fixed-width",
-      "severity": "warning",
-      "match": "w-[420px]",
-      "excerpt": "<div className=\"absolute left-0 top-12 z-50 w-[420px] overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl shadow-slate-900/20\">"
-    },
-    {
-      "file": "app/components/NavBar.tsx",
-      "line": 683,
       "rule": "absolute-layout",
       "severity": "info",
       "match": "absolute",
-      "excerpt": "<div className=\"absolute left-0 top-12 z-50 w-[420px] overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl shadow-slate-900/20\">"
+      "excerpt": "<div className=\"absolute left-0 top-12 z-50 w-[min(420px,calc(100vw-24px))] overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl shadow-slate-900/20\">"
     },
     {
       "file": "app/components/NavBar.tsx",
@@ -248,44 +96,12 @@
       "excerpt": "// the absolute activity timestamp so the warning is never skipped."
     },
     {
-      "file": "app/components/SessionTimeout.tsx",
-      "line": 194,
-      "rule": "fixed-width",
-      "severity": "warning",
-      "match": "max-w-[430px]",
-      "excerpt": "<div className=\"w-full max-w-[430px] overflow-hidden rounded-2xl border border-amber-200 bg-white shadow-2xl\">"
-    },
-    {
-      "file": "app/components/executive/ExecutiveModulePage.tsx",
-      "line": 97,
-      "rule": "fixed-width",
-      "severity": "warning",
-      "match": "max-w-[1500px]",
-      "excerpt": "<div className=\"mx-auto max-w-[1500px] space-y-6\">"
-    },
-    {
       "file": "app/components/executive/ExecutiveModulePage.tsx",
       "line": 176,
       "rule": "absolute-layout",
       "severity": "info",
       "match": "absolute",
       "excerpt": "<ExecutivePanel title=\"Request Register\" eyebrow=\"Workflow Queue\" description=\"Search and review the executive request register permitted by RLS.\" action={<div className=\"relative w-full sm:w-80\"><Search className=\"absol"
-    },
-    {
-      "file": "app/components/executive/ExecutiveNavigation.tsx",
-      "line": 24,
-      "rule": "fixed-width",
-      "severity": "warning",
-      "match": "max-w-[1240px]",
-      "excerpt": "<nav aria-label=\"Command Centre\" className=\"mx-auto grid max-w-[1240px] grid-cols-1 gap-2 rounded-[1.75rem] border border-slate-200 bg-white/95 p-3 shadow-sm sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6\">"
-    },
-    {
-      "file": "app/components/executive/ExecutiveNavigation.tsx",
-      "line": 24,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-6",
-      "excerpt": "<nav aria-label=\"Command Centre\" className=\"mx-auto grid max-w-[1240px] grid-cols-1 gap-2 rounded-[1.75rem] border border-slate-200 bg-white/95 p-3 shadow-sm sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6\">"
     },
     {
       "file": "app/components/executive/ExecutiveNavigation.tsx",
@@ -336,44 +152,12 @@
       "excerpt": "<section className={styles.card}><div className={styles.filters}><label className={styles.field}><span className={styles.label}>Search Archive</span><div style={{position:\"relative\"}}><Search size={15} style={{position:\""
     },
     {
-      "file": "app/components/registry/RegistryCentre.tsx",
-      "line": 24,
-      "rule": "fixed-width",
-      "severity": "warning",
-      "match": "max-w-[1500px]",
-      "excerpt": "return <EnterpriseShell><div className=\"mx-auto max-w-[1500px] space-y-4\">"
-    },
-    {
-      "file": "app/components/registry/RegistryCentre.tsx",
-      "line": 28,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-5",
-      "excerpt": "<section className=\"grid gap-3 sm:grid-cols-2 xl:grid-cols-5\"><StatCard label=\"Total Records\" value={loading?\"—\":stats.total} note=\"Live correspondence\" tone=\"blue\"/><StatCard label=\"Incoming\" value={loading?\"—\":stats.in"
-    },
-    {
       "file": "app/components/registry/RegistryCentreWorkspace.tsx",
       "line": 129,
       "rule": "absolute-layout",
       "severity": "info",
       "match": "absolute",
       "excerpt": "<label className={styles.field}><span className={styles.label}>Search</span><div style={{position:\"relative\"}}><Search size={15} style={{position:\"absolute\",left:12,top:14,color:\"#70839c\"}}/><input className={styles.inpu"
-    },
-    {
-      "file": "app/components/registry/RegistryRegister.tsx",
-      "line": 89,
-      "rule": "fixed-width",
-      "severity": "warning",
-      "match": "max-w-[1500px]",
-      "excerpt": "<div className=\"mx-auto max-w-[1500px] space-y-4\">"
-    },
-    {
-      "file": "app/components/ui/DirectorateWorkspaceMenu.tsx",
-      "line": 46,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-5",
-      "excerpt": "<div className=\"grid gap-3 sm:grid-cols-2 xl:grid-cols-5\">"
     },
     {
       "file": "app/components/ui/DirectorateWorkspaceMenu.tsx",
@@ -440,52 +224,12 @@
       "excerpt": "<div className=\"pointer-events-none absolute -bottom-28 left-1/3 h-64 w-64 rounded-full bg-violet-500/20 blur-3xl\" />"
     },
     {
-      "file": "app/components/ui/ReqGenDesignSystem.tsx",
-      "line": 90,
-      "rule": "fixed-width",
-      "severity": "warning",
-      "match": "max-w-[1500px]",
-      "excerpt": "return <div className=\"min-h-screen bg-slate-100 p-4 sm:p-7\"><div className=\"mx-auto max-w-[1500px] space-y-6\"><div className=\"reqgen-skeleton h-64 rounded-[30px]\"/><div className=\"grid gap-4 sm:grid-cols-2 xl:grid-cols-"
-    },
-    {
       "file": "app/components/ui/ReqGenUI.tsx",
       "line": 38,
       "rule": "nowrap-risk",
       "severity": "info",
       "match": "whitespace-nowrap",
       "excerpt": "<span className=\"whitespace-nowrap\">{children}</span>"
-    },
-    {
-      "file": "app/dashboard/activity/page.tsx",
-      "line": 51,
-      "rule": "fixed-width",
-      "severity": "warning",
-      "match": "max-w-[1400px]",
-      "excerpt": "return <EnterpriseShell><div className=\"mx-auto max-w-[1400px] space-y-6\">"
-    },
-    {
-      "file": "app/dashboard/dashboard.module.css",
-      "line": 1,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": ".page{display:grid;gap:14px;color:#0f1f3d;font-size:13px}.header{display:flex;align-items:flex-start;justify-content:space-between;gap:20px}.header h1{margin:0;font-size:27px;line-height:1.15;font-weight:850;letter-spaci"
-    },
-    {
-      "file": "app/dashboard/dashboard.module.css",
-      "line": 1,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": ".page{display:grid;gap:14px;color:#0f1f3d;font-size:13px}.header{display:flex;align-items:flex-start;justify-content:space-between;gap:20px}.header h1{margin:0;font-size:27px;line-height:1.15;font-weight:850;letter-spaci"
-    },
-    {
-      "file": "app/finance/_components/FinanceOperationsWorkspace.module.css",
-      "line": 1,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": ".page{display:grid;gap:16px;color:#0b1739;font-size:12px}.header{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;padding:4px 2px}.crumb{font-size:10px;color:#7b8799;margin-bottom:8px}.crumb span{"
     },
     {
       "file": "app/finance/_components/FinanceOutputWorkspace.tsx",
@@ -497,51 +241,11 @@
     },
     {
       "file": "app/finance/_components/FinanceOutputWorkspace.tsx",
-      "line": 596,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-5",
-      "excerpt": "<div className=\"grid gap-4 md:grid-cols-2 xl:grid-cols-5\">"
-    },
-    {
-      "file": "app/finance/_components/FinanceOutputWorkspace.tsx",
       "line": 660,
       "rule": "absolute-layout",
       "severity": "info",
       "match": "absolute",
       "excerpt": "body.finance-output-printing .print-sheet { position:absolute !important; left:0; top:0; margin:0 !important; box-shadow:none !important; }"
-    },
-    {
-      "file": "app/finance/audit/page.tsx",
-      "line": 1573,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-5",
-      "excerpt": "<div className=\"mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-5 print:grid-cols-5\">"
-    },
-    {
-      "file": "app/finance/audit/page.tsx",
-      "line": 1573,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-5",
-      "excerpt": "<div className=\"mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-5 print:grid-cols-5\">"
-    },
-    {
-      "file": "app/finance/audit/page.tsx",
-      "line": 1593,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-6",
-      "excerpt": "<div className=\"grid gap-4 md:grid-cols-2 xl:grid-cols-6\">"
-    },
-    {
-      "file": "app/finance/audit/page.tsx",
-      "line": 2134,
-      "rule": "fixed-height",
-      "severity": "warning",
-      "match": "max-h-[620px]",
-      "excerpt": "<div className=\"max-h-[620px] overflow-auto print:max-h-none print:overflow-visible\">"
     },
     {
       "file": "app/finance/audit-trail/page.tsx",
@@ -550,550 +254,6 @@
       "severity": "info",
       "match": "whitespace-nowrap",
       "excerpt": "<div className=\"overflow-x-auto\"><table className=\"min-w-full text-left text-sm\"><thead className=\"bg-slate-950 text-white\"><tr><th className=\"px-4 py-3\">Date & time</th><th className=\"px-4 py-3\">Action</th><th className"
-    },
-    {
-      "file": "app/finance/departments/finance-departments.module.css",
-      "line": 1,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": ".page{padding:22px 26px 30px;background:#f8fafc;min-height:100%;color:#0b1739;font-family:Inter,\"Segoe UI\",Arial,sans-serif;font-size:13px}.pageHeader{display:flex;align-items:flex-end;justify-content:space-between;gap:2"
-    },
-    {
-      "file": "app/finance/manage-accounts/assign/assign-bank.module.css",
-      "line": 1,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": ".page{max-width:1480px;margin:0 auto;padding:18px 22px 30px;color:#0f172a;font-size:13px}.loading{padding:50px 24px;text-align:center;color:#64748b;font-size:13px}.headingRow{display:flex;align-items:flex-start;justify-c"
-    },
-    {
-      "file": "app/finance/manage-accounts/assign/assign-bank.module.css",
-      "line": 1,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": ".page{max-width:1480px;margin:0 auto;padding:18px 22px 30px;color:#0f172a;font-size:13px}.loading{padding:50px 24px;text-align:center;color:#64748b;font-size:13px}.headingRow{display:flex;align-items:flex-start;justify-c"
-    },
-    {
-      "file": "app/finance/manage-accounts/bank-accounts.module.css",
-      "line": 1,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": ".page{padding:18px 22px 30px;max-width:1480px;margin:0 auto;color:#0f172a;font-size:13px}.loading{padding:48px;text-align:center;color:#64748b}.headingRow{display:flex;align-items:flex-start;justify-content:space-between"
-    },
-    {
-      "file": "app/finance/manage-accounts/bank-accounts.module.css",
-      "line": 1,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": ".page{padding:18px 22px 30px;max-width:1480px;margin:0 auto;color:#0f172a;font-size:13px}.loading{padding:48px;text-align:center;color:#64748b}.headingRow{display:flex;align-items:flex-start;justify-content:space-between"
-    },
-    {
-      "file": "app/finance/manage-accounts/bank-accounts.module.css",
-      "line": 1,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": ".page{padding:18px 22px 30px;max-width:1480px;margin:0 auto;color:#0f172a;font-size:13px}.loading{padding:48px;text-align:center;color:#64748b}.headingRow{display:flex;align-items:flex-start;justify-content:space-between"
-    },
-    {
-      "file": "app/finance/subheads/finance-subheads.module.css",
-      "line": 1,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": ".page{padding:22px 26px 30px;background:#f8fafc;min-height:100%;color:#0b1739;font-family:Inter,\"Segoe UI\",Arial,sans-serif;font-size:13px}.pageHeader{display:flex;align-items:flex-end;justify-content:space-between;gap:2"
-    },
-    {
-      "file": "app/globals.css",
-      "line": 87,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "position: absolute !important;"
-    },
-    {
-      "file": "app/globals.css",
-      "line": 502,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "position: absolute;"
-    },
-    {
-      "file": "app/globals.css",
-      "line": 573,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "position: absolute;"
-    },
-    {
-      "file": "app/globals.css",
-      "line": 1773,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "position: absolute;"
-    },
-    {
-      "file": "app/globals.css",
-      "line": 2016,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": ".gov-search-popover { position: absolute; top: calc(100% + 8px); left: 0; width: min(620px, 78vw); overflow: hidden; border: 1px solid var(--gov-border); border-radius: 14px; background: #fff; box-shadow: 0 22px 60px rgb"
-    },
-    {
-      "file": "app/globals.css",
-      "line": 2155,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": ".reqgen-home-watermark { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; opacity: .035; filter: blur(4px); }"
-    },
-    {
-      "file": "app/globals.css",
-      "line": 2335,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": ".mock-donut-wrap{display:flex;align-items:center;gap:16px}.mock-donut{width:128px;height:128px;flex:0 0 128px;border-radius:50%;background:conic-gradient(#155eef 0 35%,#8b5cf6 35% 58%,#f59e0b 58% 78%,#ef4444 78%);positio"
-    },
-    {
-      "file": "app/globals.css",
-      "line": 2522,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": ".gov-icon-badge b { position:absolute; right:2px; top:0; width:8px; height:8px; overflow:hidden; border-radius:99px; background:#ef233c; color:transparent; }"
-    },
-    {
-      "file": "app/globals.css",
-      "line": 2536,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": ".mock-role-switcher svg { position: absolute; right: 0; top: 50%; width: 14px; height: 14px; transform: translateY(-50%); color: #3864a7; pointer-events: none; }"
-    },
-    {
-      "file": "app/globals.css",
-      "line": 2574,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": ".gov-content .workflow-hero > div[class*=\"absolute\"],"
-    },
-    {
-      "file": "app/globals.css",
-      "line": 2575,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": ".gov-content section[class*=\"from-slate-950\"] > div[class*=\"absolute\"],"
-    },
-    {
-      "file": "app/globals.css",
-      "line": 2576,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": ".gov-content section[class*=\"bg-gradient-to-br\"][class*=\"text-white\"] > div[class*=\"absolute\"] { display:none!important; }"
-    },
-    {
-      "file": "app/globals.css",
-      "line": 2714,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": ".req-mock-tabs button::after{content:\"\";position:absolute;left:0;right:0;bottom:0;height:3px;border-radius:3px;background:transparent}.req-mock-tabs button.is-active{color:#0b57e3}.req-mock-tabs button.is-active::after{b"
-    },
-    {
-      "file": "app/globals.css",
-      "line": 2820,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "position: absolute;"
-    },
-    {
-      "file": "app/globals.css",
-      "line": 2949,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": ".finance-overview-page,.finance-mock-page{width:100%;padding:18px 18px 26px;color:#13284d}.finance-overview-head,.finance-mock-header{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bott"
-    },
-    {
-      "file": "app/globals.css",
-      "line": 2950,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": ".finance-mock-eyebrow{display:block;margin-bottom:4px;color:#0b57e3;font-size:9.5px!important;font-weight:900;text-transform:uppercase;letter-spacing:.11em}.finance-mock-badge{display:inline-flex;margin-top:6px;padding:3"
-    },
-    {
-      "file": "app/globals.css",
-      "line": 3053,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": ".rg-cube:before,.rg-cube:after,.rg-cube i{content:\"\";position:absolute;background:#fff;border-radius:2px;opacity:.94}.rg-cube:before{width:8px;height:8px;left:5px;top:5px}.rg-cube:after{width:8px;height:8px;right:5px;bot"
-    },
-    {
-      "file": "app/globals.css",
-      "line": 3053,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": ".rg-cube:before,.rg-cube:after,.rg-cube i{content:\"\";position:absolute;background:#fff;border-radius:2px;opacity:.94}.rg-cube:before{width:8px;height:8px;left:5px;top:5px}.rg-cube:after{width:8px;height:8px;right:5px;bot"
-    },
-    {
-      "file": "app/globals.css",
-      "line": 3063,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": ".rg-search-wrap{position:relative;width:min(420px,40vw)}.rg-search-trigger{width:100%;height:37px;display:flex;align-items:center;gap:9px;padding:0 11px;border:1px solid #dce4ee;border-radius:8px;background:#fff;color:#6"
-    },
-    {
-      "file": "app/globals.css",
-      "line": 3064,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": ".rg-top-actions{margin-left:auto;display:flex;align-items:center;gap:7px}.rg-icon-btn{position:relative;width:34px;height:34px;display:grid;place-items:center;border:0;border-radius:8px;background:transparent;color:#142d"
-    },
-    {
-      "file": "app/globals.css",
-      "line": 3329,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": ".rg-route-transition__bar{position:absolute;top:-18px;left:-22px;right:-22px;height:3px;overflow:hidden;background:#e8eef7}"
-    },
-    {
-      "file": "app/globals.css",
-      "line": 3411,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-5",
-      "excerpt": ".rg-content[data-mockup-type=\"dashboard\"] :where(.grid)[class*=\"xl:grid-cols-5\"],"
-    },
-    {
-      "file": "app/globals.css",
-      "line": 3437,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": ".rg-approved-body .rg-module-header{min-height:0!important;margin:-67px 0 18px!important;padding:0 2px 11px!important;border:0!important;background:transparent!important;box-shadow:none!important;justify-content:flex-end"
-    },
-    {
-      "file": "app/globals.css",
-      "line": 3456,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-9",
-      "excerpt": ".rg-approved-mockup[data-approved-route^=\"/admin\"] .rg-approved-body .grid[class*=\"xl:grid-cols-9\"]> :nth-child(n+5){display:none!important}.rg-approved-mockup[data-approved-route^=\"/admin/users\"] .rg-approved-body .grid"
-    },
-    {
-      "file": "app/globals.css",
-      "line": 3456,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-9",
-      "excerpt": ".rg-approved-mockup[data-approved-route^=\"/admin\"] .rg-approved-body .grid[class*=\"xl:grid-cols-9\"]> :nth-child(n+5){display:none!important}.rg-approved-mockup[data-approved-route^=\"/admin/users\"] .rg-approved-body .grid"
-    },
-    {
-      "file": "app/globals.css",
-      "line": 3456,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-8",
-      "excerpt": ".rg-approved-mockup[data-approved-route^=\"/admin\"] .rg-approved-body .grid[class*=\"xl:grid-cols-9\"]> :nth-child(n+5){display:none!important}.rg-approved-mockup[data-approved-route^=\"/admin/users\"] .rg-approved-body .grid"
-    },
-    {
-      "file": "app/globals.css",
-      "line": 3456,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-6",
-      "excerpt": ".rg-approved-mockup[data-approved-route^=\"/admin\"] .rg-approved-body .grid[class*=\"xl:grid-cols-9\"]> :nth-child(n+5){display:none!important}.rg-approved-mockup[data-approved-route^=\"/admin/users\"] .rg-approved-body .grid"
-    },
-    {
-      "file": "app/globals.css",
-      "line": 3456,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-8",
-      "excerpt": ".rg-approved-mockup[data-approved-route^=\"/admin\"] .rg-approved-body .grid[class*=\"xl:grid-cols-9\"]> :nth-child(n+5){display:none!important}.rg-approved-mockup[data-approved-route^=\"/admin/users\"] .rg-approved-body .grid"
-    },
-    {
-      "file": "app/globals.css",
-      "line": 3473,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": ".rg-approved-kpis{display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:9px!important;margin:16px 0 10px!important}.rg-approved-kpi{position:relative!important;min-height:88px!important;paddi"
-    },
-    {
-      "file": "app/globals.css",
-      "line": 3497,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-8",
-      "excerpt": ".rg-approved-mockup[data-approved-section=\"staff\"] .rg-approved-body :where(.staff-portal-hero,.staff-tabs,.staff-module-tabs){display:none!important}.rg-approved-mockup[data-approved-section=\"staff\"] .rg-approved-body :"
-    },
-    {
-      "file": "app/globals.css",
-      "line": 3497,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-8",
-      "excerpt": ".rg-approved-mockup[data-approved-section=\"staff\"] .rg-approved-body :where(.staff-portal-hero,.staff-tabs,.staff-module-tabs){display:none!important}.rg-approved-mockup[data-approved-section=\"staff\"] .rg-approved-body :"
-    },
-    {
-      "file": "app/globals.css",
-      "line": 3498,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-9",
-      "excerpt": ".rg-approved-mockup[data-approved-section=\"admin\"] .rg-approved-body :where(.grid[class*=\"xl:grid-cols-9\"]){grid-template-columns:repeat(4,minmax(0,1fr))!important}.rg-approved-mockup[data-approved-section=\"hr\"] .rg-appr"
-    },
-    {
-      "file": "app/globals.css",
-      "line": 3498,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-6",
-      "excerpt": ".rg-approved-mockup[data-approved-section=\"admin\"] .rg-approved-body :where(.grid[class*=\"xl:grid-cols-9\"]){grid-template-columns:repeat(4,minmax(0,1fr))!important}.rg-approved-mockup[data-approved-section=\"hr\"] .rg-appr"
-    },
-    {
-      "file": "app/globals.css",
-      "line": 3498,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-8",
-      "excerpt": ".rg-approved-mockup[data-approved-section=\"admin\"] .rg-approved-body :where(.grid[class*=\"xl:grid-cols-9\"]){grid-template-columns:repeat(4,minmax(0,1fr))!important}.rg-approved-mockup[data-approved-section=\"hr\"] .rg-appr"
-    },
-    {
-      "file": "app/globals.css",
-      "line": 3517,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-8",
-      "excerpt": ".rg-approved-mockup[data-approved-route=\"/staff\"] .rg-approved-body .grid.sm\\:grid-cols-2.lg\\:grid-cols-4.xl\\:grid-cols-8{display:none!important}"
-    },
-    {
-      "file": "app/globals.css",
-      "line": 3564,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-8",
-      "excerpt": ".rg-content[data-route^=\"/staff\"] :where(.grid[class*=\"xl:grid-cols-8\"],.grid[class*=\"lg:grid-cols-8\"]){grid-template-columns:repeat(5,minmax(0,1fr))!important}.rg-content[data-route^=\"/admin\"] :where(.grid[class*=\"xl:gr"
-    },
-    {
-      "file": "app/globals.css",
-      "line": 3564,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-8",
-      "excerpt": ".rg-content[data-route^=\"/staff\"] :where(.grid[class*=\"xl:grid-cols-8\"],.grid[class*=\"lg:grid-cols-8\"]){grid-template-columns:repeat(5,minmax(0,1fr))!important}.rg-content[data-route^=\"/admin\"] :where(.grid[class*=\"xl:gr"
-    },
-    {
-      "file": "app/globals.css",
-      "line": 3564,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-9",
-      "excerpt": ".rg-content[data-route^=\"/staff\"] :where(.grid[class*=\"xl:grid-cols-8\"],.grid[class*=\"lg:grid-cols-8\"]){grid-template-columns:repeat(5,minmax(0,1fr))!important}.rg-content[data-route^=\"/admin\"] :where(.grid[class*=\"xl:gr"
-    },
-    {
-      "file": "app/globals.css",
-      "line": 3564,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-6",
-      "excerpt": ".rg-content[data-route^=\"/staff\"] :where(.grid[class*=\"xl:grid-cols-8\"],.grid[class*=\"lg:grid-cols-8\"]){grid-template-columns:repeat(5,minmax(0,1fr))!important}.rg-content[data-route^=\"/admin\"] :where(.grid[class*=\"xl:gr"
-    },
-    {
-      "file": "app/globals.css",
-      "line": 3576,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-8",
-      "excerpt": "@media(max-width:1200px){.rg-content[data-route^=\"/staff\"] :where(.grid[class*=\"xl:grid-cols-8\"],.grid[class*=\"lg:grid-cols-8\"]),.rg-content[data-route^=\"/admin\"] :where(.grid[class*=\"xl:grid-cols-9\"]),.rg-content[data-r"
-    },
-    {
-      "file": "app/globals.css",
-      "line": 3576,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-8",
-      "excerpt": "@media(max-width:1200px){.rg-content[data-route^=\"/staff\"] :where(.grid[class*=\"xl:grid-cols-8\"],.grid[class*=\"lg:grid-cols-8\"]),.rg-content[data-route^=\"/admin\"] :where(.grid[class*=\"xl:grid-cols-9\"]),.rg-content[data-r"
-    },
-    {
-      "file": "app/globals.css",
-      "line": 3576,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-9",
-      "excerpt": "@media(max-width:1200px){.rg-content[data-route^=\"/staff\"] :where(.grid[class*=\"xl:grid-cols-8\"],.grid[class*=\"lg:grid-cols-8\"]),.rg-content[data-route^=\"/admin\"] :where(.grid[class*=\"xl:grid-cols-9\"]),.rg-content[data-r"
-    },
-    {
-      "file": "app/globals.css",
-      "line": 3576,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-6",
-      "excerpt": "@media(max-width:1200px){.rg-content[data-route^=\"/staff\"] :where(.grid[class*=\"xl:grid-cols-8\"],.grid[class*=\"lg:grid-cols-8\"]),.rg-content[data-route^=\"/admin\"] :where(.grid[class*=\"xl:grid-cols-9\"]),.rg-content[data-r"
-    },
-    {
-      "file": "app/globals.css",
-      "line": 3577,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-8",
-      "excerpt": "@media(max-width:900px){.rg-content:is([data-route^=\"/payment-vouchers\"],[data-route^=\"/registry\"],[data-route^=\"/reports\"],[data-route^=\"/audit-centre\"],[data-route^=\"/workflow\"],[data-route^=\"/admin\"]) .rg-module-heade"
-    },
-    {
-      "file": "app/globals.css",
-      "line": 3577,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-8",
-      "excerpt": "@media(max-width:900px){.rg-content:is([data-route^=\"/payment-vouchers\"],[data-route^=\"/registry\"],[data-route^=\"/reports\"],[data-route^=\"/audit-centre\"],[data-route^=\"/workflow\"],[data-route^=\"/admin\"]) .rg-module-heade"
-    },
-    {
-      "file": "app/globals.css",
-      "line": 3577,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-9",
-      "excerpt": "@media(max-width:900px){.rg-content:is([data-route^=\"/payment-vouchers\"],[data-route^=\"/registry\"],[data-route^=\"/reports\"],[data-route^=\"/audit-centre\"],[data-route^=\"/workflow\"],[data-route^=\"/admin\"]) .rg-module-heade"
-    },
-    {
-      "file": "app/globals.css",
-      "line": 3577,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-6",
-      "excerpt": "@media(max-width:900px){.rg-content:is([data-route^=\"/payment-vouchers\"],[data-route^=\"/registry\"],[data-route^=\"/reports\"],[data-route^=\"/audit-centre\"],[data-route^=\"/workflow\"],[data-route^=\"/admin\"]) .rg-module-heade"
-    },
-    {
-      "file": "app/globals.css",
-      "line": 3578,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-8",
-      "excerpt": "@media(max-width:640px){.rg-content:is([data-route^=\"/payment-vouchers\"],[data-route^=\"/registry\"],[data-route^=\"/reports\"],[data-route^=\"/audit-centre\"],[data-route^=\"/workflow\"],[data-route^=\"/admin\"]) .rg-module-heade"
-    },
-    {
-      "file": "app/globals.css",
-      "line": 3578,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-8",
-      "excerpt": "@media(max-width:640px){.rg-content:is([data-route^=\"/payment-vouchers\"],[data-route^=\"/registry\"],[data-route^=\"/reports\"],[data-route^=\"/audit-centre\"],[data-route^=\"/workflow\"],[data-route^=\"/admin\"]) .rg-module-heade"
-    },
-    {
-      "file": "app/globals.css",
-      "line": 3578,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-9",
-      "excerpt": "@media(max-width:640px){.rg-content:is([data-route^=\"/payment-vouchers\"],[data-route^=\"/registry\"],[data-route^=\"/reports\"],[data-route^=\"/audit-centre\"],[data-route^=\"/workflow\"],[data-route^=\"/admin\"]) .rg-module-heade"
-    },
-    {
-      "file": "app/globals.css",
-      "line": 3578,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-6",
-      "excerpt": "@media(max-width:640px){.rg-content:is([data-route^=\"/payment-vouchers\"],[data-route^=\"/registry\"],[data-route^=\"/reports\"],[data-route^=\"/audit-centre\"],[data-route^=\"/workflow\"],[data-route^=\"/admin\"]) .rg-module-heade"
-    },
-    {
-      "file": "app/globals.css",
-      "line": 3612,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": ".rg-content:is([data-route^=\"/payment-vouchers\"],[data-route^=\"/registry\"],[data-route^=\"/reports\"],[data-route^=\"/audit-centre\"],[data-route^=\"/workflow\"],[data-route^=\"/admin\"]) .rg-stat-card::before{content:\"\";positio"
-    },
-    {
-      "file": "app/globals.css",
-      "line": 3728,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": ".admin-v3-donut-wrap{display:grid;grid-template-columns:134px minmax(0,1fr);gap:15px;align-items:center;min-height:210px}.admin-v3-donut{width:128px;height:128px;border-radius:50%;display:grid;place-items:center;position"
-    },
-    {
-      "file": "app/globals.css",
-      "line": 3730,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": ".admin-v3-bars{height:215px;display:flex;align-items:flex-end;gap:5px;padding:22px 2px 21px;border-bottom:1px solid #e5ebf2;position:relative}.admin-v3-bar-col{height:100%;flex:1;min-width:0;display:flex;flex-direction:c"
-    },
-    {
-      "file": "app/payment-vouchers/[id]/page.tsx",
-      "line": 829,
-      "rule": "fixed-width",
-      "severity": "warning",
-      "match": "min-w-[1120px]",
-      "excerpt": "<div className=\"min-w-[1120px]\">"
-    },
-    {
-      "file": "app/payment-vouchers/[id]/print/page.tsx",
-      "line": 559,
-      "rule": "fixed-width",
-      "severity": "warning",
-      "match": "max-w-[820px]",
-      "excerpt": "<div className=\"mx-auto max-w-[820px]\">"
-    },
-    {
-      "file": "app/payment-vouchers/[id]/print/page.tsx",
-      "line": 649,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-12",
-      "excerpt": "<div className=\"mt-2 grid grid-cols-12 gap-x-3 gap-y-1.5\">"
-    },
-    {
-      "file": "app/payment-vouchers/[id]/print/page.tsx",
-      "line": 678,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-12",
-      "excerpt": "<div className=\"grid grid-cols-12 border-b-2 border-black bg-slate-100 text-[9.2px] font-black uppercase\">"
-    },
-    {
-      "file": "app/payment-vouchers/[id]/print/page.tsx",
-      "line": 692,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-12",
-      "excerpt": "className=\"grid grid-cols-12 border-b border-black text-[9.1px] font-bold last:border-b-0\""
-    },
-    {
-      "file": "app/payment-vouchers/[id]/print/page.tsx",
-      "line": 711,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-12",
-      "excerpt": "<div className=\"grid grid-cols-12 border-t-2 border-black text-[10.5px] font-black\">"
-    },
-    {
-      "file": "app/payment-vouchers/[id]/print/page.tsx",
-      "line": 733,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-12",
-      "excerpt": "<div className=\"grid grid-cols-12 gap-2 px-2 py-2\">"
     },
     {
       "file": "app/payment-vouchers/[id]/print/page.tsx",
@@ -1105,59 +265,11 @@
     },
     {
       "file": "app/payment-vouchers/manual/page.tsx",
-      "line": 826,
-      "rule": "fixed-height",
-      "severity": "warning",
-      "match": "h-[620px]",
-      "excerpt": "<div className=\"h-[620px] rounded-3xl bg-slate-200\" />"
-    },
-    {
-      "file": "app/payment-vouchers/manual/page.tsx",
       "line": 1569,
       "rule": "nowrap-risk",
       "severity": "info",
       "match": "whitespace-nowrap",
       "excerpt": "<td className=\"whitespace-nowrap px-5 py-5\">"
-    },
-    {
-      "file": "app/payment-vouchers/payment-vouchers-overview.module.css",
-      "line": 15,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": ".tableWrap{overflow-x:auto}.table{width:100%;border-collapse:collapse;min-width:820px;table-layout:auto}.table th{height:35px;padding:0 11px;background:#f8faff;color:#26385f;text-align:left;font-size:9px;font-weight:800;"
-    },
-    {
-      "file": "app/payment-vouchers/payment-vouchers-overview.module.css",
-      "line": 16,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": ".sideStack{display:grid;gap:12px}.sideCard{padding:13px}.sideCard h3{margin:0;color:#0b1841;font-size:12px;font-weight:900}.sideCard h3 span{font-size:9px;font-weight:700}.summaryLayout{display:grid;grid-template-columns"
-    },
-    {
-      "file": "app/registry/registry.module.css",
-      "line": 34,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": ".donut::after { content:\"\"; position:absolute; inset:31px; border-radius:50%; background:#fff; box-shadow:0 0 0 1px #e5ebf3; }"
-    },
-    {
-      "file": "app/reports/reports.module.css",
-      "line": 1,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": ".page{width:100%;min-width:0;padding:26px 28px 36px;color:#0b2144;font-size:13px;animation:enter .2s ease-out both}.page *{box-sizing:border-box}.head{display:flex;align-items:flex-start;justify-content:space-between;gap"
-    },
-    {
-      "file": "app/reports/reports.module.css",
-      "line": 1,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": ".page{width:100%;min-width:0;padding:26px 28px 36px;color:#0b2144;font-size:13px;animation:enter .2s ease-out both}.page *{box-sizing:border-box}.head{display:flex;align-items:flex-start;justify-content:space-between;gap"
     },
     {
       "file": "app/requests/[id]/print/page.tsx",
@@ -1174,22 +286,6 @@
       "severity": "info",
       "match": "absolute",
       "excerpt": "className=\"absolute bottom-0 left-1/2 h-[13px] w-auto max-w-[90%] -translate-x-1/2 object-contain\""
-    },
-    {
-      "file": "app/requests/[id]/request-detail.module.css",
-      "line": 4,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": ".hero:before{content:\"\";position:absolute;inset:0 auto 0 0;width:4px;background:linear-gradient(180deg,#0b66ea,#13a5c8);}"
-    },
-    {
-      "file": "app/requests/requests.module.css",
-      "line": 14,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": ".eyebrow{display:block;margin-bottom:5px;color:#1267e8;font-size:10px;font-weight:850;text-transform:uppercase;letter-spacing:.08em}.insightGrid{display:grid;grid-template-columns:minmax(280px,.78fr) minmax(0,1.45fr);gap"
     }
   ]
 }

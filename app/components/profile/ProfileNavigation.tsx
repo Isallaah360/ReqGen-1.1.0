@@ -18,7 +18,7 @@ export default function ProfileNavigation() {
     <nav className="rg-local-tabs" aria-label="Profile sections">
       {items.map((item) => {
         const active = pathname === item.href;
-        return <Link key={item.href} href={item.href} className={active ? "is-active" : ""}>{item.label}</Link>;
+        return <Link key={item.href} href={item.href} aria-current={active ? "page" : undefined} className={active ? "is-active" : ""}>{item.label}</Link>;
       })}
     </nav>
   );

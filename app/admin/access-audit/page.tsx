@@ -63,7 +63,7 @@ export default function AdminAccessAuditPage() {
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(37,99,235,0.10),_transparent_30%),linear-gradient(180deg,#f8fafc_0%,#eef2ff_100%)] px-4 py-6 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-[1500px] space-y-6">
+      <div className="mx-auto w-full max-w-screen-2xl space-y-5">
         <AdminNavigation />
 
         <section className="rg-module-header">
@@ -145,7 +145,7 @@ export default function AdminAccessAuditPage() {
           </div>
 
           <div className="mt-6 hidden overflow-x-auto lg:block">
-            <table className="w-full min-w-[1200px] border-separate border-spacing-y-2 text-left">
+            <table className="w-full table-auto border-separate border-spacing-y-2 text-left">
               <thead>
                 <tr className="text-xs font-black uppercase tracking-wide text-slate-500">
                   <th className="px-3 py-2">Workspace</th>

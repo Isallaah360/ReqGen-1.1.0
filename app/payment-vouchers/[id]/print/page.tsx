@@ -556,7 +556,7 @@ export default function PaymentVoucherPrintPage() {
         }
       `}</style>
 
-      <div className="mx-auto max-w-[820px]">
+      <div className="mx-auto w-full max-w-4xl">
         <div className="no-print mb-3 flex flex-wrap items-center justify-between gap-2">
           <button
             onClick={backToVouchers}
@@ -646,7 +646,7 @@ export default function PaymentVoucherPrintPage() {
 
           <div className="mt-2 h-[2px] bg-black" />
 
-          <div className="mt-2 grid grid-cols-12 gap-x-3 gap-y-1.5">
+          <div className="mt-2 rg-print-12-grid gap-x-3 gap-y-1.5">
             <LineField label="Payee:" value={voucher.payee_name || ""} className="col-span-7" />
             <LineField
               label="Request:"
@@ -675,7 +675,7 @@ export default function PaymentVoucherPrintPage() {
           </div>
 
           <div className="mt-2 border-2 border-black">
-            <div className="grid grid-cols-12 border-b-2 border-black bg-slate-100 text-[9.2px] font-black uppercase">
+            <div className="rg-print-12-grid border-b-2 border-black bg-slate-100 text-[9.2px] font-black uppercase">
               <div className="col-span-1 border-r-2 border-black px-1 py-1 text-center">
                 No
               </div>
@@ -689,7 +689,7 @@ export default function PaymentVoucherPrintPage() {
               {printableItems.slice(0, 10).map((item, index) => (
                 <div
                   key={item.id}
-                  className="grid grid-cols-12 border-b border-black text-[9.1px] font-bold last:border-b-0"
+                  className="rg-print-12-grid border-b border-black text-[9.1px] font-bold last:border-b-0"
                 >
                   <div className="col-span-1 border-r-2 border-black px-1 py-[4px] text-center">
                     {index + 1}
@@ -708,7 +708,7 @@ export default function PaymentVoucherPrintPage() {
               ))}
             </div>
 
-            <div className="grid grid-cols-12 border-t-2 border-black text-[10.5px] font-black">
+            <div className="rg-print-12-grid border-t-2 border-black text-[10.5px] font-black">
               <div className="col-span-9 border-r-2 border-black px-2 py-1 text-right uppercase">
                 Total
               </div>
@@ -730,7 +730,7 @@ export default function PaymentVoucherPrintPage() {
               Disbursement Details
             </div>
 
-            <div className="grid grid-cols-12 gap-2 px-2 py-2">
+            <div className="rg-print-12-grid gap-2 px-2 py-2">
               <FilledBox
                 label="Mode"
                 value={voucher.disbursement_mode || ""}

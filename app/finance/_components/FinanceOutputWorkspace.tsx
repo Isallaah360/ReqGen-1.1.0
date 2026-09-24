@@ -593,7 +593,7 @@ export default function FinanceOutputWorkspace({ mode }: { mode: OutputMode }) {
         {error && <div className="mt-5 rounded-2xl border border-rose-200 bg-rose-50 px-5 py-4 text-sm font-semibold text-rose-800">⚠ {error}</div>}
 
         <section className="panel-enter mt-5 rounded-[1.7rem] border border-slate-200/80 bg-white/95 p-5 shadow-[0_16px_50px_rgba(15,23,42,.08)] no-print">
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+          <div className="rg-auto-grid rg-auto-grid-5">
             <label className="field"><span>Fiscal Year</span><select value={year} onChange={(event) => setYear(Number(event.target.value))}>{Array.from({ length: 7 }, (_, index) => currentYear - 3 + index).map((value) => <option key={value} value={value}>{value}</option>)}</select></label>
             <label className="field"><span>Department</span><select value={departmentId} onChange={(event) => setDepartmentId(event.target.value)}><option value="ALL">All Departments</option>{departments.map((department) => <option key={department.id} value={department.id}>{department.name}</option>)}</select></label>
             <label className="field"><span>Date From</span><input type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} /></label>

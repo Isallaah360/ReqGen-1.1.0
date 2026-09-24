@@ -232,7 +232,7 @@ export default function WorkflowTestPage() {
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,_#dbeafe_0,_transparent_28%),linear-gradient(180deg,#f8fafc_0%,#eef2ff_100%)] px-4 py-6 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-[1500px] space-y-6">
+      <div className="mx-auto w-full max-w-screen-2xl space-y-5">
         <AdminNavigation />
 
         <section className="rg-module-header">
@@ -277,7 +277,7 @@ export default function WorkflowTestPage() {
             </div>
             <p className="text-xs font-bold text-slate-500">A restricted result can be correct when testing a non-Admin active role.</p>
           </div>
-          <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          <div className="mt-5 rg-auto-grid rg-auto-grid-5">
             {sources.map((source) => (
               <div key={source.key} className={`rounded-2xl border p-4 ${source.ok ? "border-emerald-200 bg-emerald-50" : "border-amber-200 bg-amber-50"}`}>
                 <div className="flex items-center justify-between gap-2">

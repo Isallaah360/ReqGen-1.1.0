@@ -530,7 +530,7 @@ export default function AdminRolesPage() {
 
         <AdminPermissionMatrix />
 
-        <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-6">
+        <div className="mt-6 rg-auto-grid rg-auto-grid-6">
           <StatCard title="Total Roles" value={String(stats.total)} tone="blue" />
           <StatCard title="Active" value={String(stats.activeCount)} tone="emerald" />
           <StatCard title="Inactive" value={String(stats.inactiveCount)} tone="amber" />
@@ -688,7 +688,7 @@ export default function AdminRolesPage() {
                 </div>
 
                 <div className="hidden overflow-x-auto xl:block">
-                  <table className="min-w-[1150px] w-full border-collapse text-sm">
+                  <table className="w-full table-auto border-collapse text-sm">
                     <thead>
                       <tr className="bg-slate-100 text-xs uppercase tracking-wide text-slate-600">
                         <th className="px-4 py-3 text-left">Role</th>

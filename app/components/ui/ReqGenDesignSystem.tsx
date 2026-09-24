@@ -87,5 +87,5 @@ export function StatusBadge({ children, tone = "slate" }: { children: ReactNode;
 }
 
 export function SkeletonDashboard() {
-  return <div className="min-h-screen bg-slate-100 p-4 sm:p-7"><div className="mx-auto max-w-[1500px] space-y-6"><div className="reqgen-skeleton h-64 rounded-[30px]"/><div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{Array.from({length:8}).map((_,i)=><div key={i} className="reqgen-skeleton h-36 rounded-2xl"/>)}</div><div className="grid gap-6 xl:grid-cols-3"><div className="reqgen-skeleton h-96 rounded-3xl xl:col-span-2"/><div className="reqgen-skeleton h-96 rounded-3xl"/></div></div></div>;
+  return <div className="min-h-screen bg-slate-100 p-4 sm:p-7"><div className="mx-auto w-full max-w-screen-2xl space-y-5"><div className="reqgen-skeleton h-64 rounded-[30px]"/><div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{Array.from({length:8}).map((_,i)=><div key={i} className="reqgen-skeleton h-36 rounded-2xl"/>)}</div><div className="grid gap-6 xl:grid-cols-3"><div className="reqgen-skeleton h-96 rounded-3xl xl:col-span-2"/><div className="reqgen-skeleton h-96 rounded-3xl"/></div></div></div>;
 }

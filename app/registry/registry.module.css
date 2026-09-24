@@ -40,12 +40,12 @@
 .tableCard { border:1px solid #dfe7f1; border-radius:13px; background:#fff; overflow:hidden; box-shadow:0 5px 16px rgba(26,56,92,.05); }
 .tableHeader { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; padding:14px 15px; border-bottom:1px solid #e5ebf3; }
 .tableWrap { overflow:auto; }
-.tableWrap table { width:100%; min-width:1120px; border-collapse:collapse; }
+.tableWrap table { width:100%; min-width:100%; border-collapse:collapse; }
 .tableWrap th { background:#f5f8fc; color:#49617f; font-size:11px; font-weight:900; padding:12px 11px; text-align:left; border-bottom:1px solid #e3eaf3; white-space:nowrap; }
 .tableWrap td { padding:13px 11px; border-bottom:1px solid #edf1f6; color:#284563; font-weight:650; vertical-align:middle; }
 .tableWrap tr:hover td { background:#fbfdff; }
 .ref { font-weight:900; color:#12385f; }
-.badge { display:inline-flex; min-height:25px; align-items:center; border-radius:7px; padding:0 8px; font-size:10px; font-weight:900; white-space:nowrap; }
+.badge { display:inline-flex; min-height:25px; align-items:center; border-radius:7px; padding:0 8px; font-size:11px; font-weight:900; white-space:nowrap; }
 .empty { padding:36px 20px; text-align:center; color:#7a8799; font-weight:700; }
 .actionButton { min-height:31px; border-radius:8px; border:1px solid #cfe0f6; background:#fff; color:#1263f3; font-size:11px; font-weight:900; padding:0 10px; cursor:pointer; }
 .actionButton:hover { background:#eef5ff; }

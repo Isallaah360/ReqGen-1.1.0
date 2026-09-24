@@ -67,8 +67,8 @@ export default function ProfileSecurityPage() {
   const sessionSecure = security.currentLevel === "aal2";
 
   return (
-    <main data-rmb-page="profile" className="min-h-screen bg-slate-50 px-4 py-8">
-      <div className="mx-auto max-w-6xl">
+    <main data-rmb-page="profile" className="rg-standard-page rg-profile-security-page">
+      <div className="rg-standard-page-inner">
         
 
         <ProfileNavigation />
@@ -91,11 +91,11 @@ export default function ProfileSecurityPage() {
               <Info label="Session assurance" value={sessionSecure ? "AAL2 — MFA verified" : "AAL1 — password only"} />
             </div>
             <div className="mt-6 flex flex-wrap gap-3">
-              {!security.hasTotp && <Link href="/mfa/setup" className="rounded-xl bg-orange-600 px-4 py-3 text-sm font-black text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-orange-700">Set Up 2FA</Link>}
-              {security.hasTotp && !sessionSecure && <Link href="/mfa" className="rounded-xl bg-cyan-700 px-4 py-3 text-sm font-black text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-cyan-800">Verify 2FA</Link>}
-              {security.hasTotp && <Link href="/profile/security/replace-authenticator" className="rounded-xl bg-indigo-700 px-4 py-3 text-sm font-black text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-indigo-800">Change 2FA &amp; Password</Link>}
-              <Link href="/change-password" className="rounded-xl bg-blue-700 px-4 py-3 text-sm font-black text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-blue-800">Change Password</Link>
-              <button type="button" onClick={() => void load(true)} disabled={refreshing} className="rounded-xl bg-violet-700 px-4 py-3 text-sm font-black text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-violet-800 disabled:opacity-60">{refreshing ? "Refreshing…" : "Refresh Security"}</button>
+              {!security.hasTotp && <Link href="/mfa/setup" className="rg-action-button rg-action-warning">Set Up 2FA</Link>}
+              {security.hasTotp && !sessionSecure && <Link href="/mfa" className="rg-action-button rg-action-cyan">Verify 2FA</Link>}
+              {security.hasTotp && <Link href="/profile/security/replace-authenticator" className="rg-action-button rg-action-violet">Change 2FA &amp; Password</Link>}
+              <Link href="/change-password" className="rg-action-button rg-action-primary">Change Password</Link>
+              <button type="button" onClick={() => void load(true)} disabled={refreshing} className="rg-action-button rg-action-violet">{refreshing ? "Refreshing…" : "Refresh Security"}</button>
             </div>
           </div>
 

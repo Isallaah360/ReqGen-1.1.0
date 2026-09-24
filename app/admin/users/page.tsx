@@ -799,7 +799,7 @@ export default function AdminUsersPage() {
         </div>
 
         <div className="mt-6 rounded-3xl border bg-white p-5 shadow-sm">
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+          <div className="rg-auto-grid rg-auto-grid-5">
             <div className="xl:col-span-2">
               <label className="text-sm font-semibold text-slate-800">Search</label>
               <input

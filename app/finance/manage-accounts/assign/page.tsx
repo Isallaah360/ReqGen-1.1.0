@@ -397,7 +397,7 @@ export default function AssignBankToOfficerPage() {
           <div className={styles.sideCard}>
             <h2>Assignment Summary</h2>
             <div className={styles.donutWrap}>
-              <div className={styles.donut} style={{ background: donutBackground }}><span>{assignments.length}<small>Assigned</small></span></div>
+              <div className={styles.donut} tabIndex={0} role="img" aria-label={`Assignment summary: ${assignments.length} assigned`} title={`${assignments.length} assigned account routes`} style={{ background: donutBackground }}><span>{assignments.length}<small>Assigned</small></span></div>
               <div className={styles.legend}>
                 <Legend color="#11a35c" label="Active assignments" value={summary.activeAssigned}/>
                 <Legend color="#0d63f3" label="Available accounts" value={summary.availableAccounts}/>

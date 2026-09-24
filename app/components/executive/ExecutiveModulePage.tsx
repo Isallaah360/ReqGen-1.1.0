@@ -94,7 +94,7 @@ export default function ExecutiveModulePage({ module }: { module: ExecutiveModul
 
   return (
     <ExecutiveShell>
-      <div className="mx-auto max-w-[1500px] space-y-6">
+      <div className="mx-auto w-full max-w-screen-2xl space-y-5">
         <ExecutiveHero
           eyebrow={meta.eyebrow}
           title={meta.title}

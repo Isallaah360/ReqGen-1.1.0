@@ -1570,7 +1570,7 @@ export default function FinanceAuditPage() {
           <StatCard title="Open Requests" value={String(stats.openRequests)} tone="purple" />
         </div>
 
-        <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-5 print:grid-cols-5">
+        <div className="mt-4 rg-auto-grid rg-auto-grid-5 rg-print-grid-5">
           <MiniCard title="IET Banks" value={String(banks.length)} />
           <MiniCard title="Subheads" value={String(subheads.length)} />
           <MiniCard title="Departments" value={String(depts.length)} />
@@ -1590,7 +1590,7 @@ export default function FinanceAuditPage() {
         </div>
 
         <div className="no-print mt-6 rounded-3xl border bg-white p-5 shadow-sm">
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
+          <div className="rg-auto-grid rg-auto-grid-6">
             <div className="xl:col-span-2">
               <label className="text-sm font-semibold text-slate-800">Search</label>
               <input
@@ -2131,7 +2131,7 @@ function PendingVouchersPanel({
       {rows.length === 0 ? (
         <EmptyState message="No pending voucher found for the selected filters." />
       ) : (
-        <div className="max-h-[620px] overflow-auto print:max-h-none print:overflow-visible">
+        <div className="rg-scroll-panel overflow-auto print:max-h-none print:overflow-visible">
           {rows.map((v) => (
             <div key={v.id} className="border-t px-6 py-4 hover:bg-slate-50 print:px-2 print:py-2">
               <div className="flex flex-wrap items-start justify-between gap-3">

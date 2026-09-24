@@ -29,7 +29,8 @@
     "audit:data-accuracy": "node scripts/audit-data-accuracy.mjs",
     "audit:section6": "node scripts/audit-section6-registry.mjs",
     "audit:section7": "node scripts/audit-section7-reports.mjs",
-    "audit:navbar": "node scripts/audit-navbar-coverage.mjs"
+    "audit:navbar": "node scripts/audit-navbar-coverage.mjs",
+    "audit:phase6-ui": "node scripts/audit-phase6-ui.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.97.0",
@@ -49,5 +50,5 @@
     "tailwindcss": "^4",
     "typescript": "^5"
   },
-  "reqgenVersion": "2.0.0.6"
+  "reqgenVersion": "2.0.0.7"
 }

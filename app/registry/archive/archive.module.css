@@ -27,12 +27,12 @@
 .cardTitle { margin:0; font-size:14px; font-weight:900; color:#16355e; }
 .cardNote { margin:4px 0 0; color:#7a8799; font-size:11px; font-weight:600; }
 .tableWrap { overflow:auto; }
-.tableWrap table { width:100%; min-width:1370px; border-collapse:collapse; }
+.tableWrap table { width:100%; min-width:100%; border-collapse:collapse; }
 .tableWrap th { background:#f5f8fc; color:#49617f; font-size:11px; font-weight:900; text-align:left; padding:12px 10px; border-bottom:1px solid #e3eaf3; white-space:nowrap; }
 .tableWrap td { padding:13px 10px; color:#294664; font-weight:650; border-bottom:1px solid #edf1f6; vertical-align:top; }
 .tableWrap tr:hover td { background:#fbfdff; }
 .ref { color:#12385f; font-weight:900; }
-.badge { display:inline-flex; min-height:25px; align-items:center; padding:0 8px; border-radius:7px; font-size:10px; font-weight:900; }
+.badge { display:inline-flex; min-height:25px; align-items:center; padding:0 8px; border-radius:7px; font-size:11px; font-weight:900; }
 .action { min-height:31px; border-radius:8px; border:1px solid #cfe0f6; background:#fff; color:#1263f3; padding:0 9px; font-size:11px; font-weight:900; cursor:pointer; margin-right:5px; }
 .actionRestore { color:#0a8755; border-color:#bfe7d4; }
 .empty { padding:38px 20px; text-align:center; color:#7a8799; font-weight:700; }

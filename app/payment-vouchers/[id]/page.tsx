@@ -826,7 +826,7 @@ export default function PaymentVoucherDetailPage() {
           ) : (
             <>
               <div className="hidden xl:block overflow-x-auto">
-                <div className="min-w-[1120px]">
+                <div className="w-full min-w-0">
                   <div className="grid grid-cols-15 bg-slate-100 px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600">
                     <div className="col-span-1">No</div>
                     <div className="col-span-2">Request No</div>

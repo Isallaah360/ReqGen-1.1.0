@@ -191,7 +191,7 @@ export default function SessionTimeout() {
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/55 px-4 backdrop-blur-md">
-      <div className="w-full max-w-[430px] overflow-hidden rounded-2xl border border-amber-200 bg-white shadow-2xl">
+      <div className="w-full max-w-md overflow-hidden rounded-2xl border border-amber-200 bg-white shadow-2xl">
         <div className="bg-gradient-to-r from-slate-950 via-blue-950 to-cyan-800 px-5 py-4 text-white">
           <div className="text-xs font-black uppercase tracking-[0.2em] text-cyan-200">
             Security Session Notice

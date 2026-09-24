@@ -567,7 +567,7 @@ export default function NavBar() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-slate-200/80 bg-white/95 shadow-sm backdrop-blur-xl">
-      <div className="mx-auto flex max-w-[1680px] items-center justify-between gap-3 px-4 py-3">
+      <div className="mx-auto flex w-full max-w-screen-2xl items-center justify-between gap-3 px-4 py-3">
         <Link href="/" className="shrink-0 rounded-xl bg-gradient-to-r from-slate-950 to-blue-900 px-3 py-2 text-lg font-black tracking-tight text-white shadow-md">
           ReqGen <span className="text-cyan-300">{REQGEN_VERSION}</span>
         </Link>
@@ -680,7 +680,7 @@ export default function NavBar() {
                 </button>
 
                 {openApprovalPanel && (
-                  <div className="absolute left-0 top-12 z-50 w-[420px] overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl shadow-slate-900/20">
+                  <div className="absolute left-0 top-12 z-50 w-[min(420px,calc(100vw-24px))] overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl shadow-slate-900/20">
                     <div className="bg-gradient-to-r from-blue-950 via-blue-900 to-cyan-800 px-5 py-4 text-white">
                       <div className="flex items-start justify-between gap-4">
                         <div>

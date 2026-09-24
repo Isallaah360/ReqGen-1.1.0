@@ -482,7 +482,7 @@ export default function AdminSecurityPage() {
           This page refreshes automatically when you return to it. Print reloads the latest MFA/session status before printing.
         </div>
 
-        <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-6">
+        <div className="mt-6 rg-auto-grid rg-auto-grid-6">
           <StatCard title="Security Score" value={`${stats.score}%`} tone="blue" />
           <StatCard title="Checklist Items" value={String(stats.total)} tone="blue" />
           <StatCard title="Completed" value={String(stats.done)} tone="emerald" />

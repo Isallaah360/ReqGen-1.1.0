@@ -1759,6 +1759,10 @@ export default function FinanceSubheadsPage() {
             <div className={styles.donutRow}>
               <div
                 className={styles.donut}
+                tabIndex={0}
+                role="img"
+                aria-label={`Subhead overview: ${total} total subheads`}
+                title={`${total} total subheads`}
                 style={{
                   background: `conic-gradient(${donutStops ||
                     "#e2e8f0 0 100%"

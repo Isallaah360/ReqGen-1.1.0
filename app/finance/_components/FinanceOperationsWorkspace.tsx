@@ -1887,6 +1887,10 @@ export default function FinanceOperationsWorkspace({
                 className={
                   styles.donut
                 }
+                tabIndex={0}
+                role="img"
+                aria-label={`${rows.length} records in current finance view`}
+                title={`${rows.length} records in current finance view`}
               >
                 <div>
                   <strong>
@@ -3357,9 +3361,8 @@ function MonthlyPage({
                       key={
                         month.key
                       }
-                      title={
-                        month.month
-                      }
+                      title={`${month.month}: income ${money(month.income)}, expense ${money(month.expense)}`}
+                      tabIndex={0}
                     >
                       <i
                         style={{
