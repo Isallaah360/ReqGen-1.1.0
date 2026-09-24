@@ -189,6 +189,10 @@ const MAIN_NAV = [
   },
 ];
 
+function pathWithin(pathname: string, href: string) {
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
 function navParentForPath(pathname: string): string | null {
   const contextualParents: Array<[string, string]> = [
     ["/change-password", "/profile"],
@@ -202,11 +206,23 @@ function navParentForPath(pathname: string): string | null {
     ["/executive", "/admin"],
   ];
 
-  const contextual = contextualParents.find(([prefix]) => pathname === prefix || pathname.startsWith(`${prefix}/`));
+  const contextual = contextualParents
+    .filter(([prefix]) => pathWithin(pathname, prefix))
+    .sort((a, b) => b[0].length - a[0].length)[0];
   if (contextual) return contextual[1];
 
-  const direct = MAIN_NAV.find((item) => pathname === item.href || pathname.startsWith(`${item.href}/`));
+  // Longest-prefix matching prevents a broad module route from stealing
+  // the active state from a more specific canonical module.
+  const direct = MAIN_NAV
+    .filter((item) => pathWithin(pathname, item.href))
+    .sort((a, b) => b.href.length - a.href.length)[0];
   return direct?.href || null;
+}
+
+function activeSubnavHref(moduleHref: string, pathname: string): string | null {
+  return (MODULE_SUBNAV[moduleHref] || [])
+    .filter((item) => pathWithin(pathname, item.href))
+    .sort((a, b) => b.href.length - a.href.length)[0]?.href || null;
 }
 
 function getSubnavForPath(moduleHref: string): SubNavItem[] {
@@ -569,7 +585,17 @@ function GovernmentAppShellContent({
                 className="rg-nav-link rg-nav-parent"
                 aria-expanded={expanded}
                 aria-controls={`rg-subnav-${item.label.replace(/\s+/g, "-").toLowerCase()}`}
-                onClick={() => setExpandedNav(expanded ? null : item.href)}
+                onClick={() => {
+                  // A click from another module both navigates to the module root
+                  // and expands it. A second click while already in the module
+                  // only retracts/expands the submenu, preserving user context.
+                  if (!active) {
+                    setExpandedNav(item.href);
+                    router.push(item.href);
+                    return;
+                  }
+                  setExpandedNav(expanded ? null : item.href);
+                }}
               >
                 <Icon size={18} />
                 <span>{item.label}</span>
@@ -613,7 +639,7 @@ function GovernmentAppShellContent({
                 <Link
                   key={child.href}
                   href={child.href}
-                  className={pathname === child.href ? "is-active" : ""}
+                  className={activeSubnavHref(item.href, pathname) === child.href ? "is-active" : ""}
                 >
                   {child.label}
                 </Link>
@@ -692,7 +718,7 @@ function GovernmentAppShellContent({
         <div className="rg-sidebar-release" aria-label={`ReqGen version ${REQGEN_VERSION}`}>
           <span>Version</span>
           <strong>{REQGEN_VERSION}</strong>
-          <small>Patch 04</small>
+          <small>Patch 05 · Phase 4</small>
         </div>
 
         <div className="rg-sidebar-signout">

@@ -735,11 +735,10 @@ export default function AdminUsersPage() {
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">
-              Users & Multiple Roles
+              User Management
             </h1>
             <p className="mt-2 text-sm text-slate-600">
-              Assign multiple official roles, set primary fallback role, manage department routing
-              and verify signature readiness.
+              Manage users, department routing, active roles and signature readiness from one controlled workspace.
             </p>
             <p className="mt-1 text-xs font-semibold text-slate-500">
               The primary role keeps older screens compatible, while active multiple roles control
@@ -895,25 +894,30 @@ export default function AdminUsersPage() {
         </section>
 
         {managedUser ? (
-          <section className="mt-4">
-            <div className="admin-v3-card-head"><div><h2>Manage User</h2><p>Update department and active role assignments for {managedUser.full_name || managedUser.email || "this user"}.</p></div><button className="admin-v3-secondary" type="button" onClick={() => setManageUserId(null)}>Close</button></div>
-            <UserRolePanel
-              u={managedUser}
-              roles={roles}
-              depts={depts}
-              deptMap={deptMap}
-              userRoles={rolesByProfile[managedUser.id] || []}
-              roleMap={roleMap}
-              saving={savingId === managedUser.id}
-              disabled={!!savingId || refreshing}
-              onUpdateDepartment={updateUserDepartment}
-              onAssignRole={assignRole}
-              onSetPrimaryRole={setPrimaryRole}
-              onDeactivateRole={deactivateRole}
-              onDeleteUser={deleteUser}
-              canDelete={canDeleteUsers}
-            />
-          </section>
+          <div className="admin-v4-manage-backdrop" role="presentation" onMouseDown={() => !savingId && setManageUserId(null)}>
+            <section className="admin-v4-manage-dialog" role="dialog" aria-modal="true" aria-labelledby="manage-user-title" onMouseDown={(event) => event.stopPropagation()}>
+              <div className="admin-v4-manage-head">
+                <div><h2 id="manage-user-title">Manage User</h2><p>Update department and active role assignments for {managedUser.full_name || managedUser.email || "this user"}.</p></div>
+                <button className="admin-v3-secondary" type="button" onClick={() => setManageUserId(null)}>Close</button>
+              </div>
+              <UserRolePanel
+                u={managedUser}
+                roles={roles}
+                depts={depts}
+                deptMap={deptMap}
+                userRoles={rolesByProfile[managedUser.id] || []}
+                roleMap={roleMap}
+                saving={savingId === managedUser.id}
+                disabled={!!savingId || refreshing}
+                onUpdateDepartment={updateUserDepartment}
+                onAssignRole={assignRole}
+                onSetPrimaryRole={setPrimaryRole}
+                onDeactivateRole={deactivateRole}
+                onDeleteUser={deleteUser}
+                canDelete={canDeleteUsers}
+              />
+            </section>
+          </div>
         ) : null}
 
         {showCreateUser ? (

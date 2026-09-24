@@ -40,12 +40,15 @@ export default function AccountRoutingPage() {
     const [deptRes, accountRes, officerRes, routeRes] = await Promise.all([
       supabase.from("departments").select("id,name").order("name", { ascending: true }),
       supabase.from("iet_accounts").select("id,code,name,account_number,bank_name,is_active").eq("is_active", true).order("name", { ascending: true }),
-      supabase.from("profiles").select("id,full_name,email,role").eq("role", "AccountOfficer").order("full_name", { ascending: true }),
+      supabase.from("profiles").select("id,full_name,email,role").order("full_name", { ascending: true }),
       supabase.from("department_account_routing").select("id,dept_id,iet_account_id,officer_user_id,is_active").order("created_at", { ascending: true }),
     ]);
     const error = deptRes.error || accountRes.error || officerRes.error || routeRes.error;
     if (error) setMsg("Unable to load account routing: " + error.message);
-    setDepts((deptRes.data || []) as Dept[]); setAccounts((accountRes.data || []) as IetAccount[]); setOfficers((officerRes.data || []) as Officer[]); setRoutes((routeRes.data || []) as RouteRow[]);
+    setDepts((deptRes.data || []) as Dept[]);
+    setAccounts((accountRes.data || []) as IetAccount[]);
+    setOfficers(((officerRes.data || []) as Officer[]).filter((officer) => ["account", "accounts", "accountofficer"].includes(roleKey(officer.role))));
+    setRoutes((routeRes.data || []) as RouteRow[]);
     setLoading(false);
   }
 
@@ -112,7 +115,7 @@ export default function AccountRoutingPage() {
         <div className="admin-v3-pagination"><span>Showing {filtered.length ? (page - 1) * pageSize + 1 : 0} to {Math.min(page * pageSize, filtered.length)} of {filtered.length}</span><div><button disabled={page <= 1} onClick={() => setPage((v) => Math.max(1, v - 1))}>‹</button>{Array.from({ length: pages }, (_, index) => index + 1).slice(Math.max(0, page - 3), Math.max(5, page + 2)).map((value) => <button key={value} className={value === page ? "is-active" : ""} onClick={() => setPage(value)}>{value}</button>)}<button disabled={page >= pages} onClick={() => setPage((v) => Math.min(pages, v + 1))}>›</button></div></div>
       </section>
 
-      {editingDeptId ? <section className="admin-v3-card admin-v3-editor"><div className="admin-v3-card-head"><div><h2>Edit Department Routing</h2><p>{depts.find((dept) => dept.id === editingDeptId)?.name}</p></div><button className="admin-v3-secondary" onClick={() => setEditingDeptId(null)}>Cancel</button></div><div className="admin-v3-form-grid"><label>IET Account<select value={accountId} onChange={(e) => setAccountId(e.target.value)}><option value="">Select account</option>{accounts.map((account) => <option key={account.id} value={account.id}>{accountLabel(account)}</option>)}</select></label><label>Account Officer<select value={officerId} onChange={(e) => setOfficerId(e.target.value)}><option value="">Select officer</option>{officers.map((officer) => <option key={officer.id} value={officer.id}>{officerLabel(officer)}{officer.email ? ` · ${officer.email}` : ""}</option>)}</select></label></div><div className="admin-v3-modal-actions"><button className="reqgen-btn reqgen-btn-blue rounded-xl px-4 py-2 text-sm font-black text-white" disabled={saving} onClick={() => void save()}>{saving ? "Saving…" : "Save Routing"}</button></div></section> : null}
+      {editingDeptId ? <div className="admin-v4-manage-backdrop" role="presentation" onMouseDown={() => !saving && setEditingDeptId(null)}><section className="admin-v4-routing-dialog" role="dialog" aria-modal="true" aria-labelledby="routing-editor-title" onMouseDown={(event) => event.stopPropagation()}><div className="admin-v4-manage-head"><div><h2 id="routing-editor-title">Edit Department Routing</h2><p>{depts.find((dept) => dept.id === editingDeptId)?.name}</p></div><button className="admin-v3-secondary" onClick={() => setEditingDeptId(null)}>Cancel</button></div><div className="admin-v3-form-grid"><label>IET Account<select value={accountId} onChange={(e) => setAccountId(e.target.value)}><option value="">Select account</option>{accounts.map((account) => <option key={account.id} value={account.id}>{accountLabel(account)}</option>)}</select></label><label>Account Officer<select value={officerId} onChange={(e) => setOfficerId(e.target.value)}><option value="">Select officer</option>{officers.map((officer) => <option key={officer.id} value={officer.id}>{officerLabel(officer)}{officer.email ? ` · ${officer.email}` : ""}</option>)}</select></label></div><div className="admin-v3-modal-actions"><button className="reqgen-btn reqgen-btn-blue" disabled={saving} onClick={() => void save()}>{saving ? "Saving…" : "Save Routing"}</button></div></section></div> : null}
     </main>
   );
 }
