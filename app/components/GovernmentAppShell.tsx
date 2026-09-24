@@ -900,13 +900,21 @@ function GovernmentAppShellContent({
             }
           >
             <div className="rg-location-bar" aria-label="Current location">
-              {activeMainNavigation ? (
-                <Link href={activeMainNavigation.href}>{activeMainNavigation.label}</Link>
-              ) : (
-                <span>ReqGen</span>
-              )}
-              <ChevronRight size={14} aria-hidden="true" />
-              <strong>{currentLocationLabel}</strong>
+              <div className="rg-location-path">
+                {activeMainNavigation ? (
+                  <Link href={activeMainNavigation.href}>{activeMainNavigation.label}</Link>
+                ) : (
+                  <span>ReqGen</span>
+                )}
+                <ChevronRight size={14} aria-hidden="true" />
+                <strong>{currentLocationLabel}</strong>
+              </div>
+              <button type="button" className="rg-important-note" aria-describedby="rg-important-note-tooltip">
+                <span aria-hidden="true">i</span> Important Note
+                <span id="rg-important-note-tooltip" role="tooltip">
+                  {getRouteRegistryItem(pathname)?.description || `You are currently working in ${currentLocationLabel}. Actions and data shown here follow your active role and live ReqGen permissions.`}
+                </span>
+              </button>
             </div>
             {children}
           </div>

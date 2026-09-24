@@ -202,7 +202,7 @@ export default function DashboardPage() {
               {[0,1,2,3,4].map((n) => <line key={n} className={styles.chartGrid} x1="34" x2="700" y1={28+n*37} y2={28+n*37}/>) }
               <polygon className={styles.chartArea} points={`34,186 ${chart.polyline} 686,186`} />
               <polyline className={styles.chartLine} points={chart.polyline} />
-              {chart.points.map((p, i) => <g key={i}><circle className={styles.chartDot} cx={p.x} cy={p.y} r="5"/><text x={p.x} y="205" textAnchor="middle">{p.label}</text></g>)}
+              {chart.points.map((p, i) => <g key={i} className={styles.chartPoint}><title>{`${p.label}: ${p.count} request${p.count === 1 ? "" : "s"}`}</title><circle className={styles.chartDot} cx={p.x} cy={p.y} r="5" tabIndex={0}/><text x={p.x} y="205" textAnchor="middle">{p.label}</text></g>)}
             </svg>
           </div>
         </article>

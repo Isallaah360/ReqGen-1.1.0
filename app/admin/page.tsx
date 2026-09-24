@@ -103,19 +103,11 @@ function buildActivity(rows: AuditRow[]): DailyPoint[] {
   return points;
 }
 
-function dayGreeting() {
-  const hour = new Date().getHours();
-  if (hour < 12) return "Good morning";
-  if (hour < 17) return "Good afternoon";
-  return "Good evening";
-}
-
 export default function AdminDashboardPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [currentName, setCurrentName] = useState("Administrator");
   const [profiles, setProfiles] = useState<ProfileRow[]>([]);
   const [departments, setDepartments] = useState<DepartmentRow[]>([]);
   const [roles, setRoles] = useState<RoleRow[]>([]);
@@ -150,8 +142,6 @@ export default function AdminDashboardPage() {
       router.replace("/unauthorized");
       return;
     }
-
-    setCurrentName(String(me.data?.full_name || auth.user.user_metadata?.full_name || "Administrator"));
 
     const [profileRes, deptRes, roleRes, profileRoleRes, auditRes] = await Promise.all([
       supabase.from("profiles").select("id,email,full_name,role,dept_id,created_at").order("full_name", { ascending: true }),
@@ -246,8 +236,8 @@ export default function AdminDashboardPage() {
     <main className="admin-v3-page">
       <header className="admin-v3-header">
         <div>
-          <h1>{dayGreeting()}, {currentName} <span aria-hidden="true">👋</span></h1>
-          <p>System Administration Overview</p>
+          <h1>Administration Overview</h1>
+          <p>Live users, roles, departments and administrative health in one controlled workspace.</p>
         </div>
         <button className="admin-v3-secondary" type="button" onClick={() => void load(true)} disabled={refreshing}>
           <RefreshCw size={16} className={refreshing ? "admin-v3-spin" : ""} />

@@ -3921,3 +3921,19 @@ body{font-family:Aptos,"Segoe UI",Inter,Arial,sans-serif!important;background:va
 .admin-v4-manage-dialog .rounded-2xl{border-radius:9px!important}.admin-v4-manage-dialog .p-4{padding:11px!important}.admin-v4-manage-dialog .mt-5{margin-top:10px!important}.admin-v4-manage-dialog .mt-4{margin-top:9px!important}.admin-v4-manage-dialog .mt-3{margin-top:7px!important}
 .rg-content[data-route="/admin/roles"] table[class*="min-w-"]{min-width:980px!important}
 @media(max-width:760px){.admin-v4-manage-backdrop{padding:8px}.admin-v4-manage-dialog,.admin-v4-routing-dialog{width:100%;max-height:96dvh}.admin-v4-manage-head{position:sticky}}
+
+/* ReqGen v2.0.0.6 - Phase 5 global interaction and page-note standard */
+.rg-location-bar{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.rg-location-path{display:flex;align-items:center;gap:6px;min-width:0}
+.rg-important-note{position:relative;display:inline-flex;align-items:center;gap:7px;min-height:32px;padding:0 10px;border:1px solid #c9dbf2;border-radius:8px;background:#f5f9ff;color:#0b4f9f;font-size:11px;font-weight:800;cursor:help;white-space:nowrap}
+.rg-important-note>span:first-child{width:17px;height:17px;display:grid;place-items:center;border-radius:50%;background:#0b68e8;color:#fff;font-size:10px;font-weight:900}
+.rg-important-note [role="tooltip"]{position:absolute;z-index:120;right:0;top:calc(100% + 8px);width:min(360px,80vw);padding:11px 12px;border:1px solid #bdd2ee;border-radius:10px;background:#0b2342;color:#fff;font-size:11px;font-weight:600;line-height:1.5;box-shadow:0 12px 28px rgba(8,32,65,.22);opacity:0;visibility:hidden;transform:translateY(-4px);transition:.16s ease;white-space:normal;text-align:left;pointer-events:none}
+.rg-important-note:hover [role="tooltip"],.rg-important-note:focus-visible [role="tooltip"]{opacity:1;visibility:visible;transform:translateY(0)}
+.rg-important-note:focus-visible{outline:3px solid rgba(11,104,232,.22);outline-offset:2px}
+.rg-content{padding-left:clamp(10px,1vw,18px)!important;padding-right:clamp(10px,1vw,18px)!important}
+.rg-content table tbody tr{transition:background-color .15s ease,box-shadow .15s ease}
+.rg-content table tbody tr:hover{background:#f4f9ff}
+.rg-content a,.rg-content button,.rg-content select,.rg-content input,.rg-content [role="button"]{transition:border-color .15s ease,background-color .15s ease,color .15s ease,box-shadow .15s ease,transform .15s ease}
+.rg-content button:not(:disabled):active,.rg-content [role="button"]:active{transform:translateY(1px)}
+.rg-content select:focus-visible,.rg-content input:focus-visible,.rg-content button:focus-visible,.rg-content a:focus-visible{outline:3px solid rgba(11,104,232,.18);outline-offset:2px}
+@media(max-width:760px){.rg-location-bar{align-items:flex-start}.rg-important-note{font-size:0;padding:0 8px}.rg-important-note>span:first-child{font-size:10px}.rg-important-note [role="tooltip"]{right:-4px}}

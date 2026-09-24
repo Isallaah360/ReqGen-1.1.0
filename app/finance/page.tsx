@@ -134,6 +134,10 @@ export default function FinanceOverviewPage() {
   const [departmentId, setDepartmentId] = useState("ALL");
   const [subheadId, setSubheadId] = useState("ALL");
   const [transactionType, setTransactionType] = useState("ALL");
+  const [deptPage, setDeptPage] = useState(1);
+  const [budgetPage, setBudgetPage] = useState(1);
+  const [accountPage, setAccountPage] = useState(1);
+  const listPageSize = 5;
 
   const loadData = useCallback(async (manual = false) => {
     if (manual) setRefreshing(true);
@@ -297,6 +301,15 @@ export default function FinanceOverviewPage() {
   const transactionTypes = useMemo(() => [...new Set(transactions.map((t) => t.transaction_type).filter(Boolean) as string[])].sort(), [transactions]);
   const accountCash = useMemo(() => accounts.filter((a) => a.is_active !== false).reduce((sum, a) => sum + n(a.available_balance), 0), [accounts]);
   const activeAccounts = useMemo(() => accounts.filter((a) => a.is_active !== false).sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""))), [accounts]);
+  const deptPages = Math.max(1, Math.ceil(departmentSpend.length / listPageSize));
+  const budgetPages = Math.max(1, Math.ceil(budgetHealth.length / listPageSize));
+  const accountPages = Math.max(1, Math.ceil(activeAccounts.length / listPageSize));
+  const deptSafePage = Math.min(deptPage, deptPages);
+  const budgetSafePage = Math.min(budgetPage, budgetPages);
+  const accountSafePage = Math.min(accountPage, accountPages);
+  const pagedDepartmentSpend = departmentSpend.slice((deptSafePage - 1) * listPageSize, deptSafePage * listPageSize);
+  const pagedBudgetHealth = budgetHealth.slice((budgetSafePage - 1) * listPageSize, budgetSafePage * listPageSize);
+  const pagedAccounts = activeAccounts.slice((accountSafePage - 1) * listPageSize, accountSafePage * listPageSize);
 
   if (loading) return <main className={styles.page}><div className={styles.loading}>Loading live Finance data…</div></main>;
 
@@ -329,12 +342,12 @@ export default function FinanceOverviewPage() {
       <section className={styles.analyticsGrid}>
         <article className={styles.card}>
           <div className={styles.cardHead}><div><h2>Actual Expenditure Trend</h2><p>Posted Finance transactions only — no estimated line.</p></div></div>
-          {maxMonth > 0 ? <div className={styles.monthChart}>{MONTHS.map((month, index) => <div key={month} className={styles.monthCol}><div className={styles.barTrack}><i style={{ height: `${Math.max(3, (monthTotals[index] / maxMonth) * 100)}%` }}/></div><span>{month}</span><small>{monthTotals[index] ? money(monthTotals[index]) : "—"}</small></div>)}</div> : <EmptyState text="No posted Finance transactions exist for this filter. No trend is drawn."/>}
+          {maxMonth > 0 ? <div className={styles.monthChart}>{MONTHS.map((month, index) => <div key={month} className={styles.monthCol} title={`${month}: ${money(monthTotals[index])}`} tabIndex={0}><div className={styles.barTrack}><i style={{ height: `${Math.max(3, (monthTotals[index] / maxMonth) * 100)}%` }}/></div><span>{month}</span><small>{monthTotals[index] ? money(monthTotals[index]) : "—"}</small></div>)}</div> : <EmptyState text="No posted Finance transactions exist for this filter. No trend is drawn."/>}
         </article>
 
         <article className={styles.card}>
           <div className={styles.cardHead}><div><h2>Expenditure by Department</h2><p>Calculated directly from live subheads.</p></div></div>
-          {departmentSpend.some((d) => d.spend > 0) ? <div className={styles.deptList}>{departmentSpend.map((d) => <div key={d.name} className={styles.deptRow}><div><b>{d.name}</b><span>{money(d.spend)} spent · {money(d.balance)} balance</span></div><div className={styles.horizontalTrack}><i style={{ width: `${maxDepartmentSpend ? (d.spend / maxDepartmentSpend) * 100 : 0}%` }}/></div></div>)}</div> : <EmptyState text="No departmental expenditure has been recorded for this filter."/>}
+          {departmentSpend.some((d) => d.spend > 0) ? <><div className={styles.deptList}>{pagedDepartmentSpend.map((d, index) => <div key={d.name} className={styles.deptRow} title={`${d.name}: ${money(d.spend)} spent; ${money(d.balance)} balance`} tabIndex={0}><div><b><span className={styles.rowNumber}>{(deptSafePage - 1) * listPageSize + index + 1}.</span>{d.name}</b><span>{money(d.spend)} spent · {money(d.balance)} balance</span></div><div className={styles.horizontalTrack}><i style={{ width: `${maxDepartmentSpend ? (d.spend / maxDepartmentSpend) * 100 : 0}%` }}/></div></div>)}</div><MiniPager page={deptSafePage} pages={deptPages} setPage={setDeptPage}/></> : <EmptyState text="No departmental expenditure has been recorded for this filter."/>}
         </article>
       </section>
 
@@ -346,17 +359,26 @@ export default function FinanceOverviewPage() {
 
         <article className={styles.card}>
           <div className={styles.cardHead}><div><h2>Budget Health</h2><p>Highest utilization first.</p></div><Link href="/finance/subheads">Manage Budgets <ArrowRight size={14}/></Link></div>
-          <div className={styles.budgetHealth}>{budgetHealth.map((s) => <div key={s.id} className={styles.budgetItem}><div><b>{s.code || "—"} · {s.name}</b><span>{money(s.expenditure)} of {money(s.approved_allocation)}</span></div><strong>{s.utilization.toFixed(1)}%</strong><div className={styles.horizontalTrack}><i style={{ width: `${Math.min(100, s.utilization)}%` }}/></div></div>)}{!budgetHealth.length && <EmptyState text="No active budget subheads are available."/>}</div>
+          <div className={styles.budgetHealth}>{pagedBudgetHealth.map((s, index) => <div key={s.id} className={styles.budgetItem} title={`${s.code || "Subhead"} ${s.name}: ${s.utilization.toFixed(1)}% utilised`} tabIndex={0}><div><b><span className={styles.rowNumber}>{(budgetSafePage - 1) * listPageSize + index + 1}.</span>{s.code || "—"} · {s.name}</b><span>{money(s.expenditure)} of {money(s.approved_allocation)}</span></div><strong>{s.utilization.toFixed(1)}%</strong><div className={styles.horizontalTrack}><i style={{ width: `${Math.min(100, s.utilization)}%` }}/></div></div>)}{!budgetHealth.length && <EmptyState text="No active budget subheads are available."/>}</div>{budgetHealth.length ? <MiniPager page={budgetSafePage} pages={budgetPages} setPage={setBudgetPage}/> : null}
         </article>
       </section>
 
       <section className={styles.workGrid}>
         <article className={styles.card}><div className={styles.cardHead}><div><h2>Finance Processing Queue</h2><p>Requests currently routed to Finance or Accounts.</p></div><Link href="/finance/processing">Open Queue <ArrowRight size={14}/></Link></div><div className={styles.queueList}>{visibleRequests.slice(0, 5).map((r) => <Link key={r.id} href={`/finance/request/${r.id}`}><div><b>{r.request_no || "Request"}</b><span>{r.title || "Untitled request"}</span></div><strong>{money(r.amount)}</strong></Link>)}{!visibleRequests.length && <EmptyState text="No request is currently waiting for Finance under this filter."/>}</div></article>
-        <article className={styles.card}><div className={styles.cardHead}><div><h2>IET Account Balances</h2><p>Every active IET account from the live account register.</p></div><Link href="/finance/manage-accounts">Open Accounts <ArrowRight size={14}/></Link></div><div className={styles.queueList}>{activeAccounts.map((a) => <Link key={a.id} href="/finance/manage-accounts"><div><b>{a.name || "IET Account"}</b><span>Live available balance</span></div><strong>{money(a.available_balance)}</strong></Link>)}{!activeAccounts.length && <EmptyState text="No active IET accounts are available."/>}</div></article>
+        <article className={styles.card}><div className={styles.cardHead}><div><h2>IET Account Balances</h2><p>Every active IET account from the live account register.</p></div><Link href="/finance/manage-accounts">Open Accounts <ArrowRight size={14}/></Link></div><div className={styles.queueList}>{pagedAccounts.map((a, index) => <Link key={a.id} href="/finance/manage-accounts" title={`${a.name || "IET Account"}: ${money(a.available_balance)}`}><div><b><span className={styles.rowNumber}>{(accountSafePage - 1) * listPageSize + index + 1}.</span>{a.name || "IET Account"}</b><span>Live available balance</span></div><strong>{money(a.available_balance)}</strong></Link>)}{!activeAccounts.length && <EmptyState text="No active IET accounts are available."/>}</div>{activeAccounts.length ? <MiniPager page={accountSafePage} pages={accountPages} setPage={setAccountPage}/> : null}</article>
         <article className={styles.card}><div className={styles.cardHead}><div><h2>Quick Actions</h2><p>Core Finance workspaces only.</p></div></div><div className={styles.quickGrid}><Quick href="/finance/manage-accounts" icon={<Building2/>} title="IET Accounts"/><Quick href="/finance/subheads" icon={<FileBarChart2/>} title="Budget & Subheads"/><Quick href="/finance/transactions" icon={<FileText/>} title="Transactions & Ledgers"/><Quick href="/finance/account-transfers" icon={<ArrowRight/>} title="Transfers"/><Quick href="/finance/processing" icon={<CreditCard/>} title="Finance Processing"/><Quick href="/finance/reports" icon={<FileBarChart2/>} title="Reports & Output"/></div></article>
       </section>
     </main>
   );
+}
+
+function MiniPager({ page, pages, setPage }: { page: number; pages: number; setPage: (value: number) => void }) {
+  if (pages <= 1) return null;
+  const visible = Array.from({ length: Math.min(5, pages) }, (_, index) => {
+    const start = Math.min(Math.max(1, page - 2), Math.max(1, pages - 4));
+    return start + index;
+  });
+  return <div className={styles.miniPager} aria-label="Table pages"><button type="button" disabled={page <= 1} onClick={() => setPage(page - 1)}>‹</button>{visible.map((value) => <button type="button" key={value} className={value === page ? styles.currentPage : ""} onClick={() => setPage(value)}>{value}</button>)}<button type="button" disabled={page >= pages} onClick={() => setPage(page + 1)}>›</button></div>;
 }
 
 function Kpi({ icon, label, value, helper }: { icon: React.ReactNode; label: string; value: string; helper: string }) {

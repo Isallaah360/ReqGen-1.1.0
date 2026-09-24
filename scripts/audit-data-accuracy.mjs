@@ -17,7 +17,7 @@ pass("Finance uses live subheads", finance.includes('.from("subheads")'));
 pass("Finance uses live transactions", finance.includes('.from("finance_transactions")'));
 pass("Finance uses live payment vouchers", finance.includes('.from("payment_vouchers")'));
 pass("Finance uses live IET accounts", finance.includes('.from("iet_accounts")'));
-pass("Department expenditure visual is not truncated", !finance.includes("departmentSpend.slice("));
+pass("Department expenditure visual is fully reachable (untruncated or paginated)", !finance.includes("departmentSpend.slice(") || (finance.includes("deptSafePage") && finance.includes("MiniPager")));
 pass("Budget health visual is not truncated", !finance.includes(".slice(0, 6)"));
 pass("Finance canonical subhead balance is Allocation - Reserved - Expenditure", finance.includes("canonicalSubheadBalance"));
 pass("IET bank distribution is not top-4 truncated", !accounts.includes(".slice(0, 4)"));

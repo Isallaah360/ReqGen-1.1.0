@@ -2,3 +2,15 @@
 @media(max-width:1180px){.filters{grid-template-columns:repeat(3,1fr)}.kpis{grid-template-columns:repeat(3,1fr)}.analyticsGrid,.contentGrid{grid-template-columns:1fr}.workGrid{grid-template-columns:1fr 1fr}}
 @media(max-width:760px){.page{padding:14px}.pageHeader{flex-direction:column}.refreshButton{width:100%}.filters{grid-template-columns:1fr 1fr}.kpis{grid-template-columns:1fr 1fr}.workGrid{grid-template-columns:1fr}.monthChart{height:210px;gap:4px;padding-left:8px;padding-right:8px}.monthCol small{display:none}.deptRow>div:first-child{display:block}.deptRow span{margin-top:3px;display:block}.quickGrid{grid-template-columns:1fr}}
 @media(max-width:480px){.pageHeader h1{font-size:21px}.filters,.kpis{grid-template-columns:1fr}.monthChart{overflow-x:auto;grid-template-columns:repeat(12,34px);justify-content:start}.kpi strong{font-size:16px}}
+
+/* ReqGen v2.0.0.6 Phase 5 - compact interactive Finance overview */
+.rowNumber{display:inline-block;min-width:20px;color:#075fd8;font-weight:900}
+.monthCol,.deptRow,.budgetItem{outline:none;transition:background-color .15s ease,transform .15s ease}
+.monthCol:hover,.monthCol:focus-visible{transform:translateY(-2px)}
+.monthCol:hover .barTrack i,.monthCol:focus-visible .barTrack i{background:#064fae}
+.deptRow:hover,.deptRow:focus-visible,.budgetItem:hover,.budgetItem:focus-visible{background:#f6faff}
+.miniPager{display:flex;justify-content:flex-end;align-items:center;gap:4px;padding:8px 12px 11px;border-top:1px solid #edf1f5}
+.miniPager button{min-width:27px;height:27px;border:1px solid #d4dfeb;border-radius:6px;background:#fff;color:#294768;font-size:10px;font-weight:850;cursor:pointer}
+.miniPager button:hover:not(:disabled){border-color:#8db8ef;background:#f4f9ff;color:#075fd8}
+.miniPager button:disabled{opacity:.35;cursor:default}.miniPager .currentPage{border-color:#075fd8;background:#075fd8;color:#fff}
+.page{padding-left:4px;padding-right:4px}.card,.filters,.kpi{border-radius:9px}
