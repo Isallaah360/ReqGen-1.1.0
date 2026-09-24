@@ -1,0 +1,118 @@
+{
+  "generatedAt": "2026-09-24T17:05:39.497Z",
+  "checks": 22,
+  "passed": 22,
+  "failed": 0,
+  "findings": [
+    {
+      "name": "Subhead authority includes director",
+      "ok": true,
+      "detail": "Expected director in exact UI authority set."
+    },
+    {
+      "name": "Subhead authority includes dinadmin",
+      "ok": true,
+      "detail": "Expected dinadmin in exact UI authority set."
+    },
+    {
+      "name": "Subhead authority includes hod",
+      "ok": true,
+      "detail": "Expected hod in exact UI authority set."
+    },
+    {
+      "name": "Subhead authority includes registrar",
+      "ok": true,
+      "detail": "Expected registrar in exact UI authority set."
+    },
+    {
+      "name": "Subhead authority includes hr",
+      "ok": true,
+      "detail": "Expected hr in exact UI authority set."
+    },
+    {
+      "name": "Subhead authority excludes dg",
+      "ok": true,
+      "detail": "dg must not be able to assign subheads."
+    },
+    {
+      "name": "Subhead authority excludes admin",
+      "ok": true,
+      "detail": "admin must not be able to assign subheads."
+    },
+    {
+      "name": "Subhead authority excludes auditor",
+      "ok": true,
+      "detail": "auditor must not be able to assign subheads."
+    },
+    {
+      "name": "Subhead authority excludes account",
+      "ok": true,
+      "detail": "account must not be able to assign subheads."
+    },
+    {
+      "name": "Subhead authority excludes accountofficer",
+      "ok": true,
+      "detail": "accountofficer must not be able to assign subheads."
+    },
+    {
+      "name": "Subhead authority uses active role",
+      "ok": true,
+      "detail": "Privilege decision must use the active role, not merely any assigned role."
+    },
+    {
+      "name": "Subhead authority requires current ownership",
+      "ok": true,
+      "detail": "Only the current workflow owner may assign the subhead."
+    },
+    {
+      "name": "DG entry is blocked without subhead",
+      "ok": true,
+      "detail": "Database trigger must reject official requests reaching DG without subhead."
+    },
+    {
+      "name": "Database subhead authority trigger exists",
+      "ok": true,
+      "detail": "Server-side role guard must be shipped as a migration."
+    },
+    {
+      "name": "Database role allow-list excludes DG",
+      "ok": true,
+      "detail": "DG must not be in the DB allow-list."
+    },
+    {
+      "name": "HOD is a canonical runtime role",
+      "ok": true,
+      "detail": "HOD must be represented in the role model."
+    },
+    {
+      "name": "General Secretary alias normalized",
+      "ok": true,
+      "detail": "Legacy gensec should normalize to canonical General Secretary."
+    },
+    {
+      "name": "Standalone HR absent from user navigation",
+      "ok": true,
+      "detail": "HR remains a role, not a visible module."
+    },
+    {
+      "name": "Standalone Workflow absent from user navigation",
+      "ok": true,
+      "detail": "Workflow UI remains hidden; workflow engine/history are preserved."
+    },
+    {
+      "name": "Reports are not exposed to DG",
+      "ok": true,
+      "detail": "Reports must remain Admin + Auditor only."
+    },
+    {
+      "name": "Missing Section 4 audit restored",
+      "ok": true,
+      "detail": "package.json references audit:section4; implementation must exist."
+    },
+    {
+      "name": "Production audit command exists",
+      "ok": true,
+      "detail": "A consolidated architecture audit command is required."
+    }
+  ]
+}

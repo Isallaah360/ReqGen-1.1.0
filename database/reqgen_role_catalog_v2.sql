@@ -6,6 +6,7 @@ insert into public.reqgen_roles
 values
   ('staff', 'Staff', 'Standard ReqGen user. Dashboard, Requests, Approvals and Profile.', true, true, true, 10),
   ('director', 'Director', 'Director-level request reviewer/approver.', true, true, true, 20),
+  ('hod', 'HOD', 'Head of Department request reviewer and authorised subhead assignment authority.', true, true, true, 25),
   ('dg', 'DG', 'Director General request approval authority.', true, true, true, 30),
   ('accountofficer', 'Account Officer', 'Finance and Payment Voucher processing officer.', true, true, true, 40),
   ('auditor', 'Auditor', 'Finance, reports, workflow and audit oversight.', true, true, true, 50),

@@ -19,6 +19,7 @@ export type AppRole =
   | "deanadmin" // legacy compatibility alias; display name is DIN Admin
   | "dg"
   | "director"
+  | "hod"
   | "staff";
 
 
@@ -39,7 +40,9 @@ export function normalizeRole(value: string | null | undefined): string {
 
   // Historical installations may still contain the retired "deanadmin" key.
   // ReqGen's canonical role is DIN Admin; normalize the legacy key at runtime.
-  return normalized === "deanadmin" ? "dinadmin" : normalized;
+  if (normalized === "deanadmin") return "dinadmin";
+  if (normalized === "gensec") return "generalsecretary";
+  return normalized;
 }
 
 export function roleDisplayName(value: string | null | undefined): string {

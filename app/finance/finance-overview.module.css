@@ -14,3 +14,5 @@
 .miniPager button:hover:not(:disabled){border-color:#8db8ef;background:#f4f9ff;color:#075fd8}
 .miniPager button:disabled{opacity:.35;cursor:default}.miniPager .currentPage{border-color:#075fd8;background:#075fd8;color:#fff}
 .page{padding-left:4px;padding-right:4px}.card,.filters,.kpi{border-radius:9px}
+
+.monthCol,.deptRow{border:0;background:transparent;font:inherit;text-align:left;cursor:pointer}.monthCol:focus-visible,.deptRow:focus-visible{outline:2px solid #1269f3;outline-offset:3px}.chartDetail{margin:8px 14px 14px;padding:8px 10px;border:1px solid #dce7f5;border-radius:8px;background:#f8fbff;color:#536a86;font-size:11px}

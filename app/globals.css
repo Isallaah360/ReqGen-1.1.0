@@ -4065,3 +4065,15 @@ body{font-family:Aptos,"Segoe UI",Inter,Arial,sans-serif!important;background:va
 .rg-content table{min-width:100%!important;max-width:100%!important}
 .rg-content:not([data-route*="/print"]) th,.rg-content:not([data-route*="/print"]) td{font-size:12px!important;line-height:1.35!important}
 .rg-content:not([data-route*="/print"]) :where(.rg-directory-table th,.rg-directory-table td,.admin-v3-table th,.admin-v3-table td){font-size:12px!important}
+
+
+/* ReqGen v2.0.0.7 Phase 6 stabilisation */
+.admin-v4-settings-grid{grid-template-columns:minmax(0,1fr)!important;max-width:100%;overflow:hidden}
+.admin-v4-settings-card{min-width:0;max-width:100%;overflow:hidden}
+.admin-v4-setting-row{grid-template-columns:minmax(180px,.72fr) minmax(0,1.5fr) 78px!important}
+.admin-v4-setting-row select{min-width:0;max-width:100%;text-overflow:ellipsis}
+@media(max-width:900px){.admin-v4-setting-row{grid-template-columns:minmax(150px,.8fr) minmax(0,1.4fr) 72px!important}}
+@media(max-width:700px){.admin-v4-setting-row{grid-template-columns:1fr!important}.admin-v4-setting-row .reqgen-btn{width:100%}}
+.reqgen-action-toast{position:fixed;z-index:10050;left:50%;top:88px;transform:translateX(-50%);width:min(560px,calc(100vw - 32px));display:flex;align-items:flex-start;justify-content:space-between;gap:14px;padding:14px 16px;border:1px solid #b9d4f6;border-radius:12px;background:#fff;color:#153657;box-shadow:0 18px 50px rgba(8,38,77,.22);font-size:13px;font-weight:750;line-height:1.45}
+.reqgen-action-toast.is-error{border-color:#f2b8bf;background:#fff7f8;color:#8d2030}.reqgen-action-toast.is-success{border-color:#a9dfc3;background:#f5fff9;color:#11613c}.reqgen-action-toast button{flex:0 0 28px;width:28px;height:28px;border:0;border-radius:7px;background:rgba(15,45,80,.08);color:inherit;font-size:20px;line-height:1;cursor:pointer}
+.reqgen-global-tip{display:none!important}

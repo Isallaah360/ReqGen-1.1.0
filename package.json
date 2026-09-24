@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint",
+    "lint": "eslint . --max-warnings=0",
+    "typecheck": "tsc --noEmit",
     "audit:routes": "node scripts/audit-route-access.mjs",
     "audit:workflow": "node scripts/audit-workflow-readiness.mjs",
     "audit:responsive": "node scripts/audit-responsive-ui.mjs",
@@ -30,7 +31,9 @@
     "audit:section6": "node scripts/audit-section6-registry.mjs",
     "audit:section7": "node scripts/audit-section7-reports.mjs",
     "audit:navbar": "node scripts/audit-navbar-coverage.mjs",
-    "audit:phase6-ui": "node scripts/audit-phase6-ui.mjs"
+    "audit:phase6-ui": "node scripts/audit-phase6-ui.mjs",
+    "audit:phase7-architecture": "node scripts/audit-phase7-architecture.mjs",
+    "audit:production": "npm run audit:phase7-architecture && npm run audit:routes && npm run audit:workflow && npm run audit:navigation && npm run audit:route-registry && npm run audit:responsive && npm run audit:data-accuracy && npm run audit:components && npm run audit:section4"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.97.0",
@@ -50,5 +53,5 @@
     "tailwindcss": "^4",
     "typescript": "^5"
   },
-  "reqgenVersion": "2.0.0.7"
+  "reqgenVersion": "2.0.0.8"
 }

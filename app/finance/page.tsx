@@ -122,6 +122,7 @@ export default function FinanceOverviewPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [fatalError, setFatalError] = useState<string | null>(null);
   const [issues, setIssues] = useState<LoadIssue[]>([]);
+  const [chartDetail, setChartDetail] = useState<string | null>(null);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [subheads, setSubheads] = useState<Subhead[]>([]);
   const [transactions, setTransactions] = useState<Tx[]>([]);
@@ -342,12 +343,12 @@ export default function FinanceOverviewPage() {
       <section className={styles.analyticsGrid}>
         <article className={styles.card}>
           <div className={styles.cardHead}><div><h2>Actual Expenditure Trend</h2><p>Posted Finance transactions only — no estimated line.</p></div></div>
-          {maxMonth > 0 ? <div className={styles.monthChart}>{MONTHS.map((month, index) => <div key={month} className={styles.monthCol} title={`${month}: ${money(monthTotals[index])}`} tabIndex={0}><div className={styles.barTrack}><i style={{ height: `${Math.max(3, (monthTotals[index] / maxMonth) * 100)}%` }}/></div><span>{month}</span><small>{monthTotals[index] ? money(monthTotals[index]) : "—"}</small></div>)}</div> : <EmptyState text="No posted Finance transactions exist for this filter. No trend is drawn."/>}
+          {maxMonth > 0 ? <><div className={styles.monthChart}>{MONTHS.map((month, index) => <button type="button" key={month} className={styles.monthCol} title={`${month}: ${money(monthTotals[index])}`} onClick={() => setChartDetail(`${month}: ${money(monthTotals[index])} posted expenditure`)}><div className={styles.barTrack}><i style={{ height: `${Math.max(3, (monthTotals[index] / maxMonth) * 100)}%` }}/></div><span>{month}</span><small>{monthTotals[index] ? money(monthTotals[index]) : "—"}</small></button>)}</div><div className={styles.chartDetail} role="status" aria-live="polite">{chartDetail || "Select any month bar to display its exact posted expenditure."}</div></> : <EmptyState text="No posted Finance transactions exist for this filter. No trend is drawn."/>}
         </article>
 
         <article className={styles.card}>
           <div className={styles.cardHead}><div><h2>Expenditure by Department</h2><p>Calculated directly from live subheads.</p></div></div>
-          {departmentSpend.some((d) => d.spend > 0) ? <><div className={styles.deptList}>{pagedDepartmentSpend.map((d, index) => <div key={d.name} className={styles.deptRow} title={`${d.name}: ${money(d.spend)} spent; ${money(d.balance)} balance`} tabIndex={0}><div><b><span className={styles.rowNumber}>{(deptSafePage - 1) * listPageSize + index + 1}.</span>{d.name}</b><span>{money(d.spend)} spent · {money(d.balance)} balance</span></div><div className={styles.horizontalTrack}><i style={{ width: `${maxDepartmentSpend ? (d.spend / maxDepartmentSpend) * 100 : 0}%` }}/></div></div>)}</div><MiniPager page={deptSafePage} pages={deptPages} setPage={setDeptPage}/></> : <EmptyState text="No departmental expenditure has been recorded for this filter."/>}
+          {departmentSpend.some((d) => d.spend > 0) ? <><div className={styles.deptList}>{pagedDepartmentSpend.map((d, index) => <button type="button" key={d.name} className={styles.deptRow} title={`${d.name}: ${money(d.spend)} spent; ${money(d.balance)} balance`} onClick={() => setChartDetail(`${d.name}: ${money(d.spend)} spent · ${money(d.balance)} available balance`)}><div><b><span className={styles.rowNumber}>{(deptSafePage - 1) * listPageSize + index + 1}.</span>{d.name}</b><span>{money(d.spend)} spent · {money(d.balance)} balance</span></div><div className={styles.horizontalTrack}><i style={{ width: `${maxDepartmentSpend ? (d.spend / maxDepartmentSpend) * 100 : 0}%` }}/></div></button>)}</div><div className={styles.chartDetail} role="status" aria-live="polite">{chartDetail || "Select a department bar to display its exact live values."}</div><MiniPager page={deptSafePage} pages={deptPages} setPage={setDeptPage}/></> : <EmptyState text="No departmental expenditure has been recorded for this filter."/>}
         </article>
       </section>
 

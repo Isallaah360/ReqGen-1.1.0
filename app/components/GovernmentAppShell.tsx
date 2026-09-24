@@ -248,7 +248,7 @@ function requestMatchesApprovalRole(row: { current_owner?: string | null; curren
   if (row.current_owner && row.current_owner === userId) return true;
 
   const stageForRole: Record<string, string[]> = {
-    po: ["PO"], dod: ["DOD"], director: ["DOD"], dinadmin: ["DINADMIN"],
+    po: ["PO"], dod: ["DOD"], director: ["DOD", "DIRECTOR"], dinadmin: ["DINADMIN"],
     registrar: ["REGISTRAR"], registry: ["REGISTRAR"], generalsecretary: ["GENERALSECRETARY", "GENSEC"], hod: ["HOD"],
     hr: ["HR", "HRFILING"], hrboss: ["HR", "HRFILING"], hrofficer: ["HR", "HRFILING"],
     hrofficer1: ["HR", "HRFILING"], hrofficer2: ["HR", "HRFILING"], hrofficer3: ["HR", "HRFILING"],

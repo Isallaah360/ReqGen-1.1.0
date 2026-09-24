@@ -1,0 +1,47 @@
+{
+  "generatedAt": "2026-09-24T17:05:41.123Z",
+  "checks": 10,
+  "failed": 0,
+  "findings": [
+    {
+      "name": "app/finance/page.tsx",
+      "ok": true
+    },
+    {
+      "name": "app/finance/manage-accounts/page.tsx",
+      "ok": true
+    },
+    {
+      "name": "app/finance/subheads/page.tsx",
+      "ok": true
+    },
+    {
+      "name": "app/finance/transactions/page.tsx",
+      "ok": true
+    },
+    {
+      "name": "app/finance/processing/page.tsx",
+      "ok": true
+    },
+    {
+      "name": "app/finance/reports/page.tsx",
+      "ok": true
+    },
+    {
+      "name": "app/finance/settings/page.tsx",
+      "ok": true
+    },
+    {
+      "name": "app/payment-vouchers/page.tsx",
+      "ok": true
+    },
+    {
+      "name": "Finance reads live Supabase data",
+      "ok": true
+    },
+    {
+      "name": "Canonical financial formula remains audited",
+      "ok": true
+    }
+  ]
+}

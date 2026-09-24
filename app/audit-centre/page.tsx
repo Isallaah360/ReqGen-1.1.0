@@ -168,6 +168,23 @@ export default function AuditCentrePage() {
       }
       collected.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
+      // Reconstruct missing historical role labels from the nearest recorded role-switch
+      // event for the same actor. This avoids blank USER / ROLE cells where the audit
+      // source recorded the actor but not the role on the business event itself.
+      const roleEventsByActor = new Map<string, AuditEvent[]>();
+      collected.filter((event) => event.module === "Roles" && event.actorId && event.activeRole !== "—").forEach((event) => {
+        const list = roleEventsByActor.get(event.actorId) || [];
+        list.push(event);
+        roleEventsByActor.set(event.actorId, list);
+      });
+      roleEventsByActor.forEach((list) => list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+      collected.forEach((event) => {
+        if (event.activeRole !== "—" || !event.actorId) return;
+        const eventTime = new Date(event.createdAt).getTime();
+        const historicalRole = (roleEventsByActor.get(event.actorId) || []).find((candidate) => new Date(candidate.createdAt).getTime() <= eventTime);
+        if (historicalRole) event.activeRole = historicalRole.activeRole;
+      });
+
       const [deptRes, subheadRes, accountRes] = await Promise.all([
         supabase.from("departments").select("id,name,is_active"),
         supabase.from("subheads").select("id,code,name,dept_id,approved_allocation,reserved_amount,expenditure,balance,is_active"),

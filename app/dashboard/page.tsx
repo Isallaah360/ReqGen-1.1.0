@@ -77,6 +77,7 @@ export default function DashboardPage() {
   const [requests, setRequests] = useState<RequestRow[]>([]);
   const [vouchers, setVouchers] = useState<VoucherRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [chartSelection, setChartSelection] = useState<string | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -202,8 +203,9 @@ export default function DashboardPage() {
               {[0,1,2,3,4].map((n) => <line key={n} className={styles.chartGrid} x1="34" x2="700" y1={28+n*37} y2={28+n*37}/>) }
               <polygon className={styles.chartArea} points={`34,186 ${chart.polyline} 686,186`} />
               <polyline className={styles.chartLine} points={chart.polyline} />
-              {chart.points.map((p, i) => <g key={i} className={styles.chartPoint}><title>{`${p.label}: ${p.count} request${p.count === 1 ? "" : "s"}`}</title><circle className={styles.chartDot} cx={p.x} cy={p.y} r="5" tabIndex={0}/><text x={p.x} y="205" textAnchor="middle">{p.label}</text></g>)}
+              {chart.points.map((p, i) => <g key={i} className={styles.chartPoint}><title>{`${p.label}: ${p.count} request${p.count === 1 ? "" : "s"}`}</title><circle className={styles.chartDot} cx={p.x} cy={p.y} r="5" tabIndex={0} role="button" aria-label={`${p.label}: ${p.count} request${p.count === 1 ? "" : "s"}`} onClick={() => setChartSelection(`${p.label}: ${p.count} request${p.count === 1 ? "" : "s"}`)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setChartSelection(`${p.label}: ${p.count} request${p.count === 1 ? "" : "s"}`); } }}/><text x={p.x} y="205" textAnchor="middle">{p.label}</text></g>)}
             </svg>
+            {chartSelection ? <div className={styles.chartInsight} role="status" aria-live="polite"><strong>Selected data</strong><span>{chartSelection}</span></div> : <div className={styles.chartHint}>Select any chart point to display its exact live value.</div>}
           </div>
         </article>
 
@@ -218,7 +220,7 @@ export default function DashboardPage() {
       <section className={styles.bottomGrid}>
         <article className={styles.card}>
           <div className={styles.cardHead}><h2>Requests by Category</h2><span>Current register</span></div>
-          <Donut title="Total" total={stats.total} rows={[
+          <Donut title="Total" total={stats.total} onSelect={setChartSelection} rows={[
             ["#2f80ed","Official",category.official],
             ["#24b47e","Personal Fund",category.personalFund],
             ["#f5a623","Personal Other",category.personalOther],
@@ -227,7 +229,7 @@ export default function DashboardPage() {
         </article>
         <article className={styles.card}>
           <div className={styles.cardHead}><h2>Requests by Status</h2><span>Current register</span></div>
-          <Donut title="Total" total={stats.total} rows={[
+          <Donut title="Total" total={stats.total} onSelect={setChartSelection} rows={[
             ["#24b47e","Completed",statusMix.completed],
             ["#2f80ed","Pending",statusMix.pending],
             ["#ef476f","Rejected",statusMix.rejected],
@@ -254,14 +256,14 @@ export default function DashboardPage() {
 function Kpi({ tone, icon, label, value, meta }: { tone: "blue"|"green"|"orange"|"purple"|"red"; icon: React.ReactNode; label: string; value: string; meta: string }) {
   return <article className={styles.kpi}><div className={`${styles.icon} ${styles[tone]}`}>{icon}</div><div><span className={styles.kpiLabel}>{label}</span><strong className={styles.kpiValue}>{value}</strong><div className={styles.kpiMeta}>{meta}</div></div></article>;
 }
-function Donut({ title, total, rows }: { title: string; total: number; rows: [string,string,number][] }) {
+function Donut({ title, total, rows, onSelect }: { title: string; total: number; rows: [string,string,number][]; onSelect: (detail: string) => void }) {
   let cursor = 0;
   const gradient = rows.map(([color,,value]) => { const start = total ? (cursor/total)*360 : 0; cursor += value; const end = total ? (cursor/total)*360 : 0; return `${color} ${start}deg ${end}deg`; }).join(",");
-  return <div className={styles.donutBody}><div className={styles.donut} style={{background: total ? `conic-gradient(${gradient})` : "#edf2f7"}}><div className={styles.donutCenter}><strong>{total}</strong><span>{title}</span></div></div><div className={styles.legend}>{rows.map(([color,label,value]) => <Legend key={label} color={color} label={label} value={value} total={total}/>)}</div></div>;
+  return <div className={styles.donutBody}><button type="button" className={styles.donut} aria-label={`Chart total ${total}. Select for complete breakdown.`} onClick={() => onSelect(rows.map(([, label, value]) => `${label}: ${value}`).join(" · "))} style={{background: total ? `conic-gradient(${gradient})` : "#edf2f7"}}><div className={styles.donutCenter}><strong>{total}</strong><span>{title}</span></div></button><div className={styles.legend}>{rows.map(([color,label,value]) => <Legend key={label} color={color} label={label} value={value} total={total} onSelect={onSelect}/>)}</div></div>;
 }
-function Legend({ color, label, value, total }: { color: string; label: string; value: number; total: number }) {
+function Legend({ color, label, value, total, onSelect }: { color: string; label: string; value: number; total: number; onSelect: (detail: string) => void }) {
   const pct = total ? Math.round((value / total) * 100) : 0;
-  return <div className={styles.legendRow}><i className={styles.legendDot} style={{background: color}}/><span>{label}</span><strong>{value} ({pct}%)</strong></div>;
+  return <button type="button" className={styles.legendRow} onClick={() => onSelect(`${label}: ${value} (${pct}%)`)}><i className={styles.legendDot} style={{background: color}}/><span>{label}</span><strong>{value} ({pct}%)</strong></button>;
 }
 function Quick({ href, icon, label }: { href: string; icon: React.ReactNode; label: string }) {
   return <Link href={href} className={styles.quick}>{icon}<span>{label}</span></Link>;

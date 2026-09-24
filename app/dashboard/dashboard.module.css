@@ -2,3 +2,5 @@
 
 /* Phase 5 chart interaction */
 .chartPoint{cursor:help}.chartPoint .chartDot{transition:r .15s ease,fill .15s ease}.chartPoint:hover .chartDot,.chartPoint:focus-within .chartDot{r:7px}
+
+.chartInsight{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 4px 6px;padding:9px 11px;border:1px solid #cfe0f7;border-radius:9px;background:#f6faff;color:#173b6d;font-size:11px}.chartInsight strong{font-size:11px}.chartHint{margin:0 4px 6px;color:#718096;font-size:11px}.donut{border:0;padding:0;cursor:pointer}.donut:focus-visible,.legendRow:focus-visible{outline:2px solid #1269f3;outline-offset:3px}.legendRow{width:100%;border:0;background:transparent;padding:3px 0;text-align:left;cursor:pointer}.legendRow:hover{background:#f7faff;border-radius:6px}

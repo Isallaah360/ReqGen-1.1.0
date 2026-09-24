@@ -1,10 +1,10 @@
 {
   "summary": {
-    "scannedFiles": 200,
-    "findings": 35,
+    "scannedFiles": 195,
+    "findings": 30,
     "warnings": 0,
-    "info": 35,
-    "generatedAt": "2026-09-24T13:12:26.807Z"
+    "info": 30,
+    "generatedAt": "2026-09-24T17:05:40.164Z"
   },
   "findings": [
     {
@@ -94,46 +94,6 @@
       "severity": "info",
       "match": "absolute",
       "excerpt": "// the absolute activity timestamp so the warning is never skipped."
-    },
-    {
-      "file": "app/components/executive/ExecutiveModulePage.tsx",
-      "line": 176,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "<ExecutivePanel title=\"Request Register\" eyebrow=\"Workflow Queue\" description=\"Search and review the executive request register permitted by RLS.\" action={<div className=\"relative w-full sm:w-80\"><Search className=\"absol"
-    },
-    {
-      "file": "app/components/executive/ExecutiveNavigation.tsx",
-      "line": 35,
-      "rule": "truncate-risk",
-      "severity": "info",
-      "match": "truncate",
-      "excerpt": "<span className=\"block truncate text-sm font-black\">{item.label}</span>"
-    },
-    {
-      "file": "app/components/executive/ExecutiveNavigation.tsx",
-      "line": 36,
-      "rule": "truncate-risk",
-      "severity": "info",
-      "match": "truncate",
-      "excerpt": "<span className={`block truncate text-[11px] font-semibold ${active ? \"text-blue-100\" : \"text-slate-500\"}`}>{item.description}</span>"
-    },
-    {
-      "file": "app/components/executive/ExecutiveUI.tsx",
-      "line": 26,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "<div className=\"pointer-events-none absolute -right-20 -top-24 h-64 w-64 rounded-full bg-cyan-400/20 blur-3xl\" />"
-    },
-    {
-      "file": "app/components/executive/ExecutiveUI.tsx",
-      "line": 27,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "<div className=\"pointer-events-none absolute -bottom-24 left-1/3 h-64 w-64 rounded-full bg-violet-500/20 blur-3xl\" />"
     },
     {
       "file": "app/components/print/PrintEngineStyles.tsx",

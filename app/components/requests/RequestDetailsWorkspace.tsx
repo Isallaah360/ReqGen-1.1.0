@@ -265,6 +265,7 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
 
   const [me, setMe] = useState<ProfileMini | null>(null);
   const [myRoles, setMyRoles] = useState<ProfileRole[]>([]);
+  const [activeRoleKey, setActiveRoleKey] = useState<string>("");
   const [comment, setComment] = useState("");
 
   const [mfaVerified, setMfaVerified] = useState(false);
@@ -422,7 +423,7 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
     if (requestIsClosed) return false;
 
     const officialNeedsBudgetLine =
-      isOfficial && ["DIRECTOR", "DINADMIN", "HOD", "REGISTRAR"].includes(stg);
+      isOfficial && ["DIRECTOR", "DINADMIN", "HOD", "REGISTRAR", "HR", "DG"].includes(stg);
 
     const personalFundNeedsHRRecommendation =
       isPersonalFund && stg === "HR";
@@ -431,55 +432,19 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
   }, [req, isOfficial, isPersonalFund, stg]);
 
   const canAssignSubhead = useMemo(() => {
-    if (!req || !me) return false;
+    if (!req || !me || !needsSubheadAssignment) return false;
 
-    const officialBudgetRoleAllowed =
-      activeRoleKeys.has("director") ||
-      activeRoleKeys.has("dinadmin") ||
-      activeRoleKeys.has("dinadmin1") ||
-      activeRoleKeys.has("dinadmin2") ||
-      activeRoleKeys.has("dinadmin3") ||
-      activeRoleKeys.has("deanadmin") ||
-      activeRoleKeys.has("hod") ||
-      activeRoleKeys.has("registrar") ||
-      activeRoleKeys.has("admin") ||
-      activeRoleKeys.has("auditor");
+    // Locked ReqGen workflow rule: DG, Admin, Auditor and Finance roles never
+    // assign request subheads. Subhead assignment belongs only to the active
+    // Director, DIN/Dean Admin, HOD, Registrar or HR workflow authority.
+    const assignmentRole = roleKey(activeRoleKey || me.role);
+    const permittedRoles = new Set(["director", "dinadmin", "hod", "registrar", "hr"]);
+    if (!permittedRoles.has(assignmentRole)) return false;
 
-    const hrFundingRoleAllowed =
-      isPersonalFund &&
-      (isHRContext || activeRoleKeys.has("admin"));
-
-    const isAssignedOfficer = req.current_owner === me.id;
-    const isDinAdminAtDinStage =
-      isOfficial &&
-      stg === "DINADMIN" &&
-      (activeRoleKeys.has("dinadmin") ||
-        activeRoleKeys.has("dinadmin1") ||
-        activeRoleKeys.has("dinadmin2") ||
-        activeRoleKeys.has("dinadmin3") ||
-        activeRoleKeys.has("deanadmin"));
-
-    const hasOversightAuthority =
-      activeRoleKeys.has("admin") ||
-      activeRoleKeys.has("auditor") ||
-      activeRoleKeys.has("hrboss") ||
-      activeRoleKeys.has("hr");
-
-    return (
-      needsSubheadAssignment &&
-      (officialBudgetRoleAllowed || hrFundingRoleAllowed) &&
-      (isAssignedOfficer || isDinAdminAtDinStage || hasOversightAuthority)
-    );
-  }, [
-    req,
-    me,
-    activeRoleKeys,
-    needsSubheadAssignment,
-    isPersonalFund,
-    isHRContext,
-    isOfficial,
-    stg,
-  ]);
+    // Assignment is an operational workflow action, not an oversight action.
+    // The officer must own the request at the current stage.
+    return req.current_owner === me.id;
+  }, [req, me, needsSubheadAssignment, activeRoleKey]);
 
   const selectedAssignableSubhead = useMemo(() => {
     return assignableSubheads.find((s) => s.id === selectedSubheadId) || null;
@@ -666,13 +631,27 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
   }
 
   async function loadMyRoles(userId: string) {
-    const { data } = await supabase
-      .from("profile_roles")
-      .select("id,profile_id,role_key,role_name,is_primary,is_active")
-      .eq("profile_id", userId)
-      .eq("is_active", true);
+    const [rolesResult, activeRoleResult] = await Promise.all([
+      supabase
+        .from("profile_roles")
+        .select("id,profile_id,role_key,role_name,is_primary,is_active")
+        .eq("profile_id", userId)
+        .eq("is_active", true),
+      supabase.rpc("get_my_active_role"),
+    ]);
 
-    setMyRoles((data || []) as ProfileRole[]);
+    setMyRoles((rolesResult.data || []) as ProfileRole[]);
+
+    const activeData = activeRoleResult.data as
+      | { active_role_key?: string | null; role_key?: string | null; get_my_active_role?: string | null }
+      | Array<{ active_role_key?: string | null; role_key?: string | null; get_my_active_role?: string | null }>
+      | string
+      | null;
+    const activeRecord = Array.isArray(activeData) ? activeData[0] : activeData;
+    const resolved = typeof activeRecord === "string"
+      ? activeRecord
+      : activeRecord?.active_role_key || activeRecord?.role_key || activeRecord?.get_my_active_role || "";
+    setActiveRoleKey(roleKey(resolved));
   }
 
   async function loadRequestPage() {
@@ -1004,6 +983,13 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
       return false;
     }
 
+    if (action === "Approve" && isDgStage && isOfficial && !req.assigned_account_officer_id) {
+      setMsg(
+        "❌ This request cannot leave DG because the selected subhead has no Account Officer routing. Configure the subhead/account routing first."
+      );
+      return false;
+    }
+
     if (hasAttachments && !allAttachmentsCheckedByMe) {
       setMsg(
         `❌ You still have ${myPendingAttachments.length
@@ -1297,7 +1283,7 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
 
         {needsSubheadAssignment && (
           <div className="mt-4 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-900">
-            ⚠️ This Official request has no subhead yet. The assigned budget authority must assign a subhead and reserve funds before approval can continue.
+            ⚠️ This Official request has no subhead yet. The current Director, DIN/Dean Admin, HOD, Registrar or HR workflow authority must assign a subhead and reserve funds before the request can proceed to DG.
           </div>
         )}
 
@@ -1315,8 +1301,9 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
         )}
 
         {msg && (
-          <div className="mt-4 rounded-xl bg-slate-100 px-3 py-2 text-sm text-slate-800">
-            {msg}
+          <div className={`reqgen-action-toast ${msg.startsWith("❌") ? "is-error" : "is-success"}`} role="status" aria-live="polite">
+            <div>{msg}</div>
+            <button type="button" onClick={() => setMsg(null)} aria-label="Dismiss notification">×</button>
           </div>
         )}
 
@@ -1440,7 +1427,7 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
 
                 {!canAssignSubhead ? (
                   <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
-                    View only. Only the assigned authority for this workflow stage can recommend and reserve the subhead.
+                    View only. Subheads can be assigned only by the current Director, DIN/Dean Admin, HOD, Registrar or HR workflow authority. DG and oversight roles cannot assign subheads.
                   </div>
                 ) : (
                   <>

@@ -2,3 +2,12 @@
 @media(max-width:1050px){.filters{grid-template-columns:1fr 1fr}.kpis{grid-template-columns:1fr 1fr}.grid2{grid-template-columns:1fr}.reportPanel{grid-template-columns:1fr 1fr}.reportPanel>div{grid-column:1/-1}}
 @media(max-width:700px){.page{padding-top:8px}.header{flex-direction:column}.headerActions{width:100%}.headerActions button{flex:1}.filters,.kpis{grid-template-columns:1fr}.dailyChart{overflow-x:auto;grid-template-columns:repeat(14,34px);justify-content:start}.pager{align-items:flex-start;flex-direction:column}.modal dl{grid-template-columns:1fr}.modal dt{padding-bottom:2px;border-bottom:0}.modal dd{padding-top:2px}.tabs{border-radius:8px}.reportPanel{grid-template-columns:1fr}.reportPanel>div{grid-column:auto}.sourceList>div{grid-template-columns:1fr auto}.sourceList>b{grid-column:1/-1;text-align:left}}
 @media print{.headerActions,.tabs,.filters,.pager,.tableAction,.cardFooter{display:none!important}.page{max-width:none;padding:0}.card,.kpi{box-shadow:none}.tableWrap{overflow:visible}.tableWrap table{min-width:0}.rg-sidebar,.rg-topbar,.rg-location-bar,.rg-footer{display:none!important}}
+
+/* Phase 6 stabilisation: compact audit evidence and truthful zero-value chart rendering. */
+.tableWrap table{min-width:760px;table-layout:auto}
+.tableWrap th:first-child,.tableWrap td:first-child{width:42px;padding-left:10px;padding-right:6px}
+.tableWrap th:nth-child(2),.tableWrap td:nth-child(2){width:145px}
+.tableWrap th:last-child,.tableWrap td:last-child{width:70px;text-align:center}
+.dailyCol i{min-height:0}
+.dailyCol:has(> span:empty) i{height:2px!important;background:#d8e2ee}
+@media(max-width:1100px){.grid2{grid-template-columns:1fr}.dailyChart{height:190px}.tableWrap table{min-width:720px}}

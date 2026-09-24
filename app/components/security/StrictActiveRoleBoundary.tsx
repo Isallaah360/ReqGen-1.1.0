@@ -84,19 +84,8 @@ export default function StrictActiveRoleBoundary({
     return () => window.removeEventListener("reqgen-active-role-changed", refresh);
   }, [verify]);
 
-  if (checking) {
-    return (
-      <div className="fixed inset-0 z-[9998] grid place-items-center bg-slate-950/30 px-4 backdrop-blur-md">
-        <div className="w-full max-w-md rounded-[2rem] border border-blue-100 bg-white/95 px-8 py-8 text-center shadow-2xl">
-          <div className="mx-auto h-12 w-12 animate-spin rounded-full border-4 border-blue-100 border-t-blue-700" />
-          <h1 className="mt-5 text-lg font-black text-slate-950">Verifying active-role authority</h1>
-          <p className="mt-2 text-sm font-semibold text-slate-600">
-            ReqGen is confirming that your selected working role permits access to {label}.
-          </p>
-        </div>
-      </div>
-    );
-  }
+  // Access verification runs silently. Only an actual denial/error redirects the user.
+  if (checking) return null;
 
   if (!allowed) return null;
   return <>{children}</>;
