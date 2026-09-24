@@ -1,6 +1,6 @@
-# ReqGen 2.0.0.1 - Build Gate Correction
+# ReqGen 2.0.0.2 - Build Gate Correction
 
-This correction pass addresses the workstation errors reported before the first ReqGen 2.0.0.1 production push.
+This correction pass addresses the workstation errors reported before the first ReqGen 2.0.0.2 production push.
 
 ## Corrected items
 

@@ -1,9 +1,9 @@
-# ReqGen 2.0.0.1
+# ReqGen 2.0.0.2
 
 ReqGen is the Islamic Education Trust Request Management System maintained by Barderian Enterprises.
 
 ## Product release
-- Product version: **2.0.0.1**
+- Product version: **2.0.0.2**
 - npm package SemVer: **2.0.0**
 - Framework: Next.js 16 / React 19 / TypeScript
 - Backend: Supabase

@@ -944,10 +944,7 @@ export default function FinanceRequestPage() {
       </section>
 
       <section className="mt-6 rounded-3xl border border-cyan-100 bg-gradient-to-br from-white to-cyan-50 p-5 shadow-sm sm:p-7">
-        <p className="text-xs font-black uppercase tracking-[0.16em] text-blue-700">
-          Section 4
-        </p>
-        <h2 className="mt-1 text-2xl font-black text-slate-950">
+        <h2 className="text-2xl font-black text-slate-950">
           Payment Details
         </h2>
         <p className="mt-2 text-sm font-semibold leading-6 text-slate-600">

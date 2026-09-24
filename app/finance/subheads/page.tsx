@@ -139,6 +139,7 @@ export default function FinanceSubheadsPage() {
   const [saving, setSaving] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
 
   const [role, setRole] = useState("Staff");
   const [userId, setUserId] = useState<string | null>(null);
@@ -694,6 +695,7 @@ export default function FinanceSubheadsPage() {
   }
 
   function openCreate() {
+    setFormError(null);
     resetForm();
     setFormOpen(true);
   }
@@ -701,6 +703,7 @@ export default function FinanceSubheadsPage() {
   function openEdit(
     item: Subhead
   ) {
+    setFormError(null);
     setEditId(item.id);
     setFormDept(
       item.dept_id || ""
@@ -733,23 +736,20 @@ export default function FinanceSubheadsPage() {
 
   async function saveSubhead() {
     if (!canManage) {
-      setMessage(
-        "Your current role does not allow subhead changes."
-      );
+      setFormError("Your current role does not allow subhead changes.");
+      setMessage("Your current role does not allow subhead changes.");
       return;
     }
 
     if (!formName.trim()) {
-      setMessage(
-        "Enter a subhead name."
-      );
+      setFormError("Enter a subhead name.");
+      setMessage("Enter a subhead name.");
       return;
     }
 
     if (!formBank) {
-      setMessage(
-        "Select the IET Bank funding this subhead."
-      );
+      setFormError("Select the IET Bank funding this subhead.");
+      setMessage("Select the IET Bank funding this subhead.");
       return;
     }
 
@@ -758,14 +758,14 @@ export default function FinanceSubheadsPage() {
         formAllocation
       ) < 0
     ) {
-      setMessage(
-        "Allocation cannot be negative."
-      );
+      setFormError("Allocation cannot be negative.");
+      setMessage("Allocation cannot be negative.");
       return;
     }
 
     setSaving(true);
     setMessage(null);
+    setFormError(null);
 
     try {
       const current =
@@ -832,6 +832,7 @@ export default function FinanceSubheadsPage() {
 
       let subheadId =
         editId;
+      let createdThisAttempt = false;
 
       const payload = {
         dept_id:
@@ -894,6 +895,7 @@ export default function FinanceSubheadsPage() {
 
         subheadId =
           data.id;
+        createdThisAttempt = true;
       }
 
       const {
@@ -923,6 +925,9 @@ export default function FinanceSubheadsPage() {
       if (
         allocationError
       ) {
+        if (createdThisAttempt && subheadId) {
+          await supabase.from("subheads").delete().eq("id", subheadId);
+        }
         throw new Error(
           allocationError.message
         );
@@ -939,11 +944,14 @@ export default function FinanceSubheadsPage() {
 
       await load(true);
     } catch (error: unknown) {
-      setMessage(
-        error instanceof Error
-          ? error.message
-          : "Unable to save subhead."
-      );
+      const raw = error instanceof Error ? error.message : "Unable to save subhead.";
+      const friendly = /duplicate|unique/i.test(raw)
+        ? "A subhead with this code or name already exists. Review the code/name and try again."
+        : /available|capacity|allocation/i.test(raw)
+          ? raw
+          : `Subhead could not be saved: ${raw}`;
+      setFormError(friendly);
+      setMessage(friendly);
     } finally {
       setSaving(false);
     }
@@ -953,9 +961,7 @@ export default function FinanceSubheadsPage() {
     item: Subhead
   ) {
     if (!canManage) {
-      setMessage(
-        "Your current role does not allow subhead changes."
-      );
+      setMessage("Your current role does not allow subhead changes.");
       return;
     }
 
@@ -1002,9 +1008,8 @@ export default function FinanceSubheadsPage() {
     item: Subhead
   ) {
     if (!canManage) {
-      setMessage(
-        "Your current role does not allow subhead changes."
-      );
+      setFormError("Your current role does not allow subhead changes.");
+      setMessage("Your current role does not allow subhead changes.");
       return;
     }
 
@@ -1206,12 +1211,8 @@ export default function FinanceSubheadsPage() {
     <div className={styles.page}>
       <header className={styles.pageHeader}>
         <div>
-          <div className={styles.breadcrumb}>
-            Finance <span>›</span> Finance Subheads
-          </div>
-
           <h1>
-            Finance Subheads
+            Budget & Subheads
           </h1>
 
           <p>
@@ -2066,6 +2067,7 @@ export default function FinanceSubheadsPage() {
           className={styles.modalBackdrop}
           onMouseDown={() => {
             if (!saving) {
+              setFormError(null);
               setFormOpen(false);
             }
           }}
@@ -2094,6 +2096,7 @@ export default function FinanceSubheadsPage() {
               <button
                 onClick={() => {
                   if (!saving) {
+                    setFormError(null);
                     setFormOpen(false);
                   }
                 }}
@@ -2172,11 +2175,10 @@ export default function FinanceSubheadsPage() {
 
                 <select
                   value={formBank}
-                  onChange={(event) =>
-                    setFormBank(
-                      event.target.value
-                    )
-                  }
+                  onChange={(event) => {
+                    setFormBank(event.target.value);
+                    setFormError(null);
+                  }}
                 >
                   <option value="">
                     Select IET bank
@@ -2203,6 +2205,22 @@ export default function FinanceSubheadsPage() {
                 </select>
               </label>
 
+              {formBank ? (() => {
+                const selectedBank = bankMap.get(formBank);
+                const current = editId ? subheads.find((item) => item.id === editId) : null;
+                const reusable = current?.bank_account_id === formBank ? Number(current.approved_allocation || 0) : 0;
+                const remaining = Number(selectedBank?.unallocated_balance || 0) + reusable;
+                const afterAllocation = remaining - Number(formAllocation || 0);
+                return (
+                  <div className={styles.balancePanel}>
+                    <div><span>Available to allocate</span><strong>{money(remaining)}</strong></div>
+                    <div><span>Requested allocation</span><strong>{money(formAllocation)}</strong></div>
+                    <div className={afterAllocation < 0 ? styles.balanceNegative : ""}><span>Remaining after save</span><strong>{money(afterAllocation)}</strong></div>
+                    <small>{selectedBank?.name || "Selected IET account"} · live unallocated balance</small>
+                  </div>
+                );
+              })() : null}
+
               <label>
                 <span>
                   Approved Allocation (₦)
@@ -2212,14 +2230,10 @@ export default function FinanceSubheadsPage() {
                   type="number"
                   min="0"
                   value={formAllocation}
-                  onChange={(event) =>
-                    setFormAllocation(
-                      Number(
-                        event.target.value ||
-                        0
-                      )
-                    )
-                  }
+                  onChange={(event) => {
+                    setFormAllocation(Number(event.target.value || 0));
+                    setFormError(null);
+                  }}
                 />
               </label>
 
@@ -2269,11 +2283,19 @@ export default function FinanceSubheadsPage() {
               </label>
             </div>
 
+            {formError ? (
+              <div className={styles.formError} role="alert">
+                <AlertCircle size={17} />
+                <div><strong>Unable to save this subhead</strong><span>{formError}</span></div>
+              </div>
+            ) : null}
+
             <div className={styles.modalFooter}>
               <button
-                onClick={() =>
-                  setFormOpen(false)
-                }
+                onClick={() => {
+                  setFormError(null);
+                  setFormOpen(false);
+                }}
                 disabled={saving}
               >
                 Cancel

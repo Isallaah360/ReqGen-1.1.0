@@ -1,8 +1,8 @@
-# ReqGen 2.0.0.1 Stabilisation Status
+# ReqGen 2.0.0.2 Stabilisation Status
 
 ## Implemented in this pass
 - RAR baseline extracted without altering the original archive; SHA-256 baseline/current manifests generated.
-- Product identity updated to ReqGen 2.0.0.1.
+- Product identity updated to ReqGen 2.0.0.2.
 - Standalone Workflow removed from navigation/search; `/workflow` is now a compatibility redirect to Audit Centre workflow trace context.
 - Legacy Command Centre/Executive pages are compatibility redirects to canonical ReqGen workspaces and are no longer root navigation/search modules.
 - Standalone HR UI removed; `/hr` remains only as a compatibility redirect to Approvals. HR remains an RBAC/workflow role.

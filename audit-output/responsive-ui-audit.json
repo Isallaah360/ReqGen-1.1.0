@@ -1,10 +1,10 @@
 {
   "summary": {
-    "scannedFiles": 265,
-    "findings": 182,
-    "warnings": 85,
-    "info": 97,
-    "generatedAt": "2026-09-23T16:46:53.977Z"
+    "scannedFiles": 196,
+    "findings": 151,
+    "warnings": 72,
+    "info": 79,
+    "generatedAt": "2026-09-23T15:05:36.037Z"
   },
   "findings": [
     {
@@ -113,7 +113,7 @@
     },
     {
       "file": "app/admin/users/page.tsx",
-      "line": 741,
+      "line": 737,
       "rule": "desktop-only-grid",
       "severity": "warning",
       "match": "grid-cols-9",
@@ -121,7 +121,7 @@
     },
     {
       "file": "app/admin/users/page.tsx",
-      "line": 754,
+      "line": 750,
       "rule": "desktop-only-grid",
       "severity": "warning",
       "match": "grid-cols-5",
@@ -192,6 +192,110 @@
       "excerpt": "<td className=\"max-w-[420px] break-words px-4 py-4 text-sm font-semibold leading-6 text-slate-600\">{event.details || \"—\"}</td>"
     },
     {
+      "file": "app/components/NavBar.tsx",
+      "line": 165,
+      "rule": "nowrap-risk",
+      "severity": "info",
+      "match": "whitespace-nowrap",
+      "excerpt": "<span className=\"pointer-events-none absolute left-1/2 top-full z-[70] mt-2 -translate-x-1/2 whitespace-nowrap rounded-xl border border-white/10 bg-slate-950/95 px-3 py-1.5 text-xs font-black tracking-wide text-white sha"
+    },
+    {
+      "file": "app/components/NavBar.tsx",
+      "line": 165,
+      "rule": "absolute-layout",
+      "severity": "info",
+      "match": "absolute",
+      "excerpt": "<span className=\"pointer-events-none absolute left-1/2 top-full z-[70] mt-2 -translate-x-1/2 whitespace-nowrap rounded-xl border border-white/10 bg-slate-950/95 px-3 py-1.5 text-xs font-black tracking-wide text-white sha"
+    },
+    {
+      "file": "app/components/NavBar.tsx",
+      "line": 569,
+      "rule": "fixed-width",
+      "severity": "warning",
+      "match": "max-w-[1680px]",
+      "excerpt": "<div className=\"mx-auto flex max-w-[1680px] items-center justify-between gap-3 px-4 py-3\">"
+    },
+    {
+      "file": "app/components/NavBar.tsx",
+      "line": 615,
+      "rule": "truncate-risk",
+      "severity": "info",
+      "match": "truncate",
+      "excerpt": "<span className=\"hidden truncate 2xl:inline\">Search ReqGen…</span>"
+    },
+    {
+      "file": "app/components/NavBar.tsx",
+      "line": 619,
+      "rule": "absolute-layout",
+      "severity": "info",
+      "match": "absolute",
+      "excerpt": "<div className=\"absolute left-0 top-[52px] z-[70] w-[min(520px,calc(100vw-2rem))] overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl shadow-slate-900/20\">"
+    },
+    {
+      "file": "app/components/NavBar.tsx",
+      "line": 672,
+      "rule": "absolute-layout",
+      "severity": "info",
+      "match": "absolute",
+      "excerpt": "<span className=\"absolute bottom-1.5 right-1.5 grid h-4 w-4 place-items-center rounded-full bg-emerald-500 text-[9px] font-black leading-none text-white shadow-sm ring-2 ring-white\">✓</span>"
+    },
+    {
+      "file": "app/components/NavBar.tsx",
+      "line": 675,
+      "rule": "absolute-layout",
+      "severity": "info",
+      "match": "absolute",
+      "excerpt": "<span className=\"absolute -right-2 -top-2 min-w-6 rounded-full bg-rose-600 px-1.5 py-0.5 text-center text-xs font-black text-white shadow-sm ring-2 ring-white\">"
+    },
+    {
+      "file": "app/components/NavBar.tsx",
+      "line": 682,
+      "rule": "fixed-width",
+      "severity": "warning",
+      "match": "w-[420px]",
+      "excerpt": "<div className=\"absolute left-0 top-12 z-50 w-[420px] overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl shadow-slate-900/20\">"
+    },
+    {
+      "file": "app/components/NavBar.tsx",
+      "line": 682,
+      "rule": "absolute-layout",
+      "severity": "info",
+      "match": "absolute",
+      "excerpt": "<div className=\"absolute left-0 top-12 z-50 w-[420px] overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl shadow-slate-900/20\">"
+    },
+    {
+      "file": "app/components/NavBar.tsx",
+      "line": 730,
+      "rule": "truncate-risk",
+      "severity": "info",
+      "match": "truncate",
+      "excerpt": "<span className=\"truncate text-sm font-black text-slate-950\">{r.request_no || \"No Request Number\"}</span>"
+    },
+    {
+      "file": "app/components/NavBar.tsx",
+      "line": 859,
+      "rule": "absolute-layout",
+      "severity": "info",
+      "match": "absolute",
+      "excerpt": "<div className=\"absolute right-0 top-12 z-50 max-h-[80vh] w-[340px] overflow-auto rounded-3xl border border-slate-200 bg-white p-3 shadow-2xl\">"
+    },
+    {
+      "file": "app/components/SessionTimeout.tsx",
+      "line": 170,
+      "rule": "absolute-layout",
+      "severity": "info",
+      "match": "absolute",
+      "excerpt": "// the absolute activity timestamp so the warning is never skipped."
+    },
+    {
+      "file": "app/components/SessionTimeout.tsx",
+      "line": 194,
+      "rule": "fixed-width",
+      "severity": "warning",
+      "match": "max-w-[430px]",
+      "excerpt": "<div className=\"w-full max-w-[430px] overflow-hidden rounded-2xl border border-amber-200 bg-white shadow-2xl\">"
+    },
+    {
       "file": "app/components/executive/ExecutiveModulePage.tsx",
       "line": 97,
       "rule": "fixed-width",
@@ -256,142 +360,6 @@
       "excerpt": "<div className=\"pointer-events-none absolute -bottom-24 left-1/3 h-64 w-64 rounded-full bg-violet-500/20 blur-3xl\" />"
     },
     {
-      "file": "app/components/hr/HRProgrammeCentre.tsx",
-      "line": 129,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-5",
-      "excerpt": "<section className=\"grid gap-4 sm:grid-cols-2 xl:grid-cols-5\">"
-    },
-    {
-      "file": "app/components/hr/HRProgrammeCentre.tsx",
-      "line": 164,
-      "rule": "truncate-risk",
-      "severity": "info",
-      "match": "truncate",
-      "excerpt": "<td className=\"px-4 py-4\"><p className=\"font-black text-slate-950\">{row.title}</p><p className=\"mt-1 max-w-sm truncate text-xs font-semibold text-slate-500\">{row.objectives || \"No objectives recorded\"}</p></td>"
-    },
-    {
-      "file": "app/components/hr/HRWorkspace.tsx",
-      "line": 190,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-5",
-      "excerpt": "<div className=\"grid gap-3 sm:grid-cols-2 xl:grid-cols-5\">"
-    },
-    {
-      "file": "app/components/hr/HRWorkspace.tsx",
-      "line": 251,
-      "rule": "truncate-risk",
-      "severity": "info",
-      "match": "truncate",
-      "excerpt": "<td className=\"px-5 py-4\"><p className=\"font-black text-slate-950\">{row.request_no}</p><p className=\"mt-1 max-w-xs truncate text-xs font-semibold text-slate-500\">{row.title}</p></td>"
-    },
-    {
-      "file": "app/components/hr/HRWorkspace.tsx",
-      "line": 265,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "return <label className=\"relative block\"><span className=\"sr-only\">Search</span><HRIcon name=\"search\" className=\"pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400\"/><input value={value} "
-    },
-    {
-      "file": "app/components/hr/LeaveDashboard.tsx",
-      "line": 191,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-5",
-      "excerpt": "<div className=\"grid gap-3 sm:grid-cols-2 xl:grid-cols-5\">"
-    },
-    {
-      "file": "app/components/NavBar.tsx",
-      "line": 166,
-      "rule": "nowrap-risk",
-      "severity": "info",
-      "match": "whitespace-nowrap",
-      "excerpt": "<span className=\"pointer-events-none absolute left-1/2 top-full z-[70] mt-2 -translate-x-1/2 whitespace-nowrap rounded-xl border border-white/10 bg-slate-950/95 px-3 py-1.5 text-xs font-black tracking-wide text-white sha"
-    },
-    {
-      "file": "app/components/NavBar.tsx",
-      "line": 166,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "<span className=\"pointer-events-none absolute left-1/2 top-full z-[70] mt-2 -translate-x-1/2 whitespace-nowrap rounded-xl border border-white/10 bg-slate-950/95 px-3 py-1.5 text-xs font-black tracking-wide text-white sha"
-    },
-    {
-      "file": "app/components/NavBar.tsx",
-      "line": 570,
-      "rule": "fixed-width",
-      "severity": "warning",
-      "match": "max-w-[1680px]",
-      "excerpt": "<div className=\"mx-auto flex max-w-[1680px] items-center justify-between gap-3 px-4 py-3\">"
-    },
-    {
-      "file": "app/components/NavBar.tsx",
-      "line": 616,
-      "rule": "truncate-risk",
-      "severity": "info",
-      "match": "truncate",
-      "excerpt": "<span className=\"hidden truncate 2xl:inline\">Search ReqGen…</span>"
-    },
-    {
-      "file": "app/components/NavBar.tsx",
-      "line": 620,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "<div className=\"absolute left-0 top-[52px] z-[70] w-[min(520px,calc(100vw-2rem))] overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl shadow-slate-900/20\">"
-    },
-    {
-      "file": "app/components/NavBar.tsx",
-      "line": 673,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "<span className=\"absolute bottom-1.5 right-1.5 grid h-4 w-4 place-items-center rounded-full bg-emerald-500 text-[9px] font-black leading-none text-white shadow-sm ring-2 ring-white\">✓</span>"
-    },
-    {
-      "file": "app/components/NavBar.tsx",
-      "line": 676,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "<span className=\"absolute -right-2 -top-2 min-w-6 rounded-full bg-rose-600 px-1.5 py-0.5 text-center text-xs font-black text-white shadow-sm ring-2 ring-white\">"
-    },
-    {
-      "file": "app/components/NavBar.tsx",
-      "line": 683,
-      "rule": "fixed-width",
-      "severity": "warning",
-      "match": "w-[420px]",
-      "excerpt": "<div className=\"absolute left-0 top-12 z-50 w-[420px] overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl shadow-slate-900/20\">"
-    },
-    {
-      "file": "app/components/NavBar.tsx",
-      "line": 683,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "<div className=\"absolute left-0 top-12 z-50 w-[420px] overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl shadow-slate-900/20\">"
-    },
-    {
-      "file": "app/components/NavBar.tsx",
-      "line": 731,
-      "rule": "truncate-risk",
-      "severity": "info",
-      "match": "truncate",
-      "excerpt": "<span className=\"truncate text-sm font-black text-slate-950\">{r.request_no || \"No Request Number\"}</span>"
-    },
-    {
-      "file": "app/components/NavBar.tsx",
-      "line": 860,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "<div className=\"absolute right-0 top-12 z-50 max-h-[80vh] w-[340px] overflow-auto rounded-3xl border border-slate-200 bg-white p-3 shadow-2xl\">"
-    },
-    {
       "file": "app/components/print/PrintEngineStyles.tsx",
       "line": 13,
       "rule": "absolute-layout",
@@ -438,22 +406,6 @@
       "severity": "warning",
       "match": "max-w-[1500px]",
       "excerpt": "<div className=\"mx-auto max-w-[1500px] space-y-4\">"
-    },
-    {
-      "file": "app/components/SessionTimeout.tsx",
-      "line": 170,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "// the absolute activity timestamp so the warning is never skipped."
-    },
-    {
-      "file": "app/components/SessionTimeout.tsx",
-      "line": 194,
-      "rule": "fixed-width",
-      "severity": "warning",
-      "match": "max-w-[430px]",
-      "excerpt": "<div className=\"w-full max-w-[430px] overflow-hidden rounded-2xl border border-amber-200 bg-white shadow-2xl\">"
     },
     {
       "file": "app/components/ui/DirectorateWorkspaceMenu.tsx",
@@ -568,6 +520,38 @@
       "excerpt": ".page{display:grid;gap:14px;color:#0f1f3d;font-size:13px}.header{display:flex;align-items:flex-start;justify-content:space-between;gap:20px}.header h1{margin:0;font-size:27px;line-height:1.15;font-weight:850;letter-spaci"
     },
     {
+      "file": "app/finance/_components/FinanceOperationsWorkspace.module.css",
+      "line": 1,
+      "rule": "absolute-layout",
+      "severity": "info",
+      "match": "absolute",
+      "excerpt": ".page{display:grid;gap:16px;color:#0b1739;font-size:12px}.header{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;padding:4px 2px}.crumb{font-size:10px;color:#7b8799;margin-bottom:8px}.crumb span{"
+    },
+    {
+      "file": "app/finance/_components/FinanceOutputWorkspace.tsx",
+      "line": 565,
+      "rule": "absolute-layout",
+      "severity": "info",
+      "match": "absolute",
+      "excerpt": "<div className=\"hero-orb absolute -right-16 -top-20 h-72 w-72 rounded-full bg-cyan-300/20 blur-3xl\" />"
+    },
+    {
+      "file": "app/finance/_components/FinanceOutputWorkspace.tsx",
+      "line": 596,
+      "rule": "desktop-only-grid",
+      "severity": "warning",
+      "match": "grid-cols-5",
+      "excerpt": "<div className=\"grid gap-4 md:grid-cols-2 xl:grid-cols-5\">"
+    },
+    {
+      "file": "app/finance/_components/FinanceOutputWorkspace.tsx",
+      "line": 660,
+      "rule": "absolute-layout",
+      "severity": "info",
+      "match": "absolute",
+      "excerpt": "body.finance-output-printing .print-sheet { position:absolute !important; left:0; top:0; margin:0 !important; box-shadow:none !important; }"
+    },
+    {
       "file": "app/finance/audit/page.tsx",
       "line": 1573,
       "rule": "desktop-only-grid",
@@ -678,38 +662,6 @@
       "severity": "info",
       "match": "absolute",
       "excerpt": ".page{padding:22px 26px 30px;background:#f8fafc;min-height:100%;color:#0b1739;font-family:Inter,\"Segoe UI\",Arial,sans-serif;font-size:13px}.pageHeader{display:flex;align-items:flex-end;justify-content:space-between;gap:2"
-    },
-    {
-      "file": "app/finance/_components/FinanceOperationsWorkspace.module.css",
-      "line": 1,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": ".page{display:grid;gap:16px;color:#0b1739;font-size:12px}.header{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;padding:4px 2px}.crumb{font-size:10px;color:#7b8799;margin-bottom:8px}.crumb span{"
-    },
-    {
-      "file": "app/finance/_components/FinanceOutputWorkspace.tsx",
-      "line": 565,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "<div className=\"hero-orb absolute -right-16 -top-20 h-72 w-72 rounded-full bg-cyan-300/20 blur-3xl\" />"
-    },
-    {
-      "file": "app/finance/_components/FinanceOutputWorkspace.tsx",
-      "line": 596,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-5",
-      "excerpt": "<div className=\"grid gap-4 md:grid-cols-2 xl:grid-cols-5\">"
-    },
-    {
-      "file": "app/finance/_components/FinanceOutputWorkspace.tsx",
-      "line": 660,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "body.finance-output-printing .print-sheet { position:absolute !important; left:0; top:0; margin:0 !important; box-shadow:none !important; }"
     },
     {
       "file": "app/globals.css",
@@ -1128,182 +1080,6 @@
       "excerpt": ".rg-content:is([data-route^=\"/payment-vouchers\"],[data-route^=\"/registry\"],[data-route^=\"/reports\"],[data-route^=\"/audit-centre\"],[data-route^=\"/workflow\"],[data-route^=\"/admin\"]) .rg-stat-card::before{content:\"\";positio"
     },
     {
-      "file": "app/hr/archive/page.tsx",
-      "line": 53,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "<HRPanel title=\"Archive & Retention Register\" eyebrow=\"Controlled Records Lifecycle\" action={<div className=\"grid gap-2 sm:grid-cols-2\"><div className=\"relative\"><Search className=\"absolute left-3 top-3 h-4 w-4 text-slat"
-    },
-    {
-      "file": "app/hr/assignments-page.tsx",
-      "line": 23,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-5",
-      "excerpt": "<section className=\"rounded-3xl border border-slate-200 bg-white p-6 shadow-sm\"><h2 className=\"text-xl font-black\">2. Delegate HR-bound Request</h2><div className=\"mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-5\"><select v"
-    },
-    {
-      "file": "app/hr/audit/page.tsx",
-      "line": 156,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "<HRPanel title=\"HR Activity Evidence Register\" eyebrow=\"Who Did What, Where and When\" action={<div className=\"grid gap-2 sm:grid-cols-4\"><div className=\"relative\"><Search className=\"absolute left-3 top-3 h-4 w-4 text-sla"
-    },
-    {
-      "file": "app/hr/filing/page.tsx",
-      "line": 168,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "<div className=\"absolute -right-16 -top-16 h-64 w-64 rounded-full bg-cyan-400/15 blur-3xl\" />"
-    },
-    {
-      "file": "app/hr/filing/page.tsx",
-      "line": 188,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-5",
-      "excerpt": "<section className=\"grid gap-4 sm:grid-cols-2 xl:grid-cols-5\">"
-    },
-    {
-      "file": "app/hr/filing/page.tsx",
-      "line": 212,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-5",
-      "excerpt": "<section className=\"grid gap-3 sm:grid-cols-2 xl:grid-cols-5\">"
-    },
-    {
-      "file": "app/hr/filing/page.tsx",
-      "line": 218,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "<label className=\"relative\"><Search className=\"absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400\" /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder=\"Search request number"
-    },
-    {
-      "file": "app/hr/filing/page.tsx",
-      "line": 219,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "<label className=\"relative\"><Filter className=\"absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400\" /><select value={department} onChange={(event) => setDepartment(event.target.value)} className=\"min-h-12 w-f"
-    },
-    {
-      "file": "app/hr/registrar/analytics/page.tsx",
-      "line": 192,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-6",
-      "excerpt": "<section className=\"grid gap-4 sm:grid-cols-2 xl:grid-cols-6\">"
-    },
-    {
-      "file": "app/hr/registrar/assessments/annual-360/page.tsx",
-      "line": 64,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-5",
-      "excerpt": "<section className=\"grid gap-4 sm:grid-cols-2 xl:grid-cols-5\">"
-    },
-    {
-      "file": "app/hr/registrar/department-kpi/page.tsx",
-      "line": 62,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-5",
-      "excerpt": "<section className=\"grid gap-4 sm:grid-cols-2 xl:grid-cols-5\">"
-    },
-    {
-      "file": "app/hr/registrar/output/page.tsx",
-      "line": 247,
-      "rule": "truncate-risk",
-      "severity": "info",
-      "match": "truncate",
-      "excerpt": "className=\"max-w-52 truncate px-3 py-2 font-semibold text-slate-700\""
-    },
-    {
-      "file": "app/hr/registrar/page.tsx",
-      "line": 366,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "<div className=\"absolute -right-16 -top-16 h-56 w-56 rounded-full bg-cyan-300/20 blur-3xl\" />"
-    },
-    {
-      "file": "app/hr/registrar/page.tsx",
-      "line": 367,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "<div className=\"absolute -bottom-20 left-1/3 h-52 w-52 rounded-full bg-blue-400/20 blur-3xl\" />"
-    },
-    {
-      "file": "app/hr/registrar/reports/page.tsx",
-      "line": 72,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-5",
-      "excerpt": "<section className=\"grid gap-4 sm:grid-cols-2 xl:grid-cols-5\">"
-    },
-    {
-      "file": "app/hr/registrar/weekly-seminar/page.tsx",
-      "line": 75,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "<div className=\"absolute -right-8 -top-8 h-28 w-28 rounded-full bg-white/10 blur-2xl\" />"
-    },
-    {
-      "file": "app/hr/registrar/weekly-seminar/page.tsx",
-      "line": 272,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "<div className=\"absolute -right-20 -top-20 h-72 w-72 rounded-full bg-fuchsia-400/15 blur-3xl\" />"
-    },
-    {
-      "file": "app/hr/registrar/weekly-seminar/page.tsx",
-      "line": 273,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "<div className=\"absolute -bottom-24 left-1/3 h-64 w-64 rounded-full bg-cyan-400/15 blur-3xl\" />"
-    },
-    {
-      "file": "app/hr/registrar/weekly-seminar/page.tsx",
-      "line": 333,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "<div className=\"border-b border-slate-200 p-6\"><div className=\"flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between\"><div><p className=\"text-xs font-black uppercase tracking-[0.18em] text-blue-700\">Live Attend"
-    },
-    {
-      "file": "app/hr/staff/page.tsx",
-      "line": 125,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "action={<div className=\"grid gap-2 sm:grid-cols-3\"><div className=\"relative\"><Search className=\"absolute left-3 top-3 h-4 w-4 text-slate-400\" /><input value={search} onChange={(event) => setSearch(event.target.value)} pl"
-    },
-    {
-      "file": "app/payment-vouchers/payment-vouchers-overview.module.css",
-      "line": 15,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": ".tableWrap{overflow-x:auto}.table{width:100%;border-collapse:collapse;min-width:820px;table-layout:auto}.table th{height:35px;padding:0 11px;background:#f8faff;color:#26385f;text-align:left;font-size:9px;font-weight:800;"
-    },
-    {
-      "file": "app/payment-vouchers/payment-vouchers-overview.module.css",
-      "line": 16,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": ".sideStack{display:grid;gap:12px}.sideCard{padding:13px}.sideCard h3{margin:0;color:#0b1841;font-size:12px;font-weight:900}.sideCard h3 span{font-size:9px;font-weight:700}.summaryLayout{display:grid;grid-template-columns"
-    },
-    {
       "file": "app/payment-vouchers/[id]/page.tsx",
       "line": 829,
       "rule": "fixed-width",
@@ -1368,6 +1144,22 @@
       "excerpt": "className=\"absolute bottom-[2px] left-1/2 h-[21px] w-auto max-w-[96%] -translate-x-1/2 object-contain\""
     },
     {
+      "file": "app/payment-vouchers/payment-vouchers-overview.module.css",
+      "line": 15,
+      "rule": "absolute-layout",
+      "severity": "info",
+      "match": "absolute",
+      "excerpt": ".tableWrap{overflow-x:auto}.table{width:100%;border-collapse:collapse;min-width:820px;table-layout:auto}.table th{height:35px;padding:0 11px;background:#f8faff;color:#26385f;text-align:left;font-size:9px;font-weight:800;"
+    },
+    {
+      "file": "app/payment-vouchers/payment-vouchers-overview.module.css",
+      "line": 16,
+      "rule": "absolute-layout",
+      "severity": "info",
+      "match": "absolute",
+      "excerpt": ".sideStack{display:grid;gap:12px}.sideCard{padding:13px}.sideCard h3{margin:0;color:#0b1841;font-size:12px;font-weight:900}.sideCard h3 span{font-size:9px;font-weight:700}.summaryLayout{display:grid;grid-template-columns"
+    },
+    {
       "file": "app/registry/registry.module.css",
       "line": 34,
       "rule": "absolute-layout",
@@ -1390,14 +1182,6 @@
       "severity": "info",
       "match": "absolute",
       "excerpt": ".page{width:100%;min-width:0;padding:26px 28px 36px;color:#0b2144;font-size:13px;animation:enter .2s ease-out both}.page *{box-sizing:border-box}.head{display:flex;align-items:flex-start;justify-content:space-between;gap"
-    },
-    {
-      "file": "app/requests/requests.module.css",
-      "line": 14,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": ".eyebrow{display:block;margin-bottom:5px;color:#1267e8;font-size:10px;font-weight:850;text-transform:uppercase;letter-spacing:.08em}.insightGrid{display:grid;grid-template-columns:minmax(280px,.78fr) minmax(0,1.45fr);gap"
     },
     {
       "file": "app/requests/[id]/print/page.tsx",
@@ -1424,44 +1208,12 @@
       "excerpt": ".hero:before{content:\"\";position:absolute;inset:0 auto 0 0;width:4px;background:linear-gradient(180deg,#0b66ea,#13a5c8);}"
     },
     {
-      "file": "app/staff/downloads/page.tsx",
-      "line": 104,
+      "file": "app/requests/requests.module.css",
+      "line": 14,
       "rule": "absolute-layout",
       "severity": "info",
       "match": "absolute",
-      "excerpt": "<Search className=\"pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400\" />"
-    },
-    {
-      "file": "app/staff/loading.tsx",
-      "line": 4,
-      "rule": "fixed-width",
-      "severity": "warning",
-      "match": "max-w-[1500px]",
-      "excerpt": "<div className=\"mx-auto max-w-[1500px] space-y-5\">"
-    },
-    {
-      "file": "app/staff/loading.tsx",
-      "line": 6,
-      "rule": "desktop-only-grid",
-      "severity": "warning",
-      "match": "grid-cols-5",
-      "excerpt": "<div className=\"grid gap-3 sm:grid-cols-2 lg:grid-cols-5\">{Array.from({ length: 10 }).map((_, i) => <div key={i} className=\"h-14 animate-pulse rounded-2xl bg-slate-200\" />)}</div>"
-    },
-    {
-      "file": "app/staff/notifications/page.tsx",
-      "line": 213,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "className=\"absolute left-3 top-3 text-slate-500\""
-    },
-    {
-      "file": "app/staff/requests/page.tsx",
-      "line": 13,
-      "rule": "fixed-width",
-      "severity": "warning",
-      "match": "max-w-[1500px]",
-      "excerpt": "return <StaffShell><div className=\"mx-auto max-w-[1500px] space-y-6\">"
+      "excerpt": ".eyebrow{display:block;margin-bottom:5px;color:#1267e8;font-size:10px;font-weight:850;text-transform:uppercase;letter-spacing:.08em}.insightGrid{display:grid;grid-template-columns:minmax(280px,.78fr) minmax(0,1.45fr);gap"
     }
   ]
 }

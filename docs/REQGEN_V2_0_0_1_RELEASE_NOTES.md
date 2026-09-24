@@ -1,11 +1,11 @@
-# ReqGen 2.0.0.1 Release Notes
+# ReqGen 2.0.0.2 Release Notes
 
 ## Release identity
-ReqGen 2.0.0.1 is the first controlled patch of the ReqGen 2.0 stabilisation line.
+ReqGen 2.0.0.2 is the first controlled patch of the ReqGen 2.0 stabilisation line.
 
 The user-facing product version is centralised in `lib/version.ts` and is displayed consistently in application metadata, the authenticated shell, route hero badges, navigation branding, shared page footers and the Department export subtitle.
 
-`package.json` deliberately remains npm SemVer `2.0.0`; the exact ReqGen release is stored separately as `reqgenVersion: 2.0.0.1`. A four-component value such as `2.0.0.1` is not valid npm SemVer and must not replace the package `version` field.
+`package.json` deliberately remains npm SemVer `2.0.0`; the exact ReqGen release is stored separately as `reqgenVersion: 2.0.0.2`. A four-component value such as `2.0.0.2` is not valid npm SemVer and must not replace the package `version` field.
 
 ## Architecture carried into this patch
 - Canonical route/navigation registry retained.

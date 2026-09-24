@@ -1,7 +1,7 @@
-# ReqGen 2.0.0.1 - VS Code Release Runbook
+# ReqGen 2.0.0.2 - VS Code Release Runbook
 
 ## 1. Protect the authoritative baseline
-Keep the original `reqgen-web.rar` unchanged. Copy the delivered `ReqGen_v2.0.0.1_stabilized` folder into your development workspace and open that folder in VS Code.
+Keep the original `reqgen-web.rar` unchanged. Copy the delivered `ReqGen_v2.0.0.2_stabilized` folder into your development workspace and open that folder in VS Code.
 
 ## 2. Configure environment values
 Create `.env.local` locally (do not commit it):
@@ -54,7 +54,7 @@ Replace `<branch>` and `<remote>` only if your repository uses different names.
 git status
 git checkout -b reqgen-v2-0-0-1-stabilisation
 git add -A
-git commit -m "feat: stabilise ReqGen 2.0.0.1 architecture and admin controls"
+git commit -m "feat: stabilise ReqGen 2.0.0.2 architecture and admin controls"
 git push -u origin reqgen-v2-0-0-1-stabilisation
 ```
 
@@ -63,7 +63,7 @@ After review/approval, merge through your normal GitHub workflow. For a direct m
 ```bash
 git checkout main
 git pull --ff-only origin main
-git merge --no-ff reqgen-v2-0-0-1-stabilisation -m "release: ReqGen 2.0.0.1 stabilisation"
+git merge --no-ff reqgen-v2-0-0-1-stabilisation -m "release: ReqGen 2.0.0.2 stabilisation"
 git push origin main
 ```
 

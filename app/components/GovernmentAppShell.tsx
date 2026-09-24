@@ -708,27 +708,14 @@ function GovernmentAppShellContent({
           {renderNav()}
         </nav>
 
-        <div className="rg-sidebar-user">
-          <div className="rg-avatar">
-            {initials}
-          </div>
-
-          <div>
-            <strong>
-              {userName}
-            </strong>
-
-            <span>
-              {userEmail ||
-                "Authorised user"}
-            </span>
-          </div>
-
+        <div className="rg-sidebar-signout">
           <button
+            type="button"
             onClick={signOut}
-            aria-label="Sign out"
+            aria-label="Sign out of ReqGen"
           >
             <LogOut size={16} />
+            <span>Sign out</span>
           </button>
         </div>
       </aside>

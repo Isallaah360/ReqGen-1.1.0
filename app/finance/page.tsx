@@ -35,8 +35,6 @@ type Tx = {
   transaction_no: string | null;
   transaction_type: string | null;
   amount: number | string | null;
-  debit: number | string | null;
-  credit: number | string | null;
   transaction_date: string | null;
   narration: string | null;
   subhead_id: string | null;
@@ -151,7 +149,7 @@ export default function FinanceOverviewPage() {
       const [deptRes, subheadRes, txRes, reqRes, voucherRes, accountRes] = await Promise.all([
         supabase.from("departments").select("id,name").order("name"),
         supabase.from("subheads").select("id,dept_id,code,name,approved_allocation,reserved_amount,expenditure,balance,is_active").order("code"),
-        supabase.from("finance_transactions").select("id,transaction_no,transaction_type,amount,debit,credit,transaction_date,narration,subhead_id,is_reversed").order("transaction_date", { ascending: false }).limit(2000),
+        supabase.from("finance_transactions").select("id,transaction_no,transaction_type,amount,transaction_date,narration,subhead_id,is_reversed").order("transaction_date", { ascending: false }).limit(2000),
         supabase.from("requests").select("id,request_no,title,amount,status,current_stage,current_owner,dept_id,subhead_id,created_at").order("created_at", { ascending: false }).limit(1000),
         supabase.from("payment_vouchers").select("id,voucher_no,amount,total_amount,status,voucher_type,payee_name,dept_id,department_id,created_at").order("created_at", { ascending: false }).limit(2000),
         supabase.from("iet_accounts").select("id,name,available_balance,is_active").order("name"),
@@ -269,7 +267,7 @@ export default function FinanceOverviewPage() {
       if (!row.transaction_date) return;
       const d = new Date(row.transaction_date);
       if (Number.isNaN(d.getTime())) return;
-      values[d.getMonth()] += Math.max(n(row.debit), n(row.amount), 0);
+      values[d.getMonth()] += Math.max(n(row.amount), 0);
     });
     return values;
   }, [visibleTransactions]);
@@ -299,20 +297,18 @@ export default function FinanceOverviewPage() {
   const transactionTypes = useMemo(() => [...new Set(transactions.map((t) => t.transaction_type).filter(Boolean) as string[])].sort(), [transactions]);
   const accountCash = useMemo(() => accounts.filter((a) => a.is_active !== false).reduce((sum, a) => sum + n(a.available_balance), 0), [accounts]);
   const activeAccounts = useMemo(() => accounts.filter((a) => a.is_active !== false).sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""))), [accounts]);
-  const balanceMismatchCount = useMemo(() => visibleSubheads.filter((s) => s.balance !== null && Math.abs(n(s.balance) - canonicalSubheadBalance(s)) > 0.5).length, [visibleSubheads]);
 
   if (loading) return <main className={styles.page}><div className={styles.loading}>Loading live Finance data…</div></main>;
 
   return (
     <main className={styles.page}>
       <section className={styles.pageHeader}>
-        <div><span className={styles.eyebrow}>SECTION 4 · FINANCE</span><h1>Finance Control Centre</h1><p>One live view of IET budgets, subheads, transactions, payments and finance work.</p></div>
+        <div><h1>Finance Overview</h1><p>Live budgets, subheads, transactions, payment activity and Finance work in one authoritative view.</p></div>
         <button className={styles.refreshButton} type="button" onClick={() => void loadData(true)} disabled={refreshing}><RefreshCw size={16}/>{refreshing ? "Refreshing…" : "Refresh Live Data"}</button>
       </section>
 
       {fatalError && <div className={`${styles.notice} ${styles.danger}`}><CircleAlert size={17}/><span>{fatalError}</span></div>}
       {!!issues.length && <div className={styles.notice}><CircleAlert size={17}/><span><b>Some live sources could not be read:</b> {issues.map((i) => `${i.source}: ${i.message}`).join(" · ")}</span></div>}
-      {balanceMismatchCount > 0 && <div className={styles.notice}><CircleAlert size={17}/><span><b>Balance reconciliation:</b> {balanceMismatchCount} subhead record{balanceMismatchCount === 1 ? " has" : "s have"} a stored balance different from Allocation − Reserved − Expenditure. ReqGen is displaying the canonical calculated balance.</span></div>}
 
       <section className={styles.filters}>
         <label><span>Search transactions</span><div className={styles.searchBox}><Search size={15}/><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Reference, narration, subhead…"/></div></label>
@@ -345,7 +341,7 @@ export default function FinanceOverviewPage() {
       <section className={styles.contentGrid}>
         <article className={`${styles.card} ${styles.transactionsCard}`}>
           <div className={styles.cardHead}><div><h2>Recent Transactions</h2><p>{visibleTransactions.length} matching live record{visibleTransactions.length === 1 ? "" : "s"}.</p></div><Link href="/finance/transactions">Open Register <ArrowRight size={14}/></Link></div>
-          <div className={styles.tableWrap}><table><thead><tr><th>Date</th><th>Reference</th><th>Type</th><th>Subhead / Department</th><th>Narration</th><th>Amount</th></tr></thead><tbody>{visibleTransactions.slice(0, 8).map((row) => { const sub = row.subhead_id ? subheadMap[row.subhead_id] : undefined; const dept = sub?.dept_id ? departmentMap[sub.dept_id] : "—"; const amount = Math.max(n(row.debit), n(row.amount), n(row.credit)); return <tr key={row.id}><td>{dateLabel(row.transaction_date)}</td><td><b>{row.transaction_no || "—"}</b></td><td>{titleCase(row.transaction_type)}</td><td>{sub ? `${sub.code || ""} ${sub.name}`.trim() : "—"}<small>{dept}</small></td><td>{row.narration || "—"}</td><td className={styles.amount}>{money(amount)}</td></tr>; })}{!visibleTransactions.length && <tr><td colSpan={6}><EmptyState text="No Finance transactions match the selected filters."/></td></tr>}</tbody></table></div>
+          <div className={styles.tableWrap}><table><thead><tr><th>Date</th><th>Reference</th><th>Type</th><th>Subhead / Department</th><th>Narration</th><th>Amount</th></tr></thead><tbody>{visibleTransactions.slice(0, 8).map((row) => { const sub = row.subhead_id ? subheadMap[row.subhead_id] : undefined; const dept = sub?.dept_id ? departmentMap[sub.dept_id] : "—"; const amount = Math.max(n(row.amount), 0); return <tr key={row.id}><td>{dateLabel(row.transaction_date)}</td><td><b>{row.transaction_no || "—"}</b></td><td>{titleCase(row.transaction_type)}</td><td>{sub ? `${sub.code || ""} ${sub.name}`.trim() : "—"}<small>{dept}</small></td><td>{row.narration || "—"}</td><td className={styles.amount}>{money(amount)}</td></tr>; })}{!visibleTransactions.length && <tr><td colSpan={6}><EmptyState text="No Finance transactions match the selected filters."/></td></tr>}</tbody></table></div>
         </article>
 
         <article className={styles.card}>
