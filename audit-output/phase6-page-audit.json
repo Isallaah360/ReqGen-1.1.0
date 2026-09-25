@@ -1,6 +1,6 @@
 {
   "summary": {
-    "checkedAt": "2026-09-24T23:50:07.712Z",
+    "checkedAt": "2026-09-25T11:43:48.187Z",
     "pages": 85,
     "pass": 85,
     "review": 0
@@ -890,7 +890,7 @@
       "forms": 0,
       "selects": 3,
       "dialogs": 0,
-      "charts": 4,
+      "charts": 11,
       "status": "PASS",
       "blockers": []
     },

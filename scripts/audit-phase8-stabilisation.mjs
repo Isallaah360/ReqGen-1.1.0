@@ -12,7 +12,7 @@ const audit = read("app/audit-centre/page.tsx");
 const globals = read("app/globals.css");
 const shell = read("app/components/GovernmentAppShell.tsx");
 check("Dashboard category/status charts use SVG donut geometry", dashboard.includes('<svg viewBox="0 0 120 120"') && dashboard.includes("donutSegment") && !dashboard.includes("conic-gradient"));
-check("Dashboard donut hole is a real circular centre control", dashboardCss.includes(".donutCenter") && dashboardCss.includes("border-radius:50%") && dashboardCss.includes(".donut::after{display:none!important}"));
+check("Dashboard donut hole is a real circular centre control", dashboardCss.includes(".donutCenter") && /\.donutCenter\{[^}]*border-radius:50%/.test(dashboardCss) && dashboardCss.includes(".donutTrack,.donutSegment{fill:none"));
 check("Dashboard remains personal-data scoped", dashboard.includes('.eq("created_by", auth.user.id)'));
 check("Registry loads requests", registry.includes('.from("requests")'));
 check("Registry loads request history", registry.includes('.from("request_history")'));

@@ -776,16 +776,16 @@ export default function PrintRequestPage() {
         <div className="sheet mx-auto w-full bg-white px-[28px] py-[22px] text-black">
           <div className="text-center">
             <div className="mx-auto flex justify-center"><Image src="/iet-logo.png" alt="Islamic Education Trust logo" width={64} height={64} className="h-[58px] w-auto object-contain" priority /></div>
-            <div className="mt-1 text-[16px] font-black uppercase leading-none tracking-tight">Islamic Education Trust</div>
+            <div className="mt-1 text-lg font-black uppercase leading-none tracking-tight">Islamic Education Trust</div>
             <div className="mt-1 text-[9.5px] font-semibold leading-tight">IW2, Ilmi Avenue Intermediate Housing Estate</div>
             <div className="text-[9.5px] font-semibold leading-tight">PMB 229, Minna, Niger State - Nigeria</div>
           </div>
-          <div className="mt-4 flex items-center gap-3 text-[10px] font-black"><span className="shrink-0">SUB-HEAD:</span><div className="h-[24px] flex-1 rounded border border-black px-2 leading-[22px] font-semibold">{isOfficial ? `${req.subhead_code || ""}${req.subhead_name ? ` — ${req.subhead_name}` : ""}`.trim() : requestCategoryLabel(req)}</div></div>
+          <div className="mt-4 flex items-center gap-3 text-xs font-black"><span className="shrink-0">SUB-HEAD:</span><div className="h-[24px] flex-1 rounded border border-black px-2 leading-[22px] font-semibold">{isOfficial ? `${req.subhead_code || ""}${req.subhead_name ? ` — ${req.subhead_name}` : ""}`.trim() : requestCategoryLabel(req)}</div></div>
           <div className="mt-5 text-[10.5px] font-bold leading-[1.35]"><div>The Director General,</div><div>Islamic Education Trust,</div><div>Minna.</div></div>
           <div className="mt-5 text-[10.5px] font-bold">Assalamu` Alaikum Sir,</div>
-          <div className="mt-2 text-center text-[12px] font-black uppercase">{printTitle}</div>
-          {!isPersonalOther ? <p className="mt-2 text-[10px] font-semibold leading-[1.45]">I write to request for the release of the total sum of <span className="inline-block min-w-[185px] border-b border-black px-2 text-center font-black">{amountText}</span> for the expense below/attached:</p> : <p className="mt-2 text-[10px] font-semibold leading-[1.45]">I write to request consideration and approval for the personal matter stated below/attached:</p>}
-          <div className="mt-2 min-h-[175px] whitespace-pre-wrap border-b border-black/50 pb-2 text-[10px] font-semibold leading-[1.55]"><strong>{req.title}</strong>{"\n\n"}{req.details}</div>
+          <div className="mt-2 text-center text-xs font-black uppercase">{printTitle}</div>
+          {!isPersonalOther ? <p className="mt-2 text-xs font-semibold leading-[1.45]">I write to request for the release of the total sum of <span className="inline-block min-w-[185px] border-b border-black px-2 text-center font-black">{amountText}</span> for the expense below/attached:</p> : <p className="mt-2 text-xs font-semibold leading-[1.45]">I write to request consideration and approval for the personal matter stated below/attached:</p>}
+          <div className="mt-2 min-h-[175px] whitespace-pre-wrap border-b border-black/50 pb-2 text-xs font-semibold leading-[1.55]"><strong>{req.title}</strong>{"\n\n"}{req.details}</div>
           <div className="mt-3 text-[10.5px] font-bold">Wassalamu` Alaikum.</div>
           {isOfficial ? <div className="mt-3 flex justify-end"><div className="w-[330px] space-y-1.5"><SmallFieldRow label="ALLOCATION B/D:" value={naira(req.approved_allocation)} /><SmallFieldRow label="EXPENDITURE:" value={naira(req.expenditure)} /><SmallFieldRow label="BALANCE C/D:" value={naira(req.balance)} /></div></div> : null}
           <div className="mt-8 space-y-4 text-[9.5px] font-bold">
@@ -793,7 +793,7 @@ export default function PrintRequestPage() {
             <SignatureLine label="Checked by:" name={checkedHistory?.actor_name || req.checked_by_name || hrHistory?.actor_name || req.hr_name || ""} capacity={checkedHistory ? roleCapacity(checkedHistory, "Reviewer") : roleCapacity(hrHistory, "Reviewer")} sigUrl={sigChecked || sigHR} date={formatDate(checkedHistory?.created_at || hrHistory?.created_at || req.created_at)} />
             <SignatureLine label="Approved by Director General, IET:" name={dgHistory?.actor_name || req.dg_name || ""} capacity={roleCapacity(dgHistory, "Director General")} sigUrl={sigDG} date={formatDate(dgHistory?.created_at || req.created_at)} />
           </div>
-          <div className="mt-8 flex items-center justify-between text-[8px] text-slate-600"><span>{req.request_no}</span><span className="italic font-medium">Building Bridges</span></div>
+          <div className="mt-8 flex items-center justify-between text-xs text-slate-600"><span>{req.request_no}</span><span className="italic font-medium">Building Bridges</span></div>
         </div>
       </div>
     </main>

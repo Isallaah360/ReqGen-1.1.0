@@ -165,7 +165,7 @@ export default function AdminAccessAuditPage() {
                       const mode = row[roleKey];
                       return (
                         <td key={roleKey} className={`px-2 py-3 text-center ${index === ACCESS_MATRIX_ROLES.length - 1 ? "rounded-r-xl" : ""}`}>
-                          <span className={`inline-flex rounded-lg border px-2 py-1 text-[10px] font-black uppercase ${modeStyle(mode)}`}>
+                          <span className={`inline-flex rounded-lg border px-2 py-1 text-xs font-black uppercase ${modeStyle(mode)}`}>
                             {modeLabel(mode)}
                           </span>
                         </td>
@@ -187,7 +187,7 @@ export default function AdminAccessAuditPage() {
                     const mode = row[roleKey];
                     return (
                       <div key={roleKey} className={`rounded-xl border p-2 ${modeStyle(mode)}`}>
-                        <div className="text-[10px] font-black uppercase">{roleKey}</div>
+                        <div className="text-xs font-black uppercase">{roleKey}</div>
                         <div className="mt-1 text-xs font-bold">{modeLabel(mode)}</div>
                       </div>
                     );

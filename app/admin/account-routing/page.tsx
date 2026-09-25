@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Building2, Landmark, UserCheck, CircleAlert } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
@@ -30,7 +30,7 @@ export default function AccountRoutingPage() {
   const [officerId, setOfficerId] = useState("");
   const pageSize = 10;
 
-  async function loadAll() {
+  const loadAll = useCallback(async () => {
     const { data: auth } = await supabase.auth.getUser();
     setLoading(true);
     setMsg(null);
@@ -51,7 +51,7 @@ export default function AccountRoutingPage() {
     setOfficers(((officerRes.data || []) as Officer[]).filter((officer) => ["account", "accounts", "accountofficer"].includes(roleKey(officer.role))));
     setRoutes((routeRes.data || []) as RouteRow[]);
     setLoading(false);
-  }
+  }, [router]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -59,7 +59,7 @@ export default function AccountRoutingPage() {
     }, 0);
 
     return () => window.clearTimeout(timer);
-  }, []); // loadAll intentionally runs once for the initial authorised workspace load
+  }, [loadAll]);
 
   const routeByDept = useMemo(() => new Map(routes.map((route) => [route.dept_id, route])), [routes]);
   const accountMap = useMemo(() => new Map(accounts.map((account) => [account.id, account])), [accounts]);

@@ -49,7 +49,7 @@ type AuditRow = Record<string, unknown>;
 
 type DailyPoint = { label: string; count: number };
 
-const ROLE_COLORS = ["#0b5cf0", "#7047e8", "#0891b2", "#ef8c18", "#129a67", "#e84655", "#64748b", "#a21caf"];
+const ROLE_COLORS = ["var(--color-chart-1)", "var(--color-chart-4)", "var(--color-chart-6)", "var(--color-warning-600)", "var(--color-success-600)", "var(--color-danger-600)", "var(--color-chart-8)", "var(--color-chart-7)"];
 
 function roleKey(value: string | null | undefined) {
   return String(value || "").trim().toLowerCase().replace(/[\s_-]+/g, "");

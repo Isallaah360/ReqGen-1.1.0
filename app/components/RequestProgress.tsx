@@ -452,7 +452,7 @@ export function RequestProgress({
                   </div>
 
                   <div
-                    className={`mt-2 max-w-[82px] text-center text-[11px] font-bold leading-tight ${isActive ? "text-slate-900" : isDone ? "text-slate-700" : "text-slate-400"
+                    className={`mt-2 max-w-[82px] text-center text-xs font-bold leading-tight ${isActive ? "text-slate-900" : isDone ? "text-slate-700" : "text-slate-400"
                       }`}
                   >
                     {stageShortName(step)}

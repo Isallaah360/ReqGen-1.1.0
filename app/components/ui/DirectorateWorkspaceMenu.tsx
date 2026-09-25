@@ -63,7 +63,7 @@ export default function DirectorateWorkspaceMenu({
                     {item.icon}
                   </div>
                   {item.badge ? (
-                    <span className="rounded-full border border-white/20 bg-white/15 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-white backdrop-blur-sm">
+                    <span className="rounded-full border border-white/20 bg-white/15 px-2.5 py-1 text-xs font-black uppercase tracking-wider text-white backdrop-blur-sm">
                       {item.badge}
                     </span>
                   ) : null}

@@ -1074,7 +1074,7 @@ function UserRolePanel({
                     <span className="text-xs font-black">{roleDisplayName(r.role_name)}</span>
 
                     {r.is_primary && (
-                      <span className="rounded-full bg-white/70 px-2 py-0.5 text-[10px] font-black">
+                      <span className="rounded-full bg-white/70 px-2 py-0.5 text-xs font-black">
                         PRIMARY
                       </span>
                     )}
@@ -1086,7 +1086,7 @@ function UserRolePanel({
                         type="button"
                         onClick={() => onSetPrimaryRole(u.id, r.role_key)}
                         disabled={disabled || saving}
-                        className="reqgen-btn reqgen-btn-violet rounded-lg px-2 py-1 text-[11px] font-black text-white disabled:opacity-50"
+                        className="reqgen-btn reqgen-btn-violet rounded-lg px-2 py-1 text-xs font-black text-white disabled:opacity-50"
                       >
                         Set Primary
                       </button>
@@ -1096,7 +1096,7 @@ function UserRolePanel({
                       type="button"
                       onClick={() => onDeactivateRole(u.id, r.role_key)}
                       disabled={disabled || saving}
-                      className="reqgen-btn reqgen-btn-rose rounded-lg px-2 py-1 text-[11px] font-black text-white disabled:opacity-50"
+                      className="reqgen-btn reqgen-btn-rose rounded-lg px-2 py-1 text-xs font-black text-white disabled:opacity-50"
                     >
                       Deactivate
                     </button>
@@ -1171,7 +1171,7 @@ function UserRolePanel({
               ))}
             </select>
 
-            <div className="mt-1 text-[11px] text-slate-500">
+            <div className="mt-1 text-xs text-slate-500">
               This is the user’s own department/routing group. DOD/HOD/PO assignment to departments
               is handled in the Admin routing panel.
             </div>

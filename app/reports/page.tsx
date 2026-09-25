@@ -83,7 +83,7 @@ export default function ReportsCentrePage() {
     { label: "Requests", value: filteredRequests.length, color: "#1269f3" }, { label: "Approvals", value: approvedRequests.length, color: "#18a56d" },
     { label: "Finance", value: filteredTx.length, color: "#f1a21a" }, { label: "Payment Vouchers", value: filteredVouchers.length, color: "#7e56d8" }, { label: "Registry", value: filteredRegistry.length, color: "#e95663" },
   ];
-  const donutTotal = Math.max(1, summary.reduce((a, b) => a + b.value, 0)); let cursor = 0; const gradient = summary.map(item => { const start = cursor; cursor += item.value / donutTotal * 100; return `${item.color} ${start}% ${cursor}%`; }).join(",");
+  const donutTotal = Math.max(1, summary.reduce((a, b) => a + b.value, 0));
 
   const tableRows = useMemo(() => {
     if (tab === "requests") return filteredRequests.map(r => ({ id: text(r.id), ref: text(r.request_no) || "—", title: text(r.title) || "Untitled request", module: "Requests", type: text(r.request_type) || "Request", date: dateLabel(r.created_at), status: text(r.status) || text(r.current_stage) || "—", department: deptName.get(text(r.dept_id)) || "—" }));
@@ -128,7 +128,7 @@ export default function ReportsCentrePage() {
       <button className={styles.button} onClick={() => { setDateFrom(yearStart); setDateTo(today); setDepartment("all"); setStatus("all"); setTab("overview"); }}>Reset</button>
     </section>
     {tab === "overview" ? <section className={styles.grid2}>
-      <article className={styles.card}><h2 className={styles.cardTitle}>Reports Summary · Selected Period</h2><div className={styles.donutWrap}><button type="button" className={styles.donut} aria-label={`Report summary: ${summary.map(x => `${x.label} ${x.value}`).join(", ")}. Select for exact values.`} title={summary.map(x => `${x.label}: ${x.value}`).join(" | ")} onClick={() => setChartDetail(summary.map(x => `${x.label}: ${x.value.toLocaleString()}`).join(" · "))} style={{ background: `conic-gradient(${gradient || "#e6ecf4 0 100%"})` }}/><div className={styles.legend}>{summary.map(x => <button type="button" className={styles.legendRow} key={x.label} onClick={() => setChartDetail(`${x.label}: ${x.value.toLocaleString()} record(s) in the selected filters`)}><span className={styles.legendLabel}><i className={styles.dot} style={{ background:x.color }}/>{x.label}</span><strong>{x.value.toLocaleString()}</strong></button>)}</div></div>{chartDetail ? <div className={styles.chartDetail} role="status" aria-live="polite">{chartDetail}</div> : <div className={styles.chartDetail}>Select the chart or a legend row to display the exact filtered value.</div>}</article>
+      <article className={styles.card}><h2 className={styles.cardTitle}>Reports Summary · Selected Period</h2><div className={styles.donutWrap}><ReportsDonut total={donutTotal} rows={summary} onSelect={(detail) => setChartDetail(detail)} /><div className={styles.legend}>{summary.map(x => <button type="button" className={styles.legendRow} key={x.label} onClick={() => setChartDetail(`${x.label}: ${x.value.toLocaleString()} record(s) in the selected filters`)}><span className={styles.legendLabel}><i className={styles.dot} style={{ background:x.color }}/>{x.label}</span><strong>{x.value.toLocaleString()}</strong></button>)}</div></div>{chartDetail ? <div className={styles.chartDetail} role="status" aria-live="polite">{chartDetail}</div> : <div className={styles.chartDetail}>Select the chart or a legend row to display the exact filtered value.</div>}</article>
       <article className={styles.card}><h2 className={styles.cardTitle}>Live Report Sources</h2><div className={styles.tableWrap}><table className={styles.table}><thead><tr><th>Report</th><th>Source</th><th>Records</th><th>Period / Basis</th><th>Action</th></tr></thead><tbody>
         <tr><td className={styles.strong}>Requests Register</td><td>requests</td><td>{filteredRequests.length}</td><td>{dateFrom} → {dateTo}</td><td><button className={styles.button} onClick={() => setTab("requests")}>Open</button></td></tr>
         <tr><td className={styles.strong}>Approval Decisions</td><td>request_history</td><td>{approvalHistory.length}</td><td>Recorded approve/reject actions</td><td><button className={styles.button} onClick={() => setTab("approvals")}>Open</button></td></tr>
@@ -138,4 +138,47 @@ export default function ReportsCentrePage() {
       </tbody></table></div></article>
     </section> : <article className={styles.card}><h2 className={styles.cardTitle}>{tabs.find(t => t.key === tab)?.label} Report</h2><div className={styles.tableWrap}><table className={styles.table}><thead><tr><th>Reference</th><th>Title / Description</th><th>Module</th><th>Type</th><th>Department</th><th>Date</th><th>Status</th></tr></thead><tbody>{tableRows.length ? tableRows.map(r => <tr key={`${tab}-${r.id}`}><td className={styles.strong}>{r.ref}</td><td>{r.title}</td><td>{r.module}</td><td>{r.type}</td><td>{r.department}</td><td>{r.date}</td><td><span className={styles.badge}>{r.status}</span></td></tr>) : <tr><td colSpan={7} className={styles.empty}>No live records match the selected filters.</td></tr>}</tbody></table></div></article>}
   </main>;
+}
+
+function ReportsDonut({ total, rows, onSelect }: { total: number; rows: { label: string; value: number; color: string }[]; onSelect: (detail: string) => void }) {
+  const radius = 44;
+  const circumference = 2 * Math.PI * radius;
+  let offset = 0;
+  return (
+    <div className={styles.donut} role="img" aria-label={`Donut chart. Total ${total}.`}>
+      <svg viewBox="0 0 120 120" aria-hidden="true">
+        <circle className={styles.donutTrack} cx="60" cy="60" r={radius} />
+        {total > 0 ? rows.map(({ label, value, color }) => {
+          const length = (value / total) * circumference;
+          const dashOffset = -offset;
+          offset += length;
+          return (
+            <circle
+              key={label}
+              className={styles.donutSegment}
+              cx="60"
+              cy="60"
+              r={radius}
+              pathLength={circumference}
+              stroke={color}
+              strokeDasharray={`${length} ${circumference - length}`}
+              strokeDashoffset={dashOffset}
+              onClick={() => onSelect(`${label}: ${value.toLocaleString()} (${Math.round((value / total) * 100)}%)`)}
+            >
+              <title>{`${label}: ${value.toLocaleString()}`}</title>
+            </circle>
+          );
+        }) : null}
+      </svg>
+      <button
+        type="button"
+        className={styles.donutCenter}
+        onClick={() => onSelect(rows.map(({ label, value }) => `${label}: ${value.toLocaleString()}`).join(" · "))}
+        aria-label="Show complete chart breakdown"
+      >
+        <strong>{total}</strong>
+        <span>Total</span>
+      </button>
+    </div>
+  );
 }

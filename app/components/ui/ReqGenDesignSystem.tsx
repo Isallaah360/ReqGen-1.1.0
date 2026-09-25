@@ -83,7 +83,7 @@ export function QuickAction({ href, title, description, icon, tone = "blue" }: {
 
 export function StatusBadge({ children, tone = "slate" }: { children: ReactNode; tone?: Tone }) {
   const map: Record<Tone,string> = { navy:"border-slate-300 bg-slate-100 text-slate-800", blue:"border-blue-200 bg-blue-50 text-blue-700", cyan:"border-cyan-200 bg-cyan-50 text-cyan-700", emerald:"border-emerald-200 bg-emerald-50 text-emerald-700", violet:"border-violet-200 bg-violet-50 text-violet-700", amber:"border-amber-200 bg-amber-50 text-amber-800", rose:"border-rose-200 bg-rose-50 text-rose-700", slate:"border-slate-200 bg-slate-50 text-slate-700" };
-  return <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-extrabold uppercase tracking-wide ${map[tone]}`}>{children}</span>;
+  return <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-extrabold uppercase tracking-wide ${map[tone]}`}>{children}</span>;
 }
 
 export function SkeletonDashboard() {

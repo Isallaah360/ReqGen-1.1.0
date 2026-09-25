@@ -1782,7 +1782,7 @@ function BanksPanel({
         <EmptyState message="No IET bank account found." />
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full table-fixed border-collapse text-sm print:table-auto print:text-[8px]">
+          <table className="w-full table-fixed border-collapse text-sm print:table-auto print:text-xs">
             <thead>
               <tr className="bg-slate-100 text-xs uppercase tracking-wide text-slate-600 print:bg-white">
                 <th className="px-4 py-3 text-left">Bank Account</th>
@@ -1882,7 +1882,7 @@ function DepartmentPanel({ rows }: { rows: DepartmentSummary[] }) {
         <EmptyState message="No department allocation summary found." />
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full table-fixed border-collapse text-sm print:table-auto print:text-[8px]">
+          <table className="w-full table-fixed border-collapse text-sm print:table-auto print:text-xs">
             <thead>
               <tr className="bg-slate-100 text-xs uppercase tracking-wide text-slate-600 print:bg-white">
                 <th className="px-4 py-3 text-left">Department</th>
@@ -2012,7 +2012,7 @@ function LedgerPanel({
         <EmptyState message="No bank ledger record found for the selected filters." />
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full table-fixed border-collapse text-sm print:table-auto print:text-[8px]">
+          <table className="w-full table-fixed border-collapse text-sm print:table-auto print:text-xs">
             <thead>
               <tr className="bg-slate-100 text-xs uppercase tracking-wide text-slate-600 print:bg-white">
                 <th className="px-4 py-3 text-left">Date</th>
@@ -2084,9 +2084,9 @@ function FindingsPanel({ findings }: { findings: AuditFinding[] }) {
             className="print-card rounded-3xl border bg-white p-5 shadow-sm print:rounded-none print:border-black print:p-2 print:shadow-none"
           >
             <div className="flex items-start justify-between gap-3">
-              <div className="font-extrabold text-slate-900 print:text-[10px]">{f.title}</div>
+              <div className="font-extrabold text-slate-900 print:text-xs">{f.title}</div>
               <span
-                className={`shrink-0 rounded-full border px-3 py-1 text-xs font-bold print:p-0 print:text-[9px] ${riskBadgeClass(
+                className={`shrink-0 rounded-full border px-3 py-1 text-xs font-bold print:p-0 print:text-xs ${riskBadgeClass(
                   f.level
                 )}`}
               >
@@ -2094,13 +2094,13 @@ function FindingsPanel({ findings }: { findings: AuditFinding[] }) {
               </span>
             </div>
 
-            <div className="mt-2 text-sm font-semibold text-slate-700 print:text-[9px]">
+            <div className="mt-2 text-sm font-semibold text-slate-700 print:text-xs">
               Count: {f.count}
             </div>
 
-            <p className="mt-2 text-sm text-slate-600 print:text-[8px]">{f.description}</p>
+            <p className="mt-2 text-sm text-slate-600 print:text-xs">{f.description}</p>
 
-            <div className="mt-3 rounded-2xl bg-slate-50 p-3 text-sm font-semibold text-slate-800 print:bg-white print:p-0 print:text-[8px]">
+            <div className="mt-3 rounded-2xl bg-slate-50 p-3 text-sm font-semibold text-slate-800 print:bg-white print:p-0 print:text-xs">
               Action: {f.action}
             </div>
           </div>
@@ -2123,7 +2123,7 @@ function PendingVouchersPanel({
     <div className="mt-6 rounded-3xl border bg-white shadow-sm overflow-hidden print:rounded-none print:border-black print:shadow-none">
       <div className="border-b bg-slate-50 px-6 py-4 print:bg-white print:px-2">
         <h2 className="text-lg font-bold text-slate-900 print:text-sm">Pending Voucher Watchlist</h2>
-        <p className="mt-1 text-sm text-slate-600 print:text-[9px]">
+        <p className="mt-1 text-sm text-slate-600 print:text-xs">
           Active vouchers not yet marked as paid.
         </p>
       </div>
@@ -2136,27 +2136,27 @@ function PendingVouchersPanel({
             <div key={v.id} className="border-t px-6 py-4 hover:bg-slate-50 print:px-2 print:py-2">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <div className="font-extrabold text-slate-900 print:text-[10px]">{v.voucher_no}</div>
-                  <div className="mt-1 text-sm text-slate-600 print:text-[8px]">
+                  <div className="font-extrabold text-slate-900 print:text-xs">{v.voucher_no}</div>
+                  <div className="mt-1 text-sm text-slate-600 print:text-xs">
                     {v.payee_name || "—"} • {v.dept_name || "—"}
                   </div>
                 </div>
 
                 <div className="flex flex-col items-end gap-1">
                   <span
-                    className={`rounded-full border px-3 py-1 text-xs font-bold print:border-0 print:p-0 print:text-[8px] ${statusBadgeClass(
+                    className={`rounded-full border px-3 py-1 text-xs font-bold print:border-0 print:p-0 print:text-xs ${statusBadgeClass(
                       v.status
                     )}`}
                   >
                     {v.status || "—"}
                   </span>
-                  <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-700 print:border-0 print:bg-white print:p-0 print:text-[8px]">
+                  <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-700 print:border-0 print:bg-white print:p-0 print:text-xs">
                     {daysOld(v.created_at)} day(s)
                   </span>
                 </div>
               </div>
 
-              <div className="mt-3 grid gap-2 text-sm md:grid-cols-2 print:text-[8px]">
+              <div className="mt-3 grid gap-2 text-sm md:grid-cols-2 print:text-xs">
                 <InfoLine label="Amount" value={naira(v.total_amount || v.amount)} />
                 <InfoLine label="Mode" value={v.disbursement_mode || "—"} />
                 <InfoLine label="Request" value={v.request_no || "—"} />
@@ -2201,7 +2201,7 @@ function VoucherRegisterPanel({
     <div className="mt-6 rounded-3xl border bg-white shadow-sm overflow-hidden print:rounded-none print:border-black print:shadow-none">
       <div className="border-b bg-slate-50 px-6 py-4 print:bg-white print:px-2">
         <h2 className="text-lg font-bold text-slate-900 print:text-sm">Voucher Audit Register</h2>
-        <p className="mt-1 text-sm text-slate-600 print:text-[9px]">
+        <p className="mt-1 text-sm text-slate-600 print:text-xs">
           Filtered voucher register for reconciliation review.
         </p>
       </div>
@@ -2210,7 +2210,7 @@ function VoucherRegisterPanel({
         <EmptyState message="No payment voucher found for selected filters." />
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full table-fixed border-collapse text-sm print:table-auto print:text-[8px]">
+          <table className="w-full table-fixed border-collapse text-sm print:table-auto print:text-xs">
             <thead>
               <tr className="bg-slate-100 text-xs uppercase tracking-wide text-slate-600 print:bg-white">
                 <th className="px-4 py-3 text-left">PV No</th>
@@ -2235,7 +2235,7 @@ function VoucherRegisterPanel({
                   <td className="px-4 py-4 font-semibold text-slate-900">{v.payee_name || "—"}</td>
                   <td className="px-4 py-4 text-slate-700">{v.dept_name || "—"}</td>
                   <td className="px-4 py-4">
-                    <span className="rounded-full border border-blue-200 bg-blue-50 px-2 py-1 text-[11px] font-bold text-blue-700">
+                    <span className="rounded-full border border-blue-200 bg-blue-50 px-2 py-1 text-xs font-bold text-blue-700">
                       {categoryLabel(v)}
                     </span>
                   </td>
@@ -2244,7 +2244,7 @@ function VoucherRegisterPanel({
                     {naira(v.total_amount || v.amount)}
                   </td>
                   <td className="px-4 py-4">
-                    <span className={`rounded-full border px-2 py-1 text-[11px] font-bold ${statusBadgeClass(v.status)}`}>
+                    <span className={`rounded-full border px-2 py-1 text-xs font-bold ${statusBadgeClass(v.status)}`}>
                       {v.status || "—"}
                     </span>
                   </td>
@@ -2337,8 +2337,8 @@ function StatCard({
 
   return (
     <div className="print-card rounded-3xl border bg-white p-5 shadow-sm print:rounded-none print:border-black print:p-2 print:shadow-none">
-      <div className="text-sm font-semibold text-slate-500 print:text-[9px]">{title}</div>
-      <div className={`mt-3 inline-flex rounded-2xl px-3 py-2 text-xl font-extrabold print:mt-1 print:p-0 print:text-[11px] ${cls}`}>
+      <div className="text-sm font-semibold text-slate-500 print:text-xs">{title}</div>
+      <div className={`mt-3 inline-flex rounded-2xl px-3 py-2 text-xl font-extrabold print:mt-1 print:p-0 print:text-xs ${cls}`}>
         {value}
       </div>
     </div>
@@ -2348,10 +2348,10 @@ function StatCard({
 function MiniCard({ title, value }: { title: string; value: string }) {
   return (
     <div className="print-card rounded-2xl border bg-white p-4 shadow-sm print:rounded-none print:border-black print:p-2 print:shadow-none">
-      <div className="text-xs font-semibold uppercase tracking-wide text-slate-500 print:text-[8px]">
+      <div className="text-xs font-semibold uppercase tracking-wide text-slate-500 print:text-xs">
         {title}
       </div>
-      <div className="mt-2 text-lg font-extrabold text-slate-900 print:mt-1 print:text-[10px]">
+      <div className="mt-2 text-lg font-extrabold text-slate-900 print:mt-1 print:text-xs">
         {value}
       </div>
     </div>

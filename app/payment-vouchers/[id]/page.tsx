@@ -869,7 +869,7 @@ export default function PaymentVoucherDetailPage() {
                       </div>
 
                       <div className="col-span-1">
-                        <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] font-bold text-slate-700">
+                        <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-bold text-slate-700">
                           {categoryLabel(item)}
                         </span>
                       </div>

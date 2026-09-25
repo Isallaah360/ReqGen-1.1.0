@@ -7,7 +7,6 @@ const findings = [];
 function check(name, ok, detail) { findings.push({ name, ok: Boolean(ok), detail }); }
 
 const request = read("app/components/requests/RequestDetailsWorkspace.tsx");
-const permissions = read("lib/permissions.ts");
 const navigation = read("lib/navigation.ts");
 const roles = read("lib/roles.ts");
 const integritySql = read("database/20260924_phase6_workflow_integrity_guard.sql");

@@ -52,6 +52,20 @@
   --color-info-500: #0891b2;
   --color-info-600: #0e7490;
 
+  /* Categorical chart palette — for multi-series charts (donut/bar segments
+     representing distinct categories, not status). Do not reuse the
+     semantic success/warning/danger tokens here; a category like "Personal
+     Fund" isn't inherently good or bad. Chosen from colors already used
+     across Dashboard/Admin charts. */
+  --color-chart-1: #2f80ed;
+  --color-chart-2: #24b47e;
+  --color-chart-3: #f5a623;
+  --color-chart-4: #7c4dff;
+  --color-chart-5: #ef476f;
+  --color-chart-6: #0891b2;
+  --color-chart-7: #a21caf;
+  --color-chart-8: #64748b;
+
   /* Typography — locked exactly to the 12/13/14 rule: nav bars and
      collapsible menus at 13px, dense tables at 12px, body copy at 14px. */
   --text-xs: 0.75rem;      /* 12px — dense tables, collapsible nav, meta text */
@@ -2656,7 +2670,7 @@ body { background: var(--mock-bg) !important; color: var(--mock-text); font-fami
 
 /* 12px / 11px typography contract. */
 .gov-content,.gov-content p,.gov-content li,.gov-content label,.gov-content input,.gov-content select,.gov-content textarea,.gov-content button,.gov-content a { font-size:12px!important; line-height:1.45; }
-.gov-content small,.gov-content time,.gov-content th,.gov-content td,.gov-content [class*="text-xs"],.gov-content [class*="text-[10px]"] { font-size:11px!important; line-height:1.35; }
+.gov-content small,.gov-content time,.gov-content th,.gov-content td,.gov-content [class*="text-xs"] { font-size:11px!important; line-height:1.35; }
 .gov-content h1,.gov-content [class*="text-4xl"],.gov-content [class*="text-5xl"],.gov-content [class*="text-6xl"] { margin-top:0; color:var(--mock-navy)!important; font-size:26px!important; line-height:1.12!important; font-weight:900!important; letter-spacing:-.02em!important; }
 .gov-content h2,.gov-content [class*="text-2xl"],.gov-content [class*="text-3xl"] { color:var(--mock-navy)!important; font-size:16px!important; line-height:1.2!important; font-weight:900!important; }
 .gov-content h3,.gov-content [class*="text-xl"] { color:var(--mock-navy)!important; font-size:13px!important; line-height:1.25!important; font-weight:850!important; }
@@ -3042,7 +3056,7 @@ body { background: var(--mock-bg) !important; color: var(--mock-text); font-fami
 html{font-size:16px!important;text-rendering:optimizeLegibility;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
 body{font-size:var(--reqgen-body-size)!important;letter-spacing:.001em}
 .gov-content,.gov-content p,.gov-content li,.gov-content label,.gov-content input,.gov-content select,.gov-content textarea,.gov-content button,.gov-content a{font-size:var(--reqgen-body-size)!important;line-height:1.5!important}
-.gov-content small,.gov-content time,.gov-content th,.gov-content td,.gov-content [class*="text-xs"],.gov-content [class*="text-[10px]"]{font-size:var(--reqgen-detail-size)!important;line-height:1.42!important}
+.gov-content small,.gov-content time,.gov-content th,.gov-content td,.gov-content [class*="text-xs"]{font-size:var(--reqgen-detail-size)!important;line-height:1.42!important}
 .gov-nav-link{font-size:13px!important;min-height:42px!important}
 .gov-subnav a{font-size:13px!important;min-height:33px!important}
 .gov-nav-secondary a{font-size:13px!important}

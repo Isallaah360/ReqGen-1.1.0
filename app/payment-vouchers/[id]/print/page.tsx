@@ -623,7 +623,7 @@ export default function PaymentVoucherPrintPage() {
             </div>
 
             <div className="text-center">
-              <div className="text-[19px] font-black uppercase leading-none tracking-tight">
+              <div className="text-xl font-black uppercase leading-none tracking-tight">
                 Islamic Education Trust
               </div>
               <div className="mt-1 text-[10.5px] font-bold leading-tight">
@@ -632,7 +632,7 @@ export default function PaymentVoucherPrintPage() {
               <div className="text-[10.5px] font-bold leading-tight">
                 Minna, Niger State - Nigeria
               </div>
-              <div className="mt-1.5 text-[17px] font-black uppercase underline">
+              <div className="mt-1.5 text-lg font-black uppercase underline">
                 Payment Voucher
               </div>
             </div>
@@ -719,7 +719,7 @@ export default function PaymentVoucherPrintPage() {
           </div>
 
           <div className="mt-2 border-2 border-black px-2 py-1">
-            <div className="text-[9px] font-black uppercase">Amount in Words</div>
+            <div className="text-xs font-black uppercase">Amount in Words</div>
             <div className="text-[10.2px] font-bold leading-tight">
               {amountToWords(totalAmount)}
             </div>

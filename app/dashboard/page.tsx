@@ -169,7 +169,7 @@ export default function DashboardPage() {
           <div className={styles.cardHead}><h2>Request Trend <span>(This Week)</span></h2><span>This Week</span></div>
           <div className={styles.chartBody}>
             <svg className={styles.chart} viewBox={`0 0 ${chart.width} ${chart.height}`} preserveAspectRatio="none" role="img" aria-label="Request trend for the last seven days">
-              <defs><linearGradient id="requestArea" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stopColor="#2f80ed" stopOpacity=".18"/><stop offset="100%" stopColor="#2f80ed" stopOpacity="0"/></linearGradient></defs>
+              <defs><linearGradient id="requestArea" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stopColor="var(--color-chart-1)" stopOpacity=".18"/><stop offset="100%" stopColor="var(--color-chart-1)" stopOpacity="0"/></linearGradient></defs>
               {[0,1,2,3,4].map((n) => <line key={n} className={styles.chartGrid} x1="34" x2="700" y1={28+n*37} y2={28+n*37}/>) }
               <polygon className={styles.chartArea} points={`34,186 ${chart.polyline} 686,186`} />
               <polyline className={styles.chartLine} points={chart.polyline} />
@@ -191,18 +191,18 @@ export default function DashboardPage() {
         <article className={styles.card}>
           <div className={styles.cardHead}><h2>Requests by Category</h2><span>Current register</span></div>
           <Donut title="Total" total={stats.total} rows={[
-            ["#2f80ed","Official",category.official],
-            ["#24b47e","Personal Fund",category.personalFund],
-            ["#f5a623","Personal Other",category.personalOther],
-            ["#7c4dff","Other",category.other],
+            ["var(--color-chart-1)","Official",category.official],
+            ["var(--color-chart-2)","Personal Fund",category.personalFund],
+            ["var(--color-chart-3)","Personal Other",category.personalOther],
+            ["var(--color-chart-4)","Other",category.other],
           ]}/>
         </article>
         <article className={styles.card}>
           <div className={styles.cardHead}><h2>Requests by Status</h2><span>Current register</span></div>
           <Donut title="Total" total={stats.total} rows={[
-            ["#24b47e","Completed",statusMix.completed],
-            ["#2f80ed","Pending",statusMix.pending],
-            ["#ef476f","Rejected",statusMix.rejected],
+            ["var(--color-chart-2)","Completed",statusMix.completed],
+            ["var(--color-chart-1)","Pending",statusMix.pending],
+            ["var(--color-chart-5)","Rejected",statusMix.rejected],
           ]}/>
         </article>
         <article className={styles.card}>

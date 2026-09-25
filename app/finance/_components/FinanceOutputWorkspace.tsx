@@ -706,17 +706,17 @@ function ReportSheet({
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/iet-logo.png" alt="Islamic Education Trust logo" className="report-logo" />
         <div className="min-w-0 flex-1 text-center">
-          <h2 className="text-[17px] font-black uppercase tracking-[.07em] text-[#153d75]">Islamic Education Trust</h2>
-          <p className="mt-1 text-[9px] font-bold uppercase tracking-[.14em] text-slate-500">Finance Performance Report</p>
+          <h2 className="text-lg font-black uppercase tracking-[.07em] text-[#153d75]">Islamic Education Trust</h2>
+          <p className="mt-1 text-xs font-bold uppercase tracking-[.14em] text-slate-500">Finance Performance Report</p>
         </div>
-        <div className="w-[40mm] text-right text-[8px] leading-4 text-slate-600">
+        <div className="w-[40mm] text-right text-xs leading-4 text-slate-600">
           <p><strong>Report ID:</strong> IET-FIN-{new Date().getFullYear()}-{String(new Date().getMonth() + 1).padStart(2, "0")}</p>
           <p><strong>Generated:</strong> {new Date().toLocaleString("en-NG")}</p>
           <p><strong>Prepared by:</strong> {actorName}</p>
         </div>
       </header>
 
-      <section className="mt-3 grid grid-cols-[1fr_1fr_1.3fr] gap-2 rounded-lg border border-blue-100 bg-blue-50/70 px-3 py-2 text-[8px]">
+      <section className="mt-3 grid grid-cols-[1fr_1fr_1.3fr] gap-2 rounded-lg border border-blue-100 bg-blue-50/70 px-3 py-2 text-xs">
         <div><strong className="block text-[#174f9f]">Reporting Scope</strong>{selectedDepartment}</div>
         <div><strong className="block text-[#174f9f]">Reporting Period</strong>{dateLabel(dateFrom)} — {dateLabel(dateTo)}</div>
         <div><strong className="block text-[#174f9f]">Basis</strong>Posted vouchers, finance transactions and approved subhead balances.</div>
@@ -730,8 +730,8 @@ function ReportSheet({
           ["Available Balance", shortMoney(totals.balance)],
         ].map(([label, value]) => (
           <div key={label} className="rounded-lg border border-slate-200 p-2">
-            <p className="text-[7px] font-black uppercase tracking-[.08em] text-slate-500">{label}</p>
-            <p className="mt-1 text-[12px] font-black text-slate-900">{value}</p>
+            <p className="text-xs font-black uppercase tracking-[.08em] text-slate-500">{label}</p>
+            <p className="mt-1 text-xs font-black text-slate-900">{value}</p>
           </div>
         ))}
       </section>
@@ -739,8 +739,8 @@ function ReportSheet({
       <section className="mt-3 grid grid-cols-[1.2fr_.8fr] gap-3">
         <div>
           <div className="mb-1 flex items-end justify-between">
-            <h3 className="text-[10px] font-black uppercase tracking-[.08em] text-[#174f9f]">Department Performance</h3>
-            <span className="text-[7px] text-slate-500">Top departments by expenditure</span>
+            <h3 className="text-xs font-black uppercase tracking-[.08em] text-[#174f9f]">Department Performance</h3>
+            <span className="text-xs text-slate-500">Top departments by expenditure</span>
           </div>
           <table className="report-table">
             <thead><tr><th style={{ width: "33%" }}>Department</th><th>Allocation</th><th>Expenditure</th><th>Balance</th></tr></thead>
@@ -752,8 +752,8 @@ function ReportSheet({
           </table>
         </div>
         <div>
-          <h3 className="mb-1 text-[10px] font-black uppercase tracking-[.08em] text-[#174f9f]">Control Indicators</h3>
-          <div className="space-y-2 rounded-lg border border-slate-200 p-3 text-[8px]">
+          <h3 className="mb-1 text-xs font-black uppercase tracking-[.08em] text-[#174f9f]">Control Indicators</h3>
+          <div className="space-y-2 rounded-lg border border-slate-200 p-3 text-xs">
             <Indicator label="Budget utilisation" value={`${utilisation.toFixed(1)}%`} />
             <Indicator label="Posted vouchers" value={String(totals.postedCount)} />
             <Indicator label="Posted voucher value" value={shortMoney(totals.postedValue)} />
@@ -767,8 +767,8 @@ function ReportSheet({
 
       <section className="mt-3">
         <div className="mb-1 flex items-end justify-between">
-          <h3 className="text-[10px] font-black uppercase tracking-[.08em] text-[#174f9f]">Priority Subhead Performance</h3>
-          <span className="text-[7px] text-slate-500">Highest expenditure classifications</span>
+          <h3 className="text-xs font-black uppercase tracking-[.08em] text-[#174f9f]">Priority Subhead Performance</h3>
+          <span className="text-xs text-slate-500">Highest expenditure classifications</span>
         </div>
         <table className="report-table">
           <thead><tr><th style={{ width: "10%" }}>Code</th><th style={{ width: "24%" }}>Subhead</th><th style={{ width: "19%" }}>Department</th><th>Allocation</th><th>Reserved</th><th>Expenditure</th><th>Balance</th></tr></thead>
@@ -783,7 +783,7 @@ function ReportSheet({
         </table>
       </section>
 
-      <section className="mt-3 grid grid-cols-[1fr_1fr] gap-3 text-[8px]">
+      <section className="mt-3 grid grid-cols-[1fr_1fr] gap-3 text-xs">
         <div className="rounded-lg border border-slate-200 p-3">
           <h3 className="font-black uppercase tracking-[.07em] text-[#174f9f]">Management Observation</h3>
           <p className="mt-1 leading-4 text-slate-600">
@@ -798,13 +798,13 @@ function ReportSheet({
         </div>
       </section>
 
-      <footer className="mt-4 grid grid-cols-3 gap-8 text-center text-[8px] text-slate-600">
+      <footer className="mt-4 grid grid-cols-3 gap-8 text-center text-xs text-slate-600">
         <Signature label="Prepared by Finance" />
         <Signature label="Reviewed / Audited" />
         <Signature label="Approved by Management" />
       </footer>
 
-      <div className="mt-3 flex items-center justify-between border-t border-slate-200 pt-2 text-[7px] text-slate-500">
+      <div className="mt-3 flex items-center justify-between border-t border-slate-200 pt-2 text-xs text-slate-500">
         <span>ReqGen Finance Control Centre • Islamic Education Trust</span>
         <span>Confidential Finance Document • Page 1 of 1</span>
       </div>
@@ -817,5 +817,5 @@ function Indicator({ label, value }: { label: string; value: string }) {
 }
 
 function Signature({ label }: { label: string }) {
-  return <div><div className="mt-6 border-t border-slate-400 pt-1">{label}</div><div className="mt-1 text-[7px]">Name / Signature / Date</div></div>;
+  return <div><div className="mt-6 border-t border-slate-400 pt-1">{label}</div><div className="mt-1 text-xs">Name / Signature / Date</div></div>;
 }

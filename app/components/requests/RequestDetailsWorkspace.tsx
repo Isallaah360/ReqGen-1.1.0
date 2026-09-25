@@ -1319,11 +1319,6 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
                   <div className="text-sm text-slate-600">Request No</div>
                   <div className="text-lg font-extrabold text-slate-900">{req.request_no}</div>
                 </div>
-
-                <div className="flex items-center gap-2">
-                  <StageBadge stage={req.current_stage} />
-                  <StatusBadge status={req.status} />
-                </div>
               </div>
 
               <div className="mt-6">
@@ -1726,7 +1721,7 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
                         <div className="text-sm font-bold text-slate-900">
                           {h.actor_name || "Officer"} • {h.action_type}
                           {roleDisplay(h) && (
-                            <span className="ml-2 rounded-full border border-blue-200 bg-blue-50 px-2 py-1 text-[11px] font-black text-blue-700">
+                            <span className="ml-2 rounded-full border border-blue-200 bg-blue-50 px-2 py-1 text-xs font-black text-blue-700">
                               {roleDisplay(h)}
                             </span>
                           )}
@@ -1868,29 +1863,6 @@ function StageBadge({ stage }: { stage: string }) {
       )}`}
     >
       {stage || "—"}
-    </span>
-  );
-}
-
-function StatusBadge({ status }: { status: string }) {
-  const s = (status || "").toLowerCase();
-
-  const cls =
-    s.includes("submit")
-      ? "bg-blue-50 text-blue-700 border-blue-200"
-      : s.includes("approve") ||
-        s.includes("review") ||
-        s.includes("complete") ||
-        s.includes("paid") ||
-        s.includes("filing")
-        ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-        : s.includes("reject") || s.includes("delete")
-          ? "bg-red-50 text-red-700 border-red-200"
-          : "bg-slate-50 text-slate-700 border-slate-200";
-
-  return (
-    <span className={`inline-flex rounded-lg border px-2 py-1 text-xs font-semibold ${cls}`}>
-      {status || "—"}
     </span>
   );
 }

@@ -282,7 +282,7 @@ export default function WorkflowTestPage() {
               <div key={source.key} className={`rounded-2xl border p-4 ${source.ok ? "border-emerald-200 bg-emerald-50" : "border-amber-200 bg-amber-50"}`}>
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-sm font-black text-slate-900">{source.label}</span>
-                  <span className={`rounded-full px-2 py-1 text-[10px] font-black uppercase ${source.ok ? "bg-emerald-700 text-white" : "bg-amber-600 text-white"}`}>
+                  <span className={`rounded-full px-2 py-1 text-xs font-black uppercase ${source.ok ? "bg-emerald-700 text-white" : "bg-amber-600 text-white"}`}>
                     {source.ok ? "Ready" : "Check"}
                   </span>
                 </div>
@@ -310,13 +310,13 @@ export default function WorkflowTestPage() {
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="grid h-8 w-8 place-items-center rounded-lg bg-slate-900 text-xs font-black text-white">{String(index + 1).padStart(2, "0")}</span>
-                      <span className="rounded-full bg-blue-100 px-3 py-1 text-[10px] font-black uppercase tracking-wide text-blue-800">{item.group}</span>
-                      <span className={`rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-wide ${statusClass(item.status)}`}>{item.status}</span>
+                      <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-black uppercase tracking-wide text-blue-800">{item.group}</span>
+                      <span className={`rounded-full border px-3 py-1 text-xs font-black uppercase tracking-wide ${statusClass(item.status)}`}>{item.status}</span>
                     </div>
                     <h3 className="mt-3 text-lg font-black text-slate-950">{item.title}</h3>
                     <p className="mt-1 text-sm font-semibold leading-6 text-slate-600">{item.description}</p>
                     <div className="mt-3 rounded-xl border border-blue-100 bg-blue-50 p-3">
-                      <p className="text-[10px] font-black uppercase tracking-[0.16em] text-blue-700">Expected result</p>
+                      <p className="text-xs font-black uppercase tracking-[0.16em] text-blue-700">Expected result</p>
                       <p className="mt-1 text-sm font-bold leading-6 text-slate-800">{item.expected}</p>
                     </div>
                   </div>

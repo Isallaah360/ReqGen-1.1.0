@@ -56,7 +56,7 @@ export function ReportStat({ label, value, note, icon, tone = "blue", progress }
 }
 
 export function ReportSection({ title, description, icon, action, children, className = "" }: { title: string; description: string; icon: string; action?: ReactNode; children: ReactNode; className?: string }) {
-  return <section className={`rg-section-card bg-white ${className}`}><div className="rg-section-card-head flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div className="flex items-center gap-3"><div className="grid h-9 w-9 place-items-center rounded-lg bg-blue-50 text-blue-700"><ReportIcon name={icon}/></div><div><h2 className="text-[13px] font-black text-slate-950">{title}</h2><p className="mt-0.5 text-[11px] text-slate-500">{description}</p></div></div>{action}</div>{children}</section>;
+  return <section className={`rg-section-card bg-white ${className}`}><div className="rg-section-card-head flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div className="flex items-center gap-3"><div className="grid h-9 w-9 place-items-center rounded-lg bg-blue-50 text-blue-700"><ReportIcon name={icon}/></div><div><h2 className="text-sm font-black text-slate-950">{title}</h2><p className="mt-0.5 text-xs text-slate-500">{description}</p></div></div>{action}</div>{children}</section>;
 }
 
 export function ReportsSkeleton() {
