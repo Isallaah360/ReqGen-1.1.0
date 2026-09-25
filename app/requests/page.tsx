@@ -89,7 +89,7 @@ export default function RequestsPage(){
    <article className={styles.insightCard}><div className={styles.cardHeading}><div><strong>Request Types</strong><span>Current request mix</span></div></div><div className={styles.typeSummary}><span><b>Official</b><strong>{counts.official}</strong></span><span><b>Personal Fund</b><strong>{counts.fund}</strong></span><span><b>Personal Other</b><strong>{counts.other}</strong></span></div></article>
   </section>
   <section className={styles.registerCard}>
-   <nav className={styles.tabs} aria-label="Request views">{tabs.map(([key,label,count])=><button key={key} className={tab===key?styles.activeTab:""} onClick={()=>setTab(key)}>{label}<b>{count}</b></button>)}</nav>
+   <nav className={styles.tabs} data-rg-tabs="true" aria-label="Request views">{tabs.map(([key,label,count])=><button key={key} className={tab===key?styles.activeTab:""} onClick={()=>setTab(key)}>{label}<b>{count}</b></button>)}</nav>
    <div className={styles.filters}>
     <div className={styles.search}><Search size={16}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search requests..."/></div>
     <select value={status} onChange={e=>setStatus(e.target.value as StatusFilter)}><option value="ALL">All Status</option><option value="ACTIVE">Active</option><option value="COMPLETED">Completed</option><option value="REJECTED">Rejected</option></select>

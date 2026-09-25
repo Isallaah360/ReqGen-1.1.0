@@ -1,11 +1,11 @@
 {
   "summary": {
-    "candidates": 17,
+    "candidates": 18,
     "withPrintCall": 7,
     "withPrintCss": 10,
-    "withA4": 10,
+    "withA4": 9,
     "withLogo": 5,
-    "generatedAt": "2026-09-23T15:05:36.196Z"
+    "generatedAt": "2026-09-24T23:50:07.853Z"
   },
   "results": [
     {
@@ -18,11 +18,20 @@
       "hasLogoReference": false
     },
     {
-      "file": "app/components/executive/ExecutiveModulePage.tsx",
-      "hasPrintCall": true,
+      "file": "app/audit-centre/approved-mockup.module.css",
+      "hasPrintCall": false,
       "hasPrintCss": true,
-      "hasNoPrintClass": true,
-      "hasA4": true,
+      "hasNoPrintClass": false,
+      "hasA4": false,
+      "hasPageBreakControl": false,
+      "hasLogoReference": false
+    },
+    {
+      "file": "app/audit-centre/page.tsx",
+      "hasPrintCall": true,
+      "hasPrintCss": false,
+      "hasNoPrintClass": false,
+      "hasA4": false,
       "hasPageBreakControl": false,
       "hasLogoReference": false
     },

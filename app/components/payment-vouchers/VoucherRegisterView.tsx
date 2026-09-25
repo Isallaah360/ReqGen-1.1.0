@@ -437,7 +437,7 @@ export default function VoucherRegisterView({ mode }: { mode: Mode }) {
 
       <div className={styles.contentGrid}>
         <section className={styles.registerCard}>
-          <div className={styles.tabs}>
+          <div className={styles.tabs} data-rg-tabs="true">
             {meta.tabs.map((item) => <button key={item} className={tab === item ? styles.activeTab : ""} onClick={() => setTab(item)}>{item}</button>)}
           </div>
 

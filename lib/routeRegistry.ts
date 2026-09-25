@@ -215,116 +215,16 @@ export const ROUTE_REGISTRY: RouteRegistryItem[] = [
     "searchable": true,
     "description": "ReqGen route /docs"
   },
-  {
-    "pattern": "/executive/analytics",
-    "title": "Executive - Analytics",
-    "rootHref": "/executive",
-    "category": "Application Route",
-    "public": false,
-    "nav": false,
-    "searchable": false,
-    "description": "ReqGen route /executive/analytics"
-  },
-  {
-    "pattern": "/executive/audit",
-    "title": "Executive - Audit",
-    "rootHref": "/executive",
-    "category": "Application Route",
-    "public": false,
-    "nav": false,
-    "searchable": false,
-    "description": "ReqGen route /executive/audit"
-  },
-  {
-    "pattern": "/executive/calendar",
-    "title": "Executive - Calendar",
-    "rootHref": "/executive",
-    "category": "Application Route",
-    "public": false,
-    "nav": false,
-    "searchable": false,
-    "description": "ReqGen route /executive/calendar"
-  },
-  {
-    "pattern": "/executive/finance",
-    "title": "Executive - Finance",
-    "rootHref": "/executive",
-    "category": "Application Route",
-    "public": false,
-    "nav": false,
-    "searchable": false,
-    "description": "ReqGen route /executive/finance"
-  },
-  {
-    "pattern": "/executive/hr",
-    "title": "Executive - Hr",
-    "rootHref": "/executive",
-    "category": "Application Route",
-    "public": false,
-    "nav": false,
-    "searchable": false,
-    "description": "ReqGen route /executive/hr"
-  },
-  {
-    "pattern": "/executive/meetings",
-    "title": "Executive - Meetings",
-    "rootHref": "/executive",
-    "category": "Application Route",
-    "public": false,
-    "nav": false,
-    "searchable": false,
-    "description": "ReqGen route /executive/meetings"
-  },
-  {
-    "pattern": "/executive/notifications",
-    "title": "Executive - Notifications",
-    "rootHref": "/executive",
-    "category": "Application Route",
-    "public": false,
-    "nav": false,
-    "searchable": false,
-    "description": "ReqGen route /executive/notifications"
-  },
-  {
-    "pattern": "/executive",
-    "title": "Executive",
-    "rootHref": "/executive",
-    "category": "Application Route",
-    "public": false,
-    "nav": false,
-    "searchable": false,
-    "description": "ReqGen route /executive"
-  },
-  {
-    "pattern": "/executive/registry",
-    "title": "Executive - Registry",
-    "rootHref": "/executive",
-    "category": "Application Route",
-    "public": false,
-    "nav": false,
-    "searchable": false,
-    "description": "ReqGen route /executive/registry"
-  },
-  {
-    "pattern": "/executive/reports",
-    "title": "Executive - Reports",
-    "rootHref": "/executive",
-    "category": "Application Route",
-    "public": false,
-    "nav": false,
-    "searchable": false,
-    "description": "ReqGen route /executive/reports"
-  },
-  {
-    "pattern": "/executive/requests",
-    "title": "Executive - Requests",
-    "rootHref": "/executive",
-    "category": "Application Route",
-    "public": false,
-    "nav": false,
-    "searchable": false,
-    "description": "ReqGen route /executive/requests"
-  },
+
+
+
+
+
+
+
+
+
+
   {
     "pattern": "/finance/account-ledger",
     "title": "Finance - Account Ledger",
@@ -596,16 +496,6 @@ export const ROUTE_REGISTRY: RouteRegistryItem[] = [
     "description": "ReqGen route /forgot-password"
   },
   {
-    "pattern": "/hr",
-    "title": "Hr",
-    "rootHref": "/hr",
-    "category": "Application Route",
-    "public": false,
-    "nav": false,
-    "searchable": false,
-    "description": "ReqGen route /hr"
-  },
-  {
     "pattern": "/login",
     "title": "Login",
     "rootHref": "/login",
@@ -704,6 +594,16 @@ export const ROUTE_REGISTRY: RouteRegistryItem[] = [
     "nav": false,
     "searchable": true,
     "description": "ReqGen route /payment-vouchers/new"
+  },
+  {
+    "pattern": "/workflow",
+    "title": "Workflow (legacy redirect)",
+    "rootHref": "/workflow",
+    "category": "Application Route",
+    "public": false,
+    "nav": false,
+    "searchable": false,
+    "description": "Legacy redirect only — sends old /workflow links to Audit Centre. Not a standalone module."
   },
   {
     "pattern": "/payment-vouchers",
@@ -956,16 +856,6 @@ export const ROUTE_REGISTRY: RouteRegistryItem[] = [
     "description": "ReqGen route /signup"
   },
   {
-    "pattern": "/staff",
-    "title": "Staff",
-    "rootHref": "/staff",
-    "category": "Application Route",
-    "public": false,
-    "nav": false,
-    "searchable": false,
-    "description": "ReqGen route /staff"
-  },
-  {
     "pattern": "/test-supabase",
     "title": "Test Supabase",
     "rootHref": "/test-supabase",
@@ -984,16 +874,6 @@ export const ROUTE_REGISTRY: RouteRegistryItem[] = [
     "nav": false,
     "searchable": false,
     "description": "ReqGen route /unauthorized"
-  },
-  {
-    "pattern": "/workflow",
-    "title": "Workflow",
-    "rootHref": "/workflow",
-    "category": "Application Route",
-    "public": false,
-    "nav": false,
-    "searchable": false,
-    "description": "ReqGen route /workflow"
   },
 ];
 

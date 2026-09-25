@@ -51,3 +51,18 @@ npm run audit:components
 ```
 
 Do not deploy unless TypeScript, ESLint and Next.js production build are clean.
+
+## Phase 8 Stabilisation Addendum — 24 September 2026
+
+Phase 8 adopts Finance > Budget & Subheads as the system-wide visual component source of truth for operational tabs, tables, dropdowns, filters, action controls, chart containers, cards and density.
+
+Implemented in this package:
+- Dashboard Request by Category and Request by Status now use true SVG donut geometry rather than CSS conic-gradient buttons.
+- Dashboard request data remains scoped to the authenticated creator.
+- Registry Centre Overview now reads live requests, request_history and payment_vouchers and presents workflow movement, current queues, Account queues, PV counts and recent request movements.
+- Registry correspondence workspaces remain available under Incoming, Outgoing, Dispatch and All Operations.
+- Audit Centre Daily Activity Trend was replaced with exact 14-day numeric intelligence and a compact daily count strip.
+- Canonical tab treatment was extended to Requests, Payment Voucher register, Finance directory, Profile local navigation and Registry workspaces.
+- Global table geometry was aligned to the approved Budget & Subheads density and header treatment.
+- Release shell label updated to Phase 8 · Stabilised.
+- Added `npm run audit:phase8-stabilisation` and included it in `audit:production`.

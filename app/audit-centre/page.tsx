@@ -269,7 +269,10 @@ export default function AuditCentrePage() {
   const uniqueUsers = new Set(filtered.map((e) => e.actorId || e.actor)).size;
   const availableSources = sourceHealth.filter((s) => s.available).length;
   const maxModule = Math.max(1, ...moduleCounts.map(([, count]) => count));
-  const maxDaily = Math.max(1, ...daily.map((d) => d.count));
+  const fourteenDayTotal = daily.reduce((sum, point) => sum + point.count, 0);
+  const activeDays = daily.filter((point) => point.count > 0).length;
+  const peakDay = daily.reduce((best, point) => point.count > best.count ? point : best, daily[0] || { label: "—", count: 0 });
+  const latestDay = daily[daily.length - 1] || { label: "—", count: 0 };
 
   function exportCsv() {
     const header = ["Date & Time", "User", "Active Role", "Module", "Action", "Record", "Risk", "Details", "Source"];
@@ -318,8 +321,14 @@ export default function AuditCentrePage() {
           <Card title="Activities by Module" note="Select a bar to open its exact live activity count.">
             <div className={styles.moduleChart}>{moduleCounts.length ? moduleCounts.map(([module,count]) => <button type="button" key={module} className={styles.moduleBar} title={`${module}: ${count} activities`} onClick={() => setChartDetail(`${module}: ${count} activities`)}><span>{module}</span><i><b style={{width:`${(count/maxModule)*100}%`}}/></i><strong>{count}</strong></button>) : <Empty text="No audit activity matches the current filters."/>}</div>
           </Card>
-          <Card title="Daily Activity Trend" note="Live activity count across the latest 14 days.">
-            <div className={styles.dailyChart}>{daily.map((point) => <button type="button" key={point.label} className={styles.dailyCol} title={`${point.label}: ${point.count} activities`} onClick={() => setChartDetail(`${point.label}: ${point.count} activities`)}><span>{point.count || ""}</span><i style={{height:`${Math.max(point.count ? 7 : 2,(point.count/maxDaily)*100)}%`}}/><small>{point.label}</small></button>)}</div>
+          <Card title="14-Day Activity Summary" note="Exact live counts replace the unstable vertical trend rendering.">
+            <div className={styles.activitySummary}>
+              <button type="button" onClick={() => setChartDetail(`Latest day ${latestDay.label}: ${latestDay.count} activities`)}><small>Latest Day</small><strong>{latestDay.count}</strong><span>{latestDay.label}</span></button>
+              <button type="button" onClick={() => setChartDetail(`14-day total: ${fourteenDayTotal} activities`)}><small>14-Day Total</small><strong>{fourteenDayTotal}</strong><span>Filtered evidence</span></button>
+              <button type="button" onClick={() => setChartDetail(`${activeDays} of 14 days recorded activity`)}><small>Active Days</small><strong>{activeDays}</strong><span>of 14 days</span></button>
+              <button type="button" onClick={() => setChartDetail(`Peak day ${peakDay.label}: ${peakDay.count} activities`)}><small>Peak Day</small><strong>{peakDay.count}</strong><span>{peakDay.label}</span></button>
+            </div>
+            <div className={styles.dayStrip}>{daily.map((point) => <button type="button" key={point.label} className={point.count ? styles.dayActive : ""} onClick={() => setChartDetail(`${point.label}: ${point.count} activities`)}><span>{point.label}</span><strong>{point.count}</strong></button>)}</div>
           </Card>
         </section>
         <div className={styles.chartDetail} role="status" aria-live="polite">{chartDetail}</div>

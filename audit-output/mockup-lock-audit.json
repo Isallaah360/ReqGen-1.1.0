@@ -1,9 +1,9 @@
 {
-  "generatedAt": "2026-09-24T10:31:57.115Z",
+  "generatedAt": "2026-09-24T23:50:07.488Z",
   "scope": "ReqGen adopted-shell approved mockups Sections 1-4",
-  "overall": 89,
+  "overall": 86,
   "totals": {
-    "passed": 92,
+    "passed": 89,
     "total": 103
   },
   "shellChecks": [
@@ -50,9 +50,9 @@
       "forbidden": [
         "ERP 2.0"
       ],
-      "passed": 12,
+      "passed": 9,
       "total": 12,
-      "percent": 100,
+      "percent": 75,
       "checks": [
         {
           "check": "file exists",
@@ -60,15 +60,15 @@
         },
         {
           "check": "Pending Approvals",
-          "pass": true
+          "pass": false
         },
         {
           "check": "Completed / Paid",
-          "pass": true
+          "pass": false
         },
         {
           "check": "Total Disbursed",
-          "pass": true
+          "pass": false
         },
         {
           "check": "Overdue",

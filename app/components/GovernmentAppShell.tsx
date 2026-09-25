@@ -197,13 +197,9 @@ function navParentForPath(pathname: string): string | null {
   const contextualParents: Array<[string, string]> = [
     ["/change-password", "/profile"],
     ["/output", "/reports"],
-    ["/workflow", "/audit-centre"],
-    ["/hr", "/approvals"],
-    ["/staff", "/dashboard"],
     ["/docs", "/dashboard"],
     ["/about", "/dashboard"],
     ["/test-supabase", "/admin"],
-    ["/executive", "/admin"],
   ];
 
   const contextual = contextualParents
@@ -718,7 +714,7 @@ function GovernmentAppShellContent({
         <div className="rg-sidebar-release" aria-label={`ReqGen version ${REQGEN_VERSION}`}>
           <span>Version</span>
           <strong>{REQGEN_VERSION}</strong>
-          <small>Phase 7 · Stabilised</small>
+          <small>Phase 8 · Stabilised</small>
         </div>
 
         <div className="rg-sidebar-signout">

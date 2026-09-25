@@ -1,7 +1,78 @@
 @import "tailwindcss";
 
 /* ==========================================================================
-   REQGEN ERP 2.0 FOUNDATION
+   REQGEN CANONICAL DESIGN TOKENS (added 2026-09-25)
+   This is the ONE color + typography system for the whole app going forward.
+   It generates real Tailwind utility classes: bg-brand-700, text-success-600,
+   border-brand-200, text-sm, text-base, etc.
+
+   Values were chosen from what was ALREADY dominant across the app (not
+   invented), so migrating existing pages onto these tokens should look
+   the same or better, never jarring.
+
+   The four legacy variable blocks below this one (--erp2-*, --reqgen-*,
+   --gov-*, --mock-*) are LEGACY. None of them are referenced from any .tsx
+   file — only from specific CSS classes further down in this file. Do not
+   add any new --erp2-/--reqgen-/--gov-/--mock- usage. As each page is
+   migrated to the tokens below, its legacy CSS block can be deleted.
+   ========================================================================== */
+@theme {
+  /* Brand navy/blue — anchored on #155eef / #174f9f, the two hex values
+     already used most across finance, dashboard and admin pages. */
+  --color-brand-50:  #eff6ff;
+  --color-brand-100: #dbe8fd;
+  --color-brand-200: #b8d2fb;
+  --color-brand-300: #85b3f7;
+  --color-brand-400: #4a8cf0;
+  --color-brand-500: #1e66e6;
+  --color-brand-600: #155eef;
+  --color-brand-700: #174f9f;
+  --color-brand-800: #123d7a;
+  --color-brand-900: #0e3159;
+  --color-brand-950: #071a36;
+
+  /* Semantic status colors — matches the approved/pending/rejected pattern
+     already used throughout (emerald/amber/red), just now with one exact
+     hex per status instead of three slightly different ones. */
+  --color-success-50:  #ecfdf5;
+  --color-success-500: #159a67;
+  --color-success-600: #128a5c;
+  --color-success-700: #0f6e49;
+
+  --color-warning-50:  #fffbeb;
+  --color-warning-500: #e98a15;
+  --color-warning-600: #cf7710;
+  --color-warning-700: #a8600c;
+
+  --color-danger-50:  #fef2f2;
+  --color-danger-500: #e5484d;
+  --color-danger-600: #cf3c41;
+  --color-danger-700: #ab2e32;
+
+  --color-info-500: #0891b2;
+  --color-info-600: #0e7490;
+
+  /* Typography — locked exactly to the 12/13/14 rule: nav bars and
+     collapsible menus at 13px, dense tables at 12px, body copy at 14px. */
+  --text-xs: 0.75rem;      /* 12px — dense tables, collapsible nav, meta text */
+  --text-xs--line-height: 1.35;
+  --text-sm: 0.8125rem;    /* 13px — main nav, headers, standard UI text */
+  --text-sm--line-height: 1.4;
+  --text-base: 0.875rem;   /* 14px — body copy, form fields */
+  --text-base--line-height: 1.5;
+  --text-lg: 1rem;         /* 16px — section headings */
+  --text-lg--line-height: 1.4;
+  --text-xl: 1.125rem;     /* 18px — page headings */
+  --text-xl--line-height: 1.35;
+  --text-2xl: 1.375rem;    /* 22px — hero/dashboard headline numbers */
+  --text-2xl--line-height: 1.3;
+  --text-3xl: 1.75rem;     /* 28px — top-level page titles only */
+  --text-3xl--line-height: 1.25;
+}
+
+/* ==========================================================================
+   LEGACY — REQGEN ERP 2.0 FOUNDATION (superseded by @theme above, kept only
+   because specific CSS classes further down this file still reference it)
    ========================================================================== */
 
 :root {
@@ -4118,3 +4189,14 @@ body{font-family:Aptos,"Segoe UI",Inter,Arial,sans-serif!important;background:va
 .rg-content[data-route="/admin/roles"] [data-rg-table="standard"] td:last-child{min-width:230px}
 .rg-content[data-route="/admin/security"] .rg-auto-grid{gap:10px!important}
 .rg-content[data-route="/admin/security"] .rg-auto-grid>div{min-height:86px!important;padding:12px!important}
+
+/* Phase 8 global component contract: Budget & Subheads is the visual source of truth. */
+.rg-content table{table-layout:auto!important;border-collapse:collapse!important;border-spacing:0!important;font-size:12px!important;background:#fff!important}
+.rg-content thead th{background:#fafbfd!important;color:#34405c!important;font-size:11px!important;font-weight:800!important;text-transform:none!important;letter-spacing:0!important;padding:10px 9px!important;border-bottom:1px solid #e7edf4!important;white-space:nowrap!important;overflow-wrap:normal!important}
+.rg-content tbody td{padding:9px!important;border-bottom:1px solid #edf1f5!important;color:#26324e!important;vertical-align:middle!important}
+.rg-content tbody tr:hover td{background:#f8fbff!important}
+.rg-content table td:last-child :where(button,a){min-height:30px!important;white-space:nowrap!important;overflow-wrap:normal!important}
+[data-rg-tabs="true"]{display:flex!important;align-items:center!important;gap:4px!important;padding:5px!important;border:1px solid #e1e7ef!important;border-radius:10px!important;background:#fff!important;overflow-x:auto!important}
+[data-rg-tabs="true"]>:where(button,a){min-height:34px!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;gap:6px!important;padding:0 13px!important;border:0!important;border-radius:7px!important;background:transparent!important;color:#41516a!important;font-size:11px!important;font-weight:800!important;white-space:nowrap!important;box-shadow:none!important;text-decoration:none!important}
+[data-rg-tabs="true"]>:where(button,a):hover{background:#f3f7fd!important;color:#1267e8!important;transform:none!important}
+[data-rg-tabs="true"]>:where(button,a)[aria-selected="true"],[data-rg-tabs="true"]>:where(button,a)[class*="active"],[data-rg-tabs="true"]>:where(button,a).is-active{background:#1267e8!important;color:#fff!important;box-shadow:0 5px 12px rgba(18,103,232,.16)!important}

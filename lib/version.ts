@@ -6,6 +6,6 @@
  * - npm package.json must remain valid SemVer (three numeric parts), so the
  *   product release identifier is kept separately as REQGEN_VERSION.
  */
-export const REQGEN_VERSION = "2.0.0.8" as const;
+export const REQGEN_VERSION = "2.0.0.9" as const;
 export const REQGEN_PRODUCT_NAME = "ReqGen" as const;
 export const REQGEN_PRODUCT_LABEL = `${REQGEN_PRODUCT_NAME} ${REQGEN_VERSION}` as const;

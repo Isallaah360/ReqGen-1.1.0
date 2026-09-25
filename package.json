@@ -16,11 +16,8 @@
     "audit:phase-d": "npm run audit:responsive && npm run audit:print && npm run audit:performance",
     "audit:mockup-lock": "node scripts/audit-mockup-lock.mjs",
     "audit:navigation": "node scripts/audit-internal-navigation.mjs",
-    "audit:s5-12": "node scripts/audit-sections-5-12-mockups.mjs",
     "audit:components": "node scripts/audit-component-contracts.cjs",
-    "audit:deploy": "npm run audit:shell && npm run audit:routes && npm run audit:workflow && npm run audit:navigation && npm run audit:mockup-lock && npm run audit:s5-12 && npm run audit:redesign && npm run audit:components",
-    "audit:mockup-frame": "node scripts/audit-approved-mockup-frame.mjs",
-    "audit:pixel-lock": "node scripts/audit-approved-mockup-frame.mjs",
+    "audit:deploy": "npm run audit:shell && npm run audit:routes && npm run audit:workflow && npm run audit:navigation && npm run audit:mockup-lock && npm run audit:redesign && npm run audit:components",
     "audit:redesign": "node scripts/audit-approved-redesign.mjs",
     "audit:route-registry": "node scripts/audit-route-registry.mjs",
     "audit:rmb-architecture": "node scripts/audit-rmb-page-architecture.mjs",
@@ -33,8 +30,9 @@
     "audit:navbar": "node scripts/audit-navbar-coverage.mjs",
     "audit:phase6-ui": "node scripts/audit-phase6-ui.mjs",
     "audit:phase7-architecture": "node scripts/audit-phase7-architecture.mjs",
-    "audit:production": "npm run audit:phase7-architecture && npm run audit:phase7-ui && npm run audit:routes && npm run audit:workflow && npm run audit:navigation && npm run audit:route-registry && npm run audit:responsive && npm run audit:data-accuracy && npm run audit:components && npm run audit:section4",
-    "audit:phase7-ui": "node scripts/audit-phase7-ui-stabilisation.mjs"
+    "audit:production": "npm run audit:phase7-architecture && npm run audit:phase7-ui && npm run audit:phase8-stabilisation && npm run audit:routes && npm run audit:workflow && npm run audit:navigation && npm run audit:route-registry && npm run audit:responsive && npm run audit:data-accuracy && npm run audit:components && npm run audit:section4",
+    "audit:phase7-ui": "node scripts/audit-phase7-ui-stabilisation.mjs",
+    "audit:phase8-stabilisation": "node scripts/audit-phase8-stabilisation.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.97.0",
@@ -54,5 +52,5 @@
     "tailwindcss": "^4",
     "typescript": "^5"
   },
-  "reqgenVersion": "2.0.0.8"
+  "reqgenVersion": "2.0.0.9"
 }

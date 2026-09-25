@@ -1,10 +1,10 @@
 {
   "summary": {
-    "scannedFiles": 195,
-    "findings": 33,
+    "scannedFiles": 176,
+    "findings": 23,
     "warnings": 0,
-    "info": 33,
-    "generatedAt": "2026-09-24T21:51:34.497Z"
+    "info": 23,
+    "generatedAt": "2026-09-24T23:50:07.984Z"
   },
   "findings": [
     {
@@ -40,78 +40,6 @@
       "excerpt": "className=\"reqgen-btn reqgen-btn-rose whitespace-nowrap rounded-lg px-3 py-2 text-xs font-black text-white disabled:opacity-40\""
     },
     {
-      "file": "app/components/NavBar.tsx",
-      "line": 166,
-      "rule": "nowrap-risk",
-      "severity": "info",
-      "match": "whitespace-nowrap",
-      "excerpt": "<span className=\"pointer-events-none absolute left-1/2 top-full z-[70] mt-2 -translate-x-1/2 whitespace-nowrap rounded-xl border border-white/10 bg-slate-950/95 px-3 py-1.5 text-xs font-black tracking-wide text-white sha"
-    },
-    {
-      "file": "app/components/NavBar.tsx",
-      "line": 166,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "<span className=\"pointer-events-none absolute left-1/2 top-full z-[70] mt-2 -translate-x-1/2 whitespace-nowrap rounded-xl border border-white/10 bg-slate-950/95 px-3 py-1.5 text-xs font-black tracking-wide text-white sha"
-    },
-    {
-      "file": "app/components/NavBar.tsx",
-      "line": 616,
-      "rule": "truncate-risk",
-      "severity": "info",
-      "match": "truncate",
-      "excerpt": "<span className=\"hidden truncate 2xl:inline\">Search ReqGen…</span>"
-    },
-    {
-      "file": "app/components/NavBar.tsx",
-      "line": 620,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "<div className=\"absolute left-0 top-[52px] z-[70] w-[min(520px,calc(100vw-2rem))] overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl shadow-slate-900/20\">"
-    },
-    {
-      "file": "app/components/NavBar.tsx",
-      "line": 673,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "<span className=\"absolute bottom-1.5 right-1.5 grid h-4 w-4 place-items-center rounded-full bg-emerald-500 text-[9px] font-black leading-none text-white shadow-sm ring-2 ring-white\">✓</span>"
-    },
-    {
-      "file": "app/components/NavBar.tsx",
-      "line": 676,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "<span className=\"absolute -right-2 -top-2 min-w-6 rounded-full bg-rose-600 px-1.5 py-0.5 text-center text-xs font-black text-white shadow-sm ring-2 ring-white\">"
-    },
-    {
-      "file": "app/components/NavBar.tsx",
-      "line": 683,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "<div className=\"absolute left-0 top-12 z-50 w-[min(420px,calc(100vw-24px))] overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl shadow-slate-900/20\">"
-    },
-    {
-      "file": "app/components/NavBar.tsx",
-      "line": 731,
-      "rule": "truncate-risk",
-      "severity": "info",
-      "match": "truncate",
-      "excerpt": "<span className=\"truncate text-sm font-black text-slate-950\">{r.request_no || \"No Request Number\"}</span>"
-    },
-    {
-      "file": "app/components/NavBar.tsx",
-      "line": 860,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "<div className=\"absolute right-0 top-12 z-50 max-h-[80vh] w-[340px] overflow-auto rounded-3xl border border-slate-200 bg-white p-3 shadow-2xl\">"
-    },
-    {
       "file": "app/components/SessionTimeout.tsx",
       "line": 170,
       "rule": "absolute-layout",
@@ -134,14 +62,6 @@
       "severity": "info",
       "match": "absolute",
       "excerpt": "<section className={styles.card}><div className={styles.filters}><label className={styles.field}><span className={styles.label}>Search Archive</span><div style={{position:\"relative\"}}><Search size={15} style={{position:\""
-    },
-    {
-      "file": "app/components/registry/RegistryCentreWorkspace.tsx",
-      "line": 129,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "<label className={styles.field}><span className={styles.label}>Search</span><div style={{position:\"relative\"}}><Search size={15} style={{position:\"absolute\",left:12,top:14,color:\"#70839c\"}}/><input className={styles.inpu"
     },
     {
       "file": "app/components/ui/DirectorateWorkspaceMenu.tsx",

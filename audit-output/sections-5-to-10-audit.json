@@ -1,9 +1,9 @@
 {
-  "generatedAt": "2026-08-29T04:23:01.299Z",
+  "generatedAt": "2026-09-24T23:50:08.257Z",
   "scope": "ReqGen Sections 5-10 adopted-shell source/function audit",
-  "overall": 100,
+  "overall": 80,
   "totalChecks": 20,
-  "passedChecks": 20,
+  "passedChecks": 16,
   "cssPass": true,
   "conflicts": [],
   "shared": [
@@ -17,7 +17,7 @@
     },
     {
       "file": "app/components/hr/HREnterprisePage.tsx",
-      "exists": true
+      "exists": false
     },
     {
       "file": "app/components/ui/ReportsUI.tsx",
@@ -39,45 +39,39 @@
       "pageRoutes": [
         "/payment-vouchers/[id]",
         "/payment-vouchers/[id]/print",
+        "/payment-vouchers/approved",
+        "/payment-vouchers/history",
+        "/payment-vouchers/manual",
+        "/payment-vouchers/new",
         "/payment-vouchers",
+        "/payment-vouchers/pending",
+        "/payment-vouchers/print-centre",
         "/payment-vouchers/reports",
         "/payment-vouchers/settings"
       ],
-      "count": 5,
+      "count": 11,
       "missing": [],
-      "dataContractsPreserved": true,
-      "beforeContracts": [
-        "counter_sign_payment_voucher_cheque",
-        "create_manual_payment_voucher",
-        "delete_payment_voucher_for_regeneration",
-        "departments",
-        "generate_multi_payment_voucher",
-        "get_payment_voucher_detail",
-        "get_payment_voucher_history",
-        "get_payment_voucher_items",
-        "get_payment_vouchers",
-        "get_requests_ready_for_payment_voucher",
-        "payment_voucher_counter_signatories",
-        "profile_roles",
-        "profiles",
-        "sign_payment_voucher_cheque",
-        "subheads",
-        "update_payment_voucher_status"
-      ],
+      "dataContractsPreserved": false,
+      "beforeContracts": [],
       "afterContracts": [
         "counter_sign_payment_voucher_cheque",
         "create_manual_payment_voucher",
         "delete_payment_voucher_for_regeneration",
         "departments",
         "generate_multi_payment_voucher",
+        "get_my_active_role",
         "get_payment_voucher_detail",
         "get_payment_voucher_history",
         "get_payment_voucher_items",
         "get_payment_vouchers",
         "get_requests_ready_for_payment_voucher",
+        "iet_accounts",
         "payment_voucher_counter_signatories",
+        "payment_vouchers",
+        "post_manual_payment_voucher",
         "profile_roles",
         "profiles",
+        "save_manual_payment_voucher",
         "sign_payment_voucher_cheque",
         "subheads",
         "update_payment_voucher_status"
@@ -97,107 +91,18 @@
       "count": 6,
       "missing": [],
       "dataContractsPreserved": true,
-      "beforeContracts": [
-        "departments",
-        "profile_roles",
-        "profiles",
-        "requests"
-      ],
-      "afterContracts": [
-        "departments",
-        "profile_roles",
-        "profiles",
-        "requests"
-      ]
+      "beforeContracts": [],
+      "afterContracts": []
     },
     {
       "section": 7,
       "name": "HR",
-      "pageRoutes": [
-        "/hr/analytics",
-        "/hr/archive",
-        "/hr/assessments/annual-360",
-        "/hr/assignments",
-        "/hr/audit",
-        "/hr/capacity-building/departments",
-        "/hr/capacity-building/staff",
-        "/hr/compliance",
-        "/hr/department-kpi",
-        "/hr/filing",
-        "/hr/leave",
-        "/hr/my-work",
-        "/hr/officer-performance",
-        "/hr/output",
-        "/hr",
-        "/hr/registrar/analytics",
-        "/hr/registrar/assessments/annual-360",
-        "/hr/registrar/capacity-building/departments",
-        "/hr/registrar/capacity-building/staff",
-        "/hr/registrar/compliance",
-        "/hr/registrar/department-kpi",
-        "/hr/registrar/officer-performance",
-        "/hr/registrar/output",
-        "/hr/registrar",
-        "/hr/registrar/reports",
-        "/hr/registrar/settings",
-        "/hr/registrar/weekly-seminar",
-        "/hr/reports",
-        "/hr/review",
-        "/hr/settings",
-        "/hr/staff",
-        "/hr/weekly-seminar"
-      ],
-      "count": 32,
+      "pageRoutes": [],
+      "count": 0,
       "missing": [],
       "dataContractsPreserved": true,
-      "beforeContracts": [
-        "departments",
-        "get_hr_filing_requests",
-        "hr_assessment_assignments",
-        "hr_assessment_cycles",
-        "hr_assignment_history",
-        "hr_department_capacity_programmes",
-        "hr_department_kpis",
-        "hr_move_staff_file",
-        "hr_officer_assignments",
-        "hr_policy_settings",
-        "hr_record_seminar_attendance",
-        "hr_request_assignments",
-        "hr_request_reviews",
-        "hr_seminar_attendance",
-        "hr_seminar_sessions",
-        "hr_seminar_settings",
-        "hr_set_seminar_session_status",
-        "hr_staff_file_movements",
-        "hr_staff_files",
-        "hr_staff_training_programmes",
-        "profiles",
-        "requests"
-      ],
-      "afterContracts": [
-        "departments",
-        "get_hr_filing_requests",
-        "hr_assessment_assignments",
-        "hr_assessment_cycles",
-        "hr_assignment_history",
-        "hr_department_capacity_programmes",
-        "hr_department_kpis",
-        "hr_move_staff_file",
-        "hr_officer_assignments",
-        "hr_policy_settings",
-        "hr_record_seminar_attendance",
-        "hr_request_assignments",
-        "hr_request_reviews",
-        "hr_seminar_attendance",
-        "hr_seminar_sessions",
-        "hr_seminar_settings",
-        "hr_set_seminar_session_status",
-        "hr_staff_file_movements",
-        "hr_staff_files",
-        "hr_staff_training_programmes",
-        "profiles",
-        "requests"
-      ]
+      "beforeContracts": [],
+      "afterContracts": []
     },
     {
       "section": 8,
@@ -208,9 +113,18 @@
       ],
       "count": 2,
       "missing": [],
-      "dataContractsPreserved": true,
+      "dataContractsPreserved": false,
       "beforeContracts": [],
-      "afterContracts": []
+      "afterContracts": [
+        "departments",
+        "finance_transactions",
+        "iet_accounts",
+        "payment_vouchers",
+        "registry_correspondence",
+        "request_history",
+        "requests",
+        "subheads"
+      ]
     },
     {
       "section": 9,
@@ -220,14 +134,14 @@
       ],
       "count": 1,
       "missing": [],
-      "dataContractsPreserved": true,
-      "beforeContracts": [
-        "get_my_active_role",
-        "profiles"
-      ],
+      "dataContractsPreserved": false,
+      "beforeContracts": [],
       "afterContracts": [
+        "departments",
         "get_my_active_role",
-        "profiles"
+        "iet_accounts",
+        "profiles",
+        "subheads"
       ]
     },
     {
@@ -239,14 +153,8 @@
       "count": 1,
       "missing": [],
       "dataContractsPreserved": true,
-      "beforeContracts": [
-        "workflow_rules",
-        "workflow_sla_events"
-      ],
-      "afterContracts": [
-        "workflow_rules",
-        "workflow_sla_events"
-      ]
+      "beforeContracts": [],
+      "afterContracts": []
     }
   ]
 }

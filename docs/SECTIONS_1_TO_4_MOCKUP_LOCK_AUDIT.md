@@ -1,6 +1,6 @@
 # ReqGen Sections 1-4 Mockup-Lock Audit
 
-Overall source/spec conformance: **89%**
+Overall source/spec conformance: **86%**
 
 Merge-conflict files: **0**  
 Invalid :hidden selectors: **0**  
@@ -8,7 +8,7 @@ Prohibited Enterprise module labels: **0**
 
 | Section | Page | Route | Score |
 |---:|---:|---|---:|
-| 1 | 1 | /dashboard | 100% |
+| 1 | 1 | /dashboard | 75% |
 | 2 | 1 | /requests | 100% |
 | 2 | 2 | /requests/new | 100% |
 | 3 | 1 | /approvals | 75% |
@@ -28,6 +28,9 @@ Prohibited Enterprise module labels: **0**
 | 4 | 13 | /finance/reports/monthly | 100% |
 
 ## Failed checks
+- S1 P1 /dashboard: Pending Approvals
+- S1 P1 /dashboard: Completed / Paid
+- S1 P1 /dashboard: Total Disbursed
 - S3 P1 /approvals: Approvals Overview
 - S3 P2 /approvals/action-centre: Action Centre
 - S3 P2 /approvals/action-centre: Pending Requests
