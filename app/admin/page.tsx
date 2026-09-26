@@ -14,6 +14,7 @@ import {
 import { supabase } from "@/lib/supabaseClient";
 import { REQGEN_VERSION } from "@/lib/version";
 import { roleDisplayName } from "@/lib/roles";
+import { Donut as SharedDonut } from "@/app/components/ui/Donut";
 
 type ProfileRow = {
   id: string;
@@ -199,24 +200,10 @@ export default function AdminDashboardPage() {
       .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
   }, [profiles, primaryRoleByProfile]);
 
-  const roleTotal = Math.max(1, roleDistribution.reduce((sum, item) => sum + item.count, 0));
-  const conicGradient = useMemo(() => {
-    const { parts } = roleDistribution.reduce<{ parts: string[]; cursor: number }>(
-      (acc, item, index) => {
-        const degrees = (item.count / roleTotal) * 360;
-        const end = acc.cursor + degrees;
-        return {
-          parts: [
-            ...acc.parts,
-            `${ROLE_COLORS[index % ROLE_COLORS.length]} ${acc.cursor}deg ${end}deg`,
-          ],
-          cursor: end,
-        };
-      },
-      { parts: [], cursor: 0 }
-    );
-    return parts.length ? `conic-gradient(${parts.join(",")})` : "conic-gradient(#e2e8f0 0deg 360deg)";
-  }, [roleDistribution, roleTotal]);
+  const roleSegments = useMemo(
+    () => roleDistribution.map((item, index) => ({ label: item.label, value: item.count, color: ROLE_COLORS[index % ROLE_COLORS.length] })),
+    [roleDistribution]
+  );
 
   const activity = useMemo(() => buildActivity(auditRows), [auditRows]);
   const maxActivity = Math.max(1, ...activity.map((point) => point.count));
@@ -258,9 +245,7 @@ export default function AdminDashboardPage() {
         <article className="admin-v3-card">
           <div className="admin-v3-card-head"><div><h2>Users by Role</h2><p>Live primary-role distribution</p></div></div>
           <div className="admin-v3-donut-wrap">
-            <div className="admin-v3-donut" style={{ background: conicGradient }}>
-              <div><strong>{profiles.length}</strong><span>Users</span></div>
-            </div>
+            <SharedDonut segments={roleSegments} size={116} strokeWidth={22} centerLabel="Users" />
             <div className="admin-v3-legend">
               {roleDistribution.length ? roleDistribution.map((item, index) => (
                 <div key={item.label}><i style={{ background: ROLE_COLORS[index % ROLE_COLORS.length] }} /><span>{item.label}</span><strong>{item.count}</strong></div>

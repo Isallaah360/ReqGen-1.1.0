@@ -27,6 +27,7 @@ import {
 import { supabase } from "@/lib/supabaseClient";
 import { exportTableToExcel } from "@/lib/reportExport";
 import styles from "./finance-subheads.module.css";
+import { Donut as SharedDonut } from "@/app/components/ui/Donut";
 
 type Dept = {
   id: string;
@@ -637,7 +638,7 @@ export default function FinanceSubheadsPage() {
       byCode,
     ]);
 
-  const donutStops =
+  const donutSegments =
     useMemo(() => {
       const colors = [
         "#1677ff",
@@ -646,41 +647,7 @@ export default function FinanceSubheadsPage() {
         "#7c3aed",
         "#94a3b8",
       ];
-
-      const totalValue =
-        Math.max(
-          1,
-          categoryData.reduce(
-            (
-              sum,
-              item
-            ) =>
-              sum +
-              item.value,
-            0
-          )
-        );
-
-      let cursor = 0;
-
-      return categoryData
-        .map(
-          (
-            item,
-            index
-          ) => {
-            const start =
-              cursor;
-
-            cursor +=
-              (item.value /
-                totalValue) *
-              100;
-
-            return `${colors[index]} ${start}% ${cursor}%`;
-          }
-        )
-        .join(", ");
+      return categoryData.map((item, index) => ({ label: item.label, value: item.value, color: colors[index] }));
     }, [categoryData]);
 
   function resetForm() {
@@ -1757,27 +1724,7 @@ export default function FinanceSubheadsPage() {
             </h3>
 
             <div className={styles.donutRow}>
-              <div
-                className={styles.donut}
-                tabIndex={0}
-                role="img"
-                aria-label={`Subhead overview: ${total} total subheads`}
-                title={`${total} total subheads`}
-                style={{
-                  background: `conic-gradient(${donutStops ||
-                    "#e2e8f0 0 100%"
-                    })`,
-                }}
-              >
-                <div>
-                  <strong>
-                    {total}
-                  </strong>
-                  <span>
-                    Total
-                  </span>
-                </div>
-              </div>
+              <SharedDonut segments={donutSegments} size={108} strokeWidth={20} centerLabel="Total" formatTotal={() => <strong style={{ fontSize: 20, lineHeight: 1, fontWeight: 900 }}>{total}</strong>} />
 
               <div className={styles.legend}>
                 {categoryData.map(

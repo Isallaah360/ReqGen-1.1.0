@@ -14,14 +14,4 @@
 .chart{height:218px}.chartBody{padding:10px 14px}.activity{min-height:220px}
 @media(max-width:720px){.quickGrid{grid-template-columns:1fr}.donutBody{grid-template-columns:1fr;justify-items:center}.legend{width:100%}}
 
-/* Single canonical donut chart rules — SVG stroke-circle technique, identical across Dashboard and Reports Centre so every donut in the app renders the same way. */
-.donut{position:relative;display:grid;place-items:center;width:116px;height:116px;min-width:116px;border-radius:50%;background:transparent}
-.donut svg{display:block;width:116px;height:116px;transform:rotate(-90deg);overflow:visible}
-.donutTrack,.donutSegment{fill:none;stroke-width:22}
-.donutTrack{stroke:#edf2f7}
-.donutSegment{cursor:pointer;transition:stroke-width .14s ease,opacity .14s ease}
-.donutSegment:hover{stroke-width:25;opacity:.92}
-.donutCenter{position:absolute;inset:27px;z-index:2;display:grid;place-content:center;text-align:center;border:0;border-radius:50%;background:#fff;color:#11244a;padding:0;cursor:pointer;box-shadow:0 0 0 1px #eef2f6}
-.donutCenter strong{font-size:22px;line-height:1;font-weight:900}
-.donutCenter span{margin-top:4px;color:#7b8797;font-size:10px}
-.donut:focus-visible{outline:2px solid #1269f3;outline-offset:3px}
+/* Donut chart itself now lives in app/components/ui/Donut.tsx (self-contained, inline styles). Nothing donut-specific needed here anymore. */

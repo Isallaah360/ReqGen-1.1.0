@@ -7,6 +7,7 @@ import { CheckCircle2, Clock3, FileText, Landmark, Search, XCircle, Eye, Pencil,
 import { supabase } from "@/lib/supabaseClient";
 import { REQGEN_VERSION } from "@/lib/version";
 import styles from "./requests.module.css";
+import { Donut as SharedDonut } from "@/app/components/ui/Donut";
 
 type Row = { id:string; request_no:string; title:string; amount:number; status:string; current_stage:string; created_at:string; request_type?:string|null; personal_category?:string|null; dept_id?:string|null; };
 type DepartmentLite = { id: string; name: string | null };
@@ -44,7 +45,7 @@ export default function RequestsPage(){
  const recentRows=useMemo(()=>rows.slice(0,5),[rows]);
  const departmentStats=useMemo(()=>{const map=new Map<string,number>();rows.forEach(r=>{const name=r.dept_id?departments[r.dept_id]||"Unassigned":"Unassigned";map.set(name,(map.get(name)||0)+1)});return Array.from(map.entries()).sort((a,b)=>b[1]-a[1]).slice(0,5)},[rows,departments]);
  const maxDepartmentCount=Math.max(1,...departmentStats.map(([,count])=>count));
- const statusGradient=useMemo(()=>{if(!counts.total)return "conic-gradient(#dbe7f6 0deg 360deg)";const activeDeg=counts.active/counts.total*360;const completedDeg=counts.completed/counts.total*360;return `conic-gradient(#f59e0b 0deg ${activeDeg}deg,#16a36a ${activeDeg}deg ${activeDeg+completedDeg}deg,#ef4b5f ${activeDeg+completedDeg}deg 360deg)`},[counts]);
+ const statusSegments=useMemo(()=>[{label:"In Progress",value:counts.active,color:"#f59e0b"},{label:"Completed",value:counts.completed,color:"#16a36a"},{label:"Rejected",value:counts.rejected,color:"#ef4b5f"}],[counts]);
  const filtered=useMemo(()=>rows.filter(r=>{const q=query.trim().toLowerCase();if(tab==="ACTIVE"&&!isActive(r))return false;if(tab==="COMPLETED"&&!isCompleted(r))return false;if(tab==="REJECTED"&&!isRejected(r))return false;if(["OFFICIAL","PERSONAL_FUND","PERSONAL_OTHER"].includes(tab)&&requestGroup(r)!==tab)return false;if(status==="ACTIVE"&&!isActive(r))return false;if(status==="COMPLETED"&&!isCompleted(r))return false;if(status==="REJECTED"&&!isRejected(r))return false;if(type!=="ALL"&&requestGroup(r)!==type)return false;if(department!=="ALL"&&r.dept_id!==department)return false;if(!q)return true;return[r.request_no,r.title,r.status,r.current_stage,requestTypeLabel(r),r.dept_id?departments[r.dept_id]:""].join(" ").toLowerCase().includes(q)}),[rows,query,status,type,department,departments,tab]);
  useEffect(()=>{queueMicrotask(()=>setPage(1));},[query,status,type,department,tab]); const pageSize=8; const totalPages=Math.max(1,Math.ceil(filtered.length/pageSize)); const currentPage=Math.min(page,totalPages); const paged=filtered.slice((currentPage-1)*pageSize,currentPage*pageSize);
  const tabs:[TabKey,string,number][]=[["ALL","All Requests",counts.total],["ACTIVE","Active Workflow",counts.active],["COMPLETED","Completed / Paid",counts.completed],["REJECTED","Rejected / Deleted",counts.rejected],["OFFICIAL","Official",counts.official],["PERSONAL_FUND","Personal Fund",counts.fund],["PERSONAL_OTHER","Personal Other",counts.other]];
@@ -74,7 +75,7 @@ export default function RequestsPage(){
    <article className={styles.insightCard}>
     <div className={styles.cardHeading}><div><strong>Requests by Status</strong><span>Live workflow distribution</span></div></div>
     <div className={styles.statusVisual}>
-      <div className={styles.donut} style={{background:statusGradient}}><div><b>{counts.total}</b><span>Total</span></div></div>
+      <SharedDonut segments={statusSegments} size={108} strokeWidth={20} />
       <div className={styles.legend}><span><i className={styles.legendPending}/>In Progress <b>{counts.active}</b></span><span><i className={styles.legendApproved}/>Completed <b>{counts.completed}</b></span><span><i className={styles.legendRejected}/>Rejected <b>{counts.rejected}</b></span></div>
     </div>
    </article>

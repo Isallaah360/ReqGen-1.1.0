@@ -30,6 +30,7 @@ import {
 import { supabase } from "@/lib/supabaseClient";
 import { REQGEN_VERSION } from "@/lib/version";
 import styles from "./FinanceOperationsWorkspace.module.css";
+import { Donut as SharedDonut } from "@/app/components/ui/Donut";
 
 type Mode =
   | "account-ledger"
@@ -1883,26 +1884,15 @@ export default function FinanceOperationsWorkspace({
                 styles.donutBox
               }
             >
-              <div
-                className={
-                  styles.donut
-                }
-                tabIndex={0}
-                role="img"
-                aria-label={`${rows.length} records in current finance view`}
-                title={`${rows.length} records in current finance view`}
-              >
-                <div>
-                  <strong>
-                    {
-                      rows.length
-                    }
-                  </strong>
-                  <span>
-                    Total
-                  </span>
-                </div>
-              </div>
+              <SharedDonut
+                segments={[
+                  { label: "Posted / Credit", value: posted, color: "#1267e8" },
+                  { label: "Pending / Debit", value: pending, color: "#13a16d" },
+                  { label: "Other", value: Math.max(rows.length - posted - pending, 0), color: "#ff9d24" },
+                ]}
+                size={100}
+                strokeWidth={18}
+              />
 
               <div
                 className={

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { Donut as SharedDonut } from "@/app/components/ui/Donut";
 import {
   Bell,
   CalendarDays,
@@ -228,11 +229,9 @@ function Kpi({ tone, icon, label, value, meta }: { tone: "blue"|"green"|"orange"
 }
 function Donut({ title, total, rows }: { title: string; total: number; rows: [string,string,number][] }) {
   const [detail, setDetail] = useState<string | null>(null);
-  const radius = 44;
-  const circumference = 2 * Math.PI * radius;
-  let offset = 0;
   const select = (value: string) => setDetail(value);
-  return <><div className={styles.donutBody}><div className={styles.donut} role="img" aria-label={`Donut chart. Total ${total}.`}><svg viewBox="0 0 120 120" aria-hidden="true"><circle className={styles.donutTrack} cx="60" cy="60" r={radius}/>{total > 0 ? rows.map(([color,label,value]) => { const length = (value / total) * circumference; const dashOffset = -offset; offset += length; return <circle key={label} className={styles.donutSegment} cx="60" cy="60" r={radius} pathLength={circumference} stroke={color} strokeDasharray={`${length} ${circumference - length}`} strokeDashoffset={dashOffset} onClick={() => select(`${label}: ${value} (${Math.round((value / total) * 100)}%)`)}><title>{`${label}: ${value}`}</title></circle>; }) : null}</svg><button type="button" className={styles.donutCenter} onClick={() => select(rows.map(([, label, value]) => `${label}: ${value}`).join(" · "))} aria-label="Show complete chart breakdown"><strong>{total}</strong><span>{title}</span></button></div><div className={styles.legend}>{rows.map(([color,label,value]) => <Legend key={label} color={color} label={label} value={value} total={total} onSelect={select}/>)}</div></div><div className={styles.chartInsight} role="status" aria-live="polite"><strong>Selected data</strong><span>{detail || "Select a donut segment or legend row to display the exact value."}</span></div></>;
+  const segments = rows.map(([color, label, value]) => ({ color, label, value }));
+  return <><div className={styles.donutBody}><SharedDonut segments={segments} centerLabel={title} onSelect={select} /><div className={styles.legend}>{rows.map(([color,label,value]) => <Legend key={label} color={color} label={label} value={value} total={total} onSelect={select}/>)}</div></div><div className={styles.chartInsight} role="status" aria-live="polite"><strong>Selected data</strong><span>{detail || "Select a donut segment or legend row to display the exact value."}</span></div></>;
 }
 function Legend({ color, label, value, total, onSelect }: { color: string; label: string; value: number; total: number; onSelect: (detail: string) => void }) {
   const pct = total ? Math.round((value / total) * 100) : 0;

@@ -31,6 +31,7 @@ import {
 import { supabase } from "@/lib/supabaseClient";
 import { exportTableToExcel } from "@/lib/reportExport";
 import styles from "../admin-departments.module.css";
+import { Donut as SharedDonut } from "@/app/components/ui/Donut";
 import { REQGEN_PRODUCT_LABEL } from "@/lib/version";
 
 type Dept = {
@@ -424,20 +425,13 @@ export default function DepartmentsPage() {
     [rows]
   );
 
-  const donut = useMemo(() => {
-    const total = Math.max(
-      1,
-      rows.length
-    );
-
-    const activePct =
-      (overview.active / total) * 100;
-
-    return `conic-gradient(#1267e8 0 ${activePct}%, #98a2b3 ${activePct}% 100%)`;
-  }, [
-    overview,
-    rows.length,
-  ]);
+  const donutSegments = useMemo(
+    () => [
+      { label: "Active", value: overview.active, color: "var(--color-brand-600)" },
+      { label: "Inactive", value: overview.inactive, color: "#98a2b3" },
+    ],
+    [overview]
+  );
 
   function openCreate() {
     setEditId(null);
@@ -1276,22 +1270,7 @@ export default function DepartmentsPage() {
             </h3>
 
             <div className={styles.donutRow}>
-              <div
-                className={styles.donut}
-                style={{
-                  background: donut,
-                }}
-              >
-                <div>
-                  <strong>
-                    {rows.length}
-                  </strong>
-
-                  <span>
-                    Total
-                  </span>
-                </div>
-              </div>
+              <SharedDonut segments={donutSegments} size={108} strokeWidth={20} />
 
               <div className={styles.legend}>
                 <Legend

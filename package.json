@@ -52,5 +52,5 @@
     "tailwindcss": "^4",
     "typescript": "^5"
   },
-  "reqgenVersion": "2.0.0.10"
+  "reqgenVersion": "2.0.0.11"
 }

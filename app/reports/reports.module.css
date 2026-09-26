@@ -13,14 +13,4 @@
 .barRow{width:100%;border:0;background:transparent;padding:2px 0;text-align:left;font:inherit;cursor:pointer;border-radius:7px}.barRow:hover,.barRow:focus-visible{background:#f7fbff;outline:none}.barRow:focus-visible{box-shadow:0 0 0 2px rgba(18,105,243,.18)}.bars{max-height:340px;overflow:auto;padding-right:3px;scrollbar-gutter:stable}
 .legendRow:focus-visible{outline:2px solid #1269f3;outline-offset:2px}.legendRow{width:100%;border:0;background:transparent;padding:5px 6px;border-radius:6px;cursor:pointer}.legendRow:hover{background:#f7fbff}
 
-/* Single canonical donut chart rules — SVG stroke-circle technique, identical to the Dashboard's Donut component, so every donut in the app renders the same way. */
-.donut{position:relative;display:grid;place-items:center;width:108px;height:108px;min-width:108px;border-radius:50%;background:transparent}
-.donut svg{display:block;width:108px;height:108px;transform:rotate(-90deg);overflow:visible}
-.donutTrack,.donutSegment{fill:none;stroke-width:20}
-.donutTrack{stroke:#edf2f7}
-.donutSegment{cursor:pointer;transition:stroke-width .14s ease,opacity .14s ease}
-.donutSegment:hover{stroke-width:23;opacity:.92}
-.donutCenter{position:absolute;inset:24px;z-index:2;display:grid;place-content:center;text-align:center;border:0;border-radius:50%;background:#fff;color:#0a2145;padding:0;cursor:pointer;box-shadow:0 0 0 1px #eef2f6}
-.donutCenter strong{font-size:20px;line-height:1;font-weight:900}
-.donutCenter span{margin-top:4px;color:#7b8797;font-size:10px}
-.donut:focus-visible{outline:2px solid #1269f3;outline-offset:3px}
+/* Donut chart itself now lives in app/components/ui/Donut.tsx (self-contained, inline styles). Nothing donut-specific needed here anymore. */

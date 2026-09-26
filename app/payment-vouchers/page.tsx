@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { CalendarDays, CheckCircle2, ChevronRight, CircleX, Clock3, Download, FileSpreadsheet, MoreVertical, Plus, Search, Settings2, Users, WalletCards, X } from "lucide-react";
 import styles from "./payment-vouchers-overview.module.css";
+import { Donut as SharedDonut } from "@/app/components/ui/Donut";
 import { supabase } from "@/lib/supabaseClient";
 import { REQGEN_VERSION } from "@/lib/version";
 
@@ -1180,7 +1181,19 @@ export default function PaymentVouchersPage() {
           <section className={styles.sideCard}>
             <h3>Voucher Summary <span>(This Month)</span></h3>
             <div className={styles.summaryLayout}>
-              <div className={styles.donut} style={{background:`conic-gradient(#10b981 0 ${approvedPct}%, #f59e0b ${approvedPct}% ${approvedPct+pendingPct}%, #ef4444 ${approvedPct+pendingPct}% ${approvedPct+pendingPct+rejectedPct}%, #2563eb ${approvedPct+pendingPct+rejectedPct}% 100%)`}}><div><strong>{naira(stats.totalAmount)}</strong><span>Total Amount</span></div></div>
+              <SharedDonut
+                segments={[
+                  { label: "Approved", value: approvedAmount, color: "#10b981" },
+                  { label: "Pending", value: pendingAmount, color: "#f59e0b" },
+                  { label: "Rejected", value: rejectedAmount, color: "#ef4444" },
+                  { label: "Others", value: otherAmount, color: "#2563eb" },
+                ]}
+                size={116}
+                strokeWidth={22}
+                centerLabel="Total Amount"
+                formatTotal={() => <strong style={{ fontSize: 15, lineHeight: 1.15, fontWeight: 900 }}>{naira(stats.totalAmount)}</strong>}
+                formatValue={(v, label) => `${label}: ${naira(v)}`}
+              />
               <div className={styles.legend}>
                 <SummaryLegend color="green" label="Approved" amount={approvedAmount} percent={approvedPct} />
                 <SummaryLegend color="amber" label="Pending" amount={pendingAmount} percent={pendingPct} />

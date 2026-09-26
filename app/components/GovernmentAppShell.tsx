@@ -713,8 +713,7 @@ function GovernmentAppShellContent({
 
         <div className="rg-sidebar-release" aria-label={`ReqGen version ${REQGEN_VERSION}`}>
           <span>Version</span>
-          <strong>{REQGEN_VERSION}</strong>
-          <small>Phase 8 · Stabilised</small>
+          <strong className="rg-sidebar-release-version">{REQGEN_VERSION}</strong>
         </div>
 
         <div className="rg-sidebar-signout">

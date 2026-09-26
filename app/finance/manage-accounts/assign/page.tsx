@@ -23,6 +23,7 @@ import {
 import { supabase } from "@/lib/supabaseClient";
 import { REQGEN_VERSION } from "@/lib/version";
 import styles from "./assign-bank.module.css";
+import { Donut as SharedDonut } from "@/app/components/ui/Donut";
 
 type Profile = {
   id: string;
@@ -233,12 +234,12 @@ export default function AssignBankToOfficerPage() {
     return { activeAssigned, inactiveAssigned, unassignedOfficers, availableAccounts, total };
   }, [accounts, assignments, assignedAccountIds.size, assignedOfficerIds.size, accountMap, officers.length]);
 
-  const donutBackground = useMemo(() => {
-    const p1 = (summary.activeAssigned / summary.total) * 100;
-    const p2 = p1 + (summary.availableAccounts / summary.total) * 100;
-    const p3 = p2 + (summary.unassignedOfficers / summary.total) * 100;
-    return `conic-gradient(#11a35c 0 ${p1}%,#0d63f3 ${p1}% ${p2}%,#7c3aed ${p2}% ${p3}%,#f59e0b ${p3}% 100%)`;
-  }, [summary]);
+  const donutSegments = useMemo(() => [
+    { label: "Active Assigned", value: summary.activeAssigned, color: "#11a35c" },
+    { label: "Available Accounts", value: summary.availableAccounts, color: "#0d63f3" },
+    { label: "Unassigned Officers", value: summary.unassignedOfficers, color: "#7c3aed" },
+    { label: "Inactive Assigned", value: summary.inactiveAssigned, color: "#f59e0b" },
+  ], [summary]);
 
   function openAssign(accountId = "", officerId = "") {
     setSelectedAccountId(accountId);
@@ -397,7 +398,7 @@ export default function AssignBankToOfficerPage() {
           <div className={styles.sideCard}>
             <h2>Assignment Summary</h2>
             <div className={styles.donutWrap}>
-              <div className={styles.donut} tabIndex={0} role="img" aria-label={`Assignment summary: ${assignments.length} assigned`} title={`${assignments.length} assigned account routes`} style={{ background: donutBackground }}><span>{assignments.length}<small>Assigned</small></span></div>
+              <SharedDonut segments={donutSegments} size={108} strokeWidth={20} centerLabel="Assigned" formatTotal={() => <strong style={{ fontSize: 20, lineHeight: 1, fontWeight: 900 }}>{assignments.length}</strong>} />
               <div className={styles.legend}>
                 <Legend color="#11a35c" label="Active assignments" value={summary.activeAssigned}/>
                 <Legend color="#0d63f3" label="Available accounts" value={summary.availableAccounts}/>
