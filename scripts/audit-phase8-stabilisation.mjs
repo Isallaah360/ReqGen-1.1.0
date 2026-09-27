@@ -13,7 +13,7 @@ const audit = read("app/audit-centre/page.tsx");
 const globals = read("app/globals.css");
 const shell = read("app/components/GovernmentAppShell.tsx");
 check("Dashboard category/status charts use the shared SVG Donut component", dashboard.includes('from "@/app/components/ui/Donut"') && dashboard.includes("SharedDonut") && !dashboard.includes("conic-gradient"));
-check("Shared Donut centre is a real circular control, not inset-shorthand-dependent", sharedDonut.includes("borderRadius: \"50%\"") && sharedDonut.includes('aspectRatio: "1"') && !sharedDonut.includes("inset:"));
+check("Shared Donut centre is pure SVG (no HTML overlay button to misalign)", sharedDonut.includes("<circle") && sharedDonut.includes("<text") && !/\n\s*<button/.test(sharedDonut) && !sharedDonut.includes("inset:"));
 check("Dashboard remains personal-data scoped", dashboard.includes('.eq("created_by", auth.user.id)'));
 check("Registry loads requests", registry.includes('.from("requests")'));
 check("Registry loads request history", registry.includes('.from("request_history")'));

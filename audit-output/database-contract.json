@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-25T11:43:47.862Z",
+  "generatedAt": "2026-09-27T05:15:27.112Z",
   "summary": {
     "tables": 30,
     "rpcs": 25,
@@ -530,11 +530,6 @@
     },
     {
       "kind": "table",
-      "name": "payment_vouchers",
-      "file": "app/components/payment-vouchers/VoucherRegisterView.tsx"
-    },
-    {
-      "kind": "table",
       "name": "departments",
       "file": "app/components/registry/RegistryArchiveWorkspace.tsx"
     },
@@ -562,11 +557,6 @@
       "kind": "table",
       "name": "registry_correspondence",
       "file": "app/components/registry/RegistryArchiveWorkspace.tsx"
-    },
-    {
-      "kind": "table",
-      "name": "registry_correspondence",
-      "file": "app/components/registry/RegistryCentre.tsx"
     },
     {
       "kind": "table",
@@ -602,11 +592,6 @@
       "kind": "table",
       "name": "registry_correspondence",
       "file": "app/components/registry/RegistryCentreWorkspace.tsx"
-    },
-    {
-      "kind": "table",
-      "name": "registry_correspondence",
-      "file": "app/components/registry/RegistryRegister.tsx"
     },
     {
       "kind": "table",
@@ -717,36 +702,6 @@
       "kind": "table",
       "name": "iet_accounts",
       "file": "app/finance/_components/FinanceOperationsWorkspace.tsx"
-    },
-    {
-      "kind": "table",
-      "name": "profiles",
-      "file": "app/finance/_components/FinanceOutputWorkspace.tsx"
-    },
-    {
-      "kind": "table",
-      "name": "profile_roles",
-      "file": "app/finance/_components/FinanceOutputWorkspace.tsx"
-    },
-    {
-      "kind": "table",
-      "name": "departments",
-      "file": "app/finance/_components/FinanceOutputWorkspace.tsx"
-    },
-    {
-      "kind": "table",
-      "name": "subheads",
-      "file": "app/finance/_components/FinanceOutputWorkspace.tsx"
-    },
-    {
-      "kind": "table",
-      "name": "payment_vouchers",
-      "file": "app/finance/_components/FinanceOutputWorkspace.tsx"
-    },
-    {
-      "kind": "table",
-      "name": "finance_transactions",
-      "file": "app/finance/_components/FinanceOutputWorkspace.tsx"
     },
     {
       "kind": "table",

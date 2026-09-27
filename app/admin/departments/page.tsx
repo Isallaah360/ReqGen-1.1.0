@@ -428,7 +428,7 @@ export default function DepartmentsPage() {
   const donutSegments = useMemo(
     () => [
       { label: "Active", value: overview.active, color: "var(--color-brand-600)" },
-      { label: "Inactive", value: overview.inactive, color: "#98a2b3" },
+      { label: "Inactive", value: overview.inactive, color: "var(--color-chart-8)" },
     ],
     [overview]
   );
@@ -1274,28 +1274,28 @@ export default function DepartmentsPage() {
 
               <div className={styles.legend}>
                 <Legend
-                  color="#1267e8"
+                  color="var(--color-brand-600)"
                   label="Active Departments"
                   value={overview.active}
                   total={rows.length}
                 />
 
                 <Legend
-                  color="#98a2b3"
+                  color="var(--color-chart-8)"
                   label="Inactive Departments"
                   value={overview.inactive}
                   total={rows.length}
                 />
 
                 <Legend
-                  color="#17a66b"
+                  color="var(--color-success-600)"
                   label="With Subheads"
                   value={overview.withSubheads}
                   total={rows.length}
                 />
 
                 <Legend
-                  color="#7c3aed"
+                  color="var(--color-chart-4)"
                   label="With Staff"
                   value={overview.withStaff}
                   total={rows.length}

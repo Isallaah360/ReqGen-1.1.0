@@ -1,6 +1,6 @@
 {
   "summary": {
-    "checkedAt": "2026-09-25T11:43:48.187Z",
+    "checkedAt": "2026-09-27T05:15:27.384Z",
     "pages": 85,
     "pass": 85,
     "review": 0
@@ -38,7 +38,7 @@
       "forms": 0,
       "selects": 0,
       "dialogs": 0,
-      "charts": 2,
+      "charts": 5,
       "status": "PASS",
       "blockers": []
     },
@@ -86,7 +86,7 @@
       "forms": 0,
       "selects": 5,
       "dialogs": 8,
-      "charts": 4,
+      "charts": 7,
       "status": "PASS",
       "blockers": []
     },
@@ -230,7 +230,7 @@
       "forms": 0,
       "selects": 0,
       "dialogs": 0,
-      "charts": 15,
+      "charts": 13,
       "status": "PASS",
       "blockers": []
     },
@@ -398,7 +398,7 @@
       "forms": 0,
       "selects": 6,
       "dialogs": 12,
-      "charts": 4,
+      "charts": 7,
       "status": "PASS",
       "blockers": []
     },
@@ -530,7 +530,7 @@
       "forms": 0,
       "selects": 7,
       "dialogs": 8,
-      "charts": 4,
+      "charts": 7,
       "status": "PASS",
       "blockers": []
     },
@@ -626,7 +626,7 @@
       "forms": 0,
       "selects": 10,
       "dialogs": 15,
-      "charts": 1,
+      "charts": 4,
       "status": "PASS",
       "blockers": []
     },
@@ -890,7 +890,7 @@
       "forms": 0,
       "selects": 3,
       "dialogs": 0,
-      "charts": 11,
+      "charts": 7,
       "status": "PASS",
       "blockers": []
     },
@@ -914,7 +914,7 @@
       "forms": 0,
       "selects": 3,
       "dialogs": 0,
-      "charts": 1,
+      "charts": 4,
       "status": "PASS",
       "blockers": []
     },

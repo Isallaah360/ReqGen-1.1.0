@@ -641,11 +641,11 @@ export default function FinanceSubheadsPage() {
   const donutSegments =
     useMemo(() => {
       const colors = [
-        "#1677ff",
-        "#16a36a",
-        "#f59e0b",
-        "#7c3aed",
-        "#94a3b8",
+        "var(--color-chart-1)",
+        "var(--color-chart-2)",
+        "var(--color-chart-3)",
+        "var(--color-chart-4)",
+        "var(--color-chart-8)",
       ];
       return categoryData.map((item, index) => ({ label: item.label, value: item.value, color: colors[index] }));
     }, [categoryData]);
@@ -1724,17 +1724,17 @@ export default function FinanceSubheadsPage() {
             </h3>
 
             <div className={styles.donutRow}>
-              <SharedDonut segments={donutSegments} size={108} strokeWidth={20} centerLabel="Total" formatTotal={() => <strong style={{ fontSize: 20, lineHeight: 1, fontWeight: 900 }}>{total}</strong>} />
+              <SharedDonut segments={donutSegments} size={108} strokeWidth={20} centerLabel="Total" formatTotal={() => String(total)} />
 
               <div className={styles.legend}>
                 {categoryData.map(
                   (item, index) => {
                     const colors = [
-                      "#1677ff",
-                      "#16a36a",
-                      "#f59e0b",
-                      "#7c3aed",
-                      "#94a3b8",
+                      "var(--color-chart-1)",
+                      "var(--color-chart-2)",
+                      "var(--color-chart-3)",
+                      "var(--color-chart-4)",
+                      "var(--color-chart-8)",
                     ];
 
                     return (

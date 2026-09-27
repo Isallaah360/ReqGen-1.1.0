@@ -6,8 +6,8 @@ import type { ReactNode } from "react";
 export type Tone = "slate" | "blue" | "cyan" | "emerald" | "violet" | "amber" | "rose";
 
 const accent: Record<Tone, string> = {
-  slate: "#334155", blue: "#0b5cf0", cyan: "#0891b2", emerald: "#129a67",
-  violet: "#7047e8", amber: "#ef8c18", rose: "#e84655",
+  slate: "#334155", blue: "var(--color-brand-600)", cyan: "var(--color-info-500)", emerald: "var(--color-success-600)",
+  violet: "var(--color-chart-4)", amber: "var(--color-warning-600)", rose: "var(--color-danger-600)",
 };
 
 export function EnterpriseShell({ children }: { children: ReactNode }) {

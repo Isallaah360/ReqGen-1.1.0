@@ -1,11 +1,11 @@
 {
   "summary": {
-    "candidates": 18,
-    "withPrintCall": 7,
-    "withPrintCss": 10,
-    "withA4": 9,
-    "withLogo": 5,
-    "generatedAt": "2026-09-25T11:43:48.323Z"
+    "candidates": 14,
+    "withPrintCall": 6,
+    "withPrintCss": 7,
+    "withA4": 7,
+    "withLogo": 3,
+    "generatedAt": "2026-09-27T05:15:27.492Z"
   },
   "results": [
     {
@@ -36,24 +36,6 @@
       "hasLogoReference": false
     },
     {
-      "file": "app/components/print/EnterprisePrintDocument.tsx",
-      "hasPrintCall": false,
-      "hasPrintCss": false,
-      "hasNoPrintClass": false,
-      "hasA4": false,
-      "hasPageBreakControl": false,
-      "hasLogoReference": true
-    },
-    {
-      "file": "app/components/print/PrintEngineStyles.tsx",
-      "hasPrintCall": false,
-      "hasPrintCss": true,
-      "hasNoPrintClass": true,
-      "hasA4": true,
-      "hasPageBreakControl": true,
-      "hasLogoReference": false
-    },
-    {
       "file": "app/components/registry/RegistryArchiveWorkspace.tsx",
       "hasPrintCall": true,
       "hasPrintCss": false,
@@ -61,24 +43,6 @@
       "hasA4": false,
       "hasPageBreakControl": false,
       "hasLogoReference": false
-    },
-    {
-      "file": "app/components/ui/ReportsUI.tsx",
-      "hasPrintCall": false,
-      "hasPrintCss": true,
-      "hasNoPrintClass": true,
-      "hasA4": false,
-      "hasPageBreakControl": true,
-      "hasLogoReference": false
-    },
-    {
-      "file": "app/finance/_components/FinanceOutputWorkspace.tsx",
-      "hasPrintCall": true,
-      "hasPrintCss": true,
-      "hasNoPrintClass": true,
-      "hasA4": true,
-      "hasPageBreakControl": true,
-      "hasLogoReference": true
     },
     {
       "file": "app/finance/audit/page.tsx",

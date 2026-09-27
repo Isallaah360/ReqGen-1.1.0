@@ -81,8 +81,8 @@ export default function ReportsCentrePage() {
   const approvalHistory = useMemo(() => data.history.filter(h => /approve|reject/i.test(text(h.action_type)) && inRange(h, dateFrom, dateTo)), [data.history, dateFrom, dateTo]);
   const statusOptions = useMemo(() => Array.from(new Set([...data.requests, ...data.vouchers, ...data.registry].map(r => text(r.status).toLowerCase()).filter(Boolean))).sort(), [data]);
   const summary = [
-    { label: "Requests", value: filteredRequests.length, color: "#1269f3" }, { label: "Approvals", value: approvedRequests.length, color: "#18a56d" },
-    { label: "Finance", value: filteredTx.length, color: "#f1a21a" }, { label: "Payment Vouchers", value: filteredVouchers.length, color: "#7e56d8" }, { label: "Registry", value: filteredRegistry.length, color: "#e95663" },
+    { label: "Requests", value: filteredRequests.length, color: "var(--color-chart-1)" }, { label: "Approvals", value: approvedRequests.length, color: "var(--color-chart-2)" },
+    { label: "Finance", value: filteredTx.length, color: "var(--color-chart-3)" }, { label: "Payment Vouchers", value: filteredVouchers.length, color: "var(--color-chart-4)" }, { label: "Registry", value: filteredRegistry.length, color: "var(--color-chart-5)" },
   ];
 
   const tableRows = useMemo(() => {

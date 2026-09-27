@@ -1191,7 +1191,7 @@ export default function PaymentVouchersPage() {
                 size={116}
                 strokeWidth={22}
                 centerLabel="Total Amount"
-                formatTotal={() => <strong style={{ fontSize: 15, lineHeight: 1.15, fontWeight: 900 }}>{naira(stats.totalAmount)}</strong>}
+                formatTotal={() => naira(stats.totalAmount)}
                 formatValue={(v, label) => `${label}: ${naira(v)}`}
               />
               <div className={styles.legend}>

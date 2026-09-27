@@ -1,9 +1,9 @@
 {
-  "generatedAt": "2026-09-25T11:43:48.675Z",
+  "generatedAt": "2026-09-27T05:15:27.774Z",
   "scope": "ReqGen Sections 5-10 adopted-shell source/function audit",
-  "overall": 80,
+  "overall": 75,
   "totalChecks": 20,
-  "passedChecks": 16,
+  "passedChecks": 15,
   "cssPass": true,
   "conflicts": [],
   "shared": [
@@ -21,7 +21,7 @@
     },
     {
       "file": "app/components/ui/ReportsUI.tsx",
-      "exists": true
+      "exists": false
     },
     {
       "file": "app/components/GovernmentAppShell.tsx",
