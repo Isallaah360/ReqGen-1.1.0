@@ -44,9 +44,9 @@ function hashOtp(code: string) {
 }
 
 function makeOtp() {
-  return String(
-    Math.floor(100000 + Math.random() * 900000)
-  );
+  // crypto.randomInt is a cryptographically secure RNG. Math.random() is
+  // predictable and must never be used to generate security codes.
+  return String(crypto.randomInt(100000, 1000000));
 }
 
 function boolEnv(name: string) {

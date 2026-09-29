@@ -1183,10 +1183,10 @@ export default function PaymentVouchersPage() {
             <div className={styles.summaryLayout}>
               <SharedDonut
                 segments={[
-                  { label: "Approved", value: approvedAmount, color: "#10b981" },
-                  { label: "Pending", value: pendingAmount, color: "#f59e0b" },
-                  { label: "Rejected", value: rejectedAmount, color: "#ef4444" },
-                  { label: "Others", value: otherAmount, color: "#2563eb" },
+                  { label: "Approved", value: approvedAmount, color: "var(--color-success-600)" },
+                  { label: "Pending", value: pendingAmount, color: "var(--color-warning-600)" },
+                  { label: "Rejected", value: rejectedAmount, color: "var(--color-danger-600)" },
+                  { label: "Others", value: otherAmount, color: "var(--color-brand-600)" },
                 ]}
                 size={116}
                 strokeWidth={22}

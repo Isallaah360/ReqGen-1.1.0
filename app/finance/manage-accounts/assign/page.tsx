@@ -235,10 +235,10 @@ export default function AssignBankToOfficerPage() {
   }, [accounts, assignments, assignedAccountIds.size, assignedOfficerIds.size, accountMap, officers.length]);
 
   const donutSegments = useMemo(() => [
-    { label: "Active Assigned", value: summary.activeAssigned, color: "#11a35c" },
-    { label: "Available Accounts", value: summary.availableAccounts, color: "#0d63f3" },
-    { label: "Unassigned Officers", value: summary.unassignedOfficers, color: "#7c3aed" },
-    { label: "Inactive Assigned", value: summary.inactiveAssigned, color: "#f59e0b" },
+    { label: "Active Assigned", value: summary.activeAssigned, color: "var(--color-success-600)" },
+    { label: "Available Accounts", value: summary.availableAccounts, color: "var(--color-brand-600)" },
+    { label: "Unassigned Officers", value: summary.unassignedOfficers, color: "var(--color-chart-4)" },
+    { label: "Inactive Assigned", value: summary.inactiveAssigned, color: "var(--color-warning-600)" },
   ], [summary]);
 
   function openAssign(accountId = "", officerId = "") {
@@ -400,10 +400,10 @@ export default function AssignBankToOfficerPage() {
             <div className={styles.donutWrap}>
               <SharedDonut segments={donutSegments} size={108} strokeWidth={20} centerLabel="Assigned" formatTotal={() => String(assignments.length)} />
               <div className={styles.legend}>
-                <Legend color="#11a35c" label="Active assignments" value={summary.activeAssigned}/>
-                <Legend color="#0d63f3" label="Available accounts" value={summary.availableAccounts}/>
-                <Legend color="#7c3aed" label="Unassigned officers" value={summary.unassignedOfficers}/>
-                <Legend color="#f59e0b" label="Inactive assignments" value={summary.inactiveAssigned}/>
+                <Legend color="var(--color-success-600)" label="Active assignments" value={summary.activeAssigned}/>
+                <Legend color="var(--color-brand-600)" label="Available accounts" value={summary.availableAccounts}/>
+                <Legend color="var(--color-chart-4)" label="Unassigned officers" value={summary.unassignedOfficers}/>
+                <Legend color="var(--color-warning-600)" label="Inactive assignments" value={summary.inactiveAssigned}/>
               </div>
             </div>
           </div>

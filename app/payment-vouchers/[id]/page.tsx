@@ -622,7 +622,7 @@ export default function PaymentVoucherDetailPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,_#eff6ff,_#f8fafc_36%,_#f1f5f9)] px-3 sm:px-4">
+    <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,_var(--color-brand-50),_#f8fafc_36%,_#f1f5f9)] px-3 sm:px-4">
       <div className="mx-auto max-w-7xl py-6 sm:py-8">
         <PVHero
           eyebrow="Voucher Control Workspace"

@@ -263,6 +263,20 @@ export async function POST(req: NextRequest) {
 
   const requestData = requestRow as RequestRow;
 
+  // Only the request's creator or its current approval officer may trigger
+  // notifications for it (same rule as request-approval). Without this check,
+  // any logged-in user could send SMS/email — and spend SMS credit — for any
+  // request ID they could guess.
+  if (
+    requestData.created_by !== user.id &&
+    requestData.current_owner !== user.id
+  ) {
+    return jsonError(
+      "You are not allowed to send notifications for this request.",
+      403
+    );
+  }
+
   const recipientUserId =
     event === "submission_success"
       ? requestData.created_by

@@ -22,26 +22,14 @@ export const PUBLIC_PATHS = [
  * getRoutePolicy also sorts by prefix length as a defensive safeguard.
  */
 export const ROUTE_POLICIES: RoutePolicy[] = [
-  { prefix: "/erp-2/settings", roles: ["admin"] },
-  { prefix: "/erp-2/audit", roles: ["admin", "auditor"] },
-  { prefix: "/erp-2/reports", roles: ["admin", "auditor"] },
-  { prefix: "/erp-2/finance", roles: ["admin", "auditor", "account", "accounts", "accountofficer"] },
-  { prefix: "/erp-2/vouchers", roles: ["admin", "auditor", "account", "accounts", "accountofficer", "pvsigner", "pvcountersigner"] },
-  { prefix: "/erp-2/dashboard", authenticatedOnly: true },
-  { prefix: "/erp-2/requests", authenticatedOnly: true },
-  { prefix: "/erp-2/approvals", authenticatedOnly: true },
-  { prefix: "/erp-2/profile", authenticatedOnly: true },
-  { prefix: "/erp-2/notifications", authenticatedOnly: true },
   { prefix: "/admin/account-routing", roles: ["admin"] },
   { prefix: "/admin/departments", roles: ["admin"] },
-  { prefix: "/admin/subheads", roles: ["admin"] },
   { prefix: "/admin/settings", roles: ["admin"] },
   { prefix: "/admin/users", roles: ["admin"] },
   { prefix: "/admin/roles", roles: ["admin"] },
   { prefix: "/admin/security", roles: ["admin", "auditor"] },
   { prefix: "/admin", roles: ["admin"] },
 
-  { prefix: "/executive", roles: ["admin"] },
   { prefix: "/audit-centre", roles: ["admin", "auditor"] },
   { prefix: "/workflow", roles: ["admin", "auditor"] },
   { prefix: "/payment-vouchers/settings", roles: ["admin", "auditor"] },
@@ -71,17 +59,15 @@ export const ROUTE_POLICIES: RoutePolicy[] = [
   { prefix: "/registry", roles: ["admin", "auditor", "registry", "registrar"] },
   { prefix: "/reports", roles: ["admin", "auditor"] },
 
-  { prefix: "/hr", authenticatedOnly: true },
-  { prefix: "/staff", authenticatedOnly: true },
   { prefix: "/test-supabase", roles: ["admin"] },
   { prefix: "/change-password", authenticatedOnly: true },
   { prefix: "/output", roles: ["admin", "auditor"] },
   { prefix: "/approvals", authenticatedOnly: true },
   { prefix: "/requests", authenticatedOnly: true },
   { prefix: "/dashboard", authenticatedOnly: true },
-  { prefix: "/notifications", authenticatedOnly: true },
   { prefix: "/profile", authenticatedOnly: true },
-  { prefix: "/settings", authenticatedOnly: true },
+  { prefix: "/about", authenticatedOnly: true },
+  { prefix: "/docs", authenticatedOnly: true },
 ];
 
 export function isPublicPath(pathname: string): boolean {

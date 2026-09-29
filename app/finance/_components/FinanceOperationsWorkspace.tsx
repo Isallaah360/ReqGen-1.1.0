@@ -1886,9 +1886,9 @@ export default function FinanceOperationsWorkspace({
             >
               <SharedDonut
                 segments={[
-                  { label: "Posted / Credit", value: posted, color: "#1267e8" },
-                  { label: "Pending / Debit", value: pending, color: "#13a16d" },
-                  { label: "Other", value: Math.max(rows.length - posted - pending, 0), color: "#ff9d24" },
+                  { label: "Posted / Credit", value: posted, color: "var(--color-brand-600)" },
+                  { label: "Pending / Debit", value: pending, color: "var(--color-success-600)" },
+                  { label: "Other", value: Math.max(rows.length - posted - pending, 0), color: "var(--color-warning-600)" },
                 ]}
                 size={100}
                 strokeWidth={18}
@@ -1900,7 +1900,7 @@ export default function FinanceOperationsWorkspace({
                 }
               >
                 <div>
-                  <Dot color="#1267e8" />
+                  <Dot color="var(--color-brand-600)" />
                   <span>
                     Posted /
                     Credit
@@ -1911,7 +1911,7 @@ export default function FinanceOperationsWorkspace({
                 </div>
 
                 <div>
-                  <Dot color="#13a16d" />
+                  <Dot color="var(--color-success-600)" />
                   <span>
                     Pending /
                     Debit
@@ -1922,7 +1922,7 @@ export default function FinanceOperationsWorkspace({
                 </div>
 
                 <div>
-                  <Dot color="#ff9d24" />
+                  <Dot color="var(--color-warning-600)" />
                   <span>
                     Other
                   </span>
@@ -3393,12 +3393,12 @@ function MonthlyPage({
               }
             >
               <span>
-                <Dot color="#1267e8" />
+                <Dot color="var(--color-brand-600)" />
                 Income
               </span>
 
               <span>
-                <Dot color="#13a16d" />
+                <Dot color="var(--color-success-600)" />
                 Expense
               </span>
             </div>

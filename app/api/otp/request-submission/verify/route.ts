@@ -104,7 +104,13 @@ export async function POST(req: NextRequest) {
 
   const incomingHash = hashOtp(code);
 
-  if (incomingHash !== row.otp_hash) {
+  const storedHash = Buffer.from(String(row.otp_hash || ""), "hex");
+  const providedHash = Buffer.from(incomingHash, "hex");
+  const hashesMatch =
+    storedHash.length === providedHash.length &&
+    crypto.timingSafeEqual(storedHash, providedHash);
+
+  if (!hashesMatch) {
     await adminClient
       .from("sms_otps")
       .update({
