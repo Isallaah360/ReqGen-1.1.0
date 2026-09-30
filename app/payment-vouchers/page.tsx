@@ -6,6 +6,7 @@ import { CalendarDays, CheckCircle2, ChevronRight, CircleX, Clock3, Download, Fi
 import styles from "./payment-vouchers-overview.module.css";
 import { Donut as SharedDonut } from "@/app/components/ui/Donut";
 import { supabase } from "@/lib/supabaseClient";
+import { PersonName } from "@/app/components/ui/PersonName";
 import { REQGEN_VERSION } from "@/lib/version";
 
 type VoucherRow = {
@@ -1164,7 +1165,7 @@ export default function PaymentVouchersPage() {
                   <td><span className={styles.departmentTag}>{v.dept_name || "—"}</span></td>
                   <td className={`${styles.right} ${styles.amount}`}>{Number(v.total_amount || v.amount || 0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
                   <td><span className={`${styles.status} ${styles[`status_${normalize(v.status)||"default"}`]||styles.status_default}`}>{normalize(v.status)==="cancelled"?"Rejected":v.status||"—"}</span></td>
-                  <td>{v.prepared_by_name || "—"}</td>
+                  <td><PersonName name={v.prepared_by_name} /></td>
                   <td>{workspaceView === "print" ? <button className={styles.printAction} onClick={() => printVoucher(v.id)}>Print / PDF</button> : <div className={styles.moreWrap}><button className={styles.actionDots} title="Voucher actions" onClick={()=>setMoreOpen(moreOpen===v.id?null:v.id)}><MoreVertical size={17}/></button>{moreOpen===v.id?<div className={styles.moreMenu}><button onClick={()=>openVoucher(v.id)}>View details</button><button onClick={()=>printVoucher(v.id)}>Print / PDF</button>{canDeleteVoucher?<button className={styles.dangerText} onClick={()=>deleteVoucher(v)}>Delete voucher</button>:null}</div>:null}</div>}</td>
                 </tr>) : <tr><td colSpan={8} className={styles.empty}>No payment voucher found for the selected filter.</td></tr>}
               </tbody>

@@ -20,7 +20,7 @@ check("Registry loads payment vouchers", registry.includes('.from("payment_vouch
 check("Registry exposes workflow stage counts", registry.includes("Request Workflow Movement") && registry.includes("FLOW_STAGES"));
 check("Registry exposes three live account queues without fabricated values", registry.includes("slice(0, 3)") && registry.includes("No requests are currently in Account processing."));
 check("Registry exposes request-linked and manual PV counts", registry.includes("Request-linked PVs") && registry.includes("Manual PVs"));
-check("Registry request movements have view and more actions", registry.includes("View request") && registry.includes("More actions") && registry.includes("Movement Details"));
+check("Registry tracks movement only: no links to open request contents (v3.0.2)", !registry.includes("/requests/${") && !registry.includes("router.push(`/requests/") && registry.includes("RequestTrackingPanel") && fs.readFileSync(path.join(root, "lib/permissions.ts"), "utf8").includes('roles: ["registry"]'));
 check("Registry uses approved tabs contract", registry.includes('data-rg-tabs="true"') && registry.includes("aria-selected"));
 check("Registry has compact workflow intelligence styles", registryCss.includes(".workflowGrid") && registryCss.includes(".flowRow") && registryCss.includes(".rowActions"));
 check("Audit unstable daily bars were replaced", audit.includes("14-Day Activity Summary") && audit.includes("14-Day Total") && !audit.includes("Daily Activity Trend"));

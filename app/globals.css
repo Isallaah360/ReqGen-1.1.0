@@ -4309,3 +4309,184 @@ body{font-family:Aptos,"Segoe UI",Inter,Arial,sans-serif!important;background:va
 @media(prefers-reduced-motion:reduce){
   .rg-module-tabs a,.rg-module-tab-no,.rg-nav-link,.rg-profile-photo-btn{transition:none!important}
 }
+
+/* ========================================================================== */
+/* ReqGen v3.0.2 — Design system standard                                     */
+/* Tabs · buttons · icon actions · tables · modals · page headers             */
+/* Selectors are deliberately specific (html body …) so this block wins over  */
+/* every older layered rule — one consistent look across all modules.         */
+/* ========================================================================== */
+:root{
+  --rg-tab-h:40px;--rg-tab-font:13px;--rg-tab-radius:9px;
+  --rg-danger:#d92d3f;--rg-danger-soft:#fff1f2;--rg-success:#129a67;--rg-warning:#c9760a;
+}
+
+/* ---- Sign out: red, because it ends the session ------------------------ */
+html body .rg-sidebar-signout button{border-color:#f3c2c8!important;background:var(--rg-danger-soft)!important;color:var(--rg-danger)!important;font-weight:850!important}
+html body .rg-sidebar-signout button:hover{background:var(--rg-danger)!important;border-color:var(--rg-danger)!important;color:#fff!important}
+html body .rg-sidebar-signout button:focus-visible{outline:2px solid var(--rg-danger);outline-offset:2px}
+
+/* ---- Tabs: ONE standard for module tabs and in-page section tabs -------- */
+html body .rg-content [data-rg-tabs="true"],
+html body .rg-content [role="tablist"]{
+  display:flex!important;flex-wrap:nowrap!important;align-items:stretch!important;gap:6px!important;
+  width:100%!important;max-width:100%!important;margin-block:4px 16px;padding:6px!important;
+  overflow-x:auto!important;overflow-y:hidden!important;overscroll-behavior-x:contain;scroll-snap-type:x proximity;
+  border:1px solid var(--rg3-line)!important;border-radius:12px!important;background:#fff!important;box-shadow:none!important;
+  scrollbar-width:thin;-webkit-overflow-scrolling:touch
+}
+/* Older markup wraps the buttons in an extra flex div: flatten it. */
+html body .rg-content [data-rg-tabs="true"]>div,html body .rg-content [role="tablist"]>div{display:contents!important}
+html body .rg-content [data-rg-tabs="true"] :is(button,a),
+html body .rg-content [role="tablist"] :is(button,a),
+html body .rg-module-tabs a{
+  flex:1 1 0!important;min-width:max-content!important;height:var(--rg-tab-h)!important;min-height:var(--rg-tab-h)!important;
+  display:inline-flex!important;align-items:center!important;justify-content:center!important;gap:8px!important;
+  margin:0!important;padding:0 16px!important;scroll-snap-align:start;
+  border:1px solid transparent!important;border-radius:var(--rg-tab-radius)!important;
+  background:transparent!important;color:#34465f!important;box-shadow:none!important;
+  font-family:var(--rg3-font)!important;font-size:var(--rg-tab-font)!important;font-weight:750!important;line-height:1!important;
+  letter-spacing:0!important;text-transform:none!important;white-space:nowrap!important;text-decoration:none!important;
+  transform:none!important;cursor:pointer;
+  transition:background .16s ease,color .16s ease,border-color .16s ease,box-shadow .16s ease!important
+}
+html body .rg-content [data-rg-tabs="true"] :is(button,a):hover,
+html body .rg-content [role="tablist"] :is(button,a):hover,
+html body .rg-module-tabs a:hover{background:#f2f6fc!important;border-color:var(--rg3-line)!important;color:var(--rg3-blue)!important}
+html body .rg-content [data-rg-tabs="true"] :is(button,a):is([aria-selected="true"],[aria-current="page"],.is-active,[class*="ctive"],.reqgen-btn-blue),
+html body .rg-content [role="tablist"] :is(button,a):is([aria-selected="true"],[aria-current="page"],.is-active,[class*="ctive"]),
+html body .rg-module-tabs a.is-active{
+  background:var(--rg3-blue)!important;border-color:var(--rg3-blue)!important;color:#fff!important;
+  box-shadow:0 4px 12px rgba(11,92,240,.22)!important
+}
+html body .rg-content [data-rg-tabs="true"] :is(button,a) svg,
+html body .rg-content [role="tablist"] :is(button,a) svg{width:15px;height:15px;flex:0 0 auto}
+html body .rg-content [data-rg-tabs="true"] :is(button,a):focus-visible,
+html body .rg-content [role="tablist"] :is(button,a):focus-visible,
+html body .rg-module-tabs a:focus-visible{outline:2px solid var(--rg3-blue)!important;outline-offset:2px!important}
+/* Module (numbered) strip keeps its soft background to mark it as level 1. */
+html body .rg-module-tabs{gap:6px;padding:6px;border-radius:12px;background:var(--rg3-soft)}
+
+/* ---- Buttons ------------------------------------------------------------ */
+.rg-btn{min-height:38px;display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:0 16px;
+  border:1px solid transparent;border-radius:9px;font-family:var(--rg3-font);font-size:13px!important;font-weight:800!important;
+  line-height:1;white-space:nowrap;cursor:pointer;text-decoration:none;
+  transition:background .16s ease,border-color .16s ease,color .16s ease,box-shadow .16s ease}
+.rg-btn:disabled{opacity:.55;cursor:not-allowed}
+.rg-btn:focus-visible{outline:2px solid var(--rg3-blue);outline-offset:2px}
+html body .rg-btn-primary{background:var(--rg3-blue)!important;border-color:var(--rg3-blue)!important;color:#fff!important}
+html body .rg-btn-primary:hover:not(:disabled){background:#0a4ed1!important}
+html body .rg-btn-secondary{background:#fff!important;border-color:#cfdbea!important;color:#17345f!important}
+html body .rg-btn-secondary:hover:not(:disabled){background:#f2f6fc!important;border-color:#9fbbe6!important;color:var(--rg3-blue)!important}
+html body .rg-btn-danger{background:var(--rg-danger)!important;border-color:var(--rg-danger)!important;color:#fff!important}
+
+/* ---- Icon row actions (eye · pen · power · bin) ---------------------------- */
+.rg-icon-actions{display:inline-flex;align-items:center;justify-content:flex-end;gap:6px;flex-wrap:nowrap}
+html body .rg-icon-action{width:34px!important;height:34px!important;min-width:34px!important;min-height:34px!important;padding:0!important;
+  display:inline-grid!important;place-items:center;border-radius:8px!important;border:1px solid #d9e3ef!important;background:#fff!important;
+  color:#40536d!important;cursor:pointer;box-shadow:none!important;transition:background .15s ease,color .15s ease,border-color .15s ease}
+html body .rg-icon-action svg{width:16px;height:16px}
+html body .rg-icon-action.is-primary{color:var(--rg3-blue)!important}
+html body .rg-icon-action.is-primary:hover:not(:disabled){background:var(--rg3-blue)!important;border-color:var(--rg3-blue)!important;color:#fff!important}
+html body .rg-icon-action.is-neutral:hover:not(:disabled){background:#eef3fa!important;color:#17345f!important}
+html body .rg-icon-action.is-success{color:var(--rg-success)!important}
+html body .rg-icon-action.is-success:hover:not(:disabled){background:var(--rg-success)!important;border-color:var(--rg-success)!important;color:#fff!important}
+html body .rg-icon-action.is-warning{color:var(--rg-warning)!important}
+html body .rg-icon-action.is-warning:hover:not(:disabled){background:var(--rg-warning)!important;border-color:var(--rg-warning)!important;color:#fff!important}
+html body .rg-icon-action.is-danger{color:var(--rg-danger)!important}
+html body .rg-icon-action.is-danger:hover:not(:disabled){background:var(--rg-danger)!important;border-color:var(--rg-danger)!important;color:#fff!important}
+html body .rg-icon-action:disabled{opacity:.38;cursor:not-allowed}
+html body .rg-icon-action:focus-visible{outline:2px solid var(--rg3-blue)!important;outline-offset:2px}
+
+/* ---- Tables: columns size to content, no dead space ---------------------- */
+html body .rg-content table.rg-std-table{width:100%!important;table-layout:auto!important}
+html body .rg-content .rg-std-table :is(th,td).rg-col-index{width:52px!important;min-width:52px;text-align:center!important;color:#7b879a}
+html body .rg-content .rg-std-table :is(th,td).rg-col-actions{width:1%!important;white-space:nowrap!important;text-align:right!important}
+html body .rg-content .rg-std-table :is(th,td).rg-col-fit{width:1%!important;white-space:nowrap!important}
+html body .rg-content .rg-std-table :is(th,td).rg-col-wide{min-width:320px!important;width:auto!important;text-align:left!important;white-space:normal!important;word-break:normal!important;overflow-wrap:break-word!important}
+html body .rg-content .rg-std-table td.rg-col-actions .rg-icon-actions{justify-content:flex-end}
+
+/* ---- Modal (centred pop-up forms) -------------------------------------- */
+.rg-modal-backdrop{position:fixed;inset:0;z-index:80;display:grid;place-items:center;padding:16px;background:rgba(7,27,77,.42);
+  backdrop-filter:blur(2px);animation:rgFade .16s ease}
+.rg-modal{width:min(680px,100%);max-height:calc(100dvh - 32px);overflow:auto;padding:22px;border-radius:14px;background:#fff;
+  border:1px solid var(--rg3-line);box-shadow:0 24px 60px rgba(7,27,77,.28);animation:rgRise .18s ease}
+@keyframes rgFade{from{opacity:0}to{opacity:1}}
+@keyframes rgRise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+/* ---- Page header (one per page, no duplicate headers) --------------------- */
+.rg-page-head{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:12px 20px;margin:2px 0 6px}
+.rg-page-head h1{margin:0;color:var(--rg3-navy);font-family:var(--rg3-font);font-size:26px!important;font-weight:900;letter-spacing:-.02em;line-height:1.15}
+.rg-page-head p{margin:5px 0 0;max-width:760px;color:var(--rg3-muted);font-size:13px!important;line-height:1.5}
+.rg-page-actions{display:flex;flex-wrap:wrap;gap:8px}
+.rg-alert{margin-top:12px;padding:11px 14px;border:1px solid var(--rg3-line);border-radius:10px;background:#fff;color:#17345f;font-size:13px;font-weight:650}
+.rg-print-only{display:none}
+@media print{.rg-print-only{display:block}}
+.rg-auto-grid-4{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr))}
+
+/* ---- System Settings: Save column sizes to its button (never clipped) ---- */
+html body .admin-v4-setting-row{grid-template-columns:minmax(180px,.72fr) minmax(0,1.5fr) auto!important}
+html body .admin-v4-setting-row .rg-btn{min-width:84px}
+@media(max-width:700px){html body .admin-v4-setting-row{grid-template-columns:1fr!important}html body .admin-v4-setting-row .rg-btn{width:100%}}
+
+/* ---- Mobile ------------------------------------------------------------- */
+@media(max-width:620px){
+  :root{--rg-tab-h:38px;--rg-tab-font:12.5px}
+  html body .rg-content [data-rg-tabs="true"] :is(button,a),
+  html body .rg-content [role="tablist"] :is(button,a),
+  html body .rg-module-tabs a{flex:0 0 auto!important;padding:0 13px!important}
+  .rg-page-head h1{font-size:22px!important}
+  .rg-modal{padding:16px}
+}
+@media(prefers-reduced-motion:reduce){.rg-modal-backdrop,.rg-modal{animation:none}}
+
+/* ---- v3.0.2 identity standard: every name is followed by its role ------ */
+.rg-person{display:inline-flex;align-items:center;flex-wrap:wrap;gap:4px 7px;min-width:0;vertical-align:middle}
+.rg-person>strong{font-weight:800;color:inherit}
+html body .rg-role-chip{display:inline-flex;align-items:center;min-height:20px;padding:1px 8px;border-radius:999px;
+  border:1px solid #cfe0f7;background:#eef5ff;color:#1452b8!important;font-size:11px!important;font-weight:800!important;
+  line-height:1.2;white-space:nowrap;letter-spacing:0;text-transform:none}
+
+/* ---- v3.0.2 Registry · Request Tracking ------------------------------- */
+.rg-track{display:grid;gap:14px;margin-top:4px}
+.rg-track-toolbar{display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px;padding:12px;border:1px solid var(--rg3-line);border-radius:12px;background:#fff}
+.rg-track-toolbar label{display:grid;gap:5px;color:#29405d;font-size:12px!important;font-weight:800}
+.rg-track-toolbar :is(select,input){min-height:38px;min-width:160px;padding:0 10px;border:1px solid #d5dfeb;border-radius:9px;background:#fff;color:#17233b;font-size:13px}
+.rg-track-toolbar-actions{display:flex;flex-wrap:wrap;gap:8px;margin-left:auto}
+.rg-track-note{margin:0;color:var(--rg3-muted);font-size:12.5px!important}
+.rg-track-kpis{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(min(100%,165px),1fr))}
+.rg-track-kpi{display:grid;gap:4px;padding:14px;border:1px solid var(--rg3-line);border-radius:12px;background:#fff}
+.rg-track-kpi span{color:#5b6b82;font-size:12px;font-weight:750}
+.rg-track-kpi strong{color:var(--rg3-navy);font-size:24px;font-weight:900;line-height:1.1}
+.rg-track-grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr))}
+.rg-track-card{min-width:0;padding:14px;border:1px solid var(--rg3-line);border-radius:12px;background:#fff}
+.rg-track-card h3{display:flex;align-items:baseline;gap:8px;margin:0 0 10px;color:var(--rg3-navy);font-size:15px;font-weight:900}
+.rg-track-card h3 small{color:var(--rg3-muted);font-size:12px;font-weight:700}
+.rg-track-scroll{max-width:100%;overflow-x:auto}
+.rg-track-empty{padding:18px!important;text-align:center!important;color:var(--rg3-muted)!important}
+.rg-track-pager{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;margin-top:10px;color:var(--rg3-muted);font-size:12.5px}
+.rg-track-pager>div{display:flex;gap:6px}
+.rg-track-modal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}
+.rg-track-modal-head h3{display:flex;align-items:center;gap:8px;margin:0;color:var(--rg3-navy);font-size:17px;font-weight:900}
+.rg-track-modal-head p{margin:6px 0 0;color:#4b5d75;font-size:13px}
+.rg-track-trail{display:grid;gap:10px;margin:0;padding:0;list-style:none}
+.rg-track-trail li{display:grid;grid-template-columns:14px 1fr;gap:10px;align-items:start}
+.rg-track-trail li>div{display:grid;gap:3px;font-size:13px;color:#23364f}
+.rg-track-trail small{color:var(--rg3-muted)}
+.rg-track-dot{width:12px;height:12px;margin-top:3px;border-radius:999px;background:#94a3b8}
+.rg-track-dot.is-submitted{background:var(--rg3-blue)}.rg-track-dot.is-approved{background:var(--rg-success)}
+.rg-track-dot.is-rejected{background:var(--rg-danger)}.rg-track-dot.is-returned{background:var(--rg-warning)}
+.rg-track-print-head{display:none}
+
+@media print{
+  body.rg-printing-report :is(.rg-sidebar,.rg-topbar,.rg-location-bar,.rg-module-tabs,[data-rg-tabs="true"],[role="tablist"],.rg-no-print,.reqgen-footer,footer){display:none!important}
+  body.rg-printing-report .rg-content>:not(main){display:none!important}
+  body.rg-printing-report main section:not(.rg-track),body.rg-printing-report main [class*="hero"]{display:none!important}
+  body.rg-printing-report .rg-track{display:grid!important}
+  body.rg-printing-report .rg-track-print-head{display:grid;gap:4px;padding-bottom:8px;border-bottom:2px solid #0b2d57;font-size:12px}
+  body.rg-printing-report .rg-track-print-head strong{font-size:16px}
+  body.rg-printing-report .rg-track-card{break-inside:avoid;border-color:#bbb}
+  body.rg-printing-report .rg-role-chip{border:0!important;background:none!important;padding:0!important;color:#333!important}
+  body.rg-printing-report .rg-role-chip::before{content:"· "}
+  body.rg-printing-report .rg-stage,body.rg-printing-report .rg-main{margin:0!important;padding:0!important}
+}

@@ -53,7 +53,7 @@ for (const [name, source] of [
 check('Sidebar reserves scrollbar width', globals.includes('scrollbar-gutter:stable'));
 check('Sidebar hover cannot translate navigation geometry', globals.includes('.gov-nav-link:hover,.rg-nav-row:hover,.rg-nav-link:hover') && globals.includes('transform:none!important'));
 check('Phase 7 standard prevents layout transforms on interactive hover', globals.includes('[data-rg-standard="phase7"] :where(button,a,[role="button"]):hover{transform:none!important}'));
-check('Roles action controls are non-wrapping', roles.includes('whitespace-nowrap') && roles.includes('w-[230px]'));
+check('Roles action controls are non-wrapping (v3.0.2 icon-action standard)', roles.includes('<IconActions>') && globals.includes('.rg-icon-actions{display:inline-flex') && globals.includes('flex-wrap:nowrap}'));
 check('Legacy Registry role is presented canonically as Registrar', roles.includes('normalized === "registry" || normalized === "registrar"') && roles.includes('return "Registrar"'));
 check('Sidebar release label is no longer legacy Phase 4', !shell.includes('Patch 05 · Phase 4') && !shell.includes('Phase 4 ·'));
 check('Audit charts instruct click/select rather than hover-only interaction', audit.includes('Select a bar to open its exact live activity count.') && !audit.includes('Hover each bar for the exact live count.'));

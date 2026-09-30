@@ -4,8 +4,10 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   Suspense,
+  useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 
@@ -47,6 +49,7 @@ import { getRouteRegistryItem } from "@/lib/routeRegistry";
 import { ActiveRoleSwitcher } from "./ActiveRoleSwitcher";
 import ReqGenFooter from "./ReqGenFooter";
 import { REQGEN_PRODUCT_NAME, REQGEN_VERSION } from "@/lib/version";
+import { APPROVAL_QUEUE_CHANGED_EVENT, isAwaitingUser } from "@/lib/approvalQueue";
 
 const PUBLIC_PATHS = new Set([
   "/",
@@ -268,36 +271,6 @@ function ModuleTabs({ moduleHref, moduleLabel, items, pathname }: { moduleHref: 
   );
 }
 
-function shellStageKey(value: string | null | undefined) {
-  return String(value || "").trim().toUpperCase().replace(/[\s_-]+/g, "");
-}
-
-function shellRoleKey(value: string | null | undefined) {
-  const normalized = String(value || "").trim().toLowerCase().replace(/[\s_-]+/g, "");
-  return normalized === "deanadmin" ? "dinadmin" : normalized;
-}
-
-function isOpenApprovalStatus(status: string | null | undefined) {
-  const value = String(status || "").toLowerCase();
-  return !["approved", "paid", "completed", "closed", "rejected", "deleted", "cancelled"].some((token) => value.includes(token));
-}
-
-function requestMatchesApprovalRole(row: { current_owner?: string | null; current_stage?: string | null; status?: string | null }, userId: string, role: string) {
-  if (!isOpenApprovalStatus(row.status)) return false;
-  if (row.current_owner && row.current_owner === userId) return true;
-
-  const stageForRole: Record<string, string[]> = {
-    po: ["PO"], dod: ["DOD"], director: ["DOD", "DIRECTOR"], dinadmin: ["DINADMIN"],
-    registrar: ["REGISTRAR"], registry: ["REGISTRAR"], generalsecretary: ["GENERALSECRETARY", "GENSEC"], hod: ["HOD"],
-    hr: ["HR", "HRFILING"], hrboss: ["HR", "HRFILING"], hrofficer: ["HR", "HRFILING"],
-    hrofficer1: ["HR", "HRFILING"], hrofficer2: ["HR", "HRFILING"], hrofficer3: ["HR", "HRFILING"],
-    dg: ["DG"], account: ["ACCOUNT"], accounts: ["ACCOUNT"], accountofficer: ["ACCOUNT"],
-  };
-  const normalizedRole = shellRoleKey(role);
-  if (["admin", "auditor"].includes(normalizedRole)) return true;
-  return (stageForRole[normalizedRole] || []).includes(shellStageKey(row.current_stage));
-}
-
 /**
  * Next.js 16 requires useSearchParams() to execute below a Suspense
  * boundary during static prerendering.
@@ -384,6 +357,9 @@ function GovernmentAppShellContent({
   const [pendingApprovalCount, setPendingApprovalCount] =
     useState(0);
 
+  const [queueIdentity, setQueueIdentity] =
+    useState<{ userId: string; role: string } | null>(null);
+
   useEffect(() => {
     if (isPublic) return;
 
@@ -447,29 +423,13 @@ function GovernmentAppShellContent({
 
 
       if (user?.id) {
-        const activeRole = context?.activeRoleKey || "staff";
-        const approvalResult = await supabase
-          .from("requests")
-          .select("current_owner,current_stage,status")
-          .order("created_at", { ascending: false });
-
-        if (mounted && !approvalResult.error) {
-          const approvalRows = (approvalResult.data || []) as Array<{
-            current_owner?: string | null;
-            current_stage?: string | null;
-            status?: string | null;
-          }>;
-          setPendingApprovalCount(
-            approvalRows.filter((row) => requestMatchesApprovalRole(row, user.id, activeRole)).length
-          );
-        }
+        setQueueIdentity({ userId: user.id, role: context?.activeRoleKey || "staff" });
       }
     }
 
     void loadContext();
 
     const refresh = () => {
-      setContextReady(false);
       void loadContext();
     };
 
@@ -496,20 +456,58 @@ function GovernmentAppShellContent({
     };
   }, [isPublic]);
 
+  /*
+   * Approval badge (v3.0.2). Counts only requests that are open AND waiting on
+   * THIS user in their active role — the same rule the Approvals page uses
+   * (lib/approvalQueue). Refreshes:
+   *   - instantly on Supabase realtime changes to "requests" (debounced),
+   *   - instantly when this browser approves/rejects (APPROVAL_QUEUE_CHANGED_EVENT),
+   *   - when the tab regains focus, and
+   *   - every 60 s as a safety net if realtime is unavailable.
+   * It never reloads the rest of the shell, so the sidebar no longer flickers.
+   */
+  const badgeTimer = useRef<number | null>(null);
+
+  const refreshPendingCount = useCallback(async () => {
+    if (!queueIdentity) return;
+    const { data, error } = await supabase
+      .from("requests")
+      .select("current_owner,current_stage,status");
+    if (error) return;
+    const rows = (data || []) as Array<{ current_owner?: string | null; current_stage?: string | null; status?: string | null }>;
+    setPendingApprovalCount(rows.filter((row) => isAwaitingUser(row, queueIdentity.userId, queueIdentity.role)).length);
+  }, [queueIdentity]);
+
   useEffect(() => {
-    if (isPublic) return;
+    if (isPublic || !queueIdentity) return;
+
+    const scheduleRefresh = () => {
+      if (badgeTimer.current) window.clearTimeout(badgeTimer.current);
+      badgeTimer.current = window.setTimeout(() => { void refreshPendingCount(); }, 350);
+    };
+
+    queueMicrotask(() => { void refreshPendingCount(); });
 
     const channel = supabase
-      .channel("reqgen-shell-approval-badge")
-      .on("postgres_changes", { event: "*", schema: "public", table: "requests" }, () => {
-        window.dispatchEvent(new Event("reqgen-active-role-changed"));
-      })
+      .channel(`reqgen-shell-approval-badge-${queueIdentity.userId}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "requests" }, scheduleRefresh)
       .subscribe();
 
+    const onVisible = () => { if (document.visibilityState === "visible") scheduleRefresh(); };
+    window.addEventListener(APPROVAL_QUEUE_CHANGED_EVENT, scheduleRefresh);
+    window.addEventListener("focus", scheduleRefresh);
+    document.addEventListener("visibilitychange", onVisible);
+    const poll = window.setInterval(scheduleRefresh, 60_000);
+
     return () => {
+      if (badgeTimer.current) window.clearTimeout(badgeTimer.current);
+      window.clearInterval(poll);
+      window.removeEventListener(APPROVAL_QUEUE_CHANGED_EVENT, scheduleRefresh);
+      window.removeEventListener("focus", scheduleRefresh);
+      document.removeEventListener("visibilitychange", onVisible);
       void supabase.removeChannel(channel);
     };
-  }, [isPublic]);
+  }, [isPublic, queueIdentity, refreshPendingCount]);
 
   useEffect(() => {
     const update = () => setGreetingPeriod(greetingPeriodForHour(new Date().getHours()));

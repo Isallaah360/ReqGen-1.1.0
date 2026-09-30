@@ -4,6 +4,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Building2, Landmark, UserCheck, CircleAlert } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
+import { PersonName } from "@/app/components/ui/PersonName";
+import { IconAction, IconActions } from "@/app/components/ui/IconAction";
 
 type Dept = { id: string; name: string };
 type IetAccount = { id: string; code: string | null; name: string; account_number: string | null; bank_name: string | null; is_active: boolean | null };
@@ -117,8 +119,8 @@ export default function AccountRoutingPage() {
       </section>
       <section className="admin-v3-card">
         <div className="admin-v3-toolbar"><input value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} placeholder="Search departments, accounts or officers…"/><span>{filtered.length} department{filtered.length === 1 ? "" : "s"}</span></div>
-        <div className="admin-v3-table-scroll"><table className="admin-v3-table"><thead><tr><th>#</th><th>Department</th><th>Primary Account</th><th>Sign-off Officer</th><th>Status</th><th>Actions</th></tr></thead><tbody>
-          {paged.map((dept, index) => { const route = routeByDept.get(dept.id); return <tr key={dept.id}><td>{(page - 1) * pageSize + index + 1}</td><td><strong>{dept.name}</strong></td><td>{accountLabel(route ? accountMap.get(route.iet_account_id) : undefined)}</td><td>{officerLabel(route ? officerMap.get(route.officer_user_id) : undefined)}</td><td><span className={`admin-v3-status ${route?.is_active ? "is-active" : "is-inactive"}`}>{route?.is_active ? "Active" : "Not configured"}</span></td><td><div className="admin-v3-row-actions"><button onClick={() => startEdit(dept.id)}>Edit</button>{route ? <button className="is-danger" onClick={() => void remove(dept.id)} disabled={saving}>Remove</button> : null}</div></td></tr>; })}
+        <div className="admin-v3-table-scroll"><table className="admin-v3-table rg-std-table"><thead><tr><th className="rg-col-index">#</th><th>Department</th><th>Primary Account</th><th>Sign-off Officer</th><th>Status</th><th className="rg-col-actions">Actions</th></tr></thead><tbody>
+          {paged.map((dept, index) => { const route = routeByDept.get(dept.id); return <tr key={dept.id}><td className="rg-col-index">{(page - 1) * pageSize + index + 1}</td><td><strong>{dept.name}</strong></td><td>{accountLabel(route ? accountMap.get(route.iet_account_id) : undefined)}</td><td>{route && officerMap.get(route.officer_user_id) ? <PersonName name={officerLabel(officerMap.get(route.officer_user_id))} role={officerMap.get(route.officer_user_id)?.role} /> : "Not assigned"}</td><td><span className={`admin-v3-status ${route?.is_active ? "is-active" : "is-inactive"}`}>{route?.is_active ? "Active" : "Not configured"}</span></td><td className="rg-col-actions"><IconActions><IconAction kind="edit" label={`Edit routing for ${dept.name}`} onClick={() => startEdit(dept.id)} />{route ? <IconAction kind="delete" label={`Remove routing for ${dept.name}`} onClick={() => void remove(dept.id)} disabled={saving} /> : null}</IconActions></td></tr>; })}
           {!paged.length ? <tr><td colSpan={6} className="admin-v3-empty">No matching departments.</td></tr> : null}
         </tbody></table></div>
         <div className="admin-v3-pagination"><span>Showing {filtered.length ? (page - 1) * pageSize + 1 : 0} to {Math.min(page * pageSize, filtered.length)} of {filtered.length}</span><div><button disabled={page <= 1} onClick={() => setPage((v) => Math.max(1, v - 1))}>‹</button>{Array.from({ length: pages }, (_, index) => index + 1).slice(Math.max(0, page - 3), Math.max(5, page + 2)).map((value) => <button key={value} className={value === page ? "is-active" : ""} onClick={() => setPage(value)}>{value}</button>)}<button disabled={page >= pages} onClick={() => setPage((v) => Math.min(pages, v + 1))}>›</button></div></div>

@@ -75,7 +75,7 @@ export default function RequestsPage(){
    <article className={styles.insightCard}>
     <div className={styles.cardHeading}><div><strong>Requests by Status</strong><span>Live workflow distribution</span></div></div>
     <div className={styles.statusVisual}>
-      <SharedDonut segments={statusSegments} size={108} strokeWidth={20} />
+      <SharedDonut segments={statusSegments} size={200} strokeWidth={34} fluidMax={210} />
       <div className={styles.legend}><span><i className={styles.legendPending}/>In Progress <b>{counts.active}</b></span><span><i className={styles.legendApproved}/>Completed <b>{counts.completed}</b></span><span><i className={styles.legendRejected}/>Rejected <b>{counts.rejected}</b></span></div>
     </div>
    </article>

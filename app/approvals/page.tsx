@@ -6,6 +6,7 @@ import { ArrowLeft, CheckCircle2, Clock3, Eye, RefreshCw, Search, ShieldCheck, X
 import { supabase } from "@/lib/supabaseClient";
 import RequestDetailsWorkspace from "@/app/components/requests/RequestDetailsWorkspace";
 import styles from "./approvals.module.css";
+import { APPROVAL_QUEUE_CHANGED_EVENT, isClosedRequest, isVisibleInApprovals } from "@/lib/approvalQueue";
 
 type ApprovalRow = {
   id: string;
@@ -26,17 +27,10 @@ function roleKey(value: string | null | undefined) {
   return String(value || "").trim().toLowerCase().replace(/[\s_-]+/g, "");
 }
 
-function stageKey(value: string | null | undefined) {
-  return String(value || "").trim().toUpperCase().replace(/[\s_-]+/g, "");
-}
 
 function isClosed(row: ApprovalRow) {
-  const status = String(row.status || "").toLowerCase();
-  const stage = stageKey(row.current_stage);
-  return ["COMPLETED", "REJECTED", "DELETED", "CANCELLED"].includes(stage) ||
-    ["approved", "paid", "completed", "closed", "rejected", "deleted", "cancelled"].some((token) => status.includes(token));
+  return isClosedRequest(row);
 }
-
 function isApproved(row: ApprovalRow) {
   const status = String(row.status || "").toLowerCase();
   return ["approved", "paid", "completed", "closed"].some((token) => status.includes(token));
@@ -129,18 +123,10 @@ export default function ApprovalsPage() {
     return () => { void supabase.removeChannel(channel); };
   }, [load]);
 
-  const stageForRole: Record<string, string[]> = useMemo(() => ({
-    po: ["PO"], dod: ["DOD"], director: ["DOD", "DIRECTOR"], dinadmin: ["DINADMIN"], registrar: ["REGISTRAR"],
-    registry: ["REGISTRY"], gensec: ["GENERALSECRETARY", "GENSEC"], hod: ["HOD"], hr: ["HR", "HRFILING"], hrboss: ["HR", "HRFILING"],
-    hrofficer: ["HR", "HRFILING"], hrofficer1: ["HR", "HRFILING"], hrofficer2: ["HR", "HRFILING"], hrofficer3: ["HR", "HRFILING"], dg: ["DG"], account: ["ACCOUNT"], accounts: ["ACCOUNT"], accountofficer: ["ACCOUNT"],
-  }), []);
-
-  const relevantRows = useMemo(() => {
-    const canSeeAll = ["admin", "auditor"].includes(activeRole);
-    const stages = stageForRole[activeRole] || [];
-    return rows.filter((row) => canSeeAll || row.current_owner === userId || stages.includes(stageKey(row.current_stage)));
-  }, [activeRole, rows, stageForRole, userId]);
-
+  const relevantRows = useMemo(
+    () => rows.filter((row) => isVisibleInApprovals(row, userId, activeRole)),
+    [activeRole, rows, userId],
+  );
   const pendingRows = useMemo(() => relevantRows.filter((row) => !isClosed(row)), [relevantRows]);
   const historyRows = useMemo(() => relevantRows.filter(isClosed), [relevantRows]);
   const approvedCount = useMemo(() => historyRows.filter(isApproved).length, [historyRows]);
@@ -174,7 +160,7 @@ export default function ApprovalsPage() {
               requestId={selectedRequestId}
               embedded
               onClose={() => setSelectedRequestId(null)}
-              onProcessed={() => { setSelectedRequestId(null); void load(true); }}
+              onProcessed={() => { setSelectedRequestId(null); window.dispatchEvent(new Event(APPROVAL_QUEUE_CHANGED_EVENT)); void load(true); }}
             />
           </div>
         </section>

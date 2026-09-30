@@ -18,6 +18,8 @@ import {
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { REQGEN_PRODUCT_LABEL } from "@/lib/version";
+import { PersonName } from "@/app/components/ui/PersonName";
+import { nameWithRole } from "@/lib/userIdentity";
 import styles from "./approved-mockup.module.css";
 
 type Severity = "info" | "success" | "warning" | "critical";
@@ -35,7 +37,7 @@ type AuditEvent = {
   sourceTable: string;
 };
 type SourceDefinition = { module: string; tables: string[]; createdFields: string[] };
-type ProfileLite = { id: string; full_name: string | null; email: string | null };
+type ProfileLite = { id: string; full_name: string | null; email: string | null; role: string | null };
 type SourceHealth = { module: string; table: string; available: boolean; rows: number; message: string };
 type IntegrityCheck = { name: string; module: string; status: "Passed" | "Warning" | "Failed"; detail: string };
 
@@ -124,6 +126,7 @@ export default function AuditCentrePage() {
       if (!(await verifyAccess())) return;
       const collected: AuditEvent[] = [];
       const actorIds = new Set<string>();
+      let profileRoleById: Record<string, string> = {};
       const health: SourceHealth[] = [];
 
       for (const definition of SOURCE_DEFINITIONS) {
@@ -159,13 +162,14 @@ export default function AuditCentrePage() {
       }
 
       if (actorIds.size) {
-        const { data: profileRows } = await supabase.from("profiles").select("id,full_name,email").in("id", [...actorIds].slice(0, 500));
+        const { data: profileRows } = await supabase.from("profiles").select("id,full_name,email,role").in("id", [...actorIds].slice(0, 500));
         const map: Record<string, ProfileLite> = {};
-        rows(profileRows).forEach((row) => { const id = text(row.id); if (id) map[id] = { id, full_name: text(row.full_name) || null, email: text(row.email) || null }; });
+        rows(profileRows).forEach((row) => { const id = text(row.id); if (id) map[id] = { id, full_name: text(row.full_name) || null, email: text(row.email) || null, role: text(row.role) || null }; });
         collected.forEach((event) => {
           const profile = map[event.actorId];
           if (profile && (event.actor === event.actorId || event.actor === "System")) event.actor = profile.full_name || profile.email || event.actorId;
         });
+        profileRoleById = Object.fromEntries(Object.values(map).map((profile) => [profile.id, profile.role || ""]));
       }
       collected.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
@@ -184,6 +188,11 @@ export default function AuditCentrePage() {
         const eventTime = new Date(event.createdAt).getTime();
         const historicalRole = (roleEventsByActor.get(event.actorId) || []).find((candidate) => new Date(candidate.createdAt).getTime() <= eventTime);
         if (historicalRole) event.activeRole = historicalRole.activeRole;
+      });
+      // v3.0.2: never show a name without a role. If the event itself and the
+      // role-switch history are silent, fall back to the person's profile role.
+      collected.forEach((event) => {
+        if (event.activeRole === "—" && event.actorId && profileRoleById[event.actorId]) event.activeRole = profileRoleById[event.actorId];
       });
 
       const [deptRes, subheadRes, accountRes] = await Promise.all([
@@ -341,11 +350,11 @@ export default function AuditCentrePage() {
       {tab === "logs" && <Card title="Audit Logs" note={`${filtered.length} matching live records`}><AuditTable events={pageRows} onSelect={setSelectedEvent}/><Pager page={page} totalPages={totalPages} pageSize={pageSize} count={filtered.length} setPage={setPage} setPageSize={(value) => { setPageSize(value); setPage(1); }}/></Card>}
 
       {tab === "users" && <section className={styles.grid2}>
-        <Card title="Top Users by Activity" note="Derived from the same filtered audit dataset."><div className={styles.userBars}>{userCounts.slice(0,10).map(([name,count]) => <button type="button" key={name} title={`${name}: ${count} activities`} onClick={() => { setQuery(name); setTab("logs"); }}><span>{name}</span><i><b style={{width:`${(count/Math.max(1,userCounts[0]?.[1] || 1))*100}%`}}/></i><strong>{count}</strong></button>)}</div></Card>
-        <Card title="User Activity Summary" note="Interactive actor register"><div className={styles.tableWrap}><table><thead><tr><th>#</th><th>User</th><th>Activities</th><th>Latest Activity</th><th>Action</th></tr></thead><tbody>{userCounts.slice(0,25).map(([name,count],i) => { const latest=filtered.find((e)=>e.actor===name); return <tr key={name}><td>{i+1}</td><td><strong>{name}</strong></td><td>{count}</td><td>{latest?dateText(latest.createdAt):"—"}</td><td><button className={styles.tableAction} onClick={()=>{setQuery(name);setTab("logs")}}>View</button></td></tr>})}</tbody></table></div></Card>
+        <Card title="Top Users by Activity" note="Derived from the same filtered audit dataset."><div className={styles.userBars}>{userCounts.slice(0,10).map(([name,count]) => { const latest=filtered.find((e)=>e.actor===name); return <button type="button" key={name} title={`${nameWithRole(name, latest?.activeRole)}: ${count} activities`} onClick={() => { setQuery(name); setTab("logs"); }}><span><PersonName name={name} role={latest?.activeRole} userId={latest?.actorId}/></span><i><b style={{width:`${(count/Math.max(1,userCounts[0]?.[1] || 1))*100}%`}}/></i><strong>{count}</strong></button>; })}</div></Card>
+        <Card title="User Activity Summary" note="Interactive actor register"><div className={styles.tableWrap}><table><thead><tr><th>#</th><th>User</th><th>Activities</th><th>Latest Activity</th><th>Action</th></tr></thead><tbody>{userCounts.slice(0,25).map(([name,count],i) => { const latest=filtered.find((e)=>e.actor===name); return <tr key={name}><td>{i+1}</td><td><PersonName name={name} role={latest?.activeRole} userId={latest?.actorId}/></td><td>{count}</td><td>{latest?dateText(latest.createdAt):"—"}</td><td><button className={styles.tableAction} onClick={()=>{setQuery(name);setTab("logs")}}>View</button></td></tr>})}</tbody></table></div></Card>
       </section>}
 
-      {tab === "integrity" && <Card title="Data Integrity Checks" note="Live checks only; ReqGen does not fabricate passing results."><div className={styles.tableWrap}><table><thead><tr><th>#</th><th>Check</th><th>Module</th><th>Status</th><th>Details</th></tr></thead><tbody>{integrityChecks.map((check,i)=><tr key={check.name}><td>{i+1}</td><td><strong>{check.name}</strong></td><td>{check.module}</td><td><Status value={check.status}/></td><td>{check.detail}</td></tr>)}</tbody></table></div></Card>}
+      {tab === "integrity" && <Card title="Data Integrity Checks" note="Live checks only; ReqGen does not fabricate passing results."><div className={styles.tableWrap}><table className="rg-std-table"><thead><tr><th className="rg-col-index">#</th><th>Check</th><th>Module</th><th className="rg-col-fit">Status</th><th className="rg-col-wide">Details</th></tr></thead><tbody>{integrityChecks.map((check,i)=><tr key={check.name}><td className="rg-col-index">{i+1}</td><td><strong>{check.name}</strong></td><td>{check.module}</td><td className="rg-col-fit"><Status value={check.status}/></td><td className="rg-col-wide">{check.detail}</td></tr>)}</tbody></table></div></Card>}
 
       {tab === "workflow" && <Card title="Workflow Trace" note="Request and approval history retained after removal of the standalone Workflow UI."><AuditTable events={filtered.filter((e)=>e.module==="Requests"||e.module==="Approvals").slice(0,100)} onSelect={setSelectedEvent}/></Card>}
 
@@ -354,7 +363,7 @@ export default function AuditCentrePage() {
         <Card title="Source Health" note="Audit-source availability by configured module."><div className={styles.sourceList}>{sourceHealth.map((item,i)=><div key={`${item.module}-${item.table}-${i}`}><span><strong>{item.module}</strong><small>{item.table}</small></span><Status value={item.available?"Passed":"Warning"}/><b>{item.available?`${item.rows} rows`:"Unavailable"}</b></div>)}</div></Card>
       </section>}
 
-      {selectedEvent ? <div className={styles.modalBackdrop} role="presentation" onMouseDown={() => setSelectedEvent(null)}><section className={styles.modal} role="dialog" aria-modal="true" aria-label="Audit event details" onMouseDown={(e)=>e.stopPropagation()}><header><div><span>Audit Evidence</span><h2>{selectedEvent.action}</h2></div><button onClick={()=>setSelectedEvent(null)} aria-label="Close">×</button></header><dl><dt>Date & Time</dt><dd>{dateText(selectedEvent.createdAt)}</dd><dt>User</dt><dd>{selectedEvent.actor}</dd><dt>Active Role</dt><dd>{selectedEvent.activeRole}</dd><dt>Module / Source</dt><dd>{selectedEvent.module} · {selectedEvent.sourceTable}</dd><dt>Record</dt><dd>{selectedEvent.record}</dd><dt>Risk</dt><dd><span className={`${styles.badge} ${styles[selectedEvent.severity]}`}>{selectedEvent.severity}</span></dd><dt>Details</dt><dd>{selectedEvent.details || "No additional details were recorded."}</dd></dl><footer>Generated from {REQGEN_PRODUCT_LABEL}</footer></section></div> : null}
+      {selectedEvent ? <div className={styles.modalBackdrop} role="presentation" onMouseDown={() => setSelectedEvent(null)}><section className={styles.modal} role="dialog" aria-modal="true" aria-label="Audit event details" onMouseDown={(e)=>e.stopPropagation()}><header><div><span>Audit Evidence</span><h2>{selectedEvent.action}</h2></div><button onClick={()=>setSelectedEvent(null)} aria-label="Close">×</button></header><dl><dt>Date & Time</dt><dd>{dateText(selectedEvent.createdAt)}</dd><dt>User</dt><dd><PersonName name={selectedEvent.actor} role={selectedEvent.activeRole} userId={selectedEvent.actorId}/></dd><dt>Module / Source</dt><dd>{selectedEvent.module} · {selectedEvent.sourceTable}</dd><dt>Record</dt><dd>{selectedEvent.record}</dd><dt>Risk</dt><dd><span className={`${styles.badge} ${styles[selectedEvent.severity]}`}>{selectedEvent.severity}</span></dd><dt>Details</dt><dd>{selectedEvent.details || "No additional details were recorded."}</dd></dl><footer>Generated from {REQGEN_PRODUCT_LABEL}</footer></section></div> : null}
     </main>
   );
 }
@@ -363,5 +372,5 @@ function Kpi({label,value,note,icon,tone="blue"}:{label:string;value:string|numb
 function Card({title,note,children}:{title:string;note:string;children:React.ReactNode}) { return <article className={styles.card}><header><div><h2>{title}</h2><p>{note}</p></div></header>{children}</article>; }
 function Empty({text:textValue}:{text:string}) { return <div className={styles.empty}>{textValue}</div>; }
 function Status({value}:{value:"Passed"|"Warning"|"Failed"}) { return <span className={`${styles.status} ${value==="Passed"?styles.passed:value==="Warning"?styles.warning:styles.failed}`}>{value}</span>; }
-function AuditTable({events,onSelect}:{events:AuditEvent[];onSelect:(event:AuditEvent)=>void}) { return <div className={styles.tableWrap}><table><thead><tr><th>#</th><th>Date & Time</th><th>User / Role</th><th>Module</th><th>Action</th><th>Record</th><th>Risk</th><th>Details</th></tr></thead><tbody>{events.map((event,i)=><tr key={`${event.module}-${event.id}-${event.createdAt}`} onDoubleClick={()=>onSelect(event)}><td>{i+1}</td><td>{dateText(event.createdAt)}</td><td><strong>{event.actor}</strong><small>{event.activeRole}</small></td><td>{event.module}</td><td>{event.action}</td><td>{event.record}</td><td><span className={`${styles.badge} ${styles[event.severity]}`}>{event.severity}</span></td><td><button className={styles.tableAction} onClick={()=>onSelect(event)}>View</button></td></tr>)}{!events.length?<tr><td colSpan={8}><Empty text="No matching audit evidence is available."/></td></tr>:null}</tbody></table></div>; }
+function AuditTable({events,onSelect}:{events:AuditEvent[];onSelect:(event:AuditEvent)=>void}) { return <div className={styles.tableWrap}><table><thead><tr><th>#</th><th>Date & Time</th><th>User / Role</th><th>Module</th><th>Action</th><th>Record</th><th>Risk</th><th>Details</th></tr></thead><tbody>{events.map((event,i)=><tr key={`${event.module}-${event.id}-${event.createdAt}`} onDoubleClick={()=>onSelect(event)}><td>{i+1}</td><td>{dateText(event.createdAt)}</td><td><PersonName name={event.actor} role={event.activeRole} userId={event.actorId}/></td><td>{event.module}</td><td>{event.action}</td><td>{event.record}</td><td><span className={`${styles.badge} ${styles[event.severity]}`}>{event.severity}</span></td><td><button className={styles.tableAction} onClick={()=>onSelect(event)}>View</button></td></tr>)}{!events.length?<tr><td colSpan={8}><Empty text="No matching audit evidence is available."/></td></tr>:null}</tbody></table></div>; }
 function Pager({page,totalPages,pageSize,count,setPage,setPageSize}:{page:number;totalPages:number;pageSize:number;count:number;setPage:(v:number)=>void;setPageSize:(v:number)=>void}) { const pages=Array.from({length:Math.min(5,totalPages)},(_,i)=>Math.min(totalPages,Math.max(1,page-2)+i)).filter((v,i,a)=>a.indexOf(v)===i); return <div className={styles.pager}><span>Showing {count?((page-1)*pageSize)+1:0}–{Math.min(page*pageSize,count)} of {count}</span><div><button disabled={page<=1} onClick={()=>setPage(page-1)}>‹</button>{pages.map(p=><button key={p} className={p===page?styles.currentPage:""} onClick={()=>setPage(p)}>{p}</button>)}<button disabled={page>=totalPages} onClick={()=>setPage(page+1)}>›</button><select value={pageSize} onChange={(e)=>setPageSize(Number(e.target.value))}>{PAGE_SIZES.map(size=><option key={size} value={size}>{size} / page</option>)}</select></div></div>; }

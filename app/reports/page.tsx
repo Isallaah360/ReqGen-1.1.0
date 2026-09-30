@@ -141,6 +141,6 @@ export default function ReportsCentrePage() {
 }
 
 function ReportsDonut({ rows, onSelect }: { rows: { label: string; value: number; color: string }[]; onSelect: (detail: string) => void }) {
-  return <SharedDonut segments={rows} size={108} strokeWidth={20} onSelect={onSelect} />;
+  return <SharedDonut segments={rows} size={200} strokeWidth={34} fluidMax={210} onSelect={onSelect} />;
 }
 

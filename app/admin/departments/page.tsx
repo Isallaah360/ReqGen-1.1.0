@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 
 import { supabase } from "@/lib/supabaseClient";
+import { nameWithRole } from "@/lib/userIdentity";
 import { exportTableToExcel } from "@/lib/reportExport";
 import styles from "../admin-departments.module.css";
 import { Donut as SharedDonut } from "@/app/components/ui/Donut";
@@ -733,7 +734,7 @@ export default function DepartmentsPage() {
   const routingUserLabel = (id: string | null | undefined) => {
     if (!id) return "None";
     const user = routingUsers.find((item) => item.id === id);
-    return user ? `${user.full_name || user.email || "User"}${user.role ? ` (${user.role})` : ""}` : "Unknown user";
+    return user ? nameWithRole(user.full_name || user.email || "User", user.role) : "Unknown user";
   };
 
   if (loading) {
@@ -1270,7 +1271,7 @@ export default function DepartmentsPage() {
             </h3>
 
             <div className={styles.donutRow}>
-              <SharedDonut segments={donutSegments} size={108} strokeWidth={20} />
+              <SharedDonut segments={donutSegments} size={200} strokeWidth={34} fluidMax={210} />
 
               <div className={styles.legend}>
                 <Legend
@@ -1582,7 +1583,7 @@ export default function DepartmentsPage() {
                   <option value="">None</option>
                   {routingUsers.map((user) => (
                     <option key={user.id} value={user.id}>
-                      {user.full_name || user.email || user.id}{user.role ? ` (${user.role})` : ""}
+                      {nameWithRole(user.full_name || user.email || user.id, user.role)}
                     </option>
                   ))}
                 </select>
@@ -1594,7 +1595,7 @@ export default function DepartmentsPage() {
                   <option value="">None</option>
                   {routingUsers.map((user) => (
                     <option key={user.id} value={user.id}>
-                      {user.full_name || user.email || user.id}{user.role ? ` (${user.role})` : ""}
+                      {nameWithRole(user.full_name || user.email || user.id, user.role)}
                     </option>
                   ))}
                 </select>

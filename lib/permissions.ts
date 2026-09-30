@@ -70,6 +70,24 @@ export const ROUTE_POLICIES: RoutePolicy[] = [
   { prefix: "/docs", authenticatedOnly: true },
 ];
 
+/**
+ * v3.0.2 — role denials that sit on top of the allow-list policies above.
+ * Registry TRACKS request movement only: while acting as Registry, a user may
+ * not open, edit or print the content of any individual request. (Their own
+ * requests remain available after switching to their Staff role.)
+ */
+export const ROUTE_DENIALS: Array<{ pattern: RegExp; roles: string[]; reason: string }> = [
+  {
+    pattern: /^\/requests\/(?!new(?:\/|$))[^/]+(?:\/.*)?$/,
+    roles: ["registry"],
+    reason: "Registry tracks request movement only and cannot open request contents.",
+  },
+];
+
+export function deniedByRole(pathname: string, roleSet: Set<string>) {
+  return ROUTE_DENIALS.find((rule) => rule.pattern.test(pathname) && hasAnyRole(roleSet, rule.roles)) || null;
+}
+
 export function isPublicPath(pathname: string): boolean {
   return PUBLIC_PATHS.includes(pathname);
 }
@@ -87,6 +105,7 @@ export function getRoutePolicy(pathname: string): RoutePolicy | null {
 
 export function canAccessPath(pathname: string, roleSet: Set<string>): boolean {
   if (isPublicPath(pathname)) return true;
+  if (deniedByRole(pathname, roleSet)) return false;
 
   const policy = getRoutePolicy(pathname);
   if (!policy) return true;

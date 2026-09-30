@@ -4,11 +4,9 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ArrowDownToLine,
   ArrowUpFromLine,
-  Eye,
   FilePlus2,
   Flag,
   Inbox,
-  MoreVertical,
   RefreshCw,
   Search,
   Send,
@@ -18,10 +16,14 @@ import {
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import styles from "@/app/registry/registry.module.css";
+import RequestTrackingPanel from "@/app/components/registry/RequestTrackingPanel";
+import { PersonName } from "@/app/components/ui/PersonName";
+import { IconAction, IconActions } from "@/app/components/ui/IconAction";
+import { nameWithRole } from "@/lib/userIdentity";
 
 type Raw = Record<string, unknown>;
 type Department = { id: string; name: string };
-type ViewKey = "overview" | "incoming" | "outgoing" | "dispatch" | "all";
+type ViewKey = "overview" | "tracking" | "incoming" | "outgoing" | "dispatch" | "all";
 type Correspondence = {
   id: string;
   referenceNo: string;
@@ -39,7 +41,6 @@ type Correspondence = {
 type RequestRow = {
   id: string;
   request_no: string | null;
-  title: string | null;
   status: string | null;
   current_stage: string | null;
   current_owner: string | null;
@@ -68,6 +69,7 @@ type VoucherRow = {
 
 const VIEWS: Array<{ key: ViewKey; label: string }> = [
   { key: "overview", label: "Overview" },
+  { key: "tracking", label: "Request Tracking" },
   { key: "incoming", label: "Incoming Register" },
   { key: "outgoing", label: "Outgoing Register" },
   { key: "dispatch", label: "Dispatch" },
@@ -183,7 +185,7 @@ export default function RegistryCentreWorkspace() {
     const [deptResult, registryResult, requestResult, historyResult, voucherResult] = await Promise.all([
       supabase.from("departments").select("id,name").order("name", { ascending: true }),
       supabase.from("registry_correspondence").select("*").order("created_at", { ascending: false }).limit(2000),
-      supabase.from("requests").select("id,request_no,title,status,current_stage,current_owner,created_by,assigned_account_officer_id,assigned_account_officer_name,created_at").order("created_at", { ascending: false }).limit(5000),
+      supabase.from("requests").select("id,request_no,status,current_stage,current_owner,created_by,assigned_account_officer_id,assigned_account_officer_name,created_at").order("created_at", { ascending: false }).limit(5000),
       supabase.from("request_history").select("id,request_id,action_type,to_stage,actor_name,actor_role_name,created_at").order("created_at", { ascending: false }).limit(10000),
       supabase.from("payment_vouchers").select("id,request_id,voucher_no,status,voucher_type,created_at").order("created_at", { ascending: false }).limit(5000),
     ]);
@@ -298,7 +300,7 @@ export default function RegistryCentreWorkspace() {
 
   return <main className={styles.page} data-rg-standard="phase7"><div className={styles.shell}>
     <section className={styles.hero}>
-      <div><h1 className={styles.title}>Registry Centre</h1><p className={styles.subtitle}>Track request movement, registry operations, correspondence and dispatch from one live workspace.</p></div>
+      <div><h1 className={styles.title}>Registry Centre</h1><p className={styles.subtitle}>Track request movement, correspondence and dispatch. Registry records movement only — request contents are not opened here.</p></div>
       <div className={styles.actions}><button className={styles.buttonSecondary} onClick={() => void load()}><RefreshCw size={16}/>Refresh</button><button className={styles.button} onClick={() => setShowForm((x) => !x)}><FilePlus2 size={16}/>New Correspondence</button></div>
     </section>
 
@@ -330,15 +332,17 @@ export default function RegistryCentreWorkspace() {
 
       <section className={styles.workflowGrid}>
         <article className={styles.card}><h2 className={styles.cardTitle}>Request Workflow Movement</h2><p className={styles.cardNote}>Current queues and historical transitions from requester through approval and Account processing.</p><div className={styles.flowBars}>{stageRows.map((row) => <button key={row.key} type="button" className={styles.flowRow} onClick={() => setChartDetail(`${row.label}: ${row.current} currently at this stage; ${row.movements} recorded transitions.`)}><span>{row.label}</span><i><b style={{ width: `${Math.max(row.current || row.movements ? 3 : 0, (Math.max(row.current, row.movements) / maxStage) * 100)}%` }}/></i><strong>{row.current}</strong><small>{row.movements} moves</small></button>)}</div></article>
-        <article className={styles.card}><h2 className={styles.cardTitle}>Account Queues</h2><p className={styles.cardNote}>Requests currently routed to the configured Account Officers.</p><div className={styles.queueList}>{accountQueues.length ? accountQueues.map(([name, count], index) => <div key={name}><span><b>{index + 1}</b><strong>{name}</strong></span><em>{count}</em></div>) : <div className={styles.empty}>No requests are currently in Account processing.</div>}</div></article>
+        <article className={styles.card}><h2 className={styles.cardTitle}>Account Queues</h2><p className={styles.cardNote}>Requests currently routed to the configured Account Officers.</p><div className={styles.queueList}>{accountQueues.length ? accountQueues.map(([name, count], index) => <div key={name}><span><b>{index + 1}</b><PersonName name={name} /></span><em>{count}</em></div>) : <div className={styles.empty}>No requests are currently in Account processing.</div>}</div></article>
         <article className={styles.card}><h2 className={styles.cardTitle}>Registry Operations</h2><p className={styles.cardNote}>Live correspondence and dispatch register alongside workflow tracking.</p><div className={styles.miniStats}><div><strong>{registryStats.total}</strong><span>Total correspondence</span></div><div><strong>{registryStats.pendingDispatch}</strong><span>Pending dispatch</span></div><div><strong>{registryStats.awaitingAck}</strong><span>Awaiting acknowledgement</span></div><div><strong>{registryStats.high}</strong><span>High priority</span></div></div></article>
       </section>
       <div className={styles.chartDetail} role="status" aria-live="polite">{chartDetail || "Select a workflow row to display its exact live values."}</div>
 
-      <section className={styles.tableCard}><div className={styles.tableHeader}><div><h2 className={styles.cardTitle}>Recent Request Movements</h2><p className={styles.cardNote}>Latest approval/routing evidence from request history.</p></div><span className={styles.badge} style={{ background: "var(--color-brand-50)", color: "var(--color-brand-700)" }}>{history.length} events</span></div><div className={styles.tableWrap}><table data-rg-table="standard"><thead><tr><th>#</th><th>Request</th><th>Action</th><th>Moved To</th><th>Actor</th><th>Date & Time</th><th>Actions</th></tr></thead><tbody>{recentMovement.length ? recentMovement.map((item, index) => <tr key={item.id}><td>{index + 1}</td><td className={styles.ref}>{item.request?.request_no || item.request_id}</td><td>{item.action_type || "Workflow action"}</td><td><span className={styles.badge} style={statusTone(item.to_stage || "Pending")}>{item.to_stage || "—"}</span></td><td>{item.actor_name || "System"}<small>{item.actor_role_name || ""}</small></td><td>{dateText(item.created_at)}</td><td><div className={styles.rowActions}><button title="View request" onClick={() => router.push(`/requests/${item.request_id}`)}><Eye size={15}/></button><details className={styles.moreMenu}><summary title="More actions"><MoreVertical size={15}/></summary><div><button onClick={() => router.push(`/requests/${item.request_id}`)}>Open Request</button><button onClick={() => setChartDetail(`${item.request?.request_no || item.request_id}: ${item.action_type || "Workflow action"} → ${item.to_stage || "—"} by ${item.actor_name || "System"}.`)}>Movement Details</button></div></details></div></td></tr>) : <tr><td colSpan={7}><div className={styles.empty}>No request workflow history is visible to this role yet.</div></td></tr>}</tbody></table></div></section>
+      <section className={styles.tableCard}><div className={styles.tableHeader}><div><h2 className={styles.cardTitle}>Recent Request Movements</h2><p className={styles.cardNote}>Latest approval/routing evidence from request history.</p></div><span className={styles.badge} style={{ background: "var(--color-brand-50)", color: "var(--color-brand-700)" }}>{history.length} events</span></div><div className={styles.tableWrap}><table data-rg-table="standard"><thead><tr><th>#</th><th>Request</th><th>Action</th><th>Moved To</th><th>Actor</th><th>Date & Time</th><th className="rg-col-actions">Details</th></tr></thead><tbody>{recentMovement.length ? recentMovement.map((item, index) => <tr key={item.id}><td>{index + 1}</td><td className={styles.ref}>{item.request?.request_no || item.request_id}</td><td>{item.action_type || "Workflow action"}</td><td><span className={styles.badge} style={statusTone(item.to_stage || "Pending")}>{item.to_stage || "—"}</span></td><td><PersonName name={item.actor_name || "System"} role={item.actor_role_name} /></td><td>{dateText(item.created_at)}</td><td className="rg-col-actions"><IconActions><IconAction kind="view" label="Movement details" onClick={() => setChartDetail(`${item.request?.request_no || "Request"}: ${item.action_type || "Workflow action"} → ${item.to_stage || "—"} by ${nameWithRole(item.actor_name || "System", item.actor_role_name)} on ${dateText(item.created_at)}.`)} /></IconActions></td></tr>) : <tr><td colSpan={7}><div className={styles.empty}>No request workflow history is visible to this role yet.</div></td></tr>}</tbody></table></div></section>
     </>}
 
-    {view !== "overview" && <>
+    {view === "tracking" && <RequestTrackingPanel requests={requests} history={history} loading={loading} />}
+
+    {view !== "overview" && view !== "tracking" && <>
       <section className={styles.card}><div className={styles.filters}>
         <label className={styles.field}><span className={styles.label}>Search</span><div className={styles.searchField}><Search size={15}/><input className={styles.input} value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Reference no., subject, sender/recipient..."/></div></label>
         <label className={styles.field}><span className={styles.label}>Direction</span><select className={styles.select} value={direction} onChange={(e) => setDirection(e.target.value)}><option value="all">All Directions</option><option value="incoming">Incoming</option><option value="outgoing">Outgoing</option></select></label>

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import { PersonName } from "@/app/components/ui/PersonName";
 import { PVHero } from "@/app/components/ui/PaymentVoucherUI";
 
 type VoucherDetail = {
@@ -865,7 +866,7 @@ export default function PaymentVoucherDetailPage() {
                       </div>
 
                       <div className="col-span-2 text-slate-700">
-                        {item.requester_name || "—"}
+                        <PersonName name={item.requester_name} />
                       </div>
 
                       <div className="col-span-1">
@@ -1094,7 +1095,7 @@ export default function PaymentVoucherDetailPage() {
                 <div key={h.id} className="rounded-2xl border border-slate-200 bg-white p-4">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="font-bold text-slate-900">
-                      {h.actor_name || "Officer"} • {h.action_type || "Action"}
+                      <PersonName name={h.actor_name || "Officer"} role={h.actor_role} /> • {h.action_type || "Action"}
                     </div>
                     <div className="text-xs text-slate-500">{shortDateTime(h.created_at)}</div>
                   </div>

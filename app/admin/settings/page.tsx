@@ -173,7 +173,6 @@ export default function AdminSettingsPage() {
           <h1>System Settings</h1>
           <p>Configure canonical workflow officers once and reuse the assignments across authorised ReqGen routes.</p>
         </div>
-        <button type="button" className="reqgen-btn reqgen-btn-slate" onClick={() => router.push("/admin")}>Back to Admin</button>
       </header>
 
       {msg ? <div className="admin-v4-feedback" role="status">{msg}</div> : null}
@@ -194,7 +193,7 @@ export default function AdminSettingsPage() {
                     <option value="">Select authorised user</option>
                     {eligible.map((user) => <option key={user.id} value={user.id}>{userLabel(user)}</option>)}
                   </select>
-                  <button type="button" className="reqgen-btn reqgen-btn-blue" disabled={savingKey === item.key} onClick={() => void saveSetting(item)}>{savingKey === item.key ? "Saving…" : "Save"}</button>
+                  <button type="button" className="rg-btn rg-btn-primary" disabled={savingKey === item.key} onClick={() => void saveSetting(item)}>{savingKey === item.key ? "Saving…" : "Save"}</button>
                 </div>
               );
             })}
@@ -216,7 +215,7 @@ export default function AdminSettingsPage() {
                     <option value="">Select Account Officer</option>
                     {eligible.map((user) => <option key={user.id} value={user.id}>{userLabel(user)}</option>)}
                   </select>
-                  <button type="button" className="reqgen-btn reqgen-btn-emerald" disabled={savingKey === item.key} onClick={() => void saveSetting(item)}>{savingKey === item.key ? "Saving…" : "Save"}</button>
+                  <button type="button" className="rg-btn rg-btn-primary" disabled={savingKey === item.key} onClick={() => void saveSetting(item)}>{savingKey === item.key ? "Saving…" : "Save"}</button>
                 </div>
               );
             })}

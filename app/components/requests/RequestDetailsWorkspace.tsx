@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import { nameWithRole } from "@/lib/userIdentity";
+import { APPROVAL_QUEUE_CHANGED_EVENT } from "@/lib/approvalQueue";
 import { WorkflowLoading, WorkflowPageStyles } from "@/app/components/ui/WorkflowUI";
 import { RequestProgress } from "../../components/RequestProgress";
 import styles from "../../requests/[id]/request-detail.module.css";
@@ -1155,6 +1157,8 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
 
       setComment("");
       await reload();
+      // Tell every approval badge in this browser to refresh immediately.
+      window.dispatchEvent(new Event(APPROVAL_QUEUE_CHANGED_EVENT));
       if (embedded) onProcessed?.();
     } catch (e: unknown) {
       setMsg("❌ Action failed: " + errorMessage(e));
@@ -1227,6 +1231,17 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
   ]);
 
   if (loading) return <WorkflowLoading title="Loading request details and approval history..." />;
+
+  // v3.0.2: Registry tracks request MOVEMENT only and never sees request content.
+  if (roleKey(activeRoleKey) === "registry") {
+    return (
+      <div className="rg-alert" role="alert">
+        <strong>Request contents are not available to the Registry role.</strong> Registry tracks request movement
+        only — use Registry → Request Tracking to see where this request is, who has acted on it and when. To open your
+        own requests, switch your working role to Staff.
+      </div>
+    );
+  }
 
   return (
     <main className={`${styles.page} req-family-page`}>
@@ -1359,7 +1374,7 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
 
               {!isHRContext && req.assigned_account_officer_name && (
                 <div className="mt-4">
-                  <Info label="Automatically Attached AccountOfficer" value={req.assigned_account_officer_name} />
+                  <Info label="Automatically Attached Account Officer" value={req.assigned_account_officer_name ? nameWithRole(req.assigned_account_officer_name, "accountofficer") : "—"} />
                 </div>
               )}
 
@@ -1636,7 +1651,7 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
                           Assigned AccountOfficer
                         </div>
                         <div className="mt-1 text-sm font-extrabold text-slate-900">
-                          {req.assigned_account_officer_name || "Not configured"}
+                          {req.assigned_account_officer_name ? nameWithRole(req.assigned_account_officer_name, "accountofficer") : "Not configured"}
                         </div>
                       </div>
                       <p className="mt-2 text-sm font-semibold leading-6 text-emerald-800">

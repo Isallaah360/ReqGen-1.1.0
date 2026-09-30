@@ -1,7 +1,6 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -268,16 +267,6 @@ export default function ChangePasswordPage() {
     return (
         <main className="min-h-screen bg-slate-50 px-4">
             <div className="mx-auto max-w-3xl py-8">
-                <div className="rg-rmb-actions-row">
-                    <Link
-                        href="/dashboard"
-                        className="rg-action-button"
-                        style={{ ["--rg-action-accent" as string]: "#334155" }}
-                    >
-                        Dashboard
-                    </Link>
-                </div>
-
                 {err && (
                     <div className="mt-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-800">
                         {err}
@@ -372,7 +361,7 @@ export default function ChangePasswordPage() {
                 )}
 
                 <form onSubmit={changePassword} className="mt-6 rounded-3xl border bg-white p-6 shadow-sm">
-                    <div className="font-extrabold text-slate-900">Step 3 — Set New Password</div>
+                    <div className="font-extrabold text-slate-900">Step {needsMfa && !mfaVerified ? 3 : 2} — Set New Password</div>
 
                     <div className="mt-4 space-y-4">
                         <div>

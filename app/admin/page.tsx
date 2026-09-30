@@ -245,7 +245,7 @@ export default function AdminDashboardPage() {
         <article className="admin-v3-card">
           <div className="admin-v3-card-head"><div><h2>Users by Role</h2><p>Live primary-role distribution</p></div></div>
           <div className="admin-v3-donut-wrap">
-            <SharedDonut segments={roleSegments} size={116} strokeWidth={22} centerLabel="Users" />
+            <SharedDonut segments={roleSegments} size={200} strokeWidth={34} fluidMax={210} centerLabel="Users" />
             <div className="admin-v3-legend">
               {roleDistribution.length ? roleDistribution.map((item, index) => (
                 <div key={item.label}><i style={{ background: ROLE_COLORS[index % ROLE_COLORS.length] }} /><span>{item.label}</span><strong>{item.count}</strong></div>

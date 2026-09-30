@@ -308,8 +308,14 @@ export default function AdminSecurityPage() {
     const high = checklist.filter((x) => x.priority === "High").length;
 
     const score = total > 0 ? Math.round((done / total) * 100) : 0;
+    // The first two checklist items are measured live from Supabase Auth; the
+    // rest are built-in code controls ("Done") or manual governance reviews.
+    const live = checklist.slice(0, 2);
+    const livePassed = live.filter((x) => x.status === "Done").length;
+    const builtIn = checklist.slice(2).filter((x) => x.status === "Done").length;
+    const highOpen = checklist.filter((x) => x.priority === "High" && x.status !== "Done").length;
 
-    return { total, done, review, pending, high, score };
+    return { total, done, review, pending, high, score, liveTotal: live.length, livePassed, builtIn, highOpen };
   }, [checklist]);
 
   async function printChecklist() {
@@ -412,63 +418,39 @@ export default function AdminSecurityPage() {
       `}</style>
 
       <div className="print-sheet mx-auto max-w-6xl py-8">
-        <div className="flex flex-wrap items-start justify-between gap-4">
+        <header className="rg-page-head">
           <div>
-            <div className="text-xs font-black uppercase tracking-wide text-blue-700">
-              Security
-            </div>
-
-            <h1 className="mt-1 text-3xl font-extrabold tracking-tight text-slate-900">
-              Security Centre
-            </h1>
-
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
-              Admin/Auditor control page for reviewing 2FA, inactivity logout, backup discipline,
-              storage safety, RLS readiness and sensitive finance workflow controls.
-            </p>
-
-            <p className="mt-1 text-xs font-semibold text-slate-500">
-              User: {me?.full_name || "—"} • Role: {me?.role || "—"} • Generated:{" "}
-              {new Date().toLocaleString()}
-            </p>
+            <h1>Security Centre</h1>
+            <p>Live 2FA status plus the governance checklist for access, backups and database security. It complements — never replaces — Supabase RLS and backups.</p>
+            <p className="rg-print-only">Printed by {me?.full_name || "—"} ({me?.role || "—"}) on {new Date().toLocaleString()}</p>
           </div>
-
-          <div className="no-print flex flex-wrap gap-2">
-            <button
-              onClick={() => load({ silent: true })}
-              disabled={refreshing || printing}
-              className="reqgen-btn reqgen-btn-cyan rounded-xl px-4 py-2 text-sm font-black text-white disabled:opacity-60"
-            >
+          <div className="rg-page-actions no-print">
+            <button type="button" onClick={() => load({ silent: true })} disabled={refreshing || printing} className="rg-btn rg-btn-secondary">
               {refreshing ? "Refreshing..." : "Refresh"}
             </button>
-
-            <button
-              onClick={printChecklist}
-              disabled={refreshing || printing}
-              className="reqgen-btn reqgen-btn-violet rounded-xl px-4 py-2 text-sm font-black text-white disabled:opacity-60"
-            >
+            <button type="button" onClick={printChecklist} disabled={refreshing || printing} className="rg-btn rg-btn-secondary">
               {printing ? "Preparing..." : "Print Checklist"}
             </button>
-
           </div>
+        </header>
+
+        {msg && <div className="rg-alert" role="status">{msg}</div>}
+
+        <div className="mt-4 rg-auto-grid rg-auto-grid-4">
+          <StatCard title="Live 2FA checks passed" value={`${stats.livePassed} / ${stats.liveTotal}`} tone={stats.livePassed === stats.liveTotal ? "emerald" : "red"} />
+          <StatCard title="Built-in controls active" value={String(stats.builtIn)} tone="blue" />
+          <StatCard title="Manual reviews outstanding" value={String(stats.review)} tone="amber" />
+          <StatCard title="High priority outstanding" value={String(stats.highOpen)} tone={stats.highOpen ? "red" : "emerald"} />
         </div>
 
-        {msg && (
-          <div className="mt-4 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-800 shadow-sm">
-            {msg}
-          </div>
-        )}
+        <nav className="no-print mt-5" data-rg-tabs="true" role="tablist" aria-label="Security Centre sections">
+          <TabButton label="Overview" active={activeTab === "overview"} onClick={() => setActiveTab("overview")} />
+          <TabButton label="Checklist" active={activeTab === "checklist"} onClick={() => setActiveTab("checklist")} />
+          <TabButton label="Backup Standard" active={activeTab === "backup"} onClick={() => setActiveTab("backup")} />
+          <TabButton label="Sensitive Policy" active={activeTab === "policy"} onClick={() => setActiveTab("policy")} />
+        </nav>
 
-
-        <div className="mt-6 rg-auto-grid rg-auto-grid-6">
-          <StatCard title="Security Score" value={`${stats.score}%`} tone="blue" />
-          <StatCard title="Checklist Items" value={String(stats.total)} tone="blue" />
-          <StatCard title="Completed" value={String(stats.done)} tone="emerald" />
-          <StatCard title="Needs Review" value={String(stats.review)} tone="amber" />
-          <StatCard title="Pending" value={String(stats.pending)} tone="red" />
-          <StatCard title="High Priority" value={String(stats.high)} tone="purple" />
-        </div>
-
+        {activeTab === "overview" && (
         <div className="mt-6 rounded-3xl border bg-white p-6 shadow-sm print-card">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
@@ -534,16 +516,9 @@ export default function AdminSecurityPage() {
           </div>
         </div>
 
-        <div className="no-print mt-5 rounded-xl border bg-white p-1 shadow-sm" data-rg-tabs="true">
-          <div className="flex flex-wrap gap-1">
-            <TabButton label="Overview" active={activeTab === "overview"} onClick={() => setActiveTab("overview")} />
-            <TabButton label="Checklist" active={activeTab === "checklist"} onClick={() => setActiveTab("checklist")} />
-            <TabButton label="Backup Standard" active={activeTab === "backup"} onClick={() => setActiveTab("backup")} />
-            <TabButton label="Sensitive Policy" active={activeTab === "policy"} onClick={() => setActiveTab("policy")} />
-          </div>
-        </div>
+        )}
 
-        {(activeTab === "overview" || activeTab === "checklist") && (
+        {activeTab === "checklist" && (
           <>
             <div className="no-print mt-5 rounded-xl border bg-white p-4 shadow-sm">
               <div className="grid gap-3 md:grid-cols-4">
@@ -606,18 +581,10 @@ export default function AdminSecurityPage() {
           </>
         )}
 
-        {(activeTab === "overview" || activeTab === "backup") && <BackupPanel />}
+        {activeTab === "backup" && <BackupPanel />}
 
-        {(activeTab === "overview" || activeTab === "policy") && <SensitivePolicyPanel />}
+        {activeTab === "policy" && <SensitivePolicyPanel />}
 
-        <div className="mt-6 rounded-3xl border border-blue-100 bg-blue-50 p-5 text-sm leading-6 text-blue-900 print:border-black print:bg-white print:text-black">
-          <div className="font-extrabold">Security Note</div>
-          <p className="mt-1">
-            This page is a governance checklist. It does not replace database RLS policies, Supabase
-            dashboard backups or server-side validation. It gives Admin/Auditor users a structured
-            way to confirm that ReqGen remains secure before and after upgrades.
-          </p>
-        </div>
       </div>
     </main>
   );
@@ -664,7 +631,7 @@ function ChecklistPanel({ checklist }: { checklist: ChecklistItem[] }) {
                       item.status
                     )}`}
                   >
-                    {item.status}
+                    {item.status === "Review" ? "Manual review" : item.status}
                   </span>
                 </div>
               </div>
@@ -826,11 +793,7 @@ function TabButton({
   onClick: () => void;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`reqgen-btn rounded-2xl px-4 py-3 text-sm font-black text-white transition ${active ? "reqgen-btn-blue ring-4 ring-blue-100" : "reqgen-btn-slate"}`}
-    >
+    <button type="button" role="tab" aria-selected={active} onClick={onClick} className={active ? "is-active" : ""}>
       {label}
     </button>
   );

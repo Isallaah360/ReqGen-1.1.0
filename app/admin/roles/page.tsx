@@ -1,5 +1,6 @@
 "use client";
 
+import { IconAction, IconActions } from "@/app/components/ui/IconAction";
 import AdminNavigation from "@/app/components/admin/AdminNavigation";
 import AdminPermissionMatrix from "@/app/components/admin/AdminPermissionMatrix";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -89,6 +90,7 @@ export default function AdminRolesPage() {
   const [me, setMe] = useState<ProfileMini | null>(null);
   const [roles, setRoles] = useState<ReqgenRole[]>([]);
   const [activeTab, setActiveTab] = useState<TabKey>("overview");
+  const [formOpen, setFormOpen] = useState(false);
   const [search, setSearch] = useState("");
 
   const [editId, setEditId] = useState<string | null>(null);
@@ -237,12 +239,13 @@ export default function AdminRolesPage() {
     setRequiresSignature(false);
     setActive(true);
     setSortOrder(100);
+    setFormOpen(false);
   }
 
   function startCreate() {
     resetForm();
     setMsg(null);
-    setActiveTab("form");
+    setFormOpen(true);
   }
 
   function startEdit(role: ReqgenRole) {
@@ -253,8 +256,7 @@ export default function AdminRolesPage() {
     setActive(Boolean(role.is_active));
     setSortOrder(Number(role.sort_order || 100));
     setMsg(null);
-    setActiveTab("form");
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    setFormOpen(true);
   }
 
   async function saveRole() {
@@ -421,16 +423,6 @@ export default function AdminRolesPage() {
     }
   }
 
-  function goAdmin() {
-    router.push(`/admin?updated=${Date.now()}`);
-    router.refresh();
-  }
-
-  function goUsers() {
-    router.push(`/admin/users?updated=${Date.now()}`);
-    router.refresh();
-  }
-
   if (loading) {
     return (
       <main className="min-h-screen bg-transparent px-4" data-rg-standard="phase7">
@@ -490,7 +482,7 @@ export default function AdminRolesPage() {
             <button
               onClick={() => loadAll({ silent: true })}
               disabled={refreshing || saving}
-              className="reqgen-btn reqgen-btn-cyan rounded-xl px-4 py-2 text-sm font-black text-white disabled:opacity-60"
+              className="rg-btn rg-btn-secondary"
             >
               {refreshing ? "Refreshing..." : "Refresh"}
             </button>
@@ -498,26 +490,11 @@ export default function AdminRolesPage() {
             <button
               onClick={startCreate}
               disabled={refreshing || saving}
-              className="reqgen-btn reqgen-btn-orange rounded-xl px-4 py-2 text-sm disabled:opacity-60 font-black text-white"
+              className="rg-btn rg-btn-primary"
             >
               Add Role
             </button>
 
-            <button
-              onClick={goUsers}
-              disabled={refreshing || saving}
-              className="reqgen-btn reqgen-btn-violet rounded-xl px-4 py-2 text-sm disabled:opacity-60 font-black text-white"
-            >
-              Users & Roles
-            </button>
-
-            <button
-              onClick={goAdmin}
-              disabled={refreshing || saving}
-              className="reqgen-btn reqgen-btn-slate rounded-xl border border-slate-200 px-4 py-2 text-sm disabled:opacity-60 font-black text-white"
-            >
-              Back to Admin
-            </button>
           </div>
         </div>
 
@@ -547,7 +524,6 @@ export default function AdminRolesPage() {
             <TabButton label="Overview" active={activeTab === "overview"} onClick={() => setActiveTab("overview")} />
             <TabButton label="Active Roles" active={activeTab === "active"} onClick={() => setActiveTab("active")} />
             <TabButton label="Inactive Roles" active={activeTab === "inactive"} onClick={() => setActiveTab("inactive")} />
-            <TabButton label={editId ? "Edit Role" : "Add Role"} active={activeTab === "form"} onClick={() => setActiveTab("form")} />
           </div>
         </div>
 
@@ -563,8 +539,9 @@ export default function AdminRolesPage() {
           </div>
         )}
 
-        {activeTab === "form" && (
-          <div className="mt-6 rounded-3xl border bg-white p-6 shadow-sm">
+        {formOpen && (
+          <div className="rg-modal-backdrop" role="presentation" onMouseDown={() => !saving && resetForm()}>
+          <div className="rg-modal" role="dialog" aria-modal="true" aria-label={editId ? "Edit role" : "Add new role"} onMouseDown={(event) => event.stopPropagation()}>
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <h2 className="text-lg font-bold text-slate-900">
@@ -575,13 +552,13 @@ export default function AdminRolesPage() {
                 </p>
               </div>
 
-              {editId && (
+              {(
                 <button
                   onClick={resetForm}
                   disabled={saving}
                   className="reqgen-btn reqgen-btn-orange rounded-xl border border-slate-200 px-4 py-2 text-sm disabled:opacity-60 font-black text-white"
                 >
-                  Cancel Edit
+                  Cancel
                 </button>
               )}
             </div>
@@ -661,6 +638,7 @@ export default function AdminRolesPage() {
             >
               {saving ? "Saving..." : editId ? "Update Role" : "Create Role"}
             </button>
+          </div>
           </div>
         )}
 
@@ -759,31 +737,11 @@ export default function AdminRolesPage() {
                           </td>
 
                           <td className="px-4 py-4">
-                            <div className="flex flex-nowrap justify-end gap-2">
-                              <button
-                                onClick={() => startEdit(role)}
-                                disabled={saving}
-                                className="reqgen-btn reqgen-btn-orange whitespace-nowrap rounded-lg px-3 py-2 text-xs font-black text-white disabled:opacity-50"
-                              >
-                                Edit
-                              </button>
-
-                              <button
-                                onClick={() => toggleActive(role, !role.is_active)}
-                                disabled={saving}
-                                className={`reqgen-btn whitespace-nowrap rounded-lg px-3 py-2 text-xs font-black text-white disabled:opacity-50 ${role.is_active ? "reqgen-btn-orange" : "reqgen-btn-emerald"}`}
-                              >
-                                {role.is_active ? "Deactivate" : "Activate"}
-                              </button>
-
-                              <button
-                                onClick={() => deleteRole(role)}
-                                disabled={saving || role.is_system}
-                                className="reqgen-btn reqgen-btn-rose whitespace-nowrap rounded-lg px-3 py-2 text-xs font-black text-white disabled:opacity-40"
-                              >
-                                Delete
-                              </button>
-                            </div>
+                            <IconActions>
+                              <IconAction kind="edit" label={`Edit ${canonicalRoleName(role.role_name, role.role_key)}`} onClick={() => startEdit(role)} disabled={saving} />
+                              <IconAction kind={role.is_active ? "deactivate" : "activate"} label={`${role.is_active ? "Deactivate" : "Activate"} ${canonicalRoleName(role.role_name, role.role_key)}`} onClick={() => toggleActive(role, !role.is_active)} disabled={saving} />
+                              <IconAction kind="delete" label={role.is_system ? "System roles cannot be deleted" : `Delete ${canonicalRoleName(role.role_name, role.role_key)}`} onClick={() => deleteRole(role)} disabled={saving || role.is_system} />
+                            </IconActions>
                           </td>
                         </tr>
                       ))}
@@ -795,12 +753,6 @@ export default function AdminRolesPage() {
           </div>
         )}
 
-        <div className="mt-6 rounded-3xl border border-blue-100 bg-blue-50 p-5 text-sm text-blue-900">
-          <div className="font-bold">Roles Management Note</div>
-          <p className="mt-1">
-            Roles control access, approval responsibilities and sensitive workflow actions. Use deactivation instead of deletion when a role may already exist in user history or request records.
-          </p>
-        </div>
       </div>
     </main>
   );
@@ -844,30 +796,12 @@ function RoleCard({
         <InfoMetric title="Updated" value={shortDate(role.updated_at)} />
       </div>
 
-      <div className="mt-4 flex flex-wrap justify-end gap-2">
-        <button
-          onClick={onEdit}
-          disabled={saving}
-          className="reqgen-btn reqgen-btn-orange rounded-xl border border-slate-200 px-4 py-2 text-sm disabled:opacity-50 font-black text-white"
-        >
-          Edit
-        </button>
-
-        <button
-          onClick={onToggle}
-          disabled={saving}
-          className={`reqgen-btn rounded-xl px-4 py-2 text-sm font-black text-white disabled:opacity-50 ${role.is_active ? "reqgen-btn-orange" : "reqgen-btn-emerald"}`}
-        >
-          {role.is_active ? "Deactivate" : "Activate"}
-        </button>
-
-        <button
-          onClick={onDelete}
-          disabled={saving || role.is_system}
-          className="reqgen-btn reqgen-btn-rose rounded-xl px-4 py-2 text-sm font-black text-white disabled:opacity-40"
-        >
-          Delete
-        </button>
+      <div className="mt-4 flex justify-end">
+        <IconActions>
+          <IconAction kind="edit" label="Edit role" onClick={onEdit} disabled={saving} />
+          <IconAction kind={role.is_active ? "deactivate" : "activate"} label={role.is_active ? "Deactivate role" : "Activate role"} onClick={onToggle} disabled={saving} />
+          <IconAction kind="delete" label={role.is_system ? "System roles cannot be deleted" : "Delete role"} onClick={onDelete} disabled={saving || role.is_system} />
+        </IconActions>
       </div>
     </div>
   );

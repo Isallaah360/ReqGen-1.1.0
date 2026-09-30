@@ -4,6 +4,7 @@ import AdminNavigation from "@/app/components/admin/AdminNavigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import { IconAction, IconActions } from "@/app/components/ui/IconAction";
 import { roleDisplayName } from "@/lib/roles";
 
 type Dept = {
@@ -868,21 +869,21 @@ export default function AdminUsersPage() {
 
         <section className="mt-6 admin-v3-card">
           <div className="admin-v3-table-scroll">
-            <table className="admin-v3-table">
-              <thead><tr><th>#</th><th>Name</th><th>Email</th><th>Role</th><th>Department</th><th>Signature</th><th>Actions</th></tr></thead>
+            <table className="admin-v3-table rg-std-table">
+              <thead><tr><th className="rg-col-index">#</th><th>Name</th><th>Email</th><th>Role</th><th>Department</th><th>Signature</th><th className="rg-col-actions">Actions</th></tr></thead>
               <tbody>
                 {pagedUsers.map((u, index) => {
                   const assigned = rolesByProfile[u.id] || [];
                   const primary = assigned.find((role) => role.is_primary) || assigned[0];
                   return (
                     <tr key={u.id}>
-                      <td>{(safeUserPage - 1) * userPageSize + index + 1}</td>
+                      <td className="rg-col-index">{(safeUserPage - 1) * userPageSize + index + 1}</td>
                       <td><strong>{u.full_name || "Unnamed user"}</strong></td>
                       <td>{u.email || "—"}</td>
                       <td>{roleDisplayName(primary?.role_name || u.role || "Staff")}</td>
                       <td>{u.dept_id ? deptMap[u.dept_id] || "Unknown department" : "—"}</td>
                       <td><span className={`admin-v3-status ${u.signature_url ? "is-active" : "is-inactive"}`}>{u.signature_url ? "Ready" : "Missing"}</span></td>
-                      <td><div className="admin-v3-row-actions"><button type="button" onClick={() => setManageUserId(u.id)}>Manage</button>{canDeleteUsers ? <button type="button" className="is-danger" disabled={!!savingId} onClick={() => void deleteUser(u)}>Delete</button> : null}</div></td>
+                      <td className="rg-col-actions"><IconActions><IconAction kind="edit" label={`Manage ${u.full_name || "user"}`} onClick={() => setManageUserId(u.id)} />{canDeleteUsers ? <IconAction kind="delete" label={`Delete ${u.full_name || "user"}`} disabled={!!savingId} onClick={() => void deleteUser(u)} /> : null}</IconActions></td>
                     </tr>
                   );
                 })}

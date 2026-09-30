@@ -1724,7 +1724,7 @@ export default function FinanceSubheadsPage() {
             </h3>
 
             <div className={styles.donutRow}>
-              <SharedDonut segments={donutSegments} size={108} strokeWidth={20} centerLabel="Total" formatTotal={() => String(total)} />
+              <SharedDonut segments={donutSegments} size={200} strokeWidth={34} fluidMax={210} centerLabel="Total" formatTotal={() => String(total)} />
 
               <div className={styles.legend}>
                 {categoryData.map(

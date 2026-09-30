@@ -398,7 +398,7 @@ export default function AssignBankToOfficerPage() {
           <div className={styles.sideCard}>
             <h2>Assignment Summary</h2>
             <div className={styles.donutWrap}>
-              <SharedDonut segments={donutSegments} size={108} strokeWidth={20} centerLabel="Assigned" formatTotal={() => String(assignments.length)} />
+              <SharedDonut segments={donutSegments} size={200} strokeWidth={34} fluidMax={210} centerLabel="Assigned" formatTotal={() => String(assignments.length)} />
               <div className={styles.legend}>
                 <Legend color="var(--color-success-600)" label="Active assignments" value={summary.activeAssigned}/>
                 <Legend color="var(--color-brand-600)" label="Available accounts" value={summary.availableAccounts}/>

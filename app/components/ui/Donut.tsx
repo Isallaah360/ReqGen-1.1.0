@@ -34,6 +34,7 @@ export function Donut({
   formatTotal,
   formatValue,
   onSelect,
+  fluidMax,
 }: {
   segments: DonutSegment[];
   size?: number;
@@ -42,6 +43,11 @@ export function Donut({
   formatTotal?: (total: number) => string;
   formatValue?: (value: number, label: string) => string;
   onSelect?: (detail: string) => void;
+  /**
+   * v3.0.2: when set, the chart scales to fill its card up to this many
+   * pixels wide (it stays perfectly round and crisp because it is SVG).
+   */
+  fluidMax?: number;
 }) {
   const total = segments.reduce((sum, s) => sum + s.value, 0);
   const radius = (size - strokeWidth) / 2;
@@ -56,12 +62,16 @@ export function Donut({
 
   return (
     <svg
-      width={size}
-      height={size}
+      width={fluidMax ? undefined : size}
+      height={fluidMax ? undefined : size}
       viewBox={`0 0 ${size} ${size}`}
       role="img"
       aria-label={`Donut chart. Total ${total.toLocaleString()}.`}
-      style={{ display: "block", flexShrink: 0 }}
+      style={
+        fluidMax
+          ? { display: "block", flexShrink: 0, width: `min(100%, ${fluidMax}px)`, height: "auto", aspectRatio: "1 / 1" }
+          : { display: "block", flexShrink: 0 }
+      }
     >
       <g transform={`rotate(-90 ${center} ${center})`}>
         <circle cx={center} cy={center} r={radius} fill="none" stroke="#edf2f7" strokeWidth={strokeWidth} />
