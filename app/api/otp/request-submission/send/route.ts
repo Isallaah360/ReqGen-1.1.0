@@ -1,5 +1,6 @@
 import crypto from "crypto";
 import { NextRequest, NextResponse } from "next/server";
+import { hashOtp } from "@/lib/otpHash";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import {
   buildOtpEmailText,
@@ -31,17 +32,6 @@ function jsonError(
   );
 }
 
-function hashOtp(code: string) {
-  const secret =
-    process.env.OTP_HASH_SECRET ||
-    process.env.SUPABASE_SERVICE_ROLE_KEY ||
-    "reqgen";
-
-  return crypto
-    .createHmac("sha256", secret)
-    .update(code)
-    .digest("hex");
-}
 
 function makeOtp() {
   // crypto.randomInt is a cryptographically secure RNG. Math.random() is

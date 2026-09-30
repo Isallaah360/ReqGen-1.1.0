@@ -306,7 +306,7 @@ export default function AdminDashboardPage() {
         </div>
       </section>
 
-      <footer className="admin-v3-inline-release">ReqGen administration workspace • Version {REQGEN_VERSION}</footer>
+      <footer className="admin-v3-inline-release">ReqGen administration workspace • ReqGen {REQGEN_VERSION}</footer>
     </main>
   );
 }

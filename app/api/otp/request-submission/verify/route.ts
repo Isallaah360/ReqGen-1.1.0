@@ -1,5 +1,6 @@
 import crypto from "crypto";
 import { NextRequest, NextResponse } from "next/server";
+import { hashOtp } from "@/lib/otpHash";
 import { createClient } from "@supabase/supabase-js";
 
 export const runtime = "nodejs";
@@ -8,14 +9,6 @@ function jsonError(message: string, status = 400) {
   return NextResponse.json({ ok: false, error: message }, { status });
 }
 
-function hashOtp(code: string) {
-  const secret =
-    process.env.OTP_HASH_SECRET ||
-    process.env.SUPABASE_SERVICE_ROLE_KEY ||
-    "reqgen";
-
-  return crypto.createHmac("sha256", secret).update(code).digest("hex");
-}
 
 function cleanOtp(value: unknown) {
   return String(value || "").replace(/\D/g, "").slice(0, 6);

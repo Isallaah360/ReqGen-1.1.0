@@ -5,7 +5,6 @@ const read = (p) => fs.readFileSync(path.join(root, p), "utf8");
 const checks = [];
 const check = (label, ok) => checks.push({ label, ok: Boolean(ok) });
 const dashboard = read("app/dashboard/page.tsx");
-const dashboardCss = read("app/dashboard/dashboard.module.css");
 const sharedDonut = read("app/components/ui/Donut.tsx");
 const registry = read("app/components/registry/RegistryCentreWorkspace.tsx");
 const registryCss = read("app/registry/registry.module.css");

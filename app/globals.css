@@ -4212,3 +4212,100 @@ body{font-family:Aptos,"Segoe UI",Inter,Arial,sans-serif!important;background:va
 [data-rg-tabs="true"]>:where(button,a){min-height:34px!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;gap:6px!important;padding:0 13px!important;border:0!important;border-radius:7px!important;background:transparent!important;color:#41516a!important;font-size:11px!important;font-weight:800!important;white-space:nowrap!important;box-shadow:none!important;text-decoration:none!important}
 [data-rg-tabs="true"]>:where(button,a):hover{background:#f3f7fd!important;color:#1267e8!important;transform:none!important}
 [data-rg-tabs="true"]>:where(button,a)[aria-selected="true"],[data-rg-tabs="true"]>:where(button,a)[class*="active"],[data-rg-tabs="true"]>:where(button,a).is-active{background:#1267e8!important;color:#fff!important;box-shadow:0 5px 12px rgba(18,103,232,.16)!important}
+
+/* ========================================================================== */
+/* ReqGen v3.0.1 — Unified navigation, greeting, avatar and tab standard       */
+/* One pattern for every module: flat sidebar + numbered in-page tabs.        */
+/* ========================================================================== */
+:root{
+  --rg3-font:Aptos,"Segoe UI",Inter,Arial,sans-serif;
+  --rg3-blue:#0b5cf0;--rg3-blue-soft:#eaf2ff;--rg3-navy:#071b4d;--rg3-text:#203457;
+  --rg3-muted:#6b7890;--rg3-line:#dfe6f0;--rg3-surface:#fff;--rg3-soft:#f6f9fd;
+  --rg3-radius:12px;--rg3-ease:cubic-bezier(.2,.7,.2,1);
+}
+
+/* Sidebar: flat module links only (collapsible sub-menus retired in v3.0.1) */
+.rg-subnav,.rg-nav-toggle{display:none!important}
+.rg-nav-link{transition:background .18s var(--rg3-ease),color .18s var(--rg3-ease)}
+.rg-nav-link span{font-size:13px!important}
+.rg-sidebar-release span{text-transform:none!important}
+
+/* Numbered module tabs inside the main workspace */
+.rg-module-tabs{display:flex;align-items:center;gap:6px;margin:4px 0 16px;padding:6px;
+  max-width:100%;overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x proximity;
+  border:1px solid var(--rg3-line);border-radius:var(--rg3-radius);background:var(--rg3-soft);
+  scrollbar-width:thin;-webkit-overflow-scrolling:touch}
+.rg-module-tabs a{flex:0 0 auto;scroll-snap-align:start;display:inline-flex;align-items:center;gap:8px;
+  min-height:40px;padding:7px 14px 7px 8px;border:1px solid transparent;border-radius:9px;
+  color:var(--rg3-text)!important;font-family:var(--rg3-font);font-size:13px!important;font-weight:750!important;
+  text-decoration:none!important;white-space:nowrap;
+  transition:background .18s var(--rg3-ease),color .18s var(--rg3-ease),border-color .18s var(--rg3-ease),box-shadow .18s var(--rg3-ease)}
+.rg-module-tab-no{width:22px;height:22px;display:grid;place-items:center;border-radius:999px;
+  background:#dde7f5;color:var(--rg3-navy);font-size:11px;font-weight:900;
+  transition:background .18s var(--rg3-ease),color .18s var(--rg3-ease)}
+.rg-module-tabs a:hover{background:#fff;border-color:var(--rg3-line)}
+.rg-module-tabs a:focus-visible{outline:2px solid var(--rg3-blue);outline-offset:2px}
+.rg-module-tabs a.is-active{background:var(--rg3-blue);border-color:var(--rg3-blue);color:#fff!important;
+  box-shadow:0 4px 12px rgba(11,92,240,.22)}
+.rg-module-tabs a.is-active .rg-module-tab-no{background:#fff;color:var(--rg3-blue)}
+
+/* Greeting: larger, with the user's name; icons replace emoji */
+.rg-greeting{display:inline-flex!important;align-items:center;gap:9px;min-width:0;max-width:44vw;
+  padding:8px 14px!important;border-radius:10px!important;font-family:var(--rg3-font);
+  font-size:15px!important;font-weight:700!important;color:var(--rg3-navy)!important;
+  background:var(--rg3-soft)!important;border:1px solid var(--rg3-line)!important}
+.rg-greeting-icon{flex:0 0 auto;color:#e0901b}
+.rg-greeting-text{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rg-greeting-name{font-weight:900;color:var(--rg3-blue)}
+
+/* Top-right profile: avatar only (name now lives in the greeting) */
+.rg-profile.rg-profile-avatar-only{min-width:auto!important;padding:0!important;margin-left:4px;border-radius:999px}
+.rg-profile.rg-profile-avatar-only:focus-visible{outline:2px solid var(--rg3-blue);outline-offset:2px}
+.rg-profile-avatar-only .rg-avatar{width:38px;height:38px;font-size:12px}
+.rg-avatar.has-photo{padding:0;overflow:hidden;background:#fff}
+.rg-avatar img{width:100%;height:100%;object-fit:cover;border-radius:999px;display:block}
+
+/* Profile photo block */
+.rg-profile-photo{display:grid;justify-items:center;gap:8px}
+.rg-profile-avatar-large{width:88px!important;height:88px!important;overflow:hidden;font-size:26px!important}
+.rg-profile-avatar-large.has-photo{background:#fff!important;border:3px solid #fff;box-shadow:0 4px 14px rgba(7,27,77,.16)}
+.rg-profile-avatar-large img{width:100%;height:100%;object-fit:cover;display:block}
+.rg-profile-photo-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+.rg-profile-photo-btn{position:relative;display:inline-flex;align-items:center;min-height:30px;padding:4px 11px;
+  border:1px solid var(--rg3-line);border-radius:8px;background:#fff;color:var(--rg3-blue);
+  font-size:12px!important;font-weight:800;cursor:pointer;transition:background .18s var(--rg3-ease)}
+.rg-profile-photo-btn:hover{background:var(--rg3-blue-soft)}
+.rg-profile-photo-btn.is-quiet{color:var(--rg3-muted)}
+.rg-profile-photo-btn.is-disabled,.rg-profile-photo-btn:disabled{opacity:.55;pointer-events:none}
+.rg-profile-photo-btn input{position:absolute;inset:0;opacity:0;cursor:pointer}
+
+/* Current working role panel (profile page) */
+.mock-role-panel{width:100%!important;max-width:380px!important;grid-template-columns:1fr!important;gap:10px!important;
+  padding:14px 16px!important;border:1px solid var(--rg3-line)!important;border-radius:var(--rg3-radius)!important;background:var(--rg3-soft)!important}
+.mock-role-panel p{font-size:11px!important;letter-spacing:.08em!important}
+.mock-role-panel h2{font-size:16px!important;color:var(--rg3-navy)}
+.mock-role-panel span,.mock-role-panel label{font-size:12px!important}
+.mock-role-panel-control{min-width:0!important;max-width:none!important}
+.mock-role-panel-control select{min-height:42px!important;padding:0 36px 0 12px!important;font-size:14px!important;font-weight:750!important;
+  color:var(--rg3-navy)!important;border:1px solid #c9d7ea!important;border-radius:10px!important;appearance:none;
+  background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230b5cf0' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m7 10 5 5 5-5'/%3E%3C/svg%3E") no-repeat right 11px center/16px!important;cursor:pointer}
+.mock-role-panel-control select:focus{outline:2px solid var(--rg3-blue);outline-offset:1px}
+
+/* Responsive: nothing clipped on tablet or phone */
+@media(max-width:900px){
+  .rg-greeting{display:inline-flex!important;max-width:52vw;font-size:13px!important;padding:6px 10px!important}
+  .rg-greeting-text{font-size:13px}
+  .rg-profile-hero{grid-template-columns:auto 1fr!important}
+}
+@media(max-width:620px){
+  .rg-greeting{max-width:46vw;gap:6px}
+  .rg-greeting-icon{width:16px;height:16px}
+  .rg-module-tabs{margin:2px -2px 14px;border-radius:10px}
+  .rg-module-tabs a{min-height:38px;padding:6px 12px 6px 7px;font-size:12.5px!important}
+  .rg-profile-hero{grid-template-columns:1fr!important;justify-items:start}
+  .rg-profile-photo{justify-items:start}
+  .mock-role-panel{max-width:none!important}
+}
+@media(prefers-reduced-motion:reduce){
+  .rg-module-tabs a,.rg-module-tab-no,.rg-nav-link,.rg-profile-photo-btn{transition:none!important}
+}

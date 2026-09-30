@@ -38,6 +38,18 @@ function getPublicSignatureUrl(path: string | null | undefined) {
 }
 
 
+const AVATAR_BUCKET = "avatars";
+const AVATAR_MAX_BYTES = 1024 * 1024;
+const AVATAR_TYPES: Record<string, string> = { "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp" };
+
+function avatarObjectPath(url: string | null): string | null {
+  if (!url) return null;
+  const marker = `/storage/v1/object/public/${AVATAR_BUCKET}/`;
+  const index = url.indexOf(marker);
+  if (index < 0) return null;
+  return decodeURIComponent(url.slice(index + marker.length).split("?")[0]);
+}
+
 function displayRoleName(value: string | null | undefined) {
   const raw = String(value || "Staff").trim();
   const key = raw.toLowerCase().replace(/[^a-z0-9]+/g, "");
@@ -75,6 +87,10 @@ export default function ProfilePage() {
   const [file, setFile] = useState<File | null>(null);
   const [uploadingSig, setUploadingSig] = useState(false);
 
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [avatarSupported, setAvatarSupported] = useState(true);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+
   const [security, setSecurity] = useState<SecurityStatus>({
     hasVerifiedTotp: false,
     currentLevel: null,
@@ -89,7 +105,7 @@ export default function ProfilePage() {
   const isSessionMfaVerified = security.currentLevel === "aal2";
   const isMfaSetupComplete = security.hasVerifiedTotp;
 
-  const busy = refreshing || savingProfile || savingEmail || uploadingSig;
+  const busy = refreshing || savingProfile || savingEmail || uploadingSig || uploadingAvatar;
 
   const loadSecurityStatus = useCallback(async () => {
     const [factorsRes, aalRes] = await Promise.all([
@@ -166,6 +182,21 @@ export default function ProfilePage() {
       const savedSigPath = prof?.signature_url || null;
       setSigPath(savedSigPath);
       setSigPreview(getPublicSignatureUrl(savedSigPath));
+
+      // Profile photo (v3.0.1). Loaded separately so the page still works if
+      // database/20260930_v3_0_1_profile_avatar.sql has not been run yet.
+      const avatarRes = await supabase
+        .from("profiles")
+        .select("avatar_url")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (avatarRes.error) {
+        setAvatarSupported(false);
+        setAvatarUrl(null);
+      } else {
+        setAvatarSupported(true);
+        setAvatarUrl(String((avatarRes.data as { avatar_url?: string | null } | null)?.avatar_url || "").trim() || null);
+      }
 
       setDeptName("");
 
@@ -319,6 +350,66 @@ export default function ProfilePage() {
     }
   }
 
+  async function saveAvatar(nextFile: File | null) {
+    setMsg(null);
+
+    const { data: authData } = await supabase.auth.getUser();
+    const user = authData.user;
+    if (!user) {
+      router.push("/login");
+      return;
+    }
+
+    let nextUrl: string | null = null;
+
+    if (nextFile) {
+      const ext = AVATAR_TYPES[nextFile.type];
+      if (!ext) {
+        setMsg("❌ Profile photo must be a PNG, JPG or WEBP image.");
+        return;
+      }
+      if (nextFile.size > AVATAR_MAX_BYTES) {
+        setMsg("❌ Profile photo is too large (maximum 1 MB).");
+        return;
+      }
+    }
+
+    setUploadingAvatar(true);
+    const previousPath = avatarObjectPath(avatarUrl);
+
+    try {
+      if (nextFile) {
+        const ext = AVATAR_TYPES[nextFile.type];
+        const path = `${user.id}/avatar-${Date.now()}.${ext}`;
+        const { error: upErr } = await supabase.storage
+          .from(AVATAR_BUCKET)
+          .upload(path, nextFile, { upsert: false, contentType: nextFile.type, cacheControl: "3600" });
+        if (upErr) throw new Error(upErr.message);
+        nextUrl = supabase.storage.from(AVATAR_BUCKET).getPublicUrl(path).data.publicUrl;
+      }
+
+      const { error: profErr } = await supabase
+        .from("profiles")
+        .update({ avatar_url: nextUrl })
+        .eq("id", user.id);
+      if (profErr) throw new Error(profErr.message);
+
+      if (previousPath) {
+        // Best effort: tidy up the replaced photo. Failure here is harmless.
+        await supabase.storage.from(AVATAR_BUCKET).remove([previousPath]);
+      }
+
+      setAvatarUrl(nextUrl);
+      setMsg(nextUrl ? "✅ Profile photo updated." : "✅ Profile photo removed.");
+      window.dispatchEvent(new Event("reqgen-profile-updated"));
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Unknown error";
+      setMsg("❌ Profile photo update failed: " + message);
+    } finally {
+      setUploadingAvatar(false);
+    }
+  }
+
   async function changeEmail() {
     setMsg(null);
 
@@ -413,7 +504,38 @@ export default function ProfilePage() {
   return (
     <main className="rg-profile-page">
       <section className="rg-profile-hero" aria-labelledby="profile-page-title">
-        <div className="rg-profile-avatar-large" aria-hidden="true">{profileInitials}</div>
+        <div className="rg-profile-photo">
+          <div className={`rg-profile-avatar-large ${avatarUrl ? "has-photo" : ""}`}>
+            {avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element -- user photo from Supabase Storage; avoids remote-host image config
+              <img src={avatarUrl} alt={`${fullName || "User"} profile photo`} width={88} height={88} />
+            ) : (
+              <span aria-hidden="true">{profileInitials}</span>
+            )}
+          </div>
+          {avatarSupported ? (
+            <div className="rg-profile-photo-actions">
+              <label className={`rg-profile-photo-btn ${busy ? "is-disabled" : ""}`}>
+                {uploadingAvatar ? "Saving..." : avatarUrl ? "Change photo" : "Add photo"}
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  disabled={busy}
+                  onChange={(event) => {
+                    const chosen = event.target.files?.[0] || null;
+                    event.target.value = "";
+                    if (chosen) void saveAvatar(chosen);
+                  }}
+                />
+              </label>
+              {avatarUrl ? (
+                <button type="button" className="rg-profile-photo-btn is-quiet" disabled={busy} onClick={() => void saveAvatar(null)}>
+                  Remove
+                </button>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
         <div className="rg-profile-identity">
           <div className="rg-profile-title-line">
             <h1 id="profile-page-title">{fullName || "My Profile"}</h1>

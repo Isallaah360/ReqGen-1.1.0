@@ -31,8 +31,10 @@ import {
   Menu,
   X,
   LogOut,
-  ChevronDown,
   ChevronRight,
+  Sunrise,
+  Sun,
+  Moon,
 } from "lucide-react";
 
 import { supabase } from "@/lib/supabaseClient";
@@ -225,6 +227,47 @@ function getSubnavForPath(moduleHref: string): SubNavItem[] {
   return MODULE_SUBNAV[moduleHref] || [];
 }
 
+type GreetingPeriod = "morning" | "afternoon" | "evening";
+
+function greetingPeriodForHour(hour: number): GreetingPeriod {
+  if (hour < 12) return "morning";
+  if (hour < 17) return "afternoon";
+  return "evening";
+}
+
+const GREETING_COPY: Record<GreetingPeriod, { label: string; Icon: typeof Sun }> = {
+  morning: { label: "Good Morning", Icon: Sunrise },
+  afternoon: { label: "Good Afternoon", Icon: Sun },
+  evening: { label: "Good Evening", Icon: Moon },
+};
+
+/**
+ * v3.0.1 standard: module sub-sections are shown as numbered tabs inside the
+ * main workspace (never as collapsible sidebar menus). One component serves
+ * Profile, Finance, Admin, Payment Vouchers, Registry and Reports alike.
+ */
+function ModuleTabs({ moduleHref, moduleLabel, items, pathname }: { moduleHref: string; moduleLabel: string; items: SubNavItem[]; pathname: string }) {
+  const activeHref = activeSubnavHref(moduleHref, pathname);
+  return (
+    <nav className="rg-module-tabs" aria-label={`${moduleLabel} sections`}>
+      {items.map((item, index) => {
+        const active = activeHref === item.href;
+        return (
+          <Link
+            key={item.href}
+            href={item.href}
+            className={active ? "is-active" : ""}
+            aria-current={active ? "page" : undefined}
+          >
+            <span className="rg-module-tab-no" aria-hidden="true">{index + 1}</span>
+            <span className="rg-module-tab-label">{item.label}</span>
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
+
 function shellStageKey(value: string | null | undefined) {
   return String(value || "").trim().toUpperCase().replace(/[\s_-]+/g, "");
 }
@@ -322,9 +365,6 @@ function GovernmentAppShellContent({
   const [query, setQuery] =
     useState("");
 
-  const [expandedNav, setExpandedNav] =
-    useState<string | null>(null);
-
   const [roleSet, setRoleSet] =
     useState<Set<string>>(new Set());
 
@@ -335,8 +375,11 @@ function GovernmentAppShellContent({
     useState("ReqGen User");
 
 
-  const [greeting, setGreeting] =
-    useState("Good Morning ☀️");
+  const [greetingPeriod, setGreetingPeriod] =
+    useState<GreetingPeriod>("morning");
+
+  const [avatarUrl, setAvatarUrl] =
+    useState<string | null>(null);
 
   const [pendingApprovalCount, setPendingApprovalCount] =
     useState(0);
@@ -387,6 +430,21 @@ function GovernmentAppShellContent({
 
       setUserName(profileName || metadataName || "Authorised User");
 
+      if (user?.id) {
+        // avatar_url is added by database/20260930_v3_0_1_profile_avatar.sql.
+        // Queried separately so the shell keeps working (initials fallback)
+        // even before that additive migration has been run.
+        const avatar = await supabase
+          .from("profiles")
+          .select("avatar_url")
+          .eq("id", user.id)
+          .maybeSingle();
+        if (mounted) {
+          const url = avatar.error ? "" : String((avatar.data as { avatar_url?: string | null } | null)?.avatar_url || "").trim();
+          setAvatarUrl(url || null);
+        }
+      }
+
 
       if (user?.id) {
         const activeRole = context?.activeRoleKey || "staff";
@@ -419,12 +477,20 @@ function GovernmentAppShellContent({
       "reqgen-active-role-changed",
       refresh
     );
+    window.addEventListener(
+      "reqgen-profile-updated",
+      refresh
+    );
 
     return () => {
       mounted = false;
 
       window.removeEventListener(
         "reqgen-active-role-changed",
+        refresh
+      );
+      window.removeEventListener(
+        "reqgen-profile-updated",
         refresh
       );
     };
@@ -446,27 +512,18 @@ function GovernmentAppShellContent({
   }, [isPublic]);
 
   useEffect(() => {
-    const hour =
-      new Date().getHours();
-
-    const nextGreeting =
-      hour < 12
-        ? "Good Morning 🌅"
-        : hour < 17
-          ? "Good Afternoon ☀️"
-          : "Good Evening 🌙";
-
-    queueMicrotask(() => setGreeting(nextGreeting));
+    const update = () => setGreetingPeriod(greetingPeriodForHour(new Date().getHours()));
+    queueMicrotask(update);
+    // Keep the greeting correct for users who leave ReqGen open all day.
+    const timer = window.setInterval(update, 5 * 60 * 1000);
+    return () => window.clearInterval(timer);
   }, []);
 
   useEffect(() => {
-    const parent = navParentForPath(pathname);
-
     queueMicrotask(() => {
       setMobileOpen(false);
       setSearchOpen(false);
       setQuery("");
-      setExpandedNav(parent || null);
     });
   }, [pathname]);
 
@@ -541,6 +598,7 @@ function GovernmentAppShellContent({
   const routeRegistryItem = getRouteRegistryItem(pathname);
   const currentNavigationItem = NAVIGATION_ITEMS.find((item) => item.href === pathname);
   const activeMainNavigation = visibleNav.find((item) => navParentForPath(pathname) === item.href);
+
   const currentLocationLabel =
     currentNavigationItem?.label ||
     routeRegistryItem?.title ||
@@ -552,22 +610,19 @@ function GovernmentAppShellContent({
     router.replace("/login");
   }
 
+  const firstName = userName.split(/\s+/).filter(Boolean)[0] || "";
+  const { label: greetingLabel, Icon: GreetingIcon } = GREETING_COPY[greetingPeriod];
+
+  const activeModuleHref = navParentForPath(pathname);
+  const activeModule = visibleNav.find((item) => item.href === activeModuleHref);
+  const moduleTabs = activeModuleHref
+    ? getSubnavForPath(activeModuleHref).filter((child) => canAccessPath(child.href, roleSet))
+    : [];
+
   const renderNav = () =>
     visibleNav.map((item) => {
       const Icon = item.icon;
-
-      const active = navParentForPath(pathname) === item.href;
-
-      const subnav =
-        getSubnavForPath(item.href).filter((child) =>
-          canAccessPath(
-            child.href,
-            roleSet
-          )
-        );
-
-      const expanded =
-        expandedNav === item.href;
+      const active = activeModuleHref === item.href;
 
       return (
         <div
@@ -575,73 +630,20 @@ function GovernmentAppShellContent({
           className={`rg-nav-group ${active ? "is-active" : ""}`}
         >
           <div className={`rg-nav-row ${active ? "is-active" : ""}`}>
-            {subnav.length ? (
-              <button
-                type="button"
-                className="rg-nav-link rg-nav-parent"
-                aria-expanded={expanded}
-                aria-controls={`rg-subnav-${item.label.replace(/\s+/g, "-").toLowerCase()}`}
-                onClick={() => {
-                  // A click from another module both navigates to the module root
-                  // and expands it. A second click while already in the module
-                  // only retracts/expands the submenu, preserving user context.
-                  if (!active) {
-                    setExpandedNav(item.href);
-                    router.push(item.href);
-                    return;
-                  }
-                  setExpandedNav(expanded ? null : item.href);
-                }}
-              >
-                <Icon size={18} />
-                <span>{item.label}</span>
-                {item.href === "/approvals" && pendingApprovalCount > 0 ? (
-                  <b className="rg-nav-count" aria-label={`${pendingApprovalCount} pending approvals`}>
-                    {pendingApprovalCount > 99 ? "99+" : pendingApprovalCount}
-                  </b>
-                ) : null}
-              </button>
-            ) : (
-              <Link href={item.href} className="rg-nav-link">
-                <Icon size={18} />
-                <span>{item.label}</span>
-                {item.href === "/approvals" && pendingApprovalCount > 0 ? (
-                  <b className="rg-nav-count" aria-label={`${pendingApprovalCount} pending approvals`}>
-                    {pendingApprovalCount > 99 ? "99+" : pendingApprovalCount}
-                  </b>
-                ) : null}
-              </Link>
-            )}
-
-            {subnav.length ? (
-              <button
-                type="button"
-                className="rg-nav-toggle"
-                aria-label={`${expanded ? "Collapse" : "Expand"} ${item.label}`}
-                aria-expanded={expanded}
-                onClick={() => setExpandedNav(expanded ? null : item.href)}
-              >
-                <ChevronDown size={16} className={expanded ? "is-open" : ""} />
-              </button>
-            ) : null}
-          </div>
-
-          {subnav.length && expanded ? (
-            <div
-              id={`rg-subnav-${item.label.replace(/\s+/g, "-").toLowerCase()}`}
-              className="rg-subnav"
+            <Link
+              href={item.href}
+              className="rg-nav-link"
+              aria-current={active ? "page" : undefined}
             >
-              {subnav.map((child) => (
-                <Link
-                  key={child.href}
-                  href={child.href}
-                  className={activeSubnavHref(item.href, pathname) === child.href ? "is-active" : ""}
-                >
-                  {child.label}
-                </Link>
-              ))}
-            </div>
-          ) : null}
+              <Icon size={18} />
+              <span>{item.label}</span>
+              {item.href === "/approvals" && pendingApprovalCount > 0 ? (
+                <b className="rg-nav-count" aria-label={`${pendingApprovalCount} pending approvals`}>
+                  {pendingApprovalCount > 99 ? "99+" : pendingApprovalCount}
+                </b>
+              ) : null}
+            </Link>
+          </div>
         </div>
       );
     });
@@ -712,7 +714,7 @@ function GovernmentAppShellContent({
         </nav>
 
         <div className="rg-sidebar-release" aria-label={`ReqGen version ${REQGEN_VERSION}`}>
-          <span>Version</span>
+          <span>{REQGEN_PRODUCT_NAME}</span>
           <strong className="rg-sidebar-release-version">{REQGEN_VERSION}</strong>
         </div>
 
@@ -742,9 +744,13 @@ function GovernmentAppShellContent({
 
           <div
             className="rg-greeting"
-            aria-label="Current greeting"
+            aria-live="polite"
           >
-            {greeting}
+            <GreetingIcon size={20} aria-hidden="true" className="rg-greeting-icon" />
+            <span className="rg-greeting-text">
+              {greetingLabel}
+              {firstName ? <>,{" "}<strong className="rg-greeting-name">{userName}</strong></> : null}
+            </span>
           </div>
 
           <div className="rg-search-wrap">
@@ -858,20 +864,17 @@ function GovernmentAppShellContent({
 
             <Link
               href="/profile"
-              className="rg-profile"
+              className="rg-profile rg-profile-avatar-only"
+              aria-label={`My profile — ${userName}`}
+              title={userName}
             >
-              <div className="rg-avatar">
-                {initials}
-              </div>
-
-              <div>
-                <strong>
-                  {userName}
-                </strong>
-
-                <span>
-                  Authorised user
-                </span>
+              <div className={`rg-avatar ${avatarUrl ? "has-photo" : ""}`}>
+                {avatarUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- user photo from Supabase Storage; next/image would require remote host config
+                  <img src={avatarUrl} alt="" width={38} height={38} />
+                ) : (
+                  initials
+                )}
               </div>
             </Link>
           </div>
@@ -911,6 +914,14 @@ function GovernmentAppShellContent({
                 </span>
               </button>
             </div>
+            {moduleTabs.length > 1 && activeModule ? (
+              <ModuleTabs
+                moduleHref={activeModule.href}
+                moduleLabel={activeModule.label}
+                items={moduleTabs}
+                pathname={pathname}
+              />
+            ) : null}
             {children}
           </div>
 
