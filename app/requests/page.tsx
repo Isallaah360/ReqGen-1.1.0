@@ -73,9 +73,9 @@ export default function RequestsPage(){
   </section>
   <section className={styles.insightGrid} aria-label="Request overview insights">
    <article className={styles.insightCard}>
-    <div className={styles.cardHeading}><div><strong>Requests by Status</strong><span>Live workflow distribution</span></div></div>
+    <div className={styles.cardHeading}><div><strong>Requests by Status</strong><span>Select a slice to filter the register</span></div></div>
     <div className={styles.statusVisual}>
-      <SharedDonut segments={statusSegments} size={200} strokeWidth={34} fluidMax={210} />
+      <SharedDonut segments={statusSegments} size={200} strokeWidth={34} fluidMax={210} selected={tab==="ACTIVE"?"In Progress":tab==="COMPLETED"?"Completed":tab==="REJECTED"?"Rejected":null} onSegmentSelect={(label)=>{setTab(label==="In Progress"?"ACTIVE":label==="Completed"?"COMPLETED":label==="Rejected"?"REJECTED":"ALL");setPage(1);document.getElementById("rg-request-register")?.scrollIntoView({behavior:"smooth",block:"start"});}} />
       <div className={styles.legend}><span><i className={styles.legendPending}/>In Progress <b>{counts.active}</b></span><span><i className={styles.legendApproved}/>Completed <b>{counts.completed}</b></span><span><i className={styles.legendRejected}/>Rejected <b>{counts.rejected}</b></span></div>
     </div>
    </article>
@@ -90,7 +90,7 @@ export default function RequestsPage(){
    <article className={styles.insightCard}><div className={styles.cardHeading}><div><strong>Request Types</strong><span>Current request mix</span></div></div><div className={styles.typeSummary}><span><b>Official</b><strong>{counts.official}</strong></span><span><b>Personal Fund</b><strong>{counts.fund}</strong></span><span><b>Personal Other</b><strong>{counts.other}</strong></span></div></article>
   </section>
   <section className={styles.registerCard}>
-   <nav className={styles.tabs} data-rg-tabs="true" aria-label="Request views">{tabs.map(([key,label,count])=><button key={key} className={tab===key?styles.activeTab:""} onClick={()=>setTab(key)}>{label}<b>{count}</b></button>)}</nav>
+   <nav id="rg-request-register" className={styles.tabs} data-rg-tabs="true" aria-label="Request views">{tabs.map(([key,label,count])=><button key={key} className={tab===key?styles.activeTab:""} onClick={()=>setTab(key)}>{label}<b>{count}</b></button>)}</nav>
    <div className={styles.filters}>
     <div className={styles.search}><Search size={16}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search requests..."/></div>
     <select value={status} onChange={e=>setStatus(e.target.value as StatusFilter)}><option value="ALL">All Status</option><option value="ACTIVE">Active</option><option value="COMPLETED">Completed</option><option value="REJECTED">Rejected</option></select>

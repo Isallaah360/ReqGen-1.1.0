@@ -4490,3 +4490,41 @@ html body .rg-role-chip{display:inline-flex;align-items:center;min-height:20px;p
   body.rg-printing-report .rg-role-chip::before{content:"· "}
   body.rg-printing-report .rg-stage,body.rg-printing-report .rg-main{margin:0!important;padding:0!important}
 }
+
+/* ========================================================================== */
+/* ReqGen v3.0.3 — Chart tokens + interactive chart / filter standard          */
+/* ========================================================================== */
+:root{
+  --rg-chart-1:var(--color-chart-1,#2f80ed);--rg-chart-2:var(--color-chart-2,#24b47e);--rg-chart-3:var(--color-chart-3,#f5a623);
+  --rg-chart-4:var(--color-chart-4,#7c4dff);--rg-chart-5:var(--color-chart-5,#ef476f);--rg-chart-6:var(--color-chart-6,#0891b2);
+  --rg-chart-accent:#083fa8;--rg-chart-track:#edf2f7;--rg-chart-grid:#e8eef6;--rg-tooltip-bg:#0f1f3d;
+  --rg-surface:#fff;--rg-line-soft:#eef2f6;--rg-text-strong:#11244a;--rg-text-muted:#6b7890;
+}
+.rg-donut-slice:focus-visible{stroke-opacity:.9;filter:drop-shadow(0 0 3px rgba(11,92,240,.55))}
+.rg-bar-chart rect[role="button"]:focus-visible{filter:drop-shadow(0 0 3px rgba(11,92,240,.6))}
+
+/* Segmented range switch (e.g. 7 days | 4 weeks) */
+.rg-segmented{display:inline-flex;padding:3px;gap:3px;border:1px solid var(--rg3-line);border-radius:10px;background:var(--rg3-soft)}
+.rg-segmented button{min-height:30px;padding:0 12px;border:0;border-radius:8px;background:transparent;color:#34465f;font-size:12.5px;font-weight:800;cursor:pointer;transition:background .15s ease,color .15s ease}
+.rg-segmented button[aria-pressed="true"]{background:#fff;color:var(--rg3-blue);box-shadow:0 1px 4px rgba(7,27,77,.12)}
+.rg-segmented button:focus-visible{outline:2px solid var(--rg3-blue);outline-offset:1px}
+
+/* "Showing: … · Clear" chip for chart-driven filters */
+.rg-filter-chip{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;margin:0 0 10px;padding:8px 10px;
+  border:1px solid #cfe0f7;border-radius:10px;background:#eef5ff;color:#17345f;font-size:12.5px}
+.rg-filter-chip button{display:inline-flex;align-items:center;gap:4px;min-height:28px;padding:0 10px;border:1px solid #bcd3f3;border-radius:8px;background:#fff;color:var(--rg3-blue);font-size:12px;font-weight:800;cursor:pointer}
+
+/* KPI cards that act as filters */
+html body .rg-kpi-button{width:100%;text-align:left;cursor:pointer;font:inherit;transition:border-color .15s ease,box-shadow .15s ease,transform .15s ease}
+html body .rg-kpi-button:hover{border-color:#a9c4ee!important;box-shadow:0 6px 16px rgba(11,92,240,.1)!important}
+html body .rg-kpi-button[aria-pressed="true"]{border-color:var(--rg3-blue)!important;box-shadow:0 0 0 2px rgba(11,92,240,.18)!important}
+html body .rg-kpi-button:focus-visible{outline:2px solid var(--rg3-blue);outline-offset:2px}
+button[aria-pressed="true"][class*="legendRow"]{background:#eef5ff!important;border-color:#bcd3f3!important}
+
+/* Request access gate */
+.rg-gate{display:flex;gap:14px;align-items:flex-start;max-width:760px;margin:24px auto;padding:22px;border:1px solid #f3c2c8;border-radius:14px;background:#fff;color:#23364f}
+.rg-gate svg{flex:0 0 auto;color:var(--rg-danger)}
+.rg-gate h2{margin:0 0 6px;color:var(--rg3-navy);font-size:18px;font-weight:900}
+.rg-gate p{margin:0 0 14px;font-size:13.5px;line-height:1.55}
+.rg-gate-checking{justify-content:center;border-color:var(--rg3-line);color:var(--rg3-muted);font-size:13px}
+@media(prefers-reduced-motion:reduce){.rg-segmented button,.rg-kpi-button{transition:none}}

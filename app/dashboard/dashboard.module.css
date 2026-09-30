@@ -15,3 +15,9 @@
 @media(max-width:720px){.quickGrid{grid-template-columns:1fr}.donutBody{grid-template-columns:1fr;justify-items:center}.legend{width:100%}}
 
 /* Donut chart itself now lives in app/components/ui/Donut.tsx (self-contained, inline styles). Nothing donut-specific needed here anymore. */
+/* v3.0.3: request rows are links; list scrolls when filtered */
+.activity{max-height:360px;overflow-y:auto}
+a.activityItem{color:inherit;text-decoration:none;border-radius:10px;transition:background .15s ease}
+a.activityItem:hover{background:#f2f6fc}
+a.activityItem:focus-visible{outline:2px solid #0b5cf0;outline-offset:1px}
+.donutBody{align-items:center}

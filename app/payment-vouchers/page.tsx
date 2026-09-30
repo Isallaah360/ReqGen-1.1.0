@@ -1194,6 +1194,7 @@ export default function PaymentVouchersPage() {
                 centerLabel="Total Amount"
                 formatTotal={() => naira(stats.totalAmount)}
                 formatValue={(v, label) => `${label}: ${naira(v)}`}
+                formatAmount={naira}
               />
               <div className={styles.legend}>
                 <SummaryLegend color="green" label="Approved" amount={approvedAmount} percent={approvedPct} />

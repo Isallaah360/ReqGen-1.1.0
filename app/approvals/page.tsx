@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, CheckCircle2, Clock3, Eye, RefreshCw, Search, ShieldCheck, XCircle } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import RequestDetailsWorkspace from "@/app/components/requests/RequestDetailsWorkspace";
+import RequestAccessGate from "@/app/components/requests/RequestAccessGate";
 import styles from "./approvals.module.css";
 import { APPROVAL_QUEUE_CHANGED_EVENT, isClosedRequest, isVisibleInApprovals } from "@/lib/approvalQueue";
 
@@ -156,12 +157,14 @@ export default function ApprovalsPage() {
             </div>
           </div>
           <div className={styles.processWorkspaceBody}>
-            <RequestDetailsWorkspace
-              requestId={selectedRequestId}
-              embedded
-              onClose={() => setSelectedRequestId(null)}
-              onProcessed={() => { setSelectedRequestId(null); window.dispatchEvent(new Event(APPROVAL_QUEUE_CHANGED_EVENT)); void load(true); }}
-            />
+            <RequestAccessGate requestId={selectedRequestId}>
+              <RequestDetailsWorkspace
+                requestId={selectedRequestId}
+                embedded
+                onClose={() => setSelectedRequestId(null)}
+                onProcessed={() => { setSelectedRequestId(null); window.dispatchEvent(new Event(APPROVAL_QUEUE_CHANGED_EVENT)); void load(true); }}
+              />
+            </RequestAccessGate>
           </div>
         </section>
       </main>

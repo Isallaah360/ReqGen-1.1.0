@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
+import RequestAccessGate from "@/app/components/requests/RequestAccessGate";
 import { supabase } from "@/lib/supabaseClient";
 import { WorkflowLoading, WorkflowPageStyles } from "@/app/components/ui/WorkflowUI";
 
@@ -231,7 +232,7 @@ function errorMessage(error: unknown) {
   return error instanceof Error ? error.message : "Unknown error";
 }
 
-export default function EditRequestPage() {
+function EditRequestPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const embedded = searchParams.get("embedded") === "1";
@@ -1097,5 +1098,15 @@ function Info({ label, value }: { label: string; value: string }) {
         {value}
       </div>
     </div>
+  );
+}
+
+/** v3.0.3: full request content is shown only to people entitled to it. */
+export default function EditRequestPage() {
+  const params = useParams<{ id: string }>();
+  return (
+    <RequestAccessGate requestId={params?.id}>
+      <EditRequestPageContent />
+    </RequestAccessGate>
   );
 }

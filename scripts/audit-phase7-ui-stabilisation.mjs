@@ -22,8 +22,8 @@ const registry = read('app/components/registry/RegistryCentreWorkspace.tsx');
 
 check('Dashboard requests are scoped to authenticated creator', dashboard.includes('.eq("created_by", auth.user.id)'));
 check('Dashboard does not query organisation-wide payment vouchers', !dashboard.includes('.from("payment_vouchers")'));
-check('Dashboard labels the request KPI as personal', dashboard.includes('label="My Requests"') && dashboard.includes('Your submitted requests only'));
-check('Dashboard donut charts expose selection state', dashboard.includes('Select a donut segment or legend row to display the exact value.'));
+check('Dashboard labels the request KPI as personal and only loads the user\'s own requests', dashboard.includes('label="My Requests"') && dashboard.includes('.eq("created_by", auth.user.id)'));
+check('Dashboard charts are interactive filters with visible selection state (v3.0.3)', dashboard.includes('onSegmentSelect') && dashboard.includes('onBarSelect') && dashboard.includes('rg-filter-chip'));
 
 const standardFiles = [
   ['Dashboard', dashboard],

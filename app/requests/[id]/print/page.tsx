@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import RequestAccessGate from "@/app/components/requests/RequestAccessGate";
 import { supabase } from "@/lib/supabaseClient";
 
 type Req = {
@@ -221,7 +222,7 @@ function requestCategoryLabel(req: Req | null) {
   return "Personal Other";
 }
 
-export default function PrintRequestPage() {
+function PrintRequestPageContent() {
   const router = useRouter();
   const params = useParams();
   const id = typeof params?.id === "string" ? params.id : "";
@@ -861,5 +862,15 @@ function SignatureLine({
         <div>Date</div>
       </div>
     </div>
+  );
+}
+
+/** v3.0.3: full request content is shown only to people entitled to it. */
+export default function PrintRequestPage() {
+  const params = useParams<{ id: string }>();
+  return (
+    <RequestAccessGate requestId={params?.id}>
+      <PrintRequestPageContent />
+    </RequestAccessGate>
   );
 }

@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { Donut as SharedDonut } from "@/app/components/ui/Donut";
+import { BarChart } from "@/app/components/ui/BarChart";
 import {
-  Bell,
+  X,
   CalendarDays,
   CheckCircle2,
   CircleAlert,
@@ -58,10 +59,42 @@ function ageDays(value: string) {
   return Math.max(0, Math.floor((DASHBOARD_NOW - created) / 86400000));
 }
 
+type Filter =
+  | { kind: "status"; value: "Completed" | "Pending" | "Rejected" | "Overdue"; label: string }
+  | { kind: "category"; value: "Official" | "Personal Fund" | "Personal Other" | "Other"; label: string }
+  | { kind: "day" | "week"; value: string; label: string };
+
+function categoryOf(r: RequestRow) {
+  const type = `${normalized(r.request_type)} ${normalized(r.personal_category)}`;
+  if (type.includes("official")) return "Official";
+  if (type.includes("fund")) return "Personal Fund";
+  if (type.includes("personal")) return "Personal Other";
+  return "Other";
+}
+
+function startOfDay(value: Date) {
+  const d = new Date(value);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function matches(r: RequestRow, f: Filter): boolean {
+  if (f.kind === "status") {
+    if (f.value === "Overdue") return pending(r.status) && ageDays(r.created_at) > 7;
+    return statusLabel(r.status) === f.value;
+  }
+  if (f.kind === "category") return categoryOf(r) === f.value;
+  const created = startOfDay(new Date(r.created_at)).getTime();
+  if (f.kind === "day") return created === Number(f.value);
+  const start = Number(f.value);
+  return created >= start && created < start + 7 * 86400000;
+}
+
 export default function DashboardPage() {
   const [requests, setRequests] = useState<RequestRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [chartSelection, setChartSelection] = useState<string | null>(null);
+  const [range, setRange] = useState<"7d" | "4w">("7d");
+  const [filter, setFilter] = useState<Filter | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -92,119 +125,136 @@ export default function DashboardPage() {
     return { total: requests.length, completed: completedCount, pending: pendingCount, rejected: rejectedCount, overdue };
   }, [requests]);
 
-  const trend = useMemo(() => Array.from({ length: 7 }, (_, index) => {
-    const d = new Date();
-    d.setHours(0, 0, 0, 0);
-    d.setDate(d.getDate() - (6 - index));
-    const count = requests.filter((r) => {
-      const created = new Date(r.created_at);
-      created.setHours(0, 0, 0, 0);
-      return created.getTime() === d.getTime();
-    }).length;
-    return { label: d.toLocaleDateString("en-NG", { weekday: "short" }), count };
-  }), [requests]);
+  const trend = useMemo(() => {
+    const today = startOfDay(new Date(DASHBOARD_NOW));
+    if (range === "7d") {
+      return Array.from({ length: 7 }, (_, index) => {
+        const d = new Date(today);
+        d.setDate(d.getDate() - (6 - index));
+        const key = String(d.getTime());
+        const value = requests.filter((r) => startOfDay(new Date(r.created_at)).getTime() === d.getTime()).length;
+        return { key, label: d.toLocaleDateString("en-GB", { weekday: "short" }), hint: d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "short" }), value };
+      });
+    }
+    return Array.from({ length: 4 }, (_, index) => {
+      const start = new Date(today);
+      start.setDate(start.getDate() - 6 - (3 - index) * 7);
+      const end = new Date(start);
+      end.setDate(end.getDate() + 6);
+      const key = String(start.getTime());
+      const value = requests.filter((r) => { const c = startOfDay(new Date(r.created_at)).getTime(); return c >= start.getTime() && c <= end.getTime(); }).length;
+      const fmt = (d: Date) => d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+      return { key, label: index === 3 ? "This week" : `Wk ${index + 1}`, hint: `${fmt(start)} – ${fmt(end)}`, value };
+    });
+  }, [requests, range]);
 
   const category = useMemo(() => {
     const result = { official: 0, personalFund: 0, personalOther: 0, other: 0 };
     for (const r of requests) {
-      const type = `${normalized(r.request_type)} ${normalized(r.personal_category)}`;
-      if (type.includes("official")) result.official += 1;
-      else if (type.includes("fund")) result.personalFund += 1;
-      else if (type.includes("personal")) result.personalOther += 1;
+      const c = categoryOf(r);
+      if (c === "Official") result.official += 1;
+      else if (c === "Personal Fund") result.personalFund += 1;
+      else if (c === "Personal Other") result.personalOther += 1;
       else result.other += 1;
     }
     return result;
   }, [requests]);
 
-  const statusMix = useMemo(() => ({
-    completed: requests.filter((r) => completed(r.status)).length,
-    pending: requests.filter((r) => pending(r.status)).length,
-    rejected: requests.filter((r) => rejected(r.status)).length,
-  }), [requests]);
+  const filtered = useMemo(() => (filter ? requests.filter((r) => matches(r, filter)) : requests.slice(0, 6)), [requests, filter]);
 
-  const chart = useMemo(() => {
-    const width = 720, height = 210, padX = 34, padY = 24;
-    const max = Math.max(1, ...trend.map((d) => d.count));
-    const points = trend.map((d, i) => {
-      const x = padX + (i * (width - padX * 2)) / Math.max(1, trend.length - 1);
-      const y = height - padY - (d.count / max) * (height - padY * 2);
-      return { ...d, x, y };
-    });
-    return { width, height, points, polyline: points.map((p) => `${p.x},${p.y}`).join(" ") };
-  }, [trend]);
+  const toggle = (next: Filter) =>
+    setFilter((cur) => (cur && cur.kind === next.kind && cur.value === next.value ? null : next));
+  const isOn = (kind: Filter["kind"], value: string) => filter?.kind === kind && filter.value === value;
 
-  const activity = useMemo(() => {
-    const requestActivity = requests.slice(0, 4).map((r) => ({
-      id: `r-${r.id}`,
-      label: `${r.request_no || "Request"} ${statusLabel(r.status).toLowerCase()}`,
-      time: r.created_at,
-      tone: completed(r.status) ? "green" : rejected(r.status) ? "red" : "blue",
-    }));
-    return requestActivity
-      .sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime())
-      .slice(0, 5);
-  }, [requests]);
-
-  const dateLabel = new Date().toLocaleDateString("en-NG", { weekday: "long", day: "2-digit", month: "long", year: "numeric" });
+  const dateLabel = new Date().toLocaleDateString("en-GB", { weekday: "long", day: "2-digit", month: "long", year: "numeric" });
+  const trendKind = range === "7d" ? "day" : "week";
+  const selectedBar = filter && filter.kind === trendKind ? filter.value : null;
 
   return (
     <main className={styles.page} data-rg-standard="phase7">
       <header className={styles.header}>
         <div>
           <h1>Dashboard</h1>
-          <p>Your personal ReqGen request activity, status and current workload.</p>
+          <p>Your requests at a glance. Select any chart bar, slice or card to see exactly those requests.</p>
         </div>
         <div className={styles.dateBox}><CalendarDays size={17} />{dateLabel}</div>
       </header>
 
       <section className={styles.kpis} aria-label="Dashboard summary">
-        <Kpi tone="blue" icon={<FileText size={23} />} label="My Requests" value={String(stats.total)} meta="Your submitted requests only" />
-        <Kpi tone="orange" icon={<Clock3 size={23} />} label="Pending Requests" value={String(stats.pending)} meta="Your requests awaiting action" />
-        <Kpi tone="green" icon={<CheckCircle2 size={23} />} label="Completed" value={String(stats.completed)} meta="Your completed requests" />
-        <Kpi tone="purple" icon={<CircleAlert size={23} />} label="Rejected" value={String(stats.rejected)} meta="Your rejected requests" />
-        <Kpi tone="red" icon={<CircleAlert size={23} />} label="Overdue" value={String(stats.overdue)} meta="Pending over 7 days" />
+        <Kpi tone="blue" icon={<FileText size={23} />} label="My Requests" value={String(stats.total)} meta="All your requests" active={!filter} onClick={() => setFilter(null)} />
+        <Kpi tone="orange" icon={<Clock3 size={23} />} label="Pending" value={String(stats.pending)} meta="Awaiting action" active={isOn("status", "Pending")} onClick={() => toggle({ kind: "status", value: "Pending", label: "Pending requests" })} />
+        <Kpi tone="green" icon={<CheckCircle2 size={23} />} label="Completed" value={String(stats.completed)} meta="Approved, paid or closed" active={isOn("status", "Completed")} onClick={() => toggle({ kind: "status", value: "Completed", label: "Completed requests" })} />
+        <Kpi tone="purple" icon={<CircleAlert size={23} />} label="Rejected" value={String(stats.rejected)} meta="Rejected or cancelled" active={isOn("status", "Rejected")} onClick={() => toggle({ kind: "status", value: "Rejected", label: "Rejected requests" })} />
+        <Kpi tone="red" icon={<CircleAlert size={23} />} label="Overdue" value={String(stats.overdue)} meta="Pending over 7 days" active={isOn("status", "Overdue")} onClick={() => toggle({ kind: "status", value: "Overdue", label: "Overdue requests" })} />
       </section>
 
       <section className={styles.topGrid}>
         <article className={styles.card}>
-          <div className={styles.cardHead}><h2>Request Trend <span>(This Week)</span></h2><span>This Week</span></div>
+          <div className={styles.cardHead}>
+            <h2>Request Trend</h2>
+            <div className="rg-segmented" role="group" aria-label="Trend range">
+              <button type="button" aria-pressed={range === "7d"} onClick={() => { setRange("7d"); if (filter?.kind === "week") setFilter(null); }}>7 days</button>
+              <button type="button" aria-pressed={range === "4w"} onClick={() => { setRange("4w"); if (filter?.kind === "day") setFilter(null); }}>4 weeks</button>
+            </div>
+          </div>
           <div className={styles.chartBody}>
-            <svg className={styles.chart} viewBox={`0 0 ${chart.width} ${chart.height}`} preserveAspectRatio="none" role="img" aria-label="Request trend for the last seven days">
-              <defs><linearGradient id="requestArea" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stopColor="var(--color-chart-1)" stopOpacity=".18"/><stop offset="100%" stopColor="var(--color-chart-1)" stopOpacity="0"/></linearGradient></defs>
-              {[0,1,2,3,4].map((n) => <line key={n} className={styles.chartGrid} x1="34" x2="700" y1={28+n*37} y2={28+n*37}/>) }
-              <polygon className={styles.chartArea} points={`34,186 ${chart.polyline} 686,186`} />
-              <polyline className={styles.chartLine} points={chart.polyline} />
-              {chart.points.map((p, i) => <g key={i} className={styles.chartPoint}><title>{`${p.label}: ${p.count} request${p.count === 1 ? "" : "s"}`}</title><circle className={styles.chartDot} cx={p.x} cy={p.y} r="5" tabIndex={0} role="button" aria-label={`${p.label}: ${p.count} request${p.count === 1 ? "" : "s"}`} onClick={() => setChartSelection(`${p.label}: ${p.count} request${p.count === 1 ? "" : "s"}`)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setChartSelection(`${p.label}: ${p.count} request${p.count === 1 ? "" : "s"}`); } }}/><text x={p.x} y="205" textAnchor="middle">{p.label}</text></g>)}
-            </svg>
-            {chartSelection ? <div className={styles.chartInsight} role="status" aria-live="polite"><strong>Selected data</strong><span>{chartSelection}</span></div> : <div className={styles.chartHint}>Select any chart point to display its exact live value.</div>}
+            <BarChart
+              data={trend}
+              valueNoun="request"
+              ariaLabel={range === "7d" ? "Requests created per day, last seven days" : "Requests created per week, last four weeks"}
+              selected={selectedBar}
+              onBarSelect={(key) => {
+                if (!key) { setFilter(null); return; }
+                const bar = trend.find((b) => b.key === key);
+                setFilter({ kind: trendKind, value: key, label: `Created ${range === "7d" ? "on" : "in"} ${bar?.hint || bar?.label || ""}` });
+              }}
+            />
+            <div className={styles.chartHint}>Hover a bar for its exact count · select it to list those requests.</div>
           </div>
         </article>
 
         <article className={styles.card}>
-          <div className={styles.cardHead}><h2>Recent Activities</h2><Link href="/dashboard/activity">View all</Link></div>
+          <div className={styles.cardHead}>
+            <h2>{filter ? "Filtered Requests" : "Recent Requests"}</h2>
+            <Link href="/requests">View all</Link>
+          </div>
+          {filter ? (
+            <div className="rg-filter-chip" role="status" aria-live="polite">
+              <span>Showing: <strong>{filter.label}</strong> · {filtered.length}</span>
+              <button type="button" onClick={() => setFilter(null)} aria-label="Clear filter"><X size={14} /> Clear</button>
+            </div>
+          ) : null}
           <div className={styles.activity}>
-            {activity.length ? activity.map((item) => <div key={item.id} className={styles.activityItem}><span className={`${styles.activityIcon} ${styles[item.tone]}`}><Bell size={15}/></span><div><strong>{item.label}</strong><small>{new Date(item.time).toLocaleString("en-NG", { dateStyle: "medium", timeStyle: "short" })}</small></div></div>) : <div className={styles.empty}>{loading ? "Loading activities..." : "No recent activities yet."}</div>}
+            {filtered.length ? filtered.slice(0, 50).map((r) => (
+              <Link key={r.id} href={`/requests/${r.id}`} className={styles.activityItem}>
+                <span className={`${styles.activityIcon} ${styles[completed(r.status) ? "green" : rejected(r.status) ? "red" : "blue"]}`}><FileText size={15} /></span>
+                <div>
+                  <strong>{r.request_no || "Request"} · {r.title || "Untitled request"}</strong>
+                  <small>{statusLabel(r.status)} · {new Date(r.created_at).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}</small>
+                </div>
+              </Link>
+            )) : <div className={styles.empty}>{loading ? "Loading requests..." : filter ? "No requests match this selection." : "No requests yet."}</div>}
           </div>
         </article>
       </section>
 
       <section className={styles.bottomGrid}>
         <article className={styles.card}>
-          <div className={styles.cardHead}><h2>Requests by Category</h2><span>Current register</span></div>
-          <Donut title="Total" total={stats.total} rows={[
-            ["var(--color-chart-1)","Official",category.official],
-            ["var(--color-chart-2)","Personal Fund",category.personalFund],
-            ["var(--color-chart-3)","Personal Other",category.personalOther],
-            ["var(--color-chart-4)","Other",category.other],
-          ]}/>
+          <div className={styles.cardHead}><h2>Requests by Category</h2><span>Select a slice</span></div>
+          <Donut total={stats.total} kind="category" filter={filter} onToggle={toggle} rows={[
+            ["var(--rg-chart-1)", "Official", category.official],
+            ["var(--rg-chart-2)", "Personal Fund", category.personalFund],
+            ["var(--rg-chart-3)", "Personal Other", category.personalOther],
+            ["var(--rg-chart-4)", "Other", category.other],
+          ]} />
         </article>
         <article className={styles.card}>
-          <div className={styles.cardHead}><h2>Requests by Status</h2><span>Current register</span></div>
-          <Donut title="Total" total={stats.total} rows={[
-            ["var(--color-chart-2)","Completed",statusMix.completed],
-            ["var(--color-chart-1)","Pending",statusMix.pending],
-            ["var(--color-chart-5)","Rejected",statusMix.rejected],
-          ]}/>
+          <div className={styles.cardHead}><h2>Requests by Status</h2><span>Select a slice</span></div>
+          <Donut total={stats.total} kind="status" filter={filter} onToggle={toggle} rows={[
+            ["var(--rg-chart-2)", "Completed", stats.completed],
+            ["var(--rg-chart-1)", "Pending", stats.pending],
+            ["var(--rg-chart-5)", "Rejected", stats.rejected],
+          ]} />
         </article>
         <article className={styles.card}>
           <div className={styles.cardHead}><h2>Quick Actions</h2><span>Common workspaces</span></div>
@@ -224,19 +274,39 @@ export default function DashboardPage() {
   );
 }
 
-function Kpi({ tone, icon, label, value, meta }: { tone: "blue"|"green"|"orange"|"purple"|"red"; icon: React.ReactNode; label: string; value: string; meta: string }) {
-  return <article className={styles.kpi}><div className={`${styles.icon} ${styles[tone]}`}>{icon}</div><div><span className={styles.kpiLabel}>{label}</span><strong className={styles.kpiValue}>{value}</strong><div className={styles.kpiMeta}>{meta}</div></div></article>;
+function Kpi({ tone, icon, label, value, meta, active, onClick }: { tone: "blue"|"green"|"orange"|"purple"|"red"; icon: React.ReactNode; label: string; value: string; meta: string; active: boolean; onClick: () => void }) {
+  return (
+    <button type="button" className={`${styles.kpi} rg-kpi-button`} aria-pressed={active} onClick={onClick}>
+      <div className={`${styles.icon} ${styles[tone]}`}>{icon}</div>
+      <div><span className={styles.kpiLabel}>{label}</span><strong className={styles.kpiValue}>{value}</strong><div className={styles.kpiMeta}>{meta}</div></div>
+    </button>
+  );
 }
-function Donut({ title, total, rows }: { title: string; total: number; rows: [string,string,number][] }) {
-  const [detail, setDetail] = useState<string | null>(null);
-  const select = (value: string) => setDetail(value);
+
+function Donut({ total, rows, kind, filter, onToggle }: { total: number; rows: [string, string, number][]; kind: "status" | "category"; filter: Filter | null; onToggle: (f: Filter) => void }) {
+  const selected = filter && filter.kind === kind ? filter.value : null;
+  const pick = (label: string | null) => {
+    if (!label) { if (selected) onToggle({ kind, value: selected, label: selected } as Filter); return; }
+    onToggle({ kind, value: label, label: `${label} requests` } as Filter);
+  };
   const segments = rows.map(([color, label, value]) => ({ color, label, value }));
-  return <><div className={styles.donutBody}><SharedDonut segments={segments} centerLabel={title} onSelect={select} /><div className={styles.legend}>{rows.map(([color,label,value]) => <Legend key={label} color={color} label={label} value={value} total={total} onSelect={select}/>)}</div></div><div className={styles.chartInsight} role="status" aria-live="polite"><strong>Selected data</strong><span>{detail || "Select a donut segment or legend row to display the exact value."}</span></div></>;
+  return (
+    <div className={styles.donutBody}>
+      <SharedDonut segments={segments} centerLabel="Total" size={200} strokeWidth={30} fluidMax={190} selected={selected} onSegmentSelect={pick} />
+      <div className={styles.legend}>
+        {rows.map(([color, label, value]) => {
+          const pct = total ? Math.round((value / total) * 100) : 0;
+          return (
+            <button key={label} type="button" className={styles.legendRow} aria-pressed={selected === label} onClick={() => pick(label)}>
+              <i className={styles.legendDot} style={{ background: color }} /><span>{label}</span><strong>{value} ({pct}%)</strong>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
 }
-function Legend({ color, label, value, total, onSelect }: { color: string; label: string; value: number; total: number; onSelect: (detail: string) => void }) {
-  const pct = total ? Math.round((value / total) * 100) : 0;
-  return <button type="button" className={styles.legendRow} onClick={() => onSelect(`${label}: ${value} (${pct}%)`)}><i className={styles.legendDot} style={{background: color}}/><span>{label}</span><strong>{value} ({pct}%)</strong></button>;
-}
+
 function Quick({ href, icon, label }: { href: string; icon: React.ReactNode; label: string }) {
   return <Link href={href} className={styles.quick}>{icon}<span>{label}</span></Link>;
 }
