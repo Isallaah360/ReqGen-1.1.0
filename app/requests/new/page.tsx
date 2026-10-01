@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { routingNoteFor as sharedRoutingNoteFor } from "@/lib/departmentRouting";
+import { fetchRoutePreview } from "@/lib/routingEngine";
 import { WorkflowLoading } from "@/app/components/ui/WorkflowUI";
 import {
   AlertCircle,
@@ -295,6 +296,28 @@ export default function NewRequestPage() {
   const selectedDept = useMemo(() => {
     return depts.find((d) => d.id === deptId) || null;
   }, [depts, deptId]);
+
+  // v3.0.5: show the route the Routing Engine will ACTUALLY use for this
+  // department and request type (falls back to the built-in description if
+  // the engine is not installed yet).
+  const [engineRoute, setEngineRoute] = useState<{ note: string; vacant: string[]; blocked: string[] } | null>(null);
+  useEffect(() => {
+    let alive = true;
+    if (!deptId) { queueMicrotask(() => setEngineRoute(null)); return; }
+    void fetchRoutePreview(deptId, requestType, requestType === "Personal" ? personalCategory : null).then((steps) => {
+      if (!alive) return;
+      if (!steps || !steps.length) { setEngineRoute(null); return; }
+      const label = requestType === "Official" ? "Official" : personalCategory === "Fund" ? "Personal Fund" : "Personal Other";
+      const shown = steps.filter((s) => !(s.is_vacant && s.if_vacant === "skip"));
+      const names = shown.map((s) => (s.stage === "Account" ? "AccountOfficer" : s.stage));
+      setEngineRoute({
+        note: `${label} route: Staff → ${names.join(" → ")}.`,
+        vacant: steps.filter((s) => s.is_vacant && s.if_vacant === "skip").map((s) => s.stage),
+        blocked: steps.filter((s) => s.is_vacant && s.if_vacant === "block").map((s) => s.stage),
+      });
+    });
+    return () => { alive = false; };
+  }, [deptId, requestType, personalCategory]);
 
 
   const filteredSubs = useMemo(() => {
@@ -894,7 +917,7 @@ export default function NewRequestPage() {
             ? "Funds reserved from selected subhead. "
             : "";
 
-      const routeNote = routingNoteFor(requestType, personalCategory, selectedDept);
+      const routeNote = engineRoute?.note || routingNoteFor(requestType, personalCategory, selectedDept);
       const categoryLabel = isPersonal ? `Personal ${personalCategory}` : "Official";
 
       setMsg(
@@ -1072,7 +1095,10 @@ export default function NewRequestPage() {
 
               <div className={styles.routeNote}>
                 <ShieldCheck size={17} />
-                <span>{routingNoteFor(requestType, personalCategory, selectedDept)}</span>
+                <span>
+                  {engineRoute?.note || routingNoteFor(requestType, personalCategory, selectedDept)}
+                  {engineRoute?.blocked.length ? <strong className={styles.errorText}> Routing incomplete: no officer for {engineRoute.blocked.join(", ")}. Admin must complete the Routing Engine before you can submit.</strong> : null}
+                </span>
               </div>
 
               {isOfficial && canSeeSubheads && selectedSubhead && subheadId && (

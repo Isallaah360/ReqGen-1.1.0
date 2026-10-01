@@ -1,4 +1,5 @@
 "use client";
+import { Clock3 } from "lucide-react";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
@@ -190,46 +191,28 @@ export default function SessionTimeout() {
   if (isPublicPath(pathname) || !warningVisible) return null;
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/55 px-4 backdrop-blur-md">
-      <div className="w-full max-w-md overflow-hidden rounded-2xl border border-amber-200 bg-white shadow-2xl">
-        <div className="bg-gradient-to-r from-slate-950 via-blue-950 to-cyan-800 px-5 py-4 text-white">
-          <div className="text-xs font-black uppercase tracking-[0.2em] text-cyan-200">
-            Security Session Notice
+    <div className="rg-session-backdrop" role="presentation">
+      <section className="rg-session-dialog" role="alertdialog" aria-modal="true" aria-labelledby="rg-session-title" aria-describedby="rg-session-desc">
+        <header className="rg-session-head">
+          <span className="rg-session-icon" aria-hidden="true"><Clock3 size={20} /></span>
+          <div>
+            <h2 id="rg-session-title">Still there?</h2>
+            <p id="rg-session-desc">For your security, ReqGen will sign you out due to inactivity.</p>
           </div>
-          <div className="mt-1 text-xl font-black">Session timeout warning</div>
-          <p className="mt-2 text-sm font-semibold leading-6 text-blue-100">
-            No activity has been detected. ReqGen will sign you out unless you continue your session.
-          </p>
+        </header>
+        <div className="rg-session-count" aria-live="assertive">
+          <span>Signing out in</span>
+          <strong>{formatCountdown(secondsLeft)}</strong>
         </div>
-
-        <div className="p-5">
-          <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-center">
-            <div className="text-xs font-black uppercase tracking-[0.16em] text-amber-700">
-              Automatic logout in
-            </div>
-            <div className="mt-1 text-4xl font-black tabular-nums text-amber-950">
-              {formatCountdown(secondsLeft)}
-            </div>
-          </div>
-
-          <div className="mt-5 grid gap-3 sm:grid-cols-2">
-            <button
-              type="button"
-              onClick={() => void logoutDueToInactivity()}
-              className="reqgen-btn reqgen-btn-rose w-full"
-            >
-              Logout Now
-            </button>
-            <button
-              type="button"
-              onClick={recordActivity}
-              className="reqgen-btn reqgen-btn-blue w-full"
-            >
-              Stay Logged In
-            </button>
-          </div>
+        <div className="rg-session-actions">
+          <button type="button" className="rg-btn rg-btn-secondary" onClick={() => void logoutDueToInactivity()}>
+            Sign out now
+          </button>
+          <button type="button" className="rg-btn rg-btn-primary" onClick={recordActivity} autoFocus>
+            Stay signed in
+          </button>
         </div>
-      </div>
+      </section>
     </div>
   );
 }

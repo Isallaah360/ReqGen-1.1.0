@@ -37,7 +37,7 @@ export const ROUTE_REGISTRY: RouteRegistryItem[] = [
   },
   {
     "pattern": "/admin/department-routing",
-    "title": "Admin - Department Routing",
+    "title": "Admin - Routing Engine",
     "rootHref": "/admin",
     "category": "Application Route",
     "public": false,

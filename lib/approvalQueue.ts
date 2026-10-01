@@ -62,8 +62,11 @@ export const OVERSIGHT_ROLES = new Set<string>([]);
 export function isClosedRequest(row: ApprovalQueueRow) {
   const status = String(row.status || "").toLowerCase();
   const stage = queueStageKey(row.current_stage);
-  return ["COMPLETED", "REJECTED", "DELETED", "CANCELLED", "CLOSED", "PAID"].includes(stage) ||
-    ["paid", "completed", "closed", "rejected", "deleted", "cancelled"].some((token) => status.includes(token));
+  if (["COMPLETED", "REJECTED", "DELETED", "CANCELLED", "CLOSED", "PAID"].includes(stage)) return true;
+  // "Paid - Pending HR Filing" is still waiting on HR (v3.0.5 fix): any status
+  // that says "pending" is open, whatever else it contains.
+  if (status.includes("pending")) return false;
+  return ["paid", "completed", "closed", "rejected", "deleted", "cancelled"].some((token) => status.includes(token));
 }
 
 /**

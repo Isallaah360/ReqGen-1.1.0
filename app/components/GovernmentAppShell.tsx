@@ -126,7 +126,7 @@ const MODULE_SUBNAV: Record<string, SubNavItem[]> = {
       label: "Roles & Permissions",
     },
     { href: "/admin/departments", label: "Departments" },
-    { href: "/admin/department-routing", label: "Department Routing" },
+    { href: "/admin/department-routing", label: "Routing Engine" },
     {
       href: "/admin/account-routing",
       label: "Account Routing",
