@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { FinanceCard, FinancePageFrame, MetricCard, PrimaryButton, StatusPill } from "../_components/FinancePageFrame";
+import { FinanceIcon, FinanceCard, FinancePageFrame, MetricCard, PrimaryButton, StatusPill } from "../_components/FinancePageFrame";
 
 const templates = [
   { id: "summary", icon: "📊", title: "Management Summary", text: "One-page management overview with totals and approvals." },
@@ -21,7 +21,7 @@ export default function PrintCentrePage() {
         <MetricCard label="Paper format" value="A4 Portrait" icon="📄" tone="cyan" helper="Standard institutional layout" />
         <MetricCard label="Branding" value="IET Official" icon="🏛️" tone="blue" helper="Logo and document identity" />
         <MetricCard label="Templates" value={String(templates.length)} icon="🗂️" tone="violet" helper="Available output layouts" />
-        <MetricCard label="Status" value="Ready" icon="✅" tone="emerald" helper="Print workspace available" />
+        <MetricCard label="Status" value="Ready" icon="✓" tone="emerald" helper="Print workspace available" />
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_.72fr]">
@@ -30,7 +30,7 @@ export default function PrintCentrePage() {
           <div className="mt-5 grid gap-3 sm:grid-cols-2">
             {templates.map((item) => {
               const active = selected === item.id;
-              return <button key={item.id} onClick={() => setSelected(item.id)} className={`group rounded-2xl border p-4 text-left transition ${active ? "border-cyan-500 bg-cyan-50 ring-4 ring-cyan-100" : "border-slate-200 bg-white hover:-translate-y-0.5 hover:border-cyan-300 hover:shadow-md"}`}><div className="flex items-start gap-3"><span className={`flex h-11 w-11 items-center justify-center rounded-2xl text-xl ${active ? "bg-cyan-700 text-white" : "bg-slate-100"}`}>{item.icon}</span><span><span className="block font-black text-slate-950">{item.title}</span><span className="mt-1 block text-xs font-semibold leading-5 text-slate-500">{item.text}</span></span></div></button>;
+              return <button key={item.id} onClick={() => setSelected(item.id)} className={`group rounded-2xl border p-4 text-left transition ${active ? "border-cyan-500 bg-cyan-50 ring-4 ring-cyan-100" : "border-slate-200 bg-white hover:-translate-y-0.5 hover:border-cyan-300 hover:shadow-md"}`}><div className="flex items-start gap-3"><span className={`flex h-11 w-11 items-center justify-center rounded-2xl text-xl ${active ? "bg-cyan-700 text-white" : "bg-slate-100"}`}><FinanceIcon icon={item.icon} /></span><span><span className="block font-black text-slate-950">{item.title}</span><span className="mt-1 block text-xs font-semibold leading-5 text-slate-500">{item.text}</span></span></div></button>;
             })}
           </div>
         </FinanceCard>
@@ -41,7 +41,7 @@ export default function PrintCentrePage() {
           <div className="mt-5 rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-50 to-cyan-50 p-4"><p className="text-sm font-black text-blue-950">Selected: {templates.find((t) => t.id === selected)?.title}</p><p className="mt-1 text-xs font-semibold leading-5 text-blue-700">Period: {period}. The final output will be generated from live Finance records.</p></div>
           <div className="mt-5 grid gap-3">
             <Link href={`/finance/reports?view=output&template=${selected}`} className="reqgen-btn reqgen-btn-violet inline-flex items-center justify-center gap-2 rounded-xl bg-cyan-700 px-4 py-3 text-sm font-black text-white shadow-sm transition hover:bg-cyan-800">👁️ Open Print Workspace</Link>
-            <PrimaryButton tone="blue" onClick={() => window.open('/output?report=subheads', '_blank', 'noopener,noreferrer')}>🖨️ Print Current Preview</PrimaryButton>
+            <PrimaryButton tone="blue" onClick={() => window.open('/output?report=subheads', '_blank', 'noopener,noreferrer')}>Print Current Preview</PrimaryButton>
           </div>
         </FinanceCard>
       </div>

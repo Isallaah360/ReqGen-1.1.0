@@ -184,8 +184,8 @@ function attachmentStatusClass(status: string | null | undefined) {
 function attachmentStatusLabel(status: string | null | undefined) {
   const s = (status || "").toLowerCase();
 
-  if (s === "verified") return "Verified Globally ✅";
-  if (s === "rejected") return "Rejected ❌";
+  if (s === "verified") return "Verified Globally ✓";
+  if (s === "rejected") return "Rejected ✕";
 
   return "Pending General Review";
 }
@@ -805,7 +805,7 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
     if (!req) return;
 
     if (!canEditRequest) {
-      setMsg("❌ You cannot edit this request at its current stage.");
+      setMsg("✕ You cannot edit this request at its current stage.");
       return;
     }
 
@@ -839,23 +839,23 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
     if (!req || !me) return;
 
     if (!canAssignSubhead) {
-      setMsg("❌ You are not allowed to assign a subhead for this request.");
+      setMsg("✕ You are not allowed to assign a subhead for this request.");
       return;
     }
 
     if (!selectedSubheadId) {
-      setMsg("❌ Please select a subhead before assigning.");
+      setMsg("✕ Please select a subhead before assigning.");
       return;
     }
 
     if (!selectedAssignableSubhead) {
-      setMsg("❌ Selected subhead could not be found.");
+      setMsg("✕ Selected subhead could not be found.");
       return;
     }
 
     if (!selectedSubheadCanCoverAmount) {
       setMsg(
-        `❌ Insufficient balance. Available balance is ${formatNaira(
+        `✕ Insufficient balance. Available balance is ${formatNaira(
           selectedSubheadAvailableBalance
         )}, but request amount is ${formatNaira(req.amount)}.`
       );
@@ -881,11 +881,11 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
 
       if (error) throw new Error(error.message);
 
-      setMsg(`✅ ${((data as RequestActionResult | null)?.message) || "Subhead assigned and funds reserved successfully."}`);
+      setMsg(`✓ ${((data as RequestActionResult | null)?.message) || "Subhead assigned and funds reserved successfully."}`);
 
       await reload();
     } catch (e: unknown) {
-      setMsg("❌ Subhead assignment failed: " + errorMessage(e));
+      setMsg("✕ Subhead assignment failed: " + errorMessage(e));
     } finally {
       setAssigningSubhead(false);
     }
@@ -895,12 +895,12 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
     if (!req || !me) return;
 
     if (!canCheckAttachments) {
-      setMsg("❌ You are not allowed to check attachments on this request.");
+      setMsg("✕ You are not allowed to check attachments on this request.");
       return;
     }
 
     if (isAttachmentCheckedByMe(attachment.id)) {
-      setMsg("✅ You have already checked this attachment.");
+      setMsg("✓ You have already checked this attachment.");
       return;
     }
 
@@ -940,11 +940,11 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
         action_by: me.id,
       });
 
-      setMsg("✅ Attachment checked successfully for your own approval stage.");
+      setMsg("✓ Attachment checked successfully for your own approval stage.");
       await loadAttachmentsAndChecks(req.id);
       router.refresh();
     } catch (e: unknown) {
-      setMsg("❌ Attachment check failed: " + errorMessage(e));
+      setMsg("✕ Attachment check failed: " + errorMessage(e));
     } finally {
       setCheckingAttachmentId(null);
     }
@@ -954,14 +954,14 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
     if (!req || !me) return false;
 
     if (!totpFactorId) {
-      setMsg("❌ You must set up 2FA before performing this action.");
+      setMsg("✕ You must set up 2FA before performing this action.");
       router.push("/mfa/setup");
       return false;
     }
 
     if (action === "Delete") {
       if (!canDeleteRequest) {
-        setMsg("❌ Only the requester can delete while the request is still at an allowed early stage.");
+        setMsg("✕ Only the requester can delete while the request is still at an allowed early stage.");
         return false;
       }
 
@@ -969,39 +969,39 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
     }
 
     if (!me.signature_url) {
-      setMsg("❌ You must upload your signature in Profile before taking actions.");
+      setMsg("✕ You must upload your signature in Profile before taking actions.");
       return false;
     }
 
     if (!canAct) {
-      setMsg("❌ You cannot act on this request. It is not assigned to you.");
+      setMsg("✕ You cannot act on this request. It is not assigned to you.");
       return false;
     }
 
     if (action === "Approve" && needsSubheadAssignment) {
       setMsg(
-        "❌ This official request has no subhead yet. Assign a subhead and reserve funds before approving."
+        "✕ This official request has no subhead yet. Assign a subhead and reserve funds before approving."
       );
       return false;
     }
 
     if (action === "Approve" && isDgStage && isOfficial && !req.assigned_account_officer_id) {
       setMsg(
-        "❌ This request cannot leave DG because the selected subhead has no Account Officer routing. Configure the subhead/account routing first."
+        "✕ This request cannot leave DG because the selected subhead has no Account Officer routing. Configure the subhead/account routing first."
       );
       return false;
     }
 
     if (hasAttachments && !allAttachmentsCheckedByMe) {
       setMsg(
-        `❌ You still have ${myPendingAttachments.length
+        `✕ You still have ${myPendingAttachments.length
         } attachment(s) unchecked. Open and check every attachment personally before you can ${action.toLowerCase()} this request.`
       );
       return false;
     }
 
     if (action === "Reject" && comment.trim().length < 3) {
-      setMsg("❌ Please write a reason/comment for rejection.");
+      setMsg("✕ Please write a reason/comment for rejection.");
       return false;
     }
 
@@ -1046,7 +1046,7 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
     }
 
     if (!totpFactorId) {
-      setMsg("❌ No verified 2FA authenticator found. Please set up 2FA again.");
+      setMsg("✕ No verified 2FA authenticator found. Please set up 2FA again.");
       setShowMfaModal(false);
       router.push("/mfa/setup");
       return;
@@ -1058,7 +1058,7 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
       .slice(0, 6);
 
     if (!/^\d{6}$/.test(code)) {
-      setMsg("❌ Enter the 6-digit code from your authenticator app.");
+      setMsg("✕ Enter the 6-digit code from your authenticator app.");
       return;
     }
 
@@ -1085,7 +1085,7 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
         await actAfterFresh2fa(actionToRun);
       }
     } catch (e: unknown) {
-      setMsg("❌ 2FA verification failed: " + (e instanceof Error ? e.message : "Invalid code."));
+      setMsg("✕ 2FA verification failed: " + (e instanceof Error ? e.message : "Invalid code."));
       setMfaCode("");
     } finally {
       setVerifyingCode(false);
@@ -1125,19 +1125,19 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
         if (nextStage === "Completed") {
           setMsg(
             nextStatus === "Paid"
-              ? "✅ Request paid successfully and closed after your attachment checks."
-              : "✅ Request completed successfully after your attachment checks."
+              ? "✓ Request paid successfully and closed after your attachment checks."
+              : "✓ Request completed successfully after your attachment checks."
           );
         } else if (isHRFiling) {
-          setMsg("✅ HR review completed successfully after your attachment checks.");
+          setMsg("✓ HR review completed successfully after your attachment checks.");
         } else if (isAccountStage && nextStage === "HR Filing") {
-          setMsg("✅ Payment treated. Request sent for final HR review.");
+          setMsg("✓ Payment treated. Request sent for final HR review.");
         } else if (usesAutomaticAccountOfficerRouting && nextStage === "Account") {
           setMsg(
-            "✅ Approved by DG. The request was automatically sent to the AccountOfficer already attached from the selected subhead."
+            "✓ Approved by DG. The request was automatically sent to the AccountOfficer already attached from the selected subhead."
           );
         } else {
-          setMsg(`✅ Approved after your attachment checks. Sent to ${nextStage || "next stage"}.`);
+          setMsg(`✓ Approved after your attachment checks. Sent to ${nextStage || "next stage"}.`);
         }
       } else {
         const { data, error } = await supabase.rpc("reject_request_step", {
@@ -1152,7 +1152,7 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
         const result = Array.isArray(data) ? data[0] : data;
         const nextStage = (result as RequestActionResult | null)?.new_stage || "Rejected";
 
-        setMsg(`✅ Request ${String(nextStage).toLowerCase()} successfully after your attachment checks.`);
+        setMsg(`✓ Request ${String(nextStage).toLowerCase()} successfully after your attachment checks.`);
       }
 
       setComment("");
@@ -1161,7 +1161,7 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
       window.dispatchEvent(new Event(APPROVAL_QUEUE_CHANGED_EVENT));
       if (embedded) onProcessed?.();
     } catch (e: unknown) {
-      setMsg("❌ Action failed: " + errorMessage(e));
+      setMsg("✕ Action failed: " + errorMessage(e));
     } finally {
       setSaving(false);
     }
@@ -1186,7 +1186,7 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
 
       if (error) throw new Error(error.message);
 
-      setMsg("✅ Deleted successfully successfully.");
+      setMsg("✓ Deleted successfully successfully.");
 
       await reload();
 
@@ -1195,7 +1195,7 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
         router.refresh();
       }, 500);
     } catch (e: unknown) {
-      setMsg("❌ Delete failed: " + errorMessage(e));
+      setMsg("✕ Delete failed: " + errorMessage(e));
     } finally {
       setSaving(false);
     }
@@ -1277,8 +1277,8 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
             }`}
         >
           {mfaVerified
-            ? "✅ Secure 2FA session verified. Normal request actions will not ask for another code unless the secure session expires."
-            : "⚠️ This secure session needs 2FA verification before sensitive request actions."}
+            ? "✓ Secure 2FA session verified. Normal request actions will not ask for another code unless the secure session expires."
+            : "⚠︎ This secure session needs 2FA verification before sensitive request actions."}
         </div>
 
         {isOfficial && ["PO", "DOD", "DINADMIN", "REGISTRAR", "HOD"].includes(stg) && (
@@ -1298,25 +1298,25 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
 
         {needsSubheadAssignment && (
           <div className="mt-4 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-900">
-            ⚠️ This Official request has no subhead yet. The current Director, DIN/Dean Admin, HOD, Registrar or HR workflow authority must assign a subhead and reserve funds before the request can proceed to DG.
+            ⚠︎ This Official request has no subhead yet. The current Director, DIN/Dean Admin, HOD, Registrar or HR workflow authority must assign a subhead and reserve funds before the request can proceed to DG.
           </div>
         )}
 
         {hasAttachments && !allAttachmentsCheckedByMe && canAct && (
           <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900">
-            ⚠️ You still have {myPendingAttachments.length} attachment(s) unchecked. You must open
+            ⚠︎ You still have {myPendingAttachments.length} attachment(s) unchecked. You must open
             and check every attachment personally before approving or rejecting.
           </div>
         )}
 
         {hasAttachments && allAttachmentsCheckedByMe && canAct && (
           <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">
-            ✅ You have personally checked all attachments for your own approval stage.
+            ✓ You have personally checked all attachments for your own approval stage.
           </div>
         )}
 
         {msg && (
-          <div className={`reqgen-action-toast ${msg.startsWith("❌") ? "is-error" : "is-success"}`} role="status" aria-live="polite">
+          <div className={`reqgen-action-toast ${msg.startsWith("✕") ? "is-error" : "is-success"}`} role="status" aria-live="polite">
             <div>{msg}</div>
             <button type="button" onClick={() => setMsg(null)} aria-label="Dismiss notification">×</button>
           </div>
@@ -1474,7 +1474,7 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
 
                     {selectedAssignableSubhead && !selectedSubheadCanCoverAmount && (
                       <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-800">
-                        ❌ This subhead cannot cover the request amount. Available:{" "}
+                        ✕ This subhead cannot cover the request amount. Available:{" "}
                         {formatNaira(selectedSubheadAvailableBalance)}. Required:{" "}
                         {formatNaira(req.amount)}.
                       </div>
@@ -1482,7 +1482,7 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
 
                     {selectedAssignableSubhead && selectedSubheadCanCoverAmount && (
                       <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-800">
-                        ✅ This subhead can cover the request amount of {formatNaira(req.amount)}.
+                        ✓ This subhead can cover the request amount of {formatNaira(req.amount)}.
                       </div>
                     )}
 
@@ -1564,7 +1564,7 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
                                 : "border-amber-200 bg-amber-50 text-amber-800"
                                 }`}
                             >
-                              {checkedByMe ? "Checked By You ✅" : "Not Checked By You"}
+                              {checkedByMe ? "Checked By You ✓" : "Not Checked By You"}
                             </span>
                           </div>
                         </div>
@@ -1596,7 +1596,7 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
                               disabled={checkingAttachmentId === a.id}
                               className="reqgen-btn reqgen-btn-rose w-full rounded-xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white hover:bg-emerald-700 disabled:opacity-60 sm:w-auto"
                             >
-                              {checkingAttachmentId === a.id ? "Checking..." : "I Have Checked This ✅"}
+                              {checkingAttachmentId === a.id ? "Checking..." : "I Have Checked This ✓"}
                             </button>
                           )}
 
@@ -1606,7 +1606,7 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
                               disabled
                               className="reqgen-btn reqgen-btn-rose w-full rounded-xl bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-700 sm:w-auto"
                             >
-                              Checked By You ✅
+                              Checked By You ✓
                             </button>
                           )}
                         </div>
@@ -1752,7 +1752,7 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
 
                       <div className="mt-2 text-xs text-slate-500">
                         {new Date(h.created_at).toLocaleString()}
-                        {h.signature_url ? " • Signed ✅" : " • Signature missing ⚠️"}
+                        {h.signature_url ? " • Signed ✓" : " • Signature missing ⚠︎"}
                       </div>
                     </div>
                   ))}

@@ -72,7 +72,7 @@ export default function AssignAccountToOfficerPage() {
     }
 
     // Officers: load ALL profiles that are AccountOfficer role
-    // ✅ This fixes your dropdown showing only you + Patricia.
+    // ✓ This fixes your dropdown showing only you + Patricia.
     const { data: u, error: uErr } = await supabase
       .from("profiles")
       .select("id,full_name,role,email")
@@ -99,7 +99,7 @@ export default function AssignAccountToOfficerPage() {
   async function assign() {
     if (!canAssign) return;
     if (!accountId || !officerId) {
-      setMsg("❌ Pick account + officer.");
+      setMsg("✕ Pick account + officer.");
       return;
     }
 
@@ -112,9 +112,9 @@ export default function AssignAccountToOfficerPage() {
       });
       if (error) throw new Error(error.message);
 
-      setMsg("✅ Assigned successfully.");
+      setMsg("✓ Assigned successfully.");
     } catch (e: unknown) {
-      setMsg("❌ Assign failed: " + errorMessage(e));
+      setMsg("✕ Assign failed: " + errorMessage(e));
     } finally {
       setSaving(false);
     }

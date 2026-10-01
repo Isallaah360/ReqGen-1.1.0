@@ -93,7 +93,7 @@ export default function FinanceSettingsPage() {
           </div>
 
           <div className="mt-6 border-t border-slate-200 pt-6">
-            <PrimaryButton tone="violet" disabled={saving} onClick={saveSettings}><span>{saving ? "⏳" : "💾"}</span>{saving ? "Saving..." : "Save Finance Settings"}</PrimaryButton>
+            <PrimaryButton tone="violet" disabled={saving} onClick={saveSettings}>{saving ? "Saving..." : "Save Finance Settings"}</PrimaryButton>
             {message ? <p className="mt-3 text-sm font-black text-emerald-700">✓ {message}</p> : null}
           </div>
         </FinanceCard>

@@ -9,6 +9,7 @@ import {
     useState,
 } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import { LockKeyhole, Receipt } from "lucide-react";
 import styles from "./manual-voucher-adopted.module.css";
 
 type ProfileRole = {
@@ -835,7 +836,7 @@ export default function ManualVoucherPage() {
             <main className="mx-auto max-w-3xl px-4 py-12">
                 <section className="rounded-3xl border border-amber-200 bg-amber-50 p-7 shadow-sm">
                     <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-100 text-2xl">
-                        🔐
+                        <LockKeyhole size={26} aria-hidden="true" />
                     </div>
 
                     <h1 className="mt-5 text-2xl font-black text-amber-950">
@@ -889,14 +890,14 @@ export default function ManualVoucherPage() {
 
             {error && (
                 <div className="mt-6 flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-4 font-semibold text-red-800 shadow-sm">
-                    <span className="text-lg">⚠️</span>
+                    <span className="text-lg">⚠︎</span>
                     <p>{error}</p>
                 </div>
             )}
 
             {success && (
                 <div className="mt-6 flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4 font-semibold text-emerald-800 shadow-sm">
-                    <span className="text-lg">✅</span>
+                    <span className="text-lg">✓</span>
                     <p>{success}</p>
                 </div>
             )}
@@ -1373,7 +1374,7 @@ export default function ManualVoucherPage() {
                 {manualVouchers.length === 0 ? (
                     <div className="p-8 text-center sm:p-12">
                         <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-amber-100 text-3xl">
-                            🧾
+                            <Receipt size={30} aria-hidden="true" />
                         </div>
 
                         <h3 className="mt-5 text-xl font-black text-slate-950">

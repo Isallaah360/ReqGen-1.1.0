@@ -598,7 +598,7 @@ export default function PaymentVouchersPage() {
     setMsg(null);
 
     if (!isVoucherEligible(r)) {
-      setMsg("❌ Only Official and Personal Fund requests can generate payment vouchers.");
+      setMsg("✕ Only Official and Personal Fund requests can generate payment vouchers.");
       return;
     }
 
@@ -610,7 +610,7 @@ export default function PaymentVouchersPage() {
       }
 
       if (prev.length >= 10) {
-        setMsg("❌ You can select maximum 10 requests per payment voucher.");
+        setMsg("✕ You can select maximum 10 requests per payment voucher.");
         return prev;
       }
 
@@ -620,12 +620,12 @@ export default function PaymentVouchersPage() {
         const firstPayee = personKey(current[0].requester_name);
 
         if (categoryKey(r) !== firstCategory) {
-          setMsg("❌ Selected requests must be from the same category.");
+          setMsg("✕ Selected requests must be from the same category.");
           return prev;
         }
 
         if (personKey(r.requester_name) !== firstPayee) {
-          setMsg("❌ Selected requests must belong to the same requester/payee.");
+          setMsg("✕ Selected requests must belong to the same requester/payee.");
           return prev;
         }
       }
@@ -675,7 +675,7 @@ export default function PaymentVouchersPage() {
     const validation = validateManualVoucher();
 
     if (validation) {
-      setMsg("❌ " + validation);
+      setMsg("✕ " + validation);
       return;
     }
 
@@ -711,7 +711,7 @@ export default function PaymentVouchersPage() {
       const voucherNo = result?.voucher_no || "Manual Voucher";
       const voucherId = result?.voucher_id;
 
-      setMsg(`✅ ${voucherNo} created successfully.`);
+      setMsg(`✓ ${voucherNo} created successfully.`);
       setShowManualModal(false);
 
       await load({ silent: true });
@@ -723,7 +723,7 @@ export default function PaymentVouchersPage() {
       }
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : "Unknown error";
-      setMsg("❌ Failed to create manual voucher: " + message);
+      setMsg("✕ Failed to create manual voucher: " + message);
     } finally {
       setManualSaving(false);
     }
@@ -731,7 +731,7 @@ export default function PaymentVouchersPage() {
 
   function openGenerateModalFromSelection() {
     if (!selectionSummary.valid) {
-      setMsg("❌ " + selectionSummary.message);
+      setMsg("✕ " + selectionSummary.message);
       return;
     }
 
@@ -795,7 +795,7 @@ export default function PaymentVouchersPage() {
     const validation = validateDisbursement();
 
     if (validation) {
-      setMsg("❌ " + validation);
+      setMsg("✕ " + validation);
       return;
     }
 
@@ -837,8 +837,8 @@ export default function PaymentVouchersPage() {
 
       setMsg(
         count === 1
-          ? `✅ ${voucherNo} generated successfully.`
-          : `✅ ${voucherNo} generated successfully for ${count} requests.`
+          ? `✓ ${voucherNo} generated successfully.`
+          : `✓ ${voucherNo} generated successfully for ${count} requests.`
       );
 
       setSelectedRequest(null);
@@ -853,7 +853,7 @@ export default function PaymentVouchersPage() {
       }
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : "Unknown error";
-      setMsg("❌ Failed to generate voucher: " + message);
+      setMsg("✕ Failed to generate voucher: " + message);
     } finally {
       setGenerating(false);
     }
@@ -861,7 +861,7 @@ export default function PaymentVouchersPage() {
 
   async function deleteVoucher(v: VoucherRow) {
     if (!canDeleteVoucher) {
-      setMsg("❌ Only Admin and Auditor can delete payment vouchers.");
+      setMsg("✕ Only Admin and Auditor can delete payment vouchers.");
       return;
     }
 
@@ -882,12 +882,12 @@ export default function PaymentVouchersPage() {
 
       const deletedVoucherNo = (data as DeleteVoucherResult | null)?.deleted_voucher_no || v.voucher_no;
 
-      setMsg(`✅ ${deletedVoucherNo} deleted. Linked request(s) can now generate a new PV.`);
+      setMsg(`✓ ${deletedVoucherNo} deleted. Linked request(s) can now generate a new PV.`);
       await load({ silent: true });
       router.refresh();
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : "Unknown error";
-      setMsg("❌ Failed to delete voucher: " + message);
+      setMsg("✕ Failed to delete voucher: " + message);
     } finally {
     }
   }

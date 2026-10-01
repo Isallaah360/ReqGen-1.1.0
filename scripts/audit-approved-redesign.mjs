@@ -17,7 +17,10 @@ for(const route of pvNav){if(!shell.includes(`href: "${route}"`)) failures.push(
 const requiredPv=['new','pending','approved','print-centre','history']; for(const name of requiredPv){const file=path.join(cwd,'app/payment-vouchers',name,'page.tsx'); if(!fs.existsSync(file)) failures.push(`Missing approved Payment Voucher page: ${name}`);}
 const savePages=['app/payment-vouchers/settings/page.tsx','app/admin/account-routing/page.tsx','app/admin/departments/page.tsx','app/admin/settings/page.tsx','app/admin/roles/page.tsx'];
 for(const rel of savePages){const file=path.join(cwd,rel); if(!fs.existsSync(file)){failures.push(`Missing action page: ${rel}`);continue;} const txt=fs.readFileSync(file,'utf8'); if(!/(save|saving|submit|update|create|assign|add)/i.test(txt)) failures.push(`No explicit persisted action found: ${rel}`);}
-const css=fs.readFileSync(path.join(cwd,'app/globals.css'),'utf8');
+// v3.0.6: colours are theme variables with the original light colour as fallback
+// (var(--c-fg-ffffff,#fff)). Audits check the approved LIGHT values, so unwrap them.
+const unwrapTheme = (text) => text.replace(/var\(--c-(?:bg|fg|ln)-[0-9a-f]{6,8},(#[0-9a-fA-F]{3,8}|white|black|rgba?\([^)]*\))\)/gi, "$1");
+const css=unwrapTheme(fs.readFileSync(path.join(cwd,'app/globals.css'),'utf8'));
 for(const token of ['FINAL APPROVED SHELL','rg-module-header','rg-stat-card','rg-section-card','color:#fff!important']) if(!css.includes(token)) failures.push(`Global adopted-shell token missing: ${token}`);
 let braces=0; for(const c of css){if(c==='{')braces++; else if(c==='}')braces--;} if(braces!==0) failures.push(`globals.css brace imbalance: ${braces}`);
 const report={sections:counts,totalPages:Object.values(counts).reduce((a,b)=>a+b,0),failures,passed:failures.length===0};

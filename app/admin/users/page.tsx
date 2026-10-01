@@ -434,7 +434,7 @@ export default function AdminUsersPage() {
 
   async function updateUserDepartment(id: string, deptId: string | null) {
     if (!canAdmin) {
-      setMsg("❌ Only Admin can update users.");
+      setMsg("✕ Only Admin can update users.");
       return;
     }
 
@@ -448,11 +448,11 @@ export default function AdminUsersPage() {
 
       setRows((prev) => prev.map((r) => (r.id === id ? { ...r, dept_id: deptId } : r)));
 
-      setMsg("✅ User department routing updated successfully.");
+      setMsg("✓ User department routing updated successfully.");
       await load({ silent: true });
       router.refresh();
     } catch (e: unknown) {
-      setMsg("❌ Department update failed: " + errorMessage(e));
+      setMsg("✕ Department update failed: " + errorMessage(e));
     } finally {
       setSavingId(null);
     }
@@ -460,7 +460,7 @@ export default function AdminUsersPage() {
 
   async function assignRole(profileId: string, roleKeyToAssign: string, makePrimary: boolean) {
     if (!canAdmin) {
-      setMsg("❌ Only Admin can assign roles.");
+      setMsg("✕ Only Admin can assign roles.");
       return;
     }
 
@@ -468,18 +468,18 @@ export default function AdminUsersPage() {
     const roleInfo = roleMap[roleKey(roleKeyToAssign)];
 
     if (!targetUser) {
-      setMsg("❌ User not found.");
+      setMsg("✕ User not found.");
       return;
     }
 
     if (!roleInfo) {
-      setMsg("❌ Selected role was not found in the active role catalogue.");
+      setMsg("✕ Selected role was not found in the active role catalogue.");
       return;
     }
 
     if (roleRequiresSignature(roleInfo) && !targetUser.signature_url) {
       setMsg(
-        `❌ ${roleDisplayName(roleInfo.role_name)} requires a signature. Ask ${targetUser.full_name || "the user"
+        `✕ ${roleDisplayName(roleInfo.role_name)} requires a signature. Ask ${targetUser.full_name || "the user"
         } to upload signature first.`
       );
       return;
@@ -499,14 +499,14 @@ export default function AdminUsersPage() {
 
       setMsg(
         makePrimary
-          ? `✅ ${roleDisplayName(roleInfo.role_name)} assigned and set as primary role.`
-          : `✅ ${roleDisplayName(roleInfo.role_name)} assigned successfully.`
+          ? `✓ ${roleDisplayName(roleInfo.role_name)} assigned and set as primary role.`
+          : `✓ ${roleDisplayName(roleInfo.role_name)} assigned successfully.`
       );
 
       await load({ silent: true });
       router.refresh();
     } catch (e: unknown) {
-      setMsg("❌ Role assignment failed: " + errorMessage(e));
+      setMsg("✕ Role assignment failed: " + errorMessage(e));
     } finally {
       setSavingId(null);
     }
@@ -514,7 +514,7 @@ export default function AdminUsersPage() {
 
   async function setPrimaryRole(profileId: string, roleKeyToSet: string) {
     if (!canAdmin) {
-      setMsg("❌ Only Admin can set primary roles.");
+      setMsg("✕ Only Admin can set primary roles.");
       return;
     }
 
@@ -531,12 +531,12 @@ export default function AdminUsersPage() {
 
       if (error) throw new Error(error.message);
 
-      setMsg(`✅ Primary role updated to ${roleDisplayName(roleInfo?.role_name || roleKeyToSet)}.`);
+      setMsg(`✓ Primary role updated to ${roleDisplayName(roleInfo?.role_name || roleKeyToSet)}.`);
 
       await load({ silent: true });
       router.refresh();
     } catch (e: unknown) {
-      setMsg("❌ Primary role update failed: " + errorMessage(e));
+      setMsg("✕ Primary role update failed: " + errorMessage(e));
     } finally {
       setSavingId(null);
     }
@@ -611,12 +611,12 @@ export default function AdminUsersPage() {
       });
       const body = await response.json().catch(() => null);
       if (!response.ok) throw new Error(body?.error || "User creation failed.");
-      setMsg(`✅ ${newFullName.trim()} was created successfully.`);
+      setMsg(`✓ ${newFullName.trim()} was created successfully.`);
       setShowCreateUser(false);
       setNewFullName(""); setNewEmail(""); setNewPassword(""); setNewRoleKey("staff"); setNewDeptId("");
       await load({ silent: true });
     } catch (error: unknown) {
-      setMsg("❌ " + errorMessage(error));
+      setMsg("✕ " + errorMessage(error));
     } finally {
       setCreatingUser(false);
     }
@@ -624,7 +624,7 @@ export default function AdminUsersPage() {
 
   async function deactivateRole(profileId: string, roleKeyToDeactivate: string) {
     if (!canAdmin) {
-      setMsg("❌ Only Admin can deactivate roles.");
+      setMsg("✕ Only Admin can deactivate roles.");
       return;
     }
 
@@ -633,12 +633,12 @@ export default function AdminUsersPage() {
     const target = assigned.find((r) => roleKey(r.role_key) === roleKey(roleKeyToDeactivate));
 
     if (!target) {
-      setMsg("❌ Role assignment not found.");
+      setMsg("✕ Role assignment not found.");
       return;
     }
 
     if (activeCount <= 1) {
-      setMsg("❌ A user must keep at least one active role.");
+      setMsg("✕ A user must keep at least one active role.");
       return;
     }
 
@@ -659,12 +659,12 @@ export default function AdminUsersPage() {
 
       if (error) throw new Error(error.message);
 
-      setMsg(`✅ ${roleDisplayName(target.role_name)} deactivated successfully.`);
+      setMsg(`✓ ${roleDisplayName(target.role_name)} deactivated successfully.`);
 
       await load({ silent: true });
       router.refresh();
     } catch (e: unknown) {
-      setMsg("❌ Role deactivation failed: " + errorMessage(e));
+      setMsg("✕ Role deactivation failed: " + errorMessage(e));
     } finally {
       setSavingId(null);
     }

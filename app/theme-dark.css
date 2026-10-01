@@ -1,0 +1,40 @@
+/* ==========================================================================
+   ReqGen v3.0.6 — dark theme: hand-tuned layer.
+   (Colour-by-colour values are generated in theme-dark.generated.css.)
+   ========================================================================== */
+
+/* Theme switch button — matches the other top-bar icon buttons */
+.rg-theme-toggle{width:36px;height:36px;display:grid;place-items:center;border:1px solid var(--rg3-line);border-radius:9px;
+  background:var(--rg3-surface);color:var(--rg3-navy);cursor:pointer;transition:background .15s ease,color .15s ease,border-color .15s ease}
+.rg-theme-toggle:hover{background:var(--rg3-soft);color:var(--rg3-blue)}
+.rg-theme-toggle:focus-visible{outline:2px solid var(--rg3-blue);outline-offset:2px}
+
+html[data-theme="dark"]{color-scheme:dark}
+html[data-theme="dark"] body{background:var(--rg3-soft);color:var(--rg3-text)}
+
+/* Tailwind bg-white shares its variable with text-white, so it is themed here
+   (text-white on coloured buttons must stay white). */
+html[data-theme="dark"] .bg-white{background-color:var(--c-bg-ffffff)!important}
+html[data-theme="dark"] .bg-white\/80,html[data-theme="dark"] .bg-white\/90,html[data-theme="dark"] .bg-white\/95{background-color:color-mix(in oklab,var(--c-bg-ffffff) 90%,transparent)!important}
+
+/* Brand marks always sit on white so the IET and Barderian logos stay legible */
+html[data-theme="dark"] .rg-brand-logo,
+html[data-theme="dark"] .mock-footer .rg-footer-logo{background:#fff!important}
+html[data-theme="dark"] .mock-footer .rg-footer-logo{border-radius:999px;padding:3px}
+
+/* Form controls */
+html[data-theme="dark"] :is(input,select,textarea){color-scheme:dark}
+html[data-theme="dark"] :is(input,textarea)::placeholder{color:#7d8aa0}
+html[data-theme="dark"] option{background:#141924;color:#e3e9f3}
+
+/* Overlays & shadows read better slightly deeper on dark */
+html[data-theme="dark"] :is(.rg-modal-backdrop,.rg-session-backdrop){background:rgba(2,6,16,.66)}
+html[data-theme="dark"] :is(.rg-modal,.rg-session-dialog){box-shadow:0 24px 60px rgba(0,0,0,.55)}
+
+/* Scrollbars */
+html[data-theme="dark"] *{scrollbar-color:#3a4456 transparent}
+
+/* Images that are pure diagrams/screenshots keep their own colours */
+html[data-theme="dark"] img{color-scheme:light}
+
+@media(prefers-reduced-motion:reduce){.rg-theme-toggle{transition:none}}

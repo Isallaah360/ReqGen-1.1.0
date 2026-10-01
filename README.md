@@ -1,12 +1,12 @@
-# ReqGen v3.0.5
+# ReqGen v3.0.6
 
 ReqGen (Request Generator) is the IET Request Management System: request creation, multi-stage approval, finance monitoring, payment vouchers, registry, reports and audit — role-based and backed by Supabase.
 
 ## Release identity
 
-- Product version: **v3.0.5** (Semantic Versioning, MAJOR.MINOR.PATCH — next patch is v3.0.6)
+- Product version: **v3.0.6** (Semantic Versioning, MAJOR.MINOR.PATCH — next patch is v3.0.7)
 - Defined in one place only: `lib/version.ts`
-- `package.json` "version" carries the same number without the "v" (3.0.5)
+- `package.json` "version" carries the same number without the "v" (3.0.6)
 
 ## Navigation standard (from v3.0.1)
 
@@ -22,3 +22,12 @@ npm run lint
 npm run typecheck
 npm run build
 ```
+
+## Theme (from v3.0.6)
+
+- Light / Dark / System switch in the top bar (remembered per device).
+- All colours in `app/**/*.css` are theme-aware variables whose fallback is the
+  original light colour, so light mode is unchanged.
+- After adding or changing CSS colours, regenerate the dark palette:
+  `npm run theme:build` (writes `app/theme-dark.generated.css`).
+- Hand-tuned dark rules live in `app/theme-dark.css`.

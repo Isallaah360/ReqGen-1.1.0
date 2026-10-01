@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { FinanceCard, FinancePageFrame, MetricCard, PrimaryButton, StatusPill } from "../_components/FinancePageFrame";
+import { FinanceIcon, FinanceCard, FinancePageFrame, MetricCard, PrimaryButton, StatusPill } from "../_components/FinancePageFrame";
 
 export default function ExportCentrePage() {
   const [format, setFormat] = useState("Excel Workbook");
@@ -29,7 +29,7 @@ export default function ExportCentrePage() {
           <div className="mt-5 space-y-4">
             <label className="block text-sm font-black text-slate-700">Dataset<select value={dataset} onChange={(e) => setDataset(e.target.value)} className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"><option>Transactions Register</option><option>Voucher Register</option><option>Account Ledger</option><option>Subhead Ledger</option><option>Monthly Report</option><option>Annual Report</option></select></label>
             <label className="block text-sm font-black text-slate-700">File format<select value={format} onChange={(e) => setFormat(e.target.value)} className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"><option>Excel Workbook</option><option>CSV File</option><option>PDF Report</option></select></label>
-            <PrimaryButton tone="emerald" disabled={busy} onClick={beginExport}>{busy ? "⏳ Preparing..." : "📤 Prepare Export"}</PrimaryButton>
+            <PrimaryButton tone="emerald" disabled={busy} onClick={beginExport}>{busy ? "Preparing..." : "Prepare Export"}</PrimaryButton>
           </div>
         </FinanceCard>
 
@@ -41,7 +41,7 @@ export default function ExportCentrePage() {
               ["Vouchers", "Draft, prepared and posted vouchers", "/finance/vouchers", "🧾"],
               ["Account Ledger", "Account movements and balances", "/finance/account-ledger", "📘"],
               ["Subhead Ledger", "Budget-line expenditure history", "/finance/subhead-ledger", "📒"],
-            ].map(([title, text, href, icon]) => <Link key={title} href={href} className="reqgen-btn reqgen-btn-emerald group rounded-2xl border border-slate-200 bg-slate-50 p-4 transition hover:-translate-y-0.5 hover:border-emerald-300 hover:bg-emerald-50 hover:shadow-md"><span className="text-xl">{icon}</span><p className="mt-3 font-black text-slate-950">{title}</p><p className="mt-1 text-xs font-semibold leading-5 text-slate-500">{text}</p></Link>)}
+            ].map(([title, text, href, icon]) => <Link key={title} href={href} className="reqgen-btn reqgen-btn-emerald group rounded-2xl border border-slate-200 bg-slate-50 p-4 transition hover:-translate-y-0.5 hover:border-emerald-300 hover:bg-emerald-50 hover:shadow-md"><span className="text-xl"><FinanceIcon icon={icon} /></span><p className="mt-3 font-black text-slate-950">{title}</p><p className="mt-1 text-xs font-semibold leading-5 text-slate-500">{text}</p></Link>)}
           </div>
           <div className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-bold text-emerald-900">Selected package: {dataset} · {format}</div>
         </FinanceCard>

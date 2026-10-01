@@ -9,7 +9,10 @@ const sharedDonut = read("app/components/ui/Donut.tsx");
 const registry = read("app/components/registry/RegistryCentreWorkspace.tsx");
 const registryCss = read("app/registry/registry.module.css");
 const audit = read("app/audit-centre/page.tsx");
-const globals = read("app/globals.css");
+// v3.0.6: colours are theme variables with the original light colour as fallback
+// (var(--c-fg-ffffff,#fff)). Audits check the approved LIGHT values, so unwrap them.
+const unwrapTheme = (text) => text.replace(/var\(--c-(?:bg|fg|ln)-[0-9a-f]{6,8},(#[0-9a-fA-F]{3,8}|white|black|rgba?\([^)]*\))\)/gi, "$1");
+const globals = unwrapTheme(read("app/globals.css"));
 const shell = read("app/components/GovernmentAppShell.tsx");
 check("Dashboard category/status charts use the shared SVG Donut component", dashboard.includes('from "@/app/components/ui/Donut"') && dashboard.includes("SharedDonut") && !dashboard.includes("conic-gradient"));
 check("Shared Donut centre is pure SVG (no HTML overlay button to misalign)", sharedDonut.includes("<circle") && sharedDonut.includes("<text") && !/\n\s*<button/.test(sharedDonut) && !sharedDonut.includes("inset:"));

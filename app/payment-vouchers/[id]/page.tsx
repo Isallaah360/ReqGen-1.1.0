@@ -423,7 +423,7 @@ export default function PaymentVoucherDetailPage() {
     if (!voucher) return;
 
     if (!isFinanceRole) {
-      setMsg("❌ Access denied. Only Finance/Admin/Auditor/Account can perform this action.");
+      setMsg("✕ Access denied. Only Finance/Admin/Auditor/Account can perform this action.");
       return;
     }
 
@@ -445,13 +445,13 @@ export default function PaymentVoucherDetailPage() {
 
       if (error) throw new Error(error.message);
 
-      setMsg(`✅ Voucher action completed: ${actionType}`);
+      setMsg(`✓ Voucher action completed: ${actionType}`);
       setComment("");
 
       await load({ silent: true });
       router.refresh();
     } catch (e: unknown) {
-      setMsg("❌ Action failed: " + errorMessage(e));
+      setMsg("✕ Action failed: " + errorMessage(e));
     } finally {
       setSaving(false);
     }
@@ -461,7 +461,7 @@ export default function PaymentVoucherDetailPage() {
     if (!voucher) return;
 
     if (!canSignCheque) {
-      setMsg("❌ Only the selected Cheque Signer can sign this voucher at this stage.");
+      setMsg("✕ Only the selected Cheque Signer can sign this voucher at this stage.");
       return;
     }
 
@@ -481,13 +481,13 @@ export default function PaymentVoucherDetailPage() {
 
       if (error) throw new Error(error.message);
 
-      setMsg("✅ Cheque signed successfully. It has now been sent for counter signature.");
+      setMsg("✓ Cheque signed successfully. It has now been sent for counter signature.");
       setComment("");
 
       await load({ silent: true });
       router.refresh();
     } catch (e: unknown) {
-      setMsg("❌ Cheque signing failed: " + errorMessage(e));
+      setMsg("✕ Cheque signing failed: " + errorMessage(e));
     } finally {
       setSaving(false);
     }
@@ -497,7 +497,7 @@ export default function PaymentVoucherDetailPage() {
     if (!voucher) return;
 
     if (!canCounterSignCheque) {
-      setMsg("❌ Only the selected Counter Signer can counter-sign this voucher at this stage.");
+      setMsg("✕ Only the selected Counter Signer can counter-sign this voucher at this stage.");
       return;
     }
 
@@ -517,13 +517,13 @@ export default function PaymentVoucherDetailPage() {
 
       if (error) throw new Error(error.message);
 
-      setMsg("✅ Cheque counter-signed successfully. The voucher is now ready for payment.");
+      setMsg("✓ Cheque counter-signed successfully. The voucher is now ready for payment.");
       setComment("");
 
       await load({ silent: true });
       router.refresh();
     } catch (e: unknown) {
-      setMsg("❌ Counter-signing failed: " + errorMessage(e));
+      setMsg("✕ Counter-signing failed: " + errorMessage(e));
     } finally {
       setSaving(false);
     }
@@ -533,7 +533,7 @@ export default function PaymentVoucherDetailPage() {
     if (!voucher) return;
 
     if (!isAdminOrAuditor) {
-      setMsg("❌ Only Admin and Auditor can delete payment vouchers.");
+      setMsg("✕ Only Admin and Auditor can delete payment vouchers.");
       return;
     }
 
@@ -553,14 +553,14 @@ export default function PaymentVoucherDetailPage() {
 
       if (error) throw new Error(error.message);
 
-      setMsg("✅ Payment voucher deleted successfully. Linked request(s) can generate a new PV.");
+      setMsg("✓ Payment voucher deleted successfully. Linked request(s) can generate a new PV.");
 
       setTimeout(() => {
         router.push(`/payment-vouchers?updated=${Date.now()}`);
         router.refresh();
       }, 500);
     } catch (e: unknown) {
-      setMsg("❌ Failed to delete voucher: " + errorMessage(e));
+      setMsg("✕ Failed to delete voucher: " + errorMessage(e));
       setSaving(false);
     }
   }
@@ -695,13 +695,13 @@ export default function PaymentVoucherDetailPage() {
               <div>
                 <span className="font-semibold">Cheque Signer:</span>{" "}
                 {voucher.cheque_signed_by_name || "—"}
-                {voucher.cheque_signed_at ? " ✅" : ""}
+                {voucher.cheque_signed_at ? " ✓" : ""}
               </div>
 
               <div>
                 <span className="font-semibold">Counter Signer:</span>{" "}
                 {voucher.cheque_counter_signed_by_name || "—"}
-                {voucher.cheque_counter_signed_at ? " ✅" : ""}
+                {voucher.cheque_counter_signed_at ? " ✓" : ""}
               </div>
             </div>
 

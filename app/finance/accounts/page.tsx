@@ -62,26 +62,26 @@ export default function AccountsAdminPage() {
 
   async function createAccount() {
     setMsg(null);
-    if (!code.trim() || !name.trim()) return setMsg("❌ Enter code and name.");
+    if (!code.trim() || !name.trim()) return setMsg("✕ Enter code and name.");
     const { error } = await supabase.from("iet_accounts").insert({ code: code.trim(), name: name.trim() });
-    if (error) return setMsg("❌ " + error.message);
+    if (error) return setMsg("✕ " + error.message);
     setCode("");
     setName("");
-    setMsg("✅ Account created.");
+    setMsg("✓ Account created.");
     await refresh();
   }
 
   async function assignAccountToOfficer() {
     setMsg(null);
-    if (!selectedAccount || !selectedUser) return setMsg("❌ Select account and user.");
+    if (!selectedAccount || !selectedUser) return setMsg("✕ Select account and user.");
 
     const { error } = await supabase.from("account_officer_accounts").insert({
       account_id: selectedAccount,
       user_id: selectedUser,
     });
 
-    if (error) return setMsg("❌ " + error.message);
-    setMsg("✅ Assigned.");
+    if (error) return setMsg("✕ " + error.message);
+    setMsg("✓ Assigned.");
   }
 
   if (loading) {

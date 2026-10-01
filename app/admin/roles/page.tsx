@@ -261,7 +261,7 @@ export default function AdminRolesPage() {
 
   async function saveRole() {
     if (!canManage) {
-      setMsg("❌ Not allowed.");
+      setMsg("✕ Not allowed.");
       return;
     }
 
@@ -270,19 +270,19 @@ export default function AdminRolesPage() {
     const key = makeRoleKey(name);
 
     if (name.length < 2) {
-      setMsg("❌ Role name is required.");
+      setMsg("✕ Role name is required.");
       return;
     }
 
     if (key.length < 2) {
-      setMsg("❌ Role key could not be generated. Use letters and numbers.");
+      setMsg("✕ Role key could not be generated. Use letters and numbers.");
       return;
     }
 
     const existing = roles.find((r) => roleKey(r.role_name) === roleKey(name) && r.id !== editId);
 
     if (existing) {
-      setMsg("❌ A role with this name already exists.");
+      setMsg("✕ A role with this name already exists.");
       return;
     }
 
@@ -305,7 +305,7 @@ export default function AdminRolesPage() {
 
         if (error) throw new Error(error.message);
 
-        setMsg("✅ Role created successfully.");
+        setMsg("✓ Role created successfully.");
       } else {
         const current = roles.find((r) => r.id === editId);
 
@@ -332,7 +332,7 @@ export default function AdminRolesPage() {
 
         if (error) throw new Error(error.message);
 
-        setMsg("✅ Role updated successfully.");
+        setMsg("✓ Role updated successfully.");
       }
 
       resetForm();
@@ -340,7 +340,7 @@ export default function AdminRolesPage() {
       await loadAll({ silent: true });
       router.refresh();
     } catch (e: unknown) {
-      setMsg("❌ Save failed: " + errorMessage(e));
+      setMsg("✕ Save failed: " + errorMessage(e));
     } finally {
       setSaving(false);
     }
@@ -348,7 +348,7 @@ export default function AdminRolesPage() {
 
   async function toggleActive(role: ReqgenRole, nextActive: boolean) {
     if (!canManage) {
-      setMsg("❌ Not allowed.");
+      setMsg("✕ Not allowed.");
       return;
     }
 
@@ -369,11 +369,11 @@ export default function AdminRolesPage() {
 
       if (error) throw new Error(error.message);
 
-      setMsg(nextActive ? "✅ Role activated." : "✅ Role deactivated.");
+      setMsg(nextActive ? "✓ Role activated." : "✓ Role deactivated.");
       await loadAll({ silent: true });
       router.refresh();
     } catch (e: unknown) {
-      setMsg("❌ Failed: " + errorMessage(e));
+      setMsg("✕ Failed: " + errorMessage(e));
     } finally {
       setSaving(false);
     }
@@ -381,12 +381,12 @@ export default function AdminRolesPage() {
 
   async function deleteRole(role: ReqgenRole) {
     if (!canManage) {
-      setMsg("❌ Not allowed.");
+      setMsg("✕ Not allowed.");
       return;
     }
 
     if (role.is_system) {
-      setMsg("❌ System roles cannot be deleted. Deactivate if necessary.");
+      setMsg("✕ System roles cannot be deleted. Deactivate if necessary.");
       return;
     }
 
@@ -404,7 +404,7 @@ export default function AdminRolesPage() {
 
       if (error) throw new Error(error.message);
 
-      setMsg("✅ Custom role deleted successfully.");
+      setMsg("✓ Custom role deleted successfully.");
 
       if (editId === role.id) {
         resetForm();
@@ -414,7 +414,7 @@ export default function AdminRolesPage() {
       router.refresh();
     } catch (e: unknown) {
       setMsg(
-        "❌ Delete failed: " +
+        "✕ Delete failed: " +
           errorMessage(e) +
           ". If the role is already in use, deactivate it instead."
       );

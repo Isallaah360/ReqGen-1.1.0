@@ -127,7 +127,7 @@ export default function RoutingEnginePage() {
 
   async function run(label: string, fn: () => Promise<string | void>) {
     setBusy(true); setMsg(null);
-    try { const text = await fn(); setMsg({ tone: "ok", text: text || `✅ ${label}` }); await load(); }
+    try { const text = await fn(); setMsg({ tone: "ok", text: text || `✓ ${label}` }); await load(); }
     catch (e) { setMsg({ tone: "error", text: (e instanceof Error ? e.message : String(e)).replace(/^.*?Routing incomplete/, "Routing incomplete") }); }
     setBusy(false);
   }
@@ -162,7 +162,7 @@ export default function RoutingEnginePage() {
   const markAway = () => awayFor && run("", async () => {
     const moved = await setOfficerAvailability(awayFor.id, true, awayForm.from || null, awayForm.until || null, awayForm.note || null);
     setAwayFor(null);
-    return `✅ ${personName(awayFor)} marked away.${moved ? ` ${moved} waiting request${moved === 1 ? " was" : "s were"} moved to backup officers.` : ""}`;
+    return `✓ ${personName(awayFor)} marked away.${moved ? ` ${moved} waiting request${moved === 1 ? " was" : "s were"} moved to backup officers.` : ""}`;
   });
   const markBack = (p: Person) => run(`${personName(p)} is available again.`, async () => { await setOfficerAvailability(p.id, false, null, null, null); });
 

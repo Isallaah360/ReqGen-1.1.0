@@ -246,7 +246,7 @@ export default function ProfilePage() {
     setMsg(null);
 
     if (!canSaveProfile) {
-      setMsg("❌ Please enter a valid full name and select gender.");
+      setMsg("✕ Please enter a valid full name and select gender.");
       return;
     }
 
@@ -272,12 +272,12 @@ export default function ProfilePage() {
 
       if (error) throw new Error(error.message);
 
-      setMsg("✅ Profile saved successfully.");
+      setMsg("✓ Profile saved successfully.");
       await load({ silent: true });
       router.refresh();
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : "Unknown error";
-      setMsg("❌ Save failed: " + message);
+      setMsg("✕ Save failed: " + message);
     } finally {
       setSavingProfile(false);
     }
@@ -287,19 +287,19 @@ export default function ProfilePage() {
     setMsg(null);
 
     if (!file) {
-      setMsg("❌ Please select a signature image first.");
+      setMsg("✕ Please select a signature image first.");
       return;
     }
 
     const allowedTypes = ["image/png", "image/jpeg", "image/jpg", "image/webp"];
 
     if (!allowedTypes.includes(file.type)) {
-      setMsg("❌ Signature must be PNG, JPG, JPEG or WEBP.");
+      setMsg("✕ Signature must be PNG, JPG, JPEG or WEBP.");
       return;
     }
 
     if (file.size > 500 * 1024) {
-      setMsg("❌ Signature file too large (max 500KB).");
+      setMsg("✕ Signature file too large (max 500KB).");
       return;
     }
 
@@ -338,13 +338,13 @@ export default function ProfilePage() {
       setSigPath(path);
       setSigPreview(getPublicSignatureUrl(path));
       setFile(null);
-      setMsg("✅ Signature saved successfully.");
+      setMsg("✓ Signature saved successfully.");
 
       await load({ silent: true });
       router.refresh();
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : "Unknown error";
-      setMsg("❌ Signature upload failed: " + message);
+      setMsg("✕ Signature upload failed: " + message);
     } finally {
       setUploadingSig(false);
     }
@@ -365,11 +365,11 @@ export default function ProfilePage() {
     if (nextFile) {
       const ext = AVATAR_TYPES[nextFile.type];
       if (!ext) {
-        setMsg("❌ Profile photo must be a PNG, JPG or WEBP image.");
+        setMsg("✕ Profile photo must be a PNG, JPG or WEBP image.");
         return;
       }
       if (nextFile.size > AVATAR_MAX_BYTES) {
-        setMsg("❌ Profile photo is too large (maximum 1 MB).");
+        setMsg("✕ Profile photo is too large (maximum 1 MB).");
         return;
       }
     }
@@ -400,11 +400,11 @@ export default function ProfilePage() {
       }
 
       setAvatarUrl(nextUrl);
-      setMsg(nextUrl ? "✅ Profile photo updated." : "✅ Profile photo removed.");
+      setMsg(nextUrl ? "✓ Profile photo updated." : "✓ Profile photo removed.");
       window.dispatchEvent(new Event("reqgen-profile-updated"));
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : "Unknown error";
-      setMsg("❌ Profile photo update failed: " + message);
+      setMsg("✕ Profile photo update failed: " + message);
     } finally {
       setUploadingAvatar(false);
     }
@@ -416,12 +416,12 @@ export default function ProfilePage() {
     const clean = newEmail.trim().toLowerCase();
 
     if (!clean.includes("@")) {
-      setMsg("❌ Please enter a valid email.");
+      setMsg("✕ Please enter a valid email.");
       return;
     }
 
     if (clean === email.trim().toLowerCase()) {
-      setMsg("ℹ️ This is already your current email.");
+      setMsg("This is already your current email.");
       return;
     }
 
@@ -438,12 +438,12 @@ export default function ProfilePage() {
         await supabase.from("profiles").update({ email: clean }).eq("id", user.id);
       }
 
-      setMsg("✅ Email update started. Check email if confirmation is required.");
+      setMsg("✓ Email update started. Check email if confirmation is required.");
       await load({ silent: true });
       router.refresh();
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : "Unknown error";
-      setMsg("❌ Email change failed: " + message);
+      setMsg("✕ Email change failed: " + message);
     } finally {
       setSavingEmail(false);
     }
@@ -475,10 +475,10 @@ export default function ProfilePage() {
 
     try {
       await loadSecurityStatus();
-      setMsg("✅ Security status refreshed.");
+      setMsg("✓ Security status refreshed.");
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : "Unknown error";
-      setMsg("❌ Failed to refresh security status: " + message);
+      setMsg("✕ Failed to refresh security status: " + message);
     } finally {
       setRefreshing(false);
     }

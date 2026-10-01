@@ -471,14 +471,14 @@ export default function NewRequestPage() {
     const combined = [...attachments, ...incoming];
 
     if (combined.length > MAX_ATTACHMENTS) {
-      setMsg(`❌ Maximum ${MAX_ATTACHMENTS} attachments are allowed per request.`);
+      setMsg(`✕ Maximum ${MAX_ATTACHMENTS} attachments are allowed per request.`);
       return;
     }
 
     const tooLarge = incoming.find((file) => file.size > MAX_FILE_SIZE_BYTES);
 
     if (tooLarge) {
-      setMsg(`❌ "${tooLarge.name}" is too large. Maximum file size is ${MAX_FILE_SIZE_MB}MB.`);
+      setMsg(`✕ "${tooLarge.name}" is too large. Maximum file size is ${MAX_FILE_SIZE_MB}MB.`);
       return;
     }
 
@@ -518,33 +518,33 @@ export default function NewRequestPage() {
 
   function validateRequestForm(showMessage = true) {
     if (!me) {
-      if (showMessage) setMsg("❌ Your profile is not loaded.");
+      if (showMessage) setMsg("✕ Your profile is not loaded.");
       return false;
     }
 
     if (!me.full_name || !me.full_name.trim()) {
-      if (showMessage) setMsg("❌ Please update your full name in Profile before creating request.");
+      if (showMessage) setMsg("✕ Please update your full name in Profile before creating request.");
       return false;
     }
 
     if (requestOtpEnabled) {
       if (requestOtpChannel === "sms" && !hasLikelyPhone(me.phone)) {
         if (showMessage) {
-          setMsg("❌ Please add a valid registered phone number in Profile before requesting SMS OTP.");
+          setMsg("✕ Please add a valid registered phone number in Profile before requesting SMS OTP.");
         }
         return false;
       }
 
       if (requestOtpChannel === "email" && !hasValidEmail(me.email)) {
         if (showMessage) {
-          setMsg("❌ Please add a valid registered email in Profile before requesting Email OTP.");
+          setMsg("✕ Please add a valid registered email in Profile before requesting Email OTP.");
         }
         return false;
       }
 
       if (isDualOtpChannel(requestOtpChannel) && !hasLikelyPhone(me.phone) && !hasValidEmail(me.email)) {
         if (showMessage) {
-          setMsg("❌ Please add a valid phone number or email in Profile before requesting OTP.");
+          setMsg("✕ Please add a valid phone number or email in Profile before requesting OTP.");
         }
         return false;
       }
@@ -552,33 +552,33 @@ export default function NewRequestPage() {
 
     if (!me.signature_url || !me.signature_url.trim()) {
       if (showMessage) {
-        setMsg("❌ Please upload your signature in Profile before signing this request.");
+        setMsg("✕ Please upload your signature in Profile before signing this request.");
       }
       return false;
     }
 
     if (!requestType) {
-      if (showMessage) setMsg("❌ Please select request type.");
+      if (showMessage) setMsg("✕ Please select request type.");
       return false;
     }
 
     if (isPersonal && !personalCategory) {
-      if (showMessage) setMsg("❌ Please select personal request category.");
+      if (showMessage) setMsg("✕ Please select personal request category.");
       return false;
     }
 
     if (!deptId) {
-      if (showMessage) setMsg("❌ Please select department.");
+      if (showMessage) setMsg("✕ Please select department.");
       return false;
     }
 
     if (!title.trim()) {
-      if (showMessage) setMsg("❌ Please enter request title.");
+      if (showMessage) setMsg("✕ Please enter request title.");
       return false;
     }
 
     if (!details.trim()) {
-      if (showMessage) setMsg("❌ Please enter request details.");
+      if (showMessage) setMsg("✕ Please enter request details.");
       return false;
     }
 
@@ -588,8 +588,8 @@ export default function NewRequestPage() {
       if (showMessage) {
         setMsg(
           isOfficial
-            ? "❌ Enter a valid amount for this Official request."
-            : "❌ Enter a valid amount for this Personal Fund request."
+            ? "✕ Enter a valid amount for this Official request."
+            : "✕ Enter a valid amount for this Personal Fund request."
         );
       }
       return false;
@@ -597,13 +597,13 @@ export default function NewRequestPage() {
 
     if (isOfficial && canSeeSubheads && subheadId && selectedSubhead && amt > availableBalance) {
       if (showMessage) {
-        setMsg(`❌ Amount exceeds available balance for selected subhead (${naira(availableBalance)}).`);
+        setMsg(`✕ Amount exceeds available balance for selected subhead (${naira(availableBalance)}).`);
       }
       return false;
     }
 
     if (attachments.length > MAX_ATTACHMENTS) {
-      if (showMessage) setMsg(`❌ Maximum ${MAX_ATTACHMENTS} attachments are allowed per request.`);
+      if (showMessage) setMsg(`✕ Maximum ${MAX_ATTACHMENTS} attachments are allowed per request.`);
       return false;
     }
 
@@ -611,7 +611,7 @@ export default function NewRequestPage() {
 
     if (tooLarge) {
       if (showMessage) {
-        setMsg(`❌ "${tooLarge.name}" is too large. Maximum file size is ${MAX_FILE_SIZE_MB}MB.`);
+        setMsg(`✕ "${tooLarge.name}" is too large. Maximum file size is ${MAX_FILE_SIZE_MB}MB.`);
       }
       return false;
     }
@@ -619,7 +619,7 @@ export default function NewRequestPage() {
     const dept = depts.find((d) => d.id === deptId);
 
     if (!dept) {
-      if (showMessage) setMsg("❌ Department not found.");
+      if (showMessage) setMsg("✕ Department not found.");
       return false;
     }
 
@@ -641,8 +641,8 @@ export default function NewRequestPage() {
 
     setMsg(
       requestOtpEnabled
-        ? `✅ Request signed successfully. You can now submit with ${otpLabel}.`
-        : "✅ Request signed successfully. You can now submit the signed request."
+        ? `✓ Request signed successfully. You can now submit with ${otpLabel}.`
+        : "✓ Request signed successfully. You can now submit the signed request."
     );
   }
 
@@ -685,7 +685,7 @@ export default function NewRequestPage() {
     setMsg(null);
 
     if (!signedRequest) {
-      setMsg("❌ Please click Sign Request before submitting.");
+      setMsg("✕ Please click Sign Request before submitting.");
       return;
     }
 
@@ -709,14 +709,14 @@ export default function NewRequestPage() {
       otpAutoSubmittingRef.current = false;
 
       if (result.channel === "sms") {
-        setMsg("✅ SMS OTP sent to your registered phone number.");
+        setMsg("✓ SMS OTP sent to your registered phone number.");
       } else if (isDualOtpChannel(result.channel || requestOtpChannel)) {
-        setMsg("✅ OTP sent by SMS and email.");
+        setMsg("✓ OTP sent by SMS and email.");
       } else {
-        setMsg("✅ Email OTP sent to your registered email.");
+        setMsg("✓ Email OTP sent to your registered email.");
       }
     } catch (e: unknown) {
-      setMsg(`❌ Could not send ${otpLabel}: ` + errorMessage(e, "Unknown error."));
+      setMsg(`✕ Could not send ${otpLabel}: ` + errorMessage(e, "Unknown error."));
     } finally {
       setSendingOtp(false);
     }
@@ -733,7 +733,7 @@ export default function NewRequestPage() {
       .slice(0, 6);
 
     if (!/^\d{6}$/.test(code)) {
-      setMsg(`❌ Enter the 6-digit ${otpLabel}.`);
+      setMsg(`✕ Enter the 6-digit ${otpLabel}.`);
       return;
     }
 
@@ -769,7 +769,7 @@ export default function NewRequestPage() {
 
       await submitSignedRequest();
     } catch (e: unknown) {
-      setMsg(`❌ ${otpLabel} verification failed: ` + errorMessage(e, "Invalid OTP."));
+      setMsg(`✕ ${otpLabel} verification failed: ` + errorMessage(e, "Invalid OTP."));
       setOtpCode("");
     } finally {
       setVerifyingOtp(false);
@@ -855,12 +855,12 @@ export default function NewRequestPage() {
 
   async function submitSignedRequest() {
     if (!me) {
-      setMsg("❌ Your profile is not loaded.");
+      setMsg("✕ Your profile is not loaded.");
       return;
     }
 
     if (!signedRequest) {
-      setMsg("❌ Please sign the request before submitting.");
+      setMsg("✕ Please sign the request before submitting.");
       return;
     }
 
@@ -921,7 +921,7 @@ export default function NewRequestPage() {
       const categoryLabel = isPersonal ? `Personal ${personalCategory}` : "Official";
 
       setMsg(
-        `✅ ${categoryLabel} request signed, OTP-verified and submitted successfully. ${subheadNote}${uploadedCount > 0 ? `${uploadedCount} attachment(s) uploaded. ` : ""
+        `✓ ${categoryLabel} request signed, OTP-verified and submitted successfully. ${subheadNote}${uploadedCount > 0 ? `${uploadedCount} attachment(s) uploaded. ` : ""
         }Routed to ${result?.first_stage || "next officer"}. ${routeNote}`
       );
 
@@ -949,7 +949,7 @@ export default function NewRequestPage() {
         router.refresh();
       }, 500);
     } catch (e: unknown) {
-      setMsg("❌ Submit failed: " + errorMessage(e));
+      setMsg("✕ Submit failed: " + errorMessage(e));
     } finally {
       setSaving(false);
       setUploadingAttachments(false);
@@ -971,9 +971,9 @@ export default function NewRequestPage() {
           savedAt: new Date().toISOString(),
         })
       );
-      setMsg("✅ Draft saved on this device. Attachments are not stored in local drafts.");
+      setMsg("✓ Draft saved on this device. Attachments are not stored in local drafts.");
     } catch {
-      setMsg("❌ Draft could not be saved on this device.");
+      setMsg("✕ Draft could not be saved on this device.");
     }
   }
 
@@ -995,8 +995,8 @@ export default function NewRequestPage() {
         </header>
 
         {msg && (
-          <div className={`${styles.notice} ${msg.startsWith("❌") ? styles.noticeError : styles.noticeInfo}`}>
-            {msg.startsWith("❌") ? <AlertCircle size={18} /> : <Info size={18} />}
+          <div className={`${styles.notice} ${msg.startsWith("✕") ? styles.noticeError : styles.noticeInfo}`}>
+            {msg.startsWith("✕") ? <AlertCircle size={18} /> : <Info size={18} />}
             <span>{msg}</span>
           </div>
         )}

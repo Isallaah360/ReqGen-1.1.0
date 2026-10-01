@@ -93,7 +93,7 @@ export default function AccountRoutingPage() {
       ? await supabase.from("department_account_routing").update(payload).eq("id", existing.id)
       : await supabase.from("department_account_routing").insert(payload);
     if (result.error) setMsg("Save failed: " + result.error.message);
-    else { setMsg("✅ Department account routing saved."); setEditingDeptId(null); await loadAll(); }
+    else { setMsg("✓ Department account routing saved."); setEditingDeptId(null); await loadAll(); }
     setSaving(false);
   }
 
@@ -101,7 +101,7 @@ export default function AccountRoutingPage() {
     const route = routeByDept.get(deptId); if (!route) return;
     if (!window.confirm("Remove this department account routing?")) return;
     setSaving(true); const result = await supabase.from("department_account_routing").delete().eq("id", route.id);
-    if (result.error) setMsg("Delete failed: " + result.error.message); else { setMsg("✅ Routing removed."); await loadAll(); }
+    if (result.error) setMsg("Delete failed: " + result.error.message); else { setMsg("✓ Routing removed."); await loadAll(); }
     setSaving(false);
   }
 

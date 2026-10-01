@@ -502,7 +502,7 @@ function EditRequestPageContent() {
     setMsg(null);
 
     if (!me?.signature_url?.trim()) {
-      setMsg("❌ Upload your signature in Profile before signing request changes.");
+      setMsg("✕ Upload your signature in Profile before signing request changes.");
       return;
     }
 
@@ -511,33 +511,33 @@ function EditRequestPageContent() {
 
     setEditSigned(true);
     setEditSignedAt(new Date().toISOString());
-    setMsg("✅ Changes signed. You can now save this edited request.");
+    setMsg("✓ Changes signed. You can now save this edited request.");
   }
 
   function validateForm() {
     if (!req) {
-      setMsg("❌ Request is not loaded.");
+      setMsg("✕ Request is not loaded.");
       return false;
     }
 
     if (!canEdit) {
-      setMsg("❌ Edit is locked. You are not allowed to edit this request at its current stage.");
+      setMsg("✕ Edit is locked. You are not allowed to edit this request at its current stage.");
       return false;
     }
 
     if (!totpFactorId) {
-      setMsg("❌ You must set up 2FA before editing requests.");
+      setMsg("✕ You must set up 2FA before editing requests.");
       router.push("/mfa/setup");
       return false;
     }
 
     if (!title.trim()) {
-      setMsg("❌ Title is required.");
+      setMsg("✕ Title is required.");
       return false;
     }
 
     if (!details.trim()) {
-      setMsg("❌ Details are required.");
+      setMsg("✕ Details are required.");
       return false;
     }
 
@@ -545,7 +545,7 @@ function EditRequestPageContent() {
       const amt = Number(amount || 0);
 
       if (!amt || amt <= 0) {
-        setMsg("❌ Amount must be greater than zero for Official and Personal Fund requests.");
+        setMsg("✕ Amount must be greater than zero for Official and Personal Fund requests.");
         return false;
       }
     }
@@ -556,7 +556,7 @@ function EditRequestPageContent() {
       String(req.funds_state || "").toLowerCase() === "reserved"
     ) {
       if (!subheadId) {
-        setMsg("❌ Reserved official request must have a subhead.");
+        setMsg("✕ Reserved official request must have a subhead.");
         return false;
       }
 
@@ -568,7 +568,7 @@ function EditRequestPageContent() {
         amt > availableBalance(selectedSubhead)
       ) {
         setMsg(
-          `❌ Amount exceeds selected subhead available balance (${naira(
+          `✕ Amount exceeds selected subhead available balance (${naira(
             availableBalance(selectedSubhead)
           )}).`
         );
@@ -586,7 +586,7 @@ function EditRequestPageContent() {
     if (!ok) return;
 
     if (!editSigned || !editSignedAt) {
-      setMsg("❌ Please sign the edited request before saving changes.");
+      setMsg("✕ Please sign the edited request before saving changes.");
       return;
     }
 
@@ -607,7 +607,7 @@ function EditRequestPageContent() {
     setMsg(null);
 
     if (!totpFactorId) {
-      setMsg("❌ No verified 2FA authenticator found. Please set up 2FA again.");
+      setMsg("✕ No verified 2FA authenticator found. Please set up 2FA again.");
       setShowMfaModal(false);
       router.push("/mfa/setup");
       return;
@@ -619,7 +619,7 @@ function EditRequestPageContent() {
       .slice(0, 6);
 
     if (!/^\d{6}$/.test(code)) {
-      setMsg("❌ Enter the 6-digit code from your authenticator app.");
+      setMsg("✕ Enter the 6-digit code from your authenticator app.");
       return;
     }
 
@@ -639,7 +639,7 @@ function EditRequestPageContent() {
 
       await saveAfterFresh2fa();
     } catch (e: unknown) {
-      setMsg("❌ 2FA verification failed: " + (errorMessage(e) || "Invalid code."));
+      setMsg("✕ 2FA verification failed: " + (errorMessage(e) || "Invalid code."));
       setMfaCode("");
     } finally {
       setVerifyingCode(false);
@@ -721,7 +721,7 @@ function EditRequestPageContent() {
 
       setEditSigned(false);
       setEditSignedAt(null);
-      setMsg("✅ Signed request changes saved successfully.");
+      setMsg("✓ Signed request changes saved successfully.");
 
       await load();
 
@@ -737,7 +737,7 @@ function EditRequestPageContent() {
       if (editSignatureHistoryId) {
         await supabase.from("request_history").delete().eq("id", editSignatureHistoryId);
       }
-      setMsg("❌ Update failed: " + errorMessage(e));
+      setMsg("✕ Update failed: " + errorMessage(e));
     } finally {
       setSaving(false);
     }

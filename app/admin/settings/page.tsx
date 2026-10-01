@@ -151,9 +151,9 @@ export default function AdminSettingsPage() {
       if (item.key === "ACCOUNT_USER_ID_1") payloads.push({ key: "ACCOUNT_USER_ID", value });
       const { error } = await supabase.from("app_settings").upsert(payloads);
       if (error) throw new Error(error.message);
-      setMsg(`✅ ${item.label} saved successfully and will be used by global workflow routing.`);
+      setMsg(`✓ ${item.label} saved successfully and will be used by global workflow routing.`);
     } catch (error: unknown) {
-      setMsg("❌ Save failed: " + errorMessage(error));
+      setMsg("✕ Save failed: " + errorMessage(error));
     } finally {
       setSavingKey(null);
     }

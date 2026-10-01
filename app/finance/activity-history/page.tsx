@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import { FinanceCard, FinancePageFrame, LoadingPanel, MetricCard, PrimaryButton, StatusPill } from "../_components/FinancePageFrame";
+import { Inbox } from "lucide-react";
+import { FinanceCard, FinanceIcon, FinancePageFrame, LoadingPanel, MetricCard, PrimaryButton, StatusPill } from "../_components/FinancePageFrame";
 
 type ActivityRow = { id?: string; action?: string; title?: string; description?: string; module?: string; actor_name?: string; actor_email?: string; created_at?: string; status?: string };
 
@@ -10,8 +11,8 @@ function activityIcon(value: string) {
   const text = value.toLowerCase();
   if (text.includes("voucher")) return "🧾";
   if (text.includes("transfer")) return "🔁";
-  if (text.includes("post")) return "✅";
-  if (text.includes("cancel") || text.includes("reject")) return "⛔";
+  if (text.includes("post")) return "✓";
+  if (text.includes("cancel") || text.includes("reject")) return "✕";
   if (text.includes("setting")) return "⚙️";
   return "💠";
 }
@@ -49,12 +50,12 @@ export default function ActivityHistoryPage() {
         <FinanceCard className="mt-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-xs font-black uppercase tracking-[0.15em] text-amber-700">Operational timeline</p><h2 className="mt-1 text-xl font-black">Recent Finance activity</h2></div><StatusPill tone="amber">Newest first</StatusPill></div>
           <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search vouchers, transfers, officers or actions..." className="mt-5 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold outline-none focus:border-amber-500 focus:ring-4 focus:ring-amber-100" />
-          {issue ? <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-bold leading-6 text-amber-900">⚠️ {issue}</div> : null}
+          {issue ? <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-bold leading-6 text-amber-900">⚠︎ {issue}</div> : null}
           <div className="mt-6 space-y-4">
             {filtered.length ? filtered.map((row, index) => {
               const action = row.action || row.title || "Finance activity";
-              return <article key={row.id || index} className="group relative flex gap-4 rounded-2xl border border-slate-200 bg-white p-4 transition hover:-translate-y-0.5 hover:border-amber-300 hover:bg-amber-50/40 hover:shadow-md"><div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-amber-100 text-xl transition group-hover:scale-110">{activityIcon(action)}</div><div className="min-w-0 flex-1"><div className="flex flex-wrap items-start justify-between gap-2"><h3 className="font-black text-slate-950">{action}</h3><span className="text-xs font-bold text-slate-500">{row.created_at ? new Date(row.created_at).toLocaleString("en-NG") : "Date unavailable"}</span></div><p className="mt-1 text-sm font-semibold leading-6 text-slate-600">{row.description || `${row.module || "Finance"} record updated by ${row.actor_name || row.actor_email || "a system user"}.`}</p><div className="mt-3 flex flex-wrap gap-2"><StatusPill tone="amber">{row.module || "Finance"}</StatusPill>{row.status ? <StatusPill tone="blue">{row.status}</StatusPill> : null}</div></div></article>;
-            }) : <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-5 py-12 text-center"><div className="text-4xl">🕊️</div><p className="mt-3 font-black text-slate-800">No activity is available in this view.</p><p className="mt-1 text-sm font-semibold text-slate-500">New Finance operations will appear here automatically.</p></div>}
+              return <article key={row.id || index} className="group relative flex gap-4 rounded-2xl border border-slate-200 bg-white p-4 transition hover:-translate-y-0.5 hover:border-amber-300 hover:bg-amber-50/40 hover:shadow-md"><div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-amber-100 text-xl transition group-hover:scale-110"><FinanceIcon icon={activityIcon(action)} /></div><div className="min-w-0 flex-1"><div className="flex flex-wrap items-start justify-between gap-2"><h3 className="font-black text-slate-950">{action}</h3><span className="text-xs font-bold text-slate-500">{row.created_at ? new Date(row.created_at).toLocaleString("en-NG") : "Date unavailable"}</span></div><p className="mt-1 text-sm font-semibold leading-6 text-slate-600">{row.description || `${row.module || "Finance"} record updated by ${row.actor_name || row.actor_email || "a system user"}.`}</p><div className="mt-3 flex flex-wrap gap-2"><StatusPill tone="amber">{row.module || "Finance"}</StatusPill>{row.status ? <StatusPill tone="blue">{row.status}</StatusPill> : null}</div></div></article>;
+            }) : <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-5 py-12 text-center"><div className="flex justify-center text-slate-400"><Inbox size={36} aria-hidden="true" /></div><p className="mt-3 font-black text-slate-800">No activity is available in this view.</p><p className="mt-1 text-sm font-semibold text-slate-500">New Finance operations will appear here automatically.</p></div>}
           </div>
         </FinanceCard>
       </>}

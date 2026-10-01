@@ -49,6 +49,7 @@ import { getRouteRegistryItem } from "@/lib/routeRegistry";
 import { ActiveRoleSwitcher } from "./ActiveRoleSwitcher";
 import ReqGenFooter from "./ReqGenFooter";
 import { REQGEN_PRODUCT_NAME, REQGEN_VERSION } from "@/lib/version";
+import ThemeToggle from "@/app/components/ThemeToggle";
 import { APPROVAL_QUEUE_CHANGED_EVENT, isAwaitingUser, type ApprovalQueueRow } from "@/lib/approvalQueue";
 
 const PUBLIC_PATHS = new Set([
@@ -837,6 +838,7 @@ function GovernmentAppShellContent({
           </div>
 
           <div className="rg-top-actions">
+            <ThemeToggle />
             <Link
               href="/approvals"
               className="rg-icon-btn rg-bell"
