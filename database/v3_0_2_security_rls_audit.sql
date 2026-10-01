@@ -1,5 +1,5 @@
 -- ============================================================================
--- ReqGen v3.0.2 — Security & RLS audit (READ-ONLY)
+-- ReqGen v3.0.2 — Security & RLS audit (READ-ONLY) · rev 2 (INSERT policies read WITH CHECK)
 -- ONE query, ONE result table. Changes nothing. Safe to run any time.
 -- Reads only PostgreSQL/Supabase system catalogues (pg_tables, pg_policies,
 -- pg_proc, pg_publication_tables, storage.buckets) — it does not depend on any
@@ -44,7 +44,13 @@ findings as (
   from pg_policies p
   where p.schemaname = 'public'
     and (p.roles && array['public','anon']::name[])
-    and (coalesce(p.qual, 'true') = 'true' or coalesce(p.with_check, '') = 'true')
+    -- INSERT conditions live in WITH CHECK; SELECT/DELETE in USING; UPDATE/ALL in either.
+    and case p.cmd
+          when 'INSERT' then coalesce(p.with_check, 'true') = 'true'
+          when 'SELECT' then coalesce(p.qual, 'true') = 'true'
+          when 'DELETE' then coalesce(p.qual, 'true') = 'true'
+          else coalesce(p.qual, 'true') = 'true' or coalesce(p.with_check, p.qual, 'true') = 'true'
+        end
 
   union all
   -- 4. Write policies for any logged-in user with no condition.
@@ -54,7 +60,11 @@ findings as (
   where p.schemaname = 'public'
     and p.cmd in ('INSERT','UPDATE','DELETE','ALL')
     and (p.roles && array['authenticated']::name[])
-    and (coalesce(p.qual, 'true') = 'true' and coalesce(p.with_check, 'true') = 'true')
+    and case p.cmd
+          when 'INSERT' then coalesce(p.with_check, 'true') = 'true'
+          when 'DELETE' then coalesce(p.qual, 'true') = 'true'
+          else coalesce(p.qual, 'true') = 'true' and coalesce(p.with_check, p.qual, 'true') = 'true'
+        end
 
   union all
   -- 5. SECURITY DEFINER functions without a fixed search_path (hijack risk).

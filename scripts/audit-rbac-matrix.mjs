@@ -97,6 +97,7 @@ const EXPECTED = [
   { prefix: "/requests", allow: EVERYONE },
   { prefix: "/approvals", allow: EVERYONE },
   { prefix: "/profile", allow: EVERYONE },
+  { prefix: "/notifications", allow: EVERYONE },
   { prefix: "/change-password", allow: EVERYONE },
   { prefix: "/about", allow: EVERYONE },
   { prefix: "/docs", allow: EVERYONE },

@@ -676,6 +676,16 @@ export const ROUTE_REGISTRY: RouteRegistryItem[] = [
     "description": "ReqGen route /profile/access"
   },
   {
+    "pattern": "/notifications",
+    "title": "Notifications",
+    "rootHref": "/profile",
+    "category": "Application Route",
+    "public": false,
+    "nav": false,
+    "searchable": true,
+    "description": "ReqGen route /notifications"
+  },
+  {
     "pattern": "/profile/activity",
     "title": "Profile - Activity",
     "rootHref": "/profile",

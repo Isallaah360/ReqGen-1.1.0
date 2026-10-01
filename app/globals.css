@@ -4622,3 +4622,66 @@ html body .rg-session-dialog{width:min(380px,100%)!important;max-width:380px!imp
   .rg-engine-step>b{grid-area:num}.rg-engine-step-name{grid-area:name}.rg-engine-step-actions{grid-area:actions}
   .rg-engine-vacant,.rg-engine-vacant-note{grid-area:vac}
 }
+
+/* ---- v3.0.7 Notification Centre ---------------------------------------- */
+.rg-notif-wrap{position:relative;display:inline-flex}
+.rg-notif-panel{position:absolute;top:calc(100% + 10px);right:-8px;z-index:90;width:min(400px,calc(100vw - 24px));max-height:min(560px,calc(100dvh - 90px));
+  display:flex;flex-direction:column;border:1px solid var(--rg3-line);border-radius:14px;background:var(--rg3-surface);
+  box-shadow:0 18px 48px rgba(7,27,77,.18);overflow:hidden;animation:rgRise .16s ease}
+.rg-notif-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 16px 10px;border-bottom:1px solid var(--rg3-line)}
+.rg-notif-head h2{margin:0;color:var(--rg3-navy);font-size:16px;font-weight:900}
+.rg-notif-link{display:inline-flex;align-items:center;gap:5px;border:0;background:none;color:var(--rg3-blue);font-size:12.5px;font-weight:800;cursor:pointer}
+.rg-notif-link:hover{text-decoration:underline}
+.rg-notif-action{display:flex;align-items:center;gap:10px;margin:10px 12px 4px;padding:10px 12px;border:1px solid var(--rg3-line);border-radius:10px;
+  background:var(--rg3-soft);color:var(--rg3-text)!important;text-decoration:none!important}
+.rg-notif-action.has-items{border-color:var(--c-ln-bcd3f3,#bcd3f3);background:var(--c-bg-eef5ff,#eef5ff)}
+.rg-notif-action svg{flex:0 0 auto;color:var(--rg3-blue)}
+.rg-notif-action span{display:grid;gap:1px}
+.rg-notif-action strong{color:var(--rg3-navy);font-size:13px;font-weight:900}
+.rg-notif-action small{color:var(--rg3-muted);font-size:11.5px;font-weight:700}
+.rg-notif-list{flex:1;overflow-y:auto;padding:6px 8px}
+.rg-notif-row{width:100%;display:grid;grid-template-columns:34px 1fr auto;gap:10px;align-items:start;padding:10px 8px;border:0;border-radius:10px;
+  background:transparent;text-align:left;cursor:pointer;transition:background .15s ease}
+.rg-notif-row:hover{background:var(--rg3-soft)}
+.rg-notif-row:focus-visible{outline:2px solid var(--rg3-blue);outline-offset:1px}
+.rg-notif-row.is-unread{background:var(--c-bg-f4f8ff,#f4f8ff)}
+.rg-notif-row.is-unread:hover{background:var(--c-bg-eaf2ff,#eaf2ff)}
+.rg-notif-icon{width:34px;height:34px;display:grid;place-items:center;border-radius:10px;background:var(--c-bg-eef3fa,#eef3fa);color:var(--c-fg-40536d,#40536d)}
+.rg-notif-row.is-approved .rg-notif-icon{background:var(--c-bg-e9f8f0,#e9f8f0);color:var(--c-fg-129a67,#129a67)}
+.rg-notif-row.is-rejected .rg-notif-icon{background:var(--c-bg-fff1f2,#fff1f2);color:var(--c-fg-d92d3f,#d92d3f)}
+.rg-notif-row.is-returned .rg-notif-icon,.rg-notif-row.is-reassigned .rg-notif-icon{background:var(--c-bg-fff6e5,#fff6e5);color:var(--c-fg-c9760a,#c9760a)}
+.rg-notif-row.is-awaiting .rg-notif-icon{background:var(--c-bg-eaf2ff,#eaf2ff);color:var(--c-fg-0b5cf0,#0b5cf0)}
+.rg-notif-row.is-paid .rg-notif-icon{background:var(--c-bg-eefbf5,#eefbf5);color:var(--c-fg-0f7a55,#0f7a55)}
+.rg-notif-text{display:grid;gap:2px;min-width:0}
+.rg-notif-text strong{color:var(--rg3-navy);font-size:13px;font-weight:850;line-height:1.3}
+.rg-notif-text span{color:var(--c-fg-40536d,#40536d);font-size:12.5px;line-height:1.45;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.rg-notif-text small{color:var(--rg3-muted);font-size:11.5px;font-weight:700}
+.rg-notif-dot{width:9px;height:9px;margin-top:6px;border-radius:999px;background:var(--c-bg-0b5cf0,#0b5cf0)}
+.rg-notif-empty{margin:18px 8px;color:var(--rg3-muted);font-size:13px;text-align:center}
+.rg-notif-foot{padding:10px 14px;border-top:1px solid var(--rg3-line);text-align:center}
+.rg-notif-foot a{color:var(--rg3-blue);font-size:13px;font-weight:800}
+.rg-notif-page{max-width:900px}
+.rg-notif-pagelist{display:grid;gap:4px;margin-top:6px;padding:6px;border:1px solid var(--rg3-line);border-radius:14px;background:var(--rg3-surface)}
+.rg-notif-pagelist .rg-notif-text span{-webkit-line-clamp:4}
+@media(max-width:620px){
+  .rg-notif-panel{position:fixed;top:64px;left:12px;right:12px;width:auto;max-height:calc(100dvh - 80px)}
+}
+@media(prefers-reduced-motion:reduce){.rg-notif-panel{animation:none}.rg-notif-row{transition:none}}
+/* v3.0.7: the notification bell is always visible, including on phones
+   (older rules hid "the first icon button" below 520px). */
+html body .rg-notif-wrap .rg-bell{display:grid!important}
+@media(max-width:520px){html body .rg-top-actions{gap:6px}html body .rg-theme-toggle{width:34px;height:34px}}
+/* v3.0.7: compact phone top bar — nothing may push the page wider than the
+   screen. Keeps: menu, search (icon), theme, bell, role, avatar. */
+@media(max-width:620px){
+  html body .rg-topbar{gap:6px!important;padding:0 10px!important;max-width:100vw;overflow:visible}
+  html body .rg-topbar .rg-greeting{display:none!important}
+  html body .rg-search-wrap{flex:0 0 auto!important;width:auto!important;min-width:0!important}
+  html body .rg-search-trigger{width:38px!important;min-width:38px!important;padding:0!important;justify-content:center!important}
+  html body .rg-search-trigger>span,html body .rg-search-trigger kbd{display:none!important}
+  html body .rg-top-actions{margin-left:auto;gap:5px!important;min-width:0}
+  html body .rg-top-actions>a.rg-icon-btn[href="/profile/activity"]{display:none!important}
+  html body .mock-role-switcher>span{display:none!important}
+  html body .mock-role-switcher{min-width:0!important;max-width:118px!important;padding:4px 6px!important}
+  html body .mock-role-switcher select{max-width:104px!important;font-size:12.5px!important}
+}

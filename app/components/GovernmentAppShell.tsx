@@ -28,7 +28,6 @@ import {
   UserRound,
   Settings,
   Search,
-  Bell,
   MessageSquare,
   Menu,
   X,
@@ -50,6 +49,7 @@ import { ActiveRoleSwitcher } from "./ActiveRoleSwitcher";
 import ReqGenFooter from "./ReqGenFooter";
 import { REQGEN_PRODUCT_NAME, REQGEN_VERSION } from "@/lib/version";
 import ThemeToggle from "@/app/components/ThemeToggle";
+import NotificationCentre from "@/app/components/notifications/NotificationCentre";
 import { APPROVAL_QUEUE_CHANGED_EVENT, isAwaitingUser, type ApprovalQueueRow } from "@/lib/approvalQueue";
 
 const PUBLIC_PATHS = new Set([
@@ -839,15 +839,10 @@ function GovernmentAppShellContent({
 
           <div className="rg-top-actions">
             <ThemeToggle />
-            <Link
-              href="/approvals"
-              className="rg-icon-btn rg-bell"
-              aria-label={`${pendingApprovalCount} request${pendingApprovalCount === 1 ? "" : "s"} awaiting your approval`}
-              title={`${pendingApprovalCount} request${pendingApprovalCount === 1 ? "" : "s"} awaiting your approval`}
-            >
-              <Bell size={20} />
-              {pendingApprovalCount > 0 ? <b>{pendingApprovalCount > 99 ? "99+" : pendingApprovalCount}</b> : null}
-            </Link>
+            <NotificationCentre
+              userId={queueIdentity?.userId ?? null}
+              pendingApprovalCount={pendingApprovalCount}
+            />
 
             <Link
               href="/profile/activity"

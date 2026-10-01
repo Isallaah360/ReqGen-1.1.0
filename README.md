@@ -1,12 +1,12 @@
-# ReqGen v3.0.6
+# ReqGen v3.0.7
 
 ReqGen (Request Generator) is the IET Request Management System: request creation, multi-stage approval, finance monitoring, payment vouchers, registry, reports and audit — role-based and backed by Supabase.
 
 ## Release identity
 
-- Product version: **v3.0.6** (Semantic Versioning, MAJOR.MINOR.PATCH — next patch is v3.0.7)
+- Product version: **v3.0.7** (Semantic Versioning, MAJOR.MINOR.PATCH — next patch is v3.0.8)
 - Defined in one place only: `lib/version.ts`
-- `package.json` "version" carries the same number without the "v" (3.0.6)
+- `package.json` "version" carries the same number without the "v" (3.0.7)
 
 ## Navigation standard (from v3.0.1)
 

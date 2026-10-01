@@ -51,6 +51,7 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
 
   { href: "/profile", label: "My Profile", section: "Account", description: "Personal ReqGen profile." },
   { href: "/profile/access", label: "My Access", section: "Account", description: "View assigned and active access context." },
+  { href: "/notifications", label: "Notifications", section: "Account", description: "Workflow updates on your requests and approvals." },
   { href: "/profile/activity", label: "My Activity", section: "Account", description: "View personal ReqGen activity." },
   { href: "/profile/security", label: "Profile Security", section: "Account", description: "Manage personal security settings." },
   { href: "/change-password", label: "Change Password", section: "Account", description: "Change the signed-in user's password." },

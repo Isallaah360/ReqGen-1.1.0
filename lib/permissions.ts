@@ -67,6 +67,7 @@ export const ROUTE_POLICIES: RoutePolicy[] = [
   { prefix: "/requests", authenticatedOnly: true },
   { prefix: "/dashboard", authenticatedOnly: true },
   { prefix: "/profile", authenticatedOnly: true },
+  { prefix: "/notifications", authenticatedOnly: true },
   { prefix: "/about", authenticatedOnly: true },
   { prefix: "/docs", authenticatedOnly: true },
 ];

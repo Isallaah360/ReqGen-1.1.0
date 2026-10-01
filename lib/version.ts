@@ -5,12 +5,12 @@
  * lower-case "v" prefix, e.g. "ReqGen v3.0.1".
  *   - MAJOR 3  = the ReqGen v3 generation (restructure series)
  *   - MINOR 0  = feature line
- *   - PATCH 6  = patch number; the next patch is v3.0.7
+ *   - PATCH 7  = patch number; the next patch is v3.0.8
  *
  * The sidebar, footer, exports, print-outs and reports all read from here.
  * package.json "version" carries the same number without the "v".
  */
-export const REQGEN_SEMVER = "3.0.6" as const;
+export const REQGEN_SEMVER = "3.0.7" as const;
 export const REQGEN_VERSION = `v${REQGEN_SEMVER}` as const;
 export const REQGEN_PRODUCT_NAME = "ReqGen" as const;
 export const REQGEN_PRODUCT_LABEL = `${REQGEN_PRODUCT_NAME} ${REQGEN_VERSION}` as const;

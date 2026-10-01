@@ -19,6 +19,7 @@ const publicRoutes = new Set(["/", "/login", "/signup", "/forgot-password", "/re
 const mainNav = ["/dashboard", "/requests", "/approvals", "/finance", "/payment-vouchers", "/registry", "/reports", "/audit-centre", "/admin", "/profile"];
 const contextualParents = [
   ["/change-password", "/profile"],
+  ["/notifications", "/profile"],
   ["/output", "/reports"],
   ["/workflow", "/audit-centre"],
   ["/hr", "/approvals"],
