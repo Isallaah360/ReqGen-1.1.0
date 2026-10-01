@@ -2,13 +2,13 @@ import fs from "node:fs";
 const checks=[]; const read=p=>fs.readFileSync(p,"utf8");
 const reports=read("app/reports/page.tsx"), analytics=read("app/reports/enterprise-analytics/page.tsx"), shell=read("app/components/GovernmentAppShell.tsx"), roles=read("lib/roles.ts"), css=read("app/reports/reports.module.css");
 function check(name, ok){checks.push([name,!!ok]);}
-check("Reports Centre uses live requests",reports.includes('from("requests")'));
+check("Reports Centre uses live requests (content-free register since v3.0.4)",reports.includes('from("requests")')||reports.includes('fetchRequestRegister('));
 check("Reports Centre uses live departments",reports.includes('from("departments")'));
 check("Reports Centre uses live subheads",reports.includes('from("subheads")'));
 check("Reports Centre uses live finance transactions",reports.includes('from("finance_transactions")'));
 check("Reports Centre uses live payment vouchers",reports.includes('from("payment_vouchers")'));
 check("Reports Centre uses live registry",reports.includes('from("registry_correspondence")'));
-check("Approval report uses request history",reports.includes('from("request_history")'));
+check("Approval report uses request history (movement feed since v3.0.4)",reports.includes('from("request_history")')||reports.includes('fetchRequestMovements('));
 check("Executive Analytics uses live IET accounts",analytics.includes('from("iet_accounts")'));
 check("Analytics access roles are Admin/Auditor only",roles.includes('REPORT_ACCESS_ROLES = ["admin", "auditor"]'));
 check("DG not granted Reports access",!roles.match(/REPORT_ACCESS_ROLES[^\n]*dg/));

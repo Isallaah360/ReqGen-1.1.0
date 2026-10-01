@@ -7,6 +7,7 @@ export type RMBTemplate = "DashboardShell" | "WorkspaceShell" | "RegisterShell" 
 const LOCKED_ROUTES = new Set<string>([
   "/admin",
   "/admin/account-routing",
+  "/admin/department-routing",
   "/admin/departments",
   "/admin/roles",
   "/admin/security",

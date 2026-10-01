@@ -4,6 +4,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Building2, CreditCard, Download, FileText, Landmark, Printer, RefreshCw, ShieldCheck, Archive } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
+import { fetchRequestMovements, fetchRequestRegister } from "@/lib/requestRegister";
+import { nameWithRole } from "@/lib/userIdentity";
 import { getCurrentAuthContext } from "@/lib/auth";
 import { hasAnyRole, REPORT_ACCESS_ROLES } from "@/lib/roles";
 import { AnyRow, Department, dateLabel, downloadCsv, isRequestCompleted, isRequestRejected, isVoucherPaid, money, numberValue, rowDate, text } from "@/app/components/reports/section7Data";
@@ -52,13 +54,14 @@ export default function ReportsCentrePage() {
       if (!auth) { router.replace("/login?next=%2Freports"); return; }
       if (!hasAnyRole(auth.roleSet, [...REPORT_ACCESS_ROLES])) { router.replace("/unauthorized?from=%2Freports"); return; }
       const [rq, dp, sh, tx, pv, rg, rh] = await Promise.all([
-        supabase.from("requests").select("*").order("created_at", { ascending: false }).limit(5000),
+        // v3.0.4: content-free register (no titles, details, comments or signatures).
+        fetchRequestRegister(5000).then((r) => ({ data: r.data as unknown as AnyRow[], error: r.error ? { message: r.error } : null })),
         supabase.from("departments").select("id,name").order("name").limit(1000),
         supabase.from("subheads").select("*").order("code").limit(5000),
         supabase.from("finance_transactions").select("*").order("transaction_date", { ascending: false }).limit(5000),
         supabase.from("payment_vouchers").select("*").order("created_at", { ascending: false }).limit(5000),
         supabase.from("registry_correspondence").select("*").order("created_at", { ascending: false }).limit(5000),
-        supabase.from("request_history").select("*").order("created_at", { ascending: false }).limit(5000),
+        fetchRequestMovements(5000).then((r) => ({ data: r.data as unknown as AnyRow[], error: r.error ? { message: r.error } : null })),
       ]);
       const errors = [rq.error, dp.error, sh.error, tx.error, pv.error, rg.error, rh.error].filter(Boolean).map(e => e?.message).filter(Boolean);
       setData({ requests: (rq.data || []) as AnyRow[], departments: (dp.data || []) as Department[], subheads: (sh.data || []) as AnyRow[], transactions: (tx.data || []) as AnyRow[], vouchers: (pv.data || []) as AnyRow[], registry: (rg.data || []) as AnyRow[], history: (rh.data || []) as AnyRow[] });
@@ -86,8 +89,8 @@ export default function ReportsCentrePage() {
   ];
 
   const tableRows = useMemo(() => {
-    if (tab === "requests") return filteredRequests.map(r => ({ id: text(r.id), ref: text(r.request_no) || "—", title: text(r.title) || "Untitled request", module: "Requests", type: text(r.request_type) || "Request", date: dateLabel(r.created_at), status: text(r.status) || text(r.current_stage) || "—", department: deptName.get(text(r.dept_id)) || "—" }));
-    if (tab === "approvals") return approvalHistory.map(h => { const req = requestById.get(text(h.request_id)); return { id: text(h.id), ref: text(req?.request_no) || text(h.request_id) || "—", title: text(req?.title) || text(h.comment) || "Approval action", module: "Approvals", type: text(h.actor_role_name ?? h.actor_role_key) || "Approver", date: dateLabel(h.created_at), status: text(h.action_type) || "Decision", department: req ? (deptName.get(text(req.dept_id)) || "—") : "—" }; });
+    if (tab === "requests") return filteredRequests.map(r => ({ id: text(r.id), ref: text(r.request_no) || "—", title: text(r.requester_name) ? `Requested by ${text(r.requester_name)}` : "Request", module: "Requests", type: text(r.request_type) || "Request", date: dateLabel(r.created_at), status: text(r.status) || text(r.current_stage) || "—", department: deptName.get(text(r.dept_id)) || "—" }));
+    if (tab === "approvals") return approvalHistory.map(h => { const req = requestById.get(text(h.request_id)); return { id: text(h.id), ref: text(req?.request_no) || text(h.request_id) || "—", title: nameWithRole(text(h.actor_name) || "Officer", text(h.actor_role_name ?? h.actor_role_key)), module: "Approvals", type: text(h.actor_role_name ?? h.actor_role_key) || "Approver", date: dateLabel(h.created_at), status: text(h.action_type) || "Decision", department: req ? (deptName.get(text(req.dept_id)) || "—") : "—" }; });
     if (tab === "finance") return filteredTx.map(r => ({ id: text(r.id), ref: text(r.transaction_no) || "—", title: text(r.narration) || "Finance transaction", module: "Finance", type: text(r.transaction_type) || "Transaction", date: dateLabel(r.transaction_date ?? r.created_at), status: text(r.is_reversed) === "true" ? "Reversed" : "Posted", department: "—" }));
     if (tab === "vouchers") return filteredVouchers.map(r => ({ id: text(r.id), ref: text(r.voucher_no) || "—", title: text(r.payee_name ?? r.beneficiary ?? r.description) || "Payment Voucher", module: "Payment Vouchers", type: text(r.payment_mode ?? r.category) || "Voucher", date: dateLabel(r.created_at), status: text(r.status) || "—", department: deptName.get(text(r.department_id ?? r.dept_id)) || "—" }));
     if (tab === "registry") return filteredRegistry.map(r => ({ id: text(r.id), ref: text(r.reference_no ?? r.ref_no) || "—", title: text(r.subject) || "Correspondence", module: "Registry", type: text(r.direction) || "Correspondence", date: dateLabel(r.created_at), status: text(r.status) || "—", department: deptName.get(text(r.department_id ?? r.dept_id)) || "—" }));
@@ -102,7 +105,7 @@ export default function ReportsCentrePage() {
       { ref: "Expenditure", title: String(totalExpenditure), module: "Finance", type: "NGN", date: "", status: "", department: "" },
       { ref: "Paid PV", title: String(paidPvValue), module: "Payment Vouchers", type: "NGN", date: "", status: "", department: "" },
     ];
-    downloadCsv(`reqgen-reports-${tab}-${today}.csv`, [["Reference", "Title/Value", "Module", "Type", "Date", "Status", "Department"], ...rows.map(r => [r.ref, r.title, r.module, r.type, r.date, r.status, r.department])]);
+    downloadCsv(`reqgen-reports-${tab}-${today}.csv`, [["Reference", "Detail", "Module", "Type", "Date", "Status", "Department"], ...rows.map(r => [r.ref, r.title, r.module, r.type, r.date, r.status, r.department])]);
   }
 
   if (loading) return <div className={styles.page}><div className={styles.loading}>Loading authorised live report sources…</div></div>;
@@ -136,7 +139,7 @@ export default function ReportsCentrePage() {
         <tr><td className={styles.strong}>Payment Vouchers</td><td>payment_vouchers</td><td>{filteredVouchers.length}</td><td>{dateFrom} → {dateTo}</td><td><button className={styles.button} onClick={() => setTab("vouchers")}>Open</button></td></tr>
         <tr><td className={styles.strong}>Registry Movement</td><td>registry_correspondence</td><td>{filteredRegistry.length}</td><td>{dateFrom} → {dateTo}</td><td><button className={styles.button} onClick={() => setTab("registry")}>Open</button></td></tr>
       </tbody></table></div></article>
-    </section> : <article className={styles.card}><h2 className={styles.cardTitle}>{tabs.find(t => t.key === tab)?.label} Report</h2><div className={styles.tableWrap}><table className={styles.table}><thead><tr><th>Reference</th><th>Title / Description</th><th>Module</th><th>Type</th><th>Department</th><th>Date</th><th>Status</th></tr></thead><tbody>{tableRows.length ? tableRows.map(r => <tr key={`${tab}-${r.id}`}><td className={styles.strong}>{r.ref}</td><td>{r.title}</td><td>{r.module}</td><td>{r.type}</td><td>{r.department}</td><td>{r.date}</td><td><span className={styles.badge}>{r.status}</span></td></tr>) : <tr><td colSpan={7} className={styles.empty}>No live records match the selected filters.</td></tr>}</tbody></table></div></article>}
+    </section> : <article className={styles.card}><h2 className={styles.cardTitle}>{tabs.find(t => t.key === tab)?.label} Report</h2><div className={styles.tableWrap}><table className={styles.table}><thead><tr><th>Reference</th><th>Detail</th><th>Module</th><th>Type</th><th>Department</th><th>Date</th><th>Status</th></tr></thead><tbody>{tableRows.length ? tableRows.map(r => <tr key={`${tab}-${r.id}`}><td className={styles.strong}>{r.ref}</td><td>{r.title}</td><td>{r.module}</td><td>{r.type}</td><td>{r.department}</td><td>{r.date}</td><td><span className={styles.badge}>{r.status}</span></td></tr>) : <tr><td colSpan={7} className={styles.empty}>No live records match the selected filters.</td></tr>}</tbody></table></div></article>}
   </main>;
 }
 

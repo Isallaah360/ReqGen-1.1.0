@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 
 import { supabase } from "@/lib/supabaseClient";
+import { fetchRequestRegister } from "@/lib/requestRegister";
 import { nameWithRole } from "@/lib/userIdentity";
 import { exportTableToExcel } from "@/lib/reportExport";
 import styles from "../admin-departments.module.css";
@@ -229,10 +230,8 @@ export default function DepartmentsPage() {
             subheadRes,
             profileRes,
           ] = await Promise.all([
-            supabase
-              .from("requests")
-              .select("dept_id")
-              .not("dept_id", "is", null),
+            // v3.0.4: organisation-wide counts from the content-free register.
+            fetchRequestRegister(20000).then((r) => ({ data: r.data.filter((row) => row.dept_id), error: r.error ? { message: r.error } : null })),
 
             supabase
               .from("subheads")

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Download, Printer, RefreshCw } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import { fetchRequestRegister } from "@/lib/requestRegister";
 import { getCurrentAuthContext } from "@/lib/auth";
 import { hasAnyRole, REPORT_ACCESS_ROLES } from "@/lib/roles";
 import { AnyRow, Department, canonicalBalance, daysOld, downloadCsv, isOpenVoucher, isRequestCompleted, isRequestRejected, money, numberValue, outflowValue, text, yearOf } from "@/app/components/reports/section7Data";
@@ -24,7 +25,7 @@ export default function ExecutiveAnalyticsPage() {
       const auth = await getCurrentAuthContext(); if (!auth) { router.replace("/login?next=%2Freports%2Fenterprise-analytics"); return; }
       if (!hasAnyRole(auth.roleSet, [...REPORT_ACCESS_ROLES])) { router.replace("/unauthorized?from=%2Freports%2Fenterprise-analytics"); return; }
       const [rq, dp, sh, tx, pv, ac, rg] = await Promise.all([
-        supabase.from("requests").select("*").order("created_at",{ascending:false}).limit(5000), supabase.from("departments").select("id,name").order("name").limit(1000),
+        fetchRequestRegister(5000).then((r)=>({data:r.data as unknown as AnyRow[],error:r.error?{message:r.error}:null})), supabase.from("departments").select("id,name").order("name").limit(1000),
         supabase.from("subheads").select("*").order("code").limit(5000), supabase.from("finance_transactions").select("*").order("transaction_date",{ascending:false}).limit(5000),
         supabase.from("payment_vouchers").select("*").order("created_at",{ascending:false}).limit(5000), supabase.from("iet_accounts").select("*").order("name").limit(1000),
         supabase.from("registry_correspondence").select("*").order("created_at",{ascending:false}).limit(5000),

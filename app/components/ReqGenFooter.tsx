@@ -7,9 +7,9 @@ import { REQGEN_PRODUCT_LABEL } from "@/lib/version";
 export default function ReqGenFooter() {
   return (
     <footer className="mock-footer" aria-label="ReqGen footer">
-      <div className="mock-footer-brand">
-        <Image src="/iet-logo.png" alt="Islamic Education Trust logo" width={46} height={46} />
-        <div><strong>{REQGEN_PRODUCT_LABEL}</strong><span>Request Management System</span></div>
+      <div className="mock-footer-brand rg-footer-client">
+        <Image src="/iet-logo-mark.png" alt="Islamic Education Trust logo" width={60} height={60} className="rg-footer-logo" />
+        <div><span>Made for the</span><strong>Islamic Education Trust</strong><small>{REQGEN_PRODUCT_LABEL}</small></div>
       </div>
 
       <div className="mock-footer-centre">
@@ -24,7 +24,7 @@ export default function ReqGenFooter() {
 
       <div className="mock-footer-developer">
         <span>Powered by</span>
-        <div><strong>BARDERIAN <em>ENTERPRISES</em></strong><Image src="/be-logo.png" alt="Barderian Enterprises logo" width={58} height={42} /></div>
+        <div><strong>BARDERIAN <em>ENTERPRISES</em></strong><Image src="/be-logo.png" alt="Barderian Enterprises logo" width={60} height={60} className="rg-footer-logo" /></div>
       </div>
     </footer>
   );

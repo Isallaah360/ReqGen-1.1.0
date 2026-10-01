@@ -17,6 +17,7 @@ import {
   Users,
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
+import { fetchRequestMovements } from "@/lib/requestRegister";
 import { REQGEN_PRODUCT_LABEL } from "@/lib/version";
 import { PersonName } from "@/app/components/ui/PersonName";
 import { nameWithRole } from "@/lib/userIdentity";
@@ -132,7 +133,11 @@ export default function AuditCentrePage() {
       for (const definition of SOURCE_DEFINITIONS) {
         let loaded = false;
         for (const table of definition.tables) {
-          const result = await supabase.from(table).select("*").limit(500);
+          // v3.0.4: request history comes from the content-free movement feed
+          // (no approval comments or signatures), readable by oversight roles.
+          const result = table === "request_history"
+            ? await fetchRequestMovements(500).then((r) => ({ data: r.data as unknown, error: r.error ? { message: r.error } : null }))
+            : await supabase.from(table).select("*").limit(500);
           if (result.error) {
             health.push({ module: definition.module, table, available: false, rows: 0, message: result.error.message });
             continue;
@@ -141,8 +146,8 @@ export default function AuditCentrePage() {
           health.push({ module: definition.module, table, available: true, rows: resultRows.length, message: "Live source connected" });
           loaded = true;
           resultRows.forEach((row, index) => {
-            const action = firstText(row, ["action", "event_type", "decision", "activity_type", "transaction_type", "status", "title"], "Activity");
-            const actorId = firstText(row, ["actor_id", "user_id", "performed_by", "changed_by", "created_by", "reviewed_by", "assigned_by", "posted_by"]);
+            const action = firstText(row, ["action", "action_type", "event_type", "decision", "activity_type", "transaction_type", "status", "title"], "Activity");
+            const actorId = firstText(row, ["actor_id", "action_by", "user_id", "performed_by", "changed_by", "created_by", "reviewed_by", "assigned_by", "posted_by"]);
             if (actorId) actorIds.add(actorId);
             const detailsValue = row.details;
             const details = typeof detailsValue === "object" && detailsValue !== null
@@ -151,7 +156,7 @@ export default function AuditCentrePage() {
             collected.push({
               id: firstText(row, ["id"], `${table}-${index}`), module: definition.module, action, actorId,
               actor: firstText(row, ["actor_name", "user_name", "performed_by_name", "created_by_name", "officer_name", "requester_name"], actorId || "System"),
-              activeRole: firstText(row, ["active_role_name", "active_role_key", "role_name", "role_key"], "—"),
+              activeRole: firstText(row, ["active_role_name", "actor_role_name", "active_role_key", "actor_role_key", "role_name", "role_key"], "—"),
               record: firstText(row, ["reference_no", "request_no", "voucher_no", "transaction_no", "entity_id", "request_id", "record_id"], "—"),
               createdAt: firstText(row, definition.createdFields, new Date(0).toISOString()), details, severity: eventSeverity(action), sourceTable: table,
             });

@@ -23,6 +23,7 @@ export const PUBLIC_PATHS = [
  */
 export const ROUTE_POLICIES: RoutePolicy[] = [
   { prefix: "/admin/account-routing", roles: ["admin"] },
+  { prefix: "/admin/department-routing", roles: ["admin"] },
   { prefix: "/admin/departments", roles: ["admin"] },
   { prefix: "/admin/settings", roles: ["admin"] },
   { prefix: "/admin/users", roles: ["admin"] },

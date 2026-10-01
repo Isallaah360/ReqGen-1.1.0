@@ -25,6 +25,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
+import { fetchRequestRegister } from "@/lib/requestRegister";
 import { exportTableToExcel } from "@/lib/reportExport";
 import styles from "./finance-subheads.module.css";
 import { Donut as SharedDonut } from "@/app/components/ui/Donut";
@@ -281,15 +282,10 @@ export default function FinanceSubheadsPage() {
         > = {};
 
         if (freshSubheads.length) {
-          const { data: linkedRows } =
-            await supabase
-              .from("requests")
-              .select("subhead_id")
-              .not(
-                "subhead_id",
-                "is",
-                null
-              );
+          // v3.0.4: counts come from the content-free register (all requests,
+          // not only the ones this officer may open).
+          const { data: registerRows } = await fetchRequestRegister(20000);
+          const linkedRows = registerRows.filter((row) => row.subhead_id);
 
           ((linkedRows || []) as LinkedRequestRow[]).forEach(
             (row) => {

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import RequestAccessGate from "@/app/components/requests/RequestAccessGate";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -167,7 +168,7 @@ function InformationBox({
   );
 }
 
-export default function FinanceRequestPage() {
+function FinanceRequestPageContent() {
   const params = useParams<{ id: string }>();
   const requestId = params?.id;
 
@@ -1160,5 +1161,15 @@ export default function FinanceRequestPage() {
         </div>
       </footer>
     </main>
+  );
+}
+
+/** v3.0.4: finance officers open full request content only when entitled to it. */
+export default function FinanceRequestPage() {
+  const params = useParams<{ id: string }>();
+  return (
+    <RequestAccessGate requestId={params?.id}>
+      <FinanceRequestPageContent />
+    </RequestAccessGate>
   );
 }

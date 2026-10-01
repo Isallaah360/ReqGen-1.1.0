@@ -16,6 +16,7 @@ import {
   WalletCards,
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
+import { fetchRequestRegister } from "@/lib/requestRegister";
 import styles from "./finance-overview.module.css";
 
 type Department = { id: string; name: string };
@@ -43,7 +44,7 @@ type Tx = {
 type RequestRow = {
   id: string;
   request_no: string | null;
-  title: string | null;
+  requester_name?: string | null;
   amount: number | string | null;
   status: string | null;
   current_stage: string | null;
@@ -155,7 +156,8 @@ export default function FinanceOverviewPage() {
         supabase.from("departments").select("id,name").order("name"),
         supabase.from("subheads").select("id,dept_id,code,name,approved_allocation,reserved_amount,expenditure,balance,is_active").order("code"),
         supabase.from("finance_transactions").select("id,transaction_no,transaction_type,amount,transaction_date,narration,subhead_id,is_reversed").order("transaction_date", { ascending: false }).limit(2000),
-        supabase.from("requests").select("id,request_no,title,amount,status,current_stage,current_owner,dept_id,subhead_id,created_at").order("created_at", { ascending: false }).limit(1000),
+        // v3.0.4: organisation-wide finance figures come from the content-free register.
+        fetchRequestRegister(1000).then((r) => ({ data: r.data, error: r.error ? { message: r.error } : null })),
         supabase.from("payment_vouchers").select("id,voucher_no,amount,total_amount,status,voucher_type,payee_name,dept_id,department_id,created_at").order("created_at", { ascending: false }).limit(2000),
         supabase.from("iet_accounts").select("id,name,available_balance,is_active").order("name"),
       ]);
@@ -365,7 +367,7 @@ export default function FinanceOverviewPage() {
       </section>
 
       <section className={styles.workGrid}>
-        <article className={styles.card}><div className={styles.cardHead}><div><h2>Finance Processing Queue</h2><p>Requests currently routed to Finance or Accounts.</p></div><Link href="/finance/processing">Open Queue <ArrowRight size={14}/></Link></div><div className={styles.queueList}>{visibleRequests.slice(0, 5).map((r) => <Link key={r.id} href={`/finance/request/${r.id}`}><div><b>{r.request_no || "Request"}</b><span>{r.title || "Untitled request"}</span></div><strong>{money(r.amount)}</strong></Link>)}{!visibleRequests.length && <EmptyState text="No request is currently waiting for Finance under this filter."/>}</div></article>
+        <article className={styles.card}><div className={styles.cardHead}><div><h2>Finance Processing Queue</h2><p>Requests currently routed to Finance or Accounts.</p></div><Link href="/finance/processing">Open Queue <ArrowRight size={14}/></Link></div><div className={styles.queueList}>{visibleRequests.slice(0, 5).map((r) => <Link key={r.id} href={`/finance/request/${r.id}`}><div><b>{r.request_no || "Request"}</b><span>{r.requester_name ? `Requested by ${r.requester_name}` : "Awaiting finance"}</span></div><strong>{money(r.amount)}</strong></Link>)}{!visibleRequests.length && <EmptyState text="No request is currently waiting for Finance under this filter."/>}</div></article>
         <article className={styles.card}><div className={styles.cardHead}><div><h2>IET Account Balances</h2><p>Every active IET account from the live account register.</p></div><Link href="/finance/manage-accounts">Open Accounts <ArrowRight size={14}/></Link></div><div className={styles.queueList}>{pagedAccounts.map((a, index) => <Link key={a.id} href="/finance/manage-accounts" title={`${a.name || "IET Account"}: ${money(a.available_balance)}`}><div><b><span className={styles.rowNumber}>{(accountSafePage - 1) * listPageSize + index + 1}.</span>{a.name || "IET Account"}</b><span>Live available balance</span></div><strong>{money(a.available_balance)}</strong></Link>)}{!activeAccounts.length && <EmptyState text="No active IET accounts are available."/>}</div>{activeAccounts.length ? <MiniPager page={accountSafePage} pages={accountPages} setPage={setAccountPage}/> : null}</article>
         <article className={styles.card}><div className={styles.cardHead}><div><h2>Quick Actions</h2><p>Core Finance workspaces only.</p></div></div><div className={styles.quickGrid}><Quick href="/finance/manage-accounts" icon={<Building2/>} title="IET Accounts"/><Quick href="/finance/subheads" icon={<FileBarChart2/>} title="Budget & Subheads"/><Quick href="/finance/transactions" icon={<FileText/>} title="Transactions & Ledgers"/><Quick href="/finance/account-transfers" icon={<ArrowRight/>} title="Transfers"/><Quick href="/finance/processing" icon={<CreditCard/>} title="Finance Processing"/><Quick href="/finance/reports" icon={<FileBarChart2/>} title="Reports & Output"/></div></article>
       </section>

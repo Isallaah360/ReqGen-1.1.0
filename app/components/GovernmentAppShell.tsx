@@ -49,7 +49,7 @@ import { getRouteRegistryItem } from "@/lib/routeRegistry";
 import { ActiveRoleSwitcher } from "./ActiveRoleSwitcher";
 import ReqGenFooter from "./ReqGenFooter";
 import { REQGEN_PRODUCT_NAME, REQGEN_VERSION } from "@/lib/version";
-import { APPROVAL_QUEUE_CHANGED_EVENT, isAwaitingUser } from "@/lib/approvalQueue";
+import { APPROVAL_QUEUE_CHANGED_EVENT, isAwaitingUser, type ApprovalQueueRow } from "@/lib/approvalQueue";
 
 const PUBLIC_PATHS = new Set([
   "/",
@@ -126,6 +126,7 @@ const MODULE_SUBNAV: Record<string, SubNavItem[]> = {
       label: "Roles & Permissions",
     },
     { href: "/admin/departments", label: "Departments" },
+    { href: "/admin/department-routing", label: "Department Routing" },
     {
       href: "/admin/account-routing",
       label: "Account Routing",
@@ -472,9 +473,9 @@ function GovernmentAppShellContent({
     if (!queueIdentity) return;
     const { data, error } = await supabase
       .from("requests")
-      .select("current_owner,current_stage,status");
+      .select("current_owner,current_stage,status,assigned_account_officer_id,assigned_account_officer_user_id");
     if (error) return;
-    const rows = (data || []) as Array<{ current_owner?: string | null; current_stage?: string | null; status?: string | null }>;
+    const rows = (data || []) as ApprovalQueueRow[];
     setPendingApprovalCount(rows.filter((row) => isAwaitingUser(row, queueIdentity.userId, queueIdentity.role)).length);
   }, [queueIdentity]);
 
@@ -673,10 +674,10 @@ function GovernmentAppShellContent({
           >
             <span className="rg-brand-logo">
               <Image
-                src="/be-logo.png"
-                alt="Barderian Enterprises"
-                width={38}
-                height={32}
+                src="/iet-logo-mark.png"
+                alt="Islamic Education Trust"
+                width={46}
+                height={46}
                 priority
               />
             </span>

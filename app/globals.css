@@ -4528,3 +4528,41 @@ button[aria-pressed="true"][class*="legendRow"]{background:#eef5ff!important;bor
 .rg-gate p{margin:0 0 14px;font-size:13.5px;line-height:1.55}
 .rg-gate-checking{justify-content:center;border-color:var(--rg3-line);color:var(--rg3-muted);font-size:13px}
 @media(prefers-reduced-motion:reduce){.rg-segmented button,.rg-kpi-button{transition:none}}
+
+/* ---- v3.0.4 Department Routing ---------------------------------------- */
+.rg-route-group{display:inline-flex;min-height:22px;align-items:center;padding:1px 9px;border-radius:999px;background:#eef3fa;color:#29405d;font-size:11.5px;font-weight:800;white-space:nowrap}
+.rg-route-inline{color:#3b4d66;font-size:12px;font-weight:650;white-space:nowrap}
+.rg-route-unset{color:#b45309;font-size:12px;font-weight:750}
+.rg-route-modal{width:min(900px,100%)}
+.rg-route-modal-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:14px}
+.rg-route-modal-head h2{margin:0;color:var(--rg3-navy);font-size:19px;font-weight:900}
+.rg-route-modal-head p{margin:5px 0 0;color:#4b5d75;font-size:13px}
+.rg-route-form{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));margin-bottom:14px;padding:12px;border:1px solid var(--rg3-line);border-radius:12px;background:var(--rg3-soft)}
+.rg-route-form label{display:grid;gap:6px;color:#29405d;font-size:12.5px;font-weight:800}
+.rg-route-form select{min-height:40px;padding:0 10px;border:1px solid #cfdbea;border-radius:9px;background:#fff;color:#17233b;font-size:13px}
+.rg-route-list{display:grid;gap:12px}
+.rg-route-row h3{margin:0 0 7px;color:var(--rg3-navy);font-size:13.5px;font-weight:900}
+.rg-route-steps{display:flex;flex-wrap:wrap;align-items:center;gap:6px 4px}
+.rg-route-step-wrap{display:inline-flex;align-items:center;gap:4px}
+.rg-route-step{display:inline-grid;gap:1px;min-width:74px;padding:6px 10px;border:1px solid var(--rg3-line);border-radius:9px;background:#fff;line-height:1.2}
+.rg-route-step b{color:var(--rg3-navy);font-size:12px;font-weight:900}
+.rg-route-step small{color:#5b6b82;font-size:11px;font-weight:650;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rg-route-step.is-set{border-color:#b9e3cf;background:#f1fbf6}
+.rg-route-step.is-missing{border-color:#f5d08a;background:#fff8e8}
+.rg-route-step.is-missing small{color:#b45309;font-weight:800}
+.rg-route-step.is-fixed{align-content:center;color:#5b6b82;font-size:12px;font-weight:750;background:var(--rg3-soft)}
+.rg-route-arrow{color:#94a3b8;font-weight:900}
+.rg-route-note{margin:14px 0 12px;color:var(--rg3-muted);font-size:12.5px;line-height:1.55}
+.rg-route-note a{color:var(--rg3-blue);font-weight:800}
+
+/* ---- v3.0.4 Brand: IET workspace identity ------------------------------ */
+html body .rg-brand-logo{width:48px!important;height:48px!important;flex:0 0 48px!important;border-radius:999px;background:#fff}
+html body .rg-brand-logo img{width:46px!important;height:46px!important;object-fit:contain!important}
+/* Footer: IET (client) on the left, Barderian (developer) on the right — same size */
+html body .mock-footer .rg-footer-logo{width:60px!important;height:60px!important;object-fit:contain!important;flex:0 0 60px}
+html body .rg-footer-client{gap:12px!important}
+html body .rg-footer-client>div{display:grid;gap:1px;line-height:1.2}
+html body .rg-footer-client>div>span{color:#6b7890!important;font-size:11px!important;font-weight:700!important;letter-spacing:.02em}
+html body .rg-footer-client>div>strong{color:var(--rg3-navy)!important;font-size:15.5px!important;font-weight:900!important}
+html body .rg-footer-client>div>small{color:#7b879a;font-size:10.5px;font-weight:700}
+@media(max-width:620px){html body .mock-footer .rg-footer-logo{width:52px!important;height:52px!important;flex-basis:52px}}

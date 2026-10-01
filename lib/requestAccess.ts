@@ -7,14 +7,15 @@ import { isAwaitingUser, queueRoleKey } from "@/lib/approvalQueue";
  *   1. the requester who created it;
  *   2. the officer it is currently routed to (awaiting their action);
  *   3. any officer who has already acted on it (recorded in request_history);
- *   4. the Account Officer assigned to process it;
- *   5. oversight roles (Admin, Auditor) — see OVERSIGHT_ROLES below.
+ *   4. the Account Officer assigned to process it.
  *
- * Everyone else — including the Registry role, which tracks movement only —
- * is refused. The database (RLS) remains the final authority; this gate makes
+ * Nobody else — not Admin, not Auditor, and not the Registry role (which
+ * tracks movement only) — may open it. Decided by IET management, v3.0.4.
+ * Oversight roles use the content-free registers in lib/requestRegister.ts. The database (RLS) remains the final authority; this gate makes
  * the app enforce the same rule before any content is even fetched.
  */
-export const REQUEST_OVERSIGHT_ROLES = new Set(["admin", "auditor"]);
+/** Deliberately empty since v3.0.4: no role may bypass the rule above. */
+export const REQUEST_OVERSIGHT_ROLES = new Set<string>([]);
 
 export type RequestAccessFacts = {
   created_by: string | null;

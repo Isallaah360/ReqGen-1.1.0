@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import { routingNoteFor as sharedRoutingNoteFor } from "@/lib/departmentRouting";
 import { WorkflowLoading } from "@/app/components/ui/WorkflowUI";
 import {
   AlertCircle,
@@ -210,59 +211,9 @@ function hasLikelyPhone(phone: string | null | undefined) {
   return raw.length >= 10;
 }
 
-function deptGroupName(name: string | null | undefined) {
-  const clean = String(name || "").toUpperCase();
-
-  if (clean.includes("DIN")) return "DIN";
-  if (clean.includes("ASAP") || clean.includes("ALLI")) return "ASAP-ALLI";
-  if (clean.includes("WELFARE")) return "Welfare";
-  if (clean.includes("LIAISON")) return "Liaison";
-
-  return "General Admin";
-}
-
-
-
+/** v3.0.4: route rules live in lib/departmentRouting (shared with Admin → Department Routing). */
 function routingNoteFor(type: RequestType, category: PersonalCategory, dept: Dept | null) {
-  const group = deptGroupName(dept?.name);
-
-  if (type === "Official") {
-    if (group === "DIN") {
-      return "DIN Official route: Staff → DOD → DIN Admin → Registrar → DG → AccountOfficer.";
-    }
-
-    if (group === "ASAP-ALLI") {
-      return "ASAP-ALLI Official route: Staff → PO → DOD → HOD → DG → AccountOfficer.";
-    }
-
-    if (group === "Welfare" || group === "Liaison") {
-      return `${group} Official route: Staff → DOD → DG → AccountOfficer.`;
-    }
-
-    return "General Admin Official route: Staff → HOD → DG → AccountOfficer.";
-  }
-
-  if (category === "Fund") {
-    if (group === "ASAP-ALLI") {
-      return "ASAP-ALLI Personal Fund route: Staff → DOD → HOD → HR → DG → AccountOfficer → HR Filing → Staff & DOD/HOD.";
-    }
-
-    if (group === "General Admin") {
-      return "General Admin Personal Fund route: Staff → HOD → HR → DG → AccountOfficer → HR Filing → Staff & HOD.";
-    }
-
-    return `${group} Personal Fund route: Staff → DOD → HR → DG → AccountOfficer → HR Filing → Staff & DOD.`;
-  }
-
-  if (group === "ASAP-ALLI") {
-    return "ASAP-ALLI Personal Other route: Staff → DOD → HOD → HR → DG → HR Filing → Staff & DOD/HOD.";
-  }
-
-  if (group === "General Admin") {
-    return "General Admin Personal Other route: Staff → HOD → HR → DG → HR Filing → Staff & HOD.";
-  }
-
-  return `${group} Personal Other route: Staff → DOD → HR → DG → HR Filing → Staff & DOD.`;
+  return sharedRoutingNoteFor(type, category, dept?.name);
 }
 
 

@@ -20,6 +20,7 @@ import RequestTrackingPanel from "@/app/components/registry/RequestTrackingPanel
 import { PersonName } from "@/app/components/ui/PersonName";
 import { IconAction, IconActions } from "@/app/components/ui/IconAction";
 import { nameWithRole } from "@/lib/userIdentity";
+import { fetchRequestMovements, fetchRequestRegister, fetchVoucherRegister } from "@/lib/requestRegister";
 
 type Raw = Record<string, unknown>;
 type Department = { id: string; name: string };
@@ -185,15 +186,14 @@ export default function RegistryCentreWorkspace() {
     const [deptResult, registryResult, requestResult, historyResult, voucherResult] = await Promise.all([
       supabase.from("departments").select("id,name").order("name", { ascending: true }),
       supabase.from("registry_correspondence").select("*").order("created_at", { ascending: false }).limit(2000),
-      supabase.from("requests").select("id,request_no,status,current_stage,current_owner,created_by,assigned_account_officer_id,assigned_account_officer_name,created_at").order("created_at", { ascending: false }).limit(5000),
-      supabase.from("request_history").select("id,request_id,action_type,to_stage,actor_name,actor_role_name,created_at").order("created_at", { ascending: false }).limit(10000),
-      supabase.from("payment_vouchers").select("id,request_id,voucher_no,status,voucher_type,created_at").order("created_at", { ascending: false }).limit(5000),
+      // v3.0.4: content-free registers — movement only, never request content.
+      fetchRequestRegister(5000),
+      fetchRequestMovements(10000),
+      fetchVoucherRegister(5000),
     ]);
 
-    const errors = [deptResult.error, registryResult.error, requestResult.error, historyResult.error, voucherResult.error]
-      .filter(Boolean)
-      .map((error) => error?.message)
-      .filter(Boolean);
+    const errors = [deptResult.error?.message, registryResult.error?.message, requestResult.error, historyResult.error, voucherResult.error]
+      .filter((value): value is string => Boolean(value));
     if (errors.length) setMessage(errors.join(" · "));
 
     const depts = (deptResult.data || []) as Department[];
