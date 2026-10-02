@@ -471,12 +471,6 @@ export default function AdminRolesPage() {
             <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">
               Roles & Permissions
             </h1>
-            <p className="mt-2 text-sm text-slate-600">
-              Create, edit, activate, deactivate and safely manage ReqGen roles.
-            </p>
-            <p className="mt-1 text-xs font-semibold text-slate-500">
-              Role catalogue controls what appears in Admin user role assignment.
-            </p>
           </div>
 
           <div className="flex flex-wrap gap-2">
@@ -512,12 +506,12 @@ export default function AdminRolesPage() {
         <AdminPermissionMatrix />
 
         <div className="mt-6 rg-auto-grid rg-auto-grid-6">
-          <StatCard title="Total Roles" value={String(stats.total)} tone="blue" />
-          <StatCard title="Active" value={String(stats.activeCount)} tone="emerald" />
-          <StatCard title="Inactive" value={String(stats.inactiveCount)} tone="amber" />
-          <StatCard title="System Roles" value={String(stats.systemCount)} tone="purple" />
-          <StatCard title="Custom Roles" value={String(stats.customCount)} tone="slate" />
-          <StatCard title="Signature Required" value={String(stats.signatureCount)} tone="red" />
+          <StatCard title="Total Roles" value={String(stats.total)} tone="blue" note="In the role catalogue" />
+          <StatCard title="Active" value={String(stats.activeCount)} tone="emerald" note="Assignable to users" />
+          <StatCard title="Inactive" value={String(stats.inactiveCount)} tone="amber" note="Retained for history" />
+          <StatCard title="System Roles" value={String(stats.systemCount)} tone="purple" note="Protected built-in roles" />
+          <StatCard title="Custom Roles" value={String(stats.customCount)} tone="slate" note="Created by Admin" />
+          <StatCard title="Signature Required" value={String(stats.signatureCount)} tone="red" note="Roles needing a signature" />
         </div>
 
         <div className="mt-5 rounded-xl border bg-white p-1 shadow-sm" data-rg-tabs="true">
@@ -856,11 +850,9 @@ function TabButton({
 function StatCard({
   title,
   value,
-  tone,
-}: {
+  tone, note }: {
   title: string;
   value: string;
-  tone: "blue" | "emerald" | "amber" | "purple" | "slate" | "red";
-}) {
-  return <StatTile title={String(title)} value={value} tone={tone} />;
+  tone: "blue" | "emerald" | "amber" | "purple" | "slate" | "red"; note?: string }) {
+  return <StatTile title={String(title)} value={value} tone={tone} note={note} />;
 }

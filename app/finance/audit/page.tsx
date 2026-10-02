@@ -1558,17 +1558,17 @@ export default function FinanceAuditPage() {
         )}
 
         <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4 print:grid-cols-4">
-          <StatCard title="Total IET Bank Fund" value={naira(stats.bankTotalFund)} tone="blue" />
-          <StatCard title="Allocated to Subheads" value={naira(stats.bankAllocated)} tone="purple" />
-          <StatCard title="Unallocated Bank Balance" value={naira(stats.bankUnallocated)} tone="emerald" />
-          <StatCard title="Bank Available Balance" value={naira(stats.bankAvailable)} tone="emerald" />
+          <StatCard title="Total IET Bank Fund" value={naira(stats.bankTotalFund)} tone="blue" note="Across IET accounts" />
+          <StatCard title="Allocated to Subheads" value={naira(stats.bankAllocated)} tone="purple" note="Committed to budget lines" />
+          <StatCard title="Unallocated Bank Balance" value={naira(stats.bankUnallocated)} tone="emerald" note="Not yet allocated" />
+          <StatCard title="Bank Available Balance" value={naira(stats.bankAvailable)} tone="emerald" note="Available to spend" />
         </div>
 
         <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4 print:grid-cols-4">
-          <StatCard title="Voucher Value" value={naira(stats.totalVoucherValue)} tone="blue" />
-          <StatCard title="Paid Value" value={naira(stats.paidVoucherValue)} tone="emerald" />
-          <StatCard title="Pending Value" value={naira(stats.pendingVoucherValue)} tone="amber" />
-          <StatCard title="Open Requests" value={String(stats.openRequests)} tone="purple" />
+          <StatCard title="Voucher Value" value={naira(stats.totalVoucherValue)} tone="blue" note="All payment vouchers" />
+          <StatCard title="Paid Value" value={naira(stats.paidVoucherValue)} tone="emerald" note="Vouchers paid" />
+          <StatCard title="Pending Value" value={naira(stats.pendingVoucherValue)} tone="amber" note="Awaiting payment" />
+          <StatCard title="Open Requests" value={String(stats.openRequests)} tone="purple" note="Still in workflow" />
         </div>
 
         <div className="mt-4 rg-auto-grid rg-auto-grid-5 rg-print-grid-5">
@@ -2317,13 +2317,11 @@ function TabButton({
 function StatCard({
   title,
   value,
-  tone,
-}: {
+  tone, note }: {
   title: string;
   value: string;
-  tone: "blue" | "emerald" | "purple" | "amber" | "red" | "slate";
-}) {
-  return <StatTile title={String(title)} value={value} tone={tone} />;
+  tone: "blue" | "emerald" | "purple" | "amber" | "red" | "slate"; note?: string }) {
+  return <StatTile title={String(title)} value={value} tone={tone} note={note} />;
 }
 
 function MiniCard({ title, value }: { title: string; value: string }) {

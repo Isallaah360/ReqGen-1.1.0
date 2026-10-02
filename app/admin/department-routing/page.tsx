@@ -203,7 +203,6 @@ export default function RoutingEnginePage() {
       <header className="admin-v3-header">
         <div>
           <h1>Routing Engine</h1>
-          <p>Set the approval route for every department and request type. Changes apply to new requests; requests in progress keep their route.</p>
         </div>
         <button className="admin-v3-secondary" onClick={() => void load()} disabled={busy}>Refresh</button>
       </header>

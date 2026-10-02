@@ -756,10 +756,6 @@ export default function DepartmentsPage() {
           <h1>
             Department Management
           </h1>
-
-          <p>
-            Manage organizational departments for budgeting and financial operations.
-          </p>
         </div>
 
         <button

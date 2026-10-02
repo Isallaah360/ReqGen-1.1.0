@@ -65,6 +65,7 @@ html[data-theme="dark"]{
   --c-bg-0d5fae:#9f3a03;
   --c-bg-0d63f3:#be4300;
   --c-bg-10b981:#00643a;
+  --c-bg-11141b:#11141b;
   --c-bg-1169f5:#c34800;
   --c-bg-11875f:#11875f;
   --c-bg-11a35c:#005821;
@@ -118,7 +119,6 @@ html[data-theme="dark"]{
   --c-bg-9aa8b8:#4c5662;
   --c-bg-a632f3:#a632f3;
   --c-bg-a85305:#a85305;
-  --c-bg-b83e00:#b83e00;
   --c-bg-c56608:#c56608;
   --c-bg-c66a0a:#c66a0a;
   --c-bg-c8d1dc:#242b35;
@@ -255,7 +255,6 @@ html[data-theme="dark"]{
   --c-bg-f5f8fd:#0e141e;
   --c-bg-f5f9ff:#0f141e;
   --c-bg-f5fff9:#0e1a13;
-  --c-bg-f6eee6:#150c05;
   --c-bg-f6f8fb:#0f141e;
   --c-bg-f6f9fc:#0f141e;
   --c-bg-f6f9fd:#0f141e;
@@ -284,7 +283,6 @@ html[data-theme="dark"]{
   --c-bg-fbfcfe:#121721;
   --c-bg-fbfdff:#121822;
   --c-bg-fdeee4:#160c06;
-  --c-bg-fdf8f3:#0f141e;
   --c-bg-fee2e2:#2c1e1e;
   --c-bg-fee8ea:#170a0c;
   --c-bg-feecee:#170a0c;

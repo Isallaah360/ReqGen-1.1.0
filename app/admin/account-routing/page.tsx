@@ -109,7 +109,7 @@ export default function AccountRoutingPage() {
 
   return (
     <main className="admin-v3-page" data-rg-standard="phase7">
-      <header className="admin-v3-header"><div><h1>Account Routing Management</h1><p>Manage department-to-IET-account routing and responsible Account Officers.</p></div><button className="admin-v3-secondary" onClick={() => void loadAll()}>Refresh</button></header>
+      <header className="admin-v3-header"><div><h1>Account Routing Management</h1></div><button className="admin-v3-secondary" onClick={() => void loadAll()}>Refresh</button></header>
       {msg ? <div className="admin-v3-alert">{msg}</div> : null}
       <section className="admin-v3-kpis" aria-label="Account routing overview">
         <article className="admin-v3-kpi"><div><span>Departments</span><strong>{depts.length}</strong><small>Live department register</small></div><span className="admin-v3-kpi-icon"><Building2 size={19}/></span></article>

@@ -745,13 +745,6 @@ export default function AdminUsersPage() {
             <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">
               User Management
             </h1>
-            <p className="mt-2 text-sm text-slate-600">
-              Manage users, department routing, active roles and signature readiness from one controlled workspace.
-            </p>
-            <p className="mt-1 text-xs font-semibold text-slate-500">
-              The primary role keeps older screens compatible, while active multiple roles control
-              the final ReqGen workflow.
-            </p>
           </div>
 
           <div className="flex flex-wrap gap-2">
@@ -800,10 +793,10 @@ export default function AdminUsersPage() {
         </div>
 
         <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <StatCard title="Total Users" value={String(stats.total)} tone="blue" />
-          <StatCard title="Role Assignments" value={String(stats.roleAssignments)} tone="purple" />
-          <StatCard title="Departments" value={String(depts.length)} tone="emerald" />
-          <StatCard title="Signatures Missing" value={String(stats.signatureMissing)} tone="amber" />
+          <StatCard title="Total Users" value={String(stats.total)} tone="blue" note="Registered ReqGen profiles" />
+          <StatCard title="Role Assignments" value={String(stats.roleAssignments)} tone="purple" note="Active role grants" />
+          <StatCard title="Departments" value={String(depts.length)} tone="emerald" note="In the organisation register" />
+          <StatCard title="Signatures Missing" value={String(stats.signatureMissing)} tone="amber" note="Users yet to upload a signature" />
         </div>
 
         <div className="mt-6 rounded-3xl border bg-white p-5 shadow-sm">
@@ -1202,11 +1195,9 @@ function UserRolePanel({
 function StatCard({
   title,
   value,
-  tone,
-}: {
+  tone, note }: {
   title: string;
   value: string;
-  tone: "blue" | "slate" | "red" | "purple" | "emerald" | "amber";
-}) {
-  return <StatTile title={String(title)} value={value} tone={tone} />;
+  tone: "blue" | "slate" | "red" | "purple" | "emerald" | "amber"; note?: string }) {
+  return <StatTile title={String(title)} value={value} tone={tone} note={note} />;
 }

@@ -3,8 +3,8 @@
 import { useEffect } from "react";
 
 /**
- * v3.0.10/v3.1.1: on phones every data table is read as stacked cards, and on
- * laptops columns auto-fit (short columns tight, name columns roomy) —
+ * v3.0.10/v3.1.2: on phones every data table is read as stacked cards; on
+ * laptops genuine long-text columns are marked so only they may wrap —
  * each cell is labelled with its column name, so no table ever needs sideways
  * scrolling. Opt a table out with data-no-cards (e.g. print layouts).
  */
@@ -15,19 +15,16 @@ export default function TableCards() {
       const heads = Array.from(table.querySelectorAll("thead th")).map((th) => (th.textContent || "").trim());
       if (!heads.length) return;
       table.classList.add("rg-cards");
-      // v3.1.1 auto-fit: short columns take only what they need; name/text
-      // columns receive the freed space and wrap instead of being cut off.
-      const rows = Array.from(table.querySelectorAll("tbody tr"));
+      // v3.1.2: no forced widths. Only genuine long-text columns are marked so
+      // they may wrap; every other cell stays on one line (table CSS standard).
+      const ths = Array.from(table.querySelectorAll("thead th")) as HTMLElement[];
       heads.forEach((head, i) => {
-        const cells = rows.map((tr) => tr.children[i] as HTMLElement | undefined).filter(Boolean) as HTMLElement[];
-        const th = table.querySelectorAll("thead th")[i] as HTMLElement | undefined;
-        if (!th || !cells.length) return;
-        const longest = Math.max(head.length, ...cells.map((c) => (c.innerText || "").split("\n").reduce((m, l) => Math.max(m, l.trim().length), 0)));
-        const isText = /name|user|officer|requester|actor|title|description|purpose|subhead|department|beneficiary|narration|details?$|remark|comment/i.test(head) && !/^details$/i.test(head);
-        const kind = isText ? "rg-col-grow" : longest <= 16 ? "rg-col-fit" : "";
-        [th, ...cells].forEach((el) => {
+        const isText = /description|narration|comment|remark|purpose|justification|details?$|note|reason/i.test(head) && !/^details?$/i.test(head.trim());
+        const cells = Array.from(table.querySelectorAll(`tbody tr > :nth-child(${i + 1})`)) as HTMLElement[];
+        [ths[i], ...cells].forEach((el) => {
+          if (!el) return;
           el.classList.remove("rg-col-grow", "rg-col-fit");
-          if (kind) el.classList.add(kind);
+          el.classList.toggle("rg-col-text", isText);
         });
       });
       table.querySelectorAll("tbody tr").forEach((tr) => {

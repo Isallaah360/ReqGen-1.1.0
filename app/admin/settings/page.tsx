@@ -171,7 +171,6 @@ export default function AdminSettingsPage() {
       <header className="admin-v4-page-header">
         <div>
           <h1>System Settings</h1>
-          <p>Configure canonical workflow officers once and reuse the assignments across authorised ReqGen routes.</p>
         </div>
       </header>
 

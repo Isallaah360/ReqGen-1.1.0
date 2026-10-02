@@ -422,7 +422,6 @@ export default function AdminSecurityPage() {
         <header className="rg-page-head">
           <div>
             <h1>Security Centre</h1>
-            <p>Live 2FA status plus the governance checklist for access, backups and database security. It complements — never replaces — Supabase RLS and backups.</p>
             <p className="rg-print-only">Printed by {me?.full_name || "—"} ({me?.role || "—"}) on {new Date().toLocaleString()}</p>
           </div>
           <div className="rg-page-actions no-print">
@@ -438,10 +437,10 @@ export default function AdminSecurityPage() {
         {msg && <div className="rg-alert" role="status">{msg}</div>}
 
         <div className="mt-4 rg-auto-grid rg-auto-grid-4">
-          <StatCard title="Live 2FA checks passed" value={`${stats.livePassed} / ${stats.liveTotal}`} tone={stats.livePassed === stats.liveTotal ? "emerald" : "red"} />
-          <StatCard title="Built-in controls active" value={String(stats.builtIn)} tone="blue" />
-          <StatCard title="Manual reviews outstanding" value={String(stats.review)} tone="amber" />
-          <StatCard title="High priority outstanding" value={String(stats.highOpen)} tone={stats.highOpen ? "red" : "emerald"} />
+          <StatCard title="Live 2FA checks passed" value={`${stats.livePassed} / ${stats.liveTotal}`} tone={stats.livePassed === stats.liveTotal ? "emerald" : "red"} note="Your current session" />
+          <StatCard title="Built-in controls active" value={String(stats.builtIn)} tone="blue" note="Enforced by ReqGen" />
+          <StatCard title="Manual reviews outstanding" value={String(stats.review)} tone="amber" note="Governance checklist" />
+          <StatCard title="High priority outstanding" value={String(stats.highOpen)} tone={stats.highOpen ? "red" : "emerald"} note="Needs attention first" />
         </div>
 
         <nav className="no-print mt-5" data-rg-tabs="true" role="tablist" aria-label="Security Centre sections">
@@ -726,13 +725,11 @@ function PolicyBox({ title, text }: { title: string; text: string }) {
 function StatCard({
   title,
   value,
-  tone,
-}: {
+  tone, note }: {
   title: string;
   value: string;
-  tone: "blue" | "emerald" | "purple" | "amber" | "red";
-}) {
-  return <StatTile title={String(title)} value={value} tone={tone} />;
+  tone: "blue" | "emerald" | "purple" | "amber" | "red"; note?: string }) {
+  return <StatTile title={String(title)} value={value} tone={tone} note={note} />;
 }
 
 function SecurityLine({

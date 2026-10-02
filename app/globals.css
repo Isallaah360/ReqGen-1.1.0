@@ -4758,31 +4758,12 @@ html body .rg-reveal{position:absolute;transform:translateY(-50%);z-index:2;widt
   border:0;border-radius:8px;background:transparent;color:var(--c-fg-6d5f55,#6d5f55);cursor:pointer}
 html body .rg-reveal:hover{background:var(--c-bg-fbf1e9,#fbf1e9);color:var(--c-fg-b83e00,#b83e00)}
 html body .rg-reveal:focus-visible{outline:2px solid var(--c-ln-b83e00,#b83e00);outline-offset:1px}
-/* v3.1.0 ReqGen loader — Windows-style orbiting dots in IET orange */
-.rg-loader{display:grid;justify-items:center;gap:12px;width:100%;max-width:1080px;margin:0 auto;padding:56px 0 24px}
-.rg-spinner{position:relative;width:64px;height:64px}
-.rg-spinner i{position:absolute;inset:0;opacity:0;animation:rgOrbit 5.4s infinite}
-.rg-spinner i::after{content:"";position:absolute;left:50%;top:0;width:8px;height:8px;margin-left:-4px;border-radius:50%;background:var(--c-bg-b83e00,#b83e00)}
-.rg-spinner i:nth-child(2){animation-delay:.24s}
-.rg-spinner i:nth-child(3){animation-delay:.48s}
-.rg-spinner i:nth-child(4){animation-delay:.72s}
-.rg-spinner i:nth-child(5){animation-delay:.96s}
-@keyframes rgOrbit{
-  0%{transform:rotate(225deg);opacity:1;animation-timing-function:ease-out}
-  7%{transform:rotate(345deg);animation-timing-function:linear}
-  30%{transform:rotate(455deg);animation-timing-function:ease-in-out}
-  39%{transform:rotate(690deg);animation-timing-function:linear}
-  70%{transform:rotate(815deg);opacity:1;animation-timing-function:ease-out}
-  75%{transform:rotate(945deg);animation-timing-function:ease-out}
-  76%,100%{transform:rotate(945deg);opacity:0}
-}
-.rg-loader-title{margin:8px 0 0;color:var(--c-fg-291d18,#291d18);font-size:14px;font-weight:800}
-.rg-loader-detail{margin:-6px 0 0;color:var(--c-fg-6d5f55,#6d5f55);font-size:12.5px}
-.rg-loader-skeleton{width:100%;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:22px}
-.rg-loader-skeleton i{height:88px;border-radius:12px;border:1px solid var(--c-ln-ece2d8,#ece2d8);background:linear-gradient(90deg,var(--c-bg-f6eee6,#f6eee6) 25%,var(--c-bg-fdf8f3,#fdf8f3) 50%,var(--c-bg-f6eee6,#f6eee6) 75%);background-size:840px 100%;animation:rgLoaderShimmer 1.4s linear infinite}
-@keyframes rgLoaderShimmer{0%{background-position:-420px 0}100%{background-position:420px 0}}
-@media(max-width:620px){.rg-loader-skeleton{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(prefers-reduced-motion:reduce){.rg-spinner i{animation:none;opacity:1}.rg-spinner i:nth-child(n){transform:rotate(calc(var(--n,0)*72deg))}.rg-loader-skeleton i{animation:none}}
+/* v3.1.2 ReqGen loader — IET strip line sweeping left to right */
+.rg-strip-loader{position:fixed;top:0;left:0;right:0;height:3px;z-index:400;overflow:hidden;background:rgba(240,108,36,.12)}
+.rg-strip-loader span{position:absolute;top:0;bottom:0;left:-40%;width:40%;
+  background:linear-gradient(90deg,var(--c-bg-f06c24,#f06c24),var(--c-bg-e43c24,#e43c24) 40%,var(--c-bg-f09c18,#f09c18) 75%,var(--c-bg-30a8d8,#30a8d8));animation:rgStrip 1.15s cubic-bezier(.4,0,.2,1) infinite}
+@keyframes rgStrip{0%{left:-40%;width:40%}60%{left:60%;width:55%}100%{left:105%;width:10%}}
+@media(prefers-reduced-motion:reduce){.rg-strip-loader span{animation:none;left:0;width:100%;opacity:.6}}
 /* v3.0.10: phone tables become stacked cards (TableCards labels each cell) */
 @media(max-width:620px){
   html body .rg-content table.rg-cards,html body .rg-content table.rg-cards tbody{display:block;width:100%!important;min-width:0!important}
@@ -4857,15 +4838,6 @@ html body .rg-content .rg-mini-stat-icon{position:absolute;left:10px;top:12px;wi
 .rg-chip-row{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
 .rg-chip{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border:1px solid var(--c-ln-ece2d8,#ece2d8);border-radius:999px;background:var(--c-bg-ffffff,#fff);color:var(--c-fg-5b4e45,#5b4e45);font-size:12px;font-weight:700}
 .rg-chip svg{color:var(--c-fg-b83e00,#b83e00)}.rg-chip b{color:var(--c-fg-291d18,#291d18);font-weight:900}.rg-chip em{font-style:normal;color:var(--c-fg-8a7d72,#8a7d72);font-weight:650}
-/* v3.1.1: table auto-fit (TableCards) and no hidden text in cells */
-@media(width>620px){
-  html body .rg-content table th.rg-col-fit,html body .rg-content table td.rg-col-fit{width:1%;white-space:nowrap}
-  html body .rg-content table th.rg-col-grow,html body .rg-content table td.rg-col-grow{min-width:170px;white-space:normal!important}
-}
-html body .rg-content table td{overflow-wrap:anywhere}
-html body .rg-content table td.rg-col-fit{overflow-wrap:normal}
-html body .rg-content table td :is(.truncate,[class*="truncate"],[class*="ellipsis"]){white-space:normal!important;overflow:visible!important;text-overflow:clip!important}
-html body .rg-content table td.rg-col-grow *{max-width:100%;white-space:normal!important}
 /* compact, consistent table typography */
 html body .rg-content table th{font-size:12px}
 html body .rg-content table td{font-size:12.5px}
@@ -4903,3 +4875,48 @@ html[data-theme="dark"] body .rg-brand-backdrop img{opacity:.12}
 @media print{
   html body::before{position:fixed;top:0;left:0;right:0;width:auto;transform:none;height:4px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 }
+
+/* ==========================================================================
+   v3.1.2 — ONE authoritative table standard (overrides every older rule).
+   Root cause of v3.1.1 vertical letters: legacy "table-layout:fixed" plus
+   per-cell "overflow-wrap:anywhere" let columns collapse to one character.
+   ========================================================================== */
+html body .rg-content[data-route] table{table-layout:auto!important;width:100%!important;border-collapse:separate;border-spacing:0}
+html body .rg-content[data-route] table :is(th,td){white-space:nowrap!important;overflow-wrap:normal!important;word-break:normal!important;
+  vertical-align:middle!important;padding:9px 12px!important}
+html body .rg-content[data-route] table th{font-size:11.5px!important;font-weight:800!important;letter-spacing:.02em}
+html body .rg-content[data-route] table td{font-size:12.5px!important;font-weight:500}
+html body .rg-content[data-route] table td:first-child{font-weight:700}
+/* only genuine long-text columns may wrap (marked by TableCards) */
+html body .rg-content[data-route] table :is(th,td).rg-col-text{white-space:normal!important;overflow-wrap:break-word!important;min-width:220px;max-width:420px}
+html body .rg-content[data-route] table td.rg-col-text *{white-space:normal!important}
+/* badges / pills in cells never break */
+html body .rg-content[data-route] table td :is([class*="badge"],[class*="Badge"],[class*="pill"],[class*="Pill"],[class*="status"],[class*="chip"]){white-space:nowrap!important;word-break:normal!important}
+/* a table wider than its card scrolls inside its own box — never squeezed */
+html body .rg-content[data-route] :is(div,section,article):has(> table){overflow-x:auto;max-width:100%}
+/* phones: stacked cards (values may wrap there) */
+@media(max-width:620px){
+  html body .rg-content[data-route] table.rg-cards :is(th,td){white-space:normal!important;overflow-wrap:break-word!important;padding:2px 0!important}
+  html body .rg-content[data-route] table.rg-cards :is(th,td).rg-col-text{min-width:0;max-width:none}
+}
+
+/* ==========================================================================
+   v3.1.2 — width Option B (1200px content), no watermark, solid surfaces
+   ========================================================================== */
+@media(width>1100px){
+  /* 90% scale: 1333px internal = 1200px on screen */
+  html body .rg-shell{max-width:calc(var(--rg-sidebar) + 1390px)!important;background:var(--c-bg-fbf8f4,#fbf8f4)!important}
+  html body .rg-content{max-width:1333px!important}
+  html body .rg-main>footer.mock-footer,html body .rg-main>.mock-footer{max-width:1333px!important}
+  html body .rg-topbar{padding-left:calc(22px + max(0px, (100% - 1377px) / 2))!important;padding-right:calc(22px + max(0px, (100% - 1377px) / 2))!important}
+  html body::before{width:min(100%, calc((var(--rg-sidebar, 270px) + 1390px) * .9))!important}
+}
+html body .rg-shell{background:var(--c-bg-fbf8f4,#fbf8f4)}
+html body .rg-main{background:transparent}
+html[data-theme="dark"] body .rg-shell{background:var(--c-bg-11141b,#11141b)!important}
+.rg-brand-backdrop{display:none!important}
+/* v3.1.2 table standard — inner elements and buttons stay on one line;
+   full-width empty-state rows may wrap */
+html body .rg-content[data-route] table td:not(.rg-col-text) *{white-space:nowrap!important}
+html body .rg-content[data-route] table td :is(button,a){white-space:nowrap!important}
+html body .rg-content[data-route] table td[colspan]:not([colspan="1"]),html body .rg-content[data-route] table td[colspan]:not([colspan="1"]) *{white-space:normal!important;text-align:center}

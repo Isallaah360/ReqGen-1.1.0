@@ -11,7 +11,6 @@ import GlobalTips from "./components/GlobalTips";
 import GovernmentAppShell from "./components/GovernmentAppShell";
 import { REQGEN_PRODUCT_NAME } from "@/lib/version";
 import { THEME_BOOT_SCRIPT } from "@/lib/theme";
-import BrandBackdrop from "@/app/components/BrandBackdrop";
 import PasswordReveal from "@/app/components/PasswordReveal";
 import TableCards from "@/app/components/TableCards";
 
@@ -55,7 +54,6 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
       </head>
       <body suppressHydrationWarning>
-        <BrandBackdrop />
         <PasswordReveal />
         <TableCards />
         <GovernmentAppShell>

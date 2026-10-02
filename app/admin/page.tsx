@@ -231,7 +231,6 @@ export default function AdminDashboardPage() {
       <header className="admin-v3-header">
         <div>
           <h1>Administration Overview</h1>
-          <p>Live users, roles, departments and administrative health in one controlled workspace.</p>
         </div>
         <button className="admin-v3-secondary" type="button" onClick={() => void load(true)} disabled={refreshing}>
           <RefreshCw size={16} className={refreshing ? "admin-v3-spin" : ""} />
