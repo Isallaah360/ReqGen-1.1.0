@@ -16,6 +16,7 @@ import {
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import styles from "@/app/registry/registry.module.css";
+import { AlertTriangle as MiniAlert, Clock3 as MiniClock, Inbox as MiniInbox, Send as MiniSend } from "lucide-react";
 import RequestTrackingPanel from "@/app/components/registry/RequestTrackingPanel";
 import { PersonName } from "@/app/components/ui/PersonName";
 import { IconAction, IconActions } from "@/app/components/ui/IconAction";
@@ -333,7 +334,14 @@ export default function RegistryCentreWorkspace() {
       <section className={styles.workflowGrid}>
         <article className={styles.card}><h2 className={styles.cardTitle}>Request Workflow Movement</h2><p className={styles.cardNote}>Current queues and historical transitions from requester through approval and Account processing.</p><div className={styles.flowBars}>{stageRows.map((row) => <button key={row.key} type="button" className={styles.flowRow} onClick={() => setChartDetail(`${row.label}: ${row.current} currently at this stage; ${row.movements} recorded transitions.`)}><span>{row.label}</span><i><b style={{ width: `${Math.max(row.current || row.movements ? 3 : 0, (Math.max(row.current, row.movements) / maxStage) * 100)}%` }}/></i><strong>{row.current}</strong><small>{row.movements} moves</small></button>)}</div></article>
         <article className={styles.card}><h2 className={styles.cardTitle}>Account Queues</h2><p className={styles.cardNote}>Requests currently routed to the configured Account Officers.</p><div className={styles.queueList}>{accountQueues.length ? accountQueues.map(([name, count], index) => <div key={name}><span><b>{index + 1}</b><PersonName name={name} /></span><em>{count}</em></div>) : <div className={styles.empty}>No requests are currently in Account processing.</div>}</div></article>
-        <article className={styles.card}><h2 className={styles.cardTitle}>Registry Operations</h2><p className={styles.cardNote}>Live correspondence and dispatch register alongside workflow tracking.</p><div className={styles.miniStats}><div><strong>{registryStats.total}</strong><span>Total correspondence</span></div><div><strong>{registryStats.pendingDispatch}</strong><span>Pending dispatch</span></div><div><strong>{registryStats.awaitingAck}</strong><span>Awaiting acknowledgement</span></div><div><strong>{registryStats.high}</strong><span>High priority</span></div></div></article>
+        <article className={styles.card}><h2 className={styles.cardTitle}>Registry Operations</h2><p className={styles.cardNote}>Live correspondence and dispatch register alongside workflow tracking.</p><div className={styles.miniStats}>{([
+            [MiniInbox, registryStats.total, "Total correspondence", "#16749c"],
+            [MiniSend, registryStats.pendingDispatch, "Pending dispatch", "#b83e00"],
+            [MiniClock, registryStats.awaitingAck, "Awaiting acknowledgement", "#9a5b00"],
+            [MiniAlert, registryStats.high, "High priority", "#c42b1f"],
+          ] as const).map(([Icon, value, label, colour]) => (
+            <div key={label} className="rg-mini-stat"><span className="rg-mini-stat-icon" style={{ color: colour }} aria-hidden="true"><Icon size={16} /></span><strong>{value}</strong><span>{label}</span></div>
+          ))}</div></article>
       </section>
       <div className={styles.chartDetail} role="status" aria-live="polite">{chartDetail || "Select a workflow row to display its exact live values."}</div>
 

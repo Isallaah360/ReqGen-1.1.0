@@ -319,10 +319,35 @@ lines.extend(token_blocks)
 OUT.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 # ---------------- light-mode IET remap (theme-iet.generated.css) ----------------
-light = ['/* ReqGen v3.0.10 — IET logo palette (generated). Light mode remap of the', '   former Barderian-blue family; dark mode is computed from these values. */', 'html[data-theme]{']
+def rel_lum(hexcode):
+    rgb, _ = hex_to_rgb(hexcode)
+    return 0.2126 * srgb_to_lin(rgb[0]) + 0.7152 * srgb_to_lin(rgb[1]) + 0.0722 * srgb_to_lin(rgb[2])
+
+def readable_on_white(hexcode):
+    """v3.1.1: darken a too-pale TEXT colour (same hue) until it reaches 4.5:1 on white."""
+    rgb, alpha = hex_to_rgb(hexcode)
+    L, C, H = to_oklch(rgb)
+    if not (0.45 < L < 0.86) or alpha:
+        return None
+    if (1.05) / (rel_lum(hexcode) + 0.05) >= 4.5:
+        return None
+    L2 = L
+    while L2 > 0.2:
+        L2 -= 0.01
+        cand = from_oklch(L2, C, H)
+        if 1.05 / (rel_lum(cand) + 0.05) >= 4.6:
+            return cand
+    return None
+
+light = ['/* ReqGen v3.0.10 — IET logo palette (generated). Light mode remap of the', '   former Barderian-blue family; dark mode is computed from these values.', '   v3.1.1: text colours too pale for white are darkened (same hue) to 4.5:1. */', 'html[data-theme]{']
 n_remap = 0
+n_contrast = 0
 for (role, h) in sorted(used):
     m = iet_remap(h)
+    if role == "fg":
+        fixed = readable_on_white(m or h)
+        if fixed:
+            m = fixed; n_contrast += 1
     if m:
         light.append(f"  --c-{role}-{h}:#{m};"); n_remap += 1
 for name, value in sorted(palette.items()):
@@ -356,5 +381,5 @@ for path in CSS_FILES:
                 else: parts.append(f"html[data-theme] {one}")
             light_tokens.append(f"{','.join(parts)}{{{decls}}}"); n_remap += 1
 (ROOT / "app" / "theme-iet.generated.css").write_text("\n".join(light + light_tokens) + "\n", encoding="utf-8")
-print(f"IET palette remap: {n_remap} definitions → app/theme-iet.generated.css")
+print(f"IET palette remap: {n_remap} definitions ({n_contrast} text colours raised to 4.5:1) → app/theme-iet.generated.css")
 print(f"{changed} stylesheet(s) rewritten · {len(used)} role-colour pairs · {sum(len(v) for v in token_by_selector.values())} token defs · {len(tw_lines)} palette shades · wrote {OUT.relative_to(ROOT)}")

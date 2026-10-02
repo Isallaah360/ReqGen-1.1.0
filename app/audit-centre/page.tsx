@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { BarChart } from "@/app/components/ui/BarChart";
+import { CalendarCheck, CalendarDays, Sigma, TrendingUp } from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
   Activity,
@@ -335,14 +337,20 @@ export default function AuditCentrePage() {
           <Card title="Activities by Module" note="Select a bar to open its exact live activity count.">
             <div className={styles.moduleChart}>{moduleCounts.length ? moduleCounts.map(([module,count]) => <button type="button" key={module} className={styles.moduleBar} title={`${module}: ${count} activities`} onClick={() => setChartDetail(`${module}: ${count} activities`)}><span>{module}</span><i><b style={{width:`${(count/maxModule)*100}%`}}/></i><strong>{count}</strong></button>) : <Empty text="No audit activity matches the current filters."/>}</div>
           </Card>
-          <Card title="14-Day Activity Summary" note="Exact live counts replace the unstable vertical trend rendering.">
-            <div className={styles.activitySummary}>
-              <button type="button" onClick={() => setChartDetail(`Latest day ${latestDay.label}: ${latestDay.count} activities`)}><small>Latest Day</small><strong>{latestDay.count}</strong><span>{latestDay.label}</span></button>
-              <button type="button" onClick={() => setChartDetail(`14-day total: ${fourteenDayTotal} activities`)}><small>14-Day Total</small><strong>{fourteenDayTotal}</strong><span>Filtered evidence</span></button>
-              <button type="button" onClick={() => setChartDetail(`${activeDays} of 14 days recorded activity`)}><small>Active Days</small><strong>{activeDays}</strong><span>of 14 days</span></button>
-              <button type="button" onClick={() => setChartDetail(`Peak day ${peakDay.label}: ${peakDay.count} activities`)}><small>Peak Day</small><strong>{peakDay.count}</strong><span>{peakDay.label}</span></button>
+          <Card title="14-Day Activity Summary" note="Select a bar for that day's exact live count.">
+            <div className="rg-chip-row">
+              <span className="rg-chip"><CalendarDays size={15} aria-hidden="true" />Latest <b>{latestDay.count}</b><em>{latestDay.label}</em></span>
+              <span className="rg-chip"><Sigma size={15} aria-hidden="true" />14-day total <b>{fourteenDayTotal}</b></span>
+              <span className="rg-chip"><CalendarCheck size={15} aria-hidden="true" />Active days <b>{activeDays}</b><em>of 14</em></span>
+              <span className="rg-chip"><TrendingUp size={15} aria-hidden="true" />Peak <b>{peakDay.count}</b><em>{peakDay.label}</em></span>
             </div>
-            <div className={styles.dayStrip}>{daily.map((point) => <button type="button" key={point.label} className={point.count ? styles.dayActive : ""} onClick={() => setChartDetail(`${point.label}: ${point.count} activities`)}><span>{point.label}</span><strong>{point.count}</strong></button>)}</div>
+            <BarChart
+              data={daily.map((point, index) => ({ key: point.label, label: index % 2 === 0 ? point.label : "", hint: point.label, value: point.count }))}
+              height={190}
+              valueNoun="activity"
+              ariaLabel="Audit activities per day, last 14 days"
+              onBarSelect={(key) => { const p = daily.find((d) => d.label === key); setChartDetail(p ? `${p.label}: ${p.count} activities` : "Select a chart bar to display its exact live value."); }}
+            />
           </Card>
         </section>
         <div className={styles.chartDetail} role="status" aria-live="polite">{chartDetail}</div>

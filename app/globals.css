@@ -4823,3 +4823,83 @@ html body .rg-content [class~="border"]:not([class*="border-"]){border-color:var
    Panels across Admin/Security used it, producing heavy dark outlines. Any border
    without an explicit colour now uses the standard soft line colour. */
 html body .rg-content [class~="border"]:not([class*="border-"]){border-color:var(--rg3-line,var(--c-ln-e1e7ef,#e1e7ef))}
+
+/* ==========================================================================
+   v3.1.1 — ONE stat-card standard for every card family in ReqGen
+   (shared StatTile, Admin cards and every page's "…__kpi" card):
+   compact (no empty space), IET accent, values that SHRINK to fit (never wrap).
+   ========================================================================== */
+html body .rg-content :is(.rg-stat,.admin-v3-kpi,[class$="__kpi"],[class*="__kpi "],[class$="__kpiCard"],[class*="__kpiCard "]){
+  min-height:0!important;padding:12px 14px!important;gap:12px!important;align-items:center!important;
+  container-type:inline-size;position:relative;overflow:hidden;border-radius:12px!important;
+  background-image:linear-gradient(135deg,rgba(240,108,36,.07),rgba(240,156,24,.02) 45%,transparent 70%)!important;
+  box-shadow:inset 3px 0 0 var(--c-ln-f06c248c,rgba(240,108,36,.55)),0 4px 14px rgba(42,36,32,.04)!important}
+html body .rg-content :is(.rg-stat,.admin-v3-kpi,[class$="__kpi"],[class*="__kpi "],[class$="__kpiCard"],[class*="__kpiCard "]) :is(strong,[class*="__kpiValue"],[class*="moneyValue"]){
+  font-size:clamp(15px,12.5cqi,24px)!important;line-height:1.1!important;white-space:nowrap!important;
+  overflow-wrap:normal!important;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+html body .rg-content :is(.rg-stat,.admin-v3-kpi,[class$="__kpi"],[class*="__kpi "]) :is(small,p,[class*="note"],[class*="Note"],[class*="hint"]){font-size:11.5px!important;line-height:1.35!important;margin-top:2px!important}
+/* shared StatTile pieces (Audit Centre style) */
+html body .rg-content .rg-stat{display:flex;border:1px solid var(--c-ln-ece2d8,#ece2d8)!important;background-color:var(--c-bg-ffffff,#fff)!important}
+html body .rg-content .rg-stat .rg-stat-icon{width:38px;height:38px;flex:0 0 38px;border-radius:10px}
+html body .rg-content .rg-stat .rg-stat-text{gap:3px}
+html body .rg-content .rg-stat .rg-stat-label{font-size:11px!important;font-weight:850!important;letter-spacing:.05em!important;text-transform:uppercase!important;color:var(--c-fg-6d5f55,#6d5f55)}
+.rg-stat.is-orange .rg-stat-icon{background:var(--c-bg-fdeee4,#fdeee4);color:var(--c-fg-b83e00,#b83e00)}
+html body .rg-content .rg-stat.is-orange .rg-stat-value{color:var(--c-fg-b83e00,#b83e00)!important}
+/* dark: same accent, tuned */
+html[data-theme="dark"] body .rg-content :is(.rg-stat,.admin-v3-kpi,[class$="__kpi"],[class*="__kpi "],[class$="__kpiCard"],[class*="__kpiCard "]){
+  background-image:linear-gradient(135deg,rgba(240,108,36,.13),transparent 60%)!important;box-shadow:inset 3px 0 0 var(--c-ln-f06c24b2,rgba(240,108,36,.7))!important}
+html[data-theme="dark"] body .rg-content .rg-stat{border-color:var(--c-ln-2a303b,#2a303b)!important;background-color:var(--c-bg-151a24,#151a24)!important}
+html[data-theme="dark"] body .rg-content .rg-stat .rg-stat-label{color:var(--c-fg-a99d93,#a99d93)}
+/* v3.1.1: small stat tiles (e.g. Registry Operations) carry their icon */
+html body .rg-content .rg-mini-stat{position:relative;padding-left:34px!important}
+html body .rg-content .rg-mini-stat-icon{position:absolute;left:10px;top:12px;width:18px;height:18px;display:grid;place-items:center}
+/* v3.1.1: compact icon chips (e.g. Audit Centre 14-day headline figures) */
+.rg-chip-row{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+.rg-chip{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border:1px solid var(--c-ln-ece2d8,#ece2d8);border-radius:999px;background:var(--c-bg-ffffff,#fff);color:var(--c-fg-5b4e45,#5b4e45);font-size:12px;font-weight:700}
+.rg-chip svg{color:var(--c-fg-b83e00,#b83e00)}.rg-chip b{color:var(--c-fg-291d18,#291d18);font-weight:900}.rg-chip em{font-style:normal;color:var(--c-fg-8a7d72,#8a7d72);font-weight:650}
+/* v3.1.1: table auto-fit (TableCards) and no hidden text in cells */
+@media(width>620px){
+  html body .rg-content table th.rg-col-fit,html body .rg-content table td.rg-col-fit{width:1%;white-space:nowrap}
+  html body .rg-content table th.rg-col-grow,html body .rg-content table td.rg-col-grow{min-width:170px;white-space:normal!important}
+}
+html body .rg-content table td{overflow-wrap:anywhere}
+html body .rg-content table td.rg-col-fit{overflow-wrap:normal}
+html body .rg-content table td :is(.truncate,[class*="truncate"],[class*="ellipsis"]){white-space:normal!important;overflow:visible!important;text-overflow:clip!important}
+html body .rg-content table td.rg-col-grow *{max-width:100%;white-space:normal!important}
+/* compact, consistent table typography */
+html body .rg-content table th{font-size:12px}
+html body .rg-content table td{font-size:12.5px}
+/* v3.1.1: clickable chart legend rows (any page) stay inside their card —
+   dot | label (wraps) | value. Fixes long sub-head names running off the card. */
+html body .rg-content .admin-v3-legend-btn{display:grid!important;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;column-gap:8px;min-width:0;max-width:100%;box-sizing:border-box}
+html body .rg-content .admin-v3-legend-btn>*{min-width:0}
+html body .rg-content .admin-v3-legend-btn :is(b,span){white-space:normal!important;overflow:visible!important;text-overflow:clip!important;overflow-wrap:anywhere;line-height:1.3}
+html body .rg-content .admin-v3-legend-btn :is(small,strong){white-space:nowrap;justify-self:end}
+html body .rg-content [class*="__donutRow"]{min-width:0}
+html body .rg-content [class*="__donutRow"]>*{min-width:0}
+/* v3.1.1: IET stripe spans the APP width (not the whole browser) */
+@media(width>1100px){
+  html body::before{left:50%;right:auto;width:min(100%, calc((var(--rg-sidebar, 270px) + 1256px) * .9));transform:translateX(-50%)}
+}
+/* v3.1.1: watermark always visible — lower-right of the app, in front of
+   content like a document watermark (multiply = tints, never hides text). */
+html body .rg-brand-backdrop{top:auto;left:auto;transform:none;bottom:18px;
+  right:max(16px, calc((100vw - (var(--rg-sidebar, 270px) + 1256px) * .9) / 2 + 22px));
+  width:min(300px,34vw);z-index:60;mix-blend-mode:multiply}
+html body .rg-brand-backdrop img{opacity:.08}
+@media(max-width:1100px){html body .rg-brand-backdrop{right:12px;bottom:12px;width:min(220px,46vw)}}
+html[data-theme="dark"] body .rg-brand-backdrop{mix-blend-mode:screen}
+html[data-theme="dark"] body .rg-brand-backdrop img{opacity:.12}
+@media print{.rg-brand-backdrop{display:none!important}}
+/* v3.1.1: IET accents on every printout (request template, payment & manual
+   vouchers, finance/report sheets, audit sheets, and printed workspace pages).
+   Colours are forced to print; on black-and-white printers they print as grey. */
+:is(.req-print-preview .sheet,.voucher-sheet,.print-sheet,.audit-sheet){position:relative}
+:is(.req-print-preview .sheet,.voucher-sheet,.print-sheet,.audit-sheet)::before,
+:is(.req-print-preview .sheet,.voucher-sheet,.print-sheet,.audit-sheet)::after{content:"";position:absolute;left:0;right:0;pointer-events:none;
+  background:linear-gradient(90deg,var(--c-bg-f06c24,#f06c24),var(--c-bg-e43c24,#e43c24) 40%,var(--c-bg-f09c18,#f09c18) 75%,var(--c-bg-30a8d8,#30a8d8));-webkit-print-color-adjust:exact;print-color-adjust:exact}
+:is(.req-print-preview .sheet,.voucher-sheet,.print-sheet,.audit-sheet)::before{top:0;height:5px}
+:is(.req-print-preview .sheet,.voucher-sheet,.print-sheet,.audit-sheet)::after{bottom:0;height:2px;opacity:.85}
+@media print{
+  html body::before{position:fixed;top:0;left:0;right:0;width:auto;transform:none;height:4px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}

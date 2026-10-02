@@ -1,6 +1,6 @@
 {
   "name": "reqgen-web",
-  "version": "3.1.0",
+  "version": "3.1.1",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -56,5 +56,5 @@
     "tailwindcss": "^4",
     "typescript": "^5"
   },
-  "reqgenVersion": "v3.1.0"
+  "reqgenVersion": "v3.1.1"
 }

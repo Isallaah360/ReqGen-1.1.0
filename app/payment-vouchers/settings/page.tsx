@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import styles from "./payment-voucher-settings.module.css";
+import { StatTile } from "@/app/components/ui/StatTile";
 
 type SignatoryType = "ChequeSigner" | "CounterSigner" | "Both";
 
@@ -427,11 +428,11 @@ export default function PaymentVoucherSettingsPage() {
         </section>
 
         <section className={styles.kpiGrid}>
-          <article><span>Total Names</span><strong>{stats.total}</strong><small>Registered authorities</small></article>
-          <article><span>Active</span><strong>{stats.active}</strong><small>Available for new PVs</small></article>
-          <article><span>Inactive</span><strong>{stats.inactive}</strong><small>Preserved for history</small></article>
-          <article><span>Cheque Signers</span><strong>{stats.cheque}</strong><small>First signing authority</small></article>
-          <article><span>Counter Signers</span><strong>{stats.counter}</strong><small>Counter-signing authority</small></article>
+          <StatTile title="Total Names" value={stats.total} tone="blue" note="Registered authorities" />
+          <StatTile title="Active" value={stats.active} tone="emerald" note="Available for new PVs" />
+          <StatTile title="Inactive" value={stats.inactive} tone="slate" note="Preserved for history" />
+          <StatTile title="Cheque Signers" value={stats.cheque} tone="purple" note="First signing authority" />
+          <StatTile title="Counter Signers" value={stats.counter} tone="orange" note="Counter-signing authority" />
         </section>
 
         <section className={styles.editorCard}>

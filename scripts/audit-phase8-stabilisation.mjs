@@ -26,7 +26,9 @@ check("Registry exposes request-linked and manual PV counts", registry.includes(
 check("Registry tracks movement only: no links to open request contents (v3.0.2)", !registry.includes("/requests/${") && !registry.includes("router.push(`/requests/") && registry.includes("RequestTrackingPanel") && fs.readFileSync(path.join(root, "lib/permissions.ts"), "utf8").includes('roles: ["registry"]'));
 check("Registry uses approved tabs contract", registry.includes('data-rg-tabs="true"') && registry.includes("aria-selected"));
 check("Registry has compact workflow intelligence styles", registryCss.includes(".workflowGrid") && registryCss.includes(".flowRow") && registryCss.includes(".rowActions"));
-check("Audit unstable daily bars were replaced", audit.includes("14-Day Activity Summary") && audit.includes("14-Day Total") && !audit.includes("Daily Activity Trend"));
+// v3.1.1: the summary may use the stable shared BarChart component (keyboard
+// accessible, integer axis) — the unstable hand-made trend must stay gone.
+check("Audit unstable daily bars were replaced", audit.includes("14-Day Activity Summary") && (audit.includes("14-Day Total") || audit.includes("<BarChart")) && !audit.includes("Daily Activity Trend"));
 check("Global tables use approved compact header/body geometry", globals.includes("Phase 8 global component contract") && globals.includes("table-layout:auto!important") && globals.includes("background:#fafbfd!important"));
 check("Global tabs use the approved compact active-tab contract", globals.includes('[data-rg-tabs="true"]') && globals.includes("background:#1267e8!important"));
 check("Sidebar shows a clear, bold version number with no phase-label clutter", shell.includes("REQGEN_VERSION") && shell.includes("rg-sidebar-release-version") && !shell.includes("Phase 8 · Stabilised"));
