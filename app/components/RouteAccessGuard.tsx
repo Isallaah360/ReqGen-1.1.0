@@ -1,9 +1,9 @@
 "use client";
 
+import ReqGenLoader from "@/app/components/ui/ReqGenLoader";
 import type { ReactNode } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { ShieldCheck } from "lucide-react";
 import { getCurrentAuthContext } from "@/lib/auth";
 import { canAccessPath, isPublicPath } from "@/lib/permissions";
 
@@ -62,13 +62,6 @@ export default function RouteAccessGuard({ children }: { children: ReactNode }) 
   if (isPublicPath(pathname) || verifiedPath === pathname) return <>{children}</>;
 
   return (
-    <section className="rg-route-transition" aria-live="polite" aria-busy={checking}>
-      <div className="rg-route-transition__bar" />
-      <div className="rg-route-transition__card">
-        <span className="rg-route-transition__icon"><ShieldCheck size={20} /></span>
-        <div><strong>Opening workspace</strong><p>Verifying access securely…</p></div>
-      </div>
-      <div className="rg-route-transition__grid" aria-hidden="true"><i /><i /><i /><i /></div>
-    </section>
+    <ReqGenLoader title="Opening workspace…" detail={checking ? "Verifying access securely" : "Almost ready"} />
   );
 }

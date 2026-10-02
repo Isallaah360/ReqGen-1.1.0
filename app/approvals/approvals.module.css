@@ -78,7 +78,7 @@
 .requestNo { color:var(--c-fg-1d3557,#1d3557)!important; font-weight:750!important; }
 .typeBadge,.statusBadge { display:inline-flex; align-items:center; min-height:23px; padding:2px 7px; border-radius:6px; white-space:normal; font-size:11px; font-weight:750; }
 .typeBadge { background:var(--c-bg-eef4ff,#eef4ff); color:var(--c-fg-1659c8,#1659c8); }
-.badgeRed { background:var(--c-bg-fff0f1,#fff0f1); color:var(--c-fg-d6303c,#d6303c); border:1px solid var(--c-ln-f7c8cc,#f7c8cc); } .badgeGreen { background:var(--c-bg-eaf8f0,#eaf8f0); color:var(--c-fg-168655,#168655); border:1px solid var(--c-ln-bee9d2,#bee9d2); } .badgeAmber { background:var(--c-bg-fff6e7,#fff6e7); color:var(--c-fg-d78100,#d78100); border:1px solid var(--c-ln-f8d9a4,#f8d9a4); }
+.badgeRed { background:var(--c-bg-fff0f1,#fff0f1); color:var(--c-fg-d6303c,#d6303c); border:1px solid var(--c-ln-f7c8cc,#f7c8cc); } .badgeGreen { background:var(--c-bg-eaf8f0,#eaf8f0); color:var(--c-fg-168655,#168655); border:1px solid var(--c-ln-bee9d2,#bee9d2); } .badgeAmber { background:var(--c-bg-fff6e7,#fff6e7); color:var(--c-fg-9a5b00,#9a5b00); border:1px solid var(--c-ln-f8d9a4,#f8d9a4); }
 .iconButton { width:29px; height:29px; display:grid; place-items:center; margin:auto; border:1px solid var(--c-ln-dce4ed,#dce4ed); border-radius:7px; background:var(--c-bg-ffffff,#fff); color:var(--c-fg-0d5dd9,#0d5dd9); cursor:pointer; }
 .pagination { min-height:48px; display:flex; align-items:center; justify-content:space-between; gap:12px; padding:8px 14px; border-top:1px solid var(--c-ln-e8edf3,#e8edf3); color:var(--c-fg-637187,#637187); font-size:11px; }
 .pagination>div { display:flex; align-items:center; gap:5px; }

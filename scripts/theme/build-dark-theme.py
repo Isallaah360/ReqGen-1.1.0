@@ -65,7 +65,29 @@ def from_oklch(L, C, H):
     return "".join(f"{round(lin_to_srgb(c) * 255):02x}" for c in (r, g, b))
 
 
+# ---------------- v3.0.10: IET logo palette remap ----------------
+# Barderian-blue family (OKLCH hue 238-275°) -> IET orange at the SAME lightness
+# (contrast preserved). Navy text -> warm charcoal ink. Sky/teal, green, purple,
+# neutrals and status colours are untouched.
+IET_HUE = math.radians(42)
+def iet_remap(hexcode):
+    rgb, alpha = hex_to_rgb(hexcode)
+    L, C, H = to_oklch(rgb)
+    deg = (math.degrees(H) + 360) % 360
+    if C < 0.04 or not (238 <= deg <= 275):
+        return None
+    if L < 0.36:
+        C2 = min(C, 0.03) * 0.7          # navy -> warm charcoal ink
+    elif L > 0.86:
+        C2 = min(C * 1.4, 0.05)          # pale blue tint -> pale orange tint
+    else:
+        C2 = min(C, 0.17)                # brand blue -> IET orange
+    return from_oklch(L, C2, IET_HUE) + alpha
+
 def dark_value(role, hexcode):
+    mapped = iet_remap(hexcode)
+    if mapped:
+        hexcode = mapped
     rgb, alpha = hex_to_rgb(hexcode)
     L, C, H = to_oklch(rgb)
     NAVY_H = -1.68                           # ReqGen navy hue (OKLCH, radians)
@@ -295,4 +317,44 @@ lines.append("}")
 lines.append("/* named design tokens, emitted at their own scopes */")
 lines.extend(token_blocks)
 OUT.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+# ---------------- light-mode IET remap (theme-iet.generated.css) ----------------
+light = ['/* ReqGen v3.0.10 — IET logo palette (generated). Light mode remap of the', '   former Barderian-blue family; dark mode is computed from these values. */', 'html[data-theme]{']
+n_remap = 0
+for (role, h) in sorted(used):
+    m = iet_remap(h)
+    if m:
+        light.append(f"  --c-{role}-{h}:#{m};"); n_remap += 1
+for name, value in sorted(palette.items()):
+    fam = name[len("--color-"):].rsplit("-", 1)[0]
+    if fam in ("blue", "indigo"):
+        mo = re.match(r"oklch\(([\d.]+)%\s+([\d.]+)\s+([\d.]+)\)", value.strip())
+        if mo:
+            L, Cc = float(mo.group(1)) / 100, float(mo.group(2))
+            C2 = min(Cc, 0.03) * 0.7 if L < 0.36 else (min(Cc * 1.4, 0.05) if L > 0.86 else min(Cc, 0.17))
+            light.append(f"  {name}:oklch({L*100:.1f}% {C2:.3f} 42);"); n_remap += 1
+for name, hexv in sorted(brand.items()):
+    m = iet_remap(hexv.lstrip("#"))
+    if m: light.append(f"  {name}:#{m};"); n_remap += 1
+light.append("}")
+light_tokens = []
+for path in CSS_FILES:
+    text = path.read_text(encoding="utf-8")
+    for sel, body in re.findall(r"([^{}]+)\{([^{}]*)\}", text):
+        sel = " ".join(re.sub(r"/\*.*?\*/", " ", sel, flags=re.S).split())
+        if sel.startswith("@") or not sel: continue
+        decls = ""
+        for name, value in re.findall(r"(--(?!c-|color-)[a-zA-Z0-9-]+)\s*:\s*(#[0-9a-fA-F]{6})\b", body):
+            m = iet_remap(value.lstrip("#"))
+            if m: decls += f"{name}:#{m};"
+        if decls:
+            parts = []
+            for one in split_top(sel):
+                one = one.strip()
+                if one in (":root", "html", ":root,:host", ":host"): parts.append("html[data-theme]")
+                elif one.startswith("html"): parts.append("html[data-theme]" + one[4:])
+                else: parts.append(f"html[data-theme] {one}")
+            light_tokens.append(f"{','.join(parts)}{{{decls}}}"); n_remap += 1
+(ROOT / "app" / "theme-iet.generated.css").write_text("\n".join(light + light_tokens) + "\n", encoding="utf-8")
+print(f"IET palette remap: {n_remap} definitions → app/theme-iet.generated.css")
 print(f"{changed} stylesheet(s) rewritten · {len(used)} role-colour pairs · {sum(len(v) for v in token_by_selector.values())} token defs · {len(tw_lines)} palette shades · wrote {OUT.relative_to(ROOT)}")

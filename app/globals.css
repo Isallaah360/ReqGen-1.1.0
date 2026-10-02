@@ -4704,3 +4704,88 @@ html body button.rg-tile-btn:focus-visible{outline:2px solid var(--rg3-blue);out
 /* v3.0.8: selected month bar on the Finance overview */
 html body button[class*="monthCol"][aria-pressed="true"]{border-radius:8px;background:var(--c-bg-eef5ff,#eef5ff);box-shadow:inset 0 0 0 1px var(--c-ln-bcd3f3,#bcd3f3)}
 html body button[class*="monthCol"][aria-pressed="true"] i{filter:saturate(1.3) brightness(.85)}
+
+/* ---- v3.0.9 Standard stat card (Budget & Subheads style, system-wide) ---- */
+html body .rg-content .rg-stat{display:flex;align-items:center;gap:14px;min-height:104px;padding:16px 18px;margin:0;
+  border:1px solid var(--c-ln-e1e7ef,#e1e7ef)!important;border-radius:12px!important;background:var(--c-bg-ffffff,#fff)!important;
+  box-shadow:0 7px 20px rgba(22,34,57,.045)!important;transition:box-shadow .15s ease,border-color .15s ease}
+html body .rg-content .rg-stat:hover{border-color:var(--c-ln-cfdcec,#cfdcec)!important;box-shadow:0 10px 24px rgba(22,34,57,.07)!important}
+.rg-stat-icon{width:46px;height:46px;flex:0 0 46px;display:grid;place-items:center;border-radius:50%}
+.rg-stat-text{display:grid;gap:6px;min-width:0}
+html body .rg-content .rg-stat .rg-stat-label{color:var(--c-fg-293551,#293551);font-size:12.5px!important;font-weight:750!important;line-height:1.25;text-transform:none!important;letter-spacing:0!important}
+html body .rg-content .rg-stat .rg-stat-value{display:block;font-size:28px!important;line-height:1!important;font-weight:850!important;font-variant-numeric:tabular-nums;color:var(--c-fg-0b5cf0,#0b5cf0)!important}
+.rg-stat-note{color:var(--c-fg-667085,#667085);font-size:11.5px}
+html body .rg-content .rg-stat.is-blue .rg-stat-value{color:var(--c-fg-0b5cf0,#0b5cf0)!important}
+html body .rg-content .rg-stat.is-emerald .rg-stat-value{color:var(--c-fg-12a06b,#12a06b)!important}
+html body .rg-content .rg-stat.is-amber .rg-stat-value{color:var(--c-fg-c9760a,#c9760a)!important}
+html body .rg-content .rg-stat.is-purple .rg-stat-value{color:var(--c-fg-7c4dff,#7c4dff)!important}
+html body .rg-content .rg-stat.is-red .rg-stat-value{color:var(--c-fg-d92d3f,#d92d3f)!important}
+html body .rg-content .rg-stat.is-slate .rg-stat-value{color:var(--c-fg-34465f,#34465f)!important}
+.rg-stat.is-blue .rg-stat-icon{background:var(--c-bg-eaf2ff,#eaf2ff);color:var(--c-fg-0b5cf0,#0b5cf0)}
+.rg-stat.is-emerald .rg-stat-icon{background:var(--c-bg-e9f8f0,#e9f8f0);color:var(--c-fg-12a06b,#12a06b)}
+.rg-stat.is-amber .rg-stat-icon{background:var(--c-bg-fff6e5,#fff6e5);color:var(--c-fg-c9760a,#c9760a)}
+.rg-stat.is-purple .rg-stat-icon{background:var(--c-bg-f1ecff,#f1ecff);color:var(--c-fg-7c4dff,#7c4dff)}
+.rg-stat.is-red .rg-stat-icon{background:var(--c-bg-fff1f2,#fff1f2);color:var(--c-fg-d92d3f,#d92d3f)}
+.rg-stat.is-slate .rg-stat-icon{background:var(--c-bg-eef3fa,#eef3fa);color:var(--c-fg-34465f,#34465f)}
+@media(max-width:620px){html body .rg-content .rg-stat{min-height:88px}html body .rg-content .rg-stat .rg-stat-value{font-size:24px!important}}
+
+/* ==========================================================================
+   v3.0.10 — IET design system (approved mockups)
+   ========================================================================== */
+/* Four-colour IET brand stripe across the top of every page */
+html body::before{content:"";position:fixed;top:0;left:0;right:0;height:4px;z-index:300;pointer-events:none;
+  background:linear-gradient(90deg,var(--c-bg-f06c24,#f06c24),var(--c-bg-e43c24,#e43c24) 40%,var(--c-bg-f09c18,#f09c18) 75%,var(--c-bg-30a8d8,#30a8d8))}
+/* Warm page background with a subtle IET dot pattern */
+html body{background-color:var(--c-bg-fbf8f4,#fbf8f4);background-image:radial-gradient(rgba(240,108,36,.07) 1px,transparent 1.6px);background-size:18px 18px}
+/* Faint twinkling dotted IET emblem (BrandBackdrop) */
+.rg-brand-backdrop{position:fixed;right:-3vw;bottom:-40px;width:min(680px,52vw);aspect-ratio:1;pointer-events:none;z-index:0}
+.rg-brand-backdrop img{position:absolute;inset:0;width:100%;height:100%;animation:rgTwinkle 7.5s ease-in-out infinite}
+.rg-brand-backdrop img:nth-child(2){animation-delay:2.5s}
+.rg-brand-backdrop img:nth-child(3){animation-delay:5s}
+@keyframes rgTwinkle{0%,100%{opacity:.3}50%{opacity:1}}
+@media(prefers-reduced-motion:reduce){.rg-brand-backdrop img{animation:none;opacity:.7}}
+/* Centred app frame: sidebar + 1080px content, centred on wide screens */
+html body .rg-shell{position:relative;z-index:1;background:transparent}
+@media(width>1100px){
+  html body .rg-shell{max-width:calc(var(--rg-sidebar) + 1136px);margin:0 auto;background:var(--c-bg-ffffff8c,rgba(255,255,255,.55));
+    border-left:1px solid var(--c-ln-ece2d8,#ece2d8);border-right:1px solid var(--c-ln-ece2d8,#ece2d8);box-shadow:0 0 40px rgba(42,36,32,.05)}
+}
+/* Content column and a footer that stays at the bottom on short pages */
+html body .rg-main{display:flex!important;flex-direction:column;background:transparent!important}
+html body .rg-content{width:100%;max-width:1080px;margin:0 auto;flex:0 0 auto}
+html body .rg-main>footer.mock-footer,html body .rg-main>.mock-footer{margin-top:auto!important;width:100%;max-width:1080px;margin-left:auto;margin-right:auto}
+/* Public pages use the same backdrop (the older static watermark is retired) */
+html body .mock-public-watermark{display:none!important}
+html body .mock-public-shell{background:transparent!important;position:relative;z-index:1}
+/* v3.0.10: password show/hide button (PasswordReveal) */
+html body .rg-reveal{position:absolute;transform:translateY(-50%);z-index:2;width:36px;height:36px;display:grid;place-items:center;
+  border:0;border-radius:8px;background:transparent;color:var(--c-fg-6d5f55,#6d5f55);cursor:pointer}
+html body .rg-reveal:hover{background:var(--c-bg-fbf1e9,#fbf1e9);color:var(--c-fg-b83e00,#b83e00)}
+html body .rg-reveal:focus-visible{outline:2px solid var(--c-ln-b83e00,#b83e00);outline-offset:1px}
+/* v3.0.10 ReqGen loader */
+.rg-loader{display:grid;justify-items:center;gap:14px;width:100%;max-width:1080px;margin:0 auto;padding:48px 0 24px}
+.rg-loader-mark{position:relative;width:150px;height:150px;display:grid;place-items:center}
+.rg-loader-arc,.rg-loader-dots{position:absolute;inset:0}
+.rg-loader-arc{animation:rgLoaderSpin 1.8s linear infinite}
+.rg-loader-dots{animation:rgLoaderSpin 3.2s linear infinite reverse}
+.rg-loader-logo{width:96px;height:96px;border-radius:50%;background:var(--c-bg-ffffff,#fff);display:grid;place-items:center;box-shadow:0 6px 18px rgba(184,71,15,.12)}
+.rg-loader-title{margin:4px 0 0;color:var(--c-fg-291d18,#291d18);font-size:15px;font-weight:850}
+.rg-loader-detail{margin:-8px 0 0;color:var(--c-fg-6d5f55,#6d5f55);font-size:13px}
+.rg-loader-skeleton{width:100%;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:22px}
+.rg-loader-skeleton i{height:96px;border-radius:12px;border:1px solid var(--c-ln-ece2d8,#ece2d8);background:linear-gradient(90deg,var(--c-bg-f6eee6,#f6eee6) 25%,var(--c-bg-fdf8f3,#fdf8f3) 50%,var(--c-bg-f6eee6,#f6eee6) 75%);background-size:840px 100%;animation:rgLoaderShimmer 1.4s linear infinite}
+@keyframes rgLoaderSpin{to{transform:rotate(360deg)}}
+@keyframes rgLoaderShimmer{0%{background-position:-420px 0}100%{background-position:420px 0}}
+@media(max-width:620px){.rg-loader-skeleton{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(prefers-reduced-motion:reduce){.rg-loader-arc,.rg-loader-dots,.rg-loader-skeleton i{animation:none}}
+/* v3.0.10: phone tables become stacked cards (TableCards labels each cell) */
+@media(max-width:620px){
+  html body .rg-content table.rg-cards,html body .rg-content table.rg-cards tbody{display:block;width:100%!important;min-width:0!important}
+  html body .rg-content table.rg-cards thead{display:none}
+  html body .rg-content table.rg-cards tr{display:grid;gap:6px;margin:0 0 10px;padding:12px;border:1px solid var(--c-ln-ece2d8,#ece2d8);border-radius:12px;background:var(--c-bg-ffffff,#fff)}
+  html body .rg-content table.rg-cards td{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:2px 0!important;border:0!important;min-width:0;text-align:right;white-space:normal!important;word-break:break-word}
+  html body .rg-content table.rg-cards td::before{content:attr(data-label);flex:0 0 auto;max-width:45%;color:var(--c-fg-6d5f55,#6d5f55);font-size:12px;font-weight:750;text-align:left}
+  html body .rg-content table.rg-cards td:first-child{font-weight:850;color:var(--c-fg-291d18,#291d18)}
+  html body .rg-content table.rg-cards td[data-label=""]::before,html body .rg-content table.rg-cards td[data-span]::before{content:none}
+  html body .rg-content table.rg-cards td[data-span]{justify-content:center;text-align:center}
+  html body .rg-content :is([class*=table-scroll],[class*=tableWrap],[class*=table-wrap],[class*=tableScroll]){overflow-x:hidden!important}
+}
