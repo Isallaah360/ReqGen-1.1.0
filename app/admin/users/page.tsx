@@ -1,6 +1,7 @@
 "use client";
 
 import AdminNavigation from "@/app/components/admin/AdminNavigation";
+import { StatTile } from "@/app/components/ui/StatTile";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
@@ -167,6 +168,7 @@ export default function AdminUsersPage() {
       }
 
       setMsg(null);
+      try {
 
       const { data: auth } = await supabase.auth.getUser();
 
@@ -268,8 +270,13 @@ export default function AdminUsersPage() {
         setProfileRoles((profileRolesRes.data || []) as ProfileRole[]);
       }
 
-      setLoading(false);
-      setRefreshing(false);
+      } catch (err) {
+        setMsg(err instanceof Error ? err.message : "Refresh failed. Please try again.");
+      } finally {
+        // v3.1.0: always clear the busy state, even if a refresh fails.
+        setLoading(false);
+        setRefreshing(false);
+      }
     },
     [router]
   );
@@ -1201,25 +1208,5 @@ function StatCard({
   value: string;
   tone: "blue" | "slate" | "red" | "purple" | "emerald" | "amber";
 }) {
-  const cls =
-    tone === "red"
-      ? "bg-red-50 text-red-700"
-      : tone === "purple"
-        ? "bg-purple-50 text-purple-700"
-        : tone === "emerald"
-          ? "bg-emerald-50 text-emerald-700"
-          : tone === "amber"
-            ? "bg-amber-50 text-amber-700"
-            : tone === "slate"
-              ? "bg-slate-50 text-slate-700"
-              : "bg-blue-50 text-blue-700";
-
-  return (
-    <div className="rounded-3xl border bg-white p-4 shadow-sm">
-      <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">{title}</div>
-      <div className={`mt-3 inline-flex rounded-2xl px-3 py-2 text-xl font-extrabold ${cls}`}>
-        {value}
-      </div>
-    </div>
-  );
+  return <StatTile title={String(title)} value={value} tone={tone} />;
 }

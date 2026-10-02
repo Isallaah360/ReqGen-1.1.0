@@ -14,3 +14,5 @@
 .legendRow:focus-visible{outline:2px solid var(--c-ln-1269f3,#1269f3);outline-offset:2px}.legendRow{width:100%;border:0;background:transparent;padding:5px 6px;border-radius:6px;cursor:pointer}.legendRow:hover{background:var(--c-bg-f7fbff,#f7fbff)}
 
 /* Donut chart itself now lives in app/components/ui/Donut.tsx (self-contained, inline styles). Nothing donut-specific needed here anymore. */
+/* v3.0.9: stat numbers at the standard size */
+.kpi{min-width:0}.kpi>*{min-width:0}.kpiValue{font-size:clamp(16px,1.45vw,22px);line-height:1.1;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}

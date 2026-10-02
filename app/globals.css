@@ -4737,13 +4737,9 @@ html body::before{content:"";position:fixed;top:0;left:0;right:0;height:4px;z-in
   background:linear-gradient(90deg,var(--c-bg-f06c24,#f06c24),var(--c-bg-e43c24,#e43c24) 40%,var(--c-bg-f09c18,#f09c18) 75%,var(--c-bg-30a8d8,#30a8d8))}
 /* Warm page background with a subtle IET dot pattern */
 html body{background-color:var(--c-bg-fbf8f4,#fbf8f4);background-image:radial-gradient(rgba(240,108,36,.07) 1px,transparent 1.6px);background-size:18px 18px}
-/* Faint twinkling dotted IET emblem (BrandBackdrop) */
-.rg-brand-backdrop{position:fixed;right:-3vw;bottom:-40px;width:min(680px,52vw);aspect-ratio:1;pointer-events:none;z-index:0}
-.rg-brand-backdrop img{position:absolute;inset:0;width:100%;height:100%;animation:rgTwinkle 7.5s ease-in-out infinite}
-.rg-brand-backdrop img:nth-child(2){animation-delay:2.5s}
-.rg-brand-backdrop img:nth-child(3){animation-delay:5s}
-@keyframes rgTwinkle{0%,100%{opacity:.3}50%{opacity:1}}
-@media(prefers-reduced-motion:reduce){.rg-brand-backdrop img{animation:none;opacity:.7}}
+/* IET logo watermark (BrandBackdrop): real logo, single IET orange, faint */
+.rg-brand-backdrop{position:fixed;top:50%;left:50%;width:min(620px,60vw);aspect-ratio:1;transform:translate(-50%,-46%);pointer-events:none;z-index:0}
+.rg-brand-backdrop img{width:100%;height:100%;opacity:.07}
 /* Centred app frame: sidebar + 1080px content, centred on wide screens */
 html body .rg-shell{position:relative;z-index:1;background:transparent}
 @media(width>1100px){
@@ -4762,21 +4758,31 @@ html body .rg-reveal{position:absolute;transform:translateY(-50%);z-index:2;widt
   border:0;border-radius:8px;background:transparent;color:var(--c-fg-6d5f55,#6d5f55);cursor:pointer}
 html body .rg-reveal:hover{background:var(--c-bg-fbf1e9,#fbf1e9);color:var(--c-fg-b83e00,#b83e00)}
 html body .rg-reveal:focus-visible{outline:2px solid var(--c-ln-b83e00,#b83e00);outline-offset:1px}
-/* v3.0.10 ReqGen loader */
-.rg-loader{display:grid;justify-items:center;gap:14px;width:100%;max-width:1080px;margin:0 auto;padding:48px 0 24px}
-.rg-loader-mark{position:relative;width:150px;height:150px;display:grid;place-items:center}
-.rg-loader-arc,.rg-loader-dots{position:absolute;inset:0}
-.rg-loader-arc{animation:rgLoaderSpin 1.8s linear infinite}
-.rg-loader-dots{animation:rgLoaderSpin 3.2s linear infinite reverse}
-.rg-loader-logo{width:96px;height:96px;border-radius:50%;background:var(--c-bg-ffffff,#fff);display:grid;place-items:center;box-shadow:0 6px 18px rgba(184,71,15,.12)}
-.rg-loader-title{margin:4px 0 0;color:var(--c-fg-291d18,#291d18);font-size:15px;font-weight:850}
-.rg-loader-detail{margin:-8px 0 0;color:var(--c-fg-6d5f55,#6d5f55);font-size:13px}
+/* v3.1.0 ReqGen loader — Windows-style orbiting dots in IET orange */
+.rg-loader{display:grid;justify-items:center;gap:12px;width:100%;max-width:1080px;margin:0 auto;padding:56px 0 24px}
+.rg-spinner{position:relative;width:64px;height:64px}
+.rg-spinner i{position:absolute;inset:0;opacity:0;animation:rgOrbit 5.4s infinite}
+.rg-spinner i::after{content:"";position:absolute;left:50%;top:0;width:8px;height:8px;margin-left:-4px;border-radius:50%;background:var(--c-bg-b83e00,#b83e00)}
+.rg-spinner i:nth-child(2){animation-delay:.24s}
+.rg-spinner i:nth-child(3){animation-delay:.48s}
+.rg-spinner i:nth-child(4){animation-delay:.72s}
+.rg-spinner i:nth-child(5){animation-delay:.96s}
+@keyframes rgOrbit{
+  0%{transform:rotate(225deg);opacity:1;animation-timing-function:ease-out}
+  7%{transform:rotate(345deg);animation-timing-function:linear}
+  30%{transform:rotate(455deg);animation-timing-function:ease-in-out}
+  39%{transform:rotate(690deg);animation-timing-function:linear}
+  70%{transform:rotate(815deg);opacity:1;animation-timing-function:ease-out}
+  75%{transform:rotate(945deg);animation-timing-function:ease-out}
+  76%,100%{transform:rotate(945deg);opacity:0}
+}
+.rg-loader-title{margin:8px 0 0;color:var(--c-fg-291d18,#291d18);font-size:14px;font-weight:800}
+.rg-loader-detail{margin:-6px 0 0;color:var(--c-fg-6d5f55,#6d5f55);font-size:12.5px}
 .rg-loader-skeleton{width:100%;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:22px}
-.rg-loader-skeleton i{height:96px;border-radius:12px;border:1px solid var(--c-ln-ece2d8,#ece2d8);background:linear-gradient(90deg,var(--c-bg-f6eee6,#f6eee6) 25%,var(--c-bg-fdf8f3,#fdf8f3) 50%,var(--c-bg-f6eee6,#f6eee6) 75%);background-size:840px 100%;animation:rgLoaderShimmer 1.4s linear infinite}
-@keyframes rgLoaderSpin{to{transform:rotate(360deg)}}
+.rg-loader-skeleton i{height:88px;border-radius:12px;border:1px solid var(--c-ln-ece2d8,#ece2d8);background:linear-gradient(90deg,var(--c-bg-f6eee6,#f6eee6) 25%,var(--c-bg-fdf8f3,#fdf8f3) 50%,var(--c-bg-f6eee6,#f6eee6) 75%);background-size:840px 100%;animation:rgLoaderShimmer 1.4s linear infinite}
 @keyframes rgLoaderShimmer{0%{background-position:-420px 0}100%{background-position:420px 0}}
 @media(max-width:620px){.rg-loader-skeleton{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(prefers-reduced-motion:reduce){.rg-loader-arc,.rg-loader-dots,.rg-loader-skeleton i{animation:none}}
+@media(prefers-reduced-motion:reduce){.rg-spinner i{animation:none;opacity:1}.rg-spinner i:nth-child(n){transform:rotate(calc(var(--n,0)*72deg))}.rg-loader-skeleton i{animation:none}}
 /* v3.0.10: phone tables become stacked cards (TableCards labels each cell) */
 @media(max-width:620px){
   html body .rg-content table.rg-cards,html body .rg-content table.rg-cards tbody{display:block;width:100%!important;min-width:0!important}
@@ -4789,3 +4795,31 @@ html body .rg-reveal:focus-visible{outline:2px solid var(--c-ln-b83e00,#b83e00);
   html body .rg-content table.rg-cards td[data-span]{justify-content:center;text-align:center}
   html body .rg-content :is([class*=table-scroll],[class*=tableWrap],[class*=table-wrap],[class*=tableScroll]){overflow-x:hidden!important}
 }
+
+/* ==========================================================================
+   v3.1.0 — compact premium scale on laptops/desktops (phones keep their own
+   layout). The whole frame renders at 90%: fonts, tabs, cards, tables, charts
+   and footer shrink together; widths are compensated so the content column
+   still shows at the approved 1080px.
+   ========================================================================== */
+@media(width>1100px){
+  html body .rg-shell{zoom:.9;max-width:calc(var(--rg-sidebar) + 1256px)}
+  html body .rg-sidebar{height:calc(100dvh / .9)!important}
+  html body .rg-main{min-height:calc((100dvh / .9) - var(--rg-topbar))}
+  html body .rg-content{max-width:1200px}
+  html body .rg-main>footer.mock-footer,html body .rg-main>.mock-footer{max-width:1200px}
+  /* top bar contents line up with the content column edges */
+  html body .rg-topbar{padding-left:calc(22px + max(0px, (100% - 1244px) / 2))!important;padding-right:calc(22px + max(0px, (100% - 1244px) / 2))!important}
+}
+/* v3.1.0: page entry is a fade only. A transform (even an identity one left by
+   "fill-mode: both") traps position:fixed dialogs inside the content column, so
+   dialog backdrops did not cover the whole screen. */
+@keyframes rg-page-enter{from{opacity:0}to{opacity:1}}
+/* v3.1.0: Tailwind v4 draws a colourless "border" in the text colour (dark ink).
+   Panels across Admin/Security used it, producing heavy dark outlines. Any border
+   without an explicit colour now uses the standard soft line colour. */
+html body .rg-content [class~="border"]:not([class*="border-"]){border-color:var(--rg3-line,var(--c-ln-e1e7ef,#e1e7ef))}
+/* v3.1.0: Tailwind v4 draws a colourless "border" in the text colour (dark ink).
+   Panels across Admin/Security used it, producing heavy dark outlines. Any border
+   without an explicit colour now uses the standard soft line colour. */
+html body .rg-content [class~="border"]:not([class*="border-"]){border-color:var(--rg3-line,var(--c-ln-e1e7ef,#e1e7ef))}

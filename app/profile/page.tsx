@@ -4,7 +4,6 @@ import Image from "next/image";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
-import { ActiveRoleSwitcher } from "@/app/components/ActiveRoleSwitcher";
 import ProfileNavigation from "@/app/components/profile/ProfileNavigation";
 
 type Dept = { id: string; name: string };
@@ -547,7 +546,6 @@ export default function ProfilePage() {
           </div>
         </div>
         <div className="rg-profile-hero-actions">
-          <ActiveRoleSwitcher />
           <button type="button" onClick={() => load({ silent: true })} disabled={busy} className="rg-action-button">
             {refreshing ? "Refreshing..." : "Refresh"}
           </button>

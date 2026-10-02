@@ -27,3 +27,5 @@
 /* Phase 7 final workspace balance: keep operational cards compact and intentional. */
 [data-rg-standard="phase7"] .workGrid > article:last-child { grid-column: 1 / -1; }
 [data-rg-standard="phase7"] .sectionCard:has(.empty) { min-height: 0; }
+/* v3.0.9: stat amounts larger; scale with width so long naira values never overflow */
+.kpi strong{font-size:clamp(19px,1.55vw,24px);line-height:1.15}

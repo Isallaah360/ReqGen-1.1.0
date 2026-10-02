@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import ProfileNavigation from "@/app/components/profile/ProfileNavigation";
-import { ActiveRoleSwitcher } from "@/app/components/ActiveRoleSwitcher";
 
 type SecurityState = {
   email: string;
@@ -102,7 +101,7 @@ export default function ProfileSecurityPage() {
           <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
             <h2 className="text-xl font-black text-slate-950">Current Working Role</h2>
             <p className="mt-2 text-sm font-semibold leading-6 text-slate-600">Your selected role controls visible modules and the authority recorded against your actions.</p>
-            <div className="mt-5"><ActiveRoleSwitcher /></div>
+            <p className="mt-4 text-sm font-semibold text-slate-700">Switch it any time from <strong>Acting as</strong> in the top bar.</p>
           </div>
         </section>
       </div>

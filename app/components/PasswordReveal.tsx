@@ -17,6 +17,8 @@ export default function PasswordReveal() {
       const host = input.parentElement;
       if (!host) return;
       input.dataset.rgReveal = "1";
+      // A page that already provides its own show/hide button keeps it (no double eye).
+      if (host.querySelector("button:not(.rg-reveal)")) return;
       if (getComputedStyle(host).position === "static") host.style.position = "relative";
       input.style.paddingRight = "44px";
       const btn = document.createElement("button");
