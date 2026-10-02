@@ -1,5 +1,5 @@
 -- ============================================================================
--- ReqGen v3.0.7 — Notification Centre
+-- ReqGen v3.0.7 — Notification Centre  · rev 2 (deadlock-safe on a live system)
 --
 -- Your workflow functions already write a notification at every step, but the
 -- app never displayed them. This makes them safe and usable:
@@ -22,6 +22,14 @@
 
 begin;
 
+-- Live-system safety (rev 2): the deployed app reads notifications constantly
+-- (the bell). Take the table lock ONCE, up front, so this migration never
+-- interleaves with live reads (rev 1 could deadlock — it rolled back safely).
+-- If the lock is not free within 15 seconds, the script stops cleanly; just
+-- run it again.
+set local lock_timeout = '15s';
+set local statement_timeout = '120s';
+
 do $$
 begin
   if to_regclass('public.notifications') is null then
@@ -32,6 +40,8 @@ begin
     raise exception 'ReqGen v3.0.7 STOPPED — nothing was changed. notifications.user_id is missing.';
   end if;
 end $$;
+
+lock table public.notifications in access exclusive mode;
 
 -- 1. Columns
 alter table public.notifications add column if not exists title text;

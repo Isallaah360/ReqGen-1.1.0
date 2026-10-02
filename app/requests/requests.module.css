@@ -28,3 +28,6 @@
 .legend i{width:11px;height:11px}
 .legend b{font-size:14px}
 @media(max-width:700px){.statusVisual{justify-content:center;flex-wrap:wrap;gap:20px}}
+/* v3.0.8: tiles and bars are buttons (filters); keep their original look */
+.typeSummary>button{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0;padding:9px 10px;border-radius:8px;background:var(--c-bg-f7f9fc,#f7f9fc);color:var(--c-fg-506177,#506177)}
+.departmentBars>button>div{display:flex;justify-content:space-between;gap:8px;color:var(--c-fg-52647a,#52647a);font-size:11px}

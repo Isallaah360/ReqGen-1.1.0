@@ -98,6 +98,7 @@ export default function AssignBankToOfficerPage() {
   const [search, setSearch] = useState("");
   const [bankFilter, setBankFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [donutNote, setDonutNote] = useState<string | null>(null);
   const [roleFilter, setRoleFilter] = useState("all");
   const [departmentFilter, setDepartmentFilter] = useState("all");
   const [page, setPage] = useState(1);
@@ -398,13 +399,14 @@ export default function AssignBankToOfficerPage() {
           <div className={styles.sideCard}>
             <h2>Assignment Summary</h2>
             <div className={styles.donutWrap}>
-              <SharedDonut segments={donutSegments} size={200} strokeWidth={34} fluidMax={210} centerLabel="Assigned" formatTotal={() => String(assignments.length)} />
+              <SharedDonut segments={donutSegments} size={200} strokeWidth={34} fluidMax={210} centerLabel="Assigned" selected={statusFilter === "active" ? "Active Assigned" : statusFilter === "inactive" ? "Inactive Assigned" : null} onSegmentSelect={(label) => { setDonutNote(label && !label.endsWith("Assigned") ? label : null); setStatusFilter(label === "Active Assigned" ? "active" : label === "Inactive Assigned" ? "inactive" : "all"); }} formatTotal={() => String(assignments.length)} />
               <div className={styles.legend}>
                 <Legend color="var(--color-success-600)" label="Active assignments" value={summary.activeAssigned}/>
                 <Legend color="var(--color-brand-600)" label="Available accounts" value={summary.availableAccounts}/>
                 <Legend color="var(--color-chart-4)" label="Unassigned officers" value={summary.unassignedOfficers}/>
                 <Legend color="var(--color-warning-600)" label="Inactive assignments" value={summary.inactiveAssigned}/>
               </div>
+              {donutNote ? <p className="rg-route-note" role="status">{donutNote === "Available Accounts" ? `${summary.availableAccounts} IET account(s) have no officer assigned yet — use Assign to link one.` : `${summary.unassignedOfficers} account officer(s) have no account assigned yet.`}</p> : null}
             </div>
           </div>
 

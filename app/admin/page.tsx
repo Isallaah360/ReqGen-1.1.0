@@ -15,6 +15,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { REQGEN_VERSION } from "@/lib/version";
 import { roleDisplayName } from "@/lib/roles";
 import { Donut as SharedDonut } from "@/app/components/ui/Donut";
+import { BarChart } from "@/app/components/ui/BarChart";
 
 type ProfileRow = {
   id: string;
@@ -107,6 +108,7 @@ function buildActivity(rows: AuditRow[]): DailyPoint[] {
 export default function AdminDashboardPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
+  const [roleFocus, setRoleFocus] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [profiles, setProfiles] = useState<ProfileRow[]>([]);
@@ -206,13 +208,18 @@ export default function AdminDashboardPage() {
   );
 
   const activity = useMemo(() => buildActivity(auditRows), [auditRows]);
-  const maxActivity = Math.max(1, ...activity.map((point) => point.count));
 
+  // v3.0.8: selecting a role (donut slice or legend) lists that role's users.
+  const roleOf = useCallback(
+    (profile: { id: string; role?: string | null }) => roleDisplayName(primaryRoleByProfile.get(profile.id) || profile.role || "Staff"),
+    [primaryRoleByProfile]
+  );
   const recentUsers = useMemo(
     () => [...profiles]
+      .filter((p) => !roleFocus || roleOf(p) === roleFocus)
       .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())
-      .slice(0, 8),
-    [profiles]
+      .slice(0, roleFocus ? 200 : 8),
+    [profiles, roleFocus, roleOf]
   );
 
   if (loading) {
@@ -245,10 +252,10 @@ export default function AdminDashboardPage() {
         <article className="admin-v3-card">
           <div className="admin-v3-card-head"><div><h2>Users by Role</h2><p>Live primary-role distribution</p></div></div>
           <div className="admin-v3-donut-wrap">
-            <SharedDonut segments={roleSegments} size={200} strokeWidth={34} fluidMax={210} centerLabel="Users" />
+            <SharedDonut segments={roleSegments} size={200} strokeWidth={34} fluidMax={210} centerLabel="Users" selected={roleFocus} onSegmentSelect={(label) => { setRoleFocus(label); if (label) document.getElementById("rg-admin-users")?.scrollIntoView({ behavior: "smooth", block: "start" }); }} />
             <div className="admin-v3-legend">
               {roleDistribution.length ? roleDistribution.map((item, index) => (
-                <div key={item.label}><i style={{ background: ROLE_COLORS[index % ROLE_COLORS.length] }} /><span>{item.label}</span><strong>{item.count}</strong></div>
+                <button type="button" key={item.label} className="admin-v3-legend-btn" aria-pressed={roleFocus === item.label} onClick={() => setRoleFocus(roleFocus === item.label ? null : item.label)}><i style={{ background: ROLE_COLORS[index % ROLE_COLORS.length] }} /><span>{item.label}</span><strong>{item.count}</strong></button>
               )) : <p className="admin-v3-empty">No user-role data available.</p>}
             </div>
           </div>
@@ -257,15 +264,12 @@ export default function AdminDashboardPage() {
         <article className="admin-v3-card">
           <div className="admin-v3-card-head"><div><h2>User Activity</h2><p>Live audit events - last 14 days</p></div></div>
           {auditRows.length ? (
-            <div className="admin-v3-bars" aria-label="Audit events by day">
-              {activity.map((point, index) => (
-                <div className="admin-v3-bar-col" key={`${point.label}-${index}`} title={`${point.label}: ${point.count} events`}>
-                  <div className="admin-v3-bar-value">{point.count || ""}</div>
-                  <div className="admin-v3-bar" style={{ height: `${Math.max(point.count ? 10 : 2, (point.count / maxActivity) * 100)}%` }} />
-                  <span>{index % 2 === 0 ? point.label : ""}</span>
-                </div>
-              ))}
-            </div>
+            <BarChart
+              data={activity.map((point, index) => ({ key: `${point.label}-${index}`, label: index % 2 === 0 ? point.label : "", hint: point.label, value: point.count }))}
+              height={220}
+              valueNoun="event"
+              ariaLabel="Audit events per day, last 14 days"
+            />
           ) : (
             <div className="admin-v3-empty-state"><Activity size={26} /><strong>Audit activity unavailable</strong><span>No readable audit-log dataset was returned. ReqGen will not fabricate chart values.</span></div>
           )}
@@ -283,7 +287,8 @@ export default function AdminDashboardPage() {
 
       <section className="admin-v3-card admin-v3-recent">
         <div className="admin-v3-card-head">
-          <div><h2>Recent Users</h2><p>Newest user profiles in ReqGen</p></div>
+          <div id="rg-admin-users"><h2>{roleFocus ? `Users · ${roleFocus}` : "Recent Users"}</h2><p>{roleFocus ? `${recentUsers.length} user(s) whose primary role is ${roleFocus}` : "Newest user profiles in ReqGen"}</p></div>
+          {roleFocus ? <button type="button" className="rg-filter-chip" style={{ margin: 0 }} onClick={() => setRoleFocus(null)}>✕ Clear role filter</button> : null}
           <Link href="/admin/users">View All Users</Link>
         </div>
         <div className="admin-v3-table-scroll">

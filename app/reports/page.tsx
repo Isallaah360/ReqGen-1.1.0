@@ -131,7 +131,7 @@ export default function ReportsCentrePage() {
       <button className={styles.button} onClick={() => { setDateFrom(yearStart); setDateTo(today); setDepartment("all"); setStatus("all"); setTab("overview"); }}>Reset</button>
     </section>
     {tab === "overview" ? <section className={styles.grid2}>
-      <article className={styles.card}><h2 className={styles.cardTitle}>Reports Summary · Selected Period</h2><div className={styles.donutWrap}><ReportsDonut rows={summary} onSelect={(detail) => setChartDetail(detail)} /><div className={styles.legend}>{summary.map(x => <button type="button" className={styles.legendRow} key={x.label} onClick={() => setChartDetail(`${x.label}: ${x.value.toLocaleString()} record(s) in the selected filters`)}><span className={styles.legendLabel}><i className={styles.dot} style={{ background:x.color }}/>{x.label}</span><strong>{x.value.toLocaleString()}</strong></button>)}</div></div>{chartDetail ? <div className={styles.chartDetail} role="status" aria-live="polite">{chartDetail}</div> : <div className={styles.chartDetail}>Select the chart or a legend row to display the exact filtered value.</div>}</article>
+      <article className={styles.card}><h2 className={styles.cardTitle}>Reports Summary · Selected Period</h2><div className={styles.donutWrap}><ReportsDonut rows={summary} selected={Object.entries(SLICE_TAB).find(([, t]) => t === tab)?.[0] ?? null} onPick={(label) => { setChartDetail(null); setTab(label && SLICE_TAB[label] ? SLICE_TAB[label] : "overview"); }} /><div className={styles.legend}>{summary.map(x => <button type="button" className={styles.legendRow} key={x.label} title={`Open the ${x.label} report`} onClick={() => { setChartDetail(null); setTab(SLICE_TAB[x.label] ?? "overview"); }}><span className={styles.legendLabel}><i className={styles.dot} style={{ background:x.color }}/>{x.label}</span><strong>{x.value.toLocaleString()}</strong></button>)}</div></div>{chartDetail ? <div className={styles.chartDetail} role="status" aria-live="polite">{chartDetail}</div> : <div className={styles.chartDetail}>Select the chart or a legend row to display the exact filtered value.</div>}</article>
       <article className={styles.card}><h2 className={styles.cardTitle}>Live Report Sources</h2><div className={styles.tableWrap}><table className={styles.table}><thead><tr><th>Report</th><th>Source</th><th>Records</th><th>Period / Basis</th><th>Action</th></tr></thead><tbody>
         <tr><td className={styles.strong}>Requests Register</td><td>requests</td><td>{filteredRequests.length}</td><td>{dateFrom} → {dateTo}</td><td><button className={styles.button} onClick={() => setTab("requests")}>Open</button></td></tr>
         <tr><td className={styles.strong}>Approval Decisions</td><td>request_history</td><td>{approvalHistory.length}</td><td>Recorded approve/reject actions</td><td><button className={styles.button} onClick={() => setTab("approvals")}>Open</button></td></tr>
@@ -143,7 +143,9 @@ export default function ReportsCentrePage() {
   </main>;
 }
 
-function ReportsDonut({ rows, onSelect }: { rows: { label: string; value: number; color: string }[]; onSelect: (detail: string) => void }) {
-  return <SharedDonut segments={rows} size={200} strokeWidth={34} fluidMax={210} onSelect={onSelect} />;
+/** v3.0.8: each slice opens that report's records (and highlights while open). */
+const SLICE_TAB: Record<string, Tab> = { Requests: "requests", Approvals: "approvals", Finance: "finance", "Payment Vouchers": "vouchers", Registry: "registry" };
+function ReportsDonut({ rows, selected, onPick }: { rows: { label: string; value: number; color: string }[]; selected: string | null; onPick: (label: string | null) => void }) {
+  return <SharedDonut segments={rows} size={200} strokeWidth={34} fluidMax={210} selected={selected} onSegmentSelect={onPick} />;
 }
 

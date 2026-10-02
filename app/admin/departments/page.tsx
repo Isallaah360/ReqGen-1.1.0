@@ -1270,7 +1270,7 @@ export default function DepartmentsPage() {
             </h3>
 
             <div className={styles.donutRow}>
-              <SharedDonut segments={donutSegments} size={200} strokeWidth={34} fluidMax={210} />
+              <SharedDonut segments={donutSegments} size={200} strokeWidth={34} fluidMax={210} selected={status === "active" ? "Active" : status === "inactive" ? "Inactive" : null} onSegmentSelect={(label) => setStatus(label === "Active" ? "active" : label === "Inactive" ? "inactive" : "all")} />
 
               <div className={styles.legend}>
                 <Legend

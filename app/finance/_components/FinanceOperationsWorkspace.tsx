@@ -369,6 +369,15 @@ function parseDateValue(value: unknown) {
   return null;
 }
 
+/** v3.0.8: one status grouping for the Status Overview donut AND its table filter. */
+type StatusGroup = "Posted / Credit" | "Pending / Debit" | "Other";
+function statusGroupOf(row: Row): StatusGroup {
+  const value = text(row.status);
+  if (/posted|paid|complete|success/i.test(value)) return "Posted / Credit";
+  if (/pending|draft|await/i.test(value)) return "Pending / Debit";
+  return "Other";
+}
+
 function Dot({
   color,
 }: {
@@ -411,6 +420,9 @@ export default function FinanceOperationsWorkspace({
 
   const [status, setStatus] =
     useState("All");
+
+  const [donutGroup, setDonutGroup] =
+    useState<StatusGroup | null>(null);
 
   const [period, setPeriod] =
     useState("All");
@@ -619,6 +631,8 @@ export default function FinanceOperationsWorkspace({
     () =>
       ledgerRows.filter(
         (row) => {
+          // v3.0.8: Status Overview donut selection (same grouping as the chart).
+          if (donutGroup && statusGroupOf(row) !== donutGroup) return false;
           const needle =
             search
               .trim()
@@ -725,6 +739,7 @@ export default function FinanceOperationsWorkspace({
       period,
       config.searchFields,
       config.dateField,
+      donutGroup,
     ]
   );
 
@@ -1886,12 +1901,14 @@ export default function FinanceOperationsWorkspace({
             >
               <SharedDonut
                 segments={[
-                  { label: "Posted / Credit", value: posted, color: "var(--color-brand-600)" },
-                  { label: "Pending / Debit", value: pending, color: "var(--color-success-600)" },
-                  { label: "Other", value: Math.max(rows.length - posted - pending, 0), color: "var(--color-warning-600)" },
+                  { label: "Posted / Credit", value: rows.filter((r) => statusGroupOf(r) === "Posted / Credit").length, color: "var(--color-brand-600)" },
+                  { label: "Pending / Debit", value: rows.filter((r) => statusGroupOf(r) === "Pending / Debit").length, color: "var(--color-success-600)" },
+                  { label: "Other", value: rows.filter((r) => statusGroupOf(r) === "Other").length, color: "var(--color-warning-600)" },
                 ]}
                 size={100}
                 strokeWidth={18}
+                selected={donutGroup}
+                onSegmentSelect={(label) => setDonutGroup((label as StatusGroup) || null)}
               />
 
               <div

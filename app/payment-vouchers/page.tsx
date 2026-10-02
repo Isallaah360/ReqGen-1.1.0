@@ -183,6 +183,16 @@ function mapBankAccount(row: Record<string, unknown>, source: BankAccountRow["so
   };
 }
 
+/** v3.0.8: one grouping for the summary donut AND its table filter. */
+type VoucherGroup = "Approved" | "Pending" | "Rejected" | "Others";
+function voucherGroup(status: string | null | undefined): VoucherGroup {
+  const key = String(status || "").toLowerCase().replace(/[^a-z]/g, "");
+  if (["authorized", "chequeprepared", "chequesigned", "countersigned", "paid"].includes(key)) return "Approved";
+  if (["prepared", "checked"].includes(key)) return "Pending";
+  if (["cancelled", "rejected"].includes(key)) return "Rejected";
+  return "Others";
+}
+
 export default function PaymentVouchersPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -243,6 +253,7 @@ export default function PaymentVouchersPage() {
   const [search, setSearch] = useState("");
   const [readySearch, setReadySearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
+  const [summaryGroup, setSummaryGroup] = useState<VoucherGroup | null>(null);
   const [typeFilter, setTypeFilter] = useState("ALL");
   const [departmentFilter, setDepartmentFilter] = useState("ALL");
   const [fromDate, setFromDate] = useState(() => `${new Date().getFullYear()}-01-01`);
@@ -1005,23 +1016,27 @@ export default function PaymentVouchersPage() {
 
   const overviewRows = useMemo(() => {
     return filteredRows.filter((v) => {
+      if (summaryGroup && voucherGroup(v.status) !== summaryGroup) return false;
       if (departmentFilter !== "ALL" && (v.dept_name || "") !== departmentFilter) return false;
       const created = v.created_at ? new Date(v.created_at) : null;
       if (created && fromDate && created < new Date(`${fromDate}T00:00:00`)) return false;
       if (created && toDate && created > new Date(`${toDate}T23:59:59`)) return false;
       return true;
     });
-  }, [filteredRows, departmentFilter, fromDate, toDate]);
+  }, [filteredRows, departmentFilter, fromDate, toDate, summaryGroup]);
 
-  useEffect(() => { queueMicrotask(() => setCurrentPage(1)); }, [search, statusFilter, typeFilter, departmentFilter, fromDate, toDate, rowsPerPage]);
+  useEffect(() => { queueMicrotask(() => setCurrentPage(1)); }, [search, statusFilter, typeFilter, departmentFilter, fromDate, toDate, rowsPerPage, summaryGroup]);
   const pageCount = Math.max(1, Math.ceil(overviewRows.length / rowsPerPage));
   const safePage = Math.min(currentPage, pageCount);
   const pagedRows = overviewRows.slice((safePage - 1) * rowsPerPage, safePage * rowsPerPage);
   const rejectedCount = rows.filter((v) => ["cancelled", "rejected"].includes(normalize(v.status))).length;
-  const approvedAmount = rows.filter((v) => ["authorized", "chequeprepared", "chequesigned", "countersigned", "paid"].includes(normalize(v.status))).reduce((sum, v) => sum + Number(v.total_amount || v.amount || 0), 0);
-  const pendingAmount = rows.filter((v) => ["prepared", "checked"].includes(normalize(v.status))).reduce((sum, v) => sum + Number(v.total_amount || v.amount || 0), 0);
-  const rejectedAmount = rows.filter((v) => ["cancelled", "rejected"].includes(normalize(v.status))).reduce((sum, v) => sum + Number(v.total_amount || v.amount || 0), 0);
-  const otherAmount = Math.max(0, stats.totalAmount - approvedAmount - pendingAmount);
+  const groupAmount = (group: VoucherGroup) => rows.filter((v) => voucherGroup(v.status) === group).reduce((sum, v) => sum + Number(v.total_amount || v.amount || 0), 0);
+  const approvedAmount = groupAmount("Approved");
+  const pendingAmount = groupAmount("Pending");
+  const rejectedAmount = groupAmount("Rejected");
+  // v3.0.8 fix: "Others" previously forgot to subtract rejected vouchers, so
+  // rejected amounts were counted twice. Every voucher now belongs to exactly one group.
+  const otherAmount = groupAmount("Others");
   const summaryAmount = Math.max(1, approvedAmount + pendingAmount + rejectedAmount + otherAmount);
   const approvedPct = (approvedAmount / summaryAmount) * 100;
   const pendingPct = (pendingAmount / summaryAmount) * 100;
@@ -1030,7 +1045,7 @@ export default function PaymentVouchersPage() {
   const recentVouchers = [...rows].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 4);
 
   function clearOverviewFilters() {
-    setSearch(""); setStatusFilter("ALL"); setTypeFilter("ALL"); setDepartmentFilter("ALL");
+    setSearch(""); setStatusFilter("ALL"); setTypeFilter("ALL"); setDepartmentFilter("ALL"); setSummaryGroup(null);
     setFromDate(`${new Date().getFullYear()}-01-01`); setToDate(new Date().toISOString().slice(0, 10));
   }
 
@@ -1150,6 +1165,12 @@ export default function PaymentVouchersPage() {
               <select aria-label="Status filter" value={statusFilter} onChange={(e)=>setStatusFilter(e.target.value)}>
                 <option value="ALL">Filters</option><option value="Prepared">Prepared</option><option value="Checked">Checked</option><option value="Authorized">Authorized</option><option value="Paid">Paid</option><option value="Cancelled">Rejected</option>
               </select>
+              {summaryGroup ? (
+                <span className="rg-filter-chip" role="status" style={{ margin: 0 }}>
+                  <span>Showing: <strong>{summaryGroup}</strong> vouchers</span>
+                  <button type="button" onClick={() => setSummaryGroup(null)} aria-label="Clear voucher group filter">✕ Clear</button>
+                </span>
+              ) : null}
               <div className={styles.searchBox}><input value={search} onChange={(e)=>setSearch(e.target.value)} placeholder="Search vouchers..."/><Search size={16}/></div>
             </div>
           </div>
@@ -1195,6 +1216,8 @@ export default function PaymentVouchersPage() {
                 formatTotal={() => naira(stats.totalAmount)}
                 formatValue={(v, label) => `${label}: ${naira(v)}`}
                 formatAmount={naira}
+                selected={summaryGroup}
+                onSegmentSelect={(label) => setSummaryGroup((label as VoucherGroup) || null)}
               />
               <div className={styles.legend}>
                 <SummaryLegend color="green" label="Approved" amount={approvedAmount} percent={approvedPct} />

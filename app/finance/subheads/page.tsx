@@ -155,6 +155,7 @@ export default function FinanceSubheadsPage() {
   const [subheads, setSubheads] = useState<Subhead[]>([]);
 
   const [search, setSearch] = useState("");
+  const [categoryFocus, setCategoryFocus] = useState<string | null>(null);
   const [status, setStatus] = useState<FilterStatus>("all");
   const [level, setLevel] = useState<FilterLevel>("all");
   const [parent, setParent] = useState("all");
@@ -407,6 +408,15 @@ export default function FinanceSubheadsPage() {
         ) > 1
     ).length;
 
+  /** Same grouping as the Subhead Overview chart: the root code's name. */
+  const rootLabelOf = useCallback(
+    (item: { code?: string | null }) => {
+      const root = item.code?.split(".")[0] || "Other";
+      return byCode.get(root)?.name || root;
+    },
+    [byCode]
+  );
+
   const filtered = useMemo(() => {
     const needle =
       search
@@ -482,6 +492,11 @@ export default function FinanceSubheadsPage() {
           }
         }
 
+        // v3.0.8: chart selection (Subhead Overview donut / legend).
+        if (categoryFocus && rootLabelOf(item) !== categoryFocus) {
+          return false;
+        }
+
         if (!needle) {
           return true;
         }
@@ -525,6 +540,8 @@ export default function FinanceSubheadsPage() {
     level,
     department,
     parent,
+    categoryFocus,
+    rootLabelOf,
     bankMap,
     byCode,
     departmentMap,
@@ -1392,6 +1409,12 @@ export default function FinanceSubheadsPage() {
 
       <section className={styles.contentGrid}>
         <div className={styles.tableCard}>
+          {categoryFocus ? (
+            <div className="rg-filter-chip" role="status">
+              <span>Showing sub-heads under: <strong>{categoryFocus}</strong></span>
+              <button type="button" onClick={() => setCategoryFocus(null)} aria-label="Clear category filter">✕ Clear</button>
+            </div>
+          ) : null}
           <div className={styles.cardHeader}>
             <div>
               <h2>
@@ -1720,7 +1743,7 @@ export default function FinanceSubheadsPage() {
             </h3>
 
             <div className={styles.donutRow}>
-              <SharedDonut segments={donutSegments} size={200} strokeWidth={34} fluidMax={210} centerLabel="Total" formatTotal={() => String(total)} />
+              <SharedDonut segments={donutSegments} size={200} strokeWidth={34} fluidMax={210} centerLabel="Total" formatTotal={() => String(total)} selected={categoryFocus} onSegmentSelect={setCategoryFocus} />
 
               <div className={styles.legend}>
                 {categoryData.map(
@@ -1734,7 +1757,7 @@ export default function FinanceSubheadsPage() {
                     ];
 
                     return (
-                      <div key={item.label}>
+                      <button type="button" key={item.label} className="admin-v3-legend-btn" aria-pressed={categoryFocus === item.label} onClick={() => setCategoryFocus(categoryFocus === item.label ? null : item.label)}>
                         <span
                           style={{
                             background:
@@ -1759,7 +1782,7 @@ export default function FinanceSubheadsPage() {
                             : 0}
                           %)
                         </small>
-                      </div>
+                      </button>
                     );
                   }
                 )}

@@ -124,6 +124,7 @@ export default function FinanceOverviewPage() {
   const [fatalError, setFatalError] = useState<string | null>(null);
   const [issues, setIssues] = useState<LoadIssue[]>([]);
   const [chartDetail, setChartDetail] = useState<string | null>(null);
+  const [monthFocus, setMonthFocus] = useState<number | null>(null);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [subheads, setSubheads] = useState<Subhead[]>([]);
   const [transactions, setTransactions] = useState<Tx[]>([]);
@@ -268,6 +269,14 @@ export default function FinanceOverviewPage() {
 
   const pendingPaymentValue = useMemo(() => visibleVouchers.reduce((sum, v) => sum + n(v.total_amount ?? v.amount), 0), [visibleVouchers]);
 
+  // v3.0.8: a selected month filters the Recent Transactions table only, so the
+  // trend chart keeps showing every month.
+  const tableTransactions = useMemo(() => monthFocus === null ? visibleTransactions : visibleTransactions.filter((row) => {
+    if (!row.transaction_date) return false;
+    const d = new Date(row.transaction_date);
+    return !Number.isNaN(d.getTime()) && d.getMonth() === monthFocus;
+  }), [visibleTransactions, monthFocus]);
+
   const monthTotals = useMemo(() => {
     const values = Array.from({ length: 12 }, () => 0);
     visibleTransactions.forEach((row) => {
@@ -345,19 +354,19 @@ export default function FinanceOverviewPage() {
       <section className={styles.analyticsGrid}>
         <article className={styles.card}>
           <div className={styles.cardHead}><div><h2>Actual Expenditure Trend</h2><p>Posted Finance transactions only — no estimated line.</p></div></div>
-          {maxMonth > 0 ? <><div className={styles.monthChart}>{MONTHS.map((month, index) => <button type="button" key={month} className={styles.monthCol} title={`${month}: ${money(monthTotals[index])}`} onClick={() => setChartDetail(`${month}: ${money(monthTotals[index])} posted expenditure`)}><div className={styles.barTrack}><i style={{ height: `${Math.max(3, (monthTotals[index] / maxMonth) * 100)}%` }}/></div><span>{month}</span><small>{monthTotals[index] ? money(monthTotals[index]) : "—"}</small></button>)}</div><div className={styles.chartDetail} role="status" aria-live="polite">{chartDetail || "Select any month bar to display its exact posted expenditure."}</div></> : <EmptyState text="No posted Finance transactions exist for this filter. No trend is drawn."/>}
+          {maxMonth > 0 ? <><div className={styles.monthChart}>{MONTHS.map((month, index) => <button type="button" key={month} className={styles.monthCol} title={`${month}: ${money(monthTotals[index])}`} aria-pressed={monthFocus === index} data-active={monthFocus === index ? "true" : undefined} onClick={() => { const next = monthFocus === index ? null : index; setMonthFocus(next); setChartDetail(next === null ? null : `${month}: ${money(monthTotals[index])} posted expenditure — Recent Transactions now shows ${month} only.`); }}><div className={styles.barTrack}><i style={{ height: `${Math.max(3, (monthTotals[index] / maxMonth) * 100)}%` }}/></div><span>{month}</span><small>{monthTotals[index] ? money(monthTotals[index]) : "—"}</small></button>)}</div><div className={styles.chartDetail} role="status" aria-live="polite">{chartDetail || "Select any month bar to display its exact posted expenditure."}</div></> : <EmptyState text="No posted Finance transactions exist for this filter. No trend is drawn."/>}
         </article>
 
         <article className={styles.card}>
           <div className={styles.cardHead}><div><h2>Expenditure by Department</h2><p>Calculated directly from live subheads.</p></div></div>
-          {departmentSpend.some((d) => d.spend > 0) ? <><div className={styles.deptList}>{pagedDepartmentSpend.map((d, index) => <button type="button" key={d.name} className={styles.deptRow} title={`${d.name}: ${money(d.spend)} spent; ${money(d.balance)} balance`} onClick={() => setChartDetail(`${d.name}: ${money(d.spend)} spent · ${money(d.balance)} available balance`)}><div><b><span className={styles.rowNumber}>{(deptSafePage - 1) * listPageSize + index + 1}.</span>{d.name}</b><span>{money(d.spend)} spent · {money(d.balance)} balance</span></div><div className={styles.horizontalTrack}><i style={{ width: `${maxDepartmentSpend ? (d.spend / maxDepartmentSpend) * 100 : 0}%` }}/></div></button>)}</div><div className={styles.chartDetail} role="status" aria-live="polite">{chartDetail || "Select a department bar to display its exact live values."}</div><MiniPager page={deptSafePage} pages={deptPages} setPage={setDeptPage}/></> : <EmptyState text="No departmental expenditure has been recorded for this filter."/>}
+          {departmentSpend.some((d) => d.spend > 0) ? <><div className={styles.deptList}>{pagedDepartmentSpend.map((d, index) => <button type="button" key={d.name} className={styles.deptRow} title={`${d.name}: ${money(d.spend)} spent; ${money(d.balance)} balance`} onClick={() => { const id = departments.find((x) => x.name === d.name)?.id; if (id) { setDepartmentId(departmentId === id ? "ALL" : id); } setChartDetail(`${d.name}: ${money(d.spend)} spent · ${money(d.balance)} available balance${id ? (departmentId === id ? " — department filter cleared." : " — overview filtered to this department.") : ""}`); }}><div><b><span className={styles.rowNumber}>{(deptSafePage - 1) * listPageSize + index + 1}.</span>{d.name}</b><span>{money(d.spend)} spent · {money(d.balance)} balance</span></div><div className={styles.horizontalTrack}><i style={{ width: `${maxDepartmentSpend ? (d.spend / maxDepartmentSpend) * 100 : 0}%` }}/></div></button>)}</div><div className={styles.chartDetail} role="status" aria-live="polite">{chartDetail || "Select a department bar to display its exact live values."}</div><MiniPager page={deptSafePage} pages={deptPages} setPage={setDeptPage}/></> : <EmptyState text="No departmental expenditure has been recorded for this filter."/>}
         </article>
       </section>
 
       <section className={styles.contentGrid}>
         <article className={`${styles.card} ${styles.transactionsCard}`}>
-          <div className={styles.cardHead}><div><h2>Recent Transactions</h2><p>{visibleTransactions.length} matching live record{visibleTransactions.length === 1 ? "" : "s"}.</p></div><Link href="/finance/transactions">Open Register <ArrowRight size={14}/></Link></div>
-          <div className={styles.tableWrap}><table><thead><tr><th>Date</th><th>Reference</th><th>Type</th><th>Subhead / Department</th><th>Narration</th><th>Amount</th></tr></thead><tbody>{visibleTransactions.slice(0, 8).map((row) => { const sub = row.subhead_id ? subheadMap[row.subhead_id] : undefined; const dept = sub?.dept_id ? departmentMap[sub.dept_id] : "—"; const amount = Math.max(n(row.amount), 0); return <tr key={row.id}><td>{dateLabel(row.transaction_date)}</td><td><b>{row.transaction_no || "—"}</b></td><td>{titleCase(row.transaction_type)}</td><td>{sub ? `${sub.code || ""} ${sub.name}`.trim() : "—"}<small>{dept}</small></td><td>{row.narration || "—"}</td><td className={styles.amount}>{money(amount)}</td></tr>; })}{!visibleTransactions.length && <tr><td colSpan={6}><EmptyState text="No Finance transactions match the selected filters."/></td></tr>}</tbody></table></div>
+          <div className={styles.cardHead}><div><h2>Recent Transactions</h2><p>{tableTransactions.length} matching live record{tableTransactions.length === 1 ? "" : "s"}.</p></div>{monthFocus !== null ? <button type="button" className="rg-filter-chip" style={{ margin: 0 }} onClick={() => { setMonthFocus(null); setChartDetail(null); }}>Showing {MONTHS[monthFocus]} only · ✕ Clear</button> : null}<Link href="/finance/transactions">Open Register <ArrowRight size={14}/></Link></div>
+          <div className={styles.tableWrap}><table><thead><tr><th>Date</th><th>Reference</th><th>Type</th><th>Subhead / Department</th><th>Narration</th><th>Amount</th></tr></thead><tbody>{tableTransactions.slice(0, 8).map((row) => { const sub = row.subhead_id ? subheadMap[row.subhead_id] : undefined; const dept = sub?.dept_id ? departmentMap[sub.dept_id] : "—"; const amount = Math.max(n(row.amount), 0); return <tr key={row.id}><td>{dateLabel(row.transaction_date)}</td><td><b>{row.transaction_no || "—"}</b></td><td>{titleCase(row.transaction_type)}</td><td>{sub ? `${sub.code || ""} ${sub.name}`.trim() : "—"}<small>{dept}</small></td><td>{row.narration || "—"}</td><td className={styles.amount}>{money(amount)}</td></tr>; })}{!tableTransactions.length && <tr><td colSpan={6}><EmptyState text="No Finance transactions match the selected filters."/></td></tr>}</tbody></table></div>
         </article>
 
         <article className={styles.card}>
