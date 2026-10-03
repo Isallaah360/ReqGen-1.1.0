@@ -37,7 +37,7 @@ export default function ProfileActivityPage() {
   useEffect(() => { queueMicrotask(() => { void load(); }); }, [load]);
   const filtered = useMemo(() => activities.filter((a) => `${a.action} ${a.detail} ${a.source}`.toLowerCase().includes(search.toLowerCase())), [activities, search]);
 
-  return <main data-rmb-page="profile" className="min-h-screen bg-slate-50 px-4 py-8"><div className="mx-auto max-w-6xl">
+  return <main data-rmb-page="profile" className="min-h-screen bg-slate-50 px-4 py-8"><div className="w-full">
     
     <ProfileNavigation />
     {warning && <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 font-bold text-amber-900">{warning}</div>}

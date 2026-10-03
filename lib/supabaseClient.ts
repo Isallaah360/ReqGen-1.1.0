@@ -1,4 +1,5 @@
 import { createClient, type LockFunc } from "@supabase/supabase-js";
+import { trackedFetch } from "@/lib/activity";
 
 /**
  * ReqGen browser auth lock.
@@ -40,6 +41,11 @@ export const supabase = createClient(
   {
     auth: {
       lock: reqGenAuthLock,
+    },
+    // v3.1.3: every request reports activity so the loading strip shows
+    // whenever ReqGen is loading or saving.
+    global: {
+      fetch: trackedFetch,
     },
   },
 );

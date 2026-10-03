@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Bell, CheckCheck, CheckCircle2, ClipboardCheck, Info, RotateCcw, Shuffle, Wallet, XCircle } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import {
@@ -45,10 +46,31 @@ export default function NotificationCentre({ userId, pendingApprovalCount }: { u
   const [loading, setLoading] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
   const timer = useRef<number | null>(null);
+  // v3.1.3 pop-up notifications: only items that ARRIVE after ReqGen opens.
+  const seen = useRef<Set<string> | null>(null);
+  const [toasts, setToasts] = useState<ReqGenNotification[]>([]);
+  const [attention, setAttention] = useState<ReqGenNotification | null>(null);
+  // Pop-ups render at the top level of the page (portal), so the top bar's
+  // blur effect can never trap them; mounted guards server rendering.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { queueMicrotask(() => setMounted(true)); }, []);
 
   const refresh = useCallback(async () => {
     if (!userId) return;
     const [list, count] = await Promise.all([fetchNotifications(userId, { limit: 12 }), countUnread(userId)]);
+    if (!list.error) {
+      if (seen.current === null) {
+        seen.current = new Set(list.items.map((n) => n.id)); // first load: no pop-ups for old items
+      } else {
+        const fresh = list.items.filter((n) => !n.isRead && !seen.current!.has(n.id));
+        fresh.forEach((n) => seen.current!.add(n.id));
+        if (fresh.length) {
+          const needsAction = fresh.find((n) => n.kind === "awaiting" || n.kind === "reassigned");
+          if (needsAction) setAttention((cur) => cur ?? needsAction);
+          setToasts((cur) => [...fresh.filter((n) => n !== needsAction), ...cur].slice(0, 3));
+        }
+      }
+    }
     setItems(list.items);
     setUnread(list.error ? null : count);
     setLoading(false);
@@ -79,6 +101,12 @@ export default function NotificationCentre({ userId, pendingApprovalCount }: { u
       void supabase.removeChannel(channel);
     };
   }, [userId, refresh]);
+
+  useEffect(() => {
+    if (!toasts.length) return;
+    const t = window.setTimeout(() => setToasts((cur) => cur.slice(0, -1)), 8000);
+    return () => window.clearTimeout(t);
+  }, [toasts]);
 
   // Close on outside click or Escape.
   useEffect(() => {
@@ -154,6 +182,36 @@ export default function NotificationCentre({ userId, pendingApprovalCount }: { u
             <Link href="/notifications" onClick={() => setOpen(false)}>View all notifications</Link>
           </footer>
         </section>
+      ) : null}
+
+      {mounted && toasts.length ? createPortal(
+        <div className="rg-toast-stack" role="region" aria-label="New notifications">
+          {toasts.map((n) => (
+            <div key={n.id} className={`rg-toast is-${n.kind}`} role="status" aria-live="polite">
+              <button type="button" className="rg-toast-body" onClick={() => { setToasts((c) => c.filter((x) => x.id !== n.id)); openItem(n); }}>
+                <strong>{n.title}</strong>
+                {n.message ? <span>{n.message}</span> : null}
+              </button>
+              <button type="button" className="rg-toast-close" aria-label="Dismiss notification" onClick={() => setToasts((c) => c.filter((x) => x.id !== n.id))}>×</button>
+            </div>
+          ))}
+        </div>, document.body
+      ) : null}
+
+      {mounted && attention ? createPortal(
+        <div className="rg-modal-backdrop rg-attention-backdrop" role="presentation">
+          <section className="rg-attention" role="alertdialog" aria-modal="true" aria-labelledby="rg-attention-title" aria-describedby="rg-attention-msg">
+            <span className="rg-attention-icon" aria-hidden="true"><Bell size={22} /></span>
+            <h2 id="rg-attention-title">{attention.title}</h2>
+            {attention.message ? <p id="rg-attention-msg">{attention.message}</p> : null}
+            <div className="rg-attention-actions">
+              <button type="button" className="rg-btn rg-btn-secondary" onClick={() => setAttention(null)}>OK</button>
+              {safeLink(attention.link) ? (
+                <button type="button" className="rg-btn rg-btn-primary" autoFocus onClick={() => { const n = attention; setAttention(null); openItem(n); }}>Open request</button>
+              ) : null}
+            </div>
+          </section>
+        </div>, document.body
       ) : null}
     </div>
   );

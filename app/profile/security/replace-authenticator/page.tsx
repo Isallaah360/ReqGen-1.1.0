@@ -268,14 +268,14 @@ export default function ReplaceAuthenticatorPage() {
   if (loading) {
     return (
       <main className="min-h-screen bg-slate-50 px-4 py-8">
-        <div className="mx-auto max-w-5xl text-slate-600">Loading account security...</div>
+        <div className="w-full text-slate-600">Loading account security...</div>
       </main>
     );
   }
 
   return (
     <main data-rmb-page="profile" className="min-h-screen bg-slate-50 px-4 py-8">
-      <div className="mx-auto max-w-5xl">
+      <div className="w-full">
         <ProfileNavigation />
 
         <div className="mt-6 flex flex-col gap-3 rounded-3xl border border-blue-200 bg-white p-6 shadow-sm md:flex-row md:items-center md:justify-between">

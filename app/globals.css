@@ -4758,12 +4758,14 @@ html body .rg-reveal{position:absolute;transform:translateY(-50%);z-index:2;widt
   border:0;border-radius:8px;background:transparent;color:var(--c-fg-6d5f55,#6d5f55);cursor:pointer}
 html body .rg-reveal:hover{background:var(--c-bg-fbf1e9,#fbf1e9);color:var(--c-fg-b83e00,#b83e00)}
 html body .rg-reveal:focus-visible{outline:2px solid var(--c-ln-b83e00,#b83e00);outline-offset:1px}
-/* v3.1.2 ReqGen loader — IET strip line sweeping left to right */
-.rg-strip-loader{position:fixed;top:0;left:0;right:0;height:3px;z-index:400;overflow:hidden;background:rgba(240,108,36,.12)}
-.rg-strip-loader span{position:absolute;top:0;bottom:0;left:-40%;width:40%;
-  background:linear-gradient(90deg,var(--c-bg-f06c24,#f06c24),var(--c-bg-e43c24,#e43c24) 40%,var(--c-bg-f09c18,#f09c18) 75%,var(--c-bg-30a8d8,#30a8d8));animation:rgStrip 1.15s cubic-bezier(.4,0,.2,1) infinite}
+/* v3.1.3 loading strip — directly below the top bar, inside the app */
+.rg-activity-strip{position:sticky;top:var(--rg-topbar);z-index:69;height:3px;margin-bottom:-3px;overflow:hidden;opacity:0;transition:opacity .18s ease;pointer-events:none}
+.rg-activity-strip.is-on{opacity:1;background:rgba(240,108,36,.14)}
+.rg-activity-strip span{position:absolute;top:0;bottom:0;left:-40%;width:40%;background:linear-gradient(90deg,var(--c-bg-f06c24,#f06c24),var(--c-bg-e43c24,#e43c24) 40%,var(--c-bg-f09c18,#f09c18) 75%,var(--c-bg-30a8d8,#30a8d8))}
+.rg-activity-strip.is-on span{animation:rgStrip 1.15s cubic-bezier(.4,0,.2,1) infinite}
 @keyframes rgStrip{0%{left:-40%;width:40%}60%{left:60%;width:55%}100%{left:105%;width:10%}}
-@media(prefers-reduced-motion:reduce){.rg-strip-loader span{animation:none;left:0;width:100%;opacity:.6}}
+.rg-page-loading{min-height:240px}
+@media(prefers-reduced-motion:reduce){.rg-activity-strip.is-on span{animation:none;left:0;width:100%;opacity:.7}}
 /* v3.0.10: phone tables become stacked cards (TableCards labels each cell) */
 @media(max-width:620px){
   html body .rg-content table.rg-cards,html body .rg-content table.rg-cards tbody{display:block;width:100%!important;min-width:0!important}
@@ -4920,3 +4922,34 @@ html[data-theme="dark"] body .rg-shell{background:var(--c-bg-11141b,#11141b)!imp
 html body .rg-content[data-route] table td:not(.rg-col-text) *{white-space:nowrap!important}
 html body .rg-content[data-route] table td :is(button,a){white-space:nowrap!important}
 html body .rg-content[data-route] table td[colspan]:not([colspan="1"]),html body .rg-content[data-route] table td[colspan]:not([colspan="1"]) *{white-space:normal!important;text-align:center}
+/* v3.1.3: Profile / security pages span the full content width; inputs keep a
+   comfortable reading width inside their cards */
+html body .rg-content:is([data-route="/change-password"],[data-route^="/profile/security"]) :is(input:not([type=checkbox]):not([type=radio]),select){max-width:560px}
+/* v3.1.3 pop-up notifications: toasts (top-right, below the top bar) and the
+   centred "needs your action" alert */
+.rg-toast-stack{position:fixed;top:calc(var(--rg-topbar) * .9 + 14px);right:max(14px, calc((100vw - (var(--rg-sidebar, 270px) + 1390px) * .9) / 2 + 18px));z-index:350;display:grid;gap:8px;width:min(360px,calc(100vw - 28px))}
+.rg-toast{display:grid;grid-template-columns:1fr auto;align-items:start;border:1px solid var(--c-ln-ece2d8,#ece2d8);border-left:4px solid var(--c-ln-f06c24,#f06c24);border-radius:12px;background:var(--c-bg-ffffff,#fff);box-shadow:0 14px 34px rgba(42,36,32,.16);animation:rgToastIn .22s ease}
+.rg-toast.is-approved,.rg-toast.is-paid{border-left-color:var(--c-ln-0f7a52,#0f7a52)}.rg-toast.is-rejected{border-left-color:var(--c-ln-c42b1f,#c42b1f)}.rg-toast.is-returned{border-left-color:var(--c-ln-9a5b00,#9a5b00)}
+.rg-toast-body{display:grid;gap:3px;padding:12px 4px 12px 14px;border:0;background:none;text-align:left;cursor:pointer;font:inherit}
+.rg-toast-body strong{color:var(--c-fg-291d18,#291d18);font-size:13px;font-weight:850}
+.rg-toast-body span{color:var(--c-fg-5b4e45,#5b4e45);font-size:12.5px;line-height:1.4}
+.rg-toast-close{width:30px;height:30px;margin:6px;border:0;border-radius:8px;background:transparent;color:var(--c-fg-6d5f55,#6d5f55);font-size:18px;cursor:pointer}
+.rg-toast-close:hover{background:var(--c-bg-fbf1e9,#fbf1e9)}
+@keyframes rgToastIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+.rg-attention-backdrop{z-index:380!important}
+.rg-attention{width:min(420px,calc(100vw - 32px));display:grid;justify-items:center;gap:10px;padding:26px 24px 20px;text-align:center;border:1px solid var(--c-ln-ece2d8,#ece2d8);border-top:5px solid var(--c-ln-f06c24,#f06c24);border-radius:16px;background:var(--c-bg-ffffff,#fff);box-shadow:0 24px 60px rgba(42,36,32,.28);animation:rgToastIn .22s ease}
+.rg-attention-icon{width:52px;height:52px;display:grid;place-items:center;border-radius:50%;background:var(--c-bg-fdeee4,#fdeee4);color:var(--c-fg-b83e00,#b83e00)}
+.rg-attention h2{margin:0;color:var(--c-fg-291d18,#291d18);font-size:18px;font-weight:900}
+.rg-attention p{margin:0;color:var(--c-fg-5b4e45,#5b4e45);font-size:14px;line-height:1.5}
+.rg-attention-actions{display:flex;gap:8px;justify-content:center;margin-top:6px}
+html[data-theme="dark"] .rg-toast,html[data-theme="dark"] .rg-attention{background:var(--c-bg-151a24,#151a24);border-color:var(--c-ln-2a303b,#2a303b)}
+html[data-theme="dark"] .rg-toast-body strong,html[data-theme="dark"] .rg-attention h2{color:var(--c-fg-f1e9e2,#f1e9e2)}
+html[data-theme="dark"] .rg-toast-body span,html[data-theme="dark"] .rg-attention p{color:var(--c-fg-c9bdb2,#c9bdb2)}
+@media(prefers-reduced-motion:reduce){.rg-toast,.rg-attention{animation:none}}
+/* v3.1.3: a single item in a multi-column grid spans the full row */
+html body .rg-content .grid>:only-child{grid-column:1 / -1}
+/* v3.1.3: Approvals view tabs follow the full-width tab standard */
+html body .rg-content [class*="approvals-module__"][class*="__viewTabs"]{display:flex!important;width:100%!important;box-sizing:border-box}
+html body .rg-content [class*="approvals-module__"][class*="__viewTabs"]>*{flex:1 1 0;justify-content:center}
+html body .rg-content [class*="approvals-module__"][class*="__workspaceToolbar"]{flex-wrap:wrap!important}
+html body .rg-content [class*="approvals-module__"][class*="__workspaceToolbar"]>[class*="__viewTabs"]{flex:1 1 100%!important}

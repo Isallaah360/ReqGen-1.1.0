@@ -256,8 +256,8 @@ export default function ChangePasswordPage() {
 
     if (loading) {
         return (
-            <main className="min-h-screen bg-slate-50 px-4">
-                <div className="mx-auto max-w-3xl py-10 text-slate-600">
+            <main className="w-full">
+                <div className="w-full py-10 text-slate-600">
                     Loading password security...
                 </div>
             </main>
@@ -265,8 +265,8 @@ export default function ChangePasswordPage() {
     }
 
     return (
-        <main className="min-h-screen bg-slate-50 px-4">
-            <div className="mx-auto max-w-3xl py-8">
+        <main className="w-full">
+            <div className="w-full py-8">
                 {err && (
                     <div className="mt-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-800">
                         {err}

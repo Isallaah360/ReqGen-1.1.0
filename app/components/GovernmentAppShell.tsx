@@ -49,6 +49,7 @@ import { ActiveRoleSwitcher } from "./ActiveRoleSwitcher";
 import ReqGenFooter from "./ReqGenFooter";
 import { REQGEN_PRODUCT_NAME, REQGEN_VERSION } from "@/lib/version";
 import ThemeToggle from "@/app/components/ThemeToggle";
+import ActivityStrip from "@/app/components/ActivityStrip";
 import NotificationCentre from "@/app/components/notifications/NotificationCentre";
 import { APPROVAL_QUEUE_CHANGED_EVENT, isAwaitingUser, type ApprovalQueueRow } from "@/lib/approvalQueue";
 
@@ -875,6 +876,7 @@ function GovernmentAppShellContent({
             </Link>
           </div>
         </header>
+          <ActivityStrip />
 
         <main
           id="reqgen-main-content"

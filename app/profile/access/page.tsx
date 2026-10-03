@@ -37,7 +37,7 @@ export default function ProfileAccessPage() {
   useEffect(() => { queueMicrotask(() => { void load(); }); }, [load]);
   const activeRoles = useMemo(() => roles.filter((r) => r.is_active !== false), [roles]);
 
-  return <main data-rmb-page="profile" className="min-h-screen bg-slate-50 px-4 py-8"><div className="mx-auto max-w-6xl">
+  return <main data-rmb-page="profile" className="min-h-screen bg-slate-50 px-4 py-8"><div className="w-full">
     
     <ProfileNavigation />
     {error && <div className="mt-5 rounded-2xl border border-red-200 bg-red-50 p-4 font-bold text-red-800">{error}</div>}
