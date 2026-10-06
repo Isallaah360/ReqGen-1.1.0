@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { confirmDialog } from "@/lib/dialog";
 import { useRouter } from "next/navigation";
 import { Building2, Landmark, UserCheck, CircleAlert } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
@@ -99,7 +100,7 @@ export default function AccountRoutingPage() {
 
   async function remove(deptId: string) {
     const route = routeByDept.get(deptId); if (!route) return;
-    if (!window.confirm("Remove this department account routing?")) return;
+    if (!(await confirmDialog({ title: "Remove account routing?", message: "Remove this department account routing?", confirmLabel: "Remove", tone: "danger" }))) return;
     setSaving(true); const result = await supabase.from("department_account_routing").delete().eq("id", route.id);
     if (result.error) setMsg("Delete failed: " + result.error.message); else { setMsg("✓ Routing removed."); await loadAll(); }
     setSaving(false);

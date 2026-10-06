@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { confirmDialog } from "@/lib/dialog";
 import { useRouter } from "next/navigation";
 import {
   Building2,
@@ -585,9 +586,12 @@ export default function DepartmentsPage() {
         department
       )
     ) {
-      const confirmed = window.confirm(
-        "This department has linked records. Deactivate it instead?"
-      );
+      const confirmed = await confirmDialog({
+        title: "Department has linked records",
+        message: "This department has linked records and cannot be deleted. Deactivate it instead?",
+        confirmLabel: "Deactivate",
+        tone: "warning",
+      });
 
       if (!confirmed) {
         return;
@@ -604,9 +608,12 @@ export default function DepartmentsPage() {
       return;
     }
 
-    const confirmed = window.confirm(
-      "Delete this unused department permanently?"
-    );
+    const confirmed = await confirmDialog({
+      title: "Delete department?",
+      message: "Delete this unused department permanently?",
+      confirmLabel: "Delete",
+      tone: "danger",
+    });
 
     if (!confirmed) {
       return;

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { confirmDialog } from "@/lib/dialog";
 import { useRouter, useSearchParams } from "next/navigation";
 import { CheckCircle2, ChevronRight, CircleX, Clock3, Download, FileSpreadsheet, MoreVertical, Plus, Search, Settings2, WalletCards, X } from "lucide-react";
 import { PageHeader } from "@/app/components/ui/PageHeader";
@@ -691,12 +692,15 @@ export default function PaymentVouchersPage() {
       return;
     }
 
-    const ok = confirm(
-      `Create manual payment voucher for ${manualPayeeName.trim()}?\n\nAmount: ${naira(
-        manualAmountNumber
-      )}\n\nThis will deduct the amount from the selected subhead${manualBankAccountId ? " and selected bank account" : ""
-      }.`
-    );
+    const ok = await confirmDialog({
+      title: "Create manual voucher?",
+      message: `Create a manual payment voucher for ${manualPayeeName.trim()}?`,
+      details: [
+        `Amount: ${naira(manualAmountNumber)}`,
+        `The amount will be deducted from the selected subhead${manualBankAccountId ? " and selected bank account" : ""}.`,
+      ],
+      confirmLabel: "Create voucher",
+    });
 
     if (!ok) return;
 
@@ -812,11 +816,14 @@ export default function PaymentVouchersPage() {
     }
 
     const count = selectedRequests.length;
-    const ok = confirm(
-      count === 1
-        ? "Generate payment voucher for this request?"
-        : `Generate one combined payment voucher for ${count} selected requests?`
-    );
+    const ok = await confirmDialog({
+      title: count === 1 ? "Generate payment voucher?" : "Generate combined payment voucher?",
+      message: count === 1
+        ? "Generate a payment voucher for this request?"
+        : `Generate ONE combined payment voucher for the ${count} selected requests?`,
+      details: [`Disbursement mode: ${mode}`],
+      confirmLabel: "Generate voucher",
+    });
 
     if (!ok) return;
 
@@ -865,7 +872,11 @@ export default function PaymentVouchersPage() {
       }
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : "Unknown error";
-      setMsg("✕ Failed to generate voucher: " + message);
+      // v3.1.5: explain known database messages in plain language.
+      const friendly = /is not assigned yet/i.test(message)
+        ? "The voucher service needs the ReqGen v3.1.5 database update (v3_1_5_voucher_signer_and_queue_repair.sql). Please ask the Administrator to run it, then try again."
+        : message;
+      setMsg("✕ Failed to generate voucher: " + friendly);
     } finally {
       setGenerating(false);
     }
@@ -877,9 +888,13 @@ export default function PaymentVouchersPage() {
       return;
     }
 
-    const ok = confirm(
-      `Permanently delete ${v.voucher_no}?\n\nThis will allow linked request(s) to generate a new payment voucher.\n\nThis action cannot be undone.`
-    );
+    const ok = await confirmDialog({
+      title: "Delete payment voucher?",
+      message: `Permanently delete ${v.voucher_no}?`,
+      details: ["Linked request(s) will be able to generate a new payment voucher.", "This action cannot be undone."],
+      confirmLabel: "Delete voucher",
+      tone: "danger",
+    });
 
     if (!ok) return;
 

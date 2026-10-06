@@ -1,6 +1,7 @@
 "use client";
 
 import { IconAction, IconActions } from "@/app/components/ui/IconAction";
+import { confirmDialog } from "@/lib/dialog";
 import { StatTile } from "@/app/components/ui/StatTile";
 import AdminNavigation from "@/app/components/admin/AdminNavigation";
 import AdminPermissionMatrix from "@/app/components/admin/AdminPermissionMatrix";
@@ -353,9 +354,12 @@ export default function AdminRolesPage() {
       return;
     }
 
-    const ok = confirm(
-      `Set role "${canonicalRoleName(role.role_name, role.role_key)}" to ${nextActive ? "Active" : "Inactive"}?`
-    );
+    const ok = await confirmDialog({
+      title: nextActive ? "Activate role?" : "Deactivate role?",
+      message: `Set role "${canonicalRoleName(role.role_name, role.role_key)}" to ${nextActive ? "Active" : "Inactive"}?`,
+      confirmLabel: nextActive ? "Activate" : "Deactivate",
+      tone: nextActive ? "default" : "warning",
+    });
 
     if (!ok) return;
 
@@ -391,9 +395,13 @@ export default function AdminRolesPage() {
       return;
     }
 
-    const ok = confirm(
-      `Delete custom role "${canonicalRoleName(role.role_name, role.role_key)}" permanently?\n\nOnly unused custom roles should be deleted.`
-    );
+    const ok = await confirmDialog({
+      title: "Delete custom role?",
+      message: `Delete custom role "${canonicalRoleName(role.role_name, role.role_key)}" permanently?`,
+      details: ["Only unused custom roles should be deleted."],
+      confirmLabel: "Delete role",
+      tone: "danger",
+    });
 
     if (!ok) return;
 

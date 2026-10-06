@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { confirmDialog } from "@/lib/dialog";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { PersonName } from "@/app/components/ui/PersonName";
@@ -427,7 +428,7 @@ export default function PaymentVoucherDetailPage() {
       return;
     }
 
-    const ok = confirm(`Proceed with "${actionType}" for this voucher?`);
+    const ok = await confirmDialog({ title: `${actionType}?`, message: `Proceed with "${actionType}" for this voucher?`, confirmLabel: actionType });
     if (!ok) return;
 
     setSaving(true);
@@ -465,9 +466,12 @@ export default function PaymentVoucherDetailPage() {
       return;
     }
 
-    const ok = confirm(
-      `Sign cheque for ${voucher.voucher_no}?\n\nYour saved profile signature will be appended to this payment voucher.`
-    );
+    const ok = await confirmDialog({
+      title: "Sign cheque?",
+      message: `Sign cheque for ${voucher.voucher_no}?`,
+      details: ["Your saved profile signature will be appended to this payment voucher."],
+      confirmLabel: "Sign cheque",
+    });
 
     if (!ok) return;
 
@@ -501,9 +505,12 @@ export default function PaymentVoucherDetailPage() {
       return;
     }
 
-    const ok = confirm(
-      `Counter-sign cheque for ${voucher.voucher_no}?\n\nYour saved profile signature will be appended to this payment voucher.`
-    );
+    const ok = await confirmDialog({
+      title: "Counter-sign cheque?",
+      message: `Counter-sign cheque for ${voucher.voucher_no}?`,
+      details: ["Your saved profile signature will be appended to this payment voucher."],
+      confirmLabel: "Counter-sign",
+    });
 
     if (!ok) return;
 
@@ -537,9 +544,13 @@ export default function PaymentVoucherDetailPage() {
       return;
     }
 
-    const ok = confirm(
-      `Permanently delete ${voucher.voucher_no}?\n\nThis will allow linked request(s) to generate a new PV.\n\nThis action cannot be undone.`
-    );
+    const ok = await confirmDialog({
+      title: "Delete payment voucher?",
+      message: `Permanently delete ${voucher.voucher_no}?`,
+      details: ["Linked request(s) will be able to generate a new PV.", "This action cannot be undone."],
+      confirmLabel: "Delete voucher",
+      tone: "danger",
+    });
 
     if (!ok) return;
 

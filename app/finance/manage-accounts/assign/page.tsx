@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { confirmDialog } from "@/lib/dialog";
 import { useRouter } from "next/navigation";
 import {
   AlertCircle,
@@ -278,7 +279,7 @@ export default function AssignBankToOfficerPage() {
 
   async function removeAssignment(id: string) {
     if (!canManage) return;
-    if (!confirm("Remove this bank-account assignment?")) return;
+    if (!(await confirmDialog({ title: "Remove assignment?", message: "Remove this bank-account assignment?", confirmLabel: "Remove", tone: "danger" }))) return;
     setSaving(true);
     const { error } = await supabase.from("iet_account_officer_assignments").delete().eq("id", id);
     setMessage(error ? `Remove failed: ${error.message}` : "Assignment removed.");

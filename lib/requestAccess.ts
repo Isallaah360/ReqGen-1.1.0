@@ -1,4 +1,4 @@
-import { isAwaitingUser, queueRoleKey } from "@/lib/approvalQueue";
+import { isAssignedAccountOfficer, isAwaitingUser, queueRoleKey } from "@/lib/approvalQueue";
 
 /**
  * ReqGen v3.0.3 — who may open a request's FULL details (content, amounts,
@@ -23,6 +23,7 @@ export type RequestAccessFacts = {
   current_stage: string | null;
   status: string | null;
   assigned_account_officer_id: string | null;
+  assigned_account_officer_user_id?: string | null;
 };
 
 export type RequestAccessReason =
@@ -50,7 +51,7 @@ export function evaluateRequestAccess({
   if (request.created_by && request.created_by === userId) return { allowed: true, reason: "requester" };
   if (isAwaitingUser(request, userId, role)) return { allowed: true, reason: "awaiting-you" };
   for (const id of actorIds) if (id && id === userId) return { allowed: true, reason: "you-acted" };
-  if (request.assigned_account_officer_id && request.assigned_account_officer_id === userId) return { allowed: true, reason: "account-officer" };
+  if (isAssignedAccountOfficer(request, userId)) return { allowed: true, reason: "account-officer" };
   if (REQUEST_OVERSIGHT_ROLES.has(role)) return { allowed: true, reason: "oversight" };
   return { allowed: false, reason: "not-involved" };
 }

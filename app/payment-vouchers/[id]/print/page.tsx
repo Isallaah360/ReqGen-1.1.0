@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import SignatureInk from "@/app/components/ui/SignatureInk";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
@@ -946,22 +947,13 @@ function SignatureBox({
     <div>
       <div className="text-[8.8px] font-black uppercase">{title}</div>
 
-      <div className="mt-1 grid grid-cols-[1fr_92px_70px] items-end gap-2">
+      <div className="mt-1 grid grid-cols-[1fr_128px_70px] items-end gap-2">
         <div className="border-b border-black pb-[2px] text-[9.2px] font-bold leading-tight">
           {name || " "}
         </div>
 
-        <div className="relative h-[25px] border-b border-black">
-          {sigUrl ? (
-            <Image
-              src={sigUrl}
-              alt="signature"
-              width={120}
-              height={30}
-              unoptimized
-              className="absolute bottom-[2px] left-1/2 h-[21px] w-auto max-w-[96%] -translate-x-1/2 object-contain"
-            />
-          ) : null}
+        <div className="rg-sig-slot rg-sig-slot-voucher border-b border-black">
+          {sigUrl ? <SignatureInk src={sigUrl} alt={name ? `${name} signature` : "Signature"} /> : null}
         </div>
 
         <div className="border-b border-black pb-[2px] text-center text-[8.8px] font-bold">
@@ -969,7 +961,7 @@ function SignatureBox({
         </div>
       </div>
 
-      <div className="grid grid-cols-[1fr_92px_70px] gap-2 text-center text-[7.2px] font-semibold text-slate-600">
+      <div className="grid grid-cols-[1fr_128px_70px] gap-2 text-center text-[7.2px] font-semibold text-slate-600">
         <div>Name</div>
         <div>Signature</div>
         <div>Date</div>

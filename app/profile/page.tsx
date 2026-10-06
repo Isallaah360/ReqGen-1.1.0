@@ -1,9 +1,10 @@
 "use client";
 
-import Image from "next/image";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import { cleanSignatureFile } from "@/lib/signatureInk";
+import SignatureInk from "@/app/components/ui/SignatureInk";
 import ProfileNavigation from "@/app/components/profile/ProfileNavigation";
 
 type Dept = { id: string; name: string };
@@ -85,6 +86,7 @@ export default function ProfilePage() {
   const [sigPreview, setSigPreview] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [uploadingSig, setUploadingSig] = useState(false);
+  const [cleanSig, setCleanSig] = useState(true);
 
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [avatarSupported, setAvatarSupported] = useState(true);
@@ -312,17 +314,25 @@ export default function ProfilePage() {
 
     try {
       setUploadingSig(true);
-      setMsg("Uploading signature...");
 
-      const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+      // v3.1.5 Signature Ink Engine: store only the ink (transparent PNG,
+      // trimmed) so the signature prints cleanly on every document.
+      let uploadFile: File = file;
+      if (cleanSig) {
+        setMsg("Removing the paper background from your signature...");
+        uploadFile = (await cleanSignatureFile(file)).file;
+      }
+
+      const ext = (uploadFile.name.split(".").pop() || "jpg").toLowerCase();
       const safeExt = ["png", "jpg", "jpeg", "webp"].includes(ext) ? ext : "jpg";
       const path = `${user.id}/signature-${Date.now()}.${safeExt}`;
 
+      setMsg("Uploading signature...");
       const { error: upErr } = await supabase.storage
         .from("signatures")
-        .upload(path, file, {
+        .upload(path, uploadFile, {
           upsert: false,
-          contentType: file.type || "image/jpeg",
+          contentType: uploadFile.type || "image/jpeg",
         });
 
       if (upErr) throw new Error(upErr.message);
@@ -602,11 +612,13 @@ export default function ProfilePage() {
           <div className="rg-profile-card-head">
             <div><h2>Institutional Signature</h2><p>Used for authorised request and approval actions.</p></div>
           </div>
-          <div className="rg-signature-preview">
-            {sigPreview ? (
-              <Image src={sigPreview} alt="Saved signature" width={320} height={96} unoptimized />
-            ) : <span>No signature uploaded</span>}
+          <div className={`rg-signature-preview${sigPreview ? " rg-sig-slot rg-sig-slot-profile" : ""}`}>
+            {sigPreview ? <SignatureInk src={sigPreview} alt="Saved signature" /> : <span>No signature uploaded</span>}
           </div>
+          <label className="rg-profile-check">
+            <input type="checkbox" checked={cleanSig} onChange={(e) => setCleanSig(e.target.checked)} disabled={uploadingSig} />
+            <span>Remove the paper background automatically (recommended)</span>
+          </label>
           <label className="rg-profile-file-label">Upload or replace signature
             <input type="file" accept="image/png,image/jpeg,image/jpg,image/webp" disabled={uploadingSig} onChange={(e) => setFile(e.target.files?.[0] || null)} />
           </label>

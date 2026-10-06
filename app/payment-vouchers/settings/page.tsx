@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { confirmDialog } from "@/lib/dialog";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
@@ -311,11 +312,14 @@ export default function PaymentVoucherSettingsPage() {
   async function toggleActive(row: CounterSignatory) {
     if (!canAccess) return;
     const nextStatus = !row.is_active;
-    const confirmed = window.confirm(
-      nextStatus
+    const confirmed = await confirmDialog({
+      title: nextStatus ? "Activate signing authority?" : "Deactivate signing authority?",
+      message: nextStatus
         ? `Activate ${row.full_name} for Payment Voucher signing?`
-        : `Deactivate ${row.full_name}? The user will stop appearing in new PV signing dropdowns.`
-    );
+        : `Deactivate ${row.full_name}? The user will stop appearing in new PV signing lists.`,
+      confirmLabel: nextStatus ? "Activate" : "Deactivate",
+      tone: nextStatus ? "default" : "warning",
+    });
     if (!confirmed) return;
 
     setSaving(true);
@@ -356,9 +360,13 @@ export default function PaymentVoucherSettingsPage() {
         return;
       }
 
-      const confirmed = window.confirm(
-        `Delete ${row.full_name} permanently?\n\nThis authority has not been used on a historical Payment Voucher.`
-      );
+      const confirmed = await confirmDialog({
+        title: "Delete signing authority?",
+        message: `Delete ${row.full_name} permanently?`,
+        details: ["This authority has not been used on a historical Payment Voucher."],
+        confirmLabel: "Delete",
+        tone: "danger",
+      });
       if (!confirmed) return;
 
       const { error } = await supabase.from("payment_voucher_counter_signatories").delete().eq("id", row.id);

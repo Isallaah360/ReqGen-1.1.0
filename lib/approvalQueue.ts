@@ -69,27 +69,38 @@ export function isClosedRequest(row: ApprovalQueueRow) {
   return ["paid", "completed", "closed", "rejected", "deleted", "cancelled"].some((token) => status.includes(token));
 }
 
-/**
- * True when the request is open AND it is this user's turn to act on it.
- * Precise by design (no "unwanted" notifications):
- *   1. If a specific officer owns it, ONLY that officer is notified.
- *   2. At the Account stage with an assigned Account Officer, only that officer.
- *   3. Otherwise, holders of the role responsible for the current stage.
- */
-export function isAwaitingUser(row: ApprovalQueueRow, userId: string, role: string) {
-  if (isClosedRequest(row)) return false;
-  if (row.current_owner) return row.current_owner === userId;
-  const stage = queueStageKey(row.current_stage);
-  const assigned = row.assigned_account_officer_id || row.assigned_account_officer_user_id;
-  if (stage === "ACCOUNT" && assigned) return assigned === userId;
-  const stages = STAGES_FOR_ROLE[queueRoleKey(role)] || [];
-  return stages.includes(stage);
+/** True when the user is the Account Officer attached to the request (either column). */
+export function isAssignedAccountOfficer(row: ApprovalQueueRow, userId: string) {
+  if (!userId) return false;
+  return row.assigned_account_officer_id === userId || row.assigned_account_officer_user_id === userId;
 }
 
-/** Rows a user may see on the Approvals page (oversight roles see everything). */
-export function isVisibleInApprovals(row: ApprovalQueueRow, userId: string, role: string) {
-  if (OVERSIGHT_ROLES.has(queueRoleKey(role))) return true;
-  if (row.current_owner && row.current_owner === userId) return true;
+/**
+ * v3.1.5 — THE single rule for "this request is waiting for you". Used by the
+ * Approvals list, the bell/sidebar badge, the request access gate and the
+ * Process screen (canAct), so a request counted as waiting can always be
+ * opened AND acted on. Precise by design:
+ *   1. If an officer owns the request (current_owner), ONLY that officer.
+ *   2. At the Account stage with no owner yet, the attached Account Officer.
+ *   3. Otherwise nobody — an un-owned request is a routing gap for Admin, not
+ *      something every holder of the role should see as "waiting".
+ * The Registry role tracks movement only and never has requests waiting.
+ */
+export function isAwaitingUser(row: ApprovalQueueRow, userId: string, role: string) {
+  if (!userId || isClosedRequest(row)) return false;
+  if (queueRoleKey(role) === "registry") return false;
+  if (row.current_owner) return row.current_owner === userId;
+  if (queueStageKey(row.current_stage) === "ACCOUNT") return isAssignedAccountOfficer(row, userId);
+  return false;
+}
+
+/**
+ * Open requests sitting at a stage this role handles but held by ANOTHER
+ * officer (or by nobody). They are never shown as "waiting for you"; the
+ * Approvals page reports them as a notice so the mismatch is visible.
+ */
+export function isHeldElsewhere(row: ApprovalQueueRow, userId: string, role: string) {
+  if (isClosedRequest(row) || isAwaitingUser(row, userId, role)) return false;
   const stages = STAGES_FOR_ROLE[queueRoleKey(role)] || [];
   return stages.includes(queueStageKey(row.current_stage));
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { confirmDialog } from "@/lib/dialog";
 import { useRouter } from "next/navigation";
 import {
   Eye,
@@ -1019,9 +1020,12 @@ export default function FinanceSubheadsPage() {
     }
 
     if (
-      !window.confirm(
-        `Delete unused subhead “${item.name}”?`
-      )
+      !(await confirmDialog({
+        title: "Delete subhead?",
+        message: `Delete unused subhead “${item.name}”?`,
+        confirmLabel: "Delete",
+        tone: "danger",
+      }))
     ) {
       return;
     }

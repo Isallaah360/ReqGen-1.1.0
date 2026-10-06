@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState, type DragEvent } from "react";
+import { confirmDialog, promptDialog } from "@/lib/dialog";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowDown, ArrowUp, Building2, CircleAlert, GitBranch, GripVertical, Plus, ShieldCheck, Trash2, UserMinus, X } from "lucide-react";
@@ -271,15 +272,15 @@ export default function RoutingEnginePage() {
           <section className="admin-v3-card">
             <div className="rg-engine-template-bar">
               <label>Template
-                <select className="rg-engine-select" value={templateId} onChange={(e) => { if (Object.values(dirty).some(Boolean) && !window.confirm("Discard unsaved route changes?")) return; setTemplateId(e.target.value); }}>
+                <select className="rg-engine-select" value={templateId} onChange={(e) => { const next = e.target.value; void (async () => { if (Object.values(dirty).some(Boolean) && !(await confirmDialog({ title: "Discard unsaved changes?", message: "You have unsaved route changes. Discard them and switch template?", confirmLabel: "Discard changes", tone: "warning" }))) return; setTemplateId(next); })(); }}>
                   {cfg.templates.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
                 </select>
               </label>
               <span className="rg-route-note" style={{ margin: 0 }}>
                 Used by: {depts.filter((d) => deptTemplate(d.id) === templateId).map((d) => d.name).join(", ") || "no departments"}
               </span>
-              <button type="button" className="rg-btn rg-btn-secondary" disabled={busy} onClick={() => {
-                const name = window.prompt("Name for the new route template (e.g. ASAP-ALLI Special):"); if (!name?.trim()) return;
+              <button type="button" className="rg-btn rg-btn-secondary" disabled={busy} onClick={async () => {
+                const name = await promptDialog({ title: "New route template", label: "Template name", placeholder: "e.g. ASAP-ALLI Special", message: `The new template starts as a copy of ${templateById.get(templateId)?.name || "the current template"}.`, confirmLabel: "Create template" }); if (!name?.trim()) return;
                 const code = name.trim().toUpperCase().replace(/[^A-Z0-9]+/g, "_").replace(/^_|_$/g, "").slice(0, 40);
                 void run(`Template "${name.trim()}" created — copy of ${templateById.get(templateId)?.name}.`, async () => {
                   const { data, error } = await supabase.from("reqgen_route_templates").insert({ code, name: name.trim() }).select("id").single();

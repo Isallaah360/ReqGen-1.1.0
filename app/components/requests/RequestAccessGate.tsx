@@ -40,7 +40,7 @@ export default function RequestAccessGate({ requestId, children }: { requestId: 
       const [requestRes, historyRes, active, profile] = await Promise.all([
         supabase
           .from("requests")
-          .select("created_by,current_owner,current_stage,status,assigned_account_officer_id")
+          .select("created_by,current_owner,current_stage,status,assigned_account_officer_id,assigned_account_officer_user_id")
           .eq("id", requestId)
           .maybeSingle(),
         supabase.from("request_history").select("action_by").eq("request_id", requestId).limit(1000),

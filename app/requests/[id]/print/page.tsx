@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import SignatureInk from "@/app/components/ui/SignatureInk";
 import RequestAccessGate from "@/app/components/requests/RequestAccessGate";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -789,7 +790,7 @@ function PrintRequestPageContent() {
           <div className="mt-2 min-h-[175px] whitespace-pre-wrap border-b border-black/50 pb-2 text-xs font-semibold leading-[1.55]"><strong>{req.title}</strong>{"\n\n"}{req.details}</div>
           <div className="mt-3 text-[10.5px] font-bold">Wassalamu` Alaikum.</div>
           {isOfficial ? <div className="mt-3 flex justify-end"><div className="w-[330px] space-y-1.5"><SmallFieldRow label="ALLOCATION B/D:" value={naira(req.approved_allocation)} /><SmallFieldRow label="EXPENDITURE:" value={naira(req.expenditure)} /><SmallFieldRow label="BALANCE C/D:" value={naira(req.balance)} /></div></div> : null}
-          <div className="mt-8 space-y-4 text-[9.5px] font-bold">
+          <div className="rg-print-signatures">
             <SignatureLine label="Requested by:" name={req.requester_name || ""} capacity="Requester" sigUrl={sigRequester} date={formatDate(req.created_at)} />
             <SignatureLine label="Checked by:" name={checkedHistory?.actor_name || req.checked_by_name || hrHistory?.actor_name || req.hr_name || ""} capacity={checkedHistory ? roleCapacity(checkedHistory, "Reviewer") : roleCapacity(hrHistory, "Reviewer")} sigUrl={sigChecked || sigHR} date={formatDate(checkedHistory?.created_at || hrHistory?.created_at || req.created_at)} />
             <SignatureLine label="Approved by Director General, IET:" name={dgHistory?.actor_name || req.dg_name || ""} capacity={roleCapacity(dgHistory, "Director General")} sigUrl={sigDG} date={formatDate(dgHistory?.created_at || req.created_at)} />
@@ -825,36 +826,22 @@ function SignatureLine({
   sigUrl: string | null;
   date: string;
 }) {
+  // v3.1.5: the signature has its own fixed slot (.rg-sig-slot) and is drawn
+  // by the Signature Ink Engine — background removed, trimmed, always inside
+  // its box and large enough to read without strain.
   return (
-    <div>
-      <div className="grid grid-cols-[108px_1.5fr_1fr_0.72fr_0.72fr] items-end gap-2">
-        <div className="whitespace-nowrap">{label}</div>
-
-        <div className="border-b border-black pb-[1px] pr-1 text-[8.4px] font-semibold">{name}</div>
-
-        <div className="border-b border-black pb-[1px] pr-1 text-[8.2px] font-semibold">
-          {capacity}
+    <div className="rg-print-signline">
+      <div className="rg-print-signline-row">
+        <div className="rg-print-signline-label">{label}</div>
+        <div className="rg-print-signline-cell">{name}</div>
+        <div className="rg-print-signline-cell">{capacity}</div>
+        <div className="rg-print-signline-cell rg-sig-slot">
+          {sigUrl ? <SignatureInk src={sigUrl} alt={name ? `${name} signature` : "Signature"} /> : null}
         </div>
-
-        <div className="relative h-[18px] border-b border-black">
-          {sigUrl ? (
-            <Image
-              src={sigUrl}
-              alt="signature"
-              width={100}
-              height={24}
-              unoptimized
-              className="absolute bottom-0 left-1/2 h-[13px] w-auto max-w-[90%] -translate-x-1/2 object-contain"
-            />
-          ) : null}
-        </div>
-
-        <div className="border-b border-black pb-[1px] text-center text-[8.4px] font-semibold">
-          {date}
-        </div>
+        <div className="rg-print-signline-cell is-centre">{date}</div>
       </div>
 
-      <div className="grid grid-cols-[108px_1.5fr_1fr_0.72fr_0.72fr] gap-2 pt-0.5 text-center text-[6.8px] font-medium text-slate-600">
+      <div className="rg-print-signline-row rg-print-signline-captions">
         <div />
         <div>Name</div>
         <div>Capacity</div>

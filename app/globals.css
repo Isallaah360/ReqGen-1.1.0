@@ -4986,3 +4986,58 @@ html[data-theme="dark"] body .rg-content .rg-field-shell{background:var(--c-bg-1
 
 /* v3.1.4: consistent space between the module tabs and the page content */
 html body .rg-content .rg-module-tabs{margin-bottom:20px!important}
+
+/* ===================== ReqGen v3.1.5 standards ===================== */
+/* In-app dialogs (lib/dialog.ts + DialogHost) — replace every browser
+   confirm/alert/prompt. Reuses the v3.1.3 attention card. */
+.rg-dialog-backdrop{z-index:400!important}
+.rg-dialog{width:min(440px,calc(100vw - 32px))}
+.rg-dialog.is-danger{border-top-color:var(--c-ln-c42b1f,#c42b1f)}
+.rg-dialog.is-danger .rg-dialog-icon{background:var(--c-bg-fdecea,#fdecea);color:var(--c-fg-c42b1f,#c42b1f)}
+.rg-dialog.is-warning .rg-dialog-icon{background:var(--c-bg-fff4e0,#fff4e0);color:var(--c-fg-9a5b00,#9a5b00)}
+.rg-dialog.is-success .rg-dialog-icon{background:var(--c-bg-e8f6ef,#e8f6ef);color:var(--c-fg-0f7a52,#0f7a52)}
+.rg-dialog-details{margin:2px 0 0;padding:10px 14px;width:100%;list-style:none;display:grid;gap:4px;text-align:left;border-radius:10px;background:var(--c-bg-fbf8f4,#fbf8f4);color:var(--c-fg-5b4e45,#5b4e45);font-size:13px;line-height:1.45}
+.rg-dialog-field{width:100%;display:grid;gap:6px;text-align:left;color:var(--c-fg-291d18,#291d18);font-size:12px;font-weight:800}
+.rg-dialog-field input{width:100%;height:42px;padding:0 12px;border:1px solid var(--c-ln-e3d6ca,#e3d6ca);border-radius:9px;background:var(--c-bg-ffffff,#fff);color:var(--c-fg-291d18,#291d18);font:inherit;font-weight:600;outline:none}
+.rg-dialog-field input:focus{border-color:var(--c-ln-b83e00,#b83e00);box-shadow:0 0 0 3px rgba(184,62,0,.14)}
+.rg-dialog-actions{width:100%;justify-content:flex-end!important}
+.rg-dialog-actions .rg-btn{min-width:96px}
+.rg-dialog-actions .rg-btn:disabled{opacity:.5;cursor:not-allowed}
+html[data-theme="dark"] .rg-dialog-details{background:var(--c-bg-1d2330,#1d2330);color:var(--c-fg-d8cfc7,#d8cfc7)}
+html[data-theme="dark"] .rg-dialog-field input{background:var(--c-bg-151a24,#151a24);border-color:var(--c-ln-2a303b,#2a303b);color:var(--c-fg-f1e9e2,#f1e9e2)}
+html[data-theme="dark"] .rg-dialog-field{color:var(--c-fg-f1e9e2,#f1e9e2)}
+
+/* Signatures (Signature Ink Engine): each signature lives in a fixed slot and
+   can never overflow the document. These rules outrank the generic
+   ".rg-content img{height:auto}" rule that caused the v3.1.4 overlap. */
+html body .rg-sig-slot{position:relative;overflow:visible}
+html body .rg-sig-slot>img.rg-sig-img{position:absolute!important;left:0!important;right:0!important;bottom:1px!important;
+  width:100%!important;height:100%!important;max-width:100%!important;max-height:100%!important;
+  object-fit:contain!important;object-position:center bottom!important;pointer-events:none;user-select:none;
+  filter:drop-shadow(0 0 .35px rgba(0,0,0,.55))}
+html body .rg-sig-slot>img.rg-sig-img.is-raw{mix-blend-mode:multiply;filter:grayscale(.2) contrast(1.35) brightness(1.08)}
+.rg-sig-pending{display:block;width:100%;height:100%}
+html body .rg-sig-slot-voucher{height:40px}
+
+/* Request print signature lines (A4) */
+.rg-print-signatures{margin-top:26px;display:grid;gap:14px;font-size:10px;font-weight:700;color:var(--c-fg-000000,#000)}
+.rg-print-signline-row{display:grid;grid-template-columns:132px minmax(0,1.2fr) minmax(0,.95fr) minmax(0,1.55fr) minmax(0,.65fr);gap:10px;align-items:end}
+.rg-print-signline-label{font-weight:800;line-height:1.25;padding-bottom:2px}
+.rg-print-signline-cell{min-height:20px;border-bottom:1px solid var(--c-ln-000000,#000);padding:0 4px 2px 0;font-size:9.6px;font-weight:600;line-height:1.25;overflow-wrap:anywhere}
+.rg-print-signline-cell.is-centre{text-align:center}
+.rg-print-signline-cell.rg-sig-slot{height:54px;padding:0}
+.rg-print-signline-captions{padding-top:2px;text-align:center;font-size:7.4px;font-weight:600;color:var(--c-fg-4b5563,#4b5563)}
+@media print{
+  .rg-print-signline-cell.rg-sig-slot{height:52px}
+  html body .rg-sig-slot>img.rg-sig-img{print-color-adjust:exact;-webkit-print-color-adjust:exact}
+}
+html body .rg-sig-slot-profile{height:112px}
+html body .rg-sig-slot-profile>img.rg-sig-img{left:12px!important;right:12px!important;bottom:12px!important;width:calc(100% - 24px)!important;height:calc(100% - 24px)!important;object-position:center!important}
+.rg-profile-check{display:flex!important;align-items:center;gap:8px;margin-top:10px;font-size:12px;font-weight:700}
+.rg-profile-check input{width:16px!important;height:16px!important;accent-color:var(--c-bg-b83e00,#b83e00)}
+
+/* v3.1.5 Approvals: requests at your stage held by another officer */
+.rg-approvals-held{display:flex;gap:10px;align-items:flex-start;margin:0 0 14px;padding:11px 14px;border:1px solid var(--c-ln-f1d39c,#f1d39c);border-left:4px solid var(--c-ln-9a5b00,#9a5b00);border-radius:10px;background:var(--c-bg-fff9eb,#fff9eb);color:var(--c-fg-6b4300,#6b4300);font-size:12.5px;line-height:1.5}
+.rg-approvals-held svg{flex:0 0 auto;margin-top:1px;color:var(--c-fg-9a5b00,#9a5b00)}
+.rg-approvals-held p{margin:0}
+.rg-approvals-held a{color:var(--c-fg-16749c,#16749c);font-weight:800;text-decoration:underline}

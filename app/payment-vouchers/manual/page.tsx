@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { confirmDialog } from "@/lib/dialog";
 import {
     FormEvent,
     useCallback,
@@ -697,9 +698,13 @@ export default function ManualVoucherPage() {
             return;
         }
 
-        const confirmed = window.confirm(
-            `Cancel ${voucherNo || "this draft voucher"}? This action will make the draft read-only.`
-        );
+        const confirmed = await confirmDialog({
+            title: "Cancel draft voucher?",
+            message: `Cancel ${voucherNo || "this draft voucher"}? The draft will become read-only.`,
+            confirmLabel: "Cancel voucher",
+            cancelLabel: "Keep draft",
+            tone: "warning",
+        });
 
         if (!confirmed) return;
 

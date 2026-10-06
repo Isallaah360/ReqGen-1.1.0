@@ -14,6 +14,7 @@ import { THEME_BOOT_SCRIPT } from "@/lib/theme";
 import PasswordReveal from "@/app/components/PasswordReveal";
 import TableCards from "@/app/components/TableCards";
 import FieldShells from "@/app/components/FieldShells";
+import DialogHost from "@/app/components/ui/DialogHost";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://req-gen-1-1-0.vercel.app"),
@@ -58,6 +59,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <PasswordReveal />
         <TableCards />
         <FieldShells />
+        <DialogHost />
         <GovernmentAppShell>
           <MfaGuard>
             <RouteAccessGuard>

@@ -1,6 +1,7 @@
 "use client";
 
 import AdminNavigation from "@/app/components/admin/AdminNavigation";
+import { confirmDialog } from "@/lib/dialog";
 import { StatTile } from "@/app/components/ui/StatTile";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -566,9 +567,13 @@ export default function AdminUsersPage() {
     }
 
     const label = profile.full_name || profile.email || profile.id;
-    const confirmed = window.confirm(
-      `Permanently delete ${label}? ReqGen will refuse the operation if immutable historical evidence exists.`
-    );
+    const confirmed = await confirmDialog({
+      title: "Delete user permanently?",
+      message: `Permanently delete ${label}?`,
+      details: ["ReqGen will refuse the operation if immutable historical evidence exists."],
+      confirmLabel: "Delete user",
+      tone: "danger",
+    });
     if (!confirmed) return;
 
     setSavingId(profile.id);
@@ -649,9 +654,13 @@ export default function AdminUsersPage() {
       return;
     }
 
-    const ok = window.confirm(
-      `Deactivate ${roleDisplayName(target.role_name)} for this user? This keeps history but removes the role from active assignment.`
-    );
+    const ok = await confirmDialog({
+      title: "Deactivate role?",
+      message: `Deactivate ${roleDisplayName(target.role_name)} for this user?`,
+      details: ["History is kept, but the role is removed from active assignment."],
+      confirmLabel: "Deactivate",
+      tone: "warning",
+    });
 
     if (!ok) return;
 

@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { confirmDialog } from "@/lib/dialog";
+import { isAwaitingUser } from "@/lib/approvalQueue";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { nameWithRole } from "@/lib/userIdentity";
@@ -36,6 +38,7 @@ type Req = {
   funds_state: string | null;
   created_at: string;
   assigned_account_officer_id: string | null;
+  assigned_account_officer_user_id?: string | null;
   assigned_account_officer_name: string | null;
 };
 
@@ -374,10 +377,12 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
     return requesterCanEditDeleteEarly;
   }, [requesterCanEditDeleteEarly]);
 
+  // v3.1.5: the SAME rule as the Approvals list, bell and access gate
+  // (lib/approvalQueue.ts) — a request shown as waiting can always be acted on.
   const canAct = useMemo(() => {
     if (!req || !me) return false;
-    return req.current_owner === me.id;
-  }, [req, me]);
+    return isAwaitingUser(req, me.id, activeRoleKey || me.role || "staff");
+  }, [req, me, activeRoleKey]);
 
   const canCheckAttachments = useMemo(() => {
     if (!req || !me) return false;
@@ -694,7 +699,7 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
     const { data: r, error: rErr } = await supabase
       .from("requests")
       .select(
-        "id,request_no,title,details,amount,status,current_stage,current_owner,created_by,dept_id,subhead_id,request_type,personal_category,funds_state,created_at,assigned_account_officer_id,assigned_account_officer_name"
+        "id,request_no,title,details,amount,status,current_stage,current_owner,created_by,dept_id,subhead_id,request_type,personal_category,funds_state,created_at,assigned_account_officer_id,assigned_account_officer_user_id,assigned_account_officer_name"
       )
       .eq("id", id)
       .single();
@@ -761,7 +766,7 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
     const { data: r2 } = await supabase
       .from("requests")
       .select(
-        "id,request_no,title,details,amount,status,current_stage,current_owner,created_by,dept_id,subhead_id,request_type,personal_category,funds_state,created_at,assigned_account_officer_id,assigned_account_officer_name"
+        "id,request_no,title,details,amount,status,current_stage,current_owner,created_by,dept_id,subhead_id,request_type,personal_category,funds_state,created_at,assigned_account_officer_id,assigned_account_officer_user_id,assigned_account_officer_name"
       )
       .eq("id", id)
       .single();
@@ -862,10 +867,12 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
       return;
     }
 
-    const ok = confirm(
-      `Assign "${selectedAssignableSubhead.code ? `${selectedAssignableSubhead.code} — ` : ""
-      }${selectedAssignableSubhead.name}" and reserve ${formatNaira(req.amount)} for this request?`
-    );
+    const ok = await confirmDialog({
+      title: "Assign subhead and reserve funds?",
+      message: `Assign "${selectedAssignableSubhead.code ? `${selectedAssignableSubhead.code} — ` : ""
+      }${selectedAssignableSubhead.name}" and reserve ${formatNaira(req.amount)} for this request?`,
+      confirmLabel: "Assign and reserve",
+    });
 
     if (!ok) return;
 
@@ -1173,7 +1180,12 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
     const stillValid = validateBeforeSensitiveAction("Delete");
     if (!stillValid) return;
 
-    const ok = confirm("Delete this request? Any reserved funds will be restored if applicable.");
+    const ok = await confirmDialog({
+      title: "Delete this request?",
+      message: "Any reserved funds will be restored if applicable. This cannot be undone.",
+      confirmLabel: "Delete request",
+      tone: "danger",
+    });
     if (!ok) return;
 
     setSaving(true);
