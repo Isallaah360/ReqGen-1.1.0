@@ -1,5 +1,6 @@
 "use client";
 
+import { PageHeader } from "@/app/components/ui/PageHeader";
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 
 export type WorkflowIconName =
@@ -43,7 +44,9 @@ export function WorkflowHero({
 }: {
   eyebrow: string; title: string; description: string; icon: WorkflowIconName; actions?: ReactNode; meta?: ReactNode;
 }) {
-  return <header className="rg-module-header"><div className="rg-module-heading"><p className="rg-module-eyebrow"><WorkflowIcon name={icon} className="h-4 w-4"/>{eyebrow}</p><h1>{title}</h1><p className="rg-module-description">{description}</p>{meta?<div className="rg-module-meta">{meta}</div>:null}</div>{actions?<div className="rg-module-actions">{actions}</div>:null}</header>;
+  // v3.1.4: renders the ONE standard page header (no eyebrow, icon or meta chips).
+  void eyebrow; void icon; void meta;
+  return <PageHeader title={title} description={description} actions={actions} />;
 }
 
 export function WorkflowAction({

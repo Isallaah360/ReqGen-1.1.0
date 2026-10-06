@@ -4,14 +4,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  CalendarDays,
   CheckCircle2,
-  ChevronRight,
   CircleAlert,
   Pencil,
   RefreshCw,
   Search,
-  Settings2,
   ShieldCheck,
   Signature,
   ToggleLeft,
@@ -21,6 +18,7 @@ import {
 import { supabase } from "@/lib/supabaseClient";
 import styles from "./payment-voucher-settings.module.css";
 import { StatTile } from "@/app/components/ui/StatTile";
+import { PageHeader } from "@/app/components/ui/PageHeader";
 
 type SignatoryType = "ChequeSigner" | "CounterSigner" | "Both";
 
@@ -395,27 +393,11 @@ export default function PaymentVoucherSettingsPage() {
   return (
     <main className={styles.page}>
       <div className={styles.shell}>
-        <nav className={styles.breadcrumb} aria-label="Breadcrumb">
-          <Link href="/dashboard">Home</Link><ChevronRight size={13} />
-          <Link href="/payment-vouchers">Payment Vouchers</Link><ChevronRight size={13} />
-          <span>Settings</span>
-        </nav>
-
-        <header className={styles.hero}>
-          <div className={styles.heroIdentity}>
-            <div className={styles.titleIcon}><Settings2 size={24} /></div>
-            <div>
-              <span className={styles.eyebrow}>Payment Vouchers</span>
-              <h1>Payment Voucher Settings</h1>
-              <p>Control official cheque-signing authority from verified ReqGen user profiles.</p>
-            </div>
-          </div>
-          <div className={styles.heroMeta}>
-            <span><CalendarDays size={16} />{new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}</span>
-            <span><ShieldCheck size={16} />Restricted Authority</span>
-            <button onClick={() => void load(true)} disabled={refreshing || saving}><RefreshCw size={15} />{refreshing ? "Refreshing..." : "Refresh"}</button>
-          </div>
-        </header>
+        <PageHeader
+          title="Payment Voucher Settings"
+          description="Control official cheque-signing authority from verified ReqGen user profiles."
+          actions={<button type="button" className="rg-btn rg-btn-secondary" onClick={() => void load(true)} disabled={refreshing || saving}><RefreshCw size={15} />{refreshing ? "Refreshing..." : "Refresh"}</button>}
+        />
 
         {message && <div className={styles.message}><CircleAlert size={16} /><span>{message}</span></div>}
 

@@ -4759,7 +4759,7 @@ html body .rg-reveal{position:absolute;transform:translateY(-50%);z-index:2;widt
 html body .rg-reveal:hover{background:var(--c-bg-fbf1e9,#fbf1e9);color:var(--c-fg-b83e00,#b83e00)}
 html body .rg-reveal:focus-visible{outline:2px solid var(--c-ln-b83e00,#b83e00);outline-offset:1px}
 /* v3.1.3 loading strip — directly below the top bar, inside the app */
-.rg-activity-strip{position:sticky;top:var(--rg-topbar);z-index:69;height:3px;margin-bottom:-3px;overflow:hidden;opacity:0;transition:opacity .18s ease;pointer-events:none}
+.rg-activity-strip{position:sticky;top:var(--rg-topbar);z-index:69;height:5px;margin-bottom:-5px;overflow:hidden;opacity:0;transition:opacity .18s ease;pointer-events:none}
 .rg-activity-strip.is-on{opacity:1;background:rgba(240,108,36,.14)}
 .rg-activity-strip span{position:absolute;top:0;bottom:0;left:-40%;width:40%;background:linear-gradient(90deg,var(--c-bg-f06c24,#f06c24),var(--c-bg-e43c24,#e43c24) 40%,var(--c-bg-f09c18,#f09c18) 75%,var(--c-bg-30a8d8,#30a8d8))}
 .rg-activity-strip.is-on span{animation:rgStrip 1.15s cubic-bezier(.4,0,.2,1) infinite}
@@ -4865,15 +4865,21 @@ html body .rg-brand-backdrop img{opacity:.08}
 html[data-theme="dark"] body .rg-brand-backdrop{mix-blend-mode:screen}
 html[data-theme="dark"] body .rg-brand-backdrop img{opacity:.12}
 @media print{.rg-brand-backdrop{display:none!important}}
-/* v3.1.1: IET accents on every printout (request template, payment & manual
-   vouchers, finance/report sheets, audit sheets, and printed workspace pages).
-   Colours are forced to print; on black-and-white printers they print as grey. */
-:is(.req-print-preview .sheet,.voucher-sheet,.print-sheet,.audit-sheet){position:relative}
-:is(.req-print-preview .sheet,.voucher-sheet,.print-sheet,.audit-sheet)::before,
-:is(.req-print-preview .sheet,.voucher-sheet,.print-sheet,.audit-sheet)::after{content:"";position:absolute;left:0;right:0;pointer-events:none;
+/* v3.1.1/v3.1.4: IET accents on printouts. On SCREEN only the real print
+   previews (request template, payment vouchers) show them; report and audit
+   sheets show them when printed — never as stray lines on a workspace page. */
+:is(.req-print-preview .sheet,.voucher-sheet){position:relative}
+:is(.req-print-preview .sheet,.voucher-sheet)::before,:is(.req-print-preview .sheet,.voucher-sheet)::after{content:"";position:absolute;left:0;right:0;pointer-events:none;
   background:linear-gradient(90deg,var(--c-bg-f06c24,#f06c24),var(--c-bg-e43c24,#e43c24) 40%,var(--c-bg-f09c18,#f09c18) 75%,var(--c-bg-30a8d8,#30a8d8));-webkit-print-color-adjust:exact;print-color-adjust:exact}
-:is(.req-print-preview .sheet,.voucher-sheet,.print-sheet,.audit-sheet)::before{top:0;height:5px}
-:is(.req-print-preview .sheet,.voucher-sheet,.print-sheet,.audit-sheet)::after{bottom:0;height:2px;opacity:.85}
+:is(.req-print-preview .sheet,.voucher-sheet)::before{top:0;height:5px}
+:is(.req-print-preview .sheet,.voucher-sheet)::after{bottom:0;height:2px;opacity:.85}
+@media print{
+  :is(.print-sheet,.audit-sheet){position:relative}
+  :is(.print-sheet,.audit-sheet)::before,:is(.print-sheet,.audit-sheet)::after{content:"";position:absolute;left:0;right:0;pointer-events:none;
+    background:linear-gradient(90deg,var(--c-bg-f06c24,#f06c24),var(--c-bg-e43c24,#e43c24) 40%,var(--c-bg-f09c18,#f09c18) 75%,var(--c-bg-30a8d8,#30a8d8));-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  :is(.print-sheet,.audit-sheet)::before{top:0;height:5px}
+  :is(.print-sheet,.audit-sheet)::after{bottom:0;height:2px}
+}
 @media print{
   html body::before{position:fixed;top:0;left:0;right:0;width:auto;transform:none;height:4px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 }
@@ -4953,3 +4959,30 @@ html body .rg-content [class*="approvals-module__"][class*="__viewTabs"]{display
 html body .rg-content [class*="approvals-module__"][class*="__viewTabs"]>*{flex:1 1 0;justify-content:center}
 html body .rg-content [class*="approvals-module__"][class*="__workspaceToolbar"]{flex-wrap:wrap!important}
 html body .rg-content [class*="approvals-module__"][class*="__workspaceToolbar"]>[class*="__viewTabs"]{flex:1 1 100%!important}
+
+/* ==========================================================================
+   v3.1.4 — standard page header (PageHeader) and page-level hygiene
+   ========================================================================== */
+.rg-page-std{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin:0 0 16px}
+.rg-page-std-text{min-width:0}
+.rg-page-std h1{margin:0;color:var(--c-fg-291d18,#291d18);font-size:26px;font-weight:900;letter-spacing:-.02em;line-height:1.15}
+.rg-page-std p{margin:6px 0 0;color:var(--c-fg-6d5f55,#6d5f55);font-size:13.5px;line-height:1.5;max-width:760px}
+.rg-page-std-actions{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;align-items:center}
+html[data-theme="dark"] .rg-page-std h1{color:var(--c-fg-f1e9e2,#f1e9e2)}
+html[data-theme="dark"] .rg-page-std p{color:var(--c-fg-b9ada2,#b9ada2)}
+@media(max-width:620px){.rg-page-std{flex-direction:column}.rg-page-std h1{font-size:22px}.rg-page-std-actions{justify-content:flex-start}}
+.rg-stat-row-5{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin:0 0 16px}
+@media(max-width:1100px){.rg-stat-row-5{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:620px){.rg-stat-row-5{grid-template-columns:repeat(2,minmax(0,1fr))}}
+/* v3.1.4: eyebrow labels above titles are retired system-wide — the title
+   underneath already names the page or card. */
+html body .rg-content :is(.req-family-eyebrow,.rg-module-eyebrow,.rg-section-eyebrow,[class*="__eyebrow"],[class*="__sectionEyebrow"],[class*="__kicker"]){display:none!important}
+/* v3.1.4 one clean frame per field (FieldShells) */
+html body .rg-content .rg-field-inner{border:0!important;background:transparent!important;box-shadow:none!important;outline:none!important;border-radius:0!important;
+  height:auto!important;min-height:0!important;align-self:stretch;flex:1 1 auto;min-width:0}
+html body .rg-content .rg-field-shell{background:var(--c-bg-ffffff,#fff);overflow:hidden;transition:border-color .15s ease,box-shadow .15s ease}
+html body .rg-content .rg-field-shell:focus-within{border-color:var(--c-ln-b83e00,#b83e00)!important;box-shadow:0 0 0 3px rgba(184,62,0,.14)!important}
+html[data-theme="dark"] body .rg-content .rg-field-shell{background:var(--c-bg-151a24,#151a24)}
+
+/* v3.1.4: consistent space between the module tabs and the page content */
+html body .rg-content .rg-module-tabs{margin-bottom:20px!important}

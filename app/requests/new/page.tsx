@@ -982,17 +982,16 @@ export default function NewRequestPage() {
   return (
     <main className={styles.page}>
       <div className={styles.pageInner}>
-        <header className={styles.pageHeader}>
-          <div>
-            <h1>Create New Request</h1>
-            <p>Submit a new request by providing the required details below.</p>
-          </div>
-          <div className={styles.breadcrumbs} aria-label="Breadcrumb">
-            <button type="button" onClick={() => embedded ? closeEmbedded() : router.push("/requests")}>Requests</button>
-            <span>›</span>
-            <strong>Create New Request</strong>
-          </div>
-        </header>
+        {/* v3.1.4: one title only. Embedded in the Requests workspace, that
+            workspace shows the title; opened directly, the page shows it once
+            (the app breadcrumb bar already provides navigation). */}
+        {embedded ? null : (
+          <header className={styles.pageHeader}>
+            <div>
+              <h1>Create New Request</h1>
+            </div>
+          </header>
+        )}
 
         {msg && (
           <div className={`${styles.notice} ${msg.startsWith("✕") ? styles.noticeError : styles.noticeInfo}`}>

@@ -9,7 +9,9 @@ import {
     useState,
 } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import { LockKeyhole, Receipt } from "lucide-react";
+import { FileCheck2, FilePenLine, Landmark, Layers, LockKeyhole, Receipt, Wallet } from "lucide-react";
+import { PageHeader } from "@/app/components/ui/PageHeader";
+import { StatTile } from "@/app/components/ui/StatTile";
 import styles from "./manual-voucher-adopted.module.css";
 
 type ProfileRole = {
@@ -861,17 +863,15 @@ export default function ManualVoucherPage() {
 
     return (
         <main className={`${styles.page} rg-manual-voucher-page`}>
-            <header className="rg-manual-voucher-header">
-                <div>
-                    <h1>Create Manual Payment Voucher</h1>
-                    <p>Create, validate, save and post an authorised manual payment voucher using live Finance data.</p>
-                </div>
-                <div className="rg-manual-voucher-actions">
-                    <button type="button" onClick={() => clearForm()} className="rg-secondary-button">New Voucher</button>
-                    <button type="button" onClick={() => loadPage(true)} disabled={refreshing} className="rg-secondary-button">{refreshing ? "Refreshing..." : "Refresh"}</button>
-                    <Link href="/payment-vouchers" className="rg-primary-button">Voucher Centre</Link>
-                </div>
-            </header>
+            <PageHeader
+                title="Create Manual Payment Voucher"
+                description="Create, validate, save and post an authorised manual payment voucher using live Finance data."
+                actions={<>
+                    <button type="button" onClick={() => clearForm()} className="rg-btn rg-btn-secondary">New Voucher</button>
+                    <button type="button" onClick={() => loadPage(true)} disabled={refreshing} className="rg-btn rg-btn-secondary">{refreshing ? "Refreshing..." : "Refresh"}</button>
+                    <Link href="/payment-vouchers" className="rg-btn rg-btn-primary">Voucher Centre</Link>
+                </>}
+            />
 
             <section className="rg-voucher-stepper" aria-label="Manual voucher workflow">
                 <div className="is-current"><b>1</b><span>Voucher Details</span></div>
@@ -880,12 +880,12 @@ export default function ManualVoucherPage() {
                 <div><b>4</b><span>Review & Submit</span></div>
             </section>
 
-            <section className="rg-voucher-live-summary">
-                <article><span>Draft vouchers</span><strong>{draftCount}</strong></article>
-                <article><span>Posted vouchers</span><strong>{postedCount}</strong></article>
-                <article><span>IET accounts</span><strong>{accounts.length}</strong></article>
-                <article><span>Available subheads</span><strong>{subheads.length}</strong></article>
-                <article><span>Posted value</span><strong>{money(postedValue)}</strong></article>
+            <section className="rg-stat-row-5">
+                <StatTile title="Draft Vouchers" value={draftCount} tone="amber" icon={<FilePenLine size={18} />} note="Saved, not yet posted" />
+                <StatTile title="Posted Vouchers" value={postedCount} tone="emerald" icon={<FileCheck2 size={18} />} note="Posted to Finance" />
+                <StatTile title="IET Accounts" value={accounts.length} tone="blue" icon={<Landmark size={18} />} note="Available to charge" />
+                <StatTile title="Available Subheads" value={subheads.length} tone="purple" icon={<Layers size={18} />} note="Budget lines" />
+                <StatTile title="Posted Value" value={money(postedValue)} tone="orange" icon={<Wallet size={18} />} note="Total posted" />
             </section>
 
             {error && (
@@ -905,19 +905,11 @@ export default function ManualVoucherPage() {
             <section className="mt-6 rounded-[32px] border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
                 <div className="flex flex-col justify-between gap-4 border-b border-slate-200 pb-5 sm:flex-row sm:items-center">
                     <div>
-                        <p className="text-xs font-black uppercase tracking-[0.18em] text-amber-700">
-                            {voucherId
-                                ? "Edit Manual Voucher"
-                                : "New Manual Voucher"}
-                        </p>
-
-                        <h2 className="mt-2 text-2xl font-black text-slate-950">
-                            {voucherNo ||
-                                "Voucher number generated on first save"}
+                        <h2 className="text-xl font-black text-slate-950">
+                            {voucherId ? `Manual Voucher ${voucherNo || ""}`.trim() : "New Manual Voucher"}
                         </h2>
-
-                        <p className="mt-2 text-sm font-semibold text-slate-500">
-                            Fields marked with an asterisk are required.
+                        <p className="mt-1 text-sm font-semibold text-slate-500">
+                            Fields marked with an asterisk (*) are required.
                         </p>
                     </div>
 

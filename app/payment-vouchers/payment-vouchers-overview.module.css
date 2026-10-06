@@ -22,3 +22,7 @@
 .workspaceTabs{display:flex;gap:8px;align-items:center;overflow-x:auto;margin:0 0 14px;padding:6px;border:1px solid var(--c-ln-dfe6ef,#dfe6ef);border-radius:12px;background:var(--c-bg-ffffff,#fff);box-shadow:0 4px 14px rgba(19,45,83,.035)}.workspaceTab,.workspaceTabActive{min-height:38px;padding:0 14px;border:0;border-radius:8px;background:transparent;color:var(--c-fg-334761,#334761);font-size:13px;font-weight:800;white-space:nowrap;cursor:pointer}.workspaceTab:hover{background:var(--c-bg-eef4ff,#eef4ff);color:var(--c-fg-0b57e3,#0b57e3)}.workspaceTabActive{background:var(--c-bg-0b57e3,#0b57e3);color:var(--c-fg-ffffff,#fff);box-shadow:0 5px 14px rgba(11,87,227,.18)}.workspaceTabActive:hover{background:var(--c-bg-0b57e3,#0b57e3);color:var(--c-fg-ffffff,#fff)}.printAction{min-height:32px;padding:0 10px;border:1px solid var(--c-ln-0b57e3,#0b57e3);border-radius:7px;background:var(--c-bg-0b57e3,#0b57e3);color:var(--c-fg-ffffff,#fff);font-size:12px;font-weight:800;cursor:pointer}
 /* v3.0.9: stat amounts larger; scale with width so long naira values never overflow */
 .moneyValue{font-size:clamp(20px,1.6vw,24px)!important;line-height:1.15}
+/* v3.1.4: the register title never squeezes; filters take the remaining room */
+.tableToolbar{flex-wrap:wrap}
+.tableToolbar>h2{white-space:nowrap;flex:0 0 auto;margin:0}
+.toolbarControls{flex:1 1 520px;min-width:0}

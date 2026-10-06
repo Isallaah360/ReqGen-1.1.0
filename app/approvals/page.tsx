@@ -6,6 +6,7 @@ import { ArrowLeft, CheckCircle2, Clock3, Eye, RefreshCw, Search, ShieldCheck, X
 import { supabase } from "@/lib/supabaseClient";
 import RequestDetailsWorkspace from "@/app/components/requests/RequestDetailsWorkspace";
 import RequestAccessGate from "@/app/components/requests/RequestAccessGate";
+import { StatTile } from "@/app/components/ui/StatTile";
 import styles from "./approvals.module.css";
 import { APPROVAL_QUEUE_CHANGED_EVENT, isClosedRequest, isVisibleInApprovals } from "@/lib/approvalQueue";
 
@@ -188,10 +189,10 @@ export default function ApprovalsPage() {
       {message ? <div className={styles.errorBanner}>{message}</div> : null}
 
       <section className={styles.compactKpis} aria-label="Approval summary">
-        <article><Clock3 size={20} /><div><span>Waiting for you</span><strong>{pendingRows.length}</strong><small>Requests requiring attention</small></div></article>
-        <article><CheckCircle2 size={20} /><div><span>Approved history</span><strong>{approvedCount}</strong><small>Successfully completed</small></div></article>
-        <article><XCircle size={20} /><div><span>Rejected / closed</span><strong>{rejectedCount}</strong><small>Completed decisions</small></div></article>
-        <article><ShieldCheck size={20} /><div><span>Active role</span><strong className={styles.roleValue}>{activeRole || "staff"}</strong><small>Current approval authority</small></div></article>
+        <StatTile title="Waiting for you" value={pendingRows.length} tone="amber" icon={<Clock3 size={18} />} note="Requests requiring attention" />
+        <StatTile title="Approved history" value={approvedCount} tone="emerald" icon={<CheckCircle2 size={18} />} note="Successfully completed" />
+        <StatTile title="Rejected / closed" value={rejectedCount} tone="red" icon={<XCircle size={18} />} note="Completed decisions" />
+        <StatTile title="Active role" value={activeRole || "staff"} tone="blue" icon={<ShieldCheck size={18} />} note="Current approval authority" />
       </section>
 
       <section className={styles.singleWorkspace}>

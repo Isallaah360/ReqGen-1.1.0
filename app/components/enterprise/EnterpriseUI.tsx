@@ -1,5 +1,6 @@
 "use client";
 
+import { PageHeader } from "@/app/components/ui/PageHeader";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
@@ -14,9 +15,9 @@ export function EnterpriseShell({ children }: { children: ReactNode }) {
   return <div className="rg-module-page rg-adopted-page">{children}</div>;
 }
 
-export function EnterpriseHero({ actions }: { eyebrow: string; title: string; description: string; actions?: ReactNode }) {
-  if (!actions) return null;
-  return <div className="rg-rmb-actions-row">{actions}</div>;
+export function EnterpriseHero({ title, description, actions }: { eyebrow: string; title: string; description: string; actions?: ReactNode }) {
+  // v3.1.4: the ONE standard page header.
+  return <PageHeader title={title} description={description} actions={actions} />;
 }
 
 export function ActionButton({ children, tone = "blue", onClick, disabled = false, type = "button" }: { children: ReactNode; tone?: Tone; onClick?: () => void; disabled?: boolean; type?: "button" | "submit" }) {

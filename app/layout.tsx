@@ -13,6 +13,7 @@ import { REQGEN_PRODUCT_NAME } from "@/lib/version";
 import { THEME_BOOT_SCRIPT } from "@/lib/theme";
 import PasswordReveal from "@/app/components/PasswordReveal";
 import TableCards from "@/app/components/TableCards";
+import FieldShells from "@/app/components/FieldShells";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://req-gen-1-1-0.vercel.app"),
@@ -56,6 +57,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <body suppressHydrationWarning>
         <PasswordReveal />
         <TableCards />
+        <FieldShells />
         <GovernmentAppShell>
           <MfaGuard>
             <RouteAccessGuard>

@@ -2325,16 +2325,7 @@ function StatCard({
 }
 
 function MiniCard({ title, value }: { title: string; value: string }) {
-  return (
-    <div className="print-card rounded-2xl border bg-white p-4 shadow-sm print:rounded-none print:border-black print:p-2 print:shadow-none">
-      <div className="text-xs font-semibold uppercase tracking-wide text-slate-500 print:text-xs">
-        {title}
-      </div>
-      <div className="mt-2 text-lg font-extrabold text-slate-900 print:mt-1 print:text-xs">
-        {value}
-      </div>
-    </div>
-  );
+  return <StatTile title={title} value={value} tone="orange" />;
 }
 
 function InfoLine({ label, value }: { label: string; value: string }) {

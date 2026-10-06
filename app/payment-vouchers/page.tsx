@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { CalendarDays, CheckCircle2, ChevronRight, CircleX, Clock3, Download, FileSpreadsheet, MoreVertical, Plus, Search, Settings2, Users, WalletCards, X } from "lucide-react";
+import { CheckCircle2, ChevronRight, CircleX, Clock3, Download, FileSpreadsheet, MoreVertical, Plus, Search, Settings2, WalletCards, X } from "lucide-react";
+import { PageHeader } from "@/app/components/ui/PageHeader";
 import styles from "./payment-vouchers-overview.module.css";
 import { Donut as SharedDonut } from "@/app/components/ui/Donut";
 import { supabase } from "@/lib/supabaseClient";
@@ -1094,29 +1095,11 @@ export default function PaymentVouchersPage() {
 
   return (
     <main className={styles.page}>
-      <div className={styles.breadcrumb}>
-        <button type="button" onClick={() => router.push("/dashboard")}>Home</button>
-        <ChevronRight size={13} />
-        <button type="button" onClick={() => router.push("/finance")}>Finance</button>
-        <ChevronRight size={13} />
-        <span>Payment Vouchers</span>
-      </div>
-
-      <header className={styles.hero}>
-        <div className={styles.heroIdentity}>
-          <div className={styles.titleIcon}><FileSpreadsheet size={26} /></div>
-          <div>
-            <h1>Payment Vouchers</h1>
-            <p>Create, manage and track all payment vouchers.</p>
-          </div>
-        </div>
-        <div className={styles.heroMeta}>
-          <div className={styles.metaItem}><CalendarDays size={17} /><span>{new Date().toLocaleDateString("en-GB", { weekday: "long", day: "2-digit", month: "long", year: "numeric" })}</span></div>
-          <div className={styles.metaDivider} />
-          <div className={styles.metaItem}><Users size={17} /><span>Secure Finance Workspace</span></div>
-          <button className={styles.primaryButton} onClick={() => setShowCreateWorkspace(true)}><Plus size={18}/>Create New Voucher</button>
-        </div>
-      </header>
+      <PageHeader
+        title="Payment Vouchers"
+        description="Create, manage and track all payment vouchers."
+        actions={<button className={styles.primaryButton} onClick={() => setShowCreateWorkspace(true)}><Plus size={18}/>Create New Voucher</button>}
+      />
 
       {msg ? <div className={styles.message}>{msg}</div> : null}
 

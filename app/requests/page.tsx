@@ -52,13 +52,13 @@ export default function RequestsPage(){
  function exportCsv(){const lines=[[`Generated from ReqGen ${REQGEN_VERSION}`],["Request Code","Title","Department","Type","Amount","Status","Requested On"],...filtered.map(r=>[r.request_no,r.title,r.dept_id?departments[r.dept_id]||"Unassigned":"Unassigned",requestTypeLabel(r),String(r.amount||0),statusLabel(r),new Date(r.created_at).toLocaleString("en-NG")])].map(row=>row.map(v=>`"${String(v??"").replaceAll('"','""')}"`).join(",")).join("\n");const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([lines],{type:"text/csv"}));a.download=`reqgen-${REQGEN_VERSION}-requests.csv`;a.click();URL.revokeObjectURL(a.href)}
  if(showCreateDrawer){return <main className={`${styles.page} ${styles.formMode}`}>
   <section className={styles.fullFormWorkspace} aria-label="Create Request">
-   <header className={styles.fullFormHeader}><div><span className={styles.eyebrow}>Requests</span><strong>Create New Request</strong><p>Complete, save, sign and submit your request in one full workspace.</p></div><button type="button" onClick={()=>setShowCreateDrawer(false)}><X size={18}/> Back to Requests</button></header>
+   <header className={styles.fullFormHeader}><div><strong>Create New Request</strong></div><button type="button" onClick={()=>setShowCreateDrawer(false)}><X size={18}/> Back to Requests</button></header>
    <iframe className={styles.fullFormFrame} title="Create Request Form" src="/requests/new?embedded=1"/>
   </section>
  </main>}
  if(editDrawerId){return <main className={`${styles.page} ${styles.formMode}`}>
   <section className={styles.fullFormWorkspace} aria-label="Edit Request">
-   <header className={styles.fullFormHeader}><div><span className={styles.eyebrow}>Requests</span><strong>Edit Request</strong><p>Update the request while preserving its workflow, reservations and audit history.</p></div><button type="button" onClick={()=>setEditDrawerId(null)}><X size={18}/> Back to Requests</button></header>
+   <header className={styles.fullFormHeader}><div><strong>Edit Request</strong></div><button type="button" onClick={()=>setEditDrawerId(null)}><X size={18}/> Back to Requests</button></header>
    <iframe className={styles.fullFormFrame} title="Edit Request Form" src={`/requests/${editDrawerId}/edit?embedded=1`}/>
   </section>
  </main>}
