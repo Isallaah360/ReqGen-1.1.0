@@ -1,9 +1,10 @@
 "use client";
 
 import Image from "next/image";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import SignatureInk from "@/app/components/ui/SignatureInk";
+import { printA4Sheet, useA4Fit } from "@/lib/printA4";
 import RequestAccessGate from "@/app/components/requests/RequestAccessGate";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -118,7 +119,9 @@ function naira(n: number | null | undefined) {
 
 function formatDate(d: string | null | undefined) {
   if (!d) return "";
-  return new Date(d).toLocaleDateString();
+  const date = new Date(d);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
 }
 
 function getPublicSignatureUrl(value: string | null | undefined) {
@@ -173,6 +176,7 @@ function canRolePrintRequest(roleSet: Set<string>, req: Req | null) {
   const isPersonalOther = normalize(req.request_type) === "personal" && !isPersonalFund;
 
   if (hasAnyRole(roleSet, ["admin", "auditor"])) return true;
+  if (roleSet.has("ownrequest")) return true;
 
   const hasAccount = Array.from(roleSet).some(isAccountRole);
   const hasHR = hasAnyRole(roleSet, ["hr", "hrofficer1", "hrofficer2", "hrofficer3"]);
@@ -192,8 +196,16 @@ function histSignatureUrl(h: Hist | null | undefined, fallback: string | null | 
   return getPublicSignatureUrl(h?.actor_signature_url || h?.signature_url || fallback);
 }
 
+/**
+ * v3.1.6: an approval step is any forward decision — "Approve", "Approved",
+ * "Recommend", "Forward", "Endorse", "Checked", "Treat" — never a rejection,
+ * a return, a comment or an attachment check.
+ */
 function isApproveHistory(h: Hist) {
-  return normalize(h.action_type) === "approve";
+  const action = normalize(h.action_type);
+  if (!action) return false;
+  if (/reject|return|declin|cancel|withdraw|comment|attachment|submit|create|view/.test(action)) return false;
+  return /approv|recommend|forward|endors|check|treat|confirm|verif|authori/.test(action);
 }
 
 function isRoleOneOf(h: Hist, keys: string[]) {
@@ -237,6 +249,8 @@ function PrintRequestPageContent() {
   const [myRoles, setMyRoles] = useState<ProfileRole[]>([]);
   const [req, setReq] = useState<Req | null>(null);
   const [history, setHistory] = useState<Hist[]>([]);
+  const sheetRef = useRef<HTMLElement>(null);
+  const [isOwner, setIsOwner] = useState(false);
 
   const roleSet = useMemo(() => {
     const set = new Set<string>();
@@ -247,8 +261,10 @@ function PrintRequestPageContent() {
       if (r.is_active) set.add(roleKey(r.role_key));
     });
 
+    if (isOwner) set.add("ownrequest");
+
     return set;
-  }, [me, myRoles]);
+  }, [me, myRoles, isOwner]);
 
   const isOfficial = useMemo(() => {
     return normalize(req?.request_type) === "official";
@@ -360,6 +376,20 @@ function PrintRequestPageContent() {
     return histSignatureUrl(accountHistory, req?.account_signature_snapshot);
   }, [accountHistory, req?.account_signature_snapshot]);
 
+  // v3.1.6: ONE source for the "Checked by" line — the reviewing officer
+  // (PO/DOD/HOD/Director/DIN Admin/Registrar), or HR on personal requests.
+  const checkedLine = useMemo(() => {
+    const step = checkedHistory || (isPersonal ? hrHistory : null) || hrHistory;
+    return {
+      name: step?.actor_name || req?.checked_by_name || (isPersonal ? req?.hr_name : null) || "",
+      capacity: step ? roleCapacity(step, "Reviewer") : "Reviewer",
+      sigUrl: (checkedHistory ? sigChecked : null) || sigHR || sigChecked,
+      date: step?.created_at ? formatDate(step.created_at) : "",
+    };
+  }, [checkedHistory, hrHistory, isPersonal, req?.checked_by_name, req?.hr_name, sigChecked, sigHR]);
+
+  useA4Fit(sheetRef, [req, history, loading]);
+
   const sigHRFiling = useMemo(() => {
     return histSignatureUrl(hrFilingHistory, null);
   }, [hrFilingHistory]);
@@ -444,6 +474,12 @@ function PrintRequestPageContent() {
         setRefreshing(false);
         return null;
       }
+
+      // v3.1.6: the requester may print and save their own completed request.
+      const ownerRes = await supabase.from("requests").select("created_by").eq("id", id).maybeSingle();
+      const ownsRequest = !!ownerRes.data?.created_by && ownerRes.data.created_by === myProfile.id;
+      setIsOwner(ownsRequest);
+      if (ownsRequest) nextRoleSet.add("ownrequest");
 
       setReq(reqRow);
 
@@ -620,8 +656,7 @@ function PrintRequestPageContent() {
     }
 
     setTimeout(() => {
-      window.print();
-      setPrinting(false);
+      void printA4Sheet(sheetRef.current, `${latestReq?.request_no || "Request"} — ReqGen`).finally(() => setPrinting(false));
     }, 250);
   }
 
@@ -775,41 +810,53 @@ function PrintRequestPageContent() {
           roles and status are used.
         </div>
 
-        <div className="sheet mx-auto w-full bg-white px-[28px] py-[22px] text-black">
-          <div className="text-center">
-            <div className="mx-auto flex justify-center"><Image src="/iet-logo.png" alt="Islamic Education Trust logo" width={64} height={64} className="h-[58px] w-auto object-contain" priority /></div>
-            <div className="mt-1 text-lg font-black uppercase leading-none tracking-tight">Islamic Education Trust</div>
-            <div className="mt-1 text-[9.5px] font-semibold leading-tight">IW2, Ilmi Avenue Intermediate Housing Estate</div>
-            <div className="text-[9.5px] font-semibold leading-tight">PMB 229, Minna, Niger State - Nigeria</div>
-          </div>
-          <div className="mt-4 flex items-center gap-3 text-xs font-black"><span className="shrink-0">SUB-HEAD:</span><div className="h-[24px] flex-1 rounded border border-black px-2 leading-[22px] font-semibold">{isOfficial ? `${req.subhead_code || ""}${req.subhead_name ? ` — ${req.subhead_name}` : ""}`.trim() : requestCategoryLabel(req)}</div></div>
-          <div className="mt-5 text-[10.5px] font-bold leading-[1.35]"><div>The Director General,</div><div>Islamic Education Trust,</div><div>Minna.</div></div>
-          <div className="mt-5 text-[10.5px] font-bold">Assalamu` Alaikum Sir,</div>
-          <div className="mt-2 text-center text-xs font-black uppercase">{printTitle}</div>
-          {!isPersonalOther ? <p className="mt-2 text-xs font-semibold leading-[1.45]">I write to request for the release of the total sum of <span className="inline-block min-w-[185px] border-b border-black px-2 text-center font-black">{amountText}</span> for the expense below/attached:</p> : <p className="mt-2 text-xs font-semibold leading-[1.45]">I write to request consideration and approval for the personal matter stated below/attached:</p>}
-          <div className="mt-2 min-h-[175px] whitespace-pre-wrap border-b border-black/50 pb-2 text-xs font-semibold leading-[1.55]"><strong>{req.title}</strong>{"\n\n"}{req.details}</div>
-          <div className="mt-3 text-[10.5px] font-bold">Wassalamu` Alaikum.</div>
-          {isOfficial ? <div className="mt-3 flex justify-end"><div className="w-[330px] space-y-1.5"><SmallFieldRow label="ALLOCATION B/D:" value={naira(req.approved_allocation)} /><SmallFieldRow label="EXPENDITURE:" value={naira(req.expenditure)} /><SmallFieldRow label="BALANCE C/D:" value={naira(req.balance)} /></div></div> : null}
-          <div className="rg-print-signatures">
-            <SignatureLine label="Requested by:" name={req.requester_name || ""} capacity="Requester" sigUrl={sigRequester} date={formatDate(req.created_at)} />
-            <SignatureLine label="Checked by:" name={checkedHistory?.actor_name || req.checked_by_name || hrHistory?.actor_name || req.hr_name || ""} capacity={checkedHistory ? roleCapacity(checkedHistory, "Reviewer") : roleCapacity(hrHistory, "Reviewer")} sigUrl={sigChecked || sigHR} date={formatDate(checkedHistory?.created_at || hrHistory?.created_at || req.created_at)} />
-            <SignatureLine label="Approved by Director General, IET:" name={dgHistory?.actor_name || req.dg_name || ""} capacity={roleCapacity(dgHistory, "Director General")} sigUrl={sigDG} date={formatDate(dgHistory?.created_at || req.created_at)} />
-          </div>
-          <div className="mt-8 flex items-center justify-between text-xs text-slate-600"><span>{req.request_no}</span><span className="italic font-medium">Building Bridges</span></div>
+        {/* v3.1.6: one exact A4 page, fitted by lib/printA4.ts and printed in an isolated frame. */}
+        <div className="rg-a4-stage">
+          <article ref={sheetRef} className="rg-a4-page rg-reqdoc-page" aria-label={`Request ${req.request_no}`}>
+            <div className="rg-a4-content rg-reqdoc">
+              <header className="rg-reqdoc-head">
+                <Image src="/iet-logo.png" alt="Islamic Education Trust logo" width={72} height={72} priority />
+                <div className="rg-reqdoc-org">Islamic Education Trust</div>
+                <div className="rg-reqdoc-addr">IW2, Ilmi Avenue Intermediate Housing Estate</div>
+                <div className="rg-reqdoc-addr">PMB 229, Minna, Niger State - Nigeria</div>
+              </header>
+
+              <div className="rg-reqdoc-subhead">
+                <span>SUB-HEAD:</span>
+                <div>{isOfficial ? `${req.subhead_code || ""}${req.subhead_name ? ` — ${req.subhead_name}` : ""}`.trim() : requestCategoryLabel(req)}</div>
+              </div>
+
+              <div className="rg-reqdoc-to"><div>The Director General,</div><div>Islamic Education Trust,</div><div>Minna.</div></div>
+              <div className="rg-reqdoc-salute">Assalamu` Alaikum Sir,</div>
+              <div className="rg-reqdoc-title">{printTitle}</div>
+              {!isPersonalOther ? (
+                <p className="rg-reqdoc-intro">I write to request for the release of the total sum of <span className="rg-reqdoc-amount">{amountText}</span> for the expense below/attached:</p>
+              ) : (
+                <p className="rg-reqdoc-intro">I write to request consideration and approval for the personal matter stated below/attached:</p>
+              )}
+              <div className="rg-reqdoc-body rg-a4-grow"><strong>{req.title}</strong>{req.details}</div>
+              <div className="rg-reqdoc-close">Wassalamu` Alaikum.</div>
+
+              {isOfficial ? (
+                <div className="rg-reqdoc-balances">
+                  <div><span>ALLOCATION B/D:</span><span>{naira(req.approved_allocation)}</span></div>
+                  <div><span>EXPENDITURE:</span><span>{naira(req.expenditure)}</span></div>
+                  <div><span>BALANCE C/D:</span><span>{naira(req.balance)}</span></div>
+                </div>
+              ) : null}
+
+              <div className="rg-print-signatures">
+                <SignatureLine label="Requested by:" name={req.requester_name || ""} capacity="Requester" sigUrl={sigRequester} date={formatDate(req.created_at)} />
+                <SignatureLine label="Checked by:" name={checkedLine.name} capacity={checkedLine.capacity} sigUrl={checkedLine.sigUrl} date={checkedLine.date} />
+                <SignatureLine label="Approved by Director General, IET:" name={dgHistory?.actor_name || req.dg_name || ""} capacity={roleCapacity(dgHistory, "Director General")} sigUrl={sigDG} date={dgHistory?.created_at ? formatDate(dgHistory.created_at) : ""} />
+              </div>
+
+              <footer className="rg-reqdoc-foot"><span>{req.request_no}</span><em>Building Bridges</em></footer>
+            </div>
+          </article>
         </div>
       </div>
     </main>
-  );
-}
-
-function SmallFieldRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-center justify-end gap-2">
-      <div className="w-[128px] text-right text-[8.8px] font-black">{label}</div>
-      <div className="h-[18px] w-[185px] rounded border border-black px-2 text-right text-[8.5px] font-semibold leading-[16px]">
-        {value}
-      </div>
-    </div>
   );
 }
 

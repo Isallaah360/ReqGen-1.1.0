@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { confirmDialog } from "@/lib/dialog";
-import { useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { CheckCircle2, ChevronRight, CircleX, Clock3, Download, FileSpreadsheet, MoreVertical, Plus, Search, Settings2, WalletCards, X } from "lucide-react";
 import { PageHeader } from "@/app/components/ui/PageHeader";
 import styles from "./payment-vouchers-overview.module.css";
@@ -109,6 +109,38 @@ type DeleteVoucherResult = { deleted_voucher_no?: string | null };
 type DisbursementMode = "Transfer" | "Cash" | "Cheque";
 type VoucherWorkspaceView = "overview" | "pending" | "approved" | "history" | "print";
 
+/**
+ * v3.1.6 — one voucher phase for every count, tab and chart.
+ * pending  = still in the signing chain (nothing is approved before the DG signs)
+ * approved = fully signed and authorised by the DG, not yet paid
+ */
+type VoucherPhase = "pending" | "approved" | "paid" | "rejected" | "other";
+function voucherPhase(status: string | null | undefined): VoucherPhase {
+  const s = String(status || "").toLowerCase().replace(/[^a-z]/g, "");
+  if (/cancel|reject|void|delete/.test(s)) return "rejected";
+  if (s === "paid" || s.includes("completed") || s.includes("posted")) return "paid";
+  if (s === "authorized" || s === "authorised") return "approved";
+  if (s.startsWith("pending") || ["prepared", "checked", "draft", "chequeprepared", "chequesigned", "countersigned"].includes(s)) return "pending";
+  return "other";
+}
+
+/** v3.1.6: each workspace view is a numbered module tab with its own address. */
+const VIEW_PATH: Record<VoucherWorkspaceView, string> = {
+  overview: "/payment-vouchers",
+  pending: "/payment-vouchers/pending",
+  approved: "/payment-vouchers/approved",
+  history: "/payment-vouchers/history",
+  print: "/payment-vouchers/print-centre",
+};
+
+function viewForPath(pathname: string | null, legacy: string | null): VoucherWorkspaceView {
+  if (pathname?.endsWith("/pending")) return "pending";
+  if (pathname?.endsWith("/approved")) return "approved";
+  if (pathname?.endsWith("/history") || pathname?.endsWith("/reports")) return "history";
+  if (pathname?.endsWith("/print-centre")) return "print";
+  return legacy === "pending" || legacy === "approved" || legacy === "history" || legacy === "print" ? legacy : "overview";
+}
+
 function roleKey(role: string | null | undefined) {
   return (role || "")
     .trim()
@@ -188,10 +220,10 @@ function mapBankAccount(row: Record<string, unknown>, source: BankAccountRow["so
 /** v3.0.8: one grouping for the summary donut AND its table filter. */
 type VoucherGroup = "Approved" | "Pending" | "Rejected" | "Others";
 function voucherGroup(status: string | null | undefined): VoucherGroup {
-  const key = String(status || "").toLowerCase().replace(/[^a-z]/g, "");
-  if (["authorized", "chequeprepared", "chequesigned", "countersigned", "paid"].includes(key)) return "Approved";
-  if (["prepared", "checked"].includes(key)) return "Pending";
-  if (["cancelled", "rejected"].includes(key)) return "Rejected";
+  const phase = voucherPhase(status);
+  if (phase === "approved" || phase === "paid") return "Approved";
+  if (phase === "pending") return "Pending";
+  if (phase === "rejected") return "Rejected";
   return "Others";
 }
 
@@ -264,10 +296,8 @@ export default function PaymentVouchersPage() {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [moreOpen, setMoreOpen] = useState<string | null>(null);
   const [showCreateWorkspace, setShowCreateWorkspace] = useState(false);
-  const [workspaceView, setWorkspaceView] = useState<VoucherWorkspaceView>(() => {
-    const view = searchParams.get("view");
-    return view === "pending" || view === "approved" || view === "history" || view === "print" ? view : "overview";
-  });
+  const pathname = usePathname();
+  const [workspaceView, setWorkspaceView] = useState<VoucherWorkspaceView>(() => viewForPath(pathname, searchParams.get("view")));
 
   const [mode, setMode] = useState<DisbursementMode>("Transfer");
 
@@ -288,9 +318,8 @@ export default function PaymentVouchersPage() {
   useEffect(() => {
     if (searchParams.get("create") === "1") setShowCreateWorkspace(true);
     if (searchParams.get("manual") === "1") setShowManualModal(true);
-    const view = searchParams.get("view");
-    setWorkspaceView(view === "pending" || view === "approved" || view === "history" || view === "print" ? view : "overview");
-  }, [searchParams]);
+    setWorkspaceView(viewForPath(pathname, searchParams.get("view")));
+  }, [pathname, searchParams]);
   const [manualDeptId, setManualDeptId] = useState("");
   const [manualSubheadId, setManualSubheadId] = useState("");
   const [manualBankAccountId, setManualBankAccountId] = useState("");
@@ -797,11 +826,13 @@ export default function PaymentVouchersPage() {
       if (!chequeNo.trim()) return "Cheque requires Cheque Number.";
       if (!chequeDate) return "Cheque requires Cheque Date.";
       if (!chequeBankName.trim()) return "Cheque requires Bank Name.";
-      if (!chequeSignedByName.trim()) return "Cheque requires Cheque Signed By.";
-      if (!counterSignatoryName.trim()) return "Cheque requires Counter Signed By.";
-      if (personKey(chequeSignedByName) === personKey(counterSignatoryName)) {
-        return "Cheque Signer and Counter Signer cannot be the same person.";
-      }
+    }
+
+    // v3.1.6: every PV, in every mode, is signed by a Cheque Signer and a Counter Signer.
+    if (!chequeSignedByName.trim()) return "Select the Cheque Signer for this voucher.";
+    if (!counterSignatoryName.trim()) return "Select the Counter Signer for this voucher.";
+    if (personKey(chequeSignedByName) === personKey(counterSignatoryName)) {
+      return "Cheque Signer and Counter Signer cannot be the same person.";
     }
 
     return null;
@@ -844,8 +875,8 @@ export default function PaymentVouchersPage() {
         p_cheque_no: mode === "Cheque" ? chequeNo.trim() : null,
         p_cheque_date: mode === "Cheque" ? chequeDate : null,
         p_cheque_bank_name: mode === "Cheque" ? chequeBankName.trim() : null,
-        p_cheque_signed_by_name: mode === "Cheque" ? chequeSignedByName.trim() : null,
-        p_counter_signatory_name: mode === "Cheque" ? counterSignatoryName.trim() : null,
+        p_cheque_signed_by_name: chequeSignedByName.trim(),
+        p_counter_signatory_name: counterSignatoryName.trim(),
       });
 
       if (error) throw new Error(error.message);
@@ -948,11 +979,12 @@ export default function PaymentVouchersPage() {
     const s = search.trim().toLowerCase();
 
     return rows.filter((v) => {
-      const state = normalize(v.status);
-      if (workspaceView === "pending" && !["prepared", "checked", "pending", "review"].some((x) => state.includes(x))) return false;
-      if (workspaceView === "approved" && !["authorized", "chequeprepared", "chequesigned", "countersigned"].some((x) => state.includes(x))) return false;
-      if (workspaceView === "history" && !["paid", "completed", "closed", "cancelled", "rejected"].some((x) => state.includes(x))) return false;
-      if (workspaceView === "print" && !["authorized", "chequeprepared", "chequesigned", "countersigned", "paid", "completed"].some((x) => state.includes(x))) return false;
+      // v3.1.6: one classification (voucherPhase) for tabs, KPIs and the donut.
+      const phase = voucherPhase(v.status);
+      if (workspaceView === "pending" && phase !== "pending") return false;
+      if (workspaceView === "approved" && phase !== "approved") return false;
+      if (workspaceView === "history" && phase !== "paid" && phase !== "rejected") return false;
+      if (workspaceView === "print" && phase !== "approved" && phase !== "paid") return false;
       if (statusFilter !== "ALL" && (v.status || "") !== statusFilter) return false;
 
       if (typeFilter === "Official" && normalize(v.request_type) !== "official") return false;
@@ -1003,9 +1035,10 @@ export default function PaymentVouchersPage() {
     const single = rows.filter((x) => normalize(x.voucher_scope) === "single").length;
     const multiple = rows.filter((x) => normalize(x.voucher_scope) === "multiple").length;
     const manual = rows.filter((x) => normalize(x.voucher_scope) === "manual").length;
-    const paid = rows.filter((x) => normalize(x.status) === "paid").length;
-    const pending = rows.filter((x) => ["prepared", "checked"].includes(normalize(x.status))).length;
-    const approved = rows.filter((x) => ["authorized", "chequeprepared", "chequesigned", "countersigned", "paid"].includes(normalize(x.status))).length;
+    const paid = rows.filter((x) => voucherPhase(x.status) === "paid").length;
+    const pending = rows.filter((x) => voucherPhase(x.status) === "pending").length;
+    // Approved = fully signed and authorised by the DG (paid vouchers included).
+    const approved = rows.filter((x) => ["approved", "paid"].includes(voucherPhase(x.status))).length;
 
     const totalAmount = rows
       .filter((x) => (x.status || "") !== "Cancelled")
@@ -1045,7 +1078,7 @@ export default function PaymentVouchersPage() {
   const pageCount = Math.max(1, Math.ceil(overviewRows.length / rowsPerPage));
   const safePage = Math.min(currentPage, pageCount);
   const pagedRows = overviewRows.slice((safePage - 1) * rowsPerPage, safePage * rowsPerPage);
-  const rejectedCount = rows.filter((v) => ["cancelled", "rejected"].includes(normalize(v.status))).length;
+  const rejectedCount = rows.filter((v) => voucherPhase(v.status) === "rejected").length;
   const groupAmount = (group: VoucherGroup) => rows.filter((v) => voucherGroup(v.status) === group).reduce((sum, v) => sum + Number(v.total_amount || v.amount || 0), 0);
   const approvedAmount = groupAmount("Approved");
   const pendingAmount = groupAmount("Pending");
@@ -1113,20 +1146,11 @@ export default function PaymentVouchersPage() {
       <PageHeader
         title="Payment Vouchers"
         description="Create, manage and track all payment vouchers."
-        actions={<button className={styles.primaryButton} onClick={() => setShowCreateWorkspace(true)}><Plus size={18}/>Create New Voucher</button>}
+        actions={<div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}><button className={styles.secondaryButton} onClick={() => router.push("/payment-vouchers/manual")}><FileSpreadsheet size={17}/>Manual Voucher</button><button className={styles.primaryButton} onClick={() => setShowCreateWorkspace(true)}><Plus size={18}/>Voucher from Approved Requests</button></div>}
       />
 
       {msg ? <div className={styles.message}>{msg}</div> : null}
 
-      <nav className={styles.workspaceTabs} aria-label="Payment Voucher workspace views">
-        {[
-          ["overview", "Overview"],
-          ["pending", "Pending"],
-          ["approved", "Approved"],
-          ["history", "History"],
-          ["print", "Print / PDF"],
-        ].map(([value, label]) => <button key={value} type="button" className={workspaceView === value ? styles.workspaceTabActive : styles.workspaceTab} onClick={() => { setWorkspaceView(value as VoucherWorkspaceView); setStatusFilter("ALL"); setCurrentPage(1); }}>{label}</button>)}
-      </nav>
 
       <section className={styles.kpiGrid}>
         <article className={styles.kpi}>
@@ -1135,11 +1159,11 @@ export default function PaymentVouchersPage() {
         </article>
         <article className={styles.kpi}>
           <span className={`${styles.kpiIcon} ${styles.tone_green}`}><CheckCircle2 size={21}/></span>
-          <div className={styles.kpiContent}><small>Approved Vouchers</small><strong>{stats.approved}</strong><p>{stats.total ? ((stats.approved / stats.total) * 100).toFixed(1) : "0.0"}% of total vouchers</p><button onClick={() => setWorkspaceView("approved")}>View approved <ChevronRight size={13}/></button></div>
+          <div className={styles.kpiContent}><small>Approved Vouchers</small><strong>{stats.approved}</strong><p>{stats.total ? ((stats.approved / stats.total) * 100).toFixed(1) : "0.0"}% of total vouchers</p><button onClick={() => router.push(VIEW_PATH.approved)}>View approved <ChevronRight size={13}/></button></div>
         </article>
         <article className={styles.kpi}>
           <span className={`${styles.kpiIcon} ${styles.tone_amber}`}><Clock3 size={21}/></span>
-          <div className={styles.kpiContent}><small>Pending Vouchers</small><strong>{stats.pending}</strong><p>{stats.total ? ((stats.pending / stats.total) * 100).toFixed(1) : "0.0"}% of total vouchers</p><button onClick={() => setWorkspaceView("pending")}>View pending <ChevronRight size={13}/></button></div>
+          <div className={styles.kpiContent}><small>Pending Vouchers</small><strong>{stats.pending}</strong><p>{stats.total ? ((stats.pending / stats.total) * 100).toFixed(1) : "0.0"}% of total vouchers</p><button onClick={() => router.push(VIEW_PATH.pending)}>View pending <ChevronRight size={13}/></button></div>
         </article>
         <article className={styles.kpi}>
           <span className={`${styles.kpiIcon} ${styles.tone_red}`}><CircleX size={21}/></span>
@@ -1161,7 +1185,7 @@ export default function PaymentVouchersPage() {
               </select>
               <div className={styles.dateRange}><input aria-label="From date" type="date" value={fromDate} onChange={(e)=>setFromDate(e.target.value)} /><span>–</span><input aria-label="To date" type="date" value={toDate} onChange={(e)=>setToDate(e.target.value)} /></div>
               <select aria-label="Status filter" value={statusFilter} onChange={(e)=>setStatusFilter(e.target.value)}>
-                <option value="ALL">Filters</option><option value="Prepared">Prepared</option><option value="Checked">Checked</option><option value="Authorized">Authorized</option><option value="Paid">Paid</option><option value="Cancelled">Rejected</option>
+                <option value="ALL">Filters</option><option value="Pending Check">Pending Check</option><option value="Pending Cheque Signature">Pending Cheque Signature</option><option value="Pending Counter Signature">Pending Counter Signature</option><option value="Pending DG Authorisation">Pending DG Authorisation</option><option value="Authorized">Authorised</option><option value="Paid">Paid</option><option value="Cancelled">Cancelled</option>
               </select>
               {summaryGroup ? (
                 <span className="rg-filter-chip" role="status" style={{ margin: 0 }}>
@@ -1556,8 +1580,14 @@ export default function PaymentVouchersPage() {
                     placeholder="Bank name"
                   />
 
+                </div>
+              )}
+
+              {/* v3.1.6: signers for every mode. The PV then goes Auditor check ->
+                  Cheque Signer -> Counter Signer -> DG authorisation. */}
+              <div className="mt-4 grid gap-4 md:grid-cols-2">
                   <div>
-                    <label className="text-sm font-semibold text-slate-800">Cheque Signed By</label>
+                    <label className="text-sm font-semibold text-slate-800">Cheque Signer *</label>
                     <select
                       value={chequeSignedByName}
                       onChange={(e) => setChequeSignedByName(e.target.value)}
@@ -1576,7 +1606,7 @@ export default function PaymentVouchersPage() {
                   </div>
 
                   <div>
-                    <label className="text-sm font-semibold text-slate-800">Counter Signed By</label>
+                    <label className="text-sm font-semibold text-slate-800">Counter Signer *</label>
                     <select
                       value={counterSignatoryName}
                       onChange={(e) => setCounterSignatoryName(e.target.value)}
@@ -1593,8 +1623,10 @@ export default function PaymentVouchersPage() {
                       )}
                     </select>
                   </div>
-                </div>
-              )}
+              </div>
+              <p className="mt-2 text-xs font-semibold text-slate-600">
+                After generation the voucher is signed in turn: Auditor check, Cheque Signer, Counter Signer, then the Director General. It can be paid and printed once every signature is in.
+              </p>
 
               <div className="mt-6 flex flex-wrap justify-end gap-2">
                 <button

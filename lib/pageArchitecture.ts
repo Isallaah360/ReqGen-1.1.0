@@ -15,6 +15,7 @@ const LOCKED_ROUTES = new Set<string>([
   "/admin/users",
   "/approvals",
   "/approvals/action-centre",
+  "/approvals/vouchers",
   "/audit-centre",
   "/dashboard",
   "/finance",
@@ -46,6 +47,7 @@ const LOCKED_ROUTES = new Set<string>([
   "/reports/enterprise-analytics",
   "/requests",
   "/requests/new",
+  "/requests/printable",
   "/workflow"
 ]);
 const UNIQUE_MOCKUP_ROUTES = new Set<string>([

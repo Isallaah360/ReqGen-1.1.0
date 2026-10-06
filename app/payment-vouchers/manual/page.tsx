@@ -27,7 +27,11 @@ type AccountRow = {
     account_number: string | null;
     available_balance: number | string | null;
     balance: number | string | null;
+    dept_id?: string | null;
+    department_id?: string | null;
 };
+
+type DeptAccountLink = { dept_id: string | null; iet_account_id: string | null; is_active: boolean | null };
 
 type DepartmentRow = { id: string; name: string; is_active: boolean | null };
 
@@ -239,6 +243,7 @@ export default function ManualVoucherPage() {
 
     const [departments, setDepartments] = useState<DepartmentRow[]>([]);
     const [accounts, setAccounts] = useState<AccountRow[]>([]);
+    const [deptLinks, setDeptLinks] = useState<DeptAccountLink[]>([]);
     const [subheads, setSubheads] = useState<SubheadRow[]>([]);
     const [manualVouchers, setManualVouchers] = useState<ManualVoucherRow[]>(
         []
@@ -338,6 +343,7 @@ export default function ManualVoucherPage() {
             const [
                 departmentResult,
                 accountResult,
+                linkResult,
                 subheadResult,
                 voucherResult,
             ] = await Promise.all([
@@ -350,6 +356,10 @@ export default function ManualVoucherPage() {
                 supabase
                     .from("iet_accounts")
                     .select("*"),
+
+                supabase
+                    .from("department_account_routing")
+                    .select("dept_id,iet_account_id,is_active"),
 
                 supabase
                     .from("subheads")
@@ -393,6 +403,9 @@ export default function ManualVoucherPage() {
 
             setDepartments((departmentResult.data || []) as DepartmentRow[]);
             setAccounts(accountRows);
+            // Account Routing links are optional for this page: if they cannot be
+            // read, the department filter still uses subhead and account links.
+            setDeptLinks(linkResult.error ? [] : ((linkResult.data || []) as DeptAccountLink[]));
             setSubheads(subheadRows);
             setManualVouchers(
                 (voucherResult.data || []) as ManualVoucherRow[]
@@ -443,6 +456,26 @@ export default function ManualVoucherPage() {
             supabase.removeChannel(channel);
         };
     }, [loadPage]);
+
+    /**
+     * v3.1.6: once a department is chosen, ONLY the IET accounts attached to it
+     * are offered — linked in Admin → Account Routing, set on the account, or
+     * funding one of the department's subheads.
+     */
+    const departmentAccounts = useMemo(() => {
+        if (!departmentId) return [] as AccountRow[];
+        const ids = new Set<string>();
+        deptLinks.forEach((link) => {
+            if (link.dept_id === departmentId && link.is_active !== false && link.iet_account_id) ids.add(link.iet_account_id);
+        });
+        subheads.forEach((item) => {
+            if (item.dept_id !== departmentId) return;
+            if (item.account_id) ids.add(item.account_id);
+            if (item.bank_account_id) ids.add(item.bank_account_id);
+        });
+        // A saved draft keeps showing its own account even if links changed since.
+        return accounts.filter((account) => ids.has(account.id) || account.id === accountId || account.dept_id === departmentId || account.department_id === departmentId);
+    }, [accounts, accountId, deptLinks, departmentId, subheads]);
 
     const selectedAccount = useMemo(
         () => accounts.find((item) => item.id === accountId),
@@ -590,6 +623,10 @@ export default function ManualVoucherPage() {
 
     function validateVoucher() {
         const value = Number(amount);
+
+        if (!departmentId) {
+            throw new Error("Select the department first.");
+        }
 
         if (!accountId) {
             throw new Error("Select an IET account.");
@@ -935,21 +972,21 @@ export default function ManualVoucherPage() {
                 >
                     <div className="grid gap-5 lg:grid-cols-2">
                         <label className="block">
-                            <span className="text-sm font-black text-slate-800">Department</span>
+                            <span className="text-sm font-black text-slate-800">1. Department *</span>
                             <select
                                 value={departmentId}
-                                onChange={(event) => { setDepartmentId(event.target.value); setSubheadId(""); setError(null); setSuccess(null); }}
+                                onChange={(event) => { setDepartmentId(event.target.value); setAccountId(""); setSubheadId(""); setError(null); setSuccess(null); }}
                                 disabled={saving || posting || cancelling}
                                 className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 font-semibold text-slate-900 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:bg-slate-100"
                             >
-                                <option value="">All authorised departments</option>
+                                <option value="">Select the department first</option>
                                 {departments.map((department) => <option key={department.id} value={department.id}>{department.name}</option>)}
                             </select>
                         </label>
 
                         <label className="block">
                             <span className="text-sm font-black text-slate-800">
-                                IET Account *
+                                2. IET Account *
                             </span>
 
                             <select
@@ -959,14 +996,18 @@ export default function ManualVoucherPage() {
                                         event.target.value
                                     )
                                 }
-                                disabled={saving || posting || cancelling}
+                                disabled={saving || posting || cancelling || !departmentId}
                                 className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 font-semibold text-slate-900 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:bg-slate-100"
                             >
                                 <option value="">
-                                    Select an IET account
+                                    {!departmentId
+                                        ? "Select a department first"
+                                        : departmentAccounts.length
+                                            ? "Select an IET account"
+                                            : "No IET account is attached to this department"}
                                 </option>
 
-                                {accounts.map((account) => (
+                                {departmentAccounts.map((account) => (
                                     <option
                                         key={account.id}
                                         value={account.id}
@@ -978,6 +1019,11 @@ export default function ManualVoucherPage() {
                                     </option>
                                 ))}
                             </select>
+                            {departmentId && !departmentAccounts.length ? (
+                                <span className="mt-2 block text-xs font-semibold text-amber-800">
+                                    Ask the Administrator to attach an IET account to this department (Admin → Account Routing).
+                                </span>
+                            ) : null}
                         </label>
 
                         <label className="block">

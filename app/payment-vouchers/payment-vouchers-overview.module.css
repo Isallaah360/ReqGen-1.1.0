@@ -26,3 +26,6 @@
 .tableToolbar{flex-wrap:wrap}
 .tableToolbar>h2{white-space:nowrap;flex:0 0 auto;margin:0}
 .toolbarControls{flex:1 1 520px;min-width:0}
+/* v3.1.6: secondary header action (Manual Voucher) */
+.secondaryButton{height:42px;border:1px solid var(--c-ln-e3d6ca,#e3d6ca);border-radius:8px;padding:0 15px;display:inline-flex;align-items:center;justify-content:center;gap:8px;background:var(--c-bg-ffffff,#fff);color:var(--c-fg-291d18,#291d18);font-size:12px;font-weight:800;cursor:pointer}
+.secondaryButton:hover{border-color:var(--c-ln-b83e00,#b83e00);color:var(--c-fg-b83e00,#b83e00)}

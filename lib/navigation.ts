@@ -16,7 +16,9 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
   { href: "/dashboard/activity", label: "Dashboard Activity", section: "General", description: "Recent system and workflow activity." },
 
   { href: "/requests", label: "Requests", section: "Requests", description: "Browse and manage authorised requests." },
+  { href: "/requests/printable", label: "Print Register", section: "Requests", description: "Print or save completed requests: your own, treated by you, or treated by Accounts.", keywords: ["print request", "download request", "treated requests", "approved requests", "pdf"] },
   { href: "/approvals", label: "Approvals Inbox", section: "Approvals", description: "Requests currently requiring attention or approval." },
+  { href: "/approvals/vouchers", label: "Voucher Signing", section: "Approvals", description: "Payment vouchers waiting for your check, signature or authorisation.", keywords: ["sign voucher", "pv signing", "counter sign", "authorise voucher"] },
 
   { href: "/finance", label: "Finance Overview", section: "Finance", description: "Finance operational overview and live financial position." },
   { href: "/finance/manage-accounts", label: "IET Accounts", section: "Finance", description: "Manage IET accounts, funding and authorised account assignments.", keywords: ["bank accounts", "accounts", "ledger"] },

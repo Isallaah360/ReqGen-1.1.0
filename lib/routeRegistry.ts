@@ -156,6 +156,26 @@ export const ROUTE_REGISTRY: RouteRegistryItem[] = [
     "description": "ReqGen route /admin/workflow-test"
   },
   {
+    "pattern": "/approvals/vouchers/[id]",
+    "title": "Approvals - Voucher Signing - Detail",
+    "rootHref": "/approvals",
+    "category": "Application Route",
+    "public": false,
+    "nav": false,
+    "searchable": false,
+    "description": "ReqGen route /approvals/vouchers/[id]"
+  },
+  {
+    "pattern": "/approvals/vouchers",
+    "title": "Approvals - Voucher Signing",
+    "rootHref": "/approvals",
+    "category": "Application Route",
+    "public": false,
+    "nav": false,
+    "searchable": true,
+    "description": "ReqGen route /approvals/vouchers"
+  },
+  {
     "pattern": "/approvals/action-centre",
     "title": "Approvals - Action Centre",
     "rootHref": "/approvals",
@@ -834,6 +854,16 @@ export const ROUTE_REGISTRY: RouteRegistryItem[] = [
     "nav": false,
     "searchable": true,
     "description": "ReqGen route /requests/[id]/print"
+  },
+  {
+    "pattern": "/requests/printable",
+    "title": "Requests - Print Register",
+    "rootHref": "/requests",
+    "category": "Application Route",
+    "public": false,
+    "nav": false,
+    "searchable": true,
+    "description": "ReqGen route /requests/printable"
   },
   {
     "pattern": "/requests/new",

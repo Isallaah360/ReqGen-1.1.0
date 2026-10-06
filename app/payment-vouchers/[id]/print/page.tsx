@@ -2,7 +2,8 @@
 
 import Image from "next/image";
 import SignatureInk from "@/app/components/ui/SignatureInk";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { printA4Sheet, useA4Fit } from "@/lib/printA4";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -107,7 +108,9 @@ function naira(n: number | null | undefined) {
 
 function formatDate(d: string | null | undefined) {
   if (!d) return "";
-  return new Date(d).toLocaleDateString();
+  const date = new Date(d);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
 }
 
 function amountToWords(n: number | null | undefined) {
@@ -251,6 +254,7 @@ export default function PaymentVoucherPrintPage() {
   const [printing, setPrinting] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [voucher, setVoucher] = useState<VoucherDetail | null>(null);
+  const sheetRef = useRef<HTMLElement>(null);
   const [items, setItems] = useState<VoucherItem[]>([]);
 
   const load = useCallback(
@@ -428,17 +432,12 @@ export default function PaymentVoucherPrintPage() {
     return !!voucher.voucher_no && !!voucher.payee_name && totalAmount > 0;
   }, [voucher, totalAmount]);
 
+  // v3.1.6: a voucher prints only when the whole signing chain is complete
+  // (Auditor, Cheque Signer, Counter Signer and DG) — in every mode.
   const finalPrintReady = useMemo(() => {
     if (!voucher) return false;
-
-    if (!isCheque) return true;
-
-    return (
-      voucher.status === "Counter Signed" ||
-      voucher.status === "Paid" ||
-      (!!voucher.cheque_signed_signature_url && !!voucher.cheque_counter_signed_signature_url)
-    );
-  }, [voucher, isCheque]);
+    return voucher.status === "Authorized" || voucher.status === "Paid";
+  }, [voucher]);
 
   async function handlePrint() {
     setPrinting(true);
@@ -449,7 +448,6 @@ export default function PaymentVoucherPrintPage() {
     const latestVoucher = latest?.voucher || voucher;
     const latestItems = latest?.items || items;
 
-    const latestIsCheque = normalize(latestVoucher?.disbursement_mode) === "cheque";
 
     const latestTotal =
       latestItems.length > 0
@@ -460,12 +458,7 @@ export default function PaymentVoucherPrintPage() {
       !!latestVoucher && !!latestVoucher.voucher_no && !!latestVoucher.payee_name && latestTotal > 0;
 
     const latestFinalPrintReady =
-      !!latestVoucher &&
-      (!latestIsCheque ||
-        latestVoucher.status === "Counter Signed" ||
-        latestVoucher.status === "Paid" ||
-        (!!latestVoucher.cheque_signed_signature_url &&
-          !!latestVoucher.cheque_counter_signed_signature_url));
+      !!latestVoucher && (latestVoucher.status === "Authorized" || latestVoucher.status === "Paid");
 
     if (!latestReady) {
       setMsg("Voucher is not ready for printing. Please confirm voucher data.");
@@ -473,15 +466,14 @@ export default function PaymentVoucherPrintPage() {
       return;
     }
 
-    if (latestIsCheque && !latestFinalPrintReady) {
-      setMsg("Final printing is blocked until Cheque Signed and Counter Signed are completed.");
+    if (!latestFinalPrintReady) {
+      setMsg("Printing opens once every signature is in: Auditor, Cheque Signer, Counter Signer and the Director General.");
       setPrinting(false);
       return;
     }
 
     setTimeout(() => {
-      window.print();
-      setPrinting(false);
+      void printA4Sheet(sheetRef.current, `${voucher?.voucher_no || "Payment voucher"} — ReqGen`).finally(() => setPrinting(false));
     }, 250);
   }
 
@@ -495,6 +487,8 @@ export default function PaymentVoucherPrintPage() {
     router.push(`/payment-vouchers/${voucher.id}?updated=${Date.now()}`);
     router.refresh();
   }
+
+  useA4Fit(sheetRef, [voucher, printableItems, loading]);
 
   if (loading) {
     return (
@@ -586,7 +580,7 @@ export default function PaymentVoucherPrintPage() {
 
             <button
               onClick={handlePrint}
-              disabled={!ready || (isCheque && !finalPrintReady) || refreshing || printing}
+              disabled={!ready || !finalPrintReady || refreshing || printing}
               className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
             >
               {printing ? "Preparing Print..." : "Print"}
@@ -600,9 +594,9 @@ export default function PaymentVoucherPrintPage() {
           </div>
         )}
 
-        {isCheque && !finalPrintReady && (
+        {!finalPrintReady && (
           <div className="no-print mb-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-            Final printing is blocked until Cheque Signed and Counter Signed are completed.
+            Preview only. Printing opens once every signature is in: Auditor, Cheque Signer, Counter Signer and the Director General.
           </div>
         )}
 
@@ -610,7 +604,10 @@ export default function PaymentVoucherPrintPage() {
           This print page refreshes before printing so the latest signatures and status are used.
         </div>
 
-        <div className="voucher-sheet mx-auto w-full border-2 border-black bg-white px-[15px] py-[11px] text-black shadow-sm">
+        {/* v3.1.6: one exact A4 page, fitted by lib/printA4.ts and printed in an isolated frame. */}
+        <div className="rg-a4-stage">
+        <article ref={sheetRef} className="rg-a4-page" aria-label={`Payment voucher ${voucher.voucher_no}`}>
+        <div className="rg-a4-content rg-pvdoc border-2 border-black px-[14px] py-[12px] text-black">
           <div className="grid grid-cols-[70px_1fr_188px] items-start gap-3">
             <div>
               <Image
@@ -675,7 +672,7 @@ export default function PaymentVoucherPrintPage() {
             />
           </div>
 
-          <div className="mt-2 border-2 border-black">
+          <div className="rg-a4-grow mt-2 flex flex-col border-2 border-black">
             <div className="rg-print-12-grid border-b-2 border-black bg-slate-100 text-[9.2px] font-black uppercase">
               <div className="col-span-1 border-r-2 border-black px-1 py-1 text-center">
                 No
@@ -686,7 +683,7 @@ export default function PaymentVoucherPrintPage() {
               <div className="col-span-3 px-2 py-1 text-right">Amount</div>
             </div>
 
-            <div className="min-h-[82px]">
+            <div className="min-h-[82px] flex-1">
               {printableItems.slice(0, 10).map((item, index) => (
                 <div
                   key={item.id}
@@ -867,6 +864,8 @@ export default function PaymentVoucherPrintPage() {
             <div className="italic">Building Bridges</div>
           </div>
         </div>
+        </article>
+        </div>
       </div>
     </main>
   );
@@ -947,7 +946,7 @@ function SignatureBox({
     <div>
       <div className="text-[8.8px] font-black uppercase">{title}</div>
 
-      <div className="mt-1 grid grid-cols-[1fr_128px_70px] items-end gap-2">
+      <div className="mt-1 grid grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)_74px] items-end gap-2">
         <div className="border-b border-black pb-[2px] text-[9.2px] font-bold leading-tight">
           {name || " "}
         </div>
@@ -961,7 +960,7 @@ function SignatureBox({
         </div>
       </div>
 
-      <div className="grid grid-cols-[1fr_128px_70px] gap-2 text-center text-[7.2px] font-semibold text-slate-600">
+      <div className="grid grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)_74px] gap-2 text-center text-[7.2px] font-semibold text-slate-600">
         <div>Name</div>
         <div>Signature</div>
         <div>Date</div>

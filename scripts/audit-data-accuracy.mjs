@@ -28,8 +28,9 @@ pass("PV loads live departments", pv.includes('.from("departments")'));
 pass("PV loads live subheads including reserved amount", pv.includes("approved_allocation,reserved_amount"));
 pass("PV loads live signatory authority", pv.includes('payment_voucher_counter_signatories'));
 pass("PV uses canonical subhead availability", pv.includes("subheadAvailable"));
-pass("PV operational views consolidated into one workspace", pv.includes("workspaceView") && shell.includes('Payment Voucher Centre'));
-pass("PV sidebar exposes Centre + Manual Voucher + Settings", (shell.match(/\{ href: "\/payment-vouchers/g) || []).length === 3 && shell.includes("Create Manual Voucher"));
+// v3.1.6: the PV views are numbered module tabs (owner decision), one workspace component.
+pass("PV operational views are numbered tabs of one workspace", pv.includes("workspaceView") && pv.includes("VIEW_PATH") && shell.includes('"Voucher Centre"') && shell.includes('"Pending Signatures"'));
+pass("PV tabs expose Centre, views, Manual Voucher and Settings", (shell.match(/\{ href: "\/payment-vouchers/g) || []).length === 7 && shell.includes("Create Manual Voucher") && shell.includes("PV Settings"));
 pass("Global main navigation font locked at 13px", globalCss.includes(".gov-nav-link,.gov-subnav a") && globalCss.includes("font-size:13px!important"));
 
 const suspicious = [];

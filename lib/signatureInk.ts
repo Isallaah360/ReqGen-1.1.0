@@ -113,6 +113,29 @@ export function inkFromImageData(source: ImageData, padding = 6): ImageData | nu
   // Ink opacity from relative darkness. A small border margin is ignored so
   // paper edges and table shadows in phone photos are not mistaken for ink.
   const margin = Math.round(Math.min(w, h) * 0.015);
+  const dark = new Float32Array(w * h);
+  const darkHist = new Uint32Array(101);
+  let inkCandidates = 0;
+  for (let y = margin; y < h - margin; y++) {
+    for (let x = margin; x < w - margin; x++) {
+      const p = y * w + x;
+      const bg = paperAt(x, y);
+      const d = Math.max(0, (bg - lum[p]) / bg);
+      dark[p] = d;
+      if (d > 0.07) { darkHist[Math.min(100, Math.round(d * 100))]++; inkCandidates++; }
+    }
+  }
+  // v3.1.6 adaptive strength: a faint pen (light ballpoint, pencil, weak scan)
+  // is lifted to the same strength as a firm one. The 97th percentile of ink
+  // darkness is mapped to full ink; paper texture (below 7%) is never lifted.
+  let strong = 0.5;
+  if (inkCandidates > 20) {
+    const target = inkCandidates * 0.97;
+    let acc = 0;
+    for (let v = 0; v <= 100; v++) { acc += darkHist[v]; if (acc >= target) { strong = v / 100; break; } }
+  }
+  const gain = Math.min(2.6, Math.max(1, 0.5 / Math.max(strong, 0.12)));
+
   const out = new ImageData(w, h);
   const od = out.data;
   let minX = w;
@@ -127,9 +150,9 @@ export function inkFromImageData(source: ImageData, padding = 6): ImageData | nu
       const p = y * w + x;
       const i = p * 4;
       if (x < margin || y < margin || x >= w - margin || y >= h - margin) continue;
-      const bg = paperAt(x, y);
-      const darkness = (bg - lum[p]) / bg;
-      const alpha = smoothstep(0.12, 0.36, darkness);
+      const raw = dark[p];
+      if (raw <= 0.07) continue;
+      const alpha = smoothstep(0.13, 0.36, raw * gain);
       if (alpha <= 0.02) continue;
 
       // Deepen the ink: keep its hue, pull its brightness down so it prints crisply.
@@ -137,7 +160,7 @@ export function inkFromImageData(source: ImageData, padding = 6): ImageData | nu
       const g = data[i + 1];
       const b = data[i + 2];
       const max = Math.max(r, g, b, 1);
-      const scale = Math.min(1, 95 / max);
+      const scale = Math.min(1, 72 / max);
       od[i] = Math.round(r * scale);
       od[i + 1] = Math.round(g * scale);
       od[i + 2] = Math.round(b * scale);

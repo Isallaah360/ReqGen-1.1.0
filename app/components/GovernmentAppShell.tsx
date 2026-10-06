@@ -70,9 +70,16 @@ type SubNavItem = {
 };
 
 const MODULE_SUBNAV: Record<string, SubNavItem[]> = {
-  "/requests": [],
+  "/requests": [
+    { href: "/requests", label: "My Requests" },
+    { href: "/requests/new", label: "New Request" },
+    { href: "/requests/printable", label: "Print Register" },
+  ],
 
-  "/approvals": [],
+  "/approvals": [
+    { href: "/approvals", label: "Approvals Inbox" },
+    { href: "/approvals/vouchers", label: "Voucher Signing" },
+  ],
 
   "/finance": [
     { href: "/finance", label: "Finance Overview" },
@@ -86,7 +93,11 @@ const MODULE_SUBNAV: Record<string, SubNavItem[]> = {
   ],
 
   "/payment-vouchers": [
-    { href: "/payment-vouchers", label: "Payment Voucher Centre" },
+    { href: "/payment-vouchers", label: "Voucher Centre" },
+    { href: "/payment-vouchers/pending", label: "Pending Signatures" },
+    { href: "/payment-vouchers/approved", label: "Approved" },
+    { href: "/payment-vouchers/history", label: "History" },
+    { href: "/payment-vouchers/print-centre", label: "Print Centre" },
     { href: "/payment-vouchers/manual", label: "Create Manual Voucher" },
     { href: "/payment-vouchers/settings", label: "PV Settings" },
   ],
