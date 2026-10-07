@@ -1,11 +1,11 @@
 {
   "summary": {
-    "candidates": 14,
-    "withPrintCall": 6,
+    "candidates": 15,
+    "withPrintCall": 5,
     "withPrintCss": 7,
     "withA4": 7,
     "withLogo": 3,
-    "generatedAt": "2026-09-27T05:15:27.492Z"
+    "generatedAt": "2026-10-06T20:33:13.042Z"
   },
   "results": [
     {
@@ -45,6 +45,15 @@
       "hasLogoReference": false
     },
     {
+      "file": "app/components/registry/RequestTrackingPanel.tsx",
+      "hasPrintCall": true,
+      "hasPrintCss": false,
+      "hasNoPrintClass": true,
+      "hasA4": false,
+      "hasPageBreakControl": false,
+      "hasLogoReference": false
+    },
+    {
       "file": "app/finance/audit/page.tsx",
       "hasPrintCall": false,
       "hasPrintCss": true,
@@ -77,7 +86,7 @@
       "hasPrintCss": true,
       "hasNoPrintClass": true,
       "hasA4": true,
-      "hasPageBreakControl": false,
+      "hasPageBreakControl": true,
       "hasLogoReference": true
     },
     {
@@ -91,7 +100,7 @@
     },
     {
       "file": "app/payment-vouchers/[id]/print/page.tsx",
-      "hasPrintCall": true,
+      "hasPrintCall": false,
       "hasPrintCss": true,
       "hasNoPrintClass": true,
       "hasA4": true,
@@ -127,7 +136,7 @@
     },
     {
       "file": "app/requests/[id]/print/page.tsx",
-      "hasPrintCall": true,
+      "hasPrintCall": false,
       "hasPrintCss": true,
       "hasNoPrintClass": true,
       "hasA4": true,

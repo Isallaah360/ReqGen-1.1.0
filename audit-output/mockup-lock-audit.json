@@ -1,9 +1,9 @@
 {
-  "generatedAt": "2026-09-27T05:15:27.228Z",
+  "generatedAt": "2026-10-07T09:39:26.219Z",
   "scope": "ReqGen adopted-shell approved mockups Sections 1-4",
-  "overall": 86,
+  "overall": 84,
   "totals": {
-    "passed": 89,
+    "passed": 87,
     "total": 103
   },
   "shellChecks": [
@@ -50,9 +50,9 @@
       "forbidden": [
         "ERP 2.0"
       ],
-      "passed": 9,
+      "passed": 8,
       "total": 12,
-      "percent": 75,
+      "percent": 67,
       "checks": [
         {
           "check": "file exists",
@@ -80,7 +80,7 @@
         },
         {
           "check": "Recent Activities",
-          "pass": true
+          "pass": false
         },
         {
           "check": "Requests by Category",
@@ -219,9 +219,9 @@
       "forbidden": [
         "Enterprise"
       ],
-      "passed": 3,
+      "passed": 2,
       "total": 4,
-      "percent": 75,
+      "percent": 50,
       "checks": [
         {
           "check": "file exists",
@@ -233,7 +233,7 @@
         },
         {
           "check": "Action Centre",
-          "pass": true
+          "pass": false
         },
         {
           "check": "Enterprise",

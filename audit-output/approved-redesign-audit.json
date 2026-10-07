@@ -3,10 +3,10 @@
     "payment-vouchers": 11,
     "registry": 6,
     "reports": 2,
-    "audit-centre": 1,
-    "admin": 12
+    "audit-centre": 2,
+    "admin": 13
   },
-  "totalPages": 32,
+  "totalPages": 34,
   "failures": [],
   "passed": true
 }

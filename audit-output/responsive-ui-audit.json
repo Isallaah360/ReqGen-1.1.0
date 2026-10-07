@@ -1,10 +1,10 @@
 {
   "summary": {
-    "scannedFiles": 160,
-    "findings": 12,
+    "scannedFiles": 193,
+    "findings": 5,
     "warnings": 0,
-    "info": 12,
-    "generatedAt": "2026-09-27T05:15:27.585Z"
+    "info": 5,
+    "generatedAt": "2026-10-07T09:39:21.857Z"
   },
   "findings": [
     {
@@ -16,32 +16,8 @@
       "excerpt": "<div className=\"overflow-x-auto\"><table className=\"min-w-full text-left text-sm\"><thead className=\"bg-slate-50 text-xs font-black uppercase tracking-wide text-slate-600\"><tr><th className=\"px-5 py-3\">Date</th><th classNa"
     },
     {
-      "file": "app/admin/roles/page.tsx",
-      "line": 766,
-      "rule": "nowrap-risk",
-      "severity": "info",
-      "match": "whitespace-nowrap",
-      "excerpt": "className=\"reqgen-btn reqgen-btn-orange whitespace-nowrap rounded-lg px-3 py-2 text-xs font-black text-white disabled:opacity-50\""
-    },
-    {
-      "file": "app/admin/roles/page.tsx",
-      "line": 774,
-      "rule": "nowrap-risk",
-      "severity": "info",
-      "match": "whitespace-nowrap",
-      "excerpt": "className={`reqgen-btn whitespace-nowrap rounded-lg px-3 py-2 text-xs font-black text-white disabled:opacity-50 ${role.is_active ? \"reqgen-btn-orange\" : \"reqgen-btn-emerald\"}`}"
-    },
-    {
-      "file": "app/admin/roles/page.tsx",
-      "line": 782,
-      "rule": "nowrap-risk",
-      "severity": "info",
-      "match": "whitespace-nowrap",
-      "excerpt": "className=\"reqgen-btn reqgen-btn-rose whitespace-nowrap rounded-lg px-3 py-2 text-xs font-black text-white disabled:opacity-40\""
-    },
-    {
       "file": "app/components/SessionTimeout.tsx",
-      "line": 170,
+      "line": 171,
       "rule": "absolute-layout",
       "severity": "info",
       "match": "absolute",
@@ -49,59 +25,27 @@
     },
     {
       "file": "app/components/registry/RegistryArchiveWorkspace.tsx",
-      "line": 30,
+      "line": 31,
       "rule": "absolute-layout",
       "severity": "info",
       "match": "absolute",
       "excerpt": "<section className={styles.card}><div className={styles.filters}><label className={styles.field}><span className={styles.label}>Search Archive</span><div style={{position:\"relative\"}}><Search size={15} style={{position:\""
     },
     {
-      "file": "app/components/ui/Donut.tsx",
-      "line": 13,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "* absolute positioning to make the centre \"hole\" and its text. That"
-    },
-    {
       "file": "app/finance/audit-trail/page.tsx",
-      "line": 43,
+      "line": 44,
       "rule": "nowrap-risk",
       "severity": "info",
       "match": "whitespace-nowrap",
       "excerpt": "<div className=\"overflow-x-auto\"><table className=\"min-w-full text-left text-sm\"><thead className=\"bg-slate-950 text-white\"><tr><th className=\"px-4 py-3\">Date & time</th><th className=\"px-4 py-3\">Action</th><th className"
     },
     {
-      "file": "app/payment-vouchers/[id]/print/page.tsx",
-      "line": 962,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "className=\"absolute bottom-[2px] left-1/2 h-[21px] w-auto max-w-[96%] -translate-x-1/2 object-contain\""
-    },
-    {
       "file": "app/payment-vouchers/manual/page.tsx",
-      "line": 1569,
+      "line": 1615,
       "rule": "nowrap-risk",
       "severity": "info",
       "match": "whitespace-nowrap",
       "excerpt": "<td className=\"whitespace-nowrap px-5 py-5\">"
-    },
-    {
-      "file": "app/requests/[id]/print/page.tsx",
-      "line": 830,
-      "rule": "nowrap-risk",
-      "severity": "info",
-      "match": "whitespace-nowrap",
-      "excerpt": "<div className=\"whitespace-nowrap\">{label}</div>"
-    },
-    {
-      "file": "app/requests/[id]/print/page.tsx",
-      "line": 846,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "className=\"absolute bottom-0 left-1/2 h-[13px] w-auto max-w-[90%] -translate-x-1/2 object-contain\""
     }
   ]
 }

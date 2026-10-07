@@ -16,7 +16,7 @@ check("Quick actions are role-aware (no Settings/Reports for Account)", pv.inclu
 check("Print Register uses the server register", read("app/requests/printable/page.tsx").includes('rpc("reqgen_print_register")'));
 check("Pages can no longer cover the footer", read("app/globals.css").includes("html body .rg-content > main{min-height:0!important}"));
 check("Manual voucher: chain statuses count as posted; rows open the voucher", read("app/payment-vouchers/manual/page.tsx").includes('status.startsWith("pending")') && read("app/payment-vouchers/manual/page.tsx").includes("/payment-vouchers/${voucher.id}"));
-const sql = "database/v3_1_7_registers_tracker_manual_pv.sql";
+const sql = "database/v3_1_9_print_register_tracker.sql";
 check("v3.1.7 SQL: register, tracker, signature trigger, verification", exists(sql) && ["reqgen_print_register", "reqgen_pv_tracker", "reqgen_pv_before_write", "check_item"].every((t) => read(sql).includes(t)));
 
 let failed = 0;

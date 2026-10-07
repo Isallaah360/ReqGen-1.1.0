@@ -94,7 +94,14 @@ export function PendingTracker() {
   const load = useCallback(async () => {
     setLoading(true);
     const { data, error } = await supabase.rpc("reqgen_pv_tracker");
-    if (error) setMessage({ tone: "error", text: error.message });
+    if (error) {
+      setMessage({
+        tone: "error",
+        text: /could not find the function|schema cache/i.test(error.message)
+          ? "The signing tracker needs the database update database/v3_1_9_print_register_tracker.sql. Please ask the Administrator to run it in Supabase, then refresh."
+          : error.message,
+      });
+    }
     setRows((data || []) as TrackerRow[]);
     setLoading(false);
   }, []);

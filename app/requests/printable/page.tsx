@@ -77,6 +77,7 @@ export default function PrintRegisterPage() {
   const [voucherNos, setVoucherNos] = useState<Map<string, string>>(new Map());
   const [view, setView] = useState<View>("mine");
   const [query, setQuery] = useState("");
+  const [year, setYear] = useState("all");
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -96,7 +97,12 @@ export default function PrintRegisterPage() {
         // assembling it from tables the privacy rules partly hide.
         supabase.rpc("reqgen_print_register"),
       ]);
-      if (registerRes.error) throw new Error(registerRes.error.message);
+      if (registerRes.error) {
+        // v3.1.9: a clear message when the database update has not been run.
+        throw new Error(/could not find the function|schema cache|does not exist/i.test(registerRes.error.message)
+          ? "The Print Register needs the database update database/v3_1_9_print_register_tracker.sql. Please ask the Administrator to run it in Supabase, then refresh this page."
+          : registerRes.error.message);
+      }
 
       const roleSet = new Set<string>();
       if (profileRes.data?.role) roleSet.add(key(profileRes.data.role));
@@ -144,9 +150,11 @@ export default function PrintRegisterPage() {
   const source = activeView === "treated" ? treatedRows : activeView === "all" ? allTreatedRows : mineRows;
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return source;
-    return source.filter((row) => [row.request_no, row.title, row.status, typeLabel(row)].join(" ").toLowerCase().includes(q));
-  }, [query, source]);
+    return source.filter((row) =>
+      (year === "all" || String(new Date(row.created_at).getFullYear()) === year) &&
+      (!q || [row.request_no, row.title, row.status, typeLabel(row), voucherNos.get(row.id)].join(" ").toLowerCase().includes(q)));
+  }, [query, source, voucherNos, year]);
+  const years = useMemo(() => Array.from(new Set(rows.map((row) => String(new Date(row.created_at).getFullYear())))).filter((y) => y !== "NaN").sort().reverse(), [rows]);
 
   const total = useMemo(() => visible.reduce((sum, row) => sum + Number(row.amount || 0), 0), [visible]);
 
@@ -187,10 +195,16 @@ export default function PrintRegisterPage() {
               </button>
             ))}
           </div>
+          <div className="rg-register-filters">
+          <select className="rg-register-year" value={year} onChange={(e) => setYear(e.target.value)} aria-label="Financial year">
+            <option value="all">All years</option>
+            {years.map((y) => <option key={y} value={y}>{y}</option>)}
+          </select>
           <label className="rg-register-search">
             <Search size={15} aria-hidden="true" />
-            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search request no., title or status" />
+            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search request no., title, status or PV" />
           </label>
+          </div>
         </div>
 
         <div className="rg-register-table">

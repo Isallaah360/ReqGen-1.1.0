@@ -1,8 +1,8 @@
 {
   "summary": {
-    "checkedAt": "2026-09-27T05:15:27.384Z",
-    "pages": 85,
-    "pass": 85,
+    "checkedAt": "2026-10-06T20:33:18.137Z",
+    "pages": 90,
+    "pass": 90,
     "review": 0
   },
   "results": [
@@ -38,7 +38,7 @@
       "forms": 0,
       "selects": 0,
       "dialogs": 0,
-      "charts": 5,
+      "charts": 9,
       "status": "PASS",
       "blockers": []
     },
@@ -61,7 +61,7 @@
       "tables": 1,
       "forms": 0,
       "selects": 2,
-      "dialogs": 4,
+      "dialogs": 7,
       "charts": 0,
       "status": "PASS",
       "blockers": []
@@ -79,13 +79,25 @@
       "blockers": []
     },
     {
+      "route": "/admin/department-routing",
+      "file": "app/admin/department-routing/page.tsx",
+      "kind": "SCREEN",
+      "tables": 2,
+      "forms": 0,
+      "selects": 7,
+      "dialogs": 16,
+      "charts": 0,
+      "status": "PASS",
+      "blockers": []
+    },
+    {
       "route": "/admin/departments",
       "file": "app/admin/departments/page.tsx",
       "kind": "SCREEN",
       "tables": 1,
       "forms": 0,
       "selects": 5,
-      "dialogs": 8,
+      "dialogs": 12,
       "charts": 7,
       "status": "PASS",
       "blockers": []
@@ -109,7 +121,7 @@
       "tables": 1,
       "forms": 0,
       "selects": 0,
-      "dialogs": 0,
+      "dialogs": 8,
       "charts": 0,
       "status": "PASS",
       "blockers": []
@@ -157,7 +169,7 @@
       "tables": 1,
       "forms": 0,
       "selects": 7,
-      "dialogs": 9,
+      "dialogs": 13,
       "charts": 0,
       "status": "PASS",
       "blockers": []
@@ -199,6 +211,30 @@
       "blockers": []
     },
     {
+      "route": "/approvals/vouchers",
+      "file": "app/approvals/vouchers/page.tsx",
+      "kind": "SCREEN",
+      "tables": 1,
+      "forms": 0,
+      "selects": 0,
+      "dialogs": 0,
+      "charts": 0,
+      "status": "PASS",
+      "blockers": []
+    },
+    {
+      "route": "/approvals/vouchers/[id]",
+      "file": "app/approvals/vouchers/[id]/page.tsx",
+      "kind": "SCREEN",
+      "tables": 0,
+      "forms": 0,
+      "selects": 0,
+      "dialogs": 0,
+      "charts": 0,
+      "status": "PASS",
+      "blockers": []
+    },
+    {
       "route": "/audit-centre",
       "file": "app/audit-centre/page.tsx",
       "kind": "SCREEN",
@@ -206,7 +242,7 @@
       "forms": 0,
       "selects": 4,
       "dialogs": 4,
-      "charts": 2,
+      "charts": 5,
       "status": "PASS",
       "blockers": []
     },
@@ -230,7 +266,7 @@
       "forms": 0,
       "selects": 0,
       "dialogs": 0,
-      "charts": 13,
+      "charts": 14,
       "status": "PASS",
       "blockers": []
     },
@@ -397,8 +433,8 @@
       "tables": 1,
       "forms": 0,
       "selects": 6,
-      "dialogs": 12,
-      "charts": 7,
+      "dialogs": 15,
+      "charts": 12,
       "status": "PASS",
       "blockers": []
     },
@@ -529,8 +565,8 @@
       "tables": 1,
       "forms": 0,
       "selects": 7,
-      "dialogs": 8,
-      "charts": 7,
+      "dialogs": 11,
+      "charts": 8,
       "status": "PASS",
       "blockers": []
     },
@@ -607,6 +643,18 @@
       "blockers": []
     },
     {
+      "route": "/notifications",
+      "file": "app/notifications/page.tsx",
+      "kind": "SCREEN",
+      "tables": 0,
+      "forms": 0,
+      "selects": 0,
+      "dialogs": 0,
+      "charts": 0,
+      "status": "PASS",
+      "blockers": []
+    },
+    {
       "route": "/output",
       "file": "app/output/page.tsx",
       "kind": "SCREEN",
@@ -625,8 +673,8 @@
       "tables": 1,
       "forms": 0,
       "selects": 10,
-      "dialogs": 15,
-      "charts": 4,
+      "dialogs": 20,
+      "charts": 6,
       "status": "PASS",
       "blockers": []
     },
@@ -634,10 +682,10 @@
       "route": "/payment-vouchers/[id]",
       "file": "app/payment-vouchers/[id]/page.tsx",
       "kind": "SCREEN",
-      "tables": 0,
+      "tables": 2,
       "forms": 0,
-      "selects": 0,
-      "dialogs": 0,
+      "selects": 2,
+      "dialogs": 6,
       "charts": 0,
       "status": "PASS",
       "blockers": []
@@ -685,7 +733,7 @@
       "tables": 1,
       "forms": 1,
       "selects": 4,
-      "dialogs": 0,
+      "dialogs": 3,
       "charts": 0,
       "status": "PASS",
       "blockers": []
@@ -745,7 +793,7 @@
       "tables": 1,
       "forms": 0,
       "selects": 5,
-      "dialogs": 0,
+      "dialogs": 4,
       "charts": 0,
       "status": "PASS",
       "blockers": []
@@ -962,6 +1010,18 @@
       "forms": 0,
       "selects": 6,
       "dialogs": 10,
+      "charts": 0,
+      "status": "PASS",
+      "blockers": []
+    },
+    {
+      "route": "/requests/printable",
+      "file": "app/requests/printable/page.tsx",
+      "kind": "PRINT",
+      "tables": 1,
+      "forms": 0,
+      "selects": 0,
+      "dialogs": 2,
       "charts": 0,
       "status": "PASS",
       "blockers": []

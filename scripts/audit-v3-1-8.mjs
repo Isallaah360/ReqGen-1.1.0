@@ -19,7 +19,7 @@ check("Setup Coach mounted in the app frame (banner, welcome, on-page steps)", r
 check("Profile marks guide targets", read("app/profile/page.tsx").includes('data-guide="signature"') && read("app/profile/page.tsx").includes('data-guide="avatar"'));
 check("Password change records password_changed_at", read("app/change-password/page.tsx").includes("password_changed_at"));
 check("PV tabs introduce themselves", read("app/payment-vouchers/page.tsx").includes("VIEW_HEADINGS[workspaceView].title"));
-check("v3.1.7 SQL takes its lock first (deadlock-safe)", /begin;\s*\n\s*lock table public\.payment_vouchers in access exclusive mode;/.test(read("database/v3_1_7_registers_tracker_manual_pv.sql")));
+check("v3.1.9 SQL replaces v3.1.7 (deadlock-safe parts)", read("database/v3_1_9_print_register_tracker.sql").includes("PART 2") && read("database/v3_1_7_registers_tracker_manual_pv.sql").includes("SUPERSEDED"));
 
 let failed = 0;
 for (const r of results) { if (!r.ok) failed++; console.log(`${r.ok ? "PASS" : "FAIL"}  ${r.label}`); }

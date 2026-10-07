@@ -1,10 +1,10 @@
 {
   "summary": {
-    "scannedFiles": 143,
-    "findings": 123,
-    "selectStarQueries": 28,
-    "realtimeChannels": 7,
-    "generatedAt": "2026-09-27T05:15:27.343Z"
+    "scannedFiles": 178,
+    "findings": 128,
+    "selectStarQueries": 26,
+    "realtimeChannels": 8,
+    "generatedAt": "2026-10-06T20:33:13.306Z"
   },
   "findings": [
     {
@@ -16,8 +16,32 @@
       "excerpt": "next.sort((a,b) => new Date(b.created_at).getTime()-new Date(a.created_at).getTime());"
     },
     {
+      "file": "app/admin/department-routing/page.tsx",
+      "line": 84,
+      "rule": "full-array-sort",
+      "severity": "info",
+      "match": ".sort(",
+      "excerpt": "(cfg?.steps || []).filter((s) => s.template_id === tid && s.route_kind === kind).sort((a, b) => a.step_order - b.step_order), [cfg]);"
+    },
+    {
+      "file": "app/admin/department-routing/page.tsx",
+      "line": 97,
+      "rule": "full-array-sort",
+      "severity": "info",
+      "match": ".sort(",
+      "excerpt": ".sort((a, b) => (a.dept_id === null ? 10 : 0) + a.priority - ((b.dept_id === null ? 10 : 0) + b.priority)), [cfg]);"
+    },
+    {
+      "file": "app/admin/department-routing/page.tsx",
+      "line": 178,
+      "rule": "full-array-sort",
+      "severity": "info",
+      "match": ".sort(",
+      "excerpt": "return [...ids].map((id) => personById.get(id)).filter(Boolean).sort((a, b) => personName(a).localeCompare(personName(b))) as Person[];"
+    },
+    {
       "file": "app/admin/page.tsx",
-      "line": 152,
+      "line": 154,
       "rule": "select-star",
       "severity": "warning",
       "match": ".select(\"*\")",
@@ -25,7 +49,7 @@
     },
     {
       "file": "app/admin/page.tsx",
-      "line": 152,
+      "line": 154,
       "rule": "large-limit",
       "severity": "info",
       "match": ".limit(500)",
@@ -33,7 +57,7 @@
     },
     {
       "file": "app/admin/page.tsx",
-      "line": 185,
+      "line": 187,
       "rule": "full-array-sort",
       "severity": "info",
       "match": ".sort(",
@@ -41,7 +65,7 @@
     },
     {
       "file": "app/admin/page.tsx",
-      "line": 200,
+      "line": 202,
       "rule": "full-array-sort",
       "severity": "info",
       "match": ".sort(",
@@ -49,7 +73,7 @@
     },
     {
       "file": "app/admin/page.tsx",
-      "line": 213,
+      "line": 220,
       "rule": "full-array-sort",
       "severity": "info",
       "match": ".sort(",
@@ -65,7 +89,7 @@
     },
     {
       "file": "app/admin/users/page.tsx",
-      "line": 324,
+      "line": 333,
       "rule": "full-array-sort",
       "severity": "info",
       "match": ".sort(",
@@ -73,7 +97,15 @@
     },
     {
       "file": "app/approvals/page.tsx",
-      "line": 125,
+      "line": 110,
+      "rule": "large-limit",
+      "severity": "info",
+      "match": ".limit(5000)",
+      "excerpt": ".limit(5000),"
+    },
+    {
+      "file": "app/approvals/page.tsx",
+      "line": 152,
       "rule": "realtime-channel",
       "severity": "info",
       "match": ".channel(",
@@ -81,27 +113,19 @@
     },
     {
       "file": "app/audit-centre/page.tsx",
-      "line": 132,
+      "line": 142,
       "rule": "select-star",
       "severity": "warning",
       "match": ".select(\"*\")",
-      "excerpt": "const result = await supabase.from(table).select(\"*\").limit(500);"
+      "excerpt": ": await supabase.from(table).select(\"*\").limit(500);"
     },
     {
       "file": "app/audit-centre/page.tsx",
-      "line": 132,
+      "line": 142,
       "rule": "large-limit",
       "severity": "info",
       "match": ".limit(500)",
-      "excerpt": "const result = await supabase.from(table).select(\"*\").limit(500);"
-    },
-    {
-      "file": "app/audit-centre/page.tsx",
-      "line": 170,
-      "rule": "full-array-sort",
-      "severity": "info",
-      "match": ".sort(",
-      "excerpt": "collected.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());"
+      "excerpt": ": await supabase.from(table).select(\"*\").limit(500);"
     },
     {
       "file": "app/audit-centre/page.tsx",
@@ -109,11 +133,19 @@
       "rule": "full-array-sort",
       "severity": "info",
       "match": ".sort(",
+      "excerpt": "collected.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());"
+    },
+    {
+      "file": "app/audit-centre/page.tsx",
+      "line": 192,
+      "rule": "full-array-sort",
+      "severity": "info",
+      "match": ".sort(",
       "excerpt": "roleEventsByActor.forEach((list) => list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));"
     },
     {
       "file": "app/audit-centre/page.tsx",
-      "line": 220,
+      "line": 236,
       "rule": "realtime-channel",
       "severity": "info",
       "match": ".channel(",
@@ -121,7 +153,7 @@
     },
     {
       "file": "app/audit-centre/page.tsx",
-      "line": 244,
+      "line": 260,
       "rule": "full-array-sort",
       "severity": "info",
       "match": ".sort(",
@@ -129,7 +161,7 @@
     },
     {
       "file": "app/audit-centre/page.tsx",
-      "line": 249,
+      "line": 265,
       "rule": "full-array-sort",
       "severity": "info",
       "match": ".sort(",
@@ -137,7 +169,7 @@
     },
     {
       "file": "app/audit-centre/page.tsx",
-      "line": 291,
+      "line": 307,
       "rule": "browser-print",
       "severity": "info",
       "match": "window.print(",
@@ -145,7 +177,7 @@
     },
     {
       "file": "app/audit-centre/page.tsx",
-      "line": 308,
+      "line": 324,
       "rule": "full-array-sort",
       "severity": "info",
       "match": ".sort(",
@@ -153,7 +185,7 @@
     },
     {
       "file": "app/audit-centre/page.tsx",
-      "line": 353,
+      "line": 375,
       "rule": "browser-print",
       "severity": "info",
       "match": "window.print(",
@@ -161,7 +193,7 @@
     },
     {
       "file": "app/components/GovernmentAppShell.tsx",
-      "line": 207,
+      "line": 226,
       "rule": "full-array-sort",
       "severity": "info",
       "match": ".sort(",
@@ -169,7 +201,7 @@
     },
     {
       "file": "app/components/GovernmentAppShell.tsx",
-      "line": 214,
+      "line": 233,
       "rule": "full-array-sort",
       "severity": "info",
       "match": ".sort(",
@@ -177,7 +209,7 @@
     },
     {
       "file": "app/components/GovernmentAppShell.tsx",
-      "line": 221,
+      "line": 240,
       "rule": "full-array-sort",
       "severity": "info",
       "match": ".sort(",
@@ -185,15 +217,23 @@
     },
     {
       "file": "app/components/GovernmentAppShell.tsx",
-      "line": 437,
+      "line": 506,
       "rule": "realtime-channel",
       "severity": "info",
       "match": ".channel(",
-      "excerpt": ".channel(\"reqgen-shell-approval-badge\")"
+      "excerpt": ".channel(`reqgen-shell-approval-badge-${queueIdentity.userId}`)"
+    },
+    {
+      "file": "app/components/notifications/NotificationCentre.tsx",
+      "line": 87,
+      "rule": "realtime-channel",
+      "severity": "info",
+      "match": ".channel(",
+      "excerpt": ".channel(`reqgen-notifications-${userId}`)"
     },
     {
       "file": "app/components/registry/RegistryArchiveWorkspace.tsx",
-      "line": 17,
+      "line": 18,
       "rule": "select-star",
       "severity": "warning",
       "match": ".select(\"*\")",
@@ -201,7 +241,7 @@
     },
     {
       "file": "app/components/registry/RegistryArchiveWorkspace.tsx",
-      "line": 17,
+      "line": 18,
       "rule": "large-limit",
       "severity": "info",
       "match": ".limit(3000)",
@@ -209,7 +249,7 @@
     },
     {
       "file": "app/components/registry/RegistryArchiveWorkspace.tsx",
-      "line": 19,
+      "line": 20,
       "rule": "full-array-sort",
       "severity": "info",
       "match": ".sort(",
@@ -217,7 +257,7 @@
     },
     {
       "file": "app/components/registry/RegistryArchiveWorkspace.tsx",
-      "line": 19,
+      "line": 20,
       "rule": "full-array-sort",
       "severity": "info",
       "match": ".sort(",
@@ -225,7 +265,7 @@
     },
     {
       "file": "app/components/registry/RegistryArchiveWorkspace.tsx",
-      "line": 19,
+      "line": 20,
       "rule": "full-array-sort",
       "severity": "info",
       "match": ".sort(",
@@ -233,7 +273,7 @@
     },
     {
       "file": "app/components/registry/RegistryArchiveWorkspace.tsx",
-      "line": 19,
+      "line": 20,
       "rule": "full-array-sort",
       "severity": "info",
       "match": ".sort(",
@@ -241,7 +281,7 @@
     },
     {
       "file": "app/components/registry/RegistryArchiveWorkspace.tsx",
-      "line": 26,
+      "line": 27,
       "rule": "browser-print",
       "severity": "info",
       "match": "window.print(",
@@ -249,7 +289,7 @@
     },
     {
       "file": "app/components/registry/RegistryCentreWorkspace.tsx",
-      "line": 185,
+      "line": 189,
       "rule": "select-star",
       "severity": "warning",
       "match": ".select(\"*\")",
@@ -257,7 +297,7 @@
     },
     {
       "file": "app/components/registry/RegistryCentreWorkspace.tsx",
-      "line": 185,
+      "line": 189,
       "rule": "large-limit",
       "severity": "info",
       "match": ".limit(2000)",
@@ -265,31 +305,7 @@
     },
     {
       "file": "app/components/registry/RegistryCentreWorkspace.tsx",
-      "line": 186,
-      "rule": "large-limit",
-      "severity": "info",
-      "match": ".limit(5000)",
-      "excerpt": "supabase.from(\"requests\").select(\"id,request_no,title,status,current_stage,current_owner,created_by,assigned_account_officer_id,assigned_account_officer_name,created_at\").order(\"created_at\", { ascending: false }).limit(5"
-    },
-    {
-      "file": "app/components/registry/RegistryCentreWorkspace.tsx",
-      "line": 187,
-      "rule": "large-limit",
-      "severity": "info",
-      "match": ".limit(10000)",
-      "excerpt": "supabase.from(\"request_history\").select(\"id,request_id,action_type,to_stage,actor_name,actor_role_name,created_at\").order(\"created_at\", { ascending: false }).limit(10000),"
-    },
-    {
-      "file": "app/components/registry/RegistryCentreWorkspace.tsx",
-      "line": 188,
-      "rule": "large-limit",
-      "severity": "info",
-      "match": ".limit(5000)",
-      "excerpt": "supabase.from(\"payment_vouchers\").select(\"id,request_id,voucher_no,status,voucher_type,created_at\").order(\"created_at\", { ascending: false }).limit(5000),"
-    },
-    {
-      "file": "app/components/registry/RegistryCentreWorkspace.tsx",
-      "line": 212,
+      "line": 215,
       "rule": "full-array-sort",
       "severity": "info",
       "match": ".sort(",
@@ -297,7 +313,7 @@
     },
     {
       "file": "app/components/registry/RegistryCentreWorkspace.tsx",
-      "line": 213,
+      "line": 216,
       "rule": "full-array-sort",
       "severity": "info",
       "match": ".sort(",
@@ -305,11 +321,67 @@
     },
     {
       "file": "app/components/registry/RegistryCentreWorkspace.tsx",
-      "line": 267,
+      "line": 270,
       "rule": "full-array-sort",
       "severity": "info",
       "match": ".sort(",
       "excerpt": "return [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3);"
+    },
+    {
+      "file": "app/components/registry/RequestTrackingPanel.tsx",
+      "line": 152,
+      "rule": "full-array-sort",
+      "severity": "info",
+      "match": ".sort(",
+      "excerpt": "return [...map.entries()].sort((a, b) => b[0].localeCompare(a[0]));"
+    },
+    {
+      "file": "app/components/registry/RequestTrackingPanel.tsx",
+      "line": 170,
+      "rule": "full-array-sort",
+      "severity": "info",
+      "match": ".sort(",
+      "excerpt": "return [...map.entries()].sort((a, b) => b[1].movedIn + b[1].waiting - (a[1].movedIn + a[1].waiting));"
+    },
+    {
+      "file": "app/components/registry/RequestTrackingPanel.tsx",
+      "line": 183,
+      "rule": "full-array-sort",
+      "severity": "info",
+      "match": ".sort(",
+      "excerpt": "return [...map.values()].sort((a, b) => (b.approved + b.rejected + b.submitted + b.returned) - (a.approved + a.rejected + a.submitted + a.returned));"
+    },
+    {
+      "file": "app/components/registry/RequestTrackingPanel.tsx",
+      "line": 195,
+      "rule": "full-array-sort",
+      "severity": "info",
+      "match": ".sort(",
+      "excerpt": ".sort((a, b) => (toDate(b.last?.created_at || b.request.created_at)?.getTime() || 0) - (toDate(a.last?.created_at || a.request.created_at)?.getTime() || 0));"
+    },
+    {
+      "file": "app/components/registry/RequestTrackingPanel.tsx",
+      "line": 206,
+      "rule": "full-array-sort",
+      "severity": "info",
+      "match": ".sort(",
+      "excerpt": "? history.filter((e) => e.request_id === trailFor).sort((a, b) => (toDate(a.created_at)?.getTime() || 0) - (toDate(b.created_at)?.getTime() || 0))"
+    },
+    {
+      "file": "app/components/registry/RequestTrackingPanel.tsx",
+      "line": 249,
+      "rule": "browser-print",
+      "severity": "info",
+      "match": "window.print(",
+      "excerpt": "window.print();"
+    },
+    {
+      "file": "app/components/requests/RequestAccessGate.tsx",
+      "line": 46,
+      "rule": "large-limit",
+      "severity": "info",
+      "match": ".limit(1000)",
+      "excerpt": "supabase.from(\"request_history\").select(\"action_by\").eq(\"request_id\", requestId).limit(1000),"
     },
     {
       "file": "app/components/security/StrictActiveRoleBoundary.tsx",
@@ -337,23 +409,15 @@
     },
     {
       "file": "app/dashboard/page.tsx",
-      "line": 77,
+      "line": 110,
       "rule": "large-limit",
       "severity": "info",
       "match": ".limit(500)",
       "excerpt": ".limit(500);"
     },
     {
-      "file": "app/dashboard/page.tsx",
-      "line": 144,
-      "rule": "full-array-sort",
-      "severity": "info",
-      "match": ".sort(",
-      "excerpt": ".sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime())"
-    },
-    {
       "file": "app/finance/_components/FinanceOperationsWorkspace.tsx",
-      "line": 465,
+      "line": 477,
       "rule": "select-star",
       "severity": "warning",
       "match": ".select(\"*\")",
@@ -361,7 +425,7 @@
     },
     {
       "file": "app/finance/_components/FinanceOperationsWorkspace.tsx",
-      "line": 473,
+      "line": 485,
       "rule": "large-limit",
       "severity": "info",
       "match": ".limit(1000)",
@@ -369,7 +433,7 @@
     },
     {
       "file": "app/finance/_components/FinanceOperationsWorkspace.tsx",
-      "line": 488,
+      "line": 500,
       "rule": "select-star",
       "severity": "warning",
       "match": ".select(\"*\")",
@@ -377,7 +441,7 @@
     },
     {
       "file": "app/finance/_components/FinanceOperationsWorkspace.tsx",
-      "line": 899,
+      "line": 914,
       "rule": "full-array-sort",
       "severity": "info",
       "match": ".sort(",
@@ -385,7 +449,7 @@
     },
     {
       "file": "app/finance/activity-history/page.tsx",
-      "line": 29,
+      "line": 30,
       "rule": "select-star",
       "severity": "warning",
       "match": ".select(\"*\")",
@@ -393,7 +457,7 @@
     },
     {
       "file": "app/finance/audit/page.tsx",
-      "line": 371,
+      "line": 372,
       "rule": "full-array-sort",
       "severity": "info",
       "match": ".sort(",
@@ -401,7 +465,7 @@
     },
     {
       "file": "app/finance/audit/page.tsx",
-      "line": 403,
+      "line": 404,
       "rule": "full-array-sort",
       "severity": "info",
       "match": ".sort(",
@@ -409,7 +473,7 @@
     },
     {
       "file": "app/finance/audit/page.tsx",
-      "line": 437,
+      "line": 438,
       "rule": "full-array-sort",
       "severity": "info",
       "match": ".sort(",
@@ -417,7 +481,7 @@
     },
     {
       "file": "app/finance/audit/page.tsx",
-      "line": 830,
+      "line": 831,
       "rule": "large-limit",
       "severity": "info",
       "match": ".limit(500)",
@@ -425,7 +489,7 @@
     },
     {
       "file": "app/finance/audit/page.tsx",
-      "line": 840,
+      "line": 841,
       "rule": "large-limit",
       "severity": "info",
       "match": ".limit(500)",
@@ -433,7 +497,7 @@
     },
     {
       "file": "app/finance/audit/page.tsx",
-      "line": 996,
+      "line": 997,
       "rule": "full-array-sort",
       "severity": "info",
       "match": ".sort(",
@@ -441,7 +505,7 @@
     },
     {
       "file": "app/finance/audit-trail/page.tsx",
-      "line": 19,
+      "line": 20,
       "rule": "select-star",
       "severity": "warning",
       "match": ".select(\"*\")",
@@ -449,7 +513,7 @@
     },
     {
       "file": "app/finance/manage-accounts/assign/page.tsx",
-      "line": 197,
+      "line": 199,
       "rule": "full-array-sort",
       "severity": "info",
       "match": ".sort(",
@@ -457,7 +521,7 @@
     },
     {
       "file": "app/finance/manage-accounts/assign/page.tsx",
-      "line": 201,
+      "line": 203,
       "rule": "full-array-sort",
       "severity": "info",
       "match": ".sort(",
@@ -481,7 +545,7 @@
     },
     {
       "file": "app/finance/page.tsx",
-      "line": 157,
+      "line": 159,
       "rule": "large-limit",
       "severity": "info",
       "match": ".limit(2000)",
@@ -489,15 +553,7 @@
     },
     {
       "file": "app/finance/page.tsx",
-      "line": 158,
-      "rule": "large-limit",
-      "severity": "info",
-      "match": ".limit(1000)",
-      "excerpt": "supabase.from(\"requests\").select(\"id,request_no,title,amount,status,current_stage,current_owner,dept_id,subhead_id,created_at\").order(\"created_at\", { ascending: false }).limit(1000),"
-    },
-    {
-      "file": "app/finance/page.tsx",
-      "line": 159,
+      "line": 162,
       "rule": "large-limit",
       "severity": "info",
       "match": ".limit(2000)",
@@ -505,7 +561,7 @@
     },
     {
       "file": "app/finance/page.tsx",
-      "line": 197,
+      "line": 200,
       "rule": "realtime-channel",
       "severity": "info",
       "match": ".channel(",
@@ -513,7 +569,7 @@
     },
     {
       "file": "app/finance/page.tsx",
-      "line": 219,
+      "line": 222,
       "rule": "full-array-sort",
       "severity": "info",
       "match": ".sort(",
@@ -521,7 +577,7 @@
     },
     {
       "file": "app/finance/page.tsx",
-      "line": 294,
+      "line": 305,
       "rule": "full-array-sort",
       "severity": "info",
       "match": ".sort(",
@@ -529,7 +585,7 @@
     },
     {
       "file": "app/finance/page.tsx",
-      "line": 300,
+      "line": 311,
       "rule": "full-array-sort",
       "severity": "info",
       "match": ".sort(",
@@ -537,7 +593,7 @@
     },
     {
       "file": "app/finance/page.tsx",
-      "line": 302,
+      "line": 313,
       "rule": "full-array-sort",
       "severity": "info",
       "match": ".sort(",
@@ -545,7 +601,7 @@
     },
     {
       "file": "app/finance/page.tsx",
-      "line": 304,
+      "line": 315,
       "rule": "full-array-sort",
       "severity": "info",
       "match": ".sort(",
@@ -569,7 +625,7 @@
     },
     {
       "file": "app/finance/request/[id]/page.tsx",
-      "line": 237,
+      "line": 238,
       "rule": "select-star",
       "severity": "warning",
       "match": ".select(\"*\")",
@@ -577,7 +633,7 @@
     },
     {
       "file": "app/finance/request/[id]/page.tsx",
-      "line": 254,
+      "line": 255,
       "rule": "select-star",
       "severity": "warning",
       "match": ".select(\"*\")",
@@ -585,7 +641,7 @@
     },
     {
       "file": "app/finance/request/[id]/page.tsx",
-      "line": 328,
+      "line": 329,
       "rule": "realtime-channel",
       "severity": "info",
       "match": ".channel(",
@@ -593,23 +649,23 @@
     },
     {
       "file": "app/finance/subheads/page.tsx",
-      "line": 619,
+      "line": 633,
       "rule": "full-array-sort",
       "severity": "info",
       "match": ".sort(",
       "excerpt": ".sort("
     },
     {
-      "file": "app/payment-vouchers/[id]/print/page.tsx",
-      "line": 482,
-      "rule": "browser-print",
+      "file": "app/payment-vouchers/[id]/page.tsx",
+      "line": 219,
+      "rule": "full-array-sort",
       "severity": "info",
-      "match": "window.print(",
-      "excerpt": "window.print();"
+      "match": ".sort(",
+      "excerpt": "setHistory(((histRes.data || []) as Hist[]).slice().sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()));"
     },
     {
       "file": "app/payment-vouchers/manual/page.tsx",
-      "line": 348,
+      "line": 358,
       "rule": "select-star",
       "severity": "warning",
       "match": ".select(\"*\")",
@@ -617,7 +673,7 @@
     },
     {
       "file": "app/payment-vouchers/manual/page.tsx",
-      "line": 352,
+      "line": 366,
       "rule": "select-star",
       "severity": "warning",
       "match": ".select(\"*\")",
@@ -625,7 +681,7 @@
     },
     {
       "file": "app/payment-vouchers/manual/page.tsx",
-      "line": 356,
+      "line": 370,
       "rule": "select-star",
       "severity": "warning",
       "match": ".select(\"*\")",
@@ -633,7 +689,7 @@
     },
     {
       "file": "app/payment-vouchers/manual/page.tsx",
-      "line": 380,
+      "line": 394,
       "rule": "full-array-sort",
       "severity": "info",
       "match": ".sort(",
@@ -641,7 +697,7 @@
     },
     {
       "file": "app/payment-vouchers/manual/page.tsx",
-      "line": 386,
+      "line": 400,
       "rule": "full-array-sort",
       "severity": "info",
       "match": ".sort(",
@@ -649,7 +705,7 @@
     },
     {
       "file": "app/payment-vouchers/manual/page.tsx",
-      "line": 417,
+      "line": 434,
       "rule": "realtime-channel",
       "severity": "info",
       "match": ".channel(",
@@ -657,7 +713,7 @@
     },
     {
       "file": "app/payment-vouchers/page.tsx",
-      "line": 405,
+      "line": 448,
       "rule": "select-star",
       "severity": "warning",
       "match": ".select(\"*\")",
@@ -665,7 +721,7 @@
     },
     {
       "file": "app/payment-vouchers/page.tsx",
-      "line": 1029,
+      "line": 1094,
       "rule": "full-array-sort",
       "severity": "info",
       "match": ".sort(",
@@ -689,31 +745,15 @@
     },
     {
       "file": "app/reports/enterprise-analytics/page.tsx",
-      "line": 27,
-      "rule": "select-star",
-      "severity": "warning",
-      "match": ".select(\"*\")",
-      "excerpt": "supabase.from(\"requests\").select(\"*\").order(\"created_at\",{ascending:false}).limit(5000), supabase.from(\"departments\").select(\"id,name\").order(\"name\").limit(1000),"
-    },
-    {
-      "file": "app/reports/enterprise-analytics/page.tsx",
-      "line": 27,
-      "rule": "large-limit",
-      "severity": "info",
-      "match": ".limit(5000)",
-      "excerpt": "supabase.from(\"requests\").select(\"*\").order(\"created_at\",{ascending:false}).limit(5000), supabase.from(\"departments\").select(\"id,name\").order(\"name\").limit(1000),"
-    },
-    {
-      "file": "app/reports/enterprise-analytics/page.tsx",
-      "line": 27,
+      "line": 28,
       "rule": "large-limit",
       "severity": "info",
       "match": ".limit(1000)",
-      "excerpt": "supabase.from(\"requests\").select(\"*\").order(\"created_at\",{ascending:false}).limit(5000), supabase.from(\"departments\").select(\"id,name\").order(\"name\").limit(1000),"
+      "excerpt": "fetchRequestRegister(5000).then((r)=>({data:r.data as unknown as AnyRow[],error:r.error?{message:r.error}:null})), supabase.from(\"departments\").select(\"id,name\").order(\"name\").limit(1000),"
     },
     {
       "file": "app/reports/enterprise-analytics/page.tsx",
-      "line": 28,
+      "line": 29,
       "rule": "select-star",
       "severity": "warning",
       "match": ".select(\"*\")",
@@ -721,7 +761,7 @@
     },
     {
       "file": "app/reports/enterprise-analytics/page.tsx",
-      "line": 28,
+      "line": 29,
       "rule": "select-star",
       "severity": "warning",
       "match": ".select(\"*\")",
@@ -729,15 +769,7 @@
     },
     {
       "file": "app/reports/enterprise-analytics/page.tsx",
-      "line": 28,
-      "rule": "large-limit",
-      "severity": "info",
-      "match": ".limit(5000)",
-      "excerpt": "supabase.from(\"subheads\").select(\"*\").order(\"code\").limit(5000), supabase.from(\"finance_transactions\").select(\"*\").order(\"transaction_date\",{ascending:false}).limit(5000),"
-    },
-    {
-      "file": "app/reports/enterprise-analytics/page.tsx",
-      "line": 28,
+      "line": 29,
       "rule": "large-limit",
       "severity": "info",
       "match": ".limit(5000)",
@@ -746,33 +778,17 @@
     {
       "file": "app/reports/enterprise-analytics/page.tsx",
       "line": 29,
-      "rule": "select-star",
-      "severity": "warning",
-      "match": ".select(\"*\")",
-      "excerpt": "supabase.from(\"payment_vouchers\").select(\"*\").order(\"created_at\",{ascending:false}).limit(5000), supabase.from(\"iet_accounts\").select(\"*\").order(\"name\").limit(1000),"
-    },
-    {
-      "file": "app/reports/enterprise-analytics/page.tsx",
-      "line": 29,
-      "rule": "select-star",
-      "severity": "warning",
-      "match": ".select(\"*\")",
-      "excerpt": "supabase.from(\"payment_vouchers\").select(\"*\").order(\"created_at\",{ascending:false}).limit(5000), supabase.from(\"iet_accounts\").select(\"*\").order(\"name\").limit(1000),"
-    },
-    {
-      "file": "app/reports/enterprise-analytics/page.tsx",
-      "line": 29,
       "rule": "large-limit",
       "severity": "info",
       "match": ".limit(5000)",
-      "excerpt": "supabase.from(\"payment_vouchers\").select(\"*\").order(\"created_at\",{ascending:false}).limit(5000), supabase.from(\"iet_accounts\").select(\"*\").order(\"name\").limit(1000),"
+      "excerpt": "supabase.from(\"subheads\").select(\"*\").order(\"code\").limit(5000), supabase.from(\"finance_transactions\").select(\"*\").order(\"transaction_date\",{ascending:false}).limit(5000),"
     },
     {
       "file": "app/reports/enterprise-analytics/page.tsx",
-      "line": 29,
-      "rule": "large-limit",
-      "severity": "info",
-      "match": ".limit(1000)",
+      "line": 30,
+      "rule": "select-star",
+      "severity": "warning",
+      "match": ".select(\"*\")",
       "excerpt": "supabase.from(\"payment_vouchers\").select(\"*\").order(\"created_at\",{ascending:false}).limit(5000), supabase.from(\"iet_accounts\").select(\"*\").order(\"name\").limit(1000),"
     },
     {
@@ -781,7 +797,7 @@
       "rule": "select-star",
       "severity": "warning",
       "match": ".select(\"*\")",
-      "excerpt": "supabase.from(\"registry_correspondence\").select(\"*\").order(\"created_at\",{ascending:false}).limit(5000),"
+      "excerpt": "supabase.from(\"payment_vouchers\").select(\"*\").order(\"created_at\",{ascending:false}).limit(5000), supabase.from(\"iet_accounts\").select(\"*\").order(\"name\").limit(1000),"
     },
     {
       "file": "app/reports/enterprise-analytics/page.tsx",
@@ -789,11 +805,35 @@
       "rule": "large-limit",
       "severity": "info",
       "match": ".limit(5000)",
+      "excerpt": "supabase.from(\"payment_vouchers\").select(\"*\").order(\"created_at\",{ascending:false}).limit(5000), supabase.from(\"iet_accounts\").select(\"*\").order(\"name\").limit(1000),"
+    },
+    {
+      "file": "app/reports/enterprise-analytics/page.tsx",
+      "line": 30,
+      "rule": "large-limit",
+      "severity": "info",
+      "match": ".limit(1000)",
+      "excerpt": "supabase.from(\"payment_vouchers\").select(\"*\").order(\"created_at\",{ascending:false}).limit(5000), supabase.from(\"iet_accounts\").select(\"*\").order(\"name\").limit(1000),"
+    },
+    {
+      "file": "app/reports/enterprise-analytics/page.tsx",
+      "line": 31,
+      "rule": "select-star",
+      "severity": "warning",
+      "match": ".select(\"*\")",
       "excerpt": "supabase.from(\"registry_correspondence\").select(\"*\").order(\"created_at\",{ascending:false}).limit(5000),"
     },
     {
       "file": "app/reports/enterprise-analytics/page.tsx",
-      "line": 38,
+      "line": 31,
+      "rule": "large-limit",
+      "severity": "info",
+      "match": ".limit(5000)",
+      "excerpt": "supabase.from(\"registry_correspondence\").select(\"*\").order(\"created_at\",{ascending:false}).limit(5000),"
+    },
+    {
+      "file": "app/reports/enterprise-analytics/page.tsx",
+      "line": 39,
       "rule": "full-array-sort",
       "severity": "info",
       "match": ".sort(",
@@ -801,7 +841,7 @@
     },
     {
       "file": "app/reports/enterprise-analytics/page.tsx",
-      "line": 43,
+      "line": 44,
       "rule": "full-array-sort",
       "severity": "info",
       "match": ".sort(",
@@ -809,7 +849,7 @@
     },
     {
       "file": "app/reports/enterprise-analytics/page.tsx",
-      "line": 45,
+      "line": 46,
       "rule": "full-array-sort",
       "severity": "info",
       "match": ".sort(",
@@ -817,7 +857,7 @@
     },
     {
       "file": "app/reports/enterprise-analytics/page.tsx",
-      "line": 55,
+      "line": 56,
       "rule": "browser-print",
       "severity": "info",
       "match": "window.print(",
@@ -825,23 +865,7 @@
     },
     {
       "file": "app/reports/page.tsx",
-      "line": 55,
-      "rule": "select-star",
-      "severity": "warning",
-      "match": ".select(\"*\")",
-      "excerpt": "supabase.from(\"requests\").select(\"*\").order(\"created_at\", { ascending: false }).limit(5000),"
-    },
-    {
-      "file": "app/reports/page.tsx",
-      "line": 55,
-      "rule": "large-limit",
-      "severity": "info",
-      "match": ".limit(5000)",
-      "excerpt": "supabase.from(\"requests\").select(\"*\").order(\"created_at\", { ascending: false }).limit(5000),"
-    },
-    {
-      "file": "app/reports/page.tsx",
-      "line": 56,
+      "line": 59,
       "rule": "large-limit",
       "severity": "info",
       "match": ".limit(1000)",
@@ -849,7 +873,7 @@
     },
     {
       "file": "app/reports/page.tsx",
-      "line": 57,
+      "line": 60,
       "rule": "select-star",
       "severity": "warning",
       "match": ".select(\"*\")",
@@ -857,7 +881,7 @@
     },
     {
       "file": "app/reports/page.tsx",
-      "line": 57,
+      "line": 60,
       "rule": "large-limit",
       "severity": "info",
       "match": ".limit(5000)",
@@ -865,7 +889,7 @@
     },
     {
       "file": "app/reports/page.tsx",
-      "line": 58,
+      "line": 61,
       "rule": "select-star",
       "severity": "warning",
       "match": ".select(\"*\")",
@@ -873,7 +897,7 @@
     },
     {
       "file": "app/reports/page.tsx",
-      "line": 58,
+      "line": 61,
       "rule": "large-limit",
       "severity": "info",
       "match": ".limit(5000)",
@@ -881,7 +905,7 @@
     },
     {
       "file": "app/reports/page.tsx",
-      "line": 59,
+      "line": 62,
       "rule": "select-star",
       "severity": "warning",
       "match": ".select(\"*\")",
@@ -889,7 +913,7 @@
     },
     {
       "file": "app/reports/page.tsx",
-      "line": 59,
+      "line": 62,
       "rule": "large-limit",
       "severity": "info",
       "match": ".limit(5000)",
@@ -897,7 +921,7 @@
     },
     {
       "file": "app/reports/page.tsx",
-      "line": 60,
+      "line": 63,
       "rule": "select-star",
       "severity": "warning",
       "match": ".select(\"*\")",
@@ -905,7 +929,7 @@
     },
     {
       "file": "app/reports/page.tsx",
-      "line": 60,
+      "line": 63,
       "rule": "large-limit",
       "severity": "info",
       "match": ".limit(5000)",
@@ -913,23 +937,7 @@
     },
     {
       "file": "app/reports/page.tsx",
-      "line": 61,
-      "rule": "select-star",
-      "severity": "warning",
-      "match": ".select(\"*\")",
-      "excerpt": "supabase.from(\"request_history\").select(\"*\").order(\"created_at\", { ascending: false }).limit(5000),"
-    },
-    {
-      "file": "app/reports/page.tsx",
-      "line": 61,
-      "rule": "large-limit",
-      "severity": "info",
-      "match": ".limit(5000)",
-      "excerpt": "supabase.from(\"request_history\").select(\"*\").order(\"created_at\", { ascending: false }).limit(5000),"
-    },
-    {
-      "file": "app/reports/page.tsx",
-      "line": 82,
+      "line": 85,
       "rule": "full-array-sort",
       "severity": "info",
       "match": ".sort(",
@@ -937,7 +945,7 @@
     },
     {
       "file": "app/reports/page.tsx",
-      "line": 110,
+      "line": 113,
       "rule": "browser-print",
       "severity": "info",
       "match": "window.print(",
@@ -945,19 +953,11 @@
     },
     {
       "file": "app/requests/[id]/edit/page.tsx",
-      "line": 221,
+      "line": 222,
       "rule": "full-array-sort",
       "severity": "info",
       "match": ".sort(",
       "excerpt": ".sort((a, b) => {"
-    },
-    {
-      "file": "app/requests/[id]/print/page.tsx",
-      "line": 621,
-      "rule": "browser-print",
-      "severity": "info",
-      "match": "window.print(",
-      "excerpt": "window.print();"
     },
     {
       "file": "app/requests/page.tsx",
@@ -968,6 +968,22 @@
       "excerpt": "const departmentStats=useMemo(()=>{const map=new Map<string,number>();rows.forEach(r=>{const name=r.dept_id?departments[r.dept_id]||\"Unassigned\":\"Unassigned\";map.set(name,(map.get(name)||0)+1)});return Array.from(map.ent"
     },
     {
+      "file": "app/requests/printable/page.tsx",
+      "line": 104,
+      "rule": "large-limit",
+      "severity": "info",
+      "match": ".limit(2000)",
+      "excerpt": ".limit(2000),"
+    },
+    {
+      "file": "app/requests/printable/page.tsx",
+      "line": 128,
+      "rule": "large-limit",
+      "severity": "info",
+      "match": ".limit(5000)",
+      "excerpt": ".limit(5000);"
+    },
+    {
       "file": "lib/activeRole.ts",
       "line": 72,
       "rule": "full-array-sort",
@@ -976,12 +992,28 @@
       "excerpt": "return Array.from(map.values()).sort((a, b) => {"
     },
     {
+      "file": "lib/notifications.ts",
+      "line": 68,
+      "rule": "select-star",
+      "severity": "warning",
+      "match": ".select(\"*\")",
+      "excerpt": ".select(\"*\")"
+    },
+    {
       "file": "lib/permissions.ts",
-      "line": 94,
+      "line": 100,
       "rule": "full-array-sort",
       "severity": "info",
       "match": ".sort(",
       "excerpt": ".sort((a, b) => b.prefix.length - a.prefix.length)"
+    },
+    {
+      "file": "lib/printA4.ts",
+      "line": 129,
+      "rule": "browser-print",
+      "severity": "info",
+      "match": "window.print(",
+      "excerpt": "window.print();"
     },
     {
       "file": "lib/reportExport.ts",
@@ -990,6 +1022,14 @@
       "severity": "info",
       "match": "window.print(",
       "excerpt": "window.print();"
+    },
+    {
+      "file": "lib/userIdentity.ts",
+      "line": 79,
+      "rule": "large-limit",
+      "severity": "info",
+      "match": ".limit(5000)",
+      "excerpt": "const { data } = await supabase.from(\"profiles\").select(\"id,full_name,email,role\").limit(5000);"
     }
   ]
 }

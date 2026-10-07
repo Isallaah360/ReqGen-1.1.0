@@ -5342,3 +5342,5 @@ html[data-theme="dark"] :is(.rg-setup-progress,.rg-setup-steps>li,.rg-coach){bac
 .rg-backup-log em{font-style:normal;font-size:11.5px}
 @media (max-width:980px){.rg-backup-grid{grid-template-columns:1fr}.rg-backup-log li{grid-template-columns:1fr}}
 html[data-theme="dark"] :is(.rg-backup-card,.rg-backup-report){background:var(--c-bg-151a24,#151a24);border-color:var(--c-ln-2a303b,#2a303b)}
+.rg-register-filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.rg-register-year{height:38px;padding:0 10px;border:1px solid var(--c-ln-e3d6ca,#e3d6ca);border-radius:9px;background:var(--c-bg-ffffff,#fff);font:inherit;font-size:12.5px;font-weight:700}
