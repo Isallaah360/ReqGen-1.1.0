@@ -134,6 +134,15 @@ const VIEW_PATH: Record<VoucherWorkspaceView, string> = {
   print: "/payment-vouchers/print-centre",
 };
 
+/** v3.1.8: every tab introduces itself; only the Centre carries the create buttons. */
+const VIEW_HEADINGS: Record<VoucherWorkspaceView, { title: string; description: string }> = {
+  overview: { title: "Voucher Centre", description: "Create vouchers and see every voucher at a glance." },
+  pending: { title: "Pending Signatures", description: "Track where each voucher is in the signing chain and remind the next signer." },
+  approved: { title: "Ready to Pay", description: "Fully signed and authorised vouchers waiting for payment." },
+  history: { title: "Voucher History", description: "Paid and cancelled vouchers, month by month." },
+  print: { title: "Print Centre", description: "Print fully signed vouchers on A4 or save them as PDF." },
+};
+
 function viewForPath(pathname: string | null, legacy: string | null): VoucherWorkspaceView {
   if (pathname?.endsWith("/pending")) return "pending";
   if (pathname?.endsWith("/approved")) return "approved";
@@ -1147,9 +1156,9 @@ export default function PaymentVouchersPage() {
   return (
     <main className={styles.page}>
       <PageHeader
-        title="Payment Vouchers"
-        description="Create, manage and track all payment vouchers."
-        actions={<div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}><button className={styles.secondaryButton} onClick={() => router.push("/payment-vouchers/manual")}><FileSpreadsheet size={17}/>Manual Voucher</button><button className={styles.primaryButton} onClick={() => setShowCreateWorkspace(true)}><Plus size={18}/>Voucher from Approved Requests</button></div>}
+        title={VIEW_HEADINGS[workspaceView].title}
+        description={VIEW_HEADINGS[workspaceView].description}
+        actions={workspaceView !== "overview" ? undefined : <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}><button className={styles.secondaryButton} onClick={() => router.push("/payment-vouchers/manual")}><FileSpreadsheet size={17}/>Manual Voucher</button><button className={styles.primaryButton} onClick={() => setShowCreateWorkspace(true)}><Plus size={18}/>Voucher from Approved Requests</button></div>}
       />
 
       {msg ? <div className={styles.message}>{msg}</div> : null}

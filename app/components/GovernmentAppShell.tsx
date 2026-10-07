@@ -50,6 +50,7 @@ import ReqGenFooter from "./ReqGenFooter";
 import { REQGEN_PRODUCT_NAME, REQGEN_VERSION } from "@/lib/version";
 import ThemeToggle from "@/app/components/ThemeToggle";
 import ActivityStrip from "@/app/components/ActivityStrip";
+import SetupCoach from "@/app/components/SetupCoach";
 import NotificationCentre from "@/app/components/notifications/NotificationCentre";
 import { APPROVAL_QUEUE_CHANGED_EVENT, isAwaitingUser, type ApprovalQueueRow } from "@/lib/approvalQueue";
 
@@ -117,11 +118,13 @@ const MODULE_SUBNAV: Record<string, SubNavItem[]> = {
 
   "/audit-centre": [
     { href: "/audit-centre", label: "Audit Centre" },
+    { href: "/audit-centre/backup", label: "Master Backup" },
   ],
 
 
   "/profile": [
     { href: "/profile", label: "Personal Information" },
+    { href: "/profile/setup", label: "Setup Guide" },
     { href: "/profile/access", label: "Access & Roles" },
     { href: "/profile/activity", label: "Activity" },
     { href: "/profile/security", label: "Security & Sessions" },
@@ -888,6 +891,7 @@ function GovernmentAppShellContent({
           </div>
         </header>
           <ActivityStrip />
+          <SetupCoach />
 
         <main
           id="reqgen-main-content"

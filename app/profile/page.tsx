@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { cleanSignatureFile } from "@/lib/signatureInk";
+import { SETUP_EVENT } from "@/lib/profileSetup";
 import SignatureInk from "@/app/components/ui/SignatureInk";
 import ProfileNavigation from "@/app/components/profile/ProfileNavigation";
 
@@ -348,6 +349,7 @@ export default function ProfilePage() {
       setSigPreview(getPublicSignatureUrl(path));
       setFile(null);
       setMsg("✓ Signature saved successfully.");
+      window.dispatchEvent(new Event(SETUP_EVENT));
 
       await load({ silent: true });
       router.refresh();
@@ -411,6 +413,7 @@ export default function ProfilePage() {
       setAvatarUrl(nextUrl);
       setMsg(nextUrl ? "✓ Profile photo updated." : "✓ Profile photo removed.");
       window.dispatchEvent(new Event("reqgen-profile-updated"));
+      window.dispatchEvent(new Event(SETUP_EVENT));
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : "Unknown error";
       setMsg("✕ Profile photo update failed: " + message);
@@ -512,7 +515,7 @@ export default function ProfilePage() {
 
   return (
     <main className="rg-profile-page">
-      <section className="rg-profile-hero" aria-labelledby="profile-page-title">
+      <section className="rg-profile-hero" aria-labelledby="profile-page-title" data-guide="avatar" id="photo">
         <div className="rg-profile-photo">
           <div className={`rg-profile-avatar-large ${avatarUrl ? "has-photo" : ""}`}>
             {avatarUrl ? (
@@ -608,7 +611,7 @@ export default function ProfilePage() {
           </div>
         </article>
 
-        <article className="rg-profile-card">
+        <article className="rg-profile-card" data-guide="signature" id="signature">
           <div className="rg-profile-card-head">
             <div><h2>Institutional Signature</h2><p>Used for authorised request and approval actions.</p></div>
           </div>

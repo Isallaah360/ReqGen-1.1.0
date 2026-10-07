@@ -196,6 +196,16 @@ export const ROUTE_REGISTRY: RouteRegistryItem[] = [
     "description": "ReqGen route /approvals"
   },
   {
+    "pattern": "/audit-centre/backup",
+    "title": "Audit Centre - Master Backup",
+    "rootHref": "/audit-centre",
+    "category": "Application Route",
+    "public": false,
+    "nav": false,
+    "searchable": true,
+    "description": "ReqGen route /audit-centre/backup"
+  },
+  {
     "pattern": "/audit-centre",
     "title": "Audit Centre",
     "rootHref": "/audit-centre",
@@ -714,6 +724,16 @@ export const ROUTE_REGISTRY: RouteRegistryItem[] = [
     "nav": false,
     "searchable": true,
     "description": "ReqGen route /profile/activity"
+  },
+  {
+    "pattern": "/profile/setup",
+    "title": "Profile - Setup Guide",
+    "rootHref": "/profile",
+    "category": "Application Route",
+    "public": false,
+    "nav": false,
+    "searchable": true,
+    "description": "ReqGen route /profile/setup"
   },
   {
     "pattern": "/profile",

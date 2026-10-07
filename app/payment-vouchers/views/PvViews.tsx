@@ -133,8 +133,7 @@ export function PendingTracker() {
     <section className="rg-pvv">
       <div className="rg-pvv-head">
         <div>
-          <h2>Signing tracker</h2>
-          <p>Where every unsigned voucher is, who it is waiting for and for how long. Send a reminder by in-app alert, SMS and email.</p>
+          <p>Each card shows the signing progress, who the voucher is waiting for and for how long. <b>Remind</b> sends an in-app alert, an SMS and an email.</p>
         </div>
         <button type="button" className="rg-btn rg-btn-secondary" onClick={() => void load()} disabled={loading}><RefreshCw size={15} /> Refresh</button>
       </div>
@@ -219,7 +218,6 @@ export function ApprovedView({ rows }: { rows: PvRow[] }) {
     <section className="rg-pvv">
       <div className="rg-pvv-head">
         <div>
-          <h2>Ready to pay</h2>
           <p>Fully signed and authorised by the Director General. Pay, then mark each voucher paid — the payee&apos;s signature is added as &quot;Received by&quot;.</p>
         </div>
       </div>
@@ -268,7 +266,7 @@ export function HistoryView({ rows }: { rows: PvRow[] }) {
   return (
     <section className="rg-pvv">
       <div className="rg-pvv-head">
-        <div><h2>Voucher history</h2><p>Every paid and cancelled voucher, month by month.</p></div>
+        <div><p>Search by voucher number, payee or department.</p></div>
         <label className="rg-register-search"><Search size={15} aria-hidden="true" /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search voucher, payee or department" /></label>
       </div>
       <div className="rg-pvv-stats">
@@ -311,7 +309,7 @@ export function PrintCentreView({ rows }: { rows: PvRow[] }) {
   return (
     <section className="rg-pvv">
       <div className="rg-pvv-head">
-        <div><h2>Print centre</h2><p>Only fully signed vouchers can be printed. Each prints on one A4 page; use &quot;Save as PDF&quot; in the print dialog for a digital copy.</p></div>
+        <div><p>Only fully signed vouchers can be printed. Each prints on one A4 page; use &quot;Save as PDF&quot; in the print dialog for a digital copy.</p></div>
         <label className="rg-register-search"><Search size={15} aria-hidden="true" /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search voucher, payee or department" /></label>
       </div>
       {waiting ? <p className="rg-pvv-note"><Clock3 size={15} /> {waiting} voucher(s) are still being signed and will appear here once the DG authorises them.</p> : null}

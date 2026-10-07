@@ -1,5 +1,5 @@
 -- =============================================================================
--- ReqGen v3.1.7 — Print Register, PV signing tracker, manual vouchers in the
+-- ReqGen v3.1.7 (rev 2) — Print Register, PV signing tracker, manual vouchers in the
 -- signing chain, and "no voucher without the preparer's signature".
 -- Run ONCE in the Supabase SQL Editor AFTER the v3.1.7 app is deployed.
 -- Safe to re-run. The last result is the verification table.
@@ -19,9 +19,16 @@
 -- 4. Manual vouchers already posted (not paid / cancelled) join the chain.
 -- =============================================================================
 
+-- v3.1.7 rev 2: the first run hit a deadlock with live app traffic (the
+-- trigger needs an exclusive lock on payment_vouchers). Rev 2 takes that lock
+-- FIRST, before anything else, and waits at most 10 seconds for it. If you see
+-- "lock timeout", simply run the file again in a quiet moment.
+
 set lock_timeout = '10s';
 
 begin;
+
+lock table public.payment_vouchers in access exclusive mode;
 
 -- ---------------------------------------------------------------------------
 -- 1. Print Register
@@ -216,7 +223,6 @@ for each row execute function public.reqgen_pv_before_write();
 -- ---------------------------------------------------------------------------
 -- 4. Posted manual vouchers join the chain.
 -- ---------------------------------------------------------------------------
-lock table public.payment_vouchers in share row exclusive mode;
 
 with moved as (
   update public.payment_vouchers v set

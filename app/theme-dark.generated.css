@@ -222,6 +222,7 @@ html[data-theme="dark"]{
   --c-bg-f0fbf6:#091712;
   --c-bg-f0fdf4:#0c1810;
   --c-bg-f1e8ff:#110b19;
+  --c-bg-f1e9e2:#292018;
   --c-bg-f1e9ff:#110b18;
   --c-bg-f1eafe:#100c17;
   --c-bg-f1eaff:#100c18;
@@ -980,6 +981,7 @@ html[data-theme="dark"]{
   --c-fg-8894a5:#b9c6d8;
   --c-fg-895a00:#bb8a42;
   --c-fg-8a2530:#f59b9c;
+  --c-fg-8a2f00:#f19f81;
   --c-fg-8a5a0b:#bc8a46;
   --c-fg-8a5b0b:#bc8b46;
   --c-fg-8a5b11:#bc8b49;
@@ -1346,6 +1348,7 @@ html[data-theme="dark"]{
   --c-ln-f2d28a:#4a3a14;
   --c-ln-f2d7ae:#453824;
   --c-ln-f3c2c8:#4e373a;
+  --c-ln-f3c4a8:#4f392b;
   --c-ln-f3c4bd:#4e3734;
   --c-ln-f3c5c0:#4d3735;
   --c-ln-f3c7cd:#4b3639;

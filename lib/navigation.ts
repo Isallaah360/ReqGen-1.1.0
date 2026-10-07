@@ -41,6 +41,7 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
 
 
   { href: "/audit-centre", label: "Audit Centre", section: "Governance", description: "Audit oversight." },
+  { href: "/audit-centre/backup", label: "Master Backup", section: "Audit", description: "Download a CSV master backup by financial year and restore records.", keywords: ["backup", "restore", "csv", "export", "financial year"] },
 
   { href: "/admin", label: "Administration Centre", section: "Administration", description: "System administration command centre." },
   { href: "/admin/users", label: "User Management", section: "Administration", description: "Manage ReqGen users." },
@@ -52,6 +53,7 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
   { href: "/admin/settings", label: "System Settings", section: "Administration", description: "ReqGen administrative settings." },
 
   { href: "/profile", label: "My Profile", section: "Account", description: "Personal ReqGen profile." },
+  { href: "/profile/setup", label: "Account Setup Guide", section: "Profile", description: "Step-by-step help to set your password, authenticator, photo and signature.", keywords: ["setup", "guide", "help", "signature", "2fa", "password", "photo", "avatar"] },
   { href: "/profile/access", label: "My Access", section: "Account", description: "View assigned and active access context." },
   { href: "/notifications", label: "Notifications", section: "Account", description: "Workflow updates on your requests and approvals." },
   { href: "/profile/activity", label: "My Activity", section: "Account", description: "View personal ReqGen activity." },

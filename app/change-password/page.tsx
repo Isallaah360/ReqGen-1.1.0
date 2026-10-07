@@ -225,6 +225,8 @@ export default function ChangePasswordPage() {
 
         const { error } = await supabase.auth.updateUser({
             password: newPassword,
+            // v3.1.8: lets the Setup Guide know the password is now the user's own.
+            data: { password_changed_at: new Date().toISOString() },
         });
 
         setSaving(false);
