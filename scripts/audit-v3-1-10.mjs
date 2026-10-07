@@ -30,7 +30,8 @@ check("Backup, Print Register and Finance use the IET financial year", read("app
 
 // 3. One loading bar.
 const css = read("app/globals.css");
-check("One loading bar: the top stripe animates; the second strip is retired", css.includes("html.rg-busy body::before") && read("app/components/ActivityStrip.tsx").includes('classList.toggle("rg-busy"'));
+// v3.1.12 (owner decision): the single loading bar sits below the top bar; the top stripe never animates.
+check("One loading bar, below the top bar; the top stripe never animates", !css.includes("html.rg-busy body::before") && !read("app/components/ActivityStrip.tsx").includes("rg-busy"));
 
 // 4. Checked by.
 const rp = read("app/requests/[id]/print/page.tsx");

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useParams, usePathname, useRouter } from "next/navigation";
+import { useParams, usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, CheckCircle2, Circle, Clock3, FileText, PenLine, Printer, RefreshCw, Trash2, UserCheck, XCircle } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { confirmDialog } from "@/lib/dialog";
@@ -170,6 +170,8 @@ export default function PaymentVoucherDetailPage() {
   const id = String(params?.id || "");
   const router = useRouter();
   const pathname = usePathname();
+  const search = useSearchParams();
+  const justGenerated = search.get("signers") === "1";
   // Opened from Approvals (signers outside Finance) or from the Voucher Centre.
   const fromApprovals = (pathname || "").startsWith("/approvals");
   const listPath = fromApprovals ? "/approvals/vouchers" : "/payment-vouchers";
@@ -187,6 +189,8 @@ export default function PaymentVoucherDetailPage() {
   const [comment, setComment] = useState("");
   const [chequeSigner, setChequeSigner] = useState("");
   const [counterSigner, setCounterSigner] = useState("");
+  const [checker, setChecker] = useState("");
+  const [checkers, setCheckers] = useState<Array<{ id: string; full_name: string | null }>>([]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -195,14 +199,16 @@ export default function PaymentVoucherDetailPage() {
       if (!auth.user) { router.push("/login"); return; }
       setUserId(auth.user.id);
 
-      const [profileRes, rolesRes, detailRes, itemRes, histRes, signRes] = await Promise.all([
+      const [profileRes, rolesRes, detailRes, itemRes, histRes, signRes, checkerRes] = await Promise.all([
         supabase.from("profiles").select("role").eq("id", auth.user.id).maybeSingle(),
         supabase.from("profile_roles").select("role_key,is_active").eq("profile_id", auth.user.id),
         supabase.rpc("get_payment_voucher_detail", { p_voucher_id: id }),
         supabase.rpc("get_payment_voucher_items", { p_voucher_id: id }),
         supabase.rpc("get_payment_voucher_history", { p_voucher_id: id }),
         supabase.from("payment_voucher_counter_signatories").select("id,full_name,is_active,signatory_type").eq("is_active", true).order("full_name"),
+        supabase.rpc("reqgen_pv_checkers"),
       ]);
+      setCheckers(((checkerRes.data || []) as Array<{ id: string; full_name: string | null }>));
 
       const roleSet = new Set<string>();
       if (profileRes.data?.role) roleSet.add(key(profileRes.data.role));
@@ -221,6 +227,7 @@ export default function PaymentVoucherDetailPage() {
       setSignatories(signers);
       setChequeSigner((current) => current || row.cheque_signed_by_name || signers.find((s) => key(s.signatory_type) === "chequesigner")?.full_name || "");
       setCounterSigner((current) => current || row.cheque_counter_signed_by_name || signers.find((s) => key(s.signatory_type) === "countersigner")?.full_name || "");
+      setChecker((current) => current || (row.status === "Pending Check" ? row.current_signing_owner || "" : ""));
     } catch (caught) {
       setMessage({ tone: "error", text: caught instanceof Error ? caught.message : "The voucher could not be loaded." });
     } finally {
@@ -238,7 +245,7 @@ export default function PaymentVoucherDetailPage() {
   // Mirrors reqgen_pv_sign: who may sign the current step.
   const myStep = useMemo(() => {
     if (!voucher || !userId) return null;
-    if (status === "Pending Check" && has("auditor") && voucher.prepared_by !== userId) return { label: "Check and sign as Auditor", title: "Check this voucher?" };
+    if (status === "Pending Check" && has("auditor") && voucher.prepared_by !== userId && (!voucher.current_signing_owner || voucher.current_signing_owner === userId)) return { label: "Check and sign as Auditor", title: "Check this voucher?" };
     if (status === "Pending Cheque Signature" && voucher.cheque_signed_by === userId) return { label: "Sign as Cheque Signer", title: "Sign this voucher?" };
     if (status === "Pending Counter Signature" && voucher.cheque_counter_signed_by === userId) return { label: "Counter-sign", title: "Counter-sign this voucher?" };
     if (status === "Pending DG Authorisation" && has("dg", "directorgeneral")) return { label: "Authorise as Director General", title: "Authorise this voucher?" };
@@ -293,7 +300,7 @@ export default function PaymentVoucherDetailPage() {
     if (!voucher) return;
     if (!chequeSigner || !counterSigner) { setMessage({ tone: "error", text: "Select both the Cheque Signer and the Counter Signer." }); return; }
     if (key(chequeSigner) === key(counterSigner)) { setMessage({ tone: "error", text: "Cheque Signer and Counter Signer cannot be the same person." }); return; }
-    await run(async () => supabase.rpc("reqgen_pv_assign_signers", { p_voucher_id: voucher.id, p_cheque_signed_by_name: chequeSigner, p_counter_signatory_name: counterSigner }), "Signers assigned.");
+    await run(async () => supabase.rpc("reqgen_pv_assign_signers", { p_voucher_id: voucher.id, p_cheque_signed_by_name: chequeSigner, p_counter_signatory_name: counterSigner, p_checker_id: checker || null }), "Signing officers saved. The checker has been notified in the app.");
   }
 
   async function markPaid() {
@@ -376,6 +383,32 @@ export default function PaymentVoucherDetailPage() {
         <StatTile title="Signatures" value={`${steps.filter((s) => s.state === "done" && s.key !== "received").length} of 5`} tone="orange" note={fullySigned ? "Fully signed" : "Signing in progress"} />
       </section>
 
+      {status === "Pending Check" && isAccount ? (
+        <section className={`rg-pvd-card ${signersMissing || justGenerated ? "rg-pvd-needed" : ""}`}>
+          <header><h2>{signersMissing ? "Action needed: choose the signing officers" : "Signing officers"}</h2><p>{justGenerated ? "Voucher generated. Choose who checks and who signs it — they are notified in the app as their turn comes." : signersMissing ? "Choose the checker and the two signers so the voucher can move." : "You can change these until the voucher is checked."}</p></header>
+          <div className="rg-pvd-assign">
+            <label>Checker (Auditor)
+              <select value={checker} onChange={(e) => setChecker(e.target.value)}>
+                <option value="">Any Auditor</option>
+                {checkers.filter((c) => c.id !== voucher.prepared_by).map((c) => <option key={c.id} value={c.id}>{c.full_name || "Auditor"}</option>)}
+              </select>
+            </label>
+            <label>Cheque Signer *
+              <select value={chequeSigner} onChange={(e) => setChequeSigner(e.target.value)}>
+                <option value="">Select the Cheque Signer</option>
+                {chequeSigners.map((s) => <option key={s.id} value={s.full_name}>{s.full_name}</option>)}
+              </select>
+            </label>
+            <label>Counter Signer *
+              <select value={counterSigner} onChange={(e) => setCounterSigner(e.target.value)}>
+                <option value="">Select the Counter Signer</option>
+                {counterSigners.map((s) => <option key={s.id} value={s.full_name}>{s.full_name}</option>)}
+              </select>
+            </label>
+            <button type="button" className="rg-btn rg-btn-primary" onClick={() => void assignSigners()} disabled={busy}>Save signing officers</button>
+          </div>
+        </section>
+      ) : null}
       <section className="rg-pvd-card">
         <header><h2>Signing chain</h2><p>Each officer signs at their own step. The next signer is notified in the app.</p></header>
         <ol className="rg-pvd-chain">
@@ -398,7 +431,11 @@ export default function PaymentVoucherDetailPage() {
         {myStep ? (
           <div className="rg-pvd-act">
             <label>Comment (optional)<textarea value={comment} onChange={(e) => setComment(e.target.value)} rows={2} placeholder="Add a note to the voucher history" /></label>
-            <button type="button" className="rg-btn rg-btn-primary" onClick={() => void sign()} disabled={busy || signersMissing}><PenLine size={15} /> {myStep.label}</button>
+            {signersMissing ? (
+              <p className="rg-pvd-waiting">The Account Officer has not yet chosen the Cheque Signer and Counter Signer. You can check this voucher as soon as they do.</p>
+            ) : (
+              <button type="button" className="rg-btn rg-btn-primary" onClick={() => void sign()} disabled={busy}><PenLine size={15} /> {myStep.label}</button>
+            )}
           </div>
         ) : !fullySigned && status !== "Cancelled" ? (
           <p className="rg-pvd-waiting">Waiting for: {steps.find((s) => s.state === "current")?.who || "the next signer"}.</p>
@@ -412,26 +449,6 @@ export default function PaymentVoucherDetailPage() {
         ) : null}
       </section>
 
-      {status === "Pending Check" && isAccount ? (
-        <section className="rg-pvd-card">
-          <header><h2>Signers for this voucher</h2><p>{signersMissing ? "Assign the two signers so the Auditor can check the voucher." : "You can change the signers until the Auditor checks the voucher."}</p></header>
-          <div className="rg-pvd-assign">
-            <label>Cheque Signer *
-              <select value={chequeSigner} onChange={(e) => setChequeSigner(e.target.value)}>
-                <option value="">Select the Cheque Signer</option>
-                {chequeSigners.map((s) => <option key={s.id} value={s.full_name}>{s.full_name}</option>)}
-              </select>
-            </label>
-            <label>Counter Signer *
-              <select value={counterSigner} onChange={(e) => setCounterSigner(e.target.value)}>
-                <option value="">Select the Counter Signer</option>
-                {counterSigners.map((s) => <option key={s.id} value={s.full_name}>{s.full_name}</option>)}
-              </select>
-            </label>
-            <button type="button" className="rg-btn rg-btn-primary" onClick={() => void assignSigners()} disabled={busy}>Save signers</button>
-          </div>
-        </section>
-      ) : null}
 
       <section className="rg-pvd-grid">
         <article className="rg-pvd-card">

@@ -31,12 +31,6 @@ export default function ActivityStrip() {
 
   const on = busy || nav;
 
-  // v3.1.10: ONE loading bar. The IET stripe at the very top of the app comes
-  // alive (animates) while ReqGen is loading; there is no second bar.
-  useEffect(() => {
-    document.documentElement.classList.toggle("rg-busy", on);
-    return () => document.documentElement.classList.remove("rg-busy");
-  }, [on]);
 
   return (
     <div className={`rg-activity-strip ${on ? "is-on" : ""}`} role="progressbar" aria-busy={on} aria-label="Loading" aria-hidden={!on}>

@@ -23,6 +23,7 @@ type Voucher = {
   status: string | null;
   cheque_signed_by: string | null;
   cheque_counter_signed_by: string | null;
+  current_signing_owner: string | null;
 };
 
 type Person = { id: string; full_name: string | null; email: string | null; phone: string | null; role: string | null };
@@ -84,7 +85,7 @@ export async function POST(req: NextRequest) {
 
   const { data: voucherData, error: voucherError } = await admin
     .from("payment_vouchers")
-    .select("id,voucher_no,request_id,payee_name,amount,total_amount,status,cheque_signed_by,cheque_counter_signed_by")
+    .select("id,voucher_no,request_id,payee_name,amount,total_amount,status,cheque_signed_by,cheque_counter_signed_by,current_signing_owner")
     .eq("id", voucherId)
     .maybeSingle();
   if (voucherError) return fail(voucherError.message, 500);
@@ -121,7 +122,8 @@ export async function POST(req: NextRequest) {
     if (!voucher.cheque_signed_by || !voucher.cheque_counter_signed_by) {
       return fail("Assign the Cheque Signer and Counter Signer first. The voucher is waiting for the Account Officer.");
     }
-    recipients = await holdersOf(admin, ["auditor"]);
+    // A checker chosen by the Account Officer, otherwise every Auditor.
+    recipients = voucher.current_signing_owner ? await byIds([voucher.current_signing_owner]) : await holdersOf(admin, ["auditor"]);
     stepLabel = "check (Auditor)";
   } else if (status === "Pending Cheque Signature") {
     recipients = await byIds([voucher.cheque_signed_by]);

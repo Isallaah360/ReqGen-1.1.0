@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ArrowRight, CheckCircle2, Copy, Lock, RefreshCw, Route, Save, Search, ShieldAlert, Users } from "lucide-react";
+import { ArrowRight, CheckCircle2, Copy, Lock, RefreshCw, Route, Save, ShieldAlert, Users } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { confirmDialog } from "@/lib/dialog";
 import { PageHeader } from "@/app/components/ui/PageHeader";
@@ -47,7 +47,6 @@ export default function RoutingEnginePage() {
   const [officers, setOfficers] = useState<Record<OfficerStage, string>>({ PO: "", DOD: "", HOD: "", "DIN Admin": "", HR: "", Registrar: "", DG: "" });
   const [dgVacant, setDgVacant] = useState<"skip" | "block">("block");
   const [dirty, setDirty] = useState(false);
-  const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
@@ -221,7 +220,7 @@ export default function RoutingEnginePage() {
     return { chain: rows.map((r) => r.stage).join(" → "), gaps };
   }, [overview]);
 
-  const visibleDepts = depts.filter((d) => d.name.toLowerCase().includes(query.trim().toLowerCase()));
+  const visibleDepts = depts;
   const dept = depts.find((d) => d.id === selected);
 
   return (
@@ -229,14 +228,13 @@ export default function RoutingEnginePage() {
       <PageHeader
         title="Routing Engine"
         description="Choose, for each department, which officers a request passes through and who acts at each step."
-        actions={<button type="button" className="rg-btn rg-btn-secondary" onClick={() => void load()} disabled={loading || saving}><RefreshCw size={15} /> Refresh</button>}
+        actions={<div className="rg-pvd-actions"><a className="rg-btn rg-btn-secondary" href="/admin/department-routing">Backups &amp; away cover</a><button type="button" className="rg-btn rg-btn-secondary" onClick={() => void load()} disabled={loading || saving}><RefreshCw size={15} /> Refresh</button></div>}
       />
 
       {message ? <div className={`rg-pvd-message is-${message.tone}`} role="status">{message.text}</div> : null}
 
       <div className="rg-route-layout">
         <aside className="rg-route-depts">
-          <label className="rg-register-search"><Search size={15} aria-hidden="true" /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Find a department" /></label>
           <ul>
             {visibleDepts.map((d) => {
               const sum = deptSummary(d.id);

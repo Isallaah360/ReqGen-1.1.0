@@ -773,10 +773,10 @@ export default function PaymentVouchersPage() {
 
       await load({ silent: true });
 
+      // v3.1.12: next step is choosing the signing officers (in-app form on
+      // the voucher), not printing — a voucher prints only when fully signed.
       if (voucherId) {
-        setTimeout(() => {
-          printVoucher(voucherId);
-        }, 500);
+        router.push(`/payment-vouchers/${voucherId}?signers=1`);
       }
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : "Unknown error";
@@ -908,10 +908,10 @@ export default function PaymentVouchersPage() {
 
       await load({ silent: true });
 
+      // v3.1.12: next step is choosing the signing officers (in-app form on
+      // the voucher), not printing — a voucher prints only when fully signed.
       if (voucherId) {
-        setTimeout(() => {
-          printVoucher(voucherId);
-        }, 500);
+        router.push(`/payment-vouchers/${voucherId}?signers=1`);
       }
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : "Unknown error";
