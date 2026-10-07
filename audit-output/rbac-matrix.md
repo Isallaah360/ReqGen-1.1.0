@@ -1,6 +1,6 @@
 # ReqGen RBAC access matrix (generated)
 
-Routes checked: 92 · Roles: 13 · Cells compared: 1196 · Failures: 0
+Routes checked: 93 · Roles: 13 · Cells compared: 1209 · Failures: 0
 
 | Section | staff | hod | director | dg | hr | generalsecretary | dinadmin | registrar | accountofficer | pvsigner | pvcountersigner | auditor | admin |
 |---|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|

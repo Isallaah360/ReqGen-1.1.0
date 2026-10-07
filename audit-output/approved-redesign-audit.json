@@ -4,9 +4,9 @@
     "registry": 6,
     "reports": 2,
     "audit-centre": 2,
-    "admin": 13
+    "admin": 14
   },
-  "totalPages": 34,
+  "totalPages": 35,
   "failures": [],
   "passed": true
 }

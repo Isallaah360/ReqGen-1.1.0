@@ -203,7 +203,7 @@ export default function RoutingEnginePage() {
     <main className="admin-v3-page" data-rg-standard="phase7">
       <header className="admin-v3-header">
         <div>
-          <h1>Routing Engine</h1>
+          <h1>Advanced Routing</h1>
         </div>
         <button className="admin-v3-secondary" onClick={() => void load()} disabled={busy}>Refresh</button>
       </header>

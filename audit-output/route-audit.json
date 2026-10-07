@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-10-07T10:31:33.862Z",
-  "totalPages": 92,
+  "generatedAt": "2026-10-07T11:32:55.502Z",
+  "totalPages": 93,
   "sensitiveRoots": [
     "/admin",
     "/audit-centre",
@@ -52,6 +52,7 @@
     "/admin/departments",
     "/admin/release-readiness",
     "/admin/roles",
+    "/admin/routing",
     "/admin/security",
     "/admin/settings",
     "/admin/system-health",

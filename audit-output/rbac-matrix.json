@@ -149,6 +149,21 @@
     "auditor": false,
     "admin": true
   },
+  "/admin/routing": {
+    "staff": false,
+    "hod": false,
+    "director": false,
+    "dg": false,
+    "hr": false,
+    "generalsecretary": false,
+    "dinadmin": false,
+    "registrar": false,
+    "accountofficer": false,
+    "pvsigner": false,
+    "pvcountersigner": false,
+    "auditor": false,
+    "admin": true
+  },
   "/admin/security": {
     "staff": false,
     "hod": false,

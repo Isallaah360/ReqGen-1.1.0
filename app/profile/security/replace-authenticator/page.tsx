@@ -1,5 +1,6 @@
 "use client";
 
+import AuthenticatorQr from "@/app/components/AuthenticatorQr";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -40,6 +41,7 @@ export default function ReplaceAuthenticatorPage() {
 
   const [newFactorId, setNewFactorId] = useState("");
   const [qrCode, setQrCode] = useState("");
+  const [qrUri, setQrUri] = useState("");
   const [secret, setSecret] = useState("");
   const [newCode, setNewCode] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -167,6 +169,7 @@ export default function ReplaceAuthenticatorPage() {
     const enrollment = data as EnrollData;
     setNewFactorId(enrollment.id);
     setQrCode(enrollment.totp.qr_code);
+    setQrUri(enrollment.totp.uri);
     setSecret(enrollment.totp.secret);
     setMessage("Old authenticator unlinked. Scan the new QR code and save the new password below.");
   }
@@ -254,6 +257,7 @@ export default function ReplaceAuthenticatorPage() {
 
     setNewFactorId("");
     setQrCode("");
+    setQrUri("");
     setSecret("");
     setNewCode("");
     setError(null);
@@ -347,12 +351,8 @@ export default function ReplaceAuthenticatorPage() {
               <p className="mt-2 text-sm font-semibold leading-6 text-slate-600">
                 Scan this code with Google Authenticator, Microsoft Authenticator, Authy or 2FAS on the user&apos;s phone.
               </p>
-              <div className="mt-5 flex justify-center rounded-2xl border border-slate-200 bg-white p-4">
-                {qrCode ? <div className="max-w-[260px]" dangerouslySetInnerHTML={{ __html: qrCode }} /> : null}
-              </div>
-              <div className="mt-4 rounded-2xl bg-slate-50 p-4">
-                <p className="text-xs font-black uppercase tracking-wide text-slate-500">Manual setup key</p>
-                <code className="mt-2 block break-all text-sm font-black text-slate-900">{secret}</code>
+              <div className="mt-5">
+                {qrUri || qrCode ? <AuthenticatorQr uri={qrUri} secret={secret} /> : null}
               </div>
               <button type="button" onClick={restartQrCode} disabled={busy} className="mt-4 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-black text-slate-700 disabled:opacity-60">
                 Generate Different QR

@@ -48,6 +48,7 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
   { href: "/admin/roles", label: "Role Management", section: "Administration", description: "Manage roles and access assignments." },
   { href: "/admin/departments", label: "Department Management", section: "Administration", description: "Manage IET departments, routing officers and dependency-safe lifecycle controls." },
   { href: "/admin/department-routing", label: "Routing Engine", section: "Administration", description: "Configure approval routes per department and request type, backup officers and availability." },
+  { href: "/admin/routing", label: "Routing Engine", section: "Admin", description: "Set each department's approval route and the officer at every step.", keywords: ["route", "routing", "approval chain", "hod", "dod", "din admin", "registrar", "dg"] },
   { href: "/admin/account-routing", label: "Account Routing", section: "Administration", description: "Configure department-to-account routing." },
   { href: "/admin/security", label: "Security Centre", section: "Administration", description: "Security configuration and oversight." },
   { href: "/admin/settings", label: "System Settings", section: "Administration", description: "ReqGen administrative settings." },

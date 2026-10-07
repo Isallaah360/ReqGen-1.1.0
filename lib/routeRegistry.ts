@@ -36,6 +36,16 @@ export const ROUTE_REGISTRY: RouteRegistryItem[] = [
     "description": "ReqGen route /admin/access-audit"
   },
   {
+    "pattern": "/admin/routing",
+    "title": "Admin - Routing Engine",
+    "rootHref": "/admin",
+    "category": "Application Route",
+    "public": false,
+    "nav": false,
+    "searchable": true,
+    "description": "ReqGen route /admin/routing"
+  },
+  {
     "pattern": "/admin/department-routing",
     "title": "Admin - Routing Engine",
     "rootHref": "/admin",
