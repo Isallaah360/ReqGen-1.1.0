@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { currentFyStart, fyLabel, fyStartYear } from "@/lib/financialYear";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ArrowRight,
@@ -118,7 +119,8 @@ function isPendingVoucher(voucher: Voucher) {
 }
 
 export default function FinanceOverviewPage() {
-  const currentYear = new Date().getFullYear();
+  // IET financial year: 1 September – 31 August (named by its start year).
+  const currentYear = currentFyStart();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [fatalError, setFatalError] = useState<string | null>(null);
@@ -216,9 +218,9 @@ export default function FinanceOverviewPage() {
 
   const years = useMemo(() => {
     const values = new Set<number>([currentYear]);
-    transactions.forEach((row) => row.transaction_date && values.add(new Date(row.transaction_date).getFullYear()));
-    requests.forEach((row) => row.created_at && values.add(new Date(row.created_at).getFullYear()));
-    vouchers.forEach((row) => row.created_at && values.add(new Date(row.created_at).getFullYear()));
+    transactions.forEach((row) => row.transaction_date && values.add(fyStartYear(row.transaction_date)));
+    requests.forEach((row) => row.created_at && values.add(fyStartYear(row.created_at)));
+    vouchers.forEach((row) => row.created_at && values.add(fyStartYear(row.created_at)));
     return [...values].filter(Number.isFinite).sort((a, b) => b - a);
   }, [currentYear, requests, transactions, vouchers]);
 
@@ -233,7 +235,7 @@ export default function FinanceOverviewPage() {
 
   const visibleTransactions = useMemo(() => transactions.filter((row) => {
     if (row.is_reversed === true) return false;
-    if (year !== "ALL" && row.transaction_date && String(new Date(row.transaction_date).getFullYear()) !== year) return false;
+    if (year !== "ALL" && row.transaction_date && String(fyStartYear(row.transaction_date)) !== year) return false;
     if ((departmentId !== "ALL" || subheadId !== "ALL") && (!row.subhead_id || !visibleSubheadIds.has(row.subhead_id))) return false;
     if (transactionType !== "ALL" && String(row.transaction_type || "") !== transactionType) return false;
     const q = search.trim().toLowerCase();
@@ -245,7 +247,7 @@ export default function FinanceOverviewPage() {
 
   const visibleRequests = useMemo(() => requests.filter((row) => {
     if (!isOpenFinanceRequest(row)) return false;
-    if (year !== "ALL" && row.created_at && String(new Date(row.created_at).getFullYear()) !== year) return false;
+    if (year !== "ALL" && row.created_at && String(fyStartYear(row.created_at)) !== year) return false;
     if (departmentId !== "ALL" && row.dept_id !== departmentId) return false;
     if (subheadId !== "ALL" && row.subhead_id !== subheadId) return false;
     return true;
@@ -253,7 +255,7 @@ export default function FinanceOverviewPage() {
 
   const visibleVouchers = useMemo(() => vouchers.filter((row) => {
     if (!isPendingVoucher(row)) return false;
-    if (year !== "ALL" && row.created_at && String(new Date(row.created_at).getFullYear()) !== year) return false;
+    if (year !== "ALL" && row.created_at && String(fyStartYear(row.created_at)) !== year) return false;
     const dept = row.department_id || row.dept_id;
     if (departmentId !== "ALL" && dept !== departmentId) return false;
     return true;
@@ -337,7 +339,7 @@ export default function FinanceOverviewPage() {
 
       <section className={styles.filters}>
         <label><span>Search transactions</span><div className={styles.searchBox}><Search size={15}/><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Reference, narration, subhead…"/></div></label>
-        <label><span>Fiscal Year</span><select value={year} onChange={(e) => setYear(e.target.value)}><option value="ALL">All years</option>{years.map((y) => <option key={y} value={String(y)}>FY {y}</option>)}</select></label>
+        <label><span>Financial Year</span><select value={year} onChange={(e) => setYear(e.target.value)}><option value="ALL">All financial years</option>{years.map((y) => <option key={y} value={String(y)}>FY {fyLabel(Number(y))}</option>)}</select></label>
         <label><span>Budget / Subhead</span><select value={subheadId} onChange={(e) => setSubheadId(e.target.value)}><option value="ALL">All budgets</option>{subheads.filter((s) => departmentId === "ALL" || s.dept_id === departmentId).map((s) => <option key={s.id} value={s.id}>{s.code ? `${s.code} — ` : ""}{s.name}</option>)}</select></label>
         <label><span>Department</span><select value={departmentId} onChange={(e) => { setDepartmentId(e.target.value); setSubheadId("ALL"); }}><option value="ALL">All departments</option>{departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}</select></label>
         <label><span>Transaction Type</span><select value={transactionType} onChange={(e) => setTransactionType(e.target.value)}><option value="ALL">All types</option>{transactionTypes.map((t) => <option key={t} value={t}>{titleCase(t)}</option>)}</select></label>

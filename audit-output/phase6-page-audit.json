@@ -1,8 +1,8 @@
 {
   "summary": {
-    "checkedAt": "2026-10-06T20:33:18.137Z",
-    "pages": 90,
-    "pass": 90,
+    "checkedAt": "2026-10-07T10:28:47.598Z",
+    "pages": 92,
+    "pass": 92,
     "review": 0
   },
   "results": [
@@ -247,6 +247,18 @@
       "blockers": []
     },
     {
+      "route": "/audit-centre/backup",
+      "file": "app/audit-centre/backup/page.tsx",
+      "kind": "SCREEN",
+      "tables": 1,
+      "forms": 0,
+      "selects": 1,
+      "dialogs": 3,
+      "charts": 0,
+      "status": "PASS",
+      "blockers": []
+    },
+    {
       "route": "/change-password",
       "file": "app/change-password/page.tsx",
       "kind": "SCREEN",
@@ -336,7 +348,7 @@
       "kind": "SCREEN",
       "tables": 0,
       "forms": 0,
-      "selects": 2,
+      "selects": 0,
       "dialogs": 0,
       "charts": 0,
       "status": "PASS",
@@ -360,7 +372,7 @@
       "kind": "SCREEN",
       "tables": 0,
       "forms": 0,
-      "selects": 2,
+      "selects": 0,
       "dialogs": 0,
       "charts": 0,
       "status": "PASS",
@@ -382,7 +394,7 @@
       "route": "/finance/audit-trail",
       "file": "app/finance/audit-trail/page.tsx",
       "kind": "SCREEN",
-      "tables": 1,
+      "tables": 0,
       "forms": 0,
       "selects": 0,
       "dialogs": 0,
@@ -408,7 +420,7 @@
       "kind": "SCREEN",
       "tables": 0,
       "forms": 0,
-      "selects": 2,
+      "selects": 0,
       "dialogs": 0,
       "charts": 0,
       "status": "PASS",
@@ -456,7 +468,7 @@
       "kind": "PRINT",
       "tables": 0,
       "forms": 0,
-      "selects": 1,
+      "selects": 0,
       "dialogs": 0,
       "charts": 0,
       "status": "PASS",
@@ -859,6 +871,18 @@
       "blockers": []
     },
     {
+      "route": "/profile/setup",
+      "file": "app/profile/setup/page.tsx",
+      "kind": "SCREEN",
+      "tables": 0,
+      "forms": 0,
+      "selects": 0,
+      "dialogs": 3,
+      "charts": 0,
+      "status": "PASS",
+      "blockers": []
+    },
+    {
       "route": "/registry",
       "file": "app/registry/page.tsx",
       "kind": "SCREEN",
@@ -1020,7 +1044,7 @@
       "kind": "PRINT",
       "tables": 1,
       "forms": 0,
-      "selects": 0,
+      "selects": 1,
       "dialogs": 2,
       "charts": 0,
       "status": "PASS",

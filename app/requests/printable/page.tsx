@@ -7,6 +7,7 @@ import { FileCheck2, Printer, RefreshCw, Search } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { PageHeader } from "@/app/components/ui/PageHeader";
 import { StatTile } from "@/app/components/ui/StatTile";
+import { fyLabel, fyStartYear } from "@/lib/financialYear";
 
 /**
  * ReqGen v3.1.6 — Print Register.
@@ -151,10 +152,11 @@ export default function PrintRegisterPage() {
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
     return source.filter((row) =>
-      (year === "all" || String(new Date(row.created_at).getFullYear()) === year) &&
+      (year === "all" || String(fyStartYear(row.created_at)) === year) &&
       (!q || [row.request_no, row.title, row.status, typeLabel(row), voucherNos.get(row.id)].join(" ").toLowerCase().includes(q)));
   }, [query, source, voucherNos, year]);
-  const years = useMemo(() => Array.from(new Set(rows.map((row) => String(new Date(row.created_at).getFullYear())))).filter((y) => y !== "NaN").sort().reverse(), [rows]);
+  // IET financial year: 1 September – 31 August.
+  const years = useMemo(() => Array.from(new Set(rows.map((row) => String(fyStartYear(row.created_at))))).filter((y) => y !== "NaN").sort().reverse(), [rows]);
 
   const total = useMemo(() => visible.reduce((sum, row) => sum + Number(row.amount || 0), 0), [visible]);
 
@@ -197,8 +199,8 @@ export default function PrintRegisterPage() {
           </div>
           <div className="rg-register-filters">
           <select className="rg-register-year" value={year} onChange={(e) => setYear(e.target.value)} aria-label="Financial year">
-            <option value="all">All years</option>
-            {years.map((y) => <option key={y} value={y}>{y}</option>)}
+            <option value="all">All financial years</option>
+            {years.map((y) => <option key={y} value={y}>FY {fyLabel(Number(y))}</option>)}
           </select>
           <label className="rg-register-search">
             <Search size={15} aria-hidden="true" />

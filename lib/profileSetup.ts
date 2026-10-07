@@ -88,6 +88,11 @@ const CONTENT: Record<SetupStepKey, Omit<SetupStep, "done">> = {
 
 export const SETUP_ORDER: SetupStepKey[] = ["password", "twofa", "avatar", "signature"];
 
+export async function loadSetupUserId(): Promise<string | null> {
+  const { data } = await supabase.auth.getUser();
+  return data.user?.id || null;
+}
+
 export async function loadSetupSteps(): Promise<SetupStep[] | null> {
   const { data: auth } = await supabase.auth.getUser();
   const user = auth.user;
@@ -102,7 +107,9 @@ export async function loadSetupSteps(): Promise<SetupStep[] | null> {
   const meta = (user.user_metadata || {}) as Record<string, unknown>;
 
   const done: Record<SetupStepKey, boolean> = {
-    password: Boolean(meta.password_changed_at || meta.password_confirmed_own),
+    // Only accounts created by the Administrator with a temporary password need
+    // this step; it completes once the person changes (or confirms) it.
+    password: !meta.temporary_password || Boolean(meta.password_changed_at || meta.password_confirmed_own),
     twofa: factors.some((f) => f.factor_type === "totp" && f.status === "verified"),
     avatar: Boolean(String(profile.avatar_url || "").trim()),
     signature: Boolean(String(profile.signature_url || "").trim()),

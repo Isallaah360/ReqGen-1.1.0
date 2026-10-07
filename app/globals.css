@@ -5344,3 +5344,20 @@ html[data-theme="dark"] :is(.rg-setup-progress,.rg-setup-steps>li,.rg-coach){bac
 html[data-theme="dark"] :is(.rg-backup-card,.rg-backup-report){background:var(--c-bg-151a24,#151a24);border-color:var(--c-ln-2a303b,#2a303b)}
 .rg-register-filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .rg-register-year{height:38px;padding:0 10px;border:1px solid var(--c-ln-e3d6ca,#e3d6ca);border-radius:9px;background:var(--c-bg-ffffff,#fff);font:inherit;font-size:12.5px;font-weight:700}
+.rg-setup-banner.is-complete{background:var(--c-bg-e8f6ef,#e8f6ef);border-bottom-color:var(--c-ln-bfe5d3,#bfe5d3);color:var(--c-fg-0f7a52,#0f7a52)}
+.rg-setup-banner button{border:1px solid currentColor;border-radius:7px;background:transparent;color:inherit;font-weight:900;padding:2px 12px;cursor:pointer}
+
+/* v3.1.10: one loading bar — the IET top stripe animates while loading;
+   the separate strip under the top bar is retired (kept only for screen readers). */
+html body .rg-activity-strip{position:absolute!important;width:1px!important;height:1px!important;overflow:hidden!important;clip:rect(0 0 0 0)!important;margin:0!important;opacity:0!important}
+html.rg-busy body::before{height:5px;background:linear-gradient(90deg,var(--c-bg-f06c24,#f06c24),var(--c-bg-e43c24,#e43c24),var(--c-bg-f09c18,#f09c18),var(--c-bg-30a8d8,#30a8d8),var(--c-bg-f06c24,#f06c24),var(--c-bg-e43c24,#e43c24))!important;background-size:200% 100%!important;animation:rgStripeRun 1.1s linear infinite}
+@keyframes rgStripeRun{from{background-position:0 0}to{background-position:-200% 0}}
+@media(prefers-reduced-motion:reduce){html.rg-busy body::before{animation:none;opacity:.75}}
+@media print{html.rg-busy body::before{animation:none}}
+
+/* v3.1.10: one frame per element — no box inside a box. Inner panels that sit
+   inside a framed card lose their own border and keep a soft background. */
+html body .rg-content :is([class*="rounded-3xl"][class*="border"], .rg-section-card, .rg-profile-card) :is(div, section, article)[class*="rounded-2xl"][class*="border"]{border-color:transparent!important;box-shadow:none!important}
+html body .rg-content :is([class*="rounded-3xl"][class*="border"]) .print-card{border-color:transparent!important;box-shadow:none!important}
+html body .rg-profile-card .rg-signature-preview{border-color:transparent!important;background:var(--c-bg-fbf8f4,#fbf8f4)}
+html body .admin-v3-card .admin-v3-table-scroll{border:0!important;box-shadow:none!important;border-radius:0!important}

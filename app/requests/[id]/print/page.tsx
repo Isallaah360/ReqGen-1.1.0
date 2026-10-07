@@ -360,10 +360,6 @@ function PrintRequestPageContent() {
     return getPublicSignatureUrl(req?.requester_signature_snapshot);
   }, [req?.requester_signature_snapshot]);
 
-  const sigChecked = useMemo(() => {
-    return histSignatureUrl(checkedHistory, req?.checked_signature_snapshot);
-  }, [checkedHistory, req?.checked_signature_snapshot]);
-
   const sigHR = useMemo(() => {
     return histSignatureUrl(hrHistory, req?.hr_signature_snapshot);
   }, [hrHistory, req?.hr_signature_snapshot]);
@@ -378,15 +374,21 @@ function PrintRequestPageContent() {
 
   // v3.1.6: ONE source for the "Checked by" line — the reviewing officer
   // (PO/DOD/HOD/Director/DIN Admin/Registrar), or HR on personal requests.
+  // v3.1.10: "Checked by" is the officer who reviewed the request before the
+  // DG (PO / DOD / HOD / Director / DIN Admin / Registrar), HR on personal
+  // requests, and — when the route has no reviewing step (e.g. the HOD post is
+  // vacant and the step was skipped) — the Account Officer who checked and
+  // treated it against the budget. The line is never left blank once treated.
   const checkedLine = useMemo(() => {
-    const step = checkedHistory || (isPersonal ? hrHistory : null) || hrHistory;
+    const step = checkedHistory || (isPersonal ? hrHistory : null) || hrHistory || accountHistory;
+    const fallback = step === accountHistory ? "Account Officer" : step === hrHistory ? "HR" : "Reviewer";
     return {
       name: step?.actor_name || req?.checked_by_name || (isPersonal ? req?.hr_name : null) || "",
-      capacity: step ? roleCapacity(step, "Reviewer") : "Reviewer",
-      sigUrl: (checkedHistory ? sigChecked : null) || sigHR || sigChecked,
+      capacity: step ? roleCapacity(step, fallback) : "",
+      sigUrl: step ? histSignatureUrl(step, step === checkedHistory ? req?.checked_signature_snapshot : step === hrHistory ? req?.hr_signature_snapshot : null) : null,
       date: step?.created_at ? formatDate(step.created_at) : "",
     };
-  }, [checkedHistory, hrHistory, isPersonal, req?.checked_by_name, req?.hr_name, sigChecked, sigHR]);
+  }, [accountHistory, checkedHistory, hrHistory, isPersonal, req?.checked_by_name, req?.checked_signature_snapshot, req?.hr_name, req?.hr_signature_snapshot]);
 
   useA4Fit(sheetRef, [req, history, loading]);
 
@@ -587,9 +589,7 @@ function PrintRequestPageContent() {
     // The Recommended-by signature belongs to the Official workflow only.
     // Personal Leave, Personal Fund and Personal Other requests are reviewed by HR and DG,
     // therefore an intentionally unused department-review line must not block printing.
-    const checkedReady = isOfficial
-      ? !!(checkedHistory?.actor_name || req.checked_by_name) && !!sigChecked
-      : true;
+    const checkedReady = isOfficial ? !!checkedLine.name && !!checkedLine.sigUrl : true;
     const dgReady = !!(dgHistory?.actor_name || req.dg_name) && !!sigDG;
 
     const hrReady = isPersonal ? !!(hrHistory?.actor_name || req.hr_name) && !!sigHR : true;
@@ -614,13 +614,12 @@ function PrintRequestPageContent() {
     );
   }, [
     req,
+    checkedLine,
     sigRequester,
-    sigChecked,
     sigHR,
     sigDG,
     sigAccount,
     sigHRFiling,
-    checkedHistory?.actor_name,
     hrHistory?.actor_name,
     dgHistory?.actor_name,
     accountHistory?.actor_name,

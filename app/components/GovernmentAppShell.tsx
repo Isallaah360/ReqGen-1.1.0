@@ -90,6 +90,7 @@ const MODULE_SUBNAV: Record<string, SubNavItem[]> = {
     { href: "/finance/account-transfers", label: "Transfers" },
     { href: "/finance/processing", label: "Finance Processing" },
     { href: "/finance/reports", label: "Reports & Output" },
+    { href: "/finance/audit", label: "Finance Audit" },
     { href: "/finance/settings", label: "Finance Settings" },
   ],
 
@@ -155,6 +156,8 @@ const MODULE_SUBNAV: Record<string, SubNavItem[]> = {
       href: "/admin/settings",
       label: "System Settings",
     },
+    { href: "/admin/audit", label: "Audit Log" },
+    { href: "/admin/system-health", label: "Diagnostics" },
   ],
 };
 

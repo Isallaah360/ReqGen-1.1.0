@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { currentFyStart, fyLabel } from "@/lib/financialYear";
 import { supabase } from "@/lib/supabaseClient";
 import { FinanceCard, FinancePageFrame, MetricCard, PrimaryButton, StatusPill } from "../_components/FinancePageFrame";
 
@@ -16,7 +17,7 @@ type SettingsState = {
 };
 
 const defaults: SettingsState = {
-  fiscalYear: String(new Date().getFullYear()),
+  fiscalYear: fyLabel(currentFyStart()),
   voucherPrefix: "IET/PV",
   transactionPrefix: "IET/FT",
   approvalLimit: "500000",
@@ -71,7 +72,7 @@ export default function FinanceSettingsPage() {
   return (
     <FinancePageFrame eyebrow="Finance Administration" title="Finance Settings" description="Control fiscal-year preferences, numbering conventions and workflow safeguards from one secure workspace." icon="⚙️" tone="violet">
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <MetricCard label="Fiscal year" value={settings.fiscalYear} icon="📅" tone="blue" helper="Active reporting cycle" />
+        <MetricCard label="Fiscal year" value={settings.fiscalYear} icon="📅" tone="blue" helper="1 September – 31 August" />
         <MetricCard label="Voucher prefix" value={settings.voucherPrefix} icon="🧾" tone="violet" helper="Payment voucher numbering" />
         <MetricCard label="Approval limit" value={`₦${Number(settings.approvalLimit || 0).toLocaleString("en-NG")}`} icon="🛡️" tone="amber" helper="Control threshold" />
         <MetricCard label="Record control" value={settings.lockPostedRecords ? "Locked" : "Editable"} icon="🔐" tone="emerald" helper="Posted transaction policy" />

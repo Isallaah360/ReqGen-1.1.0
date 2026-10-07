@@ -1,10 +1,10 @@
 {
   "summary": {
     "scannedFiles": 193,
-    "findings": 5,
+    "findings": 4,
     "warnings": 0,
-    "info": 5,
-    "generatedAt": "2026-10-07T09:39:21.857Z"
+    "info": 4,
+    "generatedAt": "2026-10-07T10:31:30.169Z"
   },
   "findings": [
     {
@@ -30,14 +30,6 @@
       "severity": "info",
       "match": "absolute",
       "excerpt": "<section className={styles.card}><div className={styles.filters}><label className={styles.field}><span className={styles.label}>Search Archive</span><div style={{position:\"relative\"}}><Search size={15} style={{position:\""
-    },
-    {
-      "file": "app/finance/audit-trail/page.tsx",
-      "line": 44,
-      "rule": "nowrap-risk",
-      "severity": "info",
-      "match": "whitespace-nowrap",
-      "excerpt": "<div className=\"overflow-x-auto\"><table className=\"min-w-full text-left text-sm\"><thead className=\"bg-slate-950 text-white\"><tr><th className=\"px-4 py-3\">Date & time</th><th className=\"px-4 py-3\">Action</th><th className"
     },
     {
       "file": "app/payment-vouchers/manual/page.tsx",

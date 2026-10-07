@@ -66,7 +66,8 @@ export async function POST(req: NextRequest) {
     email,
     password,
     email_confirm: true,
-    user_metadata: { full_name: fullName },
+    // v3.1.10: the Setup Guide asks this person to replace the temporary password.
+    user_metadata: { full_name: fullName, temporary_password: true },
   });
   if (createError || !created.user) return fail(createError?.message || "User creation failed.", 409);
 

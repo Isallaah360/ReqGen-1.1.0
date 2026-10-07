@@ -25,8 +25,20 @@ export default function SetupCoach() {
   const guide = params.get("guide") as SetupStepKey | null;
   const { steps } = useSetupSteps();
   const [closed, setClosed] = useState(false);
+  const [readyAck, setReadyAck] = useState(true);
+  const complete = !!steps && steps.length > 0 && steps.every((s) => s.done);
 
-  const hidden = SKIP_PATHS.some((p) => pathname.startsWith(p));
+  // v3.1.10: when every step is done, show a green "account ready" bar once.
+  useEffect(() => {
+    if (!complete) return;
+    try {
+      const flag = "reqgen-setup-ready-ack";
+      if (!localStorage.getItem(flag)) queueMicrotask(() => setReadyAck(false));
+    } catch { /* storage unavailable */ }
+  }, [complete]);
+
+  // Never on sign-in pages or document print pages.
+  const hidden = SKIP_PATHS.some((p) => pathname.startsWith(p)) || pathname.endsWith("/print");
   const missing = useMemo(() => (steps || []).filter((s) => !s.done), [steps]);
   const missingRequired = missing.filter((s) => s.required);
   const guideStep = guide && SETUP_ORDER.includes(guide) ? (steps || []).find((s) => s.key === guide) || null : null;
@@ -69,6 +81,13 @@ export default function SetupCoach() {
 
   return (
     <>
+      {complete && !readyAck ? (
+        <div className="rg-setup-banner is-complete" role="status">
+          <CheckCircle2 size={16} aria-hidden="true" />
+          <span>Your account is fully set up: password, authenticator, photo and signature are all in place.</span>
+          <button type="button" onClick={() => { try { localStorage.setItem("reqgen-setup-ready-ack", "1"); } catch { /* ignore */ } setReadyAck(true); }}>OK</button>
+        </div>
+      ) : null}
       {missing.length && !pathname.startsWith("/profile/setup") && !guideStep ? (
         <div className={`rg-setup-banner ${missingRequired.length ? "is-required" : ""}`} role="status">
           <Compass size={16} aria-hidden="true" />

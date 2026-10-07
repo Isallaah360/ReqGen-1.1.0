@@ -2,10 +2,10 @@
   "summary": {
     "candidates": 15,
     "withPrintCall": 5,
-    "withPrintCss": 7,
-    "withA4": 7,
+    "withPrintCss": 6,
+    "withA4": 5,
     "withLogo": 3,
-    "generatedAt": "2026-10-06T20:33:13.042Z"
+    "generatedAt": "2026-10-07T10:28:43.273Z"
   },
   "results": [
     {
@@ -67,16 +67,16 @@
       "hasPrintCall": false,
       "hasPrintCss": false,
       "hasNoPrintClass": false,
-      "hasA4": true,
+      "hasA4": false,
       "hasPageBreakControl": false,
       "hasLogoReference": false
     },
     {
       "file": "app/finance/reports/print/page.tsx",
       "hasPrintCall": false,
-      "hasPrintCss": true,
+      "hasPrintCss": false,
       "hasNoPrintClass": false,
-      "hasA4": true,
+      "hasA4": false,
       "hasPageBreakControl": false,
       "hasLogoReference": false
     },

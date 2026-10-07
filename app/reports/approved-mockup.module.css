@@ -25,3 +25,6 @@
   to { opacity: 1; transform: none; }
 }
 @media (prefers-reduced-motion: reduce) { .family { animation: none; } }
+
+/* v3.1.10: the table frame is the card itself (no box-in-box) */
+.card .tableWrap{border:0!important;border-radius:0!important;box-shadow:none!important}

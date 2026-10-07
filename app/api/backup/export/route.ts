@@ -3,6 +3,7 @@ import { strToU8, zipSync } from "fflate";
 import { toCsv } from "@/lib/csv";
 import { BACKUP_FORMAT, BACKUP_TABLES, BACKUP_VERSION } from "@/lib/server/backupCatalog";
 import { staffFromRequest } from "@/lib/server/staffAuth";
+import { fyBounds, fyLabel, fyRangeText } from "@/lib/financialYear";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -45,8 +46,9 @@ export async function POST(req: NextRequest) {
   let year = "all";
   try { year = String(((await req.json()) as { year?: string }).year || "all"); } catch { /* default */ }
   const yearNum = /^\d{4}$/.test(year) ? Number(year) : null;
-  const from = yearNum ? `${yearNum}-01-01T00:00:00Z` : null;
-  const to = yearNum ? `${yearNum + 1}-01-01T00:00:00Z` : null;
+  // IET financial year: 1 September – 31 August (named by its start year).
+  const from = yearNum ? fyBounds(yearNum).from : null;
+  const to = yearNum ? fyBounds(yearNum).to : null;
 
   const files: Record<string, Uint8Array> = {};
   const manifest: Row[] = [];
@@ -80,7 +82,7 @@ export async function POST(req: NextRequest) {
     if (status === "ok") files[name] = strToU8(toCsv(rows, columns));
     manifest.push({
       order: index, table: entry.table, group: entry.group, label: entry.label,
-      financial_year: entry.dated && filtered ? year : "all", rows: rows.length, status, note,
+      financial_year: entry.dated && filtered && yearNum ? fyLabel(yearNum) : "all", rows: rows.length, status, note,
       file: status === "ok" ? name : "", columns_json: JSON.stringify(types),
     });
     for (const row of rows) {
@@ -94,7 +96,7 @@ export async function POST(req: NextRequest) {
   const readme = [
     "IET REQGEN — MASTER BACKUP",
     `Format: ${BACKUP_FORMAT} v${BACKUP_VERSION}`,
-    `Financial year: ${yearNum ? `${yearNum} (1 Jan - 31 Dec, by record date)` : "All years"}`,
+    `Financial year: ${yearNum ? `${fyLabel(yearNum)} (${fyRangeText(yearNum)}, by record date)` : "All years"}`,
     `Generated: ${generatedAt} by ${ctx.name}`,
     "",
     "HOW TO READ",
@@ -113,7 +115,7 @@ export async function POST(req: NextRequest) {
 
   files["00_README.txt"] = strToU8(readme);
   files["01_MANIFEST.csv"] = strToU8(toCsv([
-    { order: 0, table: "__backup__", group: BACKUP_FORMAT, label: `version ${BACKUP_VERSION}`, financial_year: yearNum ? year : "all", rows: master.length, status: "ok", note: `generated ${generatedAt} by ${ctx.name}`, file: "", columns_json: "" },
+    { order: 0, table: "__backup__", group: BACKUP_FORMAT, label: `version ${BACKUP_VERSION}`, financial_year: yearNum ? fyLabel(yearNum) : "all", rows: master.length, status: "ok", note: `generated ${generatedAt} by ${ctx.name}`, file: "", columns_json: "" },
     ...manifest,
   ]));
   files["02_REQGEN_MASTER.csv"] = strToU8(toCsv(master, ["table", "group", "id", "record_date", "summary", "data_json"]));
@@ -121,7 +123,7 @@ export async function POST(req: NextRequest) {
   const zip = zipSync(files, { level: 6 });
 
   await ctx.admin.from("reqgen_backup_log").insert({
-    action: "backup", financial_year: yearNum ? year : "all", mode: "download",
+    action: "backup", financial_year: yearNum ? fyLabel(yearNum) : "all", mode: "download",
     actor_id: ctx.userId, actor_name: ctx.name,
     summary: { tables: manifest.length, records: master.length, bytes: zip.byteLength },
   });
@@ -131,7 +133,7 @@ export async function POST(req: NextRequest) {
     status: 200,
     headers: {
       "Content-Type": "application/zip",
-      "Content-Disposition": `attachment; filename="ReqGen_Master_Backup_${yearNum ? `FY${year}` : "AllYears"}_${stamp}.zip"`,
+      "Content-Disposition": `attachment; filename="ReqGen_Master_Backup_${yearNum ? `FY${yearNum}-${String((yearNum + 1) % 100).padStart(2, "0")}` : "AllYears"}_${stamp}.zip"`,
       "Cache-Control": "no-store",
     },
   });

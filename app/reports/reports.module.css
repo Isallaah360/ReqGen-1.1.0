@@ -16,3 +16,6 @@
 /* Donut chart itself now lives in app/components/ui/Donut.tsx (self-contained, inline styles). Nothing donut-specific needed here anymore. */
 /* v3.0.9: stat numbers at the standard size */
 .kpi{min-width:0}.kpi>*{min-width:0}.kpiValue{font-size:clamp(16px,1.45vw,22px);line-height:1.1;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+
+/* v3.1.10: the table frame is the card itself (no box-in-box) */
+.card .tableWrap{border:0!important;border-radius:0!important;box-shadow:none!important}

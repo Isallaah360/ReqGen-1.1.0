@@ -5,6 +5,7 @@ import { Archive, DatabaseBackup, Download, Eye, FileArchive, History, RotateCcw
 import { supabase } from "@/lib/supabaseClient";
 import { confirmDialog } from "@/lib/dialog";
 import { PageHeader } from "@/app/components/ui/PageHeader";
+import { currentFyStart, fyLabel, fyRangeText } from "@/lib/financialYear";
 
 /**
  * ReqGen v3.1.8 — Audit Centre → 2. Master Backup (Admin and Auditor).
@@ -40,9 +41,10 @@ function dateTime(d: string) {
 }
 
 export default function MasterBackupPage() {
-  const thisYear = new Date().getFullYear();
-  const years = useMemo(() => Array.from({ length: thisYear - 2023 }, (_, i) => String(thisYear - i)), [thisYear]);
-  const [year, setYear] = useState(String(thisYear));
+  // IET financial year: 1 September – 31 August.
+  const thisFy = currentFyStart();
+  const years = useMemo(() => Array.from({ length: Math.max(1, thisFy - 2023) }, (_, i) => String(thisFy - i)), [thisFy]);
+  const [year, setYear] = useState(String(thisFy));
   const [isAdmin, setIsAdmin] = useState(false);
   const [busy, setBusy] = useState<"" | "backup" | "restore">("");
   const [message, setMessage] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
@@ -151,7 +153,7 @@ export default function MasterBackupPage() {
           <header><span><DatabaseBackup size={20} /></span><div><h2>1. Download a backup</h2><p>One zip file of CSV sheets you can open in Excel and audit by hand.</p></div></header>
           <label>Financial year
             <select value={year} onChange={(e) => setYear(e.target.value)} disabled={busy !== ""}>
-              {years.map((y) => <option key={y} value={y}>{y} (1 Jan – 31 Dec)</option>)}
+              {years.map((y) => <option key={y} value={y}>FY {fyLabel(Number(y))} ({fyRangeText(Number(y))})</option>)}
               <option value="all">All years</option>
             </select>
           </label>
@@ -161,7 +163,7 @@ export default function MasterBackupPage() {
             <li><Eye size={15} /> <b>01_MANIFEST.csv</b> row counts and status of every table</li>
           </ul>
           <button type="button" className="rg-btn rg-btn-primary" onClick={() => void download()} disabled={busy !== ""}>
-            <Download size={16} /> {busy === "backup" ? "Preparing backup..." : `Download backup${year === "all" ? " (all years)" : ` for ${year}`}`}
+            <Download size={16} /> {busy === "backup" ? "Preparing backup..." : `Download backup${year === "all" ? " (all years)" : ` for FY ${fyLabel(Number(year))}`}`}
           </button>
         </article>
 
