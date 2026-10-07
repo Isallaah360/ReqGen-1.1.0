@@ -184,7 +184,9 @@ function statusClasses(statusValue: string | null | undefined) {
 function isPostedStatus(statusValue: string | null | undefined) {
     const status = (statusValue || "").toLowerCase();
 
-    return status.includes("posted") || status.includes("paid");
+    // v3.1.7: a posted manual voucher moves into the signing chain
+    // (Pending ... -> Authorized -> Paid); all of those are "posted".
+    return status.includes("posted") || status.includes("paid") || status.startsWith("pending") || status.includes("authori");
 }
 
 function isCancelledStatus(statusValue: string | null | undefined) {
@@ -847,7 +849,7 @@ export default function ManualVoucherPage() {
                     result.account_balance
                 )}. Subhead balance: ${money(
                     result.subhead_balance
-                )}.`
+                )}. Next: open it under Payment Vouchers → 2. Pending Signatures, assign the Cheque Signer and Counter Signer, and the Auditor will check it.`
             );
         } catch (caught) {
             console.error("Manual voucher posting error:", caught);
@@ -1515,7 +1517,7 @@ export default function ManualVoucherPage() {
                                         <div className="mt-4 border-t border-slate-200 pt-4">
                                             {posted ? (
                                                 <Link
-                                                    href="/payment-vouchers"
+                                                    href={`/payment-vouchers/${voucher.id}`}
                                                     className="reqgen-btn reqgen-btn-violet inline-flex rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-black text-emerald-800"
                                                 >
                                                     View in Register
@@ -1664,10 +1666,10 @@ export default function ManualVoucherPage() {
                                                 <td className="px-5 py-5 text-right">
                                                     {posted ? (
                                                         <Link
-                                                            href="/payment-vouchers"
+                                                            href={`/payment-vouchers/${voucher.id}`}
                                                             className="reqgen-btn reqgen-btn-violet inline-flex rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-black text-emerald-800 transition hover:bg-emerald-100"
                                                         >
-                                                            View Register
+                                                            Open Voucher
                                                         </Link>
                                                     ) : (
                                                         <button

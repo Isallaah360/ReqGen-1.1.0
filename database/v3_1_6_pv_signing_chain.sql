@@ -50,6 +50,55 @@ where n.nspname = 'public'
 
 lock table public.payment_vouchers in share row exclusive mode;
 
+-- 0b. Allow the signing-chain values in the existing CHECK constraints on
+--     payment_vouchers.status and payment_vouchers.signing_stage. Each
+--     constraint is rebuilt with ALL its current values PLUS the new ones,
+--     so nothing that works today (manual vouchers included) is blocked.
+do $allow$
+declare
+  c record;
+  v_col text;
+  v_values text[];
+  v_new text[];
+  v_list text;
+begin
+  for c in
+    select con.conname, con.conkey, pg_get_constraintdef(con.oid) as def
+    from pg_constraint con
+    where con.conrelid = 'public.payment_vouchers'::regclass
+      and con.contype = 'c'
+      and array_length(con.conkey, 1) = 1
+  loop
+    select a.attname into v_col
+    from pg_attribute a
+    where a.attrelid = 'public.payment_vouchers'::regclass and a.attnum = c.conkey[1];
+
+    if v_col = 'signing_stage' then
+      v_new := array['Awaiting Check', 'Awaiting Cheque Signature', 'Awaiting Counter Signature',
+                     'Awaiting DG Authorisation', 'Fully Signed', 'Paid', 'Cancelled'];
+    elsif v_col = 'status' then
+      v_new := array['Pending Check', 'Pending Cheque Signature', 'Pending Counter Signature',
+                     'Pending DG Authorisation', 'Authorized', 'Paid', 'Cancelled'];
+    else
+      continue;
+    end if;
+
+    -- every quoted value the constraint already allows
+    select coalesce(array_agg(distinct replace(m[1], '''''', '''')), array[]::text[]) into v_values
+    from regexp_matches(c.def, '''((?:[^'']|'''')*)''', 'g') as m;
+
+    select string_agg(quote_literal(v), ', ' order by v) into v_list
+    from (select unnest(v_values) as v union select unnest(v_new)) x
+    where v is not null;
+
+    execute format('alter table public.payment_vouchers drop constraint %I', c.conname);
+    execute format('alter table public.payment_vouchers add constraint %I check (%I is null or %I = any (array[%s]::text[]))',
+                   c.conname, v_col, v_col, v_list);
+    raise notice 'ReqGen v3.1.6: constraint % now allows the signing-chain values.', c.conname;
+  end loop;
+end
+$allow$;
+
 -- ---------------------------------------------------------------------------
 -- 1. Helpers
 -- ---------------------------------------------------------------------------
@@ -1038,6 +1087,13 @@ union all select '8. Auditors with a saved signature',
 union all select '9. Director General with a saved signature',
        case when exists (select 1 from public.profiles p where public.reqgen_pv_user_has_role(p.id, array['dg', 'directorgeneral']) and coalesce(p.signature_url, '') <> '') then 'OK' else 'CHECK' end,
        (select count(*)::text from public.profiles p where public.reqgen_pv_user_has_role(p.id, array['dg', 'directorgeneral']) and coalesce(p.signature_url, '') <> '')
+union all select '10a. Status and signing-stage rules allow the chain',
+       case when not exists (
+         select 1 from pg_constraint con
+         where con.conrelid = 'public.payment_vouchers'::regclass and con.contype = 'c'
+           and pg_get_constraintdef(con.oid) ~ '(status|signing_stage)'
+           and pg_get_constraintdef(con.oid) !~ '(Pending DG Authorisation|Awaiting DG Authorisation)'
+       ) then 'OK' else 'CHECK' end, ''
 union all select '10. Vouchers in the signing chain', 'OK',
        (select count(*)::text from public.payment_vouchers where status like 'Pending%')
 union all select '11. Signers needed: ' || pv.voucher_no, 'CHECK',

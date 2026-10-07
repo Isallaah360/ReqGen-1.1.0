@@ -32,7 +32,7 @@ type Row = {
   created_by: string | null;
 };
 
-type HistoryRow = { request_id: string | null; action_by: string | null; from_stage: string | null; action_type: string | null; created_at: string };
+type RegisterRow = Row & { is_mine: boolean; treated_by_me: boolean; treated_by_accounts: boolean; treated_at: string | null; treated_by_name: string | null; voucher_no: string | null };
 
 type View = "mine" | "treated" | "all";
 
@@ -48,12 +48,6 @@ function isFinished(row: Row) {
   const stage = key(row.current_stage);
   if (/reject|delete|cancel|withdraw/.test(status)) return false;
   return stage === "completed" || /paid|completed|closed|treated|filed/.test(status);
-}
-
-function isForward(action: string | null | undefined) {
-  const value = key(action);
-  if (/reject|return|declin|cancel|comment|attachment/.test(value)) return false;
-  return /approv|treat|paid|forward|confirm|check/.test(value);
 }
 
 function naira(value: number | null | undefined) {
@@ -80,6 +74,7 @@ export default function PrintRegisterPage() {
   const [rows, setRows] = useState<Row[]>([]);
   const [myAccountActions, setMyAccountActions] = useState<Map<string, string>>(new Map());
   const [accountTreated, setAccountTreated] = useState<Map<string, string>>(new Map());
+  const [voucherNos, setVoucherNos] = useState<Map<string, string>>(new Map());
   const [view, setView] = useState<View>("mine");
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
@@ -94,16 +89,14 @@ export default function PrintRegisterPage() {
       if (!auth.user) { router.push("/login"); return; }
       setUserId(auth.user.id);
 
-      const [profileRes, rolesRes, requestRes] = await Promise.all([
+      const [profileRes, rolesRes, registerRes] = await Promise.all([
         supabase.from("profiles").select("role").eq("id", auth.user.id).maybeSingle(),
         supabase.from("profile_roles").select("role_key,is_active").eq("profile_id", auth.user.id),
-        supabase
-          .from("requests")
-          .select("id,request_no,title,amount,status,current_stage,created_at,request_type,personal_category,created_by")
-          .order("created_at", { ascending: false })
-          .limit(2000),
+        // v3.1.7: one trusted server list (reqgen_print_register) instead of
+        // assembling it from tables the privacy rules partly hide.
+        supabase.rpc("reqgen_print_register"),
       ]);
-      if (requestRes.error) throw new Error(requestRes.error.message);
+      if (registerRes.error) throw new Error(registerRes.error.message);
 
       const roleSet = new Set<string>();
       if (profileRes.data?.role) roleSet.add(key(profileRes.data.role));
@@ -112,26 +105,15 @@ export default function PrintRegisterPage() {
       }
       setRoles(roleSet);
 
-      const requestRows = ((requestRes.data || []) as Row[]).filter(isFinished);
-      setRows(requestRows);
-
-      // Account-stage decisions on the finished requests (who treated each one).
-      const ids = requestRows.map((row) => row.id);
+      const register = (registerRes.data || []) as RegisterRow[];
+      setRows(register.map((row) => ({ ...row, created_by: row.is_mine ? auth.user.id : null })));
       const mine = new Map<string, string>();
       const treated = new Map<string, string>();
-      for (let start = 0; start < ids.length; start += 200) {
-        const chunk = ids.slice(start, start + 200);
-        const { data } = await supabase
-          .from("request_history")
-          .select("request_id,action_by,from_stage,action_type,created_at")
-          .in("request_id", chunk)
-          .limit(5000);
-        for (const item of (data || []) as HistoryRow[]) {
-          if (!item.request_id || key(item.from_stage) !== "account" || !isForward(item.action_type)) continue;
-          treated.set(item.request_id, item.created_at);
-          if (item.action_by === auth.user.id) mine.set(item.request_id, item.created_at);
-        }
+      for (const row of register) {
+        if (row.treated_by_accounts) treated.set(row.id, row.treated_at || row.created_at);
+        if (row.treated_by_me) mine.set(row.id, row.treated_at || row.created_at);
       }
+      setVoucherNos(new Map(register.filter((row) => row.voucher_no).map((row) => [row.id, row.voucher_no as string])));
       setMyAccountActions(mine);
       setAccountTreated(treated);
     } catch (caught) {
@@ -147,7 +129,7 @@ export default function PrintRegisterPage() {
   const isAccount = useMemo(() => ACCOUNT_KEYS.some((k) => roles.has(k)), [roles]);
   const isOversight = useMemo(() => OVERSIGHT_KEYS.some((k) => roles.has(k)), [roles]);
 
-  const mineRows = useMemo(() => rows.filter((row) => row.created_by === userId), [rows, userId]);
+  const mineRows = useMemo(() => rows.filter((row) => row.created_by === userId && (isFinished(row) || accountTreated.has(row.id))), [accountTreated, rows, userId]);
   const treatedRows = useMemo(() => rows.filter((row) => myAccountActions.has(row.id)), [rows, myAccountActions]);
   const allTreatedRows = useMemo(() => rows.filter((row) => accountTreated.has(row.id)), [rows, accountTreated]);
 
@@ -221,12 +203,13 @@ export default function PrintRegisterPage() {
                 <th>Amount</th>
                 <th>Requested</th>
                 <th>{activeView === "mine" ? "Status" : "Treated"}</th>
+                <th>Voucher</th>
                 <th>Action</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={7} className="rg-register-empty">Loading completed requests...</td></tr>
+                <tr><td colSpan={8} className="rg-register-empty">Loading completed requests...</td></tr>
               ) : visible.length ? (
                 visible.map((row) => (
                   <tr key={row.id}>
@@ -236,6 +219,7 @@ export default function PrintRegisterPage() {
                     <td>{naira(row.amount)}</td>
                     <td>{dateText(row.created_at)}</td>
                     <td>{activeView === "mine" ? (row.status || "Completed") : dateText(activeView === "treated" ? myAccountActions.get(row.id) : accountTreated.get(row.id))}</td>
+                    <td>{voucherNos.get(row.id) || "Not yet"}</td>
                     <td>
                       <Link className="rg-register-print" href={`/requests/${row.id}/print`}>
                         <Printer size={14} /> Print / Save
@@ -245,7 +229,7 @@ export default function PrintRegisterPage() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={7} className="rg-register-empty">
+                  <td colSpan={8} className="rg-register-empty">
                     <FileCheck2 size={18} aria-hidden="true" /> No completed request in this list yet.
                   </td>
                 </tr>

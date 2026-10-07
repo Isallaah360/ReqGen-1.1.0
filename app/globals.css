@@ -5167,4 +5167,94 @@ html[data-theme="dark"] .rg-pvd-chain li{background:var(--c-bg-1d2330,#1d2330);b
 html[data-theme="dark"] .rg-pvd-chain li.is-done{background:var(--c-bg-17261f,#17261f)}
 @media (max-width:1100px){.rg-pvd-chain{grid-template-columns:repeat(3,minmax(0,1fr))}.rg-pvd-grid{grid-template-columns:1fr}}
 @media (max-width:640px){.rg-pvd-chain{grid-template-columns:1fr 1fr}.rg-pvd-dl{grid-template-columns:1fr}}
-html[data-theme="dark"] .rg-pvd-sig{background:#fff;border-radius:6px}
+html[data-theme="dark"] .rg-pvd-sig{background:var(--c-bg-ffffff,#fff);border-radius:6px}
+
+/* v3.1.7: a page sits BELOW the breadcrumb and module tabs, so "min-height:100%"
+   made it taller than its column and it slid over the footer (New Request,
+   Payment Vouchers, Subheads, Departments, PV Settings, Request detail).
+   Pages now take only the height they need; the footer always stays visible. */
+html body .rg-content > main{min-height:0!important}
+
+/* v3.1.7 Payment Voucher tabs — each with its own layout */
+.rg-pvv{display:grid;gap:14px}
+.rg-pvv-head{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start;justify-content:space-between}
+.rg-pvv-head h2{margin:0;font-size:17px;font-weight:900;color:var(--c-fg-291d18,#291d18)}
+.rg-pvv-head p{margin:4px 0 0;max-width:760px;font-size:12.5px;color:var(--c-fg-5b4e45,#5b4e45)}
+.rg-pvv-head .rg-btn{display:inline-flex;align-items:center;gap:6px}
+.rg-pvv-empty{display:flex;align-items:center;gap:8px;justify-content:center;padding:26px 12px;margin:0;border:1px dashed var(--c-ln-e3d6ca,#e3d6ca);border-radius:12px;color:var(--c-fg-5b4e45,#5b4e45);font-size:13px;font-weight:600}
+.rg-pvv-note{display:flex;align-items:center;gap:8px;margin:0;padding:10px 12px;border-radius:10px;background:var(--c-bg-fff9eb,#fff9eb);color:var(--c-fg-6b4300,#6b4300);font-size:12.5px;font-weight:600}
+.rg-pvv-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+.rg-pvv-actions{display:flex;flex-wrap:wrap;gap:8px}
+.rg-pvv-actions .rg-btn{display:inline-flex;align-items:center;gap:6px;min-height:34px;font-size:12px}
+.rg-pvv-actions .rg-btn:disabled{opacity:.5;cursor:not-allowed}
+
+/* 2. signing tracker */
+.rg-pvv-lanes{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+.rg-pvv-lanes button,.rg-pvv-overdue{display:grid;gap:2px;text-align:left;padding:12px 14px;border:1px solid var(--c-ln-ece2d8,#ece2d8);border-radius:12px;background:var(--c-bg-ffffff,#fff);cursor:pointer}
+.rg-pvv-lanes strong{font-size:22px;font-weight:900;color:var(--c-fg-291d18,#291d18)}
+.rg-pvv-lanes span{font-size:11.5px;font-weight:700;color:var(--c-fg-5b4e45,#5b4e45)}
+.rg-pvv-lanes button.is-active{border-color:var(--c-ln-b83e00,#b83e00);box-shadow:0 0 0 3px rgba(184,62,0,.12)}
+.rg-pvv-overdue{cursor:default}
+.rg-pvv-overdue.has-overdue{border-color:var(--c-ln-f3c4bd,#f3c4bd);background:var(--c-bg-fdecea,#fdecea)}
+.rg-pvv-overdue.has-overdue strong{color:var(--c-fg-c42b1f,#c42b1f)}
+.rg-pvv-list{display:grid;gap:10px}
+.rg-pvv-track{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(260px,1fr);gap:16px;align-items:center;padding:14px 16px;border:1px solid var(--c-ln-ece2d8,#ece2d8);border-left:4px solid var(--c-ln-f06c24,#f06c24);border-radius:12px;background:var(--c-bg-ffffff,#fff)}
+.rg-pvv-track-title{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline}
+.rg-pvv-track-title strong{font-size:14px;font-weight:900;color:var(--c-fg-291d18,#291d18)}
+.rg-pvv-track-title em{font-style:normal;font-size:10.5px;font-weight:800;padding:1px 7px;border-radius:99px;background:var(--c-bg-f0eafe,#f0eafe);color:var(--c-fg-6d3fd6,#6d3fd6)}
+.rg-pvv-track-title span{flex-basis:100%;font-size:12px;color:var(--c-fg-5b4e45,#5b4e45)}
+.rg-pvv-steps{list-style:none;margin:12px 0 0;padding:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr))}
+.rg-pvv-steps li{position:relative;display:grid;justify-items:center;gap:6px;font-size:10.5px;font-weight:800;color:var(--c-fg-9a8f86,#9a8f86);text-align:center}
+.rg-pvv-steps li span{position:relative;z-index:1;width:14px;height:14px;border-radius:50%;border:2px solid var(--c-ln-d8ccc1,#d8ccc1);background:var(--c-bg-ffffff,#fff)}
+.rg-pvv-steps li::before{content:"";position:absolute;top:6px;left:-50%;width:100%;height:2px;background:var(--c-bg-e3d6ca,#e3d6ca)}
+.rg-pvv-steps li:first-child::before{display:none}
+.rg-pvv-steps li.is-done{color:var(--c-fg-0f7a52,#0f7a52)}
+.rg-pvv-steps li.is-done span{background:var(--c-bg-0f7a52,#0f7a52);border-color:var(--c-ln-0f7a52,#0f7a52)}
+.rg-pvv-steps li.is-done::before,.rg-pvv-steps li.is-current::before{background:var(--c-bg-0f7a52,#0f7a52)}
+.rg-pvv-steps li.is-current{color:var(--c-fg-b83e00,#b83e00)}
+.rg-pvv-steps li.is-current span{border-color:var(--c-ln-b83e00,#b83e00);box-shadow:0 0 0 4px rgba(240,108,36,.22)}
+.rg-pvv-track-side{display:grid;gap:6px;justify-items:start}
+.rg-pvv-with small{display:block;font-size:10.5px;font-weight:900;text-transform:uppercase;letter-spacing:.04em;color:var(--c-fg-5b4e45,#5b4e45)}
+.rg-pvv-with strong{font-size:13.5px;font-weight:900;color:var(--c-fg-291d18,#291d18)}
+.rg-pvv-age{display:inline-flex;align-items:center;gap:5px;padding:2px 9px;border-radius:99px;background:var(--c-bg-f1f5f0,#eef6f1);color:var(--c-fg-0f7a52,#0f7a52);font-size:11.5px;font-weight:800}
+.rg-pvv-age.is-warn{background:var(--c-bg-fff4e0,#fff4e0);color:var(--c-fg-9a5b00,#9a5b00)}
+.rg-pvv-age.is-late{background:var(--c-bg-fdecea,#fdecea);color:var(--c-fg-c42b1f,#c42b1f)}
+.rg-pvv-reminded{font-size:11px;color:var(--c-fg-5b4e45,#5b4e45)}
+
+/* 3. ready to pay */
+.rg-pvv-paylist{display:grid;gap:10px}
+.rg-pvv-paylist article{display:grid;grid-template-columns:150px minmax(0,1fr) auto;gap:14px;align-items:center;padding:14px 16px;border:1px solid var(--c-ln-bfe5d3,#bfe5d3);border-radius:12px;background:var(--c-bg-ffffff,#fff)}
+.rg-pvv-pay-amount{font-size:19px;font-weight:900;color:var(--c-fg-0f7a52,#0f7a52)}
+.rg-pvv-pay-body{display:grid;gap:2px;min-width:0}
+.rg-pvv-pay-body strong{font-size:13.5px;font-weight:900;color:var(--c-fg-291d18,#291d18)}
+.rg-pvv-pay-body span,.rg-pvv-pay-body small{font-size:12px;color:var(--c-fg-5b4e45,#5b4e45);overflow-wrap:anywhere}
+
+/* 4. history by month */
+.rg-pvv-month{border:1px solid var(--c-ln-ece2d8,#ece2d8);border-radius:12px;background:var(--c-bg-ffffff,#fff);overflow:hidden}
+.rg-pvv-month h3{display:flex;justify-content:space-between;gap:10px;margin:0;padding:11px 16px;background:var(--c-bg-fbf8f4,#fbf8f4);font-size:13.5px;font-weight:900;color:var(--c-fg-291d18,#291d18)}
+.rg-pvv-month h3 span{font-size:12px;font-weight:700;color:var(--c-fg-5b4e45,#5b4e45)}
+.rg-pvv-month ul{list-style:none;margin:0;padding:0}
+.rg-pvv-month li{display:grid;grid-template-columns:20px 100px 150px minmax(0,1fr) 130px auto;gap:10px;align-items:center;padding:9px 16px;border-top:1px solid var(--c-ln-f1e9e2,#f1e9e2);font-size:12.5px}
+.rg-pvv-month li.is-paid svg{color:var(--c-fg-0f7a52,#0f7a52)}
+.rg-pvv-month li.is-cancelled{color:var(--c-fg-7a6f66,#7a6f66)}
+.rg-pvv-month li.is-cancelled svg{color:var(--c-fg-c42b1f,#c42b1f)}
+.rg-pvv-month-amt{font-weight:800;text-align:right}
+.rg-pvv-month li .rg-btn{display:inline-flex;align-items:center;gap:5px;min-height:30px;font-size:11.5px}
+
+/* 5. print centre cards */
+.rg-pvv-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+.rg-pvv-cards article{display:grid;gap:6px;padding:14px;border:1px solid var(--c-ln-ece2d8,#ece2d8);border-top:4px solid var(--c-ln-30a8d8,#30a8d8);border-radius:12px;background:var(--c-bg-ffffff,#fff)}
+.rg-pvv-cards header{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.rg-pvv-cards header strong{font-size:13.5px;font-weight:900;color:var(--c-fg-291d18,#291d18)}
+.rg-pvv-cards header span{font-size:10.5px;font-weight:800;padding:2px 8px;border-radius:99px}
+.rg-pvv-cards header .is-ready{background:var(--c-bg-e8f6ef,#e8f6ef);color:var(--c-fg-0f7a52,#0f7a52)}
+.rg-pvv-cards header .is-paid{background:var(--c-bg-e6f3fa,#e6f3fa);color:var(--c-fg-16749c,#16749c)}
+.rg-pvv-cards p{margin:0;font-size:13px;font-weight:700;color:var(--c-fg-291d18,#291d18)}
+.rg-pvv-cards small{font-size:11.5px;color:var(--c-fg-5b4e45,#5b4e45)}
+.rg-pvv-card-foot{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:6px}
+.rg-pvv-card-foot b{font-size:15px;font-weight:900}
+.rg-pvv-card-foot .rg-btn{display:inline-flex;align-items:center;gap:6px;min-height:32px;font-size:12px}
+@media (max-width:1100px){.rg-pvv-lanes{grid-template-columns:repeat(3,minmax(0,1fr))}.rg-pvv-track{grid-template-columns:1fr}.rg-pvv-paylist article{grid-template-columns:1fr}.rg-pvv-month li{grid-template-columns:20px 90px minmax(0,1fr) 110px;}.rg-pvv-month-payee{display:none}.rg-pvv-month li .rg-btn{grid-column:2/-1;justify-self:start}}
+@media (max-width:640px){.rg-pvv-lanes{grid-template-columns:1fr 1fr}.rg-pvv-steps{font-size:9.5px}}
+html[data-theme="dark"] :is(.rg-pvv-track,.rg-pvv-paylist article,.rg-pvv-month,.rg-pvv-cards article,.rg-pvv-lanes button,.rg-pvv-overdue){background:var(--c-bg-151a24,#151a24);border-color:var(--c-ln-2a303b,#2a303b)}
+html[data-theme="dark"] .rg-pvv-month h3{background:var(--c-bg-1d2330,#1d2330)}

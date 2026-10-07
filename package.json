@@ -1,6 +1,6 @@
 {
   "name": "reqgen-web",
-  "version": "3.1.6",
+  "version": "3.1.7",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -31,14 +31,15 @@
     "audit:navbar": "node scripts/audit-navbar-coverage.mjs",
     "audit:phase6-ui": "node scripts/audit-phase6-ui.mjs",
     "audit:phase7-architecture": "node scripts/audit-phase7-architecture.mjs",
-    "audit:production": "npm run audit:phase7-architecture && npm run audit:phase7-ui && npm run audit:phase8-stabilisation && npm run audit:routes && npm run audit:rbac && npm run audit:workflow && npm run audit:navigation && npm run audit:route-registry && npm run audit:responsive && npm run audit:data-accuracy && npm run audit:components && npm run audit:section4 && npm run audit:v315 && npm run audit:v316",
+    "audit:production": "npm run audit:phase7-architecture && npm run audit:phase7-ui && npm run audit:phase8-stabilisation && npm run audit:routes && npm run audit:rbac && npm run audit:workflow && npm run audit:navigation && npm run audit:route-registry && npm run audit:responsive && npm run audit:data-accuracy && npm run audit:components && npm run audit:section4 && npm run audit:v315 && npm run audit:v316 && npm run audit:v317",
     "audit:phase7-ui": "node scripts/audit-phase7-ui-stabilisation.mjs",
     "audit:phase8-stabilisation": "node scripts/audit-phase8-stabilisation.mjs",
     "audit:privacy": "node scripts/audit-request-privacy.mjs",
     "theme:build": "python3 scripts/theme/build-dark-theme.py",
     "audit:theme": "node scripts/audit-theme.mjs",
     "audit:v315": "node scripts/audit-v3-1-5.mjs",
-    "audit:v316": "node scripts/audit-v3-1-6.mjs"
+    "audit:v316": "node scripts/audit-v3-1-6.mjs",
+    "audit:v317": "node scripts/audit-v3-1-7.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.97.0",
@@ -58,5 +59,5 @@
     "tailwindcss": "^4",
     "typescript": "^5"
   },
-  "reqgenVersion": "v3.1.6"
+  "reqgenVersion": "v3.1.7"
 }

@@ -6,6 +6,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { CheckCircle2, ChevronRight, CircleX, Clock3, Download, FileSpreadsheet, MoreVertical, Plus, Search, Settings2, WalletCards, X } from "lucide-react";
 import { PageHeader } from "@/app/components/ui/PageHeader";
 import styles from "./payment-vouchers-overview.module.css";
+import { ApprovedView, HistoryView, PendingTracker, PrintCentreView } from "./views/PvViews";
 import { Donut as SharedDonut } from "@/app/components/ui/Donut";
 import { supabase } from "@/lib/supabaseClient";
 import { PersonName } from "@/app/components/ui/PersonName";
@@ -263,6 +264,8 @@ export default function PaymentVouchersPage() {
     "pvcountersigner",
   ]);
 
+  // v3.1.7: Reports and PV Settings are Admin / Auditor pages.
+  const canSeeOversight = hasAnyRole(roleSet, ["admin", "auditor"]);
   const canManualVoucher = hasAnyRole(roleSet, [
     "admin",
     "auditor",
@@ -1152,6 +1155,13 @@ export default function PaymentVouchersPage() {
       {msg ? <div className={styles.message}>{msg}</div> : null}
 
 
+      {/* v3.1.7: each tab has its own purpose and layout. */}
+      {workspaceView === "pending" ? <PendingTracker /> : null}
+      {workspaceView === "approved" ? <ApprovedView rows={rows} /> : null}
+      {workspaceView === "history" ? <HistoryView rows={rows} /> : null}
+      {workspaceView === "print" ? <PrintCentreView rows={rows} /> : null}
+      {workspaceView === "overview" ? (
+        <>
       <section className={styles.kpiGrid}>
         <article className={styles.kpi}>
           <span className={`${styles.kpiIcon} ${styles.tone_blue}`}><FileSpreadsheet size={21}/></span>
@@ -1209,7 +1219,7 @@ export default function PaymentVouchersPage() {
                   <td className={`${styles.right} ${styles.amount}`}>{Number(v.total_amount || v.amount || 0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
                   <td><span className={`${styles.status} ${styles[`status_${normalize(v.status)||"default"}`]||styles.status_default}`}>{normalize(v.status)==="cancelled"?"Rejected":v.status||"—"}</span></td>
                   <td><PersonName name={v.prepared_by_name} /></td>
-                  <td>{workspaceView === "print" ? <button className={styles.printAction} onClick={() => printVoucher(v.id)}>Print / PDF</button> : <div className={styles.moreWrap}><button className={styles.actionDots} title="Voucher actions" onClick={()=>setMoreOpen(moreOpen===v.id?null:v.id)}><MoreVertical size={17}/></button>{moreOpen===v.id?<div className={styles.moreMenu}><button onClick={()=>openVoucher(v.id)}>View details</button><button onClick={()=>printVoucher(v.id)}>Print / PDF</button>{canDeleteVoucher?<button className={styles.dangerText} onClick={()=>deleteVoucher(v)}>Delete voucher</button>:null}</div>:null}</div>}</td>
+                  <td>{<div className={styles.moreWrap}><button className={styles.actionDots} title="Voucher actions" onClick={()=>setMoreOpen(moreOpen===v.id?null:v.id)}><MoreVertical size={17}/></button>{moreOpen===v.id?<div className={styles.moreMenu}><button onClick={()=>openVoucher(v.id)}>View details</button><button onClick={()=>printVoucher(v.id)}>Print / PDF</button>{canDeleteVoucher?<button className={styles.dangerText} onClick={()=>deleteVoucher(v)}>Delete voucher</button>:null}</div>:null}</div>}</td>
                 </tr>) : <tr><td colSpan={8} className={styles.empty}>No payment voucher found for the selected filter.</td></tr>}
               </tbody>
             </table>
@@ -1264,14 +1274,18 @@ export default function PaymentVouchersPage() {
           <section className={styles.sideCard}>
             <h3>Quick Actions</h3>
             <div className={styles.quickGrid}>
-              <button onClick={() => setShowCreateWorkspace(true)}><span className={styles.quickViolet}><Plus size={19}/></span>Create Voucher</button>
-              <button onClick={() => router.push("/reports#payment-voucher-report")}><span className={styles.quickGreen}><FileSpreadsheet size={19}/></span>Voucher Report</button>
-              <button onClick={exportOverviewCsv}><span className={styles.quickBlue}><Download size={19}/></span>Download Report</button>
-              <button onClick={() => router.push("/payment-vouchers/settings")}><span className={styles.quickAmber}><Settings2 size={19}/></span>Voucher Settings</button>
+              {/* v3.1.7: only actions this user can actually open. */}
+              <button onClick={() => router.push(VIEW_PATH.pending)}><span className={styles.quickViolet}><Clock3 size={19}/></span>Signing Tracker</button>
+              <button onClick={exportOverviewCsv}><span className={styles.quickBlue}><Download size={19}/></span>Download CSV</button>
+              {canSeeOversight ? <button onClick={() => router.push("/reports#payment-voucher-report")}><span className={styles.quickGreen}><FileSpreadsheet size={19}/></span>Voucher Report</button> : null}
+              {canSeeOversight ? <button onClick={() => router.push("/payment-vouchers/settings")}><span className={styles.quickAmber}><Settings2 size={19}/></span>PV Settings</button> : null}
             </div>
           </section>
         </aside>
       </div>
+
+        </>
+      ) : null}
 
       {showCreateWorkspace ? <div className={styles.overlay} onMouseDown={(e)=>{if(e.target===e.currentTarget)setShowCreateWorkspace(false)}}><section className={styles.createModal}><div className={styles.modalHead}><div><div className={styles.eyebrow}>CREATE PAYMENT VOUCHER</div><h2>Select Voucher-Ready Requests</h2><p>Select 1 to 10 compatible Official or Personal Fund requests.</p></div><button onClick={()=>setShowCreateWorkspace(false)}><X size={18}/></button></div><div className={styles.modalSearch}><Search size={16}/><input value={readySearch} onChange={(e)=>setReadySearch(e.target.value)} placeholder="Search request no., title, requester, department..."/></div><div className={styles.readyList}>{filteredReadyRows.map(r=><label key={r.id} className={`${styles.readyRow} ${selectedIds.includes(r.id)?styles.readySelected:""}`}><input type="checkbox" checked={selectedIds.includes(r.id)} onChange={()=>toggleSelectRequest(r)}/><div><b>{r.request_no}</b><span>{r.title}</span><small>{r.dept_name||"—"} • {categoryLabel(r)} • {naira(r.amount)}</small></div></label>)}</div><div className={styles.selectionNotice}>{selectionSummary.message}{selectedRequests.length?<b>Payee: {selectionPayee||"—"} • Total: {naira(selectedTotal)}</b>:null}</div><div className={styles.modalActions}>{canManualVoucher?<button onClick={openManualVoucher}>Manual Voucher</button>:null}<button onClick={clearSelection}>Clear</button><button className={styles.primaryButton} disabled={!selectionSummary.valid||generating} onClick={()=>{setShowCreateWorkspace(false);openGenerateModalFromSelection();}}>{selectedRequests.length>1?"Generate Combined PV":"Generate Voucher"}</button></div></section></div>:null}
         {showManualModal && (
