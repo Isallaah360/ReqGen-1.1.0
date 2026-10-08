@@ -433,7 +433,7 @@ export default function PaymentVoucherPrintPage() {
   }, [voucher, totalAmount]);
 
   // v3.1.6: a voucher prints only when the whole signing chain is complete
-  // (Auditor, Cheque Signer, Counter Signer and DG) — in every mode.
+  // (Auditor, Counter Signer and DG — the DG also signs the cheque) — in every mode.
   const finalPrintReady = useMemo(() => {
     if (!voucher) return false;
     return voucher.status === "Authorized" || voucher.status === "Paid";
@@ -467,7 +467,7 @@ export default function PaymentVoucherPrintPage() {
     }
 
     if (!latestFinalPrintReady) {
-      setMsg("Printing opens once every signature is in: Auditor, Cheque Signer, Counter Signer and the Director General.");
+      setMsg("Printing opens once every signature is in: Auditor, Counter Signer and the Director General (who signs the cheque and authorises).");
       setPrinting(false);
       return;
     }
@@ -596,7 +596,7 @@ export default function PaymentVoucherPrintPage() {
 
         {!finalPrintReady && (
           <div className="no-print mb-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-            Preview only. Printing opens once every signature is in: Auditor, Cheque Signer, Counter Signer and the Director General.
+            Preview only. Printing opens once every signature is in: Auditor, Counter Signer and the Director General (who signs the cheque and authorises).
           </div>
         )}
 

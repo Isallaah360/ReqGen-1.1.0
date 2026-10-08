@@ -48,7 +48,8 @@ type TrackerRow = {
   reminder_count: number | null;
 };
 
-const STEPS = ["Prepared", "Checked", "Cheque signer", "Counter signer", "DG"];
+// v3.1.14: the DG signs the cheque and authorises in one step.
+const STEPS = ["Prepared", "Checked", "Counter signer", "DG sign & authorise"];
 
 function naira(n: number | null | undefined) {
   return `₦${Math.round(Number(n || 0)).toLocaleString("en-NG")}`;
@@ -132,7 +133,7 @@ export function PendingTracker() {
     }
   }
 
-  const counts = useMemo(() => [2, 3, 4, 5].map((step) => rows.filter((r) => r.step_no === step).length), [rows]);
+  const counts = useMemo(() => [2, 3, 4].map((step) => rows.filter((r) => r.step_no === step).length), [rows]);
   const visible = stepFilter ? rows.filter((r) => r.step_no === stepFilter) : rows;
   const overdue = rows.filter((r) => ageTone(r.waiting_since) === "is-late").length;
 
@@ -148,9 +149,8 @@ export function PendingTracker() {
       <div className="rg-pvv-lanes" role="tablist" aria-label="Filter by signing step">
         {[
           { step: 2, label: "With the Auditor (check)" },
-          { step: 3, label: "With the Cheque Signer" },
-          { step: 4, label: "With the Counter Signer" },
-          { step: 5, label: "With the Director General" },
+          { step: 3, label: "With the Counter Signer" },
+          { step: 4, label: "With the Director General" },
         ].map((lane, index) => (
           <button
             key={lane.step}
@@ -346,9 +346,9 @@ type MineRow = { id: string; voucher_no: string | null; payee_name: string | nul
 
 const MINE_ACTION: Record<string, string> = {
   "Pending Check": "Check and approve",
-  "Pending Cheque Signature": "Sign (or choose signers)",
-  "Pending Counter Signature": "Counter-sign",
-  "Pending DG Authorisation": "Authorise",
+  "Pending Cheque Signature": "Counter-sign (or choose the Counter Signer)",
+  "Pending Counter Signature": "Counter-sign (or choose the Counter Signer)",
+  "Pending DG Authorisation": "Sign and authorise",
 };
 
 export function WaitingForYou({ basePath = "/approvals/vouchers" }: { basePath?: string } = {}) {

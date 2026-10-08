@@ -122,18 +122,16 @@ export async function POST(req: NextRequest) {
     // v3.1.13: the check never waits for the signers. A chosen checker, otherwise every Auditor.
     recipients = voucher.current_signing_owner ? await byIds([voucher.current_signing_owner]) : await holdersOf(admin, ["auditor"]);
     stepLabel = "check (Auditor)";
-  } else if (status === "Pending Cheque Signature") {
-    if (!voucher.cheque_signed_by) {
-      return fail("The voucher is waiting for the Account Officer to choose the Cheque Signer and Counter Signer.");
+  } else if (status === "Pending Counter Signature" || status === "Pending Cheque Signature") {
+    // v3.1.14: no separate Cheque Signer; the Counter Signer signs after the check.
+    if (!voucher.cheque_counter_signed_by) {
+      return fail("The voucher is waiting for the Account Officer to choose the Counter Signer.");
     }
-    recipients = await byIds([voucher.cheque_signed_by]);
-    stepLabel = "signature (Cheque Signer)";
-  } else if (status === "Pending Counter Signature") {
     recipients = await byIds([voucher.cheque_counter_signed_by]);
     stepLabel = "counter signature (Counter Signer)";
   } else if (status === "Pending DG Authorisation") {
     recipients = await holdersOf(admin, ["dg", "directorgeneral"]);
-    stepLabel = "authorisation (Director General)";
+    stepLabel = "signature and authorisation (Director General)";
   }
   if (!recipients.length) return fail("Nobody currently holds this signing step. Ask the Administrator to check the roles.");
 

@@ -21,10 +21,11 @@ const pvPage = read("app/payment-vouchers/page.tsx");
 const shell = read("app/components/GovernmentAppShell.tsx");
 check("PV views are numbered module tabs", pvPage.includes("VIEW_PATH") && !pvPage.includes("workspaceTabs") && shell.includes('"Pending Signatures"'));
 check("One voucher phase drives tabs, KPIs and donut", pvPage.includes("function voucherPhase") && pvPage.includes("voucherGroup(status") );
-check("Signers required for every disbursement mode", pvPage.includes("p_cheque_signed_by_name: chequeSignedByName.trim()") && pvPage.includes("p_counter_signatory_name: counterSignatoryName.trim()"));
+// v3.1.14: the Counter Signer is required; the DG signs the cheque when authorising.
+check("Signers required for every disbursement mode", pvPage.includes("p_cheque_signed_by_name: null") && pvPage.includes("p_counter_signatory_name: counterSignatoryName.trim()"));
 const detail = read("app/payment-vouchers/[id]/page.tsx");
 check("Voucher detail signs through reqgen_pv_sign", detail.includes('rpc("reqgen_pv_sign"') && detail.includes('rpc("reqgen_pv_assign_signers"'));
-check("Voucher detail shows the 6-step chain", ["Prepared", "Checked", "Cheque signed", "Counter-signed", "Authorised", "Received"].every((t) => detail.includes(`"${t}"`)));
+check("Voucher detail shows the 5-step chain (v3.1.14)", ["Prepared", "Checked", "Counter-signed", "Signed & authorised", "Received"].every((t) => detail.includes(`"${t}"`)));
 check("Signers outside Finance sign from Approvals", exists("app/approvals/vouchers/page.tsx") && exists("app/approvals/vouchers/[id]/page.tsx") && shell.includes('"Voucher Signing"'));
 const manual = read("app/payment-vouchers/manual/page.tsx");
 check("Manual voucher: department first, its accounts only", manual.includes("departmentAccounts") && manual.includes("department_account_routing") && manual.includes("Select the department first."));

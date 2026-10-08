@@ -559,7 +559,7 @@ function buildAuditFindings(
       description: "Vouchers that remain unpaid or unsigned for too long should be followed up.",
       level: unpaidOld.length >= 5 ? "High" : "Medium",
       count: unpaidOld.length,
-      action: "Follow up with Account, Cheque Signer or Counter Signer depending on stage.",
+      action: "Follow up with Account, the Counter Signer or the Director General depending on stage.",
     });
   }
 

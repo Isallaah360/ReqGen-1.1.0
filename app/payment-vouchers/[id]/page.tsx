@@ -10,9 +10,9 @@ import { StatTile } from "@/app/components/ui/StatTile";
 import SignatureInk from "@/app/components/ui/SignatureInk";
 
 /**
- * ReqGen v3.1.6 — Payment Voucher detail and SIGNING CHAIN.
- * Prepared (Account) -> Checked (Auditor) -> Cheque Signer -> Counter Signer
- * -> Authorised (DG) -> Paid ("Received by" = payee's saved signature).
+ * ReqGen v3.1.14 — Payment Voucher detail and SIGNING CHAIN.
+ * Prepared (Account) -> Checked (Auditor) -> Counter Signer -> Director General
+ * (ONE click: signs the cheque AND authorises) -> Paid ("Received by" = payee).
  * Each officer signs only at their own step (enforced again in the database by
  * reqgen_pv_sign). The voucher can be printed only when fully signed.
  */
@@ -125,7 +125,12 @@ type Signatory = { id: string; full_name: string; is_active: boolean | null; sig
 type StepState = "done" | "current" | "waiting";
 type Step = { key: string; title: string; who: string; name: string | null; at: string | null; sig: string | null; state: StepState };
 
-const CHAIN = ["Pending Check", "Pending Cheque Signature", "Pending Counter Signature", "Pending DG Authorisation"] as const;
+const CHAIN = ["Pending Check", "Pending Counter Signature", "Pending DG Authorisation"] as const;
+
+/** 'Pending Cheque Signature' is the pre-v3.1.14 step; it is now the counter signature. */
+function chainStatus(status: string) {
+  return status === "Pending Cheque Signature" ? "Pending Counter Signature" : status;
+}
 
 function key(value: string | null | undefined) {
   return String(value || "").toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -187,7 +192,6 @@ export default function PaymentVoucherDetailPage() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
   const [comment, setComment] = useState("");
-  const [chequeSigner, setChequeSigner] = useState("");
   const [counterSigner, setCounterSigner] = useState("");
   const [checker, setChecker] = useState("");
   const [checkers, setCheckers] = useState<Array<{ id: string; full_name: string | null }>>([]);
@@ -225,8 +229,7 @@ export default function PaymentVoucherDetailPage() {
       setHistory(((histRes.data || []) as Hist[]).slice().sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()));
       const signers = (signRes.data || []) as Signatory[];
       setSignatories(signers);
-      setChequeSigner((current) => current || row.cheque_signed_by_name || signers.find((s) => key(s.signatory_type) === "chequesigner")?.full_name || "");
-      setCounterSigner((current) => current || row.cheque_counter_signed_by_name || signers.find((s) => key(s.signatory_type) === "countersigner")?.full_name || "");
+      setCounterSigner((current) => current || row.cheque_counter_signed_by_name || signers.find((s) => ["countersigner", "both"].includes(key(s.signatory_type)))?.full_name || "");
       setChecker((current) => current || (row.status === "Pending Check" ? row.current_signing_owner || "" : ""));
     } catch (caught) {
       setMessage({ tone: "error", text: caught instanceof Error ? caught.message : "The voucher could not be loaded." });
@@ -238,7 +241,7 @@ export default function PaymentVoucherDetailPage() {
   useEffect(() => { queueMicrotask(() => { void load(); }); }, [load]);
 
   const has = useCallback((...keys: string[]) => keys.some((k) => roles.has(k)), [roles]);
-  const status = voucher?.status || "";
+  const status = chainStatus(voucher?.status || "");
   const isAccount = has("admin", "account", "accounts", "accountofficer");
   const fullySigned = status === "Authorized" || status === "Paid";
 
@@ -246,16 +249,15 @@ export default function PaymentVoucherDetailPage() {
   const myStep = useMemo(() => {
     if (!voucher || !userId) return null;
     if (status === "Pending Check" && has("auditor") && voucher.prepared_by !== userId && (!voucher.current_signing_owner || voucher.current_signing_owner === userId)) return { label: "Check and sign as Auditor", title: "Check this voucher?" };
-    if (status === "Pending Cheque Signature" && voucher.cheque_signed_by === userId && !!voucher.cheque_counter_signed_by) return { label: "Sign as Cheque Signer", title: "Sign this voucher?" };
     if (status === "Pending Counter Signature" && voucher.cheque_counter_signed_by === userId) return { label: "Counter-sign", title: "Counter-sign this voucher?" };
-    if (status === "Pending DG Authorisation" && has("dg", "directorgeneral")) return { label: "Authorise as Director General", title: "Authorise this voucher?" };
+    if (status === "Pending DG Authorisation" && has("dg", "directorgeneral")) return { label: "Sign and authorise", title: "Sign and authorise this voucher?" };
     return null;
   }, [has, status, userId, voucher]);
 
-  // v3.1.13: signers can be chosen until the Cheque Signer signs; the Auditor's
-  // check never waits for them.
-  const signersOpen = !!voucher && (status === "Pending Check" || (status === "Pending Cheque Signature" && !voucher.cheque_signed_at));
-  const signersMissing = signersOpen && (!voucher?.cheque_signed_by || !voucher?.cheque_counter_signed_by);
+  // v3.1.14: the Counter Signer can be chosen until they sign; the Auditor's
+  // check never waits for it. The DG signs the cheque when authorising.
+  const signersOpen = !!voucher && (status === "Pending Check" || (status === "Pending Counter Signature" && !voucher.cheque_counter_signed_at));
+  const signersMissing = signersOpen && !voucher?.cheque_counter_signed_by;
   const canOversee = has("admin", "auditor", "account", "accounts", "accountofficer");
 
   const steps: Step[] = useMemo(() => {
@@ -265,9 +267,8 @@ export default function PaymentVoucherDetailPage() {
     return [
       { key: "prepared", title: "Prepared", who: "Account Officer", name: voucher.prepared_by_name, at: voucher.prepared_at, sig: voucher.prepared_signature_url, state: "done" },
       { key: "checked", title: "Checked", who: "Auditor", name: voucher.checked_by_name, at: voucher.checked_at, sig: voucher.checked_signature_url, state: state(0) },
-      { key: "cheque", title: "Cheque signed", who: voucher.cheque_signed_by_name ? `Cheque Signer — ${voucher.cheque_signed_by_name}` : "Cheque Signer (not assigned)", name: voucher.cheque_signed_at ? voucher.cheque_signed_by_name : null, at: voucher.cheque_signed_at, sig: voucher.cheque_signed_signature_url, state: state(1) },
-      { key: "counter", title: "Counter-signed", who: voucher.cheque_counter_signed_by_name ? `Counter Signer — ${voucher.cheque_counter_signed_by_name}` : "Counter Signer (not assigned)", name: voucher.cheque_counter_signed_at ? voucher.cheque_counter_signed_by_name : null, at: voucher.cheque_counter_signed_at, sig: voucher.cheque_counter_signed_signature_url, state: state(2) },
-      { key: "authorised", title: "Authorised", who: "Director General", name: voucher.authorized_by_name, at: voucher.authorized_at, sig: voucher.authorized_signature_url, state: state(3) },
+      { key: "counter", title: "Counter-signed", who: voucher.cheque_counter_signed_by_name ? `Counter Signer — ${voucher.cheque_counter_signed_by_name}` : "Counter Signer (not chosen yet)", name: voucher.cheque_counter_signed_at ? voucher.cheque_counter_signed_by_name : null, at: voucher.cheque_counter_signed_at, sig: voucher.cheque_counter_signed_signature_url, state: state(1) },
+      { key: "authorised", title: "Signed & authorised", who: "Director General", name: voucher.authorized_by_name, at: voucher.authorized_at, sig: voucher.authorized_signature_url, state: state(2) },
       { key: "received", title: "Received", who: "Payee", name: status === "Paid" ? voucher.payee_signed_name : null, at: status === "Paid" ? voucher.payee_signed_at : null, sig: status === "Paid" ? voucher.payee_signature_url : null, state: status === "Paid" ? "done" : status === "Authorized" ? "current" : "waiting" },
     ];
   }, [fullySigned, status, voucher]);
@@ -321,9 +322,8 @@ export default function PaymentVoucherDetailPage() {
 
   async function assignSigners() {
     if (!voucher) return;
-    if (!chequeSigner || !counterSigner) { setMessage({ tone: "error", text: "Select both the Cheque Signer and the Counter Signer." }); return; }
-    if (key(chequeSigner) === key(counterSigner)) { setMessage({ tone: "error", text: "Cheque Signer and Counter Signer cannot be the same person." }); return; }
-    await run(async () => supabase.rpc("reqgen_pv_assign_signers", { p_voucher_id: voucher.id, p_cheque_signed_by_name: chequeSigner, p_counter_signatory_name: counterSigner, p_checker_id: checker || null }), "Signing officers saved. The checker has been notified in the app.");
+    if (!counterSigner) { setMessage({ tone: "error", text: "Select the Counter Signer." }); return; }
+    await run(async () => supabase.rpc("reqgen_pv_assign_signers", { p_voucher_id: voucher.id, p_cheque_signed_by_name: null, p_counter_signatory_name: counterSigner, p_checker_id: checker || null }), status === "Pending Check" ? "Signing officers saved. The checker has been notified in the app." : "Counter Signer saved and notified in the app.");
   }
 
   async function markPaid() {
@@ -356,8 +356,7 @@ export default function PaymentVoucherDetailPage() {
     router.push(listPath);
   }
 
-  const chequeSigners = signatories.filter((s) => key(s.signatory_type) === "chequesigner");
-  const counterSigners = signatories.filter((s) => key(s.signatory_type) === "countersigner");
+  const counterSigners = signatories.filter((s) => ["countersigner", "both"].includes(key(s.signatory_type)));
 
   if (loading && !voucher) {
     return <main className="rg-pvd"><PageHeader title="Payment Voucher" description="Loading voucher..." /></main>;
@@ -403,7 +402,7 @@ export default function PaymentVoucherDetailPage() {
         <StatTile title="Status" value={status.startsWith("Pending") ? "Pending" : statusLabel(status)} tone={statusTone(status)} note={status.startsWith("Pending") ? status.replace("Pending ", "Awaiting ") : voucher.signing_stage || " "} />
         <StatTile title="Total amount" value={naira(voucher.total_amount ?? voucher.amount)} tone="blue" note={`${voucher.item_count || items.length || 1} request(s)`} />
         <StatTile title="Disbursement" value={voucher.disbursement_mode || "—"} tone="purple" note={voucher.voucher_scope === "Multiple" ? "Combined voucher" : "Single voucher"} />
-        <StatTile title="Signatures" value={`${steps.filter((s) => s.state === "done" && s.key !== "received").length} of 5`} tone="orange" note={fullySigned ? "Fully signed" : "Signing in progress"} />
+        <StatTile title="Signatures" value={`${steps.filter((s) => s.state === "done" && s.key !== "received").length} of 4`} tone="orange" note={fullySigned ? "Fully signed" : "Signing in progress"} />
       </section>
 
       {myStep ? (
@@ -418,7 +417,7 @@ export default function PaymentVoucherDetailPage() {
 
       {signersOpen && isAccount ? (
         <section className={`rg-pvd-card ${signersMissing || justGenerated ? "rg-pvd-needed" : ""}`}>
-          <header><h2>{signersMissing ? "Action needed: choose the signing officers" : "Signing officers"}</h2><p>{justGenerated ? "Voucher generated. Choose who checks and who signs it — they are notified in the app as their turn comes." : signersMissing ? (status === "Pending Check" ? "The Auditor can already check it. Choose the two signers so it can move on after the check." : "The Auditor has checked this voucher. Choose the two signers so it can move on.") : "You can change these until the Cheque Signer signs."}</p></header>
+          <header><h2>{signersMissing ? "Action needed: choose the Counter Signer" : "Signing officers"}</h2><p>{justGenerated ? "Voucher generated. Choose who checks it and who counter-signs it — they are notified in the app as their turn comes. The Director General signs and authorises last." : signersMissing ? (status === "Pending Check" ? "The Auditor can already check it. Choose the Counter Signer so it can move on after the check." : "The Auditor has checked this voucher. Choose the Counter Signer so it can move on.") : "You can change these until the Counter Signer signs. The Director General signs and authorises last."}</p></header>
           <div className="rg-pvd-assign">
             {status === "Pending Check" ? <label>Checker (Auditor)
               <select value={checker} onChange={(e) => setChecker(e.target.value)}>
@@ -426,12 +425,6 @@ export default function PaymentVoucherDetailPage() {
                 {checkers.filter((c) => c.id !== voucher.prepared_by).map((c) => <option key={c.id} value={c.id}>{c.full_name || "Auditor"}</option>)}
               </select>
             </label> : null}
-            <label>Cheque Signer *
-              <select value={chequeSigner} onChange={(e) => setChequeSigner(e.target.value)}>
-                <option value="">Select the Cheque Signer</option>
-                {chequeSigners.map((s) => <option key={s.id} value={s.full_name}>{s.full_name}</option>)}
-              </select>
-            </label>
             <label>Counter Signer *
               <select value={counterSigner} onChange={(e) => setCounterSigner(e.target.value)}>
                 <option value="">Select the Counter Signer</option>
@@ -463,8 +456,8 @@ export default function PaymentVoucherDetailPage() {
 
         {!myStep && status.startsWith("Pending") ? (
           <div className="rg-pvd-act">
-            <p className="rg-pvd-waiting">Now with: {status === "Pending Cheque Signature" && !voucher.cheque_signed_by ? "the Account Officer — choose the Cheque Signer and Counter Signer" : steps.find((s) => s.state === "current")?.who || "the next signer"}.</p>
-            {canOversee && !(status === "Pending Cheque Signature" && !voucher.cheque_signed_by) ? (
+            <p className="rg-pvd-waiting">Now with: {status === "Pending Counter Signature" && !voucher.cheque_counter_signed_by ? "the Account Officer — choose the Counter Signer" : steps.find((s) => s.state === "current")?.who || "the next signer"}.</p>
+            {canOversee && !(status === "Pending Counter Signature" && !voucher.cheque_counter_signed_by) ? (
               <button type="button" className="rg-btn rg-btn-secondary" onClick={() => void remind()} disabled={busy}><BellRing size={15} /> Send reminder</button>
             ) : null}
           </div>

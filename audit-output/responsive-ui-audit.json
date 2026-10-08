@@ -1,10 +1,10 @@
 {
   "summary": {
-    "scannedFiles": 195,
+    "scannedFiles": 196,
     "findings": 4,
     "warnings": 0,
     "info": 4,
-    "generatedAt": "2026-10-08T11:32:08.699Z"
+    "generatedAt": "2026-10-08T15:55:24.548Z"
   },
   "findings": [
     {

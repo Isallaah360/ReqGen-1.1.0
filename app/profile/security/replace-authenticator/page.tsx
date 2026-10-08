@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import { endMfaWindow } from "@/lib/mfaTrust";
 import ProfileNavigation from "@/app/components/profile/ProfileNavigation";
 
 type TotpFactor = {
@@ -232,8 +233,11 @@ export default function ReplaceAuthenticatorPage() {
       return;
     }
 
-    setMessage("2FA and password changed successfully. Redirecting to login...");
-    await supabase.auth.signOut();
+    setMessage("2FA and password changed successfully. Every device using the old details is now signed out. Redirecting to login...");
+    // v3.1.14: end the 12-hour window here and sign out EVERY session of this
+    // account (scope "global"), so anyone using a stolen password is removed.
+    await endMfaWindow();
+    await supabase.auth.signOut({ scope: "global" });
     setBusy(false);
 
     setTimeout(() => {

@@ -322,7 +322,6 @@ export default function PaymentVouchersPage() {
   const [chequeNo, setChequeNo] = useState("");
   const [chequeDate, setChequeDate] = useState("");
   const [chequeBankName, setChequeBankName] = useState("");
-  const [chequeSignedByName, setChequeSignedByName] = useState("");
   const [counterSignatoryName, setCounterSignatoryName] = useState("");
 
   const [showManualModal, setShowManualModal] = useState(false);
@@ -341,12 +340,6 @@ export default function PaymentVouchersPage() {
   const [manualAmount, setManualAmount] = useState("");
   const [manualMode, setManualMode] = useState<DisbursementMode>("Transfer");
   const [manualReference, setManualReference] = useState("");
-
-  const chequeSigners = useMemo(() => {
-    return pvSignatories.filter(
-      (x) => x.signatory_type === "ChequeSigner" || x.signatory_type === "Both"
-    );
-  }, [pvSignatories]);
 
   const counterSigners = useMemo(() => {
     return pvSignatories.filter(
@@ -578,17 +571,9 @@ export default function PaymentVouchersPage() {
         const list = (signatoryRes.data || []) as PVSignatory[];
         setPvSignatories(list);
 
-        const firstChequeSigner = list.find(
-          (x) => x.signatory_type === "ChequeSigner" || x.signatory_type === "Both"
-        );
-
         const firstCounterSigner = list.find(
           (x) => x.signatory_type === "CounterSigner" || x.signatory_type === "Both"
         );
-
-        if (!chequeSignedByName && firstChequeSigner) {
-          setChequeSignedByName(firstChequeSigner.full_name);
-        }
 
         if (!counterSignatoryName && firstCounterSigner) {
           setCounterSignatoryName(firstCounterSigner.full_name);
@@ -612,7 +597,7 @@ export default function PaymentVouchersPage() {
       setLoading(false);
       setRefreshing(false);
     },
-    [router, chequeSignedByName, counterSignatoryName]
+    [router, counterSignatoryName]
   );
 
   useEffect(() => {
@@ -806,7 +791,6 @@ export default function PaymentVouchersPage() {
     setChequeNo("");
     setChequeDate("");
     setChequeBankName("");
-    setChequeSignedByName(chequeSigners[0]?.full_name || "");
     setCounterSignatoryName(counterSigners[0]?.full_name || "");
 
     setMsg(null);
@@ -840,12 +824,9 @@ export default function PaymentVouchersPage() {
       if (!chequeBankName.trim()) return "Cheque requires Bank Name.";
     }
 
-    // v3.1.6: every PV, in every mode, is signed by a Cheque Signer and a Counter Signer.
-    if (!chequeSignedByName.trim()) return "Select the Cheque Signer for this voucher.";
+    // v3.1.14: every PV is counter-signed; the Director General signs the
+    // cheque and authorises in one step (no separate Cheque Signer).
     if (!counterSignatoryName.trim()) return "Select the Counter Signer for this voucher.";
-    if (personKey(chequeSignedByName) === personKey(counterSignatoryName)) {
-      return "Cheque Signer and Counter Signer cannot be the same person.";
-    }
 
     return null;
   }
@@ -887,7 +868,7 @@ export default function PaymentVouchersPage() {
         p_cheque_no: mode === "Cheque" ? chequeNo.trim() : null,
         p_cheque_date: mode === "Cheque" ? chequeDate : null,
         p_cheque_bank_name: mode === "Cheque" ? chequeBankName.trim() : null,
-        p_cheque_signed_by_name: chequeSignedByName.trim(),
+        p_cheque_signed_by_name: null,
         p_counter_signatory_name: counterSignatoryName.trim(),
       });
 
@@ -1205,7 +1186,7 @@ export default function PaymentVouchersPage() {
               </select>
               <div className={styles.dateRange}><input aria-label="From date" type="date" value={fromDate} onChange={(e)=>setFromDate(e.target.value)} /><span>–</span><input aria-label="To date" type="date" value={toDate} onChange={(e)=>setToDate(e.target.value)} /></div>
               <select aria-label="Status filter" value={statusFilter} onChange={(e)=>setStatusFilter(e.target.value)}>
-                <option value="ALL">Filters</option><option value="Pending Check">Pending Check</option><option value="Pending Cheque Signature">Pending Cheque Signature</option><option value="Pending Counter Signature">Pending Counter Signature</option><option value="Pending DG Authorisation">Pending DG Authorisation</option><option value="Authorized">Authorised</option><option value="Paid">Paid</option><option value="Cancelled">Cancelled</option>
+                <option value="ALL">Filters</option><option value="Pending Check">Pending Check</option><option value="Pending Counter Signature">Pending Counter Signature</option><option value="Pending DG Authorisation">Pending DG Authorisation</option><option value="Authorized">Authorised</option><option value="Paid">Paid</option><option value="Cancelled">Cancelled</option>
               </select>
               {summaryGroup ? (
                 <span className="rg-filter-chip" role="status" style={{ margin: 0 }}>
@@ -1607,28 +1588,8 @@ export default function PaymentVouchersPage() {
                 </div>
               )}
 
-              {/* v3.1.6: signers for every mode. The PV then goes Auditor check ->
-                  Cheque Signer -> Counter Signer -> DG authorisation. */}
+              {/* v3.1.14: Auditor check -> Counter Signer -> DG (signs and authorises). */}
               <div className="mt-4 grid gap-4 md:grid-cols-2">
-                  <div>
-                    <label className="text-sm font-semibold text-slate-800">Cheque Signer *</label>
-                    <select
-                      value={chequeSignedByName}
-                      onChange={(e) => setChequeSignedByName(e.target.value)}
-                      className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-3 outline-none focus:border-blue-500"
-                    >
-                      {chequeSigners.length === 0 ? (
-                        <option value="">No active cheque signer found</option>
-                      ) : (
-                        chequeSigners.map((person) => (
-                          <option key={person.id} value={person.full_name}>
-                            {person.full_name}
-                          </option>
-                        ))
-                      )}
-                    </select>
-                  </div>
-
                   <div>
                     <label className="text-sm font-semibold text-slate-800">Counter Signer *</label>
                     <select
@@ -1649,7 +1610,7 @@ export default function PaymentVouchersPage() {
                   </div>
               </div>
               <p className="mt-2 text-xs font-semibold text-slate-600">
-                After generation the voucher is signed in turn: Auditor check, Cheque Signer, Counter Signer, then the Director General. It can be paid and printed once every signature is in.
+                After generation the voucher is signed in turn: Auditor check, Counter Signer, then the Director General, who signs and authorises in one step. It can be paid and printed once every signature is in.
               </p>
 
               <div className="mt-6 flex flex-wrap justify-end gap-2">

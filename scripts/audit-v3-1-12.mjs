@@ -7,7 +7,7 @@ const results = [
   ["Real footers are never hidden (New Request Submit bar shows)", !/\.rg-content footer\{display:none/.test(css) && !css.includes(".gov-content footer:not(.mock-footer)")],
   ["Loading bar sits below the top bar (no animated top stripe)", css.includes(".rg-activity-strip{position:sticky;top:var(--rg-topbar)") && !css.includes("html.rg-busy")],
   ["Module tabs wrap instead of scrolling", css.includes("html body .rg-module-tabs{flex-wrap:wrap!important")],
-  ["Voucher: Account chooses checker + signers in-app", detail.includes('rpc("reqgen_pv_checkers")') && detail.includes("p_checker_id: checker || null") && detail.includes("Action needed: choose the signing officers")],
+  ["Voucher: Account chooses checker + signers in-app", detail.includes('rpc("reqgen_pv_checkers")') && detail.includes("p_checker_id: checker || null") && detail.includes("Action needed: choose the Counter Signer")],
   // v3.1.13: the Auditor's check no longer waits for the signers at all.
   ["Voucher: checker never sees a dead button", !detail.includes("disabled={busy || signersMissing}")],
   ["Generation opens the signing-officer form, not print", read("app/payment-vouchers/page.tsx").includes("?signers=1")],

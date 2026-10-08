@@ -849,7 +849,7 @@ export default function ManualVoucherPage() {
                     result.account_balance
                 )}. Subhead balance: ${money(
                     result.subhead_balance
-                )}. Next: open it under Payment Vouchers → 2. Pending Signatures, assign the Cheque Signer and Counter Signer, and the Auditor will check it.`
+                )}. Next: open it under Payment Vouchers → 2. Pending Signatures, choose the Counter Signer, and the Auditor will check it.`
             );
         } catch (caught) {
             console.error("Manual voucher posting error:", caught);

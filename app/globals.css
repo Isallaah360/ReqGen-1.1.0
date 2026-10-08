@@ -5136,7 +5136,7 @@ html[data-theme="dark"] .rg-a4-page{color:var(--c-fg-000000,#000);background:var
 .rg-pvd-card>header h2{margin:0;font-size:14px;font-weight:900;color:var(--c-fg-291d18,#291d18)}
 .rg-pvd-card>header p{margin:3px 0 0;font-size:12px;color:var(--c-fg-5b4e45,#5b4e45)}
 .rg-pvd-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}
-.rg-pvd-chain{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
+.rg-pvd-chain{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
 .rg-pvd-chain li{position:relative;display:grid;gap:8px;padding:12px;border:1px solid var(--c-ln-ece2d8,#ece2d8);border-radius:10px;background:var(--c-bg-fbf8f4,#fbf8f4)}
 .rg-pvd-chain li.is-done{border-color:var(--c-ln-bfe5d3,#bfe5d3);background:var(--c-bg-f3fbf7,#f3fbf7)}
 .rg-pvd-chain li.is-current{border-color:var(--c-ln-f06c24,#f06c24);box-shadow:0 0 0 3px rgba(240,108,36,.12);background:var(--c-bg-ffffff,#fff)}
@@ -5192,7 +5192,7 @@ html body .rg-content > main{min-height:0!important}
 .rg-pvv-actions .rg-btn:disabled{opacity:.5;cursor:not-allowed}
 
 /* 2. signing tracker */
-.rg-pvv-lanes{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+.rg-pvv-lanes{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
 .rg-pvv-lanes button,.rg-pvv-overdue{display:grid;gap:2px;text-align:left;padding:12px 14px;border:1px solid var(--c-ln-ece2d8,#ece2d8);border-radius:12px;background:var(--c-bg-ffffff,#fff);cursor:pointer}
 .rg-pvv-lanes strong{font-size:22px;font-weight:900;color:var(--c-fg-291d18,#291d18)}
 .rg-pvv-lanes span{font-size:11.5px;font-weight:700;color:var(--c-fg-5b4e45,#5b4e45)}
@@ -5206,7 +5206,7 @@ html body .rg-content > main{min-height:0!important}
 .rg-pvv-track-title strong{font-size:14px;font-weight:900;color:var(--c-fg-291d18,#291d18)}
 .rg-pvv-track-title em{font-style:normal;font-size:10.5px;font-weight:800;padding:1px 7px;border-radius:99px;background:var(--c-bg-f0eafe,#f0eafe);color:var(--c-fg-6d3fd6,#6d3fd6)}
 .rg-pvv-track-title span{flex-basis:100%;font-size:12px;color:var(--c-fg-5b4e45,#5b4e45)}
-.rg-pvv-steps{list-style:none;margin:12px 0 0;padding:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr))}
+.rg-pvv-steps{list-style:none;margin:12px 0 0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}
 .rg-pvv-steps li{position:relative;display:grid;justify-items:center;gap:6px;font-size:10.5px;font-weight:800;color:var(--c-fg-9a8f86,#9a8f86);text-align:center}
 .rg-pvv-steps li span{position:relative;z-index:1;width:14px;height:14px;border-radius:50%;border:2px solid var(--c-ln-d8ccc1,#d8ccc1);background:var(--c-bg-ffffff,#fff)}
 .rg-pvv-steps li::before{content:"";position:absolute;top:6px;left:-50%;width:100%;height:2px;background:var(--c-bg-e3d6ca,#e3d6ca)}

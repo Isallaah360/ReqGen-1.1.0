@@ -74,8 +74,8 @@ function typeLabel(type: string | null | undefined) {
 }
 
 function typeHelpText(type: string | null | undefined) {
-  if (type === "ChequeSigner") return "First cheque-signing authority on cheque-based vouchers.";
-  if (type === "CounterSigner") return "Counter-signing authority after the cheque signer.";
+  if (type === "ChequeSigner") return "Not used since v3.1.14: the Director General signs the cheque when authorising.";
+  if (type === "CounterSigner") return "Counter-signs every voucher after the Auditor's check, before the Director General.";
   if (type === "Both") return "Available in both cheque-signer and counter-signer selections.";
   return "Counter-signing authority.";
 }
@@ -421,7 +421,7 @@ export default function PaymentVoucherSettingsPage() {
           <StatTile title="Total Names" value={stats.total} tone="blue" note="Registered authorities" />
           <StatTile title="Active" value={stats.active} tone="emerald" note="Available for new PVs" />
           <StatTile title="Inactive" value={stats.inactive} tone="slate" note="Preserved for history" />
-          <StatTile title="Cheque Signers" value={stats.cheque} tone="purple" note="First signing authority" />
+          <StatTile title="Cheque Signers" value={stats.cheque} tone="purple" note="Not used — the DG signs the cheque" />
           <StatTile title="Counter Signers" value={stats.counter} tone="orange" note="Counter-signing authority" />
         </section>
 
@@ -546,7 +546,7 @@ export default function PaymentVoucherSettingsPage() {
           <Signature size={18} />
           <div>
             <strong>PV Settings Note</strong>
-            <p>Active Cheque Signers appear under “Cheque Signed By”. Active Counter Signers appear under “Counter Signed By”. “Both” appears in both lists. ReqGen blocks deletion when a name already appears on a historical voucher; deactivate that authority instead.</p>
+            <p>Signing order: Auditor check → Counter Signer → Director General, who signs the cheque and authorises in one step. Active Counter Signers (and “Both”) appear in the Counter Signer list. Cheque Signers are kept only for old vouchers. ReqGen blocks deletion when a name already appears on a historical voucher; deactivate that authority instead.</p>
           </div>
         </section>
       </div>
