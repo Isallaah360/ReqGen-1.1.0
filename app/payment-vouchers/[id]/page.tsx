@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, usePathname, useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, CheckCircle2, Circle, Clock3, FileText, PenLine, Printer, RefreshCw, Trash2, UserCheck, XCircle } from "lucide-react";
+import { ArrowLeft, BellRing, CheckCircle2, Circle, Clock3, FileText, PenLine, Printer, RefreshCw, Trash2, UserCheck, XCircle } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { confirmDialog } from "@/lib/dialog";
 import { PageHeader } from "@/app/components/ui/PageHeader";
@@ -246,13 +246,17 @@ export default function PaymentVoucherDetailPage() {
   const myStep = useMemo(() => {
     if (!voucher || !userId) return null;
     if (status === "Pending Check" && has("auditor") && voucher.prepared_by !== userId && (!voucher.current_signing_owner || voucher.current_signing_owner === userId)) return { label: "Check and sign as Auditor", title: "Check this voucher?" };
-    if (status === "Pending Cheque Signature" && voucher.cheque_signed_by === userId) return { label: "Sign as Cheque Signer", title: "Sign this voucher?" };
+    if (status === "Pending Cheque Signature" && voucher.cheque_signed_by === userId && !!voucher.cheque_counter_signed_by) return { label: "Sign as Cheque Signer", title: "Sign this voucher?" };
     if (status === "Pending Counter Signature" && voucher.cheque_counter_signed_by === userId) return { label: "Counter-sign", title: "Counter-sign this voucher?" };
     if (status === "Pending DG Authorisation" && has("dg", "directorgeneral")) return { label: "Authorise as Director General", title: "Authorise this voucher?" };
     return null;
   }, [has, status, userId, voucher]);
 
-  const signersMissing = !!voucher && status === "Pending Check" && (!voucher.cheque_signed_by || !voucher.cheque_counter_signed_by);
+  // v3.1.13: signers can be chosen until the Cheque Signer signs; the Auditor's
+  // check never waits for them.
+  const signersOpen = !!voucher && (status === "Pending Check" || (status === "Pending Cheque Signature" && !voucher.cheque_signed_at));
+  const signersMissing = signersOpen && (!voucher?.cheque_signed_by || !voucher?.cheque_counter_signed_by);
+  const canOversee = has("admin", "auditor", "account", "accounts", "accountofficer");
 
   const steps: Step[] = useMemo(() => {
     if (!voucher) return [];
@@ -294,6 +298,25 @@ export default function PaymentVoucherDetailPage() {
     });
     if (!ok) return;
     await run(async () => supabase.rpc("reqgen_pv_sign", { p_voucher_id: voucher.id, p_comment: comment.trim() || null }), "Signed. The voucher has moved to the next signer.");
+  }
+
+  async function remind() {
+    if (!voucher) return;
+    setBusy(true);
+    setMessage(null);
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      const token = session.session?.access_token;
+      if (!token) throw new Error("Your session has expired. Please sign in again.");
+      const response = await fetch("/api/pv/remind", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ voucherId: voucher.id }) });
+      const result = (await response.json()) as { ok: boolean; error?: string; recipients?: Array<{ name: string; sms: string; email: string }> };
+      if (!response.ok || !result.ok) throw new Error(result.error || "The reminder could not be sent.");
+      setMessage({ tone: "ok", text: `Reminder sent to ${(result.recipients || []).map((r) => r.name).join(", ")} (in-app${(result.recipients || []).some((r) => r.sms === "sent") ? ", SMS" : ""}${(result.recipients || []).some((r) => r.email === "sent") ? ", email" : ""}).` });
+    } catch (caught) {
+      setMessage({ tone: "error", text: caught instanceof Error ? caught.message : "The reminder could not be sent." });
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function assignSigners() {
@@ -383,16 +406,26 @@ export default function PaymentVoucherDetailPage() {
         <StatTile title="Signatures" value={`${steps.filter((s) => s.state === "done" && s.key !== "received").length} of 5`} tone="orange" note={fullySigned ? "Fully signed" : "Signing in progress"} />
       </section>
 
-      {status === "Pending Check" && isAccount ? (
+      {myStep ? (
+        <section className="rg-pvd-card rg-pvd-mine" aria-label="Your action">
+          <header><h2>Your action: {myStep.label}</h2><p>Review the voucher details and the requests below, add a comment if you wish, then sign. Your saved signature is appended and the next officer is notified.</p></header>
+          <div className="rg-pvd-act">
+            <label>Comment (optional)<textarea value={comment} onChange={(e) => setComment(e.target.value)} rows={2} placeholder="e.g. Checked — amounts and subhead correct" /></label>
+            <button type="button" className="rg-btn rg-btn-primary" onClick={() => void sign()} disabled={busy}><PenLine size={15} /> {myStep.label}</button>
+          </div>
+        </section>
+      ) : null}
+
+      {signersOpen && isAccount ? (
         <section className={`rg-pvd-card ${signersMissing || justGenerated ? "rg-pvd-needed" : ""}`}>
-          <header><h2>{signersMissing ? "Action needed: choose the signing officers" : "Signing officers"}</h2><p>{justGenerated ? "Voucher generated. Choose who checks and who signs it — they are notified in the app as their turn comes." : signersMissing ? "Choose the checker and the two signers so the voucher can move." : "You can change these until the voucher is checked."}</p></header>
+          <header><h2>{signersMissing ? "Action needed: choose the signing officers" : "Signing officers"}</h2><p>{justGenerated ? "Voucher generated. Choose who checks and who signs it — they are notified in the app as their turn comes." : signersMissing ? (status === "Pending Check" ? "The Auditor can already check it. Choose the two signers so it can move on after the check." : "The Auditor has checked this voucher. Choose the two signers so it can move on.") : "You can change these until the Cheque Signer signs."}</p></header>
           <div className="rg-pvd-assign">
-            <label>Checker (Auditor)
+            {status === "Pending Check" ? <label>Checker (Auditor)
               <select value={checker} onChange={(e) => setChecker(e.target.value)}>
                 <option value="">Any Auditor</option>
                 {checkers.filter((c) => c.id !== voucher.prepared_by).map((c) => <option key={c.id} value={c.id}>{c.full_name || "Auditor"}</option>)}
               </select>
-            </label>
+            </label> : null}
             <label>Cheque Signer *
               <select value={chequeSigner} onChange={(e) => setChequeSigner(e.target.value)}>
                 <option value="">Select the Cheque Signer</option>
@@ -428,17 +461,13 @@ export default function PaymentVoucherDetailPage() {
           ))}
         </ol>
 
-        {myStep ? (
+        {!myStep && status.startsWith("Pending") ? (
           <div className="rg-pvd-act">
-            <label>Comment (optional)<textarea value={comment} onChange={(e) => setComment(e.target.value)} rows={2} placeholder="Add a note to the voucher history" /></label>
-            {signersMissing ? (
-              <p className="rg-pvd-waiting">The Account Officer has not yet chosen the Cheque Signer and Counter Signer. You can check this voucher as soon as they do.</p>
-            ) : (
-              <button type="button" className="rg-btn rg-btn-primary" onClick={() => void sign()} disabled={busy}><PenLine size={15} /> {myStep.label}</button>
-            )}
+            <p className="rg-pvd-waiting">Now with: {status === "Pending Cheque Signature" && !voucher.cheque_signed_by ? "the Account Officer — choose the Cheque Signer and Counter Signer" : steps.find((s) => s.state === "current")?.who || "the next signer"}.</p>
+            {canOversee && !(status === "Pending Cheque Signature" && !voucher.cheque_signed_by) ? (
+              <button type="button" className="rg-btn rg-btn-secondary" onClick={() => void remind()} disabled={busy}><BellRing size={15} /> Send reminder</button>
+            ) : null}
           </div>
-        ) : !fullySigned && status !== "Cancelled" ? (
-          <p className="rg-pvd-waiting">Waiting for: {steps.find((s) => s.state === "current")?.who || "the next signer"}.</p>
         ) : null}
 
         {status === "Authorized" && isAccount ? (

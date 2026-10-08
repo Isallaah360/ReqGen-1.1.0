@@ -8,6 +8,7 @@ import RequestDetailsWorkspace from "@/app/components/requests/RequestDetailsWor
 import RequestAccessGate from "@/app/components/requests/RequestAccessGate";
 import { StatTile } from "@/app/components/ui/StatTile";
 import { PageHeader } from "@/app/components/ui/PageHeader";
+import { WaitingForYou } from "@/app/payment-vouchers/views/PvViews";
 import styles from "./approvals.module.css";
 import { APPROVAL_QUEUE_CHANGED_EVENT, isAwaitingUser, isClosedRequest, isHeldElsewhere } from "@/lib/approvalQueue";
 
@@ -221,6 +222,8 @@ export default function ApprovalsPage() {
       />
 
       {message ? <div className={styles.errorBanner}>{message}</div> : null}
+
+      <WaitingForYou />
 
       {!loading && heldElsewhere.length > 0 ? (
         <div className="rg-approvals-held" role="status">

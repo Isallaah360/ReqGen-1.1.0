@@ -6,7 +6,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { CheckCircle2, ChevronRight, CircleX, Clock3, Download, FileSpreadsheet, MoreVertical, Plus, Search, Settings2, WalletCards, X } from "lucide-react";
 import { PageHeader } from "@/app/components/ui/PageHeader";
 import styles from "./payment-vouchers-overview.module.css";
-import { ApprovedView, HistoryView, PendingTracker, PrintCentreView } from "./views/PvViews";
+import { ApprovedView, HistoryView, PendingTracker, PrintCentreView, WaitingForYou } from "./views/PvViews";
 import { Donut as SharedDonut } from "@/app/components/ui/Donut";
 import { supabase } from "@/lib/supabaseClient";
 import { PersonName } from "@/app/components/ui/PersonName";
@@ -1164,6 +1164,7 @@ export default function PaymentVouchersPage() {
       {msg ? <div className={styles.message}>{msg}</div> : null}
 
 
+      <WaitingForYou />
       {/* v3.1.7: each tab has its own purpose and layout. */}
       {workspaceView === "pending" ? <PendingTracker /> : null}
       {workspaceView === "approved" ? <ApprovedView rows={rows} /> : null}

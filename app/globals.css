@@ -5434,3 +5434,14 @@ html body .rg-module-tabs .rg-module-tab-label{overflow:hidden;text-overflow:ell
 /* stat cards: labels and captions wrap cleanly instead of running into the icon */
 html body .rg-stat-text{min-width:0}
 html body .rg-stat-text .rg-stat-label{white-space:normal;overflow-wrap:anywhere;line-height:1.25}
+
+/* v3.1.13 — vouchers waiting for the signed-in officer; "your action" card */
+.rg-pvv-mine{display:grid;gap:8px;margin:0 0 14px;padding:12px 16px;border:1px solid var(--c-ln-f06c24,#f06c24);border-left:5px solid var(--c-ln-b83e00,#b83e00);border-radius:12px;background:var(--c-bg-fff9f4,#fff9f4)}
+.rg-pvv-mine header{display:flex;align-items:center;gap:8px;color:var(--c-fg-b83e00,#b83e00);font-size:14px}
+.rg-pvv-mine ul{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.rg-pvv-mine li{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;padding:8px 10px;border-radius:9px;background:var(--c-bg-ffffff,#fff);font-size:13px;color:var(--c-fg-291d18,#291d18)}
+.rg-pvv-mine li .rg-btn{min-height:32px;font-size:12px}
+.rg-pvd-mine{border:2px solid var(--c-ln-b83e00,#b83e00)!important;background:var(--c-bg-fff9f4,#fff9f4)!important}
+.rg-pvd-mine .rg-pvd-act{margin-top:6px;padding-top:0;border-top:0}
+html[data-theme="dark"] :is(.rg-pvv-mine,.rg-pvd-mine){background:var(--c-bg-1d2330,#1d2330)!important}
+html[data-theme="dark"] .rg-pvv-mine li{background:var(--c-bg-151a24,#151a24)}

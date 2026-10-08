@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { BellRing, CalendarDays, CheckCircle2, Clock3, Eye, Printer, RefreshCw, Search, UserCheck, Wallet, XCircle } from "lucide-react";
+import { BellRing, CalendarDays, CheckCircle2, Clock3, Eye, PenLine, Printer, RefreshCw, Search, UserCheck, Wallet, XCircle } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { StatTile } from "@/app/components/ui/StatTile";
 
@@ -334,6 +334,49 @@ export function PrintCentreView({ rows }: { rows: PvRow[] }) {
           </article>
         ))}
       </div>
+    </section>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* v3.1.13 — "Waiting for you": every voucher the signed-in officer   */
+/* must check, sign or authorise, on every Payment Voucher tab.        */
+/* ------------------------------------------------------------------ */
+type MineRow = { id: string; voucher_no: string | null; payee_name: string | null; amount: number | null; status: string | null };
+
+const MINE_ACTION: Record<string, string> = {
+  "Pending Check": "Check and approve",
+  "Pending Cheque Signature": "Sign (or choose signers)",
+  "Pending Counter Signature": "Counter-sign",
+  "Pending DG Authorisation": "Authorise",
+};
+
+export function WaitingForYou({ basePath = "/approvals/vouchers" }: { basePath?: string } = {}) {
+  const router = useRouter();
+  const [rows, setRows] = useState<MineRow[]>([]);
+
+  useEffect(() => {
+    let alive = true;
+    queueMicrotask(() => {
+      void supabase.rpc("get_payment_vouchers_assigned_to_me").then(({ data }) => {
+        if (alive) setRows(((data || []) as MineRow[]).filter((r) => String(r.status || "").startsWith("Pending")));
+      });
+    });
+    return () => { alive = false; };
+  }, []);
+
+  if (!rows.length) return null;
+  return (
+    <section className="rg-pvv-mine" aria-label="Vouchers waiting for you">
+      <header><PenLine size={17} /><strong>{rows.length} voucher{rows.length === 1 ? " is" : "s are"} waiting for you</strong></header>
+      <ul>
+        {rows.map((r) => (
+          <li key={r.id}>
+            <span><b>{r.voucher_no}</b> · {r.payee_name || "—"} · {naira(r.amount)}</span>
+            <button type="button" className="rg-btn rg-btn-primary" onClick={() => router.push(`${basePath}/${r.id}`)}>{MINE_ACTION[r.status || ""] || "Open"}</button>
+          </li>
+        ))}
+      </ul>
     </section>
   );
 }

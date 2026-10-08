@@ -39,6 +39,14 @@ export default function RouteAccessGuard({ children }: { children: ReactNode }) 
       if (context.activeRoleKey) activeRoleOnly.add(context.activeRoleKey);
 
       if (!canAccessPath(pathname, activeRoleOnly)) {
+        // v3.1.13: a voucher link opened by a signer whose active role cannot
+        // open Finance pages (e.g. an Auditor acting as Staff, a Cheque Signer)
+        // goes to the same voucher under Approvals, where they can sign it.
+        const voucher = /^\/payment-vouchers\/([0-9a-f-]{36})\/?$/i.exec(pathname);
+        if (voucher) {
+          router.replace(`/approvals/vouchers/${voucher[1]}`);
+          return;
+        }
         router.replace(`/unauthorized?from=${encodeURIComponent(pathname)}&role=${encodeURIComponent(context.activeRoleKey || "staff")}`);
         return;
       }

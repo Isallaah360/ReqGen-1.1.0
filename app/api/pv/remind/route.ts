@@ -119,13 +119,13 @@ export async function POST(req: NextRequest) {
     return (data || []) as Person[];
   };
   if (status === "Pending Check") {
-    if (!voucher.cheque_signed_by || !voucher.cheque_counter_signed_by) {
-      return fail("Assign the Cheque Signer and Counter Signer first. The voucher is waiting for the Account Officer.");
-    }
-    // A checker chosen by the Account Officer, otherwise every Auditor.
+    // v3.1.13: the check never waits for the signers. A chosen checker, otherwise every Auditor.
     recipients = voucher.current_signing_owner ? await byIds([voucher.current_signing_owner]) : await holdersOf(admin, ["auditor"]);
     stepLabel = "check (Auditor)";
   } else if (status === "Pending Cheque Signature") {
+    if (!voucher.cheque_signed_by) {
+      return fail("The voucher is waiting for the Account Officer to choose the Cheque Signer and Counter Signer.");
+    }
     recipients = await byIds([voucher.cheque_signed_by]);
     stepLabel = "signature (Cheque Signer)";
   } else if (status === "Pending Counter Signature") {

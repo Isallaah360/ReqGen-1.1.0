@@ -1,5 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
+// v3.1.13: the docs folder is created on demand (it is not shipped in the project).
+fs.mkdirSync(path.join(process.cwd(), 'docs'), { recursive: true });
 
 const ROOT = process.cwd();
 const APP = path.join(ROOT, 'app');
