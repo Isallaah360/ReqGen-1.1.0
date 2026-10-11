@@ -1,6 +1,6 @@
 {
   "name": "reqgen-web",
-  "version": "4.1.0",
+  "version": "4.1.1",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -18,7 +18,7 @@
     "audit:mockup-lock": "node scripts/audit-mockup-lock.mjs",
     "audit:navigation": "node scripts/audit-internal-navigation.mjs",
     "audit:components": "node scripts/audit-component-contracts.cjs",
-    "audit:deploy": "npm run audit:v400 && npm run audit:v410 && npm run audit:routes && npm run audit:rbac && npm run audit:workflow && npm run audit:navigation && npm run audit:mockup-lock && npm run audit:components && npm run audit:privacy",
+    "audit:deploy": "npm run audit:v400 && npm run audit:v410 && npm run audit:v411 && npm run audit:routes && npm run audit:rbac && npm run audit:workflow && npm run audit:navigation && npm run audit:mockup-lock && npm run audit:components && npm run audit:privacy",
     "audit:route-registry": "node scripts/audit-route-registry.mjs",
     "audit:rmb-architecture": "node scripts/audit-rmb-page-architecture.mjs",
     "audit:section4": "node scripts/audit-section4-lock.mjs",
@@ -29,7 +29,7 @@
     "audit:navbar": "node scripts/audit-navbar-coverage.mjs",
     "audit:phase6-ui": "node scripts/audit-phase6-ui.mjs",
     "audit:phase7-architecture": "node scripts/audit-phase7-architecture.mjs",
-    "audit:production": "npm run audit:phase7-architecture && npm run audit:phase7-ui && npm run audit:phase8-stabilisation && npm run audit:routes && npm run audit:rbac && npm run audit:workflow && npm run audit:navigation && npm run audit:route-registry && npm run audit:responsive && npm run audit:data-accuracy && npm run audit:components && npm run audit:section4 && npm run audit:v315 && npm run audit:v316 && npm run audit:v317 && npm run audit:v318 && npm run audit:v319 && npm run audit:v3110 && npm run audit:v3111 && npm run audit:v3112 && npm run audit:v3113 && npm run audit:v3114 && npm run audit:privacy && npm run audit:v400 && npm run audit:v410",
+    "audit:production": "npm run audit:phase7-architecture && npm run audit:phase7-ui && npm run audit:phase8-stabilisation && npm run audit:routes && npm run audit:rbac && npm run audit:workflow && npm run audit:navigation && npm run audit:route-registry && npm run audit:responsive && npm run audit:data-accuracy && npm run audit:components && npm run audit:section4 && npm run audit:v315 && npm run audit:v316 && npm run audit:v317 && npm run audit:v318 && npm run audit:v319 && npm run audit:v3110 && npm run audit:v3111 && npm run audit:v3112 && npm run audit:v3113 && npm run audit:v3114 && npm run audit:privacy && npm run audit:v400 && npm run audit:v410 && npm run audit:v411",
     "audit:phase7-ui": "node scripts/audit-phase7-ui-stabilisation.mjs",
     "audit:phase8-stabilisation": "node scripts/audit-phase8-stabilisation.mjs",
     "audit:privacy": "node scripts/audit-request-privacy.mjs",
@@ -45,7 +45,8 @@
     "audit:v3113": "node scripts/audit-v3-1-13.mjs",
     "audit:v3114": "node scripts/audit-v3-1-14.mjs",
     "audit:v400": "node scripts/audit-v4-0-0.mjs",
-    "audit:v410": "node scripts/audit-v4-1-0.mjs"
+    "audit:v410": "node scripts/audit-v4-1-0.mjs",
+    "audit:v411": "node scripts/audit-v4-1-1.mjs"
   },
   "dependencies": {
     "@simplewebauthn/browser": "13.3.0",

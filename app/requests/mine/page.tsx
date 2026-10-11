@@ -26,7 +26,7 @@ function kindOf(r: Row) {
 
 function bucket(r: Row, me: string): Tab {
   const chip = statusChip(r.status, r.current_stage);
-  if (chip.label === "Rejected") return "rejected";
+  if (chip.label === "Rejected" || chip.label === "Withdrawn") return "rejected";
   if (chip.label === "Returned" || (r.current_owner === me && !isClosedRequest(r))) return "returned";
   if (["Paid", "Completed", "Approved"].includes(chip.label)) return "done";
   return "progress";
@@ -122,7 +122,7 @@ function MyRequests() {
             { key: "progress", label: "In progress", count: counts.progress },
             { key: "returned", label: "Back with me", count: counts.returned },
             { key: "done", label: "Approved & paid", count: counts.done },
-            { key: "rejected", label: "Rejected", count: counts.rejected },
+            { key: "rejected", label: "Rejected & withdrawn", count: counts.rejected },
           ]} />
         </div>
         <div className="v4-toolbar">

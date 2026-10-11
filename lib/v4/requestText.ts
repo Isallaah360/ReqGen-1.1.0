@@ -20,7 +20,7 @@ const STAGE_WORDS: Record<string, string> = {
   HRFILING: "With HR for filing",
   COMPLETED: "Completed",
   REJECTED: "Rejected",
-  CANCELLED: "Cancelled",
+  CANCELLED: "Closed",
   DELETED: "Deleted",
 };
 
@@ -36,7 +36,9 @@ export function stageWords(stage: string | null | undefined) {
 export function statusChip(status: string | null | undefined, stage?: string | null): { tone: ChipTone; label: string } {
   const s = String(status || "").toLowerCase();
   const k = stageKey(stage);
+  if (/withdrawn/.test(s)) return { tone: "grey", label: "Withdrawn" };
   if (/reject|cancel|delete/.test(s) || k === "REJECTED") return { tone: "red", label: "Rejected" };
+  if (/returned by the director general/.test(s)) return { tone: "amber", label: "Sent back by the DG" };
   if (/return|correct|query/.test(s)) return { tone: "red", label: "Returned" };
   if (/paid/.test(s) && !/pending/.test(s)) return { tone: "green", label: "Paid" };
   if (/complet|closed/.test(s) || k === "COMPLETED") return { tone: "green", label: "Completed" };

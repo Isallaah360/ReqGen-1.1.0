@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { confirmDialog } from "@/lib/dialog";
+import { confirmDialog, promptDialog } from "@/lib/dialog";
 import { isAwaitingUser } from "@/lib/approvalQueue";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
@@ -1012,7 +1012,7 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
     }
 
     if (action === "Reject" && comment.trim().length < 3) {
-      setMsg("✕ Please write a reason/comment for rejection.");
+      setMsg("✕ Write the reason for sending this request back.");
       return false;
     }
 
@@ -1151,19 +1151,33 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
           setMsg(`✓ Approved after your attachment checks. Sent to ${nextStage || "next stage"}.`);
         }
       } else {
-        const { data, error } = await supabase.rpc("reject_request_step", {
+        // v4.1.1: "Reject" sends the request back (Build Reference §5): from the DG to the
+        // officer whose approval sent it there; from any other officer to the requester.
+        let back = await supabase.rpc("reqgen_return_request", {
           p_request_id: req.id,
-          p_actor_id: me.id,
           p_comment: comment.trim(),
           p_signature_url: me.signature_url,
         });
+        if (back.error && /could not find the function|schema cache/i.test(back.error.message)) {
+          // Before the v4.1.1 database step: the old rule (request closes as rejected).
+          back = await supabase.rpc("reject_request_step", {
+            p_request_id: req.id,
+            p_actor_id: me.id,
+            p_comment: comment.trim(),
+            p_signature_url: me.signature_url,
+          });
+        }
+        if (back.error) throw new Error(back.error.message);
 
-        if (error) throw new Error(error.message);
-
-        const result = Array.isArray(data) ? data[0] : data;
-        const nextStage = (result as RequestActionResult | null)?.new_stage || "Rejected";
-
-        setMsg(`✓ Request ${String(nextStage).toLowerCase()} successfully after your attachment checks.`);
+        const result = (Array.isArray(back.data) ? back.data[0] : back.data) as (RequestActionResult & { new_owner?: string | null }) | null;
+        const status = String(result?.new_status || "");
+        setMsg(
+          /director general/i.test(status)
+            ? "✓ Sent back to the officer who approved it before you, with your reason."
+            : /returned/i.test(status)
+              ? "✓ Sent back to the requester to correct, with your reason."
+              : `✓ Request ${String(result?.new_stage || "rejected").toLowerCase()}.`
+        );
       }
 
       setComment("");
@@ -1176,6 +1190,39 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
     } finally {
       setSaving(false);
     }
+  }
+
+  // v4.1.1: requester actions on a request that was sent back.
+  const backWithMe = !!req && !!me && req.created_by === me.id && req.current_owner === me.id && /returned for correction/i.test(String(req.status || ""));
+  const lastReturn = useMemo(() => history.filter((h) => String(h.action_type || "").toLowerCase() === "return").slice(-1)[0] || null, [history]);
+  const canWithdraw = !!req && !!me && req.created_by === me.id && !["DG", "ACCOUNT", "HRFILING", "COMPLETED", "REJECTED", "DELETED", "CANCELLED"].includes(stageKey(req.current_stage));
+
+  async function resubmitReturned() {
+    if (!req) return;
+    const note = await promptDialog({ title: "Send the corrected request back?", message: "It goes back to the officer who returned it.", label: "Note for the officer (optional)", required: false, confirmLabel: "Send back" });
+    if (note === null) return;
+    setSaving(true); setMsg(null);
+    try {
+      const { error } = await supabase.rpc("reqgen_resubmit_request", { p_request_id: req.id, p_comment: note || null });
+      if (error) throw new Error(error.message);
+      setMsg("✓ Sent back to the officer who returned it.");
+      await reload();
+      window.dispatchEvent(new Event(APPROVAL_QUEUE_CHANGED_EVENT));
+    } catch (e: unknown) { setMsg("✕ " + errorMessage(e)); } finally { setSaving(false); }
+  }
+
+  async function withdrawMine() {
+    if (!req) return;
+    const reason = await promptDialog({ title: "Withdraw this request?", message: "It closes and any reserved fund is released. This cannot be undone.", label: "Why are you withdrawing it?", confirmLabel: "Withdraw", tone: "danger" });
+    if (!reason) return;
+    setSaving(true); setMsg(null);
+    try {
+      const { error } = await supabase.rpc("reqgen_withdraw_request", { p_request_id: req.id, p_reason: reason });
+      if (error) throw new Error(error.message);
+      setMsg("✓ Request withdrawn.");
+      await reload();
+      window.dispatchEvent(new Event(APPROVAL_QUEUE_CHANGED_EVENT));
+    } catch (e: unknown) { setMsg("✕ " + errorMessage(e)); } finally { setSaving(false); }
   }
 
   async function deleteRequestAfterFresh2fa() {
@@ -1639,9 +1686,22 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
                 Only the assigned officer can approve or reject. Your verified secure session is reused while active; a new 2FA code is requested only after that secure session expires.
               </p>
 
-              {!canAct ? (
+              {!canAct && backWithMe ? (
+                <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
+                  <p className="font-bold">This request was sent back to you to correct.</p>
+                  {lastReturn ? <p className="mt-1">“{lastReturn.comment}” — {lastReturn.actor_name || "Officer"}{lastReturn.actor_role_name ? `, ${lastReturn.actor_role_name}` : ""}</p> : null}
+                  <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                    <button type="button" className="reqgen-btn w-full rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white" onClick={() => router.push(`/requests/${req.id}/edit`)} disabled={saving}>Correct the request</button>
+                    <button type="button" className="reqgen-btn w-full rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white" onClick={() => void resubmitReturned()} disabled={saving}>Send it back corrected</button>
+                    <button type="button" className="reqgen-btn w-full rounded-xl border border-red-300 bg-white px-4 py-3 text-sm font-semibold text-red-700" onClick={() => void withdrawMine()} disabled={saving}>Withdraw</button>
+                  </div>
+                </div>
+              ) : !canAct ? (
                 <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
                   View only.
+                  {canWithdraw ? (
+                    <div className="mt-3"><button type="button" className="reqgen-btn rounded-xl border border-red-300 bg-white px-4 py-2 text-sm font-semibold text-red-700" onClick={() => void withdrawMine()} disabled={saving}>Withdraw this request</button></div>
+                  ) : null}
                 </div>
               ) : (
                 <>
@@ -1694,7 +1754,7 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
                       Comment{" "}
                       {usesAutomaticAccountOfficerRouting || isHRFiling
                         ? "(optional, but recommended)"
-                        : "(required for Reject)"}
+                        : "(required to reject and send back)"}
                     </label>
                     <textarea
                       value={comment}
@@ -1729,7 +1789,7 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
                       }
                       className="reqgen-btn reqgen-btn-rose w-full rounded-xl bg-red-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-red-700 disabled:opacity-60"
                     >
-                      {saving || verifyingCode ? "Processing..." : "Reject"}
+                      {saving || verifyingCode ? "Processing..." : "Reject and send back"}
                     </button>
                   </div>
                 </>

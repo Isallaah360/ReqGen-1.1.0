@@ -93,6 +93,8 @@ export function isAssignedAccountOfficer(row: ApprovalQueueRow, userId: string) 
 export function isAwaitingUser(row: ApprovalQueueRow, userId: string, role: string) {
   if (!userId || isClosedRequest(row)) return false;
   if (queueRoleKey(role) === "registry") return false;
+  // v4.1.1: a request sent back to its requester waits in My Requests ("Back with me"), not in Approvals.
+  if (/returned for correction/i.test(String(row.status || ""))) return false;
   if (row.current_owner) return row.current_owner === userId;
   if (queueStageKey(row.current_stage) === "ACCOUNT") return isAssignedAccountOfficer(row, userId);
   return false;
