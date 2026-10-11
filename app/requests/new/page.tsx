@@ -87,7 +87,8 @@ const FINANCE_VISIBLE_ROLES = [
   "hrofficer1",
   "hrofficer2",
   "hrofficer3",
-  "registry",
+  "hrcoordinator",
+  "generalsecretary",
   "dg",
   "account",
   "accounts",
@@ -320,6 +321,11 @@ export default function NewRequestPage() {
   }, [deptId, requestType, personalCategory]);
 
 
+  // v4.1: staff pick the subhead too, and see only "fund available" or
+  // "not enough" — never the balance (Build Reference §5).
+  const [staffSubs, setStaffSubs] = useState<Array<{ id: string; code: string | null; name: string }>>([]);
+  const [liveCheck, setLiveCheck] = useState<"idle" | "checking" | "available" | "not_enough" | "unknown">("idle");
+
   const filteredSubs = useMemo(() => {
     return subs.filter((s) => s.dept_id === deptId);
   }, [subs, deptId]);
@@ -427,6 +433,31 @@ export default function NewRequestPage() {
   }, []);
 
   useEffect(() => {
+    if (canSeeSubheads || !deptId) { queueMicrotask(() => setStaffSubs([])); return; }
+    let alive = true;
+    void supabase.rpc("reqgen_department_subhead_names", { p_dept_id: deptId }).then(({ data, error }) => {
+      if (!alive) return;
+      setStaffSubs(error ? [] : ((data || []) as Array<{ id: string; code: string | null; name: string }>));
+      setSubheadId("");
+    });
+    return () => { alive = false; };
+  }, [deptId, canSeeSubheads]);
+
+  useEffect(() => {
+    if (canSeeSubheads || !isOfficial || !subheadId) { queueMicrotask(() => setLiveCheck("idle")); return; }
+    const amt = Number(amount || 0);
+    if (!(amt > 0)) { queueMicrotask(() => setLiveCheck("idle")); return; }
+    queueMicrotask(() => setLiveCheck("checking"));
+    const t = window.setTimeout(() => {
+      void supabase.rpc("reqgen_subhead_live_check", { p_subhead_id: subheadId, p_amount: amt }).then(({ data, error }) => {
+        const v = String(Array.isArray(data) ? data[0] : data || "");
+        setLiveCheck(error ? "unknown" : v === "available" ? "available" : v === "not_enough" ? "not_enough" : "unknown");
+      });
+    }, 400);
+    return () => window.clearTimeout(t);
+  }, [canSeeSubheads, isOfficial, subheadId, amount]);
+
+  useEffect(() => {
     if (!isOfficial) {
       setSubheadId("");
       return;
@@ -507,7 +538,6 @@ export default function NewRequestPage() {
 
   function selectedSubheadForSubmission() {
     if (!isOfficial) return null;
-    if (!canSeeSubheads) return null;
     return subheadId || null;
   }
 
@@ -592,6 +622,11 @@ export default function NewRequestPage() {
             : "✕ Enter a valid amount for this Personal Fund request."
         );
       }
+      return false;
+    }
+
+    if (isOfficial && !canSeeSubheads && subheadId && liveCheck === "not_enough") {
+      if (showMessage) setMsg("✕ Not enough fund in this subhead. Choose another subhead or reduce the amount.");
       return false;
     }
 
@@ -1074,6 +1109,21 @@ export default function NewRequestPage() {
                         <option key={s.id} value={s.id}>{(s.code ? `${s.code} — ` : "") + s.name}</option>
                       ))}
                     </select>
+                  </label>
+                ) : isOfficial && staffSubs.length ? (
+                  <label className={styles.field}>
+                    <span>Subhead / Budget Line</span>
+                    <select value={subheadId} onChange={(e) => setSubheadId(e.target.value)}>
+                      <option value="">Let the approving officer choose</option>
+                      {staffSubs.map((s) => (
+                        <option key={s.id} value={s.id}>{(s.code ? `${s.code} — ` : "") + s.name}</option>
+                      ))}
+                    </select>
+                    {subheadId ? (
+                      <small className={`v4-livecheck-chip is-${liveCheck}`} role="status" aria-live="polite">
+                        {liveCheck === "checking" ? "Checking the budget…" : liveCheck === "available" ? "✓ Fund available" : liveCheck === "not_enough" ? "✕ Not enough fund — you cannot submit with this subhead" : liveCheck === "unknown" ? "The budget could not be checked; the approving officer will confirm it." : "Enter the amount to check the budget."}
+                      </small>
+                    ) : null}
                   </label>
                 ) : (
                   <div className={styles.readOnlyField}>

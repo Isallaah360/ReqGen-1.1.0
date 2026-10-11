@@ -35,7 +35,7 @@ check("Signature slot CSS outranks generic img rules", /html body \.rg-sig-slot>
 
 // 3. One approval-queue rule everywhere.
 const approvals = read("app/approvals/inbox/page.tsx");
-check("Approvals 'waiting' list uses isAwaitingUser", approvals.includes("rows.filter((row) => isAwaitingUser(row, userId, activeRole))"));
+check("Approvals 'waiting' list uses isAwaitingUser", approvals.includes(".filter((r) => isAwaitingUser(r, me.userId, me.role))"));
 check("Approvals no longer uses stage-only visibility", !approvals.includes("isVisibleInApprovals"));
 check("Process screen canAct uses isAwaitingUser", read("app/components/requests/RequestDetailsWorkspace.tsx").includes("return isAwaitingUser(req, me.id"));
 check("Access gate reads both Account Officer columns", read("app/components/requests/RequestAccessGate.tsx").includes("assigned_account_officer_user_id"));

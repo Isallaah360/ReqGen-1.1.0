@@ -224,3 +224,16 @@ html body .v4-auth-form .auth-field > label { margin: 0 !important; font-size: v
   .v4-bell-panel .v4-row-link .v4-rr { padding-left: 50px; }
   .v4-rows .v4-rt strong, .v4-rows .v4-rt span { overflow-wrap: anywhere; }
 }
+
+/* ---- v4.1 greeting ---- */
+.v4-dayicon { display: inline-grid; place-items: center; border-radius: 50%; flex: none; }
+.v4-greet .v4-dayicon { margin-left: -6px; }
+.v4-greet-space { flex: 0 0 0; }
+.v4-head-with-icon { display: flex; align-items: center; gap: 14px; }
+html[data-theme="dark"] .v4-root .v4-dayicon { filter: saturate(1.1); background: rgba(255,255,255,.08) !important; }
+
+/* ---- v4.1 live budget check (staff never see the balance) ---- */
+.v4-livecheck-chip { display: inline-block; margin-top: 6px; padding: 4px 10px; border-radius: 999px; font-size: 12.5px; font-weight: 700; background: var(--v4-surface-2); color: var(--v4-ink-2); }
+.v4-livecheck-chip.is-available { background: var(--v4-green-soft); color: var(--v4-green); }
+.v4-livecheck-chip.is-not_enough { background: var(--v4-red-soft); color: var(--v4-red); }
+.v4-livecheck-chip.is-checking { background: var(--v4-amber-soft); color: var(--v4-amber); }

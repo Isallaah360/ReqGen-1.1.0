@@ -16,6 +16,26 @@ export const ROOT_NAVIGATION: RootNavigationItem[] = [
 
 export const ROUTE_REGISTRY: RouteRegistryItem[] = [
   {
+    "pattern": "/approvals/treated",
+    "title": "Approvals - Treated by Me",
+    "rootHref": "/approvals",
+    "category": "Application Route",
+    "public": false,
+    "nav": false,
+    "searchable": true,
+    "description": "ReqGen route /approvals/treated"
+  },
+  {
+    "pattern": "/check/[kind]/[id]",
+    "title": "Document Check",
+    "rootHref": "/check",
+    "category": "Application Route",
+    "public": true,
+    "nav": false,
+    "searchable": false,
+    "description": "ReqGen route /check/[kind]/[id]"
+  },
+  {
     "pattern": "/admin/overview",
     "title": "Administration - System Overview",
     "rootHref": "/admin",

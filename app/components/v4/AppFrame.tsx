@@ -15,17 +15,14 @@ import { REQGEN_VERSION } from "@/lib/version";
 import { subscribeActivity } from "@/lib/activity";
 import { confirmDialog } from "@/lib/dialog";
 import Icon from "./Icon";
+import { DayIcon, dayPart } from "./Greeting";
 import Bell from "./Bell";
 import RoleSelect, { positionName } from "./RoleSelect";
 import SetupCoach from "@/app/components/SetupCoach";
 
 const MINI_KEY = "reqgen:v4-sidebar-mini";
 
-function greetingFor(hour: number) {
-  if (hour < 12) return "Good morning";
-  if (hour < 17) return "Good afternoon";
-  return "Good evening";
-}
+
 
 function initialsOf(name: string) {
   return name.split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0]?.toUpperCase()).join("") || "RG";
@@ -368,7 +365,10 @@ export default function AppFrame({ children }: { children: ReactNode }) {
         <div className="v4-stage">
           <header className="v4-ui v4-topbar">
             <button className="v4-icon-btn v4-menu-btn" type="button" aria-label="Open menu" onClick={() => setDrawer(true)}><Icon name="menu" /></button>
-            <div className="v4-greet" aria-live="polite"><Icon name="clock" size="sm" />{greetingFor(hour)},&nbsp;<b>{(me?.name || "").toUpperCase()}</b></div>
+            {/* One greeting per screen: the Dashboard shows its own large greeting. */}
+            {pathname !== "/dashboard" ? (
+              <div className="v4-greet" aria-live="polite"><DayIcon hour={hour} size={16} />{dayPart(hour).text},&nbsp;<b>{(me?.name || "").toUpperCase()}</b></div>
+            ) : <div className="v4-greet-space" />}
             <Search roleSet={roleSet} />
             <div className="v4-top-actions">
               <Bell userId={me?.userId ?? null} pendingApprovalCount={pending} onUnread={setUnread} />

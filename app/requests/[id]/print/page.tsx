@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import SignatureInk from "@/app/components/ui/SignatureInk";
+import QRCode from "qrcode";
 import { printA4Sheet, useA4Fit } from "@/lib/printA4";
 import RequestAccessGate from "@/app/components/requests/RequestAccessGate";
 import { supabase } from "@/lib/supabaseClient";
@@ -253,6 +254,15 @@ function PrintRequestPageContent() {
   const [history, setHistory] = useState<Hist[]>([]);
   const sheetRef = useRef<HTMLElement>(null);
   const [isOwner, setIsOwner] = useState(false);
+  // v4.1: QR check code — opens the public check page for this letter.
+  const [qr, setQr] = useState("");
+  useEffect(() => {
+    if (!id) return;
+    let alive = true;
+    void QRCode.toDataURL(`${window.location.origin}/check/r/${id}`, { errorCorrectionLevel: "M", margin: 2, width: 240, color: { dark: "#000000", light: "#ffffff" } })
+      .then((url) => { if (alive) setQr(url); }).catch(() => undefined);
+    return () => { alive = false; };
+  }, [id]);
 
   const roleSet = useMemo(() => {
     const set = new Set<string>();
@@ -850,10 +860,17 @@ function PrintRequestPageContent() {
               <div className="rg-print-signatures">
                 <SignatureLine label="Requested by:" name={req.requester_name || ""} capacity="Requester" sigUrl={sigRequester} date={formatDate(req.created_at)} />
                 <SignatureLine label="Checked by:" name={checkedLine.name} capacity={checkedLine.capacity} sigUrl={checkedLine.sigUrl} date={checkedLine.date} />
-                <SignatureLine label="Approved by Director General, IET:" name={dgHistory?.actor_name || req.dg_name || ""} capacity={roleCapacity(dgHistory, "Director General")} sigUrl={sigDG} date={dgHistory?.created_at ? formatDate(dgHistory.created_at) : ""} />
+                <SignatureLine label="Approved by Director General, IET:" name={dgHistory?.actor_name || req.dg_name || ""} capacity={roleCapacity(dgHistory, "Director General")} sigUrl={sigDG} date={dgHistory?.created_at ? formatDate(dgHistory.created_at) : ""} stamp />
               </div>
 
-              <footer className="rg-reqdoc-foot"><span>{req.request_no}</span><em>Building Bridges</em></footer>
+              <footer className="rg-reqdoc-foot">
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element -- generated QR data URL */}
+                  {qr ? <img src={qr} alt="QR check code" width={58} height={58} style={{ width: 58, height: 58 }} /> : null}
+                  <span style={{ display: "flex", flexDirection: "column", lineHeight: 1.2 }}><span>{req.request_no}</span><small style={{ fontSize: 9 }}>Scan to check this letter</small></span>
+                </span>
+                <em>Building Bridges</em>
+              </footer>
             </div>
           </article>
         </div>
@@ -868,12 +885,14 @@ function SignatureLine({
   capacity,
   sigUrl,
   date,
+  stamp = false,
 }: {
   label: string;
   name: string;
   capacity: string;
   sigUrl: string | null;
   date: string;
+  stamp?: boolean;
 }) {
   // v3.1.5: the signature has its own fixed slot (.rg-sig-slot) and is drawn
   // by the Signature Ink Engine — background removed, trimmed, always inside
@@ -884,8 +903,11 @@ function SignatureLine({
         <div className="rg-print-signline-label">{label}</div>
         <div className="rg-print-signline-cell">{name}</div>
         <div className="rg-print-signline-cell">{capacity}</div>
-        <div className="rg-print-signline-cell rg-sig-slot">
+        <div className="rg-print-signline-cell rg-sig-slot" style={stamp ? { position: "relative", overflow: "visible" } : undefined}>
           {sigUrl ? <SignatureInk src={sigUrl} alt={name ? `${name} signature` : "Signature"} /> : null}
+          {/* v4.1: the IET stamp sits beside the DG signature, overlapping slightly; it never moves the text. */}
+          {/* eslint-disable-next-line @next/next/no-img-element -- stamp image printed in an isolated frame */}
+          {stamp && sigUrl ? <img src="/v4/iet-stamp.png" alt="IET stamp" style={{ position: "absolute", right: -6, top: "50%", transform: "translateY(-50%) rotate(-8deg)", height: 62, width: "auto", opacity: 0.85, pointerEvents: "none", mixBlendMode: "multiply" }} /> : null}
         </div>
         <div className="rg-print-signline-cell is-centre">{date}</div>
       </div>

@@ -26,12 +26,15 @@ export function Btn({ a, small }: { a: Action; small?: boolean }) {
   return <button className={cls} type="button" onClick={a.onClick} disabled={a.disabled} style={style}>{inner}</button>;
 }
 
-export function PageHead({ title, sub, actions }: { title: string; sub?: ReactNode; actions?: Action[] }) {
+export function PageHead({ title, sub, actions, icon }: { title: string; sub?: ReactNode; actions?: Action[]; icon?: ReactNode }) {
   return (
     <div className="v4-page-head">
-      <div>
+      <div className={icon ? "v4-head-with-icon" : undefined}>
+        {icon}
+        <div>
         <h1 className="v4-page-title">{title}</h1>
         {sub ? <p className="v4-page-sub">{sub}</p> : null}
+        </div>
       </div>
       {actions && actions.length ? <div className="v4-actions">{actions.map((a) => <Btn key={a.label} a={a} />)}</div> : null}
     </div>
@@ -168,4 +171,40 @@ export function naira(n: number | null | undefined, opts: { compact?: boolean } 
   const v = Number(n || 0);
   if (opts.compact && Math.abs(v) >= 1_000_000) return `₦ ${(v / 1_000_000).toFixed(2)}m`;
   return `₦ ${v.toLocaleString("en-GB", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+}
+
+/** Page buttons under a table: "Showing 1–20 of 54" and numbered pages. */
+export function Pager({ page, pageSize, total, onPage, label = "records" }: { page: number; pageSize: number; total: number; onPage: (p: number) => void; label?: string }) {
+  const pages = Math.max(1, Math.ceil(total / pageSize));
+  if (total <= pageSize) return total ? <div className="v4-pager"><span>Showing <b>{total}</b> {label}</span></div> : null;
+  const from = (page - 1) * pageSize + 1;
+  const to = Math.min(total, page * pageSize);
+  const nums = Array.from({ length: pages }, (_, i) => i + 1).filter((n) => n === 1 || n === pages || Math.abs(n - page) <= 1);
+  return (
+    <div className="v4-pager">
+      <span>Showing <b>{from}–{to}</b> of <b>{total}</b> {label}</span>
+      <nav aria-label="Pages">
+        <button type="button" aria-label="Previous page" disabled={page <= 1} onClick={() => onPage(page - 1)}><Icon name="left" size="sm" /></button>
+        {nums.map((n, i) => (
+          <span key={n} style={{ display: "contents" }}>
+            {i > 0 && n - nums[i - 1] > 1 ? <span aria-hidden="true" style={{ alignSelf: "center" }}>…</span> : null}
+            <button type="button" aria-current={n === page ? "page" : undefined} onClick={() => onPage(n)}>{n}</button>
+          </span>
+        ))}
+        <button type="button" aria-label="Next page" disabled={page >= pages} onClick={() => onPage(page + 1)}><Icon name="right" size="sm" /></button>
+      </nav>
+    </div>
+  );
+}
+
+/** Saves rows as a CSV file the viewer can open in Excel. */
+export function downloadCsv(filename: string, rows: Array<Record<string, unknown>>) {
+  if (!rows.length) return;
+  const cols = Object.keys(rows[0]);
+  const cell = (v: unknown) => { const s = v === null || v === undefined ? "" : String(v); return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
+  const text = "﻿" + [cols.join(","), ...rows.map((r) => cols.map((c) => cell(r[c])).join(","))].join("\r\n");
+  const url = URL.createObjectURL(new Blob([text], { type: "text/csv;charset=utf-8" }));
+  const a = document.createElement("a");
+  a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }

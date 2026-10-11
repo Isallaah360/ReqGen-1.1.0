@@ -25,7 +25,11 @@ const permSrc = fs.readFileSync(path.join(root, "lib/permissions.ts"), "utf8");
 
 const publicBlock = permSrc.match(/PUBLIC_PATHS\s*=\s*\[([\s\S]*?)\]/);
 if (!publicBlock) throw new Error("Could not find PUBLIC_PATHS in lib/permissions.ts");
-const PUBLIC_PATHS = [...publicBlock[1].matchAll(/"([^"]+)"/g)].map((m) => m[1]);
+const PUBLIC_PATHS_LIST = [...publicBlock[1].matchAll(/"([^"]+)"/g)].map((m) => m[1]);
+const prefixBlock = permSrc.match(/PUBLIC_PREFIXES\s*=\s*\[([\s\S]*?)\]/);
+const PUBLIC_PREFIXES = prefixBlock ? [...prefixBlock[1].matchAll(/"([^"]+)"/g)].map((m) => m[1]) : [];
+// v4.1: public pages are the exact list plus the public prefixes (QR check page).
+const PUBLIC_PATHS = { includes: (p) => PUBLIC_PATHS_LIST.includes(p) || PUBLIC_PREFIXES.some((x) => p.startsWith(x)) };
 
 const policyBlock = permSrc.match(/ROUTE_POLICIES:\s*RoutePolicy\[\]\s*=\s*\[([\s\S]*?)\n\];/);
 if (!policyBlock) throw new Error("Could not find ROUTE_POLICIES in lib/permissions.ts");

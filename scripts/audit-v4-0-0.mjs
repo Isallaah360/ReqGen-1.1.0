@@ -106,7 +106,7 @@ const nativeDialogs = v4Files.filter((f) => /\bwindow\.(alert|confirm|prompt)\(|
 check(`In-app dialogs only (${nativeDialogs.join(", ") || "ok"})`, nativeDialogs.length === 0);
 const emoji = v4Files.filter((f) => /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u.test(read(f)));
 check(`No emoji in v4 screens (${emoji.join(", ") || "ok"})`, emoji.length === 0);
-check("Version 4.0.0 everywhere", JSON.parse(read("package.json")).version === "4.0.0" && read("lib/version.ts").includes('REQGEN_SEMVER = "4.0.0"'));
+check("Version 4.x everywhere", JSON.parse(read("package.json")).version.startsWith("4.") && read("lib/version.ts").includes(`REQGEN_SEMVER = "${JSON.parse(read("package.json")).version}"`));
 const envFiles = fs.readdirSync(".").filter((f) => /^\.env/.test(f));
 check(`No .env file in the project (${envFiles.join(", ") || "ok"})`, envFiles.length === 0);
 

@@ -20,7 +20,7 @@ const PUBLIC_PATHS = [
 ];
 
 function isPublicPath(pathname: string) {
-  return PUBLIC_PATHS.includes(pathname);
+  return PUBLIC_PATHS.includes(pathname) || pathname.startsWith("/check/");
 }
 
 function formatCountdown(secondsLeft: number) {

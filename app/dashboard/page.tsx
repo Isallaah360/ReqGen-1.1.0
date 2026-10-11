@@ -12,6 +12,7 @@ import { stageKey, stageWords, statusChip, waitedFor } from "@/lib/v4/requestTex
 import { roleDisplayName } from "@/lib/roles";
 import { useIdentity } from "@/app/components/v4/useIdentity";
 import Icon from "@/app/components/v4/Icon";
+import { DayIcon, dayPart, firstNameOf } from "@/app/components/v4/Greeting";
 import { Btn, Card, Chip, PageHead, Skeleton, Stats, Tabs, V4Page, naira, type StatItem } from "@/app/components/v4/ui";
 
 type Req = ApprovalQueueRow & { id: string; request_no: string | null; title: string | null; amount: number | null; created_at: string | null; created_by?: string | null };
@@ -42,9 +43,7 @@ const SHORTCUTS = [
   { href: "/finance/processing", label: "Finance processing", icon: "clock", tone: "brand" },
 ] as const;
 
-function greeting(h: number) {
-  return h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
-}
+
 
 /** Home (Dashboard) — v4.0.0: what needs you today. */
 export default function DashboardPage() {
@@ -70,7 +69,7 @@ export default function DashboardPage() {
         supabase.rpc("get_payment_vouchers_assigned_to_me"),
         countUnread(me.userId),
         fetchNotifications(me.userId, { limit: 1 }),
-        supabase.from("request_history").select("id,request_id,action_type,comment,created_at").eq("action_by", me.userId).order("created_at", { ascending: false }).limit(5),
+        supabase.rpc("reqgen_treated_by_me", { p_limit: 5 }),
       ]);
       if (!alive) return;
       setMine(own.error ? [] : (own.data || []) as Req[]);
@@ -78,7 +77,9 @@ export default function DashboardPage() {
       setVouchers(pv.error ? [] : ((pv.data || []) as Pv[]).filter((v) => String(v.status || "").startsWith("Pending")));
       setUnread(count);
       setNewest(list.items[0]?.createdAt || null);
-      setActs(history.error ? [] : (history.data || []) as Act[]);
+      setActs(history.error ? [] : ((history.data || []) as Array<{ item_id: string; item_no: string | null; title: string | null; action_type: string | null; acted_at: string | null }>).map((h, i) => ({
+        id: `${h.item_id}-${i}`, request_id: h.item_id, action_type: `${h.action_type || "Action"} · ${h.item_no || ""}`, comment: h.title, created_at: h.acted_at,
+      })));
     };
     void load();
     const again = () => void load();
@@ -137,7 +138,8 @@ export default function DashboardPage() {
   return (
     <V4Page>
       <PageHead
-        title={`${greeting(hour)}${me.firstName ? `, ${me.firstName}` : ""}`}
+        title={`${dayPart(hour).text}${firstNameOf(me.name) ? `, ${firstNameOf(me.name)}` : ""}`}
+        icon={<DayIcon hour={hour} size={30} />}
         sub={<>{dateText}{dateText ? " · " : ""}Financial year {fy} · Here is what needs you today.</>}
         actions={[
           ...(allowed("/reports") ? [{ href: "/reports", label: "Reports", icon: "chart", kind: "secondary" as const }] : []),

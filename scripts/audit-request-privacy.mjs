@@ -21,8 +21,13 @@ for (const f of ["app/components/registry/RegistryCentreWorkspace.tsx", "app/rep
 }
 
 // 3. Every page that shows full request content is behind the access gate.
-for (const f of ["app/requests/[id]/page.tsx", "app/requests/[id]/edit/page.tsx", "app/requests/[id]/print/page.tsx", "app/finance/request/[id]/page.tsx", "app/approvals/inbox/page.tsx"]) {
+for (const f of ["app/requests/[id]/page.tsx", "app/requests/[id]/edit/page.tsx", "app/requests/[id]/print/page.tsx", "app/finance/request/[id]/page.tsx"]) {
   check(`${f} is wrapped in RequestAccessGate`, read(f).includes("<RequestAccessGate"));
+}
+// v4.1: the approvals list shows no request contents itself; it only links to the gated record page.
+{
+  const inbox = read("app/approvals/inbox/page.tsx");
+  check("app/approvals/inbox/page.tsx links only to the gated record page", inbox.includes("href: `/requests/${r.id}`") && !inbox.includes("RequestDetailsWorkspace"));
 }
 
 // 4. No oversight bypass (IET decision, v3.0.4).

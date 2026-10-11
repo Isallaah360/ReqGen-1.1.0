@@ -76,7 +76,7 @@ export default function MfaGuard({ children }: { children: ReactNode }) {
   }, [protectedSessionVerified]);
 
   useEffect(() => {
-    if (PUBLIC_PATHS.has(pathname) || protectedSessionVerified) return;
+    if (PUBLIC_PATHS.has(pathname) || pathname.startsWith("/check/") || protectedSessionVerified) return;
 
     let mounted = true;
     const run = ++verifyRun.current;
@@ -141,7 +141,7 @@ export default function MfaGuard({ children }: { children: ReactNode }) {
     return () => { mounted = false; };
   }, [pathname, protectedSessionVerified, router]);
 
-  if (PUBLIC_PATHS.has(pathname) || protectedSessionVerified) return <>{children}</>;
+  if (PUBLIC_PATHS.has(pathname) || pathname.startsWith("/check/") || protectedSessionVerified) return <>{children}</>;
 
   return (
     <section className="v4-ui" aria-live="polite" aria-busy={checking} style={{ minHeight: "50vh", display: "grid", placeItems: "center", background: "transparent" }}>

@@ -60,6 +60,7 @@ export const MODULES: ModuleDef[] = [
     tiles: [
       { href: "/approvals/inbox", title: "Requests to Approve", purpose: "Requests routed to you, oldest first.", icon: "file", tone: "brand", keywords: ["inbox", "approve", "reject"] },
       { href: "/approvals/vouchers", title: "Vouchers to Sign", purpose: "Vouchers waiting for your check or signature.", icon: "pen", tone: "blue", keywords: ["sign", "counter sign", "authorise"] },
+      { href: "/approvals/treated", title: "Treated by Me", purpose: "Everything you approved, returned, rejected or signed.", icon: "history", tone: "green", keywords: ["history", "my decisions"] },
     ],
   },
   {
@@ -304,6 +305,10 @@ export function searchablePages() {
  */
 const V4_NATIVE_EXACT = new Set<string>([
   ...ALL_MODULES.map((m) => m.href),
+  "/requests/mine",
+  "/approvals/inbox",
+  "/approvals/vouchers",
+  "/approvals/treated",
   "/notifications",
   "/profile/security",
   "/profile/passcode",

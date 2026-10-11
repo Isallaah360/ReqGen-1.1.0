@@ -1,117 +1,178 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { CheckCircle2, Clock3, FileText, Landmark, Search, XCircle, Eye, Pencil, MoreVertical, Download, Plus, Printer, X } from "lucide-react";
+import { Suspense, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
-import { REQGEN_VERSION } from "@/lib/version";
-import styles from "../requests.module.css";
-import { Donut as SharedDonut } from "@/app/components/ui/Donut";
+import { isClosedRequest } from "@/lib/approvalQueue";
+import { currentFyStart, fyBounds, fyLabel } from "@/lib/financialYear";
+import { shortDate, stageKey, stageWords, statusChip } from "@/lib/v4/requestText";
+import { useIdentity } from "@/app/components/v4/useIdentity";
+import { Btn, Card, Chip, Notice, PageHead, Pager, Skeleton, Tabs, V4Page, downloadCsv, naira } from "@/app/components/v4/ui";
 
-type Row = { id:string; request_no:string; title:string; amount:number; status:string; current_stage:string; created_at:string; request_type?:string|null; personal_category?:string|null; dept_id?:string|null; };
-type DepartmentLite = { id: string; name: string | null };
-type TypeFilter = "ALL"|"OFFICIAL"|"PERSONAL_FUND"|"PERSONAL_OTHER";
-type StatusFilter = "ALL"|"ACTIVE"|"COMPLETED"|"REJECTED";
+type Row = {
+  id: string; request_no: string | null; title: string | null; amount: number | null; status: string | null;
+  current_stage: string | null; current_owner: string | null; created_at: string | null;
+  request_type: string | null; personal_category: string | null; dept_id: string | null;
+};
+type Tab = "all" | "progress" | "returned" | "done" | "rejected";
 
-type TabKey = "ALL"|"ACTIVE"|"COMPLETED"|"REJECTED"|"OFFICIAL"|"PERSONAL_FUND"|"PERSONAL_OTHER";
+const PAGE = 20;
 
-function text(v?:string|null){return String(v||"").trim().toLowerCase()}
-function isRejected(r:Row){const s=text(r.status);return /reject|delete|cancel|fail/.test(s)}
-function isCompleted(r:Row){const s=text(r.status);return /approved|paid|complete|closed/.test(s)}
-function isActive(r:Row){return !isRejected(r)&&!isCompleted(r)}
-function requestGroup(r:Row):TypeFilter{const rt=String(r.request_type||"").toUpperCase();const pc=String(r.personal_category||"").toUpperCase();if(rt.includes("OFFICIAL"))return"OFFICIAL";if(rt.includes("PERSONAL")&&pc.includes("FUND"))return"PERSONAL_FUND";if(rt.includes("PERSONAL"))return"PERSONAL_OTHER";return"ALL"}
-function requestTypeLabel(r:Row){const g=requestGroup(r);return g==="OFFICIAL"?"Official":g==="PERSONAL_FUND"?"Personal Fund":g==="PERSONAL_OTHER"?"Personal Other":r.request_type||"Other"}
-function naira(v:number){return `₦${Math.round(Number(v||0)).toLocaleString("en-NG")}`}
-function statusClass(r:Row){return isRejected(r)?styles.rejected:isCompleted(r)?styles.approved:/pending/i.test(r.status||"")?styles.pending:styles.progress}
-function statusLabel(r:Row){return isRejected(r)?"Rejected":isCompleted(r)?"Approved":r.status||r.current_stage||"In Progress"}
-
-export default function RequestsPage(){
- const router=useRouter(); const [showCreateDrawer,setShowCreateDrawer]=useState(false); const [editDrawerId,setEditDrawerId]=useState<string|null>(null); const [rows,setRows]=useState<Row[]>([]); const [departments,setDepartments]=useState<Record<string,string>>({}); const [loading,setLoading]=useState(true); const [error,setError]=useState<string|null>(null); const [query,setQuery]=useState(""); const [status,setStatus]=useState<StatusFilter>("ALL"); const [type,setType]=useState<TypeFilter>("ALL"); const [department,setDepartment]=useState("ALL"); const [tab,setTab]=useState<TabKey>("ALL"); const [page,setPage]=useState(1);
- const load=useCallback(async()=>{setLoading(true);setError(null);const{data:auth}=await supabase.auth.getUser();if(!auth.user){router.push("/login");return}const{data,error:reqError}=await supabase.from("requests").select("id,request_no,title,amount,status,current_stage,created_at,request_type,personal_category,dept_id").eq("created_by",auth.user.id).order("created_at",{ascending:false});if(reqError){setError(reqError.message);setRows([]);setLoading(false);return}const requestRows=(data||[]) as Row[];setRows(requestRows);const ids=Array.from(new Set(requestRows.map(r=>r.dept_id).filter(Boolean))) as string[];if(ids.length){const{data:deptRows}=await supabase.from("departments").select("id,name").in("id",ids);setDepartments(Object.fromEntries(((deptRows||[]) as DepartmentLite[]).map((d)=>[String(d.id),String(d.name||"Unassigned")])))}else setDepartments({});setLoading(false)},[router]);
- useEffect(()=>{queueMicrotask(()=>{void load();});},[load]);
- useEffect(()=>{
-  const onMessage=(event:MessageEvent)=>{
-   if(event.origin!==window.location.origin)return;
-   const type=event.data?.type;
-   if(type==="reqgen-request-created"){setShowCreateDrawer(false);void load();}
-   if(type==="reqgen-request-edit-saved"){setEditDrawerId(null);void load();}
-   if(type==="reqgen-form-cancel"){setShowCreateDrawer(false);setEditDrawerId(null);}
-  };
-  window.addEventListener("message",onMessage);
-  return()=>window.removeEventListener("message",onMessage);
- },[load]);
- const counts=useMemo(()=>({total:rows.length,active:rows.filter(isActive).length,completed:rows.filter(isCompleted).length,rejected:rows.filter(isRejected).length,official:rows.filter(r=>requestGroup(r)==="OFFICIAL").length,fund:rows.filter(r=>requestGroup(r)==="PERSONAL_FUND").length,other:rows.filter(r=>requestGroup(r)==="PERSONAL_OTHER").length}),[rows]);
- const recentRows=useMemo(()=>rows.slice(0,5),[rows]);
- const departmentStats=useMemo(()=>{const map=new Map<string,number>();rows.forEach(r=>{const name=r.dept_id?departments[r.dept_id]||"Unassigned":"Unassigned";map.set(name,(map.get(name)||0)+1)});return Array.from(map.entries()).sort((a,b)=>b[1]-a[1]).slice(0,5)},[rows,departments]);
- const maxDepartmentCount=Math.max(1,...departmentStats.map(([,count])=>count));
- const statusSegments=useMemo(()=>[{label:"In Progress",value:counts.active,color:"var(--color-warning-600)"},{label:"Completed",value:counts.completed,color:"var(--color-success-600)"},{label:"Rejected",value:counts.rejected,color:"var(--color-danger-600)"}],[counts]);
- const filtered=useMemo(()=>rows.filter(r=>{const q=query.trim().toLowerCase();if(tab==="ACTIVE"&&!isActive(r))return false;if(tab==="COMPLETED"&&!isCompleted(r))return false;if(tab==="REJECTED"&&!isRejected(r))return false;if(["OFFICIAL","PERSONAL_FUND","PERSONAL_OTHER"].includes(tab)&&requestGroup(r)!==tab)return false;if(status==="ACTIVE"&&!isActive(r))return false;if(status==="COMPLETED"&&!isCompleted(r))return false;if(status==="REJECTED"&&!isRejected(r))return false;if(type!=="ALL"&&requestGroup(r)!==type)return false;if(department!=="ALL"&&r.dept_id!==department)return false;if(!q)return true;return[r.request_no,r.title,r.status,r.current_stage,requestTypeLabel(r),r.dept_id?departments[r.dept_id]:""].join(" ").toLowerCase().includes(q)}),[rows,query,status,type,department,departments,tab]);
- useEffect(()=>{queueMicrotask(()=>setPage(1));},[query,status,type,department,tab]); const pageSize=8; const totalPages=Math.max(1,Math.ceil(filtered.length/pageSize)); const currentPage=Math.min(page,totalPages); const paged=filtered.slice((currentPage-1)*pageSize,currentPage*pageSize);
- const tabs:[TabKey,string,number][]=[["ALL","All Requests",counts.total],["ACTIVE","Active Workflow",counts.active],["COMPLETED","Completed / Paid",counts.completed],["REJECTED","Rejected / Deleted",counts.rejected],["OFFICIAL","Official",counts.official],["PERSONAL_FUND","Personal Fund",counts.fund],["PERSONAL_OTHER","Personal Other",counts.other]];
- function exportCsv(){const lines=[[`Generated from ReqGen ${REQGEN_VERSION}`],["Request Code","Title","Department","Type","Amount","Status","Requested On"],...filtered.map(r=>[r.request_no,r.title,r.dept_id?departments[r.dept_id]||"Unassigned":"Unassigned",requestTypeLabel(r),String(r.amount||0),statusLabel(r),new Date(r.created_at).toLocaleString("en-NG")])].map(row=>row.map(v=>`"${String(v??"").replaceAll('"','""')}"`).join(",")).join("\n");const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([lines],{type:"text/csv"}));a.download=`reqgen-${REQGEN_VERSION}-requests.csv`;a.click();URL.revokeObjectURL(a.href)}
- if(showCreateDrawer){return <main className={`${styles.page} ${styles.formMode}`}>
-  <section className={styles.fullFormWorkspace} aria-label="Create Request">
-   <header className={styles.fullFormHeader}><div><strong>Create New Request</strong></div><button type="button" onClick={()=>setShowCreateDrawer(false)}><X size={18}/> Back to Requests</button></header>
-   <iframe className={styles.fullFormFrame} title="Create Request Form" src="/requests/new?embedded=1"/>
-  </section>
- </main>}
- if(editDrawerId){return <main className={`${styles.page} ${styles.formMode}`}>
-  <section className={styles.fullFormWorkspace} aria-label="Edit Request">
-   <header className={styles.fullFormHeader}><div><strong>Edit Request</strong></div><button type="button" onClick={()=>setEditDrawerId(null)}><X size={18}/> Back to Requests</button></header>
-   <iframe className={styles.fullFormFrame} title="Edit Request Form" src={`/requests/${editDrawerId}/edit?embedded=1`}/>
-  </section>
- </main>}
- return <main className={styles.page}>
-  <header className={styles.header}><div><span className={styles.eyebrow}>Requests</span><h1>Requests Overview</h1><p>Track all your requests from creation to final decision in one workspace.</p></div><button className={styles.primary} onClick={()=>setShowCreateDrawer(true)} data-tip="Open the Create Request form without leaving the Requests workspace."><Plus size={17}/> New Request</button></header>
-  <section className={styles.kpis}>
-   <Kpi tone="blue" icon={<FileText/>} label="Total Requests" value={counts.total} note="All submitted requests"/>
-   <Kpi tone="orange" icon={<Clock3/>} label="Active Workflow" value={counts.active} note="Currently in progress"/>
-   <Kpi tone="green" icon={<CheckCircle2/>} label="Completed / Paid" value={counts.completed} note="Successfully completed"/>
-   <Kpi tone="purple" icon={<Landmark/>} label="Official Requests" value={counts.official} note={`${counts.total?Math.round(counts.official/counts.total*100):0}% of total`}/>
-   <Kpi tone="red" icon={<XCircle/>} label="Rejected / Deleted" value={counts.rejected} note="Closed without completion"/>
-  </section>
-  <section className={styles.insightGrid} aria-label="Request overview insights">
-   <article className={styles.insightCard}>
-    <div className={styles.cardHeading}><div><strong>Requests by Status</strong><span>Select a slice to filter the register</span></div></div>
-    <div className={styles.statusVisual}>
-      <SharedDonut segments={statusSegments} size={200} strokeWidth={34} fluidMax={210} selected={tab==="ACTIVE"?"In Progress":tab==="COMPLETED"?"Completed":tab==="REJECTED"?"Rejected":null} onSegmentSelect={(label)=>{setTab(label==="In Progress"?"ACTIVE":label==="Completed"?"COMPLETED":label==="Rejected"?"REJECTED":"ALL");setPage(1);document.getElementById("rg-request-register")?.scrollIntoView({behavior:"smooth",block:"start"});}} />
-      <div className={styles.legend}><span><i className={styles.legendPending}/>In Progress <b>{counts.active}</b></span><span><i className={styles.legendApproved}/>Completed <b>{counts.completed}</b></span><span><i className={styles.legendRejected}/>Rejected <b>{counts.rejected}</b></span></div>
-    </div>
-   </article>
-   <article className={styles.insightCard}>
-    <div className={styles.cardHeading}><div><strong>Recent Requests</strong><span>Your latest request activity</span></div><button type="button" onClick={()=>{setTab("ALL");setQuery("")}}>View All</button></div>
-    <div className={styles.recentList}>{recentRows.length?recentRows.map(r=><Link key={r.id} href={`/requests/${r.id}`} className={styles.recentRow}><span><b>{r.title||"Untitled request"}</b><small>{r.request_no}</small></span><span>{r.current_stage||"—"}</span><em className={`${styles.statusPill} ${statusClass(r)}`}>{statusLabel(r)}</em></Link>):<div className={styles.miniEmpty}>No requests yet.</div>}</div>
-   </article>
-  </section>
-  <section className={styles.secondaryGrid}>
-   <article className={styles.insightCard}><div className={styles.cardHeading}><div><strong>Requests by Department</strong><span>Top request destinations</span></div></div><div className={styles.departmentBars}>{departmentStats.length?departmentStats.map(([name,count])=>{const id=Object.entries(departments).find(([,n])=>n===name)?.[0]; const on=!!id&&department===id; return <button type="button" key={name} className={`rg-bar-row ${on?"is-on":""}`} aria-pressed={on} disabled={!id} title={id?`Show ${name} requests in the register`:undefined} onClick={()=>{if(!id)return; setDepartment(on?"ALL":id); document.getElementById("rg-request-register")?.scrollIntoView({behavior:"smooth",block:"start"});}}><div><span>{name}</span><b>{count}</b></div><i><span style={{width:`${Math.max(8,count/maxDepartmentCount*100)}%`}}/></i></button>}):<div className={styles.miniEmpty}>No department activity yet.</div>}</div></article>
-   <article className={styles.insightCard}><div className={styles.cardHeading}><div><strong>Quick Actions</strong><span>Common request tasks</span></div></div><div className={styles.quickActions}><button type="button" onClick={()=>setShowCreateDrawer(true)}><Plus size={15}/>Create New Request</button><button type="button" onClick={()=>{setTab("ACTIVE");setQuery("")}}><Clock3 size={15}/>Active Requests</button><button type="button" onClick={exportCsv}><Download size={15}/>Export Register</button></div></article>
-   <article className={styles.insightCard}><div className={styles.cardHeading}><div><strong>Request Types</strong><span>Current request mix</span></div></div><div className={styles.typeSummary}>{([["OFFICIAL","Official",counts.official],["PERSONAL_FUND","Personal Fund",counts.fund],["PERSONAL_OTHER","Personal Other",counts.other]] as const).map(([key,label,value])=><button type="button" key={key} className={`rg-tile-btn ${type===key?"is-on":""}`} aria-pressed={type===key} title={`Show ${label} requests in the register`} onClick={()=>{setType(type===key?"ALL":key); document.getElementById("rg-request-register")?.scrollIntoView({behavior:"smooth",block:"start"});}}><b>{label}</b><strong>{value}</strong></button>)}</div></article>
-  </section>
-  <section className={styles.registerCard}>
-   <nav id="rg-request-register" className={styles.tabs} data-rg-tabs="true" aria-label="Request views">{tabs.map(([key,label,count])=><button key={key} className={tab===key?styles.activeTab:""} onClick={()=>setTab(key)}>{label}<b>{count}</b></button>)}</nav>
-   <div className={styles.filters}>
-    <div className={styles.search}><Search size={16}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search requests..."/></div>
-    <select value={status} onChange={e=>setStatus(e.target.value as StatusFilter)}><option value="ALL">All Status</option><option value="ACTIVE">Active</option><option value="COMPLETED">Completed</option><option value="REJECTED">Rejected</option></select>
-    <select value={department} onChange={e=>setDepartment(e.target.value)}><option value="ALL">All Departments</option>{Object.entries(departments).map(([id,name])=><option key={id} value={id}>{name}</option>)}</select>
-    <select value={type} onChange={e=>setType(e.target.value as TypeFilter)}><option value="ALL">All Request Types</option><option value="OFFICIAL">Official</option><option value="PERSONAL_FUND">Personal Fund</option><option value="PERSONAL_OTHER">Personal Other</option></select>
-    <button className={styles.exportBtn} onClick={exportCsv}><Download size={15}/> Export</button>
-   </div>
-   {error?<div className={styles.alert}>{error}</div>:loading?<div className={styles.loading}>Loading requests…</div>:<div className={styles.tableWrap}><table className={styles.table}><thead><tr><th>Req Code</th><th>Title</th><th>Department</th><th>Type</th><th>Amount (₦)</th><th>Status</th><th>Requested On</th><th>Actions</th></tr></thead><tbody>{paged.length?paged.map(r=><tr key={r.id}><td className={styles.code}>{r.request_no||"—"}</td><td>{r.title||"Untitled request"}</td><td>{r.dept_id?departments[r.dept_id]||"Unassigned":"Unassigned"}</td><td><span className={styles.typePill}>{requestTypeLabel(r)}</span></td><td>{naira(r.amount)}</td><td><span className={`${styles.statusPill} ${statusClass(r)}`}>{statusLabel(r)}</span></td><td>{new Date(r.created_at).toLocaleString("en-NG",{dateStyle:"medium",timeStyle:"short"})}</td><td><div className={styles.actions}>
-      <Link title="View request" aria-label={`View ${r.request_no||"request"}`} href={`/requests/${r.id}`}><Eye size={14}/></Link>
-      <button type="button" title="Edit request" aria-label={`Edit ${r.request_no||"request"}`} onClick={()=>setEditDrawerId(r.id)}><Pencil size={14}/></button>
-      <details className={styles.moreMenu}>
-        <summary title="More actions" aria-label={`More actions for ${r.request_no||"request"}`}><MoreVertical size={14}/></summary>
-        <div className={styles.moreMenuPanel}>
-          <Link href={`/requests/${r.id}`}><Eye size={14}/> View Details</Link>
-          <Link href={`/requests/${r.id}/edit`}><Pencil size={14}/> Edit Request</Link>
-          <Link href={`/requests/${r.id}/print`}><Printer size={14}/> Print / PDF</Link>
-        </div>
-      </details>
-    </div></td></tr>):<tr><td colSpan={8} className={styles.empty}>No matching requests.</td></tr>}</tbody></table></div>}
-   <div className={styles.pagination}><span>Showing {filtered.length?((currentPage-1)*pageSize)+1:0} to {Math.min(currentPage*pageSize,filtered.length)} of {filtered.length} entries</span><div><button disabled={currentPage===1} onClick={()=>setPage(p=>Math.max(1,p-1))}>‹</button>{Array.from({length:Math.min(totalPages,4)},(_,i)=>i+1).map(n=><button key={n} className={n===currentPage?styles.current:""} onClick={()=>setPage(n)}>{n}</button>)}{totalPages>4&&<span>…</span>}<button disabled={currentPage===totalPages} onClick={()=>setPage(p=>Math.min(totalPages,p+1))}>›</button></div></div>
-  </section>
- </main>
+function kindOf(r: Row) {
+  if (String(r.request_type || "").toLowerCase().startsWith("official")) return "Official";
+  const c = String(r.personal_category || "").toLowerCase();
+  return c === "fund" ? "Personal · Fund" : "Personal · Other";
 }
-function Kpi({tone,icon,label,value,note}:{tone:"blue"|"orange"|"green"|"purple"|"red";icon:React.ReactNode;label:string;value:number;note:string}){return <article className={styles.kpi}><span className={`${styles.kpiIcon} ${styles[tone]}`}>{icon}</span><div><small>{label}</small><strong>{value.toLocaleString()}</strong><p>{note}</p></div></article>}
+
+function bucket(r: Row, me: string): Tab {
+  const chip = statusChip(r.status, r.current_stage);
+  if (chip.label === "Rejected") return "rejected";
+  if (chip.label === "Returned" || (r.current_owner === me && !isClosedRequest(r))) return "returned";
+  if (["Paid", "Completed", "Approved"].includes(chip.label)) return "done";
+  return "progress";
+}
+
+/** 0–5 segments filled for the little progress bar. */
+function steps(r: Row) {
+  const k = stageKey(r.current_stage);
+  const s = String(r.status || "").toLowerCase();
+  if (/paid|complet/.test(s) || k === "COMPLETED") return 5;
+  if (k === "ACCOUNT" || k === "HRFILING") return 4;
+  if (k === "DG") return 3;
+  if (k === "SUBMITTED") return 1;
+  return 2;
+}
+
+export default function MyRequestsPage() {
+  return <Suspense fallback={<V4Page><Skeleton lines={6} /></V4Page>}><MyRequests /></Suspense>;
+}
+
+/** Requests › My Requests (v4.1.0). Only the requester sees this list. */
+function MyRequests() {
+  const me = useIdentity();
+  const params = useSearchParams();
+  const [rows, setRows] = useState<Row[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [depts, setDepts] = useState<Record<string, string>>({});
+  const [tab, setTab] = useState<Tab>("all");
+  const [q, setQ] = useState(params.get("q") || "");
+  const [type, setType] = useState("all");
+  const [fy, setFy] = useState<number>(() => currentFyStart());
+  const [page, setPage] = useState(1);
+
+  useEffect(() => {
+    if (!me.ready || !me.userId) return;
+    let alive = true;
+    (async () => {
+      const { from, to } = fyBounds(fy);
+      const [list, d] = await Promise.all([
+        supabase.from("requests")
+          .select("id,request_no,title,amount,status,current_stage,current_owner,created_at,request_type,personal_category,dept_id")
+          .eq("created_by", me.userId).gte("created_at", from).lt("created_at", to)
+          .order("created_at", { ascending: false }).limit(2000),
+        supabase.from("departments").select("id,name"),
+      ]);
+      if (!alive) return;
+      setError(list.error ? list.error.message : null);
+      setRows(list.error ? [] : (list.data || []) as Row[]);
+      setDepts(Object.fromEntries(((d.data || []) as Array<{ id: string; name: string }>).map((x) => [x.id, x.name])));
+    })();
+    return () => { alive = false; };
+  }, [me.ready, me.userId, fy]);
+
+  const filtered = useMemo(() => {
+    const term = q.trim().toLowerCase();
+    return (rows || []).filter((r) =>
+      (type === "all" || kindOf(r) === type) &&
+      (!term || `${r.request_no} ${r.title}`.toLowerCase().includes(term)));
+  }, [rows, q, type]);
+
+  const counts = useMemo(() => {
+    const c: Record<Tab, number> = { all: filtered.length, progress: 0, returned: 0, done: 0, rejected: 0 };
+    filtered.forEach((r) => { c[bucket(r, me.userId)] += 1; });
+    return c;
+  }, [filtered, me.userId]);
+
+  const shown = useMemo(() => filtered.filter((r) => tab === "all" || bucket(r, me.userId) === tab), [filtered, tab, me.userId]);
+  const paged = shown.slice((page - 1) * PAGE, page * PAGE);
+  const years = useMemo(() => { const now = currentFyStart(); return [now, now - 1, now - 2, now - 3]; }, []);
+
+  function exportCsv() {
+    downloadCsv(`My_Requests_FY_${fyLabel(fy).replace("/", "-")}.csv`, shown.map((r) => ({
+      "Request number": r.request_no || "", Date: shortDate(r.created_at), Title: r.title || "", Type: kindOf(r),
+      Department: depts[r.dept_id || ""] || "", Amount: Number(r.amount || 0), Where: stageWords(r.current_stage), Status: statusChip(r.status, r.current_stage).label,
+    })));
+  }
+
+  return (
+    <V4Page>
+      <PageHead
+        title="My Requests"
+        sub={<>Financial year {fyLabel(fy)}. Only you can see this list.</>}
+        actions={[
+          { label: "Export CSV", icon: "download", kind: "secondary", onClick: exportCsv, disabled: !shown.length },
+          { href: "/requests/new", label: "New request", icon: "plus", kind: "primary" },
+        ]}
+      />
+      {error ? <Notice tone="red">{error}</Notice> : null}
+      <Card>
+        <div style={{ padding: "0 12px" }}>
+          <Tabs value={tab} onChange={(t) => { setTab(t); setPage(1); }} label="Show" items={[
+            { key: "all", label: "All", count: counts.all },
+            { key: "progress", label: "In progress", count: counts.progress },
+            { key: "returned", label: "Back with me", count: counts.returned },
+            { key: "done", label: "Approved & paid", count: counts.done },
+            { key: "rejected", label: "Rejected", count: counts.rejected },
+          ]} />
+        </div>
+        <div className="v4-toolbar">
+          <label className="v4-field v4-f-search"><span className="v4-flabel">Search</span><span className="v4-control"><input className="v4-input" placeholder="Request number or title" value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} /></span></label>
+          <label className="v4-field"><span className="v4-flabel">Type</span>
+            <select className="v4-select" value={type} onChange={(e) => { setType(e.target.value); setPage(1); }}>
+              <option value="all">All types</option><option>Official</option><option>Personal · Fund</option><option>Personal · Other</option>
+            </select>
+          </label>
+          <label className="v4-field"><span className="v4-flabel">Financial year</span>
+            <select className="v4-select" value={fy} onChange={(e) => { setFy(Number(e.target.value)); setRows(null); setPage(1); }}>
+              {years.map((y) => <option key={y} value={y}>FY {fyLabel(y)}</option>)}
+            </select>
+          </label>
+          <span className="v4-f-extra" />
+          <button className="v4-btn v4-btn-ghost" type="button" onClick={() => { setQ(""); setType("all"); setTab("all"); setFy(currentFyStart()); setPage(1); }}>Reset</button>
+        </div>
+        {rows === null ? <Skeleton lines={6} /> : shown.length ? (
+          <div className="v4-table-wrap">
+            <table className="v4-data v4-stack">
+              <thead><tr><th>Request</th><th className="v4-r">Amount</th><th>Title · type</th><th className="v4-hide-sm">Progress</th><th>Status</th><th className="v4-r">Action</th></tr></thead>
+              <tbody>
+                {paged.map((r) => {
+                  const chip = statusChip(r.status, r.current_stage);
+                  const b = bucket(r, me.userId);
+                  const n = steps(r);
+                  const paid = chip.label === "Paid" || chip.label === "Completed";
+                  const label = b === "returned" ? "Back with you" : b === "progress" ? stageWords(r.current_stage) : chip.label;
+                  return (
+                    <tr key={r.id}>
+                      <td><span className="v4-strong">{r.request_no || "—"}</span><span className="v4-sub">{shortDate(r.created_at)}</span></td>
+                      <td className="v4-r v4-num v4-strong">{kindOf(r) === "Personal · Other" ? "—" : naira(r.amount)}</td>
+                      <td data-label="Title"><span className="v4-strong">{r.title || "Untitled"}</span><span className="v4-sub">{kindOf(r)}{depts[r.dept_id || ""] ? ` · ${depts[r.dept_id || ""]}` : ""}</span></td>
+                      <td className="v4-hide-sm"><div className="v4-track" style={{ margin: 0, width: 110 }}>{[1, 2, 3, 4, 5].map((i) => <i key={i} className={i < n || (paid && i <= n) ? "v4-done" : i === n ? "v4-now" : undefined} />)}</div></td>
+                      <td><Chip tone={b === "returned" ? "red" : chip.tone}>{label}</Chip></td>
+                      <td className="v4-r">
+                        {b === "returned" ? <Btn small a={{ href: `/requests/${r.id}/edit`, label: "Correct", kind: "primary" }} />
+                          : paid ? <Btn small a={{ href: `/requests/${r.id}/print`, label: "Print", kind: "secondary" }} />
+                          : <Btn small a={{ href: `/requests/${r.id}`, label: "Open", kind: "secondary" }} />}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        ) : <p className="v4-muted" style={{ padding: 20, margin: 0 }}>{rows.length ? "No request matches these filters." : `You have not made a request in FY ${fyLabel(fy)}.`}</p>}
+        <Pager page={page} pageSize={PAGE} total={shown.length} onPage={setPage} label="requests" />
+      </Card>
+    </V4Page>
+  );
+}
+

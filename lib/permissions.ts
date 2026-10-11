@@ -90,8 +90,11 @@ export function deniedByRole(pathname: string, roleSet: Set<string>) {
   return ROUTE_DENIALS.find((rule) => rule.pattern.test(pathname) && hasAnyRole(roleSet, rule.roles)) || null;
 }
 
+/** v4.1: the public QR check page for printed letters and vouchers. */
+export const PUBLIC_PREFIXES = ["/check/"];
+
 export function isPublicPath(pathname: string): boolean {
-  return PUBLIC_PATHS.includes(pathname);
+  return PUBLIC_PATHS.includes(pathname) || PUBLIC_PREFIXES.some((p) => pathname.startsWith(p));
 }
 
 export function getRoutePolicy(pathname: string): RoutePolicy | null {
