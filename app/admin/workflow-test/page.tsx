@@ -74,9 +74,9 @@ const DEFAULT_CHECKS: WorkflowCheck[] = [
   {
     id: "hr-review",
     group: "HR workflow",
-    title: "HR officer and HR Boss review",
+    title: "HR officer and HR Coordinator review",
     description: "Assign an HR task to an officer, submit it, return it once, then approve it.",
-    expected: "The officer sees only assigned work; HR Boss review, return, resubmission and audit history are preserved.",
+    expected: "The officer sees only assigned work; HR Coordinator review, return, resubmission and audit history are preserved.",
     status: "pending",
     note: "",
   },

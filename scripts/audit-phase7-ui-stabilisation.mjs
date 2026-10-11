@@ -10,23 +10,23 @@ function check(label, condition, detail = '') {
 
 const dashboard = read('app/dashboard/page.tsx');
 const globals = read('app/globals.css');
-const shell = read('app/components/GovernmentAppShell.tsx');
+const shell = (read("app/components/GovernmentAppShell.tsx") + read("app/components/v4/AppFrame.tsx") + read("app/components/v4/Bell.tsx") + read("lib/v4/modules.ts"));
 const roles = read('app/admin/roles/page.tsx');
 const security = read('app/admin/security/page.tsx');
 const accountRouting = read('app/admin/account-routing/page.tsx');
-const finance = read('app/finance/page.tsx');
-const reports = read('app/reports/page.tsx');
+const finance = read('app/finance/overview/page.tsx');
+const reports = read('app/reports/centre/page.tsx');
 const analytics = read('app/reports/enterprise-analytics/page.tsx');
-const audit = read('app/audit-centre/page.tsx');
+const audit = read('app/audit-centre/logs/page.tsx');
 const registry = read('app/components/registry/RegistryCentreWorkspace.tsx');
 
-check('Dashboard requests are scoped to authenticated creator', dashboard.includes('.eq("created_by", auth.user.id)'));
+check('Dashboard requests are scoped to authenticated creator', dashboard.includes('.eq("created_by", me.userId)'));
 check('Dashboard does not query organisation-wide payment vouchers', !dashboard.includes('.from("payment_vouchers")'));
-check('Dashboard labels the request KPI as personal and only loads the user\'s own requests', dashboard.includes('label="My Requests"') && dashboard.includes('.eq("created_by", auth.user.id)'));
-check('Dashboard charts are interactive filters with visible selection state (v3.0.3)', dashboard.includes('onSegmentSelect') && dashboard.includes('onBarSelect') && dashboard.includes('rg-filter-chip'));
+check('Dashboard labels the request KPI as personal and only loads the user\'s own requests', dashboard.includes('label: "My requests in progress"') && dashboard.includes('.eq("created_by", me.userId)'));
+check('Dashboard (v4) shows waiting work with All / Requests / Vouchers filters', dashboard.includes('<Tabs') && dashboard.includes('"vouchers"'));
 
 const standardFiles = [
-  ['Dashboard', dashboard],
+  // Dashboard is a v4 page (v4.0.0) and uses the v4 design system instead.
   ['Finance Overview', finance],
   ['Reports Centre', reports],
   ['Executive Analytics', analytics],

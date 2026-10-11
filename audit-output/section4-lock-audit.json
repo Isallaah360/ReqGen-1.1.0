@@ -1,10 +1,10 @@
 {
-  "generatedAt": "2026-10-08T15:55:26.142Z",
+  "generatedAt": "2026-10-11T16:11:54.303Z",
   "checks": 10,
   "failed": 0,
   "findings": [
     {
-      "name": "app/finance/page.tsx",
+      "name": "app/finance/overview/page.tsx",
       "ok": true
     },
     {
@@ -32,7 +32,7 @@
       "ok": true
     },
     {
-      "name": "app/payment-vouchers/page.tsx",
+      "name": "app/payment-vouchers/centre/page.tsx",
       "ok": true
     },
     {

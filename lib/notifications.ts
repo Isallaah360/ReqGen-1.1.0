@@ -36,6 +36,7 @@ export function kindOf(title: string, message: string): NotificationKind {
   if (/reject|declin/.test(t)) return "rejected";
   if (/return|query|correction/.test(t)) return "returned";
   if (/reassign|acting|away/.test(t)) return "reassigned";
+  if (/needs your|waiting for you|for your signature|to sign/.test(t)) return "awaiting";
   if (/paid|payment|voucher|disburs/.test(t)) return "paid";
   if (/await|pending|requires your|for your (approval|action)|assigned to you|new request/.test(t)) return "awaiting";
   if (/approv|complet|success/.test(t)) return "approved";

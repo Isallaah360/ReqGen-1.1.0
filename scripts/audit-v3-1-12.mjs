@@ -10,7 +10,7 @@ const results = [
   ["Voucher: Account chooses checker + signers in-app", detail.includes('rpc("reqgen_pv_checkers")') && detail.includes("p_checker_id: checker || null") && detail.includes("Action needed: choose the Counter Signer")],
   // v3.1.13: the Auditor's check no longer waits for the signers at all.
   ["Voucher: checker never sees a dead button", !detail.includes("disabled={busy || signersMissing}")],
-  ["Generation opens the signing-officer form, not print", read("app/payment-vouchers/page.tsx").includes("?signers=1")],
+  ["Generation opens the signing-officer form, not print", read("app/payment-vouchers/centre/page.tsx").includes("?signers=1")],
   ["Reminder goes to the chosen checker", read("app/api/pv/remind/route.ts").includes("voucher.current_signing_owner ? await byIds")],
   ["SQL: chosen checker enforced, ambiguous overload removed", read("database/v3_1_12_pv_checker_and_handoffs.sql").includes("drop function if exists public.reqgen_pv_assign_signers(uuid, text, text);")],
 ];

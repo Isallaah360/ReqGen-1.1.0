@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
 
 export default function Page() {
-  redirect("/payment-vouchers?create=1");
+  redirect("/payment-vouchers/centre?create=1");
 }

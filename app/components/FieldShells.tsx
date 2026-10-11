@@ -25,6 +25,8 @@ export default function FieldShells() {
     const scan = () => {
       document.querySelectorAll<HTMLElement>(`.rg-content ${SEL}`).forEach((field) => {
         if (field.dataset.rgShellChecked === "1") return;
+        // v4.0.0: wait until React has hydrated the field (avoids hydration mismatches).
+        if (!Object.keys(field).some((k) => k.startsWith("__reactProps"))) return;
         const fr = field.getBoundingClientRect();
         if (!fr.width || !fr.height) return; // not laid out yet — try on a later scan
         field.dataset.rgShellChecked = "1";

@@ -179,7 +179,7 @@ export default function PaymentVoucherDetailPage() {
   const justGenerated = search.get("signers") === "1";
   // Opened from Approvals (signers outside Finance) or from the Voucher Centre.
   const fromApprovals = (pathname || "").startsWith("/approvals");
-  const listPath = fromApprovals ? "/approvals/vouchers" : "/payment-vouchers";
+  const listPath = fromApprovals ? "/approvals/vouchers" : "/payment-vouchers/centre";
   const printPath = (voucherId: string) => `/payment-vouchers/${voucherId}/print`;
 
   const [userId, setUserId] = useState("");

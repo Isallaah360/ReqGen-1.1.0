@@ -80,7 +80,8 @@ type PostPaymentResult = {
   balance_after?: number;
 };
 
-const PAYMENT_METHODS = ["Bank Transfer", "Cash", "Cheque", "POS"] as const;
+/** IET pays in three ways only: bank transfer, cheque or cash (v4.0.0). */
+const PAYMENT_METHODS = ["Bank Transfer", "Cheque", "Cash"] as const;
 
 function money(value: number | string | null | undefined) {
   const amount = Number(value || 0);
@@ -642,7 +643,7 @@ function FinanceRequestPageContent() {
             {error}
           </p>
           <Link
-            href="/finance"
+            href="/finance/processing"
             className="reqgen-btn reqgen-btn-slate mt-5 inline-flex rounded-xl bg-slate-950 px-4 py-3 text-sm font-black text-white"
           >
             Return to Finance
@@ -660,7 +661,7 @@ function FinanceRequestPageContent() {
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-wrap gap-2">
             <Link
-              href="/finance"
+              href="/finance/processing"
               className="reqgen-btn reqgen-btn-slate inline-flex items-center rounded-xl bg-blue-700 px-4 py-2.5 text-sm font-black text-white transition hover:bg-blue-800"
             >
               ← Finance Dashboard
@@ -674,7 +675,7 @@ function FinanceRequestPageContent() {
             </Link>
 
             <Link
-              href="/requests"
+              href="/requests/mine"
               className="reqgen-btn reqgen-btn-violet inline-flex items-center rounded-xl border border-violet-200 bg-violet-50 px-4 py-2.5 text-sm font-black text-violet-800 transition hover:bg-violet-100"
             >
               All Requests
@@ -1002,7 +1003,7 @@ function FinanceRequestPageContent() {
                 setPaymentReference(event.target.value)
               }
               disabled={!voucher || isPosted}
-              placeholder="Transfer reference, cheque number or POS reference — optional"
+              placeholder="Transfer reference or cheque number — optional"
               className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 font-semibold text-slate-900 outline-none focus:border-blue-500 disabled:bg-slate-100"
             />
           </label>
@@ -1145,7 +1146,7 @@ function FinanceRequestPageContent() {
 
           <div className="flex flex-wrap gap-2">
             <Link
-              href="/finance"
+              href="/finance/processing"
               className="reqgen-btn reqgen-btn-blue rounded-xl bg-blue-700 px-4 py-2.5 text-sm font-black text-white transition hover:bg-blue-800"
             >
               Finance Home

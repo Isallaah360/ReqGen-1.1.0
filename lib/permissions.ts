@@ -80,7 +80,7 @@ export const ROUTE_POLICIES: RoutePolicy[] = [
  */
 export const ROUTE_DENIALS: Array<{ pattern: RegExp; roles: string[]; reason: string }> = [
   {
-    pattern: /^\/requests\/(?!new(?:\/|$))[^/]+(?:\/.*)?$/,
+    pattern: /^\/requests\/(?!(?:new|mine)(?:\/|$))[^/]+(?:\/.*)?$/,
     roles: ["registry"],
     reason: "Registry tracks request movement only and cannot open request contents.",
   },

@@ -45,11 +45,20 @@ export default function PasswordReveal() {
       place();
       new ResizeObserver(place).observe(input);
     };
-    const scan = () => document.querySelectorAll<HTMLInputElement>('input[type="password"]:not([data-rg-reveal])').forEach(enhance);
+    // v4.0.0: never touch a field React has not hydrated yet (pages inside
+    // Suspense hydrate later); try again shortly instead.
+    let retry: number | null = null;
+    const hydrated = (el: Element) => Object.keys(el).some((k) => k.startsWith("__reactProps"));
+    const scan = () => {
+      document.querySelectorAll<HTMLInputElement>('input[type="password"]:not([data-rg-reveal])').forEach((input) => {
+        if (hydrated(input)) enhance(input);
+        else if (retry === null) retry = window.setTimeout(() => { retry = null; scan(); }, 250);
+      });
+    };
     scan();
     const mo = new MutationObserver(scan);
     mo.observe(document.body, { childList: true, subtree: true });
-    return () => mo.disconnect();
+    return () => { mo.disconnect(); if (retry !== null) window.clearTimeout(retry); };
   }, []);
   return null;
 }

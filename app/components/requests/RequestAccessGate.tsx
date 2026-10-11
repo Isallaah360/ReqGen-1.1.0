@@ -75,8 +75,8 @@ export default function RequestAccessGate({ requestId, children }: { requestId: 
           <h2>Request details are restricted</h2>
           <p>{DENIAL_TEXT[state.reason] || DENIAL_TEXT["not-involved"]}</p>
           <div className="rg-page-actions">
-            <Link href="/requests" className="rg-btn rg-btn-primary">My Requests</Link>
-            <Link href="/approvals" className="rg-btn rg-btn-secondary">My Approvals</Link>
+            <Link href="/requests/mine" className="rg-btn rg-btn-primary">My Requests</Link>
+            <Link href="/approvals/inbox" className="rg-btn rg-btn-secondary">My Approvals</Link>
           </div>
         </div>
       </section>

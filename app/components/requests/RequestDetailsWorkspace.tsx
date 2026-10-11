@@ -128,11 +128,13 @@ function roleKey(role: string | null | undefined) {
 }
 
 function stageKey(stage: string | null | undefined) {
-  return (stage || "")
+  const key = (stage || "")
     .trim()
     .toUpperCase()
     .replace(/\s+/g, "")
     .replace(/_/g, "");
+  // v4: the PO stage is now PD (Program Director). Old records still say PO.
+  return key === "PO" || key === "PROGRAMOFFICER" || key === "PROGRAMMEOFFICER" ? "PD" : key;
 }
 
 function categoryKey(category: string | null | undefined) {
@@ -203,7 +205,7 @@ function stageBadgeClass(stage: string | null | undefined) {
   if (s === "HR" || s === "HRFILING") return "border-pink-200 bg-pink-50 text-pink-700";
   if (s === "DINADMIN") return "border-blue-200 bg-blue-50 text-blue-700";
 
-  if (["DOD", "HOD", "REGISTRAR", "PO"].includes(s)) {
+  if (["DOD", "HOD", "REGISTRAR", "PD"].includes(s)) {
     return "border-emerald-200 bg-emerald-50 text-emerald-700";
   }
 
@@ -297,6 +299,7 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
     return [...activeRoleKeys].some((role) =>
       role === "hr" ||
       role === "hrboss" ||
+      role === "hrcoordinator" ||
       role.startsWith("hrofficer") ||
       role.startsWith("hr:")
     );
@@ -341,7 +344,7 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
 
     return (
       req.created_by === me.id &&
-      ["PO", "DOD", "DIRECTOR", "DINADMIN", "REGISTRAR", "HOD", "HR"].includes(stg)
+      ["PD", "DOD", "DIRECTOR", "DINADMIN", "REGISTRAR", "HOD", "HR"].includes(stg)
     );
   }, [req, me, stg]);
 
@@ -349,7 +352,7 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
     if (!req || !me) return false;
 
     const editableOfficialStages = [
-      "PO",
+      "PD",
       "DOD",
       "DIRECTOR",
       "DINADMIN",
@@ -392,6 +395,7 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
       "admin",
       "auditor",
       "po",
+      "pd",
       "dod",
       "director",
       "dinadmin",
@@ -443,7 +447,7 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
 
     // Locked ReqGen workflow rule: DG, Admin, Auditor and Finance roles never
     // assign request subheads. Subhead assignment belongs only to the active
-    // Director, DIN/Dean Admin, HOD, Registrar or HR workflow authority.
+    // Director, DIN Admin, HOD, Registrar or HR workflow authority.
     const assignmentRole = roleKey(activeRoleKey || me.role);
     const permittedRoles = new Set(["director", "dinadmin", "hod", "registrar", "hr"]);
     if (!permittedRoles.has(assignmentRole)) return false;
@@ -1203,7 +1207,7 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
       await reload();
 
       setTimeout(() => {
-        router.push(`/requests?updated=${Date.now()}`);
+        router.push(`/requests/mine?updated=${Date.now()}`);
         router.refresh();
       }, 500);
     } catch (e: unknown) {
@@ -1223,7 +1227,7 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
     if (isAccountStage && isPersonalFund) return "Treat / Pay & Send for HR Review";
     if (isAccountStage) return "Treat / Pay";
     if (stg === "DOD") return "Approve as DOD";
-    if (stg === "PO") return "Approve as PO";
+    if (stg === "PD") return "Approve as PD";
     if (stg === "REGISTRAR") return "Approve as Registrar";
     if (stg === "DINADMIN") return "Approve as DIN Admin";
     if (stg === "HOD") return "Approve as HOD";
@@ -1267,7 +1271,7 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
             <div className="req-family-meta">Request <b>{req?.request_no || "—"}</b> · Current stage: <b>{req?.current_stage || "—"}</b> · Status: <b>{req?.status || "—"}</b></div>
           </div>
           <div className={styles.heroActions}>
-            <button type="button" className={styles.secondaryAction} onClick={() => embedded ? onClose?.() : router.push(canAct ? "/approvals" : "/requests")}>
+            <button type="button" className={styles.secondaryAction} onClick={() => embedded ? onClose?.() : router.push(canAct ? "/approvals/inbox" : "/requests/mine")}>
               {embedded ? "Close" : canAct ? "Back to Approvals" : "Back to Requests"}
             </button>
             {req && canEditRequest ? <button type="button" className={styles.secondaryAction} onClick={() => router.push(`/requests/${req.id}/edit`)}>Edit Request</button> : null}
@@ -1293,7 +1297,7 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
             : "⚠︎ This secure session needs 2FA verification before sensitive request actions."}
         </div>
 
-        {isOfficial && ["PO", "DOD", "DINADMIN", "REGISTRAR", "HOD"].includes(stg) && (
+        {isOfficial && ["PD", "DOD", "DINADMIN", "REGISTRAR", "HOD"].includes(stg) && (
           <div className="mt-4 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-900">
             Official routing is active. This request will continue through the configured department chain until DG and AccountOfficer.
           </div>
@@ -1310,7 +1314,7 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
 
         {needsSubheadAssignment && (
           <div className="mt-4 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-900">
-            ⚠︎ This Official request has no subhead yet. The current Director, DIN/Dean Admin, HOD, Registrar or HR workflow authority must assign a subhead and reserve funds before the request can proceed to DG.
+            ⚠︎ This Official request has no subhead yet. The current Director, DIN Admin, HOD, Registrar or HR workflow authority must assign a subhead and reserve funds before the request can proceed to DG.
           </div>
         )}
 
@@ -1449,7 +1453,7 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
 
                 {!canAssignSubhead ? (
                   <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
-                    View only. Subheads can be assigned only by the current Director, DIN/Dean Admin, HOD, Registrar or HR workflow authority. DG and oversight roles cannot assign subheads.
+                    View only. Subheads can be assigned only by the current Director, DIN Admin, HOD, Registrar or HR workflow authority. DG and oversight roles cannot assign subheads.
                   </div>
                 ) : (
                   <>

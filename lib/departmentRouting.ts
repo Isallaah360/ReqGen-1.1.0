@@ -9,7 +9,7 @@
  * Who fills each step:
  *   DOD  → the department's Director   (departments.director_user_id)
  *   HOD  → the department's HOD        (departments.hod_user_id)
- *   PO   → staff holding the PO role   (Admin → Users)
+ *   PD   → staff holding the PD (Program Director) position
  *   DIN Admin, Registrar, HR, DG, AccountOfficer → global officers
  *          (Admin → System Settings / Account Routing)
  */
@@ -31,7 +31,7 @@ export function routeSteps(type: RouteRequestType, category: RouteCategory, dept
   const group = deptGroupName(deptName);
   if (type === "Official") {
     if (group === "DIN") return ["Staff", "DOD", "DIN Admin", "Registrar", "DG", "AccountOfficer"];
-    if (group === "ASAP-ALLI") return ["Staff", "PO", "DOD", "HOD", "DG", "AccountOfficer"];
+    if (group === "ASAP-ALLI") return ["Staff", "PD", "DOD", "HOD", "DG", "AccountOfficer"];
     if (group === "Welfare" || group === "Liaison") return ["Staff", "DOD", "DG", "AccountOfficer"];
     return ["Staff", "HOD", "DG", "AccountOfficer"];
   }
@@ -63,8 +63,8 @@ export const ROUTE_KINDS: Array<{ type: RouteRequestType; category: RouteCategor
 ];
 
 /** Steps that are filled by a person (not the requester or a filing step). */
-export type ApproverSlot = "DOD" | "HOD" | "PO" | "DIN Admin" | "Registrar" | "HR" | "DG" | "AccountOfficer";
-const SLOTS: ApproverSlot[] = ["DOD", "HOD", "PO", "DIN Admin", "Registrar", "HR", "DG", "AccountOfficer"];
+export type ApproverSlot = "DOD" | "HOD" | "PD" | "DIN Admin" | "Registrar" | "HR" | "DG" | "AccountOfficer";
+const SLOTS: ApproverSlot[] = ["DOD", "HOD", "PD", "DIN Admin", "Registrar", "HR", "DG", "AccountOfficer"];
 
 /** Every approver slot a department needs across all three routes. */
 export function requiredSlots(deptName: string | null | undefined): ApproverSlot[] {

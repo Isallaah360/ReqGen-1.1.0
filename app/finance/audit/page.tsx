@@ -1379,7 +1379,7 @@ export default function FinanceAuditPage() {
   }
 
   function backToFinance() {
-    router.push(`/finance?updated=${Date.now()}`);
+    router.push(`/finance/overview?updated=${Date.now()}`);
     router.refresh();
   }
 

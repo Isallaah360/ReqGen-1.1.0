@@ -1,9 +1,9 @@
 {
-  "generatedAt": "2026-10-08T11:33:16.553Z",
+  "generatedAt": "2026-10-11T13:40:24.973Z",
   "scope": "ReqGen adopted-shell approved mockups Sections 1-4",
-  "overall": 84,
+  "overall": 79,
   "totals": {
-    "passed": 87,
+    "passed": 81,
     "total": 103
   },
   "shellChecks": [
@@ -50,9 +50,9 @@
       "forbidden": [
         "ERP 2.0"
       ],
-      "passed": 8,
+      "passed": 2,
       "total": 12,
-      "percent": 67,
+      "percent": 17,
       "checks": [
         {
           "check": "file exists",
@@ -72,11 +72,11 @@
         },
         {
           "check": "Overdue",
-          "pass": true
+          "pass": false
         },
         {
           "check": "Request Trend",
-          "pass": true
+          "pass": false
         },
         {
           "check": "Recent Activities",
@@ -84,19 +84,19 @@
         },
         {
           "check": "Requests by Category",
-          "pass": true
+          "pass": false
         },
         {
           "check": "Requests by Status",
-          "pass": true
+          "pass": false
         },
         {
           "check": "Quick Actions",
-          "pass": true
+          "pass": false
         },
         {
           "check": "Security Tip",
-          "pass": true
+          "pass": false
         },
         {
           "check": "ERP 2.0",
@@ -108,7 +108,7 @@
       "section": 2,
       "page": "1",
       "route": "/requests",
-      "file": "app/requests/page.tsx",
+      "file": "app/requests/mine/page.tsx",
       "required": [
         "Total Requests",
         "Active Workflow",
@@ -211,7 +211,7 @@
       "section": 3,
       "page": "1",
       "route": "/approvals",
-      "file": "app/approvals/page.tsx",
+      "file": "app/approvals/inbox/page.tsx",
       "required": [
         "Approvals Overview",
         "Action Centre"
@@ -299,7 +299,7 @@
       "section": 4,
       "page": "1",
       "route": "/finance",
-      "file": "app/finance/page.tsx",
+      "file": "app/finance/overview/page.tsx",
       "required": [
         "Finance Overview",
         "Total Budget",

@@ -1,11 +1,11 @@
 {
-  "generatedAt": "2026-10-08T15:55:23.948Z",
+  "generatedAt": "2026-10-11T16:11:51.856Z",
   "requiredFiles": 11,
   "missingFiles": 0,
   "status": "passed",
   "findings": [
     {
-      "file": "app/requests/page.tsx",
+      "file": "app/requests/mine/page.tsx",
       "exists": true
     },
     {
@@ -17,7 +17,7 @@
       "exists": true
     },
     {
-      "file": "app/approvals/page.tsx",
+      "file": "app/approvals/inbox/page.tsx",
       "exists": true
     },
     {
@@ -25,11 +25,11 @@
       "exists": true
     },
     {
-      "file": "app/finance/page.tsx",
+      "file": "app/finance/overview/page.tsx",
       "exists": true
     },
     {
-      "file": "app/payment-vouchers/page.tsx",
+      "file": "app/payment-vouchers/centre/page.tsx",
       "exists": true
     },
     {
@@ -37,11 +37,11 @@
       "exists": true
     },
     {
-      "file": "app/registry/page.tsx",
+      "file": "app/registry/centre/page.tsx",
       "exists": true
     },
     {
-      "file": "app/audit-centre/page.tsx",
+      "file": "app/audit-centre/logs/page.tsx",
       "exists": true
     },
     {

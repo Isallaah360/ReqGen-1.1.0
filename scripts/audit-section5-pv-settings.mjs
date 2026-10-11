@@ -4,7 +4,7 @@ import path from 'node:path';
 const root = process.cwd();
 const pagePath = path.join(root, 'app/payment-vouchers/settings/page.tsx');
 const cssPath = path.join(root, 'app/payment-vouchers/settings/payment-voucher-settings.module.css');
-const shellPath = path.join(root, 'app/components/GovernmentAppShell.tsx');
+const shellPath = path.join(root, 'lib/v4/modules.ts'); // v4.0.0: the module registry holds the navigation
 
 const page = fs.readFileSync(pagePath, 'utf8');
 const css = fs.readFileSync(cssPath, 'utf8');
@@ -19,7 +19,7 @@ const checks = [
   ['Historical voucher use blocks destructive delete', page.includes('payment_vouchers') && page.includes('historical voucher record')],
   ['Live refresh subscription present', page.includes('pv-settings-live') && page.includes('postgres_changes')],
   ['PV settings page uses 13px base typography', css.includes('font-size:13px')],
-  ['PV settings remains in Payment Vouchers navigation', shell.includes('{ href: "/payment-vouchers/settings", label: "PV Settings" }')],
+  ['PV settings remains a Payment Vouchers tile (Signatories)', shell.includes('{ href: "/payment-vouchers/settings", title: "Signatories"')],
 ];
 
 let failed = 0;

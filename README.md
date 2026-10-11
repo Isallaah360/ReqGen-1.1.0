@@ -1,18 +1,28 @@
-# ReqGen v3.1.13
+# ReqGen v4.0.0
 
-ReqGen (Request Generator) is the IET Request Management System: request creation, multi-stage approval, finance monitoring, payment vouchers, registry, reports and audit — role-based and backed by Supabase.
+ReqGen (Request Generator) is the Islamic Education Trust (IET) request management system: requests, approvals, finance records, payment vouchers, registry, reports and audit — role-based and backed by Supabase. ReqGen keeps the records; the bank moves the money.
 
 ## Release identity
 
-- Product version: **v3.1.13** (Semantic Versioning, MAJOR.MINOR.PATCH — next planned: v4.0.0)
-- Defined in one place only: `lib/version.ts`
-- `package.json` "version" carries the same number without the "v" (3.1.13)
+- Product version: **v4.0.0** (Semantic Versioning, MAJOR.MINOR.PATCH)
+- Defined in one place only: `lib/version.ts`; `package.json` carries the same number (4.0.0).
+- The design is the approved v4 mock-ups (Phases 0–7). The rules are in the v4 Build Reference.
 
-## Navigation standard (from v3.0.1)
+## Navigation standard (from v4.0.0)
 
-- Sidebar = flat module links only (no collapsible sub-menus).
-- Module sub-sections appear as numbered tabs inside the main workspace
-  (`ModuleTabs` in `app/components/GovernmentAppShell.tsx`, driven by `MODULE_SUBNAV`).
+- Left menu with ten modules (`lib/v4/modules.ts`), grouped as Offices and Oversight; collapses on laptops and opens as a drawer on phones.
+- Every module has a **mother page** of tiles (one tile = one page). The tiles, the breadcrumb, the search list and the menu all come from `lib/v4/modules.ts`.
+- Breadcrumb on every page: Home › Module › Page › Record.
+- The app frame is `app/components/v4/AppFrame.tsx`; `app/components/GovernmentAppShell.tsx` decides which pages use it.
+
+## Design system
+
+- `app/v4/v4.css` is generated from the approved mock-up stylesheet:
+  `python3 scripts/v4/css_port.py scripts/v4/mockup-source.css app/v4/v4.css`
+  (classes `v4-*`, tokens `--v4-*`). Do not edit it by hand.
+- `app/v4/v4-theme.css` holds the dark theme and the React-only parts.
+- React parts: `app/components/v4/` (PageHead, Stats, Tiles, Card, Notice, Chip, Rows, Tabs, Icon…).
+- Pages not yet rebuilt keep their v3 styles inside the v4 frame (wrapped in `.rg-content`).
 
 ## Before every push
 
@@ -21,13 +31,11 @@ npm install
 npm run lint
 npm run typecheck
 npm run build
+npm run audit:v400
 ```
 
-## Theme (from v3.0.6)
+## Sign-in
 
-- Light / Dark / System switch in the top bar (remembered per device).
-- All colours in `app/**/*.css` are theme-aware variables whose fallback is the
-  original light colour, so light mode is unchanged.
-- After adding or changing CSS colours, regenerate the dark palette:
-  `npm run theme:build` (writes `app/theme-dark.generated.css`).
-- Hand-tuned dark rules live in `app/theme-dark.css`.
+- Password + 2FA on any device; one check lasts 12 hours on that device.
+- Fingerprint (passkey) sign-in counts as the 2FA check: `app/api/auth/webauthn`.
+- 6-digit passcode joined to one trusted device: `app/api/auth/passcode` (only a slow, salted hash is stored; five wrong tries remove it).

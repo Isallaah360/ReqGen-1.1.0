@@ -83,6 +83,7 @@ function roleBadgeClass(role: string | null | undefined) {
       "dinadmin2",
       "dinadmin3",
       "po",
+      "pd",
       "gensec",
     ].includes(rk)
   ) {
@@ -420,6 +421,7 @@ export default function AdminUsersPage() {
       "dinadmin2",
       "dinadmin3",
       "po",
+      "pd",
       "gensec",
     ]);
     const hrRegistry = usersWithRole(["hr", "hrofficer1", "hrofficer2", "hrofficer3", "registry"]);
@@ -692,7 +694,7 @@ export default function AdminUsersPage() {
   }
 
   function goAdmin() {
-    router.push(`/admin?updated=${Date.now()}`);
+    router.push(`/admin/overview?updated=${Date.now()}`);
     router.refresh();
   }
 
@@ -950,7 +952,7 @@ export default function AdminUsersPage() {
           <div className="font-bold">Role Assignment Note</div>
           <p className="mt-1">
             One user can now hold multiple official capacities. When a request is treated later, the
-            system will record the exact role used, such as Registrar, HR Boss, DOD, HOD, PO, DG or
+            system will record the exact role used, such as Registrar, HR Coordinator, DOD, HOD, PD, DG or
             AccountOfficer, for display in request history and print templates.
           </p>
         </div>
@@ -1182,7 +1184,7 @@ function UserRolePanel({
             </select>
 
             <div className="mt-1 text-xs text-slate-500">
-              This is the user’s own department/routing group. DOD/HOD/PO assignment to departments
+              This is the user’s own department/routing group. DOD/HOD/PD assignment to departments
               is handled in the Admin routing panel.
             </div>
           </div>

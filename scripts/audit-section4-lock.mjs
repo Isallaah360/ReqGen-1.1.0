@@ -3,17 +3,17 @@ import path from "node:path";
 
 const root = process.cwd();
 const requiredFiles = [
-  "app/finance/page.tsx",
+  "app/finance/overview/page.tsx",
   "app/finance/manage-accounts/page.tsx",
   "app/finance/subheads/page.tsx",
   "app/finance/transactions/page.tsx",
   "app/finance/processing/page.tsx",
   "app/finance/reports/page.tsx",
   "app/finance/settings/page.tsx",
-  "app/payment-vouchers/page.tsx",
+  "app/payment-vouchers/centre/page.tsx",
 ];
 const results = requiredFiles.map((file) => ({ file, exists: fs.existsSync(path.join(root, file)) }));
-const financePage = fs.readFileSync(path.join(root, "app/finance/page.tsx"), "utf8");
+const financePage = fs.readFileSync(path.join(root, "app/finance/overview/page.tsx"), "utf8");
 const dataAudit = fs.readFileSync(path.join(root, "scripts/audit-data-accuracy.mjs"), "utf8");
 const checks = [
   ...results.map((r) => ({ name: r.file, ok: r.exists })),

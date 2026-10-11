@@ -1,56 +1,28 @@
-import Link from "next/link";
 import Image from "next/image";
-import { LockKeyhole, UserPlus, ShieldCheck, Globe2, Mail } from "lucide-react";
+import Link from "next/link";
+import Icon from "./components/v4/Icon";
+import { PublicFoot } from "./components/PublicAuthShell";
 
+/** ReqGen v4 home page — IET brand; the developer appears only in the footer. */
 export default function HomePage() {
   return (
-    <main className="mock-public-shell">
-      <div className="mock-public-watermark" aria-hidden="true">
-        <Image src="/iet-logo.png" alt="" width={720} height={720} priority />
-      </div>
-
-      <section className="mock-home-card" aria-labelledby="reqgen-home-title">
-        <div className="mock-home-logo-orbit">
-          <Image src="/iet-logo.png" alt="Islamic Education Trust logo" width={260} height={260} priority />
+    <main className="v4-ui v4-public">
+      <Image className="v4-public-watermark" src="/v4/iet-logo.png" alt="" aria-hidden="true" width={720} height={720} priority />
+      <section className="v4-auth-card" aria-labelledby="home-title" style={{ paddingTop: 44 }}>
+        <div className="v4-auth-logo" style={{ width: 180, height: 180 }}>
+          <Image src="/v4/iet-logo.png" alt="Islamic Education Trust logo" width={156} height={156} priority style={{ width: 156, height: 156 }} />
         </div>
-
-        <p className="mock-home-welcome">Welcome to</p>
-        <h1 id="reqgen-home-title">ReqGen</h1>
-
-        <div className="mock-home-rule" aria-hidden="true">
-          <span />
-          <b><ShieldCheck size={23} /></b>
-          <span />
-        </div>
-
-        <p className="mock-home-copy">
-          A secure and unified Request Management System for Islamic Education Trust (IET), supporting transparent workflows,
-          accountable approvals and efficient service delivery.
+        <p style={{ margin: "18px 0 0", fontSize: 24, fontWeight: 700 }}>Welcome to</p>
+        <h1 id="home-title" className="v4-auth-title" style={{ fontSize: 46, marginTop: 0 }}>ReqGen</h1>
+        <div className="v4-or" style={{ margin: "6px 40px 16px", color: "var(--v4-brand)" }}><Icon name="shield" /></div>
+        <p style={{ margin: "0 0 24px", color: "var(--v4-ink-2)", fontSize: 15.5, lineHeight: 1.6 }}>
+          A secure and unified Request Management System for Islamic Education Trust (IET), supporting transparent workflows, accountable approvals and efficient service delivery.
         </p>
-
-        <div className="mock-home-actions">
-          <Link href="/login" className="mock-home-primary"><LockKeyhole size={20} />Login to Your Account</Link>
-          <Link href="/signup" className="mock-home-secondary"><UserPlus size={20} />Create New Account</Link>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <Link className="v4-btn v4-btn-primary v4-btn-lg v4-btn-block" href="/login"><Icon name="lock" />Login to Your Account</Link>
+          <Link className="v4-btn v4-btn-secondary v4-btn-lg v4-btn-block" href="/signup" style={{ color: "var(--v4-brand)" }}><Icon name="user" />Create New Account</Link>
         </div>
-
-        <div className="mock-home-divider" />
-
-        <div className="mock-home-dev">
-          <Image src="/be-logo.png" alt="Barderian Enterprises logo" width={78} height={58} />
-          <div>
-            <span>Powered by</span>
-            <strong>BARDERIAN <em>ENTERPRISES</em></strong>
-            <small>Innovate. Build. Empower.</small>
-          </div>
-        </div>
-
-        <div className="mock-home-contact">
-          <a href="https://barderians.com.ng" target="_blank" rel="noreferrer"><Globe2 size={15} />barderians.com.ng</a>
-          <i aria-hidden="true" />
-          <a href="mailto:info@barderians.com.ng"><Mail size={15} />info@barderians.com.ng</a>
-        </div>
-
-        <small className="mock-home-copyright">© {new Date().getFullYear()} Islamic Education Trust. All rights reserved.</small>
+        <PublicFoot />
       </section>
     </main>
   );

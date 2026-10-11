@@ -28,7 +28,6 @@ type Dept = {
   name: string;
   hod_user_id: string | null;
   director_user_id: string | null;
-  po_id?: string | null;
   is_active?: boolean | null;
 };
 
@@ -99,6 +98,7 @@ const FINANCE_VISIBLE_ROLES = [
   "dinadmin2",
   "dinadmin3",
   "po",
+  "pd",
 ];
 
 const requestOtpEnabled = process.env.NEXT_PUBLIC_REQGEN_REQUEST_OTP_ENABLED === "true";
@@ -382,7 +382,7 @@ export default function NewRequestPage() {
 
     const { data: deptRows, error: deptErr } = await supabase
       .from("departments")
-      .select("id,name,hod_user_id,director_user_id,po_id,is_active")
+      .select("id,name,hod_user_id,director_user_id,is_active")
       .eq("is_active", true)
       .order("name", { ascending: true });
 
@@ -1174,7 +1174,7 @@ export default function NewRequestPage() {
             {!signedRequest ? <p className={styles.submitHint}>Sign the request above to enable final submission. You can save a draft at any time.</p> : null}
 
             <footer className={styles.formActions}>
-              <button type="button" className={styles.cancelButton} onClick={() => embedded ? closeEmbedded() : router.push("/requests")}>Cancel</button>
+              <button type="button" className={styles.cancelButton} onClick={() => embedded ? closeEmbedded() : router.push("/requests/mine")}>Cancel</button>
               <div>
                 <button type="button" className={styles.draftButton} onClick={saveDraftLocally}>Save as Draft</button>
                 <button type="button" className={styles.submitButton} onClick={openSubmitVerification} disabled={!canSubmit}>

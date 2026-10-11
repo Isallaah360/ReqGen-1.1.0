@@ -1,4 +1,4 @@
-import PaymentVouchersPage from "../page";
+import PaymentVouchersPage from "../centre/page";
 
 /** v3.1.6: numbered module tab — the Payment Voucher Centre opened on this view. */
 export default function Page() {

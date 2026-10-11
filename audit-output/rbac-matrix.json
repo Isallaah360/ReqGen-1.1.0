@@ -119,6 +119,21 @@
     "auditor": false,
     "admin": true
   },
+  "/admin/overview": {
+    "staff": false,
+    "hod": false,
+    "director": false,
+    "dg": false,
+    "hr": false,
+    "generalsecretary": false,
+    "dinadmin": false,
+    "registrar": false,
+    "accountofficer": false,
+    "pvsigner": false,
+    "pvcountersigner": false,
+    "auditor": false,
+    "admin": true
+  },
   "/admin/release-readiness": {
     "staff": false,
     "hod": false,
@@ -269,6 +284,21 @@
     "auditor": true,
     "admin": true
   },
+  "/approvals/inbox": {
+    "staff": true,
+    "hod": true,
+    "director": true,
+    "dg": true,
+    "hr": true,
+    "generalsecretary": true,
+    "dinadmin": true,
+    "registrar": true,
+    "accountofficer": true,
+    "pvsigner": true,
+    "pvcountersigner": true,
+    "auditor": true,
+    "admin": true
+  },
   "/approvals/vouchers": {
     "staff": true,
     "hod": true,
@@ -315,6 +345,21 @@
     "admin": true
   },
   "/audit-centre/backup": {
+    "staff": false,
+    "hod": false,
+    "director": false,
+    "dg": false,
+    "hr": false,
+    "generalsecretary": false,
+    "dinadmin": false,
+    "registrar": false,
+    "accountofficer": false,
+    "pvsigner": false,
+    "pvcountersigner": false,
+    "auditor": true,
+    "admin": true
+  },
+  "/audit-centre/logs": {
     "staff": false,
     "hod": false,
     "director": false,
@@ -570,6 +615,21 @@
     "admin": true
   },
   "/finance/manual-voucher": {
+    "staff": false,
+    "hod": false,
+    "director": false,
+    "dg": false,
+    "hr": false,
+    "generalsecretary": false,
+    "dinadmin": false,
+    "registrar": false,
+    "accountofficer": true,
+    "pvsigner": false,
+    "pvcountersigner": false,
+    "auditor": true,
+    "admin": true
+  },
+  "/finance/overview": {
     "staff": false,
     "hod": false,
     "director": false,
@@ -884,6 +944,21 @@
     "auditor": true,
     "admin": true
   },
+  "/payment-vouchers/centre": {
+    "staff": false,
+    "hod": false,
+    "director": false,
+    "dg": false,
+    "hr": false,
+    "generalsecretary": false,
+    "dinadmin": false,
+    "registrar": false,
+    "accountofficer": true,
+    "pvsigner": true,
+    "pvcountersigner": true,
+    "auditor": true,
+    "admin": true
+  },
   "/payment-vouchers/history": {
     "staff": false,
     "hod": false,
@@ -1064,6 +1139,36 @@
     "auditor": true,
     "admin": true
   },
+  "/profile/details": {
+    "staff": true,
+    "hod": true,
+    "director": true,
+    "dg": true,
+    "hr": true,
+    "generalsecretary": true,
+    "dinadmin": true,
+    "registrar": true,
+    "accountofficer": true,
+    "pvsigner": true,
+    "pvcountersigner": true,
+    "auditor": true,
+    "admin": true
+  },
+  "/profile/passcode": {
+    "staff": true,
+    "hod": true,
+    "director": true,
+    "dg": true,
+    "hr": true,
+    "generalsecretary": true,
+    "dinadmin": true,
+    "registrar": true,
+    "accountofficer": true,
+    "pvsigner": true,
+    "pvcountersigner": true,
+    "auditor": true,
+    "admin": true
+  },
   "/profile/security": {
     "staff": true,
     "hod": true,
@@ -1125,6 +1230,21 @@
     "admin": true
   },
   "/registry/archive": {
+    "staff": false,
+    "hod": false,
+    "director": false,
+    "dg": false,
+    "hr": false,
+    "generalsecretary": false,
+    "dinadmin": false,
+    "registrar": true,
+    "accountofficer": false,
+    "pvsigner": false,
+    "pvcountersigner": false,
+    "auditor": true,
+    "admin": true
+  },
+  "/registry/centre": {
     "staff": false,
     "hod": false,
     "director": false,
@@ -1214,6 +1334,21 @@
     "auditor": true,
     "admin": true
   },
+  "/reports/centre": {
+    "staff": false,
+    "hod": false,
+    "director": false,
+    "dg": false,
+    "hr": false,
+    "generalsecretary": false,
+    "dinadmin": false,
+    "registrar": false,
+    "accountofficer": false,
+    "pvsigner": false,
+    "pvcountersigner": false,
+    "auditor": true,
+    "admin": true
+  },
   "/reports/enterprise-analytics": {
     "staff": false,
     "hod": false,
@@ -1230,6 +1365,21 @@
     "admin": true
   },
   "/requests": {
+    "staff": true,
+    "hod": true,
+    "director": true,
+    "dg": true,
+    "hr": true,
+    "generalsecretary": true,
+    "dinadmin": true,
+    "registrar": true,
+    "accountofficer": true,
+    "pvsigner": true,
+    "pvcountersigner": true,
+    "auditor": true,
+    "admin": true
+  },
+  "/requests/mine": {
     "staff": true,
     "hod": true,
     "director": true,

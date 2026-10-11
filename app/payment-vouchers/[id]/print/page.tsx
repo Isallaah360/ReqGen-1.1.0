@@ -478,7 +478,7 @@ export default function PaymentVoucherPrintPage() {
   }
 
   function backToVouchers() {
-    router.push(`/payment-vouchers?updated=${Date.now()}`);
+    router.push(`/payment-vouchers/centre?updated=${Date.now()}`);
     router.refresh();
   }
 

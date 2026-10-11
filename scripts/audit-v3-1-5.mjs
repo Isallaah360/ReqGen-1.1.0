@@ -24,22 +24,22 @@ check("In-app DialogHost is mounted in the root layout", read("app/layout.tsx").
 check("Dialog service exists (lib/dialog.ts)", exists("lib/dialog.ts") && read("lib/dialog.ts").includes("export async function confirmDialog"));
 
 // 2. Signatures always go through the Signature Ink Engine.
-const sigPages = ["app/requests/[id]/print/page.tsx", "app/payment-vouchers/[id]/print/page.tsx", "app/profile/page.tsx"];
+const sigPages = ["app/requests/[id]/print/page.tsx", "app/payment-vouchers/[id]/print/page.tsx", "app/profile/details/page.tsx"];
 for (const f of sigPages) {
   const text = read(f);
   check(`${f}: signatures use <SignatureInk> inside .rg-sig-slot`, text.includes("<SignatureInk") && text.includes("rg-sig-slot"));
   check(`${f}: no raw <Image>/<img> for a signature`, !/<(Image|img)[^>]*alt=["{][^>]*ignature/s.test(text));
 }
-check("Profile upload removes the paper background", read("app/profile/page.tsx").includes("cleanSignatureFile"));
+check("Profile upload removes the paper background", read("app/profile/details/page.tsx").includes("cleanSignatureFile"));
 check("Signature slot CSS outranks generic img rules", /html body \.rg-sig-slot>img\.rg-sig-img\{[^}]*height:100%!important/.test(read("app/globals.css")));
 
 // 3. One approval-queue rule everywhere.
-const approvals = read("app/approvals/page.tsx");
+const approvals = read("app/approvals/inbox/page.tsx");
 check("Approvals 'waiting' list uses isAwaitingUser", approvals.includes("rows.filter((row) => isAwaitingUser(row, userId, activeRole))"));
 check("Approvals no longer uses stage-only visibility", !approvals.includes("isVisibleInApprovals"));
 check("Process screen canAct uses isAwaitingUser", read("app/components/requests/RequestDetailsWorkspace.tsx").includes("return isAwaitingUser(req, me.id"));
 check("Access gate reads both Account Officer columns", read("app/components/requests/RequestAccessGate.tsx").includes("assigned_account_officer_user_id"));
-check("Bell badge uses the same rule", read("app/components/GovernmentAppShell.tsx").includes("isAwaitingUser(row"));
+check("Bell badge uses the same rule", (read("app/components/GovernmentAppShell.tsx") + read("app/components/v4/AppFrame.tsx") + read("app/components/v4/Bell.tsx") + read("lib/v4/modules.ts")).includes("isAwaitingUser(row"));
 
 // 4. SQL repair shipped with a verification table.
 const sqlFile = "database/v3_1_5_voucher_signer_and_queue_repair.sql";

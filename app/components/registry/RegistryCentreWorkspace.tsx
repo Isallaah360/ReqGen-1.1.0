@@ -94,7 +94,7 @@ function s(v: unknown, fallback = "") {
 }
 function stageKey(v: unknown) {
   const key = s(v).toUpperCase().replace(/[^A-Z0-9]/g, "");
-  if (key === "PO") return "REQUESTER";
+  if (key === "PO" || key === "PD") return "REQUESTER";
   if (key === "DINADMIN") return "DIRECTOR";
   if (key === "REGISTRY") return "REGISTRAR";
   if (key === "ACCOUNTOFFICER" || key === "FINANCE") return "ACCOUNT";
@@ -308,7 +308,7 @@ export default function RegistryCentreWorkspace() {
     {message && <div className={`${styles.notice} ${/unable|failed|error/i.test(message) ? styles.error : styles.success}`}>{message}</div>}
 
     <nav className={styles.tabs} data-rg-tabs="true" role="tablist" aria-label="Registry Centre workspaces">
-      {VIEWS.map((v) => <button key={v.key} role="tab" aria-selected={view === v.key} className={`${styles.tab} ${view === v.key ? styles.tabActive : ""}`} onClick={() => { setPage(1); router.replace(`/registry?view=${v.key}`); }}>{v.label}</button>)}
+      {VIEWS.map((v) => <button key={v.key} role="tab" aria-selected={view === v.key} className={`${styles.tab} ${view === v.key ? styles.tabActive : ""}`} onClick={() => { setPage(1); router.replace(`/registry/centre?view=${v.key}`); }}>{v.label}</button>)}
     </nav>
 
     {showForm && <section className={styles.form}><div><h2 className={styles.cardTitle}>New Correspondence</h2><p className={styles.cardNote}>Create the core registry record. The live Registry table remains the authoritative source.</p></div><div className={styles.formGrid}>

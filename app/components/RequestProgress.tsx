@@ -1,6 +1,6 @@
 type Stage =
   | "Submitted"
-  | "PO"
+  | "PD"
   | "DOD"
   | "Director"
   | "DIN Admin"
@@ -41,7 +41,7 @@ function normalizeStage(stage: string | null | undefined): Stage {
     .replace(/\s+/g, "")
     .replace(/_/g, "");
 
-  if (s === "PO" || s === "PROGRAMMEOFFICER" || s === "PROGRAMOFFICER") return "PO";
+  if (s === "PO" || s === "PD" || s === "PROGRAMMEOFFICER" || s === "PROGRAMOFFICER" || s === "PROGRAMDIRECTOR") return "PD";
   if (s === "DOD" || s === "DIRECTOROFDEPARTMENT") return "DOD";
   if (s === "DIRECTOR") return "Director";
 
@@ -51,7 +51,7 @@ function normalizeStage(stage: string | null | undefined): Stage {
 
   if (s === "REGISTRAR") return "Registrar";
   if (s === "HOD") return "HOD";
-  if (s === "HR" || s === "HRBOSS" || s === "HROFFICER") return "HR";
+  if (s === "HR" || s === "HRBOSS" || s === "HRCOORDINATOR" || s === "HROFFICER") return "HR";
   if (s === "DG" || s === "DIRECTORGENERAL") return "DG";
   if (s === "ACCOUNT" || s === "ACCOUNTS" || s === "ACCOUNTOFFICER") return "Account";
   if (s === "HRFILING" || s === "FILING") return "HR Filing";
@@ -150,7 +150,7 @@ function stageTone(stage: Stage) {
     };
   }
 
-  if (["PO", "DOD", "Director", "Registrar", "HOD"].includes(stage)) {
+  if (["PD", "DOD", "Director", "Registrar", "HOD"].includes(stage)) {
     return {
       done: "border-emerald-600 bg-emerald-600 text-white",
       active: "border-emerald-600 bg-emerald-50 text-emerald-700",
@@ -247,7 +247,7 @@ function buildWorkflow({
       resolvedWorkflow = "personal-nonfund-general";
     } else if (currentStage === "DIN Admin" || currentStage === "Registrar") {
       resolvedWorkflow = "official-din";
-    } else if (currentStage === "PO") {
+    } else if (currentStage === "PD") {
       resolvedWorkflow = "official-asap-alli";
     } else if (currentStage === "HR" || currentStage === "HR Filing") {
       resolvedWorkflow = "personal-nonfund-general";
@@ -267,8 +267,8 @@ function buildWorkflow({
   if (resolvedWorkflow === "official-asap-alli") {
     return {
       title: "ASAP-ALLI Official Workflow",
-      description: "ASAP-ALLI route: PO → DOD → HOD → DG → AccountOfficer.",
-      steps: ["Submitted", "PO", "DOD", "HOD", "DG", "Account", "Completed"],
+      description: "ASAP-ALLI route: PD → DOD → HOD → DG → AccountOfficer.",
+      steps: ["Submitted", "PD", "DOD", "HOD", "DG", "Account", "Completed"],
     };
   }
 

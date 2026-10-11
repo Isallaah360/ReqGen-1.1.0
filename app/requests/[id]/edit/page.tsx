@@ -73,11 +73,13 @@ function roleKey(role: string | null | undefined) {
 }
 
 function stageKey(stage: string | null | undefined) {
-  return (stage || "")
+  const key = (stage || "")
     .trim()
     .toUpperCase()
     .replace(/\s+/g, "")
     .replace(/_/g, "");
+  // v4: the PO stage is now PD (Program Director). Old records still say PO.
+  return key === "PO" || key === "PROGRAMOFFICER" || key === "PROGRAMMEOFFICER" ? "PD" : key;
 }
 
 function categoryKey(category: string | null | undefined) {
@@ -99,7 +101,7 @@ function hasAnyRole(roleSet: Set<string>, roles: string[]) {
 function stageLabel(stage: string | null | undefined) {
   const s = stageKey(stage);
 
-  if (s === "PO") return "PO";
+  if (s === "PD") return "PD";
   if (s === "DOD") return "DOD";
   if (s === "DIRECTOR") return "Director";
   if (s === "DINADMIN") return "DIN Admin";
@@ -155,7 +157,7 @@ function isEditableStage(req: Req | null) {
   const stage = stageKey(req.current_stage);
 
   if (req.request_type === "Official") {
-    return ["PO", "DOD", "DIRECTOR", "DINADMIN", "REGISTRAR", "HOD"].includes(stage);
+    return ["PD", "DOD", "DIRECTOR", "DINADMIN", "REGISTRAR", "HOD"].includes(stage);
   }
 
   if (req.request_type === "Personal") {
@@ -193,7 +195,7 @@ function editStageNote(req: Req | null) {
   const stage = stageKey(req.current_stage);
 
   if (req.request_type === "Official") {
-    if (stage === "PO") return "Official ASAP-ALLI request is still at PO review stage.";
+    if (stage === "PD") return "Official ASAP-ALLI request is still at PD review stage.";
     if (stage === "DOD") return "Official request is still at DOD review stage.";
     if (stage === "DIRECTOR") return "Official request is still at Director review stage.";
     if (stage === "DINADMIN") return "Official request is still at DIN Admin review stage.";
@@ -770,7 +772,7 @@ function EditRequestPageContent() {
           </div>
         </header>
         <nav className="req-family-subnav" aria-label="Request workspace navigation">
-          <button type="button" onClick={() => router.push("/requests")}>Requests Overview</button>
+          <button type="button" onClick={() => router.push("/requests/mine")}>Requests Overview</button>
           <button type="button" onClick={() => router.push("/requests/new")}>Create New Request</button>
           <button type="button" onClick={() => router.push(`/requests/${req.id}`)}>Request Details</button>
           <button type="button" className="is-active">Edit Request</button>
@@ -794,7 +796,7 @@ function EditRequestPageContent() {
         )}
 
         {isOfficial &&
-          ["PO", "DOD", "DIRECTOR", "DINADMIN", "REGISTRAR", "HOD"].includes(stg) && (
+          ["PD", "DOD", "DIRECTOR", "DINADMIN", "REGISTRAR", "HOD"].includes(stg) && (
             <div className="mt-4 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-900">
               Official early-stage editing is active. Editing is locked after DG/Account
               treatment.
@@ -846,7 +848,7 @@ function EditRequestPageContent() {
 
             <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-700">
               The requester or the currently assigned officer can edit an Official request at
-              PO/DOD/Director/DIN Admin/Registrar/HOD stages. Personal requests can be edited at
+              PD/DOD/Director/DIN Admin/Registrar/HOD stages. Personal requests can be edited at
               DOD/HOD/HR stages. Editing is locked after DG, AccountOfficer, HR Filing, Paid,
               Completed, Rejected or Deleted stage.
             </div>

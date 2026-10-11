@@ -1,6 +1,6 @@
-import crypto from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient, type User } from "@supabase/supabase-js";
+import { WINDOW_SECONDS, decodeJwt, hmac as sign, sameText as same, verifiedTotpIds as verifiedFactorIds, windowCookieName as cookieName } from "@/lib/server/mfaWindow";
 
 export const runtime = "nodejs";
 
@@ -25,42 +25,7 @@ export const runtime = "nodejs";
  *  DELETE                          end the window on this device
  */
 
-const WINDOW_SECONDS = 12 * 60 * 60;
-
 type Amr = { method?: string; timestamp?: number };
-
-function secret() {
-  const value = process.env.MFA_TRUST_SECRET || process.env.OTP_HASH_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!value) throw new Error("The 2FA window secret is not configured.");
-  return value;
-}
-
-function cookieName(userId: string) {
-  return `rg_mfa_${userId.replace(/[^a-f0-9]/gi, "").slice(0, 12)}`;
-}
-
-function sign(payload: string) {
-  return crypto.createHmac("sha256", secret()).update(payload).digest("base64url");
-}
-
-function same(a: string, b: string) {
-  const x = Buffer.from(a);
-  const y = Buffer.from(b);
-  return x.length === y.length && crypto.timingSafeEqual(x, y);
-}
-
-function decodeJwt(token: string): Record<string, unknown> {
-  try {
-    const part = token.split(".")[1] || "";
-    return JSON.parse(Buffer.from(part, "base64url").toString("utf8")) as Record<string, unknown>;
-  } catch {
-    return {};
-  }
-}
-
-function verifiedFactorIds(user: User) {
-  return (user.factors || []).filter((f) => f.factor_type === "totp" && f.status === "verified").map((f) => f.id);
-}
 
 async function caller(req: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;

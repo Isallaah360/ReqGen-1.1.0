@@ -60,7 +60,6 @@ const STANDARD_IET_ACCOUNTS = [
   { code: "IET014", name: "ALLI", bank_name: "Zenith Bank" },
   { code: "IET015", name: "ALLI", bank_name: "Lotus Bank" },
   { code: "IET016", name: "ALLI MAUK", bank_name: "Lotus Bank" },
-  { code: "IET017", name: "POS", bank_name: "Lotus Bank" },
   { code: "IET018", name: "Lotus Account", bank_name: "Lotus Bank" },
   { code: "IET019", name: "Jaiz Account", bank_name: "Jaiz Bank" },
   { code: "IET020", name: "Providus Account", bank_name: "Providus Bank" },

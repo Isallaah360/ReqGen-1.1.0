@@ -88,7 +88,7 @@ export default function AdminAccessAuditPage() {
                 Security Centre
               </Link>
               <Link
-                href="/audit-centre"
+                href="/audit-centre/logs"
                 className="rounded-xl bg-violet-600 px-4 py-3 text-sm font-black text-white shadow-lg transition hover:-translate-y-0.5 hover:bg-violet-500"
               >
                 Audit

@@ -1,11 +1,11 @@
 import fs from 'node:fs';
 const read=(p)=>fs.readFileSync(p,'utf8');
 const checks=[]; const ok=(name,pass)=>checks.push([name,pass]);
-const shell=read('app/components/GovernmentAppShell.tsx');
+const shell=(read("app/components/GovernmentAppShell.tsx") + read("app/components/v4/AppFrame.tsx") + read("app/components/v4/Bell.tsx") + read("lib/v4/modules.ts"));
 const centre=read('app/components/registry/RegistryCentreWorkspace.tsx');
 const archive=read('app/components/registry/RegistryArchiveWorkspace.tsx');
 const perms=read('lib/permissions.ts');
-ok('Registry sidebar has exactly two workspaces', shell.includes('Registry Centre') && shell.includes('Registry Archive') && !shell.includes('label: "Incoming Register"'));
+ok('Registry mother page tiles: Centre, Incoming, Outgoing, Dispatch, Archive', ['/registry/centre', '/registry/incoming', '/registry/outgoing', '/registry/dispatch', '/registry/archive'].every((h) => shell.includes(`href: "${h}"`)));
 ok('Registry Centre uses live registry_correspondence', centre.includes('from("registry_correspondence")'));
 ok('Registry Centre uses live departments', centre.includes('from("departments")'));
 ok('Registry Centre has all five consolidated views', ['overview','incoming','outgoing','dispatch','all'].every(x=>centre.includes(`"${x}"`)));

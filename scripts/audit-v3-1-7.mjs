@@ -6,7 +6,7 @@ const exists = (f) => fs.existsSync(f);
 const results = [];
 const check = (label, ok) => results.push({ label, ok: Boolean(ok) });
 
-const pv = read("app/payment-vouchers/page.tsx");
+const pv = read("app/payment-vouchers/centre/page.tsx");
 const views = exists("app/payment-vouchers/views/PvViews.tsx") ? read("app/payment-vouchers/views/PvViews.tsx") : "";
 check("PV tabs 2-5 each render their own view", ["<PendingTracker />", "<ApprovedView", "<HistoryView", "<PrintCentreView"].every((t) => pv.includes(t)));
 check("Signing tracker reads reqgen_pv_tracker and sends reminders", views.includes('rpc("reqgen_pv_tracker")') && views.includes('"/api/pv/remind"'));

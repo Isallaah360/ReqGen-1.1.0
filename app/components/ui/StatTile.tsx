@@ -39,18 +39,21 @@ export function iconForStat(title: string) {
   return Sigma;
 }
 
+const TONE: Record<StatTone, string> = { blue: "blue", emerald: "green", amber: "amber", purple: "blue", slate: "blue", red: "red", orange: "brand" };
+
+/** v4.0.0: the same stat card as the approved mock-ups (icon tile, label, value, note). */
 export function StatTile({ title, value, tone = "blue", icon, note }: {
   title: string; value: ReactNode; tone?: StatTone; icon?: ReactNode; note?: ReactNode;
 }) {
-  const autoIcon = icon ?? createElement(iconForStat(title), { size: 18 });
+  const autoIcon = icon ?? createElement(iconForStat(title), { size: 20, strokeWidth: 1.8 });
   return (
-    <article className={`rg-stat is-${tone}`}>
-      <span className="rg-stat-icon" aria-hidden="true">{autoIcon}</span>
-      <div className="rg-stat-text">
-        <span className="rg-stat-label">{title}</span>
-        <strong className="rg-stat-value">{value}</strong>
-        {note ? <small className="rg-stat-note">{note}</small> : null}
-      </div>
+    <article className="v4-ui v4-stat v4-bridge-stat">
+      <span className={`v4-ico v4-t-${TONE[tone] || "blue"}`} aria-hidden="true">{autoIcon}</span>
+      <span>
+        <span className="v4-l">{title}</span>
+        <span className="v4-v">{value}</span>
+        {note ? <span className="v4-n">{note}</span> : null}
+      </span>
     </article>
   );
 }

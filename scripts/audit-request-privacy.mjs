@@ -16,12 +16,12 @@ const wildcard = clientFiles.filter((f) => /from\("requests"\)\s*\.select\("\*"\
 check("No page reads every column of requests/request_history", wildcard.length === 0, wildcard.join(", "));
 
 // 2. Oversight pages use the content-free registers.
-for (const f of ["app/components/registry/RegistryCentreWorkspace.tsx", "app/reports/page.tsx", "app/reports/enterprise-analytics/page.tsx", "app/finance/page.tsx", "app/audit-centre/page.tsx"]) {
+for (const f of ["app/components/registry/RegistryCentreWorkspace.tsx", "app/reports/centre/page.tsx", "app/reports/enterprise-analytics/page.tsx", "app/finance/overview/page.tsx", "app/audit-centre/logs/page.tsx"]) {
   check(`${f} uses the content-free register`, /fetchRequest(Register|Movements)\(/.test(read(f)));
 }
 
 // 3. Every page that shows full request content is behind the access gate.
-for (const f of ["app/requests/[id]/page.tsx", "app/requests/[id]/edit/page.tsx", "app/requests/[id]/print/page.tsx", "app/finance/request/[id]/page.tsx", "app/approvals/page.tsx"]) {
+for (const f of ["app/requests/[id]/page.tsx", "app/requests/[id]/edit/page.tsx", "app/requests/[id]/print/page.tsx", "app/finance/request/[id]/page.tsx", "app/approvals/inbox/page.tsx"]) {
   check(`${f} is wrapped in RequestAccessGate`, read(f).includes("<RequestAccessGate"));
 }
 

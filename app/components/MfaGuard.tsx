@@ -144,9 +144,11 @@ export default function MfaGuard({ children }: { children: ReactNode }) {
   if (PUBLIC_PATHS.has(pathname) || protectedSessionVerified) return <>{children}</>;
 
   return (
-    <section className="rg-route-transition" aria-live="polite" aria-busy={checking}>
-      <div className="rg-route-transition__bar" />
-      <div className="rg-route-transition__card"><div><strong>Securing your session</strong><p>ReqGen is confirming MFA access…</p></div></div>
+    <section className="v4-ui" aria-live="polite" aria-busy={checking} style={{ minHeight: "50vh", display: "grid", placeItems: "center", background: "transparent" }}>
+      <div className="v4-card v4-card-pad" style={{ textAlign: "center", maxWidth: 360 }}>
+        <strong>Securing your session</strong>
+        <p className="v4-muted" style={{ margin: "4px 0 0" }}>ReqGen is confirming your sign-in…</p>
+      </div>
     </section>
   );
 }

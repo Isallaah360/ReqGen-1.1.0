@@ -61,7 +61,7 @@ function roleBadgeClass(role: string | null | undefined) {
   if (["director", "hod", "dg", "dinadmin", "registrar", "gensec"].includes(rk)) {
     return "border-blue-200 bg-blue-50 text-blue-700";
   }
-  if (["hr", "hrboss", "hrofficer", "hrofficer1", "hrofficer2", "hrofficer3", "registry"].includes(rk)) {
+  if (["hr", "hrboss", "hrcoordinator", "hrofficer", "hrofficer1", "hrofficer2", "hrofficer3", "registry"].includes(rk)) {
     return "border-amber-200 bg-amber-50 text-amber-700";
   }
 

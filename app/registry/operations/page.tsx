@@ -1,2 +1,2 @@
 import { redirect } from "next/navigation";
-export default function Page(){ redirect("/registry?view=all"); }
+export default function Page(){ redirect("/registry/centre?view=all"); }

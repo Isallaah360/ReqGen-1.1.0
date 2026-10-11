@@ -17,20 +17,20 @@ check("Request 'Checked by' uses one resolved line", reqPrint.includes("checkedL
 check("Requester may print own completed request", reqPrint.includes("ownrequest"));
 check("PV prints only when fully signed (all modes)", pvPrint.includes('voucher.status === "Authorized" || voucher.status === "Paid"') && pvPrint.includes("disabled={!ready || !finalPrintReady"));
 
-const pvPage = read("app/payment-vouchers/page.tsx");
-const shell = read("app/components/GovernmentAppShell.tsx");
-check("PV views are numbered module tabs", pvPage.includes("VIEW_PATH") && !pvPage.includes("workspaceTabs") && shell.includes('"Pending Signatures"'));
+const pvPage = read("app/payment-vouchers/centre/page.tsx");
+const shell = (read("app/components/GovernmentAppShell.tsx") + read("app/components/v4/AppFrame.tsx") + read("app/components/v4/Bell.tsx") + read("lib/v4/modules.ts"));
+check("PV views are pages opened from the Payment Vouchers mother page", pvPage.includes("VIEW_PATH") && !pvPage.includes("workspaceTabs") && shell.includes('title: "Signing Tracker"'));
 check("One voucher phase drives tabs, KPIs and donut", pvPage.includes("function voucherPhase") && pvPage.includes("voucherGroup(status") );
 // v3.1.14: the Counter Signer is required; the DG signs the cheque when authorising.
 check("Signers required for every disbursement mode", pvPage.includes("p_cheque_signed_by_name: null") && pvPage.includes("p_counter_signatory_name: counterSignatoryName.trim()"));
 const detail = read("app/payment-vouchers/[id]/page.tsx");
 check("Voucher detail signs through reqgen_pv_sign", detail.includes('rpc("reqgen_pv_sign"') && detail.includes('rpc("reqgen_pv_assign_signers"'));
 check("Voucher detail shows the 5-step chain (v3.1.14)", ["Prepared", "Checked", "Counter-signed", "Signed & authorised", "Received"].every((t) => detail.includes(`"${t}"`)));
-check("Signers outside Finance sign from Approvals", exists("app/approvals/vouchers/page.tsx") && exists("app/approvals/vouchers/[id]/page.tsx") && shell.includes('"Voucher Signing"'));
+check("Signers outside Finance sign from Approvals", exists("app/approvals/vouchers/page.tsx") && exists("app/approvals/vouchers/[id]/page.tsx") && shell.includes('title: "Vouchers to Sign"'));
 const manual = read("app/payment-vouchers/manual/page.tsx");
 check("Manual voucher: department first, its accounts only", manual.includes("departmentAccounts") && manual.includes("department_account_routing") && manual.includes("Select the department first."));
 check("Print Register for requesters, Account Officers and Auditors", exists("app/requests/printable/page.tsx") && shell.includes('"Print Register"'));
-check("Requests module has numbered tabs", shell.includes('{ href: "/requests", label: "My Requests" }'));
+check("Requests mother page has My Requests, New Request and Print Register tiles", ["/requests/mine", "/requests/new", "/requests/printable"].every((h) => shell.includes(`href: "${h}"`)));
 const sql = "database/v3_1_6_pv_signing_chain.sql";
 check("Signing chain SQL present with backups and verification", exists(sql) && read(sql).includes("reqgen_function_backups") && read(sql).includes("check_item") && read(sql).includes("Fully Signed"));
 check("Signature engine lifts faint signatures", read("lib/signatureInk.ts").includes("adaptive strength"));

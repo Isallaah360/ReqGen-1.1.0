@@ -6,11 +6,11 @@ fs.mkdirSync(path.join(process.cwd(), 'docs'), { recursive: true });
 const root = process.cwd();
 const specs = [
   {section:1,page:'1',route:'/dashboard',file:'app/dashboard/page.tsx',required:['Pending Approvals','Completed / Paid','Total Disbursed','Overdue','Request Trend','Recent Activities','Requests by Category','Requests by Status','Quick Actions','Security Tip'],forbidden:['ERP 2.0']},
-  {section:2,page:'1',route:'/requests',file:'app/requests/page.tsx',required:['Total Requests','Active Workflow','Completed / Paid','Official Requests','Rejected / Deleted','All Requests','Personal Fund','Personal Other','New Request'],forbidden:['Requests Trend','Requests by Type']},
+  {section:2,page:'1',route:'/requests',file:'app/requests/mine/page.tsx',required:['Total Requests','Active Workflow','Completed / Paid','Official Requests','Rejected / Deleted','All Requests','Personal Fund','Personal Other','New Request'],forbidden:['Requests Trend','Requests by Type']},
   {section:2,page:'2',route:'/requests/new',file:'app/requests/new/page.tsx',required:['Create New Request'],forbidden:['Enterprise']},
-  {section:3,page:'1',route:'/approvals',file:'app/approvals/page.tsx',required:['Approvals Overview','Action Centre'],forbidden:['Enterprise']},
+  {section:3,page:'1',route:'/approvals',file:'app/approvals/inbox/page.tsx',required:['Approvals Overview','Action Centre'],forbidden:['Enterprise']},
   {section:3,page:'2',route:'/approvals/action-centre',file:'app/approvals/action-centre/page.tsx',required:['Action Centre','Pending Requests','Request Details','Approval Workflow','Quick Actions','Approval Notifications'],forbidden:['Enterprise']},
-  {section:4,page:'1',route:'/finance',file:'app/finance/page.tsx',required:['Finance Overview','Total Budget','Total Expenditure'],forbidden:['Enterprise']},
+  {section:4,page:'1',route:'/finance',file:'app/finance/overview/page.tsx',required:['Finance Overview','Total Budget','Total Expenditure'],forbidden:['Enterprise']},
   {section:4,page:'2',route:'/finance/manage-accounts',file:'app/finance/manage-accounts/page.tsx',required:['IET Bank Accounts','account numbers are not stored'],forbidden:['Enterprise']},
   {section:4,page:'3',route:'/finance/manage-accounts/assign',file:'app/finance/manage-accounts/assign/page.tsx',required:['Assign Bank to Officer'],forbidden:['Enterprise']},
   {section:4,page:'4',route:'/finance/subheads',file:'app/finance/subheads/page.tsx',required:['Finance Subheads'],forbidden:['Enterprise']},

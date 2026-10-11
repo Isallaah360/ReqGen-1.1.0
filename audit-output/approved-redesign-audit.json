@@ -1,12 +1,16 @@
 {
   "sections": {
-    "payment-vouchers": 11,
-    "registry": 6,
-    "reports": 2,
-    "audit-centre": 2,
-    "admin": 14
+    "payment-vouchers": 12,
+    "registry": 7,
+    "reports": 3,
+    "audit-centre": 3,
+    "admin": 15
   },
-  "totalPages": 35,
-  "failures": [],
-  "passed": true
+  "totalPages": 40,
+  "failures": [
+    "Payment Voucher navigation missing /payment-vouchers",
+    "Payment Voucher navigation missing /payment-vouchers/manual",
+    "Payment Voucher navigation missing /payment-vouchers/settings"
+  ],
+  "passed": false
 }

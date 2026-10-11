@@ -106,11 +106,13 @@ function normalize(v: string | null | undefined) {
 }
 
 function stageKey(stage: string | null | undefined) {
-  return (stage || "")
+  const key = (stage || "")
     .trim()
     .toUpperCase()
     .replace(/\s+/g, "")
     .replace(/_/g, "");
+  // v4: the PO stage is now PD (Program Director). Old records still say PO.
+  return key === "PO" || key === "PROGRAMOFFICER" || key === "PROGRAMMEOFFICER" ? "PD" : key;
 }
 
 function naira(n: number | null | undefined) {
@@ -301,6 +303,7 @@ function PrintRequestPageContent() {
       if (
         isRoleOneOf(h, [
           "po",
+          "pd",
           "dod",
           "director",
           "dinadmin",
@@ -314,7 +317,7 @@ function PrintRequestPageContent() {
         return true;
       }
 
-      return isStageOneOf(h.from_stage, ["PO", "DOD", "Director", "DIN Admin", "Registrar", "HOD"]);
+      return isStageOneOf(h.from_stage, ["PD", "DOD", "Director", "DIN Admin", "Registrar", "HOD"]);
     });
   }, [history]);
 
@@ -373,9 +376,9 @@ function PrintRequestPageContent() {
   }, [accountHistory, req?.account_signature_snapshot]);
 
   // v3.1.6: ONE source for the "Checked by" line — the reviewing officer
-  // (PO/DOD/HOD/Director/DIN Admin/Registrar), or HR on personal requests.
+  // (PD/DOD/HOD/Director/DIN Admin/Registrar), or HR on personal requests.
   // v3.1.10: "Checked by" is the officer who reviewed the request before the
-  // DG (PO / DOD / HOD / Director / DIN Admin / Registrar), HR on personal
+  // DG (PD / DOD / HOD / Director / DIN Admin / Registrar), HR on personal
   // requests, and — when the route has no reviewing step (e.g. the HOD post is
   // vacant and the step was skipped) — the Account Officer who checked and
   // treated it against the budget. The line is never left blank once treated.
@@ -579,7 +582,7 @@ function PrintRequestPageContent() {
     return naira(req?.amount);
   }, [isPersonalOther, req?.amount]);
 
-  const backPath = "/requests";
+  const backPath = "/requests/mine";
   const backLabel = "Back to My Requests";
 
   const ready = useMemo(() => {
@@ -753,7 +756,7 @@ function PrintRequestPageContent() {
           </div>
         </header>
         <nav className="no-print req-family-subnav" aria-label="Request workspace navigation">
-          <button type="button" onClick={() => router.push("/requests")}>Requests Overview</button>
+          <button type="button" onClick={() => router.push("/requests/mine")}>Requests Overview</button>
           <button type="button" onClick={() => router.push(`/requests/${req.id}`)}>Request Details</button>
           <button type="button" onClick={() => router.push(`/requests/${req.id}/edit`)}>Edit Request</button>
           <button type="button" className="is-active">Print Request</button>

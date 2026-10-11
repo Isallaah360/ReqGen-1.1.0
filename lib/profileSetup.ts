@@ -62,7 +62,7 @@ const CONTENT: Record<SetupStepKey, Omit<SetupStep, "done">> = {
     title: "Add your profile photo",
     why: "Your photo helps colleagues recognise who prepared, approved or signed a document.",
     required: false,
-    href: "/profile?guide=avatar#photo",
+    href: "/profile/details?guide=avatar#photo",
     howTo: [
       "Take a clear, front-facing photo (phone camera is fine) or choose one from your gallery.",
       "Tap \"Take me there\". Your Profile page opens at your photo.",
@@ -75,7 +75,7 @@ const CONTENT: Record<SetupStepKey, Omit<SetupStep, "done">> = {
     title: "Upload your signature",
     why: "Required. A request cannot be submitted, approved or signed, and no payment voucher can be prepared, without your saved signature.",
     required: true,
-    href: "/profile?guide=signature#signature",
+    href: "/profile/details?guide=signature#signature",
     howTo: [
       "Sign your name with a dark pen (black or blue) on plain white paper.",
       "Take a clear photo of the signature in good light, close enough that the signature fills most of the picture.",

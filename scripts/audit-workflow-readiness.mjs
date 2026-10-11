@@ -3,16 +3,16 @@ import path from "node:path";
 
 const root = process.cwd();
 const required = [
-  "app/requests/page.tsx",
+  "app/requests/mine/page.tsx",
   "app/requests/new/page.tsx",
   "app/requests/[id]/page.tsx",
-  "app/approvals/page.tsx",
+  "app/approvals/inbox/page.tsx",
   "app/approvals/action-centre/page.tsx",
-  "app/finance/page.tsx",
-  "app/payment-vouchers/page.tsx",
+  "app/finance/overview/page.tsx",
+  "app/payment-vouchers/centre/page.tsx",
   "app/workflow/page.tsx",
-  "app/registry/page.tsx",
-  "app/audit-centre/page.tsx",
+  "app/registry/centre/page.tsx",
+  "app/audit-centre/logs/page.tsx",
   "lib/permissions.ts",
 ];
 

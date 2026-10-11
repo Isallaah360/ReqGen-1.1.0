@@ -10,7 +10,7 @@ const results = [
   ["SQL: notifications link to Approvals (open to every signer)", sql.includes("'/approvals/vouchers/' || p_voucher_id::text")],
   ["Voucher page: 'Your action' card at the top with comment", detail.includes("Your action: {myStep.label}")],
   ["Voucher page: Admin / Auditor / Account can send a reminder", detail.includes("canOversee") && detail.includes('fetch("/api/pv/remind"')],
-  ["'Waiting for you' on Approvals and Payment Vouchers", read("app/approvals/page.tsx").includes("<WaitingForYou />") && read("app/payment-vouchers/page.tsx").includes("<WaitingForYou />")],
+  ["'Waiting for you' on Approvals and Payment Vouchers", read("app/approvals/inbox/page.tsx").includes("<WaitingForYou />") && read("app/payment-vouchers/centre/page.tsx").includes("<WaitingForYou />")],
   ["Voucher links re-route to Approvals when the active role cannot open Finance", read("app/components/RouteAccessGuard.tsx").includes("/approvals/vouchers/${voucher[1]}")],
 ];
 let failed = 0;

@@ -20,18 +20,18 @@ const orphans = pages.map((p) => ({ p, route: ("/" + path.dirname(p).replace(/^a
   .filter(({ route }) => !route.includes("["))
   .filter(({ p, route }) => !PUBLIC.has(route) && !literals.has(route) && !/redirect\(/.test(read(p)));
 check("Every page is reachable from the app (linked, auth page or redirect)", orphans.length === 0, orphans.map((o) => o.route).join(", "));
-const shell = read("app/components/GovernmentAppShell.tsx");
+const shell = (read("app/components/GovernmentAppShell.tsx") + read("app/components/v4/AppFrame.tsx") + read("app/components/v4/Bell.tsx") + read("lib/v4/modules.ts"));
 check("Finance Audit, Admin Audit Log and Diagnostics are module tabs", ['"/finance/audit"', '"/admin/audit"', '"/admin/system-health"'].every((t) => shell.includes(t)));
 
 // 2. Financial year 1 Sep – 31 Aug.
 const fy = read("lib/financialYear.ts");
 check("Financial year starts in September", fy.includes("FY_START_MONTH = 8"));
-check("Backup, Print Register and Finance use the IET financial year", read("app/api/backup/export/route.ts").includes("fyBounds") && read("app/requests/printable/page.tsx").includes("fyStartYear") && read("app/finance/page.tsx").includes("fyStartYear"));
+check("Backup, Print Register and Finance use the IET financial year", read("app/api/backup/export/route.ts").includes("fyBounds") && read("app/requests/printable/page.tsx").includes("fyStartYear") && read("app/finance/overview/page.tsx").includes("fyStartYear"));
 
 // 3. One loading bar.
 const css = read("app/globals.css");
 // v3.1.12 (owner decision): the single loading bar sits below the top bar; the top stripe never animates.
-check("One loading bar, below the top bar; the top stripe never animates", !css.includes("html.rg-busy body::before") && !read("app/components/ActivityStrip.tsx").includes("rg-busy"));
+check("One loading bar, below the top bar; the top stripe never animates", !css.includes("html.rg-busy body::before") && !read("app/components/v4/AppFrame.tsx").includes("rg-busy") && read("app/components/v4/AppFrame.tsx").includes("v4-loadbar"));
 
 // 4. Checked by.
 const rp = read("app/requests/[id]/print/page.tsx");

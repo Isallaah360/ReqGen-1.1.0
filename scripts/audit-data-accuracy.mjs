@@ -6,10 +6,10 @@ const read = (p) => fs.readFileSync(path.join(root, p), "utf8");
 const checks = [];
 const pass = (name, ok, detail="") => checks.push({name,ok,detail});
 
-const finance = read("app/finance/page.tsx");
+const finance = read("app/finance/overview/page.tsx");
 const accounts = read("app/finance/manage-accounts/page.tsx");
-const pv = read("app/payment-vouchers/page.tsx");
-const shell = read("app/components/GovernmentAppShell.tsx");
+const pv = read("app/payment-vouchers/centre/page.tsx");
+const shell = (read("app/components/GovernmentAppShell.tsx") + read("app/components/v4/AppFrame.tsx") + read("app/components/v4/Bell.tsx") + read("lib/v4/modules.ts"));
 const globalCss = read("app/globals.css");
 
 pass("Finance uses live departments", finance.includes('.from("departments")'));
@@ -29,12 +29,12 @@ pass("PV loads live subheads including reserved amount", pv.includes("approved_a
 pass("PV loads live signatory authority", pv.includes('payment_voucher_counter_signatories'));
 pass("PV uses canonical subhead availability", pv.includes("subheadAvailable"));
 // v3.1.6: the PV views are numbered module tabs (owner decision), one workspace component.
-pass("PV operational views are numbered tabs of one workspace", pv.includes("workspaceView") && pv.includes("VIEW_PATH") && shell.includes('"Voucher Centre"') && shell.includes('"Pending Signatures"'));
-pass("PV tabs expose Centre, views, Manual Voucher and Settings", (shell.match(/\{ href: "\/payment-vouchers/g) || []).length === 7 && shell.includes("Create Manual Voucher") && shell.includes("PV Settings"));
+pass("PV operational views are pages of one workspace, opened from the v4 mother page", pv.includes("workspaceView") && pv.includes("VIEW_PATH") && shell.includes('title: "Voucher Centre"') && shell.includes('href: "/payment-vouchers/pending"'));
+pass("PV mother page tiles expose Centre, views, Manual Voucher and Signatories", (shell.match(/\{ href: "\/payment-vouchers\//g) || []).length === 8 && shell.includes('title: "Manual Voucher"') && shell.includes('href: "/payment-vouchers/settings"'));
 pass("Global main navigation font locked at 13px", globalCss.includes(".gov-nav-link,.gov-subnav a") && globalCss.includes("font-size:13px!important"));
 
 const suspicious = [];
-for (const rel of ["app/dashboard/page.tsx","app/requests/page.tsx","app/approvals/page.tsx","app/finance/page.tsx","app/payment-vouchers/page.tsx"]) {
+for (const rel of ["app/dashboard/page.tsx","app/requests/mine/page.tsx","app/approvals/inbox/page.tsx","app/finance/overview/page.tsx","app/payment-vouchers/centre/page.tsx"]) {
   const text = read(rel);
   if (/Math\.random\(|faker|mockData|dummyData/i.test(text)) suspicious.push(rel);
 }

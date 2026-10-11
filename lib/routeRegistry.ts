@@ -16,6 +16,106 @@ export const ROOT_NAVIGATION: RootNavigationItem[] = [
 
 export const ROUTE_REGISTRY: RouteRegistryItem[] = [
   {
+    "pattern": "/admin/overview",
+    "title": "Administration - System Overview",
+    "rootHref": "/admin",
+    "category": "Application Route",
+    "public": false,
+    "nav": false,
+    "searchable": true,
+    "description": "ReqGen route /admin/overview"
+  },
+  {
+    "pattern": "/approvals/inbox",
+    "title": "Approvals - Requests to Approve",
+    "rootHref": "/approvals",
+    "category": "Application Route",
+    "public": false,
+    "nav": false,
+    "searchable": true,
+    "description": "ReqGen route /approvals/inbox"
+  },
+  {
+    "pattern": "/audit-centre/logs",
+    "title": "Audit - Audit Log",
+    "rootHref": "/audit-centre",
+    "category": "Application Route",
+    "public": false,
+    "nav": false,
+    "searchable": true,
+    "description": "ReqGen route /audit-centre/logs"
+  },
+  {
+    "pattern": "/finance/overview",
+    "title": "Finance - Overview",
+    "rootHref": "/finance",
+    "category": "Application Route",
+    "public": false,
+    "nav": false,
+    "searchable": true,
+    "description": "ReqGen route /finance/overview"
+  },
+  {
+    "pattern": "/payment-vouchers/centre",
+    "title": "Payment Vouchers - Voucher Centre",
+    "rootHref": "/payment-vouchers",
+    "category": "Application Route",
+    "public": false,
+    "nav": false,
+    "searchable": true,
+    "description": "ReqGen route /payment-vouchers/centre"
+  },
+  {
+    "pattern": "/profile/details",
+    "title": "My Account - Profile",
+    "rootHref": "/profile",
+    "category": "Application Route",
+    "public": false,
+    "nav": false,
+    "searchable": true,
+    "description": "ReqGen route /profile/details"
+  },
+  {
+    "pattern": "/profile/passcode",
+    "title": "My Account - Passcode",
+    "rootHref": "/profile",
+    "category": "Application Route",
+    "public": false,
+    "nav": false,
+    "searchable": true,
+    "description": "ReqGen route /profile/passcode"
+  },
+  {
+    "pattern": "/registry/centre",
+    "title": "Registry - Registry Centre",
+    "rootHref": "/registry",
+    "category": "Application Route",
+    "public": false,
+    "nav": false,
+    "searchable": true,
+    "description": "ReqGen route /registry/centre"
+  },
+  {
+    "pattern": "/reports/centre",
+    "title": "Reports - Reports Centre",
+    "rootHref": "/reports",
+    "category": "Application Route",
+    "public": false,
+    "nav": false,
+    "searchable": true,
+    "description": "ReqGen route /reports/centre"
+  },
+  {
+    "pattern": "/requests/mine",
+    "title": "Requests - My Requests",
+    "rootHref": "/requests",
+    "category": "Application Route",
+    "public": false,
+    "nav": false,
+    "searchable": true,
+    "description": "ReqGen route /requests/mine"
+  },
+  {
     "pattern": "/about",
     "title": "About",
     "rootHref": "/about",

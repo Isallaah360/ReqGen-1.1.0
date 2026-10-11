@@ -1,11 +1,11 @@
 {
   "summary": {
-    "candidates": 15,
+    "candidates": 16,
     "withPrintCall": 5,
-    "withPrintCss": 6,
-    "withA4": 5,
+    "withPrintCss": 7,
+    "withA4": 6,
     "withLogo": 3,
-    "generatedAt": "2026-10-07T10:28:43.273Z"
+    "generatedAt": "2026-10-11T13:37:04.522Z"
   },
   "results": [
     {
@@ -27,7 +27,7 @@
       "hasLogoReference": false
     },
     {
-      "file": "app/audit-centre/page.tsx",
+      "file": "app/audit-centre/logs/page.tsx",
       "hasPrintCall": true,
       "hasPrintCss": false,
       "hasNoPrintClass": false,
@@ -117,7 +117,7 @@
       "hasLogoReference": false
     },
     {
-      "file": "app/reports/enterprise-analytics/page.tsx",
+      "file": "app/reports/centre/page.tsx",
       "hasPrintCall": true,
       "hasPrintCss": false,
       "hasNoPrintClass": false,
@@ -126,7 +126,7 @@
       "hasLogoReference": false
     },
     {
-      "file": "app/reports/page.tsx",
+      "file": "app/reports/enterprise-analytics/page.tsx",
       "hasPrintCall": true,
       "hasPrintCss": false,
       "hasNoPrintClass": false,
@@ -142,6 +142,15 @@
       "hasA4": true,
       "hasPageBreakControl": true,
       "hasLogoReference": true
+    },
+    {
+      "file": "app/v4/v4-theme.css",
+      "hasPrintCall": false,
+      "hasPrintCss": true,
+      "hasNoPrintClass": false,
+      "hasA4": true,
+      "hasPageBreakControl": false,
+      "hasLogoReference": false
     }
   ]
 }

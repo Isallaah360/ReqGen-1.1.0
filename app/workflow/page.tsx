@@ -8,5 +8,5 @@ import { redirect } from "next/navigation";
 // (stages, routing, current-owner logic, RPCs, history) is untouched and
 // lives in Audit Centre / the database layer, not in this UI route.
 export default function LegacyWorkflowRedirect() {
-  redirect("/audit-centre?view=workflow-trace");
+  redirect("/audit-centre/logs?view=workflow-trace");
 }

@@ -3,9 +3,9 @@ import fs from "node:fs";
 const read = (f) => fs.readFileSync(f, "utf8");
 const sql = read("database/v3_1_14_pv_dg_sign_authorise.sql");
 const detail = read("app/payment-vouchers/[id]/page.tsx");
-const gen = read("app/payment-vouchers/page.tsx");
+const gen = read("app/payment-vouchers/centre/page.tsx");
 const guard = read("app/components/MfaGuard.tsx");
-const trust = read("app/api/auth/mfa-trust/route.ts");
+const trust = read("app/api/auth/mfa-trust/route.ts") + read("lib/server/mfaWindow.ts");
 const results = [
   ["SQL: check moves straight to the Counter Signer", sql.includes("status = 'Pending Counter Signature', signing_stage = 'Awaiting Counter Signature',\n      current_signing_owner = v_pv.cheque_counter_signed_by")],
   ["SQL: DG signs the cheque AND authorises in one step", sql.includes("'Sign & Authorise'") && sql.includes("cheque_signed_signature_url = coalesce(")],

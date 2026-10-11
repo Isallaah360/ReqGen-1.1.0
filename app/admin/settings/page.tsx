@@ -31,7 +31,7 @@ const OFFICER_SETTINGS: OfficerSetting[] = [
   { key: "REGISTRAR_USER_ID", label: "Registrar", description: "Canonical Registrar workflow officer.", roleKeys: ["registrar"] },
   { key: "DIN_ADMIN_USER_ID", label: "DIN Admin", description: "Canonical DIN Administration workflow officer.", roleKeys: ["dinadmin", "deanadmin"] },
   { key: "DG_USER_ID", label: "Director General (DG)", description: "Director General workflow approver.", roleKeys: ["dg"] },
-  { key: "HR_USER_ID", label: "Human Resources (HR)", description: "Primary HR workflow officer.", roleKeys: ["hr", "hrboss", "hrofficer", "hrofficer1", "hrofficer2", "hrofficer3"] },
+  { key: "HR_USER_ID", label: "Human Resources (HR)", description: "Primary HR workflow officer.", roleKeys: ["hr", "hrboss", "hrcoordinator", "hrofficer", "hrofficer1", "hrofficer2", "hrofficer3"] },
   { key: "GENSEC_USER_ID", label: "General Secretary", description: "General Secretary workflow officer.", roleKeys: ["gensec", "generalsecretary"] },
   { key: "ACCOUNT_USER_ID_1", label: "Account Officer 1", description: "First authorised Account Officer assignment.", roleKeys: ["account", "accounts", "accountofficer"] },
   { key: "ACCOUNT_USER_ID_2", label: "Account Officer 2", description: "Second authorised Account Officer assignment.", roleKeys: ["account", "accounts", "accountofficer"] },
@@ -48,7 +48,7 @@ function canonicalRoleLabel(role: string | null | undefined) {
   if (key === "dinadmin") return "DIN Admin";
   if (key === "gensec" || key === "generalsecretary") return "General Secretary";
   if (["account", "accounts", "accountofficer"].includes(key)) return "Account Officer";
-  if (["hr", "hrboss", "hrofficer", "hrofficer1", "hrofficer2", "hrofficer3"].includes(key)) return "HR";
+  if (["hr", "hrboss", "hrcoordinator", "hrofficer", "hrofficer1", "hrofficer2", "hrofficer3"].includes(key)) return "HR";
   if (key === "registrar") return "Registrar";
   if (key === "registry") return "Registry";
   if (key === "dg") return "DG";

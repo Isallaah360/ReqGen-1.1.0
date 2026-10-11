@@ -14,7 +14,10 @@ export type ApprovalQueueRow = {
 
 export function queueRoleKey(value: string | null | undefined) {
   const normalized = String(value || "").trim().toLowerCase().replace(/[\s_-]+/g, "");
-  return normalized === "deanadmin" ? "dinadmin" : normalized;
+  if (normalized === "deanadmin") return "dinadmin";
+  if (normalized === "po" || normalized === "programofficer") return "pd";
+  if (normalized === "hrboss" || normalized === "headofhr") return "hrcoordinator";
+  return normalized;
 }
 
 export function queueStageKey(value: string | null | undefined) {
@@ -23,7 +26,8 @@ export function queueStageKey(value: string | null | undefined) {
 
 /** Workflow stages each role is responsible for approving. */
 export const STAGES_FOR_ROLE: Record<string, string[]> = {
-  po: ["PO"],
+  // v4: PO is now PD. Both stage names count until the database step renames them.
+  pd: ["PD", "PO"],
   dod: ["DOD"],
   director: ["DOD", "DIRECTOR"],
   dinadmin: ["DINADMIN"],
@@ -35,7 +39,7 @@ export const STAGES_FOR_ROLE: Record<string, string[]> = {
   generalsecretary: ["GENERALSECRETARY", "GENSEC"],
   hod: ["HOD"],
   hr: ["HR", "HRFILING"],
-  hrboss: ["HR", "HRFILING"],
+  hrcoordinator: ["HR", "HRFILING"],
   hrofficer: ["HR", "HRFILING"],
   hrofficer1: ["HR", "HRFILING"],
   hrofficer2: ["HR", "HRFILING"],

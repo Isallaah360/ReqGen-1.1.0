@@ -92,13 +92,11 @@ const FINANCE_ROLES = new Set([
     "pvcountersigner",
 ]);
 
+/** IET pays in three ways only: bank transfer, cheque or cash (v4.0.0). */
 const PAYMENT_METHODS = [
     "Bank Transfer",
     "Cheque",
     "Cash",
-    "POS",
-    "Mobile Transfer",
-    "Other",
 ];
 
 function normalizeRole(value: string | null | undefined) {
@@ -913,7 +911,7 @@ export default function ManualVoucherPage() {
                 actions={<>
                     <button type="button" onClick={() => clearForm()} className="rg-btn rg-btn-secondary">New Voucher</button>
                     <button type="button" onClick={() => loadPage(true)} disabled={refreshing} className="rg-btn rg-btn-secondary">{refreshing ? "Refreshing..." : "Refresh"}</button>
-                    <Link href="/payment-vouchers" className="rg-btn rg-btn-primary">Voucher Centre</Link>
+                    <Link href="/payment-vouchers/centre" className="rg-btn rg-btn-primary">Voucher Centre</Link>
                 </>}
             />
 

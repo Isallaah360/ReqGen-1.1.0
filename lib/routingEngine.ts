@@ -6,7 +6,7 @@ import { supabase } from "@/lib/supabaseClient";
  * this module only reads configuration and calls its guarded functions.
  */
 export type RouteKind = "official" | "personal_fund" | "personal_other";
-export type EngineStage = "PO" | "DOD" | "DIN Admin" | "Registrar" | "HOD" | "HR" | "DG" | "Account" | "HR Filing";
+export type EngineStage = "PD" | "DOD" | "DIN Admin" | "Registrar" | "HOD" | "HR" | "DG" | "Account" | "HR Filing";
 export type IfVacant = "skip" | "block";
 
 export const ROUTE_KIND_LABEL: Record<RouteKind, string> = {
@@ -16,16 +16,21 @@ export const ROUTE_KIND_LABEL: Record<RouteKind, string> = {
 };
 export const ROUTE_KINDS: RouteKind[] = ["official", "personal_fund", "personal_other"];
 
-export const ENGINE_STAGES: EngineStage[] = ["PO", "DOD", "DIN Admin", "Registrar", "HOD", "HR", "DG", "Account", "HR Filing"];
+export const ENGINE_STAGES: EngineStage[] = ["PD", "DOD", "DIN Admin", "Registrar", "HOD", "HR", "DG", "Account", "HR Filing"];
 /** Stages whose officer is set per department (others are institution-wide). */
-export const DEPARTMENT_STAGES: EngineStage[] = ["PO", "DOD", "HOD"];
+export const DEPARTMENT_STAGES: EngineStage[] = ["PD", "DOD", "HOD"];
 export const GLOBAL_STAGE_SETTING: Partial<Record<EngineStage, string>> = {
   "DIN Admin": "DIN_ADMIN_USER_ID",
   Registrar: "REGISTRAR_USER_ID",
   HR: "HR_USER_ID",
   DG: "DG_USER_ID",
 };
-export const STAGE_LABEL = (s: string) => (s === "Account" ? "Account Officer" : s);
+/** v4: PO is shown as PD (Program Director); HR as HR Coordinator. */
+export const STAGE_LABEL = (s: string) => (s === "Account" ? "Account Officer" : s === "PO" || s === "PD" ? "PD" : s === "HR" ? "HR Coordinator" : s);
+/** Older databases still hold "PO"; v4 works with "PD" throughout. */
+export function canonicalStage<T extends string>(s: T): T {
+  return (String(s).toUpperCase() === "PO" ? "PD" : s) as T;
+}
 
 export type RouteTemplate = { id: string; code: string; name: string; description: string | null; is_active: boolean };
 export type RouteStep = { id: string; template_id: string; route_kind: RouteKind; step_order: number; stage: EngineStage; if_vacant: IfVacant };
@@ -62,9 +67,9 @@ export async function loadEngineConfig(): Promise<EngineConfig> {
   return {
     installed: true,
     templates: (t.data || []) as RouteTemplate[],
-    steps: (s.data || []) as RouteStep[],
+    steps: ((s.data || []) as RouteStep[]).map((x) => ({ ...x, stage: canonicalStage(x.stage) })),
     deptRoutes: (d.data || []) as DepartmentRoute[],
-    backups: (b.data || []) as StageBackup[],
+    backups: ((b.data || []) as StageBackup[]).map((x) => ({ ...x, stage: canonicalStage(x.stage) })),
     availability: (a.data || []) as Availability[],
   };
 }

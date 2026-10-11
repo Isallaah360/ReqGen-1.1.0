@@ -1,698 +1,99 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import { cleanSignatureFile } from "@/lib/signatureInk";
-import { SETUP_EVENT } from "@/lib/profileSetup";
-import SignatureInk from "@/app/components/ui/SignatureInk";
-import ProfileNavigation from "@/app/components/profile/ProfileNavigation";
+import { getAvailableRoles } from "@/lib/activeRole";
+import { normalizeRole } from "@/lib/roles";
+import { useSetupSteps } from "@/lib/profileSetup";
+import { ACCOUNT_MODULE } from "@/lib/v4/modules";
+import { positionName } from "@/app/components/v4/RoleSelect";
+import { useIdentity } from "@/app/components/v4/useIdentity";
+import { Chip, Tiles, V4Page, type TileItem } from "@/app/components/v4/ui";
 
-type Dept = { id: string; name: string };
+type Profile = { full_name: string | null; email: string | null; phone: string | null; dept_id: string | null; avatar_url?: string | null; signature_url?: string | null };
 
-type SecurityStatus = {
-  hasVerifiedTotp: boolean;
-  currentLevel: string | null;
-  nextLevel: string | null;
-  factorCount: number;
-};
-
-function getPublicSignatureUrl(path: string | null | undefined) {
-  const raw = (path || "").trim();
-  if (!raw) return null;
-
-  if (
-    raw.startsWith("http://") ||
-    raw.startsWith("https://") ||
-    raw.startsWith("data:image/") ||
-    raw.startsWith("blob:")
-  ) {
-    return raw;
-  }
-
-  const cleaned = raw.replace(/^signatures\//, "").replace(/^\/+/, "");
-  const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
-
-  if (!base) return null;
-
-  return `${base}/storage/v1/object/public/signatures/${cleaned}?t=${Date.now()}`;
-}
-
-
-const AVATAR_BUCKET = "avatars";
-const AVATAR_MAX_BYTES = 1024 * 1024;
-const AVATAR_TYPES: Record<string, string> = { "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp" };
-
-function avatarObjectPath(url: string | null): string | null {
-  if (!url) return null;
-  const marker = `/storage/v1/object/public/${AVATAR_BUCKET}/`;
-  const index = url.indexOf(marker);
-  if (index < 0) return null;
-  return decodeURIComponent(url.slice(index + marker.length).split("?")[0]);
-}
-
-function displayRoleName(value: string | null | undefined) {
-  const raw = String(value || "Staff").trim();
-  const key = raw.toLowerCase().replace(/[^a-z0-9]+/g, "");
-  if (key === "deanadmin" || key === "dinadmin") return "DIN Admin";
-  return raw || "Staff";
-}
-
-function securityBadgeClass(ok: boolean) {
-  return ok
-    ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-    : "border-red-200 bg-red-50 text-red-700";
-}
-
-export default function ProfilePage() {
-  const router = useRouter();
-
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [savingProfile, setSavingProfile] = useState(false);
-  const [savingEmail, setSavingEmail] = useState(false);
-  const [msg, setMsg] = useState<string | null>(null);
-
-  const [fullName, setFullName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [gender, setGender] = useState<string>("");
-
-  const [deptName, setDeptName] = useState<string>("");
-  const [role, setRole] = useState<string>("Staff");
-
-  const [email, setEmail] = useState<string>("");
-  const [newEmail, setNewEmail] = useState<string>("");
-
-  const [sigPath, setSigPath] = useState<string | null>(null);
-  const [sigPreview, setSigPreview] = useState<string | null>(null);
-  const [file, setFile] = useState<File | null>(null);
-  const [uploadingSig, setUploadingSig] = useState(false);
-  const [cleanSig, setCleanSig] = useState(true);
-
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-  const [avatarSupported, setAvatarSupported] = useState(true);
-  const [uploadingAvatar, setUploadingAvatar] = useState(false);
-
-  const [security, setSecurity] = useState<SecurityStatus>({
-    hasVerifiedTotp: false,
-    currentLevel: null,
-    nextLevel: null,
-    factorCount: 0,
-  });
-
-  const canSaveProfile = useMemo(() => {
-    return fullName.trim().length >= 3 && !!gender;
-  }, [fullName, gender]);
-
-  const isSessionMfaVerified = security.currentLevel === "aal2";
-  const isMfaSetupComplete = security.hasVerifiedTotp;
-
-  const busy = refreshing || savingProfile || savingEmail || uploadingSig || uploadingAvatar;
-
-  const loadSecurityStatus = useCallback(async () => {
-    const [factorsRes, aalRes] = await Promise.all([
-      supabase.auth.mfa.listFactors(),
-      supabase.auth.mfa.getAuthenticatorAssuranceLevel(),
-    ]);
-
-    if (factorsRes.error) {
-      setSecurity({
-        hasVerifiedTotp: false,
-        currentLevel: aalRes.data?.currentLevel || null,
-        nextLevel: aalRes.data?.nextLevel || null,
-        factorCount: 0,
-      });
-      return;
-    }
-
-    const verifiedTotpFactors = factorsRes.data.totp.filter(
-      (factor) => factor.status === "verified"
-    );
-
-    setSecurity({
-      hasVerifiedTotp: verifiedTotpFactors.length > 0,
-      currentLevel: aalRes.data?.currentLevel || null,
-      nextLevel: aalRes.data?.nextLevel || null,
-      factorCount: verifiedTotpFactors.length,
-    });
-  }, []);
-
-  const load = useCallback(
-    async (options?: { silent?: boolean }) => {
-      if (options?.silent) {
-        setRefreshing(true);
-      } else {
-        setLoading(true);
-      }
-
-      setMsg(null);
-
-      const { data: authData } = await supabase.auth.getUser();
-      const user = authData.user;
-
-      if (!user) {
-        router.push("/login");
-        return;
-      }
-
-      setEmail(user.email || "");
-      setNewEmail(user.email || "");
-
-      const [profileRes] = await Promise.all([
-        supabase
-          .from("profiles")
-          .select("full_name, phone, gender, dept_id, role, signature_url")
-          .eq("id", user.id)
-          .single(),
-        loadSecurityStatus(),
-      ]);
-
-      if (profileRes.error) {
-        setMsg("Failed to load profile: " + profileRes.error.message);
-        setLoading(false);
-        setRefreshing(false);
-        return;
-      }
-
-      const prof = profileRes.data;
-
-      setFullName(prof?.full_name || "");
-      setPhone(prof?.phone || "");
-      setGender(prof?.gender || "");
-      setRole(prof?.role || "Staff");
-
-      const savedSigPath = prof?.signature_url || null;
-      setSigPath(savedSigPath);
-      setSigPreview(getPublicSignatureUrl(savedSigPath));
-
-      // Profile photo (v3.0.1). Loaded separately so the page still works if
-      // database/20260930_v3_0_1_profile_avatar.sql has not been run yet.
-      const avatarRes = await supabase
-        .from("profiles")
-        .select("avatar_url")
-        .eq("id", user.id)
-        .maybeSingle();
-      if (avatarRes.error) {
-        setAvatarSupported(false);
-        setAvatarUrl(null);
-      } else {
-        setAvatarSupported(true);
-        setAvatarUrl(String((avatarRes.data as { avatar_url?: string | null } | null)?.avatar_url || "").trim() || null);
-      }
-
-      setDeptName("");
-
-      if (prof?.dept_id) {
-        const { data: dept, error: deptErr } = await supabase
-          .from("departments")
-          .select("id,name")
-          .eq("id", prof.dept_id)
-          .single();
-
-        if (deptErr) {
-          setDeptName("—");
-        } else if (dept) {
-          setDeptName((dept as Dept).name);
-        }
-      }
-
-      setLoading(false);
-      setRefreshing(false);
-    },
-    [router, loadSecurityStatus]
-  );
+/** My Account — mother page (v4.0.0). */
+export default function MyAccountHome() {
+  const me = useIdentity();
+  const { steps } = useSetupSteps();
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [dept, setDept] = useState<string>("");
+  const [positions, setPositions] = useState<string[]>([]);
+  const [systemAccount, setSystemAccount] = useState<string | null>(null);
+  const [devices, setDevices] = useState<number | null>(null);
 
   useEffect(() => {
-    queueMicrotask(() => { void load(); });
+    if (!me.ready || !me.userId) return;
+    let alive = true;
+    (async () => {
+      const [p, extra, sys, roles, keys] = await Promise.all([
+        supabase.from("profiles").select("full_name,email,phone,dept_id").eq("id", me.userId).maybeSingle(),
+        supabase.from("profiles").select("avatar_url,signature_url").eq("id", me.userId).maybeSingle(),
+        supabase.from("profiles").select("system_account").eq("id", me.userId).maybeSingle(),
+        getAvailableRoles(me.userId),
+        supabase.from("reqgen_webauthn_credentials").select("id", { count: "exact", head: true }).eq("user_id", me.userId),
+      ]);
+      if (!alive) return;
+      const row = { ...(p.data || {}), ...(extra.error ? {} : extra.data || {}) } as Profile;
+      setProfile(row);
+      const sa = sys.error ? null : ((sys.data as { system_account?: string | null } | null)?.system_account || null);
+      setSystemAccount(sa);
+      const seen = new Set<string>();
+      setPositions(roles.map((r) => positionName(r.key, r.name, sa)).filter((n) => { const k = normalizeRole(n); if (seen.has(k)) return false; seen.add(k); return true; }));
+      setDevices(keys.error ? null : keys.count ?? 0);
+      if (row.dept_id) {
+        const d = await supabase.from("departments").select("name").eq("id", row.dept_id).maybeSingle();
+        if (alive) setDept(String((d.data as { name?: string } | null)?.name || ""));
+      }
+    })();
+    return () => { alive = false; };
+  }, [me.ready, me.userId]);
 
-    const refreshOnFocus = () => {
-      load({ silent: true });
+  const done = steps ? steps.filter((s) => s.done).length : 0;
+  const total = steps?.length || 0;
+  const signatureMissing = !!profile && !profile.signature_url;
+  const name = profile?.full_name || me.name;
+  const initials = name.split(/\s+/).filter(Boolean).slice(0, 2).map((x) => x[0]?.toUpperCase()).join("") || "RG";
+
+  const tiles: TileItem[] = useMemo(() => ACCOUNT_MODULE.tiles.map((t) => {
+    const meta: Record<string, string | undefined> = {
+      "/profile/details": profile?.phone ? "Contact details saved" : "Add your phone number",
+      "/profile/details#signature": signatureMissing ? "Signature missing" : "Signature saved",
+      "/profile/security": devices === null ? "2FA on" : devices ? `${devices} fingerprint${devices === 1 ? "" : "s"}` : "Add your fingerprint",
+      "/profile/access": `${positions.length || 1} position${positions.length === 1 ? "" : "s"}`,
+      "/profile/setup": total ? `${done} of ${total} done` : undefined,
     };
-
-    const refreshOnVisible = () => {
-      if (document.visibilityState === "visible") {
-        load({ silent: true });
-      }
+    return {
+      ...t,
+      meta: meta[t.href],
+      badge: t.href === "/profile/details#signature" && signatureMissing ? <Chip tone="red">Needed</Chip> : undefined,
     };
-
-    window.addEventListener("focus", refreshOnFocus);
-    document.addEventListener("visibilitychange", refreshOnVisible);
-
-    return () => {
-      window.removeEventListener("focus", refreshOnFocus);
-      document.removeEventListener("visibilitychange", refreshOnVisible);
-    };
-  }, [load]);
-
-  async function saveProfile() {
-    setMsg(null);
-
-    if (!canSaveProfile) {
-      setMsg("✕ Please enter a valid full name and select gender.");
-      return;
-    }
-
-    const { data: authData } = await supabase.auth.getUser();
-    const user = authData.user;
-
-    if (!user) {
-      router.push("/login");
-      return;
-    }
-
-    setSavingProfile(true);
-
-    try {
-      const { error } = await supabase
-        .from("profiles")
-        .update({
-          full_name: fullName.trim(),
-          phone: phone.trim() || null,
-          gender,
-        })
-        .eq("id", user.id);
-
-      if (error) throw new Error(error.message);
-
-      setMsg("✓ Profile saved successfully.");
-      await load({ silent: true });
-      router.refresh();
-    } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : "Unknown error";
-      setMsg("✕ Save failed: " + message);
-    } finally {
-      setSavingProfile(false);
-    }
-  }
-
-  async function uploadSignature() {
-    setMsg(null);
-
-    if (!file) {
-      setMsg("✕ Please select a signature image first.");
-      return;
-    }
-
-    const allowedTypes = ["image/png", "image/jpeg", "image/jpg", "image/webp"];
-
-    if (!allowedTypes.includes(file.type)) {
-      setMsg("✕ Signature must be PNG, JPG, JPEG or WEBP.");
-      return;
-    }
-
-    if (file.size > 500 * 1024) {
-      setMsg("✕ Signature file too large (max 500KB).");
-      return;
-    }
-
-    const { data: authData } = await supabase.auth.getUser();
-    const user = authData.user;
-
-    if (!user) {
-      router.push("/login");
-      return;
-    }
-
-    try {
-      setUploadingSig(true);
-
-      // v3.1.5 Signature Ink Engine: store only the ink (transparent PNG,
-      // trimmed) so the signature prints cleanly on every document.
-      let uploadFile: File = file;
-      if (cleanSig) {
-        setMsg("Removing the paper background from your signature...");
-        uploadFile = (await cleanSignatureFile(file)).file;
-      }
-
-      const ext = (uploadFile.name.split(".").pop() || "jpg").toLowerCase();
-      const safeExt = ["png", "jpg", "jpeg", "webp"].includes(ext) ? ext : "jpg";
-      const path = `${user.id}/signature-${Date.now()}.${safeExt}`;
-
-      setMsg("Uploading signature...");
-      const { error: upErr } = await supabase.storage
-        .from("signatures")
-        .upload(path, uploadFile, {
-          upsert: false,
-          contentType: uploadFile.type || "image/jpeg",
-        });
-
-      if (upErr) throw new Error(upErr.message);
-
-      const { error: profErr } = await supabase
-        .from("profiles")
-        .update({ signature_url: path })
-        .eq("id", user.id);
-
-      if (profErr) throw new Error(profErr.message);
-
-      setSigPath(path);
-      setSigPreview(getPublicSignatureUrl(path));
-      setFile(null);
-      setMsg("✓ Signature saved successfully.");
-      window.dispatchEvent(new Event(SETUP_EVENT));
-
-      await load({ silent: true });
-      router.refresh();
-    } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : "Unknown error";
-      setMsg("✕ Signature upload failed: " + message);
-    } finally {
-      setUploadingSig(false);
-    }
-  }
-
-  async function saveAvatar(nextFile: File | null) {
-    setMsg(null);
-
-    const { data: authData } = await supabase.auth.getUser();
-    const user = authData.user;
-    if (!user) {
-      router.push("/login");
-      return;
-    }
-
-    let nextUrl: string | null = null;
-
-    if (nextFile) {
-      const ext = AVATAR_TYPES[nextFile.type];
-      if (!ext) {
-        setMsg("✕ Profile photo must be a PNG, JPG or WEBP image.");
-        return;
-      }
-      if (nextFile.size > AVATAR_MAX_BYTES) {
-        setMsg("✕ Profile photo is too large (maximum 1 MB).");
-        return;
-      }
-    }
-
-    setUploadingAvatar(true);
-    const previousPath = avatarObjectPath(avatarUrl);
-
-    try {
-      if (nextFile) {
-        const ext = AVATAR_TYPES[nextFile.type];
-        const path = `${user.id}/avatar-${Date.now()}.${ext}`;
-        const { error: upErr } = await supabase.storage
-          .from(AVATAR_BUCKET)
-          .upload(path, nextFile, { upsert: false, contentType: nextFile.type, cacheControl: "3600" });
-        if (upErr) throw new Error(upErr.message);
-        nextUrl = supabase.storage.from(AVATAR_BUCKET).getPublicUrl(path).data.publicUrl;
-      }
-
-      const { error: profErr } = await supabase
-        .from("profiles")
-        .update({ avatar_url: nextUrl })
-        .eq("id", user.id);
-      if (profErr) throw new Error(profErr.message);
-
-      if (previousPath) {
-        // Best effort: tidy up the replaced photo. Failure here is harmless.
-        await supabase.storage.from(AVATAR_BUCKET).remove([previousPath]);
-      }
-
-      setAvatarUrl(nextUrl);
-      setMsg(nextUrl ? "✓ Profile photo updated." : "✓ Profile photo removed.");
-      window.dispatchEvent(new Event("reqgen-profile-updated"));
-      window.dispatchEvent(new Event(SETUP_EVENT));
-    } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : "Unknown error";
-      setMsg("✕ Profile photo update failed: " + message);
-    } finally {
-      setUploadingAvatar(false);
-    }
-  }
-
-  async function changeEmail() {
-    setMsg(null);
-
-    const clean = newEmail.trim().toLowerCase();
-
-    if (!clean.includes("@")) {
-      setMsg("✕ Please enter a valid email.");
-      return;
-    }
-
-    if (clean === email.trim().toLowerCase()) {
-      setMsg("This is already your current email.");
-      return;
-    }
-
-    setSavingEmail(true);
-
-    try {
-      const { error } = await supabase.auth.updateUser({ email: clean });
-      if (error) throw new Error(error.message);
-
-      const { data: authData } = await supabase.auth.getUser();
-      const user = authData.user;
-
-      if (user) {
-        await supabase.from("profiles").update({ email: clean }).eq("id", user.id);
-      }
-
-      setMsg("✓ Email update started. Check email if confirmation is required.");
-      await load({ silent: true });
-      router.refresh();
-    } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : "Unknown error";
-      setMsg("✕ Email change failed: " + message);
-    } finally {
-      setSavingEmail(false);
-    }
-  }
-
-  function goDashboard() {
-    router.push(`/dashboard?updated=${Date.now()}`);
-    router.refresh();
-  }
-
-  function goMfaSetup() {
-    router.push(`/mfa/setup?updated=${Date.now()}`);
-    router.refresh();
-  }
-
-  function goMfaVerify() {
-    router.push(`/mfa?updated=${Date.now()}`);
-    router.refresh();
-  }
-
-  function goChangePassword() {
-    router.push(`/change-password?updated=${Date.now()}`);
-    router.refresh();
-  }
-
-  async function refreshSecurity() {
-    setRefreshing(true);
-    setMsg(null);
-
-    try {
-      await loadSecurityStatus();
-      setMsg("✓ Security status refreshed.");
-    } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : "Unknown error";
-      setMsg("✕ Failed to refresh security status: " + message);
-    } finally {
-      setRefreshing(false);
-    }
-  }
-
-  if (loading) {
-    return (
-      <main className="rg-profile-page">
-        <div className="rg-profile-loading">Loading profile...</div>
-      </main>
-    );
-  }
-
-  const profileInitials = fullName
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase())
-    .join("") || "RG";
-
-  const canonicalRole = displayRoleName(role);
+  }), [profile, signatureMissing, devices, positions.length, done, total]);
 
   return (
-    <main className="rg-profile-page">
-      <section className="rg-profile-hero" aria-labelledby="profile-page-title" data-guide="avatar" id="photo">
-        <div className="rg-profile-photo">
-          <div className={`rg-profile-avatar-large ${avatarUrl ? "has-photo" : ""}`}>
-            {avatarUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element -- user photo from Supabase Storage; avoids remote-host image config
-              <img src={avatarUrl} alt={`${fullName || "User"} profile photo`} width={88} height={88} />
-            ) : (
-              <span aria-hidden="true">{profileInitials}</span>
-            )}
-          </div>
-          {avatarSupported ? (
-            <div className="rg-profile-photo-actions">
-              <label className={`rg-profile-photo-btn ${busy ? "is-disabled" : ""}`}>
-                {uploadingAvatar ? "Saving..." : avatarUrl ? "Change photo" : "Add photo"}
-                <input
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp"
-                  disabled={busy}
-                  onChange={(event) => {
-                    const chosen = event.target.files?.[0] || null;
-                    event.target.value = "";
-                    if (chosen) void saveAvatar(chosen);
-                  }}
-                />
-              </label>
-              {avatarUrl ? (
-                <button type="button" className="rg-profile-photo-btn is-quiet" disabled={busy} onClick={() => void saveAvatar(null)}>
-                  Remove
-                </button>
-              ) : null}
-            </div>
-          ) : null}
-        </div>
-        <div className="rg-profile-identity">
-          <div className="rg-profile-title-line">
-            <h1 id="profile-page-title">{fullName || "My Profile"}</h1>
-            <span className="rg-profile-role-badge">{canonicalRole}</span>
-          </div>
-          <div className="rg-profile-meta">
-            <span>{email || "Email not available"}</span>
-            <span>Department: {deptName || "Not assigned"}</span>
-          </div>
-        </div>
-        <div className="rg-profile-hero-actions">
-          <button type="button" onClick={() => load({ silent: true })} disabled={busy} className="rg-action-button">
-            {refreshing ? "Refreshing..." : "Refresh"}
-          </button>
-        </div>
-      </section>
-
-      <ProfileNavigation />
-
-      {msg && <div className="rg-profile-message">{msg}</div>}
-
-      <section className="rg-profile-grid">
-        <article className="rg-profile-card rg-profile-card-wide">
-          <div className="rg-profile-card-head">
-            <div>
-              <h2>Personal Information</h2>
-              <p>Maintain your ReqGen identity and contact information.</p>
-            </div>
-            <button type="button" onClick={goDashboard} className="rg-action-button rg-action-secondary">Dashboard</button>
-          </div>
-
-          <div className="rg-profile-form-grid">
-            <label>Full Name
-              <input value={fullName} onChange={(e) => setFullName(e.target.value)} disabled={savingProfile} />
-            </label>
-            <label>Email Address
-              <input value={email || "—"} readOnly />
-            </label>
-            <label>Phone
-              <input value={phone} onChange={(e) => setPhone(e.target.value)} disabled={savingProfile} />
-            </label>
-            <label>Gender
-              <select value={gender} onChange={(e) => setGender(e.target.value)} disabled={savingProfile}>
-                <option value="">Select gender</option>
-                <option value="Male">Male</option>
-                <option value="Female">Female</option>
-              </select>
-            </label>
-            <label>Department
-              <input value={deptName || "—"} readOnly />
-            </label>
-            <label>Role
-              <input value={canonicalRole} readOnly />
-            </label>
-          </div>
-
-          <div className="rg-profile-card-actions">
-            <button type="button" onClick={saveProfile} disabled={!canSaveProfile || savingProfile} className="rg-primary-button">
-              {savingProfile ? "Saving..." : "Update Profile"}
-            </button>
-          </div>
-        </article>
-
-        <article className="rg-profile-card" data-guide="signature" id="signature">
-          <div className="rg-profile-card-head">
-            <div><h2>Institutional Signature</h2><p>Used for authorised request and approval actions.</p></div>
-          </div>
-          <div className={`rg-signature-preview${sigPreview ? " rg-sig-slot rg-sig-slot-profile" : ""}`}>
-            {sigPreview ? <SignatureInk src={sigPreview} alt="Saved signature" /> : <span>No signature uploaded</span>}
-          </div>
-          <label className="rg-profile-check">
-            <input type="checkbox" checked={cleanSig} onChange={(e) => setCleanSig(e.target.checked)} disabled={uploadingSig} />
-            <span>Remove the paper background automatically (recommended)</span>
-          </label>
-          <label className="rg-profile-file-label">Upload or replace signature
-            <input type="file" accept="image/png,image/jpeg,image/jpg,image/webp" disabled={uploadingSig} onChange={(e) => setFile(e.target.files?.[0] || null)} />
-          </label>
-          <button type="button" onClick={uploadSignature} disabled={uploadingSig || !file} className="rg-secondary-button">
-            {uploadingSig ? "Saving Signature..." : "Save Signature"}
-          </button>
-          {!sigPath ? <div className="rg-profile-warning">A saved signature is required for protected request and approval actions.</div> : null}
-        </article>
-
-        <article className="rg-profile-card">
-          <div className="rg-profile-card-head"><div><h2>Email & Password</h2><p>Securely maintain your sign-in credentials.</p></div></div>
-          <label>New Email Address
-            <input value={newEmail} onChange={(e) => setNewEmail(e.target.value)} disabled={savingEmail} />
-          </label>
-          <div className="rg-profile-card-actions rg-profile-stack-actions">
-            <button type="button" onClick={changeEmail} disabled={savingEmail} className="rg-secondary-button">{savingEmail ? "Updating Email..." : "Update Email"}</button>
-            <button type="button" onClick={goChangePassword} className="rg-primary-button">Change Password</button>
-          </div>
-        </article>
-
-        <article className="rg-profile-card rg-profile-card-wide">
-          <div className="rg-profile-card-head">
-            <div><h2>Security & 2FA Status</h2><p>Current authenticator and session assurance state.</p></div>
-            <span className={`rg-profile-security-badge ${isSessionMfaVerified ? "is-ok" : "is-action"}`}>
-              {isSessionMfaVerified ? "Secure Session" : "Action Required"}
-            </span>
-          </div>
-          <div className="rg-security-grid">
-            <SecurityLine label="2FA Setup" value={isMfaSetupComplete ? "Completed" : "Required"} ok={isMfaSetupComplete} />
-            <SecurityLine label="Current Session" value={isSessionMfaVerified ? "MFA Verified" : "Password Only"} ok={isSessionMfaVerified} />
-            <SecurityLine label="Assurance Level" value={`${security.currentLevel || "unknown"} → ${security.nextLevel || "unknown"}`} ok={isSessionMfaVerified} />
-            <SecurityLine label="Authenticator Factors" value={String(security.factorCount)} ok={security.factorCount > 0} />
-          </div>
-          <div className="rg-profile-card-actions">
-            {!isMfaSetupComplete ? <button type="button" onClick={goMfaSetup} className="rg-primary-button">Set Up 2FA</button> : null}
-            {isMfaSetupComplete && !isSessionMfaVerified ? <button type="button" onClick={goMfaVerify} className="rg-primary-button">Verify 2FA</button> : null}
-            <button type="button" onClick={refreshSecurity} disabled={refreshing} className="rg-secondary-button">{refreshing ? "Refreshing..." : "Refresh Security"}</button>
-          </div>
-        </article>
-      </section>
-    </main>
-  );
-}
-
-function SecurityLine({
-  label,
-  value,
-  ok,
-}: {
-  label: string;
-  value: string;
-  ok: boolean;
-}) {
-  return (
-    <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-            {label}
-          </div>
-          <div className="mt-1 text-sm font-bold text-slate-900">{value}</div>
-        </div>
-
-        <span
-          className={`shrink-0 rounded-full border px-3 py-1 text-xs font-bold ${securityBadgeClass(
-            ok
-          )}`}
-        >
-          {ok ? "OK" : "Action"}
+    <V4Page>
+      <section className="v4-card v4-hero">
+        <span className="v4-big-avatar" style={{ overflow: "hidden" }}>
+          {/* eslint-disable-next-line @next/next/no-img-element -- photo from Supabase Storage */}
+          {profile?.avatar_url ? <img src={profile.avatar_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : initials}
         </span>
-      </div>
-    </div>
+        <div>
+          <h2>{name || "My Account"}</h2>
+          <p>{[profile?.email || me.email, systemAccount === "superadmin" ? "The Trust's own account" : systemAccount === "developer" ? "Barderian Enterprises" : dept].filter(Boolean).join(" · ")}</p>
+          <div className="v4-chips">
+            {positions.map((p, i) => <Chip key={p} tone={i === 0 ? "brand" : p === "Staff" ? "grey" : "blue"}>{p}</Chip>)}
+          </div>
+        </div>
+        {total ? (
+          <div className="v4-done">
+            <Link className={`v4-chip ${done === total ? "v4-chip-green" : "v4-chip-amber"}`} href="/profile/setup" style={{ height: 30, fontSize: 13 }}>
+              {done === total ? "Account ready" : `${done} of ${total} setup steps done`}
+            </Link>
+          </div>
+        ) : null}
+      </section>
+      <Tiles items={tiles} label="My Account pages" />
+    </V4Page>
   );
 }

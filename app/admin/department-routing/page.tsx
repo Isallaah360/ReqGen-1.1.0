@@ -21,14 +21,14 @@ import {
  * (build_request_route). Changes apply to NEW requests; requests in progress
  * keep the route they started on.
  */
-type Dept = { id: string; name: string; is_active: boolean | null; hod_user_id: string | null; director_user_id: string | null; po_id: string | null };
+type Dept = { id: string; name: string; is_active: boolean | null; hod_user_id: string | null; director_user_id: string | null; pd_id: string | null };
 type Person = { id: string; full_name: string | null; email: string | null; role: string | null };
 type Tab = "departments" | "templates" | "officers";
 type Lane = { stage: EngineStage; if_vacant: IfVacant }[];
 
 const roleKey = (v: string | null | undefined) => String(v || "").trim().toLowerCase().replace(/[\s_-]+/g, "");
 const personName = (p?: Person | null) => p?.full_name?.trim() || p?.email?.trim() || "";
-const DEPT_COLUMN: Record<string, "director_user_id" | "hod_user_id" | "po_id"> = { DOD: "director_user_id", HOD: "hod_user_id", PO: "po_id" };
+const DEPT_COLUMN: Record<string, "director_user_id" | "hod_user_id" | "pd_id"> = { DOD: "director_user_id", HOD: "hod_user_id", PD: "pd_id" };
 
 export default function RoutingEnginePage() {
   const router = useRouter();
@@ -37,6 +37,8 @@ export default function RoutingEnginePage() {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
   const [depts, setDepts] = useState<Dept[]>([]);
+  // v4: departments.po_id is renamed pd_id by the v4.0.0 database step; both are read.
+  const [pdColumn, setPdColumn] = useState<"pd_id" | "po_id">("pd_id");
   const [people, setPeople] = useState<Person[]>([]);
   const [settings, setSettings] = useState<Record<string, string>>({});
   const [cfg, setCfg] = useState<EngineConfig | null>(null);
@@ -57,13 +59,19 @@ export default function RoutingEnginePage() {
     if (me.error || roleKey(me.data?.role) !== "admin") { router.replace("/unauthorized"); return; }
     try {
       const [deptRes, peopleRes, settingsRes, engine] = await Promise.all([
-        supabase.from("departments").select("id,name,is_active,hod_user_id,director_user_id,po_id").order("name"),
+        supabase.from("departments").select("*").order("name"),
         supabase.from("profiles").select("id,full_name,email,role").order("full_name"),
         supabase.from("app_settings").select("key,value").in("key", [...Object.values(GLOBAL_STAGE_SETTING), "GENSEC_USER_ID"] as string[]),
         loadEngineConfig(),
       ]);
       if (deptRes.error) throw new Error(deptRes.error.message);
-      setDepts((deptRes.data || []) as Dept[]);
+      const rawDepts = (deptRes.data || []) as Array<Record<string, unknown>>;
+      setPdColumn(rawDepts.length && !("pd_id" in rawDepts[0]) && "po_id" in rawDepts[0] ? "po_id" : "pd_id");
+      setDepts(rawDepts.map((d) => ({
+        id: String(d.id), name: String(d.name || ""), is_active: (d.is_active as boolean | null) ?? null,
+        hod_user_id: (d.hod_user_id as string | null) ?? null, director_user_id: (d.director_user_id as string | null) ?? null,
+        pd_id: ((d.pd_id ?? d.po_id) as string | null) ?? null,
+      })));
       setPeople((peopleRes.data || []) as Person[]);
       setSettings(Object.fromEntries(((settingsRes.data || []) as { key: string; value: string | null }[]).map((s) => [s.key, String(s.value || "")])));
       setCfg(engine);
@@ -87,7 +95,7 @@ export default function RoutingEnginePage() {
   const primaryFor = useCallback((dept: Dept, stage: EngineStage): string | null => {
     if (stage === "DOD") return dept.director_user_id;
     if (stage === "HOD") return dept.hod_user_id;
-    if (stage === "PO") return dept.po_id;
+    if (stage === "PD") return dept.pd_id;
     if (stage === "HR Filing") return settings.HR_USER_ID || null;
     const key = GLOBAL_STAGE_SETTING[stage];
     return key ? settings[key] || null : null;
@@ -143,7 +151,7 @@ export default function RoutingEnginePage() {
 
   const setPrimary = (dept: Dept, stage: EngineStage, userId: string) => run(`${STAGE_LABEL(stage)} updated for ${dept.name}.`, async () => {
     const col = DEPT_COLUMN[stage]; if (!col) return;
-    const { error } = await supabase.from("departments").update({ [col]: userId || null }).eq("id", dept.id);
+    const { error } = await supabase.from("departments").update({ [col === "pd_id" ? pdColumn : col]: userId || null }).eq("id", dept.id);
     if (error) throw new Error(error.message);
   });
 
@@ -172,7 +180,7 @@ export default function RoutingEnginePage() {
   const needsRouting = depts.filter((d) => vacanciesFor(d).length > 0).length;
   const officers = useMemo(() => {
     const ids = new Set<string>();
-    depts.forEach((d) => [d.director_user_id, d.hod_user_id, d.po_id].forEach((id) => id && ids.add(id)));
+    depts.forEach((d) => [d.director_user_id, d.hod_user_id, d.pd_id].forEach((id) => id && ids.add(id)));
     Object.values(GLOBAL_STAGE_SETTING).forEach((k) => k && settings[k] && ids.add(settings[k]));
     (cfg?.backups || []).forEach((b) => ids.add(b.user_id));
     return [...ids].map((id) => personById.get(id)).filter(Boolean).sort((a, b) => personName(a).localeCompare(personName(b))) as Person[];
@@ -188,7 +196,7 @@ export default function RoutingEnginePage() {
       <optgroup label="All staff">{rest.map((p) => <option key={p.id} value={p.id}>{nameWithRole(personName(p), p.role)}</option>)}</optgroup>
     </>);
   };
-  const PREFER: Record<string, string[]> = { DOD: ["director", "dod"], HOD: ["hod"], PO: ["po"], DG: ["generalsecretary", "gensec", "dg"], HR: ["hr", "hrofficer1", "hrofficer2"], Registrar: ["registrar"], "DIN Admin": ["dinadmin"] };
+  const PREFER: Record<string, string[]> = { DOD: ["director", "dod"], HOD: ["hod"], PD: ["pd", "po"], DG: ["generalsecretary", "gensec", "dg"], HR: ["hrcoordinator", "hrboss", "hr", "hrofficer1", "hrofficer2"], Registrar: ["registrar"], "DIN Admin": ["dinadmin"] };
 
   const officerChip = (id: string | null, covering = false) => {
     if (!id) return <span className="rg-route-unset">Not assigned</span>;

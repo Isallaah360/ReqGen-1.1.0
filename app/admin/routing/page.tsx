@@ -5,7 +5,7 @@ import { ArrowRight, CheckCircle2, Copy, Lock, RefreshCw, Route, Save, ShieldAle
 import { supabase } from "@/lib/supabaseClient";
 import { confirmDialog } from "@/lib/dialog";
 import { PageHeader } from "@/app/components/ui/PageHeader";
-import { GLOBAL_STAGE_SETTING, ROUTE_KIND_LABEL, ROUTE_KINDS, type RouteKind } from "@/lib/routingEngine";
+import { GLOBAL_STAGE_SETTING, ROUTE_KIND_LABEL, ROUTE_KINDS, type RouteKind, canonicalStage } from "@/lib/routingEngine";
 
 /**
  * ReqGen v3.1.11 — Admin → Routing Engine (one page).
@@ -24,13 +24,13 @@ type Lane = Record<ReviewStage, { on: boolean; ifVacant: "skip" | "block" }>;
 type ReviewStage = (typeof REVIEW)[number];
 type OfficerStage = (typeof OFFICER_STAGES)[number];
 
-const REVIEW = ["PO", "DOD", "HOD", "DIN Admin", "HR", "Registrar"] as const;
-const OFFICER_STAGES = ["PO", "DOD", "HOD", "DIN Admin", "HR", "Registrar", "DG"] as const;
+const REVIEW = ["PD", "DOD", "HOD", "DIN Admin", "HR", "Registrar"] as const;
+const OFFICER_STAGES = ["PD", "DOD", "HOD", "DIN Admin", "HR", "Registrar", "DG"] as const;
 const STAGE_TEXT: Record<string, string> = {
-  PO: "Programme Officer (PO)", DOD: "Director / DOD", HOD: "Head of Department (HOD)", "DIN Admin": "DIN Admin",
-  HR: "Human Resources (HR)", Registrar: "Registrar", DG: "Director General (DG)", Account: "Account Officer", "HR Filing": "HR Filing",
+  PD: "Program Director (PD)", DOD: "Director / DOD", HOD: "Head of Department (HOD)", "DIN Admin": "DIN Admin",
+  HR: "HR Coordinator", Registrar: "Registrar", DG: "Director General (DG)", Account: "Account Officer", "HR Filing": "HR Filing",
 };
-const DEPT_ONLY: OfficerStage[] = ["PO", "DOD", "HOD"];
+const DEPT_ONLY: OfficerStage[] = ["PD", "DOD", "HOD"];
 
 function emptyLane(): Lane {
   return Object.fromEntries(REVIEW.map((s) => [s, { on: false, ifVacant: "skip" as const }])) as Lane;
@@ -44,7 +44,7 @@ export default function RoutingEnginePage() {
   const [deptOfficers, setDeptOfficers] = useState<Array<{ dept_id: string; stage: string; user_id: string }>>([]);
   const [selected, setSelected] = useState<string>("");
   const [lanes, setLanes] = useState<Record<RouteKind, Lane>>({ official: emptyLane(), personal_fund: emptyLane(), personal_other: emptyLane() });
-  const [officers, setOfficers] = useState<Record<OfficerStage, string>>({ PO: "", DOD: "", HOD: "", "DIN Admin": "", HR: "", Registrar: "", DG: "" });
+  const [officers, setOfficers] = useState<Record<OfficerStage, string>>({ PD: "", DOD: "", HOD: "", "DIN Admin": "", HR: "", Registrar: "", DG: "" });
   const [dgVacant, setDgVacant] = useState<"skip" | "block">("block");
   const [dirty, setDirty] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -76,8 +76,9 @@ export default function RoutingEnginePage() {
     setDepts(((deptRes.data || []) as Dept[]).filter((d) => d.is_active !== false));
     setPeople((peopleRes.data || []) as Person[]);
     setGlobals(Object.fromEntries(((settingsRes.data || []) as Array<{ key: string; value: string | null }>).map((s) => [s.key, s.value || ""])));
-    setOverview((overviewRes.data || []) as OverviewRow[]);
-    setDeptOfficers((officerRes.data || []) as Array<{ dept_id: string; stage: string; user_id: string }>);
+    // v4: older rows say "PO"; the screen works with "PD".
+    setOverview(((overviewRes.data || []) as OverviewRow[]).map((r) => ({ ...r, stage: canonicalStage(r.stage) })));
+    setDeptOfficers(((officerRes.data || []) as Array<{ dept_id: string; stage: string; user_id: string }>).map((o) => ({ ...o, stage: canonicalStage(o.stage) })));
     setLoading(false);
   }, []);
 
@@ -93,7 +94,7 @@ export default function RoutingEnginePage() {
       if (r.stage === "DG") dg = r.if_vacant;
     }
     const own = Object.fromEntries(OFFICER_STAGES.map((s) => [s, deptOfficers.find((o) => o.dept_id === deptId && o.stage === s)?.user_id || ""])) as Record<OfficerStage, string>;
-    // PO / DOD / HOD set before v3.1.11 live on the department record: show the resolved owner.
+    // PD / DOD / HOD set before v3.1.11 live on the department record: show the resolved owner.
     for (const s of DEPT_ONLY) {
       if (!own[s]) own[s] = rows.find((r) => r.stage === s && r.owner_id)?.owner_id || "";
     }
