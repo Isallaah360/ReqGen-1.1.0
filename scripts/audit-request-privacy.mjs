@@ -16,9 +16,14 @@ const wildcard = clientFiles.filter((f) => /from\("requests"\)\s*\.select\("\*"\
 check("No page reads every column of requests/request_history", wildcard.length === 0, wildcard.join(", "));
 
 // 2. Oversight pages use the content-free registers.
-for (const f of ["app/components/registry/RegistryCentreWorkspace.tsx", "app/reports/centre/page.tsx", "app/reports/enterprise-analytics/page.tsx", "app/finance/overview/page.tsx", "app/audit-centre/logs/page.tsx"]) {
+for (const f of ["app/components/registry/RegistryCentreWorkspace.tsx", "app/finance/overview/page.tsx"]) {
   check(`${f} uses the content-free register`, /fetchRequest(Register|Movements)\(/.test(read(f)));
 }
+// v4.5: the Audit Log reads reqgen_audit_events (who, what, which number, when) and never the requests table.
+check("app/audit-centre/logs/page.tsx uses the content-free audit events", read("app/audit-centre/logs/page.tsx").includes('rpc("reqgen_audit_events"') && !/from\("(requests|request_history)"\)/.test(read("app/audit-centre/logs/page.tsx")));
+// v4.4: report pages never read requests directly; the database scopes them (titles only for your own).
+const reportPages = fs.readdirSync("app/reports", { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => `app/reports/${d.name}/page.tsx`).filter((f) => fs.existsSync(f));
+for (const f of reportPages) check(`${f} reads no request contents directly`, !/from\("(requests|request_history)"\)/.test(read(f)));
 
 // 3. Every page that shows full request content is behind the access gate.
 for (const f of ["app/requests/[id]/page.tsx", "app/requests/[id]/edit/page.tsx", "app/requests/[id]/print/page.tsx", "app/finance/request/[id]/page.tsx"]) {

@@ -24,7 +24,7 @@ check("In-app DialogHost is mounted in the root layout", read("app/layout.tsx").
 check("Dialog service exists (lib/dialog.ts)", exists("lib/dialog.ts") && read("lib/dialog.ts").includes("export async function confirmDialog"));
 
 // 2. Signatures always go through the Signature Ink Engine.
-const sigPages = ["app/requests/[id]/print/page.tsx", "app/payment-vouchers/[id]/print/page.tsx", "app/profile/details/page.tsx"];
+const sigPages = ["app/requests/[id]/print/page.tsx", "app/payment-vouchers/[id]/print/VoucherPrintView.tsx", "app/profile/details/page.tsx"];
 for (const f of sigPages) {
   const text = read(f);
   check(`${f}: signatures use <SignatureInk> inside .rg-sig-slot`, text.includes("<SignatureInk") && text.includes("rg-sig-slot"));

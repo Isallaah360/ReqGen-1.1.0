@@ -1,75 +1,113 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { Download, Printer, RefreshCw } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import { fetchRequestRegister } from "@/lib/requestRegister";
-import { getCurrentAuthContext } from "@/lib/auth";
-import { hasAnyRole, REPORT_ACCESS_ROLES } from "@/lib/roles";
-import { AnyRow, Department, canonicalBalance, daysOld, downloadCsv, isOpenVoucher, isRequestCompleted, isRequestRejected, money, numberValue, outflowValue, text, yearOf } from "@/app/components/reports/section7Data";
-import styles from "../reports.module.css";
+import { SUBHEAD_COLUMNS, num, subheadLabel, subheadUsed, utilisation, type Subhead } from "@/lib/v4/finance";
+import { addMonths, fyLabel, fyOfMonth, last12, loadTier, loadTransactions, monthName, monthOf, monthRange, nairaShort, pct, scopeLabel, thisMonth, type Tier, type TxRow } from "@/lib/v4/reports";
+import { downloadXlsx } from "@/lib/v4/xlsx";
+import { useIdentity } from "@/app/components/v4/useIdentity";
+import { BarChart, Pace } from "@/app/components/v4/Charts";
+import { Btn, Notice, PageHead, Skeleton, V4Page } from "@/app/components/v4/ui";
+import Icon from "@/app/components/v4/Icon";
 
-type Data = { requests: AnyRow[]; departments: Department[]; subheads: AnyRow[]; transactions: AnyRow[]; vouchers: AnyRow[]; accounts: AnyRow[]; registry: AnyRow[] };
-const EMPTY: Data = { requests: [], departments: [], subheads: [], transactions: [], vouchers: [], accounts: [], registry: [] };
+type Exception = { tone: "red" | "amber"; title: string; detail: string; link: string; at: string };
 
-function Question({ no, q, value, note }: { no:number; q:string; value:string; note:string }) { return <article className={styles.question}><div className={styles.questionNo}>{no}</div><div className={styles.questionText}>{q}</div><div className={styles.questionValue}>{value}</div><div className={styles.questionNote}>{note}</div></article>; }
-
+/** Reports › Executive Analytics (mock-up 64): budget pace, subheads at risk and exceptions. */
 export default function ExecutiveAnalyticsPage() {
-  const router = useRouter(); const currentYear = new Date().getFullYear();
-  const [data, setData] = useState<Data>(EMPTY); const [loading, setLoading] = useState(true); const [refreshing, setRefreshing] = useState(false); const [issue, setIssue] = useState<string | null>(null); const [year, setYear] = useState(currentYear); const [compareYear, setCompareYear] = useState(currentYear - 1); const [chartDetail, setChartDetail] = useState("Select a chart row to display its exact live value.");
-  const load = useCallback(async (silent=false) => {
-    if (silent) setRefreshing(true); else setLoading(true);
-    setIssue(null);
-    try {
-      const auth = await getCurrentAuthContext(); if (!auth) { router.replace("/login?next=%2Freports%2Fenterprise-analytics"); return; }
-      if (!hasAnyRole(auth.roleSet, [...REPORT_ACCESS_ROLES])) { router.replace("/unauthorized?from=%2Freports%2Fenterprise-analytics"); return; }
-      const [rq, dp, sh, tx, pv, ac, rg] = await Promise.all([
-        fetchRequestRegister(5000).then((r)=>({data:r.data as unknown as AnyRow[],error:r.error?{message:r.error}:null})), supabase.from("departments").select("id,name").order("name").limit(1000),
-        supabase.from("subheads").select("*").order("code").limit(5000), supabase.from("finance_transactions").select("*").order("transaction_date",{ascending:false}).limit(5000),
-        supabase.from("payment_vouchers").select("*").order("created_at",{ascending:false}).limit(5000), supabase.from("iet_accounts").select("*").order("name").limit(1000),
-        supabase.from("registry_correspondence").select("*").order("created_at",{ascending:false}).limit(5000),
-      ]);
-      const errors=[rq.error,dp.error,sh.error,tx.error,pv.error,ac.error,rg.error].filter(Boolean).map(e=>e?.message).filter(Boolean);
-      setData({requests:(rq.data||[]) as AnyRow[],departments:(dp.data||[]) as Department[],subheads:(sh.data||[]) as AnyRow[],transactions:(tx.data||[]) as AnyRow[],vouchers:(pv.data||[]) as AnyRow[],accounts:(ac.data||[]) as AnyRow[],registry:(rg.data||[]) as AnyRow[]});
-      if(errors.length)setIssue(`Some authorised analytics sources could not be loaded: ${errors.join(" | ")}`);
-    } finally { setLoading(false); setRefreshing(false); }
-  },[router]); useEffect(()=>{queueMicrotask(()=>{void load();});},[load]);
+  const me = useIdentity();
+  const month = thisMonth();
+  const fy = fyOfMonth(month);
+  const [tier, setTier] = useState<Tier | null>(null);
+  const [subs, setSubs] = useState<Subhead[] | null>(null);
+  const [tx, setTx] = useState<TxRow[]>([]);
+  const [ex, setEx] = useState<Exception[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
-  const years=useMemo(()=>{const ys=new Set<number>([currentYear,currentYear-1]); data.transactions.forEach(r=>{const y=yearOf(r);if(y)ys.add(y)}); data.requests.forEach(r=>{const y=yearOf(r);if(y)ys.add(y)}); data.vouchers.forEach(r=>{const y=yearOf(r);if(y)ys.add(y)}); return Array.from(ys).sort((a,b)=>b-a);},[data,currentYear]);
-  const deptName=useMemo(()=>new Map(data.departments.map(d=>[d.id,d.name])),[data.departments]);
-  const allocation=data.subheads.reduce((s,r)=>s+numberValue(r.approved_allocation),0), reserved=data.subheads.reduce((s,r)=>s+numberValue(r.reserved_amount),0), expenditure=data.subheads.reduce((s,r)=>s+numberValue(r.expenditure),0), available=data.subheads.reduce((s,r)=>s+canonicalBalance(r),0);
-  const utilisation=allocation>0?expenditure/allocation*100:0;
-  const currentTx=data.transactions.filter(r=>yearOf(r)===year); const compareTx=data.transactions.filter(r=>yearOf(r)===compareYear); const ytdSpend=currentTx.reduce((s,r)=>s+outflowValue(r),0); const compareSpend=compareTx.reduce((s,r)=>s+outflowValue(r),0); const trendPct=compareSpend>0?(ytdSpend-compareSpend)/compareSpend*100:null;
-  const deptSpend=useMemo(()=>data.departments.map(d=>{const sub=data.subheads.filter(s=>text(s.dept_id)===d.id);return{name:d.name,allocation:sub.reduce((a,r)=>a+numberValue(r.approved_allocation),0),spend:sub.reduce((a,r)=>a+numberValue(r.expenditure),0)}}).sort((a,b)=>b.spend-a.spend),[data.departments,data.subheads]);
-  const topDept=deptSpend[0]??{name:"No data",allocation:0,spend:0}; const maxDept=Math.max(1,...deptSpend.map(d=>d.spend));
-  const risks: Array<AnyRow & { util: number }> = data.subheads.map((r): AnyRow & { util: number } => ({...r, util:numberValue(r.approved_allocation)>0?numberValue(r.expenditure)/numberValue(r.approved_allocation)*100:0})).filter(r=>r.util>=85).sort((a,b)=>b.util-a.util);
-  const pending=data.requests.filter(r=>!isRequestCompleted(r)&&!isRequestRejected(r)); const ageing=pending.filter(r=>(daysOld(r.created_at)??0)>7); const openPvs=data.vouchers.filter(isOpenVoucher); const oldPvs=openPvs.filter(r=>(daysOld(r.created_at)??0)>7); const overdueRegistry=data.registry.filter(r=>/dispatch|await|pending/i.test(text(r.status))&&(daysOld(r.updated_at??r.created_at)??0)>3);
-  const cash=data.accounts.filter(r=>r.is_active!==false).reduce((s,r)=>s+numberValue(r.available_balance),0);
-  const avgApprovalDays=(()=>{const completed=data.requests.filter(isRequestCompleted).map(r=>daysOld(r.created_at)).filter((x):x is number=>x!==null);return completed.length?completed.reduce((a,b)=>a+b,0)/completed.length:null;})();
-  const alerts=[{text:`${risks.filter(r=>r.util>=95).length} subheads ≥95% utilisation`,critical:true},{text:`${deptSpend.filter(d=>d.allocation>0&&d.spend/d.allocation>=.85).length} departments ≥85% budget`,critical:false},{text:`${ageing.length} pending requests >7 days`,critical:false},{text:`${oldPvs.length} payment vouchers >7 days`,critical:true},{text:`${overdueRegistry.length} registry items overdue dispatch`,critical:false}];
-  const monthly=Array.from({length:12},(_,m)=>({month:new Date(year,m,1).toLocaleString("en",{month:"short"}),value:currentTx.filter(r=>{const d=new Date(String(r.transaction_date??r.created_at));return !Number.isNaN(d.getTime())&&d.getMonth()===m;}).reduce((s,r)=>s+outflowValue(r),0)})); const maxMonth=Math.max(1,...monthly.map(m=>m.value));
+  useEffect(() => {
+    if (!me.ready) return;
+    let alive = true;
+    queueMicrotask(() => {
+      void loadTier(me.role).then((t) => { if (alive) setTier(t); });
+      void Promise.all([
+        supabase.from("subheads").select(SUBHEAD_COLUMNS).eq("is_active", true),
+        loadTransactions(monthRange(addMonths(month, -11)).from, monthRange(month).to),
+        supabase.rpc("reqgen_report_exceptions"),
+      ]).then(([s, t, e]) => {
+        if (!alive) return;
+        setError(s.error?.message || e.error?.message || t.error || null);
+        setSubs((s.data || []) as Subhead[]);
+        setTx(t.rows);
+        setEx(((e.data || []) as Exception[]).sort((a, b) => (a.tone === b.tone ? String(b.at).localeCompare(String(a.at)) : a.tone === "red" ? -1 : 1)));
+      });
+    });
+    return () => { alive = false; };
+  }, [me.ready, me.role, month]);
 
-  function exportAnalytics(){downloadCsv(`reqgen-executive-analytics-${year}.csv`,[["Metric","Value"],["Approved Allocation",allocation],["Reserved",reserved],["Expenditure",expenditure],["Available Balance",available],["YTD Transaction Outflow",ytdSpend],["Cash Position",cash],["Pending Requests >7 Days",ageing.length],["PV >7 Days",oldPvs.length],["Registry Dispatch Exceptions",overdueRegistry.length],...deptSpend.map(d=>[`Department: ${d.name}`,d.spend])]);}
-  if(loading)return <div className={styles.page}><div className={styles.loading}>Loading authorised executive analytics…</div></div>;
-  return <main className={styles.page} data-rg-standard="phase7">
-    <header className={styles.head}><div><div className={styles.eyebrow}>Reports</div><h1 className={styles.title}>Executive Analytics</h1><p className={styles.subtitle}>Strategic analytics for Admin and Auditor decision-support reporting. DG has no system access; authorised reports may be printed for management.</p></div><div className={styles.actions}><select className={styles.select} value={year} onChange={e=>setYear(Number(e.target.value))}>{years.map(y=><option key={y} value={y}>FY {y}</option>)}</select><select className={styles.select} value={compareYear} onChange={e=>setCompareYear(Number(e.target.value))}>{years.filter(y=>y!==year).map(y=><option key={y} value={y}>Compare FY {y}</option>)}</select><button className={styles.button} onClick={()=>void load(true)}><RefreshCw size={14}/>{refreshing?"Refreshing…":"Refresh"}</button><button className={styles.button} onClick={exportAnalytics}><Download size={14}/>Export</button><button className={styles.primary} onClick={()=>window.print()}><Printer size={14}/>Print / PDF</button></div></header>
-    {issue?<div className={`${styles.notice} ${styles.error}`}>{issue}</div>:null}
-    <section className={styles.questionGrid}>
-      <Question no={1} q="Are we spending within approved budget?" value={`${utilisation.toFixed(1)}%`} note={`${money(expenditure)} of ${money(allocation)}`}/>
-      <Question no={2} q="Which department is spending the most?" value={topDept.name} note={`${money(topDept.spend)} spent`}/>
-      <Question no={3} q="Which subheads are under greatest pressure?" value={`${risks.length} Subheads`} note="At or above 85% utilisation"/>
-      <Question no={4} q="How is expenditure trending over time?" value={money(ytdSpend)} note={trendPct===null?`No comparable FY ${compareYear} outflow data`:`${trendPct>=0?"+":""}${trendPct.toFixed(1)}% vs FY ${compareYear}`}/>
-      <Question no={5} q="Where are requests & approvals slowing down?" value={avgApprovalDays===null?"No data":`${avgApprovalDays.toFixed(1)} Days`} note={`${ageing.length} open requests older than 7 days`}/>
-      <Question no={6} q="What are our current bank account positions?" value={money(cash)} note={`${data.accounts.filter(r=>r.is_active!==false).length} active IET accounts`}/>
-      <Question no={7} q="What exceptions need management action?" value={String(alerts.reduce((s,a)=>s+Number(a.text.split(" ")[0]||0),0))} note="Operational exception indicators"/>
-    </section>
-    <section className={styles.analyticsGrid}>
-      <article className={styles.card}><h2 className={styles.cardTitle}>Expenditure Trend · FY {year}</h2><div className={styles.bars}>{monthly.map(m=><button type="button" className={styles.barRow} key={m.month} title={`${m.month}: ${money(m.value)}`} onClick={()=>setChartDetail(`${m.month}: ${money(m.value)} expenditure in FY ${year}`)}><span className={styles.barLabel}>{m.month}</span><span className={styles.barTrack}><i className={styles.barFill} style={{width:`${m.value/maxMonth*100}%`}}/></span><strong className={styles.barValue}>{money(m.value)}</strong></button>)}</div><div className={styles.notice} style={{marginTop:12,marginBottom:0}}>Trend uses actual classified outflows from <strong>finance_transactions</strong>. No synthetic months are drawn.</div></article>
-      <article className={styles.card}><h2 className={styles.cardTitle}>Expenditure by Department</h2><div className={styles.bars}>{deptSpend.map(d=><button type="button" className={styles.barRow} key={d.name} title={`${d.name}: ${money(d.spend)}`} onClick={()=>setChartDetail(`${d.name}: ${money(d.spend)} expenditure · ${money(d.allocation)} approved allocation`)}><span className={styles.barLabel}>{d.name}</span><span className={styles.barTrack}><i className={styles.barFill} style={{width:`${d.spend/maxDept*100}%`}}/></span><strong className={styles.barValue}>{money(d.spend)}</strong></button>)}</div>{!deptSpend.length?<div className={styles.empty}>No departments are available.</div>:null}</article>
-      <article className={styles.card}><h2 className={styles.cardTitle}>Subheads at Risk · ≥85% Utilisation</h2><div className={styles.tableWrap}><table className={styles.table}><thead><tr><th>Subhead</th><th>Department</th><th>Approved</th><th>Expenditure</th><th>Available</th><th>Utilisation</th></tr></thead><tbody>{risks.length?risks.map(r=><tr key={text(r.id)}><td className={styles.strong}>{text(r.code)} · {text(r.name)}</td><td>{deptName.get(text(r.dept_id))||"—"}</td><td>{money(r.approved_allocation)}</td><td>{money(r.expenditure)}</td><td>{money(canonicalBalance(r))}</td><td className={r.util>=95?styles.risk:styles.warning}>{r.util.toFixed(1)}%</td></tr>):<tr><td colSpan={6} className={styles.empty}>No subheads are at or above the 85% threshold.</td></tr>}</tbody></table></div></article>
-    </section>
-    <div className={styles.notice} role="status" aria-live="polite">{chartDetail}</div>
-    <article className={styles.card}><h2 className={styles.cardTitle}>Exception Alerts</h2><div className={styles.alerts}>{alerts.map((a,i)=><span key={i} className={`${styles.alert} ${a.critical?styles.alertCritical:""}`}>{a.text}</span>)}</div><div className={styles.summaryRow}><span>Approved Allocation</span><strong>{money(allocation)}</strong></div><div className={styles.summaryRow}><span>Reserved</span><strong>{money(reserved)}</strong></div><div className={styles.summaryRow}><span>Recognised Expenditure</span><strong>{money(expenditure)}</strong></div><div className={styles.summaryRow}><span>Available Balance</span><strong>{money(available)}</strong></div></article>
-  </main>;
+  const alloc = (subs || []).reduce((t, s) => t + num(s.approved_allocation), 0);
+  const spent = (subs || []).reduce((t, s) => t + num(s.expenditure), 0);
+  const used = pct(spent, alloc);
+  const monthsGone = ((Number(month.slice(5, 7)) - 9 + 12) % 12) + 1;
+  const expected = Math.round((monthsGone / 12) * 100);
+  const risk = useMemo(() => (subs || []).filter((s) => num(s.approved_allocation) > 0 && utilisation(s) >= 80).sort((a, b) => utilisation(b) - utilisation(a)).slice(0, 6), [subs]);
+  const trend = last12(month).map((m) => ({ label: monthName(m, true), month: m, value: tx.filter((r) => r.kind === "out" && monthOf(r.at) === m).reduce((t, r) => t + r.amount, 0) }));
+  const ahead = used > expected + 5;
+
+  function exportXlsx() {
+    downloadXlsx(`Executive_Analytics_${month}`, [
+      { name: "Budget", title: `Budget used — FY ${fyLabel(fy)}`, rows: [{ Allocation: alloc, Spent: spent, "Used %": used, "Expected by now %": expected }] },
+      { name: "Subheads at risk", title: "Subheads at 80% or more", rows: risk.map((s) => ({ Subhead: subheadLabel(s), Allocation: num(s.approved_allocation), "Spent and reserved": subheadUsed(s), "Used %": utilisation(s) })) },
+      { name: "Spending trend", title: "Money out per month", rows: trend.map((t) => ({ Month: monthName(t.month), "Money out": t.value })) },
+      { name: "Exceptions", title: "Things outside the normal path", rows: ex.map((e) => ({ Level: e.tone === "red" ? "Act now" : "Check", What: e.title, Details: e.detail })) },
+    ]);
+  }
+
+  return (
+    <V4Page>
+      <PageHead title="Executive Analytics" sub="Budget pace, subheads at risk and things that need attention — on one page." scope={tier ? scopeLabel(tier, me.roleName).replace("all departments", "whole Trust") : undefined}
+        actions={[
+          { label: "Export Excel", icon: "download", kind: "secondary", onClick: exportXlsx, disabled: !subs },
+          { label: "Print A4", icon: "printer", kind: "secondary", href: `/reports/print?report=monthly&month=${month}` },
+        ]} />
+      {error ? <Notice tone="red">{error}</Notice> : null}
+      {subs === null ? <Skeleton lines={8} /> : (
+        <>
+          <div className="v4-grid-2">
+            <section className="v4-card v4-card-pad">
+              <h2 className="v4-h2">Budget used</h2><p className="v4-help" style={{ margin: "4px 0 14px" }}>FY {fyLabel(fy)} · {monthsGone} of 12 month{monthsGone === 1 ? "" : "s"} gone</p>
+              <div className="v4-hero-n"><span className="v4-big">{used}%</span><span className="v4-cmp">{nairaShort(spent)} of {nairaShort(alloc)} · expected by now about <b>{expected}%</b></span></div>
+              <Pace used={used} expected={expected} />
+              <Notice tone={ahead ? "amber" : "green"}>{ahead ? `Spending is ahead of pace${risk.length ? `, mostly ${[...new Set(risk.slice(0, 2).map((s) => s.name))].join(" and ")}` : ""}.` : "Spending is on or below pace for the year."}</Notice>
+            </section>
+            <section className="v4-card v4-card-pad">
+              <h2 className="v4-h2" style={{ marginBottom: 14 }}>Subheads at risk</h2>
+              {risk.length ? (
+                <ul className="v4-util">
+                  {risk.map((s) => {
+                    const p = utilisation(s);
+                    return <li key={s.id}><strong>{subheadLabel(s)}</strong><span className="v4-v">{nairaShort(subheadUsed(s))} of {nairaShort(num(s.approved_allocation))} · {p}%</span><span className="v4-bar"><span className={p >= 90 ? "v4-risk" : "v4-warn"} style={{ width: `${Math.min(100, p)}%` }} /></span></li>;
+                  })}
+                </ul>
+              ) : <p className="v4-muted" style={{ margin: 0 }}>No subhead is at 80% or more.</p>}
+            </section>
+          </div>
+          <section className="v4-card v4-card-pad">
+            <h2 className="v4-h2">Spending trend</h2><p className="v4-help" style={{ margin: "4px 0 14px" }}>Money out per month (vouchers paid), last 12 months.</p>
+            <BarChart data={trend} now={11} fmt={nairaShort} label="Money out per month" />
+          </section>
+          <section className="v4-card">
+            <div className="v4-card-head"><h2 className="v4-h2">Exceptions</h2><span className="v4-help">Things outside the normal path</span></div>
+            {ex.length ? (
+              <ul className="v4-rows">
+                {ex.map((e, i) => (
+                  <li key={`${e.title}-${i}`}><span className={`v4-ri v4-t-${e.tone}`}><Icon name={e.tone === "red" ? "alert" : "info"} /></span>
+                    <span className="v4-rt"><strong>{e.title}</strong><span>{e.detail}</span></span>
+                    <span className="v4-rr">{e.link ? <Btn small a={{ href: e.link, label: "Open", kind: "secondary" }} /> : null}</span></li>
+                ))}
+              </ul>
+            ) : <p className="v4-muted" style={{ padding: "16px 20px", margin: 0 }}>Nothing outside the normal path.</p>}
+          </section>
+        </>
+      )}
+    </V4Page>
+  );
 }

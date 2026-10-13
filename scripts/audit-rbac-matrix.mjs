@@ -86,16 +86,25 @@ const EVERYONE = ROLES;
 
 // Longest matching prefix wins, exactly like the real policy engine.
 const EXPECTED = [
-  { prefix: "/admin/security", allow: ["admin", "auditor"] },
   { prefix: "/admin", allow: ["admin"] },
+  { prefix: "/audit-centre/reconciliation", allow: ["admin", "auditor", "accountofficer"] }, // v4.5 mock-up 77
   { prefix: "/audit-centre", allow: ["admin", "auditor"] },
-  { prefix: "/workflow", allow: ["admin", "auditor"] }, // redirect-only stub
-  { prefix: "/reports", allow: ["admin", "auditor"] }, // DG has no access (Roadmap)
+  { prefix: "/workflow", allow: ["admin", "auditor"] }, // v4.5 Workflow Trace (mock-up 76)
+  // v4.4 (mock-up 57): Reports for everyone, scoped by the database; some reports for some positions only
+  { prefix: "/reports/compliance", allow: ["admin", "auditor"] },
+  { prefix: "/reports/registry", allow: ["admin", "auditor", "registry", "registrar"] },
+  { prefix: "/reports/enterprise-analytics", allow: ["admin", "auditor", "dg", "generalsecretary"] },
+  { prefix: "/reports/finance-statements", allow: ["admin", "auditor", "accountofficer", "dg", "generalsecretary"] },
+  { prefix: "/reports/vouchers", allow: ["admin", "auditor", "accountofficer", "dg", "generalsecretary"] },
+  { prefix: "/reports/print", allow: ["admin", "auditor", "accountofficer", "dg", "generalsecretary"] },
+  { prefix: "/reports", allow: EVERYONE },
   { prefix: "/output", allow: ["admin", "auditor"] },
   { prefix: "/test-supabase", allow: ["admin"] },
+  { prefix: "/finance/account-transfers", allow: ["admin", "auditor", "accountofficer", "dg", "generalsecretary"] }, // v4.2: the DG approves and stamps transfers (mock-up 44)
   { prefix: "/finance", allow: ["admin", "auditor", "accountofficer"] }, // PV signing must NOT grant Finance
   { prefix: "/payment-vouchers/settings", allow: ["admin", "auditor"] },
   { prefix: "/payment-vouchers", allow: ["admin", "auditor", "accountofficer", "pvsigner", "pvcountersigner"] },
+  { prefix: "/registry/tracking", allow: ["admin", "auditor", "registrar", "accountofficer", "dg", "generalsecretary"] }, // v4.5 mock-up 69
   { prefix: "/registry", allow: ["admin", "auditor", "registrar"] },
   { prefix: "/dashboard", allow: EVERYONE },
   { prefix: "/requests", allow: EVERYONE },

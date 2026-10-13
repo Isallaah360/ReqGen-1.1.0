@@ -28,12 +28,15 @@ export const ROUTE_POLICIES: RoutePolicy[] = [
   { prefix: "/admin/settings", roles: ["admin"] },
   { prefix: "/admin/users", roles: ["admin"] },
   { prefix: "/admin/roles", roles: ["admin"] },
-  { prefix: "/admin/security", roles: ["admin", "auditor"] },
   { prefix: "/admin", roles: ["admin"] },
 
+  // v4.5: Finance Reconciliation is done by the Account Officer and checked by the Auditor (mock-up 77)
+  { prefix: "/audit-centre/reconciliation", roles: ["admin", "auditor", "account", "accounts", "accountofficer"] },
   { prefix: "/audit-centre", roles: ["admin", "auditor"] },
   { prefix: "/workflow", roles: ["admin", "auditor"] },
   { prefix: "/payment-vouchers/settings", roles: ["admin", "auditor"] },
+  // v4.2: the Director General (or the General Secretary acting) approves and stamps transfers
+  { prefix: "/finance/account-transfers", roles: ["admin", "auditor", "account", "accounts", "accountofficer", "dg", "directorgeneral", "generalsecretary"] },
 
   {
     prefix: "/payment-vouchers",
@@ -57,8 +60,19 @@ export const ROUTE_POLICIES: RoutePolicy[] = [
       "accountofficer",
     ],
   },
+  // v4.5: Request Tracking is shared with Finance and the DG's office (reqgen_registry_tracking decides the same)
+  { prefix: "/registry/tracking", roles: ["admin", "auditor", "registry", "registrar", "account", "accounts", "accountofficer", "dg", "directorgeneral", "generalsecretary"] },
   { prefix: "/registry", roles: ["admin", "auditor", "registry", "registrar"] },
-  { prefix: "/reports", roles: ["admin", "auditor"] },
+  // v4.4 Reports (mock-up 57): every person has Reports; each report shows only what they may see
+  // (the database decides the scope — reqgen_report_tier). Some reports are for some positions only.
+  { prefix: "/reports/compliance", roles: ["admin", "auditor"] },
+  { prefix: "/reports/registry", roles: ["admin", "auditor", "registry", "registrar"] },
+  { prefix: "/reports/enterprise-analytics", roles: ["admin", "auditor", "dg", "directorgeneral", "generalsecretary"] },
+  { prefix: "/reports/finance-statements", roles: ["admin", "auditor", "account", "accounts", "accountofficer", "dg", "directorgeneral", "generalsecretary"] },
+  { prefix: "/reports/vouchers", roles: ["admin", "auditor", "account", "accounts", "accountofficer", "dg", "directorgeneral", "generalsecretary"] },
+  // v4.6: the A4 monthly finance report shows subhead allocations — Finance, the DG's office, Auditor, Super Admin only
+  { prefix: "/reports/print", roles: ["admin", "auditor", "account", "accounts", "accountofficer", "dg", "directorgeneral", "generalsecretary"] },
+  { prefix: "/reports", authenticatedOnly: true },
 
   { prefix: "/test-supabase", roles: ["admin"] },
   { prefix: "/change-password", authenticatedOnly: true },

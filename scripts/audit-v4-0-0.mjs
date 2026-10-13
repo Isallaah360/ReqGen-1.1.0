@@ -37,7 +37,9 @@ check("IET tab icon, app icon and phone icon", exists("app/favicon.ico") && exis
 check("Installable app details use IET name and colour", read("app/manifest.ts").includes("#B83E00") && read("app/manifest.ts").includes("Islamic Education Trust"));
 check("Browser colour is IET orange", layout.includes('color: "#B83E00"') && !layout.includes("#0b2d57"));
 // The Developer system account belongs to Barderian Enterprises, so My Account may name it.
-const barderianAllowed = new Set(["app/components/PublicAuthShell.tsx", "app/components/v4/AppFrame.tsx", "app/about/page.tsx", "app/docs/page.tsx", "app/profile/page.tsx"]);
+const barderianAllowed = new Set(["app/components/PublicAuthShell.tsx", "app/components/v4/AppFrame.tsx", "app/about/page.tsx", "app/docs/page.tsx", "app/profile/page.tsx",
+  // v4.6: the approved mock-ups name the Developer account (80) and the release (88)
+  "app/admin/system-accounts/page.tsx", "app/admin/system-health/page.tsx"]);
 const barderianLeaks = appFiles.filter((f) => /\.tsx$/.test(f) && /Barderian/i.test(read(f)) && !barderianAllowed.has(f.replace(/\\/g, "/")));
 check(`Barderian Enterprises appears only in footers and About (${barderianLeaks.join(", ") || "ok"})`, barderianLeaks.length === 0);
 check("Home page shows the IET logo, not Barderian", !read("app/page.tsx").includes("be-logo") || read("app/page.tsx").includes("PublicFoot"));
@@ -64,7 +66,8 @@ const moved = ["requests/mine", "approvals/inbox", "finance/overview", "payment-
 check("Old module front pages moved under their mother pages", moved.every((m) => exists(`app/${m}/page.tsx`)));
 const staleLinks = appFiles.filter((f) => /["'`]\/(registry\?view|payment-vouchers\?create|requests\?updated|admin\?updated|finance\?updated|audit-centre\?view|profile\?guide)/.test(read(f)));
 check(`No link still points at an old front page (${staleLinks.join(", ") || "ok"})`, staleLinks.length === 0);
-check("PV views import the Voucher Centre, not the mother page", ["pending", "approved", "history", "print-centre", "reports"].every((v) => read(`app/payment-vouchers/${v}/page.tsx`).includes('"../centre/page"')));
+// v4.3: each voucher view is its own page now; none of them renders the mother page
+check("PV views import the Voucher Centre, not the mother page", ["pending", "approved", "history", "print-centre", "reports"].every((v) => !read(`app/payment-vouchers/${v}/page.tsx`).includes("MotherPage")));
 
 // 4. Sign-in and security
 const wa = read("app/api/auth/webauthn/route.ts");
@@ -75,7 +78,7 @@ check("Fingerprint: adding one needs a 2FA-checked session", wa.includes('who.cl
 check("Fingerprint: user verification required and counter checked", wa.includes('userVerification: "required"') && wa.includes("newCounter"));
 check("Fingerprint sign-in counts as the 12-hour 2FA check", wa.includes("setWindowCookie("));
 check("Passcode: only a slow salted hash is stored, joined to the device key", pc.includes("scryptSync") && pc.includes("device_key_hash") && !/passcode_hash:\s*passcode\b/.test(pc));
-check("Passcode: five wrong tries remove it from the device", pc.includes("MAX_TRIES = 5") && pc.includes("revoked_at"));
+check("Passcode: five wrong tries remove it from the device", pc.includes("securityRules()).passcodeTries") && read("lib/server/mfaWindow.ts").includes("let passcodeTries = 5") && pc.includes("revoked_at"));
 check("Passcode: easy codes refused", rules.includes('"123456"') && rules.includes("Numbers in a row"));
 check("Passcode: setting it signs out every other device", pc.includes('signOut(who.token, "others")'));
 check("Passcode never kept in the browser", !/setItem\([^)]*passcode/i.test(dev));
@@ -92,9 +95,9 @@ check(`No screen says "HR Boss" (${hrBoss.join(", ") || "ok"})`, hrBoss.length =
 const dean = appFiles.filter((f) => /\.tsx$/.test(f) && /\bDean\b/.test(read(f)));
 check(`No screen says "Dean" (${dean.join(", ") || "ok"})`, dean.length === 0);
 check("Routing engine works with PD (old PO rows read as PD)", read("lib/routingEngine.ts").includes('"PD" | "DOD"') && read("lib/routingEngine.ts").includes("canonicalStage"));
-check("Departments read pd_id (or po_id before the database step)", read("app/admin/department-routing/page.tsx").includes("d.pd_id ?? d.po_id"));
-const methods = read("app/finance/request/[id]/page.tsx").match(/PAYMENT_METHODS = \[([^\]]*)\]/)?.[1] || "";
-check("Three payment methods only: Bank Transfer, Cheque, Cash", methods.includes("Bank Transfer") && methods.includes("Cheque") && methods.includes("Cash") && !methods.includes("POS"));
+check("Departments read pd_id (or po_id before the database step)", read("app/admin/departments/page.tsx").includes("x.pd_id ?? x.po_id"));
+const treat = read("app/finance/request/[id]/page.tsx");
+check("Three payment methods only: Bank Transfer, Cheque, Cash", treat.includes('(["Transfer", "Cash", "Cheque"] as Mode[])') && !treat.includes("POS"));
 check("Manual voucher offers the same three methods", !/"POS"|"Mobile Transfer"/.test(read("app/payment-vouchers/manual/page.tsx")));
 check("POS is not a standard IET account", !read("app/finance/manage-accounts/page.tsx").includes('name: "POS"'));
 

@@ -1,460 +1,134 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { confirmDialog } from "@/lib/dialog";
-import { useRouter } from "next/navigation";
-import {
-  AlertCircle,
-  Building2,
-  Download,
-  Eye,
-  Filter,
-  Link2,
-  PencilLine,
-  Plus,
-  RefreshCw,
-  Search,
-  ShieldCheck,
-  UserCheck,
-  UserRoundCog,
-  Users,
-  Trash2,
-  X,
-} from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
-import { REQGEN_VERSION } from "@/lib/version";
-import styles from "./assign-bank.module.css";
-import { Donut as SharedDonut } from "@/app/components/ui/Donut";
+import { normalizeRole } from "@/lib/roles";
+import { confirmDialog } from "@/lib/dialog";
+import { accountName, accountSub, type Account, type Assignment } from "@/lib/v4/finance";
+import { shortDate } from "@/lib/v4/requestText";
+import { useIdentity } from "@/app/components/v4/useIdentity";
+import Modal from "@/app/components/v4/Modal";
+import { Select } from "@/app/components/v4/Select";
+import { Card, Chip, Notice, PageHead, Skeleton, Stats, V4Page, downloadCsv, type StatItem } from "@/app/components/v4/ui";
 
-type Profile = {
-  id: string;
-  full_name: string | null;
-  email: string | null;
-  role: string | null;
-  dept_id?: string | null;
-};
+type Officer = { id: string; full_name: string | null; email: string | null; section: string };
 
-type Department = { id: string; name: string | null };
+const OFFICER_KEYS = ["account", "accounts", "accountofficer"];
 
-type Account = {
-  id: string;
-  code: string | null;
-  name: string;
-  bank_name: string | null;
-  is_active: boolean | null;
-};
+/** Finance › Officer Assignment (mock-up 40): one Account Officer per IET account. */
+export default function OfficerAssignmentPage() {
+  const me = useIdentity();
+  const role = normalizeRole(me.role);
+  const canManage = role === "admin" || role === "auditor";
+  const [accounts, setAccounts] = useState<Account[] | null>(null);
+  const [assign, setAssign] = useState<Assignment[]>([]);
+  const [officers, setOfficers] = useState<Officer[]>([]);
+  const [msg, setMsg] = useState<{ tone: "red" | "green"; text: string } | null>(null);
+  const [only, setOnly] = useState<"" | "none">("");
+  const [dlg, setDlg] = useState<{ acc: Account; officer: string } | null>(null);
+  const [busy, setBusy] = useState(false);
 
-type AssignmentRow = {
-  id: string;
-  account_id: string;
-  officer_user_id: string;
-  created_at: string;
-};
-
-function roleKey(role: string | null | undefined) {
-  return (role || "").trim().toLowerCase().replace(/\s+/g, "").replace(/_/g, "");
-}
-
-function shortDate(value: string | null | undefined) {
-  if (!value) return "—";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "—";
-  return date.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
-}
-
-function initials(name: string | null | undefined, fallback = "AO") {
-  const source = (name || "").trim();
-  if (!source) return fallback;
-  return source.split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase() || "").join("");
-}
-
-function accountLabel(account: Account | undefined) {
-  if (!account) return "Unknown Account";
-  return account.code ? `${account.code} — ${account.name}` : account.name;
-}
-
-function officerLabel(officer: Profile | undefined) {
-  if (!officer) return "Unknown Officer";
-  return officer.full_name || officer.email || officer.id;
-}
-
-function safeUserCode(id: string | undefined) {
-  if (!id) return "—";
-  return `USR-${id.replace(/-/g, "").slice(0, 6).toUpperCase()}`;
-}
-
-export default function AssignBankToOfficerPage() {
-  const router = useRouter();
-  const [loading, setLoading] = useState(true);
-  const [, setRefreshing] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
-  const [myRole, setMyRole] = useState("Staff");
-
-  const [accounts, setAccounts] = useState<Account[]>([]);
-  const [officers, setOfficers] = useState<Profile[]>([]);
-  const [departments, setDepartments] = useState<Department[]>([]);
-  const [assignments, setAssignments] = useState<AssignmentRow[]>([]);
-
-  const [search, setSearch] = useState("");
-  const [bankFilter, setBankFilter] = useState("all");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [donutNote, setDonutNote] = useState<string | null>(null);
-  const [roleFilter, setRoleFilter] = useState("all");
-  const [departmentFilter, setDepartmentFilter] = useState("all");
-  const [page, setPage] = useState(1);
-
-  const [showModal, setShowModal] = useState(false);
-  const [selectedAccountId, setSelectedAccountId] = useState("");
-  const [selectedOfficerId, setSelectedOfficerId] = useState("");
-
-  const canManage = ["admin", "auditor"].includes(roleKey(myRole));
-  const pageSize = 8;
-
-  const loadAll = useCallback(async (silent = false) => {
-    if (silent) { setRefreshing(true); } else { setLoading(true); }
-    setMessage(null);
-
-    const { data: auth } = await supabase.auth.getUser();
-    if (!auth.user) {
-      router.push("/login");
-      return;
-    }
-
-    const { data: profile, error: profileError } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", auth.user.id)
-      .maybeSingle();
-
-    if (profileError) {
-      setMessage(`Failed to load role: ${profileError.message}`);
-      setLoading(false);
-      setRefreshing(false);
-      return;
-    }
-
-    const role = (profile?.role || "Staff") as string;
-    setMyRole(role);
-    if (!["admin", "auditor"].includes(roleKey(role))) {
-      router.push(`/dashboard?updated=${Date.now()}`);
-      router.refresh();
-      return;
-    }
-
-    const [accountRes, officerRes, assignmentRes, departmentRes] = await Promise.all([
-      supabase
-        .from("iet_accounts")
-        .select("id,code,name,bank_name,is_active")
-        .order("is_active", { ascending: false })
-        .order("name", { ascending: true }),
-      supabase
-        .from("profiles")
-        .select("id,full_name,email,role,dept_id")
-        .in("role", ["AccountOfficer", "Account", "Accounts"])
-        .order("full_name", { ascending: true }),
-      supabase
-        .from("iet_account_officer_assignments")
-        .select("id,account_id,officer_user_id,created_at")
-        .order("created_at", { ascending: false }),
-      supabase.from("departments").select("id,name").order("name", { ascending: true }),
+  const load = useCallback(async () => {
+    const [a, s, pr, p] = await Promise.all([
+      supabase.from("iet_accounts").select("id,code,name,bank_name,is_active").order("name"),
+      supabase.from("iet_account_officer_assignments").select("id,account_id,officer_user_id,created_at"),
+      supabase.from("profile_roles").select("profile_id,role_key,is_active").eq("is_active", true),
+      supabase.from("profiles").select("id,full_name,email,role"),
     ]);
+    if (a.error) setMsg({ tone: "red", text: a.error.message });
+    setAccounts((a.data || []) as Account[]);
+    setAssign((s.data || []) as Assignment[]);
+    const holders = new Set(((pr.data || []) as Array<{ profile_id: string; role_key: string }>).filter((r) => OFFICER_KEYS.includes(normalizeRole(r.role_key))).map((r) => r.profile_id));
+    const ppl = (p.data || []) as Array<{ id: string; full_name: string | null; email: string | null; role: string | null }>;
+    ppl.filter((x) => OFFICER_KEYS.includes(normalizeRole(x.role))).forEach((x) => holders.add(x.id));
+    setOfficers(ppl.filter((x) => holders.has(x.id)).map((x) => ({ id: x.id, full_name: x.full_name, email: x.email, section: "" })).sort((x, y) => String(x.full_name).localeCompare(String(y.full_name))));
+  }, []);
+  useEffect(() => { queueMicrotask(() => { void load(); }); }, [load]);
 
-    if (accountRes.error) setMessage(`Failed to load accounts: ${accountRes.error.message}`);
-    if (officerRes.error) setMessage(`Failed to load officers: ${officerRes.error.message}`);
-    if (assignmentRes.error) setMessage(`Failed to load assignments: ${assignmentRes.error.message}`);
+  const byAccount = useMemo(() => new Map(assign.map((x) => [x.account_id, x])), [assign]);
+  const nameOf = useMemo(() => new Map(officers.map((o) => [o.id, o.full_name || o.email || "—"])), [officers]);
+  const accountsOf = useMemo(() => {
+    const m = new Map<string, string[]>();
+    assign.forEach((x) => { const a = (accounts || []).find((y) => y.id === x.account_id); if (a) m.set(x.officer_user_id, [...(m.get(x.officer_user_id) || []), a.name]); });
+    return m;
+  }, [assign, accounts]);
+  const active = (accounts || []).filter((a) => a.is_active !== false);
+  const shown = active.filter((a) => only !== "none" || !byAccount.has(a.id));
 
-    setAccounts(((accountRes.data || []) as Account[]).map((item) => ({ ...item, is_active: item.is_active !== false })));
-    setOfficers((officerRes.data || []) as Profile[]);
-    setAssignments((assignmentRes.data || []) as AssignmentRow[]);
-    setDepartments((departmentRes.data || []) as Department[]);
-    setLoading(false);
-    setRefreshing(false);
-  }, [router]);
+  const stats: StatItem[] = [
+    { label: "Account Officers", value: officers.length, note: "With the Account Officer position", icon: "users", tone: "blue" },
+    { label: "Accounts assigned", value: accounts ? active.filter((a) => byAccount.has(a.id)).length : "…", note: accounts ? `of ${active.length}` : undefined, icon: "check", tone: "green", pressed: !only, onClick: () => setOnly("") },
+    { label: "Without officer", value: accounts ? active.filter((a) => !byAccount.has(a.id)).length : "…", note: "Payments cannot be treated", icon: "alert", tone: "amber", pressed: only === "none", onClick: () => setOnly(only === "none" ? "" : "none") },
+  ];
 
-  useEffect(() => {
-    queueMicrotask(() => void loadAll());
-    const onFocus = () => void loadAll(true);
-    window.addEventListener("focus", onFocus);
-    return () => window.removeEventListener("focus", onFocus);
-  }, [loadAll]);
-
-  const accountMap = useMemo(() => new Map(accounts.map((item) => [item.id, item])), [accounts]);
-  const officerMap = useMemo(() => new Map(officers.map((item) => [item.id, item])), [officers]);
-  const departmentMap = useMemo(() => new Map(departments.map((item) => [item.id, item.name || "Department"])), [departments]);
-  const assignedOfficerIds = useMemo(() => new Set(assignments.map((item) => item.officer_user_id)), [assignments]);
-  const assignedAccountIds = useMemo(() => new Set(assignments.map((item) => item.account_id)), [assignments]);
-
-  const stats = useMemo(() => {
-    const assignedOfficers = new Set(assignments.map((item) => item.officer_user_id)).size;
-    return {
-      officers: officers.length,
-      assigned: assignedOfficers,
-      unassigned: Math.max(officers.length - assignedOfficers, 0),
-      accounts: accounts.filter((item) => item.is_active !== false).length,
-    };
-  }, [accounts, assignments, officers.length]);
-
-  const bankOptions = useMemo(() => {
-    return Array.from(new Set(accounts.map((item) => item.bank_name).filter(Boolean) as string[])).sort();
-  }, [accounts]);
-
-  const roleOptions = useMemo(() => {
-    return Array.from(new Set(officers.map((item) => item.role).filter(Boolean) as string[])).sort();
-  }, [officers]);
-
-  const rows = useMemo(() => {
-    const query = search.trim().toLowerCase();
-    return assignments.filter((assignment) => {
-      const account = accountMap.get(assignment.account_id);
-      const officer = officerMap.get(assignment.officer_user_id);
-      const departmentName = officer?.dept_id ? departmentMap.get(officer.dept_id) || "" : "";
-      const status = account?.is_active === false ? "inactive" : "active";
-      const matchesSearch = !query || [officerLabel(officer), officer?.email, account?.name, account?.code, account?.bank_name, departmentName]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase()
-        .includes(query);
-      const matchesBank = bankFilter === "all" || account?.bank_name === bankFilter;
-      const matchesStatus = statusFilter === "all" || status === statusFilter;
-      const matchesRole = roleFilter === "all" || officer?.role === roleFilter;
-      const matchesDepartment = departmentFilter === "all" || officer?.dept_id === departmentFilter;
-      return matchesSearch && matchesBank && matchesStatus && matchesRole && matchesDepartment;
-    });
-  }, [accountMap, officerMap, departmentMap, assignments, search, bankFilter, statusFilter, roleFilter, departmentFilter]);
-
-  useEffect(() => { queueMicrotask(() => setPage(1)); }, [search, bankFilter, statusFilter, roleFilter, departmentFilter]);
-  const totalPages = Math.max(1, Math.ceil(rows.length / pageSize));
-  const visibleRows = rows.slice((page - 1) * pageSize, page * pageSize);
-
-  const summary = useMemo(() => {
-    const activeAssigned = assignments.filter((item) => accountMap.get(item.account_id)?.is_active !== false).length;
-    const inactiveAssigned = assignments.filter((item) => accountMap.get(item.account_id)?.is_active === false).length;
-    const unassignedOfficers = Math.max(officers.length - assignedOfficerIds.size, 0);
-    const availableAccounts = Math.max(accounts.filter((item) => item.is_active !== false).length - assignedAccountIds.size, 0);
-    const total = Math.max(activeAssigned + inactiveAssigned + unassignedOfficers + availableAccounts, 1);
-    return { activeAssigned, inactiveAssigned, unassignedOfficers, availableAccounts, total };
-  }, [accounts, assignments, assignedAccountIds.size, assignedOfficerIds.size, accountMap, officers.length]);
-
-  const donutSegments = useMemo(() => [
-    { label: "Active Assigned", value: summary.activeAssigned, color: "var(--color-success-600)" },
-    { label: "Available Accounts", value: summary.availableAccounts, color: "var(--color-brand-600)" },
-    { label: "Unassigned Officers", value: summary.unassignedOfficers, color: "var(--color-chart-4)" },
-    { label: "Inactive Assigned", value: summary.inactiveAssigned, color: "var(--color-warning-600)" },
-  ], [summary]);
-
-  function openAssign(accountId = "", officerId = "") {
-    setSelectedAccountId(accountId);
-    setSelectedOfficerId(officerId);
-    setShowModal(true);
+  async function save() {
+    if (!dlg) return;
+    if (!dlg.officer) { setMsg({ tone: "red", text: "Choose the Account Officer." }); return; }
+    setBusy(true);
+    const { error } = await supabase.from("iet_account_officer_assignments").upsert({ account_id: dlg.acc.id, officer_user_id: dlg.officer }, { onConflict: "account_id" });
+    setBusy(false);
+    if (error) { setMsg({ tone: "red", text: error.message }); return; }
+    setMsg({ tone: "green", text: `${nameOf.get(dlg.officer)} now treats payments from ${dlg.acc.name}.` });
+    setDlg(null);
+    await load();
   }
 
-  async function saveAssignment() {
-    if (!canManage) return setMessage("Not allowed.");
-    if (!selectedAccountId) return setMessage("Please select a bank account.");
-    if (!selectedOfficerId) return setMessage("Please select an officer.");
-
-    const account = accountMap.get(selectedAccountId);
-    if (account?.is_active === false) return setMessage("This bank account is inactive.");
-
-    setSaving(true);
-    setMessage(null);
-    const { error } = await supabase.from("iet_account_officer_assignments").upsert(
-      { account_id: selectedAccountId, officer_user_id: selectedOfficerId },
-      { onConflict: "account_id" }
-    );
-
-    if (error) {
-      setMessage(`Assignment failed: ${error.message}`);
-    } else {
-      setMessage("Bank account assigned successfully.");
-      setShowModal(false);
-      setSelectedAccountId("");
-      setSelectedOfficerId("");
-      await loadAll(true);
-      router.refresh();
-    }
-    setSaving(false);
+  async function remove(acc: Account) {
+    const cur = byAccount.get(acc.id);
+    if (!cur) return;
+    const ok = await confirmDialog({ title: `Remove the officer from ${acc.name}?`, message: "Requests paid from this account cannot be treated until another officer is assigned.", confirmLabel: "Remove", tone: "danger" });
+    if (!ok) return;
+    const { error } = await supabase.from("iet_account_officer_assignments").delete().eq("id", cur.id);
+    if (error) { setMsg({ tone: "red", text: error.message }); return; }
+    setMsg({ tone: "green", text: `${acc.name} has no officer now.` });
+    await load();
   }
-
-  async function removeAssignment(id: string) {
-    if (!canManage) return;
-    if (!(await confirmDialog({ title: "Remove assignment?", message: "Remove this bank-account assignment?", confirmLabel: "Remove", tone: "danger" }))) return;
-    setSaving(true);
-    const { error } = await supabase.from("iet_account_officer_assignments").delete().eq("id", id);
-    setMessage(error ? `Remove failed: ${error.message}` : "Assignment removed.");
-    if (!error) await loadAll(true);
-    setSaving(false);
-  }
-
-  function exportAssignments() {
-    const csv = [
-      [`Generated from ReqGen ${REQGEN_VERSION}`],
-      ["Officer", "Email", "Role", "Department", "Account", "Bank", "Status", "Assigned On"],
-      ...rows.map((assignment) => {
-        const officer = officerMap.get(assignment.officer_user_id);
-        const account = accountMap.get(assignment.account_id);
-        return [
-          officerLabel(officer),
-          officer?.email || "",
-          officer?.role || "",
-          officer?.dept_id ? departmentMap.get(officer.dept_id) || "" : "",
-          accountLabel(account),
-          account?.bank_name || "",
-          account?.is_active === false ? "Inactive" : "Active",
-          shortDate(assignment.created_at),
-        ];
-      }),
-    ].map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = `reqgen-${REQGEN_VERSION}-bank-officer-assignments.csv`;
-    anchor.click();
-    URL.revokeObjectURL(url);
-  }
-
-  if (loading) return <main className={styles.loading}>Loading bank account assignments...</main>;
 
   return (
-    <main className={styles.page}>
-      <div className={styles.breadcrumb}>Finance <span>›</span> IET Bank Accounts <span>›</span> <b>Assign Bank to Officer</b></div>
-
-      <div className={styles.headingRow}>
-        <div>
-          <h1>Assign Bank Account to Officer</h1>
-          <p>Assign and manage bank accounts for authorized finance officers.</p>
-        </div>
-        <button className={styles.primaryBtn} onClick={() => openAssign()} disabled={!canManage || saving}>
-          <Plus size={15}/> Assign Bank to Officer
-        </button>
-      </div>
-
-      {message && <div className={styles.message}>{message}</div>}
-      <div className={styles.ruleNote}>One authorized officer is routed to each bank account. Reassigning an account replaces the previous assignment.</div>
-
-      <section className={styles.kpiGrid}>
-        <Kpi icon={<Users/>} tone="blue" title="Total Officers" value={stats.officers} note="Authorized finance officers"/>
-        <Kpi icon={<UserCheck/>} tone="green" title="Assigned Officers" value={stats.assigned} note={`${stats.officers ? Math.round((stats.assigned / stats.officers) * 100) : 0}% of officers assigned`}/>
-        <Kpi icon={<UserRoundCog/>} tone="orange" title="Unassigned Officers" value={stats.unassigned} note={`${stats.officers ? Math.round((stats.unassigned / stats.officers) * 100) : 0}% of officers unassigned`}/>
-        <Kpi icon={<Link2/>} tone="purple" title="Bank Accounts" value={stats.accounts} note="Available active bank accounts"/>
-      </section>
-
-      <section className={styles.filterCard}>
-        <label className={styles.searchField}><span>Search Officer</span><div><Search size={15}/><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by name, email, bank or code..."/></div></label>
-        <label><span>Bank Account</span><select value={bankFilter} onChange={(e) => setBankFilter(e.target.value)}><option value="all">All Banks</option>{bankOptions.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
-        <label><span>Assignment Status</span><select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}><option value="all">All Statuses</option><option value="active">Active</option><option value="inactive">Inactive</option></select></label>
-        <label><span>Officer Role</span><select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}><option value="all">All Roles</option>{roleOptions.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
-        <label><span>Department</span><select value={departmentFilter} onChange={(e) => setDepartmentFilter(e.target.value)}><option value="all">All Departments</option>{departments.map((item) => <option key={item.id} value={item.id}>{item.name || "Department"}</option>)}</select></label>
-        <button className={styles.filterBtn} onClick={() => { setSearch(""); setBankFilter("all"); setStatusFilter("all"); setRoleFilter("all"); setDepartmentFilter("all"); }}><Filter size={14}/> Reset</button>
-      </section>
-
-      <section className={styles.contentGrid}>
-        <div className={styles.tableCard}>
-          <div className={styles.cardHeader}>
-            <div><h2>Officer Bank Assignments ({rows.length})</h2><small>Live account-to-officer routing records</small></div>
-            <span className={styles.sortLabel}>Newest assignment first</span>
-          </div>
-
-          <div className={styles.tableWrap}>
-            <table>
-              <thead><tr><th>#</th><th>Officer</th><th>Role</th><th>Department</th><th>Bank Account</th><th>Bank Name</th><th>Status</th><th>Assigned On</th><th>Actions</th></tr></thead>
+    <V4Page>
+      <PageHead title="Officer Assignment" sub="Each IET account has one Account Officer who treats its payments."
+        actions={[{ label: "Export CSV", icon: "download", kind: "secondary", onClick: () => downloadCsv("Officer_Assignment.csv", active.map((a) => ({ Account: a.name, Bank: a.bank_name || "", Officer: nameOf.get(byAccount.get(a.id)?.officer_user_id || "") || "", Since: shortDate(byAccount.get(a.id)?.created_at) }))) }]} />
+      {msg ? <Notice tone={msg.tone}>{msg.text}</Notice> : null}
+      {!canManage && me.ready ? <Notice tone="blue">Only the Super Admin and the Auditor change assignments. You are acting as {me.roleName}.</Notice> : null}
+      <Stats items={stats} />
+      <Card>
+        {accounts === null ? <Skeleton lines={6} /> : shown.length ? (
+          <div className="v4-table-wrap">
+            <table className="v4-data v4-stack">
+              <thead><tr><th>Account</th><th>Officer</th><th className="v4-hide-sm">Since</th><th className="v4-r">Action</th></tr></thead>
               <tbody>
-                {visibleRows.length === 0 ? <tr><td colSpan={9} className={styles.empty}>No bank-account assignment matches the selected filters.</td></tr> : visibleRows.map((assignment, index) => {
-                  const account = accountMap.get(assignment.account_id);
-                  const officer = officerMap.get(assignment.officer_user_id);
-                  const department = officer?.dept_id ? departmentMap.get(officer.dept_id) || "—" : "—";
-                  const active = account?.is_active !== false;
-                  return <tr key={assignment.id}>
-                    <td>{(page - 1) * pageSize + index + 1}</td>
-                    <td><div className={styles.officerCell}><span className={styles.avatar}>{initials(officer?.full_name)}</span><div><strong>{officerLabel(officer)}</strong><small>{safeUserCode(officer?.id)}</small></div></div></td>
-                    <td>{officer?.role || "Account Officer"}</td>
-                    <td>{department}</td>
-                    <td><strong>{account?.name || "Unknown"}</strong><small>{account?.code || "No code"}</small></td>
-                    <td>{account?.bank_name || "Bank not set"}</td>
-                    <td><span className={active ? styles.statusActive : styles.statusInactive}>{active ? "Active" : "Inactive"}</span></td>
-                    <td>{shortDate(assignment.created_at)}</td>
-                    <td><div className={styles.actionGroup}><button className={styles.iconBtn} title="View account" onClick={() => router.push(`/finance/manage-accounts?account=${assignment.account_id}`)}><Eye size={14}/></button><button className={styles.iconBtn} title="Reassign" onClick={() => openAssign(assignment.account_id, assignment.officer_user_id)} disabled={!canManage}><PencilLine size={14}/></button><button className={styles.iconBtn} title="Remove assignment" onClick={() => void removeAssignment(assignment.id)} disabled={!canManage || saving}><Trash2 size={14}/></button></div></td>
-                  </tr>;
+                {shown.map((a) => {
+                  const cur = byAccount.get(a.id);
+                  const others = cur ? (accountsOf.get(cur.officer_user_id) || []).filter((n) => n !== a.name) : [];
+                  return (
+                    <tr key={a.id}>
+                      <td><span className="v4-strong">{accountName(a)}</span><span className="v4-sub">{accountSub(a)}</span></td>
+                      <td data-label="Officer">{cur ? <><span className="v4-strong">{nameOf.get(cur.officer_user_id) || "—"}</span><span className="v4-sub">Account Officer{others.length ? ` · also ${others.slice(0, 3).join(", ")}` : ""}</span></> : <Chip tone="amber">No officer</Chip>}</td>
+                      <td className="v4-hide-sm">{cur ? shortDate(cur.created_at) : "—"}</td>
+                      <td className="v4-r">{canManage ? (
+                        <span style={{ display: "inline-flex", gap: 6 }}>
+                          <button type="button" className={`v4-btn ${cur ? "v4-btn-secondary" : "v4-btn-primary"}`} style={{ minHeight: 38, padding: "0 12px" }} onClick={() => setDlg({ acc: a, officer: cur?.officer_user_id || "" })}>{cur ? "Change" : "Assign"}</button>
+                          {cur ? <button type="button" className="v4-btn v4-btn-ghost" style={{ minHeight: 38, padding: "0 10px", color: "var(--v4-red)" }} onClick={() => void remove(a)}>Remove</button> : null}
+                        </span>
+                      ) : <span className="v4-muted" style={{ fontSize: 13 }}>View only</span>}</td>
+                    </tr>
+                  );
                 })}
               </tbody>
             </table>
           </div>
+        ) : <p className="v4-muted" style={{ padding: 20, margin: 0 }}>{only === "none" ? "Every active account has an officer." : "No active account yet. Add one in Bank Accounts."}</p>}
+      </Card>
 
-          <div className={styles.mobileCards}>
-            {visibleRows.map((assignment) => {
-              const account = accountMap.get(assignment.account_id);
-              const officer = officerMap.get(assignment.officer_user_id);
-              return <div className={styles.assignmentCard} key={assignment.id}>
-                <div className={styles.assignmentCardHeader}><div><strong>{officerLabel(officer)}</strong><small>{officer?.email || "No email"}</small></div><span className={account?.is_active === false ? styles.statusInactive : styles.statusActive}>{account?.is_active === false ? "Inactive" : "Active"}</span></div>
-                <div className={styles.assignmentCardGrid}><Metric label="Bank Account" value={accountLabel(account)}/><Metric label="Bank" value={account?.bank_name || "—"}/><Metric label="Department" value={officer?.dept_id ? departmentMap.get(officer.dept_id) || "—" : "—"}/><Metric label="Assigned" value={shortDate(assignment.created_at)}/></div>
-              </div>;
-            })}
-          </div>
-
-          <div className={styles.pagination}><span>Showing {rows.length === 0 ? 0 : (page - 1) * pageSize + 1} to {Math.min(page * pageSize, rows.length)} of {rows.length} assignments</span><div><button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1}>‹</button>{Array.from({ length: Math.min(totalPages, 4) }, (_, i) => i + 1).map((n) => <button key={n} onClick={() => setPage(n)} className={page === n ? styles.currentPage : ""}>{n}</button>)}<button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page >= totalPages}>›</button></div></div>
-        </div>
-
-        <aside className={styles.sideColumn}>
-          <div className={styles.sideCard}>
-            <h2>Assignment Summary</h2>
-            <div className={styles.donutWrap}>
-              <SharedDonut segments={donutSegments} size={200} strokeWidth={34} fluidMax={210} centerLabel="Assigned" selected={statusFilter === "active" ? "Active Assigned" : statusFilter === "inactive" ? "Inactive Assigned" : null} onSegmentSelect={(label) => { setDonutNote(label && !label.endsWith("Assigned") ? label : null); setStatusFilter(label === "Active Assigned" ? "active" : label === "Inactive Assigned" ? "inactive" : "all"); }} formatTotal={() => String(assignments.length)} />
-              <div className={styles.legend}>
-                <Legend color="var(--color-success-600)" label="Active assignments" value={summary.activeAssigned}/>
-                <Legend color="var(--color-brand-600)" label="Available accounts" value={summary.availableAccounts}/>
-                <Legend color="var(--color-chart-4)" label="Unassigned officers" value={summary.unassignedOfficers}/>
-                <Legend color="var(--color-warning-600)" label="Inactive assignments" value={summary.inactiveAssigned}/>
-              </div>
-              {donutNote ? <p className="rg-route-note" role="status">{donutNote === "Available Accounts" ? `${summary.availableAccounts} IET account(s) have no officer assigned yet — use Assign to link one.` : `${summary.unassignedOfficers} account officer(s) have no account assigned yet.`}</p> : null}
-            </div>
-          </div>
-
-          <div className={styles.sideCard}>
-            <h2>Quick Actions</h2>
-            <QuickAction icon={<UserCheck size={17}/>} title="Assign Bank to Officer" note="Assign a bank account to an officer" onClick={() => openAssign()}/>
-            <QuickAction icon={<RefreshCw size={17}/>} title="Refresh Assignments" note="Reload current routing records" onClick={() => void loadAll(true)}/>
-            <QuickAction icon={<Building2 size={17}/>} title="View All Bank Accounts" note="Open IET Bank Accounts" onClick={() => router.push("/finance/manage-accounts")}/>
-            <QuickAction icon={<Download size={17}/>} title="Export Assignments" note="Download assignments report" onClick={exportAssignments}/>
-          </div>
-
-          <div className={styles.noteCard}>
-            <div><AlertCircle size={16}/> Important Note</div>
-            <p>Bank account numbers are not displayed or required on this page. Routing is maintained using approved bank/account labels and internal account records.</p>
-          </div>
-        </aside>
-      </section>
-
-      {showModal && <div className={styles.modalBackdrop} onMouseDown={() => setShowModal(false)}>
-        <div className={styles.modal} onMouseDown={(event) => event.stopPropagation()}>
-          <button className={styles.modalClose} onClick={() => setShowModal(false)}><X size={16}/></button>
-          <h2>Assign Bank to Officer</h2>
-          <p>Select an active IET bank account and the authorized finance officer responsible for it.</p>
-          <div className={styles.formGrid}>
-            <label><span>Bank Account</span><select value={selectedAccountId} onChange={(e) => setSelectedAccountId(e.target.value)} disabled={saving}><option value="">Select account</option>{accounts.filter((item) => item.is_active !== false).map((item) => <option key={item.id} value={item.id}>{accountLabel(item)} — {item.bank_name || "Bank"}{assignedAccountIds.has(item.id) ? " • Assigned" : ""}</option>)}</select></label>
-            <label><span>Finance Officer</span><select value={selectedOfficerId} onChange={(e) => setSelectedOfficerId(e.target.value)} disabled={saving}><option value="">Select officer</option>{officers.map((item) => <option key={item.id} value={item.id}>{officerLabel(item)} — {item.role || "Account Officer"}</option>)}</select></label>
-            <div className={styles.formWide + " " + styles.ruleNote}><ShieldCheck size={14}/> Saving an existing account assignment will reassign that bank account to the selected officer.</div>
-          </div>
-          <div className={styles.modalActions}><button className={styles.secondaryBtn} onClick={() => setShowModal(false)} disabled={saving}>Cancel</button><button className={styles.primaryBtn} onClick={saveAssignment} disabled={saving}>{saving ? "Saving..." : "Save Assignment"}</button></div>
-        </div>
-      </div>}
-    </main>
+      <Modal open={!!dlg} title={dlg ? `${byAccount.has(dlg.acc.id) ? "Change" : "Assign"} the officer for ${dlg.acc.name}` : ""} sub="The officer treats every payment from this account and prepares its vouchers." onClose={() => setDlg(null)} busy={busy}
+        footer={<><button type="button" className="v4-btn v4-btn-ghost" onClick={() => setDlg(null)} disabled={busy}>Cancel</button><button type="button" className="v4-btn v4-btn-primary" onClick={() => void save()} disabled={busy}>{busy ? "Saving…" : "Save"}</button></>}>
+        {dlg ? (
+          <div className="v4-field"><label className="v4-flabel" htmlFor="oa-officer" style={{ fontSize: 13, fontWeight: 700 }}>Account Officer <span className="v4-req">*</span></label>
+            <Select id="oa-officer" value={dlg.officer} onChange={(v) => setDlg({ ...dlg, officer: v })} placeholder={officers.length ? "Choose the officer" : "No one holds the Account Officer position"}
+              options={officers.map((o) => ({ value: o.id, label: o.full_name || o.email || "—", hint: (accountsOf.get(o.id) || []).length ? `Has ${(accountsOf.get(o.id) || []).join(", ")}` : "No account yet" }))} />
+            <span className="v4-help">Only people holding the Account Officer position are listed (Administration › Staff & Positions).</span></div>
+        ) : null}
+      </Modal>
+    </V4Page>
   );
-}
-
-function Kpi({ icon, tone, title, value, note }: { icon: React.ReactNode; tone: string; title: string; value: number; note: string }) {
-  return <div className={styles.kpi}><div className={styles.kpiIcon} data-tone={tone}>{icon}</div><div><span>{title}</span><strong>{value}</strong><small>{note}</small></div></div>;
-}
-
-function Legend({ color, label, value }: { color: string; label: string; value: number }) {
-  return <div><i style={{ background: color }}/><span>{label}</span><b>{value}</b></div>;
-}
-
-function QuickAction({ icon, title, note, onClick }: { icon: React.ReactNode; title: string; note: string; onClick: () => void }) {
-  return <button className={styles.quickAction} onClick={onClick}><span>{icon}</span><div><strong>{title}</strong><small>{note}</small></div></button>;
-}
-
-function Metric({ label, value }: { label: string; value: string }) {
-  return <div className={styles.metric}><span>{label}</span><strong>{value}</strong></div>;
 }

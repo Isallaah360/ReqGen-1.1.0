@@ -9,7 +9,7 @@ import {
   type RegistrationResponseJSON,
 } from "@simplewebauthn/server";
 import {
-  adminClient, callerFrom, clientIp, env, oneTimeSignIn, rateLimited, readSignedValue, setWindowCookie, signedValue,
+  adminClient, callerFrom, clientIp, env, oneTimeSignIn, rateLimited, readSignedValue, securityRules, setWindowCookie, signedValue,
 } from "@/lib/server/mfaWindow";
 
 export const runtime = "nodejs";
@@ -172,7 +172,7 @@ export async function POST(req: NextRequest) {
 
     if (purpose === "stepup") {
       const res = json({ ok: true, expiresAt: new Date(Date.now() + 12 * 3600_000).toISOString() });
-      const until = setWindowCookie(res, stepUser!.user);
+      const until = setWindowCookie(res, stepUser!.user, (await securityRules()).windowSeconds);
       if (!until) return clearChallenge(json({ ok: false, error: "Connect your authenticator app first." }, 403));
       return clearChallenge(res);
     }
@@ -180,7 +180,7 @@ export async function POST(req: NextRequest) {
     const session = await oneTimeSignIn(admin, cred.user_id);
     if ("error" in session) return clearChallenge(json({ ok: false, error: session.error }, 400));
     const res = json({ ok: true, tokenHash: session.tokenHash, email: session.email });
-    setWindowCookie(res, session.user);
+    setWindowCookie(res, session.user, (await securityRules()).windowSeconds);
     return clearChallenge(res);
   }
 

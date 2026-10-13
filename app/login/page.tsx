@@ -10,6 +10,7 @@ import PublicAuthShell from "../components/PublicAuthShell";
 import Icon from "../components/v4/Icon";
 import PasscodePad from "../components/v4/PasscodePad";
 import { Notice } from "../components/v4/ui";
+import { useSecurityRules } from "@/lib/v4/useSecurityRules";
 
 const REMEMBER_KEY = "reqgen:remember-email";
 
@@ -27,11 +28,12 @@ function safeNext(raw: string | null) {
 
 function LoginContent() {
   const router = useRouter();
+  const rules = useSecurityRules();
   const params = useSearchParams();
   const next = safeNext(params.get("next"));
   const reason = params.get("reason");
   const initialMessage = useMemo(() => {
-    if (reason === "2fa-expired") return { tone: "amber" as const, text: "Your 12-hour 2FA session has ended. Sign in again to continue." };
+    if (reason === "2fa-expired") return { tone: "amber" as const, text: "Your 2FA session has ended. Sign in again to continue." };
     if (reason === "signed-out") return { tone: "amber" as const, text: "You were signed out because this account's password, authenticator or passcode was changed. Please sign in again." };
     if (reason === "session-timeout") return { tone: "amber" as const, text: "For your security you were signed out after 15 minutes without activity." };
     if (params.get("password_reset") === "success") return { tone: "green" as const, text: "Password reset. Sign in with your new password." };
@@ -137,7 +139,7 @@ function LoginContent() {
         </div>
         {msg ? <Notice tone={msg.tone}>{msg.text}</Notice> : null}
         <PasscodePad value={pin} onChange={setPin} onComplete={(c) => void withPasscode(c)} disabled={busy} fingerprint={canFingerprint ? () => void withFingerprint() : undefined} />
-        <Notice tone="blue">This passcode works only on this device. One check keeps you signed in for 12 hours.</Notice>
+        <Notice tone="blue">This passcode works only on this device. One check keeps you signed in for {rules.stayHours} hours.</Notice>
         <div className="v4-auth-row" style={{ justifyContent: "center", gap: 18 }}>
           <button type="button" className="v4-link-btn" onClick={() => { setMode("password"); setMsg(null); }}>Use password instead</button>
           <button type="button" className="v4-link-btn v4-quiet" onClick={() => { forgetTrustedDevice(); setDevice(null); setMode("password"); setMsg({ tone: "blue", text: "Sign in with your password and 2FA, then set a new passcode in My Account › Security & Devices." }); }}>Forgot passcode?</button>

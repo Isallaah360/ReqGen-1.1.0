@@ -3,7 +3,7 @@ import fs from "node:fs";
 const read = (f) => fs.readFileSync(f, "utf8");
 const sql = read("database/v3_1_14_pv_dg_sign_authorise.sql");
 const detail = read("app/payment-vouchers/[id]/page.tsx");
-const gen = read("app/payment-vouchers/centre/page.tsx");
+const gen = read("app/payment-vouchers/new/page.tsx");
 const guard = read("app/components/MfaGuard.tsx");
 const trust = read("app/api/auth/mfa-trust/route.ts") + read("lib/server/mfaWindow.ts");
 const results = [
@@ -12,9 +12,9 @@ const results = [
   ["SQL: generator no longer needs a Cheque Signer", !sql.includes("raise exception 'Please select the Cheque Signer")],
   ["SQL: vouchers waiting for a Cheque Signer are moved (guarded, short)", sql.includes("set local lock_timeout = '5s'") && sql.includes("when lock_not_available or deadlock_detected")],
   ["SQL: no trigger is dropped", !/drop\s+trigger/i.test(sql)],
-  ["Voucher page: 4 signatures, no Cheque Signer choice", detail.includes("of 4") && !detail.includes("Select the Cheque Signer")],
-  ["Voucher page: DG button 'Sign and authorise'", detail.includes('label: "Sign and authorise"')],
-  ["Generate modal: only the Counter Signer is chosen", !gen.includes("Cheque Signer *") && gen.includes("p_cheque_signed_by_name: null")],
+  ["Voucher page: 4 signatures, no Cheque Signer choice", ["prepared", "checked", "counter", "dg"].every((k) => read("lib/v4/vouchers.ts").includes(`key: "${k}"`)) && !detail.includes("Select the Cheque Signer")],
+  ["Voucher page: DG button 'Sign and authorise'", detail.includes("Sign, stamp and authorise") && detail.includes('confirmFresh("sign, stamp and authorise this voucher")')],
+  ["Generate modal: only the Counter Signer is chosen", !gen.includes("Cheque Signer") && gen.includes("p_counter_signer: counter")],
   ["2FA window: server-signed, httpOnly, 12 hours from the code", trust.includes("httpOnly: true") && trust.includes("12 * 60 * 60") && trust.includes('a.method === "totp"')],
   ["2FA window: tied to the authenticator (replacing it ends the window)", trust.includes("authenticator replaced")],
   ["2FA window: guard skips the code inside the window and signs out after", guard.includes("checkMfaWindow") && guard.includes("signOutForExpiredWindow")],

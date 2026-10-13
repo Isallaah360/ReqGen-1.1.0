@@ -1,7 +1,7 @@
 import crypto from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { easyPasscode } from "@/lib/v4/passcodeRules";
-import { adminClient, callerFrom, clientIp, env, hmac, oneTimeSignIn, rateLimited, sameText, windowValid } from "@/lib/server/mfaWindow";
+import { adminClient, callerFrom, securityRules, clientIp, env, hmac, oneTimeSignIn, rateLimited, sameText, windowValid } from "@/lib/server/mfaWindow";
 
 export const runtime = "nodejs";
 
@@ -19,7 +19,6 @@ export const runtime = "nodejs";
  * the passcode from the device.
  */
 
-const MAX_TRIES = 5;
 
 function hashPasscode(passcode: string, deviceKey: string, salt = crypto.randomBytes(16).toString("base64url")) {
   const derived = crypto.scryptSync(`${passcode}:${deviceKey}`, `${salt}:${hmac("passcode-pepper")}`, 32, { N: 16384, r: 8, p: 1 }).toString("base64url");
@@ -80,12 +79,14 @@ export async function POST(req: NextRequest) {
       return json({ ok: false, error: "The passcode on this device was removed. Sign in with your password.", forget: true }, 410);
     }
     if (!checkPasscode(dev.passcode_hash, passcode, deviceKey)) {
+      const maxTries = (await securityRules()).passcodeTries; // v4.6: set in Security Centre (3 or 5)
       const tries = Number(dev.failed_attempts || 0) + 1;
-      const gone = tries >= MAX_TRIES;
-      await admin.from("reqgen_trusted_devices").update(gone ? { failed_attempts: tries, revoked_at: new Date().toISOString(), revoked_reason: "5 wrong passcode tries" } : { failed_attempts: tries }).eq("id", dev.id);
+      const gone = tries >= maxTries;
+      const words = maxTries === 3 ? "Three" : "Five";
+      await admin.from("reqgen_trusted_devices").update(gone ? { failed_attempts: tries, revoked_at: new Date().toISOString(), revoked_reason: `${maxTries} wrong passcode tries` } : { failed_attempts: tries }).eq("id", dev.id);
       return json(gone
-        ? { ok: false, forget: true, error: "Five wrong tries. The passcode was removed from this device. Sign in with your password and 2FA." }
-        : { ok: false, error: `Wrong passcode. ${MAX_TRIES - tries} ${MAX_TRIES - tries === 1 ? "try" : "tries"} left.` }, 401);
+        ? { ok: false, forget: true, error: `${words} wrong tries. The passcode was removed from this device. Sign in with your password and 2FA.` }
+        : { ok: false, error: `Wrong passcode. ${maxTries - tries} ${maxTries - tries === 1 ? "try" : "tries"} left.` }, 401);
     }
     const session = await oneTimeSignIn(admin, dev.user_id);
     if ("error" in session) return json({ ok: false, error: session.error }, 400);

@@ -28,7 +28,8 @@ check("Registry uses approved tabs contract", registry.includes('data-rg-tabs="t
 check("Registry has compact workflow intelligence styles", registryCss.includes(".workflowGrid") && registryCss.includes(".flowRow") && registryCss.includes(".rowActions"));
 // v3.1.1: the summary may use the stable shared BarChart component (keyboard
 // accessible, integer axis) — the unstable hand-made trend must stay gone.
-check("Audit unstable daily bars were replaced", audit.includes("14-Day Activity Summary") && (audit.includes("14-Day Total") || audit.includes("<BarChart")) && !audit.includes("Daily Activity Trend"));
+// v4.5: the Audit Log (mock-up 75) has no hand-drawn activity bars at all
+check("Audit unstable daily bars were replaced", /<V4Page/.test(audit) && !audit.includes("Daily Activity Trend"));
 check("Global tables use approved compact header/body geometry", globals.includes("Phase 8 global component contract") && globals.includes("table-layout:auto!important") && globals.includes("background:#fafbfd!important"));
 check("Global tabs use the approved compact active-tab contract", globals.includes('[data-rg-tabs="true"]') && globals.includes("background:#1267e8!important"));
 check("Footer shows the version number with no phase-label clutter", shell.includes("REQGEN_VERSION") && !shell.includes("Phase 8 · Stabilised"));

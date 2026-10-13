@@ -6,7 +6,11 @@ import { supabase } from "@/lib/supabaseClient";
 import { isClosedRequest } from "@/lib/approvalQueue";
 import { currentFyStart, fyBounds, fyLabel } from "@/lib/financialYear";
 import { shortDate, stageKey, stageWords, statusChip } from "@/lib/v4/requestText";
+import { deleteDraft, listDrafts, type DraftRow } from "@/lib/v4/drafts";
+import { confirmDialog } from "@/lib/dialog";
 import { useIdentity } from "@/app/components/v4/useIdentity";
+import Icon from "@/app/components/v4/Icon";
+import { Select } from "@/app/components/v4/Select";
 import { Btn, Card, Chip, Notice, PageHead, Pager, Skeleton, Tabs, V4Page, downloadCsv, naira } from "@/app/components/v4/ui";
 
 type Row = {
@@ -15,6 +19,7 @@ type Row = {
   request_type: string | null; personal_category: string | null; dept_id: string | null;
 };
 type Tab = "all" | "progress" | "returned" | "done" | "rejected";
+type View = Tab | "drafts";
 
 const PAGE = 20;
 
@@ -54,7 +59,9 @@ function MyRequests() {
   const [rows, setRows] = useState<Row[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [depts, setDepts] = useState<Record<string, string>>({});
-  const [tab, setTab] = useState<Tab>("all");
+  const [tab, setTab] = useState<View>(() => (params.get("tab") === "drafts" ? "drafts" : "all"));
+  const [drafts, setDrafts] = useState<DraftRow[] | null>(null);
+  const [draftError, setDraftError] = useState<string | null>(null);
   const [q, setQ] = useState(params.get("q") || "");
   const [type, setType] = useState("all");
   const [fy, setFy] = useState<number>(() => currentFyStart());
@@ -80,6 +87,20 @@ function MyRequests() {
     return () => { alive = false; };
   }, [me.ready, me.userId, fy]);
 
+  useEffect(() => {
+    if (!me.ready || !me.userId) return;
+    let alive = true;
+    listDrafts().then((d) => { if (alive) setDrafts(d); }).catch((e: unknown) => { if (alive) { setDrafts([]); setDraftError(e instanceof Error ? e.message : "Drafts could not be loaded."); } });
+    return () => { alive = false; };
+  }, [me.ready, me.userId]);
+
+  async function removeDraft(d: DraftRow) {
+    const ok = await confirmDialog({ title: "Delete this draft?", message: `“${d.title || "Untitled draft"}” and its files are deleted. This cannot be undone.`, confirmLabel: "Delete draft", tone: "danger" });
+    if (!ok) return;
+    try { await deleteDraft(d.id); setDrafts((all) => (all || []).filter((x) => x.id !== d.id)); }
+    catch (e: unknown) { setDraftError(e instanceof Error ? e.message : "The draft could not be deleted."); }
+  }
+
   const filtered = useMemo(() => {
     const term = q.trim().toLowerCase();
     return (rows || []).filter((r) =>
@@ -93,7 +114,7 @@ function MyRequests() {
     return c;
   }, [filtered, me.userId]);
 
-  const shown = useMemo(() => filtered.filter((r) => tab === "all" || bucket(r, me.userId) === tab), [filtered, tab, me.userId]);
+  const shown = useMemo(() => (tab === "drafts" ? [] : filtered.filter((r) => tab === "all" || bucket(r, me.userId) === tab)), [filtered, tab, me.userId]);
   const paged = shown.slice((page - 1) * PAGE, page * PAGE);
   const years = useMemo(() => { const now = currentFyStart(); return [now, now - 1, now - 2, now - 3]; }, []);
 
@@ -123,24 +144,45 @@ function MyRequests() {
             { key: "returned", label: "Back with me", count: counts.returned },
             { key: "done", label: "Approved & paid", count: counts.done },
             { key: "rejected", label: "Rejected & withdrawn", count: counts.rejected },
+            { key: "drafts", label: "Drafts", count: drafts?.length ?? 0 },
           ]} />
         </div>
         <div className="v4-toolbar">
           <label className="v4-field v4-f-search"><span className="v4-flabel">Search</span><span className="v4-control"><input className="v4-input" placeholder="Request number or title" value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} /></span></label>
-          <label className="v4-field"><span className="v4-flabel">Type</span>
-            <select className="v4-select" value={type} onChange={(e) => { setType(e.target.value); setPage(1); }}>
-              <option value="all">All types</option><option>Official</option><option>Personal · Fund</option><option>Personal · Other</option>
-            </select>
-          </label>
-          <label className="v4-field"><span className="v4-flabel">Financial year</span>
-            <select className="v4-select" value={fy} onChange={(e) => { setFy(Number(e.target.value)); setRows(null); setPage(1); }}>
-              {years.map((y) => <option key={y} value={y}>FY {fyLabel(y)}</option>)}
-            </select>
-          </label>
+          <div className="v4-field"><span className="v4-flabel">Type</span>
+            <Select size="compact" ariaLabel="Type" value={type} onChange={(v) => { setType(v); setPage(1); }}
+              options={[{ value: "all", label: "All types" }, { value: "Official", label: "Official" }, { value: "Personal · Fund", label: "Personal · Fund" }, { value: "Personal · Other", label: "Personal · Other" }]} />
+          </div>
+          <div className="v4-field"><span className="v4-flabel">Financial year</span>
+            <Select size="compact" ariaLabel="Financial year" value={String(fy)} onChange={(v) => { setFy(Number(v)); setRows(null); setPage(1); }}
+              options={years.map((y) => ({ value: String(y), label: `FY ${fyLabel(y)}` }))} />
+          </div>
           <span className="v4-f-extra" />
           <button className="v4-btn v4-btn-ghost" type="button" onClick={() => { setQ(""); setType("all"); setTab("all"); setFy(currentFyStart()); setPage(1); }}>Reset</button>
         </div>
-        {rows === null ? <Skeleton lines={6} /> : shown.length ? (
+        {tab === "drafts" ? (
+          drafts === null ? <Skeleton lines={4} /> : (
+            <>
+              {draftError ? <div style={{ padding: "12px 20px 0" }}><Notice tone="amber">{draftError}</Notice></div> : null}
+              {drafts.length ? (
+                <ul className="v4-rows">
+                  {drafts.map((d) => (
+                    <li key={d.id}>
+                      <span className="v4-ri v4-t-amber"><Icon name="file" /></span>
+                      <span className="v4-rt"><strong>{d.title || "Untitled draft"}</strong>
+                        <span>{d.request_type === "Personal" ? `Personal · ${d.personal_category || "Other"}` : "Official"}{d.dept_id && depts[d.dept_id] ? ` · ${depts[d.dept_id]}` : ""}{(d.attachments || []).length ? ` · ${(d.attachments || []).length} attachment${(d.attachments || []).length === 1 ? "" : "s"}` : ""} · saved {new Date(d.updated_at).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</span></span>
+                      <span className="v4-rr">
+                        <span className="v4-amt">{d.amount ? naira(d.amount) : "—"}</span>
+                        <button className="v4-btn v4-btn-ghost" type="button" style={{ color: "var(--v4-red)" }} onClick={() => void removeDraft(d)}>Delete</button>
+                        <Btn small a={{ href: `/requests/new?draft=${d.id}`, label: "Continue", kind: "primary" }} />
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              ) : <p className="v4-muted" style={{ padding: 20, margin: 0 }}>No drafts. Use “Save draft” on a new request to keep it for later — drafts are kept for 60 days.</p>}
+            </>
+          )
+        ) : rows === null ? <Skeleton lines={6} /> : shown.length ? (
           <div className="v4-table-wrap">
             <table className="v4-data v4-stack">
               <thead><tr><th>Request</th><th className="v4-r">Amount</th><th>Title · type</th><th className="v4-hide-sm">Progress</th><th>Status</th><th className="v4-r">Action</th></tr></thead>
@@ -170,7 +212,7 @@ function MyRequests() {
             </table>
           </div>
         ) : <p className="v4-muted" style={{ padding: 20, margin: 0 }}>{rows.length ? "No request matches these filters." : `You have not made a request in FY ${fyLabel(fy)}.`}</p>}
-        <Pager page={page} pageSize={PAGE} total={shown.length} onPage={setPage} label="requests" />
+        {tab === "drafts" ? null : <Pager page={page} pageSize={PAGE} total={shown.length} onPage={setPage} label="requests" />}
       </Card>
     </V4Page>
   );

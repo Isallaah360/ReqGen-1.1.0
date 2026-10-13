@@ -26,7 +26,7 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
   { href: "/finance/transactions", label: "Transactions & Ledgers", section: "Finance", description: "Review Finance transactions and linked account or subhead ledger movements.", keywords: ["transactions", "account ledger", "subhead ledger"] },
   { href: "/finance/account-transfers", label: "Transfers", section: "Finance", description: "Create and review controlled transfers between IET accounts." },
   { href: "/finance/processing", label: "Finance Processing", section: "Finance", description: "Treat requests routed to Finance and continue payment-voucher processing.", keywords: ["finance queue", "requests", "manual voucher"] },
-  { href: "/finance/reports", label: "Reports & Output", section: "Finance", description: "Finance reports, print, export and audit output.", keywords: ["reports", "print", "export", "audit"] },
+  { href: "/reports/finance-statements", label: "Finance Statements", section: "Reports", description: "Monthly, annual and subhead statements.", keywords: ["reports", "print", "export", "statement"] },
   { href: "/finance/settings", label: "Finance Settings", section: "Finance", description: "Finance numbering, fiscal-year and workflow settings." },
 
   { href: "/payment-vouchers", label: "Payment Voucher Centre", section: "Payment Vouchers", description: "Create, process, review, print and track payment vouchers from one live workspace.", keywords: ["pending vouchers", "approved vouchers", "voucher history", "print voucher", "create voucher"] },

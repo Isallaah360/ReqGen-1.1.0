@@ -36,7 +36,7 @@ const SHORTCUTS = [
   { href: "/requests/new", label: "New request", icon: "plus", tone: "brand" },
   { href: "/requests/mine", label: "My requests", icon: "list", tone: "blue" },
   { href: "/approvals/vouchers", label: "Vouchers to sign", icon: "pen", tone: "brand" },
-  { href: "/reports/centre", label: "Reports", icon: "chart", tone: "green" },
+  { href: "/reports", label: "Reports", icon: "chart", tone: "green" },
   { href: "/requests/printable", label: "Print register", icon: "printer", tone: "blue" },
   { href: "/profile/details#signature", label: "My signature", icon: "pentool", tone: "amber" },
   { href: "/registry/centre", label: "Registry", icon: "archive", tone: "amber" },

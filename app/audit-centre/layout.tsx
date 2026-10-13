@@ -1,3 +1,4 @@
 import type { ReactNode } from "react";
-import styles from "./approved-mockup.module.css";
-export default function AuditCentreLayout({ children }: { children: ReactNode }) { return <div className={styles.family}>{children}</div>; }
+
+/** v4: pages draw their own v4 layout. */
+export default function Layout({ children }: { children: ReactNode }) { return <>{children}</>; }

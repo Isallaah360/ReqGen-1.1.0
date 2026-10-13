@@ -8,10 +8,10 @@ const results = [
   ["SQL: signers can be chosen until the Cheque Signer signs", sql.includes("until the Cheque Signer signs")],
   ["SQL: vouchers open by ANY held role or the part played", (sql.match(/reqgen_pv_user_has_role\(auth\.uid\(\), array\['admin'/g) || []).length >= 4],
   ["SQL: notifications link to Approvals (open to every signer)", sql.includes("'/approvals/vouchers/' || p_voucher_id::text")],
-  ["Voucher page: 'Your action' card at the top with comment", detail.includes("Your action: {myStep.label}")],
-  ["Voucher page: Admin / Auditor / Account can send a reminder", detail.includes("canOversee") && detail.includes('fetch("/api/pv/remind"')],
+  ["Voucher page: 'Your action' card at the top with comment", detail.includes("Your action: Check and sign as Auditor") && detail.includes("Your action: Sign, stamp and authorise") && detail.includes("<CommentBox")],
+  ["Voucher page: Admin / Auditor / Account can send a reminder", detail.includes("canRemind") && detail.includes("(isOfficer || isAuditor || isAdmin)") && read("app/components/v4/useVouchers.ts").includes('fetch("/api/pv/remind"')],
   // v4.1: Approvals shows waiting vouchers on their own page (Vouchers to Sign) and on the Dashboard.
-  ["'Waiting for you' on Approvals and Payment Vouchers", read("app/approvals/vouchers/page.tsx").includes("get_payment_vouchers_assigned_to_me") && read("app/payment-vouchers/centre/page.tsx").includes("<WaitingForYou />")],
+  ["'Waiting for you' on Approvals and Payment Vouchers", read("app/approvals/vouchers/page.tsx").includes("get_payment_vouchers_assigned_to_me") && read("lib/v4/summaries.ts").includes('label: "Waiting for you"') && read("app/payment-vouchers/page.tsx").includes('moduleKey="payment-vouchers"')],
   ["Voucher links re-route to Approvals when the active role cannot open Finance", read("app/components/RouteAccessGuard.tsx").includes("/approvals/vouchers/${voucher[1]}")],
 ];
 let failed = 0;

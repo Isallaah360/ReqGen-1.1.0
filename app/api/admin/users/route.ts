@@ -22,6 +22,9 @@ export async function POST(req: NextRequest) {
 
   const userClient = createClient(url, anon, { auth: { persistSession: false } });
   const admin = createClient(url, service, { auth: { persistSession: false } });
+  // v4.6: reqgen_assign_profile_role checks the caller (auth.uid()), which the service key does not carry,
+  // so the position is assigned as the signed-in administrator.
+  const actorClient = createClient(url, anon, { auth: { persistSession: false }, global: { headers: { Authorization: `Bearer ${token}` } } });
 
   const { data: authData, error: authError } = await userClient.auth.getUser(token);
   if (authError || !authData.user) return fail("Invalid session.", 401);
@@ -82,13 +85,15 @@ export async function POST(req: NextRequest) {
     });
     if (profileError) throw new Error("Profile creation failed: " + profileError.message);
 
-    const { error: assignmentError } = await admin.rpc("reqgen_assign_profile_role", {
+    const { error: assignmentError } = await actorClient.rpc("reqgen_assign_profile_role", {
       p_profile_id: newUserId,
       p_role_key: roleRow.role_key,
       p_is_primary: true,
     });
     if (assignmentError) throw new Error("Role assignment failed: " + assignmentError.message);
 
+    // v4.6: every Administration change goes to the one Audit Log
+    await admin.rpc("reqgen_admin_log", { p_actor: actorId, p_action: "Staff added", p_record_no: fullName, p_record_id: newUserId, p_details: { position: roleRow.role_key } }).then(() => null, () => null);
     return NextResponse.json({ ok: true, user: { id: newUserId, email, fullName, role: roleRow.role_name } });
   } catch (error) {
     await admin.auth.admin.deleteUser(newUserId);

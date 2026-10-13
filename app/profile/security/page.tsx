@@ -9,6 +9,7 @@ import { confirmDialog } from "@/lib/dialog";
 import { fingerprintAvailable, readTrustedDevice, registerFingerprint, removeFingerprint, removeTrustedDevice } from "@/lib/v4/deviceSignIn";
 import { shortDate } from "@/lib/v4/requestText";
 import Icon from "@/app/components/v4/Icon";
+import { useSecurityRules } from "@/lib/v4/useSecurityRules";
 import { Btn, Card, Chip, Notice, PageHead, Stats, V4Page, type StatItem } from "@/app/components/v4/ui";
 
 type Cred = { id: string; device_name: string | null; created_at: string; last_used_at: string | null };
@@ -29,6 +30,7 @@ function lastUsed(iso: string | null) {
 /** My Account › Security & Devices (v4.0.0). */
 export default function SecurityDevicesPage() {
   const router = useRouter();
+  const rules = useSecurityRules();
   const [loading, setLoading] = useState(true);
   const [hasTotp, setHasTotp] = useState(false);
   const [aal2, setAal2] = useState(false);
@@ -139,7 +141,7 @@ export default function SecurityDevicesPage() {
                 <div className="v4-meter" aria-label={`${Math.round(used)}% of the window used`}><span style={{ width: `${used}%` }} /></div>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, color: "var(--v4-muted)", marginTop: 6 }}><span>{clock(started)}</span><span>Now {clock(now || Date.now())}</span><span>{clock(windowEnd)}</span></div>
               </>
-            ) : <p style={{ margin: 0, color: "var(--v4-ink-2)" }}>One fingerprint or 2FA check keeps you signed in on a device for 12 hours.</p>}
+            ) : <p style={{ margin: 0, color: "var(--v4-ink-2)" }}>One fingerprint or 2FA check keeps you signed in on a device for {rules.stayHours} hours.</p>}
           </Card>
 
           <Card title="Fingerprint sign-in" pad>
@@ -188,7 +190,7 @@ export default function SecurityDevicesPage() {
           <Card title="What each one does" pad>
             <ul className="v4-can v4-yes">
               <li><Icon name="check" /><span><b>Fingerprint</b> signs you in and counts as your 2FA check.</span></li>
-              <li><Icon name="check" /><span><b>Passcode</b> replaces your password on one trusted device. 2FA is still asked every 12 hours.</span></li>
+              <li><Icon name="check" /><span><b>Passcode</b> replaces your password on one trusted device. 2FA is still asked every {rules.stayHours} hours.</span></li>
               <li><Icon name="check" /><span><b>Password + 2FA code</b> work on any device.</span></li>
               <li><Icon name="check" /><span>Signing, stamping and paying always need your fingerprint or 2FA code — never the passcode alone.</span></li>
             </ul>

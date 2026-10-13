@@ -67,3 +67,16 @@ export function ageDays(iso: string | null | undefined) {
   const t = iso ? new Date(iso).getTime() : NaN;
   return Number.isFinite(t) ? Math.max(0, (Date.now() - t) / 86_400_000) : 0;
 }
+
+/** Full position name of a route step ("DG" → "Director General", "Account" → "Account Officer"). */
+export function stageTitle(stage: string | null | undefined) {
+  const k = stageKey(stage);
+  if (k === "DG") return "Director General";
+  if (k === "ACCOUNT") return "Account Officer";
+  if (k === "PO" || k === "PD") return "PD";
+  if (k === "HR") return "HR Coordinator";
+  if (k === "HRFILING") return "HR Filing";
+  if (k === "DINADMIN") return "DIN Admin";
+  if (k === "DIRECTOR") return "DOD";
+  return String(stage || "");
+}

@@ -80,13 +80,11 @@ export const MODULES: ModuleDef[] = [
     intro: "Release funds and keep budgets, accounts and ledgers in order.",
     tiles: [
       { href: "/finance/processing", title: "Finance Processing", purpose: "Treat approved requests and post payments.", icon: "clock", tone: "brand", keywords: ["treat", "queue"] },
-      { href: "/finance/overview", title: "Finance Overview", purpose: "The live position of funds, budgets and spending.", icon: "chart", tone: "blue" },
       { href: "/finance/manage-accounts", title: "Bank Accounts", purpose: "IET accounts, funds and balances.", icon: "landmark", tone: "green", keywords: ["iet accounts", "fund", "allocate"] },
       { href: "/finance/manage-accounts/assign", title: "Officer Assignment", purpose: "Which Account Officer handles each account.", icon: "users", tone: "blue", keywords: ["account officer"] },
       { href: "/finance/subheads", title: "Budget & Subheads", purpose: "Allocations, reservations and balances per subhead.", icon: "wallet", tone: "amber", keywords: ["budget", "subhead"] },
       { href: "/finance/transactions", title: "Ledgers", purpose: "Transactions, account and subhead ledgers.", icon: "list", tone: "blue", keywords: ["ledger", "transactions"] },
-      { href: "/finance/account-transfers", title: "Transfers", purpose: "Record money moved between accounts or subheads.", icon: "arrows", tone: "brand" },
-      { href: "/finance/reports", title: "Reports & Output", purpose: "Monthly and annual finance reports.", icon: "printer", tone: "green" },
+      { href: "/finance/account-transfers", title: "Transfers", purpose: "Move money between IET accounts or subheads.", icon: "arrows", tone: "brand" },
       { href: "/finance/settings", title: "Finance Settings", purpose: "Financial year, numbering and safeguards.", icon: "settings", tone: "blue" },
     ],
   },
@@ -114,11 +112,12 @@ export const MODULES: ModuleDef[] = [
     icon: "archive",
     intro: "Track requests, record letters in and out, dispatch and archive. Each tile opens one page.",
     tiles: [
-      { href: "/registry/centre", title: "Registry Centre", purpose: "Every letter and file in one list, with search and filters.", icon: "list", tone: "amber", keywords: ["correspondence", "tracking", "movement"] },
-      { href: "/registry/incoming", title: "Incoming", purpose: "Letters and files received.", icon: "download", tone: "blue" },
+      { href: "/registry/tracking", title: "Request Tracking", purpose: "Where each request is now and how long it has been there.", icon: "route", tone: "amber", keywords: ["tracking", "movement", "stuck", "remind"] },
+      { href: "/registry/incoming", title: "Incoming", purpose: "Letters and files received. Acknowledge and forward.", icon: "download", tone: "blue" },
       { href: "/registry/outgoing", title: "Outgoing", purpose: "Letters and files leaving the Trust.", icon: "upload", tone: "brand" },
-      { href: "/registry/dispatch", title: "Dispatch", purpose: "Hand over, courier or email, with receiver’s name.", icon: "send", tone: "brand" },
+      { href: "/registry/dispatch", title: "Dispatch", purpose: "Hand over, courier or email — with receiver’s name.", icon: "send", tone: "brand" },
       { href: "/registry/archive", title: "Archive", purpose: "Filed records with retention and shelf location.", icon: "archive", tone: "green" },
+      { href: "/registry/filing", title: "Registry Filing", purpose: "Paid requests and vouchers to file — numbers only.", icon: "file", tone: "blue" },
     ],
   },
   {
@@ -129,8 +128,14 @@ export const MODULES: ModuleDef[] = [
     group: "Oversight",
     intro: "Every report in one place. Each person sees only what they are allowed to see.",
     tiles: [
-      { href: "/reports/centre", title: "Reports Centre", purpose: "Requests, finance, vouchers and registry reports.", icon: "chart", tone: "blue" },
-      { href: "/reports/enterprise-analytics", title: "Executive Analytics", purpose: "Budget pace, risk subheads and exceptions.", icon: "trend", tone: "amber" },
+      { href: "/reports/transactions", title: "Transactions + Analysis", purpose: "Every naira in and out, month by month, with charts.", icon: "trend", tone: "brand", keywords: ["money", "spending", "analysis", "charts"] },
+      { href: "/reports/requests", title: "Request Reports", purpose: "Submitted, approved, returned and rejected, by department.", icon: "file", tone: "blue" },
+      { href: "/reports/finance-statements", title: "Finance Statements", purpose: "Monthly, annual and subhead statements, IET financial year.", icon: "landmark", tone: "green", keywords: ["monthly", "annual", "statement"] },
+      { href: "/reports/vouchers", title: "Voucher Reports", purpose: "Vouchers by mode and status, signing times, top payees.", icon: "card", tone: "brand" },
+      { href: "/reports/registry", title: "Registry Reports", purpose: "Incoming, outgoing, dispatched and archived — counts only.", icon: "archive", tone: "blue" },
+      { href: "/reports/enterprise-analytics", title: "Executive Analytics", purpose: "Budget pace, risk subheads and exceptions on one page.", icon: "trend", tone: "amber" },
+      { href: "/requests/printable", title: "Print Register", purpose: "What has been printed, by whom and how many times.", icon: "printer", tone: "blue" },
+      { href: "/reports/compliance", title: "Compliance", purpose: "Automatic checks on vouchers, signatures and security.", icon: "shield", tone: "green" },
     ],
   },
   {
@@ -143,7 +148,7 @@ export const MODULES: ModuleDef[] = [
     tiles: [
       { href: "/audit-centre/logs", title: "Audit Log", purpose: "Every action by every user. Nothing can be edited or deleted.", icon: "list", tone: "blue" },
       { href: "/workflow", title: "Workflow Trace", purpose: "The full journey of a request or voucher, step by step.", icon: "route", tone: "amber" },
-      { href: "/finance/audit", title: "Finance Reconciliation", purpose: "Bank balances against the ledger, month by month.", icon: "scale", tone: "brand" },
+      { href: "/audit-centre/reconciliation", title: "Finance Reconciliation", purpose: "Bank balances against the ledger, month by month.", icon: "scale", tone: "brand" },
       { href: "/audit-centre/backup", title: "Master Backup", purpose: "Download, preview and restore by financial year.", icon: "database", tone: "green" },
     ],
   },
@@ -153,18 +158,16 @@ export const MODULES: ModuleDef[] = [
     href: "/admin",
     icon: "admin",
     group: "Oversight",
-    intro: "Staff, positions, departments, routing and security. Each tile opens one page.",
+    intro: "Signed in as the ReqGen Super Admin — the Trust’s own account, not a person’s. Each tile opens one page.",
     tiles: [
-      { href: "/admin/overview", title: "System Overview", purpose: "Users by position and recent changes.", icon: "dashboard", tone: "blue" },
-      { href: "/admin/users", title: "Staff & Positions", purpose: "Every staff member with the positions they hold.", icon: "users", tone: "blue", keywords: ["users", "roles"] },
-      { href: "/admin/roles", title: "Permissions Matrix", purpose: "What each position can see and do. One matrix only.", icon: "grid", tone: "brand" },
+      { href: "/admin/system-accounts", title: "System Accounts", purpose: "Super Admin and Developer — what each can and cannot do.", icon: "shield", tone: "brand" },
+      { href: "/admin/users", title: "Staff & Positions", purpose: "Every staff member with the positions they hold.", icon: "users", tone: "blue", keywords: ["users", "roles", "staff"] },
+      { href: "/admin/positions", title: "Positions", purpose: "The list of positions and who holds each one.", icon: "key", tone: "brand" },
+      { href: "/admin/roles", title: "Permissions Matrix", purpose: "What each position can see and do. One matrix only.", icon: "grid", tone: "blue", keywords: ["permissions"] },
       { href: "/admin/departments", title: "Departments", purpose: "Departments, their directors, heads and accounts.", icon: "building", tone: "green" },
-      { href: "/admin/routing", title: "Routing Engine", purpose: "Who approves what, in which order. Set here only.", icon: "route", tone: "amber" },
-      { href: "/admin/account-routing", title: "Account Routing", purpose: "Which account and officer pays each department.", icon: "landmark", tone: "brand" },
+      { href: "/admin/routing", title: "Routing Engine", purpose: "Who approves what, in which order. Set here only.", icon: "route", tone: "amber", keywords: ["routes", "backups", "away", "account routing"] },
       { href: "/admin/security", title: "Security Centre", purpose: "2FA, fingerprint, passcode and trusted devices.", icon: "lock", tone: "red" },
-      { href: "/admin/settings", title: "System Settings", purpose: "Default officers and institution settings.", icon: "settings", tone: "blue" },
-      { href: "/admin/audit", title: "Admin Audit Log", purpose: "Changes made in Administration.", icon: "list", tone: "blue" },
-      { href: "/admin/system-health", title: "Diagnostics", purpose: "System health and data checks.", icon: "activity", tone: "green" },
+      { href: "/admin/system-health", title: "Diagnostics", purpose: "System health and data checks.", icon: "activity", tone: "blue" },
     ],
   },
 ];
@@ -193,6 +196,12 @@ const EXTRA_TITLES: Record<string, { module: string; title: string }> = {
   "/docs": { module: "dashboard", title: "Help" },
   "/workflow": { module: "audit", title: "Workflow Trace" },
   "/output": { module: "reports", title: "Output" },
+  "/reports/analysis": { module: "reports", title: "Analysis" },
+  "/reports/print": { module: "reports", title: "Print report" },
+  "/reports/centre": { module: "reports", title: "Reports" },
+  "/finance/overview": { module: "finance", title: "Finance Overview" },
+  "/finance/reports": { module: "reports", title: "Finance Statements" },
+  "/payment-vouchers/print-centre/batch": { module: "payment-vouchers", title: "Print several" },
   "/finance/account-ledger": { module: "finance", title: "Account Ledger" },
   "/finance/subhead-ledger": { module: "finance", title: "Subhead Ledger" },
   "/finance/activity-history": { module: "audit", title: "Finance Activity" },
@@ -208,7 +217,12 @@ const EXTRA_TITLES: Record<string, { module: string; title: string }> = {
   "/finance/reports/annual": { module: "finance", title: "Annual Report" },
   "/finance/reports/print": { module: "finance", title: "Print Report" },
   "/registry/operations": { module: "registry", title: "Registry Operations" },
-  "/admin/department-routing": { module: "admin", title: "Department Routing" },
+  "/registry/centre": { module: "registry", title: "Registry Centre" },
+  "/admin/department-routing": { module: "admin", title: "Routing Engine" },
+  "/admin/account-routing": { module: "admin", title: "Routing Engine" },
+  "/admin/settings": { module: "admin", title: "Routing Engine" },
+  "/admin/overview": { module: "admin", title: "Administration" },
+  "/admin/audit": { module: "audit", title: "Audit Log" },
   "/admin/workflow-test": { module: "admin", title: "Workflow Test" },
   "/admin/release-readiness": { module: "admin", title: "Release Readiness" },
   "/admin/access-audit": { module: "admin", title: "Access Audit" },
@@ -314,6 +328,31 @@ const V4_NATIVE_EXACT = new Set<string>([
   "/profile/passcode",
 ]);
 
+/** Pages drawn with the v4 kit (no legacy wrapper). Grows with each v4 release. */
+const V4_NATIVE_PATTERNS: RegExp[] = [
+  /^\/requests\/new$/,
+  /^\/requests\/(?!mine$|new$|printable$)[^/]+$/,
+  /^\/requests\/[^/]+\/edit$/,
+  // v4.2 Finance
+  /^\/finance\/(processing|manage-accounts|manage-accounts\/assign|subheads|transactions|account-transfers|settings)$/,
+  /^\/finance\/subheads\/[^/]+$/,
+  /^\/finance\/request\/[^/]+$/,
+  // v4.3 Payment Vouchers
+  /^\/payment-vouchers\/(centre|new|manual|pending|approved|history|print-centre|settings)$/,
+  /^\/payment-vouchers\/(?!centre$|new$|manual$|pending$|approved$|history$|print-centre$|settings$|reports$)[^/]+$/,
+  /^\/approvals\/vouchers\/[^/]+$/,
+  // v4.5 Registry and Audit
+  /^\/registry\/(tracking|incoming|outgoing|dispatch|archive|filing)$/,
+  /^\/audit-centre\/(logs|reconciliation|backup)$/,
+  /^\/workflow$/,
+  // v4.4 Reports
+  /^\/reports\/(transactions|analysis|requests|finance-statements|vouchers|registry|enterprise-analytics|compliance|print)$/,
+  /^\/requests\/printable$/,
+  // v4.6 Administration
+  /^\/admin\/(system-accounts|users|positions|roles|departments|routing|security|system-health)$/,
+  /^\/admin\/users\/[^/]+$/,
+];
+
 export function isV4Page(pathname: string) {
-  return V4_NATIVE_EXACT.has(pathname);
+  return V4_NATIVE_EXACT.has(pathname) || V4_NATIVE_PATTERNS.some((re) => re.test(pathname));
 }

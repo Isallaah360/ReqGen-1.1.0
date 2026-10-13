@@ -7,7 +7,7 @@ const results = [];
 const check = (label, ok) => results.push({ label, ok: Boolean(ok) });
 
 const reqPrint = read("app/requests/[id]/print/page.tsx");
-const pvPrint = read("app/payment-vouchers/[id]/print/page.tsx");
+const pvPrint = read("app/payment-vouchers/[id]/print/VoucherPrintView.tsx");
 const css = read("app/globals.css");
 check("A4 engine exists (fit + isolated print)", exists("lib/printA4.ts") && read("lib/printA4.ts").includes("export async function printA4Sheet"));
 check("Request print is one A4 page, fitted and printed in isolation", reqPrint.includes("rg-a4-page") && reqPrint.includes("useA4Fit") && reqPrint.includes("printA4Sheet") && !reqPrint.includes("window.print()"));
@@ -19,16 +19,17 @@ check("PV prints only when fully signed (all modes)", pvPrint.includes('voucher.
 
 const pvPage = read("app/payment-vouchers/centre/page.tsx");
 const shell = (read("app/components/GovernmentAppShell.tsx") + read("app/components/v4/AppFrame.tsx") + read("app/components/v4/Bell.tsx") + read("lib/v4/modules.ts"));
-check("PV views are pages opened from the Payment Vouchers mother page", pvPage.includes("VIEW_PATH") && !pvPage.includes("workspaceTabs") && shell.includes('title: "Signing Tracker"'));
-check("One voucher phase drives tabs, KPIs and donut", pvPage.includes("function voucherPhase") && pvPage.includes("voucherGroup(status") );
+// v4.3: every voucher view is its own v4 page, opened from the mother page tiles
+check("PV views are pages opened from the Payment Vouchers mother page", ["pending", "approved", "history", "print-centre"].every((v) => exists(`app/payment-vouchers/${v}/page.tsx`) && !read(`app/payment-vouchers/${v}/page.tsx`).includes("../centre/page")) && !pvPage.includes("workspaceTabs") && shell.includes('title: "Signing Tracker"'));
+check("One voucher phase drives tabs, KPIs and donut", read("lib/v4/vouchers.ts").includes("export function pvStage") && pvPage.includes("pvStage(v.status)") && pvPage.includes("pvInSigning"));
 // v3.1.14: the Counter Signer is required; the DG signs the cheque when authorising.
-check("Signers required for every disbursement mode", pvPage.includes("p_cheque_signed_by_name: null") && pvPage.includes("p_counter_signatory_name: counterSignatoryName.trim()"));
+check("Signers required for every disbursement mode", read("app/payment-vouchers/new/page.tsx").includes("p_counter_signer: counter") && read("app/payment-vouchers/new/page.tsx").includes("Choose the Counter Signer.") && read("app/payment-vouchers/manual/page.tsx").includes("p_cheque_signed_by_name: null"));
 const detail = read("app/payment-vouchers/[id]/page.tsx");
 check("Voucher detail signs through reqgen_pv_sign", detail.includes('rpc("reqgen_pv_sign"') && detail.includes('rpc("reqgen_pv_assign_signers"'));
-check("Voucher detail shows the 5-step chain (v3.1.14)", ["Prepared", "Checked", "Counter-signed", "Signed & authorised", "Received"].every((t) => detail.includes(`"${t}"`)));
+check("Voucher detail shows the 5-step chain (v3.1.14)", ["Prepared", "Checked", "Counter-signed", "Signed, stamped & authorised"].every((t) => read("lib/v4/vouchers.ts").includes(`"${t}"`)) && detail.includes("pvSteps(v)") && detail.includes('"Received"'));
 check("Signers outside Finance sign from Approvals", exists("app/approvals/vouchers/page.tsx") && exists("app/approvals/vouchers/[id]/page.tsx") && shell.includes('title: "Vouchers to Sign"'));
 const manual = read("app/payment-vouchers/manual/page.tsx");
-check("Manual voucher: department first, its accounts only", manual.includes("departmentAccounts") && manual.includes("department_account_routing") && manual.includes("Select the department first."));
+check("Manual voucher: department first, its accounts only", manual.includes("deptAccounts") && manual.includes("department_account_routing") && manual.includes("Choose the department first"));
 check("Print Register for requesters, Account Officers and Auditors", exists("app/requests/printable/page.tsx") && shell.includes('"Print Register"'));
 check("Requests mother page has My Requests, New Request and Print Register tiles", ["/requests/mine", "/requests/new", "/requests/printable"].every((h) => shell.includes(`href: "${h}"`)));
 const sql = "database/v3_1_6_pv_signing_chain.sql";

@@ -1,2 +1,4 @@
-import FinanceOperationsWorkspace from "../_components/FinanceOperationsWorkspace";
-export default function Page(){ return <FinanceOperationsWorkspace mode="subhead-ledger"/>; }
+import { redirect } from "next/navigation";
+
+/** v4.2: the subhead ledger is a tab of Finance › Ledgers. */
+export default function Page() { redirect("/finance/transactions?view=subhead"); }

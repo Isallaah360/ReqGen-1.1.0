@@ -42,6 +42,22 @@ export const BACKUP_TABLES: BackupTable[] = [
   { table: "hr_assignment_history", group: "People", label: "HR assignment history", dated: true },
   { table: "user_role_switch_history", group: "Audit", label: "Role switches", dated: true },
   { table: "audit_logs", group: "Audit", label: "Audit log (user activity)", dated: true },
+  // v4.1 – v4.5 tables
+  { table: "reqgen_financial_years", group: "Budget", label: "Financial years (open, locked, closed)", dated: false },
+  { table: "reqgen_finance_settings", group: "Finance", label: "Finance settings", dated: false },
+  { table: "reqgen_finance_settings_log", group: "Finance", label: "Finance settings changes", dated: true },
+  { table: "reqgen_transfers", group: "Finance", label: "Transfers between accounts and subheads", dated: true },
+  { table: "reqgen_request_budget_lines", group: "Requests", label: "Budget lines on request letters", dated: true },
+  { table: "reqgen_request_drafts", group: "Requests", label: "Saved drafts", dated: true },
+  { table: "reqgen_payee_bank_accounts", group: "Payment vouchers", label: "Payee bank details", dated: false },
+  { table: "reqgen_pv_transfer_schedule", group: "Payment vouchers", label: "Transfer schedules", dated: true },
+  { table: "reqgen_pv_attachments", group: "Payment vouchers", label: "Manual voucher attachments (records)", dated: true },
+  { table: "reqgen_print_log", group: "Reports", label: "Print register", dated: false },
+  { table: "reqgen_compliance_runs", group: "Reports", label: "Compliance runs", dated: false },
+  { table: "reqgen_registry_archive", group: "Registry", label: "Archive (retention and shelf)", dated: false },
+  { table: "reqgen_reminder_log", group: "Registry", label: "Reminders", dated: true },
+  { table: "reqgen_reconciliations", group: "Audit", label: "Bank reconciliations", dated: false },
+  { table: "reqgen_audit_log", group: "Audit", label: "Audit log (v4, append-only)", dated: false },
 ];
 
 export const BACKUP_FORMAT = "reqgen-master-backup";

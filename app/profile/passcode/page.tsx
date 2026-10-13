@@ -9,6 +9,7 @@ import { easyPasscode } from "@/lib/v4/passcodeRules";
 import { deviceName, readTrustedDevice, setupPasscode } from "@/lib/v4/deviceSignIn";
 import { positionName } from "@/app/components/v4/RoleSelect";
 import { useIdentity } from "@/app/components/v4/useIdentity";
+import { useSecurityRules } from "@/lib/v4/useSecurityRules";
 import Icon from "@/app/components/v4/Icon";
 import PasscodePad from "@/app/components/v4/PasscodePad";
 import { Btn, Card, Chip, Notice, PageHead, V4Page } from "@/app/components/v4/ui";
@@ -17,6 +18,7 @@ import { Btn, Card, Chip, Notice, PageHead, V4Page } from "@/app/components/v4/u
 export default function PasscodeSetupPage() {
   const router = useRouter();
   const me = useIdentity();
+  const rules = useSecurityRules();
   const [step, setStep] = useState<"enter" | "confirm" | "done">("enter");
   const [first, setFirst] = useState("");
   const [pin, setPin] = useState("");
@@ -88,7 +90,7 @@ export default function PasscodeSetupPage() {
           <ul className="v4-can v4-yes">
             <li><Icon name="check" /><span>The passcode is joined to <b>this device</b>. On any other phone or laptop it does nothing — someone who learns it still can’t get in.</span></li>
             <li><Icon name="check" /><span>Someone who takes this device still needs the passcode.</span></li>
-            <li><Icon name="check" /><span>5 wrong tries removes the passcode from the device. You then sign in with password + 2FA.</span></li>
+            <li><Icon name="check" /><span>{rules.passcodeTries} wrong tries removes the passcode from the device. You then sign in with password + 2FA.</span></li>
             <li><Icon name="check" /><span>ReqGen stores only a scrambled copy, never the passcode itself.</span></li>
             <li><Icon name="check" /><span>Lost the device? Remove it in <b>My Account › Security &amp; Devices</b>, or ask the Super Admin.</span></li>
           </ul>

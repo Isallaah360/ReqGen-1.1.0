@@ -12,7 +12,8 @@ import type { Tone } from "@/lib/v4/modules";
  */
 
 export type SummaryStat = { label: string; value: string; note?: string; icon: string; tone: Tone; href?: string };
-export type Summary = { stats: SummaryStat[]; meta: Record<string, string> };
+/** badges: a small red chip on a tile (e.g. "1 stuck"). */
+export type Summary = { stats: SummaryStat[]; meta: Record<string, string>; badges?: Record<string, string> };
 
 const DASH = "—";
 
@@ -149,17 +150,17 @@ export async function financeSummary(): Promise<Summary> {
 
 export async function vouchersSummary(): Promise<Summary> {
   const [list, mine] = await Promise.all([
-    supabase.from("payment_vouchers").select("id,status,amount,total_amount,created_at").order("created_at", { ascending: false }).limit(3000),
+    supabase.from("payment_vouchers").select("*").order("created_at", { ascending: false }).limit(3000),
     vouchersForMe(),
   ]);
   if (list.error) return { stats: [], meta: {} };
-  const rows = (list.data || []) as Array<{ status?: string | null; amount?: number | null; total_amount?: number | null; created_at?: string | null }>;
+  const rows = (list.data || []) as Array<{ status?: string | null; amount?: number | null; total_amount?: number | null; created_at?: string | null; paid_at?: string | null; updated_at?: string | null }>;
   const amt = (r: { amount?: number | null; total_amount?: number | null }) => Number(r.total_amount ?? r.amount ?? 0);
   const signing = rows.filter((r) => status(r).startsWith("pending"));
   const late = signing.filter((r) => daysSince(r.created_at) >= 3).length;
   const ready = rows.filter((r) => /^(authori[sz]ed|approved)$/.test(status(r)));
   const since = new Date(monthStart()).getTime();
-  const paidMonth = rows.filter((r) => status(r) === "paid" && new Date(r.created_at || 0).getTime() >= since);
+  const paidMonth = rows.filter((r) => status(r) === "paid" && new Date(r.paid_at || r.updated_at || r.created_at || 0).getTime() >= since);
   const paidAll = rows.filter((r) => status(r) === "paid");
   return {
     stats: [
@@ -180,65 +181,102 @@ export async function vouchersSummary(): Promise<Summary> {
 }
 
 export async function registrySummary(): Promise<Summary> {
-  const { data, error } = await supabase.from("registry_correspondence").select("direction,created_at,status").order("created_at", { ascending: false }).limit(5000);
-  if (error) return { stats: [], meta: {} };
-  const rows = (data || []) as Array<{ direction?: string | null; created_at?: string | null; status?: string | null }>;
+  const [corr, track, arch, filing] = await Promise.all([
+    supabase.from("registry_correspondence").select("direction,created_at,received_at,status,priority,archived_at").order("created_at", { ascending: false }).limit(5000),
+    supabase.rpc("reqgen_registry_tracking"),
+    supabase.from("reqgen_registry_archive").select("archived_at,keep_until,permanent,restored_at").is("restored_at", null).limit(20000),
+    supabase.rpc("reqgen_registry_filing_queue"),
+  ]);
+  if (corr.error) return { stats: [], meta: {} };
+  const rows = (corr.data || []) as Array<{ direction?: string | null; created_at?: string | null; received_at?: string | null; status?: string | null; priority?: string | null }>;
   const today = dayStart();
   const isIn = (r: { direction?: string | null }) => String(r.direction || "").toLowerCase() === "incoming";
   const isOut = (r: { direction?: string | null }) => String(r.direction || "").toLowerCase() === "outgoing";
-  const todayRows = rows.filter((r) => new Date(r.created_at || 0).getTime() >= today);
-  const archived = rows.filter((r) => /archiv|filed/.test(status(r)));
+  const inToday = rows.filter((r) => isIn(r) && new Date(r.received_at || r.created_at || 0).getTime() >= today);
+  const toDispatch = rows.filter((r) => isOut(r) && /ready to dispatch/i.test(String(r.status || "")));
+  const tr = ((track.data || []) as Array<{ waiting_since: string }>);
+  const stuck = tr.filter((r) => daysSince(r.waiting_since) >= 3).length;
+  const ar = (arch.data || []) as Array<{ archived_at: string; keep_until: string | null; permanent: boolean }>;
+  const monthStartMs = new Date(monthStart()).getTime();
+  const due = ar.filter((r) => !r.permanent && r.keep_until && new Date(r.keep_until).getTime() < Date.now()).length;
+  const toFile = ((filing.data || []) as unknown[]).length;
   return {
     stats: [
-      { label: "Received today", value: n(todayRows.filter(isIn).length), note: "Incoming letters and files", icon: "download", tone: "blue", href: "/registry/incoming" },
-      { label: "Sent today", value: n(todayRows.filter(isOut).length), note: "Outgoing letters and files", icon: "upload", tone: "brand", href: "/registry/outgoing" },
-      { label: "Filed records", value: n(archived.length), note: "In the archive", icon: "archive", tone: "green", href: "/registry/archive" },
+      { label: "Received today", value: n(inToday.length), note: `${inToday.filter((r) => /urgent/i.test(String(r.priority || ""))).length} urgent`, icon: "download", tone: "blue", href: "/registry/incoming" },
+      { label: "To dispatch", value: n(toDispatch.length), note: `${toDispatch.filter((r) => daysSince(r.created_at) >= 2).length} waiting 2+ days`, icon: "send", tone: "brand", href: "/registry/dispatch" },
+      { label: "Requests moving", value: track.error ? DASH : n(tr.length), note: stuck ? `${stuck} stuck 3+ days` : "None stuck", icon: "route", tone: "amber", href: "/registry/tracking" },
+      { label: "Archived this month", value: arch.error ? DASH : n(ar.filter((r) => new Date(r.archived_at).getTime() >= monthStartMs).length), note: `${due} due for review`, icon: "archive", tone: "green", href: "/registry/archive" },
     ],
     meta: {
-      "/registry/incoming": plural(rows.filter(isIn).length, "record"),
+      "/registry/tracking": track.error ? DASH : `${tr.length} moving`,
+      "/registry/incoming": `${inToday.length} today`,
       "/registry/outgoing": plural(rows.filter(isOut).length, "record"),
-      "/registry/archive": plural(archived.length, "filed record"),
+      "/registry/dispatch": `${toDispatch.length} to dispatch`,
+      "/registry/archive": arch.error ? DASH : plural(ar.length, "record"),
+      "/registry/filing": `${toFile} to file`,
     },
+    badges: stuck ? { "/registry/tracking": `${stuck} stuck` } : undefined,
   };
 }
 
 export async function adminSummary(): Promise<Summary> {
-  const [people, depts, accounts] = await Promise.all([
-    supabase.from("profiles").select("id", { count: "exact", head: true }),
-    supabase.from("departments").select("id", { count: "exact", head: true }).eq("is_active", true),
-    supabase.from("iet_accounts").select("id", { count: "exact", head: true }).eq("is_active", true),
+  // v4.6 (mock-up 79): one call, decided in the database (Super Admin and Developer only)
+  const [{ data, error }, routes] = await Promise.all([
+    supabase.rpc("reqgen_admin_summary"),
+    supabase.rpc("reqgen_department_route_overview"),
   ]);
-  const staff = people.error ? null : people.count ?? 0;
-  const d = depts.error ? null : depts.count ?? 0;
-  const a = accounts.error ? null : accounts.count ?? 0;
+  const v = (error ? null : typeof data === "string" ? JSON.parse(data) : data) as null | {
+    staff: number; deactivated: number; positions_held: number; positions: number; departments: number; accounts: number; officers_without_2fa: number; system_accounts: number;
+  };
+  const routeCount = routes.error ? null : new Set(((routes.data || []) as Array<{ dept_id: string }>).map((r) => r.dept_id)).size;
+  const no2fa = v?.officers_without_2fa ?? 0;
   return {
     stats: [
-      { label: "Staff", value: n(staff), note: "Everyone with a ReqGen account", icon: "users", tone: "blue", href: "/admin/users" },
-      { label: "Departments", value: n(d), note: "Active departments", icon: "building", tone: "green", href: "/admin/departments" },
-      { label: "IET accounts", value: n(a), note: "Active accounts", icon: "landmark", tone: "brand", href: "/finance/manage-accounts" },
+      { label: "Staff", value: n(v ? v.staff : null), note: "All have the Staff level", icon: "users", tone: "blue", href: "/admin/users" },
+      { label: "Positions held", value: n(v ? v.positions_held : null), note: v ? `Across ${v.positions} positions` : undefined, icon: "key", tone: "brand", href: "/admin/positions" },
+      { label: "Departments", value: n(v ? v.departments : null), note: v ? plural(v.accounts, "account") : undefined, icon: "building", tone: "green", href: "/admin/departments" },
+      { label: "Security", value: n(v ? no2fa : null), note: "Officers without 2FA", icon: "lock", tone: no2fa ? "amber" : "green", href: "/admin/security" },
     ],
     meta: {
-      "/admin/users": staff === null ? DASH : plural(staff, "person", "people"),
-      "/admin/departments": d === null ? DASH : plural(d, "department"),
+      "/admin/system-accounts": v ? plural(v.system_accounts, "account") : DASH,
+      "/admin/users": v ? `${v.staff} staff` : DASH,
+      "/admin/positions": v ? plural(v.positions, "position") : DASH,
+      "/admin/roles": "15 × 16",
+      "/admin/departments": v ? plural(v.departments, "department") : DASH,
+      "/admin/routing": routeCount === null ? DASH : plural(routeCount, "route"),
+      "/admin/security": v ? (no2fa ? `${no2fa} to fix` : "All protected") : DASH,
+      "/admin/system-health": "Run checks",
     },
+    badges: no2fa ? { "/admin/security": String(no2fa) } : undefined,
   };
 }
 
 export async function auditSummary(): Promise<Summary> {
   const today = new Date(dayStart()).toISOString();
   const week = new Date(Date.now() - 7 * 86_400_000).toISOString();
-  const [todayCount, weekCount] = await Promise.all([
-    supabase.from("audit_logs").select("id", { count: "exact", head: true }).gte("created_at", today),
-    supabase.from("audit_logs").select("id", { count: "exact", head: true }).gte("created_at", week),
+  const [todayCount, stamps, recon, backup] = await Promise.all([
+    supabase.from("reqgen_audit_log").select("id", { count: "exact", head: true }).gte("at", today),
+    supabase.from("reqgen_audit_log").select("id", { count: "exact", head: true }).eq("category", "stamp").gte("at", week),
+    supabase.from("reqgen_reconciliations").select("month,difference,status").neq("status", "Reconciled"),
+    supabase.from("reqgen_backup_log").select("created_at,mode,summary,bytes").eq("action", "backup").order("created_at", { ascending: false }).limit(1).maybeSingle(),
   ]);
   const t = todayCount.error ? null : todayCount.count ?? 0;
-  const w = weekCount.error ? null : weekCount.count ?? 0;
+  const open = ((recon.data || []) as Array<{ difference: number | null }>).filter((r) => Number(r.difference || 0) !== 0).length;
+  const last = backup.data as { created_at: string; bytes?: number | null } | null;
   return {
     stats: [
-      { label: "Actions today", value: n(t), note: "Every user, every module", icon: "activity", tone: "blue", href: "/audit-centre/logs" },
-      { label: "Last 7 days", value: n(w), note: "Logged actions", icon: "history", tone: "brand", href: "/audit-centre/logs" },
+      { label: "Events today", value: n(t), note: "Sign-ins, approvals, edits", icon: "activity", tone: "blue", href: "/audit-centre/logs" },
+      { label: "Stamps applied", value: stamps.error ? DASH : n(stamps.count ?? 0), note: "This week · all by the DG", icon: "pentool", tone: "brand", href: "/audit-centre/logs?tab=stamp" },
+      { label: "To reconcile", value: recon.error ? DASH : n(open), note: open ? "Differences to explain" : "All matched", icon: "scale", tone: "amber", href: "/audit-centre/reconciliation" },
+      { label: "Last backup", value: last ? new Date(last.created_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : DASH, note: last ? new Date(last.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" }) : "No backup yet", icon: "database", tone: "green", href: "/audit-centre/backup" },
     ],
-    meta: { "/audit-centre/logs": t === null ? DASH : `${t} today` },
+    meta: {
+      "/audit-centre/logs": t === null ? DASH : `${t} today`,
+      "/workflow": "Search any number",
+      "/audit-centre/reconciliation": recon.error ? DASH : open ? `${open} difference${open === 1 ? "" : "s"}` : "All matched",
+      "/audit-centre/backup": "Nightly at 02:00",
+    },
+    badges: open ? { "/audit-centre/reconciliation": `${open} to check` } : undefined,
   };
 }
 

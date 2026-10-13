@@ -1,0 +1,87 @@
+/* =========================================================================
+   ReqGen v4.1.2 – v4.6 — page parts that the mock-ups drew statically and
+   React now draws live. Tokens only (light and dark both work).
+   ========================================================================= */
+
+/* ---- New Request ---- */
+.v4-newreq .v4-stepper div { cursor: default; }
+.v4-typecards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.v4-typecards-sm { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.v4-typecard {
+  position: relative; display: flex; align-items: flex-start; gap: 14px; padding: 18px; min-height: 96px;
+  border: 1.5px solid var(--v4-line); border-radius: 16px; background: var(--v4-surface); color: var(--v4-ink);
+  font: inherit; text-align: left; cursor: pointer; transition: border-color .15s, box-shadow .15s, background .15s;
+}
+.v4-typecard:hover { border-color: var(--v4-brand-line); background: var(--v4-brand-tint); }
+.v4-typecard:focus-visible { outline: none; box-shadow: 0 0 0 4px rgba(184,62,0,.16); border-color: var(--v4-brand); }
+.v4-typecard[aria-checked="true"] { border-color: var(--v4-brand); background: var(--v4-brand-tint); box-shadow: 0 6px 18px rgba(184,62,0,.10); }
+.v4-typecard .v4-ico { width: 44px; height: 44px; border-radius: 13px; display: grid; place-items: center; flex: none; }
+.v4-typecard strong { display: block; font-size: 15px; }
+.v4-typecard small { display: block; margin-top: 3px; font-size: 13px; color: var(--v4-ink-2); line-height: 1.45; }
+.v4-typecard-tick { position: absolute; top: 12px; right: 12px; width: 18px; height: 18px; color: var(--v4-brand); opacity: 0; transition: opacity .15s; }
+.v4-typecard[aria-checked="true"] .v4-typecard-tick { opacity: 1; }
+.v4-typecards-sm .v4-typecard { padding: 14px; min-height: 0; gap: 10px; }
+.v4-typecards-sm .v4-typecard .v4-ico { width: 36px; height: 36px; border-radius: 11px; }
+.v4-typecards-sm .v4-typecard strong { font-size: 14px; }
+.v4-typecards-sm .v4-typecard small { font-size: 12.5px; }
+.v4-dropzone-btn { display: flex; width: 100%; flex-direction: column; align-items: center; gap: 6px; font: inherit; cursor: pointer; transition: border-color .15s, background .15s; }
+.v4-dropzone-btn:hover, .v4-dropzone-btn.is-over { border-color: var(--v4-brand); background: var(--v4-brand-tint); }
+.v4-dropzone-btn strong { font-size: 14.5px; color: var(--v4-ink); }
+.v4-dropzone-btn strong span { color: var(--v4-brand); }
+.v4-dropzone-btn small { font-size: 12.5px; color: var(--v4-muted); }
+.v4-dropzone-btn .v4-icon { color: var(--v4-muted); }
+.v4-newreq-otp { position: fixed; inset: 0; z-index: 500; display: grid; place-items: center; padding: 16px; background: rgba(9,14,24,.52); backdrop-filter: blur(3px); }
+.v4-newreq-otp > .v4-card { width: min(100%, 420px); }
+.v4-newreq .v4-field > label.v4-flabel { color: var(--v4-ink); }
+@media (max-width: 1100px) { .v4-typecards-sm { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 640px) {
+  .v4-typecards, .v4-typecards-sm { grid-template-columns: 1fr; }
+  .v4-newreq .v4-form-actions { display: grid; grid-template-columns: 1fr 1fr; }
+  .v4-newreq .v4-form-actions .v4-btn-primary { grid-column: 1 / -1; order: -1; }
+}
+
+/* ---- Request record / approval (mock-ups 26, 32, 32b) ---- */
+.v4-subconfirm { margin-top: 16px; padding: 16px; border: 1px solid var(--v4-line); border-radius: 14px; background: var(--v4-surface-2); }
+.v4-subconfirm-row { display: flex; flex-wrap: wrap; gap: 16px 24px; align-items: flex-end; justify-content: space-between; }
+.v4-subconfirm .v4-help .v4-icon { vertical-align: -3px; }
+.v4-reqrec .v4-help .v4-icon { vertical-align: -3px; }
+.v4-reqrec .v4-files li > a { font-weight: 700; }
+.v4-reqrec .v4-action-card .v4-notice { margin-top: 12px; }
+.v4-balbox > div > span:last-child { background: var(--v4-surface); color: var(--v4-ink); border-color: var(--v4-ink-2); }
+html[data-theme="dark"] .v4-root .v4-stamp-preview .v4-demo { background: #fff; border-radius: 8px; border-bottom-color: #111; }
+html[data-theme="dark"] .v4-root .v4-stamp-preview .v4-demo img:not(.v4-iet-stamp) { filter: none; }
+.v4-stamp-preview .v4-demo { flex: none; }
+.v4-reqrec .v4-rec > div:first-child { flex: 1 1 420px; min-width: 0; }
+.v4-reqrec .v4-rec > .v4-right { flex: 0 0 auto; }
+.v4-help .v4-icon, .v4-notice .v4-help .v4-icon, p .v4-icon.v4-icon-sm { display: inline-block; vertical-align: -3px; }
+.v4-chain .v4-ink .v4-chip .v4-icon { width: 14px; height: 14px; }
+.v4-chain .v4-ink .v4-chip { height: 26px; }
+
+/* ---- Form dialog (Modal) ---- */
+.v4-modal-layer .v4-backdrop { z-index: 350; }
+.v4-modal-layer .v4-dialog.v4-modal { z-index: 360; display: flex; flex-direction: column; max-height: min(92vh, 860px); padding: 0; overflow: hidden; width: min(94vw, 520px); }
+.v4-modal-layer .v4-dialog.v4-modal.v4-wide { width: min(94vw, 720px); }
+.v4-modal-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 20px 22px 12px; border-bottom: 1px solid var(--v4-line-2); }
+.v4-modal-head .v4-h2 { margin: 0; }
+.v4-modal-sub { margin: 4px 0 0 !important; font-size: 13.5px; color: var(--v4-ink-2); }
+.v4-modal-x { width: 38px; height: 38px; flex: none; }
+.v4-modal-body { padding: 18px 22px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; }
+.v4-modal-foot { display: flex; justify-content: flex-end; gap: 10px; flex-wrap: wrap; padding: 14px 22px 18px; border-top: 1px solid var(--v4-line-2); background: var(--v4-surface); }
+@media (max-width: 640px) {
+  .v4-modal-layer .v4-dialog.v4-modal { top: auto; bottom: 0; transform: translate(-50%, 0); border-radius: 20px 20px 0 0; width: 100vw; max-height: 92vh; }
+  .v4-modal-foot { display: grid; grid-template-columns: 1fr 1fr; }
+}
+.v4-modal-body p { margin: 0; }
+
+/* ---- Finance (v4.2) ---- */
+.v4-grouprow td { background: var(--v4-surface-2); }
+.v4-fy-status { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; padding: 12px 14px; border: 1px solid var(--v4-line); border-radius: 12px; background: var(--v4-surface-2); }
+.v4-fy-status .v4-help { flex: 1 1 260px; }
+.v4-fy-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.v4-compact-rows > li { padding: 8px 0 !important; border: 0 !important; }
+.v4-setting .v4-chip { flex: none; }
+.v4-setting .v4-chip span { display: inline; font-size: 12px; color: inherit; }
+.v4-ledgers .v4-strong a { font-weight: 800; }
+@media print {
+  .v4-ledgers .v4-picker, .v4-ledgers .v4-tabs, .v4-ledgers .v4-pager, .v4-ledgers .v4-page-head .v4-actions { display: none !important; }
+}

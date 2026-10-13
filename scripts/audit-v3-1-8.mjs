@@ -6,7 +6,8 @@ const exists = (f) => fs.existsSync(f);
 const results = [];
 const check = (label, ok) => results.push({ label, ok: Boolean(ok) });
 
-const exp = exists("app/api/backup/export/route.ts") ? read("app/api/backup/export/route.ts") : "";
+// v4.5: the zip is built in lib/server/backupBuild.ts (shared by download, "Back up now" and the nightly copy)
+const exp = (exists("app/api/backup/export/route.ts") ? read("app/api/backup/export/route.ts") : "") + (exists("lib/server/backupBuild.ts") ? read("lib/server/backupBuild.ts") : "");
 const res = exists("app/api/backup/restore/route.ts") ? read("app/api/backup/restore/route.ts") : "";
 check("Backup export: Admin/Auditor only, by financial year, manifest + master + per-table CSV", exp.includes('["admin", "auditor"]') && exp.includes("01_MANIFEST.csv") && exp.includes("02_REQGEN_MASTER.csv") && exp.includes("tables/") && exp.includes('gte("created_at"'));
 check("Restore: preview for Auditor, restore for Admin only, never deletes", res.includes('mode !== "preview" && !isAdmin') && res.includes("ignoreDuplicates") && !/\.delete\(/.test(res));
@@ -18,7 +19,7 @@ check("Setup Guide page and Profile tab", exists("app/profile/setup/page.tsx") &
 check("Setup Coach mounted in the app frame (banner, welcome, on-page steps)", (read("app/components/GovernmentAppShell.tsx") + read("app/components/v4/AppFrame.tsx") + read("app/components/v4/Bell.tsx") + read("lib/v4/modules.ts")).includes("<SetupCoach />") && read("app/components/SetupCoach.tsx").includes("data-guide"));
 check("Profile marks guide targets", read("app/profile/details/page.tsx").includes('data-guide="signature"') && read("app/profile/details/page.tsx").includes('data-guide="avatar"'));
 check("Password change records password_changed_at", read("app/change-password/page.tsx").includes("password_changed_at"));
-check("PV tabs introduce themselves", read("app/payment-vouchers/centre/page.tsx").includes("VIEW_HEADINGS[workspaceView].title"));
+check("PV tabs introduce themselves", ["centre", "pending", "approved", "history", "print-centre", "new", "manual", "settings"].every((d) => /<PageHead title=[^\n]{1,120}? sub=/.test(read(`app/payment-vouchers/${d}/page.tsx`))));
 check("v3.1.9 SQL replaces v3.1.7 (deadlock-safe parts)", read("database/v3_1_9_print_register_tracker.sql").includes("PART 2") && read("database/v3_1_7_registers_tracker_manual_pv.sql").includes("SUPERSEDED"));
 
 let failed = 0;

@@ -37,7 +37,7 @@ export const ROUTE_REGISTRY: RouteRegistryItem[] = [
   },
   {
     "pattern": "/admin/overview",
-    "title": "Administration - System Overview",
+    "title": "Administration - Overview (retired)",
     "rootHref": "/admin",
     "category": "Application Route",
     "public": false,
@@ -54,6 +54,66 @@ export const ROUTE_REGISTRY: RouteRegistryItem[] = [
     "nav": false,
     "searchable": true,
     "description": "ReqGen route /approvals/inbox"
+  },
+  {
+    "pattern": "/registry/tracking",
+    "title": "Registry - Request Tracking",
+    "rootHref": "/registry",
+    "category": "Application Route",
+    "public": false,
+    "nav": false,
+    "searchable": true,
+    "description": "ReqGen route /registry/tracking"
+  },
+  {
+    "pattern": "/registry/filing",
+    "title": "Registry - Filing Queue",
+    "rootHref": "/registry",
+    "category": "Application Route",
+    "public": false,
+    "nav": false,
+    "searchable": true,
+    "description": "ReqGen route /registry/filing"
+  },
+  {
+    "pattern": "/audit-centre/reconciliation",
+    "title": "Audit - Finance Reconciliation",
+    "rootHref": "/audit-centre",
+    "category": "Application Route",
+    "public": false,
+    "nav": false,
+    "searchable": true,
+    "description": "ReqGen route /audit-centre/reconciliation"
+  },
+  {
+    "pattern": "/admin/system-accounts",
+    "title": "Administration - System Accounts",
+    "rootHref": "/admin",
+    "category": "Application Route",
+    "public": false,
+    "nav": false,
+    "searchable": true,
+    "description": "ReqGen route /admin/system-accounts"
+  },
+  {
+    "pattern": "/admin/positions",
+    "title": "Administration - Positions",
+    "rootHref": "/admin",
+    "category": "Application Route",
+    "public": false,
+    "nav": false,
+    "searchable": true,
+    "description": "ReqGen route /admin/positions"
+  },
+  {
+    "pattern": "/admin/users/[id]",
+    "title": "Administration - Staff record",
+    "rootHref": "/admin",
+    "category": "Application Route",
+    "public": false,
+    "nav": false,
+    "searchable": false,
+    "description": "ReqGen route /admin/users/[id]"
   },
   {
     "pattern": "/audit-centre/logs",
@@ -197,7 +257,7 @@ export const ROUTE_REGISTRY: RouteRegistryItem[] = [
   },
   {
     "pattern": "/admin/departments",
-    "title": "Admin - Departments",
+    "title": "Administration - Departments",
     "rootHref": "/admin",
     "category": "Application Route",
     "public": false,
@@ -207,7 +267,7 @@ export const ROUTE_REGISTRY: RouteRegistryItem[] = [
   },
   {
     "pattern": "/admin",
-    "title": "Admin",
+    "title": "Administration",
     "rootHref": "/admin",
     "category": "Application Route",
     "public": false,
@@ -227,7 +287,7 @@ export const ROUTE_REGISTRY: RouteRegistryItem[] = [
   },
   {
     "pattern": "/admin/roles",
-    "title": "Admin - Roles",
+    "title": "Administration - Permissions Matrix",
     "rootHref": "/admin",
     "category": "Application Route",
     "public": false,
@@ -237,7 +297,7 @@ export const ROUTE_REGISTRY: RouteRegistryItem[] = [
   },
   {
     "pattern": "/admin/security",
-    "title": "Admin - Security",
+    "title": "Administration - Security Centre",
     "rootHref": "/admin",
     "category": "Application Route",
     "public": false,
@@ -257,7 +317,7 @@ export const ROUTE_REGISTRY: RouteRegistryItem[] = [
   },
   {
     "pattern": "/admin/system-health",
-    "title": "Admin - System Health",
+    "title": "Administration - Diagnostics",
     "rootHref": "/admin",
     "category": "Application Route",
     "public": false,
@@ -267,7 +327,7 @@ export const ROUTE_REGISTRY: RouteRegistryItem[] = [
   },
   {
     "pattern": "/admin/users",
-    "title": "Admin - Users",
+    "title": "Administration - Staff & Positions",
     "rootHref": "/admin",
     "category": "Application Route",
     "public": false,
@@ -626,6 +686,16 @@ export const ROUTE_REGISTRY: RouteRegistryItem[] = [
     "description": "ReqGen route /finance/subhead-ledger"
   },
   {
+    "pattern": "/finance/subheads/[id]",
+    "title": "Finance - Subhead",
+    "rootHref": "/finance",
+    "category": "Application Route",
+    "public": false,
+    "nav": false,
+    "searchable": false,
+    "description": "ReqGen route /finance/subheads/[id]"
+  },
+  {
     "pattern": "/finance/subheads",
     "title": "Finance - Subheads",
     "rootHref": "/finance",
@@ -767,13 +837,13 @@ export const ROUTE_REGISTRY: RouteRegistryItem[] = [
   },
   {
     "pattern": "/workflow",
-    "title": "Workflow (legacy redirect)",
+    "title": "Audit - Workflow Trace",
     "rootHref": "/workflow",
     "category": "Application Route",
     "public": false,
     "nav": false,
     "searchable": false,
-    "description": "Legacy redirect only — sends old /workflow links to Audit Centre. Not a standalone module."
+    "description": "Audit - Workflow Trace: the full journey of any request or voucher (v4.5, mock-up 76)."
   },
   {
     "pattern": "/payment-vouchers",
@@ -794,6 +864,16 @@ export const ROUTE_REGISTRY: RouteRegistryItem[] = [
     "nav": false,
     "searchable": true,
     "description": "ReqGen route /payment-vouchers/pending"
+  },
+  {
+    "pattern": "/payment-vouchers/print-centre/batch",
+    "title": "Payment Vouchers - Print Several",
+    "rootHref": "/payment-vouchers",
+    "category": "Application Route",
+    "public": false,
+    "nav": false,
+    "searchable": false,
+    "description": "ReqGen route /payment-vouchers/print-centre/batch"
   },
   {
     "pattern": "/payment-vouchers/print-centre",
@@ -954,6 +1034,86 @@ export const ROUTE_REGISTRY: RouteRegistryItem[] = [
     "nav": true,
     "searchable": true,
     "description": "ReqGen route /registry"
+  },
+  {
+    "pattern": "/reports/analysis",
+    "title": "Reports - Analysis",
+    "rootHref": "/reports",
+    "category": "Application Route",
+    "public": false,
+    "nav": false,
+    "searchable": true,
+    "description": "ReqGen route /reports/analysis"
+  },
+  {
+    "pattern": "/reports/compliance",
+    "title": "Reports - Compliance",
+    "rootHref": "/reports",
+    "category": "Application Route",
+    "public": false,
+    "nav": false,
+    "searchable": true,
+    "description": "ReqGen route /reports/compliance"
+  },
+  {
+    "pattern": "/reports/finance-statements",
+    "title": "Reports - Finance Statements",
+    "rootHref": "/reports",
+    "category": "Application Route",
+    "public": false,
+    "nav": false,
+    "searchable": true,
+    "description": "ReqGen route /reports/finance-statements"
+  },
+  {
+    "pattern": "/reports/print",
+    "title": "Reports - Print report",
+    "rootHref": "/reports",
+    "category": "Application Route",
+    "public": false,
+    "nav": false,
+    "searchable": true,
+    "description": "ReqGen route /reports/print"
+  },
+  {
+    "pattern": "/reports/registry",
+    "title": "Reports - Registry Reports",
+    "rootHref": "/reports",
+    "category": "Application Route",
+    "public": false,
+    "nav": false,
+    "searchable": true,
+    "description": "ReqGen route /reports/registry"
+  },
+  {
+    "pattern": "/reports/requests",
+    "title": "Reports - Request Reports",
+    "rootHref": "/reports",
+    "category": "Application Route",
+    "public": false,
+    "nav": false,
+    "searchable": true,
+    "description": "ReqGen route /reports/requests"
+  },
+  {
+    "pattern": "/reports/transactions",
+    "title": "Reports - Transactions",
+    "rootHref": "/reports",
+    "category": "Application Route",
+    "public": false,
+    "nav": false,
+    "searchable": true,
+    "description": "ReqGen route /reports/transactions"
+  },
+  {
+    "pattern": "/reports/vouchers",
+    "title": "Reports - Voucher Reports",
+    "rootHref": "/reports",
+    "category": "Application Route",
+    "public": false,
+    "nav": false,
+    "searchable": true,
+    "description": "ReqGen route /reports/vouchers"
   },
   {
     "pattern": "/reports/enterprise-analytics",

@@ -1,0 +1,1063 @@
+"use client";
+
+import { logPrint } from "@/lib/v4/reports";
+import Image from "next/image";
+import SignatureInk from "@/app/components/ui/SignatureInk";
+import QRCode from "qrcode";
+import { printA4Sheet, useA4Fit } from "@/lib/printA4";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabaseClient";
+
+type VoucherDetail = {
+  id: string;
+  voucher_no: string;
+  request_id: string;
+  request_no: string | null;
+  request_type: string | null;
+  personal_category: string | null;
+
+  payee_name: string | null;
+  narration: string | null;
+  amount: number | null;
+
+  dept_id: string | null;
+  dept_name: string | null;
+
+  subhead_id: string | null;
+  subhead_code: string | null;
+  subhead_name: string | null;
+
+  prepared_by: string | null;
+  prepared_by_name: string | null;
+  prepared_signature_url: string | null;
+  prepared_at: string | null;
+
+  checked_by: string | null;
+  checked_by_name: string | null;
+  checked_signature_url: string | null;
+  checked_at: string | null;
+
+  authorized_by: string | null;
+  authorized_by_name: string | null;
+  authorized_signature_url: string | null;
+  authorized_at: string | null;
+
+  cheque_no: string | null;
+  cheque_date: string | null;
+  bank_name: string | null;
+
+  cheque_signed_by: string | null;
+  cheque_signed_by_name: string | null;
+  cheque_signed_signature_url: string | null;
+  cheque_signed_at: string | null;
+
+  cheque_counter_signed_by: string | null;
+  cheque_counter_signed_by_name: string | null;
+  cheque_counter_signed_signature_url: string | null;
+  cheque_counter_signed_at: string | null;
+
+  payee_signed_name: string | null;
+  payee_signature_url: string | null;
+  payee_signed_at: string | null;
+
+  disbursement_mode: string | null;
+  transfer_account_name: string | null;
+  transfer_account_number: string | null;
+  transfer_bank_name: string | null;
+  cash_payee_name: string | null;
+  counter_signatory_name: string | null;
+
+  current_signing_owner: string | null;
+  signing_stage: string | null;
+
+  is_multi_request: boolean | null;
+  item_count: number | null;
+  total_amount: number | null;
+  voucher_scope: string | null;
+
+  status: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+};
+
+type VoucherItem = {
+  id: string;
+  voucher_id: string;
+  request_id: string;
+  request_no: string | null;
+  request_type: string | null;
+  personal_category: string | null;
+  title: string | null;
+  details: string | null;
+  amount: number | null;
+  dept_id: string | null;
+  dept_name: string | null;
+  subhead_id: string | null;
+  subhead_code: string | null;
+  subhead_name: string | null;
+  requester_name: string | null;
+  created_at: string | null;
+};
+
+function normalize(v: string | null | undefined) {
+  return (v || "").toLowerCase().replace(/[^a-z]/g, "");
+}
+
+function naira(n: number | null | undefined) {
+  return "₦" + Number(n || 0).toLocaleString();
+}
+
+function formatDate(d: string | null | undefined) {
+  if (!d) return "";
+  const date = new Date(d);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+}
+
+function amountToWords(n: number | null | undefined) {
+  const num = Math.round(Number(n || 0));
+
+  if (num === 0) return "Zero Naira Only";
+
+  const ones = [
+    "",
+    "One",
+    "Two",
+    "Three",
+    "Four",
+    "Five",
+    "Six",
+    "Seven",
+    "Eight",
+    "Nine",
+    "Ten",
+    "Eleven",
+    "Twelve",
+    "Thirteen",
+    "Fourteen",
+    "Fifteen",
+    "Sixteen",
+    "Seventeen",
+    "Eighteen",
+    "Nineteen",
+  ];
+
+  const tens = [
+    "",
+    "",
+    "Twenty",
+    "Thirty",
+    "Forty",
+    "Fifty",
+    "Sixty",
+    "Seventy",
+    "Eighty",
+    "Ninety",
+  ];
+
+  function belowThousand(x: number) {
+    let words = "";
+
+    if (x >= 100) {
+      words += ones[Math.floor(x / 100)] + " Hundred";
+      x %= 100;
+      if (x) words += " and ";
+    }
+
+    if (x >= 20) {
+      words += tens[Math.floor(x / 10)];
+      x %= 10;
+      if (x) words += "-" + ones[x];
+    } else if (x > 0) {
+      words += ones[x];
+    }
+
+    return words;
+  }
+
+  const parts: string[] = [];
+  let remaining = num;
+
+  const billions = Math.floor(remaining / 1_000_000_000);
+  if (billions) {
+    parts.push(belowThousand(billions) + " Billion");
+    remaining %= 1_000_000_000;
+  }
+
+  const millions = Math.floor(remaining / 1_000_000);
+  if (millions) {
+    parts.push(belowThousand(millions) + " Million");
+    remaining %= 1_000_000;
+  }
+
+  const thousands = Math.floor(remaining / 1000);
+  if (thousands) {
+    parts.push(belowThousand(thousands) + " Thousand");
+    remaining %= 1000;
+  }
+
+  if (remaining) parts.push(belowThousand(remaining));
+
+  return parts.join(", ") + " Naira Only";
+}
+
+function getPublicSignatureUrl(value: string | null | undefined) {
+  const raw = (value || "").trim();
+  if (!raw) return null;
+
+  if (
+    raw.startsWith("http://") ||
+    raw.startsWith("https://") ||
+    raw.startsWith("data:image/") ||
+    raw.startsWith("blob:")
+  ) {
+    return raw;
+  }
+
+  const cleaned = raw.replace(/^signatures\//, "").replace(/^\/+/, "");
+  const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
+
+  if (!base) return null;
+
+  return `${base}/storage/v1/object/public/signatures/${cleaned}`;
+}
+
+function categoryLabel(v: VoucherDetail | null) {
+  const rt = normalize(v?.request_type);
+  const pc = normalize(v?.personal_category);
+
+  if (rt === "official") return "Official Request";
+  if (rt === "personal" && pc === "fund") return "Personal Fund Request";
+  if (rt === "personal" && pc === "nonfund") return "Personal Non-Fund Request";
+
+  return v?.request_type || "—";
+}
+
+function itemParticulars(item: VoucherItem) {
+  const req = item.request_no || "Request";
+  const title = item.title || "Payment request";
+  const subhead = item.subhead_id
+    ? `${item.subhead_code || ""} ${item.subhead_name || ""}`.trim()
+    : "";
+
+  if (subhead) return `${req} — ${title}\nSubhead: ${subhead}`;
+
+  return `${req} — ${title}`;
+}
+
+type ScheduleRow = { id: string; line_no: number; account_name: string; account_number: string; bank_name: string; amount: number; request_ids: string[] | null };
+
+/**
+ * The v3 payment voucher on one A4 page (kept as approved). v4.3 adds the
+ * "Prepared by … — Account Officer, <section>" line and, for a combined
+ * transfer, a second A4 page: the Transfer Schedule for the bank.
+ * `embedded` is used by the Print Centre to print several vouchers together.
+ */
+export function VoucherPrintView({ voucherId, embedded = false }: { voucherId: string; embedded?: boolean }) {
+  const router = useRouter();
+  const id = voucherId;
+  const scheduleRef = useRef<HTMLElement>(null);
+  const [schedule, setSchedule] = useState<ScheduleRow[]>([]);
+  const [section, setSection] = useState<string | null>(null);
+
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [printing, setPrinting] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+  const [voucher, setVoucher] = useState<VoucherDetail | null>(null);
+  const sheetRef = useRef<HTMLElement>(null);
+  // v4.1: QR check code — opens the public check page for this voucher.
+  const qrId = voucherId;
+  const [qr, setQr] = useState("");
+  useEffect(() => {
+    if (!qrId) return;
+    let alive = true;
+    void QRCode.toDataURL(`${window.location.origin}/check/v/${qrId}`, { errorCorrectionLevel: "M", margin: 2, width: 240, color: { dark: "#000000", light: "#ffffff" } })
+      .then((url) => { if (alive) setQr(url); }).catch(() => undefined);
+    return () => { alive = false; };
+  }, [qrId]);
+  const [items, setItems] = useState<VoucherItem[]>([]);
+
+  const load = useCallback(
+    async (options?: { silent?: boolean }) => {
+      if (options?.silent) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
+
+      setMsg(null);
+
+      if (!id) {
+        setMsg("Invalid voucher ID.");
+        setLoading(false);
+        setRefreshing(false);
+        return null;
+      }
+
+      const { data: auth } = await supabase.auth.getUser();
+
+      if (!auth.user) {
+        router.push("/login");
+        return null;
+      }
+
+      const [detailRes, itemRes, schedRes, recRes] = await Promise.all([
+        supabase.rpc("get_payment_voucher_detail", {
+          p_voucher_id: id,
+        }),
+        supabase.rpc("get_payment_voucher_items", {
+          p_voucher_id: id,
+        }),
+        supabase.from("reqgen_pv_transfer_schedule").select("id,line_no,account_name,account_number,bank_name,amount,request_ids").eq("voucher_id", id).order("line_no"),
+        supabase.rpc("reqgen_pv_record", { p_voucher_id: id }),
+      ]);
+      setSchedule(schedRes.error ? [] : ((schedRes.data || []) as ScheduleRow[]));
+      const rec = recRes.error ? null : ((Array.isArray(recRes.data) ? recRes.data[0] : recRes.data) as { prepared_section?: string | null } | null);
+      setSection(rec?.prepared_section || null);
+
+      if (detailRes.error) {
+        setMsg("Failed to load voucher: " + detailRes.error.message);
+        setVoucher(null);
+        setItems([]);
+        setLoading(false);
+        setRefreshing(false);
+        return null;
+      }
+
+      const row = Array.isArray(detailRes.data)
+        ? (detailRes.data[0] as VoucherDetail | undefined)
+        : (detailRes.data as VoucherDetail | undefined);
+
+      if (!row) {
+        setMsg("Payment voucher not found.");
+        setVoucher(null);
+        setItems([]);
+        setLoading(false);
+        setRefreshing(false);
+        return null;
+      }
+
+      setVoucher(row);
+
+      if (itemRes.error) {
+        setMsg("Failed to load voucher items: " + itemRes.error.message);
+        setItems([]);
+      } else {
+        setItems((itemRes.data || []) as VoucherItem[]);
+      }
+
+      setLoading(false);
+      setRefreshing(false);
+
+      return {
+        voucher: row,
+        items: itemRes.error ? [] : ((itemRes.data || []) as VoucherItem[]),
+      };
+    },
+    [id, router]
+  );
+
+  useEffect(() => {
+    queueMicrotask(() => { void load(); });
+
+    const refreshOnFocus = () => {
+      load({ silent: true });
+    };
+
+    const refreshOnVisible = () => {
+      if (document.visibilityState === "visible") {
+        load({ silent: true });
+      }
+    };
+
+    window.addEventListener("focus", refreshOnFocus);
+    document.addEventListener("visibilitychange", refreshOnVisible);
+
+    return () => {
+      window.removeEventListener("focus", refreshOnFocus);
+      document.removeEventListener("visibilitychange", refreshOnVisible);
+    };
+  }, [load]);
+
+  useEffect(() => {
+    document.title = voucher?.voucher_no || "payment-voucher";
+  }, [voucher?.voucher_no]);
+
+  const sigPrepared = useMemo(
+    () => getPublicSignatureUrl(voucher?.prepared_signature_url),
+    [voucher?.prepared_signature_url]
+  );
+
+  const sigChecked = useMemo(
+    () => getPublicSignatureUrl(voucher?.checked_signature_url),
+    [voucher?.checked_signature_url]
+  );
+
+  const sigAuthorized = useMemo(
+    () => getPublicSignatureUrl(voucher?.authorized_signature_url),
+    [voucher?.authorized_signature_url]
+  );
+
+  const sigReceived = useMemo(
+    () => getPublicSignatureUrl(voucher?.payee_signature_url),
+    [voucher?.payee_signature_url]
+  );
+
+  const sigChequeSigned = useMemo(
+    () => getPublicSignatureUrl(voucher?.cheque_signed_signature_url),
+    [voucher?.cheque_signed_signature_url]
+  );
+
+  const sigCounterSigned = useMemo(
+    () => getPublicSignatureUrl(voucher?.cheque_counter_signed_signature_url),
+    [voucher?.cheque_counter_signed_signature_url]
+  );
+
+  const isCheque = normalize(voucher?.disbursement_mode) === "cheque";
+  const isTransfer = normalize(voucher?.disbursement_mode) === "transfer";
+  const isCash = normalize(voucher?.disbursement_mode) === "cash";
+
+  const totalAmount = useMemo(() => {
+    if (items.length > 0) {
+      return items.reduce((a, item) => a + Number(item.amount || 0), 0);
+    }
+
+    return Number(voucher?.total_amount || voucher?.amount || 0);
+  }, [items, voucher?.total_amount, voucher?.amount]);
+
+  const printableItems = useMemo(() => {
+    if (items.length > 0) return items;
+
+    if (!voucher) return [];
+
+    return [
+      {
+        id: voucher.id,
+        voucher_id: voucher.id,
+        request_id: voucher.request_id,
+        request_no: voucher.request_no,
+        request_type: voucher.request_type,
+        personal_category: voucher.personal_category,
+        title: voucher.narration || "Payment voucher",
+        details: voucher.narration || "",
+        amount: voucher.amount || voucher.total_amount || 0,
+        dept_id: voucher.dept_id,
+        dept_name: voucher.dept_name,
+        subhead_id: voucher.subhead_id,
+        subhead_code: voucher.subhead_code,
+        subhead_name: voucher.subhead_name,
+        requester_name: voucher.payee_name,
+        created_at: voucher.created_at,
+      } as VoucherItem,
+    ];
+  }, [items, voucher]);
+
+  const ready = useMemo(() => {
+    if (!voucher) return false;
+    return !!voucher.voucher_no && !!voucher.payee_name && totalAmount > 0;
+  }, [voucher, totalAmount]);
+
+  // v3.1.6: a voucher prints only when the whole signing chain is complete
+  // (Auditor, Counter Signer and DG — the DG also signs the cheque) — in every mode.
+  const finalPrintReady = useMemo(() => {
+    if (!voucher) return false;
+    return voucher.status === "Authorized" || voucher.status === "Paid";
+  }, [voucher]);
+
+  async function handlePrint() {
+    setPrinting(true);
+    setMsg(null);
+
+    const latest = await load({ silent: true });
+
+    const latestVoucher = latest?.voucher || voucher;
+    const latestItems = latest?.items || items;
+
+
+    const latestTotal =
+      latestItems.length > 0
+        ? latestItems.reduce((a, item) => a + Number(item.amount || 0), 0)
+        : Number(latestVoucher?.total_amount || latestVoucher?.amount || 0);
+
+    const latestReady =
+      !!latestVoucher && !!latestVoucher.voucher_no && !!latestVoucher.payee_name && latestTotal > 0;
+
+    const latestFinalPrintReady =
+      !!latestVoucher && (latestVoucher.status === "Authorized" || latestVoucher.status === "Paid");
+
+    if (!latestReady) {
+      setMsg("Voucher is not ready for printing. Please confirm voucher data.");
+      setPrinting(false);
+      return;
+    }
+
+    if (!latestFinalPrintReady) {
+      setMsg("Printing opens once every signature is in: Auditor, Counter Signer and the Director General (who signs the cheque and authorises).");
+      setPrinting(false);
+      return;
+    }
+
+    setTimeout(() => {
+      void logPrint("voucher", voucher?.id || null, voucher?.voucher_no || "Payment voucher");
+      void printA4Sheet([sheetRef.current, scheduleRef.current], `${voucher?.voucher_no || "Payment voucher"} — ReqGen`).finally(() => setPrinting(false));
+    }, 250);
+  }
+
+  function backToVouchers() {
+    router.push(`/payment-vouchers/centre?updated=${Date.now()}`);
+    router.refresh();
+  }
+
+  function manageVoucher() {
+    if (!voucher?.id) return;
+    router.push(`/payment-vouchers/${voucher.id}?updated=${Date.now()}`);
+    router.refresh();
+  }
+
+  useA4Fit(sheetRef, [voucher, printableItems, loading, section]);
+  useA4Fit(scheduleRef, [schedule, loading]);
+
+  if (loading && embedded) return <div className="no-print px-3 py-2 text-sm text-slate-600">Preparing voucher…</div>;
+
+  if (loading) {
+    return (
+      <main className="min-h-screen bg-slate-100 px-4 py-8">
+        <div className="mx-auto max-w-3xl rounded-2xl border bg-white p-6 text-slate-700 shadow-sm">
+          Preparing payment voucher...
+        </div>
+      </main>
+    );
+  }
+
+  if (!voucher) {
+    return (
+      <main className="min-h-screen bg-slate-100 px-4 py-8">
+        <div className="mx-auto max-w-3xl rounded-2xl border bg-white p-6 shadow-sm">
+          <div className="text-lg font-bold text-slate-900">Payment Voucher</div>
+
+          <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            {msg || "Payment voucher not found."}
+          </div>
+
+          <button
+            onClick={backToVouchers}
+            className="mt-5 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+          >
+            Back to Vouchers
+          </button>
+        </div>
+      </main>
+    );
+  }
+
+  const sheet = (
+        <article ref={sheetRef} className="rg-a4-page" data-pv-sheet data-pv-no={voucher.voucher_no || ""} data-pv-id={voucher.id} aria-label={`Payment voucher ${voucher.voucher_no}`}>
+        <div className="rg-a4-content rg-pvdoc border-2 border-black px-[14px] py-[12px] text-black">
+          <div className="grid grid-cols-[70px_1fr_188px] items-start gap-3">
+            <div>
+              <Image
+                src="/iet-logo.png"
+                alt="IET Logo"
+                width={62}
+                height={62}
+                className="h-[62px] w-auto object-contain"
+                priority
+              />
+            </div>
+
+            <div className="text-center">
+              <div className="text-xl font-black uppercase leading-none tracking-tight">
+                Islamic Education Trust
+              </div>
+              <div className="mt-1 text-[10.5px] font-bold leading-tight">
+                IW2, Ilmi Avenue Intermediate Housing Estate, PMB 229
+              </div>
+              <div className="text-[10.5px] font-bold leading-tight">
+                Minna, Niger State - Nigeria
+              </div>
+              <div className="mt-1.5 text-lg font-black uppercase underline">
+                Payment Voucher
+              </div>
+            </div>
+
+            <div className="text-[9.5px] font-bold">
+              <TopBox label="PV No." value={voucher.voucher_no} />
+              <TopBox label="Date" value={formatDate(voucher.created_at)} />
+              <TopBox label="Status" value={voucher.status || ""} />
+            </div>
+          </div>
+
+          <div className="mt-2 h-[2px] bg-black" />
+
+          <div className="mt-2 rg-print-12-grid gap-x-3 gap-y-1.5">
+            <LineField label="Payee:" value={voucher.payee_name || ""} className="col-span-7" />
+            <LineField
+              label="Request:"
+              value={
+                voucher.voucher_scope === "Multiple"
+                  ? `${voucher.item_count || printableItems.length} Requests`
+                  : voucher.request_no || ""
+              }
+              className="col-span-5"
+            />
+
+            <LineField label="Department:" value={voucher.dept_name || ""} className="col-span-7" />
+            <LineField label="Type:" value={categoryLabel(voucher)} className="col-span-5" />
+
+            <LineField
+              label="Subhead:"
+              value={
+                voucher.voucher_scope === "Multiple"
+                  ? "Multiple / As listed below"
+                  : voucher.subhead_id
+                  ? `${voucher.subhead_code || ""} ${voucher.subhead_name || ""}`.trim()
+                  : ""
+              }
+              className="col-span-12"
+            />
+          </div>
+
+          <div className="rg-a4-grow mt-2 flex flex-col border-2 border-black">
+            <div className="rg-print-12-grid border-b-2 border-black bg-slate-100 text-[9.2px] font-black uppercase">
+              <div className="col-span-1 border-r-2 border-black px-1 py-1 text-center">
+                No
+              </div>
+              <div className="col-span-8 border-r-2 border-black px-2 py-1">
+                Details / Particulars
+              </div>
+              <div className="col-span-3 px-2 py-1 text-right">Amount</div>
+            </div>
+
+            <div className="min-h-[82px] flex-1">
+              {printableItems.slice(0, 10).map((item, index) => (
+                <div
+                  key={item.id}
+                  className="rg-print-12-grid border-b border-black text-[9.1px] font-bold last:border-b-0"
+                >
+                  <div className="col-span-1 border-r-2 border-black px-1 py-[4px] text-center">
+                    {index + 1}
+                  </div>
+
+                  <div className="col-span-8 border-r-2 border-black px-2 py-[4px]">
+                    <div className="whitespace-pre-wrap leading-[1.18]">
+                      {itemParticulars(item)}
+                    </div>
+                  </div>
+
+                  <div className="col-span-3 px-2 py-[4px] text-right text-[9.6px] font-black">
+                    {naira(item.amount)}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="rg-print-12-grid border-t-2 border-black text-[10.5px] font-black">
+              <div className="col-span-9 border-r-2 border-black px-2 py-1 text-right uppercase">
+                Total
+              </div>
+              <div className="col-span-3 px-2 py-1 text-right">
+                {naira(totalAmount)}
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-2 border-2 border-black px-2 py-1">
+            <div className="text-xs font-black uppercase">Amount in Words</div>
+            <div className="text-[10.2px] font-bold leading-tight">
+              {amountToWords(totalAmount)}
+            </div>
+          </div>
+
+          <div className="mt-2 border-2 border-black">
+            <div className="border-b-2 border-black bg-slate-100 px-2 py-1 text-[9.2px] font-black uppercase">
+              Disbursement Details
+            </div>
+
+            <div className="rg-print-12-grid gap-2 px-2 py-2">
+              <FilledBox
+                label="Mode"
+                value={voucher.disbursement_mode || ""}
+                className="col-span-4"
+              />
+
+              {isTransfer && (
+                <>
+                  <FilledBox
+                    label="Account Number"
+                    value={voucher.transfer_account_number || ""}
+                    className="col-span-4"
+                  />
+                  <FilledBox
+                    label="Bank"
+                    value={voucher.transfer_bank_name || ""}
+                    className="col-span-4"
+                  />
+                  <FilledBox
+                    label="Account Name"
+                    value={voucher.transfer_account_name || ""}
+                    className="col-span-12"
+                  />
+                </>
+              )}
+
+              {isCash && (
+                <>
+                  <FilledBox
+                    label="Payee Name"
+                    value={voucher.cash_payee_name || voucher.payee_name || ""}
+                    className="col-span-8"
+                  />
+                  <BlankBox label="Payee Signature / Date" className="col-span-4" />
+                </>
+              )}
+
+              {isCheque && (
+                <>
+                  <FilledBox
+                    label="Cheque No."
+                    value={voucher.cheque_no || ""}
+                    className="col-span-4"
+                  />
+                  <FilledBox
+                    label="Cheque Date"
+                    value={formatDate(voucher.cheque_date)}
+                    className="col-span-4"
+                  />
+                  <FilledBox
+                    label="Bank"
+                    value={voucher.bank_name || ""}
+                    className="col-span-4"
+                  />
+                  <FilledBox
+                    label="Cheque Signed By"
+                    value={voucher.cheque_signed_by_name || ""}
+                    className="col-span-6"
+                  />
+                  <FilledBox
+                    label="Counter Signed By"
+                    value={voucher.cheque_counter_signed_by_name || ""}
+                    className="col-span-6"
+                  />
+                </>
+              )}
+
+              {!isTransfer && !isCash && !isCheque && (
+                <>
+                  <BlankBox label="Account Number / Cheque No." className="col-span-4" />
+                  <BlankBox label="Bank" className="col-span-4" />
+                  <BlankBox label="Account Name / Payee Name" className="col-span-12" />
+                </>
+              )}
+            </div>
+          </div>
+
+          <div className="mt-2 border-2 border-black">
+            <div className="border-b-2 border-black bg-slate-100 px-2 py-1 text-[9.2px] font-black uppercase">
+              Certification / Approval / Receipt
+            </div>
+
+            <div className="grid grid-cols-2 gap-x-5 gap-y-3 px-3 py-2.5">
+              <SignatureBox
+                title="Prepared By"
+                name={voucher.prepared_by_name ? (section ? `${voucher.prepared_by_name} — Account Officer, ${section}` : voucher.prepared_by_name) : ""}
+                sigUrl={sigPrepared}
+                date={formatDate(voucher.prepared_at)}
+              />
+
+              <SignatureBox
+                title="Checked By"
+                name={voucher.checked_by_name || ""}
+                sigUrl={sigChecked}
+                date={formatDate(voucher.checked_at)}
+              />
+
+              <SignatureBox
+                title="Authorized By"
+                name={voucher.authorized_by_name || ""}
+                sigUrl={sigAuthorized}
+                date={formatDate(voucher.authorized_at)}
+                stamp
+              />
+
+              <SignatureBox
+                title="Received By"
+                name={voucher.payee_signed_name || voucher.payee_name || ""}
+                sigUrl={sigReceived}
+                date={formatDate(voucher.payee_signed_at)}
+              />
+
+              <SignatureBox
+                title="Cheque Signed By"
+                name={voucher.cheque_signed_by_name || ""}
+                sigUrl={sigChequeSigned}
+                date={formatDate(voucher.cheque_signed_at)}
+              />
+
+              <SignatureBox
+                title="Counter Signed By"
+                name={voucher.cheque_counter_signed_by_name || ""}
+                sigUrl={sigCounterSigned}
+                date={formatDate(voucher.cheque_counter_signed_at)}
+              />
+            </div>
+          </div>
+
+          <div className="mt-2 flex items-center justify-between text-[8.6px] font-semibold">
+            <div className="flex items-center gap-2">
+              {/* eslint-disable-next-line @next/next/no-img-element -- generated QR data URL */}
+              {qr ? <img src={qr} alt="QR check code" width={52} height={52} style={{ width: 52, height: 52 }} /> : null}
+              <span>
+                Official IET Payment Voucher • Generated by ReqGen
+                {voucher.voucher_scope === "Multiple" ? " • Combined PV" : ""}
+                <br />Scan the code to check this voucher.
+              </span>
+            </div>
+            <div className="italic">Building Bridges</div>
+          </div>
+        </div>
+        </article>
+  );
+
+  const annex = schedule.length > 1 ? (
+    <article ref={scheduleRef} className="rg-a4-page" data-pv-sheet aria-label={`Transfer schedule for ${voucher.voucher_no}`}>
+      <div className="rg-a4-content rg-pvdoc border-2 border-black px-[14px] py-[12px] text-black">
+        <div className="text-center">
+          <div className="text-xl font-black uppercase leading-none tracking-tight">Islamic Education Trust</div>
+          <div className="mt-1.5 text-lg font-black uppercase underline">Transfer Schedule</div>
+          <div className="mt-1 text-[10.5px] font-bold">Attached to Payment Voucher {voucher.voucher_no} · {formatDate(voucher.created_at)}</div>
+        </div>
+        <div className="mt-3 border-2 border-black text-[10px]">
+          <div className="grid grid-cols-[34px_1fr_120px_110px_110px] border-b-2 border-black bg-slate-100 font-black uppercase">
+            <div className="border-r-2 border-black px-1 py-1 text-center">No</div>
+            <div className="border-r-2 border-black px-2 py-1">Account name</div>
+            <div className="border-r-2 border-black px-2 py-1">Bank</div>
+            <div className="border-r-2 border-black px-2 py-1">Account no.</div>
+            <div className="px-2 py-1 text-right">Amount</div>
+          </div>
+          {schedule.map((l) => (
+            <div key={l.id} className="grid grid-cols-[34px_1fr_120px_110px_110px] border-b border-black font-semibold">
+              <div className="border-r-2 border-black px-1 py-1 text-center">{l.line_no}</div>
+              <div className="border-r-2 border-black px-2 py-1">{l.account_name}</div>
+              <div className="border-r-2 border-black px-2 py-1">{l.bank_name}</div>
+              <div className="border-r-2 border-black px-2 py-1 tabular-nums">{l.account_number}</div>
+              <div className="px-2 py-1 text-right tabular-nums">{naira(l.amount)}</div>
+            </div>
+          ))}
+          <div className="grid grid-cols-[1fr_110px] font-black">
+            <div className="border-r-2 border-black px-2 py-1 text-right uppercase">Total to transfer</div>
+            <div className="px-2 py-1 text-right tabular-nums">{naira(schedule.reduce((t, l) => t + Number(l.amount || 0), 0))}</div>
+          </div>
+        </div>
+        <div className="mt-2 text-[10px] font-semibold">Amount in words: {amountToWords(schedule.reduce((t, l) => t + Number(l.amount || 0), 0))}</div>
+        <div className="rg-a4-grow" />
+        <div className="mt-4 grid grid-cols-2 gap-6 text-[9px] font-bold">
+          <div><div className="border-b border-black pb-6">{voucher.prepared_by_name || ""}</div><div className="mt-1 text-slate-600">Prepared by (Account Officer)</div></div>
+          <div><div className="border-b border-black pb-6">{voucher.authorized_by_name || ""}</div><div className="mt-1 text-slate-600">Authorised by (Director General)</div></div>
+        </div>
+        <div className="mt-2 text-[8.6px] font-semibold">Official IET Transfer Schedule • Generated by ReqGen • {schedule.length} accounts</div>
+      </div>
+    </article>
+  ) : null;
+
+  if (embedded) {
+    if (!finalPrintReady) return <div className="no-print rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">{voucher.voucher_no} is not fully signed yet, so it is left out.</div>;
+    return <>{sheet}{annex}</>;
+  }
+
+  return (
+    <main className="min-h-screen bg-slate-100 px-4 py-4">
+      <style>{`
+        @page {
+          size: A4;
+          margin: 6mm;
+        }
+
+        @media print {
+          html,
+          body {
+            width: 210mm;
+            min-height: 297mm;
+            background: white !important;
+          }
+
+          .no-print {
+            display: none !important;
+          }
+
+          .voucher-sheet {
+            box-shadow: none !important;
+            margin: 0 !important;
+            width: 100% !important;
+            min-height: auto !important;
+            page-break-inside: avoid !important;
+          }
+        }
+      `}</style>
+
+      <div className="mx-auto w-full max-w-4xl">
+        <div className="no-print mb-3 flex flex-wrap items-center justify-between gap-2">
+          <button
+            onClick={backToVouchers}
+            disabled={refreshing || printing}
+            className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
+          >
+            Back to Vouchers
+          </button>
+
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => load({ silent: true })}
+              disabled={refreshing || printing}
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
+            >
+              {refreshing ? "Refreshing..." : "Refresh"}
+            </button>
+
+            <button
+              onClick={manageVoucher}
+              disabled={refreshing || printing}
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
+            >
+              Manage
+            </button>
+
+            <button
+              onClick={handlePrint}
+              disabled={!ready || !finalPrintReady || refreshing || printing}
+              className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+            >
+              {printing ? "Preparing Print..." : "Print"}
+            </button>
+          </div>
+        </div>
+
+        {msg && (
+          <div className="no-print mb-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+            {msg}
+          </div>
+        )}
+
+        {!finalPrintReady && (
+          <div className="no-print mb-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+            Preview only. Printing opens once every signature is in: Auditor, Counter Signer and the Director General (who signs the cheque and authorises).
+          </div>
+        )}
+
+        <div className="no-print mb-3 rounded-xl border border-blue-100 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-900">
+          This print page refreshes before printing so the latest signatures and status are used.
+        </div>
+
+        {/* v3.1.6: one exact A4 page, fitted by lib/printA4.ts and printed in an isolated frame. */}
+        <div className="rg-a4-stage">
+        {sheet}
+        {annex}
+        </div>
+      </div>
+    </main>
+  );
+}
+
+function TopBox({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="grid grid-cols-[54px_1fr] border border-black">
+      <div className="border-r border-black bg-slate-100 px-1 py-[4px]">{label}</div>
+      <div className="px-1 py-[4px]">{value}</div>
+    </div>
+  );
+}
+
+function LineField({
+  label,
+  value,
+  className,
+}: {
+  label: string;
+  value: string;
+  className?: string;
+}) {
+  return (
+    <div className={`flex items-end gap-1 ${className || ""}`}>
+      <div className="shrink-0 text-[9.6px] font-black">{label}</div>
+      <div className="min-w-0 flex-1 border-b border-black px-1 pb-[1px] text-[9.6px] font-bold leading-tight break-words">
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function BlankBox({ label, className }: { label: string; className?: string }) {
+  return (
+    <div className={`border border-black ${className || ""}`}>
+      <div className="border-b border-black bg-slate-100 px-2 py-[4px] text-[8.5px] font-black uppercase">
+        {label}
+      </div>
+      <div className="h-[23px]" />
+    </div>
+  );
+}
+
+function FilledBox({
+  label,
+  value,
+  className,
+}: {
+  label: string;
+  value: string;
+  className?: string;
+}) {
+  return (
+    <div className={`border border-black ${className || ""}`}>
+      <div className="border-b border-black bg-slate-100 px-2 py-[4px] text-[8.5px] font-black uppercase">
+        {label}
+      </div>
+      <div className="min-h-[23px] px-2 py-[4px] text-[9.2px] font-bold leading-tight">
+        {value || " "}
+      </div>
+    </div>
+  );
+}
+
+function SignatureBox({
+  title,
+  name,
+  sigUrl,
+  date,
+  stamp = false,
+}: {
+  title: string;
+  name: string;
+  sigUrl: string | null;
+  date: string;
+  stamp?: boolean;
+}) {
+  return (
+    <div>
+      <div className="text-[8.8px] font-black uppercase">{title}</div>
+
+      <div className="mt-1 grid grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)_74px] items-end gap-2">
+        <div className="border-b border-black pb-[2px] text-[9.2px] font-bold leading-tight">
+          {name || " "}
+        </div>
+
+        <div className="rg-sig-slot rg-sig-slot-voucher border-b border-black" style={stamp ? { position: "relative", overflow: "visible" } : undefined}>
+          {sigUrl ? <SignatureInk src={sigUrl} alt={name ? `${name} signature` : "Signature"} /> : null}
+          {/* v4.1: IET stamp beside the DG's authorisation, overlapping slightly. */}
+          {/* eslint-disable-next-line @next/next/no-img-element -- stamp image printed in an isolated frame */}
+          {stamp && sigUrl ? <img src="/v4/iet-stamp.png" alt="IET stamp" style={{ position: "absolute", right: -18, top: "50%", transform: "translateY(-55%) rotate(-8deg)", height: 46, width: "auto", opacity: 0.85, pointerEvents: "none", mixBlendMode: "multiply" }} /> : null}
+        </div>
+
+        <div className="border-b border-black pb-[2px] text-center text-[8.8px] font-bold">
+          {date || " "}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)_74px] gap-2 text-center text-[7.2px] font-semibold text-slate-600">
+        <div>Name</div>
+        <div>Signature</div>
+        <div>Date</div>
+      </div>
+    </div>
+  );
+}

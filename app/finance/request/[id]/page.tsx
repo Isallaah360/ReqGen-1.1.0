@@ -1,1176 +1,288 @@
 "use client";
 
-import Link from "next/link";
-import { useParams } from "next/navigation";
-import RequestAccessGate from "@/app/components/requests/RequestAccessGate";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import { normalizeRole } from "@/lib/roles";
+import { promptDialog } from "@/lib/dialog";
+import { isAwaitingUser } from "@/lib/approvalQueue";
+import { confirmFresh } from "@/lib/v4/freshConfirm";
+import { ACCOUNT_COLUMNS, NIGERIAN_BANKS, SUBHEAD_COLUMNS, accountAvailable, accountName, accountSub, loadFinanceSettings, num, subheadLabel, type Account, type Subhead } from "@/lib/v4/finance";
+import { nairaExact, nairaInWords } from "@/lib/v4/money";
+import { shortDate, stageTitle } from "@/lib/v4/requestText";
+import { SECTIONS } from "@/lib/v4/vouchers";
+import RequestAccessGate from "@/app/components/requests/RequestAccessGate";
+import { useIdentity } from "@/app/components/v4/useIdentity";
+import Icon from "@/app/components/v4/Icon";
+import { Select } from "@/app/components/v4/Select";
+import { Chip, Notice, Skeleton, V4Page } from "@/app/components/v4/ui";
 
-type FinanceRequest = {
-  id: string;
-  request_no: string | null;
-  title: string | null;
-  description: string | null;
-  amount: number | string | null;
-  status: string | null;
-  current_stage: string | null;
-  current_owner: string | null;
-  assigned_account_officer_id: string | null;
-  assigned_account_officer_name: string | null;
-  subhead_id: string | null;
-  created_at: string;
+type Req = {
+  id: string; request_no: string | null; title: string | null; details: string | null; amount: number | null; status: string | null; current_stage: string | null;
+  current_owner: string | null; assigned_account_officer_id: string | null; assigned_account_officer_user_id: string | null; assigned_account_officer_name: string | null;
+  requester_name: string | null; dept_id: string | null; subhead_id: string | null; request_type: string | null; personal_category: string | null; updated_at: string | null; created_at: string | null;
 };
+const REQ_COLUMNS = "id,request_no,title,details,amount,status,current_stage,current_owner,assigned_account_officer_id,assigned_account_officer_user_id,assigned_account_officer_name,requester_name,dept_id,subhead_id,request_type,personal_category,updated_at,created_at";
+type Attachment = { id: string; file_name: string; file_path: string; file_size: number | null };
+type Chain = { step_order: number; stage: string; owner_name: string | null; state: string; acted_by_name: string | null; acted_at: string | null };
+type Mode = "Transfer" | "Cash" | "Cheque";
+type Msg = { tone: "red" | "green" | "amber" | "blue"; text: string };
 
-type SubheadRow = {
-  id: string;
-  name?: string | null;
-  title?: string | null;
-  subhead_name?: string | null;
-  code?: string | null;
-  subhead_code?: string | null;
-  account_id?: string | null;
-  bank_account_id?: string | null;
-  approved_allocation?: number | string | null;
-  reserved_amount?: number | string | null;
-  expenditure?: number | string | null;
-  balance?: number | string | null;
-};
+const payeeKey = (n: string | null | undefined) => String(n || "").toLowerCase().trim().replace(/[^a-z0-9]/g, "");
+const todayIso = () => new Date().toISOString().slice(0, 10);
 
-type AccountRow = {
-  id: string;
-  account_name?: string | null;
-  name?: string | null;
-  bank_name?: string | null;
-  account_number?: string | null;
-  current_balance?: number | string | null;
-  balance?: number | string | null;
-  is_active?: boolean | null;
-};
-
-type VoucherRow = {
-  id: string;
-  voucher_no: string | null;
-  request_id: string | null;
-  request_no: string | null;
-  narration: string | null;
-  amount: number | string | null;
-  subhead_id: string | null;
-  subhead_code: string | null;
-  subhead_name: string | null;
-  prepared_by: string | null;
-  prepared_by_name: string | null;
-  status: string | null;
-  bank_account_id: string | null;
-  bank_account_name: string | null;
-  account_id: string | null;
-  payment_method: string | null;
-  disbursement_mode: string | null;
-  payment_reference: string | null;
-  payment_date: string | null;
-  created_at: string | null;
-  posted_by: string | null;
-  posted_at: string | null;
-  updated_at: string | null;
-};
-
-type PostPaymentResult = {
-  success?: boolean;
-  message?: string;
-  transaction_no?: string;
-  balance_after?: number;
-};
-
-/** IET pays in three ways only: bank transfer, cheque or cash (v4.0.0). */
-const PAYMENT_METHODS = ["Bank Transfer", "Cheque", "Cash"] as const;
-
-function money(value: number | string | null | undefined) {
-  const amount = Number(value || 0);
-
-  return new Intl.NumberFormat("en-NG", {
-    style: "currency",
-    currency: "NGN",
-    maximumFractionDigits: 2,
-  }).format(Number.isFinite(amount) ? amount : 0);
-}
-
-function readableDate(value: string | null | undefined) {
-  if (!value) return "Not available";
-
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return "Not available";
-  }
-
-  return date.toLocaleDateString("en-NG", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
-}
-
-function todayInputValue() {
-  const now = new Date();
-  const timezoneOffset = now.getTimezoneOffset();
-
-  return new Date(now.getTime() - timezoneOffset * 60_000)
-    .toISOString()
-    .slice(0, 10);
-}
-
-function getSubheadName(subhead: SubheadRow | null) {
-  if (!subhead) return "Not linked";
-
-  return (
-    subhead.subhead_name ||
-    subhead.name ||
-    subhead.title ||
-    subhead.subhead_code ||
-    subhead.code ||
-    "Linked subhead"
-  );
-}
-
-function getSubheadCode(subhead: SubheadRow | null) {
-  if (!subhead) return null;
-
-  return subhead.subhead_code || subhead.code || null;
-}
-
-function getAccountName(account: AccountRow | null) {
-  if (!account) return "Not linked";
-
-  return (
-    account.account_name ||
-    account.name ||
-    account.bank_name ||
-    "Linked IET account"
-  );
-}
-
-function InformationBox({
-  label,
-  value,
-  valueClassName = "text-slate-950",
-}: {
-  label: string;
-  value: string;
-  valueClassName?: string;
-}) {
-  return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4">
-      <dt className="text-xs font-black uppercase tracking-wide text-slate-500">
-        {label}
-      </dt>
-      <dd className={`mt-2 break-words font-black ${valueClassName}`}>
-        {value}
-      </dd>
-    </div>
-  );
-}
-
-function FinanceRequestPageContent() {
+/** Finance › Treat a request (mock-up 38): release the fund and prepare its payment voucher in one step. */
+export default function TreatRequestPage() {
   const params = useParams<{ id: string }>();
-  const requestId = params?.id;
+  return <RequestAccessGate requestId={params?.id}><TreatRequest /></RequestAccessGate>;
+}
 
-  const [request, setRequest] = useState<FinanceRequest | null>(null);
-  const [subhead, setSubhead] = useState<SubheadRow | null>(null);
-  const [account, setAccount] = useState<AccountRow | null>(null);
-  const [voucher, setVoucher] = useState<VoucherRow | null>(null);
+function TreatRequest() {
+  const me = useIdentity();
+  const router = useRouter();
+  const params = useParams<{ id: string }>();
+  const id = String(params.id || "");
+  const role = normalizeRole(me.role).replace(/\d+$/, "");
+  const isOfficer = ["account", "accounts", "accountofficer"].includes(role);
 
-  const [userId, setUserId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [generatingVoucher, setGeneratingVoucher] = useState(false);
-  const [savingDraft, setSavingDraft] = useState(false);
-  const [postingPayment, setPostingPayment] = useState(false);
+  const [req, setReq] = useState<Req | null | undefined>(undefined);
+  const [dept, setDept] = useState("");
+  const [sub, setSub] = useState<Subhead | null>(null);
+  const [acc, setAcc] = useState<Account | null>(null);
+  const [chain, setChain] = useState<Chain[]>([]);
+  const [files, setFiles] = useState<Attachment[]>([]);
+  const [checked, setChecked] = useState<Set<string>>(new Set());
+  const [counters, setCounters] = useState<string[]>([]);
+  const [mySig, setMySig] = useState<string | null>(null);
 
-  const [paymentMethod, setPaymentMethod] = useState("");
-  const [paymentDate, setPaymentDate] = useState(todayInputValue());
-  const [paymentReference, setPaymentReference] = useState("");
+  const [mode, setMode] = useState<Mode>("Transfer");
+  const [section, setSection] = useState("");
+  const [bank, setBank] = useState({ name: "", number: "", bank: "", saved: false });
+  const [cashPayee, setCashPayee] = useState("");
+  const [cheque, setCheque] = useState({ no: "", date: todayIso(), bank: "" });
+  const [counter, setCounter] = useState("");
   const [narration, setNarration] = useState("");
-  const [hardcopyConfirmed, setHardcopyConfirmed] = useState(true);
-  const [confirmPost, setConfirmPost] = useState(false);
-  const [postResult, setPostResult] = useState<PostPaymentResult | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<Msg | null>(null);
 
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
+  const loadChecks = useCallback(async (rid: string) => {
+    const { data } = await supabase.from("request_attachment_checks").select("attachment_id,checked_by").eq("request_id", rid).eq("checked_by", me.userId);
+    setChecked(new Set(((data || []) as Array<{ attachment_id: string }>).map((c) => c.attachment_id)));
+  }, [me.userId]);
 
-  const loadFinanceRequest = useCallback(async () => {
-    if (!requestId) return;
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const { data: authData, error: authError } =
-        await supabase.auth.getUser();
-
-      const user = authData.user;
-
-      if (authError || !user) {
-        throw new Error("Your session has expired. Please sign in again.");
-      }
-
-      setUserId(user.id);
-
-      const { data: requestData, error: requestError } = await supabase
-        .from("requests")
-        .select(
-          "id,request_no,title,description,amount,status,current_stage,current_owner,assigned_account_officer_id,assigned_account_officer_name,subhead_id,created_at"
-        )
-        .eq("id", requestId)
-        .eq("assigned_account_officer_id", user.id)
-        .maybeSingle();
-
-      if (requestError) throw requestError;
-
-      if (!requestData) {
-        throw new Error(
-          "This finance request is not assigned to your AccountOfficer profile."
-        );
-      }
-
-      const loadedRequest = requestData as FinanceRequest;
-      setRequest(loadedRequest);
-
-      if (loadedRequest.subhead_id) {
-        const { data: subheadData, error: subheadError } = await supabase
-          .from("subheads")
-          .select("*")
-          .eq("id", loadedRequest.subhead_id)
-          .maybeSingle();
-
-        if (subheadError) throw subheadError;
-
-        const loadedSubhead = (subheadData || null) as SubheadRow | null;
-        setSubhead(loadedSubhead);
-
-        const linkedAccountId =
-          loadedSubhead?.bank_account_id ||
-          loadedSubhead?.account_id ||
-          null;
-
-        if (linkedAccountId) {
-          const { data: accountData, error: accountError } = await supabase
-            .from("iet_accounts")
-            .select("*")
-            .eq("id", linkedAccountId)
-            .maybeSingle();
-
-          if (accountError) throw accountError;
-
-          setAccount((accountData || null) as AccountRow | null);
-        } else {
-          setAccount(null);
-        }
-      } else {
-        setSubhead(null);
-        setAccount(null);
-      }
-
-      const { data: voucherData, error: voucherError } = await supabase
-        .from("payment_vouchers")
-        .select(
-          "id,voucher_no,request_id,request_no,narration,amount,subhead_id,subhead_code,subhead_name,prepared_by,prepared_by_name,status,bank_account_id,bank_account_name,account_id,payment_method,disbursement_mode,payment_reference,payment_date,posted_by,posted_at,created_at,updated_at"
-        )
-        .eq("request_id", loadedRequest.id)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (voucherError) throw voucherError;
-
-      const loadedVoucher = (voucherData || null) as VoucherRow | null;
-      setVoucher(loadedVoucher);
-
-      if (loadedVoucher) {
-        setPaymentMethod(
-          loadedVoucher.payment_method ||
-          loadedVoucher.disbursement_mode ||
-          ""
-        );
-        setPaymentDate(
-          loadedVoucher.payment_date || todayInputValue()
-        );
-        setPaymentReference(
-          loadedVoucher.payment_reference || ""
-        );
-        setNarration(
-          loadedVoucher.narration ||
-          loadedRequest.description ||
-          ""
-        );
-      } else {
-        setPaymentMethod("");
-        setPaymentDate(todayInputValue());
-        setPaymentReference("");
-        setNarration(loadedRequest.description || "");
-      }
-    } catch (caught) {
-      setError(
-        caught instanceof Error
-          ? caught.message
-          : "Unable to load this finance request."
-      );
-    } finally {
-      setLoading(false);
+  const load = useCallback(async () => {
+    const r = await supabase.from("requests").select(REQ_COLUMNS).eq("id", id).maybeSingle();
+    if (r.error || !r.data) { setReq(null); if (r.error) setMsg({ tone: "red", text: r.error.message }); return; }
+    const row = r.data as Req;
+    setReq(row);
+    setNarration((n) => n || row.title || "");
+    const [d, s, c, a, sig, signers, saved, settings] = await Promise.all([
+      row.dept_id ? supabase.from("departments").select("name").eq("id", row.dept_id).maybeSingle() : Promise.resolve({ data: null }),
+      row.subhead_id ? supabase.from("subheads").select(SUBHEAD_COLUMNS).eq("id", row.subhead_id).maybeSingle() : Promise.resolve({ data: null }),
+      supabase.rpc("reqgen_request_chain", { p_request_id: id }),
+      supabase.from("request_attachments").select("id,file_name,file_path,file_size").eq("request_id", id).order("created_at"),
+      supabase.from("profiles").select("signature_url").eq("id", me.userId).maybeSingle(),
+      supabase.from("payment_voucher_counter_signatories").select("full_name,signatory_type").eq("is_active", true).order("full_name"),
+      supabase.from("reqgen_payee_bank_accounts").select("account_name,account_number,bank_name").eq("payee_key", payeeKey(row.requester_name)).maybeSingle(),
+      loadFinanceSettings(),
+    ]);
+    setDept(String((d.data as { name?: string } | null)?.name || ""));
+    const subhead = (s.data as Subhead | null) || null;
+    setSub(subhead);
+    if (subhead?.bank_account_id) {
+      const ac = await supabase.from("iet_accounts").select(ACCOUNT_COLUMNS).eq("id", subhead.bank_account_id).maybeSingle();
+      setAcc((ac.data as Account | null) || null);
     }
-  }, [requestId]);
+    setChain(c.error ? [] : ((c.data || []) as Chain[]));
+    setFiles((a.data || []) as Attachment[]);
+    setMySig((sig.data as { signature_url?: string | null } | null)?.signature_url || null);
+    const names = ((signers.data || []) as Array<{ full_name: string; signatory_type: string | null }>).filter((x) => !x.signatory_type || /counter|both/i.test(x.signatory_type)).map((x) => x.full_name);
+    setCounters(names);
+    if (names.length === 1) setCounter((v) => v || names[0]);
+    const sb = saved.data as { account_name: string; account_number: string; bank_name: string } | null;
+    setBank((b) => (b.number ? b : sb ? { name: sb.account_name, number: sb.account_number, bank: sb.bank_name, saved: true } : { name: String(row.requester_name || "").toUpperCase(), number: "", bank: "", saved: false }));
+    setMode(settings.default_payment_method);
+    await loadChecks(id);
+  }, [id, me.userId, loadChecks]);
+  useEffect(() => { if (me.ready && id) queueMicrotask(() => { void load(); }); }, [me.ready, id, load]);
 
-  useEffect(() => {
-    loadFinanceRequest();
-  }, [loadFinanceRequest]);
+  const atAccount = !!req && String(req.current_stage || "").toLowerCase() === "account";
+  const mine = !!req && isOfficer && atAccount && isAwaitingUser(req, me.userId, me.role);
+  const amount = num(req?.amount);
+  const allChecked = files.every((f) => checked.has(f.id));
+  const dgDone = useMemo(() => chain.filter((c) => c.state === "done").pop(), [chain]);
+  const bankOk = bank.name.trim().length > 1 && bank.number.replace(/\D/g, "").length === 10 && bank.bank.trim().length > 1;
 
-  useEffect(() => {
-    const intervalId = window.setInterval(() => {
-      loadFinanceRequest();
-    }, 30_000);
-
-    const channel = supabase
-      .channel(`finance-request-${requestId || "unknown"}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "requests",
-          filter: requestId ? `id=eq.${requestId}` : undefined,
-        },
-        () => loadFinanceRequest()
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "payment_vouchers",
-          filter: requestId ? `request_id=eq.${requestId}` : undefined,
-        },
-        () => loadFinanceRequest()
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "finance_transactions",
-          filter: requestId ? `request_id=eq.${requestId}` : undefined,
-        },
-        () => loadFinanceRequest()
-      )
-      .subscribe();
-
-    return () => {
-      window.clearInterval(intervalId);
-      supabase.removeChannel(channel);
-    };
-  }, [loadFinanceRequest, requestId]);
-
-  const linkedAccountId = useMemo(() => {
-    return subhead?.bank_account_id || subhead?.account_id || null;
-  }, [subhead]);
-
-  const approvedAllocation = Number(
-    subhead?.approved_allocation || 0
-  );
-  const reservedAmount = Number(subhead?.reserved_amount || 0);
-  const expenditure = Number(subhead?.expenditure || 0);
-
-  const availableBalance = useMemo(() => {
-    if (
-      subhead?.balance !== null &&
-      subhead?.balance !== undefined
-    ) {
-      return Number(subhead.balance || 0);
-    }
-
-    return approvedAllocation - reservedAmount - expenditure;
-  }, [
-    approvedAllocation,
-    expenditure,
-    reservedAmount,
-    subhead?.balance,
-  ]);
-
-  async function generatePaymentVoucher() {
-    if (!request || !userId) return;
-
-    setGeneratingVoucher(true);
-    setError(null);
-    setSuccess(null);
-
-    try {
-      if (voucher) {
-        setSuccess(
-          `Payment Voucher ${voucher.voucher_no || ""
-          } already exists for this request.`
-        );
-        return;
-      }
-
-      if (!request.subhead_id) {
-        throw new Error(
-          "This request has no linked subhead. A Payment Voucher cannot be generated."
-        );
-      }
-
-      if (!linkedAccountId) {
-        throw new Error(
-          "The selected subhead has no linked IET bank account. Please link an account first."
-        );
-      }
-
-      const voucherPayload = {
-        request_id: request.id,
-        request_no: request.request_no,
-        narration:
-          narration.trim() ||
-          request.description ||
-          request.title,
-        amount: Number(request.amount || 0),
-        subhead_id: request.subhead_id,
-        subhead_code: getSubheadCode(subhead),
-        subhead_name: getSubheadName(subhead),
-        prepared_by: userId,
-        prepared_by_name:
-          request.assigned_account_officer_name ||
-          "AccountOfficer",
-        status: "Prepared",
-        bank_account_id: linkedAccountId,
-        bank_account_name: getAccountName(account),
-        account_id: linkedAccountId,
-      };
-
-      const { data: createdVoucher, error: createError } =
-        await supabase
-          .from("payment_vouchers")
-          .insert(voucherPayload)
-          .select(
-            "id,voucher_no,request_id,request_no,narration,amount,subhead_id,subhead_code,subhead_name,prepared_by,prepared_by_name,status,bank_account_id,bank_account_name,account_id,payment_method,disbursement_mode,payment_reference,payment_date,posted_by,posted_at,created_at,updated_at"
-          )
-          .single();
-
-      if (createError) throw createError;
-
-      const newVoucher = createdVoucher as VoucherRow;
-
-      setVoucher(newVoucher);
-      setSuccess(
-        `Payment Voucher ${newVoucher.voucher_no || ""
-        } generated successfully.`
-      );
-    } catch (caught) {
-      setError(
-        caught instanceof Error
-          ? caught.message
-          : "Unable to generate the Payment Voucher."
-      );
-    } finally {
-      setGeneratingVoucher(false);
-    }
+  async function checkFile(f: Attachment) {
+    const { data } = await supabase.storage.from("request-attachments").createSignedUrl(f.file_path, 600);
+    if (data?.signedUrl) window.open(data.signedUrl, "_blank", "noopener");
+    if (checked.has(f.id) || !req) return;
+    const { error } = await supabase.from("request_attachment_checks").upsert({
+      request_id: req.id, attachment_id: f.id, checked_by: me.userId, checked_by_name: me.name || null, checked_by_role: "Account Officer",
+      check_status: "Checked", check_comment: `Checked by ${me.name || "officer"}`, checked_at: new Date().toISOString(),
+    }, { onConflict: "attachment_id,checked_by" });
+    if (error) { setMsg({ tone: "red", text: "Attachment check failed: " + error.message }); return; }
+    await supabase.from("request_history").insert({ request_id: req.id, action_type: "Attachment Checked", comment: `${f.file_name} was checked by ${me.name || "officer"} (Account Officer).`, to_stage: req.current_stage, actor_name: me.name || null, actor_role_key: role, actor_role_name: "Account Officer", action_by: me.userId });
+    await loadChecks(req.id);
   }
 
-  async function savePaymentDraft() {
-    if (!voucher || !request) {
-      setError(
-        "Generate the Payment Voucher before saving payment details."
-      );
+  async function treat() {
+    if (!req) return;
+    setMsg(null);
+    const why = !mySig ? "Your signature is missing. Add it in My Account › Signature first."
+      : !allChecked ? "Open and check every attachment first."
+        : !section ? "Choose who you are preparing as."
+          : mode === "Transfer" && !bankOk ? "Complete the bank details: account name, 10-digit account number and bank."
+            : mode === "Cheque" && (!cheque.no.trim() || !cheque.bank) ? "Type the cheque number and choose the bank."
+              : !counter ? "Choose the Counter Signer."
+                : narration.trim().length < 3 ? "Write the narration." : null;
+    if (why) { setMsg({ tone: "red", text: why }); return; }
+    const fresh = await confirmFresh("release the fund and prepare the voucher");
+    if (fresh) { if (fresh !== "cancelled") setMsg({ tone: "red", text: fresh }); return; }
+    setBusy(true);
+    const step = await supabase.rpc("approve_request_step", { p_request_id: req.id, p_actor_id: me.userId, p_comment: `Fund released. ${narration.trim()}`, p_signature_url: mySig });
+    if (step.error) { setBusy(false); setMsg({ tone: "red", text: step.error.message }); return; }
+    const pv = await supabase.rpc("reqgen_pv_generate", {
+      p_request_ids: [req.id], p_mode: mode, p_preparing_as: section, p_counter_signer: counter,
+      p_schedule: mode === "Transfer" ? [{ payee_name: String(req.requester_name || "").toUpperCase(), account_name: bank.name.trim().toUpperCase(), account_number: bank.number.replace(/\D/g, ""), bank_name: bank.bank, request_ids: [req.id] }] : [],
+      p_cash_payee: mode === "Cash" ? (cashPayee.trim() || String(req.requester_name || "").toUpperCase()) : null,
+      p_cheque_no: mode === "Cheque" ? cheque.no.trim() : null, p_cheque_date: mode === "Cheque" ? cheque.date : null, p_cheque_bank: mode === "Cheque" ? cheque.bank : null,
+      p_narration: narration.trim(), p_reissue_of: null,
+    });
+    setBusy(false);
+    if (pv.error) {
+      setMsg({ tone: "amber", text: `The fund is released for ${req.request_no}, but the voucher was not created: ${pv.error.message} Create it from Payment Vouchers › Generate from Requests.` });
+      await load();
       return;
     }
-
-    if (!paymentMethod) {
-      setError("Please select a payment method.");
-      return;
-    }
-
-    if (!paymentDate) {
-      setError("Please select the payment date.");
-      return;
-    }
-
-    if (!narration.trim()) {
-      setError("Please enter a short payment narration.");
-      return;
-    }
-
-    setSavingDraft(true);
-    setError(null);
-    setSuccess(null);
-
-    try {
-      const hardcopyNote =
-        "Original payment receipt retained in the Finance Department and available on request.";
-
-      const finalNarration = hardcopyConfirmed
-        ? narration.includes(hardcopyNote)
-          ? narration.trim()
-          : `${narration.trim()}\n\n${hardcopyNote}`
-        : narration.trim();
-
-      const { data: updatedVoucher, error: updateError } =
-        await supabase
-          .from("payment_vouchers")
-          .update({
-            payment_method: paymentMethod,
-            disbursement_mode: paymentMethod,
-            payment_date: paymentDate,
-            payment_reference:
-              paymentReference.trim() || null,
-            narration: finalNarration,
-            status: "Prepared",
-          })
-          .eq("id", voucher.id)
-          .eq("request_id", request.id)
-          .select(
-            "id,voucher_no,request_id,request_no,narration,amount,subhead_id,subhead_code,subhead_name,prepared_by,prepared_by_name,status,bank_account_id,bank_account_name,account_id,payment_method,disbursement_mode,payment_reference,payment_date,posted_by,posted_at,created_at,updated_at"
-          )
-          .single();
-
-      if (updateError) throw updateError;
-
-      const savedVoucher = updatedVoucher as VoucherRow;
-
-      setVoucher(savedVoucher);
-      setNarration(
-        savedVoucher.narration || finalNarration
-      );
-      setSuccess(
-        `Payment details saved for Voucher ${savedVoucher.voucher_no || ""
-        }.`
-      );
-    } catch (caught) {
-      setError(
-        caught instanceof Error
-          ? caught.message
-          : "Unable to save the payment details."
-      );
-    } finally {
-      setSavingDraft(false);
-    }
+    const res = (typeof pv.data === "string" ? JSON.parse(pv.data) : pv.data) as { voucher_id?: string };
+    router.push(res?.voucher_id ? `/payment-vouchers/${res.voucher_id}?made=1` : "/payment-vouchers/centre");
   }
 
-
-  const isPosted =
-    voucher?.status?.toLowerCase() === "posted" ||
-    request?.status?.toLowerCase() === "paid";
-
-  const paymentDetailsReady =
-    Boolean(voucher) &&
-    Boolean(paymentMethod) &&
-    Boolean(paymentDate) &&
-    Boolean(narration.trim());
-
-  async function postPayment() {
-    if (!voucher || !request) {
-      setError("Generate and save the Payment Voucher before posting.");
-      return;
-    }
-
-    if (isPosted) {
-      setError("This payment has already been posted.");
-      return;
-    }
-
-    if (!paymentDetailsReady) {
-      setError(
-        "Complete and save the payment method, payment date and narration before posting."
-      );
-      return;
-    }
-
-    if (!confirmPost) {
-      setError(
-        "Please confirm that you understand this action will post the payment permanently."
-      );
-      return;
-    }
-
-    setPostingPayment(true);
-    setError(null);
-    setSuccess(null);
-    setPostResult(null);
-
-    try {
-      const { data, error: rpcError } = await supabase.rpc(
-        "post_finance_payment",
-        { p_voucher_id: voucher.id }
-      );
-
-      if (rpcError) throw rpcError;
-
-      const result = (data || {}) as PostPaymentResult;
-      setPostResult(result);
-      setSuccess(
-        result.message ||
-        `Payment posted successfully for Voucher ${voucher.voucher_no || ""}.`
-      );
-      setConfirmPost(false);
-      await loadFinanceRequest();
-    } catch (caught) {
-      setError(
-        caught instanceof Error
-          ? caught.message
-          : "Unable to post the payment."
-      );
-    } finally {
-      setPostingPayment(false);
-    }
+  async function sendBack() {
+    if (!req) return;
+    const reason = await promptDialog({ title: "Return to the requester?", message: "They see your reason, correct the request and send it again.", label: "Reason", confirmLabel: "Return", tone: "danger" });
+    if (!reason) return;
+    setBusy(true);
+    const { error } = await supabase.rpc("reqgen_return_request", { p_request_id: req.id, p_comment: reason, p_signature_url: mySig });
+    setBusy(false);
+    if (error) { setMsg({ tone: "red", text: error.message }); return; }
+    router.push("/finance/processing");
   }
 
-  if (loading) {
-    return (
-      <main className="mx-auto max-w-6xl px-4 py-8">
-        <div className="animate-pulse space-y-5">
-          <div className="h-6 w-44 rounded bg-slate-200" />
-          <div className="h-52 rounded-3xl bg-slate-200" />
-          <div className="grid gap-5 lg:grid-cols-2">
-            <div className="h-80 rounded-3xl bg-slate-200" />
-            <div className="h-80 rounded-3xl bg-slate-200" />
-          </div>
-        </div>
-      </main>
-    );
-  }
+  if (req === undefined) return <V4Page><Skeleton lines={8} /></V4Page>;
+  if (req === null) return <V4Page><Notice tone="red" title="This request cannot be opened.">{msg?.text || "It does not exist, or it is not one you can treat."}</Notice><Link className="v4-btn v4-btn-secondary" href="/finance/processing"><Icon name="left" />Request Processing</Link></V4Page>;
 
-  if (error && !request) {
-    return (
-      <main className="mx-auto max-w-3xl px-4 py-12">
-        <section className="rounded-3xl border border-red-200 bg-red-50 p-7 shadow-sm">
-          <h1 className="text-2xl font-black text-red-950">
-            Unable to open finance request
-          </h1>
-          <p className="mt-3 font-semibold leading-7 text-red-800">
-            {error}
-          </p>
-          <Link
-            href="/finance/processing"
-            className="reqgen-btn reqgen-btn-slate mt-5 inline-flex rounded-xl bg-slate-950 px-4 py-3 text-sm font-black text-white"
-          >
-            Return to Finance
-          </Link>
-        </section>
-      </main>
-    );
-  }
-
-  if (!request) return null;
+  const reservedForThis = amount;
+  const availableAfter = sub ? num(sub.approved_allocation) - num(sub.expenditure) - num(sub.reserved_amount) : 0;
 
   return (
-    <main className="mx-auto max-w-6xl px-4 py-8">
-      <nav className="mb-6 rounded-3xl border border-slate-200 bg-white p-3 shadow-sm">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex flex-wrap gap-2">
-            <Link
-              href="/finance/processing"
-              className="reqgen-btn reqgen-btn-slate inline-flex items-center rounded-xl bg-blue-700 px-4 py-2.5 text-sm font-black text-white transition hover:bg-blue-800"
-            >
-              ← Finance Dashboard
-            </Link>
-
-            <Link
-              href="/dashboard"
-              className="reqgen-btn reqgen-btn-slate inline-flex items-center rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-black text-white transition hover:bg-slate-800"
-            >
-              Main Dashboard
-            </Link>
-
-            <Link
-              href="/requests/mine"
-              className="reqgen-btn reqgen-btn-violet inline-flex items-center rounded-xl border border-violet-200 bg-violet-50 px-4 py-2.5 text-sm font-black text-violet-800 transition hover:bg-violet-100"
-            >
-              All Requests
-            </Link>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-800">
-              Auto-refresh: 30 seconds
-            </span>
-
-            <button
-              type="button"
-              onClick={loadFinanceRequest}
-              className="reqgen-btn reqgen-btn-cyan rounded-xl border border-cyan-200 bg-cyan-50 px-4 py-2.5 text-sm font-black text-cyan-800 transition hover:bg-cyan-100"
-            >
-              Refresh Now
-            </button>
-          </div>
-        </div>
-      </nav>
-
-      <section className="overflow-hidden rounded-3xl border border-blue-200 bg-gradient-to-br from-slate-950 via-blue-950 to-violet-950 p-6 text-white shadow-xl sm:p-8">
-        <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-start">
+    <V4Page>
+      <section className="v4-card v4-card-pad">
+        <div className="v4-rec">
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.2em] text-emerald-300">
-              Finance Request Workspace
-            </p>
-            <h1 className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">
-              {request.request_no || "Request"}
-            </h1>
-            <p className="mt-3 max-w-3xl text-lg font-bold text-slate-300">
-              {request.title || "Untitled request"}
-            </p>
+            {mine ? <Chip tone="amber">Your step: Account Officer</Chip> : <Chip tone={atAccount ? "amber" : "green"}>{atAccount ? `With ${req.assigned_account_officer_name || "Account"}` : req.status || "—"}</Chip>}
+            <h1 className="v4-page-title" style={{ marginTop: 8 }}>{req.request_no} · {req.title}</h1>
+            <div className="v4-meta">
+              <span>Requester <b>{req.requester_name || "—"}</b></span>
+              {dept ? <span>Department <b>{dept}</b></span> : null}
+              {dgDone ? <span>Approved by {stageTitle(dgDone.stage)} <b>{shortDate(dgDone.acted_at)}</b></span> : null}
+            </div>
           </div>
-
-          <div className="rounded-2xl border border-emerald-300/40 bg-emerald-300/10 px-5 py-4 shadow-lg backdrop-blur sm:text-right">
-            <div className="text-xs font-black uppercase tracking-wide text-emerald-300">
-              Approved Amount
-            </div>
-            <div className="mt-1 text-2xl font-black text-white sm:text-3xl">
-              {money(request.amount)}
-            </div>
+          <div className="v4-right">
+            <div className="v4-label">Amount</div>
+            <div className="v4-amount-big">{nairaExact(amount)}</div>
+            <span className="v4-help" style={{ fontSize: 12.5 }}>{nairaInWords(amount)}</span>
+            <div className="v4-btns"><Link className="v4-btn v4-btn-secondary" href={`/requests/${req.id}`}><Icon name="file" />Full request</Link></div>
           </div>
         </div>
       </section>
 
-      {error && (
-        <div className="mt-5 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 font-semibold text-red-800">
-          {error}
-        </div>
-      )}
+      {msg ? <Notice tone={msg.tone}>{msg.text}</Notice> : null}
+      {!mine ? <Notice tone="blue" title={atAccount ? "This request is with another officer." : "This request is no longer at the Account step."}>{atAccount ? `Only ${req.assigned_account_officer_name || "the Account Officer it was sent to"} treats it.` : "Its voucher, if any, is in Payment Vouchers › Voucher Centre."}</Notice> : null}
 
-      {success && (
-        <div className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 font-semibold text-emerald-800">
-          {success}
-        </div>
-      )}
+      <section className="v4-card v4-card-pad">
+        <h2 className="v4-h2" style={{ marginBottom: 12 }}>Budget and account</h2>
+        {sub ? (
+          <div className="v4-balance-strip">
+            <div><span>Subhead</span><b>{subheadLabel(sub)}</b></div>
+            <div><span>Approved</span><b>{nairaExact(sub.approved_allocation)}</b></div>
+            <div><span>Reserved for this</span><b>{nairaExact(reservedForThis)}</b></div>
+            <div><span>Available after</span><b>{nairaExact(availableAfter)}</b></div>
+          </div>
+        ) : <p className="v4-muted" style={{ margin: 0 }}>{String(req.request_type || "").toLowerCase() === "personal" ? "Personal fund request — no subhead." : "No subhead on this request."}</p>}
+        <dl className="v4-kv" style={{ marginTop: 14 }}>
+          <dt>Paid from</dt><dd>{acc ? <>{accountName(acc)} <span className="v4-muted">· {accountSub(acc)}</span></> : "—"}</dd>
+          <dt>Account officer</dt><dd>{req.assigned_account_officer_name || me.name || "—"}</dd>
+          <dt>Account available</dt><dd className="v4-num">{acc ? nairaExact(accountAvailable(acc)) : "—"}</dd>
+        </dl>
+      </section>
 
-      <section className="mt-6 grid gap-6 lg:grid-cols-2">
-        <article className="rounded-3xl border border-blue-100 bg-gradient-to-br from-white to-blue-50 p-5 shadow-sm sm:p-6">
-          <p className="text-xs font-black uppercase tracking-[0.16em] text-blue-700">
-            Section 1
-          </p>
-          <h2 className="mt-1 text-xl font-black text-slate-950">
-            Request Summary
-          </h2>
-
-          <dl className="mt-5 grid gap-4 sm:grid-cols-2">
-            <InformationBox
-              label="Request Number"
-              value={request.request_no || "Not available"}
-            />
-            <InformationBox
-              label="Status"
-              value={request.status || "Pending Payment"}
-              valueClassName="text-blue-800"
-            />
-            <InformationBox
-              label="Current Stage"
-              value={request.current_stage || "Account"}
-            />
-            <InformationBox
-              label="Assigned AccountOfficer"
-              value={
-                request.assigned_account_officer_name ||
-                "Not available"
-              }
-            />
-            <InformationBox
-              label="Date Created"
-              value={readableDate(request.created_at)}
-            />
-            <InformationBox
-              label="Amount"
-              value={money(request.amount)}
-              valueClassName="text-emerald-800"
-            />
-
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 sm:col-span-2">
-              <dt className="text-xs font-black uppercase tracking-wide text-slate-500">
-                Purpose / Description
-              </dt>
-              <dd className="mt-2 whitespace-pre-wrap font-semibold leading-7 text-slate-700">
-                {request.description ||
-                  "No description supplied."}
-              </dd>
-            </div>
-          </dl>
-        </article>
-
-        <article className="rounded-3xl border border-violet-100 bg-gradient-to-br from-white to-violet-50 p-5 shadow-sm sm:p-6">
-          <p className="text-xs font-black uppercase tracking-[0.16em] text-violet-700">
-            Section 2
-          </p>
-          <h2 className="mt-1 text-xl font-black text-slate-950">
-            Budget and Account Information
-          </h2>
-
-          <dl className="mt-5 grid gap-4 sm:grid-cols-2">
-            <InformationBox
-              label="Subhead"
-              value={getSubheadName(subhead)}
-            />
-            <InformationBox
-              label="Linked IET Account"
-              value={getAccountName(account)}
-            />
-            <InformationBox
-              label="Approved Allocation"
-              value={money(approvedAllocation)}
-              valueClassName="text-blue-800"
-            />
-            <InformationBox
-              label="Reserved Amount"
-              value={money(reservedAmount)}
-              valueClassName="text-amber-800"
-            />
-            <InformationBox
-              label="Expenditure"
-              value={money(expenditure)}
-              valueClassName="text-red-800"
-            />
-            <InformationBox
-              label="Available Balance"
-              value={money(availableBalance)}
-              valueClassName={
-                availableBalance >=
-                  Number(request.amount || 0)
-                  ? "text-emerald-800"
-                  : "text-red-800"
-              }
-            />
-            <InformationBox
-              label="Bank Name"
-              value={account?.bank_name || "Not available"}
-            />
-            <InformationBox
-              label="Account Number"
-              value={
-                account?.account_number || "Not available"
-              }
-            />
-          </dl>
-
-          {availableBalance <
-            Number(request.amount || 0) && (
-              <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold leading-6 text-red-800">
-                Warning: the available subhead balance appears lower
-                than the request amount. Do not post payment until the
-                allocation is confirmed.
+      <div className="v4-split">
+        <section className="v4-card v4-card-pad">
+          <div className="v4-section-title"><span className="v4-no">1</span><h2 className="v4-h2">Treat and prepare the payment voucher</h2></div>
+          <fieldset disabled={!mine || busy} style={{ border: 0, padding: 0, margin: 0 }}>
+            <div className="v4-form-grid">
+              <div className="v4-field v4-span-2">
+                <span className="v4-flabel">How will it be paid? <span className="v4-req">*</span></span>
+                <div className="v4-segmented" role="tablist" aria-label="How will it be paid?">
+                  {(["Transfer", "Cash", "Cheque"] as Mode[]).map((m) => <button key={m} type="button" role="tab" aria-selected={mode === m} onClick={() => setMode(m)}>{m}</button>)}
+                </div>
               </div>
-            )}
-        </article>
-      </section>
-
-      <section className="mt-6 rounded-3xl border border-emerald-100 bg-gradient-to-br from-white to-emerald-50 p-5 shadow-sm sm:p-7">
-        <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-start">
-          <div>
-            <p className="text-xs font-black uppercase tracking-[0.16em] text-emerald-700">
-              Section 3
-            </p>
-            <h2 className="mt-1 text-2xl font-black text-slate-950">
-              Payment Voucher
-            </h2>
-            <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-slate-600">
-              Generate one Payment Voucher for this approved request.
-              ReqGen creates the official voucher number
-              automatically.
-            </p>
-          </div>
-
-          <span
-            className={`w-fit rounded-full border px-3 py-1.5 text-xs font-black ${voucher
-                ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-                : "border-amber-200 bg-amber-50 text-amber-800"
-              }`}
-          >
-            {voucher
-              ? "Voucher Generated"
-              : "Voucher Not Generated"}
-          </span>
-        </div>
-
-        {voucher ? (
-          <div className="mt-6 grid gap-4 rounded-3xl border border-emerald-200 bg-emerald-50 p-5 sm:grid-cols-3">
-            <div>
-              <p className="text-xs font-black uppercase tracking-wide text-emerald-700">
-                Voucher Number
-              </p>
-              <p className="mt-2 text-xl font-black text-emerald-950">
-                {voucher.voucher_no || "Generated"}
-              </p>
+              {mode === "Transfer" ? (
+                <>
+                  <label className="v4-field"><span className="v4-flabel">Account name <span className="v4-req">*</span></span><input className="v4-input" value={bank.name} onChange={(e) => setBank({ ...bank, name: e.target.value.toUpperCase(), saved: false })} /></label>
+                  <label className="v4-field"><span className="v4-flabel">Account number <span className="v4-req">*</span></span><input className="v4-input v4-num" inputMode="numeric" maxLength={10} value={bank.number} onChange={(e) => setBank({ ...bank, number: e.target.value.replace(/\D/g, "").slice(0, 10), saved: false })} />{bank.saved ? <span className="v4-help">Filled from {req.requester_name}’s saved bank details.</span> : null}</label>
+                  <div className="v4-field"><span className="v4-flabel">Bank <span className="v4-req">*</span></span><Select ariaLabel="Bank" searchable value={bank.bank} onChange={(v) => setBank({ ...bank, bank: v, saved: false })} placeholder="Choose the bank" options={[...new Set([...(bank.bank ? [bank.bank] : []), ...NIGERIAN_BANKS])].map((b) => ({ value: b, label: b }))} /></div>
+                </>
+              ) : null}
+              {mode === "Cash" ? <label className="v4-field"><span className="v4-flabel">Cash paid to</span><input className="v4-input" value={cashPayee} placeholder={String(req.requester_name || "").toUpperCase()} onChange={(e) => setCashPayee(e.target.value)} /></label> : null}
+              {mode === "Cheque" ? (
+                <>
+                  <label className="v4-field"><span className="v4-flabel">Cheque no. <span className="v4-req">*</span></span><input className="v4-input" value={cheque.no} onChange={(e) => setCheque({ ...cheque, no: e.target.value })} /></label>
+                  <label className="v4-field"><span className="v4-flabel">Cheque date</span><input className="v4-input" type="date" value={cheque.date} onChange={(e) => setCheque({ ...cheque, date: e.target.value })} /></label>
+                  <div className="v4-field"><span className="v4-flabel">Bank <span className="v4-req">*</span></span><Select ariaLabel="Cheque bank" searchable value={cheque.bank} onChange={(v) => setCheque({ ...cheque, bank: v })} placeholder="Choose the bank" options={NIGERIAN_BANKS.map((b) => ({ value: b, label: b }))} /></div>
+                </>
+              ) : null}
+              <div className="v4-field"><span className="v4-flabel">Preparing as <span className="v4-req">*</span></span><Select ariaLabel="Preparing as" value={section} onChange={setSection} placeholder="Choose the section" options={SECTIONS.map((s) => ({ value: s, label: `Account Officer — ${s}` }))} /></div>
+              <div className="v4-field"><span className="v4-flabel">Counter Signer <span className="v4-req">*</span></span><Select ariaLabel="Counter Signer" value={counter} onChange={setCounter} disabled={!counters.length} placeholder={counters.length ? "Choose" : "No Counter Signer yet"} options={counters.map((n) => ({ value: n, label: n }))} /><span className="v4-help">Then the Director General signs and authorises.</span></div>
+              <label className="v4-field v4-span-2"><span className="v4-flabel">Narration <span className="v4-req">*</span></span><input className="v4-input" value={narration} maxLength={240} onChange={(e) => setNarration(e.target.value)} /></label>
             </div>
-
-            <div>
-              <p className="text-xs font-black uppercase tracking-wide text-emerald-700">
-                Amount
-              </p>
-              <p className="mt-2 text-xl font-black text-emerald-950">
-                {money(voucher.amount ?? request.amount)}
-              </p>
+          </fieldset>
+          <Notice tone="blue">Treating records that the fund is released from the subhead, and creates the voucher with your signature on Prepared By. The Auditor checks it next, then the Counter Signer, then the Director General. You confirm with your fingerprint or 2FA code.</Notice>
+          {mine ? (
+            <div className="v4-form-actions">
+              <button type="button" className="v4-btn v4-btn-ghost" onClick={() => router.push("/finance/processing")}>Cancel</button>
+              <button type="button" className="v4-btn v4-btn-secondary" disabled={busy} onClick={() => void sendBack()}>Return to requester</button>
+              <button type="button" className="v4-btn v4-btn-primary" disabled={busy} onClick={() => void treat()}><Icon name="fingerprint" />{busy ? "Working…" : "Treat and create voucher"}</button>
             </div>
-
-            <div>
-              <p className="text-xs font-black uppercase tracking-wide text-emerald-700">
-                Status
-              </p>
-              <p className="mt-2 text-xl font-black text-emerald-950">
-                {voucher.status || "Prepared"}
-              </p>
-            </div>
-          </div>
-        ) : (
-          <div className="mt-6 rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center">
-            <p className="font-bold text-slate-700">
-              No Payment Voucher has been generated for this request.
-            </p>
-
-            <button
-              type="button"
-              onClick={generatePaymentVoucher}
-              disabled={
-                generatingVoucher ||
-                !request.subhead_id ||
-                !linkedAccountId
-              }
-              className="reqgen-btn reqgen-btn-rose mt-5 inline-flex rounded-xl bg-emerald-700 px-5 py-3 text-sm font-black text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-400"
-            >
-              {generatingVoucher
-                ? "Generating Voucher…"
-                : "Generate Payment Voucher"}
-            </button>
-
-            {!request.subhead_id && (
-              <p className="mt-3 text-sm font-bold text-red-700">
-                This request has no linked subhead.
-              </p>
-            )}
-
-            {request.subhead_id && !linkedAccountId && (
-              <p className="mt-3 text-sm font-bold text-red-700">
-                The linked subhead has no IET bank account.
-              </p>
-            )}
-          </div>
-        )}
-      </section>
-
-      <section className="mt-6 rounded-3xl border border-cyan-100 bg-gradient-to-br from-white to-cyan-50 p-5 shadow-sm sm:p-7">
-        <h2 className="text-2xl font-black text-slate-950">
-          Payment Details
-        </h2>
-        <p className="mt-2 text-sm font-semibold leading-6 text-slate-600">
-          Evidence upload is not required. Original hardcopy receipts
-          remain with the Finance Department and can be produced when
-          requested.
-        </p>
-
-        <div className="mt-6 grid gap-5 sm:grid-cols-2">
-          <label className="block">
-            <span className="text-sm font-black text-slate-800">
-              Payment Method
-            </span>
-            <select
-              value={paymentMethod}
-              onChange={(event) =>
-                setPaymentMethod(event.target.value)
-              }
-              disabled={!voucher || isPosted}
-              className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 font-semibold text-slate-900 outline-none focus:border-blue-500 disabled:bg-slate-100"
-            >
-              <option value="">Select payment method</option>
-              {PAYMENT_METHODS.map((method) => (
-                <option key={method} value={method}>
-                  {method}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="block">
-            <span className="text-sm font-black text-slate-800">
-              Payment Date
-            </span>
-            <input
-              type="date"
-              value={paymentDate}
-              onChange={(event) =>
-                setPaymentDate(event.target.value)
-              }
-              disabled={!voucher || isPosted}
-              className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 font-semibold text-slate-900 outline-none focus:border-blue-500 disabled:bg-slate-100"
-            />
-          </label>
-
-          <label className="block sm:col-span-2">
-            <span className="text-sm font-black text-slate-800">
-              Payment Reference
-            </span>
-            <input
-              type="text"
-              value={paymentReference}
-              onChange={(event) =>
-                setPaymentReference(event.target.value)
-              }
-              disabled={!voucher || isPosted}
-              placeholder="Transfer reference or cheque number — optional"
-              className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 font-semibold text-slate-900 outline-none focus:border-blue-500 disabled:bg-slate-100"
-            />
-          </label>
-
-          <label className="block sm:col-span-2">
-            <span className="text-sm font-black text-slate-800">
-              Narration
-            </span>
-            <textarea
-              value={narration}
-              onChange={(event) =>
-                setNarration(event.target.value)
-              }
-              disabled={!voucher || isPosted}
-              rows={5}
-              placeholder="Briefly describe the payment."
-              className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 font-semibold leading-6 text-slate-900 outline-none focus:border-blue-500 disabled:bg-slate-100"
-            />
-          </label>
-
-          <label className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:col-span-2">
-            <input
-              type="checkbox"
-              checked={hardcopyConfirmed}
-              onChange={(event) =>
-                setHardcopyConfirmed(event.target.checked)
-              }
-              disabled={!voucher || isPosted}
-              className="mt-1 h-4 w-4"
-            />
-            <span className="text-sm font-semibold leading-6 text-slate-700">
-              Confirm that the original hardcopy receipt will be
-              retained by the Finance Department and made available
-              on request.
-            </span>
-          </label>
-        </div>
-
-        <div className="mt-6 flex flex-wrap items-center gap-3">
-          <button
-            type="button"
-            onClick={savePaymentDraft}
-            disabled={!voucher || savingDraft || isPosted}
-            className="reqgen-btn reqgen-btn-rose rounded-xl bg-blue-700 px-5 py-3 text-sm font-black text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-slate-400"
-          >
-            {savingDraft
-              ? "Saving Draft…"
-              : "Save Payment Draft"}
-          </button>
-
-          {!voucher && (
-            <p className="text-sm font-bold text-amber-700">
-              Generate the Payment Voucher before entering payment
-              details.
-            </p>
-          )}
-        </div>
-      </section>
-
-      {postResult?.transaction_no && (
-        <section className="mt-6 rounded-3xl border border-blue-200 bg-blue-50 p-5 sm:p-6">
-          <h2 className="font-black text-blue-950">
-            Transaction Posted
-          </h2>
-          <p className="mt-2 text-sm font-semibold text-blue-800">
-            Transaction No: {postResult.transaction_no}
-          </p>
-          <p className="mt-1 text-sm font-semibold text-blue-800">
-            New Account Balance: {money(postResult.balance_after)}
-          </p>
+          ) : null}
         </section>
-      )}
 
-      <section className="mt-6 rounded-3xl border border-red-200 bg-red-50 p-5 shadow-sm sm:p-7">
-        <p className="text-xs font-black uppercase tracking-[0.16em] text-red-700">
-          Section 5
-        </p>
-        <h2 className="mt-1 text-2xl font-black text-red-950">
-          Final Payment Posting
-        </h2>
-
-        {isPosted ? (
-          <div className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
-            <p className="font-black text-emerald-950">
-              This payment has been posted successfully.
-            </p>
-            <p className="mt-2 text-sm font-semibold text-emerald-800">
-              Voucher: {voucher?.voucher_no || "Not available"}
-            </p>
-            <p className="mt-1 text-sm font-semibold text-emerald-800">
-              Posted: {readableDate(voucher?.posted_at)}
-            </p>
-          </div>
-        ) : (
-          <>
-            <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-red-800">
-              This action is permanent. It will create the finance transaction,
-              update the IET account and subhead balances, mark the voucher as
-              Posted, and mark the request as Paid.
-            </p>
-
-            <label className="mt-5 flex items-start gap-3 rounded-2xl border border-red-200 bg-white p-4">
-              <input
-                type="checkbox"
-                checked={confirmPost}
-                onChange={(event) => setConfirmPost(event.target.checked)}
-                disabled={!paymentDetailsReady}
-                className="mt-1 h-4 w-4"
-              />
-              <span className="text-sm font-semibold leading-6 text-slate-700">
-                I have reviewed the voucher and payment details and confirm that
-                this payment is ready to be posted permanently.
-              </span>
-            </label>
-
-            <button
-              type="button"
-              onClick={postPayment}
-              disabled={!paymentDetailsReady || !confirmPost || postingPayment}
-              className="reqgen-btn reqgen-btn-rose mt-5 rounded-xl bg-red-700 px-5 py-3 text-sm font-black text-white transition hover:bg-red-800 disabled:cursor-not-allowed disabled:bg-slate-400"
-            >
-              {postingPayment
-                ? "Posting Payment…"
-                : "Post Payment Permanently"}
-            </button>
-
-            {!paymentDetailsReady && (
-              <p className="mt-3 text-sm font-bold text-red-800">
-                Complete and save the payment details before posting.
-              </p>
-            )}
-          </>
-        )}
-      </section>
-      <footer className="mt-8 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm font-semibold text-slate-600">
-            ReqGen Finance Workspace • Data refreshes automatically every 30 seconds.
-          </p>
-
-          <div className="flex flex-wrap gap-2">
-            <Link
-              href="/finance/processing"
-              className="reqgen-btn reqgen-btn-blue rounded-xl bg-blue-700 px-4 py-2.5 text-sm font-black text-white transition hover:bg-blue-800"
-            >
-              Finance Home
-            </Link>
-
-            <Link
-              href="/dashboard"
-              className="reqgen-btn reqgen-btn-slate rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-black text-white transition hover:bg-slate-800"
-            >
-              Main Dashboard
-            </Link>
-          </div>
-        </div>
-      </footer>
-    </main>
-  );
-}
-
-/** v3.0.4: finance officers open full request content only when entitled to it. */
-export default function FinanceRequestPage() {
-  const params = useParams<{ id: string }>();
-  return (
-    <RequestAccessGate requestId={params?.id}>
-      <FinanceRequestPageContent />
-    </RequestAccessGate>
+        <aside className="v4-side-stack">
+          <section className="v4-card v4-card-pad">
+            <h3 className="v4-h3" style={{ marginBottom: 10 }}>Approved by</h3>
+            {chain.length ? (
+              <ol className="v4-numbered">
+                {chain.filter((c) => c.stage && !/account|hr ?filing/i.test(c.stage)).map((c) => (
+                  <li key={`${c.step_order}-${c.stage}`}>{stageTitle(c.stage)} · <span className="v4-muted">{c.state === "done" ? c.acted_by_name || c.owner_name || "—" : c.state === "skipped" ? "skipped" : "waiting"}</span></li>
+                ))}
+              </ol>
+            ) : <p className="v4-help" style={{ margin: 0 }}>The approval chain appears here.</p>}
+          </section>
+          <section className="v4-card v4-card-pad">
+            <h3 className="v4-h3" style={{ marginBottom: 10 }}>Attachments</h3>
+            {files.length ? (
+              <ul className="v4-files">
+                {files.map((f) => (
+                  <li key={f.id}><span className="v4-fi">{/\.pdf$/i.test(f.file_name) ? "PDF" : "IMG"}</span><span className="v4-ft"><strong>{f.file_name}</strong><span>{f.file_size ? `${Math.ceil(f.file_size / 1024)} KB` : ""}{checked.has(f.id) ? " · checked by you" : " · not checked yet"}</span></span><button type="button" className="v4-btn v4-btn-ghost" onClick={() => void checkFile(f)}>{checked.has(f.id) ? "View" : "Open & check"}</button></li>
+                ))}
+              </ul>
+            ) : <p className="v4-help" style={{ margin: 0 }}>No attachment.</p>}
+          </section>
+        </aside>
+      </div>
+    </V4Page>
   );
 }

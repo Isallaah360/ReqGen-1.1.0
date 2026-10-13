@@ -1,15 +1,9 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { usePathname } from "next/navigation";
 import StrictActiveRoleBoundary from "@/app/components/security/StrictActiveRoleBoundary";
 
+/** v4.6: Administration is for the Super Admin and the Developer (both act as "admin"). Pages draw themselves with the v4 kit. */
 export default function AdminLayout({ children }: { children: ReactNode }) {
-  const pathname = usePathname();
-  const readOnlyOversight = pathname === "/admin/security";
-  return (
-    <StrictActiveRoleBoundary allowedRoles={readOnlyOversight ? ["admin", "auditor"] : ["admin"]} label="the Admin Centre">
-      <div className="admin-scope module-admin min-h-0">{children}</div>
-    </StrictActiveRoleBoundary>
-  );
+  return <StrictActiveRoleBoundary allowedRoles={["admin"]} label="Administration">{children}</StrictActiveRoleBoundary>;
 }

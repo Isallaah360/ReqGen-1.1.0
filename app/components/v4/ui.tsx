@@ -26,7 +26,7 @@ export function Btn({ a, small }: { a: Action; small?: boolean }) {
   return <button className={cls} type="button" onClick={a.onClick} disabled={a.disabled} style={style}>{inner}</button>;
 }
 
-export function PageHead({ title, sub, actions, icon }: { title: string; sub?: ReactNode; actions?: Action[]; icon?: ReactNode }) {
+export function PageHead({ title, sub, actions, icon, scope }: { title: string; sub?: ReactNode; actions?: Action[]; icon?: ReactNode; scope?: ReactNode }) {
   return (
     <div className="v4-page-head">
       <div className={icon ? "v4-head-with-icon" : undefined}>
@@ -34,6 +34,7 @@ export function PageHead({ title, sub, actions, icon }: { title: string; sub?: R
         <div>
         <h1 className="v4-page-title">{title}</h1>
         {sub ? <p className="v4-page-sub">{sub}</p> : null}
+        {scope ? <div style={{ marginTop: 10 }}><span className="v4-scope"><Icon name="lock" />{scope}</span></div> : null}
         </div>
       </div>
       {actions && actions.length ? <div className="v4-actions">{actions.map((a) => <Btn key={a.label} a={a} />)}</div> : null}

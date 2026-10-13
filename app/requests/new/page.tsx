@@ -1,1320 +1,760 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
-import { routingNoteFor as sharedRoutingNoteFor } from "@/lib/departmentRouting";
+import { routingNoteFor } from "@/lib/departmentRouting";
 import { fetchRoutePreview } from "@/lib/routingEngine";
-import { WorkflowLoading } from "@/app/components/ui/WorkflowUI";
-import {
-  AlertCircle,
-  BriefcaseBusiness,
-  CheckCircle2,
-  CircleHelp,
-  FolderOpen,
-  Info,
-  Landmark,
-  Paperclip,
-  Send,
-  ShieldCheck,
-  UploadCloud,
-  UserRound,
-  X,
-} from "lucide-react";
-import styles from "./new-request.module.css";
+import { canSeeBudgetBalances } from "@/lib/v4/budgetVisibility";
+import { stageTitle } from "@/lib/v4/requestText";
+import { formatAmountInput, nairaExact, nairaInWords, parseAmount } from "@/lib/v4/money";
+import { deleteDraft, loadDraft, saveDraft } from "@/lib/v4/drafts";
+import { confirmDialog } from "@/lib/dialog";
+import { useIdentity } from "@/app/components/v4/useIdentity";
+import Icon from "@/app/components/v4/Icon";
+import { Select, type SelectOption } from "@/app/components/v4/Select";
+import { Notice, PageHead, Skeleton, V4Page } from "@/app/components/v4/ui";
 
-type Dept = {
-  id: string;
-  name: string;
-  hod_user_id: string | null;
-  director_user_id: string | null;
-  is_active?: boolean | null;
-};
-
-type Subhead = {
-  id: string;
-  dept_id: string;
-  code: string | null;
-  name: string;
-  approved_allocation: number | null;
-  balance: number | null;
-  expenditure: number | null;
-  reserved_amount: number | null;
-  is_active: boolean | null;
-};
-
-type ProfileMini = {
-  id: string;
-  full_name: string | null;
-  email: string | null;
-  role: string | null;
-  phone: string | null;
-  signature_url: string | null;
-};
-
-type ProfileRole = {
-  id: string;
-  profile_id: string;
-  role_key: string;
-  role_name: string;
-  is_primary: boolean;
-  is_active: boolean;
-};
+/**
+ * ReqGen v4.1.2 — New Request (mock-ups 25a and 25).
+ *
+ *   1 · Type          Official, or Personal with its category
+ *   2 · Details       ONE department field, title, subhead, description, amount
+ *   3 · Attachments
+ *   4 · Sign & submit review, signature, route, then submit
+ *
+ * Budget figures follow the position the person is ACTING AS
+ * (lib/v4/budgetVisibility): Staff, Registry and PD see only the live check
+ * ("fund available" / "not enough"); approving officers, Finance, the Auditor
+ * and the Super Admin see the subhead figures. Over budget is a hard block:
+ * a draft can be saved, the request cannot be submitted.
+ */
 
 type RequestType = "Official" | "Personal";
 type PersonalCategory = "Fund" | "Leave" | "Contract Renewal" | "Resignation" | "Others";
-type RequestOtpChannel = "sms" | "email" | "sms_email" | "email_sms";
+type OtpChannel = "sms" | "email" | "sms_email";
+type Dept = { id: string; name: string };
+type SubName = { id: string; code: string | null; name: string };
+type SubFull = SubName & { dept_id: string; approved_allocation: number | null; reserved_amount: number | null; expenditure: number | null };
+type Me = { id: string; full_name: string | null; email: string | null; phone: string | null; signature_url: string | null };
+type Live = "idle" | "checking" | "available" | "not_enough" | "unknown";
+type RouteStop = { stage: string; who: string | null };
 
-const MAX_ATTACHMENTS = 50;
-const MAX_FILE_SIZE_MB = 10;
-const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
-
-const PERSONAL_CATEGORIES: PersonalCategory[] = [
-  "Fund",
-  "Leave",
-  "Contract Renewal",
-  "Resignation",
-  "Others",
+const STEPS = ["Type", "Details", "Attachments", "Sign & submit"] as const;
+const CATEGORIES: Array<{ key: PersonalCategory; title: string; text: string; icon: string }> = [
+  { key: "Fund", title: "Personal fund", text: "Money for yourself, such as a loan or support.", icon: "wallet" },
+  { key: "Leave", title: "Leave", text: "Annual, sick, study or other leave.", icon: "clock" },
+  { key: "Contract Renewal", title: "Contract renewal", text: "Renew your contract with the Trust.", icon: "file" },
+  { key: "Resignation", title: "Resignation", text: "Give notice that you are leaving.", icon: "logout" },
+  { key: "Others", title: "Other personal", text: "Any other personal request.", icon: "help" },
 ];
+const MAX_FILES = 50;
+const MAX_MB = 10;
+const ACCEPT = ".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.webp,.txt";
 
-const FINANCE_VISIBLE_ROLES = [
-  "admin",
-  "auditor",
-  "director",
-  "dod",
-  "hod",
-  "hr",
-  "hrofficer1",
-  "hrofficer2",
-  "hrofficer3",
-  "hrcoordinator",
-  "generalsecretary",
-  "dg",
-  "account",
-  "accounts",
-  "accountofficer",
-  "registrar",
-  "dinadmin",
-  "dinadmin1",
-  "dinadmin2",
-  "dinadmin3",
-  "po",
-  "pd",
-];
-
-const requestOtpEnabled = process.env.NEXT_PUBLIC_REQGEN_REQUEST_OTP_ENABLED === "true";
-
-const requestNotificationsEnabled =
-  process.env.NEXT_PUBLIC_REQGEN_NOTIFICATIONS_ENABLED === "true";
-
-function configuredOtpChannel(): RequestOtpChannel {
-  const raw = String(process.env.NEXT_PUBLIC_REQGEN_REQUEST_OTP_CHANNEL || "sms")
-    .trim()
-    .toLowerCase();
-
+const otpEnabled = process.env.NEXT_PUBLIC_REQGEN_REQUEST_OTP_ENABLED === "true";
+const notificationsEnabled = process.env.NEXT_PUBLIC_REQGEN_NOTIFICATIONS_ENABLED === "true";
+const otpChannel: OtpChannel = (() => {
+  const raw = String(process.env.NEXT_PUBLIC_REQGEN_REQUEST_OTP_CHANNEL || "sms").trim().toLowerCase();
   if (raw === "email") return "email";
-  if (raw === "sms_email") return "sms_email";
-  if (raw === "email_sms") return "sms_email";
+  if (raw === "sms_email" || raw === "email_sms") return "sms_email";
   return "sms";
-}
-
-const requestOtpChannel = configuredOtpChannel();
-
-function isDualOtpChannel(channel: RequestOtpChannel | "unknown") {
-  return channel === "sms_email" || channel === "email_sms";
-}
-
-function roleKey(role: string | null | undefined) {
-  return (role || "")
-    .trim()
-    .toLowerCase()
-    .replace(/\s+/g, "")
-    .replace(/_/g, "");
-}
-
-function hasAnyRole(roleSet: Set<string>, roles: string[]) {
-  return roles.some((r) => roleSet.has(roleKey(r)));
-}
-
-function naira(n: number) {
-  return "₦" + Math.round(Number(n || 0)).toLocaleString();
-}
-
-function buildRequestNo() {
-  const now = new Date();
-  const y = now.getFullYear();
-  const m = String(now.getMonth() + 1).padStart(2, "0");
-  const t = String(now.getTime()).slice(-6);
-  return `REQ-${y}${m}-${t}`;
-}
+})();
+const otpLabel = otpChannel === "sms" ? "SMS code" : otpChannel === "email" ? "email code" : "SMS / email code";
 
 function cleanFileName(name: string) {
   const parts = name.split(".");
-  const ext = parts.length > 1 ? parts.pop() || "" : "";
-  const base = parts.join(".") || "attachment";
-
-  const safeBase = base
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9-_]+/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "")
-    .slice(0, 80);
-
-  const safeExt = ext
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]/g, "")
-    .slice(0, 12);
-
-  return safeExt ? `${safeBase || "attachment"}.${safeExt}` : safeBase || "attachment";
+  const ext = parts.length > 1 ? (parts.pop() || "").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 12) : "";
+  const base = parts.join(".").trim().toLowerCase().replace(/[^a-z0-9-_]+/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "").slice(0, 80) || "attachment";
+  return ext ? `${base}.${ext}` : base;
 }
-
-function fileSizeLabel(bytes: number) {
-  if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
-  if (bytes >= 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+function sizeLabel(bytes: number) {
+  if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  if (bytes >= 1024) return `${Math.round(bytes / 1024)} KB`;
   return `${bytes} B`;
 }
-
-function maskEmail(email: string | null | undefined) {
-  const clean = String(email || "").trim();
-
-  if (!clean || !clean.includes("@")) return "—";
-
-  const [name, domain] = clean.split("@");
-  const visibleName =
-    name.length <= 2 ? `${name.slice(0, 1)}***` : `${name.slice(0, 2)}***${name.slice(-1)}`;
-
-  const domainParts = domain.split(".");
-  const domainName = domainParts[0] || "";
-  const domainExt = domainParts.slice(1).join(".");
-
-  const visibleDomain =
-    domainName.length <= 2
-      ? `${domainName.slice(0, 1)}***`
-      : `${domainName.slice(0, 2)}***${domainName.slice(-1)}`;
-
-  return `${visibleName}@${visibleDomain}${domainExt ? `.${domainExt}` : ""}`;
+function fileKind(name: string) {
+  const ext = (name.split(".").pop() || "").toUpperCase();
+  return ext.slice(0, 4) || "FILE";
 }
-
+function subLabel(s: SubName) {
+  return (s.code ? `${s.code} — ` : "") + s.name;
+}
+function errorText(e: unknown) {
+  return e instanceof Error ? e.message : "Something went wrong. Please try again.";
+}
+function maskEmail(email: string | null | undefined) {
+  const [n = "", d = ""] = String(email || "").split("@");
+  if (!d) return "your email";
+  return `${n.slice(0, 2)}***@${d}`;
+}
 function maskPhone(phone: string | null | undefined) {
   const raw = String(phone || "").replace(/\D/g, "");
-  if (raw.length < 7) return phone || "—";
-  return `${raw.slice(0, 4)}***${raw.slice(-3)}`;
-}
-
-function hasValidEmail(email: string | null | undefined) {
-  const clean = String(email || "").trim();
-  return !!clean && clean.includes("@");
-}
-
-function hasLikelyPhone(phone: string | null | undefined) {
-  const raw = String(phone || "").replace(/\D/g, "");
-  return raw.length >= 10;
-}
-
-/** v3.0.4: route rules live in lib/departmentRouting (shared with Admin → Department Routing). */
-function routingNoteFor(type: RequestType, category: PersonalCategory, dept: Dept | null) {
-  return sharedRoutingNoteFor(type, category, dept?.name);
-}
-
-
-type SubmitRequestResult = {
-  request_id?: string | null;
-  funds_state?: string | null;
-  first_stage?: string | null;
-};
-
-function errorMessage(error: unknown, fallback = "Unknown error") {
-  return error instanceof Error ? error.message : fallback;
+  return raw.length >= 7 ? `${raw.slice(0, 4)}***${raw.slice(-3)}` : "your phone";
 }
 
 export default function NewRequestPage() {
+  return (
+    <Suspense fallback={<V4Page><Skeleton lines={6} /></V4Page>}>
+      <NewRequest />
+    </Suspense>
+  );
+}
+
+function NewRequest() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const embedded = searchParams.get("embedded") === "1";
-  const closeEmbedded = () => window.parent.postMessage({ type: "reqgen-form-cancel" }, window.location.origin);
+  const params = useSearchParams();
+  const embedded = params.get("embedded") === "1";
+  const draftParam = params.get("draft");
+  const who = useIdentity();
+  const seeBalances = canSeeBudgetBalances(who.role);
 
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [sendingOtp, setSendingOtp] = useState(false);
-  const [verifyingOtp, setVerifyingOtp] = useState(false);
-  const [uploadingAttachments, setUploadingAttachments] = useState(false);
-  const [msg, setMsg] = useState<string | null>(null);
-
-  const [me, setMe] = useState<ProfileMini | null>(null);
-  const [myRoles, setMyRoles] = useState<ProfileRole[]>([]);
-
-  const [showOtpModal, setShowOtpModal] = useState(false);
-  const [otpCode, setOtpCode] = useState("");
-  const [otpSent, setOtpSent] = useState(false);
-  const [otpChannel, setOtpChannel] = useState<RequestOtpChannel | "unknown">("unknown");
-
-  const otpAutoSubmittingRef = useRef(false);
+  const [me, setMe] = useState<Me | null>(null);
+  const [depts, setDepts] = useState<Dept[]>([]);
+  const [step, setStep] = useState(0);
+  const [msg, setMsg] = useState<{ tone: "red" | "green" | "blue" | "amber"; text: string } | null>(null);
 
   const [requestType, setRequestType] = useState<RequestType>("Official");
-  const [personalCategory, setPersonalCategory] = useState<PersonalCategory>("Fund");
-
-  const [depts, setDepts] = useState<Dept[]>([]);
-  const [subs, setSubs] = useState<Subhead[]>([]);
+  const [category, setCategory] = useState<PersonalCategory>("Fund");
   const [deptId, setDeptId] = useState("");
-  const [subheadId, setSubheadId] = useState("");
-
   const [title, setTitle] = useState("");
-  const [amount, setAmount] = useState("");
   const [details, setDetails] = useState("");
+  const [amountText, setAmountText] = useState("");
+  const [subheadId, setSubheadId] = useState("");
+  const [files, setFiles] = useState<File[]>([]);
+  const [confirmed, setConfirmed] = useState(false);
 
-  const [attachments, setAttachments] = useState<File[]>([]);
-  const [signedRequest, setSignedRequest] = useState(false);
-  const [signedAt, setSignedAt] = useState<string | null>(null);
+  const [subNames, setSubNames] = useState<SubName[]>([]);
+  const [subFull, setSubFull] = useState<SubFull[]>([]);
+  const [subsLoading, setSubsLoading] = useState(false);
+  const [live, setLive] = useState<Live>("idle");
+  const [route, setRoute] = useState<{ stops: RouteStop[]; blocked: string[] } | null>(null);
 
-  const roleSet = useMemo(() => {
-    const set = new Set<string>();
-
-    if (me?.role) set.add(roleKey(me.role));
-
-    myRoles.forEach((r) => {
-      if (r.is_active) set.add(roleKey(r.role_key));
-    });
-
-    return set;
-  }, [me?.role, myRoles]);
-
-  const canSeeSubheads = hasAnyRole(roleSet, FINANCE_VISIBLE_ROLES);
+  const [draftId, setDraftId] = useState<string | null>(draftParam);
+  const [savingDraft, setSavingDraft] = useState(false);
+  const [busy, setBusy] = useState<"" | "submitting" | "uploading" | "sending-code" | "verifying">("");
+  const [otpOpen, setOtpOpen] = useState(false);
+  const [otp, setOtp] = useState("");
+  const otpLock = useRef(false);
+  const fileInput = useRef<HTMLInputElement>(null);
 
   const isOfficial = requestType === "Official";
-  const isPersonal = requestType === "Personal";
-  const isPersonalFund = isPersonal && personalCategory === "Fund";
-  const requiresAmount = isOfficial || isPersonalFund;
+  const needsAmount = isOfficial || category === "Fund";
+  const amount = parseAmount(amountText);
+  const amountOk = !needsAmount || (Number.isFinite(amount) && amount > 0);
+  const dept = depts.find((d) => d.id === deptId) || null;
+  const subOptions: SubName[] = seeBalances ? subFull : subNames;
+  const chosenSub = subOptions.find((s) => s.id === subheadId) || null;
+  const chosenFull = subFull.find((s) => s.id === subheadId) || null;
+  const available = chosenFull ? Number(chosenFull.approved_allocation || 0) - Number(chosenFull.reserved_amount || 0) - Number(chosenFull.expenditure || 0) : 0;
 
-  const otpLabel =
-    requestOtpChannel === "sms"
-      ? "SMS OTP"
-      : isDualOtpChannel(requestOtpChannel)
-        ? "SMS/Email OTP"
-        : "Email OTP";
-
-  const selectedDept = useMemo(() => {
-    return depts.find((d) => d.id === deptId) || null;
-  }, [depts, deptId]);
-
-  // v3.0.5: show the route the Routing Engine will ACTUALLY use for this
-  // department and request type (falls back to the built-in description if
-  // the engine is not installed yet).
-  const [engineRoute, setEngineRoute] = useState<{ note: string; vacant: string[]; blocked: string[] } | null>(null);
+  // ---- load -------------------------------------------------------------
   useEffect(() => {
     let alive = true;
-    if (!deptId) { queueMicrotask(() => setEngineRoute(null)); return; }
-    void fetchRoutePreview(deptId, requestType, requestType === "Personal" ? personalCategory : null).then((steps) => {
+    (async () => {
+      const { data: auth } = await supabase.auth.getUser();
+      if (!auth.user) { router.push("/login"); return; }
+      const [prof, dep] = await Promise.all([
+        supabase.from("profiles").select("id,full_name,email,phone,signature_url").eq("id", auth.user.id).maybeSingle(),
+        supabase.from("departments").select("id,name").eq("is_active", true).order("name", { ascending: true }),
+      ]);
       if (!alive) return;
-      if (!steps || !steps.length) { setEngineRoute(null); return; }
-      const label = requestType === "Official" ? "Official" : personalCategory === "Fund" ? "Personal Fund" : "Personal Other";
-      const shown = steps.filter((s) => !(s.is_vacant && s.if_vacant === "skip"));
-      const names = shown.map((s) => (s.stage === "Account" ? "AccountOfficer" : s.stage));
-      setEngineRoute({
-        note: `${label} route: Staff → ${names.join(" → ")}.`,
-        vacant: steps.filter((s) => s.is_vacant && s.if_vacant === "skip").map((s) => s.stage),
-        blocked: steps.filter((s) => s.is_vacant && s.if_vacant === "block").map((s) => s.stage),
-      });
-    });
+      setMe((prof.data || null) as Me | null);
+      setDepts((dep.data || []) as Dept[]);
+      if (dep.error) setMsg({ tone: "red", text: "Departments could not be loaded: " + dep.error.message });
+      if (draftParam) {
+        try {
+          const d = await loadDraft(draftParam);
+          if (!alive) return;
+          if (d) {
+            setRequestType(d.request_type === "Personal" ? "Personal" : "Official");
+            if (d.personal_category) setCategory(d.personal_category as PersonalCategory);
+            setDeptId(d.dept_id || "");
+            setTitle(d.title || "");
+            setDetails(d.details || "");
+            setAmountText(d.amount ? formatAmountInput(String(d.amount)) : "");
+            setSubheadId(d.subhead_id || "");
+            setFiles(d.files);
+            setStep(1);
+            setMsg({ tone: "blue", text: `Draft opened. Saved ${new Date(d.updated_at).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}.` });
+          } else {
+            setMsg({ tone: "amber", text: "That draft was not found. It may have been submitted or deleted." });
+            setDraftId(null);
+          }
+        } catch (e) {
+          setMsg({ tone: "red", text: "The draft could not be opened: " + errorText(e) });
+        }
+      }
+      setLoading(false);
+    })();
     return () => { alive = false; };
-  }, [deptId, requestType, personalCategory]);
+  }, [router, draftParam]);
 
-
-  // v4.1: staff pick the subhead too, and see only "fund available" or
-  // "not enough" — never the balance (Build Reference §5).
-  const [staffSubs, setStaffSubs] = useState<Array<{ id: string; code: string | null; name: string }>>([]);
-  const [liveCheck, setLiveCheck] = useState<"idle" | "checking" | "available" | "not_enough" | "unknown">("idle");
-
-  const filteredSubs = useMemo(() => {
-    return subs.filter((s) => s.dept_id === deptId);
-  }, [subs, deptId]);
-
-  const selectedSubhead = useMemo(() => {
-    return subs.find((s) => s.id === subheadId) || null;
-  }, [subs, subheadId]);
-
-  const totalAttachmentSize = useMemo(() => {
-    return attachments.reduce((sum, file) => sum + file.size, 0);
-  }, [attachments]);
-
-  const availableBalance = useMemo(() => {
-    if (!selectedSubhead) return 0;
-
-    const allocation = Number(selectedSubhead.approved_allocation || 0);
-    const reserved = Number(selectedSubhead.reserved_amount || 0);
-    const expenditure = Number(selectedSubhead.expenditure || 0);
-
-    return allocation - reserved - expenditure;
-  }, [selectedSubhead]);
-
-  const canSubmit = useMemo(() => {
-    return signedRequest && !saving && !sendingOtp && !verifyingOtp && !uploadingAttachments;
-  }, [signedRequest, saving, sendingOtp, verifyingOtp, uploadingAttachments]);
-
-  async function loadAll() {
-    setLoading(true);
-    setMsg(null);
-
-    const { data: auth } = await supabase.auth.getUser();
-
-    if (!auth.user) {
-      router.push("/login");
-      return;
-    }
-
-    const [profRes, rolesRes] = await Promise.all([
-      supabase
-        .from("profiles")
-        .select("id,full_name,email,role,phone,signature_url")
-        .eq("id", auth.user.id)
-        .single(),
-
-      supabase
-        .from("profile_roles")
-        .select("id,profile_id,role_key,role_name,is_primary,is_active")
-        .eq("profile_id", auth.user.id)
-        .eq("is_active", true),
-    ]);
-
-    if (profRes.error) {
-      setMsg("Failed to load your profile: " + profRes.error.message);
-      setLoading(false);
-      return;
-    }
-
-    setMe((profRes.data || null) as ProfileMini);
-    setMyRoles((rolesRes.data || []) as ProfileRole[]);
-
-    const { data: deptRows, error: deptErr } = await supabase
-      .from("departments")
-      .select("id,name,hod_user_id,director_user_id,is_active")
-      .eq("is_active", true)
-      .order("name", { ascending: true });
-
-    if (deptErr) {
-      setMsg("Failed to load departments: " + deptErr.message);
-      setLoading(false);
-      return;
-    }
-
-    const deptList = (deptRows || []) as Dept[];
-    setDepts(deptList);
-
-    const { data: subRows, error: subErr } = await supabase
-      .from("subheads")
-      .select("id,dept_id,code,name,approved_allocation,balance,expenditure,reserved_amount,is_active")
-      .eq("is_active", true)
-      .order("name", { ascending: true });
-
-    if (subErr) {
-      setMsg("Failed to load subheads: " + subErr.message);
-      setLoading(false);
-      return;
-    }
-
-    const subList = (subRows || []) as Subhead[];
-    setSubs(subList);
-
-    if (deptList.length > 0 && !deptId) {
-      const firstDept = deptList[0];
-      setDeptId(firstDept.id);
-
-      const firstSub = subList.find((s) => s.dept_id === firstDept.id);
-      setSubheadId(firstSub?.id || "");
-    }
-
-    setLoading(false);
-  }
-
+  // ---- subheads of the chosen department --------------------------------
   useEffect(() => {
-    loadAll();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    if (canSeeSubheads || !deptId) { queueMicrotask(() => setStaffSubs([])); return; }
+    if (!who.ready || !deptId || !isOfficial) { queueMicrotask(() => { setSubNames([]); setSubFull([]); }); return; }
     let alive = true;
-    void supabase.rpc("reqgen_department_subhead_names", { p_dept_id: deptId }).then(({ data, error }) => {
-      if (!alive) return;
-      setStaffSubs(error ? [] : ((data || []) as Array<{ id: string; code: string | null; name: string }>));
-      setSubheadId("");
-    });
-    return () => { alive = false; };
-  }, [deptId, canSeeSubheads]);
-
-  useEffect(() => {
-    if (canSeeSubheads || !isOfficial || !subheadId) { queueMicrotask(() => setLiveCheck("idle")); return; }
-    const amt = Number(amount || 0);
-    if (!(amt > 0)) { queueMicrotask(() => setLiveCheck("idle")); return; }
-    queueMicrotask(() => setLiveCheck("checking"));
-    const t = window.setTimeout(() => {
-      void supabase.rpc("reqgen_subhead_live_check", { p_subhead_id: subheadId, p_amount: amt }).then(({ data, error }) => {
-        const v = String(Array.isArray(data) ? data[0] : data || "");
-        setLiveCheck(error ? "unknown" : v === "available" ? "available" : v === "not_enough" ? "not_enough" : "unknown");
-      });
-    }, 400);
-    return () => window.clearTimeout(t);
-  }, [canSeeSubheads, isOfficial, subheadId, amount]);
-
-  useEffect(() => {
-    if (!isOfficial) {
-      setSubheadId("");
-      return;
-    }
-
-    if (isOfficial && canSeeSubheads) {
-      const first = filteredSubs[0];
-      setSubheadId(first?.id || "");
-    }
-  }, [isOfficial, canSeeSubheads, filteredSubs]);
-
-  useEffect(() => {
-    if (!requiresAmount) {
-      setAmount("");
-    }
-  }, [requiresAmount]);
-
-  useEffect(() => {
-    setSignedRequest(false);
-    setSignedAt(null);
-    setOtpSent(false);
-    setOtpCode("");
-    setOtpChannel("unknown");
-    otpAutoSubmittingRef.current = false;
-  }, [
-    requestType,
-    personalCategory,
-    deptId,
-    subheadId,
-    title,
-    amount,
-    details,
-    attachments.length,
-  ]);
-
-  function handleAttachmentSelect(files: FileList | null) {
-    setMsg(null);
-
-    if (!files || files.length === 0) return;
-
-    const incoming = Array.from(files);
-    const combined = [...attachments, ...incoming];
-
-    if (combined.length > MAX_ATTACHMENTS) {
-      setMsg(`✕ Maximum ${MAX_ATTACHMENTS} attachments are allowed per request.`);
-      return;
-    }
-
-    const tooLarge = incoming.find((file) => file.size > MAX_FILE_SIZE_BYTES);
-
-    if (tooLarge) {
-      setMsg(`✕ "${tooLarge.name}" is too large. Maximum file size is ${MAX_FILE_SIZE_MB}MB.`);
-      return;
-    }
-
-    const unique: File[] = [];
-    const seen = new Set<string>();
-
-    for (const file of combined) {
-      const key = `${file.name}-${file.size}-${file.lastModified}`;
-
-      if (!seen.has(key)) {
-        seen.add(key);
-        unique.push(file);
-      }
-    }
-
-    setAttachments(unique);
-  }
-
-  function removeAttachment(index: number) {
-    setAttachments((prev) => prev.filter((_, i) => i !== index));
-  }
-
-  function clearAttachments() {
-    setAttachments([]);
-  }
-
-  function selectedSubheadForSubmission() {
-    if (!isOfficial) return null;
-    return subheadId || null;
-  }
-
-  function submissionAmount() {
-    if (!requiresAmount) return 0;
-    return Number(amount || 0);
-  }
-
-  function validateRequestForm(showMessage = true) {
-    if (!me) {
-      if (showMessage) setMsg("✕ Your profile is not loaded.");
-      return false;
-    }
-
-    if (!me.full_name || !me.full_name.trim()) {
-      if (showMessage) setMsg("✕ Please update your full name in Profile before creating request.");
-      return false;
-    }
-
-    if (requestOtpEnabled) {
-      if (requestOtpChannel === "sms" && !hasLikelyPhone(me.phone)) {
-        if (showMessage) {
-          setMsg("✕ Please add a valid registered phone number in Profile before requesting SMS OTP.");
-        }
-        return false;
-      }
-
-      if (requestOtpChannel === "email" && !hasValidEmail(me.email)) {
-        if (showMessage) {
-          setMsg("✕ Please add a valid registered email in Profile before requesting Email OTP.");
-        }
-        return false;
-      }
-
-      if (isDualOtpChannel(requestOtpChannel) && !hasLikelyPhone(me.phone) && !hasValidEmail(me.email)) {
-        if (showMessage) {
-          setMsg("✕ Please add a valid phone number or email in Profile before requesting OTP.");
-        }
-        return false;
-      }
-    }
-
-    if (!me.signature_url || !me.signature_url.trim()) {
-      if (showMessage) {
-        setMsg("✕ Please upload your signature in Profile before signing this request.");
-      }
-      return false;
-    }
-
-    if (!requestType) {
-      if (showMessage) setMsg("✕ Please select request type.");
-      return false;
-    }
-
-    if (isPersonal && !personalCategory) {
-      if (showMessage) setMsg("✕ Please select personal request category.");
-      return false;
-    }
-
-    if (!deptId) {
-      if (showMessage) setMsg("✕ Please select department.");
-      return false;
-    }
-
-    if (!title.trim()) {
-      if (showMessage) setMsg("✕ Please enter request title.");
-      return false;
-    }
-
-    if (!details.trim()) {
-      if (showMessage) setMsg("✕ Please enter request details.");
-      return false;
-    }
-
-    const amt = submissionAmount();
-
-    if (requiresAmount && (!amt || amt <= 0)) {
-      if (showMessage) {
-        setMsg(
-          isOfficial
-            ? "✕ Enter a valid amount for this Official request."
-            : "✕ Enter a valid amount for this Personal Fund request."
-        );
-      }
-      return false;
-    }
-
-    if (isOfficial && !canSeeSubheads && subheadId && liveCheck === "not_enough") {
-      if (showMessage) setMsg("✕ Not enough fund in this subhead. Choose another subhead or reduce the amount.");
-      return false;
-    }
-
-    if (isOfficial && canSeeSubheads && subheadId && selectedSubhead && amt > availableBalance) {
-      if (showMessage) {
-        setMsg(`✕ Amount exceeds available balance for selected subhead (${naira(availableBalance)}).`);
-      }
-      return false;
-    }
-
-    if (attachments.length > MAX_ATTACHMENTS) {
-      if (showMessage) setMsg(`✕ Maximum ${MAX_ATTACHMENTS} attachments are allowed per request.`);
-      return false;
-    }
-
-    const tooLarge = attachments.find((file) => file.size > MAX_FILE_SIZE_BYTES);
-
-    if (tooLarge) {
-      if (showMessage) {
-        setMsg(`✕ "${tooLarge.name}" is too large. Maximum file size is ${MAX_FILE_SIZE_MB}MB.`);
-      }
-      return false;
-    }
-
-    const dept = depts.find((d) => d.id === deptId);
-
-    if (!dept) {
-      if (showMessage) setMsg("✕ Department not found.");
-      return false;
-    }
-
-    return true;
-  }
-
-  function signRequest() {
-    setMsg(null);
-
-    const ok = validateRequestForm(true);
-    if (!ok) return;
-
-    setSignedRequest(true);
-    setSignedAt(new Date().toISOString());
-    setOtpSent(false);
-    setOtpCode("");
-    setOtpChannel("unknown");
-    otpAutoSubmittingRef.current = false;
-
-    setMsg(
-      requestOtpEnabled
-        ? `✓ Request signed successfully. You can now submit with ${otpLabel}.`
-        : "✓ Request signed successfully. You can now submit the signed request."
-    );
-  }
-
-  async function sendRequestSubmissionOtp() {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-
-    if (!session?.access_token) {
-      throw new Error("Session expired. Please login again.");
-    }
-
-    const response = await fetch("/api/otp/request-submission/send", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${session.access_token}`,
-      },
-    });
-
-    const result = await response.json().catch(() => null);
-
-    if (!response.ok || !result?.ok) {
-      throw new Error(result?.error || `Could not send ${otpLabel}.`);
-    }
-
-    return result as {
-      ok: boolean;
-      message?: string;
-      channel?: RequestOtpChannel;
-      phone?: string | null;
-      email?: string | null;
-      smsWarning?: string | null;
-      emailWarning?: string | null;
-      expiresInMinutes?: number;
-    };
-  }
-
-  async function openSubmitVerification() {
-    setMsg(null);
-
-    if (!signedRequest) {
-      setMsg("✕ Please click Sign Request before submitting.");
-      return;
-    }
-
-    const ok = validateRequestForm(true);
-    if (!ok) return;
-
-    if (!requestOtpEnabled) {
-      await submitSignedRequest();
-      return;
-    }
-
-    setSendingOtp(true);
-
-    try {
-      const result = await sendRequestSubmissionOtp();
-
-      setOtpCode("");
-      setOtpSent(true);
-      setOtpChannel(result.channel || requestOtpChannel);
-      setShowOtpModal(true);
-      otpAutoSubmittingRef.current = false;
-
-      if (result.channel === "sms") {
-        setMsg("✓ SMS OTP sent to your registered phone number.");
-      } else if (isDualOtpChannel(result.channel || requestOtpChannel)) {
-        setMsg("✓ OTP sent by SMS and email.");
+    queueMicrotask(() => setSubsLoading(true));
+    (async () => {
+      if (seeBalances) {
+        const { data } = await supabase
+          .from("subheads")
+          .select("id,dept_id,code,name,approved_allocation,reserved_amount,expenditure")
+          .eq("dept_id", deptId)
+          .eq("is_active", true)
+          .order("code", { ascending: true });
+        if (!alive) return;
+        setSubFull((data || []) as SubFull[]);
+        setSubNames([]);
       } else {
-        setMsg("✓ Email OTP sent to your registered email.");
+        const { data, error } = await supabase.rpc("reqgen_department_subhead_names", { p_dept_id: deptId });
+        if (!alive) return;
+        setSubNames(error ? [] : ((data || []) as SubName[]));
+        setSubFull([]);
       }
-    } catch (e: unknown) {
-      setMsg(`✕ Could not send ${otpLabel}: ` + errorMessage(e, "Unknown error."));
-    } finally {
-      setSendingOtp(false);
-    }
-  }
+      setSubsLoading(false);
+    })();
+    return () => { alive = false; };
+  }, [who.ready, deptId, isOfficial, seeBalances]);
 
-  async function verifyOtpAndSubmit(codeOverride?: string) {
-    if (otpAutoSubmittingRef.current || verifyingOtp || saving) return;
+  // a subhead from another department (or a hidden list) is cleared
+  useEffect(() => {
+    if (subsLoading || !subheadId) return;
+    if (!subOptions.some((s) => s.id === subheadId)) queueMicrotask(() => setSubheadId(""));
+  }, [subOptions, subheadId, subsLoading]);
 
-    setMsg(null);
-
-    const code = String(codeOverride || otpCode || "")
-      .trim()
-      .replace(/\D/g, "")
-      .slice(0, 6);
-
-    if (!/^\d{6}$/.test(code)) {
-      setMsg(`✕ Enter the 6-digit ${otpLabel}.`);
-      return;
-    }
-
-    otpAutoSubmittingRef.current = true;
-    setVerifyingOtp(true);
-
-    try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-
-      if (!session?.access_token) {
-        throw new Error("Session expired. Please login again.");
-      }
-
-      const response = await fetch("/api/otp/request-submission/verify", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({ code }),
+  // ---- live check (staff never see the balance) --------------------------
+  useEffect(() => {
+    if (!isOfficial || !subheadId || !(amount > 0)) { queueMicrotask(() => setLive("idle")); return; }
+    if (seeBalances) { queueMicrotask(() => setLive(chosenFull ? (amount <= available ? "available" : "not_enough") : "idle")); return; }
+    queueMicrotask(() => setLive("checking"));
+    const t = window.setTimeout(() => {
+      void supabase.rpc("reqgen_subhead_live_check", { p_subhead_id: subheadId, p_amount: amount }).then(({ data, error }) => {
+        const v = String(Array.isArray(data) ? data[0] : data || "");
+        setLive(error ? "unknown" : v === "available" ? "available" : v === "not_enough" ? "not_enough" : "unknown");
       });
+    }, 350);
+    return () => window.clearTimeout(t);
+  }, [isOfficial, subheadId, amount, seeBalances, chosenFull, available]);
 
-      const result = await response.json().catch(() => null);
-
-      if (!response.ok || !result?.ok) {
-        throw new Error(result?.error || "OTP verification failed.");
-      }
-
-      setShowOtpModal(false);
-      setOtpCode("");
-
-      await submitSignedRequest();
-    } catch (e: unknown) {
-      setMsg(`✕ ${otpLabel} verification failed: ` + errorMessage(e, "Invalid OTP."));
-      setOtpCode("");
-    } finally {
-      setVerifyingOtp(false);
-
-      setTimeout(() => {
-        otpAutoSubmittingRef.current = false;
-      }, 800);
-    }
-  }
-
-  async function uploadAttachmentsForRequest(requestId: string) {
-    if (!me || attachments.length === 0) return { uploaded: 0 };
-
-    setUploadingAttachments(true);
-
-    try {
-      const rows = [];
-
-      for (let i = 0; i < attachments.length; i += 1) {
-        const file = attachments[i];
-        const safeName = cleanFileName(file.name);
-        const path = `${requestId}/${Date.now()}-${i + 1}-${safeName}`;
-
-        const { error: uploadErr } = await supabase.storage
-          .from("request-attachments")
-          .upload(path, file, {
-            upsert: false,
-            contentType: file.type || "application/octet-stream",
-          });
-
-        if (uploadErr) {
-          throw new Error(`Attachment upload failed for "${file.name}": ${uploadErr.message}`);
+  // ---- route preview ----------------------------------------------------
+  useEffect(() => {
+    if (!deptId) { queueMicrotask(() => setRoute(null)); return; }
+    let alive = true;
+    const cat = requestType === "Personal" ? category : null;
+    (async () => {
+      const steps = await fetchRoutePreview(deptId, requestType, cat);
+      if (!alive) return;
+      if (!steps || !steps.length) { setRoute(null); return; }
+      const shown = steps.filter((s) => !(s.is_vacant && s.if_vacant === "skip"));
+      let names = new Map<string, string>();
+      const built = await supabase.rpc("build_request_route", { p_dept_id: deptId, p_request_type: requestType, p_personal_category: cat });
+      if (!built.error && Array.isArray(built.data)) {
+        const rows = built.data as Array<{ stage: string; owner_id: string | null }>;
+        const ids = [...new Set(rows.map((r) => r.owner_id).filter(Boolean))] as string[];
+        if (ids.length) {
+          const prof = await supabase.from("profiles").select("id,full_name").in("id", ids);
+          const nameOf = new Map(((prof.data || []) as Array<{ id: string; full_name: string | null }>).map((p) => [p.id, p.full_name || ""]));
+          names = new Map(rows.filter((r) => r.owner_id && nameOf.get(r.owner_id)).map((r) => [r.stage, nameOf.get(r.owner_id as string) as string]));
         }
-
-        rows.push({
-          request_id: requestId,
-          uploaded_by: me.id,
-          file_name: file.name,
-          file_path: path,
-          file_type: file.type || null,
-          file_size: file.size,
-          verification_status: "Pending",
-        });
       }
-
-      const { error: insertErr } = await supabase.from("request_attachments").insert(rows);
-
-      if (insertErr) {
-        throw new Error("Attachment records could not be saved: " + insertErr.message);
-      }
-
-      return { uploaded: rows.length };
-    } finally {
-      setUploadingAttachments(false);
-    }
-  }
-
-  async function sendRequestEventNotification(
-    requestId: string,
-    event: "submission_success" | "approval_pending"
-  ) {
-    if (!requestNotificationsEnabled) return;
-
-    try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-
-      if (!session?.access_token) return;
-
-      await fetch("/api/notifications/sms/request-event", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({ requestId, event }),
+      if (!alive) return;
+      setRoute({
+        stops: shown.map((s) => ({ stage: stageTitle(s.stage), who: names.get(s.stage) || null })),
+        blocked: steps.filter((s) => s.is_vacant && s.if_vacant === "block").map((s) => stageTitle(s.stage)),
       });
-    } catch (notifyErr) {
-      console.warn("Request notification failed:", notifyErr);
+    })();
+    return () => { alive = false; };
+  }, [deptId, requestType, category]);
+
+  // ---- rules for each step ----------------------------------------------
+  const detailsProblem = useMemo(() => {
+    if (!deptId) return "Choose the department.";
+    if (!title.trim()) return "Type the title of the request.";
+    if (isOfficial && subOptions.length > 0 && !subheadId) return "Choose the budget subhead.";
+    if (!details.trim()) return "Describe what the request is for.";
+    if (needsAmount && !amountOk) return "Type the amount (numbers only, up to two decimals).";
+    if (isOfficial && subheadId && live === "not_enough") return "Not enough fund in this subhead. Choose another subhead or lower the amount. You can still save a draft.";
+    if (isOfficial && subheadId && live === "checking") return "Checking the budget…";
+    return "";
+  }, [deptId, title, isOfficial, subOptions.length, subheadId, details, needsAmount, amountOk, live]);
+
+  const signProblem = useMemo(() => {
+    if (!me?.full_name?.trim()) return "Add your full name in My Account first.";
+    if (!me?.signature_url) return "Add your signature in My Account › Signature & Photo first.";
+    if (route?.blocked.length) return `The route has no officer for ${route.blocked.join(", ")}. The Super Admin must complete the Routing Engine first.`;
+    if (!confirmed) return "Tick the box to confirm the details are correct.";
+    return "";
+  }, [me, route, confirmed]);
+
+  // ---- files ------------------------------------------------------------
+  function addFiles(list: FileList | null) {
+    if (!list || !list.length) return;
+    const incoming = Array.from(list);
+    const big = incoming.find((f) => f.size > MAX_MB * 1024 * 1024);
+    if (big) { setMsg({ tone: "red", text: `“${big.name}” is larger than ${MAX_MB} MB.` }); return; }
+    const seen = new Set<string>();
+    const merged = [...files, ...incoming].filter((f) => { const k = `${f.name}-${f.size}`; if (seen.has(k)) return false; seen.add(k); return true; });
+    if (merged.length > MAX_FILES) { setMsg({ tone: "red", text: `A request can have at most ${MAX_FILES} attachments.` }); return; }
+    setFiles(merged);
+    setMsg(null);
+  }
+
+  // ---- drafts -------------------------------------------------------------
+  const doSaveDraft = useCallback(async () => {
+    if (!me) return;
+    if (!title.trim() && !details.trim()) { setMsg({ tone: "amber", text: "Type at least a title or a description before saving a draft." }); return; }
+    setSavingDraft(true);
+    try {
+      const id = await saveDraft(draftId, {
+        request_type: requestType,
+        personal_category: requestType === "Personal" ? category : null,
+        dept_id: deptId || null,
+        subhead_id: isOfficial ? subheadId || null : null,
+        title: title.trim(),
+        details: details.trim(),
+        amount: needsAmount && amount > 0 ? amount : null,
+      }, files);
+      setDraftId(id);
+      if (!embedded) router.replace(`/requests/new?draft=${id}`, { scroll: false });
+      setMsg({ tone: "green", text: "Draft saved. Find it under Requests › My Requests › Drafts. Drafts are kept for 60 days." });
+    } catch (e) {
+      setMsg({ tone: "red", text: "The draft could not be saved: " + errorText(e) });
+    } finally {
+      setSavingDraft(false);
+    }
+  }, [me, title, details, draftId, requestType, category, deptId, isOfficial, subheadId, needsAmount, amount, files, embedded, router]);
+
+  // ---- submit -------------------------------------------------------------
+  async function authHeader() {
+    const { data } = await supabase.auth.getSession();
+    if (!data.session?.access_token) throw new Error("Your session has ended. Please sign in again.");
+    return { "Content-Type": "application/json", Authorization: `Bearer ${data.session.access_token}` };
+  }
+
+  async function startSubmit() {
+    setMsg(null);
+    if (detailsProblem) { setStep(1); setMsg({ tone: "red", text: detailsProblem }); return; }
+    if (signProblem) { setMsg({ tone: "red", text: signProblem }); return; }
+    const ok = await confirmDialog({
+      title: "Sign and submit this request?",
+      message: "Your saved signature is placed on the request letter and it goes to the first officer on the route.",
+      details: [
+        `${requestType === "Official" ? "Official" : `Personal · ${category}`} · ${dept?.name || ""}`,
+        title.trim(),
+        needsAmount ? `${nairaExact(amount)} — ${nairaInWords(amount)}` : "No amount",
+      ],
+      confirmLabel: "Sign and submit",
+    });
+    if (!ok) return;
+    if (!otpEnabled) { await submitNow(); return; }
+    await sendCode();
+  }
+
+  async function sendCode() {
+    setBusy("sending-code");
+    try {
+      const res = await fetch("/api/otp/request-submission/send", { method: "POST", headers: await authHeader() });
+      const out = await res.json().catch(() => null);
+      if (!res.ok || !out?.ok) throw new Error(out?.error || `The ${otpLabel} could not be sent.`);
+      setOtp("");
+      setOtpOpen(true);
+    } catch (e) {
+      setMsg({ tone: "red", text: errorText(e) });
+    } finally {
+      setBusy("");
     }
   }
 
-  async function submitSignedRequest() {
-    if (!me) {
-      setMsg("✕ Your profile is not loaded.");
-      return;
-    }
-
-    if (!signedRequest) {
-      setMsg("✕ Please sign the request before submitting.");
-      return;
-    }
-
-    const stillValid = validateRequestForm(true);
-
-    if (!stillValid) return;
-
-    const amt = submissionAmount();
-    const requestNo = buildRequestNo();
-    const requesterName = me.full_name!.trim();
-    const submitSubheadId = selectedSubheadForSubmission();
-
-    setSaving(true);
-
+  async function verifyAndSubmit(code: string) {
+    if (otpLock.current) return;
+    if (!/^\d{6}$/.test(code)) return;
+    otpLock.current = true;
+    setBusy("verifying");
     try {
+      const res = await fetch("/api/otp/request-submission/verify", { method: "POST", headers: await authHeader(), body: JSON.stringify({ code }) });
+      const out = await res.json().catch(() => null);
+      if (!res.ok || !out?.ok) throw new Error(out?.error || "The code is not correct.");
+      setOtpOpen(false);
+      await submitNow();
+    } catch (e) {
+      setMsg({ tone: "red", text: errorText(e) });
+      setOtp("");
+    } finally {
+      setBusy("");
+      window.setTimeout(() => { otpLock.current = false; }, 600);
+    }
+  }
+
+  async function submitNow() {
+    if (!me) return;
+    setBusy("submitting");
+    try {
+      const now = new Date();
+      const requestNo = `REQ-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getTime()).slice(-6)}`;
       const { data, error } = await supabase.rpc("submit_request_with_reservation", {
         p_title: title.trim(),
         p_details: details.trim(),
-        p_amount: amt,
+        p_amount: needsAmount ? amount : 0,
         p_dept_id: deptId,
-        p_subhead_id: submitSubheadId,
+        p_subhead_id: isOfficial ? subheadId || null : null,
         p_request_type: requestType,
-        p_personal_category: isPersonal ? personalCategory : null,
+        p_personal_category: requestType === "Personal" ? category : null,
         p_created_by: me.id,
-        p_requester_name: requesterName,
+        p_requester_name: (me.full_name || "").trim(),
         p_requester_signature: me.signature_url,
         p_request_no: requestNo,
       });
-
       if (error) throw new Error(error.message);
-
-      const result = (Array.isArray(data) ? data[0] : data) as SubmitRequestResult | null;
+      const result = (Array.isArray(data) ? data[0] : data) as { request_id?: string; first_stage?: string } | null;
       const requestId = result?.request_id;
+      if (!requestId) throw new Error("The request was sent but ReqGen did not return its number. Check My Requests before trying again.");
 
-      if (!requestId) {
-        throw new Error("Request was submitted but no request ID was returned.");
-      }
-
-      let uploadedCount = 0;
-
-      if (attachments.length > 0) {
-        const uploadResult = await uploadAttachmentsForRequest(requestId);
-        uploadedCount = uploadResult.uploaded;
-      }
-
-      await sendRequestEventNotification(requestId, "submission_success");
-      await sendRequestEventNotification(requestId, "approval_pending");
-
-      const fundsState = result?.funds_state || "";
-      const subheadNote =
-        isOfficial && !submitSubheadId
-          ? "Subhead assignment is pending approval review. "
-          : fundsState === "Reserved"
-            ? "Funds reserved from selected subhead. "
-            : "";
-
-      const routeNote = engineRoute?.note || routingNoteFor(requestType, personalCategory, selectedDept);
-      const categoryLabel = isPersonal ? `Personal ${personalCategory}` : "Official";
-
-      setMsg(
-        `✓ ${categoryLabel} request signed, OTP-verified and submitted successfully. ${subheadNote}${uploadedCount > 0 ? `${uploadedCount} attachment(s) uploaded. ` : ""
-        }Routed to ${result?.first_stage || "next officer"}. ${routeNote}`
-      );
-
-      setTitle("");
-      setAmount("");
-      setDetails("");
-      setAttachments([]);
-      setRequestType("Official");
-      setPersonalCategory("Fund");
-      setSignedRequest(false);
-      setSignedAt(null);
-      setOtpSent(false);
-      setOtpCode("");
-      setOtpChannel("unknown");
-      otpAutoSubmittingRef.current = false;
-
-      await loadAll();
-
-      setTimeout(() => {
-        if (embedded) {
-          window.parent.postMessage({ type: "reqgen-request-created", requestId }, window.location.origin);
-          return;
+      if (files.length) {
+        setBusy("uploading");
+        const rows = [];
+        for (let i = 0; i < files.length; i += 1) {
+          const f = files[i];
+          const path = `${requestId}/${Date.now()}-${i + 1}-${cleanFileName(f.name)}`;
+          const up = await supabase.storage.from("request-attachments").upload(path, f, { upsert: false, contentType: f.type || "application/octet-stream" });
+          if (up.error) throw new Error(`The request was submitted, but “${f.name}” did not upload: ${up.error.message}. Open the request to add it again.`);
+          rows.push({ request_id: requestId, uploaded_by: me.id, file_name: f.name, file_path: path, file_type: f.type || null, file_size: f.size, verification_status: "Pending" });
         }
-        router.push(`/requests/${requestId}?updated=${Date.now()}`);
-        router.refresh();
-      }, 500);
-    } catch (e: unknown) {
-      setMsg("✕ Submit failed: " + errorMessage(e));
+        const ins = await supabase.from("request_attachments").insert(rows);
+        if (ins.error) throw new Error("The files uploaded but could not be linked to the request: " + ins.error.message);
+      }
+
+      if (notificationsEnabled) {
+        const headers = await authHeader().catch(() => null);
+        if (headers) {
+          for (const event of ["submission_success", "approval_pending"]) {
+            await fetch("/api/notifications/sms/request-event", { method: "POST", headers, body: JSON.stringify({ requestId, event }) }).catch(() => null);
+          }
+        }
+      }
+      if (draftId) await deleteDraft(draftId).catch(() => null);
+
+      setMsg({ tone: "green", text: `Submitted. It is now with the ${stageTitle(result?.first_stage || "") || "first officer"}.` });
+      if (embedded) {
+        window.parent.postMessage({ type: "reqgen-request-created", requestId }, window.location.origin);
+        return;
+      }
+      router.push(`/requests/${requestId}?updated=${Date.now()}`);
+    } catch (e) {
+      setMsg({ tone: "red", text: errorText(e) });
     } finally {
-      setSaving(false);
-      setUploadingAttachments(false);
+      setBusy("");
     }
   }
 
-  function saveDraftLocally() {
-    try {
-      localStorage.setItem(
-        "reqgen-new-request-draft",
-        JSON.stringify({
-          requestType,
-          personalCategory,
-          deptId,
-          subheadId,
-          title,
-          amount,
-          details,
-          savedAt: new Date().toISOString(),
-        })
-      );
-      setMsg("✓ Draft saved on this device. Attachments are not stored in local drafts.");
-    } catch {
-      setMsg("✕ Draft could not be saved on this device.");
-    }
+  function next() {
+    setMsg(null);
+    if (step === 1 && detailsProblem) { setMsg({ tone: "red", text: detailsProblem }); return; }
+    setStep((s) => Math.min(3, s + 1));
+    if (!embedded) window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+  function back() {
+    setMsg(null);
+    setStep((s) => Math.max(0, s - 1));
+  }
+  function cancel() {
+    if (embedded) { window.parent.postMessage({ type: "reqgen-form-cancel" }, window.location.origin); return; }
+    router.push("/requests/mine");
   }
 
-  if (loading) return <WorkflowLoading title="Preparing the new request workspace..." />;
+  if (loading || !who.ready) return <V4Page><PageHead title="New Request" sub="Preparing the form…" /><div className="v4-card"><Skeleton lines={7} /></div></V4Page>;
+
+  const deptOptions: SelectOption[] = depts.map((d) => ({ value: d.id, label: d.name }));
+  const subSelect: SelectOption[] = subOptions.map((s) => {
+    const full = subFull.find((f) => f.id === s.id);
+    const avail = full ? Number(full.approved_allocation || 0) - Number(full.reserved_amount || 0) - Number(full.expenditure || 0) : null;
+    return { value: s.id, label: subLabel(s), hint: seeBalances && avail !== null ? `Available ${nairaExact(avail)}` : undefined };
+  });
+  const busyText = busy === "uploading" ? "Uploading attachments…" : busy === "submitting" ? "Submitting…" : busy === "sending-code" ? `Sending the ${otpLabel}…` : busy === "verifying" ? "Checking the code…" : "";
+  const words = needsAmount && amount > 0 ? nairaInWords(amount) : "";
+
+  const liveBox = isOfficial && subheadId && amount > 0 ? (
+    <div className={`v4-livecheck ${live === "available" ? "v4-lc-ok" : live === "not_enough" ? "v4-lc-no" : "v4-lc-wait"} v4-span-2`} role={live === "not_enough" ? "alert" : "status"} aria-live="polite">
+      <Icon name={live === "available" ? "check" : live === "not_enough" ? "x" : "clock"} />
+      <span>
+        <strong>{live === "available" ? "Fund available" : live === "not_enough" ? "Not enough in this subhead" : live === "checking" ? "Checking the budget…" : "The budget could not be checked"}</strong>
+        <span>
+          {live === "available"
+            ? seeBalances
+              ? `${chosenSub ? subLabel(chosenSub) : "This subhead"} can cover ${nairaExact(amount)}.`
+              : `${chosenSub ? subLabel(chosenSub) : "This subhead"} can cover ${nairaExact(amount)}. You do not see the balance — the approving officer confirms the subhead when approving.`
+            : live === "not_enough"
+              ? `${chosenSub ? subLabel(chosenSub) : "This subhead"} cannot cover ${nairaExact(amount)}. Choose another subhead, lower the amount, or speak to your Head of Department. You can save a draft but not submit until the check passes.`
+              : live === "checking" ? "One moment." : "The approving officer will confirm the budget."}
+        </span>
+      </span>
+    </div>
+  ) : null;
 
   return (
-    <main className={styles.page}>
-      <div className={styles.pageInner}>
-        {/* v3.1.4: one title only. Embedded in the Requests workspace, that
-            workspace shows the title; opened directly, the page shows it once
-            (the app breadcrumb bar already provides navigation). */}
-        {embedded ? null : (
-          <header className={styles.pageHeader}>
-            <div>
-              <h1>Create New Request</h1>
-            </div>
-          </header>
-        )}
+    <V4Page className="v4-newreq">
+      {embedded ? null : (
+        <PageHead
+          title="New Request"
+          sub={step === 0 ? "Choose what kind of request this is." : step === 1 ? "Type the title, pick the subhead and the amount. ReqGen checks the budget live." : step === 2 ? "Add quotations, invoices or letters that support the request." : "Check everything once more, then sign and submit."}
+          actions={draftId ? [{ label: "My drafts", href: "/requests/mine?tab=drafts", icon: "file", kind: "ghost" }] : undefined}
+        />
+      )}
 
-        {msg && (
-          <div className={`${styles.notice} ${msg.startsWith("✕") ? styles.noticeError : styles.noticeInfo}`}>
-            {msg.startsWith("✕") ? <AlertCircle size={18} /> : <Info size={18} />}
-            <span>{msg}</span>
-          </div>
-        )}
-
-        <div className={styles.workspace}>
-          <section className={styles.formCard}>
-            <div className={styles.sectionBlock}>
-              <h2>1. Request Information</h2>
-              <div className={styles.twoCol}>
-                <label className={styles.field}>
-                  <span>Request Type <b>*</b></span>
-                  <select
-                    value={requestType}
-                    onChange={(e) => {
-                      const v = e.target.value as RequestType;
-                      setRequestType(v);
-                      if (v === "Personal") setSubheadId("");
-                    }}
-                  >
-                    <option value="Official">Official Request</option>
-                    <option value="Personal">Personal Request</option>
-                  </select>
-                </label>
-
-                <label className={styles.field}>
-                  <span>{isPersonal ? "Personal Category" : "Department"} <b>*</b></span>
-                  {isPersonal ? (
-                    <select value={personalCategory} onChange={(e) => setPersonalCategory(e.target.value as PersonalCategory)}>
-                      {PERSONAL_CATEGORIES.map((cat) => <option key={cat} value={cat}>{cat}</option>)}
-                    </select>
-                  ) : (
-                    <select value={deptId} onChange={(e) => setDeptId(e.target.value)}>
-                      {depts.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
-                    </select>
-                  )}
-                </label>
-              </div>
-
-              {isPersonal && (
-                <label className={styles.field}>
-                  <span>Department <b>*</b></span>
-                  <select value={deptId} onChange={(e) => setDeptId(e.target.value)}>
-                    {depts.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
-                  </select>
-                </label>
-              )}
-
-              <label className={styles.field}>
-                <span>Request Title <b>*</b></span>
-                <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Enter a short, descriptive title for your request" />
-              </label>
-
-              <label className={styles.field}>
-                <span>Request Description <b>*</b></span>
-                <textarea value={details} onChange={(e) => setDetails(e.target.value)} maxLength={2000} placeholder="Provide a detailed description of your request, including purpose and expected outcome..." />
-                <small>{details.length} / 2000 characters</small>
-              </label>
-            </div>
-
-            <div className={styles.sectionBlock}>
-              <h2>2. Request Details</h2>
-              <div className={styles.threeCol}>
-                <label className={styles.field}>
-                  <span>Department <b>*</b></span>
-                  <select value={deptId} onChange={(e) => setDeptId(e.target.value)}>
-                    {depts.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
-                  </select>
-                </label>
-
-                {isOfficial && canSeeSubheads ? (
-                  <label className={styles.field}>
-                    <span>Subhead / Budget Line</span>
-                    <select value={subheadId} onChange={(e) => setSubheadId(e.target.value)}>
-                      <option value="">Assign later</option>
-                      {filteredSubs.map((s) => (
-                        <option key={s.id} value={s.id}>{(s.code ? `${s.code} — ` : "") + s.name}</option>
-                      ))}
-                    </select>
-                  </label>
-                ) : isOfficial && staffSubs.length ? (
-                  <label className={styles.field}>
-                    <span>Subhead / Budget Line</span>
-                    <select value={subheadId} onChange={(e) => setSubheadId(e.target.value)}>
-                      <option value="">Let the approving officer choose</option>
-                      {staffSubs.map((s) => (
-                        <option key={s.id} value={s.id}>{(s.code ? `${s.code} — ` : "") + s.name}</option>
-                      ))}
-                    </select>
-                    {subheadId ? (
-                      <small className={`v4-livecheck-chip is-${liveCheck}`} role="status" aria-live="polite">
-                        {liveCheck === "checking" ? "Checking the budget…" : liveCheck === "available" ? "✓ Fund available" : liveCheck === "not_enough" ? "✕ Not enough fund — you cannot submit with this subhead" : liveCheck === "unknown" ? "The budget could not be checked; the approving officer will confirm it." : "Enter the amount to check the budget."}
-                      </small>
-                    ) : null}
-                  </label>
-                ) : (
-                  <div className={styles.readOnlyField}>
-                    <span>Budget Visibility</span>
-                    <strong>{canSeeSubheads ? "Not required" : "Assigned during review"}</strong>
-                  </div>
-                )}
-
-                <label className={styles.field}>
-                  <span>Amount {requiresAmount && <b>*</b>}</span>
-                  {requiresAmount ? (
-                    <input value={amount} onChange={(e) => setAmount(e.target.value)} type="number" min="0" placeholder="₦ 0.00" />
-                  ) : (
-                    <input value="Not Applicable" disabled readOnly />
-                  )}
-                </label>
-              </div>
-
-              <div className={styles.routeNote}>
-                <ShieldCheck size={17} />
-                <span>
-                  {engineRoute?.note || routingNoteFor(requestType, personalCategory, selectedDept)}
-                  {engineRoute?.blocked.length ? <strong className={styles.errorText}> Routing incomplete: no officer for {engineRoute.blocked.join(", ")}. Admin must complete the Routing Engine before you can submit.</strong> : null}
-                </span>
-              </div>
-
-              {isOfficial && canSeeSubheads && selectedSubhead && subheadId && (
-                <div className={styles.balanceGrid}>
-                  <div><span>Allocation</span><strong>{naira(Number(selectedSubhead.approved_allocation || 0))}</strong></div>
-                  <div><span>Reserved</span><strong>{naira(Number(selectedSubhead.reserved_amount || 0))}</strong></div>
-                  <div><span>Expenditure</span><strong>{naira(Number(selectedSubhead.expenditure || 0))}</strong></div>
-                  <div><span>Available Balance</span><strong>{naira(availableBalance)}</strong></div>
-                </div>
-              )}
-            </div>
-
-            <div className={styles.sectionBlock}>
-              <h2>3. Attachments</h2>
-              <label className={styles.dropzone}>
-                <UploadCloud size={34} />
-                <div>
-                  <strong>Drag and drop files here, or <span>click to browse</span></strong>
-                  <p>Allowed: PDF, DOC, DOCX, XLS, XLSX, JPG, PNG, WEBP, TXT · Max {MAX_FILE_SIZE_MB}MB each</p>
-                  <p>You can upload up to {MAX_ATTACHMENTS} files</p>
-                </div>
-                <input
-                  type="file"
-                  multiple
-                  accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.webp,.txt"
-                  onChange={(e) => {
-                    handleAttachmentSelect(e.target.files);
-                    e.target.value = "";
-                  }}
-                />
-              </label>
-
-              {attachments.length > 0 && (
-                <div className={styles.attachmentsList}>
-                  <div className={styles.attachmentsHeader}>
-                    <strong>{attachments.length} attachment(s) · {fileSizeLabel(totalAttachmentSize)}</strong>
-                    <button type="button" onClick={clearAttachments}>Clear all</button>
-                  </div>
-                  {attachments.map((file, index) => (
-                    <div key={`${file.name}-${file.size}-${file.lastModified}`} className={styles.attachmentItem}>
-                      <Paperclip size={16} />
-                      <span>{file.name}</span>
-                      <small>{fileSizeLabel(file.size)}</small>
-                      <button type="button" aria-label={`Remove ${file.name}`} onClick={() => removeAttachment(index)}><X size={15} /></button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className={styles.signatureBlock}>
-              <div>
-                <h2>4. Review & Sign</h2>
-                <p>Your saved profile signature is required before submission.</p>
-                {signedRequest && signedAt ? (
-                  <strong className={styles.signedText}>Signed by {me?.full_name || "Requester"} · {new Date(signedAt).toLocaleString()}</strong>
-                ) : !me?.signature_url ? (
-                  <strong className={styles.errorText}>No signature found. Upload your signature in My Profile first.</strong>
-                ) : null}
-              </div>
-              <div className={styles.signatureActions}>
-                <button
-                  type="button"
-                  className={`${styles.signButton} ${signedRequest ? styles.signedButton : ""}`}
-                  onClick={signRequest}
-                  disabled={!me?.signature_url || saving || sendingOtp || verifyingOtp}
-                >
-                  <ShieldCheck size={17} />
-                  {signedRequest ? "Signed" : "Sign Request"}
-                </button>
-              </div>
-            </div>
-
-            {!signedRequest ? <p className={styles.submitHint}>Sign the request above to enable final submission. You can save a draft at any time.</p> : null}
-
-            <footer className={styles.formActions}>
-              <button type="button" className={styles.cancelButton} onClick={() => embedded ? closeEmbedded() : router.push("/requests/mine")}>Cancel</button>
-              <div>
-                <button type="button" className={styles.draftButton} onClick={saveDraftLocally}>Save as Draft</button>
-                <button type="button" className={styles.submitButton} onClick={openSubmitVerification} disabled={!canSubmit}>
-                  <Send size={17} />
-                  {saving
-                    ? uploadingAttachments ? "Uploading Attachments..." : "Submitting..."
-                    : sendingOtp ? `Sending ${otpLabel}...`
-                    : verifyingOtp ? `Verifying ${otpLabel}...`
-                    : signedRequest
-                      ? requestOtpEnabled ? (otpSent ? `Continue with ${otpLabel}` : `Submit Request`) : "Submit Request"
-                      : "Submit Request"}
-                </button>
-              </div>
-            </footer>
-          </section>
-
-          <aside className={styles.sideColumn}>
-            <section className={styles.infoCard}>
-              <div className={styles.cardTitle}><Info size={19} /><h3>Request Guidance</h3></div>
-              <ul className={styles.guidanceList}>
-                <li><CheckCircle2 size={15} />Provide a clear and concise title.</li>
-                <li><CheckCircle2 size={15} />Add all relevant details in the description.</li>
-                <li><CheckCircle2 size={15} />Select the correct request type and department.</li>
-                <li><CheckCircle2 size={15} />Attach supporting documents if available.</li>
-                <li><CheckCircle2 size={15} />Review and sign your request before submission.</li>
-              </ul>
-            </section>
-
-            <section className={styles.infoCard}>
-              <h3>Request Types</h3>
-              <div className={styles.typeList}>
-                <div><span className={styles.typeBlue}><BriefcaseBusiness size={17} /></span><p><strong>Official</strong><small>Institutional goods, services, works or official activity.</small></p></div>
-                <div><span className={styles.typeGreen}><Landmark size={17} /></span><p><strong>Personal Fund</strong><small>Personal financial support routed through HR and Finance.</small></p></div>
-                <div><span className={styles.typeOrange}><UserRound size={17} /></span><p><strong>Leave / HR</strong><small>Leave, renewal, resignation and HR-related requests.</small></p></div>
-                <div><span className={styles.typePurple}><FolderOpen size={17} /></span><p><strong>Other Personal</strong><small>Other authorised personal request categories.</small></p></div>
-              </div>
-            </section>
-
-            <section className={`${styles.infoCard} ${styles.helpCard}`}>
-              <div className={styles.cardTitle}><CircleHelp size={20} /><h3>Need Help?</h3></div>
-              <p>If you need assistance, contact the ReqGen System Administrator.</p>
-            </section>
-
-            <section className={styles.securityCard}>
-              <ShieldCheck size={20} />
-              <div>
-                <strong>Secure submission</strong>
-                <p>{requestOtpEnabled ? `${otpLabel} verification is enabled for signed requests.` : "Profile signature verification is required before submission."}</p>
-              </div>
-            </section>
-          </aside>
-        </div>
+      <div className="v4-stepper" aria-label="Progress">
+        {STEPS.map((s, i) => (
+          <div key={s} className={i < step ? "v4-done" : i === step ? "v4-on" : undefined} aria-current={i === step ? "step" : undefined}>{i + 1} · {s}</div>
+        ))}
       </div>
 
-      {showOtpModal && requestOtpEnabled && (
-        <div className={styles.modalBackdrop}>
-          <div className={styles.modal}>
-            <div className={styles.modalIcon}><ShieldCheck size={24} /></div>
-            <h2>Verify request submission</h2>
-            <p>
-              Enter the 6-digit {otpLabel} sent to {otpChannel === "sms"
-                ? `your registered phone ${maskPhone(me?.phone)}`
-                : isDualOtpChannel(otpChannel)
-                  ? `your registered phone ${maskPhone(me?.phone)} and email ${maskEmail(me?.email)}`
-                  : `your registered email ${maskEmail(me?.email)}`}.
-            </p>
-            <input
-              value={otpCode}
-              onChange={(e) => {
-                const nextCode = e.target.value.replace(/\D/g, "").slice(0, 6);
-                setOtpCode(nextCode);
-                if (nextCode.length === 6 && !verifyingOtp && !saving) {
-                  setTimeout(() => verifyOtpAndSubmit(nextCode), 150);
-                }
-              }}
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              autoFocus
-              disabled={verifyingOtp || saving}
-              placeholder="123456"
-            />
-            <small>{verifyingOtp || saving ? "Verifying automatically..." : "Verification starts after the sixth digit."}</small>
-            <div className={styles.modalActions}>
-              <button type="button" onClick={() => { if (!verifyingOtp && !saving) { setShowOtpModal(false); setOtpCode(""); otpAutoSubmittingRef.current = false; } }} disabled={verifyingOtp || saving}>Cancel</button>
-              <button type="button" onClick={() => verifyOtpAndSubmit()} disabled={verifyingOtp || saving || otpCode.trim().length !== 6}>Verify & Submit</button>
+      {msg ? <Notice tone={msg.tone}>{msg.text}</Notice> : null}
+
+      <div className="v4-split">
+        <section className="v4-card v4-card-pad v4-newreq-main">
+          {step === 0 ? (
+            <div className="v4-newreq-step">
+              <div className="v4-section-title"><span className="v4-no">1</span><h2 className="v4-h2">What kind of request?</h2></div>
+              <div className="v4-typecards" role="radiogroup" aria-label="Request type">
+                {(["Official", "Personal"] as RequestType[]).map((t) => (
+                  <button key={t} type="button" role="radio" aria-checked={requestType === t} className="v4-typecard" onClick={() => { setRequestType(t); if (t === "Personal") setSubheadId(""); }}>
+                    <span className={`v4-ico v4-t-${t === "Official" ? "brand" : "blue"}`}><Icon name={t === "Official" ? "building" : "user"} /></span>
+                    <span><strong>{t === "Official" ? "Official request" : "Personal request"}</strong>
+                      <small>{t === "Official" ? "Goods, services, works or activities for the Trust, paid from a department budget subhead." : "For yourself: personal fund, leave, contract renewal, resignation or other."}</small></span>
+                    <Icon name="tick" className="v4-typecard-tick" />
+                  </button>
+                ))}
+              </div>
+              {requestType === "Personal" ? (
+                <>
+                  <h3 className="v4-h3" style={{ margin: "22px 0 10px" }}>Which personal request?</h3>
+                  <div className="v4-typecards v4-typecards-sm" role="radiogroup" aria-label="Personal category">
+                    {CATEGORIES.map((c) => (
+                      <button key={c.key} type="button" role="radio" aria-checked={category === c.key} className="v4-typecard" onClick={() => setCategory(c.key)}>
+                        <span className="v4-ico v4-t-blue"><Icon name={c.icon} /></span>
+                        <span><strong>{c.title}</strong><small>{c.text}</small></span>
+                        <Icon name="tick" className="v4-typecard-tick" />
+                      </button>
+                    ))}
+                  </div>
+                </>
+              ) : null}
+              <div className="v4-form-actions" style={{ marginTop: 22 }}>
+                <button type="button" className="v4-btn v4-btn-ghost" onClick={cancel}>Cancel</button>
+                <button type="button" className="v4-btn v4-btn-primary" onClick={next}>Continue to details <Icon name="right" /></button>
+              </div>
             </div>
-            <button type="button" className={styles.resendButton} onClick={openSubmitVerification} disabled={sendingOtp || verifyingOtp || saving}>{sendingOtp ? "Resending..." : `Resend ${otpLabel}`}</button>
+          ) : null}
+
+          {step === 1 ? (
+            <div className="v4-newreq-step">
+              <div className="v4-section-title"><span className="v4-no">2</span><h2 className="v4-h2">Details</h2>
+                <span className="v4-chip v4-chip-grey" style={{ marginLeft: "auto" }}>{isOfficial ? "Official" : `Personal · ${category}`}</span></div>
+              <div className="v4-form-grid">
+                <div className="v4-field v4-span-2">
+                  <label className="v4-flabel" htmlFor="nr-dept" style={{ fontSize: 13, fontWeight: 700 }}>Department <span className="v4-req">*</span></label>
+                  <Select id="nr-dept" value={deptId} onChange={(v) => { setDeptId(v); setSubheadId(""); }} options={deptOptions} placeholder="Choose your department" />
+                  <span className="v4-help">{isOfficial ? "Choosing the department loads its subheads." : "The department you work in."}</span>
+                </div>
+
+                <label className="v4-field">
+                  <span className="v4-flabel">Title <span className="v4-req">*</span></span>
+                  <input className="v4-input" value={title} maxLength={160} onChange={(e) => setTitle(e.target.value)} placeholder={isOfficial ? "e.g. Purchase of data bundles for the front desk" : "e.g. Annual leave, December"} />
+                </label>
+
+                {isOfficial ? (
+                  <div className="v4-field">
+                    <label className="v4-flabel" htmlFor="nr-sub" style={{ fontSize: 13, fontWeight: 700 }}>Budget subhead <span className="v4-req">*</span></label>
+                    <Select id="nr-sub" value={subheadId} onChange={setSubheadId} options={subSelect} disabled={!deptId || subsLoading || !subSelect.length}
+                      placeholder={!deptId ? "Choose the department first" : subsLoading ? "Loading subheads…" : subSelect.length ? "Choose the subhead" : "No subheads — the officer will choose"} menuMinWidth={300} />
+                    <span className="v4-help">
+                      {!deptId ? "" : subSelect.length
+                        ? seeBalances ? `The ${subSelect.length} subheads of ${dept?.name || "this department"}, with what is available.` : `The ${subSelect.length} subheads of ${dept?.name || "this department"}. Balances are private.`
+                        : subsLoading ? "" : "This department has no active subhead. The approving officer will choose one."}
+                    </span>
+                  </div>
+                ) : <div className="v4-field" aria-hidden="true" />}
+
+                <label className="v4-field v4-span-2">
+                  <span className="v4-flabel">Description <span className="v4-req">*</span></span>
+                  <textarea className="v4-textarea" value={details} maxLength={2000} onChange={(e) => setDetails(e.target.value)} placeholder="What is it for, and why is it needed?" style={{ minHeight: 96 }} />
+                  <span className="v4-help" style={{ textAlign: "right" }}>{details.length} / 2000</span>
+                </label>
+
+                {needsAmount ? (
+                  <>
+                    <label className="v4-field">
+                      <span className="v4-flabel">Amount (₦) <span className="v4-req">*</span></span>
+                      <input className={`v4-input v4-num${amountText && !amountOk ? " v4-is-error" : ""}`} inputMode="decimal" value={amountText} placeholder="0.00"
+                        onChange={(e) => setAmountText(formatAmountInput(e.target.value))} />
+                      <span className="v4-help">{words ? `${words} — written into your request letter automatically.` : "Numbers only. Written into the letter in figures and words."}</span>
+                    </label>
+                    <div className="v4-field">
+                      <span className="v4-flabel">In the letter</span>
+                      <span className="v4-locked" style={{ fontWeight: 700 }}>{amount > 0 ? `${nairaExact(amount)} (${words})` : "—"}</span>
+                    </div>
+                  </>
+                ) : (
+                  <div className="v4-field v4-span-2"><span className="v4-flabel">Amount</span><span className="v4-locked">Not needed for a {category.toLowerCase()} request</span></div>
+                )}
+
+                {liveBox}
+
+                {seeBalances && isOfficial && chosenFull ? (
+                  <div className="v4-span-2">
+                    <div className="v4-balance-strip" aria-label="Subhead figures">
+                      <div><span>Allocation</span><b>{nairaExact(chosenFull.approved_allocation)}</b></div>
+                      <div><span>Reserved</span><b>{nairaExact(chosenFull.reserved_amount)}</b></div>
+                      <div><span>Expenditure</span><b>{nairaExact(chosenFull.expenditure)}</b></div>
+                      <div><span>Available</span><b>{nairaExact(available)}</b></div>
+                    </div>
+                    <span className="v4-help" style={{ display: "block", marginTop: 6 }}>You see these figures because you are acting as {who.roleName}. Staff, Registry and PD see only “fund available” or “not enough”.</span>
+                  </div>
+                ) : null}
+              </div>
+              <div className="v4-form-actions" style={{ marginTop: 18 }}>
+                <button type="button" className="v4-btn v4-btn-ghost" onClick={back}><Icon name="left" />Back</button>
+                <button type="button" className="v4-btn v4-btn-secondary" onClick={() => void doSaveDraft()} disabled={savingDraft}>{savingDraft ? "Saving…" : "Save draft"}</button>
+                <button type="button" className="v4-btn v4-btn-primary" onClick={next} disabled={!!detailsProblem}>Continue to attachments <Icon name="right" /></button>
+              </div>
+              {detailsProblem ? <p className="v4-help" style={{ textAlign: "right", margin: "8px 0 0" }}>{detailsProblem}</p> : null}
+            </div>
+          ) : null}
+
+          {step === 2 ? (
+            <div className="v4-newreq-step">
+              <div className="v4-section-title"><span className="v4-no">3</span><h2 className="v4-h2">Attachments</h2><span className="v4-muted" style={{ marginLeft: "auto", fontSize: 13 }}>Optional</span></div>
+              <button type="button" className="v4-dropzone v4-dropzone-btn"
+                onClick={() => fileInput.current?.click()}
+                onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add("is-over"); }}
+                onDragLeave={(e) => e.currentTarget.classList.remove("is-over")}
+                onDrop={(e) => { e.preventDefault(); e.currentTarget.classList.remove("is-over"); addFiles(e.dataTransfer.files); }}>
+                <Icon name="upload" size="lg" />
+                <strong>Drop files here, or <span>choose files</span></strong>
+                <small>PDF, Word, Excel, pictures or text · up to {MAX_MB} MB each · up to {MAX_FILES} files</small>
+              </button>
+              <input ref={fileInput} type="file" multiple accept={ACCEPT} hidden onChange={(e) => { addFiles(e.target.files); e.target.value = ""; }} />
+              {files.length ? (
+                <ul className="v4-files" style={{ marginTop: 14 }}>
+                  {files.map((f, i) => (
+                    <li key={`${f.name}-${f.size}`}>
+                      <span className={`v4-fi${/\.(png|jpe?g|webp)$/i.test(f.name) ? " v4-x" : ""}`}>{fileKind(f.name)}</span>
+                      <span className="v4-ft"><strong>{f.name}</strong><span>{sizeLabel(f.size)}</span></span>
+                      <button type="button" className="v4-btn v4-btn-ghost" style={{ minHeight: 36, color: "var(--v4-red)" }} onClick={() => setFiles((all) => all.filter((_, j) => j !== i))} aria-label={`Remove ${f.name}`}>Remove</button>
+                    </li>
+                  ))}
+                </ul>
+              ) : <p className="v4-muted" style={{ margin: "12px 0 0", fontSize: 13 }}>No files yet. Officers check every attachment before they approve.</p>}
+              <div className="v4-form-actions" style={{ marginTop: 18 }}>
+                <button type="button" className="v4-btn v4-btn-ghost" onClick={back}><Icon name="left" />Back</button>
+                <button type="button" className="v4-btn v4-btn-secondary" onClick={() => void doSaveDraft()} disabled={savingDraft}>{savingDraft ? "Saving…" : "Save draft"}</button>
+                <button type="button" className="v4-btn v4-btn-primary" onClick={next}>Continue to review <Icon name="right" /></button>
+              </div>
+            </div>
+          ) : null}
+
+          {step === 3 ? (
+            <div className="v4-newreq-step" style={{ display: "flex", flexDirection: "column", gap: 22 }}>
+              <div className="v4-section-title" style={{ margin: 0 }}><span className="v4-no">4</span><h2 className="v4-h2">Review</h2>
+                <button type="button" className="v4-btn v4-btn-ghost" style={{ marginLeft: "auto", minHeight: 36 }} onClick={() => setStep(1)}><Icon name="pen" />Edit details</button></div>
+              <dl className="v4-summary">
+                <div><dt>Type</dt><dd>{isOfficial ? "Official" : `Personal · ${category}`}</dd></div>
+                <div><dt>Department</dt><dd>{dept?.name || "—"}</dd></div>
+                <div><dt>Subhead</dt><dd>{isOfficial ? (chosenSub ? <>{subLabel(chosenSub)} {live === "available" ? <span className="v4-chip v4-chip-green" style={{ marginLeft: 4 }}>Fund available</span> : null}</> : "The approving officer will choose") : "—"}</dd></div>
+                <div className="v4-wide"><dt>Title</dt><dd>{title || "—"}</dd></div>
+                <div className="v4-wide"><dt>Description</dt><dd style={{ fontWeight: 500, whiteSpace: "pre-wrap" }}>{details || "—"}</dd></div>
+                <div><dt>Amount</dt><dd className="v4-num" style={{ fontSize: 20 }}>{needsAmount ? nairaExact(amount) : "—"}</dd></div>
+                {words ? <div className="v4-wide"><dt>In words</dt><dd style={{ fontWeight: 500 }}>{words}</dd></div> : null}
+              </dl>
+              <div><span className="v4-label">Attachments</span>
+                {files.length ? (
+                  <ul className="v4-files" style={{ marginTop: 8 }}>{files.map((f) => <li key={`${f.name}-${f.size}`}><span className="v4-fi">{fileKind(f.name)}</span><span className="v4-ft"><strong>{f.name}</strong><span>{sizeLabel(f.size)}</span></span></li>)}</ul>
+                ) : <p className="v4-muted" style={{ margin: "6px 0 0" }}>None.</p>}
+              </div>
+              <div><span className="v4-label">Your signature</span>
+                <div className="v4-sig-box" style={{ marginTop: 8 }}>
+                  {me?.signature_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={me.signature_url} alt={`Signature of ${me.full_name || "the requester"}`} style={{ maxHeight: 70, maxWidth: 260, objectFit: "contain" }} />
+                  ) : <span>No signature yet. <Link href="/profile/details#signature">Add it in My Account</Link>.</span>}
+                </div>
+                <span className="v4-help" style={{ display: "block", marginTop: 6 }}>Added from My Account › Signature &amp; Photo.</span></div>
+              <label className="v4-check"><input type="checkbox" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} /> I confirm the details are correct and {needsAmount ? "the amount is needed" : "the request is genuine"}.</label>
+              {busyText ? <Notice tone="blue">{busyText}</Notice> : null}
+              <div className="v4-form-actions">
+                <button type="button" className="v4-btn v4-btn-ghost" onClick={back} disabled={!!busy}><Icon name="left" />Back</button>
+                <button type="button" className="v4-btn v4-btn-secondary" onClick={() => void doSaveDraft()} disabled={savingDraft || !!busy}>{savingDraft ? "Saving…" : "Save draft"}</button>
+                <button type="button" className="v4-btn v4-btn-primary" onClick={() => void startSubmit()} disabled={!!busy || !!signProblem || !!detailsProblem}><Icon name="pentool" />{busy ? busyText : "Sign and submit"}</button>
+              </div>
+              {signProblem && !busy ? <p className="v4-help" style={{ textAlign: "right", margin: "-12px 0 0" }}>{signProblem}</p> : null}
+            </div>
+          ) : null}
+        </section>
+
+        <aside className="v4-side-stack">
+          {step <= 1 ? (
+            <section className="v4-card v4-card-pad">
+              <h2 className="v4-h3" style={{ marginBottom: 10 }}>{isOfficial ? "How the budget check works" : "How a personal request moves"}</h2>
+              {isOfficial ? (
+                <ol className="v4-numbered" style={{ fontSize: 13.5 }}>
+                  <li>Pick the department — its subheads load.</li>
+                  <li>Pick the subhead next to your title.</li>
+                  <li>Type the amount — ReqGen answers <b>yes</b> or <b>no</b> at once.</li>
+                  <li>The approving officer confirms the subhead; the balance figures are printed on the letter with their signature.</li>
+                </ol>
+              ) : (
+                <ol className="v4-numbered" style={{ fontSize: 13.5 }}>
+                  <li>Your department head sees it first.</li>
+                  <li>The HR Coordinator reviews it.</li>
+                  <li>{category === "Fund" ? "The DG approves, then the Account Officer pays." : "The DG decides, then HR files it."}</li>
+                </ol>
+              )}
+            </section>
+          ) : null}
+
+          {deptId ? (
+            <section className="v4-card v4-card-pad">
+              <h2 className="v4-h3" style={{ marginBottom: 12 }}>It will go to</h2>
+              {route?.stops.length ? (
+                <ol className="v4-numbered" style={{ fontSize: 13.5 }}>
+                  {route.stops.map((s, i) => <li key={`${s.stage}-${i}`}>{s.stage}{s.who ? <> · <span className="v4-muted">{s.who}</span></> : null}</li>)}
+                </ol>
+              ) : <p className="v4-muted" style={{ margin: 0, fontSize: 13.5 }}>{routingNoteFor(requestType, category, dept?.name)}</p>}
+              {route?.blocked.length ? <p className="v4-error" style={{ margin: "10px 0 0", fontSize: 13 }}>No officer is set for {route.blocked.join(", ")}. The Super Admin must complete the Routing Engine before this can be submitted.</p> : null}
+              <p className="v4-help" style={{ margin: "10px 0 0" }}>Each officer is told in the app and on their phone. A vacant step is skipped.</p>
+            </section>
+          ) : null}
+
+          {step >= 2 && isOfficial && subheadId && amount > 0 ? liveBox : null}
+
+          <section className="v4-notice v4-notice-blue">
+            <Icon name="lock" />
+            <span>{seeBalances
+              ? `Acting as ${who.roleName}, you can see subhead figures. Staff, Registry and PD never do.`
+              : "Staff never see subhead balances. Only the approving officers, Finance, the Auditor and the Super Admin do."}</span>
+          </section>
+        </aside>
+      </div>
+
+      {otpOpen ? (
+        <div className="v4-newreq-otp" role="dialog" aria-modal="true" aria-labelledby="nr-otp-title">
+          <div className="v4-card v4-card-pad">
+            <span className="v4-ico v4-t-brand" style={{ width: 52, height: 52, borderRadius: 16, display: "grid", placeItems: "center", margin: "0 auto 10px" }}><Icon name="shield" /></span>
+            <h2 id="nr-otp-title" className="v4-h2" style={{ textAlign: "center" }}>Enter the {otpLabel}</h2>
+            <p className="v4-muted" style={{ textAlign: "center", margin: "6px 0 16px", fontSize: 13.5 }}>
+              Sent to {otpChannel === "email" ? maskEmail(me?.email) : otpChannel === "sms" ? maskPhone(me?.phone) : `${maskPhone(me?.phone)} and ${maskEmail(me?.email)}`}. It is checked as soon as you type the sixth number.
+            </p>
+            <input className="v4-input v4-num" autoFocus inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={otp} disabled={busy === "verifying"}
+              style={{ textAlign: "center", fontSize: 24, letterSpacing: ".4em", fontWeight: 800 }}
+              onChange={(e) => { const v = e.target.value.replace(/\D/g, "").slice(0, 6); setOtp(v); if (v.length === 6) void verifyAndSubmit(v); }} aria-label="Six-number code" />
+            <div className="v4-form-actions" style={{ marginTop: 16 }}>
+              <button type="button" className="v4-btn v4-btn-ghost" onClick={() => setOtpOpen(false)} disabled={busy === "verifying"}>Cancel</button>
+              <button type="button" className="v4-btn v4-btn-secondary" onClick={() => void sendCode()} disabled={!!busy}>Send again</button>
+            </div>
           </div>
         </div>
-      )}
-    </main>
+      ) : null}
+    </V4Page>
   );
 }

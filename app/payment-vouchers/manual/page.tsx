@@ -1,1697 +1,296 @@
 "use client";
 
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { confirmDialog } from "@/lib/dialog";
-import {
-    FormEvent,
-    useCallback,
-    useEffect,
-    useMemo,
-    useState,
-} from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
-import { FileCheck2, FilePenLine, Landmark, Layers, LockKeyhole, Receipt, Wallet } from "lucide-react";
-import { PageHeader } from "@/app/components/ui/PageHeader";
-import { StatTile } from "@/app/components/ui/StatTile";
-import styles from "./manual-voucher-adopted.module.css";
+import { normalizeRole } from "@/lib/roles";
+import { confirmDialog } from "@/lib/dialog";
+import { ACCOUNT_COLUMNS, SUBHEAD_COLUMNS, accountAvailable, accountName, accountSub, loadFinanceSettings, subheadLabel, subheadLeft, type Account, type Subhead } from "@/lib/v4/finance";
+import { formatAmountInput, nairaExact, nairaInWords, parseAmount } from "@/lib/v4/money";
+import { shortDate } from "@/lib/v4/requestText";
+import { SECTIONS, type Voucher } from "@/lib/v4/vouchers";
+import { useIdentity } from "@/app/components/v4/useIdentity";
+import Icon from "@/app/components/v4/Icon";
+import { Select } from "@/app/components/v4/Select";
+import { Notice, PageHead, Skeleton, V4Page } from "@/app/components/v4/ui";
 
-type ProfileRole = {
-    role_key: string;
-    is_active: boolean;
-};
+type Dept = { id: string; name: string };
+type Routing = { dept_id: string | null; iet_account_id: string | null; is_active: boolean | null };
+type Mode = "Transfer" | "Cash" | "Cheque";
+type Draft = Pick<Voucher, "id" | "voucher_no" | "payee_name" | "narration" | "amount" | "total_amount" | "status" | "updated_at" | "created_at">;
 
-type AccountRow = {
-    id: string;
-    name: string | null;
-    bank_name: string | null;
-    account_number: string | null;
-    available_balance: number | string | null;
-    balance: number | string | null;
-    dept_id?: string | null;
-    department_id?: string | null;
-};
-
-type DeptAccountLink = { dept_id: string | null; iet_account_id: string | null; is_active: boolean | null };
-
-type DepartmentRow = { id: string; name: string; is_active: boolean | null };
-
-type SubheadRow = {
-    id: string;
-    dept_id: string | null;
-    name: string | null;
-    title: string | null;
-    subhead_name: string | null;
-    code: string | null;
-    subhead_code: string | null;
-    account_id: string | null;
-    bank_account_id: string | null;
-    balance: number | string | null;
-};
-
-type ManualVoucherRow = {
-    id: string;
-    voucher_no: string | null;
-    account_id: string | null;
-    subhead_id: string | null;
-    payee_name: string | null;
-    narration: string | null;
-    amount: number | string | null;
-    total_amount: number | string | null;
-    payment_method: string | null;
-    payment_reference: string | null;
-    payment_date: string | null;
-    prepared_by_name: string | null;
-    status: string | null;
-    posted_at: string | null;
-    created_at: string | null;
-};
-
-type SaveResult = {
-    success: boolean;
-    voucher_id: string;
-    voucher_no: string;
-    status: string;
-};
-
-type PostResult = {
-    success: boolean;
-    voucher_id: string;
-    voucher_no: string;
-    transaction_no: string;
-    account_balance: number;
-    subhead_balance: number;
-};
-
-const FINANCE_ROLES = new Set([
-    "admin",
-    "auditor",
-    "account",
-    "accounts",
-    "accountofficer",
-    "pvsigner",
-    "pvcountersigner",
-]);
-
-/** IET pays in three ways only: bank transfer, cheque or cash (v4.0.0). */
-const PAYMENT_METHODS = [
-    "Bank Transfer",
-    "Cheque",
-    "Cash",
-];
-
-function normalizeRole(value: string | null | undefined) {
-    return (value || "")
-        .trim()
-        .toLowerCase()
-        .replace(/\s+/g, "")
-        .replace(/_/g, "");
-}
-
-function money(value: number | string | null | undefined) {
-    const amount = Number(value || 0);
-
-    return new Intl.NumberFormat("en-US", {
-        style: "currency",
-        currency: "NGN",
-        maximumFractionDigits: 2,
-    }).format(Number.isFinite(amount) ? amount : 0);
-}
-
-function todayInput() {
-    const now = new Date();
-    const offset = now.getTimezoneOffset();
-
-    return new Date(now.getTime() - offset * 60_000)
-        .toISOString()
-        .slice(0, 10);
-}
-
-function subheadLabel(subhead: SubheadRow) {
-    return (
-        subhead.subhead_name ||
-        subhead.name ||
-        subhead.title ||
-        subhead.subhead_code ||
-        subhead.code ||
-        "Unnamed subhead"
-    );
-}
-
-function subheadCode(subhead: SubheadRow) {
-    return subhead.subhead_code || subhead.code || "";
-}
-
-function accountLabel(account: AccountRow) {
-    return account.name || account.bank_name || "Unnamed IET account";
-}
-
-function accountBalance(account: AccountRow | undefined) {
-    if (!account) return 0;
-
-    return Number(account.available_balance ?? account.balance ?? 0);
-}
-
-function readableDate(value: string | null | undefined) {
-    if (!value) return "Not available";
-
-    const date = new Date(value);
-
-    if (Number.isNaN(date.getTime())) return "Not available";
-
-    return date.toLocaleDateString("en-US", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-    });
-}
-
-function statusClasses(statusValue: string | null | undefined) {
-    const status = (statusValue || "").toLowerCase();
-
-    if (status.includes("posted") || status.includes("paid")) {
-        return "border-emerald-200 bg-emerald-50 text-emerald-800";
-    }
-
-    if (status.includes("cancel") || status.includes("reverse")) {
-        return "border-red-200 bg-red-50 text-red-800";
-    }
-
-    return "border-amber-200 bg-amber-50 text-amber-800";
-}
-
-function isPostedStatus(statusValue: string | null | undefined) {
-    const status = (statusValue || "").toLowerCase();
-
-    // v3.1.7: a posted manual voucher moves into the signing chain
-    // (Pending ... -> Authorized -> Paid); all of those are "posted".
-    return status.includes("posted") || status.includes("paid") || status.startsWith("pending") || status.includes("authori");
-}
-
-function isCancelledStatus(statusValue: string | null | undefined) {
-    const status = (statusValue || "").toLowerCase();
-
-    return status.includes("cancel") || status.includes("reverse");
-}
-
-
-function supabaseErrorMessage(caught: unknown, fallback: string) {
-    if (caught instanceof Error) {
-        return caught.message;
-    }
-
-    if (caught && typeof caught === "object") {
-        const value = caught as {
-            message?: unknown;
-            details?: unknown;
-            hint?: unknown;
-            code?: unknown;
-        };
-
-        const parts = [
-            typeof value.message === "string" ? value.message : "",
-            typeof value.details === "string" ? value.details : "",
-            typeof value.hint === "string" ? `Hint: ${value.hint}` : "",
-            typeof value.code === "string" ? `Code: ${value.code}` : "",
-        ].filter(Boolean);
-
-        if (parts.length > 0) {
-            return parts.join(" — ");
-        }
-    }
-
-    return fallback;
-}
-
-function firstRpcRecord<T>(data: unknown): T {
-    if (Array.isArray(data)) {
-        return data[0] as T;
-    }
-
-    return data as T;
-}
+const REASONS = ["Utility bill", "Bank charge", "Emergency", "Other"];
+const MAX_FILE = 10 * 1024 * 1024;
+/** <voucher id>/<time>-<safe file name> in the private voucher-attachments bucket. */
+function storagePath(voucherId: string, f: File) { return `${voucherId}/${Date.now()}-${f.name.replace(/[^\w.-]+/g, "_")}`; }
+const todayIso = () => new Date().toISOString().slice(0, 10);
+const one = <T,>(d: unknown): T | null => ((Array.isArray(d) ? d[0] : d) as T) || null;
+const parsed = <T,>(d: unknown): T => (typeof d === "string" ? JSON.parse(d) : d) as T;
 
 export default function ManualVoucherPage() {
-    const [loading, setLoading] = useState(true);
-    const [authorized, setAuthorized] = useState(false);
-    const [saving, setSaving] = useState(false);
-    const [posting, setPosting] = useState(false);
-    const [cancelling, setCancelling] = useState(false);
-    const [refreshing, setRefreshing] = useState(false);
+  return <Suspense fallback={<V4Page><Skeleton lines={8} /></V4Page>}><Keyed /></Suspense>;
+}
 
-    const [error, setError] = useState<string | null>(null);
-    const [success, setSuccess] = useState<string | null>(null);
+/** A fresh form for each voucher opened (?id=…), so nothing carries over. */
+function Keyed() {
+  const params = useSearchParams();
+  return <ManualVoucher key={params.get("id") || "new"} />;
+}
 
-    const [departments, setDepartments] = useState<DepartmentRow[]>([]);
-    const [accounts, setAccounts] = useState<AccountRow[]>([]);
-    const [deptLinks, setDeptLinks] = useState<DeptAccountLink[]>([]);
-    const [subheads, setSubheads] = useState<SubheadRow[]>([]);
-    const [manualVouchers, setManualVouchers] = useState<ManualVoucherRow[]>(
-        []
-    );
+/** Payment Vouchers › Manual Voucher (mock-up 49): a payment with no request, same signing order. */
+function ManualVoucher() {
+  const me = useIdentity();
+  const router = useRouter();
+  const params = useSearchParams();
+  const role = normalizeRole(me.role).replace(/\d+$/, "");
+  const mayPrepare = ["account", "accounts", "accountofficer", "admin"].includes(role);
+  const fileInput = useRef<HTMLInputElement>(null);
 
-    const [voucherId, setVoucherId] = useState<string | null>(null);
-    const [voucherNo, setVoucherNo] = useState<string | null>(null);
-    const [departmentId, setDepartmentId] = useState("");
-    const [accountId, setAccountId] = useState("");
-    const [subheadId, setSubheadId] = useState("");
-    const [payeeName, setPayeeName] = useState("");
-    const [narration, setNarration] = useState("");
-    const [amount, setAmount] = useState("");
-    const [paymentMethod, setPaymentMethod] =
-        useState("Bank Transfer");
-    const [paymentReference, setPaymentReference] = useState("");
-    const [paymentDate, setPaymentDate] = useState(todayInput());
-    const [confirmPosting, setConfirmPosting] = useState(false);
+  const [depts, setDepts] = useState<Dept[]>([]);
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [subs, setSubs] = useState<Subhead[]>([]);
+  const [routing, setRouting] = useState<Routing[]>([]);
+  const [counters, setCounters] = useState<string[]>([]);
+  const [drafts, setDrafts] = useState<Draft[] | null>(null);
+  const [ready, setReady] = useState(false);
 
-    const loadPage = useCallback(async (manual = false) => {
-        if (manual) {
-            setRefreshing(true);
-        } else {
-            setLoading(true);
-        }
+  const [voucherId, setVoucherId] = useState<string | null>(params.get("id"));
+  const [voucherNo, setVoucherNo] = useState("");
+  const [posted, setPosted] = useState(false);
+  const [dept, setDept] = useState("");
+  const [account, setAccount] = useState("");
+  const [subhead, setSubhead] = useState("");
+  const [reason, setReason] = useState("");
+  const [section, setSection] = useState("");
+  const [payee, setPayee] = useState("");
+  const [amount, setAmount] = useState("");
+  const [payDate, setPayDate] = useState(todayIso());
+  const [mode, setMode] = useState<Mode>("Transfer");
+  const [narration, setNarration] = useState("");
+  const [counter, setCounter] = useState("");
+  const [reference, setReference] = useState("");
+  const [files, setFiles] = useState<File[]>([]);
+  const [busy, setBusy] = useState<"" | "draft" | "send">("");
+  const [msg, setMsg] = useState<{ tone: "red" | "green" | "amber" | "blue"; text: string } | null>(null);
 
-        setError(null);
+  const loadDrafts = useCallback(async () => {
+    const { data } = await supabase.from("payment_vouchers").select("id,voucher_no,payee_name,narration,amount,total_amount,status,updated_at,created_at")
+      .eq("voucher_type", "Manual").eq("prepared_by", me.userId).in("status", ["Prepared", "Draft"]).order("updated_at", { ascending: false }).limit(10);
+    setDrafts((data || []) as Draft[]);
+  }, [me.userId]);
 
-        try {
-            const { data: authData, error: authError } =
-                await supabase.auth.getUser();
-
-            const user = authData.user;
-
-            if (authError || !user) {
-                throw new Error(
-                    "Your session has expired. Please sign in again."
-                );
-            }
-
-            const [profileResult, rolesResult] = await Promise.all([
-                supabase
-                    .from("profiles")
-                    .select("role")
-                    .eq("id", user.id)
-                    .maybeSingle(),
-
-                supabase
-                    .from("profile_roles")
-                    .select("role_key,is_active")
-                    .eq("profile_id", user.id)
-                    .eq("is_active", true),
-            ]);
-
-            if (profileResult.error) {
-                console.warn(
-                    "Unable to read primary profile role:",
-                    profileResult.error
-                );
-            }
-
-            if (rolesResult.error) {
-                console.warn(
-                    "Unable to read assigned profile roles:",
-                    rolesResult.error
-                );
-            }
-
-            const roleKeys = new Set<string>();
-
-            const primaryRole = normalizeRole(profileResult.data?.role);
-
-            if (primaryRole) {
-                roleKeys.add(primaryRole);
-            }
-
-            ((rolesResult.data || []) as ProfileRole[]).forEach((item) => {
-                if (item.is_active) {
-                    const normalized = normalizeRole(item.role_key);
-
-                    if (normalized) {
-                        roleKeys.add(normalized);
-                    }
-                }
-            });
-
-            const hasFinanceRole = [...roleKeys].some((role) =>
-                FINANCE_ROLES.has(role)
-            );
-
-            setAuthorized(hasFinanceRole);
-
-            if (!hasFinanceRole) {
-                return;
-            }
-
-            const [
-                departmentResult,
-                accountResult,
-                linkResult,
-                subheadResult,
-                voucherResult,
-            ] = await Promise.all([
-                supabase
-                    .from("departments")
-                    .select("id,name,is_active")
-                    .eq("is_active", true)
-                    .order("name", { ascending: true }),
-
-                supabase
-                    .from("iet_accounts")
-                    .select("*"),
-
-                supabase
-                    .from("department_account_routing")
-                    .select("dept_id,iet_account_id,is_active"),
-
-                supabase
-                    .from("subheads")
-                    .select("*"),
-
-                supabase
-                    .from("payment_vouchers")
-                    .select("*")
-                    .eq("voucher_type", "Manual")
-                    .order("created_at", { ascending: false })
-                    .limit(50),
-            ]);
-
-            if (departmentResult.error) {
-                throw departmentResult.error;
-            }
-
-            if (accountResult.error) {
-                throw accountResult.error;
-            }
-
-            if (subheadResult.error) {
-                throw subheadResult.error;
-            }
-
-            if (voucherResult.error) {
-                throw voucherResult.error;
-            }
-
-            const accountRows = ((accountResult.data || []) as AccountRow[])
-                .slice()
-                .sort((left, right) =>
-                    accountLabel(left).localeCompare(accountLabel(right))
-                );
-
-            const subheadRows = ((subheadResult.data || []) as SubheadRow[])
-                .slice()
-                .sort((left, right) =>
-                    subheadLabel(left).localeCompare(subheadLabel(right))
-                );
-
-            setDepartments((departmentResult.data || []) as DepartmentRow[]);
-            setAccounts(accountRows);
-            // Account Routing links are optional for this page: if they cannot be
-            // read, the department filter still uses subhead and account links.
-            setDeptLinks(linkResult.error ? [] : ((linkResult.data || []) as DeptAccountLink[]));
-            setSubheads(subheadRows);
-            setManualVouchers(
-                (voucherResult.data || []) as ManualVoucherRow[]
-            );
-        } catch (caught) {
-            console.error("Manual Payment Voucher load error:", caught);
-            setError(
-                supabaseErrorMessage(
-                    caught,
-                    "Unable to load the Manual Payment Voucher."
-                )
-            );
-        } finally {
-            setLoading(false);
-            setRefreshing(false);
-        }
-    }, []);
-
-    useEffect(() => {
-        const timer = window.setTimeout(() => { void loadPage(); }, 0);
-        return () => window.clearTimeout(timer);
-    }, [loadPage]);
-
-    useEffect(() => {
-        const channel = supabase
-            .channel("manual-voucher-centre-live")
-            .on(
-                "postgres_changes",
-                {
-                    event: "*",
-                    schema: "public",
-                    table: "payment_vouchers",
-                },
-                () => loadPage(true)
-            )
-            .on(
-                "postgres_changes",
-                {
-                    event: "*",
-                    schema: "public",
-                    table: "finance_transactions",
-                },
-                () => loadPage(true)
-            )
-            .subscribe();
-
-        return () => {
-            supabase.removeChannel(channel);
-        };
-    }, [loadPage]);
-
-    /**
-     * v3.1.6: once a department is chosen, ONLY the IET accounts attached to it
-     * are offered — linked in Admin → Account Routing, set on the account, or
-     * funding one of the department's subheads.
-     */
-    const departmentAccounts = useMemo(() => {
-        if (!departmentId) return [] as AccountRow[];
-        const ids = new Set<string>();
-        deptLinks.forEach((link) => {
-            if (link.dept_id === departmentId && link.is_active !== false && link.iet_account_id) ids.add(link.iet_account_id);
-        });
-        subheads.forEach((item) => {
-            if (item.dept_id !== departmentId) return;
-            if (item.account_id) ids.add(item.account_id);
-            if (item.bank_account_id) ids.add(item.bank_account_id);
-        });
-        // A saved draft keeps showing its own account even if links changed since.
-        return accounts.filter((account) => ids.has(account.id) || account.id === accountId || account.dept_id === departmentId || account.department_id === departmentId);
-    }, [accounts, accountId, deptLinks, departmentId, subheads]);
-
-    const selectedAccount = useMemo(
-        () => accounts.find((item) => item.id === accountId),
-        [accountId, accounts]
-    );
-
-    const availableSubheads = useMemo(() => {
-        return subheads.filter((item) => {
-            if (departmentId && item.dept_id !== departmentId) return false;
-            if (!accountId) return true;
-
-            return (
-                item.account_id === accountId ||
-                item.bank_account_id === accountId ||
-                (!item.account_id && !item.bank_account_id)
-            );
-        });
-    }, [accountId, departmentId, subheads]);
-
-    const selectedSubhead = useMemo(
-        () => subheads.find((item) => item.id === subheadId),
-        [subheadId, subheads]
-    );
-
-    const numericAmount = Number(amount || 0);
-    const currentAccountBalance = accountBalance(selectedAccount);
-    const currentSubheadBalance = Number(
-        selectedSubhead?.balance || 0
-    );
-
-    const accountBalanceAfterPayment =
-        currentAccountBalance -
-        (Number.isFinite(numericAmount) ? numericAmount : 0);
-
-    const subheadBalanceAfterPayment =
-        currentSubheadBalance -
-        (Number.isFinite(numericAmount) ? numericAmount : 0);
-
-    const draftCount = useMemo(
-        () =>
-            manualVouchers.filter(
-                (voucher) =>
-                    !isPostedStatus(voucher.status) &&
-                    !isCancelledStatus(voucher.status)
-            ).length,
-        [manualVouchers]
-    );
-
-    const postedCount = useMemo(
-        () =>
-            manualVouchers.filter((voucher) =>
-                isPostedStatus(voucher.status)
-            ).length,
-        [manualVouchers]
-    );
-
-    const postedValue = useMemo(
-        () =>
-            manualVouchers
-                .filter((voucher) => isPostedStatus(voucher.status))
-                .reduce(
-                    (total, voucher) =>
-                        total +
-                        Number(
-                            voucher.total_amount ??
-                            voucher.amount ??
-                            0
-                        ),
-                    0
-                ),
-        [manualVouchers]
-    );
-
-    function clearForm(preserveMessage = false) {
+  const load = useCallback(async () => {
+    const [d, a, s, r, c, settings] = await Promise.all([
+      supabase.from("departments").select("id,name").order("name"),
+      supabase.from("iet_accounts").select(ACCOUNT_COLUMNS).order("name"),
+      supabase.from("subheads").select(SUBHEAD_COLUMNS).eq("is_active", true).order("code"),
+      supabase.from("department_account_routing").select("dept_id,iet_account_id,is_active"),
+      supabase.from("payment_voucher_counter_signatories").select("full_name,signatory_type").eq("is_active", true).order("full_name"),
+      loadFinanceSettings(),
+    ]);
+    setDepts((d.data || []) as Dept[]);
+    setAccounts(((a.data || []) as Account[]).filter((x) => x.is_active !== false));
+    setSubs((s.data || []) as Subhead[]);
+    setRouting((r.data || []) as Routing[]);
+    const names = ((c.data || []) as Array<{ full_name: string; signatory_type: string | null }>).filter((x) => !x.signatory_type || /counter|both/i.test(x.signatory_type)).map((x) => x.full_name);
+    setCounters(names);
+    if (names.length === 1) setCounter((v) => v || names[0]);
+    setMode((m) => (params.get("id") ? m : settings.default_payment_method));
+    const id = params.get("id");
+    if (id) {
+      const v = await supabase.rpc("reqgen_pv_record", { p_voucher_id: id });
+      const row = one<Voucher & { account_id?: string | null; department_id?: string | null; payment_reference?: string | null; payment_date?: string | null; payment_method?: string | null; posted_at?: string | null }>(v.data);
+      if (row && (row.voucher_type === "Manual" || row.voucher_origin === "Manual")) {
+        setVoucherNo(row.voucher_no || "");
+        setPosted(!!row.posted_at);
+        setAccount(row.account_id || "");
+        setSubhead(row.subhead_id || "");
+        const sh = ((s.data || []) as Subhead[]).find((x) => x.id === row.subhead_id);
+        setDept(row.dept_id || row.department_id || sh?.dept_id || "");
+        setPayee(row.payee_name || "");
+        setAmount(formatAmountInput(String(row.total_amount || row.amount || "")));
+        setPayDate(row.payment_date || todayIso());
+        const m = row.disbursement_mode || row.payment_method;
+        if (m === "Transfer" || m === "Cash" || m === "Cheque") setMode(m);
+        setNarration(row.narration || "");
+        setReference(row.payment_reference || "");
+        setSection(row.prepared_section || "");
+        if (row.counter_signatory_name) setCounter(row.counter_signatory_name);
+      } else {
+        setMsg({ tone: "red", text: "That manual voucher cannot be opened here." });
         setVoucherId(null);
-        setVoucherNo(null);
-        setDepartmentId("");
-        setAccountId("");
-        setSubheadId("");
-        setPayeeName("");
-        setNarration("");
-        setAmount("");
-        setPaymentMethod("Bank Transfer");
-        setPaymentReference("");
-        setPaymentDate(todayInput());
-        setConfirmPosting(false);
-        setError(null);
-
-        if (!preserveMessage) {
-            setSuccess(null);
-        }
+      }
     }
+    setReady(true);
+  }, [params]);
 
-    function handleAccountChange(value: string) {
-        setAccountId(value);
-        setSubheadId("");
-        setError(null);
-        setSuccess(null);
+  useEffect(() => {
+    if (me.ready && mayPrepare) queueMicrotask(() => { void load(); void loadDrafts(); });
+  }, [me.ready, mayPrepare, load, loadDrafts]);
+
+  // the department's own IET accounts first, then the rest
+  const deptAccounts = useMemo(() => new Set(routing.filter((r) => r.dept_id === dept && r.is_active !== false).map((r) => r.iet_account_id)), [routing, dept]);
+  const accountOpts = useMemo(() => [...accounts].sort((a, b) => Number(deptAccounts.has(b.id)) - Number(deptAccounts.has(a.id))).map((a) => ({ value: a.id, label: accountName(a), hint: accountSub(a) || undefined, group: deptAccounts.has(a.id) ? "This department" : "Other IET accounts" })), [accounts, deptAccounts]);
+  const subOpts = useMemo(() => subs.filter((s) => (!dept || s.dept_id === dept) && (!account || !s.bank_account_id || s.bank_account_id === account)), [subs, dept, account]);
+  const acc = accounts.find((a) => a.id === account) || null;
+  const sub = subs.find((s) => s.id === subhead) || null;
+  const amt = parseAmount(amount);
+  const accFree = acc ? accountAvailable(acc) : 0;
+  const subFree = sub ? subheadLeft(sub) : 0;
+  const covered = !!acc && !!sub && amt > 0 && accFree >= amt && subFree >= amt;
+
+  function pickDept(id: string) {
+    setDept(id); setSubhead("");
+    const own = routing.find((r) => r.dept_id === id && r.is_active !== false && r.iet_account_id);
+    if (own?.iet_account_id && !posted) setAccount(own.iet_account_id);
+  }
+
+  function check(forSend: boolean): string | null {
+    if (!dept) return "Choose the department.";
+    if (!account) return "Choose the IET account it is paid from.";
+    if (!subhead) return "Choose the subhead.";
+    if (!reason) return "Choose the reason for a manual voucher.";
+    if (!section) return "Choose who you are preparing as.";
+    if (payee.trim().length < 2) return "Type the payee.";
+    if (!(amt > 0)) return "Type the amount.";
+    if (!payDate) return "Choose the payment date.";
+    if (narration.trim().length < 3) return "Write the narration.";
+    if (forSend && !counter) return "Choose the Counter Signer.";
+    if (forSend && !covered) return "The account or the subhead does not cover this amount.";
+    return null;
+  }
+
+  async function save(): Promise<string | null> {
+    const fullNarration = narration.trim().toLowerCase().startsWith(reason.toLowerCase()) ? narration.trim() : `${reason}: ${narration.trim()}`;
+    const { data, error } = await supabase.rpc("save_manual_payment_voucher", {
+      p_voucher_id: voucherId, p_account_id: account, p_subhead_id: subhead, p_payee_name: payee.trim().toUpperCase(), p_narration: fullNarration,
+      p_amount: amt, p_payment_method: mode, p_payment_reference: reference.trim() || null, p_payment_date: payDate,
+    });
+    if (error) { setMsg({ tone: "red", text: error.message }); return null; }
+    const res = one<{ voucher_id?: string; voucher_no?: string }>(parsed(data));
+    const id = res?.voucher_id || voucherId;
+    if (!id) { setMsg({ tone: "red", text: "The voucher was not saved. Try again." }); return null; }
+    setVoucherId(id); setVoucherNo(res?.voucher_no || voucherNo); setNarration(fullNarration);
+    const prep = await supabase.rpc("reqgen_pv_manual_prepare", { p_voucher_id: id, p_section: section, p_mode: mode, p_reason: reason });
+    if (prep.error) { setMsg({ tone: "red", text: prep.error.message }); return null; }
+    for (const f of files) {
+      const path = storagePath(id, f);
+      const up = await supabase.storage.from("voucher-attachments").upload(path, f, { upsert: false });
+      if (up.error) { setMsg({ tone: "amber", text: `${f.name} was not uploaded: ${up.error.message}` }); continue; }
+      await supabase.rpc("reqgen_pv_add_attachment", { p_voucher_id: id, p_file_name: f.name, p_file_path: path, p_file_size: f.size });
     }
+    setFiles([]);
+    return id;
+  }
 
-    function openDraft(voucher: ManualVoucherRow) {
-        if (isPostedStatus(voucher.status)) {
-            setSuccess(null);
-            setError(
-                "Posted vouchers are read-only and cannot be edited."
-            );
-            return;
-        }
+  async function saveDraft() {
+    setMsg(null);
+    const why = check(false);
+    if (why) { setMsg({ tone: "red", text: why }); return; }
+    setBusy("draft");
+    const id = await save();
+    setBusy("");
+    if (id) { setMsg({ tone: "green", text: `Draft ${voucherNo || "manual voucher"} saved. Nothing is posted until you sign and send it.` }); await loadDrafts(); }
+  }
 
-        if (isCancelledStatus(voucher.status)) {
-            setSuccess(null);
-            setError(
-                "Cancelled vouchers are read-only and cannot be edited."
-            );
-            return;
-        }
-
-        setVoucherId(voucher.id);
-        setVoucherNo(voucher.voucher_no);
-        const draftSubhead = subheads.find((item) => item.id === voucher.subhead_id);
-        setDepartmentId(draftSubhead?.dept_id || "");
-        setAccountId(voucher.account_id || "");
-        setSubheadId(voucher.subhead_id || "");
-        setPayeeName(voucher.payee_name || "");
-        setNarration(voucher.narration || "");
-        setAmount(
-            String(voucher.total_amount ?? voucher.amount ?? "")
-        );
-        setPaymentMethod(
-            voucher.payment_method || "Bank Transfer"
-        );
-        setPaymentReference(voucher.payment_reference || "");
-        setPaymentDate(voucher.payment_date || todayInput());
-        setConfirmPosting(false);
-        setError(null);
-        setSuccess(
-            `Draft ${voucher.voucher_no || ""} loaded for editing.`
-        );
-
-        window.scrollTo({
-            top: 0,
-            behavior: "smooth",
-        });
+  async function signAndSend() {
+    setMsg(null);
+    const why = check(true);
+    if (why) { setMsg({ tone: "red", text: why }); return; }
+    const ok = await confirmDialog({ title: "Sign and send to the Auditor?", message: `${nairaExact(amt)} to ${payee.trim().toUpperCase()} is written in the ${accountName(acc)} account and ${subheadLabel(sub)} ledgers now, and the voucher goes to the Auditor.`, details: ["Amount, account, subhead and payee are locked after this.", "Signing order: Auditor → Counter Signer → Director General."], confirmLabel: "Sign and send" });
+    if (!ok) return;
+    setBusy("send");
+    const id = posted ? voucherId : await save();
+    if (!id) { setBusy(""); return; }
+    if (!posted) {
+      const post = await supabase.rpc("post_manual_payment_voucher", { p_voucher_id: id });
+      if (post.error) { setBusy(""); setMsg({ tone: "red", text: post.error.message }); return; }
     }
-
-    function validateVoucher() {
-        const value = Number(amount);
-
-        if (!departmentId) {
-            throw new Error("Select the department first.");
-        }
-
-        if (!accountId) {
-            throw new Error("Select an IET account.");
-        }
-
-        if (!payeeName.trim()) {
-            throw new Error("Enter the payee or beneficiary.");
-        }
-
-        if (!narration.trim()) {
-            throw new Error("Enter the payment narration.");
-        }
-
-        if (!Number.isFinite(value) || value <= 0) {
-            throw new Error(
-                "Enter a valid amount greater than zero."
-            );
-        }
-
-        if (!paymentDate) {
-            throw new Error("Select the payment date.");
-        }
-
-        return value;
-    }
-
-    async function saveDraft(event?: FormEvent) {
-        event?.preventDefault();
-
-        setSaving(true);
-        setError(null);
-        setSuccess(null);
-
-        try {
-            const validatedAmount = validateVoucher();
-
-            const { data, error: rpcError } = await supabase.rpc(
-                "save_manual_payment_voucher",
-                {
-                    p_voucher_id: voucherId,
-                    p_account_id: accountId,
-                    p_subhead_id: subheadId || null,
-                    p_payee_name: payeeName.trim(),
-                    p_narration: narration.trim(),
-                    p_amount: validatedAmount,
-                    p_payment_method: paymentMethod,
-                    p_payment_reference:
-                        paymentReference.trim() || null,
-                    p_payment_date: paymentDate,
-                }
-            );
-
-            if (rpcError) {
-                throw rpcError;
-            }
-
-            const result = firstRpcRecord<SaveResult>(data);
-
-            if (!result?.voucher_id) {
-                throw new Error(
-                    "The voucher was processed, but Supabase did not return a voucher ID."
-                );
-            }
-
-            setVoucherId(result.voucher_id);
-            setVoucherNo(result.voucher_no);
-            setSuccess(
-                `Draft ${result.voucher_no} saved successfully.`
-            );
-
-            await loadPage(true);
-
-            return result;
-        } catch (caught) {
-            console.error("Manual voucher save error:", caught);
-            setError(
-                supabaseErrorMessage(
-                    caught,
-                    "Unable to save the manual voucher."
-                )
-            );
-
-            return null;
-        } finally {
-            setSaving(false);
-        }
-    }
-
-    async function cancelDraft() {
-        if (!voucherId) {
-            setError("Save the voucher as a draft before cancelling it.");
-            return;
-        }
-
-        const currentVoucher = manualVouchers.find(
-            (voucher) => voucher.id === voucherId
-        );
-
-        if (isPostedStatus(currentVoucher?.status)) {
-            setError("A posted voucher cannot be cancelled from the draft form.");
-            return;
-        }
-
-        if (isCancelledStatus(currentVoucher?.status)) {
-            setError("This voucher has already been cancelled.");
-            return;
-        }
-
-        const confirmed = await confirmDialog({
-            title: "Cancel draft voucher?",
-            message: `Cancel ${voucherNo || "this draft voucher"}? The draft will become read-only.`,
-            confirmLabel: "Cancel voucher",
-            cancelLabel: "Keep draft",
-            tone: "warning",
-        });
-
-        if (!confirmed) return;
-
-        setCancelling(true);
-        setError(null);
-        setSuccess(null);
-
-        try {
-            const { error: cancelError } = await supabase
-                .from("payment_vouchers")
-                .update({ status: "Cancelled" })
-                .eq("id", voucherId)
-                .not("status", "ilike", "%posted%")
-                .not("status", "ilike", "%paid%");
-
-            if (cancelError) {
-                throw cancelError;
-            }
-
-            const cancelledVoucherNo = voucherNo || "Draft voucher";
-
-            await loadPage(true);
-            clearForm(true);
-            setSuccess(`${cancelledVoucherNo} cancelled successfully.`);
-        } catch (caught) {
-            console.error("Manual voucher cancellation error:", caught);
-            setError(
-                caught instanceof Error
-                    ? caught.message
-                    : "Unable to cancel the draft voucher."
-            );
-        } finally {
-            setCancelling(false);
-        }
-    }
-
-    async function postVoucher() {
-        setPosting(true);
-        setError(null);
-        setSuccess(null);
-
-        try {
-            validateVoucher();
-
-            const currentVoucher = manualVouchers.find(
-                (voucher) => voucher.id === voucherId
-            );
-
-            if (isPostedStatus(currentVoucher?.status)) {
-                throw new Error(
-                    "This voucher has already been posted. Duplicate posting was prevented."
-                );
-            }
-
-            if (isCancelledStatus(currentVoucher?.status)) {
-                throw new Error("A cancelled voucher cannot be posted.");
-            }
-
-            if (!confirmPosting) {
-                throw new Error(
-                    "Confirm that the voucher details and supporting physical documents have been verified."
-                );
-            }
-
-            let activeVoucherId = voucherId;
-
-            if (!activeVoucherId) {
-                const saveResult = await saveDraft();
-                activeVoucherId = saveResult?.voucher_id || null;
-            }
-
-            if (!activeVoucherId) {
-                throw new Error(
-                    "The voucher must be saved before posting."
-                );
-            }
-
-            const { data, error: rpcError } = await supabase.rpc(
-                "post_manual_payment_voucher",
-                {
-                    p_voucher_id: activeVoucherId,
-                }
-            );
-
-            if (rpcError) {
-                throw rpcError;
-            }
-
-            const result = firstRpcRecord<PostResult>(data);
-
-            if (!result?.voucher_no) {
-                throw new Error(
-                    "Supabase did not return the posted voucher details."
-                );
-            }
-
-            await loadPage(true);
-            clearForm(true);
-
-            setSuccess(
-                `${result.voucher_no} posted successfully as ${result.transaction_no
-                }. Account balance: ${money(
-                    result.account_balance
-                )}. Subhead balance: ${money(
-                    result.subhead_balance
-                )}. Next: open it under Payment Vouchers → 2. Pending Signatures, choose the Counter Signer, and the Auditor will check it.`
-            );
-        } catch (caught) {
-            console.error("Manual voucher posting error:", caught);
-            setError(
-                supabaseErrorMessage(
-                    caught,
-                    "Unable to post the manual voucher."
-                )
-            );
-        } finally {
-            setPosting(false);
-        }
-    }
-
-    if (loading) {
-        return (
-            <main className="mx-auto max-w-7xl px-4 py-8">
-                <div className="animate-pulse space-y-6">
-                    <div className="h-20 rounded-3xl bg-slate-200" />
-                    <div className="h-64 rounded-3xl bg-slate-200" />
-                    <div className="min-h-[420px] rounded-3xl bg-slate-200" />
-                    <div className="h-96 rounded-3xl bg-slate-200" />
-                </div>
-            </main>
-        );
-    }
-
-    if (!authorized) {
-        return (
-            <main className="mx-auto max-w-3xl px-4 py-12">
-                <section className="rounded-3xl border border-amber-200 bg-amber-50 p-7 shadow-sm">
-                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-100 text-2xl">
-                        <LockKeyhole size={26} aria-hidden="true" />
-                    </div>
-
-                    <h1 className="mt-5 text-2xl font-black text-amber-950">
-                        Finance access required
-                    </h1>
-
-                    <p className="mt-3 font-semibold leading-7 text-amber-900">
-                        Your active roles do not permit access to the
-                        Manual Payment Voucher.
-                    </p>
-
-                    <Link
-                        href="/dashboard"
-                        className="reqgen-btn reqgen-btn-slate mt-5 inline-flex rounded-xl bg-slate-950 px-4 py-3 text-sm font-black text-white transition hover:bg-slate-800"
-                    >
-                        Return to Dashboard
-                    </Link>
-                </section>
-            </main>
-        );
-    }
-
-    return (
-        <main className={`${styles.page} rg-manual-voucher-page`}>
-            <PageHeader
-                title="Create Manual Payment Voucher"
-                description="Create, validate, save and post an authorised manual payment voucher using live Finance data."
-                actions={<>
-                    <button type="button" onClick={() => clearForm()} className="rg-btn rg-btn-secondary">New Voucher</button>
-                    <button type="button" onClick={() => loadPage(true)} disabled={refreshing} className="rg-btn rg-btn-secondary">{refreshing ? "Refreshing..." : "Refresh"}</button>
-                    <Link href="/payment-vouchers/centre" className="rg-btn rg-btn-primary">Voucher Centre</Link>
-                </>}
-            />
-
-            <section className="rg-voucher-stepper" aria-label="Manual voucher workflow">
-                <div className="is-current"><b>1</b><span>Voucher Details</span></div>
-                <div><b>2</b><span>Beneficiary & Payment</span></div>
-                <div><b>3</b><span>Attachments</span></div>
-                <div><b>4</b><span>Review & Submit</span></div>
-            </section>
-
-            <section className="rg-stat-row-5">
-                <StatTile title="Draft Vouchers" value={draftCount} tone="amber" icon={<FilePenLine size={18} />} note="Saved, not yet posted" />
-                <StatTile title="Posted Vouchers" value={postedCount} tone="emerald" icon={<FileCheck2 size={18} />} note="Posted to Finance" />
-                <StatTile title="IET Accounts" value={accounts.length} tone="blue" icon={<Landmark size={18} />} note="Available to charge" />
-                <StatTile title="Available Subheads" value={subheads.length} tone="purple" icon={<Layers size={18} />} note="Budget lines" />
-                <StatTile title="Posted Value" value={money(postedValue)} tone="orange" icon={<Wallet size={18} />} note="Total posted" />
-            </section>
-
-            {error && (
-                <div className="mt-6 flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-4 font-semibold text-red-800 shadow-sm">
-                    <span className="text-lg">⚠︎</span>
-                    <p>{error}</p>
-                </div>
-            )}
-
-            {success && (
-                <div className="mt-6 flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4 font-semibold text-emerald-800 shadow-sm">
-                    <span className="text-lg">✓</span>
-                    <p>{success}</p>
-                </div>
-            )}
-
-            <section className="mt-6 rounded-[32px] border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
-                <div className="flex flex-col justify-between gap-4 border-b border-slate-200 pb-5 sm:flex-row sm:items-center">
-                    <div>
-                        <h2 className="text-xl font-black text-slate-950">
-                            {voucherId ? `Manual Voucher ${voucherNo || ""}`.trim() : "New Manual Voucher"}
-                        </h2>
-                        <p className="mt-1 text-sm font-semibold text-slate-500">
-                            Fields marked with an asterisk (*) are required.
-                        </p>
-                    </div>
-
-                    {voucherId && (
-                        <button
-                            type="button"
-                            onClick={() => clearForm()}
-                            className="reqgen-btn reqgen-btn-violet w-fit rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm font-black text-slate-700 transition hover:bg-slate-100"
-                        >
-                            Start New Voucher
-                        </button>
-                    )}
-                </div>
-
-                <form
-                    onSubmit={saveDraft}
-                    className="mt-6 grid gap-6 xl:grid-cols-[1fr_340px]"
-                >
-                    <div className="grid gap-5 lg:grid-cols-2">
-                        <label className="block">
-                            <span className="text-sm font-black text-slate-800">1. Department *</span>
-                            <select
-                                value={departmentId}
-                                onChange={(event) => { setDepartmentId(event.target.value); setAccountId(""); setSubheadId(""); setError(null); setSuccess(null); }}
-                                disabled={saving || posting || cancelling}
-                                className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 font-semibold text-slate-900 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:bg-slate-100"
-                            >
-                                <option value="">Select the department first</option>
-                                {departments.map((department) => <option key={department.id} value={department.id}>{department.name}</option>)}
-                            </select>
-                        </label>
-
-                        <label className="block">
-                            <span className="text-sm font-black text-slate-800">
-                                2. IET Account *
-                            </span>
-
-                            <select
-                                value={accountId}
-                                onChange={(event) =>
-                                    handleAccountChange(
-                                        event.target.value
-                                    )
-                                }
-                                disabled={saving || posting || cancelling || !departmentId}
-                                className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 font-semibold text-slate-900 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:bg-slate-100"
-                            >
-                                <option value="">
-                                    {!departmentId
-                                        ? "Select a department first"
-                                        : departmentAccounts.length
-                                            ? "Select an IET account"
-                                            : "No IET account is attached to this department"}
-                                </option>
-
-                                {departmentAccounts.map((account) => (
-                                    <option
-                                        key={account.id}
-                                        value={account.id}
-                                    >
-                                        {accountLabel(account)}
-                                        {account.account_number
-                                            ? ` • ${account.account_number}`
-                                            : ""}
-                                    </option>
-                                ))}
-                            </select>
-                            {departmentId && !departmentAccounts.length ? (
-                                <span className="mt-2 block text-xs font-semibold text-amber-800">
-                                    Ask the Administrator to attach an IET account to this department (Admin → Account Routing).
-                                </span>
-                            ) : null}
-                        </label>
-
-                        <label className="block">
-                            <span className="text-sm font-black text-slate-800">
-                                Finance Subhead (where applicable)
-                            </span>
-
-                            <select
-                                value={subheadId}
-                                onChange={(event) => {
-                                    setSubheadId(event.target.value);
-                                    setError(null);
-                                    setSuccess(null);
-                                }}
-                                disabled={
-                                    saving ||
-                                    posting ||
-                                    !accountId
-                                }
-                                className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 font-semibold text-slate-900 outline-none transition focus:border-violet-500 focus:ring-4 focus:ring-violet-100 disabled:bg-slate-100"
-                            >
-                                <option value="">
-                                    {accountId
-                                        ? "Select a finance subhead (optional)"
-                                        : "Select an account first"}
-                                </option>
-
-                                {availableSubheads.map((subhead) => (
-                                    <option
-                                        key={subhead.id}
-                                        value={subhead.id}
-                                    >
-                                        {subheadCode(subhead)
-                                            ? `${subheadCode(
-                                                subhead
-                                            )} • `
-                                            : ""}
-                                        {subheadLabel(subhead)}
-                                    </option>
-                                ))}
-                            </select>
-                        </label>
-
-                        <label className="block lg:col-span-2">
-                            <span className="text-sm font-black text-slate-800">
-                                Payee or Beneficiary *
-                            </span>
-
-                            <input
-                                type="text"
-                                value={payeeName}
-                                onChange={(event) =>
-                                    setPayeeName(event.target.value)
-                                }
-                                disabled={saving || posting || cancelling}
-                                placeholder="Enter the full name of the payee"
-                                className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 font-semibold text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:bg-slate-100"
-                            />
-                        </label>
-
-                        <label className="block lg:col-span-2">
-                            <span className="text-sm font-black text-slate-800">
-                                Payment Narration *
-                            </span>
-
-                            <textarea
-                                value={narration}
-                                onChange={(event) =>
-                                    setNarration(event.target.value)
-                                }
-                                disabled={saving || posting || cancelling}
-                                rows={4}
-                                placeholder="Clearly describe the purpose of this payment"
-                                className="mt-2 w-full resize-y rounded-xl border border-slate-300 bg-white px-4 py-3 font-semibold leading-7 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:bg-slate-100"
-                            />
-                        </label>
-
-                        <label className="block">
-                            <span className="text-sm font-black text-slate-800">
-                                Amount *
-                            </span>
-
-                            <div className="mt-2 flex overflow-hidden rounded-xl border border-slate-300 bg-white transition focus-within:border-emerald-500 focus-within:ring-4 focus-within:ring-emerald-100">
-                                <span className="flex items-center border-r border-slate-200 bg-slate-50 px-4 font-black text-slate-600">
-                                    NGN
-                                </span>
-
-                                <input
-                                    type="number"
-                                    min="0.01"
-                                    step="0.01"
-                                    value={amount}
-                                    onChange={(event) =>
-                                        setAmount(event.target.value)
-                                    }
-                                    disabled={saving || posting || cancelling}
-                                    placeholder="0.00"
-                                    className="w-full px-4 py-3 font-black text-slate-950 outline-none disabled:bg-slate-100"
-                                />
-                            </div>
-                        </label>
-
-                        <label className="block">
-                            <span className="text-sm font-black text-slate-800">
-                                Payment Date *
-                            </span>
-
-                            <input
-                                type="date"
-                                value={paymentDate}
-                                onChange={(event) =>
-                                    setPaymentDate(event.target.value)
-                                }
-                                disabled={saving || posting || cancelling}
-                                className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 font-semibold text-slate-900 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:bg-slate-100"
-                            />
-                        </label>
-
-                        <label className="block">
-                            <span className="text-sm font-black text-slate-800">
-                                Payment Method
-                            </span>
-
-                            <select
-                                value={paymentMethod}
-                                onChange={(event) =>
-                                    setPaymentMethod(
-                                        event.target.value
-                                    )
-                                }
-                                disabled={saving || posting || cancelling}
-                                className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 font-semibold text-slate-900 outline-none transition focus:border-violet-500 focus:ring-4 focus:ring-violet-100 disabled:bg-slate-100"
-                            >
-                                {PAYMENT_METHODS.map((method) => (
-                                    <option
-                                        key={method}
-                                        value={method}
-                                    >
-                                        {method}
-                                    </option>
-                                ))}
-                            </select>
-                        </label>
-
-                        <label className="block">
-                            <span className="text-sm font-black text-slate-800">
-                                Payment Reference
-                            </span>
-
-                            <input
-                                type="text"
-                                value={paymentReference}
-                                onChange={(event) =>
-                                    setPaymentReference(
-                                        event.target.value
-                                    )
-                                }
-                                disabled={saving || posting || cancelling}
-                                placeholder="Cheque, transfer or receipt reference"
-                                className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 font-semibold text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:bg-slate-100"
-                            />
-                        </label>
-
-                        <div className="lg:col-span-2">
-                            <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4">
-                                <input
-                                    type="checkbox"
-                                    checked={confirmPosting}
-                                    onChange={(event) =>
-                                        setConfirmPosting(
-                                            event.target.checked
-                                        )
-                                    }
-                                    disabled={saving || posting || cancelling}
-                                    className="mt-1 h-5 w-5 rounded border-amber-400 text-amber-600 focus:ring-amber-500"
-                                />
-
-                                <span>
-                                    <span className="block text-sm font-black text-amber-950">
-                                        Final posting confirmation
-                                    </span>
-
-                                    <span className="mt-1 block text-sm font-semibold leading-6 text-amber-800">
-                                        I confirm that the voucher
-                                        information, available balance and
-                                        supporting physical documents have
-                                        been properly verified.
-                                    </span>
-                                </span>
-                            </label>
-                        </div>
-
-                        <div className="flex flex-col gap-3 border-t border-slate-200 pt-5 sm:flex-row lg:col-span-2">
-                            <button
-                                type="submit"
-                                disabled={saving || posting || cancelling}
-                                className="reqgen-btn reqgen-btn-rose rounded-xl bg-amber-500 px-6 py-3.5 text-sm font-black text-slate-950 shadow-sm transition hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-60"
-                            >
-                                {saving
-                                    ? "Saving Draft…"
-                                    : voucherId
-                                        ? "Update Draft Voucher"
-                                        : "Save as Draft"}
-                            </button>
-
-                            <button
-                                type="button"
-                                onClick={postVoucher}
-                                disabled={saving || posting || cancelling}
-                                className="reqgen-btn reqgen-btn-rose rounded-xl bg-emerald-700 px-6 py-3.5 text-sm font-black text-white shadow-sm transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60"
-                            >
-                                {posting
-                                    ? "Posting Voucher…"
-                                    : "Post Voucher & Record Transaction"}
-                            </button>
-
-                            {voucherId && (
-                                <button
-                                    type="button"
-                                    onClick={cancelDraft}
-                                    disabled={saving || posting || cancelling}
-                                    className="reqgen-btn reqgen-btn-rose rounded-xl border border-red-200 bg-red-50 px-6 py-3.5 text-sm font-black text-red-700 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
-                                >
-                                    {cancelling ? "Cancelling Draft…" : "Cancel Draft"}
-                                </button>
-                            )}
-
-                            <button
-                                type="button"
-                                onClick={() => clearForm()}
-                                disabled={saving || posting || cancelling}
-                                className="reqgen-btn reqgen-btn-rose rounded-xl border border-slate-300 bg-slate-50 px-6 py-3.5 text-sm font-black text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
-                            >
-                                Clear Form
-                            </button>
-                        </div>
-                    </div>
-
-                    <aside className="space-y-4">
-                        <div className="rounded-3xl border border-blue-200 bg-blue-50 p-5">
-                            <p className="text-xs font-black uppercase tracking-[0.15em] text-blue-700">
-                                Selected account
-                            </p>
-
-                            <h3 className="mt-2 text-lg font-black text-blue-950">
-                                {selectedAccount
-                                    ? accountLabel(selectedAccount)
-                                    : "No account selected"}
-                            </h3>
-
-                            {selectedAccount?.account_number && (
-                                <p className="mt-1 text-sm font-semibold text-blue-800">
-                                    Account number:{" "}
-                                    {selectedAccount.account_number}
-                                </p>
-                            )}
-
-                            <div className="mt-4 rounded-2xl bg-white/80 p-4">
-                                <p className="text-xs font-black uppercase tracking-wide text-slate-500">
-                                    Current balance
-                                </p>
-
-                                <p className="mt-1 text-2xl font-black text-slate-950">
-                                    {money(currentAccountBalance)}
-                                </p>
-                            </div>
-                        </div>
-
-                        <div className="rounded-3xl border border-violet-200 bg-violet-50 p-5">
-                            <p className="text-xs font-black uppercase tracking-[0.15em] text-violet-700">
-                                Selected subhead
-                            </p>
-
-                            <h3 className="mt-2 text-lg font-black text-violet-950">
-                                {selectedSubhead
-                                    ? subheadLabel(selectedSubhead)
-                                    : "No subhead selected"}
-                            </h3>
-
-                            {selectedSubhead &&
-                                subheadCode(selectedSubhead) && (
-                                    <p className="mt-1 text-sm font-semibold text-violet-800">
-                                        Code:{" "}
-                                        {subheadCode(selectedSubhead)}
-                                    </p>
-                                )}
-
-                            <div className="mt-4 rounded-2xl bg-white/80 p-4">
-                                <p className="text-xs font-black uppercase tracking-wide text-slate-500">
-                                    Current balance
-                                </p>
-
-                                <p className="mt-1 text-2xl font-black text-slate-950">
-                                    {money(currentSubheadBalance)}
-                                </p>
-                            </div>
-                        </div>
-
-                        <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5">
-                            <p className="text-xs font-black uppercase tracking-[0.15em] text-emerald-700">
-                                Posting preview
-                            </p>
-
-                            <div className="mt-4 space-y-3">
-                                <div className="flex items-center justify-between gap-3 border-b border-emerald-200 pb-3">
-                                    <span className="text-sm font-bold text-emerald-900">
-                                        Voucher amount
-                                    </span>
-
-                                    <span className="font-black text-emerald-950">
-                                        {money(numericAmount)}
-                                    </span>
-                                </div>
-
-                                <div className="flex items-center justify-between gap-3 border-b border-emerald-200 pb-3">
-                                    <span className="text-sm font-bold text-emerald-900">
-                                        Account after posting
-                                    </span>
-
-                                    <span
-                                        className={`font-black ${accountBalanceAfterPayment <
-                                            0
-                                            ? "text-red-700"
-                                            : "text-emerald-950"
-                                            }`}
-                                    >
-                                        {money(
-                                            accountBalanceAfterPayment
-                                        )}
-                                    </span>
-                                </div>
-
-                                <div className="flex items-center justify-between gap-3">
-                                    <span className="text-sm font-bold text-emerald-900">
-                                        Subhead after posting
-                                    </span>
-
-                                    <span
-                                        className={`font-black ${subheadBalanceAfterPayment <
-                                            0
-                                            ? "text-red-700"
-                                            : "text-emerald-950"
-                                            }`}
-                                    >
-                                        {money(
-                                            subheadBalanceAfterPayment
-                                        )}
-                                    </span>
-                                </div>
-                            </div>
-
-                            {(accountBalanceAfterPayment < 0 ||
-                                subheadBalanceAfterPayment < 0) &&
-                                numericAmount > 0 && (
-                                    <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-bold leading-6 text-red-800">
-                                        The entered amount may exceed an
-                                        available account or subhead
-                                        balance. The posting RPC should
-                                        perform the final authoritative
-                                        balance validation.
-                                    </div>
-                                )}
-                        </div>
-                    </aside>
-                </form>
-            </section>
-
-            <section className="mt-6 overflow-hidden rounded-[32px] border border-slate-200 bg-white shadow-sm">
-                <div className="flex flex-col justify-between gap-4 border-b border-slate-200 p-5 sm:flex-row sm:items-center sm:p-7">
-                    <div>
-                        <p className="text-xs font-black uppercase tracking-[0.18em] text-violet-700">
-                            Voucher Records
-                        </p>
-
-                        <h2 className="mt-2 text-2xl font-black text-slate-950">
-                            Recent Manual Vouchers
-                        </h2>
-
-                        <p className="mt-2 text-sm font-semibold text-slate-500">
-                            The latest 50 manual vouchers are displayed.
-                            Drafts can be reopened and edited.
-                        </p>
-                    </div>
-
-                    <div className="rounded-xl bg-slate-100 px-4 py-2 text-sm font-black text-slate-700">
-                        {manualVouchers.length} record
-                        {manualVouchers.length === 1 ? "" : "s"}
-                    </div>
-                </div>
-
-                {manualVouchers.length === 0 ? (
-                    <div className="p-8 text-center sm:p-12">
-                        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-amber-100 text-3xl">
-                            <Receipt size={30} aria-hidden="true" />
-                        </div>
-
-                        <h3 className="mt-5 text-xl font-black text-slate-950">
-                            No manual vouchers recorded
-                        </h3>
-
-                        <p className="mx-auto mt-2 max-w-xl font-semibold leading-7 text-slate-500">
-                            Create and save the first manual payment
-                            voucher using the form above.
-                        </p>
-                    </div>
-                ) : (
-                    <>
-                        <div className="grid gap-4 p-4 md:hidden">
-                            {manualVouchers.map((voucher) => {
-                                const posted = isPostedStatus(
-                                    voucher.status
-                                );
-
-                                return (
-                                    <article
-                                        key={voucher.id}
-                                        className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
-                                    >
-                                        <div className="flex items-start justify-between gap-3">
-                                            <div>
-                                                <p className="text-xs font-black uppercase tracking-wide text-slate-500">
-                                                    Voucher number
-                                                </p>
-
-                                                <p className="mt-1 font-black text-slate-950">
-                                                    {voucher.voucher_no ||
-                                                        "Pending number"}
-                                                </p>
-                                            </div>
-
-                                            <span
-                                                className={`rounded-full border px-3 py-1 text-xs font-black ${statusClasses(
-                                                    voucher.status
-                                                )}`}
-                                            >
-                                                {voucher.status ||
-                                                    "Draft"}
-                                            </span>
-                                        </div>
-
-                                        <div className="mt-4 space-y-3 text-sm">
-                                            <div>
-                                                <p className="font-black text-slate-500">
-                                                    Payee
-                                                </p>
-                                                <p className="mt-1 font-bold text-slate-900">
-                                                    {voucher.payee_name ||
-                                                        "Not recorded"}
-                                                </p>
-                                            </div>
-
-                                            <div>
-                                                <p className="font-black text-slate-500">
-                                                    Narration
-                                                </p>
-                                                <p className="mt-1 font-semibold leading-6 text-slate-700">
-                                                    {voucher.narration ||
-                                                        "Not recorded"}
-                                                </p>
-                                            </div>
-
-                                            <div className="grid grid-cols-2 gap-3">
-                                                <div>
-                                                    <p className="font-black text-slate-500">
-                                                        Amount
-                                                    </p>
-                                                    <p className="mt-1 font-black text-slate-950">
-                                                        {money(
-                                                            voucher.total_amount ??
-                                                            voucher.amount
-                                                        )}
-                                                    </p>
-                                                </div>
-
-                                                <div>
-                                                    <p className="font-black text-slate-500">
-                                                        Date
-                                                    </p>
-                                                    <p className="mt-1 font-bold text-slate-800">
-                                                        {readableDate(
-                                                            voucher.payment_date ||
-                                                            voucher.created_at
-                                                        )}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div className="mt-4 border-t border-slate-200 pt-4">
-                                            {posted ? (
-                                                <Link
-                                                    href={`/payment-vouchers/${voucher.id}`}
-                                                    className="reqgen-btn reqgen-btn-violet inline-flex rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-black text-emerald-800"
-                                                >
-                                                    View in Register
-                                                </Link>
-                                            ) : (
-                                                <button
-                                                    type="button"
-                                                    onClick={() =>
-                                                        openDraft(
-                                                            voucher
-                                                        )
-                                                    }
-                                                    className="reqgen-btn reqgen-btn-violet rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-black text-slate-950"
-                                                >
-                                                    Open Draft
-                                                </button>
-                                            )}
-                                        </div>
-                                    </article>
-                                );
-                            })}
-                        </div>
-
-                        <div className="hidden overflow-x-auto md:block">
-                            <table className="min-w-full">
-                                <thead className="bg-slate-50">
-                                    <tr>
-                                        <th className="px-5 py-4 text-left text-xs font-black uppercase tracking-wide text-slate-500">
-                                            Voucher
-                                        </th>
-                                        <th className="px-5 py-4 text-left text-xs font-black uppercase tracking-wide text-slate-500">
-                                            Payee and narration
-                                        </th>
-                                        <th className="px-5 py-4 text-left text-xs font-black uppercase tracking-wide text-slate-500">
-                                            Amount
-                                        </th>
-                                        <th className="px-5 py-4 text-left text-xs font-black uppercase tracking-wide text-slate-500">
-                                            Payment
-                                        </th>
-                                        <th className="px-5 py-4 text-left text-xs font-black uppercase tracking-wide text-slate-500">
-                                            Status
-                                        </th>
-                                        <th className="px-5 py-4 text-right text-xs font-black uppercase tracking-wide text-slate-500">
-                                            Action
-                                        </th>
-                                    </tr>
-                                </thead>
-
-                                <tbody className="divide-y divide-slate-200">
-                                    {manualVouchers.map((voucher) => {
-                                        const posted = isPostedStatus(
-                                            voucher.status
-                                        );
-
-                                        return (
-                                            <tr
-                                                key={voucher.id}
-                                                className="align-top transition hover:bg-slate-50"
-                                            >
-                                                <td className="px-5 py-5">
-                                                    <p className="font-black text-slate-950">
-                                                        {voucher.voucher_no ||
-                                                            "Pending number"}
-                                                    </p>
-
-                                                    <p className="mt-1 text-xs font-semibold text-slate-500">
-                                                        Created{" "}
-                                                        {readableDate(
-                                                            voucher.created_at
-                                                        )}
-                                                    </p>
-
-                                                    {voucher.prepared_by_name && (
-                                                        <p className="mt-1 text-xs font-semibold text-slate-500">
-                                                            By{" "}
-                                                            {
-                                                                voucher.prepared_by_name
-                                                            }
-                                                        </p>
-                                                    )}
-                                                </td>
-
-                                                <td className="max-w-md px-5 py-5">
-                                                    <p className="font-black text-slate-950">
-                                                        {voucher.payee_name ||
-                                                            "Unnamed payee"}
-                                                    </p>
-
-                                                    <p className="mt-1 line-clamp-2 text-sm font-semibold leading-6 text-slate-600">
-                                                        {voucher.narration ||
-                                                            "No narration recorded"}
-                                                    </p>
-                                                </td>
-
-                                                <td className="whitespace-nowrap px-5 py-5">
-                                                    <p className="font-black text-slate-950">
-                                                        {money(
-                                                            voucher.total_amount ??
-                                                            voucher.amount
-                                                        )}
-                                                    </p>
-                                                </td>
-
-                                                <td className="px-5 py-5">
-                                                    <p className="font-bold text-slate-800">
-                                                        {voucher.payment_method ||
-                                                            "Not specified"}
-                                                    </p>
-
-                                                    <p className="mt-1 text-xs font-semibold text-slate-500">
-                                                        {readableDate(
-                                                            voucher.payment_date
-                                                        )}
-                                                    </p>
-
-                                                    {voucher.payment_reference && (
-                                                        <p className="mt-1 text-xs font-semibold text-slate-500">
-                                                            Ref:{" "}
-                                                            {
-                                                                voucher.payment_reference
-                                                            }
-                                                        </p>
-                                                    )}
-                                                </td>
-
-                                                <td className="px-5 py-5">
-                                                    <span
-                                                        className={`inline-flex rounded-full border px-3 py-1.5 text-xs font-black ${statusClasses(
-                                                            voucher.status
-                                                        )}`}
-                                                    >
-                                                        {voucher.status ||
-                                                            "Draft"}
-                                                    </span>
-
-                                                    {voucher.posted_at && (
-                                                        <p className="mt-2 text-xs font-semibold text-slate-500">
-                                                            Posted{" "}
-                                                            {readableDate(
-                                                                voucher.posted_at
-                                                            )}
-                                                        </p>
-                                                    )}
-                                                </td>
-
-                                                <td className="px-5 py-5 text-right">
-                                                    {posted ? (
-                                                        <Link
-                                                            href={`/payment-vouchers/${voucher.id}`}
-                                                            className="reqgen-btn reqgen-btn-violet inline-flex rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-black text-emerald-800 transition hover:bg-emerald-100"
-                                                        >
-                                                            Open Voucher
-                                                        </Link>
-                                                    ) : (
-                                                        <button
-                                                            type="button"
-                                                            onClick={() =>
-                                                                openDraft(
-                                                                    voucher
-                                                                )
-                                                            }
-                                                            className="reqgen-btn reqgen-btn-violet rounded-xl bg-amber-500 px-4 py-2 text-sm font-black text-slate-950 transition hover:bg-amber-400"
-                                                        >
-                                                            Open Draft
-                                                        </button>
-                                                    )}
-                                                </td>
-                                            </tr>
-                                        );
-                                    })}
-                                </tbody>
-                            </table>
-                        </div>
-                    </>
-                )}
-            </section>
-        </main>
-    );
+    const assign = await supabase.rpc("reqgen_pv_assign_signers", { p_voucher_id: id, p_cheque_signed_by_name: null, p_counter_signatory_name: counter, p_checker_id: null });
+    setBusy("");
+    if (assign.error) { setMsg({ tone: "amber", text: `Posted and sent to the Auditor, but the Counter Signer was not saved: ${assign.error.message} Choose it on the voucher.` }); router.push(`/payment-vouchers/${id}`); return; }
+    router.push(`/payment-vouchers/${id}?made=1`);
+  }
+
+  function addFiles(list: FileList | null) {
+    const picked = Array.from(list || []);
+    const bad = picked.find((f) => f.size > MAX_FILE || !/^(application\/pdf|image\/)/.test(f.type));
+    if (bad) { setMsg({ tone: "red", text: `${bad.name}: use a PDF or picture under 10 MB.` }); return; }
+    setFiles((f) => [...f, ...picked].slice(0, 5));
+  }
+
+  if (me.ready && !mayPrepare) {
+    return <V4Page><PageHead title="Manual Voucher" /><Notice tone="amber" title="Only an Account Officer prepares payment vouchers.">Acting as {me.roleName}, you can open and sign vouchers from the Voucher Centre.</Notice></V4Page>;
+  }
+  if (!ready) return <V4Page><PageHead title="Manual Voucher" /><Skeleton lines={8} /></V4Page>;
+
+  return (
+    <V4Page>
+      <PageHead title={voucherNo ? `Manual Voucher · ${voucherNo}` : "Manual Voucher"} sub="For a payment with no request (bank charges, utilities, emergencies). It follows the same signing order." />
+      {posted ? <Notice tone="amber" title="This voucher is already posted.">Amount, account, subhead and payee are locked. You can correct the narration, mode and reference. To change the money, cancel it and prepare a new one.</Notice> : null}
+      {msg ? <Notice tone={msg.tone}>{msg.text}</Notice> : null}
+      <div className="v4-split">
+        <section className="v4-card v4-card-pad">
+          <div className="v4-section-title"><span className="v4-no">1</span><h2 className="v4-h2">Where it is paid from</h2></div>
+          <div className="v4-form-grid">
+            <div className="v4-field"><span className="v4-flabel">Department <span className="v4-req">*</span></span><Select ariaLabel="Department" searchable disabled={posted} value={dept} onChange={pickDept} placeholder="Choose the department" options={depts.map((d) => ({ value: d.id, label: d.name }))} /></div>
+            <div className="v4-field"><span className="v4-flabel">IET account <span className="v4-req">*</span></span><Select ariaLabel="IET account" disabled={posted} value={account} onChange={(v) => { setAccount(v); setSubhead(""); }} placeholder="Choose the account" options={accountOpts} /></div>
+            <div className="v4-field"><span className="v4-flabel">Subhead <span className="v4-req">*</span></span><Select ariaLabel="Subhead" searchable disabled={posted || !dept} value={subhead} onChange={setSubhead} placeholder={dept ? (subOpts.length ? "Choose the subhead" : "No subhead for this account") : "Choose the department first"} options={subOpts.map((s) => ({ value: s.id, label: subheadLabel(s), hint: `left ${nairaExact(subheadLeft(s))}` }))} /></div>
+            <div className="v4-field"><span className="v4-flabel">Reason for a manual voucher <span className="v4-req">*</span></span><Select ariaLabel="Reason" value={reason} onChange={setReason} placeholder="Choose the reason" options={REASONS.map((r) => ({ value: r, label: r }))} /></div>
+            <div className="v4-field v4-span-2"><span className="v4-flabel">Preparing as <span className="v4-req">*</span></span><Select ariaLabel="Preparing as" value={section} onChange={setSection} placeholder="Choose the section" options={SECTIONS.map((s) => ({ value: s, label: `Account Officer — ${s}` }))} /><span className="v4-help">Printed on the voucher: “Prepared by {me.name || "you"} — Account Officer{section ? `, ${section}` : ""}”.</span></div>
+          </div>
+
+          <div className="v4-section-title" style={{ marginTop: 22 }}><span className="v4-no">2</span><h2 className="v4-h2">Payee and payment</h2></div>
+          <div className="v4-form-grid">
+            <label className="v4-field"><span className="v4-flabel">Payee <span className="v4-req">*</span></span><input className="v4-input" disabled={posted} value={payee} onChange={(e) => setPayee(e.target.value.toUpperCase())} placeholder="NIGER STATE WATER BOARD" /></label>
+            <label className="v4-field"><span className="v4-flabel">Amount (₦) <span className="v4-req">*</span></span><input className="v4-input v4-num" inputMode="decimal" disabled={posted} value={amount} onChange={(e) => setAmount(formatAmountInput(e.target.value))} placeholder="0.00" /><span className="v4-help">{amt > 0 ? nairaInWords(amt) : "Amount in words appears here."}</span></label>
+            <label className="v4-field"><span className="v4-flabel">Payment date <span className="v4-req">*</span></span><input className="v4-input" type="date" value={payDate} max={todayIso()} onChange={(e) => setPayDate(e.target.value)} /></label>
+            <div className="v4-field"><span className="v4-flabel">Mode</span><Select ariaLabel="Mode" value={mode} onChange={(v) => setMode(v as Mode)} options={[{ value: "Cash", label: "Cash" }, { value: "Transfer", label: "Transfer" }, { value: "Cheque", label: "Cheque" }]} /></div>
+            <label className="v4-field v4-span-2"><span className="v4-flabel">Narration <span className="v4-req">*</span></span><input className="v4-input" value={narration} maxLength={240} onChange={(e) => setNarration(e.target.value)} placeholder="Water bill, October 2026" /></label>
+            <div className="v4-field"><span className="v4-flabel">Counter Signer <span className="v4-req">*</span></span><Select ariaLabel="Counter Signer" value={counter} onChange={setCounter} disabled={!counters.length} placeholder={counters.length ? "Choose" : "No Counter Signer yet"} options={counters.map((n) => ({ value: n, label: n }))} /></div>
+            <label className="v4-field"><span className="v4-flabel">Payment reference</span><input className="v4-input" value={reference} onChange={(e) => setReference(e.target.value)} placeholder="Bill or receipt number" /></label>
+          </div>
+
+          <div className="v4-section-title" style={{ marginTop: 22 }}><span className="v4-no">3</span><h2 className="v4-h2">Attachment</h2></div>
+          <input ref={fileInput} type="file" accept="application/pdf,image/*" multiple hidden onChange={(e) => { addFiles(e.target.files); e.target.value = ""; }} />
+          <button type="button" className="v4-dropzone v4-dropzone-btn" onClick={() => fileInput.current?.click()}><Icon name="upload" /><span>Add the bill or receipt · PDF or picture</span></button>
+          {files.length ? <ul className="v4-files">{files.map((f, i) => <li key={`${f.name}-${i}`}><span className="v4-fi">{f.type.includes("pdf") ? "PDF" : "IMG"}</span><span className="v4-ft"><strong>{f.name}</strong><span>{Math.ceil(f.size / 1024)} KB · uploads when you save</span></span><button type="button" className="v4-btn v4-btn-ghost" onClick={() => setFiles((all) => all.filter((_, j) => j !== i))}>Remove</button></li>)}</ul> : null}
+
+          <div className="v4-form-actions">
+            <button type="button" className="v4-btn v4-btn-ghost" onClick={() => router.push("/payment-vouchers/centre")}>Cancel</button>
+            {!posted ? <button type="button" className="v4-btn v4-btn-secondary" disabled={!!busy} onClick={() => void saveDraft()}>{busy === "draft" ? "Saving…" : "Save draft"}</button> : null}
+            <button type="button" className="v4-btn v4-btn-primary" disabled={!!busy} onClick={() => void signAndSend()}><Icon name="pen" />{busy === "send" ? "Sending…" : "Sign and send to Auditor"}</button>
+          </div>
+        </section>
+
+        <aside className="v4-side-stack">
+          <section className="v4-card v4-card-pad">
+            <h3 className="v4-h3" style={{ marginBottom: 10 }}>Live check</h3>
+            <dl className="v4-kv">
+              <dt>{acc ? accountName(acc) : "Account"}</dt><dd className="v4-num">{acc ? nairaExact(accFree) : "—"}</dd>
+              <dt>{sub ? `${subheadLabel(sub)} left` : "Subhead left"}</dt><dd className="v4-num">{sub ? nairaExact(subFree) : "—"}</dd>
+              <dt>After this voucher</dt><dd className="v4-num">{sub && amt > 0 ? nairaExact(subFree - amt) : "—"}</dd>
+            </dl>
+            {acc && sub && amt > 0 ? (
+              <div className={`v4-livecheck ${covered ? "v4-lc-ok" : "v4-lc-no"}`} style={{ marginTop: 12 }}>
+                <Icon name={covered ? "check" : "alert"} />
+                <span><strong>{covered ? "Can be paid" : "Not enough"}</strong><span>{covered ? `Account and subhead both cover ${nairaExact(amt)}.` : accFree < amt ? `${accountName(acc)} has only ${nairaExact(accFree)} free.` : `${subheadLabel(sub)} has only ${nairaExact(subFree)} left.`}</span></span>
+              </div>
+            ) : <p className="v4-help" style={{ margin: "10px 0 0" }}>Choose the account, subhead and amount.</p>}
+          </section>
+          <section className="v4-card v4-card-pad">
+            <h3 className="v4-h3" style={{ marginBottom: 10 }}>My drafts</h3>
+            {drafts === null ? <Skeleton lines={2} /> : drafts.length ? (
+              <ul className="v4-files">
+                {drafts.map((d) => (
+                  <li key={d.id}><span className="v4-fi v4-x">MPV</span><span className="v4-ft"><strong>{d.voucher_no} · {d.narration || d.payee_name}</strong><span>{nairaExact(d.total_amount || d.amount)} · saved {shortDate(d.updated_at || d.created_at)}</span></span><Link className="v4-btn v4-btn-ghost" href={`/payment-vouchers/manual?id=${d.id}`}>Open</Link></li>
+                ))}
+              </ul>
+            ) : <p className="v4-help" style={{ margin: 0 }}>No draft.</p>}
+          </section>
+        </aside>
+      </div>
+    </V4Page>
+  );
 }

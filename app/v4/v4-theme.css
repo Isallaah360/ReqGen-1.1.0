@@ -237,3 +237,8 @@ html[data-theme="dark"] .v4-root .v4-dayicon { filter: saturate(1.1); background
 .v4-livecheck-chip.is-available { background: var(--v4-green-soft); color: var(--v4-green); }
 .v4-livecheck-chip.is-not_enough { background: var(--v4-red-soft); color: var(--v4-red); }
 .v4-livecheck-chip.is-checking { background: var(--v4-amber-soft); color: var(--v4-amber); }
+
+/* v4.6 Administration — inline text button */
+.v4-link { background: none; border: 0; padding: 0; color: var(--v4-brand); font: inherit; font-weight: 700; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+.v4-link:disabled { opacity: .5; cursor: default; }
+.v4-pchip .v4-link { color: inherit; text-decoration: none; display: inline-grid; place-items: center; }

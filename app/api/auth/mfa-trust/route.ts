@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient, type User } from "@supabase/supabase-js";
-import { WINDOW_SECONDS, decodeJwt, hmac as sign, sameText as same, verifiedTotpIds as verifiedFactorIds, windowCookieName as cookieName } from "@/lib/server/mfaWindow";
+import { decodeJwt, securityRules, hmac as sign, sameText as same, verifiedTotpIds as verifiedFactorIds, windowCookieName as cookieName } from "@/lib/server/mfaWindow";
 
 export const runtime = "nodejs";
 
@@ -81,7 +81,8 @@ export async function POST(req: NextRequest) {
     .filter((a) => a.method === "totp" && Number.isFinite(Number(a.timestamp)))
     .reduce((latest, a) => Math.max(latest, Number(a.timestamp)), 0);
   // The window runs from the moment the code was entered — never from "now".
-  const fromCode = totpAt ? totpAt + WINDOW_SECONDS : 0;
+  const { windowSeconds } = await securityRules();
+  const fromCode = totpAt ? totpAt + windowSeconds : 0;
   const expiresAt = Math.max(existing?.expiresAt || 0, fromCode);
   const nowSeconds = Math.floor(Date.now() / 1000);
   if (!expiresAt || expiresAt <= nowSeconds) {

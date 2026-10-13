@@ -1,6 +1,6 @@
-import PaymentVouchersPage from "../centre/page";
+import { redirect } from "next/navigation";
 
-/** v3.1.6: numbered module tab — the Payment Voucher Centre opened on this view. */
+/** v4.4: voucher reports live in Reports › Voucher Reports. */
 export default function Page() {
-  return <PaymentVouchersPage />;
+  redirect("/reports/vouchers");
 }

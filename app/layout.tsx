@@ -5,6 +5,8 @@ import "./theme-dark.generated.css";
 import "./theme-dark.css";
 import "./v4/v4.css";
 import "./v4/v4-theme.css";
+import "./v4/v4-select.css";
+import "./v4/v4-pages.css";
 
 import SessionTimeout from "./components/SessionTimeout";
 import MfaGuard from "./components/MfaGuard";
@@ -17,6 +19,7 @@ import PasswordReveal from "@/app/components/PasswordReveal";
 import TableCards from "@/app/components/TableCards";
 import FieldShells from "@/app/components/FieldShells";
 import DialogHost from "@/app/components/ui/DialogHost";
+import NativeSelectUpgrade from "@/app/components/v4/NativeSelectUpgrade";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://req-gen-1-1-0.vercel.app"),
@@ -67,6 +70,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <TableCards />
         <FieldShells />
         <DialogHost />
+        <NativeSelectUpgrade />
         <GovernmentAppShell>
           <MfaGuard>
             <RouteAccessGuard>

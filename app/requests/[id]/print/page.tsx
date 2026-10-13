@@ -1,5 +1,6 @@
 "use client";
 
+import { logPrint } from "@/lib/v4/reports";
 import Image from "next/image";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -251,6 +252,8 @@ function PrintRequestPageContent() {
   const [me, setMe] = useState<ProfileMini | null>(null);
   const [myRoles, setMyRoles] = useState<ProfileRole[]>([]);
   const [req, setReq] = useState<Req | null>(null);
+  // v4.1.2: B/D, expenditure and C/D as the approving officer confirmed them.
+  const [budgetLine, setBudgetLine] = useState<{ allocation_bd: number; expenditure: number; balance_cd: number } | null>(null);
   const [history, setHistory] = useState<Hist[]>([]);
   const sheetRef = useRef<HTMLElement>(null);
   const [isOwner, setIsOwner] = useState(false);
@@ -497,6 +500,8 @@ function PrintRequestPageContent() {
       if (ownsRequest) nextRoleSet.add("ownrequest");
 
       setReq(reqRow);
+      const line = await supabase.from("reqgen_request_budget_lines").select("allocation_bd,expenditure,balance_cd").eq("request_id", id).maybeSingle();
+      setBudgetLine(line.error || !line.data ? null : (line.data as { allocation_bd: number; expenditure: number; balance_cd: number }));
 
       if (!canRolePrintRequest(nextRoleSet, reqRow)) {
         setMsg("Access denied. You do not have permission to print this request type.");
@@ -668,6 +673,7 @@ function PrintRequestPageContent() {
     }
 
     setTimeout(() => {
+      void logPrint("request", latestReq?.id || null, latestReq?.request_no || "Request");
       void printA4Sheet(sheetRef.current, `${latestReq?.request_no || "Request"} — ReqGen`).finally(() => setPrinting(false));
     }, 250);
   }
@@ -851,9 +857,9 @@ function PrintRequestPageContent() {
 
               {isOfficial ? (
                 <div className="rg-reqdoc-balances">
-                  <div><span>ALLOCATION B/D:</span><span>{naira(req.approved_allocation)}</span></div>
-                  <div><span>EXPENDITURE:</span><span>{naira(req.expenditure)}</span></div>
-                  <div><span>BALANCE C/D:</span><span>{naira(req.balance)}</span></div>
+                  <div><span>ALLOCATION B/D:</span><span>{naira(budgetLine ? budgetLine.allocation_bd : req.approved_allocation)}</span></div>
+                  <div><span>EXPENDITURE:</span><span>{naira(budgetLine ? budgetLine.expenditure : req.expenditure)}</span></div>
+                  <div><span>BALANCE C/D:</span><span>{naira(budgetLine ? budgetLine.balance_cd : req.balance)}</span></div>
                 </div>
               ) : null}
 

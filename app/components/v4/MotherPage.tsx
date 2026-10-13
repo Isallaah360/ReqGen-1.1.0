@@ -11,14 +11,14 @@ import { PageHead, Stats, Tiles, V4Page, type Action, type StatItem } from "./ui
 const ACTIONS: Record<string, Action[]> = {
   requests: [{ href: "/requests/new", label: "New request", icon: "plus", kind: "primary" }],
   finance: [
-    { href: "/finance/reports", label: "Finance reports", icon: "chart", kind: "secondary" },
+    { href: "/reports/finance-statements", label: "Finance statements", icon: "chart", kind: "secondary" },
     { href: "/finance/processing", label: "Treat requests", icon: "clock", kind: "primary" },
   ],
   "payment-vouchers": [
     { href: "/payment-vouchers/print-centre", label: "Print Centre", icon: "printer", kind: "secondary" },
     { href: "/payment-vouchers/new", label: "Generate voucher", icon: "plus", kind: "primary" },
   ],
-  reports: [{ href: "/reports/centre", label: "Open reports", icon: "chart", kind: "primary" }],
+  reports: [{ href: "/reports/transactions", label: "Transactions", icon: "trend", kind: "primary" }],
   registry: [
     { href: "/registry/incoming", label: "Record incoming", icon: "download", kind: "secondary" },
     { href: "/registry/outgoing", label: "Record outgoing", icon: "upload", kind: "primary" },
@@ -31,7 +31,7 @@ const ACTIONS: Record<string, Action[]> = {
  * A module's home ("mother page"): title, live summary, and one tile per
  * page. Tiles the acting position may not open are not shown at all.
  */
-export default function MotherPage({ moduleKey, children, sub }: { moduleKey: string; children?: ReactNode; sub?: ReactNode }) {
+export default function MotherPage({ moduleKey, children, sub, before }: { moduleKey: string; children?: ReactNode; sub?: ReactNode; before?: ReactNode }) {
   const me = useIdentity();
   const mod = ALL_MODULES.find((m) => m.key === moduleKey)!;
   const [summary, setSummary] = useState<Summary | null>(null);
@@ -45,7 +45,10 @@ export default function MotherPage({ moduleKey, children, sub }: { moduleKey: st
 
   const allowed = (href: string) => me.ready && canAccessPath(href.split(/[?#]/)[0], me.roleSet);
   const tiles = useMemo(
-    () => mod.tiles.filter((t) => allowed(t.href)).map((t) => ({ ...t, meta: summary?.meta[t.href.split("#")[0]] })),
+    () => mod.tiles.filter((t) => allowed(t.href)).map((t) => {
+      const badge = summary?.badges?.[t.href.split("#")[0]];
+      return { ...t, meta: summary?.meta[t.href.split("#")[0]], badge: badge ? <span className="v4-chip v4-chip-red">{badge}</span> : undefined };
+    }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [mod, me.ready, me.roleSet, summary],
   );
@@ -55,6 +58,7 @@ export default function MotherPage({ moduleKey, children, sub }: { moduleKey: st
   return (
     <V4Page>
       <PageHead title={mod.label} sub={sub ?? mod.intro} actions={actions} />
+      {before}
       {summary === null && me.ready ? <section className="v4-stats" aria-hidden="true">{[0, 1, 2].map((i) => <div key={i} className="v4-stat"><span className="v4-ico v4-t-blue" /><span style={{ flex: 1 }}><span className="v4-l">&nbsp;</span><span className="v4-v">…</span></span></div>)}</section> : <Stats items={stats} />}
       {tiles.length ? <Tiles items={tiles} label={`${mod.label} pages`} /> : null}
       {children}

@@ -101,10 +101,15 @@ function waitForStyles(doc: Document, timeoutMs = 4000) {
   ]);
 }
 
-/** Print one .rg-a4-page on A4 paper through an isolated frame. */
-export async function printA4Sheet(page: HTMLElement | null, title = "ReqGen document") {
-  if (!page) return;
-  fitA4(page);
+/**
+ * Print one .rg-a4-page — or several, one A4 sheet each (v4.3: a voucher with
+ * its Transfer Schedule, or a batch from the Print Centre) — through an
+ * isolated frame.
+ */
+export async function printA4Sheet(page: HTMLElement | null | Array<HTMLElement | null>, title = "ReqGen document") {
+  const pages = (Array.isArray(page) ? page : [page]).filter((p): p is HTMLElement => !!p);
+  if (!pages.length) return;
+  pages.forEach(fitA4);
 
   const head = Array.from(document.head.querySelectorAll('link[rel="stylesheet"], style'))
     .map((node) => node.outerHTML)
@@ -115,7 +120,8 @@ export async function printA4Sheet(page: HTMLElement | null, title = "ReqGen doc
     html, body { margin: 0 !important; padding: 0 !important; background: #fff !important; zoom: 1 !important; }
     body::before, body::after { display: none !important; }
     .rg-a4-stage { padding: 0 !important; background: #fff !important; overflow: visible !important; }
-    .rg-a4-page { margin: 0 !important; box-shadow: none !important; border-radius: 0 !important; }
+    .rg-a4-page { margin: 0 !important; box-shadow: none !important; border-radius: 0 !important; break-after: page; page-break-after: always; }
+    .rg-a4-page:last-child { break-after: auto; page-break-after: auto; }
   </style>`;
 
   const frame = document.createElement("iframe");
@@ -131,7 +137,7 @@ export async function printA4Sheet(page: HTMLElement | null, title = "ReqGen doc
   }
 
   doc.open();
-  doc.write(`<!doctype html><html lang="en" data-theme="light"><head><meta charset="utf-8"><title>${title.replace(/</g, "")}</title>${base}${head}${paper}</head><body><div class="rg-a4-stage">${page.outerHTML}</div></body></html>`);
+  doc.write(`<!doctype html><html lang="en" data-theme="light"><head><meta charset="utf-8"><title>${title.replace(/</g, "")}</title>${base}${head}${paper}</head><body><div class="rg-a4-stage">${pages.map((p) => p.outerHTML).join("")}</div></body></html>`);
   doc.close();
 
   await waitForStyles(doc);

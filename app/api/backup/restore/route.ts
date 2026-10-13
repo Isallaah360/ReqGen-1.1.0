@@ -40,8 +40,15 @@ export async function POST(req: NextRequest) {
   if ("error" in ctx) return NextResponse.json({ ok: false, error: ctx.error }, { status: ctx.status });
 
   const form = await req.formData().catch(() => null);
-  const file = form?.get("file");
+  let file = form?.get("file");
   const mode = String(form?.get("mode") || "preview");
+  // v4.5: a copy kept in the private backups store can be chosen instead of uploading a file
+  const storedPath = String(form?.get("path") || "");
+  if (!(file instanceof File) && storedPath) {
+    const got = await ctx.admin.storage.from("backups").download(storedPath);
+    if (got.error || !got.data) return NextResponse.json({ ok: false, error: `That stored backup could not be opened: ${got.error?.message || "missing"}` }, { status: 400 });
+    file = new File([await got.data.arrayBuffer()], storedPath.split("/").pop() || "backup.zip", { type: "application/zip" });
+  }
   if (!(file instanceof File)) return NextResponse.json({ ok: false, error: "Choose the backup file first." }, { status: 400 });
   if (!["preview", "missing", "overwrite"].includes(mode)) return NextResponse.json({ ok: false, error: "Unknown restore mode." }, { status: 400 });
 

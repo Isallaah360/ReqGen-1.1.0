@@ -1,25 +1,18 @@
+// Section 5 — Payment Voucher Signatories (v4.3, mock-up 56). Rewritten for v4: the v3 page and its CSS module were retired.
 import fs from 'node:fs';
-import path from 'node:path';
-
-const root = process.cwd();
-const pagePath = path.join(root, 'app/payment-vouchers/settings/page.tsx');
-const cssPath = path.join(root, 'app/payment-vouchers/settings/payment-voucher-settings.module.css');
-const shellPath = path.join(root, 'lib/v4/modules.ts'); // v4.0.0: the module registry holds the navigation
-
-const page = fs.readFileSync(pagePath, 'utf8');
-const css = fs.readFileSync(cssPath, 'utf8');
-const shell = fs.readFileSync(shellPath, 'utf8');
+const read = (p) => fs.readFileSync(p, 'utf8');
+const page = read('app/payment-vouchers/settings/page.tsx');
+const shell = read('lib/v4/modules.ts');
+const perms = read('lib/permissions.ts');
 
 const checks = [
-  ['PV settings reads live signatory register', page.includes('payment_voucher_counter_signatories')],
-  ['PV settings reads real ReqGen profiles', page.includes('.from("profiles")')],
-  ['PV settings resolves active role', page.includes('get_my_active_role')],
-  ['PV settings restricted to Admin/Auditor', page.includes('["admin", "auditor"].includes')],
-  ['Signature required before granting authority', page.includes('signature_url') && page.includes('Signature missing')],
-  ['Historical voucher use blocks destructive delete', page.includes('payment_vouchers') && page.includes('historical voucher record')],
-  ['Live refresh subscription present', page.includes('pv-settings-live') && page.includes('postgres_changes')],
-  ['PV settings page uses 13px base typography', css.includes('font-size:13px')],
-  ['PV settings remains a Payment Vouchers tile (Signatories)', shell.includes('{ href: "/payment-vouchers/settings", title: "Signatories"')],
+  ['Signatories page is a v4 page', page.includes('<V4Page>')],
+  ['Reads the live counter-signatory register', page.includes('from("payment_voucher_counter_signatories")')],
+  ['Reads real ReqGen profiles', page.includes('from("profiles")')],
+  ['Managed by Super Admin and the Auditor only (page and rule)', page.includes('role === "admin" || role === "auditor"') && perms.includes('{ prefix: "/payment-vouchers/settings", roles: ["admin", "auditor"] }')],
+  ['A signature must be on file before signing authority is given', page.includes('signature_url')],
+  ['Vouchers already signed keep their signatory (history is checked)', page.includes('from("payment_vouchers")')],
+  ['Signatories remains a Payment Vouchers tile', shell.includes('{ href: "/payment-vouchers/settings", title: "Signatories"')],
 ];
 
 let failed = 0;
@@ -27,9 +20,5 @@ for (const [label, ok] of checks) {
   console.log(`${ok ? 'PASS' : 'FAIL'}: ${label}`);
   if (!ok) failed += 1;
 }
-
-if (failed) {
-  console.error(`Section 5 PV Settings audit failed: ${failed} check(s).`);
-  process.exit(1);
-}
-console.log('Section 5 PV Settings audit: PASS');
+if (failed) { console.error(`Section 5 Signatories audit failed: ${failed}`); process.exit(1); }
+console.log(`Section 5 Signatories audit: PASS ${checks.length}/${checks.length}`);

@@ -7,9 +7,14 @@ import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { nameWithRole } from "@/lib/userIdentity";
 import { APPROVAL_QUEUE_CHANGED_EVENT } from "@/lib/approvalQueue";
-import { WorkflowLoading, WorkflowPageStyles } from "@/app/components/ui/WorkflowUI";
-import { RequestProgress } from "../../components/RequestProgress";
-import styles from "../../requests/[id]/request-detail.module.css";
+import Link from "next/link";
+import Icon from "@/app/components/v4/Icon";
+import { Select } from "@/app/components/v4/Select";
+import { Notice, Skeleton, V4Page } from "@/app/components/v4/ui";
+import { canSeeBudgetBalances } from "@/lib/v4/budgetVisibility";
+import { nairaExact, nairaInWords } from "@/lib/v4/money";
+import { stageTitle, stageWords, statusChip, waitedFor } from "@/lib/v4/requestText";
+import { fingerprintAvailable, fingerprintStepUp } from "@/lib/v4/deviceSignIn";
 
 
 type PersonalCategory =
@@ -40,11 +45,17 @@ type Req = {
   assigned_account_officer_id: string | null;
   assigned_account_officer_user_id?: string | null;
   assigned_account_officer_name: string | null;
+  requester_name?: string | null;
+  updated_at?: string | null;
 };
+
+type ChainRow = { step_order: number; stage: string; owner_name: string | null; state: "done" | "now" | "wait" | "skipped"; acted_by_name: string | null; acted_role: string | null; acted_at: string | null; comment: string | null; signed: boolean };
 
 type Hist = {
   id: string;
   action_type: string;
+  from_stage?: string | null;
+  action_by?: string | null;
   comment: string | null;
   to_stage: string | null;
   created_at: string;
@@ -177,47 +188,6 @@ function availableBalanceForSubhead(subhead: AssignableSubhead | null) {
   );
 }
 
-function attachmentStatusClass(status: string | null | undefined) {
-  const s = (status || "").toLowerCase();
-
-  if (s === "verified") return "border-emerald-200 bg-emerald-50 text-emerald-700";
-  if (s === "rejected") return "border-red-200 bg-red-50 text-red-700";
-
-  return "border-amber-200 bg-amber-50 text-amber-800";
-}
-
-function attachmentStatusLabel(status: string | null | undefined) {
-  const s = (status || "").toLowerCase();
-
-  if (s === "verified") return "Verified Globally ✓";
-  if (s === "rejected") return "Rejected ✕";
-
-  return "Pending General Review";
-}
-
-function stageBadgeClass(stage: string | null | undefined) {
-  const s = stageKey(stage);
-
-  if (["COMPLETED", "PAID"].includes(s)) return "border-emerald-200 bg-emerald-50 text-emerald-700";
-  if (["REJECTED", "DELETED", "CANCELLED"].includes(s)) return "border-red-200 bg-red-50 text-red-700";
-  if (s === "ACCOUNT") return "border-purple-200 bg-purple-50 text-purple-700";
-  if (s === "DG") return "border-amber-200 bg-amber-50 text-amber-800";
-  if (s === "HR" || s === "HRFILING") return "border-pink-200 bg-pink-50 text-pink-700";
-  if (s === "DINADMIN") return "border-blue-200 bg-blue-50 text-blue-700";
-
-  if (["DOD", "HOD", "REGISTRAR", "PD"].includes(s)) {
-    return "border-emerald-200 bg-emerald-50 text-emerald-700";
-  }
-
-  return "border-slate-200 bg-white text-slate-700";
-}
-
-function roleDisplay(h: Hist) {
-  if (h.actor_role_name) return `as ${h.actor_role_name}`;
-  if (h.actor_role_key) return `as ${h.actor_role_key}`;
-  return "";
-}
-
 function primaryOrFirstRole(roles: ProfileRole[], fallbackRole?: string | null) {
   const active = roles.filter((r) => r.is_active);
 
@@ -282,6 +252,24 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
   const [pendingAction, setPendingAction] = useState<SensitiveAction | null>(null);
 
   const mfaAutoSubmittingRef = useRef(false);
+
+  // v4.1.2: route chain, department name, decision choice, subhead change
+  const [chain, setChain] = useState<ChainRow[]>([]);
+  const [deptName, setDeptName] = useState("");
+  const [decision, setDecision] = useState<"approve" | "reject">("approve");
+  const [changeSubTo, setChangeSubTo] = useState("");
+  const [canUseFingerprint, setCanUseFingerprint] = useState(false);
+
+  async function loadChain(requestId: string) {
+    const { data, error } = await supabase.rpc("reqgen_request_chain", { p_request_id: requestId });
+    setChain(error ? [] : ((data || []) as ChainRow[]));
+  }
+
+  async function loadDeptName(deptId: string | null | undefined) {
+    if (!deptId) { setDeptName(""); return; }
+    const { data } = await supabase.from("departments").select("name").eq("id", deptId).maybeSingle();
+    setDeptName(String((data as { name?: string | null } | null)?.name || ""));
+  }
 
   const activeRoleKeys = useMemo(() => {
     const keys = new Set<string>();
@@ -703,7 +691,7 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
     const { data: r, error: rErr } = await supabase
       .from("requests")
       .select(
-        "id,request_no,title,details,amount,status,current_stage,current_owner,created_by,dept_id,subhead_id,request_type,personal_category,funds_state,created_at,assigned_account_officer_id,assigned_account_officer_user_id,assigned_account_officer_name"
+        "id,request_no,title,details,amount,status,current_stage,current_owner,created_by,dept_id,subhead_id,request_type,personal_category,funds_state,created_at,updated_at,requester_name,assigned_account_officer_id,assigned_account_officer_user_id,assigned_account_officer_name"
       )
       .eq("id", id)
       .single();
@@ -736,7 +724,7 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
     const { data: h, error: hErr } = await supabase
       .from("request_history")
       .select(
-        "id,action_type,comment,to_stage,created_at,signature_url,actor_name,actor_role_key,actor_role_name"
+        "id,action_type,comment,from_stage,to_stage,created_at,signature_url,actor_name,actor_role_key,actor_role_name,action_by"
       )
       .eq("request_id", id)
       .order("created_at", { ascending: false });
@@ -748,6 +736,8 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
     }
 
     await loadAttachmentsAndChecks(id);
+    await Promise.all([loadChain(id), loadDeptName(requestRow.dept_id)]);
+    void fingerprintAvailable().then(setCanUseFingerprint);
 
     setLoading(false);
   }
@@ -770,7 +760,7 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
     const { data: r2 } = await supabase
       .from("requests")
       .select(
-        "id,request_no,title,details,amount,status,current_stage,current_owner,created_by,dept_id,subhead_id,request_type,personal_category,funds_state,created_at,assigned_account_officer_id,assigned_account_officer_user_id,assigned_account_officer_name"
+        "id,request_no,title,details,amount,status,current_stage,current_owner,created_by,dept_id,subhead_id,request_type,personal_category,funds_state,created_at,updated_at,requester_name,assigned_account_officer_id,assigned_account_officer_user_id,assigned_account_officer_name"
       )
       .eq("id", id)
       .single();
@@ -781,7 +771,7 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
     const { data: h2 } = await supabase
       .from("request_history")
       .select(
-        "id,action_type,comment,to_stage,created_at,signature_url,actor_name,actor_role_key,actor_role_name"
+        "id,action_type,comment,from_stage,to_stage,created_at,signature_url,actor_name,actor_role_key,actor_role_name,action_by"
       )
       .eq("request_id", id)
       .order("created_at", { ascending: false });
@@ -807,6 +797,7 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
     }
 
     await loadAttachmentsAndChecks(id);
+    await loadChain(id);
     router.refresh();
   }
 
@@ -1028,9 +1019,25 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
     const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
     const sessionIsAal2 = aal?.currentLevel === "aal2";
 
+    // v4.1.2 (Build Reference §10): the DG's signature + IET stamp and the
+    // Account Officer's payment always need a fresh fingerprint or 2FA code —
+    // never a passcode session alone. Other steps reuse the verified session.
+    const mustConfirmFresh = action === "Approve" && (isDgStage || isAccountStage);
+
+    if (mustConfirmFresh && canUseFingerprint) {
+      try {
+        await fingerprintStepUp();
+        await actAfterFresh2fa(action);
+        return;
+      } catch (e: unknown) {
+        const m = errorMessage(e);
+        if (!/no fingerprint/i.test(m)) { setMsg("✕ " + m + " You can use your 2FA code instead."); }
+      }
+    }
+
     // ReqGen already requires MFA for authenticated workspaces. Reuse that secure
     // AAL2 session for normal request work so users are not challenged repeatedly.
-    if (sessionIsAal2 || mfaVerified) {
+    if (!mustConfirmFresh && (sessionIsAal2 || mfaVerified)) {
       if (action === "Delete") {
         await deleteRequestAfterFresh2fa();
       } else {
@@ -1118,6 +1125,11 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
 
     try {
       if (action === "Approve") {
+        // v4.1.2: keep B/D, expenditure and C/D as this officer saw them, for the letter.
+        if (req.subhead_id && !isDgStage && !isAccountStage && !isHRFiling) {
+          const conf = await supabase.rpc("reqgen_confirm_request_budget", { p_request_id: req.id });
+          if (conf.error && !/could not find the function|schema cache/i.test(conf.error.message)) throw new Error(conf.error.message);
+        }
         const { data, error } = await supabase.rpc("approve_request_step", {
           p_request_id: req.id,
           p_actor_id: me.id,
@@ -1225,6 +1237,76 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
     } catch (e: unknown) { setMsg("✕ " + errorMessage(e)); } finally { setSaving(false); }
   }
 
+  async function confirmWithFingerprint() {
+    const action = pendingAction;
+    if (!action) return;
+    try {
+      await fingerprintStepUp();
+      setShowMfaModal(false);
+      setPendingAction(null);
+      if (action === "Delete") await deleteRequestAfterFresh2fa();
+      else await actAfterFresh2fa(action);
+    } catch (e: unknown) {
+      setMsg("✕ " + errorMessage(e));
+    }
+  }
+
+  // v4.1.2: reopen a withdrawn or rejected request (Build Reference §5)
+  async function reopenRequest() {
+    if (!req) return;
+    const reason = await promptDialog({
+      title: `Reopen ${req.request_no}?`,
+      message: "It goes back to the requester to correct and send again, along its original route. The reason is written in the history.",
+      label: "Why is it being reopened?",
+      confirmLabel: "Reopen",
+    });
+    if (!reason) return;
+    setSaving(true); setMsg(null);
+    try {
+      const { error } = await supabase.rpc("reqgen_reopen_request", { p_request_id: req.id, p_reason: reason });
+      if (error) throw new Error(error.message);
+      setMsg("✓ Reopened. The requester has been told and can correct it and send it again.");
+      await reload();
+      window.dispatchEvent(new Event(APPROVAL_QUEUE_CHANGED_EVENT));
+    } catch (e: unknown) { setMsg("✕ " + errorMessage(e)); } finally { setSaving(false); }
+  }
+
+  // v4.1.2: the approving officer confirms the subhead; changing it needs a reason
+  async function changeConfirmedSubhead() {
+    if (!req || !changeSubTo || changeSubTo === req.subhead_id) return;
+    const target = assignableSubheads.find((s) => s.id === changeSubTo);
+    const reason = await promptDialog({
+      title: "Change the subhead?",
+      message: `Move ${formatNaira(req.amount)} to ${target ? `${target.code ? `${target.code} — ` : ""}${target.name}` : "the chosen subhead"}. The fund is reserved there and released from the old one.`,
+      label: "Reason for the change",
+      confirmLabel: "Change subhead",
+    });
+    if (!reason) return;
+    setAssigningSubhead(true); setMsg(null);
+    try {
+      const { error } = await supabase.rpc("update_request_adjust_reservation", {
+        p_request_id: req.id,
+        p_new_subhead_id: changeSubTo,
+        p_new_amount: Number(req.amount || 0),
+        p_new_title: req.title,
+        p_new_details: req.details,
+      });
+      if (error) throw new Error(error.message);
+      await supabase.from("request_history").insert({
+        request_id: req.id,
+        action_type: "Subhead changed",
+        comment: `Subhead changed to ${target ? `${target.code ? `${target.code} — ` : ""}${target.name}` : "another subhead"}. Reason: ${reason}`,
+        from_stage: req.current_stage,
+        to_stage: req.current_stage,
+        actor_name: me?.full_name || null,
+        action_by: me?.id,
+      });
+      setChangeSubTo("");
+      setMsg("✓ Subhead changed and the fund reserved there.");
+      await reload();
+    } catch (e: unknown) { setMsg("✕ Subhead change failed: " + errorMessage(e)); } finally { setAssigningSubhead(false); }
+  }
+
   async function deleteRequestAfterFresh2fa() {
     if (!req) return;
 
@@ -1264,696 +1346,383 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
     }
   }
 
-  const approveButtonText = useMemo(() => {
-    if (saving || verifyingCode) return "Processing...";
-    if (needsSubheadAssignment) return "Assign Subhead First";
-    if (usesAutomaticAccountOfficerRouting) {
-      return "Approve & Send to Attached AccountOfficer";
-    }
-    if (isHRFiling) return "Complete HR Review";
-    if (isAccountStage && isPersonalFund) return "Treat / Pay & Send for HR Review";
-    if (isAccountStage) return "Treat / Pay";
-    if (stg === "DOD") return "Approve as DOD";
-    if (stg === "PD") return "Approve as PD";
-    if (stg === "REGISTRAR") return "Approve as Registrar";
-    if (stg === "DINADMIN") return "Approve as DIN Admin";
-    if (stg === "HOD") return "Approve as HOD";
-    if (stg === "HR") return "Approve as HR";
-    if (stg === "DG") return "Approve as DG";
 
-    return "Approve";
-  }, [
-    saving,
-    verifyingCode,
-    needsSubheadAssignment,
-    usesAutomaticAccountOfficerRouting,
-    isHRFiling,
-    isAccountStage,
-    isPersonalFund,
-    stg,
-  ]);
+  const balanceViewer = canSeeBudgetBalances(activeRoleKey || me?.role);
+  const currentFigures = useMemo(() => assignableSubheads.find((s) => s.id === req?.subhead_id) || null, [assignableSubheads, req?.subhead_id]);
+  const isClosedForReopen = !!req && (["CANCELLED", "REJECTED"].includes(stageKey(req.current_stage)) || /^(withdrawn|rejected)/i.test(String(req.status || "")));
+  const reopenRole = ["account", "accounts", "accountofficer", "auditor", "admin"].includes(roleKey(activeRoleKey));
+  const canReopen = isClosedForReopen && (isMyRequest || reopenRole);
 
-  if (loading) return <WorkflowLoading title="Loading request details and approval history..." />;
+  if (loading) return <V4Page><div className="v4-card v4-card-pad"><Skeleton lines={4} /></div><div className="v4-card"><Skeleton lines={6} /></div></V4Page>;
 
   // v3.0.2: Registry tracks request MOVEMENT only and never sees request content.
   if (roleKey(activeRoleKey) === "registry") {
     return (
-      <div className="rg-alert" role="alert">
-        <strong>Request contents are not available to the Registry role.</strong> Registry tracks request movement
-        only — use Registry → Request Tracking to see where this request is, who has acted on it and when. To open your
-        own requests, switch your working role to Staff.
-      </div>
+      <V4Page>
+        <Notice tone="amber" title="Request contents are not available to Registry.">
+          Registry follows where a request is, who acted and when — never its title, amount or balance. Use Registry › Request Tracking.
+          To open your own requests, switch “Acting as” to Staff.
+        </Notice>
+        <div><Link className="v4-btn v4-btn-secondary" href="/registry">Open Registry</Link></div>
+      </V4Page>
     );
   }
 
+  if (!req) {
+    return (
+      <V4Page>
+        {msg ? <Notice tone="red">{msg.replace(/^✕\s*/, "")}</Notice> : null}
+        <div className="v4-card v4-card-pad"><strong>Request not found.</strong> It may have been deleted, or it is not shared with you.</div>
+        <div><Link className="v4-btn v4-btn-secondary" href="/requests/mine">Back to My Requests</Link></div>
+      </V4Page>
+    );
+  }
+
+  const chip = statusChip(req.status, req.current_stage);
+  const isOpen = !["COMPLETED", "REJECTED", "CANCELLED", "DELETED"].includes(stageKey(req.current_stage));
+  const stageName = stageTitle(req.current_stage);
+  const headChip = canAct
+    ? { tone: "brand", text: `Your step: ${stageName}${isDgStage ? " · final approval" : ""}` }
+    : backWithMe
+      ? { tone: "red", text: "Sent back to you to correct" }
+      : isOpen
+        ? { tone: "amber", text: `${stageWords(req.current_stage)} · ${waitedFor(req.updated_at || req.created_at)}` }
+        : { tone: chip.tone, text: chip.label };
+  const amountWords = !isPersonalNonFund && Number(req.amount) > 0 ? nairaInWords(req.amount) : "";
+  const subText = subhead ? `${subhead.code ? `${subhead.code} — ` : ""}${subhead.name}` : isOfficial || isPersonalFund ? "To be confirmed by the officer" : "Not needed";
+  const requester = req.requester_name || (isMyRequest ? me?.full_name : "") || "Requester";
+  const submitRow = [...history].reverse().find((h) => String(h.action_type || "").toLowerCase() === "submit");
+  const nextStop = chain.find((c) => c.state === "wait" && c.owner_name) || chain.find((c) => c.state === "wait");
+  const lastApprover = [...history].find((h) => /^approv/i.test(String(h.action_type || "")) && h.action_by !== req.created_by);
+  const notice = msg ? { tone: (msg.startsWith("✕") ? "red" : "green") as "red" | "green", text: msg.replace(/^[✓✕]\s*/, "") } : null;
+  const actingLocked = saving || verifyingCode || assigningSubhead;
+  const attachmentsLocked = hasAttachments && !allAttachmentsCheckedByMe;
+  const fig = currentFigures;
+  const figAllocation = fig ? Number(fig.approved_allocation || 0) : 0;
+  const figExpenditure = fig ? Number(fig.expenditure || 0) : 0;
+  const figReservedAll = fig ? Number(fig.reserved_amount || 0) : 0;
+  const thisAmount = Number(req.amount || 0);
+  const mineReserved = /^reserved$/i.test(String(req.funds_state || "")) ? thisAmount : 0;
+  const figReservedOthers = Math.max(0, figReservedAll - mineReserved);
+  // Letter figures (Build Reference §5): B/D = what the subhead had before this request,
+  // EXPENDITURE = this request, C/D = what is left after it.
+  const figBD = figAllocation - figExpenditure - figReservedOthers;
+  const figCD = figBD - thisAmount;
+  const usedPct = figAllocation > 0 ? Math.min(100, Math.round(((figExpenditure + figReservedOthers + thisAmount) / figAllocation) * 100)) : 0;
+
+  const historyLook = (h: Hist) => {
+    const a = String(h.action_type || "").toLowerCase();
+    if (a === "submit") return { icon: "send", tone: "blue", text: `Submitted by ${h.action_by === me?.id ? "you" : h.actor_name || "the requester"}` };
+    if (a.startsWith("approv")) return { icon: "check", tone: "green", text: `Approved by ${h.actor_name || "officer"}${h.actor_role_name ? ` (${h.actor_role_name})` : ""}` };
+    if (a === "return") return { icon: "returned", tone: "amber", text: `Sent back by ${h.actor_name || "officer"}${h.actor_role_name ? ` (${h.actor_role_name})` : ""}` };
+    if (a.startsWith("reject")) return { icon: "x", tone: "red", text: `Rejected by ${h.actor_name || "officer"}` };
+    if (a === "withdraw") return { icon: "x", tone: "red", text: "Withdrawn by the requester" };
+    if (a === "reopen") return { icon: "returned", tone: "blue", text: `Reopened by ${h.actor_name || "officer"}${h.actor_role_name ? ` (${h.actor_role_name})` : ""}` };
+    if (a === "resubmit") return { icon: "send", tone: "blue", text: "Corrected and sent again" };
+    if (a.includes("attachment")) return { icon: "eye", tone: "blue", text: "Attachment checked" };
+    if (a.includes("subhead") || a === "edited") return { icon: "pen", tone: "amber", text: h.action_type === "Edited" ? "Edited" : "Subhead changed" };
+    if (/treat|paid|pay|complete/.test(a)) return { icon: "wallet", tone: "green", text: `${h.action_type} by ${h.actor_name || "Account"}` };
+    return { icon: "info", tone: "blue", text: `${h.action_type} · ${h.actor_name || ""}` };
+  };
+
+  const chainItems = [
+    submitRow
+      ? { key: "submit", cls: "v4-done", st: "1 · Submitted", who: submitRow.actor_name || requester, r: `Requester${deptName ? ` · ${deptName}` : ""}`, em: shortWhen(submitRow.created_at), ink: !!submitRow.signature_url }
+      : null,
+    ...chain.filter((c) => c.state !== "skipped").map((c, i) => {
+      const label = stageTitle(c.stage);
+      const isMeNow = c.state === "now" && canAct;
+      return {
+        key: `${c.stage}-${i}`,
+        cls: c.state === "done" ? "v4-done" : c.state === "now" ? "v4-now" : "v4-wait",
+        st: `${i + (submitRow ? 2 : 1)} · ${label}`,
+        who: c.state === "done" ? c.acted_by_name || c.owner_name || label : isMeNow ? "You" : c.owner_name || (stageKey(c.stage) === "ACCOUNT" ? req.assigned_account_officer_name || "Account Officer" : "Vacant — skipped"),
+        r: c.state === "done" ? c.acted_role || label : c.state === "now" ? (stageKey(c.stage) === "DG" ? "Sign + IET stamp" : `Waiting · ${waitedFor(req.updated_at || req.created_at)}`) : stageKey(c.stage) === "ACCOUNT" ? "Releases the fund" : stageKey(c.stage) === "DG" ? "Sign + IET stamp" : "",
+        em: c.state === "done" ? shortWhen(c.acted_at) : "",
+        ink: c.state === "done" && c.signed,
+      };
+    }),
+  ].filter(Boolean) as Array<{ key: string; cls: string; st: string; who: string; r: string; em: string; ink: boolean }>;
+
   return (
-    <main className={`${styles.page} req-family-page`}>
-      <WorkflowPageStyles />
-      <div className={`${styles.inner} req-family-inner`}>
-        <header className={`${styles.hero} req-family-head`}>
+    <V4Page className="v4-reqrec">
+      {embedded ? <div><button type="button" className="v4-btn v4-btn-ghost" onClick={() => onClose?.()}><Icon name="left" />Close</button></div> : null}
+
+      <section className="v4-card v4-card-pad">
+        <div className="v4-rec">
           <div>
-            <span className="req-family-eyebrow">Request Details</span>
-            <h1>{req?.title || "Request Details"}</h1>
-            <p>Review the request, workflow position, supporting records and actions available to your current role.</p>
-            <div className="req-family-meta">Request <b>{req?.request_no || "—"}</b> · Current stage: <b>{req?.current_stage || "—"}</b> · Status: <b>{req?.status || "—"}</b></div>
+            <span className={`v4-chip v4-chip-${headChip.tone}`}><Icon name={canAct ? "pen" : isOpen ? "clock" : "check"} size="sm" />{headChip.text}</span>
+            <h1 className="v4-page-title" style={{ marginTop: 8 }}>{req.request_no} · {req.title}</h1>
+            <div className="v4-meta">
+              {!isMyRequest ? <span>From <b>{requester}</b></span> : null}
+              <span>Type <b>{requestTypeLabel(req)}</b></span>
+              {deptName ? <span>Department <b>{deptName}</b></span> : null}
+              {isOfficial || isPersonalFund ? <span>Subhead <b>{subText}</b></span> : null}
+              <span>Submitted <b>{new Date(req.created_at).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}</b></span>
+            </div>
           </div>
-          <div className={styles.heroActions}>
-            <button type="button" className={styles.secondaryAction} onClick={() => embedded ? onClose?.() : router.push(canAct ? "/approvals/inbox" : "/requests/mine")}>
-              {embedded ? "Close" : canAct ? "Back to Approvals" : "Back to Requests"}
-            </button>
-            {req && canEditRequest ? <button type="button" className={styles.secondaryAction} onClick={() => router.push(`/requests/${req.id}/edit`)}>Edit Request</button> : null}
-            {req ? <button type="button" className={styles.primaryAction} onClick={() => router.push(`/requests/${req.id}/print`)}>Print Request</button> : null}
+          <div className="v4-right">
+            <div className="v4-label">Amount</div>
+            <div className="v4-amount-big">{isPersonalNonFund ? "—" : nairaExact(req.amount)}</div>
+            {amountWords ? <span className="v4-help" style={{ fontSize: 12.5, color: "var(--v4-muted)" }}>{amountWords}</span> : null}
+            <div className="v4-btns">
+              {canWithdraw && !canAct ? <button className="v4-btn v4-btn-secondary" type="button" onClick={() => void withdrawMine()} disabled={actingLocked}><Icon name="x" />Withdraw</button> : null}
+              {canEditRequest ? <button className="v4-btn v4-btn-secondary" type="button" onClick={goToEdit} disabled={actingLocked}><Icon name="pen" />Edit</button> : null}
+              {canDeleteRequest ? <button className="v4-btn v4-btn-secondary" type="button" style={{ color: "var(--v4-red)" }} onClick={() => openFresh2faModal("Delete")} disabled={actingLocked}>Delete</button> : null}
+              {canReopen ? <button className="v4-btn v4-btn-secondary" type="button" onClick={() => void reopenRequest()} disabled={actingLocked}><Icon name="returned" />Reopen</button> : null}
+              <Link className="v4-btn v4-btn-secondary" href={`/requests/${req.id}/print`}><Icon name="printer" />Print</Link>
+            </div>
           </div>
-        </header>
-
-        <section className={`${styles.summaryGrid} req-family-summary-grid`} aria-label="Request summary">
-          <div><small>Request No.</small><strong>{req?.request_no || "—"}</strong></div>
-          <div><small>Current Stage</small><strong>{req?.current_stage || "—"}</strong></div>
-          <div><small>Status</small><strong>{req?.status || "—"}</strong></div>
-          <div><small>Amount</small><strong>{req?.amount ? `₦${Number(req.amount).toLocaleString()}` : "Not Applicable"}</strong></div>
-        </section>
-
-        <div
-          className={`mt-4 rounded-2xl border px-4 py-3 text-sm font-semibold ${mfaVerified
-            ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-            : "border-amber-200 bg-amber-50 text-amber-900"
-            }`}
-        >
-          {mfaVerified
-            ? "✓ Secure 2FA session verified. Normal request actions will not ask for another code unless the secure session expires."
-            : "⚠︎ This secure session needs 2FA verification before sensitive request actions."}
         </div>
+      </section>
 
-        {isOfficial && ["PD", "DOD", "DINADMIN", "REGISTRAR", "HOD"].includes(stg) && (
-          <div className="mt-4 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-900">
-            Official routing is active. This request will continue through the configured department chain until DG and AccountOfficer.
+      {notice ? <Notice tone={notice.tone}>{notice.text}</Notice> : null}
+
+      {backWithMe && !canAct ? (
+        <section className="v4-action-card v4-card-pad">
+          <h2 className="v4-h2" style={{ marginBottom: 4 }}>{lastReturn && String(lastReturn.action_type).toLowerCase() === "return" ? "This request was sent back to you" : "This request was reopened"}</h2>
+          {lastReturn ? <p className="v4-help" style={{ margin: "0 0 14px" }}>“{lastReturn.comment}” — {lastReturn.actor_name || "Officer"}{lastReturn.actor_role_name ? `, ${lastReturn.actor_role_name}` : ""}</p> : null}
+          <div className="v4-form-actions" style={{ borderTop: 0, paddingTop: 0, justifyContent: "flex-start" }}>
+            <Link className="v4-btn v4-btn-primary" href={`/requests/${req.id}/edit`}><Icon name="pen" />Correct the request</Link>
+            <button type="button" className="v4-btn v4-btn-secondary" onClick={() => void resubmitReturned()} disabled={saving}><Icon name="send" />Send it again as it is</button>
+            <button type="button" className="v4-btn v4-btn-ghost" style={{ color: "var(--v4-red)" }} onClick={() => void withdrawMine()} disabled={saving}>Withdraw</button>
           </div>
-        )}
+        </section>
+      ) : null}
 
-        {isPersonal && (
-          <div className="mt-4 rounded-2xl border border-purple-200 bg-purple-50 px-4 py-3 text-sm font-semibold text-purple-900">
-            Personal request workflow is active.
-            {isPersonalFund
-              ? " This Personal Fund request uses HR review where required, then DG and Account processing."
-              : " This Personal request uses HR review where required, then moves to DG for final decision."}
-          </div>
-        )}
+      {canAct ? (
+        <section className="v4-action-card v4-card-pad">
+          <h2 className="v4-h2" style={{ marginBottom: 4 }}>{isAccountStage ? "Treat this request" : isHRFiling ? "HR review and filing" : "Your decision"}</h2>
+          <p className="v4-help" style={{ margin: "0 0 14px" }}>
+            {isDgStage
+              ? <>Approving puts your signature <b>and the IET stamp</b> on the letter in one step{req.assigned_account_officer_name ? <>, then sends it to Account ({req.assigned_account_officer_name}) to release the fund</> : null}.</>
+              : isAccountStage
+                ? isPersonalFund ? "Record the payment; the request then goes to HR for filing." : "Record that the fund has been released. Your signature is added."
+                : "Your saved signature is added. The requester and the next officer are told at once."}
+          </p>
 
-        {needsSubheadAssignment && (
-          <div className="mt-4 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-900">
-            ⚠︎ This Official request has no subhead yet. The current Director, DIN Admin, HOD, Registrar or HR workflow authority must assign a subhead and reserve funds before the request can proceed to DG.
-          </div>
-        )}
-
-        {hasAttachments && !allAttachmentsCheckedByMe && canAct && (
-          <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900">
-            ⚠︎ You still have {myPendingAttachments.length} attachment(s) unchecked. You must open
-            and check every attachment personally before approving or rejecting.
-          </div>
-        )}
-
-        {hasAttachments && allAttachmentsCheckedByMe && canAct && (
-          <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">
-            ✓ You have personally checked all attachments for your own approval stage.
-          </div>
-        )}
-
-        {msg && (
-          <div className={`reqgen-action-toast ${msg.startsWith("✕") ? "is-error" : "is-success"}`} role="status" aria-live="polite">
-            <div>{msg}</div>
-            <button type="button" onClick={() => setMsg(null)} aria-label="Dismiss notification">×</button>
-          </div>
-        )}
-
-        {!req ? (
-          <div className="mt-6 rounded-2xl border bg-white p-6 text-slate-700 shadow-sm">
-            Request not found.
-          </div>
-        ) : (
-          <>
-            <div className="mt-6 rounded-2xl border bg-white p-6 shadow-sm">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <div className="text-sm text-slate-600">Request No</div>
-                  <div className="text-lg font-extrabold text-slate-900">{req.request_no}</div>
-                </div>
-              </div>
-
-              <div className="mt-6">
-                <RequestProgress
-                  stage={req.current_stage}
-                  status={req.status}
-                  requestType={req.request_type}
-                  personalCategory={req.personal_category}
-                />
-              </div>
-
-              <div className="mt-5 grid gap-4 md:grid-cols-2">
-                <Info label="Title" value={req.title} />
-                <Info
-                  label="Amount (₦)"
-                  value={isPersonalNonFund ? "Not Applicable" : Number(req.amount || 0).toLocaleString()}
-                />
-              </div>
-
-              <div className="mt-4 grid gap-4 md:grid-cols-2">
-                <Info label="Type" value={requestTypeLabel(req)} />
-                <Info
-                  label="Subhead"
-                  value={
-                    isOfficial || isPersonalFund
-                      ? subhead
-                        ? `${subhead.code ? `${subhead.code} — ` : ""}${subhead.name}`
-                        : "Pending workflow assignment"
-                      : "Not Applicable"
-                  }
-                />
-              </div>
-
-              <div className="mt-4 grid gap-4 md:grid-cols-2">
-                <Info label="Funds State" value={req.funds_state || "—"} />
-                <Info label="Request Date" value={new Date(req.created_at).toLocaleString()} />
-              </div>
-
-              {!isHRContext && req.assigned_account_officer_name && (
-                <div className="mt-4">
-                  <Info label="Automatically Attached Account Officer" value={req.assigned_account_officer_name ? nameWithRole(req.assigned_account_officer_name, "accountofficer") : "—"} />
-                </div>
-              )}
-
-              <div className="mt-5">
-                <div className="text-xs font-semibold text-slate-500">Details</div>
-                <div className="mt-2 whitespace-pre-wrap rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-800">
-                  {req.details}
-                </div>
-              </div>
-
-              {(canEditRequest || canDeleteRequest) && (
-                <div className="mt-5 flex flex-col gap-2 sm:flex-row">
-                  {canEditRequest && (
-                    <button
-                      onClick={goToEdit}
-                      disabled={saving || verifyingCode || assigningSubhead}
-                      className="reqgen-btn reqgen-btn-rose w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
-                    >
-                      Edit
-                    </button>
-                  )}
-
-                  {canDeleteRequest && (
-                    <button
-                      onClick={() => openFresh2faModal("Delete")}
-                      disabled={saving || verifyingCode || assigningSubhead}
-                      className="reqgen-btn reqgen-btn-rose w-full rounded-xl bg-red-600 px-4 py-3 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-60"
-                    >
-                      {saving || verifyingCode ? "Working..." : "Delete"}
-                    </button>
-                  )}
-                </div>
-              )}
-
-              {!canEditRequest && !canDeleteRequest && isMyRequest && (
-                <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
-                  Edit/Delete is locked once the request leaves the allowed early stage.
-                </div>
-              )}
+          {!isAccountStage && !isHRFiling ? (
+            <div className="v4-decide" role="radiogroup" aria-label="Decision" style={{ gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}>
+              <label className="v4-ok"><input type="radio" name="rg-decision" checked={decision === "approve"} onChange={() => setDecision("approve")} />
+                <span><strong>{isDgStage ? "Approve, sign and stamp" : "Approve"}</strong>
+                  <span>{isDgStage ? "Send to Account to release the fund" : nextStop ? `Send to the ${stageTitle(nextStop.stage)}${nextStop.owner_name ? ` (${nextStop.owner_name})` : ""}` : "Send to the next officer"}</span></span></label>
+              <label className="v4-no"><input type="radio" name="rg-decision" checked={decision === "reject"} onChange={() => setDecision("reject")} />
+                <span><strong>Reject</strong>
+                  <span>{isDgStage && lastApprover ? `Back to ${lastApprover.actor_name || "the previous officer"}${lastApprover.actor_role_name ? ` (${lastApprover.actor_role_name})` : ""} with your reason. They correct and send it back to you, or send it to the requester.` : `Back to ${requester} with your reason, to correct and resubmit`}</span></span></label>
             </div>
+          ) : null}
 
-            {needsSubheadAssignment && (
-              <div className="mt-6 rounded-2xl border border-blue-200 bg-white p-6 shadow-sm">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <h2 className="text-lg font-extrabold text-slate-900">
-                      {isPersonalFund ? "HR Funding Recommendation" : "Budget Subhead Assignment"}
-                    </h2>
-                    <p className="mt-1 text-sm text-slate-600">
-                      {isPersonalFund
-                        ? "Select an appropriate subhead and confirm that sufficient balance is available before forwarding the Personal Fund request to DG."
-                        : "This Official request has no budget line yet. Select the correct subhead and reserve funds before approving."}
-                    </p>
-                  </div>
-
-                  <span className="rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-black text-blue-800">
-                    Required Before Approval
-                  </span>
-                </div>
-
-                {!canAssignSubhead ? (
-                  <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
-                    View only. Subheads can be assigned only by the current Director, DIN Admin, HOD, Registrar or HR workflow authority. DG and oversight roles cannot assign subheads.
-                  </div>
-                ) : (
-                  <>
-                    <div className="mt-4">
-                      <label className="text-sm font-semibold text-slate-800">
-                        {isPersonalFund ? "Select Recommended Subhead" : "Select Subhead / Budget Line"}
-                      </label>
-                      <select
-                        value={selectedSubheadId}
-                        onChange={(e) => setSelectedSubheadId(e.target.value)}
-                        className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-slate-900 outline-none focus:border-blue-500"
-                      >
-                        <option value="">-- Select Subhead --</option>
-                        {assignableSubheads.map((s) => (
-                          <option key={s.id} value={s.id}>
-                            {(s.code ? `${s.code} — ` : "") + s.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    {selectedAssignableSubhead && (
-                      <div className="mt-4 grid gap-3 sm:grid-cols-4">
-                        <FinanceBox label="Allocation" value={formatNaira(selectedAssignableSubhead.approved_allocation)} />
-                        <FinanceBox label="Reserved" value={formatNaira(selectedAssignableSubhead.reserved_amount)} tone="amber" />
-                        <FinanceBox label="Expenditure" value={formatNaira(selectedAssignableSubhead.expenditure)} tone="red" />
-                        <FinanceBox
-                          label="Available"
-                          value={formatNaira(selectedSubheadAvailableBalance)}
-                          tone={selectedSubheadCanCoverAmount ? "emerald" : "red"}
-                        />
-                      </div>
-                    )}
-
-                    {selectedAssignableSubhead && !selectedSubheadCanCoverAmount && (
-                      <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-800">
-                        ✕ This subhead cannot cover the request amount. Available:{" "}
-                        {formatNaira(selectedSubheadAvailableBalance)}. Required:{" "}
-                        {formatNaira(req.amount)}.
-                      </div>
-                    )}
-
-                    {selectedAssignableSubhead && selectedSubheadCanCoverAmount && (
-                      <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-800">
-                        ✓ This subhead can cover the request amount of {formatNaira(req.amount)}.
-                      </div>
-                    )}
-
-                    <button
-                      type="button"
-                      onClick={assignSubheadAndReserve}
-                      disabled={
-                        assigningSubhead ||
-                        saving ||
-                        verifyingCode ||
-                        !selectedSubheadId ||
-                        !selectedSubheadCanCoverAmount
-                      }
-                      className="reqgen-btn reqgen-btn-rose mt-4 w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-black text-white hover:bg-blue-700 disabled:opacity-60"
-                    >
-                      {assigningSubhead
-                        ? "Assigning & Reserving..."
-                        : isPersonalFund
-                          ? "Recommend Subhead & Reserve Funds"
-                          : "Assign Subhead & Reserve Funds"}
-                    </button>
-                  </>
-                )}
-              </div>
-            )}
-
-            <div className="mt-6 rounded-2xl border bg-white p-6 shadow-sm">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <h2 className="text-lg font-bold text-slate-900">Supporting Attachments</h2>
-                  <p className="mt-1 text-sm text-slate-600">
-                    Every approving officer must personally open and check all attachments before
-                    approving or rejecting.
-                  </p>
-                </div>
-
-                <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-700">
-                  {attachments.length} file(s)
-                </span>
-              </div>
-
-              {attachments.length === 0 ? (
-                <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
-                  No attachment was uploaded for this request.
-                </div>
-              ) : (
-                <div className="mt-4 space-y-3">
-                  {attachments.map((a, index) => {
-                    const checkedByMe = isAttachmentCheckedByMe(a.id);
-                    const totalChecks = attachmentCheckCount(a.id);
-
-                    return (
-                      <div key={a.id} className="rounded-2xl border bg-white p-4 shadow-sm">
-                        <div className="flex flex-wrap items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <div className="text-sm font-extrabold text-slate-900">
-                              {index + 1}. {a.file_name}
-                            </div>
-                            <div className="mt-1 text-xs font-semibold text-slate-500">
-                              {a.file_type || "Unknown type"} • {fileSizeLabel(a.file_size)}
-                            </div>
-                            <div className="mt-1 text-xs font-semibold text-slate-500">
-                              Total officer checks: {totalChecks}
-                            </div>
-                          </div>
-
-                          <div className="flex flex-col items-end gap-2">
-                            <span
-                              className={`rounded-full border px-3 py-1 text-xs font-bold ${attachmentStatusClass(
-                                a.verification_status
-                              )}`}
-                            >
-                              {attachmentStatusLabel(a.verification_status)}
-                            </span>
-
-                            <span
-                              className={`rounded-full border px-3 py-1 text-xs font-bold ${checkedByMe
-                                ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                                : "border-amber-200 bg-amber-50 text-amber-800"
-                                }`}
-                            >
-                              {checkedByMe ? "Checked By You ✓" : "Not Checked By You"}
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-                          {a.signed_url ? (
-                            <a
-                              href={a.signed_url}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-center text-sm font-bold text-slate-900 hover:bg-slate-100 sm:w-auto"
-                            >
-                              Open Attachment
-                            </a>
-                          ) : (
-                            <button
-                              type="button"
-                              disabled
-                              className="reqgen-btn reqgen-btn-rose w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-400 sm:w-auto"
-                            >
-                              File Link Unavailable
-                            </button>
-                          )}
-
-                          {canCheckAttachments && !checkedByMe && (
-                            <button
-                              type="button"
-                              onClick={() => checkAttachmentPersonally(a)}
-                              disabled={checkingAttachmentId === a.id}
-                              className="reqgen-btn reqgen-btn-rose w-full rounded-xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white hover:bg-emerald-700 disabled:opacity-60 sm:w-auto"
-                            >
-                              {checkingAttachmentId === a.id ? "Checking..." : "I Have Checked This ✓"}
-                            </button>
-                          )}
-
-                          {canCheckAttachments && checkedByMe && (
-                            <button
-                              type="button"
-                              disabled
-                              className="reqgen-btn reqgen-btn-rose w-full rounded-xl bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-700 sm:w-auto"
-                            >
-                              Checked By You ✓
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-
-            <div className="mt-6 rounded-2xl border bg-white p-6 shadow-sm">
-              <h2 className="text-lg font-bold text-slate-900">Actions</h2>
-              <p className="mt-1 text-sm text-slate-600">
-                Only the assigned officer can approve or reject. Your verified secure session is reused while active; a new 2FA code is requested only after that secure session expires.
-              </p>
-
-              {!canAct && backWithMe ? (
-                <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
-                  <p className="font-bold">This request was sent back to you to correct.</p>
-                  {lastReturn ? <p className="mt-1">“{lastReturn.comment}” — {lastReturn.actor_name || "Officer"}{lastReturn.actor_role_name ? `, ${lastReturn.actor_role_name}` : ""}</p> : null}
-                  <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-                    <button type="button" className="reqgen-btn w-full rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white" onClick={() => router.push(`/requests/${req.id}/edit`)} disabled={saving}>Correct the request</button>
-                    <button type="button" className="reqgen-btn w-full rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white" onClick={() => void resubmitReturned()} disabled={saving}>Send it back corrected</button>
-                    <button type="button" className="reqgen-btn w-full rounded-xl border border-red-300 bg-white px-4 py-3 text-sm font-semibold text-red-700" onClick={() => void withdrawMine()} disabled={saving}>Withdraw</button>
-                  </div>
-                </div>
-              ) : !canAct ? (
-                <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
-                  View only.
-                  {canWithdraw ? (
-                    <div className="mt-3"><button type="button" className="reqgen-btn rounded-xl border border-red-300 bg-white px-4 py-2 text-sm font-semibold text-red-700" onClick={() => void withdrawMine()} disabled={saving}>Withdraw this request</button></div>
-                  ) : null}
-                </div>
-              ) : (
+          {needsSubheadAssignment ? (
+            <div className="v4-subconfirm">
+              {canAssignSubhead ? (
                 <>
-                  {needsSubheadAssignment && (
-                    <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm font-semibold text-blue-900">
-                      Approval is locked until a subhead is assigned and funds are reserved.
+                  <div className="v4-subconfirm-row">
+                    <div className="v4-field" style={{ flex: "1 1 260px" }}>
+                      <label className="v4-flabel" htmlFor="rq-assign-sub" style={{ fontSize: 13, fontWeight: 700 }}>{isPersonalFund ? "Recommend a subhead" : "Choose the subhead"} <span className="v4-req">*</span></label>
+                      <Select id="rq-assign-sub" value={selectedSubheadId} onChange={setSelectedSubheadId} placeholder="Choose the subhead"
+                        options={assignableSubheads.map((s) => ({ value: s.id, label: `${s.code ? `${s.code} — ` : ""}${s.name}`, hint: `Available ${formatNaira(availableBalanceForSubhead(s))}` }))} menuMinWidth={300} />
+                      <span className="v4-help">The request has no subhead yet. The fund is reserved when you assign it.</span>
                     </div>
-                  )}
-
-                  {hasAttachments && !allAttachmentsCheckedByMe && (
-                    <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-                      Approval/Rejection is locked until you personally check every attachment above.
-                    </div>
-                  )}
-
-                  {usesAutomaticAccountOfficerRouting && (
-                    <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
-                      <div className="text-sm font-extrabold text-emerald-900">
-                        AccountOfficer Attached Automatically
+                    {selectedAssignableSubhead ? (
+                      <div className="v4-balbox" style={{ flex: "1 1 300px" }}>
+                        <div><span>ALLOCATION B/D:</span><span>{nairaExact(selectedSubheadAvailableBalance)}</span></div>
+                        <div><span>EXPENDITURE:</span><span>{nairaExact(req.amount)}</span></div>
+                        <div><span>BALANCE C/D:</span><span>{nairaExact(selectedSubheadAvailableBalance - Number(req.amount || 0))}</span></div>
                       </div>
-                      <div className="mt-2 rounded-lg border border-emerald-200 bg-white px-3 py-2">
-                        <div className="text-xs font-bold uppercase tracking-wide text-emerald-700">
-                          Assigned AccountOfficer
-                        </div>
-                        <div className="mt-1 text-sm font-extrabold text-slate-900">
-                          {req.assigned_account_officer_name ? nameWithRole(req.assigned_account_officer_name, "accountofficer") : "Not configured"}
-                        </div>
-                      </div>
-                      <p className="mt-2 text-sm font-semibold leading-6 text-emerald-800">
-                        This officer was resolved from the selected subhead&apos;s linked IET bank
-                        account. DG only approves or rejects; no manual officer selection is used.
-                      </p>
-                    </div>
-                  )}
-
-                  {isHRFiling && (
-                    <div className="mt-4 rounded-xl border border-purple-200 bg-purple-50 p-4 text-sm text-purple-900">
-                      HR Filing stage: review the treated/approved Personal request and complete it for filing.
-                    </div>
-                  )}
-
-                  {isAccountStage && isPersonalFund && (
-                    <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
-                      Personal Fund payment stage: after treatment/payment, the request will return to HR for final filing.
-                    </div>
-                  )}
-
-                  <div className="mt-4">
-                    <label className="text-sm font-semibold text-slate-800">
-                      Comment{" "}
-                      {usesAutomaticAccountOfficerRouting || isHRFiling
-                        ? "(optional, but recommended)"
-                        : "(required to reject and send back)"}
-                    </label>
-                    <textarea
-                      value={comment}
-                      onChange={(e) => setComment(e.target.value)}
-                      className="mt-1 min-h-[90px] w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900 outline-none focus:border-blue-500"
-                      placeholder="Write your comment..."
-                    />
+                    ) : null}
                   </div>
-
-                  <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-                    <button
-                      onClick={() => openFresh2faModal("Approve")}
-                      disabled={
-                        saving ||
-                        verifyingCode ||
-                        assigningSubhead ||
-                        needsSubheadAssignment ||
-                        (hasAttachments && !allAttachmentsCheckedByMe)
-                      }
-                      className="reqgen-btn reqgen-btn-rose w-full rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 disabled:opacity-60"
-                    >
-                      {approveButtonText}
-                    </button>
-
-                    <button
-                      onClick={() => openFresh2faModal("Reject")}
-                      disabled={
-                        saving ||
-                        verifyingCode ||
-                        assigningSubhead ||
-                        (hasAttachments && !allAttachmentsCheckedByMe)
-                      }
-                      className="reqgen-btn reqgen-btn-rose w-full rounded-xl bg-red-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-red-700 disabled:opacity-60"
-                    >
-                      {saving || verifyingCode ? "Processing..." : "Reject and send back"}
-                    </button>
-                  </div>
+                  {selectedAssignableSubhead && !selectedSubheadCanCoverAmount ? <p className="v4-error" style={{ margin: "10px 0 0" }}>This subhead cannot cover {formatNaira(req.amount)}.</p> : null}
+                  <div style={{ marginTop: 12 }}><button type="button" className="v4-btn v4-btn-secondary" onClick={() => void assignSubheadAndReserve()} disabled={actingLocked || !selectedSubheadId || !selectedSubheadCanCoverAmount}>
+                    {assigningSubhead ? "Reserving…" : isPersonalFund ? "Recommend and reserve" : "Assign and reserve the fund"}</button></div>
                 </>
-              )}
+              ) : <p className="v4-help" style={{ margin: 0 }}>This request has no subhead yet. Only the officer at the department step (DOD, DIN Admin, HOD, Registrar or HR) assigns it.</p>}
             </div>
-
-            <div className="mt-6 rounded-2xl border bg-white p-6 shadow-sm">
-              <h2 className="text-lg font-bold text-slate-900">History</h2>
-              <p className="mt-1 text-sm text-slate-600">
-                All actions, comments, signatures, exact role used and individual attachment checks are recorded.
-              </p>
-
-              {history.length === 0 ? (
-                <div className="mt-4 text-sm text-slate-700">No history yet.</div>
-              ) : (
-                <div className="mt-4 space-y-3">
-                  {history.map((h) => (
-                    <div key={h.id} className="rounded-xl border border-slate-200 bg-white p-4">
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div className="text-sm font-bold text-slate-900">
-                          {h.actor_name || "Officer"} • {h.action_type}
-                          {roleDisplay(h) && (
-                            <span className="ml-2 rounded-full border border-blue-200 bg-blue-50 px-2 py-1 text-xs font-black text-blue-700">
-                              {roleDisplay(h)}
-                            </span>
-                          )}
-                        </div>
-                        {h.to_stage && <StageBadge stage={h.to_stage} />}
-                      </div>
-
-                      {h.comment && (
-                        <div className="mt-2 whitespace-pre-wrap text-sm text-slate-800">
-                          {h.comment}
-                        </div>
-                      )}
-
-                      <div className="mt-2 text-xs text-slate-500">
-                        {new Date(h.created_at).toLocaleString()}
-                        {h.signature_url ? " • Signed ✓" : " • Signature missing ⚠︎"}
-                      </div>
-                    </div>
-                  ))}
+          ) : (isOfficial || isPersonalFund) && subhead && balanceViewer && !isAccountStage && !isHRFiling ? (
+            <div className="v4-subconfirm">
+              <div className="v4-subconfirm-row">
+                <div className="v4-field" style={{ flex: "1 1 260px" }}>
+                  <label className="v4-flabel" htmlFor="rq-confirm-sub" style={{ fontSize: 13, fontWeight: 700 }}>Confirm subhead</label>
+                  <Select id="rq-confirm-sub" value={changeSubTo || req.subhead_id || ""} onChange={setChangeSubTo} menuMinWidth={300}
+                    options={assignableSubheads.map((s) => ({ value: s.id, label: `${s.code ? `${s.code} — ` : ""}${s.name}${s.id === req.subhead_id ? ` (chosen by ${requester.split(" ")[0]})` : ""}`, hint: `Available ${formatNaira(availableBalanceForSubhead(s))}` }))} />
+                  <span className="v4-help">Change it if the requester chose the wrong one. A change needs a reason.</span>
                 </div>
-              )}
+                {fig ? (
+                  <div className="v4-balbox" style={{ flex: "1 1 300px" }}>
+                    <div><span>ALLOCATION B/D:</span><span>{nairaExact(figBD)}</span></div>
+                    <div><span>EXPENDITURE:</span><span>{nairaExact(thisAmount)}</span></div>
+                    <div><span>BALANCE C/D:</span><span>{nairaExact(figCD)}</span></div>
+                  </div>
+                ) : null}
+              </div>
+              {changeSubTo && changeSubTo !== req.subhead_id ? (
+                <div style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  <button type="button" className="v4-btn v4-btn-secondary" onClick={() => void changeConfirmedSubhead()} disabled={actingLocked}>{assigningSubhead ? "Changing…" : "Change subhead…"}</button>
+                  <button type="button" className="v4-btn v4-btn-ghost" onClick={() => setChangeSubTo("")}>Keep the requester’s choice</button>
+                </div>
+              ) : null}
+              <p className="v4-help" style={{ margin: "10px 0 0" }}><Icon name="lock" size="sm" /> These three figures are written on the request letter with your signature. The requester never sees the subhead balance.</p>
             </div>
-          </>
-        )}
+          ) : null}
+
+          {isDgStage && decision === "approve" ? (
+            <div className="v4-stamp-preview" style={{ marginTop: 16 }}>
+              <div className="v4-demo">
+                {me?.signature_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={me.signature_url} alt="Your signature" style={{ position: "absolute", left: 18, bottom: 4, maxWidth: 140, maxHeight: 44, objectFit: "contain" }} />
+                ) : null}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img className="v4-iet-stamp" src="/v4/iet-stamp.png" alt="IET stamp" />
+              </div>
+              <div><strong>What goes on the letter</strong><span>Your signature on “Approved by Director General, IET”, with the blue IET stamp placed just beside it. Your signature stays visible, and nothing on the letter moves.</span></div>
+            </div>
+          ) : null}
+
+          {usesAutomaticAccountOfficerRouting && decision === "approve" && !isDgStage ? (
+            <Notice tone="green">Account Officer: {req.assigned_account_officer_name ? nameWithRole(req.assigned_account_officer_name, "accountofficer") : "set from the subhead"}.</Notice>
+          ) : null}
+
+          <label className="v4-field" style={{ marginTop: 14 }}>
+            <span className="v4-flabel">Comment <span className="v4-muted" style={{ fontWeight: 600 }}>{decision === "reject" ? "(the reason — required)" : "(optional)"}</span></span>
+            <input className="v4-input" value={comment} onChange={(e) => setComment(e.target.value)} placeholder={decision === "reject" ? "e.g. Attach the quotation and resubmit" : isDgStage ? "e.g. Approved" : "e.g. Approved — within the budget"} />
+          </label>
+
+          {attachmentsLocked ? <Notice tone="amber">Open and tick every attachment below before you decide ({myPendingAttachments.length} left).</Notice> : null}
+          {needsSubheadAssignment && decision === "approve" ? <Notice tone="blue">Assign the subhead first; approval unlocks once the fund is reserved.</Notice> : null}
+
+          <div className="v4-form-actions" style={{ marginTop: 16 }}>
+            <Link className="v4-btn v4-btn-ghost" href={embedded ? "#" : "/approvals/inbox"} onClick={(e) => { if (embedded) { e.preventDefault(); onClose?.(); } }}>Back to the list</Link>
+            {isDgStage ? <Link className="v4-btn v4-btn-secondary" href={`/requests/${req.id}/print`}><Icon name="eye" />Preview letter</Link> : null}
+            {decision === "reject" && !isAccountStage && !isHRFiling ? (
+              <button type="button" className="v4-btn v4-btn-danger v4-btn-lg" onClick={() => openFresh2faModal("Reject")} disabled={actingLocked || attachmentsLocked || comment.trim().length < 3}>
+                <Icon name="returned" />{saving || verifyingCode ? "Working…" : "Reject and send back"}</button>
+            ) : (
+              <button type="button" className="v4-btn v4-btn-primary v4-btn-lg" onClick={() => openFresh2faModal("Approve")} disabled={actingLocked || attachmentsLocked || needsSubheadAssignment}>
+                <Icon name={isDgStage ? "shield" : isAccountStage ? "wallet" : "pentool"} />
+                {saving || verifyingCode ? "Working…" : isDgStage ? "Approve, sign and stamp" : isAccountStage ? (isPersonalFund ? "Record payment and send to HR" : "Record that the fund is released") : isHRFiling ? "Complete HR review" : "Sign and approve"}
+              </button>
+            )}
+          </div>
+          {(isDgStage || isAccountStage) && decision === "approve" ? <p className="v4-help" style={{ margin: "8px 0 0", textAlign: "right" }}><Icon name="fingerprint" size="sm" /> You confirm with your fingerprint or your 2FA code.</p> : null}
+        </section>
+      ) : null}
+
+      {!canAct && !backWithMe && isOpen && isMyRequest && !canWithdraw && !canEditRequest ? (
+        <Notice tone="blue">Your request is with the {stageTitle(req.current_stage)}. You are told as soon as it moves.</Notice>
+      ) : null}
+
+      <section className="v4-card v4-card-pad">
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 14 }}>
+          <h2 className="v4-h2">Approval route</h2><span className="v4-help">Each step shows who signed and when. A vacant step is skipped.</span>
+        </div>
+        {chainItems.length ? (
+          <ol className="v4-chain">
+            {chainItems.map((c) => (
+              <li key={c.key} className={c.cls}>
+                <span className="v4-st">{c.st}</span><strong>{c.who}</strong><span className="v4-r">{c.r}</span><em>{c.em}</em>
+                <span className="v4-ink">{c.ink ? <span className="v4-chip v4-chip-green"><Icon name="pentool" size="sm" />Signed</span> : null}</span>
+              </li>
+            ))}
+          </ol>
+        ) : <p className="v4-muted" style={{ margin: 0 }}>{stageWords(req.current_stage)}.</p>}
+      </section>
+
+      <div className="v4-cols">
+        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+          <section className="v4-card v4-card-pad">
+            <h2 className="v4-h2" style={{ marginBottom: 12 }}>Details</h2>
+            <p style={{ margin: "0 0 16px", whiteSpace: "pre-wrap" }}>{req.details}</p>
+            <span className="v4-label">Attachments</span>
+            {attachments.length ? (
+              <ul className="v4-files" style={{ marginTop: 8 }}>
+                {attachments.map((a) => {
+                  const mine = isAttachmentCheckedByMe(a.id);
+                  return (
+                    <li key={a.id}>
+                      <span className={`v4-fi${/\.(png|jpe?g|webp|xlsx?|csv)$/i.test(a.file_name) ? " v4-x" : ""}`}>{(a.file_name.split(".").pop() || "FILE").toUpperCase().slice(0, 4)}</span>
+                      <span className="v4-ft"><strong>{a.file_name}</strong><span>{fileSizeLabel(a.file_size)}{attachmentCheckCount(a.id) ? ` · checked by ${attachmentCheckCount(a.id)} officer${attachmentCheckCount(a.id) === 1 ? "" : "s"}` : ""}{mine ? " · checked by you" : ""}</span></span>
+                      {a.signed_url ? <a href={a.signed_url} target="_blank" rel="noreferrer">View</a> : <span className="v4-muted">Unavailable</span>}
+                      {canCheckAttachments && !mine && canAct ? (
+                        <button type="button" className="v4-btn v4-btn-secondary" style={{ minHeight: 36 }} onClick={() => void checkAttachmentPersonally(a)} disabled={checkingAttachmentId === a.id}>{checkingAttachmentId === a.id ? "Saving…" : "I have checked it"}</button>
+                      ) : mine ? <span className="v4-chip v4-chip-green">Checked</span> : null}
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : <p className="v4-muted" style={{ margin: "6px 0 0" }}>No attachment.</p>}
+          </section>
+          <section className="v4-card">
+            <div className="v4-card-head"><h2 className="v4-h2">History</h2><span className="v4-help">Every action, with the position used.</span></div>
+            {history.length ? (
+              <ul className="v4-timeline" style={{ padding: "16px 20px 0" }}>
+                {history.map((h) => {
+                  const look = historyLook(h);
+                  return (
+                    <li key={h.id}>
+                      <span className={`v4-ti v4-t-${look.tone}`}><Icon name={look.icon} /></span>
+                      <span><strong>{look.text}</strong>{h.comment ? <span>“{h.comment}”</span> : null}</span>
+                      <span className="v4-time">{shortWhen(h.created_at)}</span>
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : <p className="v4-muted" style={{ padding: "16px 20px", margin: 0 }}>No history yet.</p>}
+          </section>
+        </div>
+        <aside className="v4-side-stack" style={{ position: "static" }}>
+          {balanceViewer && fig && (isOfficial || isPersonalFund) ? (
+            <section className="v4-card v4-card-pad">
+              <h2 className="v4-h3" style={{ marginBottom: 12 }}>{subText}</h2>
+              <dl className="v4-kv">
+                <dt>Approved budget</dt><dd>{nairaExact(figAllocation)}</dd>
+                <dt>Spent</dt><dd>{nairaExact(figExpenditure)}</dd>
+                <dt>Reserved (others)</dt><dd>{nairaExact(figReservedOthers)}</dd>
+                <dt>This request</dt><dd>{nairaExact(thisAmount)}</dd>
+                <dt>Left after</dt><dd style={{ color: figCD >= 0 ? "var(--v4-green)" : "var(--v4-red)" }}>{nairaExact(figCD)}</dd>
+              </dl>
+              <div className="v4-meter" style={{ marginTop: 12 }} aria-label={`${usedPct}% of the budget used`}><span style={{ width: `${usedPct}%`, background: "var(--v4-brand)" }} /></div>
+              <span className="v4-help">{usedPct}% used after this request</span>
+            </section>
+          ) : null}
+          <section className="v4-card v4-card-pad">
+            <h2 className="v4-h3" style={{ marginBottom: 10 }}>At a glance</h2>
+            <dl className="v4-kv">
+              <dt>Status</dt><dd><span className={`v4-chip v4-chip-${chip.tone}`}>{chip.label}</span></dd>
+              <dt>Where</dt><dd>{stageWords(req.current_stage)}</dd>
+              {req.assigned_account_officer_name && !isHRContext ? <><dt>Account Officer</dt><dd>{req.assigned_account_officer_name}</dd></> : null}
+              <dt>Attachments</dt><dd>{attachments.length}</dd>
+            </dl>
+          </section>
+          {mfaVerified ? null : <Notice tone="amber">This session has not passed 2FA yet; you are asked for your fingerprint or code before signing.</Notice>}
+        </aside>
       </div>
 
-      {showMfaModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-          <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl">
-            <div className="text-xs font-black uppercase tracking-wide text-blue-700">
-              Required Security Verification
-            </div>
-
-            <h2 className="mt-1 text-2xl font-extrabold text-slate-900">Enter 2FA Code</h2>
-
-            <p className="mt-2 text-sm leading-6 text-slate-600">
-              Enter the 6-digit code from your authenticator app. The action will continue
-              automatically after the 6th digit is entered.
+      {showMfaModal ? (
+        <div className="v4-newreq-otp" role="dialog" aria-modal="true" aria-labelledby="rq-2fa-title">
+          <div className="v4-card v4-card-pad">
+            <span className="v4-ico v4-t-brand" style={{ width: 52, height: 52, borderRadius: 16, display: "grid", placeItems: "center", margin: "0 auto 10px" }}><Icon name="shield" /></span>
+            <h2 id="rq-2fa-title" className="v4-h2" style={{ textAlign: "center" }}>Confirm it is you</h2>
+            <p className="v4-muted" style={{ textAlign: "center", margin: "6px 0 16px", fontSize: 13.5 }}>
+              Type the 6-number code from your authenticator app. It is checked as soon as you type the sixth number.
             </p>
-
-            <input
-              value={mfaCode}
-              onChange={(e) => {
-                const nextCode = e.target.value.replace(/\D/g, "").slice(0, 6);
-                setMfaCode(nextCode);
-
-                if (nextCode.length === 6 && !verifyingCode && !saving) {
-                  setTimeout(() => {
-                    verifyCodeAndContinue(nextCode);
-                  }, 150);
-                }
-              }}
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              autoFocus
-              disabled={verifyingCode || saving}
-              placeholder="123456"
-              className="mt-5 w-full rounded-2xl border border-slate-200 px-4 py-4 text-center text-2xl font-black tracking-[0.35em] text-slate-900 outline-none focus:border-blue-500 disabled:bg-slate-100 disabled:text-slate-500"
-            />
-
-            <div className="mt-3 text-center text-xs font-semibold text-slate-500">
-              {verifyingCode || saving
-                ? "Verifying automatically, please wait..."
-                : "Auto-submit activates immediately after 6 digits."}
-            </div>
-
-            <div className="mt-5 flex flex-col gap-2 sm:flex-row">
-              <button
-                type="button"
-                onClick={() => {
-                  if (verifyingCode || saving) return;
-                  setShowMfaModal(false);
-                  setMfaCode("");
-                  setPendingAction(null);
-                  mfaAutoSubmittingRef.current = false;
-                }}
-                disabled={verifyingCode || saving}
-                className="reqgen-btn reqgen-btn-rose w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
-              >
-                Cancel
-              </button>
-
-              <button
-                type="button"
-                onClick={() => verifyCodeAndContinue()}
-                disabled={verifyingCode || saving || mfaCode.trim().length !== 6}
-                className="reqgen-btn reqgen-btn-rose w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white hover:bg-blue-700 disabled:opacity-60"
-              >
-                {verifyingCode || saving ? "Verifying automatically..." : "Verify & Continue"}
-              </button>
+            <input className="v4-input v4-num" autoFocus inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={mfaCode} disabled={verifyingCode || saving}
+              style={{ textAlign: "center", fontSize: 24, letterSpacing: ".4em", fontWeight: 800 }} aria-label="Six-number code"
+              onChange={(e) => { const v = e.target.value.replace(/\D/g, "").slice(0, 6); setMfaCode(v); if (v.length === 6 && !verifyingCode && !saving) setTimeout(() => { void verifyCodeAndContinue(v); }, 120); }} />
+            <div className="v4-form-actions" style={{ marginTop: 16 }}>
+              <button type="button" className="v4-btn v4-btn-ghost" disabled={verifyingCode || saving}
+                onClick={() => { setShowMfaModal(false); setMfaCode(""); setPendingAction(null); mfaAutoSubmittingRef.current = false; }}>Cancel</button>
+              {canUseFingerprint ? <button type="button" className="v4-btn v4-btn-secondary" onClick={() => void confirmWithFingerprint()} disabled={verifyingCode || saving}><Icon name="fingerprint" />Use fingerprint</button> : null}
+              <button type="button" className="v4-btn v4-btn-primary" onClick={() => void verifyCodeAndContinue()} disabled={verifyingCode || saving || mfaCode.length !== 6}>{verifyingCode || saving ? "Checking…" : "Confirm"}</button>
             </div>
           </div>
         </div>
-      )}
-    </main>
+      ) : null}
+    </V4Page>
   );
 }
 
-function Info({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
-      <div className="text-xs font-semibold text-slate-500">{label}</div>
-      <div className="mt-1 text-sm font-semibold text-slate-900">{value}</div>
-    </div>
-  );
-}
-
-function FinanceBox({
-  label,
-  value,
-  tone = "slate",
-}: {
-  label: string;
-  value: string;
-  tone?: "slate" | "emerald" | "amber" | "red";
-}) {
-  const cls =
-    tone === "emerald"
-      ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-      : tone === "amber"
-        ? "border-amber-200 bg-amber-50 text-amber-800"
-        : tone === "red"
-          ? "border-red-200 bg-red-50 text-red-800"
-          : "border-slate-200 bg-slate-50 text-slate-800";
-
-  return (
-    <div className={`rounded-xl border p-3 ${cls}`}>
-      <div className="text-xs font-semibold opacity-80">{label}</div>
-      <div className="mt-1 text-sm font-black">{value}</div>
-    </div>
-  );
-}
-
-function StageBadge({ stage }: { stage: string }) {
-  return (
-    <span
-      className={`inline-flex rounded-lg border px-2 py-1 text-xs font-semibold ${stageBadgeClass(
-        stage
-      )}`}
-    >
-      {stage || "—"}
-    </span>
-  );
+function shortWhen(iso: string | null | undefined) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? "" : d.toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 }

@@ -1,63 +1,12 @@
-# See https://help.github.com/articles/ignoring-files/
-
-# dependencies
-/node_modules/
-/.pnp/
-.pnp.*
-.yarn/*
-!.yarn/patches
-!.yarn/plugins
-!.yarn/releases
-!.yarn/versions
-
-# testing
-/coverage/
-
-# next.js
-/.next/
-/out/
-
-# production
-/build/
-
-# vercel
-/.vercel/
-
-# local environment files
-.env
-.env.*
+node_modules/
+.next/
+out/
+build/
+.env*
 !.env.example
-
-# logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-.pnpm-debug.log*
-
-# operating system files
-.DS_Store
-Thumbs.db
-desktop.ini
-
-# certificates and keys
-*.pem
-*.key
-*.crt
-
-# typescript
 *.tsbuildinfo
-next-env.d.ts
-
-# editors
-.vscode/*
-!.vscode/extensions.json
-!.vscode/settings.json
-.idea/
-
-# temporary files
-*.tmp
-*.temp
-*.bak
-*.swp
+next-env.d.ts.bak
+audit-output/
+.vercel/
+.DS_Store
+npm-debug.log*

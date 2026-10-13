@@ -23,11 +23,11 @@ check("Treated by Me reads only the officer's own decisions", exists("app/approv
 
 const nr = read("app/requests/new/page.tsx");
 check("Live check: staff see only available / not enough", nr.includes("reqgen_subhead_live_check") && nr.includes("Fund available") && !/staffSubs[^;]*balance/.test(nr));
-check("Over budget is a hard block for staff", nr.includes('liveCheck === "not_enough"') && nr.includes("return false"));
+check("Over budget is a hard block for staff (v4.1.2 form: submit disabled, draft allowed)", nr.includes('live === "not_enough"') && nr.includes("You can still save a draft"));
 check("Registry never sees subhead balances on New Request", !/FINANCE_VISIBLE_ROLES = \[[^\]]*"registry"/s.test(nr));
 
 const pr = read("app/requests/[id]/print/page.tsx");
-const pv = read("app/payment-vouchers/[id]/print/page.tsx");
+const pv = read("app/payment-vouchers/[id]/print/VoucherPrintView.tsx");
 check("Request letter: IET stamp beside the DG signature", pr.includes("iet-stamp.png") && pr.includes("stamp />"));
 check("Request letter: QR check code", pr.includes("/check/r/") && pr.includes("QRCode.toDataURL"));
 check("Voucher: IET stamp on the DG authorisation and QR check code", pv.includes("iet-stamp.png") && pv.includes("/check/v/"));

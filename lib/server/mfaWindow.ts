@@ -84,17 +84,17 @@ export function windowValid(req: NextRequest, user: User) {
  * Starts a fresh 12-hour window from now. Used after a fingerprint check,
  * which counts as the second factor (Build Reference §10).
  */
-export function setWindowCookie(res: NextResponse, user: User) {
+export function setWindowCookie(res: NextResponse, user: User, seconds = WINDOW_SECONDS) {
   const factors = verifiedTotpIds(user);
   if (!factors.length) return null;
-  const expiresAt = Math.floor(Date.now() / 1000) + WINDOW_SECONDS;
+  const expiresAt = Math.floor(Date.now() / 1000) + seconds;
   const payload = `${user.id}.${factors[0]}.${expiresAt}`;
   res.cookies.set(windowCookieName(user.id), `${payload}.${hmac(payload)}`, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "strict",
     path: WINDOW_COOKIE_PATH,
-    maxAge: WINDOW_SECONDS,
+    maxAge: seconds,
   });
   return new Date(expiresAt * 1000).toISOString();
 }
@@ -138,4 +138,26 @@ export function rateLimited(key: string, max: number, windowMs: number) {
   if (!cur || cur.until < now) { hits.set(key, { n: 1, until: now + windowMs }); return false; }
   cur.n += 1;
   return cur.n > max;
+}
+
+/**
+ * v4.6: sign-in rules set by the Super Admin (Administration › Security Centre).
+ * Read once a minute; if the table is not there yet, the Build Reference values
+ * apply (2FA every 12 hours, 5 wrong passcode tries).
+ */
+let rulesCache: { at: number; windowSeconds: number; passcodeTries: number } | null = null;
+export async function securityRules() {
+  if (rulesCache && Date.now() - rulesCache.at < 60_000) return rulesCache;
+  let windowSeconds = WINDOW_SECONDS;
+  let passcodeTries = 5;
+  try {
+    const { data } = await adminClient().from("reqgen_security_rules").select("stay_hours,passcode_tries").eq("id", 1).maybeSingle();
+    const row = data as { stay_hours?: number; passcode_tries?: number } | null;
+    if (row && [8, 12].includes(Number(row.stay_hours))) windowSeconds = Number(row.stay_hours) * 3600;
+    if (row && [3, 5].includes(Number(row.passcode_tries))) passcodeTries = Number(row.passcode_tries);
+  } catch {
+    /* keep the defaults */
+  }
+  rulesCache = { at: Date.now(), windowSeconds, passcodeTries };
+  return rulesCache;
 }

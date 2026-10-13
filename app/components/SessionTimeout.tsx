@@ -5,7 +5,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
-const INACTIVITY_LIMIT_MS = 15 * 60 * 1000;
+// v4.6: the Super Admin sets this in Administration › Security Centre (10, 15, 20 or 30 minutes).
+const DEFAULT_LIMIT_MS = 15 * 60 * 1000;
 const WARNING_BEFORE_LOGOUT_MS = 60 * 1000;
 const ACTIVITY_STORAGE_KEY = "reqgen:last-activity-at";
 
@@ -51,6 +52,7 @@ export default function SessionTimeout() {
   const loggingOutRef = useRef(false);
   const lastActivityRef = useRef(Date.now());
   const lastEventWriteRef = useRef(0);
+  const limitRef = useRef(DEFAULT_LIMIT_MS);
 
   const clearTimers = useCallback(() => {
     if (warningTimerRef.current) clearTimeout(warningTimerRef.current);
@@ -84,7 +86,7 @@ export default function SessionTimeout() {
 
     const update = () => {
       const elapsed = Date.now() - lastActivityRef.current;
-      const remaining = Math.max(0, INACTIVITY_LIMIT_MS - elapsed);
+      const remaining = Math.max(0, limitRef.current - elapsed);
       setSecondsLeft(Math.ceil(remaining / 1000));
       if (remaining <= 0) void logoutDueToInactivity();
     };
@@ -103,9 +105,9 @@ export default function SessionTimeout() {
       const elapsed = Math.max(0, Date.now() - activityAt);
       const warningDelay = Math.max(
         0,
-        INACTIVITY_LIMIT_MS - WARNING_BEFORE_LOGOUT_MS - elapsed
+        limitRef.current - WARNING_BEFORE_LOGOUT_MS - elapsed
       );
-      const logoutDelay = Math.max(0, INACTIVITY_LIMIT_MS - elapsed);
+      const logoutDelay = Math.max(0, limitRef.current - elapsed);
 
       if (logoutDelay <= 0) {
         void logoutDueToInactivity();
@@ -148,6 +150,13 @@ export default function SessionTimeout() {
     const initialActivity = Math.max(readLastActivity(), Date.now());
     window.localStorage.setItem(ACTIVITY_STORAGE_KEY, String(initialActivity));
     scheduleTimers(initialActivity);
+    let alive = true;
+    void supabase.from("reqgen_security_rules").select("idle_minutes").eq("id", 1).maybeSingle().then(({ data }) => {
+      const minutes = Number((data as { idle_minutes?: number } | null)?.idle_minutes || 0);
+      if (!alive || ![10, 15, 20, 30].includes(minutes) || minutes * 60000 === limitRef.current) return;
+      limitRef.current = minutes * 60000;
+      scheduleTimers(readLastActivity());
+    });
 
     const activityEvents: Array<keyof WindowEventMap> = [
       "pointerdown",
@@ -179,6 +188,7 @@ export default function SessionTimeout() {
     document.addEventListener("visibilitychange", handleVisibility);
 
     return () => {
+      alive = false;
       activityEvents.forEach((eventName) =>
         window.removeEventListener(eventName, recordActivity)
       );

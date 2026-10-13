@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { adminFromRequest, adminLog } from "@/lib/server/adminAuth";
 
 export const runtime = "nodejs";
 
@@ -109,4 +110,81 @@ export async function DELETE(req: NextRequest, context: { params: Promise<{ id: 
     ok: true,
     deletedUser: { id: targetId, name: targetProfile.full_name, email: targetProfile.email },
   });
+}
+
+/**
+ * ReqGen v4.6 — staff record actions (mock-up 82). Super Admin or Developer.
+ * body: { action: "profile", fullName?, deptId? }
+ *       { action: "deactivate", reason }   sign-in is blocked; history, positions and signatures stay
+ *       { action: "reactivate" }
+ *       { action: "reset2fa" }             the person sets up a new authenticator at next sign-in
+ *       { action: "removePasscodes" }      every trusted-device passcode stops working
+ * Every action is written to the Audit Log. A system account can only be changed by the Developer.
+ */
+export async function PATCH(req: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const ctx = await adminFromRequest(req.headers.get("authorization"));
+  if ("error" in ctx) return fail(ctx.error, ctx.status);
+  const { id } = await context.params;
+  const body = (await req.json().catch(() => ({}))) as { action?: string; reason?: string; fullName?: string; deptId?: string | null };
+  const action = String(body.action || "");
+
+  const { data: target, error: targetError } = await ctx.admin.from("profiles").select("id,full_name,email,system_account,is_active").eq("id", id).maybeSingle();
+  if (targetError) return fail(targetError.message, 500);
+  if (!target) return fail("That staff member was not found.", 404);
+  const label = String(target.full_name || target.email || "Staff");
+  if (target.system_account && ctx.system !== "developer") return fail("Only the Developer can change a system account.", 403);
+
+  if (action === "profile") {
+    const patch: Record<string, unknown> = {};
+    if (typeof body.fullName === "string") {
+      const name = body.fullName.trim();
+      if (name.length < 3) return fail("Write the full name.");
+      patch.full_name = name;
+    }
+    if (body.deptId !== undefined) patch.dept_id = body.deptId || null;
+    if (!Object.keys(patch).length) return fail("Nothing to change.");
+    const { error } = await ctx.admin.from("profiles").update(patch).eq("id", id);
+    if (error) return fail(error.message, 500);
+    await adminLog(ctx, "Staff record changed", label, id, { fields: Object.keys(patch) });
+    return NextResponse.json({ ok: true });
+  }
+
+  if (action === "deactivate" || action === "reactivate") {
+    if (id === ctx.actorId) return fail("You cannot deactivate your own account.", 409);
+    const off = action === "deactivate";
+    const reason = String(body.reason || "").trim();
+    if (off && reason.length < 4) return fail("Write the reason for deactivating.");
+    const banned = await ctx.admin.auth.admin.updateUserById(id, { ban_duration: off ? "876000h" : "none" });
+    if (banned.error) return fail(`Sign-in could not be ${off ? "blocked" : "restored"}: ${banned.error.message}`, 500);
+    const { error } = await ctx.admin.from("profiles").update(off
+      ? { is_active: false, deactivated_at: new Date().toISOString(), deactivated_reason: reason }
+      : { is_active: true, deactivated_at: null, deactivated_reason: null }).eq("id", id);
+    if (error) return fail(error.message, 500);
+    if (off) await ctx.admin.from("reqgen_trusted_devices").update({ revoked_at: new Date().toISOString(), revoked_reason: "Account deactivated" }).eq("user_id", id).is("revoked_at", null);
+    await adminLog(ctx, off ? "Staff deactivated" : "Staff reactivated", label, id, off ? { reason } : undefined);
+    return NextResponse.json({ ok: true });
+  }
+
+  if (action === "reset2fa") {
+    const listed = await ctx.admin.auth.admin.mfa.listFactors({ userId: id });
+    if (listed.error) return fail(listed.error.message, 500);
+    let removed = 0;
+    for (const f of listed.data?.factors || []) {
+      const del = await ctx.admin.auth.admin.mfa.deleteFactor({ id: f.id, userId: id });
+      if (del.error) return fail(del.error.message, 500);
+      removed += 1;
+    }
+    await adminLog(ctx, "2FA reset", label, id, { factors: removed });
+    return NextResponse.json({ ok: true, removed });
+  }
+
+  if (action === "removePasscodes") {
+    const { data, error } = await ctx.admin.from("reqgen_trusted_devices").update({ revoked_at: new Date().toISOString(), revoked_reason: "Removed by the Super Admin" })
+      .eq("user_id", id).is("revoked_at", null).select("id");
+    if (error) return fail(error.message, 500);
+    await adminLog(ctx, "Passcodes removed", label, id, { devices: (data || []).length });
+    return NextResponse.json({ ok: true, removed: (data || []).length });
+  }
+
+  return fail("Unknown action.");
 }

@@ -7,10 +7,11 @@ const results = [
   ["Real footers are never hidden (New Request Submit bar shows)", !/\.rg-content footer\{display:none/.test(css) && !css.includes(".gov-content footer:not(.mock-footer)")],
   ["Loading bar sits below the top bar (no animated top stripe)", css.includes(".rg-activity-strip{position:sticky;top:var(--rg-topbar)") && !css.includes("html.rg-busy")],
   ["Module tabs wrap instead of scrolling", css.includes("html body .rg-module-tabs{flex-wrap:wrap!important")],
-  ["Voucher: Account chooses checker + signers in-app", detail.includes('rpc("reqgen_pv_checkers")') && detail.includes("p_checker_id: checker || null") && detail.includes("Action needed: choose the Counter Signer")],
+  // v4.3 (mock-up 48): IET has one internal Auditor, so the checker is shown, not chosen; the Counter Signer is chosen in-app.
+  ["Voucher: Account chooses checker + signers in-app", read("app/payment-vouchers/new/page.tsx").includes('rpc("reqgen_pv_checkers")') && read("app/payment-vouchers/new/page.tsx").includes("IET has one internal auditor") && detail.includes('rpc("reqgen_pv_assign_signers"') && detail.includes("Change the Counter Signer")],
   // v3.1.13: the Auditor's check no longer waits for the signers at all.
   ["Voucher: checker never sees a dead button", !detail.includes("disabled={busy || signersMissing}")],
-  ["Generation opens the signing-officer form, not print", read("app/payment-vouchers/centre/page.tsx").includes("?signers=1")],
+  ["Generation opens the signing-officer form, not print", read("app/payment-vouchers/new/page.tsx").includes("/payment-vouchers/${res.voucher_id}?made=1") && !read("app/payment-vouchers/new/page.tsx").includes("/print")],
   ["Reminder goes to the chosen checker", read("app/api/pv/remind/route.ts").includes("voucher.current_signing_owner ? await byIds")],
   ["SQL: chosen checker enforced, ambiguous overload removed", read("database/v3_1_12_pv_checker_and_handoffs.sql").includes("drop function if exists public.reqgen_pv_assign_signers(uuid, text, text);")],
 ];

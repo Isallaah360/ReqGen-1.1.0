@@ -11,7 +11,7 @@ check("A reason is required to send a request back", ws.includes("Write the reas
 check("From the DG it goes to the officer whose approval sent it there", sql.includes("public.reqgen_key(h.to_stage) = 'dg'") && sql.includes("'Returned by the Director General'"));
 const returnBody = sql.slice(sql.indexOf("create or replace function public.reqgen_return_request"), sql.indexOf("create or replace function public.reqgen_resubmit_request"));
 check("From other officers it goes to the requester; funds stay reserved", returnBody.includes("v_owner := v_req.created_by") && !returnBody.includes("reserved_amount"));
-check("Requester can correct, send back corrected, or withdraw", ws.includes("Correct the request") && ws.includes("Send it back corrected") && ws.includes('rpc("reqgen_withdraw_request"'));
+check("Requester can correct, send back corrected, or withdraw", ws.includes("Correct the request") && ws.includes("Send it again as it is") && ws.includes('rpc("reqgen_withdraw_request"'));
 check("Withdrawing releases the reserved fund", /reqgen_withdraw_request[\s\S]*reserved_amount = greatest/.test(sql));
 check("A request back with its requester is not counted as waiting in Approvals", q.includes("returned for correction"));
 check("Routing engine and existing approve/reject functions untouched", !/create or replace function public\.(approve_request_step|reject_request_step|reqgen_next_route_step|build_request_route)/i.test(sql));

@@ -1,6 +1,6 @@
 import {
   Activity, AlertTriangle, Archive, ArrowLeftRight, BarChart3, Bell, BookOpen, Building2, Camera, CheckCheck,
-  CheckCircle2, ChevronLeft, ChevronRight, ClipboardCheck, Clock, CreditCard, Database, Download, Eye, EyeOff,
+  Check, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, ClipboardCheck, Clock, CreditCard, Database, Download, Eye, EyeOff,
   FileText, Fingerprint, Grid3x3, HelpCircle, History, Info, KeyRound, Landmark, Laptop, LayoutDashboard, List,
   Lock, LogOut, Mail, Menu, Monitor, Moon, PenLine, PenTool, Phone, Plus, Printer, QrCode, RotateCcw, Route, Scale,
   Search, Send, Settings, ShieldCheck, Shuffle, SlidersVertical, Smartphone, Sun, TrendingUp, Upload, UserRound,
@@ -13,7 +13,7 @@ import {
  */
 const ICONS: Record<string, LucideIcon> = {
   activity: Activity, alert: AlertTriangle, archive: Archive, arrows: ArrowLeftRight, chart: BarChart3, bell: Bell,
-  book: BookOpen, building: Building2, camera: Camera, checkall: CheckCheck, check: CheckCircle2, left: ChevronLeft,
+  book: BookOpen, building: Building2, camera: Camera, checkall: CheckCheck, check: CheckCircle2, tick: Check, chevron: ChevronDown, left: ChevronLeft,
   right: ChevronRight, audit: ClipboardCheck, clock: Clock, card: CreditCard, database: Database, download: Download,
   eye: Eye, eyeoff: EyeOff, file: FileText, fingerprint: Fingerprint, grid: Grid3x3, help: HelpCircle,
   history: History, info: Info, key: KeyRound, landmark: Landmark, laptop: Laptop, dashboard: LayoutDashboard,

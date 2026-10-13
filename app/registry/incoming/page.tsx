@@ -1,2 +1,8 @@
-import { redirect } from "next/navigation";
-export default function Page(){ redirect("/registry/centre?view=incoming"); }
+"use client";
+
+import Correspondence from "@/app/components/v4/Correspondence";
+
+/** Registry › Incoming (mock-up 70). */
+export default function IncomingPage() {
+  return <Correspondence direction="incoming" />;
+}

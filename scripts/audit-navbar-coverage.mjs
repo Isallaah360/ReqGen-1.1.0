@@ -36,7 +36,7 @@ function parentFor(route) {
   return mainNav.find((prefix) => route === prefix || route.startsWith(`${prefix}/`)) || null;
 }
 
-const missing = pages.filter((route) => !publicRoutes.has(route) && !parentFor(route));
+const missing = pages.filter((route) => !publicRoutes.has(route) && !route.startsWith("/check/") && !parentFor(route)); // /check/… is the public QR verification page (PUBLIC_PREFIXES)
 console.log(`ReqGen NavBar coverage audit: ${pages.length} physical pages inspected.`);
 if (missing.length) {
   console.error(`Pages without a deliberate NavBar parent: ${missing.length}`);

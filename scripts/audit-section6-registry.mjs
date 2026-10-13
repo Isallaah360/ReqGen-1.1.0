@@ -5,7 +5,8 @@ const shell=(read("app/components/GovernmentAppShell.tsx") + read("app/component
 const centre=read('app/components/registry/RegistryCentreWorkspace.tsx');
 const archive=read('app/components/registry/RegistryArchiveWorkspace.tsx');
 const perms=read('lib/permissions.ts');
-ok('Registry mother page tiles: Centre, Incoming, Outgoing, Dispatch, Archive', ['/registry/centre', '/registry/incoming', '/registry/outgoing', '/registry/dispatch', '/registry/archive'].every((h) => shell.includes(`href: "${h}"`)));
+// v4.5 (mock-up 68): Tracking, Incoming, Outgoing, Dispatch, Archive, Filing — the old Centre forwards to /registry
+ok('Registry mother page tiles: Tracking, Incoming, Outgoing, Dispatch, Archive, Filing', ['/registry/tracking', '/registry/incoming', '/registry/outgoing', '/registry/dispatch', '/registry/archive', '/registry/filing'].every((h) => shell.includes(`href: "${h}"`)));
 ok('Registry Centre uses live registry_correspondence', centre.includes('from("registry_correspondence")'));
 ok('Registry Centre uses live departments', centre.includes('from("departments")'));
 ok('Registry Centre has all five consolidated views', ['overview','incoming','outgoing','dispatch','all'].every(x=>centre.includes(`"${x}"`)));
