@@ -1,28 +1,12 @@
 {
   "summary": {
-    "scannedFiles": 215,
-    "findings": 4,
+    "scannedFiles": 246,
+    "findings": 7,
     "warnings": 0,
-    "info": 4,
-    "generatedAt": "2026-10-11T16:11:52.498Z"
+    "info": 7,
+    "generatedAt": "2026-10-13T06:39:17.003Z"
   },
   "findings": [
-    {
-      "file": "app/admin/audit/page.tsx",
-      "line": 134,
-      "rule": "nowrap-risk",
-      "severity": "info",
-      "match": "whitespace-nowrap",
-      "excerpt": "<div className=\"overflow-x-auto\"><table className=\"min-w-full text-left text-sm\"><thead className=\"bg-slate-50 text-xs font-black uppercase tracking-wide text-slate-600\"><tr><th className=\"px-5 py-3\">Date</th><th classNa"
-    },
-    {
-      "file": "app/components/SessionTimeout.tsx",
-      "line": 171,
-      "rule": "absolute-layout",
-      "severity": "info",
-      "match": "absolute",
-      "excerpt": "// the absolute activity timestamp so the warning is never skipped."
-    },
     {
       "file": "app/components/registry/RegistryArchiveWorkspace.tsx",
       "line": 31,
@@ -32,12 +16,52 @@
       "excerpt": "<section className={styles.card}><div className={styles.filters}><label className={styles.field}><span className={styles.label}>Search Archive</span><div style={{position:\"relative\"}}><Search size={15} style={{position:\""
     },
     {
-      "file": "app/payment-vouchers/manual/page.tsx",
-      "line": 1613,
-      "rule": "nowrap-risk",
+      "file": "app/components/requests/RequestDetailsWorkspace.tsx",
+      "line": 1572,
+      "rule": "absolute-layout",
       "severity": "info",
-      "match": "whitespace-nowrap",
-      "excerpt": "<td className=\"whitespace-nowrap px-5 py-5\">"
+      "match": "absolute",
+      "excerpt": "<img src={me.signature_url} alt=\"Your signature\" style={{ position: \"absolute\", left: 18, bottom: 4, maxWidth: 140, maxHeight: 44, objectFit: \"contain\" }} />"
+    },
+    {
+      "file": "app/components/SessionTimeout.tsx",
+      "line": 180,
+      "rule": "absolute-layout",
+      "severity": "info",
+      "match": "absolute",
+      "excerpt": "// the absolute activity timestamp so the warning is never skipped."
+    },
+    {
+      "file": "app/payment-vouchers/[id]/page.tsx",
+      "line": 261,
+      "rule": "absolute-layout",
+      "severity": "info",
+      "match": "absolute",
+      "excerpt": "{mySig ? <span className=\"rg-sig-slot\" style={{ position: \"absolute\", left: 18, bottom: 4, width: 140, height: 44 }}><SignatureInk src={mySig} alt=\"Your signature\" /></span> : null}"
+    },
+    {
+      "file": "app/payment-vouchers/[id]/print/VoucherPrintView.tsx",
+      "line": 1048,
+      "rule": "absolute-layout",
+      "severity": "info",
+      "match": "absolute",
+      "excerpt": "{stamp && sigUrl ? <img src=\"/v4/iet-stamp.png\" alt=\"IET stamp\" style={{ position: \"absolute\", right: -18, top: \"50%\", transform: \"translateY(-55%) rotate(-8deg)\", height: 46, width: \"auto\", opacity: 0.85, pointerEvents:"
+    },
+    {
+      "file": "app/registry/tracking/page.tsx",
+      "line": 182,
+      "rule": "absolute-layout",
+      "severity": "info",
+      "match": "absolute",
+      "excerpt": "<div style={{ position: \"absolute\", left: -10000, top: 0 }} aria-hidden=\"true\">"
+    },
+    {
+      "file": "app/requests/[id]/print/page.tsx",
+      "line": 916,
+      "rule": "absolute-layout",
+      "severity": "info",
+      "match": "absolute",
+      "excerpt": "{stamp && sigUrl ? <img src=\"/v4/iet-stamp.png\" alt=\"IET stamp\" style={{ position: \"absolute\", right: -6, top: \"50%\", transform: \"translateY(-50%) rotate(-8deg)\", height: 62, width: \"auto\", opacity: 0.85, pointerEvents: "
     }
   ]
 }

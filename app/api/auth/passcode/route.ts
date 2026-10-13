@@ -51,8 +51,7 @@ export async function POST(req: NextRequest) {
     if (problem) return json({ ok: false, error: problem }, 400);
     if (!/^[A-Za-z0-9_-]{40,}$/.test(deviceKey)) return json({ ok: false, error: "This browser could not create a device key." }, 400);
     const keyHash = hmac(`device:${deviceKey}`);
-    // One passcode per device: replace any older one for this device.
-    await admin.from("reqgen_trusted_devices").update({ revoked_at: new Date().toISOString(), revoked_reason: "Passcode changed" }).eq("user_id", who.user.id).eq("device_key_hash", keyHash).is("revoked_at", null);
+    // Save the replacement first: a failed insert must not invalidate the existing passcode.
     const ins = await admin.from("reqgen_trusted_devices").insert({
       user_id: who.user.id,
       device_name: String(body.deviceName || "This device").slice(0, 80),
@@ -60,6 +59,12 @@ export async function POST(req: NextRequest) {
       passcode_hash: hashPasscode(passcode, deviceKey),
     }).select("id").single();
     if (ins.error) return json({ ok: false, error: /relation|does not exist/i.test(ins.error.message) ? "Passcode sign-in is not switched on yet. Ask the Super Admin to run the v4.0.0 database step." : ins.error.message }, 500);
+    // Retire previous registrations only after the replacement is safely persisted.
+    const previous = await admin.from("reqgen_trusted_devices")
+      .update({ revoked_at: new Date().toISOString(), revoked_reason: "Passcode changed" })
+      .eq("user_id", who.user.id).eq("device_key_hash", keyHash)
+      .neq("id", (ins.data as { id: string }).id).is("revoked_at", null);
+    if (previous.error) return json({ ok: false, error: "New passcode saved, but previous device registration could not be retired. Contact the administrator." }, 500);
     // Changing the passcode signs out every other device (Build Reference §10).
     await admin.auth.admin.signOut(who.token, "others").catch(() => undefined);
     return json({ ok: true, deviceId: (ins.data as { id: string }).id });

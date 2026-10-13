@@ -9,7 +9,7 @@ import {
   type RegistrationResponseJSON,
 } from "@simplewebauthn/server";
 import {
-  adminClient, callerFrom, clientIp, env, oneTimeSignIn, rateLimited, readSignedValue, securityRules, setWindowCookie, signedValue,
+  adminClient, callerFrom, clientIp, env, oneTimeSignIn, rateLimited, readSignedValue, securityRules, windowValid, setWindowCookie, signedValue,
 } from "@/lib/server/mfaWindow";
 
 export const runtime = "nodejs";
@@ -34,9 +34,14 @@ function json(body: unknown, status = 200) {
 }
 
 function rp(req: NextRequest) {
-  const origin = req.headers.get("origin") || `https://${req.headers.get("host")}`;
-  const rpID = new URL(origin).hostname;
-  return { origin, rpID };
+  // Derive the relying party from the configured application, not a caller-controlled Origin header.
+  const configured = process.env.NEXT_PUBLIC_APP_URL;
+  if (!configured) throw new Error("NEXT_PUBLIC_APP_URL must be configured for fingerprint sign-in.");
+  const app = new URL(configured);
+  if (app.protocol !== "https:" && app.hostname !== "localhost") throw new Error("Fingerprint sign-in requires HTTPS.");
+  const requestOrigin = req.headers.get("origin");
+  if (requestOrigin && requestOrigin !== app.origin) throw new Error("This fingerprint request came from a different website.");
+  return { origin: app.origin, rpID: app.hostname };
 }
 
 function withChallenge(res: NextResponse, challenge: string, purpose: string, userId = "") {
@@ -72,7 +77,10 @@ export async function POST(req: NextRequest) {
   const body = (await req.json().catch(() => ({}))) as { action?: string; response?: unknown; deviceName?: string; id?: string };
   const action = String(body.action || "");
   const admin = adminClient();
-  const { origin, rpID } = rp(req);
+  let origin: string;
+  let rpID: string;
+  try { ({ origin, rpID } = rp(req)); }
+  catch (e) { return json({ ok: false, error: e instanceof Error ? e.message : "Invalid application origin." }, 403); }
 
   if (rateLimited(`wa:${clientIp(req)}`, 30, 60_000)) return json({ ok: false, error: "Too many attempts. Wait a minute and try again." }, 429);
 
@@ -80,7 +88,7 @@ export async function POST(req: NextRequest) {
   if (action === "register-options") {
     const who = await callerFrom(req);
     if (!who) return json({ ok: false, error: "Sign in first." }, 401);
-    if (who.claims.aal !== "aal2") return json({ ok: false, error: "Enter your 2FA code first, then add the fingerprint.", needCode: true }, 403);
+    if (who.claims.aal !== "aal2" && !windowValid(req, who.user)) return json({ ok: false, error: "Enter your 2FA code first, then add the fingerprint.", needCode: true }, 403);
     const existing = await admin.from("reqgen_webauthn_credentials").select("credential_id,transports").eq("user_id", who.user.id);
     const options = await generateRegistrationOptions({
       rpName: RP_NAME,
@@ -165,15 +173,19 @@ export async function POST(req: NextRequest) {
         credential: { id: cred.credential_id, publicKey: new Uint8Array(Buffer.from(cred.public_key, "base64url")), counter: Number(cred.counter || 0), transports: (cred.transports || undefined) as AuthenticatorTransportFuture[] | undefined },
       });
       if (!result.verified) return clearChallenge(json({ ok: false, error: "The fingerprint did not match." }, 401));
-      await admin.from("reqgen_webauthn_credentials").update({ counter: result.authenticationInfo.newCounter, last_used_at: new Date().toISOString() }).eq("id", cred.id);
+      const updated = await admin.from("reqgen_webauthn_credentials").update({ counter: result.authenticationInfo.newCounter, last_used_at: new Date().toISOString() }).eq("id", cred.id);
+      if (updated.error) throw new Error("Fingerprint verified, but its security counter could not be saved.");
     } catch (e) {
       return clearChallenge(json({ ok: false, error: e instanceof Error ? e.message : "The fingerprint did not match." }, 401));
     }
 
     if (purpose === "stepup") {
-      const res = json({ ok: true, expiresAt: new Date(Date.now() + 12 * 3600_000).toISOString() });
-      const until = setWindowCookie(res, stepUser!.user, (await securityRules()).windowSeconds);
+      const seconds = (await securityRules()).windowSeconds;
+      const res = json({ ok: true, expiresAt: new Date(Date.now() + seconds * 1000).toISOString() });
+      const until = setWindowCookie(res, stepUser!.user, seconds);
       if (!until) return clearChallenge(json({ ok: false, error: "Connect your authenticator app first." }, 403));
+      // Report the actual configured window, not a hard-coded twelve hours.
+      res.headers.set("X-ReqGen-MFA-Expires", until);
       return clearChallenge(res);
     }
 

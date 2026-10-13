@@ -41,9 +41,21 @@ while (stack.length) {
 }
 
 const auditText = fs.readdirSync("scripts").filter((f) => f.endsWith(".mjs") && f !== "cleanup-unused.mjs").map((f) => fs.readFileSync(path.join("scripts", f), "utf8")).join("\n");
+// Audit-retained files may import components that are otherwise unreachable from pages.
+// Walk their transitive dependencies before proposing any deletion.
+const auditRoots = files.filter((f) => auditText.includes(f) || auditText.includes(path.posix.basename(f)));
+const auditReachable = new Set(auditRoots);
+const auditStack = [...auditRoots];
+while (auditStack.length) {
+  const f = auditStack.pop();
+  for (const m of src[f].matchAll(IMPORT)) {
+    const r = resolve(f, m[1]);
+    if (r && !auditReachable.has(r)) { auditReachable.add(r); auditStack.push(r); }
+  }
+}
 const unused = files.filter((f) => !seen.has(f));
-const stillAudited = unused.filter((f) => auditText.includes(f) || auditText.includes(path.posix.basename(f)));
-const removable = unused.filter((f) => !stillAudited.includes(f));
+const stillAudited = unused.filter((f) => auditReachable.has(f));
+const removable = unused.filter((f) => !auditReachable.has(f));
 
 console.log(`Not used by any page or route: ${unused.length} file(s).`);
 console.log(`\nSafe to delete (${removable.length}):`);

@@ -125,6 +125,7 @@ function Transfers() {
           { label: "Export CSV", icon: "download", kind: "secondary", disabled: !shown.length, onClick: () => downloadCsv("Transfers.csv", shown.map((t) => ({ Transfer: t.transfer_no, Date: shortDate(t.created_at), Kind: t.kind === "account" ? "Between IET accounts" : "Between subheads", From: t.from_label, To: t.to_label, Amount: Number(t.amount), Status: t.status, "Started by": t.initiated_label || "", "Checked by": t.checked_label || "", "Approved by": t.approved_label || "" }))) },
           ...(isOfficer ? [{ label: "New transfer", icon: "plus", kind: "primary" as const, onClick: () => setForm({ kind: "account", from: "", to: "", amount: "", narration: "", ref: "" }) }] : []),
         ]} />
+      {me.ready && !isOfficer && !isAuditor && !isDG ? <Notice tone="blue">Only an Account Officer can initiate a new transfer. Switch to an assigned Account Officer position to access the New transfer action; Auditor and DG positions review and approve transfers.</Notice> : null}
       {notReady ? <Notice tone="amber" title="Transfers are switched on by the v4.2.0 database step.">Ask the Super Admin to run database/v4_2_0_finance.sql in Supabase.</Notice> : null}
       {msg ? <Notice tone={msg.tone}>{msg.text}</Notice> : null}
       <section className="v4-card v4-card-pad"><h2 className="v4-h3" style={{ marginBottom: 10 }}>Every transfer follows the same order</h2>

@@ -27,7 +27,12 @@ export function forgetTrustedDevice() {
 }
 
 function saveTrustedDevice(d: TrustedDevice) {
-  try { window.localStorage.setItem(DEVICE_KEY, JSON.stringify(d)); } catch { /* storage blocked */ }
+  try {
+    window.localStorage.setItem(DEVICE_KEY, JSON.stringify(d));
+    if (readTrustedDevice()?.deviceId !== d.deviceId) throw new Error("Device storage verification failed.");
+  } catch {
+    throw new Error("The passcode was saved on the server, but this browser could not remember the device. Allow site storage and try again.");
+  }
 }
 
 function newDeviceKey() {
