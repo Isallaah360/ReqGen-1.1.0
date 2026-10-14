@@ -1,6 +1,6 @@
 {
   "name": "reqgen-web",
-  "version": "4.6.1",
+  "version": "4.6.2",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -52,7 +52,8 @@
     "audit:v430": "node scripts/audit-v4-3-0.mjs",
     "audit:v440": "node scripts/audit-v4-4-0.mjs",
     "audit:v450": "node scripts/audit-v4-5-0.mjs",
-    "audit:v460": "node scripts/audit-v4-6-0.mjs"
+    "audit:v460": "node scripts/audit-v4-6-0.mjs",
+    "audit:v462": "node scripts/audit-v4-6-2-financial-integrity.mjs"
   },
   "dependencies": {
     "@simplewebauthn/browser": "13.3.0",

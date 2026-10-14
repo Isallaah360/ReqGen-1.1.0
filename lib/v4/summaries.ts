@@ -136,7 +136,7 @@ export async function financeSummary(): Promise<Summary> {
   return {
     stats: [
       { label: "Approved budget", value: nairaShort(budget), note: sub ? `${plural(sub.length, "subhead")}` : undefined, icon: "wallet", tone: "blue", href: "/finance/subheads" },
-      { label: "Spent", value: nairaShort(spent), note: pct, icon: "trend", tone: "brand", href: "/finance/transactions" },
+      { label: "Recorded expenditure", value: nairaShort(spent), note: spent !== null ? `${pct} · Subhead totals; reconcile with transactions` : undefined, icon: "trend", tone: "brand", href: "/finance/transactions" },
       { label: "Reserved", value: nairaShort(reserved), note: "Approved, not yet paid", icon: "clock", tone: "amber", href: "/finance/subheads" },
       { label: "Bank cash", value: nairaShort(cash), note: acc ? plural(acc.length, "IET account") : undefined, icon: "landmark", tone: "green", href: "/finance/manage-accounts" },
     ],
