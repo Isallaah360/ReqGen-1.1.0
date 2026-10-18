@@ -4,8 +4,9 @@ const read = (f) => fs.readFileSync(f, "utf8");
 const results = [];
 const check = (label, ok) => results.push({ label, ok: Boolean(ok) });
 
-const qr = read("app/components/AuthenticatorQr.tsx");
-check("QR drawn by ReqGen from the otpauth URI (black on white, quiet zone)", qr.includes("QRCode.toDataURL(uri") && qr.includes("margin: 4") && qr.includes('dark: "#000000"'));
+// v4.6.3: the v3 AuthenticatorQr component is deleted; both v4 pages draw the QR themselves
+const qr = read("app/mfa/setup/page.tsx") + read("app/profile/security/replace-authenticator/page.tsx");
+check("QR drawn by ReqGen from the otpauth URI (black on white, quiet zone)", qr.includes("QRCode.toDataURL(") && qr.includes("margin: 4") && qr.includes('dark: "#000000"'));
 for (const f of ["app/mfa/setup/page.tsx", "app/profile/security/replace-authenticator/page.tsx"]) {
   const s = read(f);
   check(`${f}: draws the QR locally (black on white), no injected qr_code HTML`, (s.includes("<AuthenticatorQr") || (s.includes("QRCode.toDataURL") && s.includes('dark: "#000000"'))) && !/__html:\s*qrCode/.test(s));

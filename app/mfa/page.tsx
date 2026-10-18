@@ -102,7 +102,7 @@ export default function MfaVerifyPage() {
   }
 
   if (loading) {
-    return <PublicAuthShell title="Confirm it’s you" subtitle="Preparing the second step…" showHomeLink={false}><p className="auth-loading">Loading…</p></PublicAuthShell>;
+    return <PublicAuthShell title="Confirm it’s you" subtitle="Preparing the second step…" showHomeLink={false}><p className="v4-muted">Loading…</p></PublicAuthShell>;
   }
 
   return (

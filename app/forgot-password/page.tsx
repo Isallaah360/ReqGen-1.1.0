@@ -55,5 +55,5 @@ function Content() {
 }
 
 export default function ForgotPasswordPage() {
-  return <Suspense fallback={<PublicAuthShell title="Reset your password" subtitle="Preparing…"><p className="auth-loading">Loading…</p></PublicAuthShell>}><Content /></Suspense>;
+  return <Suspense fallback={<PublicAuthShell title="Reset your password" subtitle="Preparing…"><p className="v4-muted">Loading…</p></PublicAuthShell>}><Content /></Suspense>;
 }

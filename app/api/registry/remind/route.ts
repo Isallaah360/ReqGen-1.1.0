@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { accountProblem } from "@/lib/server/staffAuth";
 import { normalizeEmail, normalizeNigerianPhone, sendSendchampEmail, sendSendchampSms } from "@/lib/sendchamp";
 
 export const runtime = "nodejs";
@@ -34,11 +35,13 @@ export async function POST(req: NextRequest) {
   const user = createClient(url, anon, { global: { headers: { Authorization: `Bearer ${token}` } }, auth: { persistSession: false } });
   const { data: auth, error: authError } = await user.auth.getUser(token);
   if (authError || !auth.user) return fail("Unauthorized.", 401);
+  const admin = createClient(url, service, { auth: { persistSession: false } });
+  const problem = await accountProblem(admin, auth.user.id);
+  if (problem) return fail(problem, 403);
   const { error: remindError } = await user.rpc("reqgen_request_remind", { p_request_id: requestId, p_automatic: false });
   if (remindError) return fail(remindError.message, /an hour/i.test(remindError.message) ? 429 : 403);
 
   // 2. SMS and email to whoever holds it now
-  const admin = createClient(url, service, { auth: { persistSession: false } });
   const { data: reqRow } = await admin.from("requests").select("id,request_no,current_stage,current_owner,assigned_account_officer_user_id").eq("id", requestId).maybeSingle();
   const r = reqRow as { id: string; request_no: string | null; current_stage: string | null; current_owner: string | null; assigned_account_officer_user_id: string | null } | null;
   const ownerId = r?.current_owner || r?.assigned_account_officer_user_id;

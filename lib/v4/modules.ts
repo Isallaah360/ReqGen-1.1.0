@@ -85,6 +85,8 @@ export const MODULES: ModuleDef[] = [
       { href: "/finance/subheads", title: "Budget & Subheads", purpose: "Allocations, reservations and balances per subhead.", icon: "wallet", tone: "amber", keywords: ["budget", "subhead"] },
       { href: "/finance/transactions", title: "Ledgers", purpose: "Transactions, account and subhead ledgers.", icon: "list", tone: "blue", keywords: ["ledger", "transactions"] },
       { href: "/finance/account-transfers", title: "Transfers", purpose: "Move money between IET accounts or subheads.", icon: "arrows", tone: "brand" },
+      { href: "/finance/transactions-centre", title: "Transaction Centre", purpose: "Every money movement in one list; reversals with approval.", icon: "history", tone: "green", keywords: ["transactions", "reversal", "reverse", "correction"] },
+      { href: "/finance/integrity", title: "Finance Integrity", purpose: "Stored totals checked against their records.", icon: "scale", tone: "red", keywords: ["reconcile", "integrity", "discrepancy", "mismatch"] },
       { href: "/finance/settings", title: "Finance Settings", purpose: "Financial year, numbering and safeguards.", icon: "settings", tone: "blue" },
     ],
   },
@@ -168,6 +170,7 @@ export const MODULES: ModuleDef[] = [
       { href: "/admin/routing", title: "Routing Engine", purpose: "Who approves what, in which order. Set here only.", icon: "route", tone: "amber", keywords: ["routes", "backups", "away", "account routing"] },
       { href: "/admin/security", title: "Security Centre", purpose: "2FA, fingerprint, passcode and trusted devices.", icon: "lock", tone: "red" },
       { href: "/admin/system-health", title: "Diagnostics", purpose: "System health and data checks.", icon: "activity", tone: "blue" },
+      { href: "/admin/finance-reset", title: "Financial Reset", purpose: "Clear the finance test records and start at ₦0.00 (Super Admin).", icon: "alert", tone: "red", keywords: ["reset", "clear", "zero", "delete test data"] },
     ],
   },
 ];
@@ -326,6 +329,15 @@ const V4_NATIVE_EXACT = new Set<string>([
   "/notifications",
   "/profile/security",
   "/profile/passcode",
+  // v4.6.3: the last pages rebuilt on the v4 kit
+  "/profile/details",
+  "/profile/access",
+  "/profile/activity",
+  "/profile/setup",
+  "/profile/security/replace-authenticator",
+  "/change-password",
+  "/dashboard/activity",
+  "/docs",
 ]);
 
 /** Pages drawn with the v4 kit (no legacy wrapper). Grows with each v4 release. */
@@ -334,7 +346,7 @@ const V4_NATIVE_PATTERNS: RegExp[] = [
   /^\/requests\/(?!mine$|new$|printable$)[^/]+$/,
   /^\/requests\/[^/]+\/edit$/,
   // v4.2 Finance
-  /^\/finance\/(processing|manage-accounts|manage-accounts\/assign|subheads|transactions|account-transfers|settings)$/,
+  /^\/finance\/(processing|manage-accounts|manage-accounts\/assign|subheads|transactions|account-transfers|settings|integrity|transactions-centre)$/,
   /^\/finance\/subheads\/[^/]+$/,
   /^\/finance\/request\/[^/]+$/,
   // v4.3 Payment Vouchers
@@ -349,7 +361,7 @@ const V4_NATIVE_PATTERNS: RegExp[] = [
   /^\/reports\/(transactions|analysis|requests|finance-statements|vouchers|registry|enterprise-analytics|compliance|print)$/,
   /^\/requests\/printable$/,
   // v4.6 Administration
-  /^\/admin\/(system-accounts|users|positions|roles|departments|routing|security|system-health)$/,
+  /^\/admin\/(system-accounts|users|positions|roles|departments|routing|security|system-health|finance-reset)$/,
   /^\/admin\/users\/[^/]+$/,
 ];
 

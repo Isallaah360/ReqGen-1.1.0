@@ -13,7 +13,8 @@ const requiredFiles = [
   "app/payment-vouchers/centre/page.tsx",
 ];
 const results = requiredFiles.map((file) => ({ file, exists: fs.existsSync(path.join(root, file)) }));
-const financePage = fs.readFileSync(path.join(root, "app/finance/overview/page.tsx"), "utf8");
+// v4.6.3: /finance/overview forwards to the Finance home; live finance data is read by the v4 Finance pages
+const financePage = ["app/finance/subheads/page.tsx", "app/finance/manage-accounts/page.tsx", "app/finance/transactions/page.tsx"].map((f) => fs.readFileSync(path.join(root, f), "utf8")).join("\n");
 const dataAudit = fs.readFileSync(path.join(root, "scripts/audit-data-accuracy.mjs"), "utf8");
 const checks = [
   ...results.map((r) => ({ name: r.file, ok: r.exists })),

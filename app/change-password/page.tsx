@@ -1,434 +1,145 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import { passwordStrength } from "@/lib/v4/passwordStrength";
+import Icon from "@/app/components/v4/Icon";
+import { Notice, PageHead, Skeleton, V4Page } from "@/app/components/v4/ui";
 
-type MfaFactor = {
-    id: string;
-    friendly_name?: string | null;
-    factor_type?: string;
-    status?: string;
-};
-
-function passwordScore(password: string) {
-    let score = 0;
-
-    if (password.length >= 8) score += 1;
-    if (password.length >= 12) score += 1;
-    if (/[A-Z]/.test(password)) score += 1;
-    if (/[a-z]/.test(password)) score += 1;
-    if (/[0-9]/.test(password)) score += 1;
-    if (/[^A-Za-z0-9]/.test(password)) score += 1;
-
-    return score;
-}
-
-function passwordAdvice(password: string) {
-    if (!password) return "Use at least 8 characters.";
-
-    const score = passwordScore(password);
-
-    if (score <= 2) return "Weak password. Add uppercase, number and symbol.";
-    if (score <= 4) return "Good password. Longer is better.";
-    return "Strong password.";
-}
-
-function getPasswordTone(password: string) {
-    const score = passwordScore(password);
-
-    if (!password) return "text-slate-500";
-    if (score <= 2) return "text-red-700";
-    if (score <= 4) return "text-amber-700";
-    return "text-emerald-700";
-}
-
+/**
+ * My Account › Change Password (v4): confirm the current password, then the 2FA code,
+ * then the new password. ReqGen signs you out so you sign in again with it.
+ */
 export default function ChangePasswordPage() {
-    const router = useRouter();
+  const router = useRouter();
+  const [email, setEmail] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [factorId, setFactorId] = useState<string | null>(null);
+  const [mfaOk, setMfaOk] = useState(false);
+  const [current, setCurrent] = useState("");
+  const [currentOk, setCurrentOk] = useState(false);
+  const [code, setCode] = useState("");
+  const [next, setNext] = useState("");
+  const [again, setAgain] = useState("");
+  const [show, setShow] = useState(false);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [msg, setMsg] = useState<{ tone: "green" | "red"; text: string } | null>(null);
 
-    const [loading, setLoading] = useState(true);
-    const [sessionEmail, setSessionEmail] = useState<string | null>(null);
+  useEffect(() => {
+    queueMicrotask(async () => {
+      const { data } = await supabase.auth.getSession();
+      if (!data.session?.user) { router.push("/login"); return; }
+      setEmail(data.session.user.email || null);
+      const [aal, factors] = await Promise.all([supabase.auth.mfa.getAuthenticatorAssuranceLevel(), supabase.auth.mfa.listFactors()]);
+      setMfaOk(!aal.error && aal.data.currentLevel === "aal2");
+      setFactorId((factors.data?.totp || []).find((f) => f.status === "verified")?.id || null);
+      setLoading(false);
+    });
+  }, [router]);
 
-    const [needsMfa, setNeedsMfa] = useState(false);
-    const [mfaVerified, setMfaVerified] = useState(false);
-    const [factorId, setFactorId] = useState<string | null>(null);
-    const [factorName, setFactorName] = useState("Authenticator App");
+  const s = passwordStrength(next);
+  const needsMfa = !!factorId;
+  const canSave = currentOk && (!needsMfa || mfaOk) && s.ok && next === again && next !== current && !busy;
 
-    const [currentPassword, setCurrentPassword] = useState("");
-    const [mfaCode, setMfaCode] = useState("");
-    const [newPassword, setNewPassword] = useState("");
-    const [confirmPassword, setConfirmPassword] = useState("");
+  async function checkCurrent() {
+    setMsg(null);
+    if (!email || !current) { setMsg({ tone: "red", text: "Type your current password." }); return; }
+    setBusy("current");
+    const { error } = await supabase.auth.signInWithPassword({ email, password: current });
+    setBusy(null);
+    if (error) { setCurrentOk(false); setMsg({ tone: "red", text: "The current password is not correct." }); return; }
+    setCurrentOk(true);
+    // signing in again starts a new session: the 2FA code is asked again
+    const aal = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    setMfaOk(!aal.error && aal.data.currentLevel === "aal2");
+  }
 
-    const [verifyingCurrentPassword, setVerifyingCurrentPassword] = useState(false);
-    const [currentPasswordVerified, setCurrentPasswordVerified] = useState(false);
-    const [verifyingMfa, setVerifyingMfa] = useState(false);
-    const [saving, setSaving] = useState(false);
+  async function checkCode() {
+    setMsg(null);
+    const clean = code.replace(/\D/g, "");
+    if (!factorId || clean.length !== 6) { setMsg({ tone: "red", text: "Type the 6-number code from your authenticator app." }); return; }
+    setBusy("code");
+    const { error } = await supabase.auth.mfa.challengeAndVerify({ factorId, code: clean });
+    setBusy(null);
+    if (error) { setMsg({ tone: "red", text: `The code is not correct: ${error.message}` }); return; }
+    setMfaOk(true); setCode("");
+  }
 
-    const [msg, setMsg] = useState<string | null>(null);
-    const [err, setErr] = useState<string | null>(null);
+  async function save(e: FormEvent) {
+    e.preventDefault();
+    if (!canSave) return;
+    setBusy("save"); setMsg(null);
+    const { error } = await supabase.auth.updateUser({ password: next, data: { password_changed_at: new Date().toISOString(), temporary_password: false } });
+    setBusy(null);
+    if (error) { setMsg({ tone: "red", text: error.message }); return; }
+    setMsg({ tone: "green", text: "Your password is changed. Sign in again with the new password." });
+    await supabase.auth.signOut();
+    window.setTimeout(() => { router.push("/login?password_changed=success"); router.refresh(); }, 1200);
+  }
 
-    const passwordsMatch = newPassword.length > 0 && newPassword === confirmPassword;
-    const passwordStrongEnough = passwordScore(newPassword) >= 3 && newPassword.length >= 8;
+  const field = (label: string, value: string, set: (v: string) => void, opts: { auto: string; disabled?: boolean; help?: React.ReactNode }) => (
+    <label className="v4-field"><span className="v4-flabel">{label} <span className="v4-req">*</span></span>
+      <span className="v4-control"><Icon name="lock" /><input className="v4-input" type={show ? "text" : "password"} value={value} autoComplete={opts.auto} disabled={opts.disabled} onChange={(e) => set(e.target.value)} /></span>
+      {opts.help ? <span className="v4-help">{opts.help}</span> : null}
+    </label>
+  );
 
-    const canSubmit =
-        currentPasswordVerified &&
-        passwordStrongEnough &&
-        passwordsMatch &&
-        (!needsMfa || mfaVerified) &&
-        !saving;
-
-    async function load() {
-        setLoading(true);
-        setErr(null);
-        setMsg(null);
-
-        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-
-        if (sessionError || !sessionData.session?.user) {
-            router.push("/login");
-            return;
-        }
-
-        const email = sessionData.session.user.email || null;
-        setSessionEmail(email);
-
-        const aalRes = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-
-        if (!aalRes.error && aalRes.data.currentLevel === "aal2") {
-            setMfaVerified(true);
-        } else {
-            setMfaVerified(false);
-        }
-
-        const factorsRes = await supabase.auth.mfa.listFactors();
-
-        if (!factorsRes.error) {
-            const verifiedTotp = (factorsRes.data.totp || []).filter(
-                (factor: MfaFactor) => factor.status === "verified"
-            );
-
-            if (verifiedTotp.length > 0) {
-                const primary = verifiedTotp[0];
-
-                setNeedsMfa(true);
-                setFactorId(primary.id);
-                setFactorName(primary.friendly_name || "Authenticator App");
-            } else {
-                setNeedsMfa(false);
-                setFactorId(null);
-            }
-        }
-
-        setLoading(false);
-    }
-
-    async function verifyCurrentPassword() {
-        setErr(null);
-        setMsg(null);
-
-        if (!sessionEmail) {
-            setErr("Your session email could not be confirmed. Please login again.");
-            return;
-        }
-
-        if (!currentPassword) {
-            setErr("Please enter your current password.");
-            return;
-        }
-
-        setVerifyingCurrentPassword(true);
-
-        const { error } = await supabase.auth.signInWithPassword({
-            email: sessionEmail,
-            password: currentPassword,
-        });
-
-        setVerifyingCurrentPassword(false);
-
-        if (error) {
-            setCurrentPasswordVerified(false);
-            setErr("Current password is incorrect.");
-            return;
-        }
-
-        setCurrentPasswordVerified(true);
-        setMsg("Current password confirmed.");
-    }
-
-    async function verifyMfa() {
-        setErr(null);
-        setMsg(null);
-
-        if (!factorId) {
-            setErr("No verified 2FA factor was found for this account.");
-            return;
-        }
-
-        const code = mfaCode.trim().replace(/\s+/g, "");
-
-        if (!/^\d{6}$/.test(code)) {
-            setErr("Please enter the 6-digit authenticator code.");
-            return;
-        }
-
-        setVerifyingMfa(true);
-
-        const { error } = await supabase.auth.mfa.challengeAndVerify({
-            factorId,
-            code,
-        });
-
-        setVerifyingMfa(false);
-
-        if (error) {
-            setErr(error.message);
-            return;
-        }
-
-        setMfaVerified(true);
-        setMfaCode("");
-        setMsg("2FA verified.");
-    }
-
-    async function changePassword(e: FormEvent) {
-        e.preventDefault();
-
-        setErr(null);
-        setMsg(null);
-
-        if (!currentPasswordVerified) {
-            setErr("Please confirm your current password first.");
-            return;
-        }
-
-        if (needsMfa && !mfaVerified) {
-            setErr("Please verify 2FA before changing your password.");
-            return;
-        }
-
-        if (!passwordStrongEnough) {
-            setErr("Please use a stronger password with at least 8 characters.");
-            return;
-        }
-
-        if (!passwordsMatch) {
-            setErr("New password and confirmation do not match.");
-            return;
-        }
-
-        if (currentPassword === newPassword) {
-            setErr("New password must be different from the current password.");
-            return;
-        }
-
-        setSaving(true);
-
-        const { error } = await supabase.auth.updateUser({
-            password: newPassword,
-            // v3.1.8: lets the Setup Guide know the password is now the user's own.
-            data: { password_changed_at: new Date().toISOString(), temporary_password: false },
-        });
-
-        setSaving(false);
-
-        if (error) {
-            setErr(error.message);
-            return;
-        }
-
-        setCurrentPassword("");
-        setCurrentPasswordVerified(false);
-        setMfaCode("");
-        setNewPassword("");
-        setConfirmPassword("");
-        setMsg("Password changed successfully. Please login again with your new password.");
-
-        await supabase.auth.signOut();
-
-        setTimeout(() => {
-            router.push("/login?password_changed=success");
-            router.refresh();
-        }, 1200);
-    }
-
-    useEffect(() => {
-        queueMicrotask(() => { void load(); });
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
-
-    if (loading) {
-        return (
-            <main className="w-full">
-                <div className="w-full py-10 text-slate-600">
-                    Loading password security...
+  return (
+    <V4Page>
+      <PageHead title="Change Password" sub="Confirm it is you, then choose a new password. ReqGen signs you out so you sign in again with it." />
+      {msg ? <Notice tone={msg.tone}>{msg.text}</Notice> : null}
+      {loading ? <section className="v4-card v4-card-pad"><Skeleton lines={6} /></section> : (
+        <div className="v4-split">
+          <form className="v4-card v4-card-pad" style={{ display: "flex", flexDirection: "column", gap: 24 }} onSubmit={(e) => void save(e)}>
+            <section>
+              <div className="v4-section-title"><span className="v4-no">{currentOk ? <Icon name="tick" size="sm" /> : 1}</span><h2 className="v4-h2">Your current password</h2></div>
+              <div className="v4-form-grid">
+                {field("Current password", current, (v) => { setCurrent(v); setCurrentOk(false); }, { auto: "current-password", disabled: currentOk })}
+                <div className="v4-field" style={{ justifyContent: "flex-end" }}>
+                  {currentOk ? <span className="v4-chip v4-chip-green">Confirmed</span> : <button className="v4-btn v4-btn-secondary" type="button" disabled={!current || busy === "current"} onClick={() => void checkCurrent()}>{busy === "current" ? "Checking…" : "Confirm"}</button>}
                 </div>
-            </main>
-        );
-    }
-
-    return (
-        <main className="w-full">
-            <div className="w-full py-8">
-                {err && (
-                    <div className="mt-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-800">
-                        {err}
-                    </div>
+              </div>
+            </section>
+            {needsMfa ? (
+              <section>
+                <div className="v4-section-title"><span className="v4-no">{mfaOk ? <Icon name="tick" size="sm" /> : 2}</span><h2 className="v4-h2">Your 2FA code</h2></div>
+                {mfaOk ? <Notice tone="green">2FA confirmed for this session.</Notice> : (
+                  <div className="v4-form-grid">
+                    <label className="v4-field"><span className="v4-flabel">6-number code</span><input className="v4-input" inputMode="numeric" autoComplete="one-time-code" maxLength={7} placeholder="123456" value={code} disabled={!currentOk} onChange={(e) => setCode(e.target.value)} /></label>
+                    <div className="v4-field" style={{ justifyContent: "flex-end" }}><button className="v4-btn v4-btn-secondary" type="button" disabled={!currentOk || busy === "code"} onClick={() => void checkCode()}>{busy === "code" ? "Checking…" : "Confirm code"}</button></div>
+                  </div>
                 )}
-
-                {msg && (
-                    <div className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">
-                        {msg}
-                    </div>
-                )}
-
-                <div className="mt-6 grid gap-4 md:grid-cols-2">
-                    <StatusBox
-                        label="Current Password"
-                        value={currentPasswordVerified ? "Confirmed" : "Required"}
-                        ok={currentPasswordVerified}
-                    />
-
-                    <StatusBox
-                        label="2FA Status"
-                        value={needsMfa ? (mfaVerified ? "Verified" : "Required") : "No verified 2FA"}
-                        ok={!needsMfa || mfaVerified}
-                    />
-                </div>
-
-                <div className="mt-6 rounded-3xl border bg-white p-6 shadow-sm">
-                    <div className="font-extrabold text-slate-900">Step 1 — Confirm Current Password</div>
-                    <p className="mt-1 text-sm leading-6 text-slate-600">
-                        This confirms that the logged-in user is truly the account owner before a password
-                        change.
-                    </p>
-
-                    <div className="mt-4 flex flex-col gap-3 sm:flex-row">
-                        <input
-                            type="password"
-                            value={currentPassword}
-                            onChange={(e) => {
-                                setCurrentPassword(e.target.value);
-                                setCurrentPasswordVerified(false);
-                            }}
-                            placeholder="Current password"
-                            autoComplete="current-password"
-                            className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-slate-900 outline-none transition focus:border-blue-500"
-                        />
-
-                        <button
-                            type="button"
-                            onClick={verifyCurrentPassword}
-                            disabled={verifyingCurrentPassword || !currentPassword}
-                            className="reqgen-btn reqgen-btn-rose rounded-2xl bg-slate-900 px-5 py-3 text-sm font-black text-white hover:bg-slate-800 disabled:opacity-60"
-                        >
-                            {verifyingCurrentPassword ? "Checking..." : "Confirm"}
-                        </button>
-                    </div>
-                </div>
-
-                {needsMfa && !mfaVerified && (
-                    <div className="mt-6 rounded-3xl border border-amber-200 bg-amber-50 p-6 shadow-sm">
-                        <div className="font-extrabold text-amber-950">Step 2 — Verify 2FA</div>
-                        <p className="mt-1 text-sm leading-6 text-amber-900">
-                            Enter the 6-digit code from your {factorName}.
-                        </p>
-
-                        <div className="mt-4 flex flex-col gap-3 sm:flex-row">
-                            <input
-                                value={mfaCode}
-                                onChange={(e) => setMfaCode(e.target.value.replace(/[^\d]/g, "").slice(0, 6))}
-                                placeholder="123456"
-                                inputMode="numeric"
-                                maxLength={6}
-                                className="w-full rounded-2xl border border-amber-200 bg-white px-4 py-3 text-center text-xl font-black tracking-[0.35em] text-slate-900 outline-none focus:border-amber-500 sm:max-w-[210px]"
-                            />
-
-                            <button
-                                type="button"
-                                onClick={verifyMfa}
-                                disabled={verifyingMfa || mfaCode.trim().length !== 6}
-                                className="reqgen-btn reqgen-btn-rose rounded-2xl bg-amber-600 px-5 py-3 text-sm font-black text-white hover:bg-amber-700 disabled:opacity-60"
-                            >
-                                {verifyingMfa ? "Verifying..." : "Verify 2FA"}
-                            </button>
-                        </div>
-                    </div>
-                )}
-
-                {!needsMfa && (
-                    <div className="mt-6 rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm leading-6 text-blue-900">
-                        No verified 2FA factor was found on this account. You can change your password, but you
-                        should set up 2FA afterwards from the security page.
-                    </div>
-                )}
-
-                <form onSubmit={changePassword} className="mt-6 rounded-3xl border bg-white p-6 shadow-sm">
-                    <div className="font-extrabold text-slate-900">Step {needsMfa && !mfaVerified ? 3 : 2} — Set New Password</div>
-
-                    <div className="mt-4 space-y-4">
-                        <div>
-                            <label className="text-sm font-bold text-slate-800">New Password</label>
-                            <input
-                                type="password"
-                                value={newPassword}
-                                onChange={(e) => setNewPassword(e.target.value)}
-                                autoComplete="new-password"
-                                className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 text-slate-900 outline-none transition focus:border-blue-500"
-                            />
-                            <div className={`mt-1 text-xs font-bold ${getPasswordTone(newPassword)}`}>
-                                {passwordAdvice(newPassword)}
-                            </div>
-                        </div>
-
-                        <div>
-                            <label className="text-sm font-bold text-slate-800">Confirm New Password</label>
-                            <input
-                                type="password"
-                                value={confirmPassword}
-                                onChange={(e) => setConfirmPassword(e.target.value)}
-                                autoComplete="new-password"
-                                className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 text-slate-900 outline-none transition focus:border-blue-500"
-                            />
-
-                            {confirmPassword && (
-                                <div
-                                    className={`mt-1 text-xs font-bold ${passwordsMatch ? "text-emerald-700" : "text-red-700"
-                                        }`}
-                                >
-                                    {passwordsMatch ? "Passwords match." : "Passwords do not match."}
-                                </div>
-                            )}
-                        </div>
-
-                        <button
-                            type="submit"
-                            disabled={!canSubmit}
-                            className="reqgen-btn reqgen-btn-rose w-full rounded-2xl bg-blue-600 px-4 py-3 text-sm font-black text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
-                        >
-                            {saving ? "Changing Password..." : "Change Password"}
-                        </button>
-                    </div>
-                </form>
-
-                <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs leading-5 text-slate-600">
-                    Security note: after a successful password change, ReqGen signs you out so you can log in
-                    again with the new password.
-                </div>
+              </section>
+            ) : null}
+            <section>
+              <div className="v4-section-title"><span className="v4-no">{needsMfa ? 3 : 2}</span><h2 className="v4-h2">New password</h2></div>
+              <div className="v4-form-grid">
+                {field("New password", next, setNext, { auto: "new-password", disabled: !currentOk || (needsMfa && !mfaOk), help: <span style={{ color: s.tone }}>{s.text}</span> })}
+                {field("Type it again", again, setAgain, { auto: "new-password", disabled: !currentOk || (needsMfa && !mfaOk), help: again && again !== next ? <span style={{ color: "var(--v4-red)" }}>The two passwords are different.</span> : undefined })}
+              </div>
+              <label className="v4-check" style={{ marginTop: 12 }}><input type="checkbox" checked={show} onChange={(e) => setShow(e.target.checked)} /> Show the passwords</label>
+            </section>
+            <div className="v4-form-actions">
+              <Link className="v4-btn v4-btn-ghost" href="/profile">Cancel</Link>
+              <button className="v4-btn v4-btn-primary" type="submit" disabled={!canSave}><Icon name="key" />{busy === "save" ? "Saving…" : "Change password"}</button>
             </div>
-        </main>
-    );
-}
-
-function StatusBox({ label, value, ok }: { label: string; value: string; ok: boolean }) {
-    return (
-        <div
-            className={`rounded-2xl border px-4 py-3 ${ok
-                    ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-                    : "border-amber-200 bg-amber-50 text-amber-900"
-                }`}
-        >
-            <div className="text-xs font-black uppercase tracking-wide opacity-80">{label}</div>
-            <div className="mt-1 text-sm font-black">{value}</div>
+          </form>
+          <aside className="v4-side-stack">
+            <section className="v4-card v4-card-pad">
+              <h2 className="v4-h3" style={{ marginBottom: 10 }}>A good password</h2>
+              <ul style={{ margin: 0, paddingLeft: 18, color: "var(--v4-ink-2)", lineHeight: 1.8, fontSize: 13.5 }}>
+                <li>At least 8 characters — 12 or more is better.</li>
+                <li>Mix capital and small letters, numbers and a symbol.</li>
+                <li>Not used on any other website.</li>
+                <li>Never shared — the Super Admin will never ask for it.</li>
+              </ul>
+            </section>
+            <Notice tone="blue">Forgot your current password? Sign out and use “Forgot password?” on the sign-in page.</Notice>
+          </aside>
         </div>
-    );
+      )}
+    </V4Page>
+  );
 }

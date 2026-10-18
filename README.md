@@ -1,13 +1,13 @@
-# ReqGen v4.6.0
+# ReqGen v4.6.4
 
 ReqGen (Request Generator) is the Islamic Education Trust (IET) request management system: requests, approvals, finance records, payment vouchers, registry, reports and audit — role-based and backed by Supabase. ReqGen keeps the records; the bank moves the money.
 
 ## Release identity
 
-- Product version: **v4.6.0** (Semantic Versioning, MAJOR.MINOR.PATCH)
-- Defined in one place only: `lib/version.ts`; `package.json` carries the same number (4.6.0).
+- Product version: **v4.6.4** (Semantic Versioning, MAJOR.MINOR.PATCH)
+- Defined in one place only: `lib/version.ts`; `package.json` carries the same number (4.6.4).
 - The design is the approved v4 mock-ups (Phases 0–7, pages 01–90). The rules are in the v4 Build Reference.
-- What changed from v4.1.2 to v4.6.0, the SQL run order and the checklist: `RELEASE_NOTES_v4.6.0.md`.
+- What changed in v4.6.4: `RELEASE_NOTES_v4.6.4.md`. How to deploy it: `DEPLOYMENT_GUIDE_v4.6.4.md`. Earlier releases (including v4.6.3): `docs/releases/`.
 
 ## Navigation standard (from v4.0.0)
 
@@ -23,7 +23,7 @@ ReqGen (Request Generator) is the Islamic Education Trust (IET) request manageme
   (classes `v4-*`, tokens `--v4-*`). Do not edit it by hand.
 - `app/v4/v4-theme.css` holds the dark theme and the React-only parts.
 - React parts: `app/components/v4/` (PageHead, Stats, Tiles, Card, Notice, Chip, Rows, Tabs, Icon…).
-- From v4.6.0 every module page (Requests, Approvals, Finance, Payment Vouchers, Registry, Reports, Audit, Administration) is on the v4 kit, and retired addresses forward to their v4 page. A few older pages — My Account details / access / activity / setup, Recent Activity, and the Finance overview / vouchers / audit addresses — still use their v3 styles inside the v4 frame (wrapped in `.rg-content`).
+- Every page is on the v4 kit (v4.6.3 rebuilt the last v3-look pages); retired addresses forward to their v4 page.
 
 ## Before every push
 

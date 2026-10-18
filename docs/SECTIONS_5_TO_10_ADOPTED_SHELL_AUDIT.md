@@ -1,6 +1,6 @@
 # ReqGen Sections 5–10 Adopted Shell Audit
 
-Source/function conformance: **65%**
+Source/function conformance: **55%**
 
 Data contracts preserved: **NO**  
 Missing expected routes: **0**  

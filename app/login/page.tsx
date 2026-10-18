@@ -16,7 +16,7 @@ const REMEMBER_KEY = "reqgen:remember-email";
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<PublicAuthShell title="Welcome Back!" subtitle="Sign in to your ReqGen account to continue"><p className="auth-loading">Loading secure sign-in…</p></PublicAuthShell>}>
+    <Suspense fallback={<PublicAuthShell title="Welcome Back!" subtitle="Sign in to your ReqGen account to continue"><p className="v4-muted">Loading secure sign-in…</p></PublicAuthShell>}>
       <LoginContent />
     </Suspense>
   );

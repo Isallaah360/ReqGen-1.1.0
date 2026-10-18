@@ -2,6 +2,7 @@ import crypto from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { hashOtp } from "@/lib/otpHash";
 import { createClient } from "@supabase/supabase-js";
+import { accountProblem } from "@/lib/server/staffAuth";
 
 export const runtime = "nodejs";
 
@@ -55,6 +56,8 @@ export async function POST(req: NextRequest) {
   if (userErr || !user) {
     return jsonError("Invalid session. Please log in again.", 401);
   }
+  const inactive = await accountProblem(adminClient, user.id);
+  if (inactive) return jsonError(inactive, 403);
 
   const body = await req.json().catch(() => null);
   const code = cleanOtp(body?.code);

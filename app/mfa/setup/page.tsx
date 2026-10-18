@@ -121,7 +121,7 @@ export default function MfaSetupPage() {
     router.refresh();
   }
 
-  if (loading) return <PublicAuthShell title="Secure your account" subtitle="Preparing…" showHomeLink={false}><p className="auth-loading">Loading…</p></PublicAuthShell>;
+  if (loading) return <PublicAuthShell title="Secure your account" subtitle="Preparing…" showHomeLink={false}><p className="v4-muted">Loading…</p></PublicAuthShell>;
 
   const grouped = secret.replace(/\s+/g, "").replace(/(.{4})/g, "$1 ").trim();
 

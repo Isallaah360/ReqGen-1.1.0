@@ -6,7 +6,8 @@ const read = (p) => fs.readFileSync(path.join(root, p), "utf8");
 const checks = [];
 const pass = (name, ok, detail="") => checks.push({name,ok,detail});
 
-const finance = read("app/finance/overview/page.tsx");
+// v4.6.3: /finance/overview forwards to the Finance home; its live data now comes from the v4 summary and pages
+const finance = read("lib/v4/summaries.ts") + read("lib/v4/finance.ts") + read("app/finance/subheads/page.tsx") + read("app/finance/transactions/page.tsx") + read("app/finance/transactions-centre/page.tsx") + read("app/payment-vouchers/approved/page.tsx");
 const accounts = read("app/finance/manage-accounts/page.tsx");
 // v4.3: the voucher pages are separate v4 pages sharing lib/v4/finance.ts and lib/v4/vouchers.ts
 const pv = ["app/payment-vouchers/centre/page.tsx", "app/payment-vouchers/new/page.tsx", "app/payment-vouchers/manual/page.tsx", "app/payment-vouchers/[id]/page.tsx", "app/payment-vouchers/settings/page.tsx", "lib/v4/finance.ts", "lib/v4/vouchers.ts"].map(read).join("\n");
@@ -20,7 +21,7 @@ pass("Finance uses live payment vouchers", finance.includes('.from("payment_vouc
 pass("Finance uses live IET accounts", finance.includes('.from("iet_accounts")'));
 pass("Department expenditure visual is fully reachable (untruncated or paginated)", !finance.includes("departmentSpend.slice(") || (finance.includes("deptSafePage") && finance.includes("MiniPager")));
 pass("Budget health visual is not truncated", !finance.includes(".slice(0, 6)"));
-pass("Finance canonical subhead balance is Allocation - Reserved - Expenditure", finance.includes("canonicalSubheadBalance"));
+pass("Finance canonical subhead balance is Allocation - Reserved - Expenditure", finance.includes("export function subheadLeft") && finance.includes("subheadUsed"));
 pass("IET bank distribution is not top-4 truncated", !accounts.includes(".slice(0, 4)"));
 pass("IET bank distribution includes live available balance", (accounts + read("lib/v4/finance.ts")).includes("available_balance") && accounts.includes("accountAvailable"));
 pass("Static bank donut is not rendered", !accounts.includes("className={styles.donut}"));
@@ -35,7 +36,7 @@ pass("PV mother page tiles expose Centre, views, Manual Voucher and Signatories"
 pass("Global main navigation font locked at 13px", globalCss.includes(".gov-nav-link,.gov-subnav a") && globalCss.includes("font-size:13px!important"));
 
 const suspicious = [];
-for (const rel of ["app/dashboard/page.tsx","app/requests/mine/page.tsx","app/approvals/inbox/page.tsx","app/finance/overview/page.tsx","app/payment-vouchers/centre/page.tsx"]) {
+for (const rel of ["app/dashboard/page.tsx","app/requests/mine/page.tsx","app/approvals/inbox/page.tsx","app/finance/page.tsx","app/payment-vouchers/centre/page.tsx"]) {
   const text = read(rel);
   if (/Math\.random\(|faker|mockData|dummyData/i.test(text)) suspicious.push(rel);
 }

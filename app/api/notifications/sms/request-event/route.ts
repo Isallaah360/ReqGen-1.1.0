@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { accountProblem } from "@/lib/server/staffAuth";
 import {
   normalizeEmail,
   normalizeNigerianPhone,
@@ -232,6 +233,8 @@ export async function POST(req: NextRequest) {
   if (userErr || !user) {
     return jsonError("Invalid session.", 401);
   }
+  const inactive = await accountProblem(adminClient, user.id);
+  if (inactive) return jsonError(inactive, 403);
 
   const body = await req.json().catch(() => null);
 

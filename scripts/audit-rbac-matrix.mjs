@@ -101,6 +101,8 @@ const EXPECTED = [
   { prefix: "/output", allow: ["admin", "auditor"] },
   { prefix: "/test-supabase", allow: ["admin"] },
   { prefix: "/finance/account-transfers", allow: ["admin", "auditor", "accountofficer", "dg", "generalsecretary"] }, // v4.2: the DG approves and stamps transfers (mock-up 44)
+  { prefix: "/finance/integrity", allow: ["admin", "auditor", "accountofficer", "dg", "generalsecretary"] }, // v4.6.3
+  { prefix: "/finance/transactions-centre", allow: ["admin", "auditor", "accountofficer", "dg", "generalsecretary"] }, // v4.6.3: the DG approves reversals
   { prefix: "/finance", allow: ["admin", "auditor", "accountofficer"] }, // PV signing must NOT grant Finance
   { prefix: "/payment-vouchers/settings", allow: ["admin", "auditor"] },
   { prefix: "/payment-vouchers", allow: ["admin", "auditor", "accountofficer", "pvsigner", "pvcountersigner"] },

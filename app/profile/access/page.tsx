@@ -1,53 +1,141 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import ProfileNavigation from "@/app/components/profile/ProfileNavigation";
+import { switchActiveRole } from "@/lib/activeRole";
+import { canAccessPath } from "@/lib/permissions";
+import { normalizeRole } from "@/lib/roles";
+import { canSeeBudgetBalances } from "@/lib/v4/budgetVisibility";
+import { MODULES } from "@/lib/v4/modules";
+import { positionName } from "@/app/components/v4/RoleSelect";
+import { useIdentity } from "@/app/components/v4/useIdentity";
+import Icon from "@/app/components/v4/Icon";
+import { Card, Chip, Notice, PageHead, Skeleton, V4Page } from "@/app/components/v4/ui";
 
-type RoleRow = { role_key: string | null; role_name?: string | null; is_active: boolean | null; created_at?: string | null };
-type AssignmentRow = { id: string; section_key: string; permission_level: string | null; is_active: boolean | null; assigned_at?: string | null };
+type Held = { key: string; name: string; since: string | null; primary: boolean };
 
-export default function ProfileAccessPage() {
-  const router = useRouter();
-  const [loading, setLoading] = useState(true);
-  const [profileRole, setProfileRole] = useState("");
-  const [roles, setRoles] = useState<RoleRow[]>([]);
-  const [assignments, setAssignments] = useState<AssignmentRow[]>([]);
-  const [error, setError] = useState<string | null>(null);
+/** My Account › My Access (mock-up 19): the positions you hold and what each lets you open. */
+export default function MyAccessPage() {
+  const me = useIdentity();
+  const [held, setHeld] = useState<Held[] | null>(null);
+  const [systemAccount, setSystemAccount] = useState<string | null>(null);
+  const [onRoutes, setOnRoutes] = useState<string[]>([]);
+  const [away, setAway] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<{ tone: "green" | "red"; text: string } | null>(null);
 
-  const load = useCallback(async () => {
-    setLoading(true); setError(null);
-    try {
-      const { data: authData } = await supabase.auth.getUser();
-      if (!authData.user) { router.push("/login"); return; }
-      const [profileRes, rolesRes, assignmentsRes] = await Promise.all([
-        supabase.from("profiles").select("role").eq("id", authData.user.id).maybeSingle(),
-        supabase.from("profile_roles").select("role_key,role_name,is_active,created_at").eq("profile_id", authData.user.id).order("created_at", { ascending: false }),
-        supabase.from("hr_officer_assignments").select("id,section_key,permission_level,is_active,assigned_at").eq("officer_id", authData.user.id).order("assigned_at", { ascending: false }),
+  useEffect(() => {
+    if (!me.ready || !me.userId) return;
+    let alive = true;
+    queueMicrotask(async () => {
+      const [roles, profile, officers, availability] = await Promise.all([
+        supabase.from("profile_roles").select("role_key,role_name,is_active,is_primary,created_at,assigned_at").eq("profile_id", me.userId),
+        supabase.from("profiles").select("role,system_account").eq("id", me.userId).maybeSingle(),
+        supabase.from("reqgen_department_stage_officers").select("stage,dept_id").eq("user_id", me.userId),
+        supabase.from("reqgen_officer_availability").select("is_away,away_until").eq("user_id", me.userId).maybeSingle(),
       ]);
-      if (profileRes.error) throw profileRes.error;
-      setProfileRole(profileRes.data?.role || "Staff");
-      setRoles((rolesRes.data || []) as RoleRow[]);
-      setAssignments(assignmentsRes.error ? [] : ((assignmentsRes.data || []) as AssignmentRow[]));
-    } catch (caught) { setError(caught instanceof Error ? caught.message : "Unable to load access assignments."); }
-    finally { setLoading(false); }
-  }, [router]);
+      if (!alive) return;
+      const sa = (profile.data as { system_account?: string | null } | null)?.system_account || null;
+      setSystemAccount(sa);
+      const seen = new Set<string>();
+      const list: Held[] = [];
+      for (const r of (roles.data || []) as Array<{ role_key: string | null; role_name: string | null; is_active: boolean | null; is_primary: boolean | null; created_at: string | null; assigned_at: string | null }>) {
+        if (r.is_active === false) continue;
+        const k = normalizeRole(r.role_key || r.role_name);
+        if (!k || seen.has(k)) continue;
+        seen.add(k);
+        list.push({ key: k, name: positionName(k, r.role_name || k, sa), since: r.assigned_at || r.created_at, primary: !!r.is_primary });
+      }
+      const fallback = normalizeRole((profile.data as { role?: string | null } | null)?.role);
+      if (!seen.has("staff") && !sa) list.unshift({ key: "staff", name: "Staff", since: null, primary: !list.some((x) => x.primary) && fallback === "staff" });
+      setHeld(list);
+      const stages = [...new Set(((officers.data || []) as Array<{ stage: string }>).map((o) => o.stage === "HR" ? "HR Coordinator" : o.stage))];
+      setOnRoutes(stages);
+      const a = availability.data as { is_away?: boolean; away_until?: string | null } | null;
+      setAway(a?.is_away ? (a.away_until ? `Away until ${new Date(a.away_until).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}` : "Marked away") : null);
+    });
+    return () => { alive = false; };
+  }, [me.ready, me.userId]);
 
-  useEffect(() => { queueMicrotask(() => { void load(); }); }, [load]);
-  const activeRoles = useMemo(() => roles.filter((r) => r.is_active !== false), [roles]);
+  async function actAs(key: string) {
+    if (busy || normalizeRole(key) === normalizeRole(me.role)) return;
+    setBusy(true); setMsg(null);
+    try {
+      const r = await switchActiveRole(key);
+      window.dispatchEvent(new CustomEvent("reqgen-active-role-changed", { detail: { roleKey: r.active_role_key, roleName: r.active_role_name } }));
+      setMsg({ tone: "green", text: `You are now acting as ${positionName(r.active_role_key, r.active_role_name, systemAccount)}. The menu and tiles follow this choice.` });
+    } catch (e) {
+      setMsg({ tone: "red", text: e instanceof Error ? e.message : "Could not change the position." });
+    } finally { setBusy(false); }
+  }
 
-  return <main data-rmb-page="profile" className="min-h-screen bg-slate-50 px-4 py-8"><div className="w-full">
-    
-    <ProfileNavigation />
-    {error && <div className="mt-5 rounded-2xl border border-red-200 bg-red-50 p-4 font-bold text-red-800">{error}</div>}
-    <section className="mt-6 grid gap-4 md:grid-cols-3"><Summary label="Primary Role" value={loading ? "…" : profileRole} /><Summary label="Active Assigned Roles" value={loading ? "…" : String(activeRoles.length)} /><Summary label="Active HR Assignments" value={loading ? "…" : String(assignments.filter((a) => a.is_active !== false).length)} /></section>
-    <section className="mt-6 grid gap-6 lg:grid-cols-2">
-      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"><h2 className="text-xl font-black text-slate-950">Assigned ReqGen Roles</h2><div className="mt-4 space-y-3">{activeRoles.length ? activeRoles.map((role, index) => <div key={`${role.role_key}-${index}`} className="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 p-4"><div><p className="font-black text-slate-950">{role.role_name || role.role_key || "Unnamed role"}</p><p className="text-xs font-bold text-slate-500">{role.role_key || "No key"}</p></div><span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-800">Active</span></div>) : <Empty text="No additional active roles were found." />}</div></div>
-      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"><h2 className="text-xl font-black text-slate-950">HR Functional Assignments</h2><div className="mt-4 space-y-3">{assignments.length ? assignments.map((a) => <div key={a.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4"><div className="flex items-center justify-between gap-3"><p className="font-black capitalize text-slate-950">{a.section_key.replace(/_/g, " ")}</p><span className={`rounded-full px-3 py-1 text-xs font-black ${a.is_active !== false ? "bg-emerald-100 text-emerald-800" : "bg-slate-200 text-slate-700"}`}>{a.is_active !== false ? "Active" : "Inactive"}</span></div><p className="mt-2 text-sm font-bold text-slate-600">Permission: {a.permission_level || "View"}</p></div>) : <Empty text="No HR functional assignments were found." />}</div></div>
-    </section>
-    <section className="mt-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"><h2 className="text-xl font-black text-slate-950">Switch Current Working Role</h2><p className="mt-2 text-sm font-semibold text-slate-600">Only roles genuinely assigned to your account are available.</p><p className="mt-3 text-sm font-semibold text-slate-700">Use <strong>Acting as</strong> in the top bar to switch your working role.</p></section>
-  </div></main>;
+  const acting = normalizeRole(me.role);
+  const actingName = positionName(acting, me.roleName, systemAccount);
+  const seesBalances = canSeeBudgetBalances(acting);
+  const isRegistry = acting === "registry";
+
+  return (
+    <V4Page>
+      <PageHead title="My Access" sub="The positions you hold and what each lets you open. Only the Super Admin can change positions." />
+      {msg ? <Notice tone={msg.tone}>{msg.text}</Notice> : null}
+
+      <section className="v4-card v4-card-pad">
+        <h2 className="v4-h2" style={{ marginBottom: 6 }}>Acting as</h2>
+        <p className="v4-help" style={{ margin: "0 0 12px" }}>Pick the position you are working in now. The menu, tiles and Approvals follow this choice.</p>
+        {held === null ? <Skeleton lines={1} /> : (
+          <div className="v4-segmented" role="tablist" aria-label="Acting as">
+            {held.map((h) => (
+              <button key={h.key} type="button" role="tab" aria-selected={normalizeRole(h.key) === acting} disabled={busy} onClick={() => void actAs(h.key)}>{h.name}</button>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <div className="v4-cols">
+        <Card title="My positions">
+          {held === null ? <Skeleton lines={3} /> : (
+            <div className="v4-table-wrap">
+              <table className="v4-data v4-stack">
+                <thead><tr><th>Position</th><th>Since</th><th>Type</th></tr></thead>
+                <tbody>
+                  {held.map((h) => (
+                    <tr key={h.key}>
+                      <td><span className="v4-strong">{h.name}</span>{h.primary ? <span className="v4-sub">Main position</span> : null}</td>
+                      <td data-label="Since">{h.since ? new Date(h.since).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "—"}</td>
+                      <td>{h.key === "staff" ? <Chip tone="brand">Everyone</Chip> : systemAccount ? <Chip tone="blue">System account</Chip> : <Chip tone="grey">Position</Chip>}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Card>
+        <Card title="My place on approval routes" pad>
+          <dl className="v4-kv">
+            <dt>Approval steps</dt>
+            <dd className={onRoutes.length ? undefined : "v4-muted"} style={onRoutes.length ? undefined : { fontWeight: 600 }}>{onRoutes.length ? onRoutes.join(" · ") : "None in a department route"}</dd>
+            <dt>Subhead balances</dt>
+            <dd>{seesBalances ? "Shown" : "Hidden"}</dd>
+            <dt>Request contents</dt>
+            <dd>{isRegistry ? "Closed — numbers only" : "Your own, and those on your step"}</dd>
+            <dt>Away cover</dt>
+            <dd className={away ? undefined : "v4-muted"} style={away ? undefined : { fontWeight: 600 }}>{away || "Not away"}</dd>
+          </dl>
+        </Card>
+      </div>
+
+      <section className="v4-card v4-card-pad">
+        <h2 className="v4-h2" style={{ marginBottom: 4 }}>What you can open</h2>
+        <p className="v4-help" style={{ margin: "0 0 14px" }}>
+          Acting as {actingName}.{!seesBalances ? " Subhead balances stay closed in this position." : ""}{isRegistry ? " Request contents stay closed to Registry." : ""}
+        </p>
+        <div className="v4-access">
+          {MODULES.map((m) => {
+            const ok = canAccessPath(m.href, new Set([acting]));
+            return <div key={m.key} className={ok ? "v4-yes" : "v4-no"}><Icon name={ok ? "check" : "x"} />{m.label}</div>;
+          })}
+        </div>
+      </section>
+    </V4Page>
+  );
 }
-function Summary({ label, value }: { label: string; value: string }) { return <div className="rounded-2xl border border-violet-200 bg-violet-50 p-5 shadow-sm"><p className="text-xs font-black uppercase tracking-[0.16em] text-violet-700">{label}</p><p className="mt-3 text-2xl font-black text-violet-950">{value}</p></div>; }
-function Empty({ text }: { text: string }) { return <div className="rounded-2xl border border-dashed border-slate-300 p-5 text-sm font-bold text-slate-500">{text}</div>; }

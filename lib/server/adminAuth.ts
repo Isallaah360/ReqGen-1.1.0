@@ -1,6 +1,7 @@
 import "server-only";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { decodeJwt } from "@/lib/server/mfaWindow";
+import { accountProblem } from "@/lib/server/staffAuth";
 
 /**
  * ReqGen v4.6 — server check for Administration routes. The caller must be the
@@ -28,6 +29,8 @@ export async function adminFromRequest(authorization: string | null): Promise<Ad
   const { data, error } = await createClient(url, anon, { auth: { persistSession: false } }).auth.getUser(token);
   if (error || !data.user) return { error: "Unauthorized.", status: 401 };
   const admin = createClient(url, service, { auth: { persistSession: false, autoRefreshToken: false } });
+  const problem = await accountProblem(admin, data.user.id);
+  if (problem) return { error: problem, status: 403 };
   const [profile, roles] = await Promise.all([
     admin.from("profiles").select("role,system_account").eq("id", data.user.id).maybeSingle(),
     admin.from("profile_roles").select("role_key,is_active").eq("profile_id", data.user.id),

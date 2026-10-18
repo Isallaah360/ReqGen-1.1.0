@@ -2,6 +2,7 @@ import crypto from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { hashOtp } from "@/lib/otpHash";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { accountProblem } from "@/lib/server/staffAuth";
 import {
   buildOtpEmailText,
   buildOtpSmsMessage,
@@ -181,6 +182,8 @@ export async function POST(req: NextRequest) {
   if (userErr || !user) {
     return jsonError("Invalid session.", 401);
   }
+  const inactive = await accountProblem(adminClient, user.id);
+  if (inactive) return jsonError(inactive, 403);
 
   const { data: profile, error: profErr } =
     await adminClient

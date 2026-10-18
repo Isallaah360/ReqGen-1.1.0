@@ -18,7 +18,8 @@ const finance = read('app/finance/overview/page.tsx');
 const reports = read('app/reports/page.tsx');
 const analytics = read('app/reports/enterprise-analytics/page.tsx');
 const audit = read('app/audit-centre/logs/page.tsx');
-const registry = read('app/components/registry/RegistryCentreWorkspace.tsx');
+// v4.6.3: the v3 Registry Centre workspace is deleted; Registry is the v4 mother page and its v4 pages
+const registry = read('app/registry/page.tsx') + read('app/registry/tracking/page.tsx');
 
 check('Dashboard requests are scoped to authenticated creator', dashboard.includes('.eq("created_by", me.userId)'));
 check('Dashboard does not query organisation-wide payment vouchers', !dashboard.includes('.from("payment_vouchers")'));

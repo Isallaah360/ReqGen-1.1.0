@@ -3,6 +3,7 @@ import { strFromU8, unzipSync } from "fflate";
 import { csvToObjects } from "@/lib/csv";
 import { BACKUP_FORMAT, BACKUP_TABLES } from "@/lib/server/backupCatalog";
 import { staffFromRequest } from "@/lib/server/staffAuth";
+import { superAdminFromRequest } from "@/lib/server/superAdmin";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -12,10 +13,12 @@ export const maxDuration = 60;
  * multipart form: file (the backup .zip, or its 02_REQGEN_MASTER.csv),
  *                 mode = "preview" | "missing" | "overwrite"
  * preview   — Admin or Auditor: what the file holds and what is missing now.
- * missing   — Admin: insert only records that do not exist (nothing changes).
- * overwrite — Admin: insert missing records and replace existing ones with the
+ * missing   — Super Admin: insert only records that do not exist (nothing changes).
+ * overwrite — Super Admin: insert missing records and replace existing ones with the
  *             backup copy. Nothing is ever deleted.
- * Tables are restored parents-first; each table reports its own result.
+ * v4.6.3: a restore needs the Super Admin (never the Developer) with a fresh 2FA code, and is
+ * written by the database in ONE transaction (reqgen_backup_restore), parents first: if any
+ * table fails, nothing at all is written.
  */
 
 type Row = Record<string, unknown>;
@@ -53,8 +56,9 @@ export async function POST(req: NextRequest) {
   if (!["preview", "missing", "overwrite"].includes(mode)) return NextResponse.json({ ok: false, error: "Unknown restore mode." }, { status: 400 });
 
   const isAdmin = ctx.roles.has("admin");
-  if (mode !== "preview" && !isAdmin) {
-    return NextResponse.json({ ok: false, error: "Only the Administrator can restore records. The Auditor can preview a backup." }, { status: 403 });
+  if (mode !== "preview") {
+    const sa = await superAdminFromRequest(req.headers.get("authorization"), { fresh: true });
+    if ("error" in sa) return NextResponse.json({ ok: false, error: `${sa.error} The Auditor can preview a backup.` }, { status: sa.status });
   }
   if (!isAdmin && !ctx.roles.has("auditor")) {
     return NextResponse.json({ ok: false, error: "Only Admin and the Auditor can open backups." }, { status: 403 });
@@ -95,6 +99,7 @@ export async function POST(req: NextRequest) {
   }
 
   const reports: Report[] = [];
+  const toRestore: Array<{ table: string; rows: Row[] }> = [];
   for (const entry of BACKUP_TABLES) {
     const rows = tables.get(entry.table);
     if (!rows?.length) continue;
@@ -112,23 +117,22 @@ export async function POST(req: NextRequest) {
       if (failed) { report.status = "error"; report.note = failed; reports.push(report); continue; }
       report.existing = found.size;
       report.missing = rows.length - found.size;
+      toRestore.push({ table: entry.table, rows });
     } else {
-      report.note = "No id column — compared by primary key on restore.";
-    }
-
-    if (mode !== "preview") {
-      const ignoreDuplicates = mode === "missing";
-      // "missing": duplicates are ignored, so only absent records are inserted.
-      const toWrite = rows;
-      const errors: string[] = [];
-      for (const part of chunks(toWrite, 300)) {
-        const { error, count } = await ctx.admin.from(entry.table).upsert(part, { ignoreDuplicates, count: "exact" });
-        if (error) errors.push(error.message);
-        else report.written += count ?? part.length;
-      }
-      if (errors.length) { report.status = report.written ? "partial" : "error"; report.note = errors.slice(0, 2).join(" | "); }
+      report.status = "skipped";
+      report.note = "No id column — this table is not restored.";
     }
     reports.push(report);
+  }
+
+  if (mode !== "preview") {
+    // one call, one transaction: every table is written, or none is
+    const { data, error } = await ctx.admin.rpc("reqgen_backup_restore", { p_tables: toRestore, p_mode: mode });
+    if (error) {
+      return NextResponse.json({ ok: false, error: `Nothing was restored: ${/does not exist|schema cache/i.test(error.message) ? "run the v4.6.3 database step first." : error.message}` }, { status: 400 });
+    }
+    const written = ((data as { written?: Record<string, number> } | null)?.written) || {};
+    for (const r of reports) r.written = written[r.table] ?? 0;
   }
 
   const totals = reports.reduce((t, r) => ({ inFile: t.inFile + r.inFile, missing: t.missing + (r.missing || 0), written: t.written + r.written }), { inFile: 0, missing: 0, written: 0 });

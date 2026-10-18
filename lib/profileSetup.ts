@@ -65,9 +65,9 @@ const CONTENT: Record<SetupStepKey, Omit<SetupStep, "done">> = {
     href: "/profile/details?guide=avatar#photo",
     howTo: [
       "Take a clear, front-facing photo (phone camera is fine) or choose one from your gallery.",
-      "Tap \"Take me there\". Your Profile page opens at your photo.",
-      "Tap the photo circle (or \"Change photo\") and pick the picture.",
-      "Wait for \"Profile photo updated\". Your photo now shows in the top bar.",
+      "Tap \"Take me there\". The Signature & Photo page opens.",
+      "Under Profile photo tap \"Take or choose photo\" and pick the picture.",
+      "Wait for \"Your photo is updated\". Your photo now shows in the top bar.",
     ],
   },
   signature: {
@@ -79,9 +79,9 @@ const CONTENT: Record<SetupStepKey, Omit<SetupStep, "done">> = {
     howTo: [
       "Sign your name with a dark pen (black or blue) on plain white paper.",
       "Take a clear photo of the signature in good light, close enough that the signature fills most of the picture.",
-      "Tap \"Take me there\". Your Profile page opens at the Signature card.",
-      "Leave \"Remove the paper background automatically\" ticked, tap \"Choose file\" and pick the photo.",
-      "Tap \"Upload Signature\". ReqGen removes the paper background and shows your clean signature in the box.",
+      "Tap \"Take me there\". The Signature & Photo page opens.",
+      "Leave \"Remove the paper background automatically\" ticked, tap \"Choose a clear photo\" and pick the photo (or choose \"Draw with finger or mouse\" and sign in the box).",
+      "Check \"What ReqGen saves\", then tap \"Save signature\".",
     ],
   },
 };
@@ -155,4 +155,14 @@ export function useSetupSteps() {
 
 export function setupStepContent(key: SetupStepKey) {
   return CONTENT[key];
+}
+
+/** v4.6: the orange "Account setup" strip can be switched off in the Setup Guide (this browser only). */
+export const SETUP_STRIP_KEY = "reqgen-setup-strip-off";
+export function readSetupStripOff() {
+  try { return localStorage.getItem(SETUP_STRIP_KEY) === "1"; } catch { return false; }
+}
+export function writeSetupStripOff(off: boolean) {
+  try { if (off) localStorage.setItem(SETUP_STRIP_KEY, "1"); else localStorage.removeItem(SETUP_STRIP_KEY); } catch { /* storage unavailable */ }
+  if (typeof window !== "undefined") window.dispatchEvent(new Event(SETUP_EVENT));
 }

@@ -119,11 +119,14 @@ export async function approvalsSummary(userId: string, role: string): Promise<Su
 }
 
 export async function financeSummary(): Promise<Summary> {
-  const [accounts, subheads, queue] = await Promise.all([
+  const [accounts, subheads, queue, integrity] = await Promise.all([
     supabase.from("iet_accounts").select("id,available_balance,is_active").eq("is_active", true),
     supabase.from("subheads").select("id,approved_allocation,reserved_amount,expenditure,balance,is_active").eq("is_active", true),
     visibleQueue(),
+    supabase.rpc("reqgen_finance_integrity"),
   ]);
+  // v4.6.3: totals are only trusted when they match their records (Finance › Integrity)
+  const issues = integrity.error ? null : ((integrity.data || []) as Array<{ kind: string; severity: string }>).filter((x) => x.kind !== "opening");
   const acc = accounts.error ? null : (accounts.data || []) as Array<{ available_balance?: number | null }>;
   const sub = subheads.error ? null : (subheads.data || []) as Array<{ approved_allocation?: number | null; reserved_amount?: number | null; expenditure?: number | null; balance?: number | null }>;
   const sum = <T,>(rows: T[] | null, pick: (r: T) => number | null | undefined) => (rows ? rows.reduce((s, r) => s + Number(pick(r) || 0), 0) : null);
@@ -136,7 +139,7 @@ export async function financeSummary(): Promise<Summary> {
   return {
     stats: [
       { label: "Approved budget", value: nairaShort(budget), note: sub ? `${plural(sub.length, "subhead")}` : undefined, icon: "wallet", tone: "blue", href: "/finance/subheads" },
-      { label: "Recorded expenditure", value: nairaShort(spent), note: spent !== null ? `${pct} · Subhead totals; reconcile with transactions` : undefined, icon: "trend", tone: "brand", href: "/finance/transactions" },
+      { label: "Spent", value: nairaShort(spent), note: issues && issues.length ? `${pct} · ${plural(issues.length, "difference")} to check` : pct, icon: "trend", tone: "brand", href: issues && issues.length ? "/finance/integrity" : "/finance/transactions-centre" },
       { label: "Reserved", value: nairaShort(reserved), note: "Approved, not yet paid", icon: "clock", tone: "amber", href: "/finance/subheads" },
       { label: "Bank cash", value: nairaShort(cash), note: acc ? plural(acc.length, "IET account") : undefined, icon: "landmark", tone: "green", href: "/finance/manage-accounts" },
     ],
@@ -144,7 +147,9 @@ export async function financeSummary(): Promise<Summary> {
       "/finance/processing": atAccount ? `${plural(atAccount.length, "request")} waiting` : DASH,
       "/finance/manage-accounts": acc ? plural(acc.length, "account") : DASH,
       "/finance/subheads": sub ? plural(sub.length, "subhead") : DASH,
+      "/finance/integrity": issues ? (issues.length ? plural(issues.length, "difference") : "Every total matches") : DASH,
     },
+    badges: issues && issues.length ? { "/finance/integrity": String(issues.length) } : undefined,
   };
 }
 

@@ -242,3 +242,19 @@ html[data-theme="dark"] .v4-root .v4-dayicon { filter: saturate(1.1); background
 .v4-link { background: none; border: 0; padding: 0; color: var(--v4-brand); font: inherit; font-weight: 700; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
 .v4-link:disabled { opacity: .5; cursor: default; }
 .v4-pchip .v4-link { color: inherit; text-decoration: none; display: inline-grid; place-items: center; }
+
+/* v4.6.3 — table rows that open a record */
+:where(.v4-ui) table.v4-data tr.v4-clickable { cursor: pointer; }
+:where(.v4-ui) table.v4-data tr.v4-clickable:hover td { background: var(--v4-surface-2); }
+
+/* v4.6.1 — a clearer menu hover (kept here: v4.css is generated from the mock-ups) */
+.v4-nav a:hover:not([aria-current="page"]), .v4-nav a:focus-visible:not([aria-current="page"]) { background: var(--v4-brand-soft); color: var(--v4-brand-dark, var(--v4-brand)); box-shadow: inset 3px 0 0 var(--v4-brand); }
+
+/* v4.6.3 — explanatory line under a card heading (the mock-ups' plain "help" paragraph) */
+.v4-card p.v4-help, .v4-card-pad > p.v4-help { font-size: 13.5px; color: var(--v4-muted); line-height: 1.5; }
+
+/* v4.6.4 — passcode: six dots over one real input (the device's own keyboard; no on-screen number pad) */
+.v4-pin-field { position: relative; display: inline-flex; border-radius: 14px; cursor: text; }
+.v4-pin-field:focus-within .v4-pin span.v4-next { border-color: var(--v4-brand); box-shadow: 0 0 0 4px rgba(184, 62, 0, .14); }
+.v4-pin-input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; border: 0; padding: 0; margin: 0; font-size: 16px; color: transparent; background: transparent; caret-color: transparent; cursor: text; }
+.v4-pin-input:disabled { cursor: default; }

@@ -1,3 +1,4 @@
+import { accountProblem } from "@/lib/server/staffAuth";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { normalizeEmail, normalizeNigerianPhone, sendSendchampEmail, sendSendchampSms } from "@/lib/sendchamp";
@@ -69,6 +70,8 @@ export async function POST(req: NextRequest) {
   if (authError || !auth.user) return fail("Unauthorized.", 401);
 
   const admin = createClient(url, service);
+  const problem = await accountProblem(admin, auth.user.id);
+  if (problem) return fail(problem, 403);
   const senderKeys = ["admin", "auditor", "account", "accounts", "accountofficer"];
   const senders = await holdersOf(admin, senderKeys);
   const sender = senders.find((p) => p.id === auth.user.id);

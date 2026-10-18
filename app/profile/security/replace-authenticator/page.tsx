@@ -1,399 +1,161 @@
 "use client";
 
-import AuthenticatorQr from "@/app/components/AuthenticatorQr";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import QRCode from "qrcode";
 import { supabase } from "@/lib/supabaseClient";
 import { endMfaWindow } from "@/lib/mfaTrust";
-import ProfileNavigation from "@/app/components/profile/ProfileNavigation";
+import { passwordStrength } from "@/lib/v4/passwordStrength";
+import Icon from "@/app/components/v4/Icon";
+import OtpBoxes from "@/app/components/v4/OtpBoxes";
+import { Notice, PageHead, Skeleton, V4Page } from "@/app/components/v4/ui";
 
-type TotpFactor = {
-  id: string;
-  friendly_name?: string | null;
-  status: string;
-};
+type Factor = { id: string; status: string };
+type Enrolment = { id: string; qr: string; uri: string; secret: string };
 
-type EnrollData = {
-  id: string;
-  type: string;
-  totp: {
-    qr_code: string;
-    secret: string;
-    uri: string;
-  };
-};
-
-function passwordValid(password: string) {
-  return password.length >= 8;
-}
-
+/**
+ * My Account › Security & Devices › New phone (v4): confirm the old authenticator, connect the
+ * new phone and set a private password in one go. Every session of the account is then signed out.
+ */
 export default function ReplaceAuthenticatorPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
-
-  const [oldFactors, setOldFactors] = useState<TotpFactor[]>([]);
-  const [currentLevel, setCurrentLevel] = useState<string | null>(null);
+  const [old, setOld] = useState<Factor[]>([]);
+  const [verified, setVerified] = useState(false);
   const [oldCode, setOldCode] = useState("");
-  const [oldVerified, setOldVerified] = useState(false);
-
-  const [newFactorId, setNewFactorId] = useState("");
-  const [qrCode, setQrCode] = useState("");
-  const [qrUri, setQrUri] = useState("");
-  const [secret, setSecret] = useState("");
+  const [enrol, setEnrol] = useState<Enrolment | null>(null);
   const [newCode, setNewCode] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [oldRemoved, setOldRemoved] = useState(false);
-
-  const primaryOldFactor = oldFactors[0] || null;
-  const identityVerified = currentLevel === "aal2" || oldVerified || oldFactors.length === 0;
-  const step = !identityVerified ? 1 : !newFactorId ? 2 : 3;
+  const [pw, setPw] = useState("");
+  const [pw2, setPw2] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<{ tone: "green" | "red" | "blue"; text: string } | null>(null);
 
   const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-
-    const { data: authData, error: authError } = await supabase.auth.getUser();
-    if (authError || !authData.user) {
-      router.push("/login");
-      return;
-    }
-
-    const [factorRes, aalRes] = await Promise.all([
-      supabase.auth.mfa.listFactors(),
-      supabase.auth.mfa.getAuthenticatorAssuranceLevel(),
-    ]);
-
-    if (factorRes.error) {
-      setError(factorRes.error.message);
-      setLoading(false);
-      return;
-    }
-
-    const verified = (factorRes.data.totp || []).filter(
-      (factor) => factor.status === "verified"
-    ) as TotpFactor[];
-
-    setOldFactors(verified);
-    setCurrentLevel(aalRes.data?.currentLevel || null);
-    setOldVerified(aalRes.data?.currentLevel === "aal2");
+    const { data } = await supabase.auth.getUser();
+    if (!data.user) { router.push("/login"); return; }
+    const [factors, aal] = await Promise.all([supabase.auth.mfa.listFactors(), supabase.auth.mfa.getAuthenticatorAssuranceLevel()]);
+    if (factors.error) setMsg({ tone: "red", text: factors.error.message });
+    const list = ((factors.data?.totp || []) as Factor[]).filter((f) => f.status === "verified");
+    setOld(list);
+    setVerified(aal.data?.currentLevel === "aal2" || list.length === 0);
     setLoading(false);
   }, [router]);
+  useEffect(() => { queueMicrotask(() => { void load(); }); }, [load]);
 
-  useEffect(() => {
-    queueMicrotask(() => {
-      void load();
-    });
-  }, [load]);
+  const step = !verified ? 1 : !enrol ? 2 : 3;
+  const s = passwordStrength(pw);
 
-  async function verifyExistingFactor() {
-    if (!primaryOldFactor) {
-      setOldVerified(true);
-      return;
-    }
-
-    const code = oldCode.replace(/\D/g, "").slice(0, 6);
-    if (!/^\d{6}$/.test(code)) {
-      setError("Enter the 6-digit code from the currently linked authenticator.");
-      return;
-    }
-
-    setBusy(true);
-    setError(null);
-    setMessage(null);
-
-    const { error: verifyError } = await supabase.auth.mfa.challengeAndVerify({
-      factorId: primaryOldFactor.id,
-      code,
-    });
-
+  async function confirmOld(code = oldCode) {
+    const clean = code.replace(/\D/g, "").slice(0, 6);
+    if (!old[0] || clean.length !== 6) return;
+    setBusy(true); setMsg(null);
+    const { error } = await supabase.auth.mfa.challengeAndVerify({ factorId: old[0].id, code: clean });
     setBusy(false);
-
-    if (verifyError) {
-      setError(verifyError.message);
-      return;
-    }
-
-    setOldVerified(true);
-    setCurrentLevel("aal2");
-    setOldCode("");
-    setMessage("Identity verified. You can now replace the authenticator.");
+    if (error) { setMsg({ tone: "red", text: `The code is not correct: ${error.message}` }); setOldCode(""); return; }
+    setVerified(true); setOldCode("");
   }
 
-  async function beginReplacement() {
-    if (!identityVerified) {
-      setError("Verify the existing authenticator first.");
-      return;
+  async function start() {
+    setBusy(true); setMsg(null);
+    // only one authenticator per account: the old one is removed first
+    for (const f of old) {
+      const { error } = await supabase.auth.mfa.unenroll({ factorId: f.id });
+      if (error) { setBusy(false); setMsg({ tone: "red", text: `The old authenticator could not be removed: ${error.message}` }); return; }
     }
-
-    setBusy(true);
-    setError(null);
-    setMessage(null);
-
-    // Supabase projects commonly allow only one verified TOTP factor per user.
-    // Remove the existing verified factor first, then enroll the replacement.
-    for (const factor of oldFactors) {
-      const { error: removeError } = await supabase.auth.mfa.unenroll({
-        factorId: factor.id,
-      });
-      if (removeError) {
-        setBusy(false);
-        setError(`Could not unlink the old authenticator: ${removeError.message}`);
-        return;
-      }
-    }
-
-    if (oldFactors.length > 0) {
-      setOldRemoved(true);
-      setOldFactors([]);
-    }
-
-    const friendlyName = `ReqGen Authenticator ${new Date().toISOString().slice(0, 10)}`;
-    const { data, error: enrollError } = await supabase.auth.mfa.enroll({
-      factorType: "totp",
-      friendlyName,
-    });
-
+    setOld([]);
+    const { data, error } = await supabase.auth.mfa.enroll({ factorType: "totp", friendlyName: `ReqGen ${new Date().toISOString().slice(0, 10)}` });
+    if (error || !data) { setBusy(false); setMsg({ tone: "red", text: `The old authenticator was removed, but a new QR code could not be made. Try again. ${error?.message || ""}` }); return; }
+    const qr = await QRCode.toDataURL(data.totp.uri, { errorCorrectionLevel: "M", margin: 4, width: 360, color: { dark: "#000000", light: "#ffffff" } });
+    setEnrol({ id: data.id, qr, uri: data.totp.uri, secret: data.totp.secret });
     setBusy(false);
-
-    if (enrollError) {
-      setError(
-        `Old authenticator was unlinked, but the new QR code could not be created. Click Generate New QR Code again. ${enrollError.message}`
-      );
-      return;
-    }
-
-    const enrollment = data as EnrollData;
-    setNewFactorId(enrollment.id);
-    setQrCode(enrollment.totp.qr_code);
-    setQrUri(enrollment.totp.uri);
-    setSecret(enrollment.totp.secret);
-    setMessage("Old authenticator unlinked. Scan the new QR code and save the new password below.");
   }
 
-  async function saveSecurityChanges() {
+  async function restart() {
+    if (enrol) await supabase.auth.mfa.unenroll({ factorId: enrol.id });
+    setEnrol(null); setNewCode("");
+    await start();
+  }
+
+  async function save() {
     const code = newCode.replace(/\D/g, "").slice(0, 6);
-
-    if (!newFactorId) {
-      setError("Generate the new QR code first.");
-      return;
-    }
-    if (!/^\d{6}$/.test(code)) {
-      setError("Enter the 6-digit code from the NEW authenticator app.");
-      return;
-    }
-    if (!passwordValid(newPassword)) {
-      setError("New password must contain at least 8 characters.");
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      setError("New password and confirmation do not match.");
-      return;
-    }
-
-    setBusy(true);
-    setError(null);
-    setMessage(null);
-
-    const { data: challenge, error: challengeError } = await supabase.auth.mfa.challenge({
-      factorId: newFactorId,
-    });
-
-    if (challengeError) {
-      setBusy(false);
-      setError(challengeError.message);
-      return;
-    }
-
-    const { error: verifyError } = await supabase.auth.mfa.verify({
-      factorId: newFactorId,
-      challengeId: challenge.id,
-      code,
-    });
-
-    if (verifyError) {
-      setBusy(false);
-      setError(verifyError.message);
-      return;
-    }
-
-    const { error: passwordError } = await supabase.auth.updateUser({
-      password: newPassword,
-    });
-
-    if (passwordError) {
-      setBusy(false);
-      setError(
-        `New authenticator is active, but the password could not be changed: ${passwordError.message}`
-      );
-      return;
-    }
-
-    setMessage("2FA and password changed successfully. Every device using the old details is now signed out. Redirecting to login...");
-    // v3.1.14: end the 12-hour window here and sign out EVERY session of this
-    // account (scope "global"), so anyone using a stolen password is removed.
+    if (!enrol || code.length !== 6) { setMsg({ tone: "red", text: "Type the 6-number code from the NEW authenticator app." }); return; }
+    if (!s.ok) { setMsg({ tone: "red", text: "Use a stronger password: at least 8 characters with letters and numbers." }); return; }
+    if (pw !== pw2) { setMsg({ tone: "red", text: "The two passwords are different." }); return; }
+    setBusy(true); setMsg(null);
+    const ch = await supabase.auth.mfa.challenge({ factorId: enrol.id });
+    if (ch.error) { setBusy(false); setMsg({ tone: "red", text: ch.error.message }); return; }
+    const v = await supabase.auth.mfa.verify({ factorId: enrol.id, challengeId: ch.data.id, code });
+    if (v.error) { setBusy(false); setMsg({ tone: "red", text: `The code is not correct: ${v.error.message}` }); return; }
+    const up = await supabase.auth.updateUser({ password: pw, data: { password_changed_at: new Date().toISOString(), temporary_password: false } });
+    if (up.error) { setBusy(false); setMsg({ tone: "red", text: `The new authenticator is connected, but the password was not changed: ${up.error.message}` }); return; }
+    setMsg({ tone: "green", text: "Done. Every device that used the old details is signed out. Sign in again with the new password and the new phone." });
     await endMfaWindow();
     await supabase.auth.signOut({ scope: "global" });
-    setBusy(false);
-
-    setTimeout(() => {
-      router.push("/login?security_updated=success");
-      router.refresh();
-    }, 900);
+    window.setTimeout(() => { router.push("/login?security_updated=success"); router.refresh(); }, 900);
   }
 
-  async function restartQrCode() {
-    if (newFactorId) {
-      setBusy(true);
-      const { error: removeError } = await supabase.auth.mfa.unenroll({
-        factorId: newFactorId,
-      });
-      setBusy(false);
-      if (removeError) {
-        setError(removeError.message);
-        return;
-      }
-    }
-
-    setNewFactorId("");
-    setQrCode("");
-    setQrUri("");
-    setSecret("");
-    setNewCode("");
-    setError(null);
-    setMessage("QR code cleared. Generate a fresh one to continue.");
-  }
-
-  const steps = useMemo(
-    () => ["Authorize change", "Generate new QR", "Save 2FA + password"],
-    []
-  );
-
-  if (loading) {
-    return (
-      <main className="min-h-screen bg-slate-50 px-4 py-8">
-        <div className="w-full text-slate-600">Loading account security...</div>
-      </main>
-    );
-  }
-
+  const grouped = (enrol?.secret || "").replace(/(.{4})/g, "$1 ").trim();
   return (
-    <main data-rmb-page="profile" className="min-h-screen bg-slate-50 px-4 py-8">
-      <div className="w-full">
-        <ProfileNavigation />
-
-        <div className="mt-6 flex flex-col gap-3 rounded-3xl border border-blue-200 bg-white p-6 shadow-sm md:flex-row md:items-center md:justify-between">
-          <div>
-            <p className="text-xs font-black uppercase tracking-[0.16em] text-blue-700">Profile / Security</p>
-            <h1 className="mt-2 text-2xl font-black text-slate-950">Change 2FA &amp; Password</h1>
-            <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-slate-600">
-              Unlink the old authenticator, connect the user&apos;s own phone and set a private password in one short process.
-            </p>
-          </div>
-          <Link href="/profile/security" className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 hover:bg-slate-50">
-            Back to Security
-          </Link>
+    <V4Page>
+      <PageHead title="New phone for 2FA" sub="Connect your authenticator on a new phone and set a private password in one short process. Every device is signed out afterwards."
+        actions={[{ label: "Back to Security", icon: "left", kind: "secondary", href: "/profile/security" }]} />
+      {msg ? <Notice tone={msg.tone}>{msg.text}</Notice> : null}
+      {loading ? <section className="v4-card v4-card-pad"><Skeleton lines={6} /></section> : (
+        <div className="v4-split">
+          <section className="v4-card v4-card-pad" style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+            <section>
+              <div className="v4-section-title"><span className="v4-no">{step > 1 ? <Icon name="tick" size="sm" /> : 1}</span><h2 className="v4-h2">Confirm it is you</h2></div>
+              {verified ? <Notice tone="green">Confirmed.</Notice> : (
+                <>
+                  <p className="v4-help" style={{ margin: "0 0 10px" }}>Type the code from the authenticator app you use now.</p>
+                  <OtpBoxes value={oldCode} onChange={setOldCode} onComplete={(c) => void confirmOld(c)} disabled={busy} align="start" />
+                  <p className="v4-help" style={{ margin: "10px 0 0" }}>Lost the old phone? Ask the Super Admin to reset your 2FA in Administration › Staff &amp; Positions.</p>
+                </>
+              )}
+            </section>
+            <section>
+              <div className="v4-section-title"><span className="v4-no">{step > 2 ? <Icon name="tick" size="sm" /> : 2}</span><h2 className="v4-h2">Connect the new phone</h2></div>
+              {!enrol ? (
+                <button className="v4-btn v4-btn-primary" type="button" disabled={!verified || busy} onClick={() => void start()}><Icon name="qr" />{busy && verified ? "Preparing…" : "Make a new QR code"}</button>
+              ) : (
+                <>
+                  <div className="v4-qr-box">
+                    <div style={{ background: "#fff", borderRadius: 12, padding: 6, border: "1px solid var(--v4-line)", width: 180, height: 180, display: "grid", placeItems: "center" }}>
+                      {/* eslint-disable-next-line @next/next/no-img-element -- generated QR data URL */}
+                      <img src={enrol.qr} alt="QR code to add ReqGen to your authenticator app" width={168} height={168} />
+                    </div>
+                    <ol className="v4-numbered">
+                      <li>On the <b>new</b> phone, install Google Authenticator or Microsoft Authenticator.</li>
+                      <li>Tap <b>+</b>, then <b>Scan a QR code</b>, and point the camera at this code.</li>
+                      <li>Type the 6-number code the app shows for <b>ReqGen</b> below.</li>
+                    </ol>
+                  </div>
+                  <p className="v4-help" style={{ margin: "14px 0 6px" }}>Can’t scan? Type this key into the app, or on this phone <a href={enrol.uri}>open it in the authenticator app</a>:</p>
+                  <span className="v4-code-line">{grouped}</span>
+                  <p className="v4-flabel" style={{ margin: "16px 0 8px", fontWeight: 700 }}>Code from the new app <span className="v4-req">*</span></p>
+                  <OtpBoxes value={newCode} onChange={setNewCode} disabled={busy} align="start" />
+                  <button className="v4-btn v4-btn-ghost" type="button" style={{ marginTop: 10 }} disabled={busy} onClick={() => void restart()}><Icon name="returned" />Make a fresh QR code</button>
+                </>
+              )}
+            </section>
+            <section>
+              <div className="v4-section-title"><span className="v4-no">3</span><h2 className="v4-h2">Set a private password</h2></div>
+              <div className="v4-form-grid">
+                <label className="v4-field"><span className="v4-flabel">New password <span className="v4-req">*</span></span><input className="v4-input" type="password" autoComplete="new-password" value={pw} disabled={!enrol} onChange={(e) => setPw(e.target.value)} /><span className="v4-help" style={{ color: s.tone }}>{s.text}</span></label>
+                <label className="v4-field"><span className="v4-flabel">Type it again <span className="v4-req">*</span></span><input className="v4-input" type="password" autoComplete="new-password" value={pw2} disabled={!enrol} onChange={(e) => setPw2(e.target.value)} />{pw2 && pw2 !== pw ? <span className="v4-help" style={{ color: "var(--v4-red)" }}>The two passwords are different.</span> : null}</label>
+              </div>
+            </section>
+            <div className="v4-form-actions">
+              <Link className="v4-btn v4-btn-ghost" href="/profile/security">Cancel</Link>
+              <button className="v4-btn v4-btn-primary" type="button" disabled={!enrol || busy} onClick={() => void save()}><Icon name="shield" />{busy && enrol ? "Saving…" : "Save the new phone and password"}</button>
+            </div>
+          </section>
+          <aside className="v4-side-stack">
+            <Notice tone="amber" title="After saving">Every device using the old phone or password is signed out, including this one. Fingerprints and passcodes on your devices keep working only after you sign in again.</Notice>
+          </aside>
         </div>
-
-        <div className="mt-5 grid gap-3 sm:grid-cols-3">
-          {steps.map((label, index) => {
-            const n = index + 1;
-            const active = step === n;
-            const done = step > n;
-            return (
-              <div key={label} className={`rounded-2xl border p-4 ${active ? "border-blue-400 bg-blue-50" : done ? "border-emerald-200 bg-emerald-50" : "border-slate-200 bg-white"}`}>
-                <div className="text-xs font-black uppercase tracking-wide text-slate-500">Step {n}</div>
-                <div className="mt-1 text-sm font-black text-slate-900">{label}</div>
-              </div>
-            );
-          })}
-        </div>
-
-        {error && <div className="mt-5 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-800">{error}</div>}
-        {message && <div className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-bold text-emerald-800">{message}</div>}
-
-        {!identityVerified && primaryOldFactor && (
-          <section className="mt-6 rounded-3xl border border-amber-200 bg-amber-50 p-6 shadow-sm">
-            <h2 className="text-lg font-black text-amber-950">Confirm the current authenticator once</h2>
-            <p className="mt-2 text-sm font-semibold leading-6 text-amber-900">
-              Enter one valid code from the old authenticator. This is required only when the current session has not already completed 2FA.
-            </p>
-            <div className="mt-4 flex flex-col gap-3 sm:flex-row">
-              <input value={oldCode} onChange={(e) => setOldCode(e.target.value.replace(/\D/g, "").slice(0, 6))} inputMode="numeric" maxLength={6} placeholder="000000" className="w-full rounded-2xl border border-amber-200 bg-white px-4 py-3 text-center text-xl font-black tracking-[0.3em] outline-none sm:max-w-[220px]" />
-              <button type="button" onClick={verifyExistingFactor} disabled={busy || oldCode.length !== 6} className="rounded-2xl bg-amber-600 px-5 py-3 text-sm font-black text-white disabled:opacity-60">
-                {busy ? "Verifying..." : "Confirm & Continue"}
-              </button>
-            </div>
-          </section>
-        )}
-
-        {identityVerified && !newFactorId && (
-          <section className="mt-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-black text-slate-950">Replace the authenticator</h2>
-            <p className="mt-2 text-sm font-semibold leading-6 text-slate-600">
-              This button unlinks the existing ReqGen authenticator first, then immediately creates a fresh QR code for the user&apos;s phone.
-            </p>
-            {oldRemoved && (
-              <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-bold text-amber-900">
-                The old authenticator is already unlinked. Generate a new QR code to finish setup.
-              </div>
-            )}
-            <button type="button" onClick={beginReplacement} disabled={busy} className="mt-5 rounded-2xl bg-blue-700 px-5 py-3 text-sm font-black text-white hover:bg-blue-800 disabled:opacity-60">
-              {busy ? "Preparing..." : "Unlink Old & Generate New QR"}
-            </button>
-          </section>
-        )}
-
-        {newFactorId && (
-          <section className="mt-6 grid gap-6 lg:grid-cols-[.9fr_1.1fr]">
-            <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-              <h2 className="text-lg font-black text-slate-950">Scan New QR Code</h2>
-              <p className="mt-2 text-sm font-semibold leading-6 text-slate-600">
-                Scan this code with Google Authenticator, Microsoft Authenticator, Authy or 2FAS on the user&apos;s phone.
-              </p>
-              <div className="mt-5">
-                {qrUri || qrCode ? <AuthenticatorQr uri={qrUri} secret={secret} /> : null}
-              </div>
-              <button type="button" onClick={restartQrCode} disabled={busy} className="mt-4 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-black text-slate-700 disabled:opacity-60">
-                Generate Different QR
-              </button>
-            </div>
-
-            <div className="rounded-3xl border border-blue-200 bg-blue-50 p-6 shadow-sm">
-              <h2 className="text-lg font-black text-blue-950">Save New 2FA &amp; Password</h2>
-              <p className="mt-2 text-sm font-semibold leading-6 text-blue-900">
-                Enter the 6-digit code from the newly scanned authenticator, then choose the user&apos;s private password.
-              </p>
-
-              <label className="mt-5 block text-xs font-black uppercase tracking-wide text-blue-900">New 2FA code</label>
-              <input value={newCode} onChange={(e) => setNewCode(e.target.value.replace(/\D/g, "").slice(0, 6))} inputMode="numeric" maxLength={6} placeholder="000000" className="mt-2 w-full rounded-2xl border border-blue-200 bg-white px-4 py-4 text-center text-2xl font-black tracking-[0.35em] outline-none sm:max-w-[260px]" />
-
-              <div className="mt-5 grid gap-4 sm:grid-cols-2">
-                <label className="block text-sm font-bold text-slate-800">
-                  New Password
-                  <input type="password" autoComplete="new-password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="At least 8 characters" className="mt-2 w-full rounded-xl border border-blue-200 bg-white px-4 py-3 outline-none focus:border-blue-500" />
-                </label>
-                <label className="block text-sm font-bold text-slate-800">
-                  Confirm Password
-                  <input type="password" autoComplete="new-password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="Repeat password" className="mt-2 w-full rounded-xl border border-blue-200 bg-white px-4 py-3 outline-none focus:border-blue-500" />
-                </label>
-              </div>
-
-              <button type="button" onClick={saveSecurityChanges} disabled={busy || newCode.length !== 6 || !passwordValid(newPassword) || newPassword !== confirmPassword} className="mt-6 rounded-2xl bg-blue-700 px-6 py-3 text-sm font-black text-white hover:bg-blue-800 disabled:opacity-60">
-                {busy ? "Saving..." : "Save New 2FA & Password"}
-              </button>
-
-              <p className="mt-4 text-xs font-semibold leading-5 text-blue-900">
-                After saving, ReqGen signs the user out once. They then log in with the new password and the new authenticator code.
-              </p>
-            </div>
-          </section>
-        )}
-      </div>
-    </main>
+      )}
+    </V4Page>
   );
 }

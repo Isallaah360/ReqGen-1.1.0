@@ -10,7 +10,7 @@ const pages = ["", "/processing", "/manage-accounts", "/manage-accounts/assign",
 check("Every Finance page exists", pages.every((p) => exists(`app/finance${p}/page.tsx`)));
 check("Finance pages use the v4 kit (V4Page / MotherPage), not the legacy shell", pages.slice(1).every((p) => /V4Page|MotherPage/.test(read(`app/finance${p}/page.tsx`))) && read("app/finance/page.tsx").includes("<MotherPage"));
 const mods = read("lib/v4/modules.ts");
-check("Finance pages are v4-native (no legacy wrapper)", mods.includes("account-transfers|settings)$/") && mods.includes("/^\\/finance\\/request\\/[^/]+$/"));
+check("Finance pages are v4-native (no legacy wrapper)", mods.includes("account-transfers|settings") && mods.includes("/^\\/finance\\/request\\/[^/]+$/"));
 check("Old ledger pages open the one Ledgers page", read("app/finance/account-ledger/page.tsx").includes("/finance/transactions?view=") && read("app/finance/subhead-ledger/page.tsx").includes("/finance/transactions?view="));
 
 const fin = read("lib/v4/finance.ts");

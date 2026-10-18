@@ -10,7 +10,8 @@ const check = (label, ok) => results.push({ label, ok: Boolean(ok) });
 const exp = (exists("app/api/backup/export/route.ts") ? read("app/api/backup/export/route.ts") : "") + (exists("lib/server/backupBuild.ts") ? read("lib/server/backupBuild.ts") : "");
 const res = exists("app/api/backup/restore/route.ts") ? read("app/api/backup/restore/route.ts") : "";
 check("Backup export: Admin/Auditor only, by financial year, manifest + master + per-table CSV", exp.includes('["admin", "auditor"]') && exp.includes("01_MANIFEST.csv") && exp.includes("02_REQGEN_MASTER.csv") && exp.includes("tables/") && exp.includes('gte("created_at"'));
-check("Restore: preview for Auditor, restore for Admin only, never deletes", res.includes('mode !== "preview" && !isAdmin') && res.includes("ignoreDuplicates") && !/\.delete\(/.test(res));
+// v4.6.3: restore is the Super Admin's, all-or-nothing in the database (reqgen_backup_restore), still never deletes
+check("Restore: preview for Auditor, restore for the Super Admin only, never deletes", res.includes("superAdminFromRequest") && res.includes('rpc("reqgen_backup_restore"') && !/\.delete\(/.test(res));
 check("Backup excludes OTP secrets", !read("lib/server/backupCatalog.ts").includes('"sms_otps"'));
 check("Backup page under Audit Centre with tab", exists("app/audit-centre/backup/page.tsx") && (read("app/components/GovernmentAppShell.tsx") + read("app/components/v4/AppFrame.tsx") + read("app/components/v4/Bell.tsx") + read("lib/v4/modules.ts")).includes('"Master Backup"'));
 check("Backup log SQL present", exists("database/v3_1_8_master_backup_log.sql"));

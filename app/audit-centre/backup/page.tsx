@@ -14,7 +14,7 @@ import { Card, Chip, Notice, PageHead, Skeleton, V4Page } from "@/app/components
  * ReqGen v4.5 — Audit › Master Backup (mock-up 78).
  * A full copy is kept every night at 02:00 (Vercel cron → /api/backup/nightly).
  * Admin and the Auditor can download, preview and "Back up now";
- * only the Administrator can restore (with a fresh fingerprint or 2FA code).
+ * only the Super Admin can restore (with a fresh 2FA code), in one all-or-nothing step.
  */
 
 type Report = { table: string; label: string; inFile: number; existing: number | null; missing: number | null; written: number; status: string; note: string };
@@ -38,6 +38,7 @@ function logTitle(l: LogRow) {
   if (l.action === "restore") return `Restored ${fy} (${l.mode === "overwrite" ? "overwrite" : "missing records"})`;
   if (l.action === "preview") return `Previewed ${fy}`;
   if (l.mode === "nightly") return "Nightly backup";
+  if (l.mode === "pre-reset") return "Backup before a financial reset";
   if (l.mode === "year-end") return `Year-end copy — ${fy}`;
   if (l.mode === "download") return `Downloaded ${fy}`;
   return `Backed up ${fy}`;
@@ -119,7 +120,7 @@ export default function MasterBackupPage() {
         tone: mode === "overwrite" ? "danger" : "warning",
       });
       if (!ok) return;
-      const fresh = await confirmFresh("restore from a backup");
+      const fresh = await confirmFresh("restore from a backup", { codeOnly: true });
       if (fresh) { if (fresh !== "cancelled") setMessage({ tone: "red", text: fresh }); return; }
     }
     setBusy(`r-${mode}`); setMessage(null);
@@ -141,7 +142,7 @@ export default function MasterBackupPage() {
 
   return (
     <V4Page>
-      <PageHead title="Master Backup" sub="A full copy of ReqGen is taken every night at 02:00. Download any financial year; only the Administrator can restore."
+      <PageHead title="Master Backup" sub="A full copy of ReqGen is taken every night at 02:00. Download any financial year; only the Super Admin can restore."
         actions={[{ label: busy === "now" ? "Backing up…" : "Back up now", icon: "database", kind: "primary", disabled: busy !== "", onClick: () => void backupNow() }]} />
       {message ? <Notice tone={message.tone}>{message.text}</Notice> : null}
       {log === null ? <Skeleton lines={2} /> : lastNightly ? (
@@ -203,7 +204,7 @@ export default function MasterBackupPage() {
 
         <section className="v4-danger-zone v4-card-pad">
           <h2 className="v4-h2" style={{ marginBottom: 6 }}>Restore</h2>
-          <p className="v4-help" style={{ margin: "0 0 14px" }}>Administrator only. Auditors can download and preview but not restore. Nothing is ever deleted by a restore.</p>
+          <p className="v4-help" style={{ margin: "0 0 14px" }}>Super Admin only, with a fresh 2FA code. The Auditor can download and preview. A restore is written in one step — all or nothing — and never deletes anything.</p>
           <div className="v4-field"><span className="v4-flabel">Backup to restore</span>
             <Select ariaLabel="Backup to restore" value={pick} onChange={(v) => { setPick(v); if (v) setFile(null); setResult(null); }} options={storedOptions} disabled={busy !== ""} />
           </div>

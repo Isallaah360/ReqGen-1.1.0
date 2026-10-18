@@ -1,466 +1,114 @@
 "use client";
 
-import { FormEvent, Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { Suspense, useEffect, useState, type FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import { passwordStrength } from "@/lib/v4/passwordStrength";
+import PublicAuthShell from "../components/PublicAuthShell";
+import Icon from "../components/v4/Icon";
+import { Notice } from "../components/v4/ui";
 
-type MfaFactor = {
-  id: string;
-  friendly_name?: string | null;
-  factor_type?: string;
-  status?: string;
-};
-
-function passwordScore(password: string) {
-  let score = 0;
-
-  if (password.length >= 8) score += 1;
-  if (password.length >= 12) score += 1;
-  if (/[A-Z]/.test(password)) score += 1;
-  if (/[a-z]/.test(password)) score += 1;
-  if (/[0-9]/.test(password)) score += 1;
-  if (/[^A-Za-z0-9]/.test(password)) score += 1;
-
-  return score;
-}
-
-function passwordAdvice(password: string) {
-  if (!password) return "Use at least 8 characters.";
-
-  const score = passwordScore(password);
-
-  if (score <= 2) return "Weak password. Add uppercase, number and symbol.";
-  if (score <= 4) return "Good password. Longer is better.";
-  return "Strong password.";
-}
-
-function getPasswordTone(password: string) {
-  const score = passwordScore(password);
-
-  if (!password) return "text-slate-500";
-  if (score <= 2) return "text-red-700";
-  if (score <= 4) return "text-amber-700";
-  return "text-emerald-700";
-}
-
-function ResetPasswordContent() {
+/**
+ * Reset password, step 2 (mock-up 06): the link from the email opens this page. If the account
+ * has 2FA, the code is asked first. Saving signs the person out on every device.
+ */
+function Content() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-
-  const [initializing, setInitializing] = useState(true);
-  const [sessionReady, setSessionReady] = useState(false);
-
-  const [checkingMfa, setCheckingMfa] = useState(false);
-  const [needsMfa, setNeedsMfa] = useState(false);
-  const [mfaVerified, setMfaVerified] = useState(false);
+  const params = useSearchParams();
+  const [state, setState] = useState<"checking" | "ready" | "bad">("checking");
   const [factorId, setFactorId] = useState<string | null>(null);
-  const [factorName, setFactorName] = useState<string>("Authenticator App");
-
-  const [mfaCode, setMfaCode] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-
-  const [saving, setSaving] = useState(false);
-  const [verifyingMfa, setVerifyingMfa] = useState(false);
-  const [msg, setMsg] = useState<string | null>(null);
-  const [err, setErr] = useState<string | null>(null);
-
-  const passwordsMatch = newPassword.length > 0 && newPassword === confirmPassword;
-  const passwordStrongEnough = passwordScore(newPassword) >= 3 && newPassword.length >= 8;
-
-  const canSubmit =
-    sessionReady &&
-    passwordStrongEnough &&
-    passwordsMatch &&
-    (!needsMfa || mfaVerified) &&
-    !saving;
-
-  const codeFromUrl = useMemo(() => searchParams.get("code"), [searchParams]);
-
-  async function bootstrapRecoverySession() {
-    setInitializing(true);
-    setErr(null);
-    setMsg(null);
-
-    try {
-      if (codeFromUrl) {
-        const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(codeFromUrl);
-
-        if (exchangeError) {
-          setErr(
-            "The reset link could not be confirmed. Please request a fresh password reset link."
-          );
-          setSessionReady(false);
-          setInitializing(false);
-          return;
-        }
-      }
-
-      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-
-      if (sessionError || !sessionData.session?.user) {
-        setErr(
-          "No active password reset session was found. Please open the reset link from your email again or request a new link."
-        );
-        setSessionReady(false);
-        setInitializing(false);
-        return;
-      }
-
-      setSessionReady(true);
-
-      await inspectMfaRequirement();
-
-      setInitializing(false);
-    } catch (error) {
-      setErr(error instanceof Error ? error.message : "Failed to prepare password reset.");
-      setSessionReady(false);
-      setInitializing(false);
-    }
-  }
-
-  async function inspectMfaRequirement() {
-    setCheckingMfa(true);
-
-    const factorsRes = await supabase.auth.mfa.listFactors();
-
-    if (factorsRes.error) {
-      setNeedsMfa(false);
-      setMfaVerified(false);
-      setCheckingMfa(false);
-      return;
-    }
-
-    const verifiedTotp = (factorsRes.data.totp || []).filter(
-      (factor: MfaFactor) => factor.status === "verified"
-    );
-
-    if (verifiedTotp.length === 0) {
-      setNeedsMfa(false);
-      setMfaVerified(false);
-      setFactorId(null);
-      setCheckingMfa(false);
-      return;
-    }
-
-    const primary = verifiedTotp[0];
-
-    setNeedsMfa(true);
-    setFactorId(primary.id);
-    setFactorName(primary.friendly_name || "Authenticator App");
-
-    const aalRes = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-
-    if (!aalRes.error && aalRes.data.currentLevel === "aal2") {
-      setMfaVerified(true);
-    } else {
-      setMfaVerified(false);
-    }
-
-    setCheckingMfa(false);
-  }
-
-  async function verifyMfa() {
-    setErr(null);
-    setMsg(null);
-
-    if (!factorId) {
-      setErr("No verified 2FA factor was found for this account.");
-      return;
-    }
-
-    const code = mfaCode.trim().replace(/\s+/g, "");
-
-    if (!/^\d{6}$/.test(code)) {
-      setErr("Please enter the 6-digit authenticator code.");
-      return;
-    }
-
-    setVerifyingMfa(true);
-
-    const { error } = await supabase.auth.mfa.challengeAndVerify({
-      factorId,
-      code,
-    });
-
-    setVerifyingMfa(false);
-
-    if (error) {
-      setErr(error.message);
-      return;
-    }
-
-    setMfaVerified(true);
-    setMfaCode("");
-    setMsg("2FA verified. You can now set your new password.");
-  }
-
-  async function updatePassword(e: FormEvent) {
-    e.preventDefault();
-
-    setErr(null);
-    setMsg(null);
-
-    if (!sessionReady) {
-      setErr("Password reset session is not ready. Please open the reset link again.");
-      return;
-    }
-
-    if (!passwordStrongEnough) {
-      setErr("Please use a stronger password with at least 8 characters.");
-      return;
-    }
-
-    if (!passwordsMatch) {
-      setErr("New password and confirmation do not match.");
-      return;
-    }
-
-    if (needsMfa && !mfaVerified) {
-      setErr("Please verify your 2FA code before changing the password.");
-      return;
-    }
-
-    setSaving(true);
-
-    const { error } = await supabase.auth.updateUser({
-      password: newPassword,
-    });
-
-    setSaving(false);
-
-    if (error) {
-      setErr(error.message);
-      return;
-    }
-
-    setNewPassword("");
-    setConfirmPassword("");
-    setMsg("Password changed successfully. Please login again with your new password.");
-
-    await supabase.auth.signOut();
-
-    setTimeout(() => {
-      router.push("/login?password_reset=success");
-      router.refresh();
-    }, 1200);
-  }
+  const [mfaOk, setMfaOk] = useState(false);
+  const [code, setCode] = useState("");
+  const [next, setNext] = useState("");
+  const [again, setAgain] = useState("");
+  const [show, setShow] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<{ tone: "green" | "red"; text: string } | null>(null);
 
   useEffect(() => {
-    bootstrapRecoverySession();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [codeFromUrl]);
+    const linkCode = params.get("code");
+    queueMicrotask(async () => {
+      if (linkCode) {
+        const { error } = await supabase.auth.exchangeCodeForSession(linkCode);
+        if (error) { setState("bad"); return; }
+      }
+      const { data } = await supabase.auth.getSession();
+      if (!data.session?.user) { setState("bad"); return; }
+      const [factors, aal] = await Promise.all([supabase.auth.mfa.listFactors(), supabase.auth.mfa.getAuthenticatorAssuranceLevel()]);
+      setFactorId((factors.data?.totp || []).find((f) => f.status === "verified")?.id || null);
+      setMfaOk(!aal.error && aal.data.currentLevel === "aal2");
+      setState("ready");
+    });
+  }, [params]);
 
-  if (initializing) {
-    return (
-      <main className="auth-shell auth-shell-legacy">
-        <div className="auth-legacy-wrap">
-          <div className="auth-legacy-card auth-legacy-loading">
-            Preparing secure password reset...
-          </div>
-        </div>
-      </main>
-    );
+  const s = passwordStrength(next);
+  const locked = !!factorId && !mfaOk;
+  const canSave = state === "ready" && !locked && s.ok && next === again && !busy;
+
+  async function checkCode() {
+    setMsg(null);
+    const clean = code.replace(/\D/g, "");
+    if (!factorId || clean.length !== 6) { setMsg({ tone: "red", text: "Type the 6-number code from your authenticator app." }); return; }
+    setBusy(true);
+    const { error } = await supabase.auth.mfa.challengeAndVerify({ factorId, code: clean });
+    setBusy(false);
+    if (error) { setMsg({ tone: "red", text: `The code is not correct: ${error.message}` }); return; }
+    setMfaOk(true); setCode("");
+  }
+
+  async function save(e: FormEvent) {
+    e.preventDefault();
+    if (!canSave) return;
+    setBusy(true); setMsg(null);
+    const { error } = await supabase.auth.updateUser({ password: next, data: { password_changed_at: new Date().toISOString(), temporary_password: false } });
+    setBusy(false);
+    if (error) { setMsg({ tone: "red", text: error.message }); return; }
+    setMsg({ tone: "green", text: "Your new password is saved. Sign in again with it." });
+    await supabase.auth.signOut();
+    window.setTimeout(() => { router.push("/login?password_reset=success"); router.refresh(); }, 1200);
   }
 
   return (
-    <main className="auth-shell auth-shell-legacy">
-      <div className="mx-auto flex min-h-screen max-w-xl items-center justify-center py-10">
-        <div className="auth-legacy-card">
-          <div className="text-center">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-600 text-xl font-black text-white">
-              RG
-            </div>
-
-            <h1 className="mt-4 text-2xl font-extrabold text-slate-900">
-              Reset Password
-            </h1>
-
-            <p className="mt-2 text-sm leading-6 text-slate-600">
-              Confirm your recovery session, verify 2FA where required, and set a new secure
-              password.
-            </p>
-          </div>
-
-          {err && (
-            <div className="mt-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-800">
-              {err}
-            </div>
-          )}
-
-          {msg && (
-            <div className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">
-              {msg}
-            </div>
-          )}
-
-          {!sessionReady ? (
-            <div className="mt-6 space-y-4">
-              <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">
-                Your reset session is not active. Please request a fresh reset link and open it from
-                your email.
-              </div>
-
-              <Link
-                href="/forgot-password"
-                className="reqgen-btn reqgen-btn-orange block rounded-2xl bg-blue-600 px-4 py-3 text-center text-sm font-black text-white hover:bg-blue-700"
-              >
-                Request New Reset Link
-              </Link>
-            </div>
-          ) : (
-            <>
-              <div className="mt-6 grid gap-3 md:grid-cols-2">
-                <StatusBox label="Recovery Session" value="Confirmed" ok />
-
-                <StatusBox
-                  label="2FA Requirement"
-                  value={
-                    checkingMfa
-                      ? "Checking..."
-                      : needsMfa
-                        ? mfaVerified
-                          ? "Verified"
-                          : "Required"
-                        : "No verified 2FA on account"
-                  }
-                  ok={!needsMfa || mfaVerified}
-                />
-              </div>
-
-              {needsMfa && !mfaVerified && (
-                <div className="mt-6 rounded-3xl border border-amber-200 bg-amber-50 p-4">
-                  <div className="font-extrabold text-amber-950">
-                    2FA Verification Required
-                  </div>
-
-                  <p className="mt-1 text-sm leading-6 text-amber-900">
-                    Enter the 6-digit code from your {factorName}. This protects the password reset
-                    from unauthorized access.
-                  </p>
-
-                  <div className="mt-4 flex flex-col gap-3 sm:flex-row">
-                    <input
-                      value={mfaCode}
-                      onChange={(e) =>
-                        setMfaCode(e.target.value.replace(/[^\d]/g, "").slice(0, 6))
-                      }
-                      placeholder="123456"
-                      inputMode="numeric"
-                      maxLength={6}
-                      className="w-full rounded-2xl border border-amber-200 bg-white px-4 py-3 text-center text-xl font-black tracking-[0.35em] text-slate-900 outline-none focus:border-amber-500 sm:max-w-[210px]"
-                    />
-
-                    <button
-                      type="button"
-                      onClick={verifyMfa}
-                      disabled={verifyingMfa || mfaCode.trim().length !== 6}
-                      className="reqgen-btn reqgen-btn-rose rounded-2xl bg-amber-600 px-5 py-3 text-sm font-black text-white hover:bg-amber-700 disabled:opacity-60"
-                    >
-                      {verifyingMfa ? "Verifying..." : "Verify 2FA"}
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {!needsMfa && (
-                <div className="mt-6 rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm leading-6 text-blue-900">
-                  No verified 2FA factor was found on this account. Password reset can continue,
-                  but the user should set up 2FA immediately after login.
-                </div>
-              )}
-
-              <form onSubmit={updatePassword} className="mt-6 space-y-4">
-                <div>
-                  <label className="text-sm font-bold text-slate-800">New Password</label>
-                  <input
-                    type="password"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    autoComplete="new-password"
-                    className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 text-slate-900 outline-none transition focus:border-blue-500"
-                  />
-                  <div className={`mt-1 text-xs font-bold ${getPasswordTone(newPassword)}`}>
-                    {passwordAdvice(newPassword)}
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-sm font-bold text-slate-800">
-                    Confirm New Password
-                  </label>
-                  <input
-                    type="password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    autoComplete="new-password"
-                    className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 text-slate-900 outline-none transition focus:border-blue-500"
-                  />
-                  {confirmPassword && (
-                    <div
-                      className={`mt-1 text-xs font-bold ${passwordsMatch ? "text-emerald-700" : "text-red-700"
-                        }`}
-                    >
-                      {passwordsMatch ? "Passwords match." : "Passwords do not match."}
-                    </div>
-                  )}
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={!canSubmit}
-                  className="reqgen-btn reqgen-btn-rose w-full rounded-2xl bg-blue-600 px-4 py-3 text-sm font-black text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {saving ? "Changing Password..." : "Change Password"}
-                </button>
-              </form>
-            </>
-          )}
-
-          <div className="mt-6 flex flex-wrap items-center justify-between gap-3 text-sm">
-            <Link href="/login" className="font-bold text-blue-700 hover:underline">
-              Back to Login
-            </Link>
-
-            <Link href="/forgot-password" className="font-bold text-slate-600 hover:text-slate-900">
-              Request Another Link
-            </Link>
-          </div>
-        </div>
+    <PublicAuthShell title="Reset your password" subtitle="Choose a new password for ReqGen." showHomeLink={false}>
+      <div className="v4-segmented" role="tablist" style={{ alignSelf: "center" }}>
+        <button type="button" role="tab" aria-selected="false" disabled>1 · Get the link</button>
+        <button type="button" role="tab" aria-selected="true">2 · New password</button>
       </div>
-    </main>
-  );
-}
-
-function StatusBox({ label, value, ok }: { label: string; value: string; ok: boolean }) {
-  return (
-    <div
-      className={`rounded-2xl border px-4 py-3 ${ok
-          ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-          : "border-amber-200 bg-amber-50 text-amber-900"
-        }`}
-    >
-      <div className="text-xs font-black uppercase tracking-wide opacity-80">{label}</div>
-      <div className="mt-1 text-sm font-black">{value}</div>
-    </div>
+      {state === "checking" ? <p className="v4-muted" style={{ textAlign: "center" }}>Checking the link…</p> : state === "bad" ? (
+        <div className="v4-auth-form">
+          <Notice tone="red">This reset link is not valid any more (it works once, for 1 hour). Ask for a new one.</Notice>
+          <Link className="v4-btn v4-btn-primary v4-btn-lg v4-btn-block" href="/forgot-password"><Icon name="send" />Send a new link</Link>
+        </div>
+      ) : (
+        <form className="v4-auth-form" onSubmit={(e) => void save(e)} noValidate>
+          {factorId ? (mfaOk ? <Notice tone="green">2FA confirmed.</Notice> : (
+            <label className="v4-field"><span className="v4-flabel">6-number code from your authenticator app <span className="v4-req">*</span></span>
+              <span style={{ display: "flex", gap: 8 }}>
+                <input className="v4-input" inputMode="numeric" autoComplete="one-time-code" maxLength={7} placeholder="123456" value={code} onChange={(e) => setCode(e.target.value)} />
+                <button className="v4-btn v4-btn-secondary" type="button" disabled={busy} onClick={() => void checkCode()}>Confirm</button>
+              </span>
+            </label>
+          )) : null}
+          <label className="v4-field"><span className="v4-flabel">New password <span className="v4-req">*</span></span>
+            <span className="v4-control"><Icon name="lock" /><input className="v4-input" type={show ? "text" : "password"} autoComplete="new-password" value={next} disabled={locked} onChange={(e) => setNext(e.target.value)} /></span>
+            <span className="v4-help" style={{ color: s.tone }}>{s.text}</span>
+          </label>
+          <label className="v4-field"><span className="v4-flabel">Type it again <span className="v4-req">*</span></span>
+            <span className="v4-control"><Icon name="lock" /><input className="v4-input" type={show ? "text" : "password"} autoComplete="new-password" value={again} disabled={locked} onChange={(e) => setAgain(e.target.value)} /></span>
+            {again && again !== next ? <span className="v4-help" style={{ color: "var(--v4-red)" }}>The two passwords are different.</span> : null}
+          </label>
+          <label className="v4-check"><input type="checkbox" checked={show} onChange={(e) => setShow(e.target.checked)} /> Show the passwords</label>
+          {msg ? <Notice tone={msg.tone}>{msg.text}</Notice> : null}
+          <button className="v4-btn v4-btn-primary v4-btn-lg v4-btn-block" type="submit" disabled={!canSave}><Icon name="key" />{busy ? "Saving…" : "Save new password"}</button>
+          <Notice tone="amber">Saving a new password signs you out on <b>every device</b>.</Notice>
+          <Link href="/login" style={{ textAlign: "center", fontSize: 13.5, color: "var(--v4-ink-2)" }}><Icon name="left" size="sm" /> Back to Login</Link>
+        </form>
+      )}
+    </PublicAuthShell>
   );
 }
 
 export default function ResetPasswordPage() {
-  return (
-    <Suspense
-      fallback={
-        <main className="auth-shell auth-shell-legacy">
-          <div className="auth-legacy-wrap">
-            <div className="auth-legacy-card auth-legacy-loading">
-              Loading reset page...
-            </div>
-          </div>
-        </main>
-      }
-    >
-      <ResetPasswordContent />
-    </Suspense>
-  );
+  return <Suspense fallback={<PublicAuthShell title="Reset your password" subtitle="Preparing…"><p className="v4-muted">Loading…</p></PublicAuthShell>}><Content /></Suspense>;
 }

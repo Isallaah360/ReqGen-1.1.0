@@ -16,9 +16,9 @@ const wildcard = clientFiles.filter((f) => /from\("requests"\)\s*\.select\("\*"\
 check("No page reads every column of requests/request_history", wildcard.length === 0, wildcard.join(", "));
 
 // 2. Oversight pages use the content-free registers.
-for (const f of ["app/components/registry/RegistryCentreWorkspace.tsx", "app/finance/overview/page.tsx"]) {
-  check(`${f} uses the content-free register`, /fetchRequest(Register|Movements)\(/.test(read(f)));
-}
+// v4.6.3: the v3 Registry Centre and Finance overview are gone; Registry reads the content-free tracking function
+check("app/registry/tracking/page.tsx uses the content-free tracking list", read("app/registry/tracking/page.tsx").includes('rpc("reqgen_registry_tracking"') && !/from\("(requests|request_history)"\)/.test(read("app/registry/tracking/page.tsx")));
+check("app/dashboard/activity/page.tsx shows no comments or request contents", !/select\([^)]*(comment|title|details)/.test(read("app/dashboard/activity/page.tsx")));
 // v4.5: the Audit Log reads reqgen_audit_events (who, what, which number, when) and never the requests table.
 check("app/audit-centre/logs/page.tsx uses the content-free audit events", read("app/audit-centre/logs/page.tsx").includes('rpc("reqgen_audit_events"') && !/from\("(requests|request_history)"\)/.test(read("app/audit-centre/logs/page.tsx")));
 // v4.4: report pages never read requests directly; the database scopes them (titles only for your own).
@@ -40,7 +40,8 @@ check("No role bypasses the request privacy rule", read("lib/requestAccess.ts").
 check("Approvals list has no oversight bypass", read("lib/approvalQueue.ts").includes("OVERSIGHT_ROLES = new Set<string>([])"));
 
 // 5. The register never selects content columns.
-const reg = read("lib/requestRegister.ts");
+// v4.6.3: lib/requestRegister.ts is deleted; the registry's column list is CORR_COLUMNS in lib/v4/registry.ts
+const reg = read("lib/v4/registry.ts");
 const cols = [...reg.matchAll(/_COLUMNS =\s*"([^"]+)"/g)].map((m) => m[1]).join(",");
 const leaked = ["title", "details", "comment", "requester_comment", "signature_url"].filter((c) => cols.split(",").includes(c));
 check("Content-free registers contain no content columns", leaked.length === 0, leaked.join(", "));

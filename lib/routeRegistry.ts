@@ -466,6 +466,36 @@ export const ROUTE_REGISTRY: RouteRegistryItem[] = [
     "description": "ReqGen route /finance/account-ledger"
   },
   {
+    "pattern": "/finance/integrity",
+    "title": "Finance - Integrity",
+    "rootHref": "/finance",
+    "category": "Application Route",
+    "public": false,
+    "nav": false,
+    "searchable": true,
+    "description": "ReqGen route /finance/integrity"
+  },
+  {
+    "pattern": "/finance/transactions-centre",
+    "title": "Finance - Transaction Centre",
+    "rootHref": "/finance",
+    "category": "Application Route",
+    "public": false,
+    "nav": false,
+    "searchable": true,
+    "description": "ReqGen route /finance/transactions-centre"
+  },
+  {
+    "pattern": "/admin/finance-reset",
+    "title": "Administration - Financial Reset",
+    "rootHref": "/admin",
+    "category": "Application Route",
+    "public": false,
+    "nav": false,
+    "searchable": true,
+    "description": "ReqGen route /admin/finance-reset"
+  },
+  {
     "pattern": "/finance/account-transfers",
     "title": "Finance - Account Transfers",
     "rootHref": "/finance",

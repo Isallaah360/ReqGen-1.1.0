@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-/** v3.1.10: retired duplicate page — its work lives at /finance/audit. */
+/** v4.6.3: retired duplicate page — its work lives in the Transaction Centre. */
 export default function RetiredPage() {
-  redirect("/finance/audit");
+  redirect("/finance/transactions-centre");
 }

@@ -27,7 +27,7 @@ check("Finance Audit, Admin Audit Log and Diagnostics are module tabs", ['"/audi
 // 2. Financial year 1 Sep – 31 Aug.
 const fy = read("lib/financialYear.ts");
 check("Financial year starts in September", fy.includes("FY_START_MONTH = 8"));
-check("Backup, Print Register and Finance use the IET financial year", (read("app/api/backup/export/route.ts") + read("lib/server/backupBuild.ts")).includes("fyBounds") && (read("app/requests/printable/page.tsx").includes("fyStartYear") || read("lib/v4/reports.ts").includes("export function fyRange")) && read("app/finance/overview/page.tsx").includes("fyStartYear"));
+check("Backup, Print Register and Finance use the IET financial year", (read("app/api/backup/export/route.ts") + read("lib/server/backupBuild.ts")).includes("fyBounds") && (read("app/requests/printable/page.tsx").includes("fyStartYear") || read("lib/v4/reports.ts").includes("export function fyRange")) && (read("lib/v4/finance.ts").includes("fyOf") || read("app/finance/overview/page.tsx").includes("fyStartYear")));
 
 // 3. One loading bar.
 const css = read("app/globals.css");

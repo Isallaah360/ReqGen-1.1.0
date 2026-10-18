@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { CheckCircle2, ChevronRight, Compass, X } from "lucide-react";
 import { confirmDialog } from "@/lib/dialog";
-import { SETUP_ORDER, setupStepContent, useSetupSteps, type SetupStepKey } from "@/lib/profileSetup";
+import { SETUP_EVENT, SETUP_ORDER, readSetupStripOff, setupStepContent, useSetupSteps, type SetupStepKey } from "@/lib/profileSetup";
 
 const SKIP_PATHS = ["/login", "/signup", "/mfa", "/forgot-password", "/reset-password", "/unauthorized"];
 const WELCOME_KEY = "reqgen-setup-welcome-shown";
@@ -26,6 +26,13 @@ export default function SetupCoach() {
   const { steps } = useSetupSteps();
   const [closed, setClosed] = useState(false);
   const [readyAck, setReadyAck] = useState(true);
+  const [stripOff, setStripOff] = useState(false);
+  useEffect(() => {
+    const read = () => setStripOff(readSetupStripOff());
+    queueMicrotask(read);
+    window.addEventListener(SETUP_EVENT, read);
+    return () => window.removeEventListener(SETUP_EVENT, read);
+  }, []);
   const complete = !!steps && steps.length > 0 && steps.every((s) => s.done);
 
   // v3.1.10: when every step is done, show a green "account ready" bar once.
@@ -88,7 +95,7 @@ export default function SetupCoach() {
           <button type="button" onClick={() => { try { localStorage.setItem("reqgen-setup-ready-ack", "1"); } catch { /* ignore */ } setReadyAck(true); }}>OK</button>
         </div>
       ) : null}
-      {missing.length && !pathname.startsWith("/profile/setup") && !guideStep ? (
+      {missing.length && !stripOff && !pathname.startsWith("/profile/setup") && !guideStep ? (
         <div className={`rg-setup-banner ${missingRequired.length ? "is-required" : ""}`} role="status">
           <Compass size={16} aria-hidden="true" />
           <span>

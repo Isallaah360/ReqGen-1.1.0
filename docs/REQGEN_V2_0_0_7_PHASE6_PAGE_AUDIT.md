@@ -1,7 +1,7 @@
 # ReqGen v2.0.0.7 - Phase 6 Page-by-Page Visual Audit
 
-Physical pages audited: **121**  
-Visual containment PASS: **121**  
+Physical pages audited: **124**  
+Visual containment PASS: **124**  
 Pages requiring review: **0**
 
 The audit is paired with the Phase 6 global design contract in `app/globals.css`: frame containment, minimum readable typography, standard controls, visible focus states, responsive grids, viewport-safe dialogs, table wrapping/containment, canonical tabs and interactive chart affordances.
@@ -16,6 +16,7 @@ The audit is paired with the Phase 6 global design contract in `app/globals.css`
 | `/admin/audit` | SCREEN | 0 | 0 | 0 | 0 | 0 | **PASS** |
 | `/admin/department-routing` | SCREEN | 0 | 0 | 0 | 0 | 0 | **PASS** |
 | `/admin/departments` | SCREEN | 1 | 0 | 0 | 4 | 0 | **PASS** |
+| `/admin/finance-reset` | SCREEN | 2 | 0 | 0 | 0 | 0 | **PASS** |
 | `/admin/overview` | SCREEN | 0 | 0 | 0 | 0 | 0 | **PASS** |
 | `/admin/positions` | SCREEN | 0 | 0 | 0 | 0 | 0 | **PASS** |
 | `/admin/release-readiness` | SCREEN | 0 | 0 | 0 | 0 | 0 | **PASS** |
@@ -41,7 +42,7 @@ The audit is paired with the Phase 6 global design contract in `app/globals.css`
 | `/change-password` | SCREEN | 0 | 1 | 0 | 0 | 0 | **PASS** |
 | `/check/[kind]/[id]` | SCREEN | 0 | 0 | 0 | 0 | 0 | **PASS** |
 | `/dashboard` | SCREEN | 0 | 0 | 0 | 0 | 0 | **PASS** |
-| `/dashboard/activity` | SCREEN | 0 | 0 | 1 | 0 | 0 | **PASS** |
+| `/dashboard/activity` | SCREEN | 0 | 0 | 0 | 0 | 0 | **PASS** |
 | `/docs` | SCREEN | 0 | 0 | 0 | 0 | 0 | **PASS** |
 | `/finance` | SCREEN | 0 | 0 | 0 | 0 | 0 | **PASS** |
 | `/finance/account-ledger` | SCREEN | 0 | 0 | 0 | 0 | 0 | **PASS** |
@@ -49,14 +50,15 @@ The audit is paired with the Phase 6 global design contract in `app/globals.css`
 | `/finance/accounts` | SCREEN | 0 | 0 | 0 | 0 | 0 | **PASS** |
 | `/finance/activity-history` | SCREEN | 0 | 0 | 0 | 0 | 0 | **PASS** |
 | `/finance/assign-account` | SCREEN | 0 | 0 | 0 | 0 | 0 | **PASS** |
-| `/finance/audit` | SCREEN | 4 | 0 | 4 | 0 | 0 | **PASS** |
+| `/finance/audit` | SCREEN | 0 | 0 | 0 | 0 | 0 | **PASS** |
 | `/finance/audit-trail` | SCREEN | 0 | 0 | 0 | 0 | 0 | **PASS** |
 | `/finance/departments` | SCREEN | 0 | 0 | 0 | 0 | 0 | **PASS** |
 | `/finance/export-centre` | SCREEN | 0 | 0 | 0 | 0 | 0 | **PASS** |
+| `/finance/integrity` | SCREEN | 2 | 0 | 0 | 4 | 0 | **PASS** |
 | `/finance/manage-accounts` | SCREEN | 1 | 0 | 0 | 6 | 0 | **PASS** |
 | `/finance/manage-accounts/assign` | SCREEN | 1 | 0 | 0 | 7 | 0 | **PASS** |
 | `/finance/manual-voucher` | SCREEN | 0 | 0 | 0 | 0 | 0 | **PASS** |
-| `/finance/overview` | SCREEN | 1 | 0 | 4 | 0 | 4 | **PASS** |
+| `/finance/overview` | SCREEN | 0 | 0 | 0 | 0 | 0 | **PASS** |
 | `/finance/print-centre` | PRINT | 0 | 0 | 0 | 0 | 0 | **PASS** |
 | `/finance/processing` | SCREEN | 1 | 0 | 0 | 0 | 0 | **PASS** |
 | `/finance/reports` | SCREEN | 0 | 0 | 0 | 0 | 0 | **PASS** |
@@ -69,6 +71,7 @@ The audit is paired with the Phase 6 global design contract in `app/globals.css`
 | `/finance/subheads` | SCREEN | 1 | 0 | 0 | 0 | 0 | **PASS** |
 | `/finance/subheads/[id]` | SCREEN | 0 | 1 | 0 | 0 | 0 | **PASS** |
 | `/finance/transactions` | SCREEN | 1 | 0 | 0 | 0 | 0 | **PASS** |
+| `/finance/transactions-centre` | SCREEN | 2 | 0 | 0 | 8 | 0 | **PASS** |
 | `/finance/vouchers` | SCREEN | 0 | 0 | 0 | 0 | 0 | **PASS** |
 | `/forgot-password` | SCREEN | 0 | 1 | 0 | 0 | 0 | **PASS** |
 | `/login` | SCREEN | 0 | 1 | 0 | 0 | 0 | **PASS** |
@@ -90,9 +93,9 @@ The audit is paired with the Phase 6 global design contract in `app/globals.css`
 | `/payment-vouchers/reports` | SCREEN | 0 | 0 | 0 | 0 | 0 | **PASS** |
 | `/payment-vouchers/settings` | SCREEN | 1 | 0 | 0 | 7 | 0 | **PASS** |
 | `/profile` | SCREEN | 0 | 0 | 0 | 0 | 0 | **PASS** |
-| `/profile/access` | SCREEN | 0 | 0 | 0 | 0 | 0 | **PASS** |
+| `/profile/access` | SCREEN | 1 | 0 | 0 | 0 | 0 | **PASS** |
 | `/profile/activity` | SCREEN | 0 | 0 | 0 | 0 | 0 | **PASS** |
-| `/profile/details` | SCREEN | 0 | 0 | 1 | 0 | 0 | **PASS** |
+| `/profile/details` | SCREEN | 0 | 1 | 0 | 0 | 0 | **PASS** |
 | `/profile/passcode` | SCREEN | 0 | 0 | 0 | 0 | 0 | **PASS** |
 | `/profile/security` | SCREEN | 0 | 0 | 0 | 5 | 0 | **PASS** |
 | `/profile/security/replace-authenticator` | SCREEN | 0 | 0 | 0 | 0 | 0 | **PASS** |
@@ -125,9 +128,9 @@ The audit is paired with the Phase 6 global design contract in `app/globals.css`
 | `/requests/new` | SCREEN | 0 | 0 | 0 | 5 | 0 | **PASS** |
 | `/requests/printable` | PRINT | 1 | 0 | 0 | 0 | 0 | **PASS** |
 | `/reset-password` | SCREEN | 0 | 1 | 0 | 0 | 0 | **PASS** |
-| `/signup` | SCREEN | 0 | 1 | 2 | 0 | 0 | **PASS** |
+| `/signup` | SCREEN | 0 | 1 | 0 | 0 | 0 | **PASS** |
 | `/test-supabase` | SCREEN | 0 | 0 | 0 | 0 | 0 | **PASS** |
-| `/unauthorized` | SCREEN | 0 | 0 | 0 | 0 | 1 | **PASS** |
+| `/unauthorized` | SCREEN | 0 | 0 | 0 | 0 | 0 | **PASS** |
 | `/workflow` | SCREEN | 0 | 1 | 0 | 0 | 0 | **PASS** |
 
 ## Phase 6 acceptance controls

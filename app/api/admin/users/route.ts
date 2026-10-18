@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { accountProblem } from "@/lib/server/staffAuth";
 
 export const runtime = "nodejs";
 
@@ -30,6 +31,8 @@ export async function POST(req: NextRequest) {
   if (authError || !authData.user) return fail("Invalid session.", 401);
 
   const actorId = authData.user.id;
+  const problem = await accountProblem(admin, actorId);
+  if (problem) return fail(problem, 403);
   const [{ data: actorProfile, error: actorProfileError }, { data: actorRoles, error: actorRolesError }] = await Promise.all([
     admin.from("profiles").select("role").eq("id", actorId).maybeSingle(),
     admin.from("profile_roles").select("role_key,is_active").eq("profile_id", actorId).eq("is_active", true),

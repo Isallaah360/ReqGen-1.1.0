@@ -7,6 +7,18 @@ function key(v: string | null | undefined) {
   return String(v || "").toLowerCase().replace(/[^a-z0-9]/g, "");
 }
 
+/**
+ * v4.6.3: a signed-in token is not enough — the person must still have a staff record and it
+ * must be active. A deactivated account (or one whose record cannot be found) is refused even
+ * while an old session token is still valid.
+ */
+export async function accountProblem(admin: SupabaseClient, userId: string): Promise<string | null> {
+  const { data, error } = await admin.from("profiles").select("id,is_active").eq("id", userId).maybeSingle();
+  if (error) return /is_active/.test(error.message) ? null : "Your account could not be verified.";
+  if (!data) return "Your account could not be verified.";
+  return (data as { is_active?: boolean | null }).is_active === false ? "This account is deactivated." : null;
+}
+
 /** Verifies the Bearer token and returns a service client plus the caller's roles. */
 export async function staffFromRequest(authorization: string | null): Promise<StaffContext | { error: string; status: number }> {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -18,6 +30,8 @@ export async function staffFromRequest(authorization: string | null): Promise<St
   const { data, error } = await createClient(url, anon).auth.getUser(token);
   if (error || !data.user) return { error: "Unauthorized.", status: 401 };
   const admin = createClient(url, service, { auth: { persistSession: false } });
+  const problem = await accountProblem(admin, data.user.id);
+  if (problem) return { error: problem, status: 403 };
   const [profile, extra] = await Promise.all([
     admin.from("profiles").select("full_name,role").eq("id", data.user.id).maybeSingle(),
     admin.from("profile_roles").select("role_key,is_active").eq("profile_id", data.user.id),

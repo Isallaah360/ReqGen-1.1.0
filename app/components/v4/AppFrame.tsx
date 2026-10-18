@@ -87,7 +87,7 @@ export function V4Footer() {
         </div>
         <div className="v4-mid">
           <span className="v4-auth-values"><span>Secure</span><i /><span>Reliable</span><i /><span>Accountable</span></span>
-          <span className="v4-links"><Link href="/docs">Help</Link><Link href="/about#privacy">Privacy</Link><span>ReqGen {REQGEN_VERSION}</span></span>
+          <span className="v4-links"><Link href="/docs">Help</Link><Link href="/docs#privacy">Privacy</Link><span>ReqGen {REQGEN_VERSION}</span></span>
         </div>
         <div className="v4-right">
           <TwoFactorChip />

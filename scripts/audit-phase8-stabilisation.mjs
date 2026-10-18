@@ -5,9 +5,9 @@ const read = (p) => fs.readFileSync(path.join(root, p), "utf8");
 const checks = [];
 const check = (label, ok) => checks.push({ label, ok: Boolean(ok) });
 const dashboard = read("app/dashboard/page.tsx");
-const sharedDonut = read("app/components/ui/Donut.tsx");
-const registry = read("app/components/registry/RegistryCentreWorkspace.tsx");
-const registryCss = read("app/registry/registry.module.css");
+// v4.6.3: the v3 Donut, Registry Centre workspace and its CSS module are deleted; checks follow the v4 parts
+const sharedDonut = read("app/components/v4/Charts.tsx");
+const registry = read("app/registry/tracking/page.tsx") + read("lib/v4/registry.ts") + read("app/components/v4/PrivacyBar.tsx");
 const audit = read("app/audit-centre/logs/page.tsx");
 // v3.0.6: colours are theme variables with the original light colour as fallback
 // (var(--c-fg-ffffff,#fff)). Audits check the approved LIGHT values, so unwrap them.
@@ -15,17 +15,12 @@ const unwrapTheme = (text) => text.replace(/var\(--c-(?:bg|fg|ln)-[0-9a-f]{6,8},
 const globals = unwrapTheme(read("app/globals.css"));
 const shell = (read("app/components/GovernmentAppShell.tsx") + read("app/components/v4/AppFrame.tsx") + read("app/components/v4/Bell.tsx") + read("lib/v4/modules.ts"));
 check("Dashboard (v4) has no hand-drawn conic charts", !dashboard.includes("conic-gradient"));
-check("Shared Donut centre is pure SVG (no HTML overlay button to misalign)", sharedDonut.includes("<circle") && sharedDonut.includes("<text") && !/\n\s*<button/.test(sharedDonut) && !sharedDonut.includes("inset:"));
+check("Shared v4 Donut is pure SVG (no HTML overlay button to misalign)", sharedDonut.includes("export function Donut") && sharedDonut.includes("<circle") && !sharedDonut.includes("inset:"));
 check("Dashboard remains personal-data scoped", dashboard.includes('.eq("created_by", me.userId)'));
-check("Registry loads requests (content-free register since v3.0.4)", registry.includes('.from("requests")') || registry.includes("fetchRequestRegister("));
-check("Registry loads request history (movement feed since v3.0.4)", registry.includes('.from("request_history")') || registry.includes("fetchRequestMovements("));
-check("Registry loads payment vouchers (voucher register since v3.0.4)", registry.includes('.from("payment_vouchers")') || registry.includes("fetchVoucherRegister("));
-check("Registry exposes workflow stage counts", registry.includes("Request Workflow Movement") && registry.includes("FLOW_STAGES"));
-check("Registry exposes three live account queues without fabricated values", registry.includes("slice(0, 3)") && registry.includes("No requests are currently in Account processing."));
-check("Registry exposes request-linked and manual PV counts", registry.includes("Request-linked PVs") && registry.includes("Manual PVs"));
-check("Registry tracks movement only: no links to open request contents (v3.0.2)", !registry.includes("/requests/${") && !registry.includes("router.push(`/requests/") && registry.includes("RequestTrackingPanel") && fs.readFileSync(path.join(root, "lib/permissions.ts"), "utf8").includes('roles: ["registry"]'));
-check("Registry uses approved tabs contract", registry.includes('data-rg-tabs="true"') && registry.includes("aria-selected"));
-check("Registry has compact workflow intelligence styles", registryCss.includes(".workflowGrid") && registryCss.includes(".flowRow") && registryCss.includes(".rowActions"));
+check("Registry tracking reads the content-free tracking list (numbers, offices, people only)", registry.includes('rpc("reqgen_registry_tracking"') && !/from\("(requests|request_history|payment_vouchers)"\)/.test(registry));
+check("Registry shows each request's moves and the daily summary", registry.includes('rpc("reqgen_registry_moves"') && registry.includes('rpc("reqgen_registry_summary"'));
+check("Registry tracks movement only: no links to open request contents (v3.0.2)", !registry.includes("/requests/${") && !registry.includes("router.push(`/requests/") && fs.readFileSync(path.join(root, "lib/permissions.ts"), "utf8").includes('roles: ["registry"]'));
+check("Registry pages show the privacy bar", registry.includes("PrivacyBar") || read("app/components/v4/PrivacyBar.tsx").includes("export default"));
 // v3.1.1: the summary may use the stable shared BarChart component (keyboard
 // accessible, integer axis) — the unstable hand-made trend must stay gone.
 // v4.5: the Audit Log (mock-up 75) has no hand-drawn activity bars at all

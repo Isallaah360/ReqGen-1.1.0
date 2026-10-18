@@ -135,7 +135,7 @@
 .v4-nav { flex: 1; overflow-y: auto; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; }
 .v4-nav-group { margin: 10px 12px 4px; font-size: 11px; font-weight: 800; letter-spacing: .08em; color: #8A94A6; text-transform: uppercase; }
 .v4-nav a { display: flex; align-items: center; gap: 12px; min-height: 42px; padding: 0 12px; border-radius: 12px; color: #33415C; font-size: 14px; font-weight: 700; text-decoration: none; position: relative; }
-.v4-nav a:hover:not([aria-current="page"]), .v4-nav a:focus-visible:not([aria-current="page"]) { background: var(--v4-brand-soft); color: var(--v4-brand-dark); box-shadow: inset 3px 0 0 var(--v4-brand); }
+.v4-nav a:hover { background: var(--v4-surface-2); color: var(--v4-ink); }
 .v4-nav a[aria-current="page"] { background: linear-gradient(180deg, #C24600, #A63800); color: #fff; box-shadow: 0 8px 18px rgba(184,62,0,.25); }
 .v4-nav a .v4-count { margin-left: auto; }
 .v4-nav a[aria-current="page"] .v4-count { background: var(--v4-surface); color: var(--v4-brand); }

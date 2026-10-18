@@ -37,6 +37,9 @@ export const ROUTE_POLICIES: RoutePolicy[] = [
   { prefix: "/payment-vouchers/settings", roles: ["admin", "auditor"] },
   // v4.2: the Director General (or the General Secretary acting) approves and stamps transfers
   { prefix: "/finance/account-transfers", roles: ["admin", "auditor", "account", "accounts", "accountofficer", "dg", "directorgeneral", "generalsecretary"] },
+  // v4.6.3: integrity and the Transaction Centre are also for the DG's office, who approves reversals
+  { prefix: "/finance/integrity", roles: ["admin", "auditor", "account", "accounts", "accountofficer", "dg", "directorgeneral", "generalsecretary"] },
+  { prefix: "/finance/transactions-centre", roles: ["admin", "auditor", "account", "accounts", "accountofficer", "dg", "directorgeneral", "generalsecretary"] },
 
   {
     prefix: "/payment-vouchers",
