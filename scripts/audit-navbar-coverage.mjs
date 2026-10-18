@@ -28,6 +28,9 @@ const contextualParents = [
   ["/about", "/dashboard"],
   ["/test-supabase", "/admin"],
   ["/executive", "/admin"],
+  // v4.6.6: the Developer Console has its own menu block (Developer account only); What's new hangs off the Dashboard
+  ["/developer", "/developer"],
+  ["/whats-new", "/dashboard"],
 ];
 
 function parentFor(route) {

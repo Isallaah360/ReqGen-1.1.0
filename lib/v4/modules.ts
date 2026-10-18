@@ -192,11 +192,31 @@ export const ACCOUNT_MODULE: ModuleDef = {
   ],
 };
 
+/**
+ * v4.6.6 — the Developer Console: the Developer system account's own workspace.
+ * It is not one of the Trust's modules, so it is not in MODULES; the app frame shows it
+ * at the top of the Developer's menu only (lib/permissions.ts: /developer = Developer).
+ */
+export const DEVELOPER_MODULE: ModuleDef = {
+  key: "developer",
+  label: "Developer Console",
+  href: "/developer",
+  icon: "monitor",
+  intro: "Keep ReqGen running: modules, releases, system accounts and your own activity.",
+  tiles: [
+    { href: "/developer/modules", title: "Modules", purpose: "Switch a module off for maintenance, with a message for staff.", icon: "grid", tone: "brand", keywords: ["enable", "disable", "maintenance", "switch"] },
+    { href: "/developer/releases", title: "Releases", purpose: "Publish what changed; the Super Admin is told.", icon: "send", tone: "blue", keywords: ["version", "patch", "what's new"] },
+    { href: "/developer/accounts", title: "System Accounts", purpose: "The Super Admin and Developer accounts, live.", icon: "shield", tone: "green" },
+    { href: "/developer/activity", title: "Developer Activity", purpose: "Everything the Developer account did, from the Audit Log.", icon: "history", tone: "amber" },
+  ],
+};
+
 /** Pages that live outside the module tiles but still need a home in the trail. */
 const EXTRA_TITLES: Record<string, { module: string; title: string }> = {
   "/change-password": { module: "account", title: "Change Password" },
   "/about": { module: "dashboard", title: "About ReqGen" },
   "/docs": { module: "dashboard", title: "Help" },
+  "/whats-new": { module: "dashboard", title: "What's new" },
   "/workflow": { module: "audit", title: "Workflow Trace" },
   "/output": { module: "reports", title: "Output" },
   "/reports/analysis": { module: "reports", title: "Analysis" },
@@ -235,7 +255,7 @@ const EXTRA_TITLES: Record<string, { module: string; title: string }> = {
   "/test-supabase": { module: "admin", title: "Connection Test" },
 };
 
-export const ALL_MODULES: ModuleDef[] = [...MODULES, ACCOUNT_MODULE];
+export const ALL_MODULES: ModuleDef[] = [...MODULES, ACCOUNT_MODULE, DEVELOPER_MODULE];
 
 function within(pathname: string, href: string) {
   const base = href.split("#")[0];
@@ -338,6 +358,8 @@ const V4_NATIVE_EXACT = new Set<string>([
   "/change-password",
   "/dashboard/activity",
   "/docs",
+  // v4.6.6
+  "/whats-new",
 ]);
 
 /** Pages drawn with the v4 kit (no legacy wrapper). Grows with each v4 release. */
@@ -363,6 +385,8 @@ const V4_NATIVE_PATTERNS: RegExp[] = [
   // v4.6 Administration
   /^\/admin\/(system-accounts|users|positions|roles|departments|routing|security|system-health|finance-reset)$/,
   /^\/admin\/users\/[^/]+$/,
+  // v4.6.6 Developer Console
+  /^\/developer\/(modules|releases|accounts|activity)$/,
 ];
 
 export function isV4Page(pathname: string) {

@@ -6,9 +6,10 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { canAccessPath } from "@/lib/permissions";
-import { getCurrentAuthContext } from "@/lib/auth";
+import { accessRoleSet, getCurrentAuthContext } from "@/lib/auth";
+import { MODULE_SWITCH_EVENT, SWITCH_PREFIXES, loadModuleSwitches, type ModuleSwitch } from "@/lib/v4/moduleSwitches";
 import { APPROVAL_QUEUE_CHANGED_EVENT, isAwaitingUser, type ApprovalQueueRow } from "@/lib/approvalQueue";
-import { MODULES, ACCOUNT_MODULE, breadcrumbsFor, moduleForPath, searchablePages } from "@/lib/v4/modules";
+import { MODULES, ACCOUNT_MODULE, DEVELOPER_MODULE, breadcrumbsFor, moduleForPath, searchablePages } from "@/lib/v4/modules";
 import { storedWindowEnd } from "@/lib/mfaTrust";
 import { THEME_EVENT, applyTheme, readThemeMode, type ThemeMode } from "@/lib/theme";
 import { REQGEN_VERSION } from "@/lib/version";
@@ -238,9 +239,7 @@ export default function AppFrame({ children }: { children: ReactNode }) {
     const user = auth.data.user;
     if (!user) return;
     const profile = await supabase.from("profiles").select("full_name,avatar_url").eq("id", user.id).maybeSingle();
-    let systemAccount: string | null = null;
-    const sys = await supabase.from("profiles").select("system_account").eq("id", user.id).maybeSingle();
-    if (!sys.error) systemAccount = ((sys.data as { system_account?: string | null } | null)?.system_account) || null;
+    const systemAccount = context?.systemAccount || null;
     const p = (profile.data || {}) as { full_name?: string | null; avatar_url?: string | null };
     const name = String(p.full_name || user.user_metadata?.full_name || user.email || "ReqGen user").trim();
     const role = context?.activeRoleKey || "staff";
@@ -250,7 +249,7 @@ export default function AppFrame({ children }: { children: ReactNode }) {
       avatarUrl: profile.error ? null : (String(p.avatar_url || "").trim() || null),
       role,
       roleName: positionName(role, context?.activeRoleName || role, systemAccount),
-      roleSet: new Set(context?.activeRoleKey ? [context.activeRoleKey] : ["staff"]),
+      roleSet: context ? (accessRoleSet(context).size ? accessRoleSet(context) : new Set(["staff"])) : new Set(["staff"]),
       systemAccount,
     });
   }, []);
@@ -265,6 +264,26 @@ export default function AppFrame({ children }: { children: ReactNode }) {
       window.removeEventListener("reqgen-profile-updated", refresh);
     };
   }, [loadIdentity]);
+
+  // v4.6.6: modules the Developer switched off leave the menu (the Developer still sees them, marked Off)
+  const [switches, setSwitches] = useState<ModuleSwitch[]>([]);
+  useEffect(() => {
+    const read = (force: boolean) => { void loadModuleSwitches(force).then(setSwitches); };
+    queueMicrotask(() => read(false));
+    const onChange = () => read(true);
+    window.addEventListener(MODULE_SWITCH_EVENT, onChange);
+    return () => window.removeEventListener(MODULE_SWITCH_EVENT, onChange);
+  }, [pathname]);
+
+  // v4.6.6: the Developer has a console of their own, with its own look
+  const isDeveloper = me?.systemAccount === "developer";
+  useEffect(() => {
+    const root = document.documentElement;
+    if (isDeveloper) root.dataset.console = "developer"; else delete root.dataset.console;
+  }, [isDeveloper]);
+  useEffect(() => {
+    if (isDeveloper && pathname === "/dashboard" && !window.location.search.includes("view=trust")) router.replace("/developer");
+  }, [isDeveloper, pathname, router]);
 
   // Approvals badge — the same rule as the Approvals page (lib/approvalQueue).
   const badgeTimer = useRef<number | null>(null);
@@ -317,7 +336,9 @@ export default function AppFrame({ children }: { children: ReactNode }) {
 
   const roleSet = me?.roleSet || new Set<string>();
   const active = moduleForPath(pathname);
-  const visible = me ? MODULES.filter((m) => canAccessPath(m.href, roleSet)) : [];
+  const offKeys = new Set(switches.filter((x) => !x.enabled).map((x) => x.module_key));
+  const isOff = (m: { href: string }) => [...offKeys].some((k) => (SWITCH_PREFIXES[k] || []).some((p) => m.href === p || m.href.startsWith(`${p}/`)));
+  const visible = me ? MODULES.filter((m) => canAccessPath(m.href, roleSet) && (isDeveloper || !isOff(m))) : [];
   const crumbs = breadcrumbsFor(pathname, recordLabel);
   const countFor = (key: string) => (key === "approvals" ? pending : key === "notifications" ? unread : 0);
 
@@ -326,14 +347,24 @@ export default function AppFrame({ children }: { children: ReactNode }) {
     const heading = m.group && m.group !== prevGroup ? <div key={`g-${m.group}`} className="v4-nav-group">{m.group}</div> : null;
     const count = countFor(m.key);
     const current = active?.key === m.key;
+    const href = isDeveloper && m.key === "dashboard" ? "/dashboard?view=trust" : m.href;
     return [
       heading,
-      <Link key={m.key} href={m.href} title={m.label} aria-current={current ? "page" : undefined}>
-        <Icon name={m.icon} /><span>{m.label}</span>
+      <Link key={m.key} href={href} title={m.label} aria-current={current ? "page" : undefined}>
+        <Icon name={m.icon} /><span>{isDeveloper && m.key === "dashboard" ? "Trust Dashboard" : m.label}</span>
+        {isDeveloper && isOff(m) ? <b className="v4-count v4-off" aria-label="Switched off">Off</b> : null}
         {count > 0 ? <b className="v4-count" aria-label={`${count} waiting`}>{count > 99 ? "99+" : count}</b> : null}
       </Link>,
     ];
   });
+  const devNav = isDeveloper ? [
+    <div key="g-dev" className="v4-nav-group">Developer</div>,
+    <Link key="dev-home" href={DEVELOPER_MODULE.href} title="Console" aria-current={pathname === DEVELOPER_MODULE.href ? "page" : undefined}><Icon name="monitor" /><span>Console</span></Link>,
+    ...DEVELOPER_MODULE.tiles.map((t) => (
+      <Link key={t.href} href={t.href} title={t.title} aria-current={pathname === t.href ? "page" : undefined}><Icon name={t.icon} /><span>{t.title}</span></Link>
+    )),
+    <div key="g-trust" className="v4-nav-group">The Trust&rsquo;s ReqGen</div>,
+  ] : [];
 
   const firstName = me?.name || "";
 
@@ -342,14 +373,21 @@ export default function AppFrame({ children }: { children: ReactNode }) {
       <div className="v4-top-stripe" aria-hidden="true" />
       <div className={`v4-app ${mini ? "v4-is-mini" : ""} ${drawer ? "v4-drawer-open" : ""}`}>
         <aside className="v4-ui v4-sidebar" aria-label="Main menu">
-          <Link className="v4-brand" href="/dashboard" style={{ color: "inherit", textDecoration: "none" }}>
-            <Image src="/v4/iet-mark.png" alt="Islamic Education Trust logo" width={42} height={42} priority />
-            <div><strong>ReqGen</strong><small>Islamic Education Trust</small></div>
-          </Link>
+          {isDeveloper ? (
+            <Link className="v4-brand" href="/developer" style={{ color: "inherit", textDecoration: "none" }}>
+              <Image src="/v4/be-logo.png" alt="Barderian Enterprises logo" width={42} height={42} priority />
+              <div><strong>ReqGen Console</strong><small>Developer · Barderian Enterprises</small></div>
+            </Link>
+          ) : (
+            <Link className="v4-brand" href="/dashboard" style={{ color: "inherit", textDecoration: "none" }}>
+              <Image src="/v4/iet-mark.png" alt="Islamic Education Trust logo" width={42} height={42} priority />
+              <div><strong>ReqGen</strong><small>Islamic Education Trust</small></div>
+            </Link>
+          )}
           <button className="v4-collapse-btn" type="button" onClick={toggleMini} aria-label={mini ? "Expand the menu" : "Collapse the menu"} aria-pressed={mini}>
             <Icon name="left" size="sm" />
           </button>
-          <nav className="v4-nav" aria-label="Modules">{nav}</nav>
+          <nav className="v4-nav" aria-label="Modules">{devNav}{nav}</nav>
           <div className="v4-side-foot">
             <Link className="v4-me" href={ACCOUNT_MODULE.href} title="My Account" aria-current={active?.key === "account" ? "page" : undefined}>
               <span className="v4-avatar">
@@ -369,6 +407,7 @@ export default function AppFrame({ children }: { children: ReactNode }) {
             {pathname !== "/dashboard" ? (
               <div className="v4-greet" aria-live="polite"><DayIcon hour={hour} size={16} />{dayPart(hour).text},&nbsp;<b>{(me?.name || "").toUpperCase()}</b></div>
             ) : <div className="v4-greet-space" />}
+            {isDeveloper ? <span className="v4-dev-badge" title="Signed in as the Developer system account">DEVELOPER CONSOLE</span> : null}
             <Search roleSet={roleSet} />
             <div className="v4-top-actions">
               <Bell userId={me?.userId ?? null} pendingApprovalCount={pending} onUnread={setUnread} />

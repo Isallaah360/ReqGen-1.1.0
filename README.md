@@ -1,13 +1,13 @@
-# ReqGen v4.6.5
+# ReqGen v4.6.6
 
 ReqGen (Request Generator) is the Islamic Education Trust (IET) request management system: requests, approvals, finance records, payment vouchers, registry, reports and audit — role-based and backed by Supabase. ReqGen keeps the records; the bank moves the money.
 
 ## Release identity
 
-- Product version: **v4.6.5** (Semantic Versioning, MAJOR.MINOR.PATCH)
-- Defined in one place only: `lib/version.ts`; `package.json` carries the same number (4.6.5).
+- Product version: **v4.6.6** (Semantic Versioning, MAJOR.MINOR.PATCH)
+- Defined in one place only: `lib/version.ts`; `package.json` carries the same number (4.6.6).
 - The design is the approved v4 mock-ups (Phases 0–7, pages 01–90). The rules are in the v4 Build Reference.
-- What changed in v4.6.5: `RELEASE_NOTES_v4.6.5.md`. How to deploy it: `DEPLOYMENT_GUIDE_v4.6.5.md`. Earlier releases (including v4.6.3 and v4.6.4): `docs/releases/`.
+- What changed in v4.6.6: `RELEASE_NOTES_v4.6.6.md`. How to deploy it: `DEPLOYMENT_GUIDE_v4.6.6.md`. Earlier releases: `docs/releases/`.
 
 ## Navigation standard (from v4.0.0)
 

@@ -3,9 +3,9 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { decodeJwt } from "@/lib/server/mfaWindow";
 
 /**
- * ReqGen v4.6.5 — the guard for destructive actions (financial reset, restore).
- * The caller must be active, hold the Super Admin position, be acting as Super Admin
- * (never the Developer) — decided by the database, the same rule every finance action
+ * ReqGen v4.6.6 — the guard for destructive actions (financial reset, restore).
+ * The caller must be the Super Admin account (ietreqgen@gmail.com) acting as Super Admin,
+ * or the Developer account — decided by the database, the same rule every finance action
  * uses — and must have typed the 2FA code in the last FRESH_MINUTES (the access token
  * then carries a fresh "totp" proof).
  */
@@ -42,14 +42,15 @@ export async function superAdminFromRequest(authorization: string | null, opts: 
   const p = profile.data as { full_name?: string | null; system_account?: string | null; is_active?: boolean | null } | null;
   if (!p) return { error: "Your account could not be verified.", status: 403 };
   if (p.is_active === false) return { error: "This account is deactivated.", status: 403 };
-  if (p.system_account === "developer") return { error: "The Developer account cannot do this. Sign in as the Super Admin.", status: 403 };
 
-  // v4.6.5: the database decides (reqgen_is_super_admin) — active, holds Super Admin, acting as Super Admin
+  // v4.6.6: the database decides (reqgen_finance_powers.can_reset) — the Super Admin account
+  // (ietreqgen@gmail.com) acting as Super Admin, or the Developer account
   const asUser = createClient(url, anon, { auth: { persistSession: false }, global: { headers: { Authorization: `Bearer ${token}` } } });
   const powers = await asUser.rpc("reqgen_finance_powers");
   if (!powers.error && powers.data) {
-    const d = powers.data as { is_super_admin?: boolean; reason?: string | null };
-    if (!d.is_super_admin) return { error: d.reason && /Acting as/.test(d.reason) ? d.reason : "Only the Super Admin, acting as Super Admin, can do this.", status: 403 };
+    const d = powers.data as { can_reset?: boolean; is_super_admin?: boolean; reason?: string | null };
+    const allowed = typeof d.can_reset === "boolean" ? d.can_reset : !!d.is_super_admin;
+    if (!allowed) return { error: d.reason && /Acting as/.test(d.reason) ? d.reason : "Only the Super Admin or the Developer can do this.", status: 403 };
   } else {
     const check = await asUser.rpc("reqgen_is_super_admin");
     if (check.error || check.data !== true) return { error: "Only the Super Admin, acting as Super Admin, can do this.", status: 403 };

@@ -48,7 +48,8 @@ check("Security rules: stay signed in, idle sign-out, passcode tries (set in one
 check("People read the hours and tries that are actually set", read("lib/v4/useSecurityRules.ts").includes("reqgen_security_rules") && read("app/profile/passcode/page.tsx").includes("{rules.passcodeTries} wrong tries") && read("app/login/page.tsx").includes("{rules.stayHours} hours"));
 check("Signing, stamping and paying still need a fresh fingerprint or 2FA code", read("lib/v4/freshConfirm.ts").includes("export async function confirmFresh"));
 check("Diagnostics: health, data checks and route preview", read("app/admin/system-health/page.tsx").includes('rpc("reqgen_diagnostics"') && sql.includes("Officers who sign but have no signature"));
-check("Developer actions tell the Super Admin", sql.includes("reqgen_tell_superadmin_of_developer") && read("app/admin/system-accounts/page.tsx").includes("every Developer action is logged"));
+// v4.6.6: Developer actions stay in the Audit Log under their own tab instead of an alert for each one
+check("Developer actions are kept in the Audit Log for the Super Admin to see", sql.includes("reqgen_tell_superadmin_of_developer") && read("app/admin/system-accounts/page.tsx").includes("every Developer action stays in the Audit Log") && read("app/audit-centre/logs/page.tsx").includes('key: "developer"'));
 
 const perm = read("lib/permissions.ts");
 check("Monthly finance report print is not open to Staff, Registry or PD", perm.includes('{ prefix: "/reports/print", roles: ["admin", "auditor", "account", "accounts", "accountofficer", "dg", "directorgeneral", "generalsecretary"] }') && read("app/reports/print/page.tsx").includes('=== "mine"'));

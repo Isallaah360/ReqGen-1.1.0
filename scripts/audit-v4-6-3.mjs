@@ -22,7 +22,7 @@ check("A reversal never credits a bank account", sql.includes("the money in the 
 check("DG approves reversals with a fresh fingerprint or 2FA code", read("app/finance/transactions-centre/page.tsx").includes('confirmFresh("approve and stamp this reversal")'));
 
 // 3. Financial Reset
-check("Reset: Super Admin only (not the Developer), active, acting as Super Admin", sql.includes("p.system_account = 'superadmin'") && read("lib/server/superAdmin.ts").includes("The Developer account cannot do this") && read("lib/server/superAdmin.ts").includes('rpc("reqgen_finance_powers")'));
+check("Reset: Super Admin (and from v4.6.6 the Developer), active, decided by the database", sql.includes("p.system_account = 'superadmin'") && read("lib/server/superAdmin.ts").includes('rpc("reqgen_finance_powers")') && read("lib/server/superAdmin.ts").includes("d.can_reset"));
 check("Reset needs a verified backup from the last hour, RESET FINANCE and a reason", sql.includes("v_backup.verified") && sql.includes("interval '60 minutes'") && sql.includes("'RESET FINANCE'"));
 check("Reset is one transaction, checked to 0.00, recorded and logged once", sql.includes("did not bring every figure to zero") && sql.includes("insert into public.reqgen_finance_resets") && sql.includes("reqgen.bulk_reset"));
 check("Reset keeps staff, departments, subhead and account identities", !/delete from public\.(profiles|departments|subheads|iet_accounts|profile_roles|app_settings|reqgen_audit_log)\b/.test(sql) && !/drop table(?! if exists)/i.test(sql));

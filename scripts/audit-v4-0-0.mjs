@@ -39,7 +39,10 @@ check("Browser colour is IET orange", layout.includes('color: "#B83E00"') && !la
 // The Developer system account belongs to Barderian Enterprises, so My Account may name it.
 const barderianAllowed = new Set(["app/components/PublicAuthShell.tsx", "app/components/v4/AppFrame.tsx", "app/about/page.tsx", "app/docs/page.tsx", "app/profile/page.tsx",
   // v4.6: the approved mock-ups name the Developer account (80) and the release (88)
-  "app/admin/system-accounts/page.tsx", "app/admin/system-health/page.tsx"]);
+  "app/admin/system-accounts/page.tsx", "app/admin/system-health/page.tsx",
+  // v4.6.6: the Developer Console is the Developer's own workspace; What's new names who released it; the
+  // "not set up" page names the Developer account's email
+  "app/developer/page.tsx", "app/whats-new/page.tsx", "app/unauthorized/page.tsx"]);
 const barderianLeaks = appFiles.filter((f) => /\.tsx$/.test(f) && /Barderian/i.test(read(f)) && !barderianAllowed.has(f.replace(/\\/g, "/")));
 check(`Barderian Enterprises appears only in footers and About (${barderianLeaks.join(", ") || "ok"})`, barderianLeaks.length === 0);
 check("Home page shows the IET logo, not Barderian", !read("app/page.tsx").includes("be-logo") || read("app/page.tsx").includes("PublicFoot"));

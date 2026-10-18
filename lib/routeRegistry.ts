@@ -16,6 +16,66 @@ export const ROOT_NAVIGATION: RootNavigationItem[] = [
 
 export const ROUTE_REGISTRY: RouteRegistryItem[] = [
   {
+    "pattern": "/developer",
+    "title": "Developer Console",
+    "rootHref": "/developer",
+    "category": "Application Route",
+    "public": false,
+    "nav": false,
+    "searchable": true,
+    "description": "ReqGen route /developer"
+  },
+  {
+    "pattern": "/developer/modules",
+    "title": "Developer Console - Modules",
+    "rootHref": "/developer",
+    "category": "Application Route",
+    "public": false,
+    "nav": false,
+    "searchable": true,
+    "description": "ReqGen route /developer/modules"
+  },
+  {
+    "pattern": "/developer/releases",
+    "title": "Developer Console - Releases",
+    "rootHref": "/developer",
+    "category": "Application Route",
+    "public": false,
+    "nav": false,
+    "searchable": true,
+    "description": "ReqGen route /developer/releases"
+  },
+  {
+    "pattern": "/developer/accounts",
+    "title": "Developer Console - System Accounts",
+    "rootHref": "/developer",
+    "category": "Application Route",
+    "public": false,
+    "nav": false,
+    "searchable": true,
+    "description": "ReqGen route /developer/accounts"
+  },
+  {
+    "pattern": "/developer/activity",
+    "title": "Developer Console - Activity",
+    "rootHref": "/developer",
+    "category": "Application Route",
+    "public": false,
+    "nav": false,
+    "searchable": true,
+    "description": "ReqGen route /developer/activity"
+  },
+  {
+    "pattern": "/whats-new",
+    "title": "What's new",
+    "rootHref": "/dashboard",
+    "category": "Application Route",
+    "public": false,
+    "nav": false,
+    "searchable": true,
+    "description": "ReqGen route /whats-new"
+  },
+  {
     "pattern": "/approvals/treated",
     "title": "Approvals - Treated by Me",
     "rootHref": "/approvals",

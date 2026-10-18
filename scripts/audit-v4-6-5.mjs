@@ -10,7 +10,8 @@ const powers = read("lib/v4/financePowers.ts");
 
 check("SQL backs up the previous Super Admin rule first", sql.indexOf("insert into public.reqgen_function_backups") > 0 && sql.indexOf("insert into public.reqgen_function_backups") < sql.indexOf("create or replace function public.reqgen_is_super_admin"));
 check("Super Admin = active + holds Super Admin + acting as Super Admin", sql.includes("reqgen_pv_user_has_role(p.id, array['admin', 'superadmin'])") && sql.includes("coalesce(p.is_active, true)") && sql.includes("reqgen_active_role_key() in ('admin', 'superadmin')"));
-check("The Developer system account is still not the Super Admin for finance", sql.includes("coalesce(p.system_account, '') <> 'developer'") && read("lib/server/superAdmin.ts").includes('p.system_account === "developer"'));
+// v4.6.6 changes who counts (only ietreqgen@gmail.com and the Developer); v4.6.5's own file is unchanged
+check("v4.6.5 rule kept in its own file; v4.6.6 narrows it to the system accounts", sql.includes("coalesce(p.system_account, '') <> 'developer'") && read("database/v4_6_6_system_accounts.sql").includes("create or replace function public.reqgen_is_super_admin"));
 check("reqgen_finance_powers says what the person may do and why not", sql.includes("create or replace function public.reqgen_finance_powers") && sql.includes("Switch \"Acting as\" (top right) to Super Admin") && sql.includes("'can_correct'") && sql.includes("'can_reset'"));
 check("SQL lists who will be treated as Super Admin", sql.includes("people who will be treated as Super Admin"));
 check("SQL ends with an all-OK verification table", /from v465_report order by[^;]*;\s*$/.test(sql.trim()));
@@ -26,7 +27,7 @@ check("Transaction Centre lists amounts with no record behind them", centre.incl
 check("Removing one: Auditor or Super Admin, reason, fresh 2FA, through the logged correction", centre.includes("powers.canCorrect") && centre.includes("reason.length < 10") && centre.includes('confirmFresh("remove the amount that has no record")') && centre.includes('rpc("reqgen_finance_correct", { p_subhead_ids: [removing.row.subject_id]'));
 check("Real records are still reversed, never deleted", centre.includes("reqgen_reversal_start") && !/from\("(requests|payment_vouchers|iet_bank_ledger)"\)\.delete/.test(centre));
 
-check("Version 4.6.5", read("lib/version.ts").includes('REQGEN_SEMVER = "4.6.5"') && read("package.json").includes('"version": "4.6.5"'));
+check("Version 4.6.5 or a later 4.6 release", /REQGEN_SEMVER = "4\.6\.([5-9]|[1-9]\d)"/.test(read("lib/version.ts")) && /"version": "4\.6\.([5-9]|[1-9]\d)"/.test(read("package.json")));
 check("No .env file shipped", !fs.existsSync(".env") || read(".gitignore").includes(".env"));
 
 let failed = 0;

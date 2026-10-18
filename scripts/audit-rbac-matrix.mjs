@@ -86,6 +86,7 @@ const EVERYONE = ROLES;
 
 // Longest matching prefix wins, exactly like the real policy engine.
 const EXPECTED = [
+  { prefix: "/developer", allow: [] }, // v4.6.6: only the Developer system account (not a position)
   { prefix: "/admin", allow: ["admin"] },
   { prefix: "/audit-centre/reconciliation", allow: ["admin", "auditor", "accountofficer"] }, // v4.5 mock-up 77
   { prefix: "/audit-centre", allow: ["admin", "auditor"] },
@@ -116,6 +117,7 @@ const EXPECTED = [
   { prefix: "/change-password", allow: EVERYONE },
   { prefix: "/about", allow: EVERYONE },
   { prefix: "/docs", allow: EVERYONE },
+  { prefix: "/whats-new", allow: EVERYONE }, // v4.6.6
 ];
 
 function expectedAccess(pathname, role) {

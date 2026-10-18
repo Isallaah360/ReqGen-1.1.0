@@ -91,7 +91,7 @@ export default function SetupCoach() {
       {complete && !readyAck ? (
         <div className="rg-setup-banner is-complete" role="status">
           <CheckCircle2 size={16} aria-hidden="true" />
-          <span>Your account is fully set up: password, authenticator, photo and signature are all in place.</span>
+          <span>{steps.length > 2 ? "Your account is fully set up: password, authenticator, photo and signature are all in place." : "Your account is fully set up: its own password and authenticator (2FA) are in place."}</span>
           <button type="button" onClick={() => { try { localStorage.setItem("reqgen-setup-ready-ack", "1"); } catch { /* ignore */ } setReadyAck(true); }}>OK</button>
         </div>
       ) : null}

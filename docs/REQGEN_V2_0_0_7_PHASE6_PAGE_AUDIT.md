@@ -1,7 +1,7 @@
 # ReqGen v2.0.0.7 - Phase 6 Page-by-Page Visual Audit
 
-Physical pages audited: **124**  
-Visual containment PASS: **124**  
+Physical pages audited: **130**  
+Visual containment PASS: **130**  
 Pages requiring review: **0**
 
 The audit is paired with the Phase 6 global design contract in `app/globals.css`: frame containment, minimum readable typography, standard controls, visible focus states, responsive grids, viewport-safe dialogs, table wrapping/containment, canonical tabs and interactive chart affordances.
@@ -43,6 +43,11 @@ The audit is paired with the Phase 6 global design contract in `app/globals.css`
 | `/check/[kind]/[id]` | SCREEN | 0 | 0 | 0 | 0 | 0 | **PASS** |
 | `/dashboard` | SCREEN | 0 | 0 | 0 | 0 | 0 | **PASS** |
 | `/dashboard/activity` | SCREEN | 0 | 0 | 0 | 0 | 0 | **PASS** |
+| `/developer` | SCREEN | 0 | 0 | 0 | 0 | 0 | **PASS** |
+| `/developer/accounts` | SCREEN | 1 | 0 | 0 | 0 | 0 | **PASS** |
+| `/developer/activity` | SCREEN | 1 | 0 | 0 | 0 | 0 | **PASS** |
+| `/developer/modules` | SCREEN | 0 | 0 | 0 | 3 | 0 | **PASS** |
+| `/developer/releases` | SCREEN | 0 | 0 | 0 | 0 | 0 | **PASS** |
 | `/docs` | SCREEN | 0 | 0 | 0 | 0 | 0 | **PASS** |
 | `/finance` | SCREEN | 0 | 0 | 0 | 0 | 0 | **PASS** |
 | `/finance/account-ledger` | SCREEN | 0 | 0 | 0 | 0 | 0 | **PASS** |
@@ -131,6 +136,7 @@ The audit is paired with the Phase 6 global design contract in `app/globals.css`
 | `/signup` | SCREEN | 0 | 1 | 0 | 0 | 0 | **PASS** |
 | `/test-supabase` | SCREEN | 0 | 0 | 0 | 0 | 0 | **PASS** |
 | `/unauthorized` | SCREEN | 0 | 0 | 0 | 0 | 0 | **PASS** |
+| `/whats-new` | SCREEN | 0 | 0 | 0 | 0 | 0 | **PASS** |
 | `/workflow` | SCREEN | 0 | 1 | 0 | 0 | 0 | **PASS** |
 
 ## Phase 6 acceptance controls

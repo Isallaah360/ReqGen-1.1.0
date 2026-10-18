@@ -12,13 +12,14 @@ import { normalizeRole } from "@/lib/roles";
 export type FinancePowers = {
   ready: boolean;
   canCorrect: boolean;      // correct totals, recalculate accounts, record opening balances, remove unsupported spending
-  canReset: boolean;        // Financial Reset and restore (Super Admin only)
+  canReset: boolean;        // Financial Reset and restore (Super Admin and Developer)
   isSuperAdmin: boolean;
+  isDeveloper: boolean;
   isAuditor: boolean;
   reason: string | null;    // why not, in plain words
 };
 
-const WAITING: FinancePowers = { ready: false, canCorrect: false, canReset: false, isSuperAdmin: false, isAuditor: false, reason: null };
+const WAITING: FinancePowers = { ready: false, canCorrect: false, canReset: false, isSuperAdmin: false, isDeveloper: false, isAuditor: false, reason: null };
 
 export function useFinancePowers(userId: string | null | undefined, role: string | null | undefined): FinancePowers {
   const [powers, setPowers] = useState<FinancePowers>(WAITING);
@@ -32,11 +33,11 @@ export function useFinancePowers(userId: string | null | undefined, role: string
       if (error || !data) {
         const sa = acting === "admin" || acting === "superadmin";
         const au = acting === "auditor";
-        setPowers({ ready: true, canCorrect: sa || au, canReset: sa, isSuperAdmin: sa, isAuditor: au, reason: sa || au ? null : "Only the Auditor or the Super Admin can correct finance totals." });
+        setPowers({ ready: true, canCorrect: sa || au, canReset: sa, isSuperAdmin: sa, isDeveloper: false, isAuditor: au, reason: sa || au ? null : "Only the Auditor or the Super Admin can correct finance totals." });
         return;
       }
-      const d = data as { can_correct?: boolean; can_reset?: boolean; is_super_admin?: boolean; is_auditor?: boolean; reason?: string | null };
-      setPowers({ ready: true, canCorrect: !!d.can_correct, canReset: !!d.can_reset, isSuperAdmin: !!d.is_super_admin, isAuditor: !!d.is_auditor, reason: d.reason || null });
+      const d = data as { can_correct?: boolean; can_reset?: boolean; is_super_admin?: boolean; is_developer?: boolean; is_auditor?: boolean; reason?: string | null };
+      setPowers({ ready: true, canCorrect: !!d.can_correct, canReset: !!d.can_reset, isSuperAdmin: !!d.is_super_admin, isDeveloper: !!d.is_developer, isAuditor: !!d.is_auditor, reason: d.reason || null });
     });
     return () => { live = false; };
   }, [userId, acting]);

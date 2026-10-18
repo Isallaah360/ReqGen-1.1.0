@@ -4,7 +4,8 @@ import ReqGenLoader from "@/app/components/ui/ReqGenLoader";
 import type { ReactNode } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { getCurrentAuthContext } from "@/lib/auth";
+import { accessRoleSet, getCurrentAuthContext } from "@/lib/auth";
+import { loadModuleSwitches, switchForPath } from "@/lib/v4/moduleSwitches";
 import { canAccessPath, isPublicPath } from "@/lib/permissions";
 
 export default function RouteAccessGuard({ children }: { children: ReactNode }) {
@@ -35,8 +36,13 @@ export default function RouteAccessGuard({ children }: { children: ReactNode }) 
         return;
       }
 
-      const activeRoleOnly = new Set<string>();
-      if (context.activeRoleKey) activeRoleOnly.add(context.activeRoleKey);
+      // v4.6.6: signed in, but no staff record yet — say so plainly instead of "not open to you"
+      if (!context.hasProfile && !context.activeRoleKey) {
+        router.replace(`/unauthorized?reason=no-profile&from=${encodeURIComponent(pathname)}`);
+        return;
+      }
+
+      const activeRoleOnly = accessRoleSet(context);
 
       if (!canAccessPath(pathname, activeRoleOnly)) {
         // v3.1.13: a voucher link opened by a signer whose active role cannot
@@ -49,6 +55,16 @@ export default function RouteAccessGuard({ children }: { children: ReactNode }) 
         }
         router.replace(`/unauthorized?from=${encodeURIComponent(pathname)}&role=${encodeURIComponent(context.activeRoleKey || "staff")}`);
         return;
+      }
+
+      // v4.6.6: a module the Developer switched off for maintenance (the Developer still opens it)
+      if (context.systemAccount !== "developer") {
+        const off = switchForPath(pathname, await loadModuleSwitches());
+        if (id !== requestId.current) return;
+        if (off) {
+          router.replace(`/unauthorized?reason=module-off&module=${encodeURIComponent(off.label)}&note=${encodeURIComponent(off.note || "")}`);
+          return;
+        }
       }
 
       setVerifiedPath(pathname);

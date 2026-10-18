@@ -5,6 +5,7 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
 import { confirmFresh } from "@/lib/v4/freshConfirm";
 import { adminApi, initials, positionsOf, whenText, type AdminPerson } from "@/lib/v4/admin";
+import { loadSystemAccounts, type SystemAccountStatus } from "@/lib/v4/developer";
 import { useIdentity } from "@/app/components/v4/useIdentity";
 import Icon from "@/app/components/v4/Icon";
 import Modal from "@/app/components/v4/Modal";
@@ -12,29 +13,32 @@ import { Notice, PageHead, Skeleton, V4Page } from "@/app/components/v4/ui";
 
 const OWNER_EMAIL = "isallalah360@gmail.com";
 
+// v4.6.6: ietreqgen@gmail.com is the only Super Admin; neither system account is a staff member
 const SA_CAN = [
   "Add, change and deactivate staff; give and remove positions",
   "Set up departments, accounts, subheads and routing",
   "Set security rules: 2FA, passcode, sign-out time; reset a staff member’s 2FA or passcode",
-  "See every report and the Audit Log",
-  "Restore from a backup (with typed confirmation)",
+  "See every report and the Audit Log, including the Developer’s actions",
+  "Correct finance totals and remove amounts with no record behind them (2FA code)",
+  "Run a Financial Reset or restore a backup (verified backup and 2FA code)",
   "Hand the account over to a new keeper",
 ];
 const SA_CANNOT = [
-  "Raise, approve, sign or stamp a request or voucher — it is not a staff member and has no signature",
+  "Raise, approve, sign or stamp a request or voucher — it is not a staff member, belongs to no department and has no signature",
   "Open the contents of a request that was not routed to it",
   "Edit or delete the Audit Log, or delete a paid voucher",
   "Change the program code or the database structure",
 ];
 const DEV_CAN = [
-  "Everything the Super Admin can do",
-  "Release new versions and run database changes (with backup first)",
-  "Run Diagnostics and repair broken data — each repair needs a written reason",
-  "Switch features on or off, and unlock the Super Admin in an emergency",
+  "Open every module and every page of ReqGen, in its own Developer Console",
+  "Everything the Super Admin can do, including finance corrections, Financial Reset and restore",
+  "Switch a module off for maintenance, with a message for staff, and switch it on again",
+  "Publish releases — staff read them in What’s new and the Super Admin is told",
+  "Run Diagnostics and repair data — each repair needs a written reason",
 ];
 const DEV_CANNOT = [
   "Raise, approve, sign, stamp or pay — money decisions stay with IET officers",
-  "Act without a trace: every Developer action is logged and the Super Admin is told",
+  "Act without a trace: every Developer action stays in the Audit Log (Developer tab), which nobody can change",
 ];
 
 function List({ items, yes }: { items: string[]; yes: boolean }) {
@@ -46,16 +50,19 @@ export default function SystemAccountsPage() {
   const me = useIdentity();
   const [people, setPeople] = useState<AdminPerson[] | null>(null);
   const [keeper, setKeeper] = useState<string>("");
+  const [status, setStatus] = useState<SystemAccountStatus[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [dlg, setDlg] = useState<{ keeper: string; confirm: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ tone: "green" | "red"; text: string } | null>(null);
 
   const load = useCallback(async () => {
-    const [p, k] = await Promise.all([
+    const [p, k, st] = await Promise.all([
       supabase.rpc("reqgen_admin_people"),
       supabase.from("app_settings").select("value").eq("key", "SUPERADMIN_KEEPER").maybeSingle(),
+      loadSystemAccounts(),
     ]);
+    setStatus(st.rows);
     setError(p.error?.message || null);
     setPeople((p.data || []) as AdminPerson[]);
     setKeeper(String((k.data as { value?: string } | null)?.value || ""));
@@ -65,6 +72,9 @@ export default function SystemAccountsPage() {
   const sa = (people || []).find((p) => p.system_account === "superadmin");
   const dev = (people || []).find((p) => p.system_account === "developer");
   const owner = (people || []).find((p) => p.email.toLowerCase() === OWNER_EMAIL);
+  const saStatus = status.find((x) => x.kind === "Super Admin");
+  const devStatus = status.find((x) => x.kind === "Developer");
+  const ready = (x: SystemAccountStatus | undefined) => (x ? <span className={`v4-chip ${x.signin === "Ready" && x.marked ? "v4-chip-green" : "v4-chip-red"}`}>{x.signin === "Ready" && x.marked ? "Can sign in" : x.signin === "Ready" ? "Not set up — run v4_6_6_system_accounts.sql" : x.signin}</span> : null);
   const iAmSuperAdmin = !!sa && sa.id === me.userId;
 
   async function handOver() {
@@ -84,7 +94,7 @@ export default function SystemAccountsPage() {
 
   return (
     <V4Page>
-      <PageHead title="System Accounts" sub="Two accounts sit above everyday staff. Neither belongs to a person, so either can be handed over without losing anything." />
+      <PageHead title="System Accounts" sub="Two accounts sit above everyday staff: the Trust’s Super Admin (ietreqgen@gmail.com) and the Developer (info@barderians.com.ng). Each signs in on the normal sign-in page with its own email, password and 2FA." />
       {error ? <Notice tone="red">{error}</Notice> : null}
       {msg ? <Notice tone={msg.tone}>{msg.text}</Notice> : null}
       {people === null ? <Skeleton lines={8} /> : (
@@ -100,7 +110,8 @@ export default function SystemAccountsPage() {
               <div className="v4-card-pad" style={{ borderTop: "1px solid var(--v4-line-2)", display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
                 {iAmSuperAdmin ? <button className="v4-btn v4-btn-primary" type="button" onClick={() => { setMsg(null); setDlg({ keeper: "", confirm: "" }); }}><Icon name="send" />Hand over…</button> : null}
                 <Link className="v4-btn v4-btn-secondary" href={`/audit-centre/logs?q=${encodeURIComponent(sa?.full_name || "Super Admin")}&range=30`}><Icon name="history" />See its activity</Link>
-                <span className={`v4-chip ${sa?.has_2fa ? "v4-chip-green" : "v4-chip-amber"}`}>{sa?.has_2fa ? "2FA on" : "2FA not set"} · Last sign-in {whenText(sa?.last_sign_in)}</span>
+                {ready(saStatus)}
+                <span className={`v4-chip ${(saStatus?.has_2fa ?? sa?.has_2fa) ? "v4-chip-green" : "v4-chip-amber"}`}>{(saStatus?.has_2fa ?? sa?.has_2fa) ? "2FA on" : "2FA not set"} · Last sign-in {whenText(saStatus?.last_sign_in ?? sa?.last_sign_in)}</span>
               </div>
             </article>
             <article className="v4-acc-card v4-dev">
@@ -111,14 +122,15 @@ export default function SystemAccountsPage() {
                 <span className="v4-can-h">Cannot</span><List items={DEV_CANNOT} yes={false} />
               </div>
               <div className="v4-card-pad" style={{ borderTop: "1px solid var(--v4-line-2)", display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-                <Link className="v4-btn v4-btn-secondary" href={`/audit-centre/logs?q=${encodeURIComponent("Developer")}&range=30`}><Icon name="history" />See its activity</Link>
-                <span className="v4-chip v4-chip-blue">Last sign-in {whenText(dev?.last_sign_in)}</span>
+                <Link className="v4-btn v4-btn-secondary" href="/audit-centre/logs?tab=developer&range=30"><Icon name="history" />See its activity</Link>
+                {ready(devStatus)}
+                <span className="v4-chip v4-chip-blue">Last sign-in {whenText(devStatus?.last_sign_in ?? dev?.last_sign_in)}</span>
               </div>
             </article>
           </section>
           <section className="v4-card v4-card-pad">
-            <h2 className="v4-h2" style={{ marginBottom: 6 }}>Your own account is a normal staff account</h2>
-            <p className="v4-help" style={{ margin: "0 0 14px" }}>Nobody’s personal name or email sits on the admin account.</p>
+            <h2 className="v4-h2" style={{ marginBottom: 6 }}>Personal accounts are staff accounts</h2>
+            <p className="v4-help" style={{ margin: "0 0 14px" }}>Nobody’s personal name or email sits on the Super Admin account. A personal account never holds the Super Admin position.</p>
             {owner ? (
               <div className="v4-who-card">
                 <span className="v4-avatar">{initials(owner.full_name)}</span>

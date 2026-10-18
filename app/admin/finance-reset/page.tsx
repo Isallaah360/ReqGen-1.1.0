@@ -38,7 +38,7 @@ async function token() {
 }
 
 /**
- * Administration › Financial Reset (v4.6.3, Super Admin only). Clears the finance test
+ * Administration › Financial Reset (v4.6.3; v4.6.6: the Super Admin or the Developer). Clears the finance test
  * records and sets every subhead and IET account figure to ₦0.00, after a preview, a
  * verified backup, the 2FA code and the typed words RESET FINANCE. The database does it in
  * one transaction and checks the result; if anything fails, nothing changes.
@@ -131,8 +131,8 @@ export default function FinanceResetPage() {
     return (
       <V4Page>
         <PageHead title="Financial Reset" sub="Clear the finance test records and start the new year at ₦0.00." />
-        <Notice tone="amber" title="Only the Super Admin can reset the finance records">
-          {powers.reason && /Acting as/.test(powers.reason) ? powers.reason : "Sign in as the Super Admin and act as Super Admin. The Developer and other positions cannot run a reset."}
+        <Notice tone="amber" title="Only the Super Admin or the Developer can reset the finance records">
+          {powers.reason && /Acting as/.test(powers.reason) ? powers.reason : "Sign in as the Super Admin (ietreqgen@gmail.com) acting as Super Admin, or as the Developer. Other positions cannot run a reset."}
         </Notice>
         <Notice tone="blue">To fix one wrong total without clearing everything, use <Link href="/finance/integrity">Finance › Integrity</Link>.</Notice>
       </V4Page>

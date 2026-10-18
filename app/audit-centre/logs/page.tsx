@@ -9,7 +9,9 @@ import { Select } from "@/app/components/v4/Select";
 import { Card, Notice, PageHead, Pager, Skeleton, Tabs, V4Page, downloadCsv } from "@/app/components/v4/ui";
 
 type Ev = { at: string; actor_label: string | null; category: string; module: string; action: string; record_no: string | null; record_id: string | null; device: string | null };
-type Tab = "all" | "signin" | "approval" | "stamp" | "data" | "settings";
+type Tab = "all" | "signin" | "approval" | "stamp" | "data" | "settings" | "developer";
+// v4.6.6: the Developer account's actions have their own tab, so the everyday log shows the Trust's own staff
+const isDev = (r: { actor_label: string | null }) => /— Developer$/.test(String(r.actor_label || ""));
 const PAGE = 25;
 const RANGES: Record<string, number> = { today: 0, "7": 7, "30": 30, "90": 90 };
 
@@ -23,7 +25,7 @@ function AuditLog() {
   const params = useSearchParams();
   const [rows, setRows] = useState<Ev[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [tab, setTab] = useState<Tab>(() => (["signin", "approval", "stamp", "data", "settings"].includes(params.get("tab") || "") ? (params.get("tab") as Tab) : "all"));
+  const [tab, setTab] = useState<Tab>(() => (["signin", "approval", "stamp", "data", "settings", "developer"].includes(params.get("tab") || "") ? (params.get("tab") as Tab) : "all"));
   const [q, setQ] = useState(() => params.get("q") || "");
   const [user, setUser] = useState("all");
   const [mod, setMod] = useState(() => params.get("module") || "all");
@@ -52,7 +54,7 @@ function AuditLog() {
     const t = q.trim().toLowerCase();
     return (rows || []).filter((r) => (user === "all" || r.actor_label === user) && (mod === "all" || r.module === mod) && (!t || `${r.action} ${r.record_no} ${r.actor_label}`.toLowerCase().includes(t)));
   }, [rows, user, mod, q]);
-  const inTab = (t: Tab) => base.filter((r) => t === "all" || r.category === t || (t === "approval" && r.category === "stamp") || (t === "data" && ["registry", "print", "backup", "other"].includes(r.category)));
+  const inTab = (t: Tab) => base.filter((r) => (t === "developer" ? isDev(r) : !isDev(r) && (t === "all" || r.category === t || (t === "approval" && r.category === "stamp") || (t === "data" && ["registry", "print", "backup", "other"].includes(r.category)))));
   const shown = inTab(tab);
   const split = (label: string | null) => { const [name, pos] = String(label || "—").split(" — "); return { name, pos: pos || "" }; };
 
@@ -66,6 +68,7 @@ function AuditLog() {
           <Tabs value={tab} onChange={(t) => { setTab(t); setPage(1); }} label="Show" items={[
             { key: "all", label: "All events" }, { key: "signin", label: "Sign-ins" }, { key: "approval", label: "Approvals & signatures" },
             { key: "stamp", label: "Stamps", count: inTab("stamp").length }, { key: "data", label: "Data changes" }, { key: "settings", label: "Settings" },
+            { key: "developer", label: "Developer", count: inTab("developer").length || undefined },
           ]} />
         </div>
         <div className="v4-toolbar">

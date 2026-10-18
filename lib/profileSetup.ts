@@ -99,10 +99,10 @@ export async function loadSetupSteps(): Promise<SetupStep[] | null> {
   if (!user) return null;
 
   const [profileRes, factorsRes] = await Promise.all([
-    supabase.from("profiles").select("avatar_url,signature_url").eq("id", user.id).maybeSingle(),
+    supabase.from("profiles").select("avatar_url,signature_url,system_account").eq("id", user.id).maybeSingle(),
     supabase.auth.mfa.listFactors(),
   ]);
-  const profile = (profileRes.data || {}) as { avatar_url?: string | null; signature_url?: string | null };
+  const profile = (profileRes.data || {}) as { avatar_url?: string | null; signature_url?: string | null; system_account?: string | null };
   const factors = (factorsRes.data?.all || []) as Array<{ factor_type?: string; status?: string }>;
   const meta = (user.user_metadata || {}) as Record<string, unknown>;
 
@@ -115,7 +115,10 @@ export async function loadSetupSteps(): Promise<SetupStep[] | null> {
     signature: Boolean(String(profile.signature_url || "").trim()),
   };
 
-  return SETUP_ORDER.map((key) => ({ ...CONTENT[key], done: done[key] }));
+  // v4.6.6: the Super Admin and the Developer are system accounts, not staff: they never sign
+  // a request or voucher, so they need no signature or photo — only their own password and 2FA.
+  const keys = profile.system_account ? SETUP_ORDER.filter((k) => k === "password" || k === "twofa") : SETUP_ORDER;
+  return keys.map((key) => ({ ...CONTENT[key], done: done[key] }));
 }
 
 /** The person confirms the password they use is already their own. */

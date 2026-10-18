@@ -22,6 +22,8 @@ export const PUBLIC_PATHS = [
  * getRoutePolicy also sorts by prefix length as a defensive safeguard.
  */
 export const ROUTE_POLICIES: RoutePolicy[] = [
+  // v4.6.6: the Developer Console is the Developer system account's own workspace
+  { prefix: "/developer", roles: ["developer"] },
   { prefix: "/admin/account-routing", roles: ["admin"] },
   { prefix: "/admin/department-routing", roles: ["admin"] },
   { prefix: "/admin/departments", roles: ["admin"] },
@@ -87,6 +89,8 @@ export const ROUTE_POLICIES: RoutePolicy[] = [
   { prefix: "/notifications", authenticatedOnly: true },
   { prefix: "/about", authenticatedOnly: true },
   { prefix: "/docs", authenticatedOnly: true },
+  // v4.6.6: release notes published by the Developer
+  { prefix: "/whats-new", authenticatedOnly: true },
 ];
 
 /**

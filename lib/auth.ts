@@ -16,7 +16,23 @@ export type AuthContext = {
   activeRoleSource: string | null;
   isAdmin: boolean;
   roleSet: Set<string>;
+  /** v4.6.6: "superadmin" or "developer" for the two system accounts, otherwise null. */
+  systemAccount: string | null;
+  /** v4.6.6: false when the person signed in but has no staff record (profile) yet. */
+  hasProfile: boolean;
 };
+
+/**
+ * v4.6.6 — the roles a page check uses: the position the person is acting as, plus
+ * "developer" for the Developer system account (it opens the Developer Console).
+ */
+export function accessRoleSet(context: Pick<AuthContext, "activeRoleKey" | "systemAccount">): Set<string> {
+  const set = new Set<string>();
+  if (context.activeRoleKey) set.add(context.activeRoleKey);
+  if (context.systemAccount === "developer") { set.add("developer"); set.add("admin"); }
+  if (context.activeRoleKey === "superadmin") set.add("admin");
+  return set;
+}
 
 function parseActiveRole(value: unknown): {
   key: string | null;
@@ -59,7 +75,7 @@ export async function getCurrentAuthContext(): Promise<AuthContext | null> {
 
   const userId = user.id;
   const [profileResult, rolesResult, activeResult] = await Promise.all([
-    supabase.from("profiles").select("role").eq("id", userId).maybeSingle(),
+    supabase.from("profiles").select("role,system_account").eq("id", userId).maybeSingle(),
     supabase
       .from("profile_roles")
       .select("role_key,role_name,is_active,is_primary")
@@ -68,7 +84,9 @@ export async function getCurrentAuthContext(): Promise<AuthContext | null> {
     supabase.rpc("get_my_active_role"),
   ]);
 
-  const fallbackRole = profileResult.data?.role || null;
+  const profileRow = (profileResult.data || null) as { role?: string | null; system_account?: string | null } | null;
+  const fallbackRole = profileRow?.role || null;
+  const systemAccount = profileRow?.system_account || null;
   const profileRoles = (rolesResult.data || []) as ProfileRoleRecord[];
   const assignedRoleSet = buildRoleSet(fallbackRole, profileRoles);
   const active = parseActiveRole(activeResult.data);
@@ -84,5 +102,7 @@ export async function getCurrentAuthContext(): Promise<AuthContext | null> {
     activeRoleSource: active.source,
     isAdmin: assignedRoleSet.has("admin"),
     roleSet: buildEffectiveRoleSet(assignedRoleSet, activeRoleKey),
+    systemAccount,
+    hasProfile: profileResult.error ? true : !!profileRow,
   };
 }

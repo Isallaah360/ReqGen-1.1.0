@@ -258,3 +258,61 @@ html[data-theme="dark"] .v4-root .v4-dayicon { filter: saturate(1.1); background
 .v4-pin-field:focus-within .v4-pin span.v4-next { border-color: var(--v4-brand); box-shadow: 0 0 0 4px rgba(184, 62, 0, .14); }
 .v4-pin-input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; border: 0; padding: 0; margin: 0; font-size: 16px; color: transparent; background: transparent; caret-color: transparent; cursor: text; }
 .v4-pin-input:disabled { cursor: default; }
+
+/* =========================================================================
+   v4.6.6 — Developer Console: the Developer system account's own look.
+   A deep navy console menu with ReqGen-blue accents, in light and dark.
+   html[data-console="developer"] is set by the app frame for that account only.
+   ========================================================================= */
+html[data-console="developer"] .v4-root {
+  --v4-bg: #EDF1F8;
+  --v4-brand: #2453C4;
+  --v4-brand-dark: #1A3D96;
+  --v4-brand-soft: #E6EDFC;
+  --v4-brand-line: #BCCDF3;
+  --v4-brand-tint: #F2F6FE;
+  --v4-link: #2453C4;
+  --v4-stripe: linear-gradient(90deg, #0F2E6E 0%, #2453C4 45%, #2BB3A3 100%);
+}
+html[data-theme="dark"][data-console="developer"] .v4-root {
+  --v4-bg: #0C111C;
+  --v4-brand: #6E9BFF;
+  --v4-brand-dark: #9DBBFF;
+  --v4-brand-soft: #17243F;
+  --v4-brand-line: #2A3F6B;
+  --v4-brand-tint: #121A2B;
+  --v4-link: #8FB2FF;
+}
+html[data-console="developer"] .v4-root .v4-sidebar { background: #0B1530; border-right-color: #1C2A4D; color: #DCE6FA; }
+html[data-console="developer"] .v4-root .v4-brand { border-bottom-color: #1C2A4D; }
+html[data-console="developer"] .v4-root .v4-brand strong { color: #FFFFFF; letter-spacing: .01em; }
+html[data-console="developer"] .v4-root .v4-brand small { color: #8FA3C8; }
+html[data-console="developer"] .v4-root .v4-brand img { border-radius: 10px; background: #fff; }
+html[data-console="developer"] .v4-root .v4-nav-group { color: #6F84AD; }
+html[data-console="developer"] .v4-root .v4-nav a { color: #C6D2EA; }
+html[data-console="developer"] .v4-root .v4-nav a:hover { background: #13213F; color: #FFFFFF; }
+html[data-console="developer"] .v4-root .v4-nav a[aria-current="page"] { background: linear-gradient(180deg, #2F63E0, #2453C4); color: #FFFFFF; box-shadow: 0 8px 18px rgba(36, 83, 196, .35); }
+html[data-console="developer"] .v4-root .v4-nav a .v4-count.v4-off { background: #3A1B19; color: #F1857A; }
+html[data-console="developer"] .v4-root .v4-side-foot { border-top-color: #1C2A4D; }
+html[data-console="developer"] .v4-root .v4-me { color: #FFFFFF !important; }
+html[data-console="developer"] .v4-root .v4-me small { color: #8FA3C8; }
+html[data-console="developer"] .v4-root .v4-me:hover { background: #13213F; }
+html[data-console="developer"] .v4-root .v4-collapse-btn { background: #0B1530; border-color: #1C2A4D; color: #C6D2EA; }
+html[data-console="developer"] .v4-root .v4-side-foot .v4-out { color: #C6D2EA; border-color: #1C2A4D; background: transparent; }
+.v4-dev-badge { flex: none; display: inline-flex; align-items: center; height: 30px; padding: 0 12px; border-radius: 8px; background: #0B1530; color: #7FE3D3; font-family: ui-monospace, "Cascadia Code", Consolas, monospace; font-size: 11.5px; font-weight: 800; letter-spacing: .08em; }
+@media (max-width: 760px) { .v4-dev-badge { display: none; } }
+.v4-mono { font-family: ui-monospace, "Cascadia Code", Consolas, monospace; }
+.v4-switch-row { display: flex; align-items: center; gap: 14px; padding: 14px 18px; border-top: 1px solid var(--v4-line-2); }
+.v4-switch-row:first-child { border-top: 0; }
+.v4-switch-row > span:nth-child(2) { flex: 1; min-width: 0; }
+.v4-switch-row strong { display: block; font-size: 14.5px; }
+.v4-switch-row small { display: block; color: var(--v4-muted); font-size: 12.5px; }
+.v4-toggle { position: relative; width: 48px; height: 28px; flex: none; border-radius: 999px; border: 0; background: var(--v4-line-strong); cursor: pointer; transition: background .15s; }
+.v4-toggle::after { content: ""; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.3); transition: transform .15s; }
+.v4-toggle[aria-checked="true"] { background: var(--v4-green); }
+.v4-toggle[aria-checked="true"]::after { transform: translateX(20px); }
+.v4-toggle:disabled { opacity: .5; cursor: default; }
+.v4-release { padding: 16px 18px; border-top: 1px solid var(--v4-line-2); }
+.v4-release:first-child { border-top: 0; }
+.v4-release h3 { margin: 0 0 4px; font-size: 15.5px; }
+.v4-release p { margin: 8px 0 0; white-space: pre-wrap; line-height: 1.55; }
