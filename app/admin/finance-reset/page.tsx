@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
-import { normalizeRole } from "@/lib/roles";
+import { useFinancePowers } from "@/lib/v4/financePowers";
 import { confirmFresh } from "@/lib/v4/freshConfirm";
 import { nairaExact } from "@/lib/v4/money";
 import { useIdentity } from "@/app/components/v4/useIdentity";
@@ -45,7 +45,6 @@ async function token() {
  */
 export default function FinanceResetPage() {
   const me = useIdentity();
-  const [systemAccount, setSystemAccount] = useState<string | null | undefined>(undefined);
   const [scopes, setScopes] = useState<Set<Scope>>(new Set(["finance", "vouchers", "requests"]));
   const [preview, setPreview] = useState<PreviewRow[] | null>(null);
   const [previewError, setPreviewError] = useState<string | null>(null);
@@ -58,17 +57,16 @@ export default function FinanceResetPage() {
   const [history, setHistory] = useState<ResetRow[]>([]);
   const [clock, setClock] = useState(() => Date.now());
 
-  const isSuperAdmin = systemAccount === "superadmin" && ["admin", "superadmin"].includes(normalizeRole(me.role));
+  const powers = useFinancePowers(me.userId, me.role);
+  const isSuperAdmin = powers.canReset;
   const scopeList = SCOPES.map((s) => s.key).filter((k) => scopes.has(k));
 
   useEffect(() => {
     if (!me.ready || !me.userId) return;
     queueMicrotask(async () => {
-      const [p, h] = await Promise.all([
-        supabase.from("profiles").select("system_account").eq("id", me.userId).maybeSingle(),
+      const [h] = await Promise.all([
         supabase.from("reqgen_finance_resets").select("id,reset_no,scopes,reason,backup_path,verified,reset_label,created_at,before_totals").order("created_at", { ascending: false }).limit(20),
       ]);
-      setSystemAccount(((p.data as { system_account?: string | null } | null)?.system_account) || null);
       setHistory((h.data || []) as ResetRow[]);
     });
   }, [me.ready, me.userId, done]);
@@ -129,12 +127,12 @@ export default function FinanceResetPage() {
   const backupFresh = !!backup && clock - backup.at < 55 * 60000;
   const ready = isSuperAdmin && backupFresh && !blockers.length && reason.trim().length >= 10 && typed === "RESET FINANCE" && !busy;
 
-  if (me.ready && systemAccount !== undefined && !isSuperAdmin) {
+  if (me.ready && powers.ready && !isSuperAdmin) {
     return (
       <V4Page>
         <PageHead title="Financial Reset" sub="Clear the finance test records and start the new year at ₦0.00." />
         <Notice tone="amber" title="Only the Super Admin can reset the finance records">
-          {systemAccount === "superadmin" ? "Switch “Acting as” to Super Admin to continue." : "Sign in with the Trust's Super Admin account. The Developer and other administrators cannot run a reset."}
+          {powers.reason && /Acting as/.test(powers.reason) ? powers.reason : "Sign in as the Super Admin and act as Super Admin. The Developer and other positions cannot run a reset."}
         </Notice>
         <Notice tone="blue">To fix one wrong total without clearing everything, use <Link href="/finance/integrity">Finance › Integrity</Link>.</Notice>
       </V4Page>

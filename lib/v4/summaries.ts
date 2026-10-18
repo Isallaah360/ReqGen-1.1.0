@@ -139,7 +139,7 @@ export async function financeSummary(): Promise<Summary> {
   return {
     stats: [
       { label: "Approved budget", value: nairaShort(budget), note: sub ? `${plural(sub.length, "subhead")}` : undefined, icon: "wallet", tone: "blue", href: "/finance/subheads" },
-      { label: "Spent", value: nairaShort(spent), note: issues && issues.length ? `${pct} · ${plural(issues.length, "difference")} to check` : pct, icon: "trend", tone: "brand", href: issues && issues.length ? "/finance/integrity" : "/finance/transactions-centre" },
+      { label: "Spent", value: nairaShort(spent), note: issues && issues.length ? `${pct} · ${plural(issues.length, "difference")} to check` : pct, icon: "trend", tone: "brand", href: "/finance/transactions-centre?effect=Spent" },
       { label: "Reserved", value: nairaShort(reserved), note: "Approved, not yet paid", icon: "clock", tone: "amber", href: "/finance/subheads" },
       { label: "Bank cash", value: nairaShort(cash), note: acc ? plural(acc.length, "IET account") : undefined, icon: "landmark", tone: "green", href: "/finance/manage-accounts" },
     ],

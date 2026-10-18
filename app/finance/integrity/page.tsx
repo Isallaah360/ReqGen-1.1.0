@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
-import { normalizeRole } from "@/lib/roles";
+import { useFinancePowers } from "@/lib/v4/financePowers";
 import { confirmFresh } from "@/lib/v4/freshConfirm";
 import { nairaExact } from "@/lib/v4/money";
 import { useIdentity } from "@/app/components/v4/useIdentity";
@@ -59,8 +59,8 @@ const ACTION_TEXT: Record<Action, { title: (n: number) => string; sub: string; p
  */
 export default function FinanceIntegrityPage() {
   const me = useIdentity();
-  const role = normalizeRole(me.role).replace(/\d+$/, "");
-  const canCorrect = role === "auditor" || role === "admin";
+  const powers = useFinancePowers(me.userId, me.role);
+  const canCorrect = powers.canCorrect;
   const [issues, setIssues] = useState<Issue[] | null>(null);
   const [history, setHistory] = useState<Correction[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -247,7 +247,7 @@ export default function FinanceIntegrityPage() {
           </div>
         ) : <p className="v4-muted" style={{ padding: 20, margin: 0 }}>No correction has been made.</p>}
       </Card>
-      {!canCorrect ? <Notice tone="blue">Only the Auditor or the Super Admin can correct stored totals, recalculate accounts or record opening balances. <Link href="/profile/access">Check your position</Link>.</Notice> : null}
+      {powers.ready && !canCorrect ? <Notice tone="blue">{powers.reason || "Only the Auditor or the Super Admin can correct stored totals, recalculate accounts or record opening balances."} <Link href="/profile/access">Check your positions</Link>.</Notice> : null}
 
       <Modal open={!!form} title={form ? ACTION_TEXT[form.action].title(form.action === "subheads" ? pickedSubs.size : pickedAccs.size) : ""} sub={form ? ACTION_TEXT[form.action].sub : undefined} onClose={() => setForm(null)} busy={busy}
         footer={form ? <>
