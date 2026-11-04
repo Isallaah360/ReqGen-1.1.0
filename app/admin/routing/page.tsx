@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { confirmDialog } from "@/lib/dialog";
-import { GLOBAL_STAGE_SETTING, ROUTE_KINDS, ROUTE_KIND_LABEL, isAwayToday, loadEngineConfig, setOfficerAvailability, type EngineConfig, type EngineStage, type RouteKind } from "@/lib/routingEngine";
+import { GLOBAL_STAGE_SETTING, ROUTE_KIND_LABEL, isAwayToday, loadEngineConfig, setOfficerAvailability, type EngineConfig, type EngineStage, type RouteKind } from "@/lib/routingEngine";
 import { DEPT_ONLY, OFFICER_STAGES, REVIEW, STAGE_TEXT, loadRouting, routeOf, saveRoute, type IfVacant, type Lane, type OverviewRow, type OfficerStage, type StageOfficer } from "@/lib/v4/routing";
 import { positionFor, type AdminPerson } from "@/lib/v4/admin";
 import { useIdentity } from "@/app/components/v4/useIdentity";
@@ -15,10 +15,19 @@ import { Select, type SelectOption } from "@/app/components/v4/Select";
 import { Notice, PageHead, Skeleton, Tabs, V4Page } from "@/app/components/v4/ui";
 
 type Tab = "routes" | "officers" | "accounts" | "backups";
+/**
+ * v4.6.7: Official and Personal requests are configured in separate views. Both read
+ * the same live route records and save through the same reqgen_save_department_route
+ * call (all three lanes are always sent, so the lanes of the other view are kept as
+ * they are). The Routing Engine itself is not changed.
+ */
+type RouteView = "official" | "personal";
+const VIEW_KINDS: Record<RouteView, RouteKind[]> = { official: ["official"], personal: ["personal_fund", "personal_other"] };
+const VIEW_LABEL: Record<RouteView, string> = { official: "Official Requests", personal: "Personal Requests" };
 type Dept = { id: string; name: string; is_active: boolean | null };
 type Account = { id: string; name: string; bank_name: string | null };
 type AccRoute = { id: string; dept_id: string; iet_account_id: string; officer_user_id: string; is_active: boolean | null };
-type Editor = { deptId: string; lanes: Record<RouteKind, Lane>; officers: Record<OfficerStage, string>; dgVacant: IfVacant; dirty: boolean };
+type Editor = { deptId: string; view: RouteView; lanes: Record<RouteKind, Lane>; officers: Record<OfficerStage, string>; dgVacant: IfVacant; dirty: boolean };
 
 /** Institution officers kept in System Settings (the engine reads these keys). */
 const INSTITUTION: Array<{ key: string; label: string; position: string; legacy?: string }> = [
@@ -55,6 +64,7 @@ function RoutingEngine() {
   const [accForm, setAccForm] = useState<{ deptId: string; account: string; officer: string } | null>(null);
   const [away, setAway] = useState<{ id: string; from: string; until: string; note: string } | null>(null);
   const [backupDept, setBackupDept] = useState("");
+  const [view, setView] = useState<RouteView>(() => (params.get("view") === "personal" ? "personal" : "official"));
 
   const load = useCallback(async () => {
     const [d, p, s, eng, a, r, engine] = await Promise.all([
@@ -90,7 +100,7 @@ function RoutingEngine() {
   const groups = useMemo(() => {
     const byDept = new Map<string, OverviewRow[]>();
     (overview || []).forEach((r) => byDept.set(r.dept_id, [...(byDept.get(r.dept_id) || []), r]));
-    const sig = (rows: OverviewRow[]) => ROUTE_KINDS.map((k) => rows.filter((r) => r.route_kind === k).sort((a, b) => a.step_order - b.step_order).map((r) => r.stage).join(">")).join("|");
+    const sig = (rows: OverviewRow[]) => VIEW_KINDS[view].map((k) => rows.filter((r) => r.route_kind === k).sort((a, b) => a.step_order - b.step_order).map((r) => r.stage).join(">")).join("|");
     const out = new Map<string, { depts: Dept[]; rows: OverviewRow[] }>();
     depts.forEach((d) => {
       const rows = byDept.get(d.id) || [];
@@ -100,7 +110,7 @@ function RoutingEngine() {
       g.depts.push(d); out.set(k, g);
     });
     return [...out.values()].sort((a, b) => b.depts.length - a.depts.length);
-  }, [overview, depts]);
+  }, [overview, depts, view]);
   const laneOf = (g: { depts: Dept[]; rows: OverviewRow[] }, kind: RouteKind) => {
     const first = g.rows.filter((r) => r.route_kind === kind).sort((a, b) => a.step_order - b.step_order);
     return first.map((r) => {
@@ -110,20 +120,20 @@ function RoutingEngine() {
   };
   const auditor = holders("auditor")[0]?.full_name || "Auditor";
 
-  function openEditor(deptId: string) {
+  function openEditor(deptId: string, routeView: RouteView) {
     const r = routeOf(deptId, overview || [], officers);
     setMsg(null);
-    setEditor({ deptId, ...r, dirty: false });
+    setEditor({ deptId, view: routeView, ...r, dirty: false });
   }
   async function saveEditor() {
     if (!editor) return;
     const dept = depts.find((d) => d.id === editor.deptId);
-    const ok = await confirmDialog({ title: `Save the route for ${dept?.name}?`, message: "New requests from this department follow this route. Requests already moving keep the route they started with.", confirmLabel: "Save route" });
+    const ok = await confirmDialog({ title: `Save the ${VIEW_LABEL[editor.view]} route for ${dept?.name}?`, message: "New requests from this department follow this route. Requests already moving keep the route they started with.", confirmLabel: "Save route" });
     if (!ok) return;
     setBusy(true);
     try {
       await saveRoute(editor.deptId, editor.lanes, editor.officers, editor.dgVacant);
-      setMsg({ tone: "green", text: `Route saved for ${dept?.name}.` });
+      setMsg({ tone: "green", text: `${VIEW_LABEL[editor.view]} route saved for ${dept?.name}.` });
       setEditor(null);
       await load();
     } catch (e) {
@@ -226,14 +236,20 @@ function RoutingEngine() {
 
         {overview && tab === "routes" ? (
           <>
-            <div style={{ margin: "16px 20px 0" }}><Notice tone="green">These are your <b>current live routes</b>, read straight from the Routing Engine tables. v4 keeps them exactly as they are — only the label “PO” now reads “PD” and “HR” reads “HR Coordinator”. A vacant step is <b>skipped</b>, never blocked, unless it is set to hold.</Notice></div>
+            <div className="v4-route-view" style={{ margin: "16px 20px 0", display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center", justifyContent: "space-between" }}>
+              <div className="v4-segmented" role="tablist" aria-label="Request type">
+                {(["official", "personal"] as RouteView[]).map((v) => <button key={v} type="button" role="tab" aria-selected={view === v} onClick={() => { setView(v); setMsg(null); }}>{VIEW_LABEL[v]}</button>)}
+              </div>
+              <span className="v4-help" style={{ margin: 0 }}>{view === "official" ? "Requests raised for the Trust's work." : "Personal Fund and Personal Other requests raised by staff for themselves."}</span>
+            </div>
+            <div style={{ margin: "12px 20px 0" }}><Notice tone="green">These are your <b>current live routes</b>, read straight from the Routing Engine tables. v4 keeps them exactly as they are — only the label “PO” now reads “PD” and “HR” reads “HR Coordinator”. A vacant step is <b>skipped</b>, never blocked, unless it is set to hold.</Notice></div>
             {groups.map((g) => (
               <div key={g.depts.map((d) => d.id).join()} className="v4-routecard">
                 <div className="v4-rh">
                   <span><strong>{g.depts.length === 1 ? g.depts[0].name : `${g.depts.length} departments`}</strong>{g.depts.length > 1 ? <span className="v4-help" style={{ display: "block", margin: "2px 0 0" }}>{g.depts.map((d) => d.name).join(" · ")}</span> : null}</span>
-                  <span style={{ display: "flex", gap: 8, alignItems: "center" }}><span className="v4-chip v4-chip-green">Live</span><button type="button" className="v4-btn v4-btn-secondary" style={{ minHeight: 38 }} onClick={() => openEditor(g.depts[0].id)}><Icon name="pen" />Change</button></span>
+                  <span style={{ display: "flex", gap: 8, alignItems: "center" }}><span className="v4-chip v4-chip-green">Live</span><button type="button" className="v4-btn v4-btn-secondary" style={{ minHeight: 38 }} onClick={() => openEditor(g.depts[0].id, view)}><Icon name="pen" />Change</button></span>
                 </div>
-                {ROUTE_KINDS.map((k) => (
+                {VIEW_KINDS[view].map((k) => (
                   <div key={k} style={{ display: "grid", gridTemplateColumns: "110px minmax(0,1fr)", gap: 10, alignItems: "center" }}>
                     <span className="v4-help" style={{ margin: 0, fontWeight: 700 }}>{ROUTE_KIND_LABEL[k]}</span>
                     <div className="v4-route">
@@ -358,19 +374,19 @@ function RoutingEngine() {
         ) : null}
       </section>
 
-      <Modal open={!!editor} wide title={`Change the route — ${depts.find((d) => d.id === editor?.deptId)?.name || ""}`} sub="Switch a step ON to make every request of that type pass through it. DG, Account Officer and HR Filing are fixed by IET rules." onClose={() => setEditor(null)} busy={busy}
+      <Modal open={!!editor} wide title={`Change the ${editor ? VIEW_LABEL[editor.view] : ""} route — ${depts.find((d) => d.id === editor?.deptId)?.name || ""}`} sub="Switch a step ON to make every request of that type pass through it. DG, Account Officer and HR Filing are fixed by IET rules." onClose={() => setEditor(null)} busy={busy}
         footer={<><button type="button" className="v4-btn v4-btn-ghost" onClick={() => setEditor(null)} disabled={busy}>Cancel</button><button type="button" className="v4-btn v4-btn-primary" onClick={() => void saveEditor()} disabled={busy || !editor?.dirty}><Icon name="check" />{busy ? "Saving…" : "Save route"}</button></>}>
         {editor ? (
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            <div className="v4-field" style={{ maxWidth: 360 }}><span className="v4-flabel">Department</span><Select ariaLabel="Department" searchable value={editor.deptId} onChange={(v) => { if (!editor.dirty) openEditor(v); }} disabled={editor.dirty} options={depts.map((d) => ({ value: d.id, label: d.name }))} /></div>
+            <div className="v4-field" style={{ maxWidth: 360 }}><span className="v4-flabel">Department</span><Select ariaLabel="Department" searchable value={editor.deptId} onChange={(v) => { if (!editor.dirty) openEditor(v, editor.view); }} disabled={editor.dirty} options={depts.map((d) => ({ value: d.id, label: d.name }))} /></div>
             <div className="v4-matrix-wrap">
               <table className="v4-matrix">
-                <thead><tr><th>Step</th>{ROUTE_KINDS.map((k) => <th key={k}>{ROUTE_KIND_LABEL[k]}</th>)}</tr></thead>
+                <thead><tr><th>Step</th>{VIEW_KINDS[editor.view].map((k) => <th key={k}>{ROUTE_KIND_LABEL[k]}</th>)}</tr></thead>
                 <tbody>
                   {REVIEW.map((s) => (
                     <tr key={s}>
                       <td>{STAGE_TEXT[s]}</td>
-                      {ROUTE_KINDS.map((k) => {
+                      {VIEW_KINDS[editor.view].map((k) => {
                         const cell = editor.lanes[k][s];
                         const set = (patch: Partial<{ on: boolean; ifVacant: IfVacant }>) => setEditor({ ...editor, dirty: true, lanes: { ...editor.lanes, [k]: { ...editor.lanes[k], [s]: { ...cell, ...patch } } } });
                         return (
@@ -382,9 +398,9 @@ function RoutingEngine() {
                       })}
                     </tr>
                   ))}
-                  <tr><td>DG + stamp</td>{ROUTE_KINDS.map((k) => <td key={k}><span className="v4-y">Always</span>{k === "official" ? <select className="v4-input" style={{ minHeight: 34, fontSize: 12.5, marginTop: 6 }} value={editor.dgVacant} onChange={(e) => setEditor({ ...editor, dirty: true, dgVacant: e.target.value as IfVacant })} aria-label="If the DG post is vacant"><option value="block">If vacant: hold</option><option value="skip">If vacant: skip</option></select> : null}</td>)}</tr>
-                  <tr><td>Account Officer</td>{ROUTE_KINDS.map((k) => <td key={k}>{k === "personal_other" ? <span className="v4-n">Not used</span> : <span className="v4-y">After DG</span>}</td>)}</tr>
-                  <tr><td>HR Filing</td>{ROUTE_KINDS.map((k) => <td key={k}>{k === "official" ? <span className="v4-n">Not used</span> : <span className="v4-y">Last</span>}</td>)}</tr>
+                  <tr><td>DG + stamp</td>{VIEW_KINDS[editor.view].map((k) => <td key={k}><span className="v4-y">Always</span>{k === "official" ? <select className="v4-input" style={{ minHeight: 34, fontSize: 12.5, marginTop: 6 }} value={editor.dgVacant} onChange={(e) => setEditor({ ...editor, dirty: true, dgVacant: e.target.value as IfVacant })} aria-label="If the DG post is vacant"><option value="block">If vacant: hold</option><option value="skip">If vacant: skip</option></select> : null}</td>)}</tr>
+                  <tr><td>Account Officer</td>{VIEW_KINDS[editor.view].map((k) => <td key={k}>{k === "personal_other" ? <span className="v4-n">Not used</span> : <span className="v4-y">After DG</span>}</td>)}</tr>
+                  <tr><td>HR Filing</td>{VIEW_KINDS[editor.view].map((k) => <td key={k}>{k === "official" ? <span className="v4-n">Not used</span> : <span className="v4-y">Last</span>}</td>)}</tr>
                 </tbody>
               </table>
             </div>
@@ -400,6 +416,7 @@ function RoutingEngine() {
                 );
               })}
             </div>
+            <p className="v4-help" style={{ margin: 0 }}>The officers above serve this department for both Official and Personal requests.</p>
             <Notice tone="blue">Saving makes a new route version. Requests already moving keep the route they started with; new requests follow this one.</Notice>
           </div>
         ) : null}

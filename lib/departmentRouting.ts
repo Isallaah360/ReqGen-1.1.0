@@ -54,33 +54,3 @@ export function routeLabel(type: RouteRequestType, category: RouteCategory) {
 export function routingNoteFor(type: RouteRequestType, category: RouteCategory, deptName: string | null | undefined) {
   return `${deptGroupName(deptName)} ${routeLabel(type, category)} route: ${routeSteps(type, category, deptName).join(" → ")}.`;
 }
-
-/** The three request routes every department has. */
-export const ROUTE_KINDS: Array<{ type: RouteRequestType; category: RouteCategory; label: string }> = [
-  { type: "Official", category: "", label: "Official" },
-  { type: "Personal", category: "Fund", label: "Personal Fund" },
-  { type: "Personal", category: "Other", label: "Personal Other" },
-];
-
-/** Steps that are filled by a person (not the requester or a filing step). */
-export type ApproverSlot = "DOD" | "HOD" | "PD" | "DIN Admin" | "Registrar" | "HR" | "DG" | "AccountOfficer";
-const SLOTS: ApproverSlot[] = ["DOD", "HOD", "PD", "DIN Admin", "Registrar", "HR", "DG", "AccountOfficer"];
-
-/** Every approver slot a department needs across all three routes. */
-export function requiredSlots(deptName: string | null | undefined): ApproverSlot[] {
-  const needed = new Set<ApproverSlot>();
-  for (const kind of ROUTE_KINDS) {
-    for (const step of routeSteps(kind.type, kind.category, deptName)) {
-      if ((SLOTS as string[]).includes(step)) needed.add(step as ApproverSlot);
-    }
-  }
-  return SLOTS.filter((slot) => needed.has(slot));
-}
-
-/** Which app_settings key holds each global officer. */
-export const GLOBAL_SLOT_SETTING: Partial<Record<ApproverSlot, string>> = {
-  "DIN Admin": "DIN_ADMIN_USER_ID",
-  Registrar: "REGISTRAR_USER_ID",
-  HR: "HR_USER_ID",
-  DG: "DG_USER_ID",
-};

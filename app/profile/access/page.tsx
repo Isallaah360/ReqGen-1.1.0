@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { switchActiveRole } from "@/lib/activeRole";
 import { canAccessPath } from "@/lib/permissions";
-import { normalizeRole } from "@/lib/roles";
+import { isPermissionToken, normalizeRole } from "@/lib/roles";
 import { canSeeBudgetBalances } from "@/lib/v4/budgetVisibility";
 import { MODULES } from "@/lib/v4/modules";
 import { positionName } from "@/app/components/v4/RoleSelect";
@@ -42,7 +42,7 @@ export default function MyAccessPage() {
       for (const r of (roles.data || []) as Array<{ role_key: string | null; role_name: string | null; is_active: boolean | null; is_primary: boolean | null; created_at: string | null; assigned_at: string | null }>) {
         if (r.is_active === false) continue;
         const k = normalizeRole(r.role_key || r.role_name);
-        if (!k || seen.has(k)) continue;
+        if (!k || seen.has(k) || isPermissionToken(k)) continue;
         seen.add(k);
         list.push({ key: k, name: positionName(k, r.role_name || k, sa), since: r.assigned_at || r.created_at, primary: !!r.is_primary });
       }

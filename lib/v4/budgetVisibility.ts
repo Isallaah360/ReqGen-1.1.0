@@ -44,4 +44,3 @@ export function canSeeBudgetBalances(activePosition: string | null | undefined) 
   return SEE_BALANCES.has(basePosition(activePosition));
 }
 
-export const BUDGET_HIDDEN_POSITIONS = ["staff", "registry", "pd", "padg", "pvsigner", "pvcountersigner"] as const;

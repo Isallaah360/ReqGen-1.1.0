@@ -466,18 +466,3 @@ export async function sendApprovalNotificationByEmail(input: SendApprovalNotific
     } satisfies ChannelResult;
   }
 }
-
-export async function sendApprovalNotificationBySmsAndEmail(
-  input: SendApprovalNotificationInput
-) {
-  const [sms, email] = await Promise.all([
-    sendApprovalNotificationBySms(input),
-    sendApprovalNotificationByEmail(input),
-  ]);
-
-  return {
-    ok: sms.ok || email.ok,
-    sms,
-    email,
-  };
-}

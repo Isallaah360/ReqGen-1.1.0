@@ -1,5 +1,5 @@
 import { supabase } from "@/lib/supabaseClient";
-import { normalizeRole, type ProfileRoleRecord } from "@/lib/roles";
+import { isPermissionToken, normalizeRole, type ProfileRoleRecord } from "@/lib/roles";
 
 export type ActiveRoleRecord = {
   user_id: string;
@@ -12,27 +12,28 @@ export type ActiveRoleRecord = {
 export type AvailableRole = {
   key: string;
   name: string;
-  source: "profile" | "profile_role" | "hr_assignment";
+  source: "profile" | "profile_role";
 };
 
+/**
+ * The positions a person genuinely holds: profiles.role plus active profile_roles.
+ * v4.6.7: HR section permissions (hr_officer_assignments, shown before as
+ * "hr:archive", "hr:registrar" …) are permission tokens, not positions, so they
+ * are no longer listed here. They keep working on the server exactly as before.
+ */
 export async function getAvailableRoles(userId: string): Promise<AvailableRole[]> {
-  const [profileResult, rolesResult, hrResult] = await Promise.all([
+  const [profileResult, rolesResult] = await Promise.all([
     supabase.from("profiles").select("role").eq("id", userId).maybeSingle(),
     supabase
       .from("profile_roles")
       .select("role_key,role_name,is_active,is_primary")
       .eq("profile_id", userId)
       .eq("is_active", true),
-    supabase
-      .from("hr_officer_assignments")
-      .select("section_key,is_active")
-      .eq("officer_id", userId)
-      .eq("is_active", true),
   ]);
 
   const map = new Map<string, AvailableRole>();
   const fallback = normalizeRole(profileResult.data?.role);
-  if (fallback) {
+  if (fallback && !isPermissionToken(fallback)) {
     map.set(fallback, {
       key: fallback,
       name: profileResult.data?.role || "Staff",
@@ -42,28 +43,13 @@ export async function getAvailableRoles(userId: string): Promise<AvailableRole[]
 
   ((rolesResult.data || []) as ProfileRoleRecord[]).forEach((role) => {
     const key = normalizeRole(role.role_key || role.role_name);
-    if (!key) return;
+    if (!key || isPermissionToken(key)) return;
     map.set(key, {
       key,
       name: role.role_name || role.role_key || key,
       source: "profile_role",
     });
   });
-
-  for (const row of hrResult.data || []) {
-    const section = normalizeRole(row.section_key);
-    if (!section) continue;
-    const key = `hr:${section}`;
-    const label = section
-      .replace(/([a-z])([A-Z])/g, "$1 $2")
-      .replace(/_/g, " ")
-      .replace(/\b\w/g, (letter) => letter.toUpperCase());
-    map.set(key, {
-      key,
-      name: `${label} Officer`,
-      source: "hr_assignment",
-    });
-  }
 
   if (map.size === 0) {
     map.set("staff", { key: "staff", name: "Staff", source: "profile" });

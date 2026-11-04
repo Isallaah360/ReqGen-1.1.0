@@ -43,7 +43,7 @@ check("Developer actions have their own Audit Log tab (Super Admin and Auditor c
 check("System Accounts page shows both accounts live", read("app/admin/system-accounts/page.tsx").includes("loadSystemAccounts()"));
 check("Server guard for reset and restore: Super Admin or Developer, decided by the database", read("lib/server/superAdmin.ts").includes("d.can_reset") && !read("lib/server/superAdmin.ts").includes('p.system_account === "developer"'));
 
-check("Version 4.6.6", read("lib/version.ts").includes('REQGEN_SEMVER = "4.6.6"') && read("package.json").includes('"version": "4.6.6"'));
+check("Version 4.6.6 or a later 4.6 release", /REQGEN_SEMVER = "4\.6\.([6-9]|[1-9]\d)"/.test(read("lib/version.ts")) && /"version": "4\.6\.([6-9]|[1-9]\d)"/.test(read("package.json")));
 check("No .env file shipped", !fs.existsSync(".env") || read(".gitignore").includes(".env"));
 
 let failed = 0;

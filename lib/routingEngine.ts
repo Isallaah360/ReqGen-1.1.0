@@ -16,9 +16,6 @@ export const ROUTE_KIND_LABEL: Record<RouteKind, string> = {
 };
 export const ROUTE_KINDS: RouteKind[] = ["official", "personal_fund", "personal_other"];
 
-export const ENGINE_STAGES: EngineStage[] = ["PD", "DOD", "DIN Admin", "Registrar", "HOD", "HR", "DG", "Account", "HR Filing"];
-/** Stages whose officer is set per department (others are institution-wide). */
-export const DEPARTMENT_STAGES: EngineStage[] = ["PD", "DOD", "HOD"];
 export const GLOBAL_STAGE_SETTING: Partial<Record<EngineStage, string>> = {
   "DIN Admin": "DIN_ADMIN_USER_ID",
   Registrar: "REGISTRAR_USER_ID",
@@ -80,11 +77,6 @@ export function isAwayToday(av: Availability | undefined, today = new Date().toI
   if (av.away_from && av.away_from > today) return false;
   if (av.away_until && av.away_until < today) return false;
   return true;
-}
-
-export async function saveRouteLane(templateId: string, kind: RouteKind, stages: EngineStage[], ifVacant: IfVacant[]) {
-  const { error } = await supabase.rpc("reqgen_save_route", { p_template_id: templateId, p_route_kind: kind, p_stages: stages, p_if_vacant: ifVacant });
-  if (error) throw new Error(error.message);
 }
 
 export async function setOfficerAvailability(userId: string, isAway: boolean, from: string | null, until: string | null, note: string | null) {

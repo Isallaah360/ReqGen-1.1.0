@@ -316,3 +316,10 @@ html[data-console="developer"] .v4-root .v4-side-foot .v4-out { color: #C6D2EA; 
 .v4-release:first-child { border-top: 0; }
 .v4-release h3 { margin: 0 0 4px; font-size: 15.5px; }
 .v4-release p { margin: 8px 0 0; white-space: pre-wrap; line-height: 1.55; }
+
+/* v4.6.7 — the six code boxes fit every phone (they pushed the 2FA card past the screen edge) */
+.v4-otp input { box-sizing: border-box; padding: 0; min-width: 0; }
+@media (max-width: 480px) {
+  .v4-otp { gap: 6px; }
+  .v4-otp input { width: 42px; height: 52px; font-size: 22px; }
+}

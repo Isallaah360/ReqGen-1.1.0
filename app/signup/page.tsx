@@ -37,8 +37,11 @@ export default function SignupPage() {
     e.preventDefault();
     setMsg(null);
     const email = f.email.trim().toLowerCase();
-    if (f.fullName.trim().length < 3) return setMsg("Write your full name as it should appear on documents.");
+    if (f.fullName.trim().length < 3) return setMsg("Write your full name in CAPITAL LETTERS, as it should appear on documents.");
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return setMsg("Write a valid email address.");
+    // v4.6.7: the phone number is required — SMS codes and alerts are sent to it
+    const phone = f.phone.replace(/[\s-]/g, "");
+    if (!/^(0\d{10}|\+?234\d{10})$/.test(phone)) return setMsg("Write your phone number, for example 08012345678. ReqGen sends your SMS codes to it.");
     if (!f.gender) return setMsg("Choose your gender.");
     if (!f.deptId) return setMsg("Choose your department.");
     if (!s.ok) return setMsg("Use a stronger password: at least 8 characters with letters and numbers.");
@@ -50,7 +53,7 @@ export default function SignupPage() {
       if (up.error) throw new Error(up.error.message);
       const signIn = await supabase.auth.signInWithPassword({ email, password: f.password });
       if (signIn.error) throw new Error(/confirm/i.test(signIn.error.message) ? "Check your email and open the confirmation link, then sign in." : signIn.error.message);
-      const { error } = await supabase.from("profiles").insert({ id: signIn.data.user.id, email, full_name: f.fullName.trim(), phone: f.phone.trim() || null, dept_id: f.deptId, role: "Staff", gender: f.gender, signature_url: null, is_active: true });
+      const { error } = await supabase.from("profiles").insert({ id: signIn.data.user.id, email, full_name: f.fullName.trim().replace(/\s+/g, " ").toUpperCase(), phone, dept_id: f.deptId, role: "Staff", gender: f.gender, signature_url: null, is_active: true });
       if (error) throw new Error(error.message);
       router.push("/mfa/setup");
     } catch (err) {
@@ -65,9 +68,9 @@ export default function SignupPage() {
       <nav className="v4-tabs-auth" aria-label="Account"><Link href="/login">Login</Link><Link href="/signup" aria-current="page">Create Account</Link></nav>
       <form className="v4-auth-form" onSubmit={(e) => void submit(e)} noValidate>
         <div className="v4-form-grid">
-          <label className="v4-field v4-span-2"><span className="v4-flabel">Full name <span className="v4-req">*</span></span><input className="v4-input" autoComplete="name" placeholder="As it should appear on documents" value={f.fullName} onChange={(e) => set("fullName")(e.target.value)} /><span className="v4-help">Printed on requests and vouchers you sign.</span></label>
+          <label className="v4-field v4-span-2"><span className="v4-flabel">Full name <span className="v4-req">*</span></span><input className="v4-input" autoComplete="name" autoCapitalize="characters" placeholder="IN CAPITAL LETTERS, as on your documents" value={f.fullName} onChange={(e) => set("fullName")(e.target.value.toUpperCase())} /><span className="v4-help">In CAPITAL LETTERS. Printed on requests and vouchers you sign.</span></label>
           <label className="v4-field"><span className="v4-flabel">Email address <span className="v4-req">*</span></span><input className="v4-input" type="email" autoComplete="email" value={f.email} onChange={(e) => set("email")(e.target.value)} /></label>
-          <label className="v4-field"><span className="v4-flabel">Phone number</span><input className="v4-input" type="tel" autoComplete="tel" placeholder="080…" value={f.phone} onChange={(e) => set("phone")(e.target.value)} /><span className="v4-help">For SMS reminders. Optional.</span></label>
+          <label className="v4-field"><span className="v4-flabel">Phone number <span className="v4-req">*</span></span><input className="v4-input" type="tel" inputMode="tel" autoComplete="tel" maxLength={16} placeholder="080…" value={f.phone} onChange={(e) => set("phone")(e.target.value)} /><span className="v4-help">Required. Your SMS codes and alerts are sent here.</span></label>
           <div className="v4-field"><span className="v4-flabel">Gender <span className="v4-req">*</span></span><Select ariaLabel="Gender" value={f.gender} placeholder="Choose" onChange={set("gender")} options={[{ value: "Female", label: "Female" }, { value: "Male", label: "Male" }]} /></div>
           <div className="v4-field"><span className="v4-flabel">Department <span className="v4-req">*</span></span><Select ariaLabel="Department" searchable value={f.deptId} placeholder={depts ? "Choose your department" : "Loading…"} onChange={set("deptId")} options={(depts || []).map((d) => ({ value: d.id, label: d.name }))} /></div>
           <label className="v4-field"><span className="v4-flabel">Password <span className="v4-req">*</span></span>

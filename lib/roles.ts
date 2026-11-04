@@ -82,9 +82,20 @@ const POSITION_NAMES: Record<string, string> = {
   staff: "Staff",
 };
 
+/**
+ * v4.6.7: keys with a colon (hr:archive, hr:registrar, hr:annual360assessment …) are
+ * PERMISSION TOKENS from hr_officer_assignments, not positions. They still grant what
+ * they grant on the server; they are never listed as a position or offered in
+ * "Acting as". Old records that carry one read as the HR Officer position.
+ */
+export function isPermissionToken(value: string | null | undefined): boolean {
+  return normalizeRole(value).includes(":");
+}
+
 export function roleDisplayName(value: string | null | undefined): string {
   const normalized = normalizeRole(value);
   if (POSITION_NAMES[normalized]) return POSITION_NAMES[normalized];
+  if (normalized.startsWith("hr:")) return "HR Officer";
   return String(value || "Staff").trim() || "Staff";
 }
 

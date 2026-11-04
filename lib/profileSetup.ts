@@ -88,11 +88,6 @@ const CONTENT: Record<SetupStepKey, Omit<SetupStep, "done">> = {
 
 export const SETUP_ORDER: SetupStepKey[] = ["password", "twofa", "avatar", "signature"];
 
-export async function loadSetupUserId(): Promise<string | null> {
-  const { data } = await supabase.auth.getUser();
-  return data.user?.id || null;
-}
-
 export async function loadSetupSteps(): Promise<SetupStep[] | null> {
   const { data: auth } = await supabase.auth.getUser();
   const user = auth.user;

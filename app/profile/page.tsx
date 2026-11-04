@@ -39,8 +39,11 @@ export default function MyAccountHome() {
       setProfile(row);
       const sa = sys.error ? null : ((sys.data as { system_account?: string | null } | null)?.system_account || null);
       setSystemAccount(sa);
+      // Staff plus the positions genuinely held (v4.6.7: no permission tokens), as My Access lists them.
       const seen = new Set<string>();
-      setPositions(roles.map((r) => positionName(r.key, r.name, sa)).filter((n) => { const k = normalizeRole(n); if (seen.has(k)) return false; seen.add(k); return true; }));
+      const names = roles.map((r) => positionName(r.key, r.name, sa));
+      if (!sa && !names.includes("Staff")) names.unshift("Staff");
+      setPositions(names.filter((n) => { const k = normalizeRole(n); if (seen.has(k)) return false; seen.add(k); return true; }));
       setDevices(keys.error ? null : keys.count ?? 0);
       if (row.dept_id) {
         const d = await supabase.from("departments").select("name").eq("id", row.dept_id).maybeSingle();

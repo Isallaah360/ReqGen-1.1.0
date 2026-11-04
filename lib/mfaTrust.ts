@@ -9,7 +9,6 @@ import { supabase } from "@/lib/supabaseClient";
  * out on time.
  */
 
-export const MFA_WINDOW_HOURS = 12;
 const STORE_KEY = "reqgen:mfa-window-ends";
 
 export type MfaWindow = { trusted: boolean; expiresAt: string | null; expired?: boolean; signedOut?: boolean };
