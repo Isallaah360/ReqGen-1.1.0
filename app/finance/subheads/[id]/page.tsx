@@ -28,6 +28,7 @@ export default function SubheadFormPage() {
   const [sub, setSub] = useState<Subhead | null>(null);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [depts, setDepts] = useState<Dept[]>([]);
+  const [paysFrom, setPaysFrom] = useState<Record<string, string>>({});
   const [linked, setLinked] = useState<number | null>(null);
   const [fyStatus, setFyStatus] = useState("Open");
   const [code, setCode] = useState("");
@@ -41,11 +42,14 @@ export default function SubheadFormPage() {
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
-    const [a, d, y] = await Promise.all([
+    const [a, d, y, r] = await Promise.all([
       supabase.from("iet_accounts").select(ACCOUNT_COLUMNS).order("name"),
       supabase.from("departments").select("id,name").order("name"),
       supabase.from("reqgen_financial_years").select("status").eq("fy_start", fyOf()).maybeSingle(),
+      supabase.from("department_account_routing").select("dept_id,iet_account_id,is_active"),
     ]);
+    // v4.6.8: a new subhead is funded, by default, from the account its department is paid from
+    setPaysFrom(Object.fromEntries(((r.data || []) as Array<{ dept_id: string; iet_account_id: string; is_active: boolean | null }>).filter((x) => x.is_active !== false).map((x) => [x.dept_id, x.iet_account_id])));
     setAccounts((a.data || []) as Account[]);
     setDepts((d.data || []) as Dept[]);
     setFyStatus(String((y.data as { status?: string } | null)?.status || "Open"));
@@ -130,10 +134,11 @@ export default function SubheadFormPage() {
             <label className="v4-field"><span className="v4-flabel">Code</span><input className="v4-input" value={code} onChange={(e) => setCode(e.target.value)} disabled={ro} placeholder="e.g. GA05" /><span className="v4-help">Leave empty if the subhead has no code.</span></label>
             <label className="v4-field"><span className="v4-flabel">Name <span className="v4-req">*</span></span><input className="v4-input" value={name} onChange={(e) => setName(e.target.value)} disabled={ro} /></label>
             <div className="v4-field"><label className="v4-flabel" htmlFor="sh-dept" style={{ fontSize: 13, fontWeight: 700 }}>Department</label>
-              <Select id="sh-dept" value={dept} onChange={setDept} disabled={ro} placeholder="Institution-wide" options={[{ value: "", label: "Institution-wide" }, ...depts.map((d) => ({ value: d.id, label: d.name }))]} /></div>
+              <Select id="sh-dept" value={dept} onChange={(v) => { setDept(v); if (isNew && paysFrom[v]) setAccount(paysFrom[v]); }} disabled={ro} placeholder="Institution-wide" options={[{ value: "", label: "Institution-wide" }, ...depts.map((d) => ({ value: d.id, label: d.name }))]} /></div>
             <div className="v4-field"><label className="v4-flabel" htmlFor="sh-acc" style={{ fontSize: 13, fontWeight: 700 }}>Funding account <span className="v4-req">*</span></label>
               <Select id="sh-acc" value={account} onChange={setAccount} disabled={ro || locked} placeholder="Choose the account"
-                options={accounts.filter((a) => a.is_active !== false || a.id === account).map((a) => ({ value: a.id, label: a.name, hint: `${a.bank_name || ""} · not yet allocated ${nairaExact(accountUnallocated(a))}` }))} /></div>
+                options={accounts.filter((a) => a.is_active !== false || a.id === account).map((a) => ({ value: a.id, label: a.name, hint: `${a.bank_name || ""} · not yet allocated ${nairaExact(accountUnallocated(a))}` }))} />
+              {dept && paysFrom[dept] === account ? <span className="v4-help">The account this department is paid from (Administration › Departments).</span> : null}</div>
             <div className="v4-field"><label className="v4-flabel" htmlFor="sh-status" style={{ fontSize: 13, fontWeight: 700 }}>Status</label>
               <Select id="sh-status" value={active} onChange={setActive} disabled={ro} options={[{ value: "active", label: "Active" }, { value: "inactive", label: "Inactive" }]} /></div>
             <label className="v4-field"><span className="v4-flabel">Approved allocation (₦) <span className="v4-req">*</span></span>

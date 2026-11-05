@@ -9,6 +9,7 @@ import QRCode from "qrcode";
 import { printA4Sheet, useA4Fit } from "@/lib/printA4";
 import RequestAccessGate from "@/app/components/requests/RequestAccessGate";
 import { supabase } from "@/lib/supabaseClient";
+import { signedAsLabel } from "@/lib/roles";
 
 type Req = {
   id: string;
@@ -193,7 +194,7 @@ function canRolePrintRequest(roleSet: Set<string>, req: Req | null) {
 }
 
 function roleCapacity(h: Hist | null | undefined, fallback: string) {
-  return h?.actor_role_name || h?.actor_role_key || fallback;
+  return signedAsLabel(h?.actor_role_name || h?.actor_role_key) || fallback;
 }
 
 function histSignatureUrl(h: Hist | null | undefined, fallback: string | null | undefined) {

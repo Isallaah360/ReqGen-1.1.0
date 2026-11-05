@@ -99,6 +99,30 @@ export function roleDisplayName(value: string | null | undefined): string {
   return String(value || "Staff").trim() || "Staff";
 }
 
+const STAGE_POSITION: Record<string, string> = {
+  hr: "HR Coordinator", hrfiling: "HR Coordinator", dg: "Director General", registrar: "Registrar", dinadmin: "DIN Admin",
+  hod: "HOD", dod: "DOD", director: "DOD", pd: "PD", po: "PD", account: "Account Officer",
+};
+
+/**
+ * v4.6.8: the position printed beside a signature, read from the history line. The Routing Engine
+ * writes "registrar (acting HR)" when the officer named for a step in Routing Engine settings
+ * signs it; that reads as the step's position ("HR Coordinator"). Raw keys read as position
+ * names. The stored history is not changed.
+ */
+export function signedAsLabel(value: string | null | undefined): string {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  const acting = raw.match(/\(acting\s+(.+?)\)\s*$/i);
+  if (acting) {
+    const stage = normalizeRole(acting[1]);
+    return STAGE_POSITION[stage] || modernisePositionText(acting[1]);
+  }
+  const k = normalizeRole(raw);
+  if (POSITION_NAMES[k] || k.startsWith("hr:")) return roleDisplayName(raw);
+  return modernisePositionText(raw);
+}
+
 /** Replaces retired position words inside free text (history lines, names). */
 export function modernisePositionText(text: string | null | undefined): string {
   return String(text || "")

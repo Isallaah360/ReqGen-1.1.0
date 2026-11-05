@@ -6,6 +6,7 @@ import { isAwaitingUser } from "@/lib/approvalQueue";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { nameWithRole } from "@/lib/userIdentity";
+import { signedAsLabel } from "@/lib/roles";
 import { APPROVAL_QUEUE_CHANGED_EVENT } from "@/lib/approvalQueue";
 import Link from "next/link";
 import Icon from "@/app/components/v4/Icon";
@@ -138,6 +139,19 @@ function roleKey(role: string | null | undefined) {
     .replace(/_/g, "");
 }
 
+/**
+ * v4.6.8: the workflow position behind an acting position. v4 renamed the old HR head position to HR Coordinator
+ * (key "hrcoordinator") and DOD may be held as "dod"; both must still count as the HR / Director
+ * step, otherwise the HR Coordinator could not recommend a subhead on a personal fund request.
+ */
+function workflowRole(role: string | null | undefined) {
+  const k = roleKey(role);
+  if (k === "hrcoordinator" || k === "hrboss" || k === "headofhr" || /^hrofficer\d*$/.test(k) || k.startsWith("hr:")) return "hr";
+  if (k === "dod") return "director";
+  if (k === "deanadmin" || /^dinadmin\d*$/.test(k)) return "dinadmin";
+  return k;
+}
+
 function stageKey(stage: string | null | undefined) {
   const key = (stage || "")
     .trim()
@@ -256,6 +270,8 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
   // v4.1.2: route chain, department name, decision choice, subhead change
   const [chain, setChain] = useState<ChainRow[]>([]);
   const [deptName, setDeptName] = useState("");
+  /** v4.6.8: who the Routing Engine will send the request to after DG (Administration › Departments). */
+  const [deptAccountOfficer, setDeptAccountOfficer] = useState<{ ok: boolean; reason?: string } | null>(null);
   const [decision, setDecision] = useState<"approve" | "reject">("approve");
   const [changeSubTo, setChangeSubTo] = useState("");
   const [canUseFingerprint, setCanUseFingerprint] = useState(false);
@@ -370,6 +386,18 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
 
   // v3.1.5: the SAME rule as the Approvals list, bell and access gate
   // (lib/approvalQueue.ts) — a request shown as waiting can always be acted on.
+  useEffect(() => {
+    const deptId = (req as { dept_id?: string | null } | null)?.dept_id;
+    if (!req || !deptId || !isDgStage || !isOfficial || req.assigned_account_officer_id) return;
+    let alive = true;
+    void supabase.rpc("reqgen_department_account_officer", { p_dept_id: deptId }).then(({ data, error }) => {
+      if (!alive) return;
+      // Before the v4.6.8 database step the check is left to the Routing Engine itself.
+      setDeptAccountOfficer(error ? null : (data as { ok: boolean; reason?: string }));
+    });
+    return () => { alive = false; };
+  }, [req, isDgStage, isOfficial]);
+
   const canAct = useMemo(() => {
     if (!req || !me) return false;
     return isAwaitingUser(req, me.id, activeRoleKey || me.role || "staff");
@@ -394,6 +422,9 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
       "registrar",
       "hod",
       "hr",
+      "hrcoordinator",
+      "hrboss",
+      "hrofficer",
       "hrofficer1",
       "hrofficer2",
       "hrofficer3",
@@ -436,7 +467,7 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
     // Locked ReqGen workflow rule: DG, Admin, Auditor and Finance roles never
     // assign request subheads. Subhead assignment belongs only to the active
     // Director, DIN Admin, HOD, Registrar or HR workflow authority.
-    const assignmentRole = roleKey(activeRoleKey || me.role);
+    const assignmentRole = workflowRole(activeRoleKey || me.role);
     const permittedRoles = new Set(["director", "dinadmin", "hod", "registrar", "hr"]);
     if (!permittedRoles.has(assignmentRole)) return false;
 
@@ -863,10 +894,10 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
     }
 
     const ok = await confirmDialog({
-      title: "Assign subhead and reserve funds?",
-      message: `Assign "${selectedAssignableSubhead.code ? `${selectedAssignableSubhead.code} — ` : ""
+      title: isPersonalFund ? "Recommend this subhead and reserve the amount?" : "Assign subhead and reserve funds?",
+      message: `${isPersonalFund ? "Recommend" : "Assign"} "${selectedAssignableSubhead.code ? `${selectedAssignableSubhead.code} — ` : ""
       }${selectedAssignableSubhead.name}" and reserve ${formatNaira(req.amount)} for this request?`,
-      confirmLabel: "Assign and reserve",
+      confirmLabel: isPersonalFund ? "Recommend and reserve" : "Assign and reserve",
     });
 
     if (!ok) return;
@@ -875,11 +906,19 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
     setMsg(null);
 
     try {
-      const { data, error } = await supabase.rpc("assign_request_subhead_and_reserve", {
+      // v4.6.8: one function for every officer step (DOD, DIN Admin, HOD, Registrar, HR — and HR's
+      // recommendation on a personal fund). Before the v4.6.8 database step, the older function is used.
+      let { data, error } = await supabase.rpc("reqgen_officer_assign_subhead", {
         p_request_id: req.id,
         p_subhead_id: selectedSubheadId,
-        p_actor_id: me.id,
       });
+      if (error && /reqgen_officer_assign_subhead|does not exist|schema cache/i.test(error.message)) {
+        ({ data, error } = await supabase.rpc("assign_request_subhead_and_reserve", {
+          p_request_id: req.id,
+          p_subhead_id: selectedSubheadId,
+          p_actor_id: me.id,
+        }));
+      }
 
       if (error) throw new Error(error.message);
 
@@ -987,10 +1026,10 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
       return false;
     }
 
-    if (action === "Approve" && isDgStage && isOfficial && !req.assigned_account_officer_id) {
-      setMsg(
-        "✕ This request cannot leave DG because the selected subhead has no Account Officer routing. Configure the subhead/account routing first."
-      );
+    // v4.6.8: the Routing Engine attaches the department's Account Officer when DG approves
+    // (Administration › Departments › Pays from). Stop here only when that is not set.
+    if (action === "Approve" && isDgStage && isOfficial && !req.assigned_account_officer_id && deptAccountOfficer && !deptAccountOfficer.ok) {
+      setMsg(`✕ ${deptAccountOfficer.reason || "This department has no Account Officer to pay it. Set it in Administration › Departments."}`);
       return false;
     }
 
@@ -1413,11 +1452,11 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
   const historyLook = (h: Hist) => {
     const a = String(h.action_type || "").toLowerCase();
     if (a === "submit") return { icon: "send", tone: "blue", text: `Submitted by ${h.action_by === me?.id ? "you" : h.actor_name || "the requester"}` };
-    if (a.startsWith("approv")) return { icon: "check", tone: "green", text: `Approved by ${h.actor_name || "officer"}${h.actor_role_name ? ` (${h.actor_role_name})` : ""}` };
-    if (a === "return") return { icon: "returned", tone: "amber", text: `Sent back by ${h.actor_name || "officer"}${h.actor_role_name ? ` (${h.actor_role_name})` : ""}` };
+    if (a.startsWith("approv")) return { icon: "check", tone: "green", text: `Approved by ${h.actor_name || "officer"}${h.actor_role_name ? ` (${signedAsLabel(h.actor_role_name)})` : ""}` };
+    if (a === "return") return { icon: "returned", tone: "amber", text: `Sent back by ${h.actor_name || "officer"}${h.actor_role_name ? ` (${signedAsLabel(h.actor_role_name)})` : ""}` };
     if (a.startsWith("reject")) return { icon: "x", tone: "red", text: `Rejected by ${h.actor_name || "officer"}` };
     if (a === "withdraw") return { icon: "x", tone: "red", text: "Withdrawn by the requester" };
-    if (a === "reopen") return { icon: "returned", tone: "blue", text: `Reopened by ${h.actor_name || "officer"}${h.actor_role_name ? ` (${h.actor_role_name})` : ""}` };
+    if (a === "reopen") return { icon: "returned", tone: "blue", text: `Reopened by ${h.actor_name || "officer"}${h.actor_role_name ? ` (${signedAsLabel(h.actor_role_name)})` : ""}` };
     if (a === "resubmit") return { icon: "send", tone: "blue", text: "Corrected and sent again" };
     if (a.includes("attachment")) return { icon: "eye", tone: "blue", text: "Attachment checked" };
     if (a.includes("subhead") || a === "edited") return { icon: "pen", tone: "amber", text: h.action_type === "Edited" ? "Edited" : "Subhead changed" };
@@ -1437,7 +1476,7 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
         cls: c.state === "done" ? "v4-done" : c.state === "now" ? "v4-now" : "v4-wait",
         st: `${i + (submitRow ? 2 : 1)} · ${label}`,
         who: c.state === "done" ? c.acted_by_name || c.owner_name || label : isMeNow ? "You" : c.owner_name || (stageKey(c.stage) === "ACCOUNT" ? req.assigned_account_officer_name || "Account Officer" : "Vacant — skipped"),
-        r: c.state === "done" ? c.acted_role || label : c.state === "now" ? (stageKey(c.stage) === "DG" ? "Sign + IET stamp" : `Waiting · ${waitedFor(req.updated_at || req.created_at)}`) : stageKey(c.stage) === "ACCOUNT" ? "Releases the fund" : stageKey(c.stage) === "DG" ? "Sign + IET stamp" : "",
+        r: c.state === "done" ? signedAsLabel(c.acted_role) || label : c.state === "now" ? (stageKey(c.stage) === "DG" ? "Sign + IET stamp" : `Waiting · ${waitedFor(req.updated_at || req.created_at)}`) : stageKey(c.stage) === "ACCOUNT" ? "Releases the fund" : stageKey(c.stage) === "DG" ? "Sign + IET stamp" : "",
         em: c.state === "done" ? shortWhen(c.acted_at) : "",
         ink: c.state === "done" && c.signed,
       };
@@ -1508,7 +1547,7 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
                   <span>{isDgStage ? "Send to Account to release the fund" : nextStop ? `Send to the ${stageTitle(nextStop.stage)}${nextStop.owner_name ? ` (${nextStop.owner_name})` : ""}` : "Send to the next officer"}</span></span></label>
               <label className="v4-no"><input type="radio" name="rg-decision" checked={decision === "reject"} onChange={() => setDecision("reject")} />
                 <span><strong>Reject</strong>
-                  <span>{isDgStage && lastApprover ? `Back to ${lastApprover.actor_name || "the previous officer"}${lastApprover.actor_role_name ? ` (${lastApprover.actor_role_name})` : ""} with your reason. They correct and send it back to you, or send it to the requester.` : `Back to ${requester} with your reason, to correct and resubmit`}</span></span></label>
+                  <span>{isDgStage && lastApprover ? `Back to ${lastApprover.actor_name || "the previous officer"}${lastApprover.actor_role_name ? ` (${signedAsLabel(lastApprover.actor_role_name)})` : ""} with your reason. They correct and send it back to you, or send it to the requester.` : `Back to ${requester} with your reason, to correct and resubmit`}</span></span></label>
             </div>
           ) : null}
 
@@ -1521,7 +1560,11 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
                       <label className="v4-flabel" htmlFor="rq-assign-sub" style={{ fontSize: 13, fontWeight: 700 }}>{isPersonalFund ? "Recommend a subhead" : "Choose the subhead"} <span className="v4-req">*</span></label>
                       <Select id="rq-assign-sub" value={selectedSubheadId} onChange={setSelectedSubheadId} placeholder="Choose the subhead"
                         options={assignableSubheads.map((s) => ({ value: s.id, label: `${s.code ? `${s.code} — ` : ""}${s.name}`, hint: `Available ${formatNaira(availableBalanceForSubhead(s))}` }))} menuMinWidth={300} />
-                      <span className="v4-help">The request has no subhead yet. The fund is reserved when you assign it.</span>
+                      {assignableSubheads.length ? (
+                        <span className="v4-help">The request has no subhead yet. The fund is reserved when you assign it.</span>
+                      ) : (
+                        <span className="v4-error" role="status">{deptName || "This department"} has no subheads yet, so nothing can be assigned. Ask Finance to add {deptName ? `${deptName}'s` : "its"} subheads in Finance › Subheads (choosing the account that pays it), then open this request again.</span>
+                      )}
                     </div>
                     {selectedAssignableSubhead ? (
                       <div className="v4-balbox" style={{ flex: "1 1 300px" }}>

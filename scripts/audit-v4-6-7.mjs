@@ -15,7 +15,7 @@ check("Sign-up never calls the phone number optional", !/Optional/i.test(signup)
 check("The phone number is saved (never left empty)", signup.includes("phone,") && !signup.includes("f.phone.trim() || null"));
 check("Full name is typed and saved in CAPITAL LETTERS", signup.includes("e.target.value.toUpperCase()") && signup.includes(".toUpperCase(), phone"));
 check("Code boxes fit a phone screen (no cut-off 2FA card)", theme.includes("v4.6.7") && /@media \(max-width: 480px\)[\s\S]*\.v4-otp input \{ width: 42px/.test(theme));
-check("Version 4.6.7", read("lib/version.ts").includes('REQGEN_SEMVER = "4.6.7"') && read("package.json").includes('"version": "4.6.7"'));
+check("Version 4.6.7 or a later 4.6 release", /REQGEN_SEMVER = "4\.6\.([7-9]|[1-9]\d)"/.test(read("lib/version.ts")) && /"version": "4\.6\.([7-9]|[1-9]\d)"/.test(read("package.json")));
 const active = read("lib/activeRole.ts");
 const roles = read("lib/roles.ts");
 const routing = read("app/admin/routing/page.tsx");

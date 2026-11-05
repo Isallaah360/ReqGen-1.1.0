@@ -73,7 +73,7 @@ function RoutingEngine() {
       supabase.from("app_settings").select("key,value").in("key", [...INSTITUTION.map((i) => i.key)]),
       loadRouting(),
       supabase.from("iet_accounts").select("id,name,bank_name").eq("is_active", true).order("name"),
-      supabase.from("department_account_routing").select("id,dept_id,iet_account_id,officer_user_id,is_active"),
+      supabase.rpc("reqgen_admin_departments_data").then(async (x) => (x.error ? await supabase.from("department_account_routing").select("id,dept_id,iet_account_id,officer_user_id,is_active") : { data: (x.data as { routing?: AccRoute[] } | null)?.routing || [], error: null })),
       loadEngineConfig().catch(() => null),
     ]);
     setError(eng.error || p.error?.message || null);
@@ -157,9 +157,13 @@ function RoutingEngine() {
     if (!accForm) return;
     if (!accForm.account || !accForm.officer) { setMsg({ tone: "red", text: "Choose the account and its Account Officer." }); return; }
     setBusy(true);
-    const existing = accRoutes.find((r) => r.dept_id === accForm.deptId);
-    const payload = { dept_id: accForm.deptId, iet_account_id: accForm.account, officer_user_id: accForm.officer, is_active: true };
-    const res = existing ? await supabase.from("department_account_routing").update(payload).eq("id", existing.id) : await supabase.from("department_account_routing").insert(payload);
+    // v4.6.8: saved through the Administration function (works for the Super Admin whatever the table rules say)
+    let res: { error: { message: string } | null } = await supabase.rpc("reqgen_admin_set_department_account", { p_dept_id: accForm.deptId, p_account_id: accForm.account, p_officer_id: accForm.officer });
+    if (res.error && /reqgen_admin_set_department_account|does not exist|schema cache/i.test(res.error.message)) {
+      const existing = accRoutes.find((r) => r.dept_id === accForm.deptId);
+      const payload = { dept_id: accForm.deptId, iet_account_id: accForm.account, officer_user_id: accForm.officer, is_active: true };
+      res = existing ? await supabase.from("department_account_routing").update(payload).eq("id", existing.id) : await supabase.from("department_account_routing").insert(payload);
+    }
     setBusy(false);
     if (res.error) { setMsg({ tone: "red", text: res.error.message }); return; }
     setMsg({ tone: "green", text: `${depts.find((d) => d.id === accForm.deptId)?.name} is now paid from ${accounts.find((a) => a.id === accForm.account)?.name}.` });
@@ -378,7 +382,21 @@ function RoutingEngine() {
         footer={<><button type="button" className="v4-btn v4-btn-ghost" onClick={() => setEditor(null)} disabled={busy}>Cancel</button><button type="button" className="v4-btn v4-btn-primary" onClick={() => void saveEditor()} disabled={busy || !editor?.dirty}><Icon name="check" />{busy ? "Saving…" : "Save route"}</button></>}>
         {editor ? (
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            <div className="v4-field" style={{ maxWidth: 360 }}><span className="v4-flabel">Department</span><Select ariaLabel="Department" searchable value={editor.deptId} onChange={(v) => { if (!editor.dirty) openEditor(v, editor.view); }} disabled={editor.dirty} options={depts.map((d) => ({ value: d.id, label: d.name }))} /></div>
+            <div className="v4-form-grid">
+              <div className="v4-field"><span className="v4-flabel">Department</span><Select ariaLabel="Department" searchable value={editor.deptId} onChange={(v) => { if (!editor.dirty) openEditor(v, editor.view); }} disabled={editor.dirty} options={depts.map((d) => ({ value: d.id, label: d.name }))} /></div>
+              <div className="v4-field"><span className="v4-flabel">Copy steps from (optional)</span><Select ariaLabel="Copy steps from" searchable value="" placeholder="Same as another department…"
+                onChange={(v) => {
+                  if (!v) return;
+                  const src = routeOf(v, overview || [], officers);
+                  const lanes = { ...editor.lanes };
+                  VIEW_KINDS[editor.view].forEach((k) => { lanes[k] = { ...src.lanes[k] }; });
+                  const offs = { ...editor.officers };
+                  OFFICER_STAGES.forEach((st) => { if (!offs[st] && src.officers[st]) offs[st] = src.officers[st]; });
+                  setEditor({ ...editor, lanes, officers: offs, dirty: true });
+                  setMsg({ tone: "green", text: `Copied the ${VIEW_LABEL[editor.view]} steps of ${depts.find((d) => d.id === v)?.name}. Officers not set yet were copied too. Press Save route to keep it.` });
+                }}
+                options={depts.filter((d) => d.id !== editor.deptId).map((d) => ({ value: d.id, label: d.name }))} /></div>
+            </div>
             <div className="v4-matrix-wrap">
               <table className="v4-matrix">
                 <thead><tr><th>Step</th>{VIEW_KINDS[editor.view].map((k) => <th key={k}>{ROUTE_KIND_LABEL[k]}</th>)}</tr></thead>

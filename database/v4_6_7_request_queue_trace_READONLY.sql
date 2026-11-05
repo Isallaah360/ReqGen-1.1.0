@@ -1,5 +1,7 @@
 -- =====================================================================================
--- ReqGen v4.6.7 — Request queue trace (READ-ONLY)
+-- ReqGen v4.6.7 — Request queue trace (READ-ONLY) — revision 2
+-- Rev 2: works whatever optional columns the live tables have (fixes
+-- "column permission_level does not exist").
 --
 -- Why: a submitted request shows in Registry but not in the HR Officer's queue.
 -- This script only READS. It changes nothing, creates nothing, and is safe to run
@@ -80,14 +82,15 @@ lines as (
   union all
   select 51, '3 Officer', 'Positions held (profile_roles)',
          (select string_agg(coalesce(role_name, role_key), ', ' order by role_key)
-          from public.profile_roles where profile_id = (select id from officer) and coalesce(is_active, true))
+          from public.profile_roles where profile_id = (select id from officer) and coalesce((to_jsonb(profile_roles)->>'is_active')::boolean, true))
   union all
   select 52, '3 Officer', 'HR section permissions (not positions)',
-         (select string_agg(section_key || ' (' || coalesce(permission_level::text, '-') || ')', ', ' order by section_key)
-          from public.hr_officer_assignments where officer_id = (select id from officer) and coalesce(is_active, true))
+         (select string_agg(coalesce(j->>'section_key', '?') || coalesce(' (' || (j->>'permission_level') || ')', ''), ', ' order by j->>'section_key')
+          from (select to_jsonb(a) as j from public.hr_officer_assignments a) x
+          where j->>'officer_id' = (select id::text from officer) and coalesce((j->>'is_active')::boolean, true))
   union all
   select 53, '3 Officer', 'Acting as now',
-         (select coalesce(active_role_name, active_role_key) from public.user_active_roles where user_id = (select id from officer))
+         (select coalesce(to_jsonb(u)->>'active_role_name', to_jsonb(u)->>'active_role_key') from public.user_active_roles u where u.user_id = (select id from officer))
   union all
   select 54, '3 Officer', 'Owns which route steps of this department',
          (select string_agg(o.stage, ', ' order by o.stage) from public.reqgen_department_stage_officers o
@@ -98,14 +101,15 @@ lines as (
           where s.value = (select id::text from officer) and s.key like '%\_USER\_ID' escape '\')
   union all
   select 56, '3 Officer', 'Marked away',
-         (select case when a.is_away then 'YES' || coalesce(' until ' || a.away_until::date, '') else 'no' end
-          from public.reqgen_officer_availability a where a.user_id = (select id from officer))
+         (select case when coalesce((j->>'is_away')::boolean, false) then 'YES' || coalesce(' until ' || left(j->>'away_until', 10), '') else 'no' end
+          from (select to_jsonb(a) as j from public.reqgen_officer_availability a) x
+          where j->>'user_id' = (select id::text from officer))
   -- 4. Last movements (newest first)
   union all
   select 70 + rn, '4 History', to_char(created_at, 'YYYY-MM-DD HH24:MI'),
-         coalesce(action_type, '?') || ' · ' || coalesce(from_stage, '?') || ' -> ' || coalesce(to_stage, '?')
-         || ' · by ' || coalesce(actor_name, '?') || ' as ' || coalesce(actor_role_name, actor_role_key, '?')
-  from (select h.*, row_number() over (order by h.created_at desc) as rn
+         coalesce(j->>'action_type', '?') || ' · ' || coalesce(j->>'from_stage', '?') || ' -> ' || coalesce(j->>'to_stage', '?')
+         || ' · by ' || coalesce(j->>'actor_name', '?') || ' as ' || coalesce(j->>'actor_role_name', j->>'actor_role_key', '?')
+  from (select to_jsonb(h) as j, h.created_at, row_number() over (order by h.created_at desc) as rn
         from public.request_history h where h.request_id = (select id from req)) x
   where rn <= 8
   -- 5. Verdict
