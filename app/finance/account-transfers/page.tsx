@@ -14,6 +14,7 @@ import Icon from "@/app/components/v4/Icon";
 import Modal from "@/app/components/v4/Modal";
 import { Select } from "@/app/components/v4/Select";
 import { Card, Chip, Notice, PageHead, Skeleton, Stats, Tabs, V4Page, downloadCsv, naira, type StatItem } from "@/app/components/v4/ui";
+import { useCelebrate } from "@/app/components/v4/Motion";
 
 type Kind = "all" | "account" | "subhead";
 
@@ -33,6 +34,7 @@ function Transfers() {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [subs, setSubs] = useState<Subhead[]>([]);
   const [msg, setMsg] = useState<{ tone: "red" | "green" | "amber"; text: string } | null>(null);
+  useCelebrate(msg);
   const [kind, setKind] = useState<Kind>("all");
   const [onlyWaiting, setOnlyWaiting] = useState(false);
   const [open, setOpen] = useState<Transfer | null>(null);

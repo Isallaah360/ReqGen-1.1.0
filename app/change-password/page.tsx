@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { passwordStrength } from "@/lib/v4/passwordStrength";
 import Icon from "@/app/components/v4/Icon";
 import { Notice, PageHead, Skeleton, V4Page } from "@/app/components/v4/ui";
+import { useCelebrate } from "@/app/components/v4/Motion";
 
 /**
  * My Account › Change Password (v4): confirm the current password, then the 2FA code,
@@ -26,6 +27,7 @@ export default function ChangePasswordPage() {
   const [show, setShow] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [msg, setMsg] = useState<{ tone: "green" | "red"; text: string } | null>(null);
+  useCelebrate(msg);
 
   useEffect(() => {
     queueMicrotask(async () => {

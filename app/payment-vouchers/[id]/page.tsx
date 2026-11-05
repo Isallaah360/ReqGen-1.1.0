@@ -16,6 +16,7 @@ import Icon from "@/app/components/v4/Icon";
 import SignatureInk from "@/app/components/ui/SignatureInk";
 import { Select } from "@/app/components/v4/Select";
 import { Chip, Notice, Skeleton, V4Page } from "@/app/components/v4/ui";
+import { useCelebrate } from "@/app/components/v4/Motion";
 
 type Item = { id: string; request_id: string | null; request_no: string | null; title: string | null; amount: number | null; dept_name: string | null; subhead_code: string | null; subhead_name: string | null; requester_name: string | null };
 type Hist = { id: string; action_type: string | null; from_status: string | null; to_status: string | null; comment: string | null; actor_name: string | null; actor_role: string | null; created_at: string };
@@ -57,6 +58,7 @@ function VoucherRecord() {
   const [newCounter, setNewCounter] = useState("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<Msg | null>(search.get("made") ? { tone: "green", text: "Voucher generated, numbered and sent to the Auditor. Each payee has been told." } : null);
+  useCelebrate(msg);
 
   const load = useCallback(async () => {
     let rec = await supabase.rpc("reqgen_pv_record", { p_voucher_id: id });

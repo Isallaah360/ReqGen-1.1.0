@@ -10,6 +10,7 @@ import { useIdentity } from "@/app/components/v4/useIdentity";
 import Icon from "@/app/components/v4/Icon";
 import Modal from "@/app/components/v4/Modal";
 import { Notice, PageHead, Skeleton, V4Page } from "@/app/components/v4/ui";
+import { useCelebrate } from "@/app/components/v4/Motion";
 
 const OWNER_EMAIL = "isallalah360@gmail.com";
 
@@ -55,6 +56,7 @@ export default function SystemAccountsPage() {
   const [dlg, setDlg] = useState<{ keeper: string; confirm: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ tone: "green" | "red"; text: string } | null>(null);
+  useCelebrate(msg);
 
   const load = useCallback(async () => {
     const [p, k, st] = await Promise.all([

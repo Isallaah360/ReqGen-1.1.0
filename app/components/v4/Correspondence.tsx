@@ -13,6 +13,7 @@ import Modal from "./Modal";
 import PrivacyBar from "./PrivacyBar";
 import { Select } from "./Select";
 import { Card, Chip, Notice, PageHead, Pager, Skeleton, Tabs, V4Page, type ChipTone } from "./ui";
+import { useCelebrate } from "@/app/components/v4/Motion";
 
 type Dept = { id: string; name: string };
 type Dir = "incoming" | "outgoing";
@@ -41,6 +42,7 @@ export default function Correspondence({ direction }: { direction: Dir }) {
   const [form, setForm] = useState<{ subject: string; party: string; dept: string; priority: string; received: string; items: string; note: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ tone: "green" | "red"; text: string } | null>(null);
+  useCelebrate(msg);
 
   const load = useCallback(async () => {
     const [c, d] = await Promise.all([loadCorrespondence(direction), supabase.from("departments").select("id,name").order("name")]);

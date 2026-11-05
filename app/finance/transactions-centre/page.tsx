@@ -14,6 +14,7 @@ import Icon from "@/app/components/v4/Icon";
 import Modal from "@/app/components/v4/Modal";
 import { Select } from "@/app/components/v4/Select";
 import { Card, Chip, Notice, PageHead, Pager, Skeleton, Stats, Tabs, V4Page, downloadCsv, type StatItem } from "@/app/components/v4/ui";
+import { useCelebrate } from "@/app/components/v4/Motion";
 
 type Tx = { at: string; kind: string; ref_no: string | null; ref_id: string; source: string; destination: string; amount: number; effect: string; status: string; by_label: string | null; subhead_id: string | null; account_id: string | null; details: string | null };
 type Reversal = { id: string; reversal_no: string; source_kind: "release" | "manual"; source_id: string; source_no: string; subhead_label: string | null; amount: number; reason: string; status: string; initiated_by: string; initiated_label: string; initiated_at: string; checked_label: string | null; check_comment: string | null; approved_label: string | null; approve_comment: string | null };
@@ -60,6 +61,7 @@ function Centre() {
   const [revs, setRevs] = useState<Reversal[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [msg, setMsg] = useState<{ tone: "green" | "red"; text: string } | null>(null);
+  useCelebrate(msg);
   const [tab, setTab] = useState<"all" | "reversals">(() => (params.get("reversal") ? "reversals" : "all"));
   const [q, setQ] = useState("");
   const [kind, setKind] = useState("all");

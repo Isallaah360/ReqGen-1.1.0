@@ -9,6 +9,7 @@ import { nairaExact } from "@/lib/v4/money";
 import { useIdentity } from "@/app/components/v4/useIdentity";
 import Icon from "@/app/components/v4/Icon";
 import { Card, Chip, Notice, PageHead, Skeleton, V4Page } from "@/app/components/v4/ui";
+import { useCelebrate } from "@/app/components/v4/Motion";
 
 type Scope = "finance" | "vouchers" | "requests";
 type PreviewRow = { part: string; item: string; rows: number; note: string };
@@ -53,6 +54,7 @@ export default function FinanceResetPage() {
   const [typed, setTyped] = useState("");
   const [busy, setBusy] = useState<"backup" | "reset" | null>(null);
   const [msg, setMsg] = useState<{ tone: "green" | "red" | "amber"; text: string } | null>(null);
+  useCelebrate(msg);
   const [done, setDone] = useState<Done | null>(null);
   const [history, setHistory] = useState<ResetRow[]>([]);
   const [clock, setClock] = useState(() => Date.now());

@@ -11,6 +11,7 @@ import { useIdentity } from "@/app/components/v4/useIdentity";
 import Icon from "@/app/components/v4/Icon";
 import { Select } from "@/app/components/v4/Select";
 import { Card, Chip, Notice, PageHead, Skeleton, V4Page } from "@/app/components/v4/ui";
+import { useCelebrate } from "@/app/components/v4/Motion";
 
 type Ready = { id: string; request_no: string | null; title: string | null; amount: number | null; request_type: string | null; personal_category: string | null; requester_name: string | null; dept_name: string | null; subhead_code: string | null; subhead_name: string | null };
 type Saved = { payee_key: string; payee_name: string | null; account_name: string; account_number: string; bank_name: string };
@@ -54,6 +55,7 @@ function Generate() {
   const [narration, setNarration] = useState("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ tone: "red" | "green" | "amber"; text: string } | null>(null);
+  useCelebrate(msg);
 
   const load = useCallback(async () => {
     const [r, b, c, a] = await Promise.all([

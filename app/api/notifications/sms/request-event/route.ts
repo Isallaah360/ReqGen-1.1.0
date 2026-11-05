@@ -43,15 +43,15 @@ function jsonError(message: string, status = 400) {
 
 function smsEnabled() {
   return (
-    String(process.env.SENDCHAMP_SMS_ENABLED || "false").toLowerCase() ===
-    "true"
+    String(process.env.SENDCHAMP_SMS_ENABLED || "").toLowerCase() !== "false" &&
+    !!process.env.SENDCHAMP_API_KEY
   );
 }
 
 function emailEnabled() {
   return (
-    String(process.env.SENDCHAMP_EMAIL_ENABLED || "false").toLowerCase() ===
-    "true"
+    String(process.env.SENDCHAMP_EMAIL_ENABLED || "").toLowerCase() !== "false" &&
+    !!process.env.SENDCHAMP_API_KEY
   );
 }
 

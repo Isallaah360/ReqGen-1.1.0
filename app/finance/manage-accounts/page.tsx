@@ -10,6 +10,7 @@ import Icon from "@/app/components/v4/Icon";
 import Modal from "@/app/components/v4/Modal";
 import { Select } from "@/app/components/v4/Select";
 import { Card, Chip, Notice, PageHead, Pager, Skeleton, Stats, V4Page, downloadCsv, naira, type StatItem } from "@/app/components/v4/ui";
+import { useCelebrate } from "@/app/components/v4/Motion";
 
 const PAGE = 12;
 
@@ -22,6 +23,7 @@ export default function BankAccountsPage() {
   const [assign, setAssign] = useState<Assignment[]>([]);
   const [people, setPeople] = useState<Record<string, string>>({});
   const [msg, setMsg] = useState<{ tone: "red" | "green"; text: string } | null>(null);
+  useCelebrate(msg);
   const [q, setQ] = useState("");
   const [bank, setBank] = useState("all");
   const [status, setStatus] = useState("all");

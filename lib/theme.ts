@@ -30,5 +30,23 @@ export function applyTheme(mode: ThemeMode) {
   window.dispatchEvent(new CustomEvent(THEME_EVENT, { detail: { mode, resolved } }));
 }
 
+/**
+ * v4.6.9: colour of the app, chosen in My Account › Appearance. "iet" is the usual IET orange;
+ * "green" is IET green. It works with Light and Dark. Kept on this device only.
+ */
+export type AccentMode = "iet" | "green";
+export const ACCENT_STORAGE_KEY = "reqgen-accent";
+
+export function readAccent(): AccentMode {
+  try { return window.localStorage.getItem(ACCENT_STORAGE_KEY) === "green" ? "green" : "iet"; } catch { return "iet"; }
+}
+
+export function applyAccent(accent: AccentMode) {
+  const root = document.documentElement;
+  if (accent === "green") root.dataset.accent = "green"; else delete root.dataset.accent;
+  try { window.localStorage.setItem(ACCENT_STORAGE_KEY, accent); } catch { /* private mode */ }
+  window.dispatchEvent(new CustomEvent(THEME_EVENT, { detail: { accent } }));
+}
+
 /** Runs in <head> before first paint, so dark mode never flashes white. */
-export const THEME_BOOT_SCRIPT = `(function(){try{var m=localStorage.getItem('${THEME_STORAGE_KEY}')||'system';var d=m==='dark'||(m==='system'&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches);var r=document.documentElement;r.dataset.theme=d?'dark':'light';r.style.colorScheme=d?'dark':'light';}catch(e){}})();`;
+export const THEME_BOOT_SCRIPT = `(function(){try{var m=localStorage.getItem('${THEME_STORAGE_KEY}')||'system';var d=m==='dark'||(m==='system'&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches);var r=document.documentElement;r.dataset.theme=d?'dark':'light';r.style.colorScheme=d?'dark':'light';if(localStorage.getItem('${ACCENT_STORAGE_KEY}')==='green'){r.dataset.accent='green';}}catch(e){}})();`;

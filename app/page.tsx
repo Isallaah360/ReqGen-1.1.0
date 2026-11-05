@@ -7,7 +7,6 @@ import { PublicFoot } from "./components/PublicAuthShell";
 export default function HomePage() {
   return (
     <main className="v4-ui v4-public">
-      <Image className="v4-public-watermark" src="/v4/iet-logo.png" alt="" aria-hidden="true" width={720} height={720} priority />
       <section className="v4-auth-card" aria-labelledby="home-title" style={{ paddingTop: 44 }}>
         <div className="v4-auth-logo" style={{ width: 180, height: 180 }}>
           <Image src="/v4/iet-logo.png" alt="Islamic Education Trust logo" width={156} height={156} priority style={{ width: 156, height: 156 }} />

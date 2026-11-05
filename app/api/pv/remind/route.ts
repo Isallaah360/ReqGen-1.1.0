@@ -36,7 +36,8 @@ function fail(message: string, status = 400) {
 }
 
 function flag(name: string) {
-  return String(process.env[name] || "false").toLowerCase() === "true";
+  // v4.6.9: on unless set to "false", and only when the Sendchamp key is present.
+  return String(process.env[name] || "").toLowerCase() !== "false" && !!process.env.SENDCHAMP_API_KEY;
 }
 
 function roleKey(value: string | null | undefined) {

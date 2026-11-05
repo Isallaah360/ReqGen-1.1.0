@@ -15,6 +15,7 @@ import { useIdentity } from "@/app/components/v4/useIdentity";
 import Icon from "@/app/components/v4/Icon";
 import { Select, type SelectOption } from "@/app/components/v4/Select";
 import { Notice, PageHead, Skeleton, V4Page } from "@/app/components/v4/ui";
+import { useCelebrate } from "@/app/components/v4/Motion";
 
 /**
  * ReqGen v4.1.2 — New Request (mock-ups 25a and 25).
@@ -54,7 +55,9 @@ const MAX_MB = 10;
 const ACCEPT = ".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.webp,.txt";
 
 const otpEnabled = process.env.NEXT_PUBLIC_REQGEN_REQUEST_OTP_ENABLED === "true";
-const notificationsEnabled = process.env.NEXT_PUBLIC_REQGEN_NOTIFICATIONS_ENABLED === "true";
+// v4.6.9: SMS and email are switched on and off on the server (SENDCHAMP_SMS_ENABLED, SENDCHAMP_EMAIL_ENABLED);
+// the screen only stops when this optional switch is set to "false".
+const notificationsEnabled = process.env.NEXT_PUBLIC_REQGEN_NOTIFICATIONS_ENABLED !== "false";
 const otpChannel: OtpChannel = (() => {
   const raw = String(process.env.NEXT_PUBLIC_REQGEN_REQUEST_OTP_CHANNEL || "sms").trim().toLowerCase();
   if (raw === "email") return "email";
@@ -115,6 +118,7 @@ function NewRequest() {
   const [depts, setDepts] = useState<Dept[]>([]);
   const [step, setStep] = useState(0);
   const [msg, setMsg] = useState<{ tone: "red" | "green" | "blue" | "amber"; text: string } | null>(null);
+  useCelebrate(msg);
 
   const [requestType, setRequestType] = useState<RequestType>("Official");
   const [category, setCategory] = useState<PersonalCategory>("Fund");

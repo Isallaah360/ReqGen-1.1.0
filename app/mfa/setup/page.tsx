@@ -10,6 +10,7 @@ import PublicAuthShell from "../../components/PublicAuthShell";
 import Icon from "../../components/v4/Icon";
 import OtpBoxes from "../../components/v4/OtpBoxes";
 import { Chip, Notice } from "../../components/v4/ui";
+import { useCelebrate } from "@/app/components/v4/Motion";
 
 type EnrollData = { id: string; type: string; totp: { qr_code: string; secret: string; uri: string } };
 
@@ -27,6 +28,7 @@ export default function MfaSetupPage() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ tone: "red" | "green" | "blue"; text: string } | null>(null);
+  useCelebrate(msg);
   const [factorId, setFactorId] = useState("");
   const [uri, setUri] = useState("");
   const [secret, setSecret] = useState("");

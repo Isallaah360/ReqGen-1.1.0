@@ -22,6 +22,17 @@ export const KIND_LOOK: Record<NotificationKind, { icon: string; tone: Tone }> =
   info: { icon: "info", tone: "blue" },
 };
 
+/** v4.6.9: the small heading over a live alert ("Request received", "Voucher received"). */
+export function eyebrowFor(n: ReqGenNotification) {
+  const voucher = /voucher|payment-vouchers|\/pv\b/i.test(`${n.link || ""} ${n.title || ""}`);
+  if (n.kind === "awaiting" || n.kind === "reassigned") return voucher ? "Voucher received" : "Request received";
+  if (n.kind === "approved") return voucher ? "Voucher update" : "Request approved";
+  if (n.kind === "returned") return "Sent back to you";
+  if (n.kind === "rejected") return "Not approved";
+  if (n.kind === "paid") return "Payment made";
+  return voucher ? "Voucher update" : "New update";
+}
+
 /** One notification line, shared by the bell panel and the Notifications page. */
 export function NoticeLine({ n, onOpen }: { n: ReqGenNotification; onOpen: (n: ReqGenNotification) => void }) {
   const look = KIND_LOOK[n.kind];
@@ -55,6 +66,7 @@ export default function Bell({ userId, pendingApprovalCount, onUnread }: { userI
   const [toasts, setToasts] = useState<ReqGenNotification[]>([]);
   const [attention, setAttention] = useState<ReqGenNotification | null>(null);
   const [mounted, setMounted] = useState(false);
+  const [ring, setRing] = useState(0);
   useEffect(() => { queueMicrotask(() => setMounted(true)); }, []);
 
   const refresh = useCallback(async () => {
@@ -70,6 +82,8 @@ export default function Bell({ userId, pendingApprovalCount, onUnread }: { userI
           const needsAction = fresh.find((n) => n.kind === "awaiting" || n.kind === "reassigned");
           if (needsAction) setAttention((cur) => cur ?? needsAction);
           setToasts((cur) => [...fresh.filter((n) => n !== needsAction), ...cur].slice(0, 3));
+          setRing(Date.now()); // the bell rings once
+
         }
       }
     }
@@ -158,7 +172,7 @@ export default function Bell({ userId, pendingApprovalCount, onUnread }: { userI
         aria-expanded={open}
         onClick={() => { setOpen((o) => !o); if (!open) { setLoading(items.length === 0); void refresh(); } }}
       >
-        <Icon name="bell" />
+        <span key={ring} className={ring ? "v4-bell-ring" : undefined} style={{ display: "inline-flex" }}><Icon name="bell" /></span>
         {badge > 0 ? <span className="v4-dot">{badge > 99 ? "99+" : badge}</span> : null}
       </button>
 
@@ -193,6 +207,7 @@ export default function Bell({ userId, pendingApprovalCount, onUnread }: { userI
             <div key={n.id} className="v4-toast" role="status" aria-live="polite">
               <span className="v4-ico" style={{ background: "#B83E00" }}><Icon name="bell" /></span>
               <span style={{ flex: 1 }}>
+                <em className="v4-toast-eyebrow">{eyebrowFor(n)}</em>
                 <strong>{n.title}</strong>
                 {n.message ? <span>{n.message}</span> : null}
                 <button type="button" onClick={() => { setToasts((c) => c.filter((x) => x.id !== n.id)); openItem(n); }} style={{ display: "block", marginTop: 6, padding: 0, border: 0, background: "none", color: "#F7B48A", fontWeight: 700, cursor: "pointer" }}>Open</button>
@@ -207,6 +222,7 @@ export default function Bell({ userId, pendingApprovalCount, onUnread }: { userI
         <div className="v4-ui v4-attention" role="presentation">
           <section role="alertdialog" aria-modal="true" aria-labelledby="v4-attention-title">
             <span className="v4-ico v4-t-brand"><Icon name="bell" /></span>
+            <p className="v4-toast-eyebrow" style={{ margin: 0 }}>{eyebrowFor(attention)}</p>
             <h2 id="v4-attention-title">{attention.title}</h2>
             {attention.message ? <p>{attention.message}</p> : null}
             <div className="v4-btns">

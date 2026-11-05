@@ -14,6 +14,7 @@ import { useIdentity } from "@/app/components/v4/useIdentity";
 import Icon from "@/app/components/v4/Icon";
 import { Select } from "@/app/components/v4/Select";
 import { Notice, PageHead, Skeleton, V4Page } from "@/app/components/v4/ui";
+import { useCelebrate } from "@/app/components/v4/Motion";
 
 type Dept = { id: string; name: string };
 type Routing = { dept_id: string | null; iet_account_id: string | null; is_active: boolean | null };
@@ -73,6 +74,7 @@ function ManualVoucher() {
   const [files, setFiles] = useState<File[]>([]);
   const [busy, setBusy] = useState<"" | "draft" | "send">("");
   const [msg, setMsg] = useState<{ tone: "red" | "green" | "amber" | "blue"; text: string } | null>(null);
+  useCelebrate(msg);
 
   const loadDrafts = useCallback(async () => {
     const { data } = await supabase.from("payment_vouchers").select("id,voucher_no,payee_name,narration,amount,total_amount,status,updated_at,created_at")

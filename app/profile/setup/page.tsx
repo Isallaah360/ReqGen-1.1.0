@@ -6,11 +6,13 @@ import { confirmDialog } from "@/lib/dialog";
 import { confirmOwnPassword, readSetupStripOff, useSetupSteps, writeSetupStripOff } from "@/lib/profileSetup";
 import Icon from "@/app/components/v4/Icon";
 import { Chip, Notice, PageHead, Skeleton, V4Page } from "@/app/components/v4/ui";
+import { useCelebrate } from "@/app/components/v4/Motion";
 
 /** My Account › Setup Guide (mock-up 21): the steps that make an account ready. */
 export default function SetupGuidePage() {
   const { steps, loading, refresh } = useSetupSteps();
   const [msg, setMsg] = useState<{ tone: "green" | "red"; text: string } | null>(null);
+  useCelebrate(msg);
   const [stripOff, setStripOff] = useState(false);
   useEffect(() => { queueMicrotask(() => setStripOff(readSetupStripOff())); }, []);
 

@@ -13,6 +13,7 @@ import { roleDisplayName } from "@/lib/roles";
 import { useIdentity } from "@/app/components/v4/useIdentity";
 import Icon from "@/app/components/v4/Icon";
 import { DayIcon, dayPart, firstNameOf } from "@/app/components/v4/Greeting";
+import { hijriDate, tipOfDay } from "@/app/components/v4/Motion";
 import { Btn, Card, Chip, PageHead, Skeleton, Stats, Tabs, V4Page, naira, type StatItem } from "@/app/components/v4/ui";
 
 type Req = ApprovalQueueRow & { id: string; request_no: string | null; title: string | null; amount: number | null; created_at: string | null; created_by?: string | null };
@@ -134,19 +135,26 @@ export default function DashboardPage() {
   const hour = now?.getHours() ?? 9;
   const dateText = now ? now.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" }) : "";
   const fy = fyLabel(currentFyStart());
+  const hijri = now ? hijriDate(now) : "";
 
   return (
     <V4Page>
       <PageHead
         title={`${dayPart(hour).text}${firstNameOf(me.name) ? `, ${firstNameOf(me.name)}` : ""}`}
         icon={<DayIcon hour={hour} size={30} />}
-        sub={<>{dateText}{dateText ? " · " : ""}Financial year {fy} · Here is what needs you today.</>}
+        sub={<>{dateText}{hijri ? <> · <span className="v4-hijri">{hijri}</span></> : null}{dateText ? " · " : ""}Financial year {fy} · Here is what needs you today.</>}
         actions={[
           ...(allowed("/reports") ? [{ href: "/reports", label: "Reports", icon: "chart", kind: "secondary" as const }] : []),
           { href: "/requests/new", label: "New request", icon: "plus", kind: "primary" as const },
         ]}
       />
       <Stats items={stats} label="Today" />
+      {now ? (
+        <aside className="v4-tip" aria-label="Did you know?">
+          <span className="v4-ico v4-t-amber" aria-hidden="true"><Icon name="help" /></span>
+          <span><b>Did you know?</b> {tipOfDay(now)}</span>
+        </aside>
+      ) : null}
 
       <div className="v4-cols">
         <Card title="Waiting for me" link={{ href: "/approvals", label: "Open Approvals" }}>

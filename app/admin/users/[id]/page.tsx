@@ -1,6 +1,8 @@
 "use client";
 
 import { use, useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import OtpBoxes from "@/app/components/v4/OtpBoxes";
 import { supabase } from "@/lib/supabaseClient";
 import { confirmDialog, promptDialog } from "@/lib/dialog";
 import { ASSIGNABLE, adminApi, initials, positionFor, positionsOf, whenText, type AdminPerson } from "@/lib/v4/admin";
@@ -9,6 +11,7 @@ import Icon from "@/app/components/v4/Icon";
 import Modal from "@/app/components/v4/Modal";
 import { Select } from "@/app/components/v4/Select";
 import { Notice, Skeleton, V4Page } from "@/app/components/v4/ui";
+import { celebrate, useCelebrate } from "@/app/components/v4/Motion";
 
 type Dept = { id: string; name: string };
 /** Positions whose holder signs letters or vouchers: a signature must be on file first. */
@@ -24,16 +27,22 @@ export default function StaffRecordPage({ params }: { params: Promise<{ id: stri
   const [depts, setDepts] = useState<Dept[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [msg, setMsg] = useState<{ tone: "green" | "red"; text: string } | null>(null);
+  useCelebrate(msg);
   const [busy, setBusy] = useState(false);
   const [addPos, setAddPos] = useState<{ key: string; primary: boolean } | null>(null);
   const [edit, setEdit] = useState<{ fullName: string; deptId: string } | null>(null);
+  const [iAmSuperAdmin, setIAmSuperAdmin] = useState(false);
+  const router = useRouter();
+  // v4.6.9: delete a deactivated account (Super Admin only, typed DELETE + a fresh 2FA code).
+  const [del, setDel] = useState<null | { step: "checking" | "blocked" | "confirm"; history: string[]; settings: string[]; typed: string; code: string; error: string | null }>(null);
 
   const load = useCallback(async () => {
     const [p, d] = await Promise.all([supabase.rpc("reqgen_admin_people"), supabase.from("departments").select("id,name").order("name")]);
     setError(p.error?.message || null);
     setPerson(((p.data || []) as AdminPerson[]).find((x) => x.id === id) || null);
+    setIAmSuperAdmin(((p.data || []) as AdminPerson[]).some((x) => x.id === me.userId && x.system_account === "superadmin"));
     setDepts((d.data || []) as Dept[]);
-  }, [id]);
+  }, [id, me.userId]);
   useEffect(() => { if (me.ready) queueMicrotask(() => { void load(); }); }, [me.ready, load]);
 
   async function act(label: string, fn: () => Promise<{ ok: boolean; error?: string } | { error: { message: string } | null }>, done: string) {
@@ -89,6 +98,36 @@ export default function StaffRecordPage({ params }: { params: Promise<{ id: stri
       await act("Deactivating", () => adminApi(`/api/admin/users/${id}`, "PATCH", { action: "deactivate", reason }), `${name} was deactivated.`);
     } else {
       await act("Reactivating", () => adminApi(`/api/admin/users/${id}`, "PATCH", { action: "reactivate" }), `${name} can sign in again.`);
+    }
+  }
+  async function openDelete() {
+    setDel({ step: "checking", history: [], settings: [], typed: "", code: "", error: null });
+    const res = await adminApi<{ history?: Record<string, number>; settings?: string[]; deactivated?: boolean }>(`/api/admin/users/${id}`, "GET");
+    if (!res.ok) { setDel((d) => d && { ...d, step: "blocked", error: res.error || "The check failed." }); return; }
+    const history = Object.entries(res.history || {}).map(([k, n]) => `${n} ${k}`);
+    const settings = res.settings || [];
+    setDel((d) => d && { ...d, step: history.length || settings.length ? "blocked" : "confirm", history, settings });
+  }
+  async function deleteForever() {
+    if (!del || !person) return;
+    if (del.typed.trim() !== "DELETE") { setDel({ ...del, error: "Type DELETE in capital letters." }); return; }
+    if (!/^\d{6}$/.test(del.code)) { setDel({ ...del, error: "Enter the 6-digit code from your authenticator app." }); return; }
+    setBusy(true); setDel({ ...del, error: null });
+    try {
+      const factors = await supabase.auth.mfa.listFactors();
+      const totp = factors.data?.totp?.find((f) => f.status === "verified");
+      if (!totp) throw new Error("No authenticator is set up on your account.");
+      const v = await supabase.auth.mfa.challengeAndVerify({ factorId: totp.id, code: del.code });
+      if (v.error) throw new Error("That 2FA code is not right. " + v.error.message);
+      const res = await adminApi(`/api/admin/users/${id}`, "DELETE", { confirm: "DELETE" });
+      if (!res.ok) throw new Error(res.error || "The account could not be deleted.");
+      setDel(null);
+      celebrate({ title: "Account deleted", line: `${name} was removed from ReqGen. The Audit Log keeps the record.` });
+      window.setTimeout(() => router.push("/admin/users"), 1600);
+    } catch (e) {
+      setDel((d) => d && { ...d, code: "", error: e instanceof Error ? e.message : "The account could not be deleted." });
+    } finally {
+      setBusy(false);
     }
   }
   async function saveDetails() {
@@ -173,6 +212,7 @@ export default function StaffRecordPage({ params }: { params: Promise<{ id: stri
             <button className="v4-btn v4-btn-secondary" type="button" disabled={busy || !person.has_2fa} onClick={() => void reset2fa()}><Icon name="returned" />Reset 2FA</button>
             <button className="v4-btn v4-btn-secondary" type="button" disabled={busy || !person.passcodes} onClick={() => void removePasscodes()}><Icon name="key" />Remove passcodes</button>
             {!isSystem ? <button className={`v4-btn ${person.is_active ? "v4-btn-danger" : "v4-btn-primary"}`} type="button" disabled={busy} onClick={() => void toggleActive()}><Icon name={person.is_active ? "x" : "check"} />{person.is_active ? "Deactivate" : "Reactivate"}</button> : null}
+            {!isSystem && !person.is_active && iAmSuperAdmin ? <button className="v4-btn v4-btn-danger" type="button" disabled={busy} onClick={() => void openDelete()}><Icon name="trash" />Delete permanently</button> : null}
           </div>
         ) : <p className="v4-help" style={{ marginTop: 14 }}>This is your own account — change your sign-in in My Account › Security &amp; Devices.</p>}
       </section>
@@ -185,6 +225,32 @@ export default function StaffRecordPage({ params }: { params: Promise<{ id: stri
               options={ASSIGNABLE.filter((a) => !held.some((h) => h.def.keys.includes(a.key))).map((a) => ({ value: a.key, label: a.label, hint: SIGNS.has(a.key) ? "signs" : undefined }))} /></div>
             <label className="v4-check v4-span-2"><input type="checkbox" checked={addPos.primary} onChange={(e) => setAddPos({ ...addPos, primary: e.target.checked })} /> Make it their main position (shown first in “Acting as”)</label>
             {addPos.key && positionFor(addPos.key)?.one ? <div className="v4-span-2"><Notice tone="amber">{positionFor(addPos.key)?.name} has one holder in IET. Remove it from the current holder first if this person replaces them.</Notice></div> : null}
+          </div>
+        ) : null}
+      </Modal>
+      <Modal open={!!del} title={`Delete ${name} permanently?`} sub="Only for a deactivated account with no history in ReqGen." onClose={() => setDel(null)} busy={busy}
+        footer={<><button type="button" className="v4-btn v4-btn-ghost" onClick={() => setDel(null)}>{del?.step === "blocked" ? "Close" : "Cancel"}</button>{del?.step === "confirm" ? <button type="button" className="v4-btn v4-btn-danger" disabled={busy || del.typed.trim() !== "DELETE" || del.code.length !== 6} onClick={() => void deleteForever()}><Icon name="trash" />{busy ? "Deleting…" : "Delete permanently"}</button> : null}</>}>
+        {del ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            {del.step === "checking" ? <Skeleton lines={3} /> : null}
+            {del.step === "blocked" ? (
+              del.error ? <Notice tone="red">{del.error}</Notice> : (
+                <>
+                  {del.history.length ? <Notice tone="amber" title="This account has history, so it stays deactivated.">Every record keeps its name. It has: {del.history.join("; ")}.</Notice> : null}
+                  {del.settings.length ? <Notice tone="amber" title="Change these first.">The account is still named as {del.settings.join("; ")}.</Notice> : null}
+                </>
+              )
+            ) : null}
+            {del.step === "confirm" ? (
+              <>
+                <Notice tone="red" title="This cannot be undone.">The sign-in, positions, devices and notifications of {name} are removed. The Audit Log keeps a line saying you deleted the account.</Notice>
+                <label className="v4-field"><span className="v4-flabel">Type <span className="v4-confirm-type">DELETE</span> to confirm</span>
+                  <input className="v4-input" value={del.typed} autoComplete="off" onChange={(e) => setDel({ ...del, typed: e.target.value, error: null })} /></label>
+                <div className="v4-field"><span className="v4-flabel">Your 2FA code</span>
+                  <OtpBoxes value={del.code} onChange={(v) => setDel({ ...del, code: v, error: null })} disabled={busy} align="start" /></div>
+                {del.error ? <Notice tone="red">{del.error}</Notice> : null}
+              </>
+            ) : null}
           </div>
         ) : null}
       </Modal>

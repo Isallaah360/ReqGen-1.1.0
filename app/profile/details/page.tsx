@@ -13,6 +13,7 @@ import { useIdentity } from "@/app/components/v4/useIdentity";
 import Icon from "@/app/components/v4/Icon";
 import { Select } from "@/app/components/v4/Select";
 import { Chip, Notice, PageHead, Skeleton, V4Page } from "@/app/components/v4/ui";
+import { useCelebrate } from "@/app/components/v4/Motion";
 
 const AVATAR_BUCKET = "avatars";
 const AVATAR_MAX_BYTES = 1024 * 1024;
@@ -47,6 +48,7 @@ export default function ProfileDetailsPage() {
   const [me, setMe] = useState<Me | null>(null);
   const [stamp, setStamp] = useState(0);
   const [msg, setMsg] = useState<Msg>(null);
+  useCelebrate(msg);
   const [busy, setBusy] = useState<string | null>(null);
   // profile form
   const [fullName, setFullName] = useState("");

@@ -16,6 +16,8 @@ import { canSeeBudgetBalances } from "@/lib/v4/budgetVisibility";
 import { nairaExact, nairaInWords } from "@/lib/v4/money";
 import { stageTitle, stageWords, statusChip, waitedFor } from "@/lib/v4/requestText";
 import { fingerprintAvailable, fingerprintStepUp } from "@/lib/v4/deviceSignIn";
+import { celebrate, useCelebrate } from "@/app/components/v4/Motion";
+import RequestInsight from "./RequestInsight";
 
 
 type PersonalCategory =
@@ -246,6 +248,7 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
   const [assigningSubhead, setAssigningSubhead] = useState(false);
 
   const [msg, setMsg] = useState<string | null>(null);
+  useCelebrate(msg);
   const [req, setReq] = useState<Req | null>(null);
   const [history, setHistory] = useState<Hist[]>([]);
   const [subhead, setSubhead] = useState<SubheadMini | null>(null);
@@ -844,7 +847,9 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
   }
 
   async function sendRequestApprovalNotification(requestId: string) {
-    if (process.env.NEXT_PUBLIC_REQGEN_NOTIFICATIONS_ENABLED !== "true") return;
+    // v4.6.9: SMS and email are switched on and off on the server (SENDCHAMP_SMS_ENABLED,
+    // SENDCHAMP_EMAIL_ENABLED). The screen only stops when this optional switch is "false".
+    if (process.env.NEXT_PUBLIC_REQGEN_NOTIFICATIONS_ENABLED === "false") return;
 
     try {
       const {
@@ -1183,6 +1188,8 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
         const nextStatus = (result as RequestActionResult | null)?.new_status;
 
         await sendRequestApprovalNotification(req.id);
+        // v4.6.9: the Director General's approval gets the IET stamp and a stroke of ink.
+        if (isDgStage) celebrate({ title: "Approved and stamped", line: `${req.request_no || "The request"} goes to ${nextStage || "the next stage"}.`, stamp: true });
 
         if (nextStage === "Completed") {
           setMsg(
@@ -1219,6 +1226,7 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
           });
         }
         if (back.error) throw new Error(back.error.message);
+        await sendRequestApprovalNotification(req.id);
 
         const result = (Array.isArray(back.data) ? back.data[0] : back.data) as (RequestActionResult & { new_owner?: string | null }) | null;
         const status = String(result?.new_status || "");
@@ -1528,6 +1536,8 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
           </div>
         </section>
       ) : null}
+
+      {canAct && !isMyRequest ? <RequestInsight requestId={req.id} /> : null}
 
       {canAct ? (
         <section className="v4-action-card v4-card-pad">

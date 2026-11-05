@@ -10,6 +10,7 @@ import { passwordStrength } from "@/lib/v4/passwordStrength";
 import Icon from "@/app/components/v4/Icon";
 import OtpBoxes from "@/app/components/v4/OtpBoxes";
 import { Notice, PageHead, Skeleton, V4Page } from "@/app/components/v4/ui";
+import { useCelebrate } from "@/app/components/v4/Motion";
 
 type Factor = { id: string; status: string };
 type Enrolment = { id: string; qr: string; uri: string; secret: string };
@@ -30,6 +31,7 @@ export default function ReplaceAuthenticatorPage() {
   const [pw2, setPw2] = useState("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ tone: "green" | "red" | "blue"; text: string } | null>(null);
+  useCelebrate(msg);
 
   const load = useCallback(async () => {
     const { data } = await supabase.auth.getUser();

@@ -72,7 +72,6 @@ export default async function CheckPage({ params }: { params: Promise<{ kind: st
   const result = await lookup(kind, id);
   return (
     <main className="v4-ui v4-public">
-      <Image className="v4-public-watermark" src="/v4/iet-logo.png" alt="" aria-hidden="true" width={720} height={720} />
       <section className="v4-auth-card">
         <div className="v4-auth-logo v4-small"><Image src="/v4/iet-logo.png" alt="Islamic Education Trust logo" width={92} height={92} /></div>
         <h1 className="v4-auth-title">Document check</h1>

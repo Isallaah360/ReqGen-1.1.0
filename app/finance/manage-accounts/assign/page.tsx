@@ -10,6 +10,7 @@ import { useIdentity } from "@/app/components/v4/useIdentity";
 import Modal from "@/app/components/v4/Modal";
 import { Select } from "@/app/components/v4/Select";
 import { Card, Chip, Notice, PageHead, Skeleton, Stats, V4Page, downloadCsv, type StatItem } from "@/app/components/v4/ui";
+import { useCelebrate } from "@/app/components/v4/Motion";
 
 type Officer = { id: string; full_name: string | null; email: string | null; section: string };
 
@@ -24,6 +25,7 @@ export default function OfficerAssignmentPage() {
   const [assign, setAssign] = useState<Assignment[]>([]);
   const [officers, setOfficers] = useState<Officer[]>([]);
   const [msg, setMsg] = useState<{ tone: "red" | "green"; text: string } | null>(null);
+  useCelebrate(msg);
   const [only, setOnly] = useState<"" | "none">("");
   const [dlg, setDlg] = useState<{ acc: Account; officer: string } | null>(null);
   const [busy, setBusy] = useState(false);

@@ -9,6 +9,7 @@ import Modal from "@/app/components/v4/Modal";
 import PrivacyBar from "@/app/components/v4/PrivacyBar";
 import { Select } from "@/app/components/v4/Select";
 import { Card, Chip, Notice, PageHead, Skeleton, V4Page } from "@/app/components/v4/ui";
+import { useCelebrate } from "@/app/components/v4/Motion";
 
 type Item = { kind: "request" | "voucher"; record_id: string; record_no: string; office: string; paid_at: string | null };
 const addYears = (y: number) => { const d = new Date(); d.setFullYear(d.getFullYear() + y); return d.toISOString().slice(0, 10); };
@@ -22,6 +23,7 @@ export default function FilingPage() {
   const [form, setForm] = useState<{ category: string; keep: string; location: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ tone: "green" | "red" | "amber"; text: string } | null>(null);
+  useCelebrate(msg);
 
   const load = useCallback(async () => {
     const { data, error: e } = await supabase.rpc("reqgen_registry_filing_queue");

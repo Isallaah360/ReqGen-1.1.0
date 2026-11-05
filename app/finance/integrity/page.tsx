@@ -10,6 +10,7 @@ import { useIdentity } from "@/app/components/v4/useIdentity";
 import Icon, { type IconName } from "@/app/components/v4/Icon";
 import Modal from "@/app/components/v4/Modal";
 import { Card, Chip, Notice, PageHead, Skeleton, Stats, V4Page, downloadCsv, type StatItem } from "@/app/components/v4/ui";
+import { useCelebrate } from "@/app/components/v4/Motion";
 
 type Issue = { kind: string; severity: "high" | "medium" | "low"; subject_id: string; subject: string; item: string; stored: number; supported: number; difference: number; note: string };
 type Correction = { id: string; correction_no: string; subject_label: string; item: string; before_value: number; after_value: number; reason: string; corrected_label: string; created_at: string };
@@ -65,6 +66,7 @@ export default function FinanceIntegrityPage() {
   const [history, setHistory] = useState<Correction[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [msg, setMsg] = useState<{ tone: "green" | "red"; text: string } | null>(null);
+  useCelebrate(msg);
   const [pickedSubs, setPickedSubs] = useState<Set<string>>(new Set());
   const [pickedAccs, setPickedAccs] = useState<Set<string>>(new Set());
   const [form, setForm] = useState<{ action: Action; reason: string } | null>(null);

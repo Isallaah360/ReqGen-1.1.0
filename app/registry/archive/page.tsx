@@ -11,6 +11,7 @@ import Modal from "@/app/components/v4/Modal";
 import PrivacyBar from "@/app/components/v4/PrivacyBar";
 import { Select } from "@/app/components/v4/Select";
 import { Card, Chip, Notice, PageHead, Pager, Skeleton, Stats, V4Page, type StatItem } from "@/app/components/v4/ui";
+import { useCelebrate } from "@/app/components/v4/Motion";
 
 type Rec = { id: string; record_kind: string; record_id: string | null; record_no: string; description: string | null; category: string; keep_until: string | null; permanent: boolean; location: string | null; archived_by_label: string | null; archived_at: string; restored_at: string | null; reviewed_at: string | null; review_note: string | null };
 type Form = { kind: string; letter: string; no: string; desc: string; category: string; keep: string; permanent: boolean; location: string };
@@ -33,6 +34,7 @@ export default function ArchivePage() {
   const [form, setForm] = useState<Form | null>(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ tone: "green" | "red"; text: string } | null>(null);
+  useCelebrate(msg);
   const [today] = useState(() => new Date().toISOString().slice(0, 10));
 
   const load = useCallback(async () => {

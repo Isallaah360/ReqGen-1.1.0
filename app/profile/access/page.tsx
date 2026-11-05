@@ -11,6 +11,7 @@ import { positionName } from "@/app/components/v4/RoleSelect";
 import { useIdentity } from "@/app/components/v4/useIdentity";
 import Icon from "@/app/components/v4/Icon";
 import { Card, Chip, Notice, PageHead, Skeleton, V4Page } from "@/app/components/v4/ui";
+import { useCelebrate } from "@/app/components/v4/Motion";
 
 type Held = { key: string; name: string; since: string | null; primary: boolean };
 
@@ -23,6 +24,7 @@ export default function MyAccessPage() {
   const [away, setAway] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ tone: "green" | "red"; text: string } | null>(null);
+  useCelebrate(msg);
 
   useEffect(() => {
     if (!me.ready || !me.userId) return;

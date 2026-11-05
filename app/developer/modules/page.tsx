@@ -7,6 +7,7 @@ import { forgetModuleSwitches, loadModuleSwitches, type ModuleSwitch } from "@/l
 import { NEEDS_STEP, whenText } from "@/lib/v4/developer";
 import { useIdentity } from "@/app/components/v4/useIdentity";
 import { Card, Chip, Notice, PageHead, Skeleton, V4Page } from "@/app/components/v4/ui";
+import { useCelebrate } from "@/app/components/v4/Motion";
 
 const WHAT: Record<string, string> = {
   requests: "New requests, My Requests, editing and printing requests.",
@@ -24,6 +25,7 @@ export default function DeveloperModulesPage() {
   const [rows, setRows] = useState<ModuleSwitch[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [msg, setMsg] = useState<{ tone: "green" | "red"; text: string } | null>(null);
+  useCelebrate(msg);
   const [busy, setBusy] = useState<string | null>(null);
 
   const load = useCallback(async () => {

@@ -9,6 +9,7 @@ import { useIdentity } from "@/app/components/v4/useIdentity";
 import Icon from "@/app/components/v4/Icon";
 import { Select } from "@/app/components/v4/Select";
 import { Card, Chip, Notice, PageHead, Skeleton, V4Page } from "@/app/components/v4/ui";
+import { useCelebrate } from "@/app/components/v4/Motion";
 
 /**
  * ReqGen v4.5 — Audit › Master Backup (mock-up 78).
@@ -60,6 +61,7 @@ export default function MasterBackupPage() {
   const [stored, setStored] = useState<Stored[]>([]);
   const [busy, setBusy] = useState("");
   const [message, setMessage] = useState<{ tone: "green" | "red"; text: string } | null>(null);
+  useCelebrate(message);
   const [result, setResult] = useState<RestoreResult | null>(null);
   const [pick, setPick] = useState("");
   const [file, setFile] = useState<File | null>(null);

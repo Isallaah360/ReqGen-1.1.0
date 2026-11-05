@@ -8,6 +8,7 @@ import { useIdentity } from "@/app/components/v4/useIdentity";
 import Icon from "@/app/components/v4/Icon";
 import { Select } from "@/app/components/v4/Select";
 import { Notice, PageHead, Skeleton, V4Page } from "@/app/components/v4/ui";
+import { useCelebrate } from "@/app/components/v4/Motion";
 
 type Rules = { stay_hours: number; idle_minutes: number; passcode_tries: number; twofa_scope: string; updated_at: string | null; updated_by_label: string | null };
 type Attention = { kind: "no2fa" | "passcode_removed"; person_id: string; person: string; detail: string; at: string | null };
@@ -21,6 +22,7 @@ export default function SecurityCentrePage() {
   const [systemOk, setSystemOk] = useState<boolean | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [msg, setMsg] = useState<{ tone: "green" | "red"; text: string } | null>(null);
+  useCelebrate(msg);
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {

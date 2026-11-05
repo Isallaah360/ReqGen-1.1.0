@@ -3,6 +3,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import Icon from "./Icon";
+import { CountUp } from "./Motion";
 import type { Tone } from "@/lib/v4/modules";
 
 /* ReqGen v4 UI kit — the approved mock-up components as React. */
@@ -50,7 +51,7 @@ export function Stat({ s }: { s: StatItem }) {
       <span className={`v4-ico v4-t-${s.tone}`}><Icon name={s.icon} /></span>
       <span>
         <span className="v4-l">{s.label}</span>
-        <span className="v4-v">{s.value}</span>
+        <span className="v4-v">{typeof s.value === "number" ? <CountUp value={s.value} /> : s.value}</span>
         {s.note ? <span className="v4-n">{s.note}</span> : null}
       </span>
     </>

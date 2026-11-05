@@ -17,7 +17,8 @@ export const runtime = "nodejs";
 function fail(message: string, status = 400) {
   return NextResponse.json({ ok: false, error: message }, { status });
 }
-const flag = (name: string) => String(process.env[name] || "false").toLowerCase() === "true";
+// v4.6.9: on unless set to "false", and only when the Sendchamp key is present.
+const flag = (name: string) => String(process.env[name] || "").toLowerCase() !== "false" && !!process.env.SENDCHAMP_API_KEY;
 
 export async function POST(req: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;

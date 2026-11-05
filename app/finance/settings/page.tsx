@@ -10,6 +10,7 @@ import { useIdentity } from "@/app/components/v4/useIdentity";
 import Icon from "@/app/components/v4/Icon";
 import { Select } from "@/app/components/v4/Select";
 import { Notice, PageHead, Skeleton, V4Page } from "@/app/components/v4/ui";
+import { useCelebrate } from "@/app/components/v4/Motion";
 
 type Year = { fy_start: number; status: string; locked_by_label: string | null; locked_at: string | null; lock_note: string | null; unlocked_by_label: string | null; unlocked_at: string | null; unlock_reason: string | null; closed_by_label: string | null; closed_at: string | null };
 type Log = { key: string; new_value: string | null; changed_by_label: string | null; changed_at: string };
@@ -32,6 +33,7 @@ export default function FinanceSettingsPage() {
   const [saved, setSaved] = useState<{ method: string; cash: string }>({ method: "Transfer", cash: "200000" });
   const [log, setLog] = useState<Log[]>([]);
   const [msg, setMsg] = useState<{ tone: "red" | "green" | "amber"; text: string } | null>(null);
+  useCelebrate(msg);
   const [busy, setBusy] = useState(false);
   const [notReady, setNotReady] = useState(false);
 

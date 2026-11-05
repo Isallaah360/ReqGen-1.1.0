@@ -14,6 +14,7 @@ import { useIdentity } from "@/app/components/v4/useIdentity";
 import Icon from "@/app/components/v4/Icon";
 import { Select } from "@/app/components/v4/Select";
 import { Notice, PageHead, Skeleton, V4Page } from "@/app/components/v4/ui";
+import { useCelebrate } from "@/app/components/v4/Motion";
 
 /**
  * ReqGen v4.1.2 — Correct Request (mock-up 27).
@@ -78,6 +79,7 @@ function CorrectRequest({ id }: { id: string }) {
   const [subheadId, setSubheadId] = useState("");
   const [note, setNote] = useState("");
   const [msg, setMsg] = useState<{ tone: "red" | "green" | "amber" | "blue"; text: string } | null>(null);
+  useCelebrate(msg);
   const [busy, setBusy] = useState("");
   const [live, setLive] = useState<"idle" | "checking" | "available" | "not_enough" | "unknown">("idle");
   const [codeOpen, setCodeOpen] = useState(false);
@@ -267,6 +269,11 @@ function CorrectRequest({ id }: { id: string }) {
         setBusy("Sending it back…");
         const back = await supabase.rpc("reqgen_resubmit_request", { p_request_id: req.id, p_comment: note.trim() });
         if (back.error) throw new Error("Saved, but it could not be sent back: " + back.error.message);
+        // v4.6.9: tell the officer it went back to (SMS and email; switched on and off on the server)
+        if (process.env.NEXT_PUBLIC_REQGEN_NOTIFICATIONS_ENABLED !== "false") {
+          const token = (await supabase.auth.getSession()).data.session?.access_token;
+          if (token) await fetch("/api/notifications/sms/request-approval", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ requestId: req.id }) }).catch(() => null);
+        }
       }
 
       setMsg({ tone: "green", text: sentBack ? "Corrected and sent back." : "Changes saved." });

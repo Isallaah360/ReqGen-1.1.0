@@ -104,7 +104,7 @@ export const MATRIX: Array<{ group: string; rows: Array<{ action: string; cells:
 export const CELL_TEXT: Record<Cell, string> = { y: "✓", route: "route", own: "own", n: "—", view: "view" };
 
 /** Call an Administration server route as the signed-in person. */
-export async function adminApi<T = { ok: boolean; error?: string }>(path: string, method: "POST" | "PATCH" | "DELETE", body?: unknown): Promise<T & { ok: boolean; error?: string }> {
+export async function adminApi<T = { ok: boolean; error?: string }>(path: string, method: "GET" | "POST" | "PATCH" | "DELETE", body?: unknown): Promise<T & { ok: boolean; error?: string }> {
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;
   if (!token) return { ok: false, error: "Your session has ended. Please sign in again." } as T & { ok: boolean; error?: string };

@@ -18,6 +18,7 @@ import { confirmDialog } from "@/lib/dialog";
 import Icon from "./Icon";
 import { DayIcon, dayPart } from "./Greeting";
 import Bell from "./Bell";
+import { PointerGlow, SavedHost } from "./Motion";
 import RoleSelect, { positionName } from "./RoleSelect";
 import SetupCoach from "@/app/components/SetupCoach";
 
@@ -417,7 +418,7 @@ export default function AppFrame({ children }: { children: ReactNode }) {
           </header>
           <LoadBar />
           <SetupCoach />
-          <main className="v4-main" id="reqgen-main-content">
+          <main className="v4-main" id="reqgen-main-content" data-still={pathname.startsWith("/audit-centre/logs") || pathname.startsWith("/mfa") ? "" : undefined}>
             <div className="v4-content">
               <nav className="v4-ui v4-crumbs" aria-label="You are here">
                 {crumbs.map((c, i) => {
@@ -434,6 +435,8 @@ export default function AppFrame({ children }: { children: ReactNode }) {
             </div>
           </main>
           <V4Footer />
+          <SavedHost />
+          <PointerGlow />
         </div>
       </div>
     </>

@@ -11,6 +11,7 @@ import Icon from "@/app/components/v4/Icon";
 import PrivacyBar from "@/app/components/v4/PrivacyBar";
 import { Select } from "@/app/components/v4/Select";
 import { Chip, Notice, PageHead, Pager, Skeleton, Stats, V4Page, type StatItem } from "@/app/components/v4/ui";
+import { useCelebrate } from "@/app/components/v4/Motion";
 
 type Move = { step_order: number; stage: string; person: string | null; state: "done" | "now" | "next" | "skipped"; at: string | null };
 type Summary = { generated: number; signed: number; paid: number; returned: number };
@@ -31,6 +32,7 @@ export default function RequestTrackingPage() {
   const [pick, setPick] = useState<Track | null>(null);
   const [moves, setMoves] = useState<Move[] | null>(null);
   const [msg, setMsg] = useState<{ tone: "green" | "red" | "amber"; text: string } | null>(null);
+  useCelebrate(msg);
   const [busy, setBusy] = useState(false);
   const sheet = useRef<HTMLElement>(null);
 

@@ -13,6 +13,7 @@ import { useSecurityRules } from "@/lib/v4/useSecurityRules";
 import Icon from "@/app/components/v4/Icon";
 import PasscodePad from "@/app/components/v4/PasscodePad";
 import { Btn, Card, Chip, Notice, PageHead, V4Page } from "@/app/components/v4/ui";
+import { useCelebrate } from "@/app/components/v4/Motion";
 
 /** My Account › Security & Devices › Passcode (v4.0.0). */
 export default function PasscodeSetupPage() {
@@ -24,6 +25,7 @@ export default function PasscodeSetupPage() {
   const [pin, setPin] = useState("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ tone: "red" | "green" | "amber"; text: string } | null>(null);
+  useCelebrate(msg);
   const [label, setLabel] = useState("This device");
   const [hasOne, setHasOne] = useState(false);
 

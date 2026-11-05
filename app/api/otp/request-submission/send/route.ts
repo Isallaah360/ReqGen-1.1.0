@@ -42,9 +42,10 @@ function makeOtp() {
 
 function boolEnv(name: string) {
   return (
-    String(process.env[name] || "false")
+    // v4.6.9: on unless set to "false", and only when the Sendchamp key is present.
+    String(process.env[name] || "")
       .trim()
-      .toLowerCase() === "true"
+      .toLowerCase() !== "false" && !!process.env.SENDCHAMP_API_KEY
   );
 }
 
@@ -392,7 +393,7 @@ export async function POST(req: NextRequest) {
     if (!canSendSms || !phone) {
       smsError =
         !smsIsEnabled
-          ? "SENDCHAMP_SMS_ENABLED is not true."
+          ? "SMS is switched off on the server (SENDCHAMP_API_KEY missing or SENDCHAMP_SMS_ENABLED=false)."
           : "No valid recipient phone number.";
 
       await insertLog(
@@ -520,7 +521,7 @@ export async function POST(req: NextRequest) {
     ) {
       emailError =
         !emailIsEnabled
-          ? "SENDCHAMP_EMAIL_ENABLED is not true."
+          ? "Email is switched off on the server (SENDCHAMP_API_KEY missing or SENDCHAMP_EMAIL_ENABLED=false)."
           : "No valid recipient email address.";
 
       await insertLog(

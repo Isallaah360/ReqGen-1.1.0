@@ -7,6 +7,7 @@ import { pvAmount, pvInSigning, pvNowWith, pvStage, type Voucher } from "@/lib/v
 import { remindVoucher, useVouchers } from "@/app/components/v4/useVouchers";
 import Icon from "@/app/components/v4/Icon";
 import { Btn, Chip, Empty, Notice, PageHead, Skeleton, V4Page, naira } from "@/app/components/v4/ui";
+import { useCelebrate } from "@/app/components/v4/Motion";
 
 type Lane = "all" | "check" | "counter" | "dg" | "late";
 const DAY = 86400000;
@@ -18,6 +19,7 @@ export default function SigningTrackerPage() {
   const canRemind = ["account", "accounts", "accountofficer", "auditor", "admin"].includes(role);
   const [lane, setLane] = useState<Lane>("all");
   const [msg, setMsg] = useState<{ tone: "green" | "red"; text: string } | null>(null);
+  useCelebrate(msg);
   const [now] = useState(() => Date.now());
 
   const since = (v: Voucher) => new Date(v.updated_at || v.created_at || now).getTime();

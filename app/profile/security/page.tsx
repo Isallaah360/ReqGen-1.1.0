@@ -11,6 +11,7 @@ import { shortDate } from "@/lib/v4/requestText";
 import Icon from "@/app/components/v4/Icon";
 import { useSecurityRules } from "@/lib/v4/useSecurityRules";
 import { Btn, Card, Chip, Notice, PageHead, Stats, V4Page, type StatItem } from "@/app/components/v4/ui";
+import { useCelebrate } from "@/app/components/v4/Motion";
 
 type Cred = { id: string; device_name: string | null; created_at: string; last_used_at: string | null };
 type Dev = { id: string; device_name: string | null; created_at: string; last_used_at: string | null };
@@ -40,6 +41,7 @@ export default function SecurityDevicesPage() {
   const [canFp, setCanFp] = useState(false);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<{ tone: "green" | "red" | "amber" | "blue"; text: string } | null>(null);
+  useCelebrate(note);
   const [now, setNow] = useState(0);
   const [windowEnd, setWindowEnd] = useState<number | null>(null);
   const [lastSignIn, setLastSignIn] = useState<string | null>(null);

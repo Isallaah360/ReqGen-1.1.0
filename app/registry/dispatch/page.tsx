@@ -11,6 +11,7 @@ import Modal from "@/app/components/v4/Modal";
 import PrivacyBar from "@/app/components/v4/PrivacyBar";
 import { Select } from "@/app/components/v4/Select";
 import { Card, Notice, PageHead, Skeleton, Tabs, V4Page } from "@/app/components/v4/ui";
+import { useCelebrate } from "@/app/components/v4/Motion";
 
 type Tab = "ready" | "transit" | "delivered";
 type Dept = { id: string; name: string };
@@ -33,6 +34,7 @@ function Dispatch() {
   const [form, setForm] = useState<{ method: string; receiver: string; note: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ tone: "green" | "red"; text: string } | null>(null);
+  useCelebrate(msg);
 
   const load = useCallback(async () => {
     const [c, d] = await Promise.all([loadCorrespondence("outgoing"), supabase.from("departments").select("id,name")]);

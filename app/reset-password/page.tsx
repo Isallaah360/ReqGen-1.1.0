@@ -8,6 +8,7 @@ import { passwordStrength } from "@/lib/v4/passwordStrength";
 import PublicAuthShell from "../components/PublicAuthShell";
 import Icon from "../components/v4/Icon";
 import { Notice } from "../components/v4/ui";
+import { useCelebrate } from "@/app/components/v4/Motion";
 
 /**
  * Reset password, step 2 (mock-up 06): the link from the email opens this page. If the account
@@ -25,6 +26,7 @@ function Content() {
   const [show, setShow] = useState(false);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ tone: "green" | "red"; text: string } | null>(null);
+  useCelebrate(msg);
 
   useEffect(() => {
     const linkCode = params.get("code");

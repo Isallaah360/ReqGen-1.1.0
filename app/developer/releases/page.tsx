@@ -7,6 +7,7 @@ import { loadReleases, whenText, type Release } from "@/lib/v4/developer";
 import { useIdentity } from "@/app/components/v4/useIdentity";
 import Icon from "@/app/components/v4/Icon";
 import { Card, Chip, Notice, PageHead, Skeleton, V4Page } from "@/app/components/v4/ui";
+import { useCelebrate } from "@/app/components/v4/Motion";
 
 /** Developer Console › Releases (v4.6.6): publish what changed; everyone reads it in "What's new". */
 export default function DeveloperReleasesPage() {
@@ -14,6 +15,7 @@ export default function DeveloperReleasesPage() {
   const [rows, setRows] = useState<Release[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [msg, setMsg] = useState<{ tone: "green" | "red"; text: string } | null>(null);
+  useCelebrate(msg);
   const [form, setForm] = useState<{ version: string; title: string; notes: string }>({ version: REQGEN_VERSION, title: "", notes: "" });
   const [busy, setBusy] = useState(false);
 

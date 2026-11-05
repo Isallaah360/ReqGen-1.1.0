@@ -14,6 +14,7 @@ import Icon from "@/app/components/v4/Icon";
 import Modal from "@/app/components/v4/Modal";
 import { Select } from "@/app/components/v4/Select";
 import { Chip, Notice, PageHead, Skeleton, V4Page } from "@/app/components/v4/ui";
+import { useCelebrate } from "@/app/components/v4/Motion";
 
 type Recon = { id: string; account_id: string; month: string; statement_opening: number; statement_closing: number; ledger_closing: number | null; difference: number | null; lines: StatementLine[]; status: "Open" | "Explained" | "Reconciled"; explanation: string | null; uploaded_by_label: string | null; reconciled_by_label: string | null };
 
@@ -31,6 +32,7 @@ export default function ReconciliationPage() {
   const [upload, setUpload] = useState<{ account: string; lines: StatementLine[]; opening: number; closing: number; file: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ tone: "green" | "red" | "amber"; text: string } | null>(null);
+  useCelebrate(msg);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const load = useCallback(async () => {

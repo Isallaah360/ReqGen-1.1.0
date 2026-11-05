@@ -13,6 +13,7 @@ import Icon from "@/app/components/v4/Icon";
 import Modal from "@/app/components/v4/Modal";
 import { Select, type SelectOption } from "@/app/components/v4/Select";
 import { Notice, PageHead, Skeleton, Tabs, V4Page } from "@/app/components/v4/ui";
+import { useCelebrate } from "@/app/components/v4/Motion";
 
 type Tab = "routes" | "officers" | "accounts" | "backups";
 /**
@@ -59,6 +60,7 @@ function RoutingEngine() {
   const [cfg, setCfg] = useState<EngineConfig | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [msg, setMsg] = useState<{ tone: "green" | "red"; text: string } | null>(null);
+  useCelebrate(msg);
   const [busy, setBusy] = useState(false);
   const [editor, setEditor] = useState<Editor | null>(null);
   const [accForm, setAccForm] = useState<{ deptId: string; account: string; officer: string } | null>(null);

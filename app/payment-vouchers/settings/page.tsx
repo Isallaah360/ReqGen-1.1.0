@@ -9,6 +9,7 @@ import Modal from "@/app/components/v4/Modal";
 import SignatureInk from "@/app/components/ui/SignatureInk";
 import { Select } from "@/app/components/v4/Select";
 import { Card, Chip, Notice, PageHead, Skeleton, Stats, V4Page, type StatItem } from "@/app/components/v4/ui";
+import { useCelebrate } from "@/app/components/v4/Motion";
 
 type Signatory = { id: string; full_name: string; signatory_type: string | null; is_active: boolean | null };
 type Person = { id: string; full_name: string | null; email: string | null; role: string | null; signature_url: string | null; is_active: boolean | null };
@@ -26,6 +27,7 @@ export default function SignatoriesPage() {
   const [signed, setSigned] = useState<Map<string, number>>(new Map());
   const [error, setError] = useState<string | null>(null);
   const [msg, setMsg] = useState<{ tone: "green" | "red"; text: string } | null>(null);
+  useCelebrate(msg);
   const [adding, setAdding] = useState(false);
   const [pick, setPick] = useState("");
   const [busy, setBusy] = useState(false);

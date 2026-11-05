@@ -34,7 +34,9 @@ check("SQL: routing engine untouched", !/create or replace function public\.(app
 check("Institution officers saved by their key (one row each)", read("app/admin/routing/page.tsx").includes('{ onConflict: "key" }'));
 
 const usersApi = read("app/api/admin/users/[id]/route.ts");
-check("Staff are deactivated, never deleted; sign-in blocked and reason kept", usersApi.includes('action === "deactivate"') && usersApi.includes("ban_duration") && usersApi.includes("deactivated_reason") && !/auth\.admin\.deleteUser\(id/.test(usersApi));
+// v4.6.9 (owner's instruction): a DEACTIVATED account with no history may be deleted by the Super Admin;
+// anyone with history stays deactivated.
+check("Staff are deactivated, not deleted while they have history; sign-in blocked and reason kept", usersApi.includes('action === "deactivate"') && usersApi.includes("ban_duration") && usersApi.includes("deactivated_reason") && (!/auth\.admin\.deleteUser\(id/.test(usersApi) || (usersApi.includes("target.is_active !== false") && usersApi.includes("const HISTORY"))));
 check("Reset 2FA and remove passcodes are Administration actions", usersApi.includes('action === "reset2fa"') && usersApi.includes('action === "removePasscodes"'));
 check("Only the Developer can change a system account", usersApi.includes("Only the Developer can change a system account"));
 check("Every Administration action is written to the Audit Log", ["Staff record changed", "Staff deactivated", "2FA reset", "Passcodes removed"].every((a) => usersApi.includes(a)) && read("app/api/admin/users/route.ts").includes("Staff added") && read("app/api/admin/handover/route.ts").includes("Super Admin account handed over"));

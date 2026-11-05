@@ -10,6 +10,7 @@ import Modal from "@/app/components/v4/Modal";
 import { Select } from "@/app/components/v4/Select";
 import { nairaExact } from "@/lib/v4/money";
 import { Card, Notice, PageHead, Skeleton, V4Page, naira } from "@/app/components/v4/ui";
+import { useCelebrate } from "@/app/components/v4/Motion";
 
 type Dept = { id: string; name: string; is_active: boolean | null; hod_user_id: string | null; director_user_id: string | null; pd_id: string | null };
 type Person = { id: string; full_name: string | null; email: string | null; dept_id: string | null; officer: boolean };
@@ -33,6 +34,7 @@ export default function DepartmentsPage() {
   const [officers, setOfficers] = useState<StageOfficer[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [msg, setMsg] = useState<{ tone: "green" | "red"; text: string } | null>(null);
+  useCelebrate(msg);
   const [form, setForm] = useState<Form | null>(null);
   const [busy, setBusy] = useState(false);
   const [showOff, setShowOff] = useState(false);

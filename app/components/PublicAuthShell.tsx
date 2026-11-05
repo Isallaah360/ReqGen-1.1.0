@@ -25,7 +25,6 @@ export default function PublicAuthShell({
 }) {
   return (
     <main className="v4-ui v4-public">
-      <Image className="v4-public-watermark" src="/v4/iet-logo.png" alt="" aria-hidden="true" width={720} height={720} priority />
       <section className={`v4-auth-card ${wide ? "v4-wide" : ""}`}>
         <div className="v4-auth-logo v4-small"><Image src="/v4/iet-logo.png" alt="Islamic Education Trust logo" width={92} height={92} priority /></div>
         <h1 className="v4-auth-title">{title}</h1>
