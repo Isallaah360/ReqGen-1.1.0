@@ -1,0 +1,18 @@
+{
+    "version":  "1.0.0",
+    "build":  1,
+    "apk":  "/downloads/ReqGen.apk",
+    "size":  "6.0 MB",
+    "date":  "20 Nov 2026",
+    "sha256":  "5A1D 3191 739B B457 2B1E 99AA 17DA 61E2 B434 ABC9 605B 787B DE8A 7526 8B5C BE2D",
+    "new":  [
+                "The ReqGen app for Android: fingerprint sign-in, app PIN lock, and updates inside the app.",
+                "Share or save requests, vouchers and exports as PDF from the phone."
+            ],
+    "fixed":  [
+
+              ],
+    "better":  [
+                   "Cream, navy and orange look with a glass bottom bar on phones."
+               ]
+}

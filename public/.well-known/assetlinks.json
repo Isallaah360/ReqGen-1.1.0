@@ -1,0 +1,14 @@
+[
+    {
+        "target":  {
+                       "sha256_cert_fingerprints":  [
+                                                        "DB:1B:FE:6A:6A:E3:78:BA:4E:00:52:E8:29:61:9F:0C:81:90:E7:6A:4A:88:6F:07:CA:B1:26:2B:8D:9C:FB:12"
+                                                    ],
+                       "namespace":  "android_app",
+                       "package_name":  "ng.com.barderians.reqgen"
+                   },
+        "relation":  [
+                         "delegate_permission/common.handle_all_urls"
+                     ]
+    }
+]
