@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import Icon from "./components/v4/Icon";
 import { PublicFoot } from "./components/PublicAuthShell";
+import GetAppBanner from "./components/GetAppBanner";
 
 /** ReqGen v4 home page — IET brand; the developer appears only in the footer. */
 export default function HomePage() {
@@ -21,6 +22,7 @@ export default function HomePage() {
           <Link className="v4-btn v4-btn-primary v4-btn-lg v4-btn-block" href="/login"><Icon name="lock" />Login to Your Account</Link>
           <Link className="v4-btn v4-btn-secondary v4-btn-lg v4-btn-block" href="/signup" style={{ color: "var(--v4-brand)" }}><Icon name="user" />Create New Account</Link>
         </div>
+        <GetAppBanner />
         <PublicFoot />
       </section>
     </main>

@@ -9,6 +9,7 @@ import { getCurrentAuthContext } from "@/lib/auth";
 import { fingerprintAvailable, fingerprintSignIn, forgetTrustedDevice, passcodeSignIn, readTrustedDevice, type TrustedDevice } from "@/lib/v4/deviceSignIn";
 import PublicAuthShell from "../components/PublicAuthShell";
 import Icon from "../components/v4/Icon";
+import GetAppBanner from "../components/GetAppBanner";
 import PasscodePad from "../components/v4/PasscodePad";
 import { Notice } from "../components/v4/ui";
 import { useSecurityRules } from "@/lib/v4/useSecurityRules";
@@ -197,6 +198,7 @@ function LoginContent({ isConsole }: { isConsole: boolean }) {
         ) : null}
         {device ? <button type="button" className="v4-link-btn" style={{ textAlign: "center" }} onClick={() => { setMode("passcode"); setMsg(null); }}>Use my passcode on this device</button> : null}
       </form>
+      <GetAppBanner />
     </PublicAuthShell>
   );
 }
