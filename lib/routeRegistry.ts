@@ -16,6 +16,26 @@ export const ROOT_NAVIGATION: RootNavigationItem[] = [
 
 export const ROUTE_REGISTRY: RouteRegistryItem[] = [
   {
+    "pattern": "/app",
+    "title": "Get the Android App",
+    "rootHref": null,
+    "category": "Application Route",
+    "public": true,
+    "nav": false,
+    "searchable": false,
+    "description": "ReqGen route /app (v4.6.11: download the ReqGen Android app)"
+  },
+  {
+    "pattern": "/console",
+    "title": "Administration Sign-in",
+    "rootHref": null,
+    "category": "Application Route",
+    "public": true,
+    "nav": false,
+    "searchable": false,
+    "description": "ReqGen route /console (v4.6.11: hidden developer sign-in, not linked from public pages)"
+  },
+  {
     "pattern": "/developer",
     "title": "Developer Console",
     "rootHref": "/developer",
@@ -1264,6 +1284,16 @@ export const ROUTE_REGISTRY: RouteRegistryItem[] = [
     "nav": false,
     "searchable": true,
     "description": "ReqGen route /requests/printable"
+  },
+  {
+    "pattern": "/requests/direct",
+    "title": "Requests - Direct",
+    "rootHref": "/requests",
+    "category": "Application Route",
+    "public": false,
+    "nav": false,
+    "searchable": true,
+    "description": "ReqGen route /requests/direct"
   },
   {
     "pattern": "/requests/new",

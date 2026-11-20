@@ -34,10 +34,11 @@ check("Element styles are low-specificity (buttons keep their own colours)", v4c
 
 // 2. IET brand
 check("IET tab icon, app icon and phone icon", exists("app/favicon.ico") && exists("app/icon.png") && exists("app/apple-icon.png") && exists("public/v4/icon-512.png"));
-check("Installable app details use IET name and colour", read("app/manifest.ts").includes("#B83E00") && read("app/manifest.ts").includes("Islamic Education Trust"));
-check("Browser colour is IET orange", layout.includes('color: "#B83E00"') && !layout.includes("#0b2d57"));
+// v4.6.11 brief: IET navy (#1C2B5A) is the bar colour; orange stays for buttons.
+check("Installable app details use IET name and colour", read("app/manifest.ts").includes("#1C2B5A") && read("app/manifest.ts").includes("Islamic Education Trust"));
+check("Browser colour is IET navy (v4.6.11 brief)", layout.includes('color: "#1C2B5A"') && !layout.includes("#0b2d57"));
 // The Developer system account belongs to Barderian Enterprises, so My Account may name it.
-const barderianAllowed = new Set(["app/components/PublicAuthShell.tsx", "app/components/v4/AppFrame.tsx", "app/about/page.tsx", "app/docs/page.tsx", "app/profile/page.tsx",
+const barderianAllowed = new Set(["app/components/PublicAuthShell.tsx", "app/components/v4/PhoneNav.tsx", "app/components/v4/AppFrame.tsx", "app/about/page.tsx", "app/docs/page.tsx", "app/profile/page.tsx",
   // v4.6: the approved mock-ups name the Developer account (80) and the release (88)
   "app/admin/system-accounts/page.tsx", "app/admin/system-health/page.tsx",
   // v4.6.6: the Developer Console is the Developer's own workspace; What's new names who released it; the
@@ -85,7 +86,7 @@ check("Passcode: five wrong tries remove it from the device", pc.includes("secur
 check("Passcode: easy codes refused", rules.includes('"123456"') && rules.includes("Numbers in a row"));
 check("Passcode: setting it signs out every other device", pc.includes('signOut(who.token, "others")'));
 check("Passcode never kept in the browser", !/setItem\([^)]*passcode/i.test(dev));
-check("Sign-in page offers passcode on a trusted device and fingerprint", read("app/login/page.tsx").includes("passcodeSignIn") && read("app/login/page.tsx").includes("fingerprintSignIn"));
+check("Sign-in page offers passcode on a trusted device and fingerprint", read("app/login/LoginView.tsx").includes("passcodeSignIn") && read("app/login/LoginView.tsx").includes("fingerprintSignIn") /* v4.6.11: the screen moved to LoginView */);
 check("2FA page offers fingerprint or the 6-digit code", read("app/mfa/page.tsx").includes("fingerprintStepUp") && read("app/mfa/page.tsx").includes("OtpBoxes"));
 check("Security & Devices lists fingerprints and trusted devices", read("app/profile/security/page.tsx").includes("reqgen_webauthn_credentials") && read("app/profile/security/page.tsx").includes("reqgen_trusted_devices"));
 check("Browser never reads passcode hashes", !/reqgen_trusted_devices"\)\.select\("[^"]*hash/.test(read("app/profile/security/page.tsx")));
@@ -106,8 +107,8 @@ check("POS is not a standard IET account", !read("app/finance/manage-accounts/pa
 
 // 6. Privacy, dialogs, release hygiene
 const perms = read("lib/permissions.ts");
-check("Registry still cannot open request contents (own list allowed)", perms.includes("(?!(?:new|mine)(?:\\/|$))") && perms.includes('roles: ["registry"]'));
-const v4Files = walk("app/components/v4").concat(["app/dashboard/page.tsx", "app/notifications/page.tsx", "app/profile/page.tsx", "app/profile/security/page.tsx", "app/profile/passcode/page.tsx", "app/login/page.tsx", "app/mfa/page.tsx", "app/mfa/setup/page.tsx"]);
+check("Registry still cannot open request contents (own list allowed)", /\(\?!\(\?:new\|mine(\|direct)?\)\(\?:\\\/\|\$\)\)/.test(perms) /* v4.6.10: writing a Direct request is not opening contents */ && perms.includes('roles: ["registry"]'));
+const v4Files = walk("app/components/v4").concat(["app/dashboard/page.tsx", "app/notifications/page.tsx", "app/profile/page.tsx", "app/profile/security/page.tsx", "app/profile/passcode/page.tsx", "app/login/LoginView.tsx", "app/mfa/page.tsx", "app/mfa/setup/page.tsx"]);
 const nativeDialogs = v4Files.filter((f) => /\bwindow\.(alert|confirm|prompt)\(|(^|[^.\w])(alert|confirm)\(/m.test(read(f)));
 check(`In-app dialogs only (${nativeDialogs.join(", ") || "ok"})`, nativeDialogs.length === 0);
 const emoji = v4Files.filter((f) => /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u.test(read(f)));

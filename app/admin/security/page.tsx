@@ -79,12 +79,12 @@ export default function SecurityCentrePage() {
                 <div className="v4-field"><span className="v4-flabel">Stay signed in for</span><Select ariaLabel="Stay signed in for" value={String(draft.stay_hours)} onChange={(v) => setDraft({ ...draft, stay_hours: Number(v) })} options={[{ value: "12", label: "12 hours, then sign in again" }, { value: "8", label: "8 hours, then sign in again" }]} /></div>
                 <div className="v4-field"><span className="v4-flabel">Sign out after no activity</span><Select ariaLabel="Sign out after no activity" value={String(draft.idle_minutes)} onChange={(v) => setDraft({ ...draft, idle_minutes: Number(v) })} options={[10, 15, 20, 30].map((m) => ({ value: String(m), label: `${m} minutes` }))} /></div>
                 <div className="v4-field"><span className="v4-flabel">Passcode length</span><span className="v4-locked"><Icon name="lock" size="sm" />6 digits</span><span className="v4-help">Easy ones (123456, 000000, birthdays) are refused.</span></div>
-                <div className="v4-field"><span className="v4-flabel">Wrong passcode tries</span><Select ariaLabel="Wrong passcode tries" value={String(draft.passcode_tries)} onChange={(v) => setDraft({ ...draft, passcode_tries: Number(v) })} options={[{ value: "5", label: "5 — then the passcode is removed from that device" }, { value: "3", label: "3 — then the passcode is removed from that device" }]} /></div>
+                <div className="v4-field"><span className="v4-flabel">Wrong passcode tries</span><Select ariaLabel="Wrong passcode tries" value={String(draft.passcode_tries)} onChange={(v) => setDraft({ ...draft, passcode_tries: Number(v) })} options={[{ value: "5", label: "5: then the passcode is removed from that device" }, { value: "3", label: "3: then the passcode is removed from that device" }]} /></div>
                 <div className="v4-field v4-span-2"><span className="v4-flabel">Who must use 2FA</span><span className="v4-locked"><Icon name="lock" size="sm" />Everyone (Build Reference §10)</span></div>
               </div>
               <label className="v4-check" style={{ marginTop: 14 }}><input type="checkbox" checked disabled /> Signing and stamping still need fingerprint or 2FA code (not the passcode)</label>
               <label className="v4-check" style={{ marginTop: 8 }}><input type="checkbox" checked disabled /> Changing 2FA or passcode signs out every other device</label>
-              {rules?.updated_by_label ? <p className="v4-help" style={{ marginTop: 12 }}>Last changed by {rules.updated_by_label} · {whenText(rules.updated_at)}</p> : null}
+              {rules?.updated_by_label ? <p className="v4-help" style={{ marginTop: 12 }}>Last changed by {rules.updated_by_label}, {whenText(rules.updated_at)}</p> : null}
             </>
           ) : <Skeleton lines={5} />}
         </section>
@@ -96,7 +96,7 @@ export default function SecurityCentrePage() {
                 <li><span className="v4-ri v4-t-red"><Icon name="alert" /></span><span className="v4-rt"><strong>{no2fa.length} officer{no2fa.length === 1 ? "" : "s"} without 2FA</strong><span>{no2fa.slice(0, 4).map((i) => i.person).join(", ")}{no2fa.length > 4 ? ` and ${no2fa.length - 4} more` : ""}</span></span><span className="v4-rr"><button className="v4-btn v4-btn-secondary" type="button" style={{ minHeight: 38 }} disabled={busy} onClick={() => void remind()}>Remind</button></span></li>
               ) : <li><span className="v4-ri v4-t-green"><Icon name="check" /></span><span className="v4-rt"><strong>Every officer uses 2FA</strong><span>Nobody to remind</span></span></li>}
               {removed.map((i) => (
-                <li key={`${i.person_id}-${i.at}`}><span className="v4-ri v4-t-amber"><Icon name="key" /></span><span className="v4-rt"><strong>Passcode removed after wrong tries</strong><span>{i.person} · {i.detail} · {whenText(i.at)}</span></span><span className="v4-rr"><Link className="v4-btn v4-btn-secondary" href={`/admin/users/${i.person_id}`} style={{ minHeight: 38 }}>View</Link></span></li>
+                <li key={`${i.person_id}-${i.at}`}><span className="v4-ri v4-t-amber"><Icon name="key" /></span><span className="v4-rt"><strong>Passcode removed after wrong tries</strong><span>{i.person}, {i.detail}, {whenText(i.at)}</span></span><span className="v4-rr"><Link className="v4-btn v4-btn-secondary" href={`/admin/users/${i.person_id}`} style={{ minHeight: 38 }}>View</Link></span></li>
               ))}
               {systemOk === null ? null : systemOk
                 ? <li><span className="v4-ri v4-t-green"><Icon name="shield" /></span><span className="v4-rt"><strong>Super Admin and Developer use 2FA</strong><span>Both accounts protected</span></span></li>

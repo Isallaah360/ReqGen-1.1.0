@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">ReqGen</string>
+    <string name="title_activity_main">ReqGen</string>
+    <string name="package_name">ng.com.barderians.reqgen</string>
+    <string name="custom_url_scheme">ng.com.barderians.reqgen</string>
+</resources>

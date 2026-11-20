@@ -11,6 +11,8 @@ import {
 } from "@/lib/notifications";
 import type { Tone } from "@/lib/v4/modules";
 import Icon from "./Icon";
+import { Skeleton } from "./ui";
+import { alertDialog } from "@/lib/dialog";
 
 export const KIND_LOOK: Record<NotificationKind, { icon: string; tone: Tone }> = {
   approved: { icon: "check", tone: "green" },
@@ -156,9 +158,14 @@ export default function Bell({ userId, pendingApprovalCount, onUnread }: { userI
   };
 
   const markAll = () => {
+    const before = { items, unread };
     setItems((list) => list.map((x) => ({ ...x, isRead: true })));
     setUnread(0);
-    void markNotificationsRead();
+    void markNotificationsRead().then((ok) => {
+      if (ok) return;
+      setItems(before.items); setUnread(before.unread);
+      void alertDialog({ title: "Not marked as read", message: "The network or server did not save it. Try again in a moment." });
+    });
   };
 
   return (
@@ -193,7 +200,7 @@ export default function Bell({ userId, pendingApprovalCount, onUnread }: { userI
             </ul>
           ) : null}
           <ul className="v4-rows">
-            {loading ? <li><span className="v4-muted">Loading…</span></li> : null}
+            {loading ? <li><Skeleton kind="rows" lines={3} /></li> : null}
             {!loading && items.length === 0 ? <li><span className="v4-muted">No notifications yet. Updates on your requests and vouchers will appear here.</span></li> : null}
             {items.map((n) => <NoticeLine key={n.id} n={n} onOpen={openItem} />)}
           </ul>

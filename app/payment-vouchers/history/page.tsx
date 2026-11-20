@@ -60,15 +60,15 @@ export default function PaidHistoryPage() {
           const cancelled = list.length - paid.length;
           return (
             <div key={k}>
-              <div className="v4-month"><span>{new Date(`${k}-01T00:00:00`).toLocaleDateString("en-GB", { month: "long", year: "numeric" })}</span><span className="v4-num">{paid.length} paid{cancelled ? ` · ${cancelled} cancelled` : ""} · {naira(paid.reduce((t, v) => t + pvAmount(v), 0))}</span></div>
+              <div className="v4-month"><span>{new Date(`${k}-01T00:00:00`).toLocaleDateString("en-GB", { month: "long", year: "numeric" })}</span><span className="v4-num">{paid.length} paid{cancelled ? `, ${cancelled} cancelled` : ""}, {naira(paid.reduce((t, v) => t + pvAmount(v), 0))}</span></div>
               <ul className="v4-rows">
                 {list.map((v) => {
                   const isPaid = pvStage(v.status) === "paid";
                   return (
                     <li key={v.id}>
                       <span className={`v4-ri v4-t-${isPaid ? "green" : "red"}`}><Icon name={isPaid ? "check" : "x"} /></span>
-                      <span className="v4-rt"><strong>{v.voucher_no} · {String(Number(v.payee_count || 1) > 1 ? `${v.payee_count} payees` : v.payee_name || "—").toUpperCase()}</strong>
-                        <span>{isPaid ? `Paid ${shortDate(dayOf(v))} · ${v.disbursement_mode || "Transfer"}${v.paid_reference ? ` · ref ${v.paid_reference}` : ""}` : `Cancelled ${shortDate(dayOf(v))}${v.cancel_reason ? ` · ${v.cancel_reason}` : ""}`}</span></span>
+                      <span className="v4-rt"><strong>{v.voucher_no}, {String(Number(v.payee_count || 1) > 1 ? `${v.payee_count} payees` : v.payee_name || "-").toUpperCase()}</strong>
+                        <span>{isPaid ? `Paid ${shortDate(dayOf(v))}, ${v.disbursement_mode || "Transfer"}${v.paid_reference ? `, ref ${v.paid_reference}` : ""}` : `Cancelled ${shortDate(dayOf(v))}${v.cancel_reason ? `, ${v.cancel_reason}` : ""}`}</span></span>
                       <span className="v4-rr"><span className="v4-amt">{nairaExact(pvAmount(v))}</span><Chip tone={isPaid ? "green" : "red"}>{isPaid ? "Paid" : "Cancelled"}</Chip><Btn small a={{ href: `/payment-vouchers/${v.id}`, label: "View", kind: "secondary" }} /></span>
                     </li>
                   );

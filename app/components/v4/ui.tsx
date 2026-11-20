@@ -165,8 +165,32 @@ export function Empty({ icon = "info", title, children }: { icon?: string; title
   );
 }
 
-export function Skeleton({ lines = 3 }: { lines?: number }) {
-  return <div className="v4-skeleton" aria-hidden="true">{Array.from({ length: lines }).map((_, i) => <i key={i} />)}</div>;
+/**
+ * v4.6.11 (brief §4): grey shapes where the real parts will appear, the same
+ * size as the content, shimmering left to right (plain grey for reduced
+ * motion or low-power phones). Screen readers hear "Loading".
+ *   lines     bars of text            rows      a list (circle, name, detail, amount)
+ *   cards     summary blocks          timeline  a request's steps
+ */
+export function Skeleton({ lines = 3, kind = "lines" }: { lines?: number; kind?: "lines" | "rows" | "cards" | "timeline" }) {
+  const n = Array.from({ length: lines });
+  let body;
+  if (kind === "rows") {
+    body = <div className="v4-sk-rows">{n.map((_, i) => (
+      <div className="v4-sk-row" key={i}><span className="v4-sk" style={{ width: 40, height: 40, borderRadius: "50%", flex: "none" }} /><span className="v4-sk-t"><span className="v4-sk" style={{ height: 13, width: `${62 - (i % 3) * 8}%` }} /><span className="v4-sk" style={{ height: 10, width: "40%" }} /></span><span className="v4-sk" style={{ width: 72, height: 14, flex: "none" }} /></div>
+    ))}</div>;
+  } else if (kind === "cards") {
+    body = <div className="v4-sk-cards">{n.map((_, i) => (
+      <div key={i} style={{ display: "grid", gap: 10 }}><span className="v4-sk" style={{ height: 11, width: "55%" }} /><span className="v4-sk" style={{ height: 26, width: "40%" }} /><span className="v4-sk" style={{ height: 10, width: "70%" }} /></div>
+    ))}</div>;
+  } else if (kind === "timeline") {
+    body = <div className="v4-sk-tl">{n.map((_, i) => (
+      <div key={i}><span className="v4-sk" style={{ width: 28, height: 28, borderRadius: "50%", flex: "none" }} /><span style={{ flex: 1, display: "grid", gap: 6 }}><span className="v4-sk" style={{ height: 12, width: `${70 - (i % 2) * 15}%` }} /><span className="v4-sk" style={{ height: 10, width: "30%" }} /></span></div>
+    ))}</div>;
+  } else {
+    body = <div className="v4-skeleton">{n.map((_, i) => <i key={i} />)}</div>;
+  }
+  return <div role="status" aria-busy="true" aria-live="polite"><span className="v4-sr-only">Loading</span><div aria-hidden="true">{body}</div></div>;
 }
 
 export function naira(n: number | null | undefined, opts: { compact?: boolean } = {}) {

@@ -156,7 +156,8 @@ function CorrectRequest({ id }: { id: string }) {
   const canEdit = !!req && !closed && early && (isRequester || isHolder || isOverseer);
   const officerFinance = isOfficial && (isOverseer || (isHolder && !isRequester && ["hod", "registrar", "dinadmin", "dod", "director"].includes(role.replace(/\d+$/, ""))));
   const requesterReserved = isRequester && !officerFinance && String(req?.funds_state || "").toLowerCase() === "reserved";
-  const canChangeSubhead = isOfficial && (officerFinance || (isRequester && (sentBack || !requesterReserved)));
+  // v4.6.10: only a position that sees subhead balances chooses or changes the subhead; staff never do.
+  const canChangeSubhead = isOfficial && seeBalances && (officerFinance || (isRequester && (sentBack || !requesterReserved)));
   const canChangeAmount = isFund && (officerFinance || (isRequester && (sentBack || !requesterReserved)));
 
   const amount = parseAmount(amountText);
@@ -190,7 +191,7 @@ function CorrectRequest({ id }: { id: string }) {
     if (isFund && !(amount > 0)) return "Type the amount.";
     if (live === "not_enough") return "Not enough fund in this subhead for the new amount. Choose another subhead or lower the amount.";
     if (live === "checking") return "Checking the budget…";
-    if (note.trim().length < 3) return "Say what you changed — the officer sees this note.";
+    if (note.trim().length < 3) return "Say what you changed: the officer sees this note.";
     if (!me?.signature_url) return "Add your signature in My Account first.";
     return "";
   }, [title, details, isFund, amount, live, note, me]);
@@ -329,14 +330,14 @@ function CorrectRequest({ id }: { id: string }) {
           {sentBack ? " Correct it below; it goes back to the same officer." : ""}
         </Notice>
       ) : null}
-      <PageHead title={`Correct ${req.request_no || "request"}`} sub={<>{req.title}{deptName ? ` · ${deptName}` : ""}. Fields with a lock cannot change after submission.</>} />
+      <PageHead title={`Correct ${req.request_no || "request"}`} sub={<>{req.title}{deptName ? `, ${deptName}` : ""}. Fields with a lock cannot change after submission.</>} />
       {msg ? <Notice tone={msg.tone}>{msg.text}</Notice> : null}
 
       <div className="v4-split">
         <form className="v4-card v4-card-pad" style={{ display: "flex", flexDirection: "column", gap: 22 }} onSubmit={(e) => { e.preventDefault(); void save(); }}>
           <div className="v4-form-grid">
-            <div className="v4-field"><span className="v4-flabel">Type</span><span className="v4-locked"><Icon name="lock" size="sm" />{isOfficial ? "Official" : `Personal · ${req.personal_category || ""}`}</span></div>
-            <div className="v4-field"><span className="v4-flabel">Department</span><span className="v4-locked"><Icon name="lock" size="sm" />{deptName || "—"}</span></div>
+            <div className="v4-field"><span className="v4-flabel">Type</span><span className="v4-locked"><Icon name="lock" size="sm" />{isOfficial ? "Official" : `Personal, ${req.personal_category || ""}`}</span></div>
+            <div className="v4-field"><span className="v4-flabel">Department</span><span className="v4-locked"><Icon name="lock" size="sm" />{deptName || "-"}</span></div>
             <label className="v4-field v4-span-2"><span className="v4-flabel">Title <span className="v4-req">*</span></span><input className="v4-input" value={title} maxLength={160} onChange={(e) => setTitle(e.target.value)} /></label>
             <label className="v4-field v4-span-2"><span className="v4-flabel">Description <span className="v4-req">*</span></span><textarea className="v4-textarea" value={details} maxLength={2000} onChange={(e) => setDetails(e.target.value)} /></label>
             {isFund ? (
@@ -345,7 +346,7 @@ function CorrectRequest({ id }: { id: string }) {
                 {canChangeAmount
                   ? <input className="v4-input v4-num" inputMode="decimal" value={amountText} onChange={(e) => setAmountText(formatAmountInput(e.target.value))} />
                   : <span className="v4-locked"><Icon name="lock" size="sm" />{nairaExact(req.amount)}</span>}
-                <span className="v4-help">{amountChanged ? `Was ${nairaExact(req.amount)} · now ${nairaInWords(amount)}` : `Was ${nairaExact(req.amount)}`}</span>
+                <span className="v4-help">{amountChanged ? `Was ${nairaExact(req.amount)}, now ${nairaInWords(amount)}` : `Was ${nairaExact(req.amount)}`}</span>
               </label>
             ) : null}
             {isOfficial ? (
@@ -353,7 +354,7 @@ function CorrectRequest({ id }: { id: string }) {
                 <label className="v4-flabel" htmlFor="cr-sub" style={{ fontSize: 13, fontWeight: 700 }}>Budget subhead</label>
                 {canChangeSubhead
                   ? <Select id="cr-sub" value={subheadId} onChange={setSubheadId} options={subOptions} placeholder="Choose the subhead" menuMinWidth={300} />
-                  : <span className="v4-locked"><Icon name="lock" size="sm" />{currentSub ? `${currentSub.code ? `${currentSub.code} — ` : ""}${currentSub.name}` : "Set by the officer"}</span>}
+                  : <span className="v4-locked"><Icon name="lock" size="sm" />{currentSub ? `${currentSub.code ? `${currentSub.code}: ` : ""}${currentSub.name}` : "The approving officer chooses it"}</span>}
                 <span className="v4-help">{seeBalances ? "Figures shown because of the position you are acting as." : "Balances are private."}</span>
               </div>
             ) : null}
@@ -375,7 +376,7 @@ function CorrectRequest({ id }: { id: string }) {
               ))}
               {newFiles.map((f, i) => (
                 <li key={`${f.name}-${f.size}`}><span className="v4-fi v4-x">{(f.name.split(".").pop() || "FILE").toUpperCase().slice(0, 4)}</span>
-                  <span className="v4-ft"><strong>{f.name}</strong><span>Added now · {size(f.size)}</span></span><span className="v4-chip v4-chip-green">New</span>
+                  <span className="v4-ft"><strong>{f.name}</strong><span>Added now, {size(f.size)}</span></span><span className="v4-chip v4-chip-green">New</span>
                   <button type="button" className="v4-btn v4-btn-ghost" style={{ minHeight: 34, color: "var(--v4-red)" }} onClick={() => setNewFiles((all) => all.filter((_, j) => j !== i))}>Remove</button></li>
               ))}
             </ul>
@@ -405,7 +406,7 @@ function CorrectRequest({ id }: { id: string }) {
             <dl className="v4-kv">
               <dt>Step</dt><dd>{stageTitle(req.current_stage)}</dd>
               <dt>With</dt><dd>{isHolder ? "You" : "The officer"}</dd>
-              <dt>Status</dt><dd>{req.status || "—"}</dd>
+              <dt>Status</dt><dd>{req.status || "-"}</dd>
             </dl>
           </section>
           <section className="v4-notice v4-notice-blue"><Icon name="info" /><span>{sentBack ? "Saving sends the request back with your note. You sign with your saved signature." : "Saving keeps the request where it is. The officer sees your note."}</span></section>

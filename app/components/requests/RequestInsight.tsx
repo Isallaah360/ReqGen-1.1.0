@@ -24,7 +24,7 @@ type Insight = {
 };
 type TabKey = "similar" | "subhead" | "amount" | "requester" | "route";
 
-const day = (s: string | null | undefined) => (s ? new Date(s).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "—");
+const day = (s: string | null | undefined) => (s ? new Date(s).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "-");
 const hours = (ms: number) => {
   const h = Math.max(0, ms) / 3_600_000;
   if (h < 1) return "under an hour";
@@ -39,8 +39,8 @@ function MiniList({ rows, empty }: { rows: Mini[]; empty: string }) {
       {rows.map((r) => (
         <li key={r.id}>
           <Link href={`/requests/${r.id}`}>{r.request_no || "Request"}</Link>
-          <span className="v4-insight-t">{r.title || "Untitled"}{r.same_requester ? " · same requester" : ""}{r.same_subhead ? " · same subhead" : ""}</span>
-          <span className="v4-insight-r"><b>{nairaExact(r.amount)}</b><span>{r.status || stageWords(r.stage || null)} · {day(r.created_at)}</span></span>
+          <span className="v4-insight-t">{r.title || "Untitled"}{r.same_requester ? ", same requester" : ""}{r.same_subhead ? ", same subhead" : ""}</span>
+          <span className="v4-insight-r"><b>{nairaExact(r.amount)}</b><span>{r.status || stageWords(r.stage || null)}, {day(r.created_at)}</span></span>
         </li>
       ))}
     </ul>
@@ -115,7 +115,7 @@ export default function RequestInsight({ requestId }: { requestId: string }) {
                   return (
                     <div className="v4-insight-budget">
                       <div className="v4-meter" aria-hidden="true"><span style={{ width: `${pct}%`, background: pct >= 90 ? "var(--v4-red)" : pct >= 60 ? "#E0661F" : undefined }} /></div>
-                      <p className="v4-help" style={{ margin: "8px 0 0" }}>Allocation {nairaExact(alloc)} · reserved and spent {nairaExact(used)} ({pct}%) · available {nairaExact(data.subhead.available)}</p>
+                      <p className="v4-help" style={{ margin: "8px 0 0" }}>Allocation {nairaExact(alloc)}, reserved and spent {nairaExact(used)} ({pct}%), available {nairaExact(data.subhead.available)}</p>
                       <p style={{ margin: "6px 0 0", fontWeight: 700, color: after < 0 ? "var(--v4-red)" : "var(--v4-green)" }}>{after < 0 ? `This request is more than what is left by ${nairaExact(-after)}.` : `Left after this request: ${nairaExact(after)}.`}</p>
                     </div>
                   );
@@ -127,7 +127,7 @@ export default function RequestInsight({ requestId }: { requestId: string }) {
             {tab === "amount" ? (amt && amt.count ? (
               <>
                 <p style={{ margin: "0 0 6px" }}>{amt.count} approved request{amt.count === 1 ? "" : "s"} of the same kind in the last 12 months.</p>
-                <p className="v4-help" style={{ margin: 0 }}>Average {nairaExact(amt.average)} · lowest {nairaExact(amt.lowest)} · highest {nairaExact(amt.highest)}</p>
+                <p className="v4-help" style={{ margin: 0 }}>Average {nairaExact(amt.average)}, lowest {nairaExact(amt.lowest)}, highest {nairaExact(amt.highest)}</p>
                 {ratio !== null ? (
                   <p style={{ margin: "10px 0 0", fontWeight: 700, color: ratio > 1.5 ? "#8A5200" : "var(--v4-ink)" }}>
                     This request ({nairaExact(data.amount)}) is {ratio >= 0.95 && ratio <= 1.05 ? "about the average" : ratio > 1 ? `${ratio.toFixed(1)} times the average` : `${Math.round(ratio * 100)}% of the average`}.

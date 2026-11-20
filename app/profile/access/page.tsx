@@ -103,7 +103,7 @@ export default function MyAccessPage() {
                   {held.map((h) => (
                     <tr key={h.key}>
                       <td><span className="v4-strong">{h.name}</span>{h.primary ? <span className="v4-sub">Main position</span> : null}</td>
-                      <td data-label="Since">{h.since ? new Date(h.since).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "—"}</td>
+                      <td data-label="Since">{h.since ? new Date(h.since).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "-"}</td>
                       <td>{h.key === "staff" ? <Chip tone="brand">Everyone</Chip> : systemAccount ? <Chip tone="blue">System account</Chip> : <Chip tone="grey">Position</Chip>}</td>
                     </tr>
                   ))}
@@ -115,11 +115,11 @@ export default function MyAccessPage() {
         <Card title="My place on approval routes" pad>
           <dl className="v4-kv">
             <dt>Approval steps</dt>
-            <dd className={onRoutes.length ? undefined : "v4-muted"} style={onRoutes.length ? undefined : { fontWeight: 600 }}>{onRoutes.length ? onRoutes.join(" · ") : "None in a department route"}</dd>
+            <dd className={onRoutes.length ? undefined : "v4-muted"} style={onRoutes.length ? undefined : { fontWeight: 600 }}>{onRoutes.length ? onRoutes.join(", ") : "None in a department route"}</dd>
             <dt>Subhead balances</dt>
             <dd>{seesBalances ? "Shown" : "Hidden"}</dd>
             <dt>Request contents</dt>
-            <dd>{isRegistry ? "Closed — numbers only" : "Your own, and those on your step"}</dd>
+            <dd>{isRegistry ? "Closed: numbers only" : "Your own, and those on your step"}</dd>
             <dt>Away cover</dt>
             <dd className={away ? undefined : "v4-muted"} style={away ? undefined : { fontWeight: 600 }}>{away || "Not away"}</dd>
           </dl>

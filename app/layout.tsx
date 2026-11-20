@@ -7,6 +7,7 @@ import "./v4/v4.css";
 import "./v4/v4-theme.css";
 import "./v4/v4-select.css";
 import "./v4/v4-pages.css";
+import "./v4/v4-brief.css";
 
 import SessionTimeout from "./components/SessionTimeout";
 import MfaGuard from "./components/MfaGuard";
@@ -20,6 +21,7 @@ import TableCards from "@/app/components/TableCards";
 import FieldShells from "@/app/components/FieldShells";
 import DialogHost from "@/app/components/ui/DialogHost";
 import NativeSelectUpgrade from "@/app/components/v4/NativeSelectUpgrade";
+import AppBridge from "@/app/components/app/AppBridge";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://req-gen-1-1-0.vercel.app"),
@@ -50,8 +52,8 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#B83E00" },
-    { media: "(prefers-color-scheme: dark)", color: "#111315" },
+    { media: "(prefers-color-scheme: light)", color: "#1C2B5A" },
+    { media: "(prefers-color-scheme: dark)", color: "#0E1530" },
   ],
   colorScheme: "light dark",
   width: "device-width",
@@ -71,6 +73,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <FieldShells />
         <DialogHost />
         <NativeSelectUpgrade />
+        <AppBridge />
         <GovernmentAppShell>
           <MfaGuard>
             <RouteAccessGuard>

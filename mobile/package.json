@@ -1,0 +1,22 @@
+{
+  "name": "reqgen-android",
+  "version": "1.0.0",
+  "private": true,
+  "description": "ReqGen Android app (Capacitor 8). It opens the live ReqGen website. Built with MAKE_APP.bat.",
+  "dependencies": {
+    "@capacitor-community/file-opener": "8.0.1",
+    "@capacitor/android": "8.6.2",
+    "@capacitor/app": "8.1.2",
+    "@capacitor/core": "8.6.2",
+    "@capacitor/filesystem": "8.1.5",
+    "@capacitor/network": "8.0.1",
+    "@capacitor/preferences": "8.0.1",
+    "@capacitor/share": "8.0.3",
+    "@capacitor/splash-screen": "8.0.2",
+    "@capacitor/status-bar": "8.0.4",
+    "@capgo/capacitor-native-biometric": "8.9.3"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "8.6.2"
+  }
+}

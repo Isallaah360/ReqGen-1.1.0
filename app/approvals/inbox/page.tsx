@@ -76,8 +76,8 @@ export default function RequestsToApprovePage() {
   const stats: StatItem[] = [
     { label: "Waiting for me", value: rows ? waiting.length : "…", note: naira(waiting.reduce((s, r) => s + Number(r.amount || 0), 0)), icon: "file", tone: "blue", pressed: !late, onClick: () => { setLate(false); setPage(1); } },
     { label: "Waiting 3+ days", value: rows ? lateCount : "…", note: lateCount ? "Please treat these first" : "None", icon: "clock", tone: "red", pressed: late, onClick: () => { setLate(true); setPage(1); } },
-    { label: "Approved this month", value: treated ? approvedMonth : "—", note: "By you", icon: "check", tone: "green", href: "/approvals/treated" },
-    { label: "Returned this month", value: treated ? returnedMonth : "—", note: "For correction", icon: "returned", tone: "amber", href: "/approvals/treated" },
+    { label: "Approved this month", value: treated ? approvedMonth : "-", note: "By you", icon: "check", tone: "green", href: "/approvals/treated" },
+    { label: "Returned this month", value: treated ? returnedMonth : "-", note: "For correction", icon: "returned", tone: "amber", href: "/approvals/treated" },
   ];
 
   const paged = shown.slice((page - 1) * PAGE, page * PAGE);
@@ -109,7 +109,7 @@ export default function RequestsToApprovePage() {
           </label>
           <button className="v4-btn v4-btn-ghost" type="button" onClick={() => { setQ(""); setType("all"); setDept("all"); setLate(false); setPage(1); }}>Reset</button>
         </div>
-        {rows === null ? <Skeleton lines={5} /> : shown.length ? (
+        {rows === null ? <Skeleton kind="rows" lines={5} /> : shown.length ? (
           <div className="v4-table-wrap">
             <table className="v4-data v4-stack">
               <thead><tr><th>Request</th><th className="v4-r">Amount</th><th>From</th><th className="v4-hide-sm">Your step</th><th>Waiting</th><th className="v4-r">Action</th></tr></thead>
@@ -118,7 +118,7 @@ export default function RequestsToApprovePage() {
                   const days = ageDays(r.created_at);
                   return (
                     <tr key={r.id}>
-                      <td><span className="v4-strong">{r.request_no || "—"}</span><span className="v4-sub">{r.title || "Untitled"}</span></td>
+                      <td><span className="v4-strong">{r.request_no || "-"}</span><span className="v4-sub">{r.title || "Untitled"}</span></td>
                       <td className="v4-r v4-num v4-strong">{typeOf(r) === "Personal · Other" ? "—" : naira(r.amount)}</td>
                       <td data-label="From"><span className="v4-strong">{r.requester_name || "Staff"}</span><span className="v4-sub">{depts[r.dept_id || ""] || typeOf(r)}</span></td>
                       <td className="v4-hide-sm"><Chip tone="brand">{stageWords(r.current_stage).replace(/^With (the )?/, "")}</Chip></td>

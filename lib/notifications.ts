@@ -86,17 +86,20 @@ export async function countUnread(userId: string) {
 }
 
 /** Mark specific notifications read, or all of the user's when ids is omitted. */
-export async function markNotificationsRead(ids?: string[]) {
+/** v4.6.11: returns false when the server refused, so the screen can undo its optimistic tick. */
+export async function markNotificationsRead(ids?: string[]): Promise<boolean> {
   const rpc = await supabase.rpc("reqgen_mark_notifications_read", { p_ids: ids && ids.length ? ids : null });
   if (rpc.error) {
     // Fallback before v3_0_7_notifications.sql has run: direct update of own rows.
     const { data: auth } = await supabase.auth.getUser();
-    if (!auth.user) return;
+    if (!auth.user) return false;
     let q = supabase.from("notifications").update({ is_read: true }).eq("user_id", auth.user.id);
     if (ids && ids.length) q = q.in("id", ids);
-    await q;
+    const res = await q;
+    if (res.error) return false;
   }
   window.dispatchEvent(new Event(NOTIFICATIONS_CHANGED_EVENT));
+  return true;
 }
 
 export function timeAgo(iso: string | null) {

@@ -42,13 +42,13 @@ export default function PositionsPage() {
     if (code === "SA" || code === "DEV") return system.find((s) => s.system_account === (code === "SA" ? "superadmin" : "developer"))?.full_name || "Not set up";
     const names = holdersOf(keys);
     if (!names.length) return "Nobody yet";
-    return names.length <= 3 ? names.join(" · ") : `${names.length} holders`;
+    return names.length <= 3 ? names.join(", ") : `${names.length} holders`;
   };
 
   return (
     <V4Page>
       <PageHead title="Positions" sub="Everyone is Staff. These are the positions people hold on top of Staff. Each one decides what a person can see and do."
-        actions={[{ label: "Export Excel", icon: "download", kind: "secondary", disabled: !rows, onClick: () => downloadXlsx("Positions", [{ name: "Positions", title: "ReqGen — Positions and holders", rows: POSITIONS.map((p) => ({ Code: p.code, Position: p.name, Group: p.group, "One holder": p.one ? "Yes" : "", Holders: whoText(p.code, p.keys), About: p.about })) }]) }]} />
+        actions={[{ label: "Export Excel", icon: "download", kind: "secondary", disabled: !rows, onClick: () => downloadXlsx("Positions", [{ name: "Positions", title: "ReqGen: Positions and holders", rows: POSITIONS.map((p) => ({ Code: p.code, Position: p.name, Group: p.group, "One holder": p.one ? "Yes" : "", Holders: whoText(p.code, p.keys), About: p.about })) }]) }]} />
       {error ? <Notice tone="red">{error}</Notice> : null}
       {rows === null ? <Skeleton lines={10} /> : GROUPS.map((g) => (
         <div key={g} style={{ display: "flex", flexDirection: "column", gap: 12 }}>

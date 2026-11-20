@@ -125,7 +125,9 @@ export function Select({
   function openMenu() {
     if (disabled) return;
     reposition();
-    setHost(btnRef.current?.closest<HTMLElement>(".v4-modal-layer") || document.body.querySelector<HTMLElement>(".v4-ui") || document.body);
+    // v4.6.10: never inside the first ".v4-ui" box: on phones that is the hidden menu drawer (moved off the
+    // screen with a transform), which carried the open list off the screen with it.
+    setHost(btnRef.current?.closest<HTMLElement>(".v4-modal-layer") || document.body);
     const idx = Math.max(0, options.findIndex((o) => o.value === value));
     setActive(idx);
     setOpen(true);

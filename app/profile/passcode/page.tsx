@@ -52,7 +52,7 @@ export default function PasscodeSetupPage() {
       const sys = await supabase.from("profiles").select("system_account").eq("id", me.userId).maybeSingle();
       const sa = sys.error ? null : ((sys.data as { system_account?: string | null } | null)?.system_account || null);
       const seen = new Set<string>();
-      const positions = roles.map((r) => positionName(r.key, r.name, sa)).filter((n) => { const k = normalizeRole(n); if (seen.has(k)) return false; seen.add(k); return true; }).join(" · ");
+      const positions = roles.map((r) => positionName(r.key, r.name, sa)).filter((n) => { const k = normalizeRole(n); if (seen.has(k)) return false; seen.add(k); return true; }).join(", ");
       await setupPasscode(code, { email: me.email, name: me.name, positions, userId: me.userId });
       setStep("done");
       setMsg({ tone: "green", text: "Passcode saved. Next time on this device, sign in with it. Other devices were signed out." });
@@ -90,7 +90,7 @@ export default function PasscodeSetupPage() {
         </section>
         <Card title="Why it is safe" pad>
           <ul className="v4-can v4-yes">
-            <li><Icon name="check" /><span>The passcode is joined to <b>this device</b>. On any other phone or laptop it does nothing — someone who learns it still can’t get in.</span></li>
+            <li><Icon name="check" /><span>The passcode is joined to <b>this device</b>. On any other phone or laptop it does nothing: someone who learns it still can’t get in.</span></li>
             <li><Icon name="check" /><span>Someone who takes this device still needs the passcode.</span></li>
             <li><Icon name="check" /><span>{rules.passcodeTries} wrong tries removes the passcode from the device. You then sign in with password + 2FA.</span></li>
             <li><Icon name="check" /><span>ReqGen stores only a scrambled copy, never the passcode itself.</span></li>

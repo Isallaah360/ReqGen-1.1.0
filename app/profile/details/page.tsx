@@ -38,7 +38,7 @@ function avatarObjectPath(url: string | null): string | null {
   return i < 0 ? null : decodeURIComponent(url.slice(i + marker.length).split("?")[0]);
 }
 const viewFromHash = (): View => (typeof window !== "undefined" && /^#(signature|photo)$/.test(window.location.hash) ? "signature" : "profile");
-const dateText = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "—");
+const dateText = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "-");
 
 /** My Account › Profile (mock-up 16) and Signature & Photo (mock-up 17). */
 export default function ProfileDetailsPage() {
@@ -279,11 +279,11 @@ export default function ProfileDetailsPage() {
             <section className="v4-card v4-card-pad" style={{ textAlign: "center" }} data-guide="avatar" id="photo">
               {avatar("xl")}
               <h2 className="v4-h3" style={{ margin: "12px 0 2px" }}>{name || "My profile"}</h2>
-              <p className="v4-help" style={{ margin: "0 0 12px" }}>{position}{me.dept ? ` · ${me.dept}` : ""}</p>
+              <p className="v4-help" style={{ margin: "0 0 12px" }}>{position}{me.dept ? `, ${me.dept}` : ""}</p>
               <button className="v4-btn v4-btn-secondary v4-btn-block" type="button" onClick={() => go("signature")}><Icon name="camera" />Change photo</button>
             </section>
             <section className="v4-card v4-card-pad">
-              <dl className="v4-kv"><dt>Member since</dt><dd>{dateText(me.since)}</dd><dt>Last sign-in</dt><dd>{me.lastSignIn ? new Date(me.lastSignIn).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "—"}</dd><dt>Main position</dt><dd>{position}</dd></dl>
+              <dl className="v4-kv"><dt>Member since</dt><dd>{dateText(me.since)}</dd><dt>Last sign-in</dt><dd>{me.lastSignIn ? new Date(me.lastSignIn).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "-"}</dd><dt>Main position</dt><dd>{position}</dd></dl>
               <Link className="v4-btn v4-btn-ghost" style={{ marginTop: 10 }} href="/change-password"><Icon name="key" />Change password</Link>
             </section>
           </aside>
@@ -293,7 +293,7 @@ export default function ProfileDetailsPage() {
           <section className="v4-card v4-card-pad" style={{ display: "flex", flexDirection: "column", gap: 16 }} data-guide="signature" id="signature">
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
               <h2 className="v4-h2">Signature</h2>
-              {sigFile || drawn ? <Chip tone="amber">Preview · not saved yet</Chip> : me.sigPath ? <Chip tone="green">Saved</Chip> : <Chip tone="red">Needed</Chip>}
+              {sigFile || drawn ? <Chip tone="amber">Preview, not saved yet</Chip> : me.sigPath ? <Chip tone="green">Saved</Chip> : <Chip tone="red">Needed</Chip>}
             </div>
             <div className="v4-segmented" role="tablist" aria-label="How to add your signature">
               <button type="button" role="tab" aria-selected={sigMode === "upload"} onClick={() => setSigMode("upload")}>Upload a photo of it</button>
@@ -308,14 +308,14 @@ export default function ProfileDetailsPage() {
                   </div></div>
                   <div className="v4-sig-frame"><span>What ReqGen saves</span><div className="v4-canvas v4-clean">
                     {/* eslint-disable-next-line @next/next/no-img-element -- local preview of the chosen picture */}
-                    {sigOriginal && cleanBg ? <span className="rg-sig-slot" style={{ display: "block", width: "80%", height: 100 }}><SignatureInk src={sigOriginal} alt="Signature as ReqGen saves it" /></span> : sigOriginal ? <img src={sigOriginal} alt="The picture as uploaded" style={{ maxWidth: "90%", maxHeight: 110 }} /> : savedSig ? <span className="rg-sig-slot" style={{ display: "block", width: "80%", height: 100 }}><SignatureInk src={savedSig} alt="Saved signature" /></span> : <span className="v4-muted">—</span>}
+                    {sigOriginal && cleanBg ? <span className="rg-sig-slot" style={{ display: "block", width: "80%", height: 100 }}><SignatureInk src={sigOriginal} alt="Signature as ReqGen saves it" /></span> : sigOriginal ? <img src={sigOriginal} alt="The picture as uploaded" style={{ maxWidth: "90%", maxHeight: 110 }} /> : savedSig ? <span className="rg-sig-slot" style={{ display: "block", width: "80%", height: 100 }}><SignatureInk src={savedSig} alt="Saved signature" /></span> : <span className="v4-muted">: </span>}
                   </div></div>
                 </div>
                 <label className="v4-check"><input type="checkbox" checked={cleanBg} onChange={(e) => setCleanBg(e.target.checked)} /> Remove the paper background automatically</label>
                 <label className="v4-dropzone" style={{ cursor: "pointer" }}>
                   <Icon name="upload" size="lg" />
                   <p style={{ margin: "8px 0 4px" }}><b>Choose a clear photo</b> of your signature on white paper</p>
-                  <span className="v4-help">PNG or JPG · up to 500 KB · dark pen</span>
+                  <span className="v4-help">PNG or JPG, up to 500 KB, dark pen</span>
                   <input className="v4-sr-only" type="file" accept="image/png,image/jpeg,image/webp" onChange={(e) => { const f = e.target.files?.[0] || null; e.target.value = ""; void chooseSignature(f); }} />
                 </label>
               </>

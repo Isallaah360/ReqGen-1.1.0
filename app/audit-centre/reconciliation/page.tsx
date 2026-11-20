@@ -83,7 +83,7 @@ export default function ReconciliationPage() {
     if (!current) return;
     let text: string | null = null;
     if (action === "explain") {
-      text = await promptDialog({ title: "Explain the difference", message: "For example: bank charges not yet in ReqGen — a manual voucher will be raised.", label: "Explanation", defaultValue: current.explanation || "", confirmLabel: "Save" });
+      text = await promptDialog({ title: "Explain the difference", message: "For example: bank charges not yet in ReqGen: a manual voucher will be raised.", label: "Explanation", defaultValue: current.explanation || "", confirmLabel: "Save" });
       if (!text) return;
     }
     const { error: e } = await supabase.rpc("reqgen_recon_decide", { p_id: current.id, p_action: action, p_text: text });
@@ -141,7 +141,7 @@ export default function ReconciliationPage() {
                 {lines.map((l, i) => (
                   <tr key={`${l.date}-${i}`}>
                     <td className="v4-num">{new Date(l.date).toLocaleDateString("en-GB", { day: "2-digit", month: "short" })}</td>
-                    <td><span className="v4-strong">{l.details || "—"}</span><span className="v4-sub">{l.ref || "—"}</span></td>
+                    <td><span className="v4-strong">{l.details || "-"}</span><span className="v4-sub">{l.ref || "-"}</span></td>
                     <td className="v4-r v4-num v4-debit">{l.out ? nairaExact(l.out) : ""}</td>
                     <td className="v4-r v4-num v4-credit">{l.in ? nairaExact(l.in) : ""}</td>
                     <td className="v4-r v4-num v4-hide-sm">{l.balance === null ? "" : nairaExact(l.balance)}</td>
@@ -163,7 +163,7 @@ export default function ReconciliationPage() {
           </div>
         </section>
       ) : null}
-      <Modal open={!!upload} wide title="Upload statement" sub={`Bank statement for ${monthName(month)} — CSV or Excel. Lines are matched against vouchers paid, manual vouchers and transfers recorded in ReqGen.`} onClose={() => setUpload(null)} busy={busy}
+      <Modal open={!!upload} wide title="Upload statement" sub={`Bank statement for ${monthName(month)}: CSV or Excel. Lines are matched against vouchers paid, manual vouchers and transfers recorded in ReqGen.`} onClose={() => setUpload(null)} busy={busy}
         footer={<><button type="button" className="v4-btn v4-btn-ghost" onClick={() => setUpload(null)} disabled={busy}>Cancel</button><button type="button" className="v4-btn v4-btn-primary" onClick={() => void save()} disabled={busy || !upload?.lines.length}><Icon name="check" />{busy ? "Saving…" : "Save statement"}</button></>}>
         {upload ? (
           <>

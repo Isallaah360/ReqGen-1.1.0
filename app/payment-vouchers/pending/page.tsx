@@ -61,7 +61,7 @@ export default function SigningTrackerPage() {
             return (
               <article className="v4-tcard" key={v.id}>
                 <div className="v4-top">
-                  <span><strong>{v.voucher_no}</strong><span>{String(Number(v.payee_count || 1) > 1 ? `${v.payee_count} payees` : v.payee_name || "—").toUpperCase()} · {v.disbursement_mode || "Transfer"}</span></span>
+                  <span><strong>{v.voucher_no}</strong><span>{String(Number(v.payee_count || 1) > 1 ? `${v.payee_count} payees` : v.payee_name || "-").toUpperCase()}, {v.disbursement_mode || "Transfer"}</span></span>
                   <b className="v4-num">{naira(pvAmount(v))}</b>
                 </div>
                 <div className="v4-steps5">
@@ -69,7 +69,7 @@ export default function SigningTrackerPage() {
                   {["Checked", "Counter", "DG"].map((label, i) => <div key={label} className={i < pos ? "v4-done" : i === pos ? "v4-now" : ""}>{label}</div>)}
                 </div>
                 <div className="v4-bottom">
-                  <span>Now with <b>{pvNowWith(v)}</b> · <Chip tone={days >= 3 ? "red" : "amber"}>{waitedFor(v.updated_at || v.created_at)}</Chip></span>
+                  <span>Now with <b>{pvNowWith(v)}</b>, <Chip tone={days >= 3 ? "red" : "amber"}>{waitedFor(v.updated_at || v.created_at)}</Chip></span>
                   <span style={{ display: "flex", gap: 8 }}>
                     <Btn small a={{ href: `/payment-vouchers/${v.id}`, label: "Open", kind: "secondary" }} />
                     {canRemind ? <button className="v4-btn v4-btn-primary" type="button" style={{ minHeight: 38 }} onClick={() => void remind(v)}><Icon name="bell" />Remind</button> : null}

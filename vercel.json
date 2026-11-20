@@ -1,5 +1,13 @@
 {
   "crons": [
     { "path": "/api/backup/nightly", "schedule": "0 1 * * *" }
+  ],
+  "headers": [
+    { "source": "/assets/(.*)", "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }] },
+    { "source": "/(.*)\\.(woff2|woff|ttf|otf)", "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }] },
+    { "source": "/check/(.*)", "headers": [{ "key": "Cache-Control", "value": "public, s-maxage=60, stale-while-revalidate=300" }] },
+    { "source": "/downloads/app-version.json", "headers": [{ "key": "Cache-Control", "value": "no-store" }] },
+    { "source": "/downloads/ReqGen.apk", "headers": [{ "key": "Content-Type", "value": "application/vnd.android.package-archive" }, { "key": "Cache-Control", "value": "public, max-age=300" }] },
+    { "source": "/.well-known/assetlinks.json", "headers": [{ "key": "Content-Type", "value": "application/json" }] }
   ]
 }

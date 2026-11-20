@@ -105,7 +105,7 @@ export default function BudgetSubheadsPage() {
           <div className="v4-field v4-f-extra" style={{ minWidth: 170 }}><span className="v4-flabel">Financial year</span><span className="v4-locked" style={{ minHeight: 40 }}>FY {fyLabel(fy)} (Sep–Aug)</span></div>
           <button className="v4-btn v4-btn-ghost" type="button" onClick={() => { setQ(""); setDept("all"); setShow("all"); }}><Icon name="returned" />Reset</button>
         </div>
-        {subs === null ? <Skeleton lines={8} /> : groups.length ? (
+        {subs === null ? <Skeleton kind="rows" lines={8} /> : groups.length ? (
           <div className="v4-table-wrap">
             <table className="v4-data v4-stack">
               <thead><tr><th>Subhead</th><th className="v4-r">Allocated</th><th className="v4-r">Used</th><th>Utilisation</th><th className="v4-r">Action</th></tr></thead>

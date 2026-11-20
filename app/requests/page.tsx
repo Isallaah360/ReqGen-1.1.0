@@ -33,8 +33,8 @@ export default function RequestsHome() {
       key: r.id,
       icon: "file",
       tone: chip.tone === "red" ? "red" : chip.tone === "green" ? "green" : "blue",
-      title: `${r.request_no || "Draft"} · ${r.title || "Untitled request"}`,
-      sub: `${stageWords(r.current_stage)} · ${shortDate(r.created_at)}`,
+      title: `${r.request_no || "Draft"}, ${r.title || "Untitled request"}`,
+      sub: `${stageWords(r.current_stage)}, ${shortDate(r.created_at)}`,
       right: <><span className="v4-amt">{naira(r.amount)}</span><Chip tone={chip.tone}>{chip.label}</Chip></>,
       href: `/requests/${r.id}`,
     };

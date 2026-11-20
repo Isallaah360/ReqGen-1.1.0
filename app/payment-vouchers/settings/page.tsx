@@ -102,7 +102,7 @@ export default function SignatoriesPage() {
                   const p = profileOf(r);
                   return (
                     <tr key={r.id}>
-                      <td><span className="v4-strong">{r.full_name}</span><span className="v4-sub">{p ? p.email || "" : "No matching user — the name must match a profile"}</span></td>
+                      <td><span className="v4-strong">{r.full_name}</span><span className="v4-sub">{p ? p.email || "" : "No matching user: the name must match a profile"}</span></td>
                       <td data-label="Signature">{p?.signature_url ? <span className="rg-sig-slot" style={{ display: "inline-block", width: 120, height: 32 }}><SignatureInk src={p.signature_url} alt={`${r.full_name} signature`} /></span> : <Chip tone="amber">No signature</Chip>}</td>
                       <td className="v4-hide-sm">{signed.get(key(r.full_name)) || 0}</td>
                       <td data-label="Status">{r.is_active !== false ? <Chip tone="green">Active</Chip> : <Chip tone="grey">Inactive</Chip>}</td>
@@ -115,7 +115,7 @@ export default function SignatoriesPage() {
           </div>
         ) : <p className="v4-muted" style={{ padding: 20, margin: 0 }}>No Counter Signer yet. Add one so Account Officers can generate vouchers.</p>}
       </Card>
-      <Notice tone="blue">The Auditor checks every voucher and the Director General signs, stamps and authorises it — they are not chosen here. A Counter Signer signs with the signature saved in their own account.</Notice>
+      <Notice tone="blue">The Auditor checks every voucher and the Director General signs, stamps and authorises it: they are not chosen here. A Counter Signer signs with the signature saved in their own account.</Notice>
       <Modal open={adding} title="Add Counter Signer" onClose={() => setAdding(false)} footer={<>
           <button type="button" className="v4-btn v4-btn-ghost" onClick={() => setAdding(false)}>Cancel</button>
           <button type="button" className="v4-btn v4-btn-primary" disabled={!pick || busy} onClick={() => void add()}>Add</button>

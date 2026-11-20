@@ -148,14 +148,14 @@ export default function FinanceResetPage() {
 
       {done ? (
         <section className="v4-card v4-card-pad">
-          <div className="v4-section-title"><span className="v4-no"><Icon name="tick" size="sm" /></span><h2 className="v4-h2">{done.reset_no} — reset complete and checked</h2></div>
+          <div className="v4-section-title"><span className="v4-no"><Icon name="tick" size="sm" /></span><h2 className="v4-h2">{done.reset_no}: reset complete and checked</h2></div>
           <div className="v4-cols">
             <dl className="v4-kv">
-              <dt>Subheads — allocated</dt><dd>{nairaExact(done.before.subheads_allocated)} → {nairaExact(done.after.subheads_allocated)}</dd>
-              <dt>Subheads — spent</dt><dd>{nairaExact(done.before.subheads_spent)} → {nairaExact(done.after.subheads_spent)}</dd>
-              <dt>Subheads — reserved</dt><dd>{nairaExact(done.before.subheads_reserved)} → {nairaExact(done.after.subheads_reserved)}</dd>
-              <dt>IET accounts — total fund</dt><dd>{nairaExact(done.before.accounts_total_fund)} → {nairaExact(done.after.accounts_total_fund)}</dd>
-              <dt>IET accounts — available</dt><dd>{nairaExact(done.before.accounts_available)} → {nairaExact(done.after.accounts_available)}</dd>
+              <dt>Subheads: allocated</dt><dd>{nairaExact(done.before.subheads_allocated)} → {nairaExact(done.after.subheads_allocated)}</dd>
+              <dt>Subheads: spent</dt><dd>{nairaExact(done.before.subheads_spent)} → {nairaExact(done.after.subheads_spent)}</dd>
+              <dt>Subheads: reserved</dt><dd>{nairaExact(done.before.subheads_reserved)} → {nairaExact(done.after.subheads_reserved)}</dd>
+              <dt>IET accounts: total fund</dt><dd>{nairaExact(done.before.accounts_total_fund)} → {nairaExact(done.after.accounts_total_fund)}</dd>
+              <dt>IET accounts: available</dt><dd>{nairaExact(done.before.accounts_available)} → {nairaExact(done.after.accounts_available)}</dd>
             </dl>
             <dl className="v4-kv">
               {Object.entries(done.cleared).map(([t, n]) => <span key={t} style={{ display: "contents" }}><dt>{TABLE_TEXT[t] || t}</dt><dd>{n} cleared</dd></span>)}
@@ -178,19 +178,19 @@ export default function FinanceResetPage() {
       </section>
 
       <div className="v4-cols">
-        <Card title="2 · What the reset will clear">
+        <Card title="2, What the reset will clear">
           {preview === null ? <div className="v4-card-body"><Skeleton lines={6} /></div> : previewError ? <div className="v4-card-body"><Notice tone="amber">{previewError}</Notice></div> : (
             <div className="v4-table-wrap">
               <table className="v4-data v4-stack">
                 <thead><tr><th>Records</th><th className="v4-r">Now</th><th>After the reset</th></tr></thead>
                 <tbody>
                   {cleared.map((r) => <tr key={r.item}><td><span className="v4-strong">{TABLE_TEXT[r.item] || r.item}</span></td><td className="v4-r v4-num" data-label="Now">{r.rows}</td><td data-label="After"><Chip tone={r.rows ? "red" : "grey"}>{r.rows ? "Cleared" : "Already empty"}</Chip></td></tr>)}
-                  {keptRows.map((r) => <tr key={r.item}><td><span className="v4-strong">{TABLE_TEXT[r.item] || r.item}</span></td><td className="v4-r v4-num" data-label="Now">{r.rows}</td><td data-label="After"><Chip tone="green">Kept · figures to ₦0.00</Chip></td></tr>)}
+                  {keptRows.map((r) => <tr key={r.item}><td><span className="v4-strong">{TABLE_TEXT[r.item] || r.item}</span></td><td className="v4-r v4-num" data-label="Now">{r.rows}</td><td data-label="After"><Chip tone="green">Kept, figures to ₦0.00</Chip></td></tr>)}
                 </tbody>
               </table>
             </div>
           )}
-          {blockers.length ? <div className="v4-card-body"><Notice tone="red" title="The reset cannot run yet">{blockers.map((b) => `${b.item}: ${b.rows} row(s) ${b.note}`).join(" · ")}</Notice></div> : null}
+          {blockers.length ? <div className="v4-card-body"><Notice tone="red" title="The reset cannot run yet">{blockers.map((b) => `${b.item}: ${b.rows} row(s) ${b.note}`).join(", ")}</Notice></div> : null}
         </Card>
         <Card title="Always kept" pad>
           <ul className="v4-access" style={{ gridTemplateColumns: "1fr" }}>
@@ -203,8 +203,8 @@ export default function FinanceResetPage() {
         <div className="v4-section-title"><span className="v4-no">3</span><h2 className="v4-h2">Take a verified backup</h2></div>
         <p className="v4-help" style={{ margin: "0 0 12px" }}>A full copy of ReqGen is stored in the private backups store, read back and checked record by record. It is required, and it is how you undo a reset (Audit › Master Backup › Restore).</p>
         {backup ? (
-          <Notice tone={backupFresh ? "green" : "amber"} title={backupFresh ? "Backup verified" : "This backup is more than an hour old — take a new one"}>
-            {backup.records.toLocaleString("en-GB")} records in {backup.tables} tables · {(backup.bytes / 1024).toFixed(0)} KB · {backup.path}
+          <Notice tone={backupFresh ? "green" : "amber"} title={backupFresh ? "Backup verified" : "This backup is more than an hour old: take a new one"}>
+            {backup.records.toLocaleString("en-GB")} records in {backup.tables} tables, {(backup.bytes / 1024).toFixed(0)} KB, {backup.path}
           </Notice>
         ) : null}
         <button className="v4-btn v4-btn-secondary" type="button" disabled={!isSuperAdmin || !!busy || !!blockers.length} onClick={() => void takeBackup()}><Icon name="database" />{busy === "backup" ? "Backing up and checking…" : backupFresh ? "Take a new backup" : "Confirm with 2FA and take the backup"}</button>
@@ -232,11 +232,11 @@ export default function FinanceResetPage() {
               <tbody>
                 {history.map((h) => (
                   <tr key={h.id}>
-                    <td><span className="v4-strong">{h.reset_no}</span><span className="v4-sub">{h.reset_label} · {new Date(h.created_at).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}</span></td>
+                    <td><span className="v4-strong">{h.reset_no}</span><span className="v4-sub">{h.reset_label}, {new Date(h.created_at).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}</span></td>
                     <td data-label="Cleared">{h.scopes.join(", ")}</td>
                     <td className="v4-hide-md">{h.reason}</td>
                     <td data-label="Checked">{h.verified ? <Chip tone="green">All ₦0.00</Chip> : <Chip tone="red">Not checked</Chip>}</td>
-                    <td className="v4-hide-sm">{h.backup_path || "—"}</td>
+                    <td className="v4-hide-sm">{h.backup_path || "-"}</td>
                   </tr>
                 ))}
               </tbody>

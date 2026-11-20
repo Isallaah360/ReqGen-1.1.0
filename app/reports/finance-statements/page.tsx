@@ -95,7 +95,7 @@ function Statements() {
       g.set(k, e);
     });
     scopeSpend.forEach((x) => { const k = groupOf(x.subhead_code); const e = g.get(k) || { alloc: 0, spent: 0, names: new Map() }; e.spent += x.amount; g.set(k, e); });
-    return [...g.entries()].map(([k, e]) => ({ group: `${k} — ${[...e.names.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || k}`, alloc: e.alloc, spent: e.spent })).sort((a, b) => b.alloc - a.alloc);
+    return [...g.entries()].map(([k, e]) => ({ group: `${k}: ${[...e.names.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || k}`, alloc: e.alloc, spent: e.spent })).sort((a, b) => b.alloc - a.alloc);
   }, [scopeSubs, scopeSpend, deptName]);
 
   const sh = subs.find((s) => s.id === sub) || null;
@@ -107,7 +107,7 @@ function Statements() {
       ...moves.map((l) => ({ at: l.created_at, title: l.entry_type === "Subhead Allocation" ? "Allocation added" : "Allocation moved (transfer)", ref: String(l.description || "").split(" ")[0] || "—", debit: num(l.amount) < 0 ? -num(l.amount) : 0, credit: num(l.amount) > 0 ? num(l.amount) : 0 })),
       ...(spend || []).filter((x) => x.subhead_id === sh.id).map((x) => ({ at: x.at, title: `${x.ref}${x.detail ? ` · ${x.detail}` : ""}`, ref: x.source === "manual" ? "Manual voucher" : "Fund released", debit: x.amount, credit: 0 })),
     ].sort((a, b) => a.at.localeCompare(b.at));
-    const all = [{ at: `${fyRange(fy).from}T00:00:00`, title: `Opening allocation FY ${fyLabel(fy)}`, ref: "—", debit: 0, credit: opening }, ...lines];
+    const all = [{ at: `${fyRange(fy).from}T00:00:00`, title: `Opening allocation FY ${fyLabel(fy)}`, ref: "-", debit: 0, credit: opening }, ...lines];
     const running = all.reduce<Array<typeof all[number] & { balance: number }>>((acc, l) => { acc.push({ ...l, balance: (acc.length ? acc[acc.length - 1].balance : 0) + l.credit - l.debit }); return acc; }, []);
     return running.filter((l, i) => i === 0 || (l.at.slice(0, 10) >= from && l.at.slice(0, 10) <= to));
   }, [sh, ledger, spend, fy, from, to]);
@@ -115,9 +115,9 @@ function Statements() {
   function exportXlsx() {
     const scope = dept === "all" ? "All departments" : deptName.get(dept) || "";
     downloadXlsx(`Finance_Statements_FY_${fyLabel(fy).replace("/", "-")}`, [
-      { name: "Monthly", title: `Monthly statement — FY ${fyLabel(fy)} · ${scope}`, rows: monthly.map((r) => ({ Month: monthName(r.month), Allocation: r.alloc, "Money in": r.inn, Expenditure: r.spent, Balance: r.balance })) },
-      { name: "Annual", title: `Annual statement — FY ${fyLabel(fy)} · ${scope}`, rows: annual.map((a) => ({ "Subhead group": a.group, Allocation: a.alloc, Spent: a.spent, Balance: a.alloc - a.spent, "Used %": pct(a.spent, a.alloc) })) },
-      ...(sh ? [{ name: "Subhead", title: `Subhead statement — ${subheadLabel(sh)}`, rows: statement.map((l) => ({ Date: l.at.slice(0, 10), Details: l.title, Reference: l.ref, Debit: l.debit || null, Credit: l.credit || null, Balance: l.balance })) }] : []),
+      { name: "Monthly", title: `Monthly statement: FY ${fyLabel(fy)}, ${scope}`, rows: monthly.map((r) => ({ Month: monthName(r.month), Allocation: r.alloc, "Money in": r.inn, Expenditure: r.spent, Balance: r.balance })) },
+      { name: "Annual", title: `Annual statement: FY ${fyLabel(fy)}, ${scope}`, rows: annual.map((a) => ({ "Subhead group": a.group, Allocation: a.alloc, Spent: a.spent, Balance: a.alloc - a.spent, "Used %": pct(a.spent, a.alloc) })) },
+      ...(sh ? [{ name: "Subhead", title: `Subhead statement: ${subheadLabel(sh)}`, rows: statement.map((l) => ({ Date: l.at.slice(0, 10), Details: l.title, Reference: l.ref, Debit: l.debit || null, Credit: l.credit || null, Balance: l.balance })) }] : []),
     ]);
   }
 

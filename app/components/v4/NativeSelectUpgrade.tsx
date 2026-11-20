@@ -31,7 +31,7 @@ function eligible(el: EventTarget | null): el is HTMLSelectElement {
 function readOptions(sel: HTMLSelectElement): Opt[] {
   return Array.from(sel.options).map((o) => ({
     value: o.value,
-    label: (o.label || o.text || "").trim() || "—",
+    label: (o.label || o.text || "").trim() || "-",
     group: o.parentElement instanceof HTMLOptGroupElement ? o.parentElement.label : undefined,
     disabled: o.disabled || (o.parentElement instanceof HTMLOptGroupElement && o.parentElement.disabled),
   }));

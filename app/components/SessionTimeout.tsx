@@ -18,6 +18,8 @@ const PUBLIC_PATHS = [
   "/reset-password",
   "/mfa",
   "/mfa/setup",
+  "/app",
+  "/console",
 ];
 
 function isPublicPath(pathname: string) {

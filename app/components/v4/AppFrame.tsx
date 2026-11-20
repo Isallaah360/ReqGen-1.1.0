@@ -21,6 +21,7 @@ import Bell from "./Bell";
 import { PointerGlow, SavedHost } from "./Motion";
 import RoleSelect, { positionName } from "./RoleSelect";
 import SetupCoach from "@/app/components/SetupCoach";
+import { MeSheet, PhoneTabBar } from "./PhoneNav";
 
 const MINI_KEY = "reqgen:v4-sidebar-mini";
 
@@ -89,7 +90,7 @@ export function V4Footer() {
         </div>
         <div className="v4-mid">
           <span className="v4-auth-values"><span>Secure</span><i /><span>Reliable</span><i /><span>Accountable</span></span>
-          <span className="v4-links"><Link href="/docs">Help</Link><Link href="/docs#privacy">Privacy</Link><span>ReqGen {REQGEN_VERSION}</span></span>
+          <span className="v4-links"><Link href="/docs">Help</Link><Link href="/docs#privacy">Privacy</Link><Link href="/app">Get the Android app</Link><span>ReqGen {REQGEN_VERSION}</span></span>
         </div>
         <div className="v4-right">
           <TwoFactorChip />
@@ -192,7 +193,7 @@ function Search({ roleSet }: { roleSet: Set<string> }) {
         <div className="v4-search-results" role="listbox" id="v4-search-results">
           {results.map((r, i) => (
             <a key={r.href + r.title} href={r.href} role="option" aria-selected={i === sel} onMouseDown={(e) => { e.preventDefault(); go(r.href); }}>
-              <strong>{r.title}</strong><span>{r.module} · {r.purpose}</span>
+              <strong>{r.title}</strong><span>{r.module}, {r.purpose}</span>
             </a>
           ))}
           {!results.length ? <p>No page matches “{q.trim()}”. Press Enter to look for a request number.</p> : null}
@@ -217,6 +218,8 @@ export default function AppFrame({ children }: { children: ReactNode }) {
   const [unread, setUnread] = useState(0);
   const [hour, setHour] = useState(9);
   const [recordLabel, setRecordLabel] = useState<string | null>(null);
+  const [meOpen, setMeOpen] = useState(false);
+  const closeMe = useCallback(() => setMeOpen(false), []);
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -233,7 +236,14 @@ export default function AppFrame({ children }: { children: ReactNode }) {
     window.addEventListener("reqgen-record-label", on);
     return () => window.removeEventListener("reqgen-record-label", on);
   }, []);
-  useEffect(() => { queueMicrotask(() => { setDrawer(false); setRecordLabel(null); }); }, [pathname]);
+  useEffect(() => { queueMicrotask(() => { setDrawer(false); setRecordLabel(null); setMeOpen(false); }); }, [pathname]);
+  // v4.6.11: Escape (and the phone's back button) closes the menu drawer.
+  useEffect(() => {
+    if (!drawer) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setDrawer(false); };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [drawer]);
 
   const loadIdentity = useCallback(async () => {
     const [context, auth] = await Promise.all([getCurrentAuthContext(), supabase.auth.getUser()]);
@@ -368,6 +378,7 @@ export default function AppFrame({ children }: { children: ReactNode }) {
   ] : [];
 
   const firstName = me?.name || "";
+  const isHome = pathname === "/dashboard" || pathname === "/developer";
 
   return (
     <>
@@ -377,7 +388,7 @@ export default function AppFrame({ children }: { children: ReactNode }) {
           {isDeveloper ? (
             <Link className="v4-brand" href="/developer" style={{ color: "inherit", textDecoration: "none" }}>
               <Image src="/v4/be-logo.png" alt="Barderian Enterprises logo" width={42} height={42} priority />
-              <div><strong>ReqGen Console</strong><small>Developer · Barderian Enterprises</small></div>
+              <div><strong>ReqGen Console</strong><small>Developer, Barderian Enterprises</small></div>
             </Link>
           ) : (
             <Link className="v4-brand" href="/dashboard" style={{ color: "inherit", textDecoration: "none" }}>
@@ -402,7 +413,9 @@ export default function AppFrame({ children }: { children: ReactNode }) {
         </aside>
         <button className={`v4-backdrop ${drawer ? "v4-show" : ""}`} type="button" aria-label="Close menu" onClick={() => setDrawer(false)} tabIndex={drawer ? 0 : -1} />
         <div className="v4-stage">
-          <header className="v4-ui v4-topbar">
+          <header className={`v4-ui v4-topbar ${isHome ? "" : "v4-has-back"}`}>
+            {/* v4.6.11 phones: Back on every page that is not Home (brief §5) */}
+            {!isHome ? <button className="v4-icon-btn v4-back-btn" type="button" aria-label="Back" onClick={() => { if (window.history.length > 1) router.back(); else router.push(isDeveloper ? "/developer" : "/dashboard"); }}><Icon name="left" /></button> : null}
             <button className="v4-icon-btn v4-menu-btn" type="button" aria-label="Open menu" onClick={() => setDrawer(true)}><Icon name="menu" /></button>
             {/* One greeting per screen: the Dashboard shows its own large greeting. */}
             {pathname !== "/dashboard" ? (
@@ -420,7 +433,7 @@ export default function AppFrame({ children }: { children: ReactNode }) {
           <SetupCoach />
           <main className="v4-main" id="reqgen-main-content" data-still={pathname.startsWith("/audit-centre/logs") || pathname.startsWith("/mfa") ? "" : undefined}>
             <div className="v4-content">
-              <nav className="v4-ui v4-crumbs" aria-label="You are here">
+              <nav className="v4-ui v4-crumbs" aria-label="You are here" data-home={isHome ? "" : undefined}>
                 {crumbs.map((c, i) => {
                   const last = i === crumbs.length - 1;
                   return (
@@ -439,6 +452,8 @@ export default function AppFrame({ children }: { children: ReactNode }) {
           <PointerGlow />
         </div>
       </div>
+      <PhoneTabBar pathname={pathname} me={me} pending={pending} meOpen={meOpen} onMe={() => setMeOpen((o) => !o)} />
+      <MeSheet open={meOpen} onClose={closeMe} me={me} onSignOut={() => void signOut()} />
     </>
   );
 }

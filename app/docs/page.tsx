@@ -71,16 +71,16 @@ export default function HelpPage() {
             <h2 className="v4-h3" style={{ marginBottom: 10 }}>Privacy</h2>
             <ul style={{ margin: 0, paddingLeft: 18, color: "var(--v4-ink-2)", lineHeight: 1.7, fontSize: 13.5 }}>
               <li>A request&rsquo;s contents are seen only by the requester and the officers on its route.</li>
-              <li>Registry sees request numbers, dates, offices and people — never contents or amounts.</li>
+              <li>Registry sees request numbers, dates, offices and people: never contents or amounts.</li>
               <li>Subhead balances are shown only to the positions that need them.</li>
               <li>Every action is in the Audit Log; only the Auditor and the Super Admin can read it.</li>
-              <li>Passwords and passcodes are never stored as typed — only a scrambled copy.</li>
+              <li>Passwords and passcodes are never stored as typed: only a scrambled copy.</li>
             </ul>
           </section>
           <section className="v4-card v4-card-pad" id="about">
             <h2 className="v4-h3" style={{ marginBottom: 10 }}>About ReqGen</h2>
             <dl className="v4-kv"><dt>Version</dt><dd>{REQGEN_VERSION}</dd><dt>Made for</dt><dd>Islamic Education Trust</dd><dt>Built by</dt><dd>Barderian Enterprises</dd></dl>
-            <p className="v4-help" style={{ margin: "10px 0 0" }}>Requests, approvals, finance, payment vouchers, registry, reports and audit — role based, with signatures, the IET stamp and a full audit trail. ReqGen keeps the records; the bank moves the money.</p>
+            <p className="v4-help" style={{ margin: "10px 0 0" }}>Requests, approvals, finance, payment vouchers, registry, reports and audit: role based, with signatures, the IET stamp and a full audit trail. ReqGen keeps the records; the bank moves the money.</p>
           </section>
         </aside>
       </div>

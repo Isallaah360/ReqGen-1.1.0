@@ -21,7 +21,7 @@ function decision(r: Row): { tab: Tab; label: string; tone: ChipTone } {
 }
 
 function when(iso: string | null) {
-  if (!iso) return "—";
+  if (!iso) return "-";
   const d = new Date(iso);
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const time = d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
@@ -72,7 +72,7 @@ export default function TreatedByMePage() {
             { key: "vouchers", label: "Signed vouchers", count: counts.vouchers },
           ]} />
         </div>
-        {rows === null ? <Skeleton lines={5} /> : shown.length ? (
+        {rows === null ? <Skeleton kind="rows" lines={5} /> : shown.length ? (
           <div className="v4-table-wrap">
             <table className="v4-data v4-stack">
               <thead><tr><th className="v4-hide-sm">When</th><th>Item</th><th className="v4-r">Amount</th><th>Decision</th><th className="v4-hide-sm">As</th><th className="v4-r">Action</th></tr></thead>
@@ -83,7 +83,7 @@ export default function TreatedByMePage() {
                     <tr key={`${r.item_id}-${r.acted_at}-${i}`}>
                       <td className="v4-hide-sm">{when(r.acted_at)}</td>
                       <td><span className="v4-strong">{r.item_no || "—"}</span><span className="v4-sub">{r.title || (r.kind === "voucher" ? "Payment voucher" : "Request")}</span></td>
-                      <td className="v4-r v4-num v4-strong">{r.amount ? naira(r.amount) : "—"}</td>
+                      <td className="v4-r v4-num v4-strong">{r.amount ? naira(r.amount) : "-"}</td>
                       <td><Chip tone={d.tone}>{d.label}</Chip></td>
                       <td data-label="As" className="v4-hide-sm">{roleDisplayName(r.acted_as)}</td>
                       <td className="v4-r"><Btn small a={{ href: r.kind === "voucher" ? `/payment-vouchers/${r.item_id}` : `/requests/${r.item_id}`, label: "Open", kind: "secondary" }} /></td>

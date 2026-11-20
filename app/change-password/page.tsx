@@ -132,10 +132,10 @@ export default function ChangePasswordPage() {
             <section className="v4-card v4-card-pad">
               <h2 className="v4-h3" style={{ marginBottom: 10 }}>A good password</h2>
               <ul style={{ margin: 0, paddingLeft: 18, color: "var(--v4-ink-2)", lineHeight: 1.8, fontSize: 13.5 }}>
-                <li>At least 8 characters — 12 or more is better.</li>
+                <li>At least 8 characters: 12 or more is better.</li>
                 <li>Mix capital and small letters, numbers and a symbol.</li>
                 <li>Not used on any other website.</li>
-                <li>Never shared — the Super Admin will never ask for it.</li>
+                <li>Never shared: the Super Admin will never ask for it.</li>
               </ul>
             </section>
             <Notice tone="blue">Forgot your current password? Sign out and use “Forgot password?” on the sign-in page.</Notice>

@@ -17,7 +17,7 @@ type Rec = { id: string; record_kind: string; record_id: string | null; record_n
 type Form = { kind: string; letter: string; no: string; desc: string; category: string; keep: string; permanent: boolean; location: string };
 const PAGE = 20;
 const addYears = (y: number) => { const d = new Date(); d.setFullYear(d.getFullYear() + y); return d.toISOString().slice(0, 10); };
-const ukDate = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString("en-GB") : "—");
+const ukDate = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString("en-GB") : "-");
 
 /** Registry › Archive (mock-up 73): filed records with retention and shelf location. */
 export default function ArchivePage() {
@@ -107,7 +107,7 @@ export default function ArchivePage() {
     <V4Page>
       <PageHead title="Archive" sub="Filed records with how long they must be kept and where they are on the shelf."
         actions={[
-          { label: "Export Excel", icon: "download", kind: "secondary", disabled: !shown.length, onClick: () => downloadXlsx("Registry_Archive", [{ name: "Archive", title: "ReqGen Registry — Archive", rows: shown.map((r) => ({ Record: r.record_no, Description: r.description || "", Retention: r.category, "Keep until": r.permanent ? "Permanent" : ukDate(r.keep_until), Location: r.location || "", Archived: ukDate(r.archived_at), "Archived by": r.archived_by_label || "", Restored: ukDate(r.restored_at) })) }]) },
+          { label: "Export Excel", icon: "download", kind: "secondary", disabled: !shown.length, onClick: () => downloadXlsx("Registry_Archive", [{ name: "Archive", title: "ReqGen Registry: Archive", rows: shown.map((r) => ({ Record: r.record_no, Description: r.description || "", Retention: r.category, "Keep until": r.permanent ? "Permanent" : ukDate(r.keep_until), Location: r.location || "", Archived: ukDate(r.archived_at), "Archived by": r.archived_by_label || "", Restored: ukDate(r.restored_at) })) }]) },
           { label: "Archive a record", icon: "plus", kind: "primary", onClick: () => setForm({ kind: "letter", letter: "", no: "", desc: "", category: RETENTION[1].value, keep: addYears(3), permanent: false, location: "" }) },
         ]} />
       <PrivacyBar />
@@ -133,8 +133,8 @@ export default function ArchivePage() {
                     <tr key={r.id}>
                       <td><span className="v4-strong">{r.record_no}</span><span className="v4-sub">{r.description || r.record_kind}</span></td>
                       <td data-label="Retention">{r.category}</td>
-                      <td data-label="Keep until" className="v4-num">{r.permanent ? <Chip tone="brand">Permanent</Chip> : isDue ? <Chip tone="amber">{ukDate(r.keep_until)} · review</Chip> : ukDate(r.keep_until)}</td>
-                      <td className="v4-hide-sm">{r.location || "—"}</td>
+                      <td data-label="Keep until" className="v4-num">{r.permanent ? <Chip tone="brand">Permanent</Chip> : isDue ? <Chip tone="amber">{ukDate(r.keep_until)}, review</Chip> : ukDate(r.keep_until)}</td>
+                      <td className="v4-hide-sm">{r.location || "-"}</td>
                       <td className="v4-r">
                         {r.restored_at ? <Chip tone="blue">Taken out {ukDate(r.restored_at)}</Chip> : (
                           <span style={{ display: "inline-flex", gap: 6 }}>
@@ -158,7 +158,7 @@ export default function ArchivePage() {
           <div className="v4-form-grid">
             <div className="v4-field"><span className="v4-flabel">What</span><Select ariaLabel="What" value={form.kind} onChange={(v) => setForm({ ...form, kind: v })} options={[{ value: "letter", label: "A letter or file from Registry" }, { value: "other", label: "Another record" }]} /></div>
             {form.kind === "letter" ? (
-              <div className="v4-field"><span className="v4-flabel">Letter or file <span className="v4-req">*</span></span><Select ariaLabel="Letter or file" searchable value={form.letter} onChange={(v) => setForm({ ...form, letter: v })} placeholder="Choose" options={letters.map((l) => ({ value: l.id, label: l.reference_no || "—", hint: l.subject || undefined }))} /></div>
+              <div className="v4-field"><span className="v4-flabel">Letter or file <span className="v4-req">*</span></span><Select ariaLabel="Letter or file" searchable value={form.letter} onChange={(v) => setForm({ ...form, letter: v })} placeholder="Choose" options={letters.map((l) => ({ value: l.id, label: l.reference_no || "-", hint: l.subject || undefined }))} /></div>
             ) : (
               <>
                 <label className="v4-field"><span className="v4-flabel">Record number <span className="v4-req">*</span></span><input className="v4-input" value={form.no} onChange={(e) => setForm({ ...form, no: e.target.value })} /></label>
@@ -168,7 +168,7 @@ export default function ArchivePage() {
             <div className="v4-field v4-span-2"><span className="v4-flabel">How long it is kept <span className="v4-req">*</span></span><Select ariaLabel="How long it is kept" value={form.category} onChange={(v) => setForm(setCategory(form, v))} options={RETENTION.map((r) => ({ value: r.value, label: r.value }))} /></div>
             <label className="v4-field"><span className="v4-flabel">Keep until</span><input className="v4-input" type="date" disabled={form.permanent} value={form.keep} onChange={(e) => setForm({ ...form, keep: e.target.value })} /></label>
             <label className="v4-check" style={{ alignSelf: "end", paddingBottom: 10 }}><input type="checkbox" checked={form.permanent} onChange={(e) => setForm({ ...form, permanent: e.target.checked })} /> Keep permanently</label>
-            <label className="v4-field v4-span-2"><span className="v4-flabel">Shelf location <span className="v4-req">*</span></span><input className="v4-input" value={form.location} placeholder="Cabinet B · Shelf 2 · Box 14" onChange={(e) => setForm({ ...form, location: e.target.value })} /></label>
+            <label className="v4-field v4-span-2"><span className="v4-flabel">Shelf location <span className="v4-req">*</span></span><input className="v4-input" value={form.location} placeholder="Cabinet B, Shelf 2, Box 14" onChange={(e) => setForm({ ...form, location: e.target.value })} /></label>
           </div>
         ) : null}
       </Modal>

@@ -94,7 +94,7 @@ export default function Correspondence({ direction }: { direction: Dir }) {
     <V4Page>
       <PageHead title={title} sub={incoming ? "Letters, files and parcels received by the Trust. Acknowledge, then forward to the office." : "Letters and files leaving the Trust. Ready items go to Dispatch."}
         actions={[
-          { label: "Export Excel", icon: "download", kind: "secondary", disabled: !shown.length, onClick: () => downloadXlsx(`Registry_${title}`, [{ name: title, title: `ReqGen Registry — ${title}`, rows: shown.map((r) => ({ Reference: r.reference_no || "", Date: dated(r).slice(0, 10), Subject: r.subject || "", [incoming ? "From" : "To"]: r.from_to || "", Office: deptName.get(r.department_id || "") || "", Priority: r.priority || "Normal", Status: status(r) })) }]) },
+          { label: "Export Excel", icon: "download", kind: "secondary", disabled: !shown.length, onClick: () => downloadXlsx(`Registry_${title}`, [{ name: title, title: `ReqGen Registry: ${title}`, rows: shown.map((r) => ({ Reference: r.reference_no || "", Date: dated(r).slice(0, 10), Subject: r.subject || "", [incoming ? "From" : "To"]: r.from_to || "", Office: deptName.get(r.department_id || "") || "", Priority: r.priority || "Normal", Status: status(r) })) }]) },
           { label: `Record ${direction}`, icon: "plus", kind: "primary", onClick: () => setForm({ subject: "", party: "", dept: "", priority: "Normal", received: "", items: "1", note: "" }) },
         ]} />
       <PrivacyBar />
@@ -118,9 +118,9 @@ export default function Correspondence({ direction }: { direction: Dir }) {
                   const s = status(r);
                   return (
                     <tr key={r.id}>
-                      <td><span className="v4-strong">{r.reference_no || "—"}</span><span className="v4-sub">{when(dated(r))}</span></td>
-                      <td><span className="v4-strong">{r.subject}</span><span className="v4-sub">{incoming ? "From" : "To"} {r.from_to || "—"}{Number(r.items_count || 1) > 1 ? ` · ${r.items_count} items` : ""}</span></td>
-                      <td className="v4-hide-sm">{deptName.get(r.department_id || "") || "—"}</td>
+                      <td><span className="v4-strong">{r.reference_no || "-"}</span><span className="v4-sub">{when(dated(r))}</span></td>
+                      <td><span className="v4-strong">{r.subject}</span><span className="v4-sub">{incoming ? "From" : "To"} {r.from_to || "-"}{Number(r.items_count || 1) > 1 ? `, ${r.items_count} items` : ""}</span></td>
+                      <td className="v4-hide-sm">{deptName.get(r.department_id || "") || "-"}</td>
                       <td className="v4-hide-sm"><Chip tone={r.priority === "Urgent" ? "red" : r.priority === "Confidential" ? "brand" : "grey"}>{r.priority || "Normal"}</Chip></td>
                       <td data-label="Status"><Chip tone={TONE[s] || "grey"}>{s}</Chip>{s === "In transit" && r.dispatch_method ? <span className="v4-sub">{r.dispatch_method}</span> : null}{s === "Delivered" && r.receiver_name ? <span className="v4-sub">To {r.receiver_name}</span> : null}</td>
                       <td className="v4-r">
@@ -142,7 +142,7 @@ export default function Correspondence({ direction }: { direction: Dir }) {
         footer={<><button type="button" className="v4-btn v4-btn-ghost" onClick={() => setForm(null)} disabled={busy}>Cancel</button><button type="button" className="v4-btn v4-btn-primary" onClick={() => void save()} disabled={busy}><Icon name="check" />{busy ? "Saving…" : "Save"}</button></>}>
         {form ? (
           <div className="v4-form-grid">
-            <label className="v4-field v4-span-2"><span className="v4-flabel">What is it? <span className="v4-req">*</span></span><input className="v4-input" value={form.subject} placeholder={incoming ? "Letter — Niger State Ministry of Education" : "Reply — Ministry of Education"} onChange={(e) => setForm({ ...form, subject: e.target.value })} /></label>
+            <label className="v4-field v4-span-2"><span className="v4-flabel">What is it? <span className="v4-req">*</span></span><input className="v4-input" value={form.subject} placeholder={incoming ? "Letter: Niger State Ministry of Education" : "Reply: Ministry of Education"} onChange={(e) => setForm({ ...form, subject: e.target.value })} /></label>
             <label className="v4-field"><span className="v4-flabel">{incoming ? "From" : "To"} <span className="v4-req">*</span></span><input className="v4-input" value={form.party} onChange={(e) => setForm({ ...form, party: e.target.value })} /></label>
             <div className="v4-field"><span className="v4-flabel">{incoming ? "For office" : "From office"}</span><Select ariaLabel={incoming ? "For office" : "From office"} value={form.dept} onChange={(v) => setForm({ ...form, dept: v })} placeholder="Choose the office" options={depts.map((d) => ({ value: d.id, label: d.name }))} /></div>
             <div className="v4-field"><span className="v4-flabel">Priority</span><Select ariaLabel="Priority" value={form.priority} onChange={(v) => setForm({ ...form, priority: v })} options={["Normal", "Urgent", "Confidential"].map((p) => ({ value: p, label: p }))} /></div>

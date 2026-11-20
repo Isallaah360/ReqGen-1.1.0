@@ -71,7 +71,7 @@ export default function DeveloperConsolePage() {
         <Card title="System" link={{ href: "/admin/system-health", label: "Diagnostics" }}>
           {diag ? (
             <dl className="v4-kv" style={{ padding: "6px 18px 16px" }}>
-              <dt>Database tables</dt><dd className="v4-mono">{diag.tables} · {diag.rls_on} protected</dd>
+              <dt>Database tables</dt><dd className="v4-mono">{diag.tables}, {diag.rls_on} protected</dd>
               <dt>Tables without row security</dt><dd>{diag.rls_off?.length ? <Chip tone="amber">{diag.rls_off.length}</Chip> : <Chip tone="green">None</Chip>}</dd>
               <dt>Audit events today</dt><dd className="v4-mono">{diag.audit_events_today}</dd>
               <dt>Last nightly backup</dt><dd>{whenText(diag.last_nightly?.at)}</dd>
@@ -83,7 +83,7 @@ export default function DeveloperConsolePage() {
           {diag ? (
             <ul className="v4-can v4-yes" style={{ padding: "8px 18px 16px", margin: 0 }}>
               {diag.checks.map((c) => <li key={c.label}><Icon name={c.count ? "alert" : "check"} /><span>{c.label}: <b>{c.count}</b></span></li>)}
-              <li><Icon name={differences ? "alert" : "check"} /><span>Finance totals that differ from their records: <b>{differences ?? "—"}</b></span></li>
+              <li><Icon name={differences ? "alert" : "check"} /><span>Finance totals that differ from their records: <b>{differences ?? "-"}</b></span></li>
             </ul>
           ) : <div className="v4-card-body"><Skeleton lines={6} /></div>}
         </Card>
@@ -91,7 +91,7 @@ export default function DeveloperConsolePage() {
 
       <Card title="Every module of the Trust's ReqGen">
         <div className="v4-card-body">
-          <p className="v4-help" style={{ marginTop: 0 }}>You can open every page. Money decisions — raising, approving, signing, stamping and paying — stay with the Trust&rsquo;s officers, and everything this account does is written to the Audit Log.</p>
+          <p className="v4-help" style={{ marginTop: 0 }}>You can open every page. Money decisions: raising, approving, signing, stamping and paying: stay with the Trust&rsquo;s officers, and everything this account does is written to the Audit Log.</p>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
             {MODULES.map((m) => {
               const isOff = off.some((s) => s.label === m.label || (s.module_key === "vouchers" && m.key === "payment-vouchers"));

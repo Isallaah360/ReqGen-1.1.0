@@ -48,14 +48,14 @@ export default function CompliancePage() {
     { label: "Passed", value: run ? run.passed : "…", note: `of ${results.length || 12} checks`, icon: "check", tone: "green" },
     { label: "To check", value: run ? run.warnings : "…", note: "Warnings", icon: "alert", tone: "amber" },
     { label: "Failed", value: run ? run.failed : "…", note: "Needs action", icon: "x", tone: "red" },
-    { label: "Last run", value: run ? new Date(run.run_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : "…", note: run ? `${new Date(run.run_at).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })}${run.run_by_label ? ` · ${run.run_by_label}` : ""}` : undefined, icon: "clock", tone: "blue" },
+    { label: "Last run", value: run ? new Date(run.run_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : "…", note: run ? `${new Date(run.run_at).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })}${run.run_by_label ? `, ${run.run_by_label}` : ""}` : undefined, icon: "clock", tone: "blue" },
   ];
   const order = { fail: 0, warn: 1, pass: 2 };
 
   return (
     <V4Page>
       <PageHead title="Compliance" sub="Automatic checks on vouchers, signatures, budgets and security. They run the first time the page is opened each day and when you press Run now. Each line opens the records behind it."
-        scope={`Your view: whole Trust · ${me.roleName}`}
+        scope={`Your view: whole Trust, ${me.roleName}`}
         actions={[
           { label: busy ? "Running…" : "Run now", icon: "returned", kind: "secondary", onClick: () => void runNow(), disabled: busy },
           { label: "Print A4", icon: "printer", kind: "primary", onClick: () => window.print(), disabled: !run },

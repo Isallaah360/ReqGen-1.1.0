@@ -18,6 +18,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // v4.6.11: the Android app project (built on the laptop with MAKE_APP.bat)
+    "mobile/**",
   ]),
 ]);
 

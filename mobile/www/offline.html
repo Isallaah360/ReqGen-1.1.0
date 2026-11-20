@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ReqGen is offline</title>
+<style>
+:root{--bg:#F7F2EA;--card:#FFFFFF;--ink:#1C2B5A;--mute:#5B6482;--btn:#FF7A1A}
+@media (prefers-color-scheme:dark){:root{--bg:#0E1530;--card:#18234A;--ink:#F2F4FA;--mute:#A3ACCB;--btn:#FF8A33}}
+body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg);color:var(--ink);font-family:Inter,"Segoe UI",Roboto,system-ui,sans-serif;padding:24px;box-sizing:border-box;text-align:center}
+main{max-width:340px;display:flex;flex-direction:column;align-items:center;gap:12px}
+.logo{width:96px;height:96px;border-radius:24px;background:#fff;display:grid;place-items:center}
+.logo img{width:84px;height:84px}
+h1{margin:6px 0 0;font-size:22px}
+p{margin:0;color:var(--mute);line-height:1.5}
+button{margin-top:10px;min-height:52px;width:100%;border:0;border-radius:14px;background:var(--btn);color:#1C2B5A;font:700 16px inherit;cursor:pointer}
+small{color:var(--mute);margin-top:18px;line-height:1.6}
+</style>
+</head>
+<body>
+<main>
+<div class="logo"><img src="iet-logo.png" alt="Islamic Education Trust logo"></div>
+<h1>You are offline</h1>
+<p>ReqGen needs the network to open your requests. Check your data or Wi-Fi, then try again.</p>
+<button type="button" onclick="location.href='https://reqgen.barderians.com.ng/dashboard'">Try again</button>
+<small>ReqGen app for the Islamic Education Trust<br>Developed by Barderian Enterprises<br>WhatsApp 0803 119 7746, info@barderians.com.ng</small>
+</main>
+</body>
+</html>

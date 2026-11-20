@@ -17,7 +17,7 @@ type Dept = { id: string; name: string };
 /** Positions whose holder signs letters or vouchers: a signature must be on file first. */
 const SIGNS = new Set(["dg", "generalsecretary", "director", "dod", "hod", "pd", "dinadmin", "registrar", "hrcoordinator", "accountofficer", "auditor", "pvcountersigner"]);
 const DEPT_POSITIONS = new Set(["DOD", "HOD", "PD"]);
-const monthYear = (d: string | null) => (d ? new Date(d).toLocaleDateString("en-GB", { month: "short", year: "numeric" }) : "—");
+const monthYear = (d: string | null) => (d ? new Date(d).toLocaleDateString("en-GB", { month: "short", year: "numeric" }) : "-");
 
 /** Administration › Staff record (mock-up 82). */
 export default function StaffRecordPage({ params }: { params: Promise<{ id: string }> }) {
@@ -137,7 +137,7 @@ export default function StaffRecordPage({ params }: { params: Promise<{ id: stri
     await act("Saving", () => adminApi(`/api/admin/users/${id}`, "PATCH", body), "Details saved.");
   }
 
-  const status = [person.is_active ? "Active" : "Deactivated", person.has_2fa ? "2FA on" : "2FA off", person.fingerprints ? "fingerprint on" : "no fingerprint"].join(" · ");
+  const status = [person.is_active ? "Active" : "Deactivated", person.has_2fa ? "2FA on" : "2FA off", person.fingerprints ? "fingerprint on" : "no fingerprint"].join(", ");
   const lines = [
     ...held.map((h) => ({ when: h.def.code === "DG" ? "Approving and stamping as the Director General:" : `Acting as ${h.def.name}:`, as: `${h.def.name}${DEPT_POSITIONS.has(h.def.code) ? `, ${deptName}` : h.def.code === "ACC" ? "" : h.def.group === "Offices" ? ", IET" : ""}` })),
     { when: "Raising their own request:", as: `Staff, ${deptName}` },
@@ -151,7 +151,7 @@ export default function StaffRecordPage({ params }: { params: Promise<{ id: stri
             <span className="v4-avatar" style={{ width: 64, height: 64, fontSize: 20, cursor: "default", flex: "none" }}>{initials(name)}</span>
             <div style={{ minWidth: 0 }}>
               <h1 className="v4-page-title">{name}</h1>
-              <div className="v4-meta"><span>Email <b>{person.email}</b></span><span>Department <b>{person.dept_name || "—"}</b></span><span>Since <b>{monthYear(person.created_at)}</b></span></div>
+              <div className="v4-meta"><span>Email <b>{person.email}</b></span><span>Department <b>{person.dept_name || "-"}</b></span><span>Since <b>{monthYear(person.created_at)}</b></span></div>
               <div className="v4-pos" style={{ marginTop: 10 }}><span className="v4-pchip v4-staff">Staff</span>{held.map((h) => <span key={h.def.code} className={`v4-pchip v4-${h.def.chip}`}>{h.def.name}{h.def.one ? <span className="v4-one">ONE</span> : null}</span>)}</div>
             </div>
           </div>
@@ -190,9 +190,9 @@ export default function StaffRecordPage({ params }: { params: Promise<{ id: stri
           </section>
           <section className="v4-card v4-card-pad">
             <h2 className="v4-h2" style={{ marginBottom: 6 }}>How their name shows</h2>
-            <p className="v4-help" style={{ margin: "0 0 14px" }}>ReqGen always writes the position they acted in — on requests, vouchers, letters, notifications and the Audit Log.</p>
+            <p className="v4-help" style={{ margin: "0 0 14px" }}>ReqGen always writes the position they acted in: on requests, vouchers, letters, notifications and the Audit Log.</p>
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {lines.map((l) => <div key={l.when} className="v4-actline"><em>{l.when}</em><br /><b>{name}</b> — {l.as}</div>)}
+              {lines.map((l) => <div key={l.when} className="v4-actline"><em>{l.when}</em><br /><b>{name}</b>: {l.as}</div>)}
             </div>
           </section>
         </div>
@@ -201,7 +201,7 @@ export default function StaffRecordPage({ params }: { params: Promise<{ id: stri
       <section className="v4-card v4-card-pad">
         <h2 className="v4-h2" style={{ marginBottom: 12 }}>Sign-in and devices</h2>
         <dl className="v4-kv" style={{ maxWidth: 560 }}>
-          <dt>2FA</dt><dd>{person.has_2fa ? "On · every 12 hours" : "Not set up yet"}</dd>
+          <dt>2FA</dt><dd>{person.has_2fa ? "On, every 12 hours" : "Not set up yet"}</dd>
           <dt>Fingerprint</dt><dd>{person.fingerprints ? `On · ${person.fingerprints} device${person.fingerprints === 1 ? "" : "s"}` : "Off"}</dd>
           <dt>Passcode</dt><dd>{person.passcodes ? `Set on ${person.passcodes} device${person.passcodes === 1 ? "" : "s"}` : "None"}</dd>
           <dt>Signature</dt><dd>{person.has_signature ? "On file" : "Not added yet"}</dd>
@@ -214,7 +214,7 @@ export default function StaffRecordPage({ params }: { params: Promise<{ id: stri
             {!isSystem ? <button className={`v4-btn ${person.is_active ? "v4-btn-danger" : "v4-btn-primary"}`} type="button" disabled={busy} onClick={() => void toggleActive()}><Icon name={person.is_active ? "x" : "check"} />{person.is_active ? "Deactivate" : "Reactivate"}</button> : null}
             {!isSystem && !person.is_active && iAmSuperAdmin ? <button className="v4-btn v4-btn-danger" type="button" disabled={busy} onClick={() => void openDelete()}><Icon name="trash" />Delete permanently</button> : null}
           </div>
-        ) : <p className="v4-help" style={{ marginTop: 14 }}>This is your own account — change your sign-in in My Account › Security &amp; Devices.</p>}
+        ) : <p className="v4-help" style={{ marginTop: 14 }}>This is your own account: change your sign-in in My Account › Security &amp; Devices.</p>}
       </section>
 
       <Modal open={!!addPos} title={`Give ${name} a position`} sub="Staff stays. The new position is added on top." onClose={() => setAddPos(null)} busy={busy}

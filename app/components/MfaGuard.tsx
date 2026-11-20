@@ -8,7 +8,7 @@ import { checkMfaWindow, signOutForExpiredWindow, startMfaWindow, storedWindowEn
 
 const PUBLIC_PATHS = new Set([
   "/", "/login", "/signup", "/forgot-password", "/reset-password",
-  "/mfa", "/mfa/setup", "/unauthorized",
+  "/mfa", "/mfa/setup", "/unauthorized", "/app", "/console",
 ]);
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));

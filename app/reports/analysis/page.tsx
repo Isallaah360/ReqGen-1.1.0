@@ -77,15 +77,15 @@ function Analysis() {
   const stats: StatItem[] = [
     { label: tier === "mine" ? "Paid to you" : "Money out", value: rows ? nairaShort(sum(outNow)) : "…", note: change === null ? "Nothing to compare" : `${change >= 0 ? "+" : ""}${change}% on ${prevLabel}`, icon: "upload", tone: "brand" },
     ...(tier !== "mine" ? [{ label: "Money in", value: rows ? nairaShort(sum(inNow)) : "…", note: "Allocations, transfers", icon: "download", tone: "green" as const }] : []),
-    { label: "Vouchers paid", value: rows ? vouchers : "…", note: vouchers ? `Avg ${nairaShort(sum(outNow) / vouchers)}` : "—", icon: "card", tone: "blue" },
+    { label: "Vouchers paid", value: rows ? vouchers : "…", note: vouchers ? `Avg ${nairaShort(sum(outNow) / vouchers)}` : "-", icon: "card", tone: "blue" },
     { label: "Request to payment", value: rows ? (dNow === null ? "—" : `${dNow.toFixed(1)} days`) : "…", note: dBefore === null ? "From submission to paid" : `Was ${dBefore.toFixed(1)} days`, icon: "clock", tone: "amber" },
   ];
 
   function exportXlsx() {
     downloadXlsx(`Analysis_${month}`, [
       { name: "Last 12 months", title: `Money out per month, to ${monthName(month)}`, rows: trend.map((t) => ({ Month: monthName(t.month), "Money out": t.value })) },
-      { name: "By expense group", title: `By expense group — ${label}`, rows: byGroup.map((g) => ({ Group: g.label, Amount: g.value })) },
-      { name: "By department", title: `By department — ${label}`, rows: byDept.map((g) => ({ Department: g.label, Amount: g.value })) },
+      { name: "By expense group", title: `By expense group: ${label}`, rows: byGroup.map((g) => ({ Group: g.label, Amount: g.value })) },
+      { name: "By department", title: `By department: ${label}`, rows: byDept.map((g) => ({ Department: g.label, Amount: g.value })) },
     ]);
   }
 

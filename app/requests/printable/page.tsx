@@ -35,7 +35,7 @@ export default function PrintRegisterPage() {
         if (e && /could not find the function|schema cache/i.test(e.message)) {
           // before the v4.4.0 database step: the v3.1.9 register (requests only, no print counts)
           const old = await supabase.rpc("reqgen_print_register");
-          setError(old.error ? `${old.error.message} — run database/v3_1_9_print_register_tracker.sql, then v4_4_0_reports.sql.` : null);
+          setError(old.error ? `${old.error.message}: run database/v3_1_9_print_register_tracker.sql, then v4_4_0_reports.sql.` : null);
           setRows(((old.data || []) as Array<{ id: string; request_no: string; is_mine: boolean; treated_by_me: boolean; treated_by_accounts: boolean; treated_by_name: string | null; treated_at: string | null }>).map((r) => ({
             tab: r.is_mine ? "mine" : r.treated_by_me ? "treated_by_me" : "all_treated", doc_kind: "request", doc_id: r.id, doc_no: r.request_no, label: "Request letter", for_name: "", times_printed: 0, last_printed: null, last_by: null, link: `/requests/${r.id}/print`,
           })));
@@ -65,12 +65,12 @@ export default function PrintRegisterPage() {
   ];
 
   function exportXlsx() {
-    downloadXlsx("Print_Register", [{ name: "Print register", title: "ReqGen — Print register", rows: shown.map((r) => ({ Document: r.doc_no, Kind: r.label, For: r.for_name, "Times printed": r.times_printed, "Last printed": r.last_printed ? new Date(r.last_printed).toLocaleString("en-GB") : "", By: r.last_by || "" })) }]);
+    downloadXlsx("Print_Register", [{ name: "Print register", title: "ReqGen: Print register", rows: shown.map((r) => ({ Document: r.doc_no, Kind: r.label, For: r.for_name, "Times printed": r.times_printed, "Last printed": r.last_printed ? new Date(r.last_printed).toLocaleString("en-GB") : "", By: r.last_by || "" })) }]);
   }
 
   return (
     <V4Page>
-      <PageHead title="Print Register" sub="Every printed request, voucher and report — what, for whom, how many times and by whom." scope={tier ? scopeLabel(tier, me.roleName) : undefined}
+      <PageHead title="Print Register" sub="Every printed request, voucher and report: what, for whom, how many times and by whom." scope={tier ? scopeLabel(tier, me.roleName) : undefined}
         actions={[{ label: "Export Excel", icon: "download", kind: "secondary", onClick: exportXlsx, disabled: !shown.length }]} />
       {error ? <Notice tone="amber">{error}</Notice> : null}
       <Card>
@@ -88,10 +88,10 @@ export default function PrintRegisterPage() {
                 {shown.slice((page - 1) * PAGE, page * PAGE).map((r, i) => (
                   <tr key={`${r.doc_kind}-${r.doc_id || r.doc_no}-${i}`}>
                     <td><span className="v4-strong">{r.doc_no}</span><span className="v4-sub">{r.label}</span></td>
-                    <td data-label="For">{r.for_name || "—"}</td>
+                    <td data-label="For">{r.for_name || "-"}</td>
                     <td className="v4-r v4-num">{r.times_printed}</td>
                     <td className="v4-hide-sm">{r.last_printed ? new Date(r.last_printed).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "Not printed yet"}</td>
-                    <td className="v4-hide-sm v4-hide-md">{r.last_by || "—"}</td>
+                    <td className="v4-hide-sm v4-hide-md">{r.last_by || "-"}</td>
                     <td className="v4-r">{r.link ? <Btn small a={{ href: r.link, label: "Print", icon: "printer", kind: "secondary" }} /> : null}</td>
                   </tr>
                 ))}

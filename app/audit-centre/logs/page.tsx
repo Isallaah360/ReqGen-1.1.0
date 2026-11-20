@@ -60,7 +60,7 @@ function AuditLog() {
 
   return (
     <V4Page>
-      <PageHead title="Audit Log" sub="One log for everything — sign-ins, approvals, signatures, stamps, edits and settings. Entries can’t be changed or deleted."
+      <PageHead title="Audit Log" sub="One log for everything: sign-ins, approvals, signatures, stamps, edits and settings. Entries can’t be changed or deleted."
         actions={[{ label: "Export CSV", icon: "download", kind: "secondary", disabled: !shown.length, onClick: () => downloadCsv(`ReqGen_Audit_Log_${new Date().toISOString().slice(0, 10)}.csv`, shown.map((r) => ({ Time: new Date(r.at).toLocaleString("en-GB"), User: r.actor_label || "", Action: r.action, Record: r.record_no || "", Module: r.module, Device: r.device || "" }))) }]} />
       {error ? <Notice tone="red">{error}</Notice> : null}
       <Card>
@@ -92,9 +92,9 @@ function AuditLog() {
                       <td><span className="v4-strong" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         {r.category === "stamp" ? <img className="v4-iet-stamp" src="/v4/iet-stamp.png" alt="" style={{ position: "static", width: 22, height: 22 }} /> : null}{r.action}</span></td>
-                      <td data-label="Record">{r.record_no || "—"}</td>
+                      <td data-label="Record">{r.record_no || "-"}</td>
                       <td className="v4-hide-sm v4-hide-md">{r.module}</td>
-                      <td className="v4-hide-sm">{r.device || "—"}</td>
+                      <td className="v4-hide-sm">{r.device || "-"}</td>
                     </tr>
                   );
                 })}
@@ -104,7 +104,7 @@ function AuditLog() {
         ) : <p className="v4-muted" style={{ padding: 20, margin: 0 }}>No event in this period.</p>}
         <Pager page={page} pageSize={PAGE} total={shown.length} onPage={setPage} label="events" />
       </Card>
-      <Notice tone="blue">Comments and request contents are not copied into the log — it records who did what, to which number, and when.</Notice>
+      <Notice tone="blue">Comments and request contents are not copied into the log: it records who did what, to which number, and when.</Notice>
     </V4Page>
   );
 }

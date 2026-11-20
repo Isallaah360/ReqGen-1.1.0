@@ -64,7 +64,7 @@ function Ledgers() {
       supabase.from("finance_transactions").select("id,account_id,subhead_id,request_id,voucher_id,transaction_type,transaction_no,amount,narration,transaction_date,created_at").order("created_at", { ascending: true }).limit(20000),
     ]);
     const err = [a.error, t.error, b.error, f.error].filter(Boolean).map((e) => e!.message);
-    setError(err.length ? err.join(" · ") : null);
+    setError(err.length ? err.join(", ") : null);
     const acc = (a.data || []) as Account[];
     setAccounts(acc);
     setSubs((s.data || []) as Subhead[]);
@@ -84,7 +84,7 @@ function Ledgers() {
     if (view === "subhead") {
       const alloc = bank.filter((r) => r.subhead_id === subheadId).map((r) => ({
         key: `b${r.id}`, at: r.created_at, ref: /^TRF-/.test(String(r.description || "")) ? String(r.description || "").split(" ")[0] : "Allocation",
-        text: `${r.entry_type || "Allocation"} — ${r.description || ""}`, inAmt: num(r.amount) > 0 ? num(r.amount) : 0, outAmt: num(r.amount) < 0 ? -num(r.amount) : 0,
+        text: `${r.entry_type || "Allocation"}: ${r.description || ""}`, inAmt: num(r.amount) > 0 ? num(r.amount) : 0, outAmt: num(r.amount) < 0 ? -num(r.amount) : 0,
       }));
       const pays = fin.filter((r) => r.subhead_id === subheadId).map((r) => ({
         key: `f${r.id}`, at: r.created_at || r.transaction_date || "", ref: r.transaction_no || "Payment", text: r.narration || r.transaction_type || "Payment",
@@ -95,7 +95,7 @@ function Ledgers() {
     }
     const pick = (id: string | null) => view === "all" || id === accountId;
     const tx = accTx.filter((r) => pick(r.account_id)).map((r) => ({
-      key: `t${r.id}`, at: r.created_at, ref: r.reference_no || r.reference_type || "—", text: r.narration || r.transaction_type || "",
+      key: `t${r.id}`, at: r.created_at, ref: r.reference_no || r.reference_type || "-", text: r.narration || r.transaction_type || "",
       inAmt: isOut(r.transaction_type) ? 0 : num(r.amount), outAmt: isOut(r.transaction_type) ? num(r.amount) : 0,
       account: accName.get(r.account_id), link: refLink(r.reference_type, r.reference_id, r.reference_no),
     }));

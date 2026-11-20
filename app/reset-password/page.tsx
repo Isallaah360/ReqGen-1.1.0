@@ -74,8 +74,8 @@ function Content() {
   return (
     <PublicAuthShell title="Reset your password" subtitle="Choose a new password for ReqGen." showHomeLink={false}>
       <div className="v4-segmented" role="tablist" style={{ alignSelf: "center" }}>
-        <button type="button" role="tab" aria-selected="false" disabled>1 · Get the link</button>
-        <button type="button" role="tab" aria-selected="true">2 · New password</button>
+        <button type="button" role="tab" aria-selected="false" disabled>1, Get the link</button>
+        <button type="button" role="tab" aria-selected="true">2, New password</button>
       </div>
       {state === "checking" ? <p className="v4-muted" style={{ textAlign: "center" }}>Checking the link…</p> : state === "bad" ? (
         <div className="v4-auth-form">

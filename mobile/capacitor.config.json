@@ -1,0 +1,29 @@
+{
+  "appId": "ng.com.barderians.reqgen",
+  "appName": "ReqGen",
+  "webDir": "www",
+  "server": {
+    "url": "https://reqgen.barderians.com.ng",
+    "androidScheme": "https",
+    "errorPath": "offline.html",
+    "cleartext": false
+  },
+  "android": {
+    "allowMixedContent": false,
+    "backgroundColor": "#FFFFFF"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 1800,
+      "launchAutoHide": true,
+      "backgroundColor": "#FFFFFF",
+      "androidScaleType": "CENTER_INSIDE",
+      "showSpinner": false
+    },
+    "StatusBar": {
+      "style": "LIGHT",
+      "backgroundColor": "#F7F2EA",
+      "overlaysWebView": false
+    }
+  }
+}

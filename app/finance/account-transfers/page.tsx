@@ -122,7 +122,7 @@ function Transfers() {
 
   return (
     <V4Page>
-      <PageHead title="Transfers" sub="Record a move of money between IET accounts or between subheads. ReqGen does not move money — it records the decision. The bank does the transfer."
+      <PageHead title="Transfers" sub="Record a move of money between IET accounts or between subheads. ReqGen does not move money: it records the decision. The bank does the transfer."
         actions={[
           { label: "Export CSV", icon: "download", kind: "secondary", disabled: !shown.length, onClick: () => downloadCsv("Transfers.csv", shown.map((t) => ({ Transfer: t.transfer_no, Date: shortDate(t.created_at), Kind: t.kind === "account" ? "Between IET accounts" : "Between subheads", From: t.from_label, To: t.to_label, Amount: Number(t.amount), Status: t.status, "Started by": t.initiated_label || "", "Checked by": t.checked_label || "", "Approved by": t.approved_label || "" }))) },
           ...(isOfficer ? [{ label: "New transfer", icon: "plus", kind: "primary" as const, onClick: () => setForm({ kind: "account", from: "", to: "", amount: "", narration: "", ref: "" }) }] : []),
@@ -132,10 +132,10 @@ function Transfers() {
       {msg ? <Notice tone={msg.tone}>{msg.text}</Notice> : null}
       <section className="v4-card v4-card-pad"><h2 className="v4-h3" style={{ marginBottom: 10 }}>Every transfer follows the same order</h2>
         <ol className="v4-chain">
-          <li className={isOfficer ? "v4-now" : "v4-done"}><span className="v4-st">1 · Initiated</span><strong>Account Officer</strong><span className="v4-r">Fills the form and signs</span></li>
-          <li className={isAuditor ? "v4-now" : "v4-done"}><span className="v4-st">2 · Checked</span><strong>Auditor</strong><span className="v4-r">Patricia Michael</span></li>
-          <li className={isDG ? "v4-now" : "v4-wait"}><span className="v4-st">3 · Approved</span><strong>Director General</strong><span className="v4-r">Signs and applies the IET stamp (General Secretary when the DG is away)</span></li>
-          <li className="v4-wait"><span className="v4-st">4 · Recorded</span><strong>Ledgers updated</strong><span className="v4-r">Only after the DG approves</span></li>
+          <li className={isOfficer ? "v4-now" : "v4-done"}><span className="v4-st">1, Initiated</span><strong>Account Officer</strong><span className="v4-r">Fills the form and signs</span></li>
+          <li className={isAuditor ? "v4-now" : "v4-done"}><span className="v4-st">2, Checked</span><strong>Auditor</strong><span className="v4-r">Patricia Michael</span></li>
+          <li className={isDG ? "v4-now" : "v4-wait"}><span className="v4-st">3, Approved</span><strong>Director General</strong><span className="v4-r">Signs and applies the IET stamp (General Secretary when the DG is away)</span></li>
+          <li className="v4-wait"><span className="v4-st">4, Recorded</span><strong>Ledgers updated</strong><span className="v4-r">Only after the DG approves</span></li>
         </ol>
       </section>
       {mine.length ? <Notice tone="amber">{mine.length} transfer{mine.length === 1 ? " is" : "s are"} waiting for you.</Notice> : null}
@@ -204,7 +204,7 @@ function Transfers() {
         {open ? (
           <>
             <Chip tone={TRANSFER_TONE[open.status] || "grey"}>{open.status === "Approved" ? "Approved · stamped" : open.status}</Chip>
-            <p style={{ margin: 0 }}>{open.narration}{open.external_reference ? ` · Bank ref ${open.external_reference}` : ""}</p>
+            <p style={{ margin: 0 }}>{open.narration}{open.external_reference ? `, Bank ref ${open.external_reference}` : ""}</p>
             <p className="v4-help">{nairaInWords(open.amount)}</p>
             <ol className="v4-chain">
               <li className="v4-done"><span className="v4-st">Initiated</span><strong>{open.initiated_label || "Account Officer"}</strong><em>{shortDate(open.initiated_at)}</em></li>

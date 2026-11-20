@@ -229,7 +229,7 @@ function ManualVoucher() {
 
   return (
     <V4Page>
-      <PageHead title={voucherNo ? `Manual Voucher · ${voucherNo}` : "Manual Voucher"} sub="For a payment with no request (bank charges, utilities, emergencies). It follows the same signing order." />
+      <PageHead title={voucherNo ? `Manual Voucher, ${voucherNo}` : "Manual Voucher"} sub="For a payment with no request (bank charges, utilities, emergencies). It follows the same signing order." />
       {posted ? <Notice tone="amber" title="This voucher is already posted.">Amount, account, subhead and payee are locked. You can correct the narration, mode and reference. To change the money, cancel it and prepare a new one.</Notice> : null}
       {msg ? <Notice tone={msg.tone}>{msg.text}</Notice> : null}
       <div className="v4-split">
@@ -240,7 +240,7 @@ function ManualVoucher() {
             <div className="v4-field"><span className="v4-flabel">IET account <span className="v4-req">*</span></span><Select ariaLabel="IET account" disabled={posted} value={account} onChange={(v) => { setAccount(v); setSubhead(""); }} placeholder="Choose the account" options={accountOpts} /></div>
             <div className="v4-field"><span className="v4-flabel">Subhead <span className="v4-req">*</span></span><Select ariaLabel="Subhead" searchable disabled={posted || !dept} value={subhead} onChange={setSubhead} placeholder={dept ? (subOpts.length ? "Choose the subhead" : "No subhead for this account") : "Choose the department first"} options={subOpts.map((s) => ({ value: s.id, label: subheadLabel(s), hint: `left ${nairaExact(subheadLeft(s))}` }))} /></div>
             <div className="v4-field"><span className="v4-flabel">Reason for a manual voucher <span className="v4-req">*</span></span><Select ariaLabel="Reason" value={reason} onChange={setReason} placeholder="Choose the reason" options={REASONS.map((r) => ({ value: r, label: r }))} /></div>
-            <div className="v4-field v4-span-2"><span className="v4-flabel">Preparing as <span className="v4-req">*</span></span><Select ariaLabel="Preparing as" value={section} onChange={setSection} placeholder="Choose the section" options={SECTIONS.map((s) => ({ value: s, label: `Account Officer — ${s}` }))} /><span className="v4-help">Printed on the voucher: “Prepared by {me.name || "you"} — Account Officer{section ? `, ${section}` : ""}”.</span></div>
+            <div className="v4-field v4-span-2"><span className="v4-flabel">Preparing as <span className="v4-req">*</span></span><Select ariaLabel="Preparing as" value={section} onChange={setSection} placeholder="Choose the section" options={SECTIONS.map((s) => ({ value: s, label: `Account Officer: ${s}` }))} /><span className="v4-help">Printed on the voucher: “Prepared by {me.name || "you"}: Account Officer{section ? `, ${section}` : ""}”.</span></div>
           </div>
 
           <div className="v4-section-title" style={{ marginTop: 22 }}><span className="v4-no">2</span><h2 className="v4-h2">Payee and payment</h2></div>
@@ -256,7 +256,7 @@ function ManualVoucher() {
 
           <div className="v4-section-title" style={{ marginTop: 22 }}><span className="v4-no">3</span><h2 className="v4-h2">Attachment</h2></div>
           <input ref={fileInput} type="file" accept="application/pdf,image/*" multiple hidden onChange={(e) => { addFiles(e.target.files); e.target.value = ""; }} />
-          <button type="button" className="v4-dropzone v4-dropzone-btn" onClick={() => fileInput.current?.click()}><Icon name="upload" /><span>Add the bill or receipt · PDF or picture</span></button>
+          <button type="button" className="v4-dropzone v4-dropzone-btn" onClick={() => fileInput.current?.click()}><Icon name="upload" /><span>Add the bill or receipt, PDF or picture</span></button>
           {files.length ? <ul className="v4-files">{files.map((f, i) => <li key={`${f.name}-${i}`}><span className="v4-fi">{f.type.includes("pdf") ? "PDF" : "IMG"}</span><span className="v4-ft"><strong>{f.name}</strong><span>{Math.ceil(f.size / 1024)} KB · uploads when you save</span></span><button type="button" className="v4-btn v4-btn-ghost" onClick={() => setFiles((all) => all.filter((_, j) => j !== i))}>Remove</button></li>)}</ul> : null}
 
           <div className="v4-form-actions">
@@ -270,9 +270,9 @@ function ManualVoucher() {
           <section className="v4-card v4-card-pad">
             <h3 className="v4-h3" style={{ marginBottom: 10 }}>Live check</h3>
             <dl className="v4-kv">
-              <dt>{acc ? accountName(acc) : "Account"}</dt><dd className="v4-num">{acc ? nairaExact(accFree) : "—"}</dd>
-              <dt>{sub ? `${subheadLabel(sub)} left` : "Subhead left"}</dt><dd className="v4-num">{sub ? nairaExact(subFree) : "—"}</dd>
-              <dt>After this voucher</dt><dd className="v4-num">{sub && amt > 0 ? nairaExact(subFree - amt) : "—"}</dd>
+              <dt>{acc ? accountName(acc) : "Account"}</dt><dd className="v4-num">{acc ? nairaExact(accFree) : "-"}</dd>
+              <dt>{sub ? `${subheadLabel(sub)} left` : "Subhead left"}</dt><dd className="v4-num">{sub ? nairaExact(subFree) : "-"}</dd>
+              <dt>After this voucher</dt><dd className="v4-num">{sub && amt > 0 ? nairaExact(subFree - amt) : "-"}</dd>
             </dl>
             {acc && sub && amt > 0 ? (
               <div className={`v4-livecheck ${covered ? "v4-lc-ok" : "v4-lc-no"}`} style={{ marginTop: 12 }}>
@@ -286,7 +286,7 @@ function ManualVoucher() {
             {drafts === null ? <Skeleton lines={2} /> : drafts.length ? (
               <ul className="v4-files">
                 {drafts.map((d) => (
-                  <li key={d.id}><span className="v4-fi v4-x">MPV</span><span className="v4-ft"><strong>{d.voucher_no} · {d.narration || d.payee_name}</strong><span>{nairaExact(d.total_amount || d.amount)} · saved {shortDate(d.updated_at || d.created_at)}</span></span><Link className="v4-btn v4-btn-ghost" href={`/payment-vouchers/manual?id=${d.id}`}>Open</Link></li>
+                  <li key={d.id}><span className="v4-fi v4-x">MPV</span><span className="v4-ft"><strong>{d.voucher_no}, {d.narration || d.payee_name}</strong><span>{nairaExact(d.total_amount || d.amount)}, saved {shortDate(d.updated_at || d.created_at)}</span></span><Link className="v4-btn v4-btn-ghost" href={`/payment-vouchers/manual?id=${d.id}`}>Open</Link></li>
                 ))}
               </ul>
             ) : <p className="v4-help" style={{ margin: 0 }}>No draft.</p>}

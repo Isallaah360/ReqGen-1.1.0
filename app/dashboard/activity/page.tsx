@@ -85,8 +85,8 @@ export default function RecentActivityPage() {
                     <li key={m.id}>
                       <span className={`v4-ti v4-t-${x.tone}`}><Icon name={x.icon} /></span>
                       <span>
-                        <strong>{isRegistry ? no : <Link href={`/requests/${m.request_id}`}>{no}</Link>} · {x.text}</strong>
-                        <span>{m.actor_name || "Someone"}{m.actor_role_name ? ` · ${positionName(m.actor_role_name, m.actor_role_name)}` : ""}</span>
+                        <strong>{isRegistry ? no : <Link href={`/requests/${m.request_id}`}>{no}</Link>}, {x.text}</strong>
+                        <span>{m.actor_name || "Someone"}{m.actor_role_name ? `, ${positionName(m.actor_role_name, m.actor_role_name)}` : ""}</span>
                       </span>
                       <span className="v4-time">{new Date(m.created_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}</span>
                     </li>

@@ -88,8 +88,8 @@ export default function DepartmentsPage() {
   }, []);
   useEffect(() => { if (me.ready) queueMicrotask(() => { void load(); }); }, [me.ready, load]);
 
-  const nameOf = useMemo(() => new Map(people.map((p) => [p.id, p.full_name || p.email || "—"])), [people]);
-  const who = (id: string | null | undefined) => (id ? nameOf.get(id) || "Name not available" : "—");
+  const nameOf = useMemo(() => new Map(people.map((p) => [p.id, p.full_name || p.email || "-"])), [people]);
+  const who = (id: string | null | undefined) => (id ? nameOf.get(id) || "Name not available" : "-");
   const staffIn = useMemo(() => { const m = new Map<string, number>(); people.forEach((p) => p.dept_id && m.set(p.dept_id, (m.get(p.dept_id) || 0) + 1)); return m; }, [people]);
   const accName = useMemo(() => new Map(accounts.map((a) => [a.id, a.name])), [accounts]);
   const routeFor = (deptId: string) => routing.find((r) => r.dept_id === deptId && r.is_active !== false);
@@ -100,19 +100,19 @@ export default function DepartmentsPage() {
     const hod = ownerAt(d.id, "HOD") || d.hod_user_id; if (hod) parts.push(`${who(hod)} (HOD)`);
     const pd = ownerAt(d.id, "PD") || d.pd_id; if (pd) parts.push(`${who(pd)} (PD)`);
     const din = officers.find((o) => o.dept_id === d.id && o.stage === "DIN Admin")?.user_id || ownerAt(d.id, "DIN Admin"); if (din) parts.push(`${who(din)} (DIN Admin)`);
-    return parts.join(" · ") || "—";
+    return parts.join(", ") || "-";
   };
-  const dod = (d: Dept) => { const id = ownerAt(d.id, "DOD") || d.director_user_id; return id ? who(id) : "—"; };
-  const paysFrom = (d: Dept) => { const r = routeFor(d.id); return r ? `${accName.get(r.iet_account_id) || "Account"} · ${who(r.officer_user_id)}` : "Not set"; };
+  const dod = (d: Dept) => { const id = ownerAt(d.id, "DOD") || d.director_user_id; return id ? who(id) : "-"; };
+  const paysFrom = (d: Dept) => { const r = routeFor(d.id); return r ? `${accName.get(r.iet_account_id) || "Account"}, ${who(r.officer_user_id)}` : "Not set"; };
   /** The account's own Account Officer (Finance › Officer Assignment), used when an account is chosen. */
   const officerOf = (accountId: string) => assign.find((x) => x.account_id === accountId)?.officer_user_id || "";
-  const fundHint = (a: Account) => `${a.bank_name ? `${a.bank_name} · ` : ""}${Number(a.total_fund) > 0 ? `${naira(a.total_fund, { compact: true })} fund` : "no fund yet"}`;
+  const fundHint = (a: Account) => `${a.bank_name ? `${a.bank_name}, ` : ""}${Number(a.total_fund) > 0 ? `${naira(a.total_fund, { compact: true })} fund` : "no fund yet"}`;
   /** The line under "Pays from account": what the chosen account holds. */
   const fundLine = (id: string) => {
     const a = accounts.find((x) => x.id === id);
     if (!a) return "Funded accounts are listed first. The account’s own Account Officer is filled in for you.";
     if (!(Number(a.total_fund) > 0)) return `${a.name} has no fund yet (not allocated). Set its fund in Finance › Manage Accounts.`;
-    return `Fund ${nairaExact(a.total_fund)} · Given to subheads ${nairaExact(a.allocated_amount)} · Balance ${nairaExact(Math.max(0, Number(a.total_fund) - Number(a.allocated_amount || 0)))}`;
+    return `Fund ${nairaExact(a.total_fund)}, Given to subheads ${nairaExact(a.allocated_amount)}, Balance ${nairaExact(Math.max(0, Number(a.total_fund) - Number(a.allocated_amount || 0)))}`;
   };
   const shown = (depts || []).filter((d) => showOff || d.is_active !== false);
 
@@ -158,10 +158,10 @@ export default function DepartmentsPage() {
     }
   }
 
-  const peopleOptions = [{ value: "", label: "Nobody" }, ...people.map((p) => ({ value: p.id, label: p.full_name || p.email || "—" }))];
+  const peopleOptions = [{ value: "", label: "Nobody" }, ...people.map((p) => ({ value: p.id, label: p.full_name || p.email || "-" }))];
   const isAccountOfficer = (id: string) => people.some((p) => p.id === id && p.officer) || assign.some((a) => a.officer_user_id === id);
   const officerOptions = [...people].sort((x, y) => Number(isAccountOfficer(y.id)) - Number(isAccountOfficer(x.id)) || String(x.full_name).localeCompare(String(y.full_name)))
-    .map((p) => ({ value: p.id, label: p.full_name || p.email || "—", group: isAccountOfficer(p.id) ? "Account Officers" : "Everyone else" }));
+    .map((p) => ({ value: p.id, label: p.full_name || p.email || "-", group: isAccountOfficer(p.id) ? "Account Officers" : "Everyone else" }));
   const sections = accounts.map((a) => ({
     a, officers: [...new Set(assign.filter((x) => x.account_id === a.id).map((x) => x.officer_user_id))].map((id) => who(id)),
     depts: (depts || []).filter((d) => routing.some((r) => r.dept_id === d.id && r.iet_account_id === a.id && r.is_active !== false)).map((d) => d.name),
@@ -181,7 +181,7 @@ export default function DepartmentsPage() {
         {depts === null ? <Skeleton lines={8} /> : (
           <div className="v4-table-wrap">
             <table className="v4-data v4-stack">
-              <thead><tr><th>Department</th><th>Director (DOD)</th><th>Head / PD / DIN Admin</th><th>Pays from (account · Account Officer)</th><th className="v4-r">Action</th></tr></thead>
+              <thead><tr><th>Department</th><th>Director (DOD)</th><th>Head / PD / DIN Admin</th><th>Pays from (account, Account Officer)</th><th className="v4-r">Action</th></tr></thead>
               <tbody>
                 {shown.map((d) => (
                   <tr key={d.id}>
@@ -200,12 +200,12 @@ export default function DepartmentsPage() {
       </Card>
       <section className="v4-card v4-card-pad">
         <h2 className="v4-h2" style={{ marginBottom: 12 }}>Account sections and their Account Officers</h2>
-        <p className="v4-help" style={{ margin: "0 0 14px" }}>When an Account Officer prepares a voucher, ReqGen writes which account it is for — e.g. “Prepared by Nasir Garba — Account Officer, DIN”. Account lists show the account name only — no payment words like POS, cash or transfer.</p>
+        <p className="v4-help" style={{ margin: "0 0 14px" }}>When an Account Officer prepares a voucher, ReqGen writes which account it is for: e.g. “Prepared by Nasir Garba: Account Officer, DIN”. Account lists show the account name only: no payment words like POS, cash or transfer.</p>
         {sections.length ? (
           <div className="v4-bankcards">
             {sections.map((s) => (
               <article key={s.a.id} className="v4-bankcard">
-                <div className="v4-top"><span><strong>{s.a.name}</strong><span>{s.depts.length ? s.depts.join(" · ") : s.a.bank_name || ""}</span></span></div>
+                <div className="v4-top"><span><strong>{s.a.name}</strong><span>{s.depts.length ? s.depts.join(", ") : s.a.bank_name || ""}</span></span></div>
                 <span className="v4-pos">{s.officers.length ? s.officers.map((o) => <span key={o} className="v4-pchip v4-office">{o}</span>) : <span className="v4-chip v4-chip-amber">No Account Officer</span>}</span>
               </article>
             ))}
@@ -213,7 +213,7 @@ export default function DepartmentsPage() {
         ) : <p className="v4-muted" style={{ margin: 0 }}>No account has an Account Officer yet. Assign them in Finance › Officer Assignment.</p>}
       </section>
 
-      <Modal open={!!form} wide title={form?.id ? `Edit ${form.name || "department"}` : "Add department"} sub={form?.id ? "Changing the director, head or PD starts a new route version — requests already moving keep the route they started with." : "Add its officers after saving."} onClose={() => setForm(null)} busy={busy}
+      <Modal open={!!form} wide title={form?.id ? `Edit ${form.name || "department"}` : "Add department"} sub={form?.id ? "Changing the director, head or PD starts a new route version: requests already moving keep the route they started with." : "Add its officers after saving."} onClose={() => setForm(null)} busy={busy}
         footer={<><button type="button" className="v4-btn v4-btn-ghost" onClick={() => setForm(null)} disabled={busy}>Cancel</button><button type="button" className="v4-btn v4-btn-primary" onClick={() => void save()} disabled={busy}><Icon name="check" />{busy ? "Saving…" : "Save"}</button></>}>
         {form ? (
           <div className="v4-form-grid">
@@ -223,7 +223,7 @@ export default function DepartmentsPage() {
               <>
                 <div className="v4-field"><span className="v4-flabel">Director (DOD)</span><Select ariaLabel="Director (DOD)" searchable value={form.dod} onChange={(v) => setForm({ ...form, dod: v })} options={peopleOptions} /></div>
                 <div className="v4-field"><span className="v4-flabel">Head (HOD)</span><Select ariaLabel="Head (HOD)" searchable value={form.hod} onChange={(v) => setForm({ ...form, hod: v })} options={peopleOptions} /></div>
-                <div className="v4-field"><span className="v4-flabel">PD · Program Director</span><Select ariaLabel="PD" searchable value={form.pd} onChange={(v) => setForm({ ...form, pd: v })} options={peopleOptions} /></div>
+                <div className="v4-field"><span className="v4-flabel">PD, Program Director</span><Select ariaLabel="PD" searchable value={form.pd} onChange={(v) => setForm({ ...form, pd: v })} options={peopleOptions} /></div>
                 <div className="v4-field" />
               </>
             ) : null}

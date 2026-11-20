@@ -248,7 +248,7 @@ function RoutingEngine() {
               </div>
               <span className="v4-help" style={{ margin: 0 }}>{view === "official" ? "Requests raised for the Trust's work." : "Personal Fund and Personal Other requests raised by staff for themselves."}</span>
             </div>
-            <div style={{ margin: "12px 20px 0" }}><Notice tone="green">These are your <b>current live routes</b>, read straight from the Routing Engine tables. v4 keeps them exactly as they are — only the label “PO” now reads “PD” and “HR” reads “HR Coordinator”. A vacant step is <b>skipped</b>, never blocked, unless it is set to hold.</Notice></div>
+            <div style={{ margin: "12px 20px 0" }}><Notice tone="green">These are your <b>current live routes</b>, read straight from the Routing Engine tables. v4 keeps them exactly as they are: only the label “PO” now reads “PD” and “HR” reads “HR Coordinator”. A vacant step is <b>skipped</b>, never blocked, unless it is set to hold.</Notice></div>
             {groups.map((g) => (
               <div key={g.depts.map((d) => d.id).join()} className="v4-routecard">
                 <div className="v4-rh">
@@ -267,7 +267,7 @@ function RoutingEngine() {
               </div>
             ))}
             <div className="v4-routecard">
-              <div className="v4-rh"><strong>Payment vouchers · all accounts</strong></div>
+              <div className="v4-rh"><strong>Payment vouchers, all accounts</strong></div>
               <div className="v4-route">
                 {routeStep("Account", "prepares", false, "p1")}{arrow("p2")}
                 <span className="v4-st"><b>Auditor</b><small>{auditor}</small></span>{arrow("p3")}
@@ -281,7 +281,7 @@ function RoutingEngine() {
 
         {overview && tab === "officers" ? (
           <div className="v4-card-pad">
-            <p className="v4-help" style={{ margin: "0 0 14px" }}>Officers who act for the whole Trust. Department officers (DOD, HOD, PD) are set on each department’s route — press <b>Change</b> on the Routes tab, or edit the department.</p>
+            <p className="v4-help" style={{ margin: "0 0 14px" }}>Officers who act for the whole Trust. Department officers (DOD, HOD, PD) are set on each department’s route: press <b>Change</b> on the Routes tab, or edit the department.</p>
             <div className="v4-form-grid">
               {INSTITUTION.map((i) => {
                 const pos = positionFor(i.position);
@@ -289,7 +289,7 @@ function RoutingEngine() {
                 const locked = pos?.one && only.length === 1 && (draft[i.key] || "") === only[0].id;
                 return (
                   <div key={i.key} className="v4-field"><span className="v4-flabel">{i.label}</span>
-                    {locked ? <span className="v4-locked"><Icon name="lock" size="sm" />{only[0].full_name} · one holder</span>
+                    {locked ? <span className="v4-locked"><Icon name="lock" size="sm" />{only[0].full_name}, one holder</span>
                       : <Select ariaLabel={i.label} searchable value={draft[i.key] || ""} onChange={(v) => setDraft({ ...draft, [i.key]: v })} options={personOptions(i.position, "Not set")} />}
                     {pos?.one && only.length === 1 && !locked ? <span className="v4-help">{only[0].full_name} holds this position. <button type="button" className="v4-link" onClick={() => setDraft({ ...draft, [i.key]: only[0].id })}>Use {only[0].full_name}</button></span> : null}
                   </div>
@@ -311,7 +311,7 @@ function RoutingEngine() {
                     <tr key={d.id}>
                       <td className="v4-strong">{d.name}</td>
                       <td data-label="Paid from">{acc ? <><span className="v4-strong">{acc.name}</span><span className="v4-sub">{acc.bank_name}</span></> : <span className="v4-chip v4-chip-amber">Not set</span>}</td>
-                      <td data-label="Account Officer">{r ? nameOf.get(r.officer_user_id) || "—" : "—"}</td>
+                      <td data-label="Account Officer">{r ? nameOf.get(r.officer_user_id) || "-" : "-"}</td>
                       <td className="v4-r"><button className="v4-btn v4-btn-secondary" type="button" style={{ minHeight: 38 }} onClick={() => setAccForm({ deptId: d.id, account: r?.iet_account_id || "", officer: r?.officer_user_id || "" })}>Change</button></td>
                     </tr>
                   );
@@ -326,7 +326,7 @@ function RoutingEngine() {
             <p className="v4-help" style={{ margin: 0 }}>When someone is marked <b>Away</b>, their steps go to the next person below. ReqGen writes “for the DG” (or the officer covered) beside the name.</p>
             <div className="v4-routecard" style={{ padding: "0 0 14px" }}>
               <div className="v4-rh"><strong>Director General away</strong></div>
-              <div className="v4-route"><span className="v4-st v4-dg"><b>DG</b><small>{nameOf.get(dgId) || "Not set"}{isAwayToday(availability.get(dgId)) ? " · away" : ""}</small></span>{arrow("dg1")}<span className="v4-st"><b>General Secretary</b><small>{nameOf.get(gsId) || "Not set"} · signs and stamps for the DG</small></span></div>
+              <div className="v4-route"><span className="v4-st v4-dg"><b>DG</b><small>{nameOf.get(dgId) || "Not set"}{isAwayToday(availability.get(dgId)) ? ", away" : ""}</small></span>{arrow("dg1")}<span className="v4-st"><b>General Secretary</b><small>{nameOf.get(gsId) || "Not set"}, signs and stamps for the DG</small></span></div>
             </div>
             {cfg ? (
               <>
@@ -347,7 +347,7 @@ function RoutingEngine() {
                     {(DEPT_ONLY as EngineStage[]).map((stage) => (
                       <article key={stage} className="v4-bankcard">
                         <div className="v4-top"><span><strong>{stage}</strong><span>Primary: {nameOf.get(routeOf(backupDept, overview, officers).officers[stage as OfficerStage]) || "Not set"}</span></span></div>
-                        {backupsFor(backupDept, stage).map((b) => <span key={b.id} className="v4-pchip v4-office" style={{ justifyContent: "space-between" }}>{b.label || "Backup"} · {nameOf.get(b.user_id) || "Officer"}<button type="button" className="v4-link" aria-label="Remove backup" onClick={() => void removeBackup(b.id)} disabled={busy}><Icon name="x" size="sm" /></button></span>)}
+                        {backupsFor(backupDept, stage).map((b) => <span key={b.id} className="v4-pchip v4-office" style={{ justifyContent: "space-between" }}>{b.label || "Backup"}, {nameOf.get(b.user_id) || "Officer"}<button type="button" className="v4-link" aria-label="Remove backup" onClick={() => void removeBackup(b.id)} disabled={busy}><Icon name="x" size="sm" /></button></span>)}
                         <Select size="compact" ariaLabel={`Add ${stage} backup`} value="" placeholder={`+ Add ${stage} backup`} onChange={(v) => void addBackup(backupDept, stage, v)} options={personOptions(stage === "DOD" ? "director" : stage.toLowerCase()).filter((o) => o.value)} disabled={busy} />
                       </article>
                     ))}
@@ -364,7 +364,7 @@ function RoutingEngine() {
                           <tr key={id}>
                             <td className="v4-strong">{nameOf.get(id)}</td>
                             <td data-label="Status">{now ? <span className="v4-chip v4-chip-amber">Away</span> : av?.is_away ? <span className="v4-chip v4-chip-blue">Away later</span> : <span className="v4-chip v4-chip-green">Available</span>}</td>
-                            <td className="v4-hide-sm">{av?.is_away ? `${av.away_from || "now"} → ${av.away_until || "until further notice"}${av.note ? ` · ${av.note}` : ""}` : "—"}</td>
+                            <td className="v4-hide-sm">{av?.is_away ? `${av.away_from || "now"} → ${av.away_until || "until further notice"}${av.note ? `, ${av.note}` : ""}` : "-"}</td>
                             <td className="v4-r">{av?.is_away
                               ? <button className="v4-btn v4-btn-secondary" type="button" style={{ minHeight: 38 }} disabled={busy} onClick={() => void markBack(id)}>Mark available</button>
                               : <button className="v4-btn v4-btn-secondary" type="button" style={{ minHeight: 38 }} disabled={busy} onClick={() => setAway({ id, from: "", until: "", note: "" })}>Mark away</button>}</td>

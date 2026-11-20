@@ -1,5 +1,6 @@
 "use client";
 
+import { isApp } from "@/lib/app/native";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import QRCode from "qrcode";
@@ -50,7 +51,7 @@ export default function MfaSetupPage() {
         if (aal?.currentLevel !== "aal2") { router.push("/mfa"); return; }
         setConnected(true);
       }
-      setFpOk(await fingerprintAvailable());
+      setFpOk(!isApp() && (await fingerprintAvailable()));
       setLoading(false);
     })();
   }, [router]);

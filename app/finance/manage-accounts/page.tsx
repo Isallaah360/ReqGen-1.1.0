@@ -42,11 +42,11 @@ export default function BankAccountsPage() {
     if (a.error) setMsg({ tone: "red", text: "Accounts could not be loaded: " + a.error.message });
     setRows((a.data || []) as Account[]);
     setAssign((s.data || []) as Assignment[]);
-    setPeople(Object.fromEntries(((p.data || []) as Person[]).map((x) => [x.id, x.full_name || x.email || "—"])));
+    setPeople(Object.fromEntries(((p.data || []) as Person[]).map((x) => [x.id, x.full_name || x.email || "-"])));
   }, []);
   useEffect(() => { queueMicrotask(() => { void load(); }); }, [load]);
 
-  const officerOf = useMemo(() => new Map(assign.map((x) => [x.account_id, people[x.officer_user_id] || "—"])), [assign, people]);
+  const officerOf = useMemo(() => new Map(assign.map((x) => [x.account_id, people[x.officer_user_id] || "-"])), [assign, people]);
   const banks = useMemo(() => [...new Set((rows || []).map((r) => r.bank_name).filter(Boolean) as string[])].sort(), [rows]);
   const filtered = useMemo(() => {
     const t = q.trim().toLowerCase();
@@ -127,7 +127,7 @@ export default function BankAccountsPage() {
           <div className="v4-field"><span className="v4-flabel">Status</span><Select size="compact" ariaLabel="Status" value={status} onChange={(v) => { setStatus(v); setPage(1); }} options={[{ value: "all", label: "All" }, { value: "active", label: "Active" }, { value: "inactive", label: "Inactive" }]} /></div>
           <button className="v4-btn v4-btn-ghost" type="button" onClick={() => { setQ(""); setBank("all"); setStatus("all"); setFilter(""); setPage(1); }}><Icon name="returned" />Reset</button>
         </div>
-        {rows === null ? <Skeleton lines={6} /> : paged.length ? (
+        {rows === null ? <Skeleton kind="rows" lines={6} /> : paged.length ? (
           <div className="v4-table-wrap">
             <table className="v4-data v4-stack">
               <thead><tr><th>Account</th><th className="v4-r">Available</th><th>Officer</th><th className="v4-r v4-hide-sm">Total fund</th><th>Status</th><th className="v4-r">Action</th></tr></thead>
@@ -138,7 +138,7 @@ export default function BankAccountsPage() {
                     <tr key={r.id}>
                       <td><span className="v4-strong">{accountName(r)}</span><span className="v4-sub">{accountSub(r)}</span></td>
                       <td className="v4-r v4-num v4-strong">{naira(accountAvailable(r))}</td>
-                      <td data-label="Officer">{officer || "—"}</td>
+                      <td data-label="Officer">{officer || "-"}</td>
                       <td className="v4-r v4-num v4-hide-sm">{naira(r.total_fund)}</td>
                       <td>{r.is_active === false ? <Chip tone="grey">Inactive</Chip> : officer ? <Chip tone="green">Active</Chip> : <Chip tone="amber">No officer</Chip>}</td>
                       <td className="v4-r">

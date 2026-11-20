@@ -13,14 +13,14 @@ const CLS = { y: "v4-y", route: "v4-o", own: "v4-o", view: "v4-o", n: "v4-n" } a
  */
 export default function PermissionsPage() {
   const exportRows = () => downloadXlsx("Permissions_Matrix", [{
-    name: "Permissions", title: "ReqGen — Permissions matrix",
+    name: "Permissions", title: "ReqGen: Permissions matrix",
     rows: MATRIX.flatMap((g) => g.rows.map((r) => ({ Group: g.group, Action: r.action, ...Object.fromEntries(MATRIX_COLUMNS.map((c, i) => [c, CELL_TEXT[r.cells[i]]])) }))),
   }]);
   return (
     <V4Page>
       <PageHead title="Permissions Matrix" sub="What each position can see and do. This is the only place permissions are shown."
         actions={[{ label: "Export Excel", icon: "download", kind: "secondary", onClick: exportRows }]} />
-      <Notice tone="blue">These are the rules ReqGen enforces on every page and in the database. They change only with a release from the Developer, after the Trust agrees — so nobody can widen their own access by mistake.</Notice>
+      <Notice tone="blue">These are the rules ReqGen enforces on every page and in the database. They change only with a release from the Developer, after the Trust agrees: so nobody can widen their own access by mistake.</Notice>
       <Card>
         <div className="v4-matrix-wrap">
           <table className="v4-matrix">
@@ -40,8 +40,8 @@ export default function PermissionsPage() {
           <span><b style={{ color: "#B26A00" }}>route</b> Only when the request is routed to them</span>
           <span><b style={{ color: "#B26A00" }}>own</b> Only their own</span>
           <span><b style={{ color: "#B26A00" }}>view</b> Can look, not change</span>
-          <span><b style={{ color: "#B8C1CF" }}>—</b> Not allowed</span>
-          <span>GS = General Secretary (acts for the DG when away) · PA = PA to the DG · HRC = HR Coordinator · Rgy = Registry · SA = Super Admin · Dev = Developer</span>
+          <span><b style={{ color: "#B8C1CF" }}>: </b> Not allowed</span>
+          <span>GS = General Secretary (acts for the DG when away), PA = PA to the DG, HRC = HR Coordinator, Rgy = Registry, SA = Super Admin, Dev = Developer</span>
         </div>
       </Card>
     </V4Page>

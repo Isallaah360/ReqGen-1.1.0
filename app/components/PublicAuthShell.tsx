@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import Icon from "@/app/components/v4/Icon";
+import { useApp } from "@/lib/app/useApp";
 
 /**
  * ReqGen v4 public card (home, sign-in, 2FA, create account, reset): IET logo,
@@ -23,6 +24,7 @@ export default function PublicAuthShell({
   steps?: { total: number; current: number };
   wide?: boolean;
 }) {
+  const { app } = useApp();
   return (
     <main className="v4-ui v4-public">
       <section className={`v4-auth-card ${wide ? "v4-wide" : ""}`}>
@@ -35,8 +37,8 @@ export default function PublicAuthShell({
           </div>
         ) : null}
         <div className="v4-auth-form auth-body">{children}</div>
-        {showHomeLink ? <Link href="/" className="v4-back-home"><Icon name="left" size="sm" /> Back to Homepage</Link> : null}
-        <PublicFoot />
+        {showHomeLink && !app ? <Link href="/" className="v4-back-home"><Icon name="left" size="sm" /> Back to Homepage</Link> : null}
+        {app ? <AppFoot /> : <PublicFoot />}
       </section>
     </main>
   );
@@ -52,9 +54,23 @@ export function PublicFoot() {
       </div>
       <div className="v4-contact-row">
         <a href="https://barderians.com.ng" target="_blank" rel="noreferrer"><Icon name="info" size="sm" />barderians.com.ng</a>
+        <a href="https://wa.me/2348031197746" target="_blank" rel="noreferrer"><Icon name="phone" size="sm" />WhatsApp 0803 119 7746</a>
         <a href="mailto:info@barderians.com.ng"><Icon name="mail" size="sm" />info@barderians.com.ng</a>
       </div>
       <span>© {new Date().getFullYear()} Islamic Education Trust. All rights reserved.</span>
+    </div>
+  );
+}
+
+/** v4.6.11: the app's own short footer (brief §7): the year, the app version and the developer. */
+export function AppFoot() {
+  const { version } = useApp();
+  return (
+    <div className="v4-app-foot">
+      <div>© {new Date().getFullYear()} Islamic Education Trust</div>
+      <div>ReqGen app {version || ""}</div>
+      <div>Developed by <b>Barderian Enterprises</b></div>
+      <div><a href="https://wa.me/2348031197746" target="_blank" rel="noreferrer">WhatsApp 0803 119 7746</a>, <a href="mailto:info@barderians.com.ng">info@barderians.com.ng</a></div>
     </div>
   );
 }

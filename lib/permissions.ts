@@ -15,6 +15,8 @@ export const PUBLIC_PATHS = [
   "/mfa",
   "/mfa/setup",
   "/unauthorized",
+  "/app",
+  "/console",
 ];
 
 /**
@@ -101,7 +103,7 @@ export const ROUTE_POLICIES: RoutePolicy[] = [
  */
 export const ROUTE_DENIALS: Array<{ pattern: RegExp; roles: string[]; reason: string }> = [
   {
-    pattern: /^\/requests\/(?!(?:new|mine)(?:\/|$))[^/]+(?:\/.*)?$/,
+    pattern: /^\/requests\/(?!(?:new|mine|direct)(?:\/|$))[^/]+(?:\/.*)?$/,
     roles: ["registry"],
     reason: "Registry tracks request movement only and cannot open request contents.",
   },

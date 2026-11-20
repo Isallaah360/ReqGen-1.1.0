@@ -1,5 +1,6 @@
 "use client";
 
+import { isApp } from "@/lib/app/native";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -68,7 +69,7 @@ export default function SecurityDevicesPage() {
 
   useEffect(() => {
     queueMicrotask(() => { void load(); });
-    void fingerprintAvailable().then(setCanFp);
+    void (isApp() ? Promise.resolve(false) : fingerprintAvailable()).then(setCanFp); // v4.6.11: the app turns it on in Me
     const t = window.setInterval(() => setNow(Date.now()), 60_000);
     return () => window.clearInterval(t);
   }, [load]);
@@ -120,7 +121,7 @@ export default function SecurityDevicesPage() {
   const stats: StatItem[] = [
     { label: "Two-factor (2FA)", value: loading ? "…" : hasTotp ? "On" : "Off", note: hasTotp ? "Authenticator app" : "Set it up now", icon: "shield", tone: hasTotp ? "green" : "red" },
     { label: "Fingerprint", value: creds === null ? "—" : creds.length ? `${creds.length} device${creds.length === 1 ? "" : "s"}` : "Not set", note: creds?.length ? "One-touch sign-in" : "Add this device", icon: "fingerprint", tone: "brand" },
-    { label: "This session", value: windowEnd ? clock(windowEnd) : "—", note: windowEnd ? `Ends in ${hours} h ${mins} min` : "2FA window", icon: "clock", tone: "blue" },
+    { label: "This session", value: windowEnd ? clock(windowEnd) : "-", note: windowEnd ? `Ends in ${hours} h ${mins} min` : "2FA window", icon: "clock", tone: "blue" },
     { label: "Passcode", value: thisDevice ? "On" : "Not set", note: thisDevice ? "On this device" : "For faster sign-in", icon: "key", tone: "amber", href: "/profile/passcode" },
   ];
 
@@ -150,7 +151,7 @@ export default function SecurityDevicesPage() {
             {(creds || []).map((c) => (
               <div key={c.id} className="v4-device">
                 <span className="v4-di"><Icon name="fingerprint" /></span>
-                <span className="v4-dt"><strong>{c.device_name || "Device"}</strong><span>Added {shortDate(c.created_at)} · {lastUsed(c.last_used_at)}</span></span>
+                <span className="v4-dt"><strong>{c.device_name || "Device"}</strong><span>Added {shortDate(c.created_at)}, {lastUsed(c.last_used_at)}</span></span>
                 <button className="v4-btn v4-btn-ghost" type="button" style={{ color: "var(--v4-red)" }} onClick={() => void dropFingerprint(c)} disabled={busy}>Remove</button>
               </div>
             ))}
@@ -163,7 +164,7 @@ export default function SecurityDevicesPage() {
             <h2 className="v4-h2" style={{ marginBottom: 4 }}>Authenticator app and password</h2>
             <div className="v4-device">
               <span className="v4-di"><Icon name="smartphone" /></span>
-              <span className="v4-dt"><strong>Authenticator app</strong><span>{hasTotp ? "Connected · used for 6-digit codes" : "Not connected"}</span></span>
+              <span className="v4-dt"><strong>Authenticator app</strong><span>{hasTotp ? "Connected, used for 6-digit codes" : "Not connected"}</span></span>
               {hasTotp ? <Link className="v4-btn v4-btn-secondary" href="/profile/security/replace-authenticator">Replace</Link> : <Link className="v4-btn v4-btn-primary" href="/mfa/setup">Set up</Link>}
             </div>
             <div className="v4-device">
@@ -172,7 +173,7 @@ export default function SecurityDevicesPage() {
               <Link className="v4-btn v4-btn-secondary" href="/change-password">Change</Link>
             </div>
             {hasTotp && !aal2 ? <div style={{ marginTop: 12 }}><Btn a={{ href: "/mfa?next=/profile/security", label: "Confirm with 2FA code", kind: "ghost", icon: "shield" }} /></div> : null}
-            <div className="v4-notice v4-notice-amber" style={{ marginTop: 12 }}><Icon name="alert" /><span>Replacing the authenticator or changing the password <b>signs out every device</b> — including anyone using a stolen password.</span></div>
+            <div className="v4-notice v4-notice-amber" style={{ marginTop: 12 }}><Icon name="alert" /><span>Replacing the authenticator or changing the password <b>signs out every device</b>: including anyone using a stolen password.</span></div>
           </section>
         </div>
 
@@ -181,7 +182,7 @@ export default function SecurityDevicesPage() {
             {(devices || []).map((d) => (
               <div key={d.id} className="v4-device">
                 <span className="v4-di"><Icon name={/phone|android|iphone/i.test(d.device_name || "") ? "smartphone" : "laptop"} /></span>
-                <span className="v4-dt"><strong>{d.device_name || "Device"}</strong><span>Added {shortDate(d.created_at)} · {lastUsed(d.last_used_at)}</span></span>
+                <span className="v4-dt"><strong>{d.device_name || "Device"}</strong><span>Added {shortDate(d.created_at)}, {lastUsed(d.last_used_at)}</span></span>
                 {d.id === thisDevice ? <Chip tone="green">This device</Chip> : null}
                 <button className="v4-btn v4-btn-ghost" type="button" style={{ color: "var(--v4-red)" }} onClick={() => void dropDevice(d)} disabled={busy}>Remove</button>
               </div>
@@ -194,7 +195,7 @@ export default function SecurityDevicesPage() {
               <li><Icon name="check" /><span><b>Fingerprint</b> signs you in and counts as your 2FA check.</span></li>
               <li><Icon name="check" /><span><b>Passcode</b> replaces your password on one trusted device. 2FA is still asked every {rules.stayHours} hours.</span></li>
               <li><Icon name="check" /><span><b>Password + 2FA code</b> work on any device.</span></li>
-              <li><Icon name="check" /><span>Signing, stamping and paying always need your fingerprint or 2FA code — never the passcode alone.</span></li>
+              <li><Icon name="check" /><span>Signing, stamping and paying always need your fingerprint or 2FA code: never the passcode alone.</span></li>
             </ul>
           </Card>
         </div>

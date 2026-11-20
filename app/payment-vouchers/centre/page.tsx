@@ -100,17 +100,17 @@ function VoucherCentre() {
         {rows === null ? <Skeleton lines={8} /> : paged.length ? (
           <div className="v4-table-wrap">
             <table className="v4-data v4-stack">
-              <thead><tr><th>Voucher</th><th className="v4-r">Amount</th><th>Payee · narration</th><th className="v4-hide-md">Department</th><th>Mode</th><th>Status</th><th className="v4-hide-md">Now with</th><th className="v4-r">Action</th></tr></thead>
+              <thead><tr><th>Voucher</th><th className="v4-r">Amount</th><th>Payee, narration</th><th className="v4-hide-md">Department</th><th>Mode</th><th>Status</th><th className="v4-hide-md">Now with</th><th className="v4-r">Action</th></tr></thead>
               <tbody>
                 {paged.map((v) => {
                   const chip = pvChip(v.status);
                   return (
                     <tr key={v.id}>
-                      <td><span className="v4-strong">{v.voucher_no || "—"}</span><span className="v4-sub">{shortDate(v.created_at)}{isManual(v) ? " · manual" : ""}</span></td>
+                      <td><span className="v4-strong">{v.voucher_no || "-"}</span><span className="v4-sub">{shortDate(v.created_at)}{isManual(v) ? ", manual" : ""}</span></td>
                       <td className="v4-r v4-num v4-strong">{naira(pvAmount(v))}</td>
-                      <td data-label="Payee"><span className="v4-strong">{String(v.payee_name || "—").toUpperCase()}</span><span className="v4-sub">{Number(v.item_count || 1) > 1 ? `${v.item_count} requests${Number(v.payee_count || 1) > 1 ? " · Transfer schedule" : ""}` : v.narration || ""}</span></td>
-                      <td className="v4-hide-sm v4-hide-md">{v.dept_name || (Number(v.item_count || 1) > 1 ? "Multiple" : "—")}</td>
-                      <td className="v4-hide-sm">{v.disbursement_mode || "—"}</td>
+                      <td data-label="Payee"><span className="v4-strong">{String(v.payee_name || "-").toUpperCase()}</span><span className="v4-sub">{Number(v.item_count || 1) > 1 ? `${v.item_count} requests${Number(v.payee_count || 1) > 1 ? ", Transfer schedule" : ""}` : v.narration || ""}</span></td>
+                      <td className="v4-hide-sm v4-hide-md">{v.dept_name || (Number(v.item_count || 1) > 1 ? "Multiple" : "-")}</td>
+                      <td className="v4-hide-sm">{v.disbursement_mode || "-"}</td>
                       <td><Chip tone={chip.tone}>{chip.label}</Chip></td>
                       <td data-label="Now with" className="v4-hide-sm v4-hide-md">{pvNowWith(v)}</td>
                       <td className="v4-r"><Btn small a={{ href: `/payment-vouchers/${v.id}`, label: "Open", kind: "secondary" }} /></td>

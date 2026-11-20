@@ -39,7 +39,7 @@ export default function PasscodePad({ value, onChange, onComplete, disabled, fin
           maxLength={6}
           value={value}
           disabled={disabled}
-          aria-label={`${label} — 6 numbers`}
+          aria-label={`${label}: 6 numbers`}
           onChange={(e) => set(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Escape") onChange(""); }}
         />

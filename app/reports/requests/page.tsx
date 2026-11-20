@@ -85,7 +85,7 @@ export default function RequestReportsPage() {
     downloadXlsx(`Request_Reports_${p.value}`, [
       { name: "By department", title: `Requests by department — ${p.label}`, rows: [...table.map((t) => ({ Department: t.dept, Submitted: t.n, Approved: t.approved, Pending: t.pending, "Sent back": t.returned, Rejected: t.rejected, "Amount approved": t.amount, "Avg days to approve": t.days === null ? null : Number(t.days.toFixed(1)) })),
         { Department: "Total", Submitted: total.n, Approved: total.approved, Pending: total.pending, "Sent back": total.returned, Rejected: total.rejected, "Amount approved": total.amount, "Avg days to approve": total.days === null ? null : Number(total.days.toFixed(1)) }] },
-      { name: "Requests", title: `Requests — ${p.label}`, rows: list.map((r) => ({ Request: r.request_no || "", ...(mine ? { Title: r.title || "" } : {}), Department: r.dept_name, Type: r.request_type, Status: r.status, Amount: r.amount, Submitted: shortDate(r.created_at) })) },
+      { name: "Requests", title: `Requests: ${p.label}`, rows: list.map((r) => ({ Request: r.request_no || "", ...(mine ? { Title: r.title || "" } : {}), Department: r.dept_name, Type: r.request_type, Status: r.status, Amount: r.amount, Submitted: shortDate(r.created_at) })) },
     ]);
   }
 
@@ -130,7 +130,7 @@ export default function RequestReportsPage() {
                   {list.slice((page - 1) * PAGE, page * PAGE).map((r) => (
                     <tr key={r.id}>
                       <td>{r.is_mine ? <Link href={`/requests/${r.id}`} className="v4-strong">{r.request_no}</Link> : <span className="v4-strong">{r.request_no}</span>}{r.title ? <span className="v4-sub">{r.title}</span> : null}</td>
-                      <td data-label="Department">{r.dept_name || "—"}</td><td data-label="Type">{r.request_type}</td>
+                      <td data-label="Department">{r.dept_name || "-"}</td><td data-label="Type">{r.request_type}</td>
                       <td data-label="Status"><Chip tone={BUCKET[r.bucket].tone}>{BUCKET[r.bucket].label}</Chip></td>
                       <td className="v4-r v4-num v4-strong">{nairaExact(r.amount)}</td><td className="v4-hide-sm">{shortDate(r.created_at)}</td>
                     </tr>

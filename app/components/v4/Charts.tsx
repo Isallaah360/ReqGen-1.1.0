@@ -68,7 +68,7 @@ export function Donut({ data, fmt, label }: { data: Array<{ label: string; value
     const path = frac >= 0.9999
       ? `M ${C} ${C - R} A ${R} ${R} 0 1 1 ${C - 0.01} ${C - R}`
       : `M ${(C + R * Math.cos(a0)).toFixed(2)} ${(C + R * Math.sin(a0)).toFixed(2)} A ${R} ${R} 0 ${large} 1 ${(C + R * Math.cos(a1)).toFixed(2)} ${(C + R * Math.sin(a1)).toFixed(2)}`;
-    if (frac > 0) acc.out.push(<path key={d.label} className="v4-seg" d={path} stroke={SERIES_COLORS[i % SERIES_COLORS.length]} strokeWidth={26} fill="none" {...on(`${d.label}: ${fmt(d.value)} · ${Math.round(frac * 100)}%`)} />);
+    if (frac > 0) acc.out.push(<path key={d.label} className="v4-seg" d={path} stroke={SERIES_COLORS[i % SERIES_COLORS.length]} strokeWidth={26} fill="none" {...on(`${d.label}: ${fmt(d.value)}, ${Math.round(frac * 100)}%`)} />);
     return { start: acc.start + frac, out: acc.out };
   }, { start: 0, out: [] }).out;
   return (
@@ -109,7 +109,7 @@ export function HBars({ data, fmt, color = "#2563EB" }: { data: Array<{ label: s
 export function Pace({ used, expected }: { used: number; expected: number }) {
   return (
     <>
-      <div className="v4-pace" title={`Used ${used}% · expected ${expected}%`}><i style={{ width: `${Math.min(100, used)}%` }} /><b style={{ left: `${Math.min(100, expected)}%` }} /></div>
+      <div className="v4-pace" title={`Used ${used}%, expected ${expected}%`}><i style={{ width: `${Math.min(100, used)}%` }} /><b style={{ left: `${Math.min(100, expected)}%` }} /></div>
       <div className="v4-pace-l"><span>0%</span><span>Black line = where we should be ({expected}%)</span><span>100%</span></div>
     </>
   );

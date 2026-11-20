@@ -5,7 +5,7 @@ export default function PrivacyBar() {
   return (
     <div className="v4-privacy-bar" role="note">
       <Icon name="eyeoff" />
-      <span><b>Registry sees numbers, dates, offices and people only</b> — never the title, amount or contents of a request.</span>
+      <span><b>Registry sees numbers, dates, offices and people only</b>: never the title, amount or contents of a request.</span>
     </div>
   );
 }

@@ -168,19 +168,19 @@ function Generate() {
 
   return (
     <V4Page>
-      <PageHead title="Generate from Requests" sub="Official requests from any staff can share one voucher — up to 10 — paid by bank transfer. Personal requests get a voucher of their own."
+      <PageHead title="Generate from Requests" sub="Official requests from any staff can share one voucher: up to 10: paid by bank transfer. Personal requests get a voucher of their own."
         actions={[{ label: "Manual voucher", icon: "pen", kind: "secondary", href: "/payment-vouchers/manual" }]} />
       {reissueNo ? <Notice tone="blue" title={`Reissuing ${reissueNo}.`}>The cancelled voucher keeps its number. This one gets a new number and records that it replaces {reissueNo}.</Notice> : null}
       {loadError ? <Notice tone="red">{loadError}</Notice> : null}
       <div className="v4-stepper" aria-label="Progress">
-        <div className={step > 1 ? "v4-done" : "v4-on"}>1 · Pick requests</div>
+        <div className={step > 1 ? "v4-done" : "v4-on"}>1, Pick requests</div>
         <div className={step === 2 ? "v4-on" : ""}>2 · Payment details</div>
-        <div>3 · Prepared &amp; sent to Auditor</div>
+        <div>3, Prepared &amp; sent to Auditor</div>
       </div>
 
       <Card>
         <div className="v4-card-head">
-          <h2 className="v4-h2">1 · Requests ready for a voucher</h2>
+          <h2 className="v4-h2">1, Requests ready for a voucher</h2>
           <div className="v4-segmented" role="tablist" aria-label="Request type">
             <button type="button" role="tab" aria-selected={kind === "official"} onClick={() => switchKind("official")}>Official <span className="v4-n">{official.length}</span></button>
             <button type="button" role="tab" aria-selected={kind === "personal"} onClick={() => switchKind("personal")}>Personal <span className="v4-n">{personal.length}</span></button>
@@ -195,13 +195,13 @@ function Generate() {
                   const on = picked.includes(r.id);
                   const full = isOfficial(r) && !on && officialChosen >= CAP;
                   return (
-                    <tr key={r.id} className={full ? "v4-muted-row" : undefined} title={full ? "Voucher full — start another voucher for the rest" : undefined}>
+                    <tr key={r.id} className={full ? "v4-muted-row" : undefined} title={full ? "Voucher full: start another voucher for the rest" : undefined}>
                       <td><input className="v4-pick" type="checkbox" checked={on} disabled={full} onChange={() => toggle(r)} aria-label={`Select ${r.request_no || r.title}`} /></td>
-                      <td><span className="v4-strong">{r.request_no || "—"}</span><span className="v4-sub">{r.title || ""}</span></td>
+                      <td><span className="v4-strong">{r.request_no || "-"}</span><span className="v4-sub">{r.title || ""}</span></td>
                       <td className="v4-r v4-num v4-strong">{nairaExact(r.amount)}</td>
-                      <td data-label="Payee"><span className="v4-strong">{String(r.requester_name || "—").toUpperCase()}</span><span className="v4-sub">{r.dept_name || ""}</span></td>
-                      <td data-label="Subhead" className="v4-hide-sm">{r.subhead_code ? `${r.subhead_code} — ${r.subhead_name || ""}` : <span className="v4-muted">Not set</span>}</td>
-                      <td data-label="Type">{isOfficial(r) ? <Chip tone="blue">Official</Chip> : <Chip tone="grey">Personal · own voucher</Chip>}</td>
+                      <td data-label="Payee"><span className="v4-strong">{String(r.requester_name || "-").toUpperCase()}</span><span className="v4-sub">{r.dept_name || ""}</span></td>
+                      <td data-label="Subhead" className="v4-hide-sm">{r.subhead_code ? `${r.subhead_code}: ${r.subhead_name || ""}` : <span className="v4-muted">Not set</span>}</td>
+                      <td data-label="Type">{isOfficial(r) ? <Chip tone="blue">Official</Chip> : <Chip tone="grey">Personal, own voucher</Chip>}</td>
                     </tr>
                   );
                 })}
@@ -216,19 +216,19 @@ function Generate() {
             {officialChosen >= CAP ? <Chip tone="amber">Voucher full — start another voucher for the rest</Chip> : <Chip tone="green">Can be combined · {CAP - officialChosen} place{CAP - officialChosen === 1 ? "" : "s"} left</Chip>}
           </div>
         ) : (
-          <div className="v4-group-bar"><span>A personal request is paid on a voucher of its own{chosen.length ? <> · <b className="v4-num">{nairaExact(total)}</b></> : null}.</span></div>
+          <div className="v4-group-bar"><span>A personal request is paid on a voucher of its own{chosen.length ? <>, <b className="v4-num">{nairaExact(total)}</b></> : null}.</span></div>
         )}
       </Card>
 
       {chosen.length ? (
         <Card>
           <div className="v4-card-pad">
-            <h2 className="v4-h2" style={{ marginBottom: 14 }}>2 · Payment details</h2>
+            <h2 className="v4-h2" style={{ marginBottom: 14 }}>2, Payment details</h2>
             <div className="v4-form-grid">
               <div className="v4-field v4-span-2">
                 <span className="v4-flabel">Preparing as <span className="v4-req">*</span></span>
-                <Select ariaLabel="Preparing as" value={section} onChange={setSection} placeholder="Choose the section" options={SECTIONS.map((s) => ({ value: s, label: `Account Officer — ${s}` }))} />
-                <span className="v4-help">Printed on the voucher: “Prepared by {me.name || "you"} — Account Officer{section ? `, ${section}` : ""}”.</span>
+                <Select ariaLabel="Preparing as" value={section} onChange={setSection} placeholder="Choose the section" options={SECTIONS.map((s) => ({ value: s, label: `Account Officer: ${s}` }))} />
+                <span className="v4-help">Printed on the voucher: “Prepared by {me.name || "you"}: Account Officer{section ? `, ${section}` : ""}”.</span>
               </div>
               <div className="v4-field v4-span-2">
                 <span className="v4-flabel">Disbursement mode <span className="v4-req">*</span></span>
@@ -293,7 +293,7 @@ function Generate() {
               </div>
               <div className="v4-field">
                 <span className="v4-flabel">Checker</span>
-                <span className="v4-locked">Auditor{auditor ? ` · ${auditor}` : ""}</span>
+                <span className="v4-locked">Auditor{auditor ? `, ${auditor}` : ""}</span>
                 <span className="v4-help">IET has one internal auditor, so nobody chooses.</span>
               </div>
             </div>

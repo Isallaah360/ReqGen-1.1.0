@@ -141,7 +141,12 @@ function TreatRequest() {
     const fresh = await confirmFresh("release the fund and prepare the voucher");
     if (fresh) { if (fresh !== "cancelled") setMsg({ tone: "red", text: fresh }); return; }
     setBusy(true);
-    const step = await supabase.rpc("approve_request_step", { p_request_id: req.id, p_actor_id: me.userId, p_comment: `Fund released. ${narration.trim()}`, p_signature_url: mySig });
+    // v4.6.10: a Direct request is released through its own function; the Routing Engine is not used for it.
+    const direct = await supabase.from("requests").select("direct_to").eq("id", req.id).maybeSingle();
+    const isDirect = !direct.error && !!(direct.data as { direct_to?: string | null } | null)?.direct_to;
+    const step = isDirect
+      ? await supabase.rpc("reqgen_direct_act", { p_request_id: req.id, p_action: "release", p_comment: `Fund released. ${narration.trim()}` })
+      : await supabase.rpc("approve_request_step", { p_request_id: req.id, p_actor_id: me.userId, p_comment: `Fund released. ${narration.trim()}`, p_signature_url: mySig });
     if (step.error) { setBusy(false); setMsg({ tone: "red", text: step.error.message }); return; }
     const pv = await supabase.rpc("reqgen_pv_generate", {
       p_request_ids: [req.id], p_mode: mode, p_preparing_as: section, p_counter_signer: counter,
@@ -165,7 +170,11 @@ function TreatRequest() {
     const reason = await promptDialog({ title: "Return to the requester?", message: "They see your reason, correct the request and send it again.", label: "Reason", confirmLabel: "Return", tone: "danger" });
     if (!reason) return;
     setBusy(true);
-    const { error } = await supabase.rpc("reqgen_return_request", { p_request_id: req.id, p_comment: reason, p_signature_url: mySig });
+    const direct = await supabase.from("requests").select("direct_to").eq("id", req.id).maybeSingle();
+    const isDirect = !direct.error && !!(direct.data as { direct_to?: string | null } | null)?.direct_to;
+    const { error } = isDirect
+      ? await supabase.rpc("reqgen_direct_act", { p_request_id: req.id, p_action: "return", p_comment: reason })
+      : await supabase.rpc("reqgen_return_request", { p_request_id: req.id, p_comment: reason, p_signature_url: mySig });
     setBusy(false);
     if (error) { setMsg({ tone: "red", text: error.message }); return; }
     router.push("/finance/processing");
@@ -182,10 +191,10 @@ function TreatRequest() {
       <section className="v4-card v4-card-pad">
         <div className="v4-rec">
           <div>
-            {mine ? <Chip tone="amber">Your step: Account Officer</Chip> : <Chip tone={atAccount ? "amber" : "green"}>{atAccount ? `With ${req.assigned_account_officer_name || "Account"}` : req.status || "—"}</Chip>}
-            <h1 className="v4-page-title" style={{ marginTop: 8 }}>{req.request_no} · {req.title}</h1>
+            {mine ? <Chip tone="amber">Your step: Account Officer</Chip> : <Chip tone={atAccount ? "amber" : "green"}>{atAccount ? `With ${req.assigned_account_officer_name || "Account"}` : req.status || "-"}</Chip>}
+            <h1 className="v4-page-title" style={{ marginTop: 8 }}>{req.request_no}, {req.title}</h1>
             <div className="v4-meta">
-              <span>Requester <b>{req.requester_name || "—"}</b></span>
+              <span>Requester <b>{req.requester_name || "-"}</b></span>
               {dept ? <span>Department <b>{dept}</b></span> : null}
               {dgDone ? <span>Approved by {stageTitle(dgDone.stage)} <b>{shortDate(dgDone.acted_at)}</b></span> : null}
             </div>
@@ -213,9 +222,9 @@ function TreatRequest() {
           </div>
         ) : <p className="v4-muted" style={{ margin: 0 }}>{String(req.request_type || "").toLowerCase() === "personal" ? "Personal fund request — no subhead." : "No subhead on this request."}</p>}
         <dl className="v4-kv" style={{ marginTop: 14 }}>
-          <dt>Paid from</dt><dd>{acc ? <>{accountName(acc)} <span className="v4-muted">· {accountSub(acc)}</span></> : "—"}</dd>
-          <dt>Account officer</dt><dd>{req.assigned_account_officer_name || me.name || "—"}</dd>
-          <dt>Account available</dt><dd className="v4-num">{acc ? nairaExact(accountAvailable(acc)) : "—"}</dd>
+          <dt>Paid from</dt><dd>{acc ? <>{accountName(acc)} <span className="v4-muted">, {accountSub(acc)}</span></> : "-"}</dd>
+          <dt>Account officer</dt><dd>{req.assigned_account_officer_name || me.name || "-"}</dd>
+          <dt>Account available</dt><dd className="v4-num">{acc ? nairaExact(accountAvailable(acc)) : "-"}</dd>
         </dl>
       </section>
 
@@ -245,7 +254,7 @@ function TreatRequest() {
                   <div className="v4-field"><span className="v4-flabel">Bank <span className="v4-req">*</span></span><Select ariaLabel="Cheque bank" searchable value={cheque.bank} onChange={(v) => setCheque({ ...cheque, bank: v })} placeholder="Choose the bank" options={NIGERIAN_BANKS.map((b) => ({ value: b, label: b }))} /></div>
                 </>
               ) : null}
-              <div className="v4-field"><span className="v4-flabel">Preparing as <span className="v4-req">*</span></span><Select ariaLabel="Preparing as" value={section} onChange={setSection} placeholder="Choose the section" options={SECTIONS.map((s) => ({ value: s, label: `Account Officer — ${s}` }))} /></div>
+              <div className="v4-field"><span className="v4-flabel">Preparing as <span className="v4-req">*</span></span><Select ariaLabel="Preparing as" value={section} onChange={setSection} placeholder="Choose the section" options={SECTIONS.map((s) => ({ value: s, label: `Account Officer: ${s}` }))} /></div>
               <div className="v4-field"><span className="v4-flabel">Counter Signer <span className="v4-req">*</span></span><Select ariaLabel="Counter Signer" value={counter} onChange={setCounter} disabled={!counters.length} placeholder={counters.length ? "Choose" : "No Counter Signer yet"} options={counters.map((n) => ({ value: n, label: n }))} /><span className="v4-help">Then the Director General signs and authorises.</span></div>
               <label className="v4-field v4-span-2"><span className="v4-flabel">Narration <span className="v4-req">*</span></span><input className="v4-input" value={narration} maxLength={240} onChange={(e) => setNarration(e.target.value)} /></label>
             </div>

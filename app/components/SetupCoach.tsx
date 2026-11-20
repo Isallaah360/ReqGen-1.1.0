@@ -99,7 +99,7 @@ export default function SetupCoach() {
         <div className={`rg-setup-banner ${missingRequired.length ? "is-required" : ""}`} role="status">
           <Compass size={16} aria-hidden="true" />
           <span>
-            Account setup {steps.length - missing.length} of {steps.length} complete — missing: {missing.map((s) => s.title.replace(/^(Set|Connect|Add|Upload) (your )?/i, "")).join(", ")}.
+            Account setup {steps.length - missing.length} of {steps.length} complete. Missing: {missing.map((s) => s.title.replace(/^(Set|Connect|Add|Upload) (your )?/i, "")).join(", ")}.
           </span>
           <Link href="/profile/setup">Continue setup <ChevronRight size={14} /></Link>
         </div>

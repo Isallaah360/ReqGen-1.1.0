@@ -85,3 +85,8 @@ html[data-theme="dark"] .v4-root .v4-stamp-preview .v4-demo img:not(.v4-iet-stam
 @media print {
   .v4-ledgers .v4-picker, .v4-ledgers .v4-tabs, .v4-ledgers .v4-pager, .v4-ledgers .v4-page-head .v4-actions { display: none !important; }
 }
+
+/* v4.6.10 — the Direct request card under the two request types (a link, full width, wraps on phones) */
+.v4-typecard-link { width: 100%; box-sizing: border-box; min-height: 0; align-items: center; overflow: hidden; }
+.v4-typecard-link > span:not(.v4-ico) { flex: 1; min-width: 0; }
+.v4-typecard-link > .v4-icon:last-child { flex: none; color: var(--v4-brand); }

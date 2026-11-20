@@ -70,26 +70,26 @@ export default function StaffPage() {
     setBusy(false);
     if (!res.ok) { setMsg({ tone: "red", text: res.error || "The staff member could not be added." }); return; }
     const created = res as { ok: boolean; userId?: string; user?: { id?: string } };
-    setMsg({ tone: "green", text: `${form.fullName.trim()} was added. Give them the temporary password ${form.password} in person — ReqGen asks them to change it at first sign-in.` });
+    setMsg({ tone: "green", text: `${form.fullName.trim()} was added. Give them the temporary password ${form.password} in person: ReqGen asks them to change it at first sign-in.` });
     setForm(null);
     await load();
     const id = created.userId || created.user?.id;
     if (id) router.push(`/admin/users/${id}`);
   }
 
-  const exportRows = () => downloadXlsx("Staff_and_Positions", [{ name: "Staff", title: "ReqGen — Staff and positions", rows: shown.map((r) => ({
+  const exportRows = () => downloadXlsx("Staff_and_Positions", [{ name: "Staff", title: "ReqGen: Staff and positions", rows: shown.map((r) => ({
     Name: r.full_name, Email: r.email, Department: r.dept_name || "", Positions: ["Staff", ...positionsOf(r).map((p) => p.def.name)].join(", "),
     Status: r.is_active ? "Active" : "Deactivated", "2FA": r.has_2fa ? "On" : "Off", Signature: r.has_signature ? "Yes" : "No",
   })) }]);
 
   return (
     <V4Page>
-      <PageHead title="Staff & Positions" sub="Everyone in IET is Staff. On top of that, a person can hold one or more positions — and ReqGen shows the position they act in on every action."
+      <PageHead title="Staff & Positions" sub="Everyone in IET is Staff. On top of that, a person can hold one or more positions: and ReqGen shows the position they act in on every action."
         actions={[
           { label: "Export Excel", icon: "download", kind: "secondary", disabled: !shown.length, onClick: exportRows },
           { label: "Add staff", icon: "plus", kind: "primary", onClick: () => { setMsg(null); setForm({ fullName: "", email: "", deptId: "", roleKey: "staff", password: tempPassword() }); } },
         ]} />
-      <Notice tone="blue">Positions marked <b>ONE</b> have a single holder (Director General, General Secretary, Registrar, HR Coordinator, Auditor). ReqGen fills them in automatically — nobody has to pick from a list.</Notice>
+      <Notice tone="blue">Positions marked <b>ONE</b> have a single holder (Director General, General Secretary, Registrar, HR Coordinator, Auditor). ReqGen fills them in automatically: nobody has to pick from a list.</Notice>
       {error ? <Notice tone="red">{error}</Notice> : null}
       {msg ? <Notice tone={msg.tone}>{msg.text}</Notice> : null}
       <Card>

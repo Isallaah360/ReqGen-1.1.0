@@ -38,7 +38,7 @@ check("Finance home counts differences without opening lines", read("lib/v4/summ
 check("No on-screen number pad: one real numeric input", !/\[1, 2, 3|"1", "2", "3"|v4-pad-key/.test(pad) && pad.includes('inputMode="numeric"') && pad.includes('pattern="[0-9]*"') && pad.includes("maxLength={6}"));
 check("Passcode input opens the keyboard on tap and takes numbers only", pad.includes("v4-pin-input") && pad.includes('replace(/\\D/g, "")') && read("app/v4/v4-theme.css").includes(".v4-pin-input"));
 check("No show/hide eye over the passcode boxes", pad.includes('data-rg-reveal="off"') && read("app/components/PasswordReveal.tsx").includes(":not([data-rg-reveal])"));
-check("Login and passcode set-up use the keyboard entry", read("app/login/page.tsx").includes("<PasscodePad") && read("app/profile/passcode/page.tsx").includes("<PasscodePad"));
+check("Login and passcode set-up use the keyboard entry", read("app/login/LoginView.tsx").includes("<PasscodePad") && read("app/profile/passcode/page.tsx").includes("<PasscodePad"));
 
 check("Version 4.6.4 or a later 4.6 release", /REQGEN_SEMVER = "4\.6\.([4-9]|[1-9]\d)"/.test(read("lib/version.ts")) && /"version": "4\.6\.([4-9]|[1-9]\d)"/.test(read("package.json")));
 check("No .env file shipped", !fs.existsSync(".env") || read(".gitignore").includes(".env"));

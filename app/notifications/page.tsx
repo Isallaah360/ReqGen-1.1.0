@@ -1,5 +1,6 @@
 "use client";
 
+import { alertDialog } from "@/lib/dialog";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
@@ -93,7 +94,7 @@ export default function NotificationsPage() {
       <PageHead
         title="Notifications"
         sub="Everything ReqGen told you, newest first. Select one to open the request or voucher."
-        actions={[{ label: "Mark all as read", icon: "checkall", kind: "secondary", disabled: !counts.unread, onClick: () => { setItems((l) => l.map((x) => ({ ...x, isRead: true }))); void markNotificationsRead(); } }]}
+        actions={[{ label: "Mark all as read", icon: "checkall", kind: "secondary", disabled: !counts.unread, onClick: () => { const before = items; setItems((l) => l.map((x) => ({ ...x, isRead: true }))); void markNotificationsRead().then((ok) => { if (!ok) { setItems(before); void alertDialog({ title: "Not marked as read", message: "The network or server did not save it. Try again in a moment." }); } }); } }]}
       />
       {error ? <Notice tone="red">{error}</Notice> : null}
       <Card>

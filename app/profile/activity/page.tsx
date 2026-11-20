@@ -119,7 +119,7 @@ export default function MyActivityPage() {
                 {d.items.map((e, i) => (
                   <li key={`${e.at}-${i}`}>
                     <span className={`v4-ti v4-t-${toneOf(e)}`}><Icon name={iconOf(e)} /></span>
-                    <span><strong>{e.action}{e.record_no ? ` · ${e.record_no}` : ""}</strong><span>{e.module}{e.device ? ` · ${e.device}` : ""}</span></span>
+                    <span><strong>{e.action}{e.record_no ? `, ${e.record_no}` : ""}</strong><span>{e.module}{e.device ? `, ${e.device}` : ""}</span></span>
                     <span className="v4-time">{new Date(e.at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}</span>
                   </li>
                 ))}

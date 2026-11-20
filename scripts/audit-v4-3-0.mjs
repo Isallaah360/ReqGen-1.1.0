@@ -12,7 +12,7 @@ check("Voucher pages are v4-native", read("lib/v4/modules.ts").includes("/^\\/pa
 
 const gen = pv("new");
 check("Generate: up to 10 Official requests on one voucher; the 11th is blocked", gen.includes("const CAP = 10") && gen.includes("Voucher full — start another voucher for the rest"));
-check("Generate: a personal request gets a voucher of its own", gen.includes("Personal · own voucher") && gen.includes("p.includes(r.id) ? [] : [r.id]"));
+check("Generate: a personal request gets a voucher of its own", gen.includes("Personal, own voucher") && gen.includes("p.includes(r.id) ? [] : [r.id]"));
 check("Generate: several payees → transfer only, with a Transfer Schedule", gen.includes("const effMode: Mode = many ? \"Transfer\" : mode") && gen.includes("Transfer schedule ·"));
 check("Generate: schedule filled from saved bank details; 10-digit account numbers", gen.includes("reqgen_payee_bank_accounts") && gen.includes('replace(/\\D/g, "").length === 10'));
 check("Generate: Preparing as (General Admin, DIN, ASAP-ALLI) printed on the voucher", gen.includes("p_preparing_as: section") && read("lib/v4/vouchers.ts").includes('["General Admin", "DIN", "ASAP-ALLI"]'));

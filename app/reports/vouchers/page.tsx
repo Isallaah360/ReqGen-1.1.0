@@ -48,7 +48,7 @@ export default function VoucherReportsPage() {
   const payees = (() => {
     const m = new Map<string, { n: number; amt: number }>();
     live.filter((v) => pvStage(v.status) === "paid" && Number(v.payee_count || 1) <= 1).forEach((v) => {
-      const k = String(v.payee_name || v.cash_payee_name || "—").toUpperCase();
+      const k = String(v.payee_name || v.cash_payee_name || "-").toUpperCase();
       const e = m.get(k) || { n: 0, amt: 0 }; e.n += 1; e.amt += pvAmount(v); m.set(k, e);
     });
     return [...m.entries()].map(([k, e]) => ({ payee: k, ...e })).sort((a, b) => b.amt - a.amt).slice(0, 10);
@@ -70,7 +70,7 @@ export default function VoucherReportsPage() {
 
   function exportXlsx() {
     downloadXlsx(`Voucher_Reports_FY_${fyLabel(fy).replace("/", "-")}`, [
-      { name: "Vouchers", title: `Payment vouchers — FY ${fyLabel(fy)}`, rows: (rows || []).map((v) => ({ Voucher: v.voucher_no || "", Date: String(v.created_at || "").slice(0, 10), Payee: v.payee_name || "", Mode: v.disbursement_mode || "", Requests: Number(v.item_count || 1), Amount: pvAmount(v), Status: v.status || "", "Prepared as": v.prepared_section || "" })) },
+      { name: "Vouchers", title: `Payment vouchers: FY ${fyLabel(fy)}`, rows: (rows || []).map((v) => ({ Voucher: v.voucher_no || "", Date: String(v.created_at || "").slice(0, 10), Payee: v.payee_name || "", Mode: v.disbursement_mode || "", Requests: Number(v.item_count || 1), Amount: pvAmount(v), Status: v.status || "", "Prepared as": v.prepared_section || "" })) },
       { name: "Signing times", title: "Average hours at each signing step", rows: steps.map((s) => ({ Step: s.step, "Average hours": s.avg_hours, Vouchers: s.vouchers })) },
       { name: "Top payees", title: "Top payees (paid)", rows: payees.map((p) => ({ Payee: p.payee, Vouchers: p.n, "Amount paid": p.amt })) },
     ]);
@@ -97,13 +97,13 @@ export default function VoucherReportsPage() {
                 <dt>Requests carried</dt><dd>{combined.reduce((t, v) => t + Number(v.item_count || 0), 0)}</dd>
                 <dt>Payees paid by transfer</dt><dd>{combined.reduce((t, v) => t + Number(v.payee_count || 1), 0)}</dd>
                 <dt>Vouchers saved for Account</dt><dd>{combined.reduce((t, v) => t + Number(v.item_count || 1) - 1, 0)}</dd>
-                <dt>Largest</dt><dd>{largest ? `${largest.voucher_no} · ${nairaExact(pvAmount(largest))}` : "—"}</dd>
+                <dt>Largest</dt><dd>{largest ? `${largest.voucher_no}, ${nairaExact(pvAmount(largest))}` : "-"}</dd>
               </dl>
             </section>
           </div>
           <div className="v4-grid-2">
             <section className="v4-card">
-              <div className="v4-card-head"><h2 className="v4-h2">Top payees</h2><span className="v4-help">FY {fyLabel(fy)} · paid</span></div>
+              <div className="v4-card-head"><h2 className="v4-h2">Top payees</h2><span className="v4-help">FY {fyLabel(fy)}, paid</span></div>
               {payees.length ? (
                 <div className="v4-table-wrap"><table className="v4-data v4-stack"><thead><tr><th>Payee</th><th className="v4-r">Vouchers</th><th className="v4-r">Amount paid</th></tr></thead>
                   <tbody>{payees.map((p) => <tr key={p.payee}><td><span className="v4-strong">{p.payee}</span></td><td className="v4-r v4-num">{p.n}</td><td className="v4-r v4-num v4-strong">{nairaExact(p.amt)}</td></tr>)}</tbody></table></div>

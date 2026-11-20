@@ -16,7 +16,7 @@ type Year = { fy_start: number; status: string; locked_by_label: string | null; 
 type Log = { key: string; new_value: string | null; changed_by_label: string | null; changed_at: string };
 
 const label = (y: number) => `${y}/${String((y + 1) % 100).padStart(2, "0")}`;
-const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—");
+const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "-");
 const SETTING_NAME: Record<string, string> = { default_payment_method: "Default payment method", cash_dg_note_above: "Large cash limit" };
 
 /** Finance › Finance Settings (mock-up 45). Saved for everyone; every change logged. */
@@ -128,7 +128,7 @@ export default function FinanceSettingsPage() {
               <div className="v4-field"><span className="v4-flabel">Transfers</span><span className="v4-locked"><Icon name="lock" size="sm" />TRF-{new Date().getFullYear()}-0001</span></div>
               <div className="v4-field"><span className="v4-flabel">Requests</span><span className="v4-locked"><Icon name="lock" size="sm" />REQ-YYYYMM-NNNNNN</span></div>
             </div>
-            <p className="v4-help" style={{ margin: "8px 0 0" }}>Numbers are given by the database, in order, and never reused — a cancelled voucher keeps its number.</p></section>
+            <p className="v4-help" style={{ margin: "8px 0 0" }}>Numbers are given by the database, in order, and never reused: a cancelled voucher keeps its number.</p></section>
 
           <section><div className="v4-section-title"><span className="v4-no">3</span><h2 className="v4-h2">Defaults</h2></div>
             <div className="v4-form-grid">
@@ -154,7 +154,7 @@ export default function FinanceSettingsPage() {
         </form>
         <aside className="v4-side-stack">
           <section className="v4-card v4-card-pad"><h2 className="v4-h3" style={{ marginBottom: 10 }}>Last changed</h2>
-            {last ? <dl className="v4-kv"><dt>By</dt><dd>{last.changed_by_label || "—"}</dd><dt>When</dt><dd>{when(last.changed_at)}</dd><dt>What</dt><dd>{SETTING_NAME[last.key] || last.key}</dd></dl> : <p className="v4-muted" style={{ margin: 0, fontSize: 13.5 }}>No change yet.</p>}
+            {last ? <dl className="v4-kv"><dt>By</dt><dd>{last.changed_by_label || "-"}</dd><dt>When</dt><dd>{when(last.changed_at)}</dd><dt>What</dt><dd>{SETTING_NAME[last.key] || last.key}</dd></dl> : <p className="v4-muted" style={{ margin: 0, fontSize: 13.5 }}>No change yet.</p>}
           </section>
           {log.length > 1 ? <section className="v4-card v4-card-pad"><h2 className="v4-h3" style={{ marginBottom: 10 }}>Earlier changes</h2>
             <ul className="v4-rows v4-compact-rows">{log.slice(1).map((l) => <li key={l.changed_at + l.key}><span className="v4-rt"><strong>{SETTING_NAME[l.key] || l.key} → {l.key === "cash_dg_note_above" ? nairaExact(l.new_value) : l.new_value}</strong><span>{l.changed_by_label} · {when(l.changed_at)}</span></span></li>)}</ul></section> : null}

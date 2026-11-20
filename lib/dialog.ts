@@ -31,6 +31,7 @@ export type DialogRequest = {
   placeholder?: string;
   defaultValue?: string;
   required?: boolean;
+  inputType?: "text" | "password" | "pin";
   resolve: (value: boolean | string | null) => void;
 };
 
@@ -50,6 +51,8 @@ export type PromptOptions = ConfirmOptions & {
   defaultValue?: string;
   /** When true (default) the confirm button stays disabled until text is typed. */
   required?: boolean;
+  /** v4.6.11: "password" hides the typing; "pin" shows the number pad. */
+  inputType?: "text" | "password" | "pin";
 };
 
 type Listener = () => void;
@@ -117,6 +120,7 @@ function open(kind: DialogRequest["kind"], options: PromptOptions, defaults: { c
         placeholder: options.placeholder,
         defaultValue: options.defaultValue,
         required: options.required !== false,
+        inputType: (options as PromptOptions).inputType,
         resolve,
       },
     ];

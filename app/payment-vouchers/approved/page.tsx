@@ -35,8 +35,8 @@ export default function ReadyToPayPage() {
             const what = many ? `${v.item_count || 0} Official requests · see Transfer Schedule` : v.narration || `${v.item_count || 1} request${Number(v.item_count || 1) === 1 ? "" : "s"}`;
             return (
               <div className="v4-paycard" key={v.id}>
-                <span><strong style={{ fontSize: 15 }}>{v.voucher_no} · {many ? `${v.payee_count} PAYEES` : String(v.payee_name || "—").toUpperCase()}</strong>
-                  <span className="v4-help" style={{ display: "block" }}>{what} · {pvMode(v)}{v.authorized_by_name ? ` · authorised by ${v.authorized_by_name}` : ""}</span></span>
+                <span><strong style={{ fontSize: 15 }}>{v.voucher_no}, {many ? `${v.payee_count} PAYEES` : String(v.payee_name || "-").toUpperCase()}</strong>
+                  <span className="v4-help" style={{ display: "block" }}>{what}, {pvMode(v)}{v.authorized_by_name ? `, authorised by ${v.authorized_by_name}` : ""}</span></span>
                 <span className="v4-amt">{nairaExact(pvAmount(v))}</span>
                 <span style={{ gridColumn: "1/-1", display: "flex", gap: 8, flexWrap: "wrap" }}>
                   <Btn small a={{ href: `/payment-vouchers/${v.id}/print`, label: "Print", icon: "printer", kind: "secondary" }} />

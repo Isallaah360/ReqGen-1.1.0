@@ -66,7 +66,7 @@ export default function RegistryReportsPage() {
 
   return (
     <V4Page>
-      <PageHead title="Registry Reports" sub="Movement of files and letters. Counts and dates only — request contents are never shown here." scope={tier ? `Your view: registry counts · ${me.roleName}` : undefined}
+      <PageHead title="Registry Reports" sub="Movement of files and letters. Counts and dates only: request contents are never shown here." scope={tier ? `Your view: registry counts, ${me.roleName}` : undefined}
         actions={[{ label: "Export Excel", icon: "download", kind: "secondary", onClick: exportXlsx, disabled: !rows }]} />
       {error ? <Notice tone="red">{error}</Notice> : null}
       <Stats items={stats} />

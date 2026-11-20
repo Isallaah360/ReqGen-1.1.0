@@ -89,7 +89,7 @@ export default function FinanceProcessingPage() {
           ]} />
         </div>
         {late ? <div style={{ padding: "12px 20px 0" }}><Notice tone="amber">Showing requests waiting 3 days or more. <button type="button" className="v4-btn v4-btn-ghost" style={{ minHeight: 30, padding: "0 8px" }} onClick={() => setLate(false)}>Show all</button></Notice></div> : null}
-        {rows === null ? <Skeleton lines={6} /> : shown.length ? (
+        {rows === null ? <Skeleton kind="rows" lines={6} /> : shown.length ? (
           <div className="v4-table-wrap">
             <table className="v4-data v4-stack">
               <thead><tr><th>Request</th><th className="v4-r">Amount</th><th>Requester</th><th className="v4-hide-sm">Subhead</th><th>{tab === "treated" ? "Treated" : "Waiting"}</th><th className="v4-r">Action</th></tr></thead>
@@ -99,9 +99,9 @@ export default function FinanceProcessingPage() {
                   const mineRow = isAwaitingUser(r, me.userId, me.role);
                   return (
                     <tr key={r.id}>
-                      <td><span className="v4-strong">{r.request_no || "—"}</span><span className="v4-sub">{r.title || "Untitled"}</span></td>
+                      <td><span className="v4-strong">{r.request_no || "-"}</span><span className="v4-sub">{r.title || "Untitled"}</span></td>
                       <td className="v4-r v4-num v4-strong">{naira(r.amount)}</td>
-                      <td data-label="Requester"><span className="v4-strong">{r.requester_name || "—"}</span><span className="v4-sub">{depts[r.dept_id || ""] || ""}</span></td>
+                      <td data-label="Requester"><span className="v4-strong">{r.requester_name || "-"}</span><span className="v4-sub">{depts[r.dept_id || ""] || ""}</span></td>
                       <td className="v4-hide-sm">{kind(r)}</td>
                       <td className="v4-age">{tab === "treated" ? shortDate(r.updated_at) : <Chip tone={days >= 3 ? "red" : days >= 1 ? "amber" : "green"}>{waitedFor(r.updated_at || r.created_at)}</Chip>}</td>
                       <td className="v4-r">

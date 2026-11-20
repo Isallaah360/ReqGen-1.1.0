@@ -28,10 +28,10 @@ export default function DeveloperAccountsPage() {
               <tbody>
                 {rows.map((r) => (
                   <tr key={r.kind}>
-                    <td><span className="v4-strong">{r.kind}</span><span className="v4-sub">{r.email}{r.full_name ? ` · ${r.full_name}` : ""}</span></td>
+                    <td><span className="v4-strong">{r.kind}</span><span className="v4-sub">{r.email}{r.full_name ? `, ${r.full_name}` : ""}</span></td>
                     <td data-label="Sign-in"><Chip tone={r.signin === "Ready" ? "green" : "red"}>{r.signin}</Chip></td>
                     <td data-label="Marked">{r.marked ? <Chip tone="blue">{r.marked}</Chip> : <Chip tone="red">Not marked</Chip>}{r.full_name && !r.active ? <Chip tone="red">Deactivated</Chip> : null}</td>
-                    <td data-label="Position">{r.positions || "—"}<span className="v4-sub">Acting as {r.acting || "—"}</span></td>
+                    <td data-label="Position">{r.positions || "-"}<span className="v4-sub">Acting as {r.acting || "-"}</span></td>
                     <td data-label="2FA">{r.has_2fa ? <Chip tone="green">On</Chip> : <Chip tone="amber">Not set</Chip>}</td>
                     <td className="v4-hide-sm">{whenText(r.last_sign_in)}</td>
                   </tr>

@@ -15,6 +15,8 @@ import Icon from "@/app/components/v4/Icon";
 import { DayIcon, dayPart, firstNameOf } from "@/app/components/v4/Greeting";
 import { hijriDate, tipOfDay } from "@/app/components/v4/Motion";
 import { Btn, Card, Chip, PageHead, Skeleton, Stats, Tabs, V4Page, naira, type StatItem } from "@/app/components/v4/ui";
+import { MODULES } from "@/lib/v4/modules";
+import UpdateCard from "@/app/components/app/UpdateCard";
 
 type Req = ApprovalQueueRow & { id: string; request_no: string | null; title: string | null; amount: number | null; created_at: string | null; created_by?: string | null };
 type Pv = { id: string; voucher_no: string | null; payee_name: string | null; amount: number | null; status: string | null; signing_stage: string | null; created_at: string | null };
@@ -79,7 +81,7 @@ export default function DashboardPage() {
       setUnread(count);
       setNewest(list.items[0]?.createdAt || null);
       setActs(history.error ? [] : ((history.data || []) as Array<{ item_id: string; item_no: string | null; title: string | null; action_type: string | null; acted_at: string | null }>).map((h, i) => ({
-        id: `${h.item_id}-${i}`, request_id: h.item_id, action_type: `${h.action_type || "Action"} · ${h.item_no || ""}`, comment: h.title, created_at: h.acted_at,
+        id: `${h.item_id}-${i}`, request_id: h.item_id, action_type: `${h.action_type || "Action"}, ${h.item_no || ""}`, comment: h.title, created_at: h.acted_at,
       })));
     };
     void load();
@@ -112,8 +114,8 @@ export default function DashboardPage() {
     key: `r-${r.id}`,
     icon: "file",
     tone: "blue" as const,
-    title: `${r.request_no || "Request"} · Approve as ${roleDisplayName(me.role)}`,
-    sub: `${r.title || "Untitled"} · waiting ${waitedFor(r.created_at)}`,
+    title: `${r.request_no || "Request"}, Approve as ${roleDisplayName(me.role)}`,
+    sub: `${r.title || "Untitled"}, waiting ${waitedFor(r.created_at)}`,
     amount: r.amount,
     href: `/requests/${r.id}`,
     action: "Open",
@@ -123,8 +125,8 @@ export default function DashboardPage() {
     key: `v-${v.id}`,
     icon: "pen",
     tone: "brand" as const,
-    title: `${v.voucher_no || "Voucher"} · ${v.signing_stage || "Sign"}`,
-    sub: `${v.payee_name || "Payee"} · waiting ${waitedFor(v.created_at)}`,
+    title: `${v.voucher_no || "Voucher"}, ${v.signing_stage || "Sign"}`,
+    sub: `${v.payee_name || "Payee"}, waiting ${waitedFor(v.created_at)}`,
     amount: v.amount,
     href: `/approvals/vouchers/${v.id}`,
     action: "Sign",
@@ -142,13 +144,25 @@ export default function DashboardPage() {
       <PageHead
         title={`${dayPart(hour).text}${firstNameOf(me.name) ? `, ${firstNameOf(me.name)}` : ""}`}
         icon={<DayIcon hour={hour} size={30} />}
-        sub={<>{dateText}{hijri ? <> · <span className="v4-hijri">{hijri}</span></> : null}{dateText ? " · " : ""}Financial year {fy} · Here is what needs you today.</>}
+        sub={<>{dateText}{hijri ? <>, <span className="v4-hijri">{hijri}</span></> : null}{dateText ? ", " : ""}Financial year {fy}, Here is what needs you today.</>}
         actions={[
           ...(allowed("/reports") ? [{ href: "/reports", label: "Reports", icon: "chart", kind: "secondary" as const }] : []),
           { href: "/requests/new", label: "New request", icon: "plus", kind: "primary" as const },
         ]}
       />
+      <UpdateCard />
       <Stats items={stats} label="Today" />
+      {/* v4.6.11 phones: every page that is not a tab opens from Home (brief §5) */}
+      {me.ready ? (
+        <section className="v4-card v4-more-card" aria-labelledby="v4-more-title">
+          <div className="v4-card-head"><h2 id="v4-more-title">Everything else</h2></div>
+          <nav className="v4-more-tiles" aria-label="Everything else">
+            {MODULES.filter((m) => !["dashboard", "requests", "approvals"].includes(m.key) && canAccessPath(m.href, me.roleSet)).map((m) => (
+              <Link key={m.key} href={m.href}><span className="v4-me-ic"><Icon name={m.icon} /></span>{m.label}</Link>
+            ))}
+          </nav>
+        </section>
+      ) : null}
       {now ? (
         <aside className="v4-tip" aria-label="Did you know?">
           <span className="v4-ico v4-t-amber" aria-hidden="true"><Icon name="help" /></span>
@@ -165,7 +179,7 @@ export default function DashboardPage() {
               { key: "vouchers", label: "Vouchers", count: vouchers?.length ?? 0 },
             ]} />
           </div>
-          {queue === null || vouchers === null ? <Skeleton /> : waitingRows.length ? (
+          {queue === null || vouchers === null ? <Skeleton kind="rows" /> : waitingRows.length ? (
             <ul className="v4-rows">
               {waitingRows.map((r) => (
                 <li key={r.key}>
@@ -180,7 +194,7 @@ export default function DashboardPage() {
         </Card>
 
         <Card title="My requests" link={{ href: "/requests/mine", label: "All my requests" }}>
-          {mine === null ? <Skeleton /> : mine.length ? (
+          {mine === null ? <Skeleton kind="rows" /> : mine.length ? (
             <ul className="v4-rows">
               {mine.slice(0, 4).map((r) => {
                 const chip = statusChip(r.status, r.current_stage);
@@ -190,7 +204,7 @@ export default function DashboardPage() {
                   <li key={r.id} style={{ display: "block" }}>
                     <Link href={`/requests/${r.id}`} style={{ color: "inherit", textDecoration: "none", display: "block" }}>
                       <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center" }}>
-                        <span className="v4-rt"><strong>{r.request_no || "Draft"} · {r.title || "Untitled"}</strong><span>{stageWords(r.current_stage)}</span></span>
+                        <span className="v4-rt"><strong>{r.request_no || "Draft"}, {r.title || "Untitled"}</strong><span>{stageWords(r.current_stage)}</span></span>
                         <Chip tone={chip.tone}>{chip.label}</Chip>
                       </div>
                       <div className="v4-track" aria-hidden="true">
@@ -215,7 +229,7 @@ export default function DashboardPage() {
           <p className="v4-help" style={{ margin: "12px 0 0", fontSize: 12.5, color: "var(--v4-muted)" }}>Only pages your position can open are shown here.</p>
         </Card>
         <Card title="Recent activity" pad link={{ href: "/profile/activity", label: "My Activity" }}>
-          {acts === null ? <Skeleton /> : acts.length ? (
+          {acts === null ? <Skeleton kind="rows" /> : acts.length ? (
             <ul className="v4-timeline">
               {acts.map((a) => {
                 const t = String(a.action_type || "").toLowerCase();

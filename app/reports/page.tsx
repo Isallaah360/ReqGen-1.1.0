@@ -55,16 +55,16 @@ export default function ReportsHome() {
     if (!tier) return [];
     const fyText = `FY ${fyLabel(fy)}`;
     const all: TileItem[] = tier === "mine" ? [
-      { href: "/reports/transactions", title: "My Transactions", purpose: "Money paid to you or for your requests, with charts.", icon: "trend", tone: "brand", meta: c ? `${monthName(month, true)} · ${nairaShort(c.outNow)}` : undefined },
+      { href: "/reports/transactions", title: "My Transactions", purpose: "Money paid to you or for your requests, with charts.", icon: "trend", tone: "brand", meta: c ? `${monthName(month, true)}, ${nairaShort(c.outNow)}` : undefined },
       { href: "/reports/requests", title: "My Requests", purpose: "Your requests by status and how long approval took.", icon: "file", tone: "blue", meta: c ? `${c.mine} this FY` : undefined },
       { href: "/requests/printable", title: "Print Register", purpose: "Your requests and their print history.", icon: "printer", tone: "blue", meta: "Mine" },
-      { href: "/reports/registry", title: "Registry Reports", purpose: "Incoming, outgoing, dispatched and archived — counts only.", icon: "archive", tone: "blue" },
+      { href: "/reports/registry", title: "Registry Reports", purpose: "Incoming, outgoing, dispatched and archived: counts only.", icon: "archive", tone: "blue" },
     ] : [
-      { href: "/reports/transactions", title: "Transactions + Analysis", purpose: "Every naira in and out, month by month, with charts.", icon: "trend", tone: "brand", meta: c ? `${monthName(month, true)} · ${nairaShort(c.outNow)} out` : undefined },
+      { href: "/reports/transactions", title: "Transactions + Analysis", purpose: "Every naira in and out, month by month, with charts.", icon: "trend", tone: "brand", meta: c ? `${monthName(month, true)}, ${nairaShort(c.outNow)} out` : undefined },
       { href: "/reports/requests", title: "Request Reports", purpose: tier === "all" ? "Submitted, approved, returned and rejected, by department." : "Requests treated by Finance and Account.", icon: "file", tone: "blue", meta: c ? `${c.reqs} this FY` : undefined },
       { href: "/reports/finance-statements", title: "Finance Statements", purpose: "Monthly, annual and subhead statements, IET financial year.", icon: "landmark", tone: "green", meta: fyText },
       { href: "/reports/vouchers", title: "Voucher Reports", purpose: "Vouchers by mode and status, signing times, top payees.", icon: "card", tone: "brand" },
-      { href: "/reports/registry", title: "Registry Reports", purpose: "Incoming, outgoing, dispatched and archived — counts only.", icon: "archive", tone: "blue" },
+      { href: "/reports/registry", title: "Registry Reports", purpose: "Incoming, outgoing, dispatched and archived: counts only.", icon: "archive", tone: "blue" },
       { href: "/reports/enterprise-analytics", title: "Executive Analytics", purpose: "Budget pace, risk subheads and exceptions on one page.", icon: "alert", tone: "amber", meta: c ? `${c.atRisk} subhead${c.atRisk === 1 ? "" : "s"} at risk` : undefined, badge: c?.atRisk ? <span className="v4-chip v4-chip-red">{c.atRisk} risk{c.atRisk === 1 ? "" : "s"}</span> : undefined },
       { href: "/requests/printable", title: "Print Register", purpose: "What has been printed, by whom and how many times.", icon: "printer", tone: "blue", meta: tier === "all" ? "Mine · treated · all" : "Treated by me" },
       { href: "/reports/compliance", title: "Compliance", purpose: "Automatic checks on vouchers, signatures and security.", icon: "shield", tone: "green" },

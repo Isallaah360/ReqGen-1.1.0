@@ -19,7 +19,7 @@ const pages = {
   "app/admin/system-health/page.tsx": "Diagnostics (88)",
 };
 check("Administration pages are v4 pages (mock-ups 79–88)", Object.keys(pages).every(v4));
-check("Passcode setup and passcode sign-in (mock-ups 89–90)", read("app/profile/passcode/page.tsx").includes("PasscodePad") && read("app/login/page.tsx").includes("PasscodePad") && read("app/login/page.tsx").includes("Use password instead") && read("app/login/page.tsx").includes("Forgot passcode?"));
+check("Passcode setup and passcode sign-in (mock-ups 89–90)", read("app/profile/passcode/page.tsx").includes("PasscodePad") && read("app/login/LoginView.tsx").includes("PasscodePad") && read("app/login/LoginView.tsx").includes("Use password instead") && read("app/login/LoginView.tsx").includes("Forgot passcode?"));
 check("Old Administration pages forward to their v4 page", [
   ["app/admin/overview/page.tsx", 'redirect("/admin")'], ["app/admin/access-audit/page.tsx", 'redirect("/admin/roles")'],
   ["app/admin/account-routing/page.tsx", 'redirect("/admin/routing?tab=accounts")'], ["app/admin/department-routing/page.tsx", 'redirect("/admin/routing?tab=backups")'],
@@ -47,7 +47,7 @@ check("Server routes check Super Admin or Developer", ["app/api/admin/users/[id]
 check("Super Admin cannot raise, approve, sign, stamp or pay (Permissions Matrix)", read("lib/v4/admin.ts").includes('{ action: "Raise a request", cells: cells({ SA: "n", Dev: "n" }, "y") }') && read("lib/v4/admin.ts").includes('{ action: "Sign, stamp and authorise voucher", cells: cells({ DG: "y", GS: "route" }) }') && read("app/admin/roles/page.tsx").includes("MATRIX"));
 check("Balances row follows the enforced rule (Staff, Registry and PD never)", /action: "See subhead balances", cells: cells\(\{(?![^}]*\b(Staff|Rgy|PD):)[^}]*\}\)/.test(read("lib/v4/admin.ts")));
 check("Security rules: stay signed in, idle sign-out, passcode tries (set in one place)", sql.includes("reqgen_security_rules_save") && read("lib/server/mfaWindow.ts").includes("reqgen_security_rules") && read("app/api/auth/passcode/route.ts").includes("passcodeTries") && read("app/components/SessionTimeout.tsx").includes("reqgen_security_rules"));
-check("People read the hours and tries that are actually set", read("lib/v4/useSecurityRules.ts").includes("reqgen_security_rules") && read("app/profile/passcode/page.tsx").includes("{rules.passcodeTries} wrong tries") && read("app/login/page.tsx").includes("{rules.stayHours} hours"));
+check("People read the hours and tries that are actually set", read("lib/v4/useSecurityRules.ts").includes("reqgen_security_rules") && read("app/profile/passcode/page.tsx").includes("{rules.passcodeTries} wrong tries") && read("app/login/LoginView.tsx").includes("{rules.stayHours} hours"));
 check("Signing, stamping and paying still need a fresh fingerprint or 2FA code", read("lib/v4/freshConfirm.ts").includes("export async function confirmFresh"));
 check("Diagnostics: health, data checks and route preview", read("app/admin/system-health/page.tsx").includes('rpc("reqgen_diagnostics"') && sql.includes("Officers who sign but have no signature"));
 // v4.6.6: Developer actions stay in the Audit Log under their own tab instead of an alert for each one

@@ -32,9 +32,9 @@ export default function DeveloperActivityPage() {
                   <tr key={`${r.at}-${i}`}>
                     <td className="v4-num">{new Date(r.at).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</td>
                     <td><span className="v4-strong">{r.action}</span></td>
-                    <td data-label="Record">{r.record_no || "—"}</td>
+                    <td data-label="Record">{r.record_no || "-"}</td>
                     <td className="v4-hide-md">{r.module}</td>
-                    <td className="v4-hide-sm">{r.device || "—"}</td>
+                    <td className="v4-hide-sm">{r.device || "-"}</td>
                   </tr>
                 ))}
               </tbody>

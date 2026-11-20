@@ -22,6 +22,8 @@ const PUBLIC_PATHS = new Set([
   "/mfa/setup",
   "/unauthorized",
   "/check",
+  "/app",
+  "/console",
 ]);
 
 export default function GovernmentAppShell({ children }: { children: React.ReactNode }) {

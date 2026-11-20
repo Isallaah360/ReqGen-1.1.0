@@ -48,9 +48,9 @@ function Transactions() {
       if (prev) { prev.amount += r.amount; if (r.dept_name) prev.depts.add(r.dept_name); return; }
       const time = new Date(r.at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
       const sub = r.kind === "out" || r.kind === "pending"
-        ? [r.detail, r.subhead_code, r.mode, time].filter(Boolean).join(" · ")
-        : [r.detail, time].filter(Boolean).join(" · ");
-      m.set(k, { key: k, kind: r.kind, at: r.at, ref: r.ref, title: r.voucher_id ? `${r.ref} · ${r.title}` : r.title, sub, amount: r.amount, status: r.status,
+        ? [r.detail, r.subhead_code, r.mode, time].filter(Boolean).join(", ")
+        : [r.detail, time].filter(Boolean).join(", ");
+      m.set(k, { key: k, kind: r.kind, at: r.at, ref: r.ref, title: r.voucher_id ? `${r.ref}, ${r.title}` : r.title, sub, amount: r.amount, status: r.status,
         link: r.voucher_id && tier !== "mine" ? `/payment-vouchers/${r.voucher_id}` : r.kind === "transfer" ? `/finance/account-transfers?q=${r.ref}` : undefined, depts: new Set(r.dept_name ? [r.dept_name] : []) });
     });
     return [...m.values()].sort((a, b) => b.at.localeCompare(a.at));

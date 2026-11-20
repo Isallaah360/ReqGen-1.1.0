@@ -56,7 +56,7 @@ check("Insight SQL: only officers on the route, never the requester", body.inclu
 check("Insight SQL: balances only for positions allowed to see them", body.includes("see_bal") && !/'(pd|registry|pvcountersigner|padg)'/.test(body.match(/see_bal := [^;]+;/)?.[0] || ""));
 check("Insight SQL: anonymous visitors blocked; ends with the report", body.includes("revoke all on function public.reqgen_request_insight(uuid) from public, anon") && sql.trim().endsWith("order by step, item;"));
 check("Insight SQL: routing engine not created or replaced", !/create\s+or\s+replace\s+function\s+public\.(approve_request_step|reqgen_next_route_step|build_request_route|reqgen_build_route_for_template|reqgen_save_department_route|reqgen_actor_role_for_stage)\b/i.test(body));
-check("Insight panel: five tabs, shown to the deciding officer only", ["Similar before", "This subhead", "Amount check", "Requester", "Time on route"].every((t) => insight.includes(t)) && work.includes("canAct && !isMyRequest ? <RequestInsight"));
+check("Insight panel: five tabs, shown to the deciding officer only", ["Similar before", "This subhead", "Amount check", "Requester", "Time on route"].every((t) => insight.includes(t)) && work.includes("canAct && !isMyRequest && !isDirect ? <RequestInsight"));
 
 // 5. Delete deactivated accounts
 check("Delete: Super Admin only, typed DELETE, 2FA within 5 minutes", del.includes('ctx.system !== "superadmin"') && del.includes('!== "DELETE"') && del.includes("since > 300"));

@@ -1,5 +1,6 @@
 "use client";
 
+import { isApp } from "@/lib/app/native";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
@@ -49,7 +50,7 @@ export default function MfaVerifyPage() {
       if (!verified.length) { router.push("/mfa/setup"); router.refresh(); return; }
       setFactor(verified[0] as TotpFactor);
       const mine = await supabase.from("reqgen_webauthn_credentials").select("id", { count: "exact", head: true }).eq("user_id", auth.user.id);
-      setFp(!mine.error && (mine.count || 0) > 0 && (await fingerprintAvailable()));
+      setFp(!isApp() && !mine.error && (mine.count || 0) > 0 && (await fingerprintAvailable()));
       setUntil(new Date(Date.now() + 12 * 3600_000).toLocaleTimeString("en-GB", { hour: "numeric", minute: "2-digit", hour12: true }).toUpperCase());
       setLoading(false);
     })();
@@ -108,7 +109,7 @@ export default function MfaVerifyPage() {
   return (
     <PublicAuthShell
       title="Confirm it’s you"
-      subtitle={<>Signed in as <b>{email}</b> · <button type="button" className="v4-link-btn" onClick={() => void signOut()}>Not you?</button></>}
+      subtitle={<>Signed in as <b>{email}</b>, <button type="button" className="v4-link-btn" onClick={() => void signOut()}>Not you?</button></>}
       steps={{ total: 2, current: 2 }}
       showHomeLink={false}
     >

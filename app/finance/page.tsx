@@ -10,7 +10,7 @@ import { waitedFor } from "@/lib/v4/requestText";
 import MotherPage from "@/app/components/v4/MotherPage";
 import Icon from "@/app/components/v4/Icon";
 import { useIdentity } from "@/app/components/v4/useIdentity";
-import { Btn, Notice, naira } from "@/app/components/v4/ui";
+import { Btn, Notice, Skeleton, naira } from "@/app/components/v4/ui";
 
 type Req = { id: string; request_no: string | null; title: string | null; amount: number | null; status: string | null; current_stage: string | null; current_owner: string | null; assigned_account_officer_id: string | null; assigned_account_officer_user_id: string | null; updated_at: string | null; created_at: string | null };
 
@@ -42,12 +42,12 @@ export default function FinanceHome() {
         <div className="v4-cols">
           <section className="v4-card v4-card-pad">
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}><h2 className="v4-h2">Subheads to watch</h2><Link href="/finance/subheads" style={{ fontSize: 13.5 }}>All subheads</Link></div>
-            {watch === null ? <p className="v4-muted" style={{ margin: 0 }}>Loading…</p> : watch.length ? (
+            {watch === null ? <Skeleton kind="rows" lines={3} /> : watch.length ? (
               <ul className="v4-util">
                 {watch.map((s) => {
                   const p = utilisation(s);
                   return (
-                    <li key={s.id}><strong>{subheadLabel(s)}</strong><span className="v4-v">{naira(subheadUsed(s), { compact: true })} of {naira(s.approved_allocation, { compact: true })} · {p}%</span>
+                    <li key={s.id}><strong>{subheadLabel(s)}</strong><span className="v4-v">{naira(subheadUsed(s), { compact: true })} of {naira(s.approved_allocation, { compact: true })}, {p}%</span>
                       <span className="v4-bar"><span className={p >= 90 ? "v4-risk" : p >= 75 ? "v4-warn" : ""} style={{ width: `${Math.min(100, p)}%` }} /></span></li>
                   );
                 })}
@@ -56,11 +56,11 @@ export default function FinanceHome() {
           </section>
           <section className="v4-card">
             <div className="v4-card-head"><h2 className="v4-h2">Waiting for you</h2><Link href="/finance/processing">Open <Icon name="right" size="sm" /></Link></div>
-            {waiting === null ? <p className="v4-muted" style={{ padding: "16px 20px", margin: 0 }}>Loading…</p> : waiting.length ? (
+            {waiting === null ? <Skeleton kind="rows" lines={4} /> : waiting.length ? (
               <ul className="v4-rows">
                 {waiting.map((r) => (
                   <li key={r.id}><span className="v4-ri v4-t-amber"><Icon name="clock" /></span>
-                    <span className="v4-rt"><strong>{r.request_no} · {r.title}</strong><span>Approved by DG · {waitedFor(r.updated_at || r.created_at)}</span></span>
+                    <span className="v4-rt"><strong>{r.request_no}, {r.title}</strong><span>Approved by DG, {waitedFor(r.updated_at || r.created_at)}</span></span>
                     <span className="v4-rr"><span className="v4-amt">{naira(r.amount)}</span><Btn small a={{ href: `/finance/request/${r.id}`, label: "Treat", kind: "primary" }} /></span></li>
                 ))}
               </ul>

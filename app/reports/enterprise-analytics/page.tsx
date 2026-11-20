@@ -54,7 +54,7 @@ export default function ExecutiveAnalyticsPage() {
 
   function exportXlsx() {
     downloadXlsx(`Executive_Analytics_${month}`, [
-      { name: "Budget", title: `Budget used — FY ${fyLabel(fy)}`, rows: [{ Allocation: alloc, Spent: spent, "Used %": used, "Expected by now %": expected }] },
+      { name: "Budget", title: `Budget used: FY ${fyLabel(fy)}`, rows: [{ Allocation: alloc, Spent: spent, "Used %": used, "Expected by now %": expected }] },
       { name: "Subheads at risk", title: "Subheads at 80% or more", rows: risk.map((s) => ({ Subhead: subheadLabel(s), Allocation: num(s.approved_allocation), "Spent and reserved": subheadUsed(s), "Used %": utilisation(s) })) },
       { name: "Spending trend", title: "Money out per month", rows: trend.map((t) => ({ Month: monthName(t.month), "Money out": t.value })) },
       { name: "Exceptions", title: "Things outside the normal path", rows: ex.map((e) => ({ Level: e.tone === "red" ? "Act now" : "Check", What: e.title, Details: e.detail })) },
@@ -74,7 +74,7 @@ export default function ExecutiveAnalyticsPage() {
           <div className="v4-grid-2">
             <section className="v4-card v4-card-pad">
               <h2 className="v4-h2">Budget used</h2><p className="v4-help" style={{ margin: "4px 0 14px" }}>FY {fyLabel(fy)} · {monthsGone} of 12 month{monthsGone === 1 ? "" : "s"} gone</p>
-              <div className="v4-hero-n"><span className="v4-big">{used}%</span><span className="v4-cmp">{nairaShort(spent)} of {nairaShort(alloc)} · expected by now about <b>{expected}%</b></span></div>
+              <div className="v4-hero-n"><span className="v4-big">{used}%</span><span className="v4-cmp">{nairaShort(spent)} of {nairaShort(alloc)}, expected by now about <b>{expected}%</b></span></div>
               <Pace used={used} expected={expected} />
               <Notice tone={ahead ? "amber" : "green"}>{ahead ? `Spending is ahead of pace${risk.length ? `, mostly ${[...new Set(risk.slice(0, 2).map((s) => s.name))].join(" and ")}` : ""}.` : "Spending is on or below pace for the year."}</Notice>
             </section>
@@ -84,7 +84,7 @@ export default function ExecutiveAnalyticsPage() {
                 <ul className="v4-util">
                   {risk.map((s) => {
                     const p = utilisation(s);
-                    return <li key={s.id}><strong>{subheadLabel(s)}</strong><span className="v4-v">{nairaShort(subheadUsed(s))} of {nairaShort(num(s.approved_allocation))} · {p}%</span><span className="v4-bar"><span className={p >= 90 ? "v4-risk" : "v4-warn"} style={{ width: `${Math.min(100, p)}%` }} /></span></li>;
+                    return <li key={s.id}><strong>{subheadLabel(s)}</strong><span className="v4-v">{nairaShort(subheadUsed(s))} of {nairaShort(num(s.approved_allocation))}, {p}%</span><span className="v4-bar"><span className={p >= 90 ? "v4-risk" : "v4-warn"} style={{ width: `${Math.min(100, p)}%` }} /></span></li>;
                   })}
                 </ul>
               ) : <p className="v4-muted" style={{ margin: 0 }}>No subhead is at 80% or more.</p>}

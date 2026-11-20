@@ -143,7 +143,7 @@ export default function FinanceIntegrityPage() {
           {rows.map((x, i) => (
             <tr key={`${x.kind}-${x.subject_id}-${x.item}-${i}`}>
               {pick && canCorrect ? <td>{pick.fixable(x) ? <input type="checkbox" aria-label={`Choose ${x.subject}`} checked={pick.set.has(x.subject_id)} onChange={() => toggle(pick.which, x.subject_id)} /> : null}</td> : null}
-              <td><span className="v4-strong">{x.subject}</span><span className="v4-sub">{KIND_TEXT[x.kind] || x.kind} · <Chip tone={TONE[x.severity]}>{SEVERITY[x.severity]}</Chip></span></td>
+              <td><span className="v4-strong">{x.subject}</span><span className="v4-sub">{KIND_TEXT[x.kind] || x.kind}, <Chip tone={TONE[x.severity]}>{SEVERITY[x.severity]}</Chip></span></td>
               <td data-label="Item">{x.item}</td>
               <td className="v4-r v4-num" data-label="Stored">{nairaExact(x.stored)}</td>
               <td className="v4-r v4-num" data-label={x.kind === "overallocated" ? "Total fund" : "Records support"}>{nairaExact(x.supported)}</td>

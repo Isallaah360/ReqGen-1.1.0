@@ -159,7 +159,7 @@ function Centre() {
 
   return (
     <V4Page>
-      <PageHead title="Transaction Centre" sub="Every money movement in one place: releases, vouchers, transfers, funding, allocations and corrections. Real records are never deleted — mistakes are reversed with approval. Amounts with no record behind them can be removed by the Auditor or the Super Admin."
+      <PageHead title="Transaction Centre" sub="Every money movement in one place: releases, vouchers, transfers, funding, allocations and corrections. Real records are never deleted: mistakes are reversed with approval. Amounts with no record behind them can be removed by the Auditor or the Super Admin."
         actions={[{ label: "Export CSV", icon: "download", kind: "secondary", disabled: !shown.length, onClick: () => downloadCsv(`ReqGen_Transactions_${new Date().toISOString().slice(0, 10)}.csv`, shown.map((x) => ({ Date: new Date(x.at).toLocaleString("en-GB"), Kind: x.kind, Reference: x.ref_no || "", From: x.source, To: x.destination, Amount: x.amount, Effect: x.effect, Status: x.status, By: x.by_label || "", Details: x.details || "" }))) },
           { label: "Integrity", icon: "scale", kind: "secondary", href: "/finance/integrity" }]} />
       {error ? <Notice tone="amber">{error}</Notice> : null}
@@ -176,7 +176,7 @@ function Centre() {
               <tbody>
                 {unsupported.map((x) => (
                   <tr key={`${x.subject_id}-${x.item}`}>
-                    <td><span className="v4-strong">{x.subject}</span><span className="v4-sub">Stored {nairaExact(x.stored)} · records support {nairaExact(x.supported)}</span></td>
+                    <td><span className="v4-strong">{x.subject}</span><span className="v4-sub">Stored {nairaExact(x.stored)}, records support {nairaExact(x.supported)}</span></td>
                     <td data-label="Shown as"><Chip tone={x.item === "Spent" ? "red" : "amber"}>{x.item}</Chip></td>
                     <td className="v4-r v4-num" data-label="Amount"><span className="v4-strong" style={{ color: "var(--v4-red)" }}>{nairaExact(x.difference)}</span></td>
                     <td className="v4-hide-md">{x.note}</td>
@@ -212,10 +212,10 @@ function Centre() {
                         <td className="v4-num">{new Date(x.at).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}</td>
                         <td data-label="Kind"><span className="v4-strong">{x.kind}</span><span className="v4-sub"><Chip tone={EFFECT_TONE[x.effect] || "grey"}>{x.effect}</Chip></span></td>
                         <td data-label="Reference"><button type="button" className="v4-link" onClick={(e) => { e.stopPropagation(); setOpen(x); }}>{x.ref_no || "Details"}</button></td>
-                        <td className="v4-hide-md">{x.source || "—"} → {x.destination || "—"}</td>
+                        <td className="v4-hide-md">{x.source || "-"} → {x.destination || "-"}</td>
                         <td className="v4-r v4-num" data-label="Amount"><span className="v4-strong">{nairaExact(x.amount)}</span></td>
                         <td data-label="Status">{x.status.startsWith("Reversed") ? <Chip tone="red">{x.status}</Chip> : x.status}</td>
-                        <td className="v4-hide-sm">{x.by_label || "—"}</td>
+                        <td className="v4-hide-sm">{x.by_label || "-"}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -231,7 +231,7 @@ function Centre() {
               <tbody>
                 {revs.map((v) => (
                   <tr key={v.id} style={params.get("reversal") === v.id ? { background: "var(--v4-brand-soft)" } : undefined}>
-                    <td><span className="v4-strong">{v.reversal_no}</span><span className="v4-sub">{v.initiated_label} · {new Date(v.initiated_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</span></td>
+                    <td><span className="v4-strong">{v.reversal_no}</span><span className="v4-sub">{v.initiated_label}, {new Date(v.initiated_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</span></td>
                     <td data-label="Of">{v.source_no}<span className="v4-sub">{v.source_kind === "release" ? "Fund release" : "Manual voucher"}{v.subhead_label ? ` · ${v.subhead_label}` : ""}</span></td>
                     <td className="v4-r v4-num" data-label="Amount">{nairaExact(v.amount)}</td>
                     <td data-label="Status"><Chip tone={REV_TONE[v.status] || "grey"}>{v.status}</Chip>{v.check_comment || v.approve_comment ? <span className="v4-sub">{v.approve_comment || v.check_comment}</span> : null}</td>
@@ -239,7 +239,7 @@ function Centre() {
                     <td data-label="Action">
                       <span style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                         {isAuditor && v.status === "With the Auditor" && v.initiated_by !== me.userId ? <>
-                          <button className="v4-btn v4-btn-primary" type="button" disabled={busy} onClick={() => void act(v, "pass")}>Checked — send to the DG</button>
+                          <button className="v4-btn v4-btn-primary" type="button" disabled={busy} onClick={() => void act(v, "pass")}>Checked: send to the DG</button>
                           <button className="v4-btn v4-btn-ghost" type="button" disabled={busy} onClick={() => void act(v, "return")}>Return</button></> : null}
                         {isDG && v.status === "With the DG" ? <>
                           <button className="v4-btn v4-btn-primary" type="button" disabled={busy} onClick={() => void act(v, "approve")}><Icon name="pentool" />Approve and stamp</button>
@@ -269,7 +269,7 @@ function Centre() {
         ) : null}
       </Modal>
 
-      <Modal open={!!open} title={open ? `${open.kind}${open.ref_no ? ` · ${open.ref_no}` : ""}` : ""} onClose={() => setOpen(null)} busy={busy}
+      <Modal open={!!open} title={open ? `${open.kind}${open.ref_no ? `, ${open.ref_no}` : ""}` : ""} onClose={() => setOpen(null)} busy={busy}
         footer={open ? <>
           {linkOf(open) ? <Link className="v4-btn v4-btn-secondary" href={linkOf(open) as string}><Icon name="eye" />Open the record</Link> : null}
           {isOfficer && reversible(open) ? <button className="v4-btn v4-btn-primary" type="button" disabled={busy} onClick={() => void startReversal(open)}><Icon name="returned" />Start a reversal</button> : null}
@@ -280,10 +280,10 @@ function Centre() {
             <dt>Date</dt><dd>{new Date(open.at).toLocaleString("en-GB")}</dd>
             <dt>Amount</dt><dd>{nairaExact(open.amount)}</dd>
             <dt>Effect</dt><dd>{open.effect}</dd>
-            <dt>From</dt><dd>{open.source || "—"}</dd>
-            <dt>To</dt><dd>{open.destination || "—"}</dd>
+            <dt>From</dt><dd>{open.source || "-"}</dd>
+            <dt>To</dt><dd>{open.destination || "-"}</dd>
             <dt>Status</dt><dd>{open.status}</dd>
-            <dt>By</dt><dd>{open.by_label || "—"}</dd>
+            <dt>By</dt><dd>{open.by_label || "-"}</dd>
             {open.details ? <><dt>Details</dt><dd style={{ textAlign: "left", fontWeight: 500 }}>{open.details}</dd></> : null}
           </dl>
         ) : null}

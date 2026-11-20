@@ -22,7 +22,7 @@ function BatchPrint() {
     setBusy(true);
     const pages = Array.from(box.current?.querySelectorAll<HTMLElement>("[data-pv-sheet]") || []);
     await Promise.all(Array.from(box.current?.querySelectorAll<HTMLElement>("article[data-pv-no]") || []).map((a) => logPrint("voucher", a.dataset.pvId || null, a.dataset.pvNo || "")));
-    await printA4Sheet(pages, `${ids.length} payment vouchers — ReqGen`);
+    await printA4Sheet(pages, `${ids.length} payment vouchers: ReqGen`);
     setBusy(false);
   }
 

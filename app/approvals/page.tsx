@@ -35,8 +35,8 @@ export default function ApprovalsHome() {
       key: r.id,
       icon: "file",
       tone: "brand",
-      title: `${r.request_no || "Request"} · ${r.title || "Untitled"}`,
-      sub: `${stageWords(r.current_stage)} · raised ${waitedFor(r.created_at)} ago`,
+      title: `${r.request_no || "Request"}, ${r.title || "Untitled"}`,
+      sub: `${stageWords(r.current_stage)}, raised ${waitedFor(r.created_at)} ago`,
       right: <><span className="v4-amt">{naira(r.amount)}</span><Chip tone={days >= 3 ? "red" : days >= 1 ? "amber" : "green"}>{waitedFor(r.created_at)}</Chip><Btn small a={{ href: `/requests/${r.id}`, label: "Open", kind: "primary" }} /></>,
     };
   });
@@ -44,7 +44,7 @@ export default function ApprovalsHome() {
   return (
     <MotherPage moduleKey="approvals">
       <Card title="Oldest waiting" link={{ href: "/approvals/inbox", label: "See all" }}>
-        {rows === null ? <Skeleton /> : <Rows items={items} empty="Nothing is waiting for you. New requests routed to you will appear here." />}
+        {rows === null ? <Skeleton kind="rows" /> : <Rows items={items} empty="Nothing is waiting for you. New requests routed to you will appear here." />}
       </Card>
     </MotherPage>
   );

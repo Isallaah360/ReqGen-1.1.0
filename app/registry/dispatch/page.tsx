@@ -86,8 +86,8 @@ function Dispatch() {
                 <strong>{r.reference_no}</strong>
                 <span className="v4-help" style={{ margin: 0 }}>{r.subject}{r.priority && r.priority !== "Normal" ? ` · ${r.priority}` : ""}</span>
                 <dl className="v4-kv" style={{ marginTop: 6 }}>
-                  <dt>To</dt><dd>{r.from_to || "—"}</dd>
-                  <dt>From</dt><dd>{deptName.get(r.department_id || "") || "—"}</dd>
+                  <dt>To</dt><dd>{r.from_to || "-"}</dd>
+                  <dt>From</dt><dd>{deptName.get(r.department_id || "") || "-"}</dd>
                   {tab === "ready" ? <><dt>Waiting</dt><dd>{ageText(r.created_at, now)}</dd></> : <><dt>{tab === "transit" ? "Sent" : "Delivered"}</dt><dd>{r.dispatch_method || "—"} · {new Date((tab === "transit" ? r.dispatched_at : r.delivered_at) || r.created_at || now).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</dd>{r.receiver_name ? <><dt>Received by</dt><dd>{r.receiver_name}</dd></> : null}</>}
                 </dl>
                 {tab === "transit" ? <button type="button" className="v4-btn v4-btn-secondary" style={{ minHeight: 38, marginTop: 8 }} onClick={() => void delivered(r)}><Icon name="check" />Mark delivered</button> : null}

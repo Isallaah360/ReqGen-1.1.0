@@ -25,7 +25,7 @@ const SA_CAN = [
   "Hand the account over to a new keeper",
 ];
 const SA_CANNOT = [
-  "Raise, approve, sign or stamp a request or voucher — it is not a staff member, belongs to no department and has no signature",
+  "Raise, approve, sign or stamp a request or voucher: it is not a staff member, belongs to no department and has no signature",
   "Open the contents of a request that was not routed to it",
   "Edit or delete the Audit Log, or delete a paid voucher",
   "Change the program code or the database structure",
@@ -34,11 +34,11 @@ const DEV_CAN = [
   "Open every module and every page of ReqGen, in its own Developer Console",
   "Everything the Super Admin can do, including finance corrections, Financial Reset and restore",
   "Switch a module off for maintenance, with a message for staff, and switch it on again",
-  "Publish releases — staff read them in What’s new and the Super Admin is told",
-  "Run Diagnostics and repair data — each repair needs a written reason",
+  "Publish releases: staff read them in What’s new and the Super Admin is told",
+  "Run Diagnostics and repair data: each repair needs a written reason",
 ];
 const DEV_CANNOT = [
-  "Raise, approve, sign, stamp or pay — money decisions stay with IET officers",
+  "Raise, approve, sign, stamp or pay: money decisions stay with IET officers",
   "Act without a trace: every Developer action stays in the Audit Log (Developer tab), which nobody can change",
 ];
 
@@ -103,7 +103,7 @@ export default function SystemAccountsPage() {
         <>
           <section className="v4-sysacc">
             <article className="v4-acc-card v4-sa">
-              <div className="v4-ah"><span className="v4-ava">SA</span><span><strong>Super Admin</strong><span>The Trust’s account · {sa?.email || "ietreqgen@gmail.com"}</span></span></div>
+              <div className="v4-ah"><span className="v4-ava">SA</span><span><strong>Super Admin</strong><span>The Trust’s account, {sa?.email || "ietreqgen@gmail.com"}</span></span></div>
               <div className="v4-ab">
                 <p className="v4-help" style={{ margin: 0 }}>Runs ReqGen for the Trust: people, positions, departments, routing, budgets set-up and security.{keeper ? <> Kept by <b>{keeper}</b>.</> : null}</p>
                 <span className="v4-can-h">Can</span><List items={SA_CAN} yes />
@@ -113,11 +113,11 @@ export default function SystemAccountsPage() {
                 {iAmSuperAdmin ? <button className="v4-btn v4-btn-primary" type="button" onClick={() => { setMsg(null); setDlg({ keeper: "", confirm: "" }); }}><Icon name="send" />Hand over…</button> : null}
                 <Link className="v4-btn v4-btn-secondary" href={`/audit-centre/logs?q=${encodeURIComponent(sa?.full_name || "Super Admin")}&range=30`}><Icon name="history" />See its activity</Link>
                 {ready(saStatus)}
-                <span className={`v4-chip ${(saStatus?.has_2fa ?? sa?.has_2fa) ? "v4-chip-green" : "v4-chip-amber"}`}>{(saStatus?.has_2fa ?? sa?.has_2fa) ? "2FA on" : "2FA not set"} · Last sign-in {whenText(saStatus?.last_sign_in ?? sa?.last_sign_in)}</span>
+                <span className={`v4-chip ${(saStatus?.has_2fa ?? sa?.has_2fa) ? "v4-chip-green" : "v4-chip-amber"}`}>{(saStatus?.has_2fa ?? sa?.has_2fa) ? "2FA on" : "2FA not set"}, Last sign-in {whenText(saStatus?.last_sign_in ?? sa?.last_sign_in)}</span>
               </div>
             </article>
             <article className="v4-acc-card v4-dev">
-              <div className="v4-ah"><span className="v4-ava"><Icon name="settings" /></span><span><strong>Developer</strong><span>Barderian Enterprises · {dev?.email || "info@barderians.com.ng"}</span></span></div>
+              <div className="v4-ah"><span className="v4-ava"><Icon name="settings" /></span><span><strong>Developer</strong><span>Barderian Enterprises, {dev?.email || "info@barderians.com.ng"}</span></span></div>
               <div className="v4-ab">
                 <p className="v4-help" style={{ margin: 0 }}>Keeps ReqGen running: releases, database changes, repairs and diagnostics. The highest technical level.</p>
                 <span className="v4-can-h">Can</span><List items={DEV_CAN} yes />
@@ -148,7 +148,7 @@ export default function SystemAccountsPage() {
         {dlg ? (
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             <ul className="v4-can v4-yes">
-              {["Every passcode and fingerprint on this account stops working", "Its 2FA is removed — the new keeper sets up their own authenticator", "The new keeper chooses a new password at the next sign-in", "Every session of this account is signed out, including this one", "The hand-over is written to the Audit Log"].map((t) => <li key={t}><Icon name="check" /><span>{t}</span></li>)}
+              {["Every passcode and fingerprint on this account stops working", "Its 2FA is removed: the new keeper sets up their own authenticator", "The new keeper chooses a new password at the next sign-in", "Every session of this account is signed out, including this one", "The hand-over is written to the Audit Log"].map((t) => <li key={t}><Icon name="check" /><span>{t}</span></li>)}
             </ul>
             <label className="v4-field"><span className="v4-flabel">New keeper’s full name <span className="v4-req">*</span></span><input className="v4-input" value={dlg.keeper} onChange={(e) => setDlg({ ...dlg, keeper: e.target.value })} /></label>
             <label className="v4-field"><span className="v4-flabel">Type HAND OVER to confirm <span className="v4-req">*</span></span><input className="v4-input" value={dlg.confirm} autoComplete="off" onChange={(e) => setDlg({ ...dlg, confirm: e.target.value })} /></label>

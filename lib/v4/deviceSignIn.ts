@@ -2,6 +2,8 @@
 
 import { browserSupportsWebAuthn, platformAuthenticatorIsAvailable, startAuthentication, startRegistration } from "@simplewebauthn/browser";
 import { supabase } from "@/lib/supabaseClient";
+import { isApp } from "@/lib/app/native";
+import { checkFingerprint, fingerprintSaved, forgetFingerprint, readFingerprint, resetFingerprintAsk } from "@/lib/app/biometric";
 
 /**
  * ReqGen v4.0.0 — fingerprint and passcode sign-in (browser side).
@@ -70,6 +72,8 @@ async function finishSession(tokenHash: string) {
 }
 
 export async function fingerprintAvailable() {
+  // v4.6.11: in the ReqGen app the phone's own sensor is used (brief §7).
+  if (isApp()) return fingerprintSaved();
   try {
     return browserSupportsWebAuthn() && (await platformAuthenticatorIsAvailable());
   } catch {
@@ -86,6 +90,20 @@ function friendly(e: unknown) {
 
 /** Signs in with a fingerprint (no password). Counts as the 2FA check. */
 export async function fingerprintSignIn() {
+  if (isApp()) {
+    const saved = await readFingerprint("Sign in to ReqGen");
+    const r = await supabase.auth.signInWithPassword({ email: saved.email, password: saved.password });
+    if (r.error) {
+      if (/invalid login|invalid credentials|password/i.test(r.error.message)) {
+        // The password changed: forget it, and ask once again after the next password sign-in.
+        await forgetFingerprint();
+        await resetFingerprintAsk();
+        throw new Error("Your password has changed. Sign in with your password, then turn the fingerprint on again.");
+      }
+      throw new Error(r.error.message);
+    }
+    return;
+  }
   const opt = await post("/api/auth/webauthn", { action: "login-options" });
   if (!opt.ok) throw new Error(opt.error || "Fingerprint sign-in is not available.");
   let response;
@@ -97,6 +115,7 @@ export async function fingerprintSignIn() {
 
 /** After the password: confirm it is you with the fingerprint instead of the code. */
 export async function fingerprintStepUp() {
+  if (isApp()) return checkFingerprint("Confirm it is you");
   const opt = await post("/api/auth/webauthn", { action: "stepup-options" }, true);
   if (!opt.ok) throw new Error(opt.error || "No fingerprint is set up for this account yet.");
   let response;

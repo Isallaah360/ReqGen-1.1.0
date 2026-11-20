@@ -7,7 +7,7 @@ import { Notice } from "@/app/components/v4/ui";
 export default function AuditHome() {
   return (
     <MotherPage moduleKey="audit">
-      <Notice tone="blue">The Compliance report lives in <b>Reports › Compliance</b> — one place for every report.</Notice>
+      <Notice tone="blue">The Compliance report lives in <b>Reports › Compliance</b>: one place for every report.</Notice>
     </MotherPage>
   );
 }

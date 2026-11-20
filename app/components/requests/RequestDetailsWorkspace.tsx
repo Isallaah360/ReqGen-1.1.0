@@ -18,6 +18,7 @@ import { stageTitle, stageWords, statusChip, waitedFor } from "@/lib/v4/requestT
 import { fingerprintAvailable, fingerprintStepUp } from "@/lib/v4/deviceSignIn";
 import { celebrate, useCelebrate } from "@/app/components/v4/Motion";
 import RequestInsight from "./RequestInsight";
+import DirectActions from "./DirectActions";
 
 
 type PersonalCategory =
@@ -50,6 +51,8 @@ type Req = {
   assigned_account_officer_name: string | null;
   requester_name?: string | null;
   updated_at?: string | null;
+  /** v4.6.10: set on a Direct request (the person it is addressed to now) */
+  direct_to?: string | null;
 };
 
 type ChainRow = { step_order: number; stage: string; owner_name: string | null; state: "done" | "now" | "wait" | "skipped"; acted_by_name: string | null; acted_role: string | null; acted_at: string | null; comment: string | null; signed: boolean };
@@ -173,6 +176,7 @@ function categoryKey(category: string | null | undefined) {
 }
 
 function requestTypeLabel(req: Req) {
+  if (req.direct_to) return Number(req.amount || 0) > 0 ? "Direct • Money" : "Direct";
   if (req.request_type === "Official") return "Official";
 
   const category = req.personal_category || "Others";
@@ -318,6 +322,16 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
     return !!req && !!me && req.created_by === me.id;
   }, [req, me]);
 
+  const isDirect = !!req?.direct_to;
+  const [directHolder, setDirectHolder] = useState<string | null>(null);
+  useEffect(() => {
+    if (!req?.direct_to || !req.current_owner) return;
+    let alive = true;
+    void supabase.from("profiles").select("full_name").eq("id", req.current_owner).maybeSingle().then(({ data }) => {
+      if (alive) setDirectHolder(((data as { full_name?: string | null } | null)?.full_name) || null);
+    });
+    return () => { alive = false; };
+  }, [req?.direct_to, req?.current_owner]);
   const isOfficial = useMemo(() => {
     return (req?.request_type || "").trim().toUpperCase() === "OFFICIAL";
   }, [req?.request_type]);
@@ -737,6 +751,9 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
     }
 
     const requestRow = r as Req;
+    // v4.6.10: Direct requests (read separately so the page still opens before the database step)
+    const dr = await supabase.from("requests").select("direct_to").eq("id", requestRow.id).maybeSingle();
+    if (!dr.error) requestRow.direct_to = (dr.data as { direct_to?: string | null } | null)?.direct_to || null;
     setReq(requestRow);
 
     if (requestRow.subhead_id) {
@@ -800,6 +817,10 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
       .single();
 
     const reloadedRequest = (r2 as Req | null) || null;
+    if (reloadedRequest) {
+      const dr = await supabase.from("requests").select("direct_to").eq("id", reloadedRequest.id).maybeSingle();
+      if (!dr.error) reloadedRequest.direct_to = (dr.data as { direct_to?: string | null } | null)?.direct_to || null;
+    }
     setReq(reloadedRequest);
 
     const { data: h2 } = await supabase
@@ -900,7 +921,7 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
 
     const ok = await confirmDialog({
       title: isPersonalFund ? "Recommend this subhead and reserve the amount?" : "Assign subhead and reserve funds?",
-      message: `${isPersonalFund ? "Recommend" : "Assign"} "${selectedAssignableSubhead.code ? `${selectedAssignableSubhead.code} — ` : ""
+      message: `${isPersonalFund ? "Recommend" : "Assign"} "${selectedAssignableSubhead.code ? `${selectedAssignableSubhead.code}: ` : ""
       }${selectedAssignableSubhead.name}" and reserve ${formatNaira(req.amount)} for this request?`,
       confirmLabel: isPersonalFund ? "Recommend and reserve" : "Assign and reserve",
     });
@@ -1165,7 +1186,8 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
     if (!stillValid) return;
 
     setSaving(true);
-    setMsg(null);
+    // v4.6.11 (brief §4): show the result at once; the server saves behind it.
+    setMsg(action === "Approve" ? "✓ Approved. Saving…" : "✓ Sent back. Saving…");
 
     try {
       if (action === "Approve") {
@@ -1245,7 +1267,8 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
       window.dispatchEvent(new Event(APPROVAL_QUEUE_CHANGED_EVENT));
       if (embedded) onProcessed?.();
     } catch (e: unknown) {
-      setMsg("✕ Action failed: " + errorMessage(e));
+      // The server refused: undo the shown result with a short, plain message.
+      setMsg(`✕ Not saved: ${errorMessage(e)} ${action === "Approve" ? "Your approval was undone." : "The request was not sent back."}`);
     } finally {
       setSaving(false);
     }
@@ -1324,7 +1347,7 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
     const target = assignableSubheads.find((s) => s.id === changeSubTo);
     const reason = await promptDialog({
       title: "Change the subhead?",
-      message: `Move ${formatNaira(req.amount)} to ${target ? `${target.code ? `${target.code} — ` : ""}${target.name}` : "the chosen subhead"}. The fund is reserved there and released from the old one.`,
+      message: `Move ${formatNaira(req.amount)} to ${target ? `${target.code ? `${target.code}: ` : ""}${target.name}` : "the chosen subhead"}. The fund is reserved there and released from the old one.`,
       label: "Reason for the change",
       confirmLabel: "Change subhead",
     });
@@ -1342,7 +1365,7 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
       await supabase.from("request_history").insert({
         request_id: req.id,
         action_type: "Subhead changed",
-        comment: `Subhead changed to ${target ? `${target.code ? `${target.code} — ` : ""}${target.name}` : "another subhead"}. Reason: ${reason}`,
+        comment: `Subhead changed to ${target ? `${target.code ? `${target.code}: ` : ""}${target.name}` : "another subhead"}. Reason: ${reason}`,
         from_stage: req.current_stage,
         to_stage: req.current_stage,
         actor_name: me?.full_name || null,
@@ -1400,14 +1423,14 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
   const reopenRole = ["account", "accounts", "accountofficer", "auditor", "admin"].includes(roleKey(activeRoleKey));
   const canReopen = isClosedForReopen && (isMyRequest || reopenRole);
 
-  if (loading) return <V4Page><div className="v4-card v4-card-pad"><Skeleton lines={4} /></div><div className="v4-card"><Skeleton lines={6} /></div></V4Page>;
+  if (loading) return <V4Page><div className="v4-card v4-card-pad"><Skeleton lines={4} /></div><div className="v4-card"><Skeleton kind="timeline" lines={5} /></div></V4Page>;
 
   // v3.0.2: Registry tracks request MOVEMENT only and never sees request content.
   if (roleKey(activeRoleKey) === "registry") {
     return (
       <V4Page>
         <Notice tone="amber" title="Request contents are not available to Registry.">
-          Registry follows where a request is, who acted and when — never its title, amount or balance. Use Registry › Request Tracking.
+          Registry follows where a request is, who acted and when: never its title, amount or balance. Use Registry › Request Tracking.
           To open your own requests, switch “Acting as” to Staff.
         </Notice>
         <div><Link className="v4-btn v4-btn-secondary" href="/registry">Open Registry</Link></div>
@@ -1428,15 +1451,22 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
   const chip = statusChip(req.status, req.current_stage);
   const isOpen = !["COMPLETED", "REJECTED", "CANCELLED", "DELETED"].includes(stageKey(req.current_stage));
   const stageName = stageTitle(req.current_stage);
-  const headChip = canAct
-    ? { tone: "brand", text: `Your step: ${stageName}${isDgStage ? " · final approval" : ""}` }
+  const directWhere = isDirect
+    ? (/returned for correction/i.test(req.status) ? "Back with the writer" : stageKey(req.current_stage) === "SUBMITTED" ? `With ${directHolder || "the person it is addressed to"}` : stageWords(req.current_stage))
+    : stageWords(req.current_stage);
+  const headChip = isDirect && me && req.current_owner === me.id
+    ? { tone: "brand", text: stageKey(req.current_stage) === "DG" ? "Your step: Director General · final approval" : /returned for correction/i.test(req.status) ? "Sent back to you to correct" : "Your step: addressed to you" }
+    : isDirect && isOpen
+      ? { tone: "amber", text: `${directWhere}, ${waitedFor(req.updated_at || req.created_at)}` }
+      : canAct
+    ? { tone: "brand", text: `Your step: ${stageName}${isDgStage ? ", final approval" : ""}` }
     : backWithMe
       ? { tone: "red", text: "Sent back to you to correct" }
       : isOpen
-        ? { tone: "amber", text: `${stageWords(req.current_stage)} · ${waitedFor(req.updated_at || req.created_at)}` }
+        ? { tone: "amber", text: `${stageWords(req.current_stage)}, ${waitedFor(req.updated_at || req.created_at)}` }
         : { tone: chip.tone, text: chip.label };
   const amountWords = !isPersonalNonFund && Number(req.amount) > 0 ? nairaInWords(req.amount) : "";
-  const subText = subhead ? `${subhead.code ? `${subhead.code} — ` : ""}${subhead.name}` : isOfficial || isPersonalFund ? "To be confirmed by the officer" : "Not needed";
+  const subText = subhead ? `${subhead.code ? `${subhead.code}: ` : ""}${subhead.name}` : isDirect ? "Not needed (direct request)" : isOfficial || isPersonalFund ? "To be confirmed by the officer" : "Not needed";
   const requester = req.requester_name || (isMyRequest ? me?.full_name : "") || "Requester";
   const submitRow = [...history].reverse().find((h) => String(h.action_type || "").toLowerCase() === "submit");
   const nextStop = chain.find((c) => c.state === "wait" && c.owner_name) || chain.find((c) => c.state === "wait");
@@ -1469,12 +1499,12 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
     if (a.includes("attachment")) return { icon: "eye", tone: "blue", text: "Attachment checked" };
     if (a.includes("subhead") || a === "edited") return { icon: "pen", tone: "amber", text: h.action_type === "Edited" ? "Edited" : "Subhead changed" };
     if (/treat|paid|pay|complete/.test(a)) return { icon: "wallet", tone: "green", text: `${h.action_type} by ${h.actor_name || "Account"}` };
-    return { icon: "info", tone: "blue", text: `${h.action_type} · ${h.actor_name || ""}` };
+    return { icon: "info", tone: "blue", text: `${h.action_type}, ${h.actor_name || ""}` };
   };
 
   const chainItems = [
     submitRow
-      ? { key: "submit", cls: "v4-done", st: "1 · Submitted", who: submitRow.actor_name || requester, r: `Requester${deptName ? ` · ${deptName}` : ""}`, em: shortWhen(submitRow.created_at), ink: !!submitRow.signature_url }
+      ? { key: "submit", cls: "v4-done", st: "1, Submitted", who: submitRow.actor_name || requester, r: `Requester${deptName ? `, ${deptName}` : ""}`, em: shortWhen(submitRow.created_at), ink: !!submitRow.signature_url }
       : null,
     ...chain.filter((c) => c.state !== "skipped").map((c, i) => {
       const label = stageTitle(c.stage);
@@ -1482,7 +1512,7 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
       return {
         key: `${c.stage}-${i}`,
         cls: c.state === "done" ? "v4-done" : c.state === "now" ? "v4-now" : "v4-wait",
-        st: `${i + (submitRow ? 2 : 1)} · ${label}`,
+        st: `${i + (submitRow ? 2 : 1)}, ${label}`,
         who: c.state === "done" ? c.acted_by_name || c.owner_name || label : isMeNow ? "You" : c.owner_name || (stageKey(c.stage) === "ACCOUNT" ? req.assigned_account_officer_name || "Account Officer" : "Vacant — skipped"),
         r: c.state === "done" ? signedAsLabel(c.acted_role) || label : c.state === "now" ? (stageKey(c.stage) === "DG" ? "Sign + IET stamp" : `Waiting · ${waitedFor(req.updated_at || req.created_at)}`) : stageKey(c.stage) === "ACCOUNT" ? "Releases the fund" : stageKey(c.stage) === "DG" ? "Sign + IET stamp" : "",
         em: c.state === "done" ? shortWhen(c.acted_at) : "",
@@ -1499,7 +1529,7 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
         <div className="v4-rec">
           <div>
             <span className={`v4-chip v4-chip-${headChip.tone}`}><Icon name={canAct ? "pen" : isOpen ? "clock" : "check"} size="sm" />{headChip.text}</span>
-            <h1 className="v4-page-title" style={{ marginTop: 8 }}>{req.request_no} · {req.title}</h1>
+            <h1 className="v4-page-title" style={{ marginTop: 8 }}>{req.request_no}, {req.title}</h1>
             <div className="v4-meta">
               {!isMyRequest ? <span>From <b>{requester}</b></span> : null}
               <span>Type <b>{requestTypeLabel(req)}</b></span>
@@ -1510,7 +1540,7 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
           </div>
           <div className="v4-right">
             <div className="v4-label">Amount</div>
-            <div className="v4-amount-big">{isPersonalNonFund ? "—" : nairaExact(req.amount)}</div>
+            <div className="v4-amount-big">{isPersonalNonFund ? "-" : nairaExact(req.amount)}</div>
             {amountWords ? <span className="v4-help" style={{ fontSize: 12.5, color: "var(--v4-muted)" }}>{amountWords}</span> : null}
             <div className="v4-btns">
               {canWithdraw && !canAct ? <button className="v4-btn v4-btn-secondary" type="button" onClick={() => void withdrawMine()} disabled={actingLocked}><Icon name="x" />Withdraw</button> : null}
@@ -1525,10 +1555,15 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
 
       {notice ? <Notice tone={notice.tone}>{notice.text}</Notice> : null}
 
-      {backWithMe && !canAct ? (
+      {isDirect && me && req.current_owner === me.id && !isAccountStage ? <DirectActions req={req} meId={me.id} onDone={reload} /> : null}
+      {isDirect && me && req.current_owner === me.id && isAccountStage ? (
+        <Notice tone="blue" title="Approved by the Director General.">Release the fund and prepare the voucher in <Link href={`/finance/request/${req.id}`}>Finance › Treat this request</Link>.</Notice>
+      ) : null}
+
+      {backWithMe && !canAct && !isDirect ? (
         <section className="v4-action-card v4-card-pad">
           <h2 className="v4-h2" style={{ marginBottom: 4 }}>{lastReturn && String(lastReturn.action_type).toLowerCase() === "return" ? "This request was sent back to you" : "This request was reopened"}</h2>
-          {lastReturn ? <p className="v4-help" style={{ margin: "0 0 14px" }}>“{lastReturn.comment}” — {lastReturn.actor_name || "Officer"}{lastReturn.actor_role_name ? `, ${lastReturn.actor_role_name}` : ""}</p> : null}
+          {lastReturn ? <p className="v4-help" style={{ margin: "0 0 14px" }}>“{lastReturn.comment}”: {lastReturn.actor_name || "Officer"}{lastReturn.actor_role_name ? `, ${lastReturn.actor_role_name}` : ""}</p> : null}
           <div className="v4-form-actions" style={{ borderTop: 0, paddingTop: 0, justifyContent: "flex-start" }}>
             <Link className="v4-btn v4-btn-primary" href={`/requests/${req.id}/edit`}><Icon name="pen" />Correct the request</Link>
             <button type="button" className="v4-btn v4-btn-secondary" onClick={() => void resubmitReturned()} disabled={saving}><Icon name="send" />Send it again as it is</button>
@@ -1537,9 +1572,9 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
         </section>
       ) : null}
 
-      {canAct && !isMyRequest ? <RequestInsight requestId={req.id} /> : null}
+      {canAct && !isMyRequest && !isDirect ? <RequestInsight requestId={req.id} /> : null}
 
-      {canAct ? (
+      {canAct && !isDirect ? (
         <section className="v4-action-card v4-card-pad">
           <h2 className="v4-h2" style={{ marginBottom: 4 }}>{isAccountStage ? "Treat this request" : isHRFiling ? "HR review and filing" : "Your decision"}</h2>
           <p className="v4-help" style={{ margin: "0 0 14px" }}>
@@ -1569,7 +1604,7 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
                     <div className="v4-field" style={{ flex: "1 1 260px" }}>
                       <label className="v4-flabel" htmlFor="rq-assign-sub" style={{ fontSize: 13, fontWeight: 700 }}>{isPersonalFund ? "Recommend a subhead" : "Choose the subhead"} <span className="v4-req">*</span></label>
                       <Select id="rq-assign-sub" value={selectedSubheadId} onChange={setSelectedSubheadId} placeholder="Choose the subhead"
-                        options={assignableSubheads.map((s) => ({ value: s.id, label: `${s.code ? `${s.code} — ` : ""}${s.name}`, hint: `Available ${formatNaira(availableBalanceForSubhead(s))}` }))} menuMinWidth={300} />
+                        options={assignableSubheads.map((s) => ({ value: s.id, label: `${s.code ? `${s.code}: ` : ""}${s.name}`, hint: `Available ${formatNaira(availableBalanceForSubhead(s))}` }))} menuMinWidth={300} />
                       {assignableSubheads.length ? (
                         <span className="v4-help">The request has no subhead yet. The fund is reserved when you assign it.</span>
                       ) : (
@@ -1588,7 +1623,7 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
                   <div style={{ marginTop: 12 }}><button type="button" className="v4-btn v4-btn-secondary" onClick={() => void assignSubheadAndReserve()} disabled={actingLocked || !selectedSubheadId || !selectedSubheadCanCoverAmount}>
                     {assigningSubhead ? "Reserving…" : isPersonalFund ? "Recommend and reserve" : "Assign and reserve the fund"}</button></div>
                 </>
-              ) : <p className="v4-help" style={{ margin: 0 }}>This request has no subhead yet. Only the officer at the department step (DOD, DIN Admin, HOD, Registrar or HR) assigns it.</p>}
+              ) : <p className="v4-help" style={{ margin: 0 }}>This request has no subhead yet. The officer who sees the budget at the department step (DOD, DIN Admin, HOD, Registrar or HR) assigns it.</p>}
             </div>
           ) : (isOfficial || isPersonalFund) && subhead && balanceViewer && !isAccountStage && !isHRFiling ? (
             <div className="v4-subconfirm">
@@ -1666,9 +1701,19 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
 
       <section className="v4-card v4-card-pad">
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 14 }}>
-          <h2 className="v4-h2">Approval route</h2><span className="v4-help">Each step shows who signed and when. A vacant step is skipped.</span>
+          <h2 className="v4-h2">Approval route</h2><span className="v4-help">{isDirect ? "A direct request goes from person to person, then to the DG." : "Each step shows who signed and when. A vacant step is skipped."}</span>
         </div>
-        {chainItems.length ? (
+        {isDirect ? (
+          <ol className="v4-chain">
+            {[...history].reverse().filter((h) => !/attachment|edited/i.test(h.action_type)).map((h) => (
+              <li key={h.id} className="v4-done">
+                <span className="v4-st">{h.action_type}</span><strong>{h.actor_name || "Officer"}</strong><span className="v4-r">{h.actor_role_name || ""}</span><em>{new Date(h.created_at).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</em>
+                <span className="v4-ink">{h.signature_url ? <span className="v4-chip v4-chip-green"><Icon name="pentool" size="sm" />Signed</span> : null}</span>
+              </li>
+            ))}
+            {isOpen ? <li className="v4-now"><span className="v4-st">Now</span><strong>{directWhere}</strong><span className="v4-r">{/returned/i.test(req.status) ? "Sent back" : "Waiting"}</span><em /><span className="v4-ink" /></li> : null}
+          </ol>
+        ) : chainItems.length ? (
           <ol className="v4-chain">
             {chainItems.map((c) => (
               <li key={c.key} className={c.cls}>
@@ -1741,7 +1786,7 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
             <h2 className="v4-h3" style={{ marginBottom: 10 }}>At a glance</h2>
             <dl className="v4-kv">
               <dt>Status</dt><dd><span className={`v4-chip v4-chip-${chip.tone}`}>{chip.label}</span></dd>
-              <dt>Where</dt><dd>{stageWords(req.current_stage)}</dd>
+              <dt>Where</dt><dd>{directWhere}</dd>
               {req.assigned_account_officer_name && !isHRContext ? <><dt>Account Officer</dt><dd>{req.assigned_account_officer_name}</dd></> : null}
               <dt>Attachments</dt><dd>{attachments.length}</dd>
             </dl>

@@ -41,6 +41,7 @@ type SubFull = SubName & { dept_id: string; approved_allocation: number | null; 
 type Me = { id: string; full_name: string | null; email: string | null; phone: string | null; signature_url: string | null };
 type Live = "idle" | "checking" | "available" | "not_enough" | "unknown";
 type RouteStop = { stage: string; who: string | null };
+const BUDGET_STEPS = new Set(["DOD", "DIRECTOR", "DINADMIN", "HOD", "REGISTRAR", "HR"]);
 
 const STEPS = ["Type", "Details", "Attachments", "Sign & submit"] as const;
 const CATEGORIES: Array<{ key: PersonalCategory; title: string; text: string; icon: string }> = [
@@ -82,7 +83,7 @@ function fileKind(name: string) {
   return ext.slice(0, 4) || "FILE";
 }
 function subLabel(s: SubName) {
-  return (s.code ? `${s.code} — ` : "") + s.name;
+  return (s.code ? `${s.code}: ` : "") + s.name;
 }
 function errorText(e: unknown) {
   return e instanceof Error ? e.message : "Something went wrong. Please try again.";
@@ -134,7 +135,7 @@ function NewRequest() {
   const [subFull, setSubFull] = useState<SubFull[]>([]);
   const [subsLoading, setSubsLoading] = useState(false);
   const [live, setLive] = useState<Live>("idle");
-  const [route, setRoute] = useState<{ stops: RouteStop[]; blocked: string[] } | null>(null);
+  const [route, setRoute] = useState<{ stops: RouteStop[]; blocked: string[]; keys: string[] } | null>(null);
 
   const [draftId, setDraftId] = useState<string | null>(draftParam);
   const [savingDraft, setSavingDraft] = useState(false);
@@ -150,6 +151,14 @@ function NewRequest() {
   const amountOk = !needsAmount || (Number.isFinite(amount) && amount > 0);
   const dept = depts.find((d) => d.id === deptId) || null;
   const subOptions: SubName[] = seeBalances ? subFull : subNames;
+  // v4.6.10 (owner's rule): only a position that sees subhead balances chooses a subhead, and even then it is
+  // optional. Staff write the request and submit it; the approving officer who sees the balances assigns
+  // the subhead and reserves the fund before approving.
+  // ...unless no officer on this department's route assigns it before the DG (the database refuses an
+  // official request at the DG without a subhead): then the subhead is chosen here, by anyone.
+  const budgetStepBeforeDg = !route || (() => { const dg = route.keys.indexOf("DG"); return route.keys.slice(0, dg < 0 ? route.keys.length : dg).some((k) => BUDGET_STEPS.has(k)); })();
+  const mustChooseSubhead = isOfficial && !budgetStepBeforeDg;
+  const choosesSubhead = isOfficial && (seeBalances || mustChooseSubhead);
   const chosenSub = subOptions.find((s) => s.id === subheadId) || null;
   const chosenFull = subFull.find((s) => s.id === subheadId) || null;
   const available = chosenFull ? Number(chosenFull.approved_allocation || 0) - Number(chosenFull.reserved_amount || 0) - Number(chosenFull.expenditure || 0) : 0;
@@ -231,7 +240,7 @@ function NewRequest() {
 
   // ---- live check (staff never see the balance) --------------------------
   useEffect(() => {
-    if (!isOfficial || !subheadId || !(amount > 0)) { queueMicrotask(() => setLive("idle")); return; }
+    if (!choosesSubhead || !subheadId || !(amount > 0)) { queueMicrotask(() => setLive("idle")); return; }
     if (seeBalances) { queueMicrotask(() => setLive(chosenFull ? (amount <= available ? "available" : "not_enough") : "idle")); return; }
     queueMicrotask(() => setLive("checking"));
     const t = window.setTimeout(() => {
@@ -241,7 +250,7 @@ function NewRequest() {
       });
     }, 350);
     return () => window.clearTimeout(t);
-  }, [isOfficial, subheadId, amount, seeBalances, chosenFull, available]);
+  }, [choosesSubhead, subheadId, amount, seeBalances, chosenFull, available]);
 
   // ---- route preview ----------------------------------------------------
   useEffect(() => {
@@ -267,6 +276,7 @@ function NewRequest() {
       if (!alive) return;
       setRoute({
         stops: shown.map((s) => ({ stage: stageTitle(s.stage), who: names.get(s.stage) || null })),
+        keys: shown.map((s) => String(s.stage || "").toUpperCase().replace(/[\s_-]+/g, "")),
         blocked: steps.filter((s) => s.is_vacant && s.if_vacant === "block").map((s) => stageTitle(s.stage)),
       });
     })();
@@ -277,13 +287,13 @@ function NewRequest() {
   const detailsProblem = useMemo(() => {
     if (!deptId) return "Choose the department.";
     if (!title.trim()) return "Type the title of the request.";
-    if (isOfficial && subOptions.length > 0 && !subheadId) return "Choose the budget subhead.";
     if (!details.trim()) return "Describe what the request is for.";
     if (needsAmount && !amountOk) return "Type the amount (numbers only, up to two decimals).";
-    if (isOfficial && subheadId && live === "not_enough") return "Not enough fund in this subhead. Choose another subhead or lower the amount. You can still save a draft.";
-    if (isOfficial && subheadId && live === "checking") return "Checking the budget…";
+    if (mustChooseSubhead && subOptions.length > 0 && !subheadId) return "Choose the budget subhead: no officer on this route assigns it before the Director General.";
+    if (choosesSubhead && subheadId && live === "not_enough") return "Not enough fund in this subhead. Choose another subhead or lower the amount. You can still save a draft.";
+    if (choosesSubhead && subheadId && live === "checking") return "Checking the budget…";
     return "";
-  }, [deptId, title, isOfficial, subOptions.length, subheadId, details, needsAmount, amountOk, live]);
+  }, [deptId, title, choosesSubhead, mustChooseSubhead, subOptions.length, subheadId, details, needsAmount, amountOk, live]);
 
   const signProblem = useMemo(() => {
     if (!me?.full_name?.trim()) return "Add your full name in My Account first.";
@@ -316,7 +326,7 @@ function NewRequest() {
         request_type: requestType,
         personal_category: requestType === "Personal" ? category : null,
         dept_id: deptId || null,
-        subhead_id: isOfficial ? subheadId || null : null,
+        subhead_id: choosesSubhead ? subheadId || null : null,
         title: title.trim(),
         details: details.trim(),
         amount: needsAmount && amount > 0 ? amount : null,
@@ -329,7 +339,7 @@ function NewRequest() {
     } finally {
       setSavingDraft(false);
     }
-  }, [me, title, details, draftId, requestType, category, deptId, isOfficial, subheadId, needsAmount, amount, files, embedded, router]);
+  }, [me, title, details, draftId, requestType, category, deptId, choosesSubhead, subheadId, needsAmount, amount, files, embedded, router]);
 
   // ---- submit -------------------------------------------------------------
   async function authHeader() {
@@ -348,7 +358,7 @@ function NewRequest() {
       details: [
         `${requestType === "Official" ? "Official" : `Personal · ${category}`} · ${dept?.name || ""}`,
         title.trim(),
-        needsAmount ? `${nairaExact(amount)} — ${nairaInWords(amount)}` : "No amount",
+        needsAmount ? `${nairaExact(amount)}: ${nairaInWords(amount)}` : "No amount",
       ],
       confirmLabel: "Sign and submit",
     });
@@ -403,7 +413,7 @@ function NewRequest() {
         p_details: details.trim(),
         p_amount: needsAmount ? amount : 0,
         p_dept_id: deptId,
-        p_subhead_id: isOfficial ? subheadId || null : null,
+        p_subhead_id: choosesSubhead ? subheadId || null : null,
         p_request_type: requestType,
         p_personal_category: requestType === "Personal" ? category : null,
         p_created_by: me.id,
@@ -479,7 +489,7 @@ function NewRequest() {
   const busyText = busy === "uploading" ? "Uploading attachments…" : busy === "submitting" ? "Submitting…" : busy === "sending-code" ? `Sending the ${otpLabel}…` : busy === "verifying" ? "Checking the code…" : "";
   const words = needsAmount && amount > 0 ? nairaInWords(amount) : "";
 
-  const liveBox = isOfficial && subheadId && amount > 0 ? (
+  const liveBox = choosesSubhead && subheadId && amount > 0 ? (
     <div className={`v4-livecheck ${live === "available" ? "v4-lc-ok" : live === "not_enough" ? "v4-lc-no" : "v4-lc-wait"} v4-span-2`} role={live === "not_enough" ? "alert" : "status"} aria-live="polite">
       <Icon name={live === "available" ? "check" : live === "not_enough" ? "x" : "clock"} />
       <span>
@@ -488,7 +498,7 @@ function NewRequest() {
           {live === "available"
             ? seeBalances
               ? `${chosenSub ? subLabel(chosenSub) : "This subhead"} can cover ${nairaExact(amount)}.`
-              : `${chosenSub ? subLabel(chosenSub) : "This subhead"} can cover ${nairaExact(amount)}. You do not see the balance — the approving officer confirms the subhead when approving.`
+              : `${chosenSub ? subLabel(chosenSub) : "This subhead"} can cover ${nairaExact(amount)}. You do not see the balance: the approving officer confirms the subhead when approving.`
             : live === "not_enough"
               ? `${chosenSub ? subLabel(chosenSub) : "This subhead"} cannot cover ${nairaExact(amount)}. Choose another subhead, lower the amount, or speak to your Head of Department. You can save a draft but not submit until the check passes.`
               : live === "checking" ? "One moment." : "The approving officer will confirm the budget."}
@@ -502,7 +512,7 @@ function NewRequest() {
       {embedded ? null : (
         <PageHead
           title="New Request"
-          sub={step === 0 ? "Choose what kind of request this is." : step === 1 ? "Type the title, pick the subhead and the amount. ReqGen checks the budget live." : step === 2 ? "Add quotations, invoices or letters that support the request." : "Check everything once more, then sign and submit."}
+          sub={step === 0 ? "Choose what kind of request this is." : step === 1 ? (seeBalances ? "Type the title and the amount. You may pick the subhead; ReqGen checks the budget live." : "Type the title, the description and the amount. The approving officer chooses the subhead.") : step === 2 ? "Add quotations, invoices or letters that support the request." : "Check everything once more, then sign and submit."}
           actions={draftId ? [{ label: "My drafts", href: "/requests/mine?tab=drafts", icon: "file", kind: "ghost" }] : undefined}
         />
       )}
@@ -530,6 +540,12 @@ function NewRequest() {
                   </button>
                 ))}
               </div>
+              <Link className="v4-typecard v4-typecard-link" href="/requests/direct" style={{ marginTop: 12, textDecoration: "none", color: "inherit" }}>
+                <span className="v4-ico v4-t-green"><Icon name="send" /></span>
+                <span><strong>Direct request</strong>
+                  <small>Write to a named person in any department (for example the Auditor). They sign and forward it to the Director General. No subhead is needed.</small></span>
+                <Icon name="right" />
+              </Link>
               {requestType === "Personal" ? (
                 <>
                   <h3 className="v4-h3" style={{ margin: "22px 0 10px" }}>Which personal request?</h3>
@@ -554,7 +570,7 @@ function NewRequest() {
           {step === 1 ? (
             <div className="v4-newreq-step">
               <div className="v4-section-title"><span className="v4-no">2</span><h2 className="v4-h2">Details</h2>
-                <span className="v4-chip v4-chip-grey" style={{ marginLeft: "auto" }}>{isOfficial ? "Official" : `Personal · ${category}`}</span></div>
+                <span className="v4-chip v4-chip-grey" style={{ marginLeft: "auto" }}>{isOfficial ? "Official" : `Personal, ${category}`}</span></div>
               <div className="v4-form-grid">
                 <div className="v4-field v4-span-2">
                   <label className="v4-flabel" htmlFor="nr-dept" style={{ fontSize: 13, fontWeight: 700 }}>Department <span className="v4-req">*</span></label>
@@ -567,16 +583,24 @@ function NewRequest() {
                   <input className="v4-input" value={title} maxLength={160} onChange={(e) => setTitle(e.target.value)} placeholder={isOfficial ? "e.g. Purchase of data bundles for the front desk" : "e.g. Annual leave, December"} />
                 </label>
 
-                {isOfficial ? (
+                {choosesSubhead ? (
                   <div className="v4-field">
-                    <label className="v4-flabel" htmlFor="nr-sub" style={{ fontSize: 13, fontWeight: 700 }}>Budget subhead <span className="v4-req">*</span></label>
+                    <label className="v4-flabel" htmlFor="nr-sub" style={{ fontSize: 13, fontWeight: 700 }}>Budget subhead {mustChooseSubhead ? <span className="v4-req">*</span> : <span className="v4-muted" style={{ fontWeight: 500 }}>(optional)</span>}</label>
                     <Select id="nr-sub" value={subheadId} onChange={setSubheadId} options={subSelect} disabled={!deptId || subsLoading || !subSelect.length}
-                      placeholder={!deptId ? "Choose the department first" : subsLoading ? "Loading subheads…" : subSelect.length ? "Choose the subhead" : "No subheads — the officer will choose"} menuMinWidth={300} />
+                      placeholder={!deptId ? "Choose the department first" : subsLoading ? "Loading subheads…" : subSelect.length ? (mustChooseSubhead ? "Choose the subhead" : "Choose the subhead (optional)") : "No subheads: the officer will choose"} menuMinWidth={300} />
                     <span className="v4-help">
                       {!deptId ? "" : subSelect.length
-                        ? seeBalances ? `The ${subSelect.length} subheads of ${dept?.name || "this department"}, with what is available.` : `The ${subSelect.length} subheads of ${dept?.name || "this department"}. Balances are private.`
+                        ? mustChooseSubhead
+                          ? `No officer on ${dept?.name || "this department"}'s route assigns the subhead before the Director General, so choose it here.${seeBalances ? "" : " Balances are private."}`
+                          : `The ${subSelect.length} subheads of ${dept?.name || "this department"}, with what is available. Leave it empty and the approving officer chooses.`
                         : subsLoading ? "" : "This department has no active subhead. The approving officer will choose one."}
                     </span>
+                  </div>
+                ) : isOfficial ? (
+                  <div className="v4-field">
+                    <span className="v4-flabel">Budget subhead</span>
+                    <span className="v4-locked">The approving officer chooses it</span>
+                    <span className="v4-help">You do not choose a subhead. The officer who sees the budget assigns it and reserves the fund when approving.</span>
                   </div>
                 ) : <div className="v4-field" aria-hidden="true" />}
 
@@ -592,11 +616,11 @@ function NewRequest() {
                       <span className="v4-flabel">Amount (₦) <span className="v4-req">*</span></span>
                       <input className={`v4-input v4-num${amountText && !amountOk ? " v4-is-error" : ""}`} inputMode="decimal" value={amountText} placeholder="0.00"
                         onChange={(e) => setAmountText(formatAmountInput(e.target.value))} />
-                      <span className="v4-help">{words ? `${words} — written into your request letter automatically.` : "Numbers only. Written into the letter in figures and words."}</span>
+                      <span className="v4-help">{words ? `${words}: written into your request letter automatically.` : "Numbers only. Written into the letter in figures and words."}</span>
                     </label>
                     <div className="v4-field">
                       <span className="v4-flabel">In the letter</span>
-                      <span className="v4-locked" style={{ fontWeight: 700 }}>{amount > 0 ? `${nairaExact(amount)} (${words})` : "—"}</span>
+                      <span className="v4-locked" style={{ fontWeight: 700 }}>{amount > 0 ? `${nairaExact(amount)} (${words})` : "-"}</span>
                     </div>
                   </>
                 ) : (
@@ -636,7 +660,7 @@ function NewRequest() {
                 onDrop={(e) => { e.preventDefault(); e.currentTarget.classList.remove("is-over"); addFiles(e.dataTransfer.files); }}>
                 <Icon name="upload" size="lg" />
                 <strong>Drop files here, or <span>choose files</span></strong>
-                <small>PDF, Word, Excel, pictures or text · up to {MAX_MB} MB each · up to {MAX_FILES} files</small>
+                <small>PDF, Word, Excel, pictures or text, up to {MAX_MB} MB each, up to {MAX_FILES} files</small>
               </button>
               <input ref={fileInput} type="file" multiple accept={ACCEPT} hidden onChange={(e) => { addFiles(e.target.files); e.target.value = ""; }} />
               {files.length ? (
@@ -663,12 +687,12 @@ function NewRequest() {
               <div className="v4-section-title" style={{ margin: 0 }}><span className="v4-no">4</span><h2 className="v4-h2">Review</h2>
                 <button type="button" className="v4-btn v4-btn-ghost" style={{ marginLeft: "auto", minHeight: 36 }} onClick={() => setStep(1)}><Icon name="pen" />Edit details</button></div>
               <dl className="v4-summary">
-                <div><dt>Type</dt><dd>{isOfficial ? "Official" : `Personal · ${category}`}</dd></div>
-                <div><dt>Department</dt><dd>{dept?.name || "—"}</dd></div>
-                <div><dt>Subhead</dt><dd>{isOfficial ? (chosenSub ? <>{subLabel(chosenSub)} {live === "available" ? <span className="v4-chip v4-chip-green" style={{ marginLeft: 4 }}>Fund available</span> : null}</> : "The approving officer will choose") : "—"}</dd></div>
-                <div className="v4-wide"><dt>Title</dt><dd>{title || "—"}</dd></div>
-                <div className="v4-wide"><dt>Description</dt><dd style={{ fontWeight: 500, whiteSpace: "pre-wrap" }}>{details || "—"}</dd></div>
-                <div><dt>Amount</dt><dd className="v4-num" style={{ fontSize: 20 }}>{needsAmount ? nairaExact(amount) : "—"}</dd></div>
+                <div><dt>Type</dt><dd>{isOfficial ? "Official" : `Personal, ${category}`}</dd></div>
+                <div><dt>Department</dt><dd>{dept?.name || "-"}</dd></div>
+                <div><dt>Subhead</dt><dd>{isOfficial ? (choosesSubhead && chosenSub ? <>{subLabel(chosenSub)} {live === "available" ? <span className="v4-chip v4-chip-green" style={{ marginLeft: 4 }}>Fund available</span> : null}</> : "The approving officer will choose") : "—"}</dd></div>
+                <div className="v4-wide"><dt>Title</dt><dd>{title || "-"}</dd></div>
+                <div className="v4-wide"><dt>Description</dt><dd style={{ fontWeight: 500, whiteSpace: "pre-wrap" }}>{details || "-"}</dd></div>
+                <div><dt>Amount</dt><dd className="v4-num" style={{ fontSize: 20 }}>{needsAmount ? nairaExact(amount) : "-"}</dd></div>
                 {words ? <div className="v4-wide"><dt>In words</dt><dd style={{ fontWeight: 500 }}>{words}</dd></div> : null}
               </dl>
               <div><span className="v4-label">Attachments</span>
@@ -702,10 +726,10 @@ function NewRequest() {
               <h2 className="v4-h3" style={{ marginBottom: 10 }}>{isOfficial ? "How the budget check works" : "How a personal request moves"}</h2>
               {isOfficial ? (
                 <ol className="v4-numbered" style={{ fontSize: 13.5 }}>
-                  <li>Pick the department — its subheads load.</li>
-                  <li>Pick the subhead next to your title.</li>
-                  <li>Type the amount — ReqGen answers <b>yes</b> or <b>no</b> at once.</li>
-                  <li>The approving officer confirms the subhead; the balance figures are printed on the letter with their signature.</li>
+                  <li>Pick your department, type the title, the description and the amount.</li>
+                  <li>{seeBalances ? <>You may pick the subhead; ReqGen answers <b>yes</b> or <b>no</b> at once. You can also leave it to the approving officer.</> : <>You do not pick a subhead. Submit the request as it is.</>}</li>
+                  <li>The approving officer who sees the budget assigns or confirms the subhead and reserves the fund.</li>
+                  <li>The balance figures are printed on the letter with their signature.</li>
                 </ol>
               ) : (
                 <ol className="v4-numbered" style={{ fontSize: 13.5 }}>
@@ -722,7 +746,7 @@ function NewRequest() {
               <h2 className="v4-h3" style={{ marginBottom: 12 }}>It will go to</h2>
               {route?.stops.length ? (
                 <ol className="v4-numbered" style={{ fontSize: 13.5 }}>
-                  {route.stops.map((s, i) => <li key={`${s.stage}-${i}`}>{s.stage}{s.who ? <> · <span className="v4-muted">{s.who}</span></> : null}</li>)}
+                  {route.stops.map((s, i) => <li key={`${s.stage}-${i}`}>{s.stage}{s.who ? <>, <span className="v4-muted">{s.who}</span></> : null}</li>)}
                 </ol>
               ) : <p className="v4-muted" style={{ margin: 0, fontSize: 13.5 }}>{routingNoteFor(requestType, category, dept?.name)}</p>}
               {route?.blocked.length ? <p className="v4-error" style={{ margin: "10px 0 0", fontSize: 13 }}>No officer is set for {route.blocked.join(", ")}. The Super Admin must complete the Routing Engine before this can be submitted.</p> : null}
@@ -730,7 +754,7 @@ function NewRequest() {
             </section>
           ) : null}
 
-          {step >= 2 && isOfficial && subheadId && amount > 0 ? liveBox : null}
+          {step >= 2 && choosesSubhead && subheadId && amount > 0 ? liveBox : null}
 
           <section className="v4-notice v4-notice-blue">
             <Icon name="lock" />

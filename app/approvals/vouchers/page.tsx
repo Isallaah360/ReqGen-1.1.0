@@ -52,7 +52,7 @@ export default function VouchersToSignPage() {
       {message ? <Notice tone="red">{message}</Notice> : null}
       <Stats items={stats} />
       <Card>
-        {rows === null ? <Skeleton lines={4} /> : rows.length ? (
+        {rows === null ? <Skeleton kind="rows" lines={4} /> : rows.length ? (
           <div className="v4-table-wrap">
             <table className="v4-data v4-stack">
               <thead><tr><th>Voucher</th><th className="v4-r">Amount</th><th>Payee</th><th className="v4-hide-sm">Paid by</th><th>Your step</th><th className="v4-hide-sm">Waiting</th><th className="v4-r">Action</th></tr></thead>
@@ -62,10 +62,10 @@ export default function VouchersToSignPage() {
                   const days = ageDays(r.created_at);
                   return (
                     <tr key={r.id}>
-                      <td><span className="v4-strong">{r.voucher_no || "—"}</span><span className="v4-sub">{r.request_no || "Manual voucher"}</span></td>
+                      <td><span className="v4-strong">{r.voucher_no || "-"}</span><span className="v4-sub">{r.request_no || "Manual voucher"}</span></td>
                       <td className="v4-r v4-num v4-strong">{naira(r.amount)}</td>
-                      <td data-label="Payee">{r.payee_name || "—"}</td>
-                      <td className="v4-hide-sm">{r.disbursement_mode || "—"}</td>
+                      <td data-label="Payee">{r.payee_name || "-"}</td>
+                      <td className="v4-hide-sm">{r.disbursement_mode || "-"}</td>
                       <td><Chip tone={stepTone(step)}>{step}</Chip></td>
                       <td className="v4-hide-sm"><Chip tone={days >= 3 ? "red" : days >= 1 ? "amber" : "green"}>{waitedFor(r.created_at)}</Chip></td>
                       <td className="v4-r"><Btn small a={{ href: `/approvals/vouchers/${r.id}`, label: /check/i.test(step) ? "Check" : "Sign", kind: "primary" }} /></td>

@@ -53,7 +53,7 @@ export default function PrintCentrePage() {
               <article className="v4-printcard" key={v.id}>
                 <input className="v4-pick" type="checkbox" checked={picked.includes(v.id)} onChange={() => toggle(v.id)} aria-label={`Select ${v.voucher_no}`} />
                 <strong>{v.voucher_no}</strong>
-                <span className="v4-help">{String(Number(v.payee_count || 1) > 1 ? `${v.payee_count} payees` : v.payee_name || "—").toUpperCase()} · {v.disbursement_mode || "Transfer"}</span>
+                <span className="v4-help">{String(Number(v.payee_count || 1) > 1 ? `${v.payee_count} payees` : v.payee_name || "-").toUpperCase()}, {v.disbursement_mode || "Transfer"}</span>
                 <span className="v4-amt">{nairaExact(pvAmount(v))}</span>
                 <span style={{ width: "fit-content" }}><Chip tone={paid ? "green" : "blue"}>{paid ? "Paid" : "Authorised"}</Chip></span>
                 <span style={{ marginTop: 6 }}><Btn small a={{ href: `/payment-vouchers/${v.id}/print`, label: "Print A4", icon: "printer", kind: "secondary" }} /></span>

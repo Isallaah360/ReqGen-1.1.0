@@ -48,7 +48,7 @@ export default function OfficerAssignmentPage() {
   useEffect(() => { queueMicrotask(() => { void load(); }); }, [load]);
 
   const byAccount = useMemo(() => new Map(assign.map((x) => [x.account_id, x])), [assign]);
-  const nameOf = useMemo(() => new Map(officers.map((o) => [o.id, o.full_name || o.email || "—"])), [officers]);
+  const nameOf = useMemo(() => new Map(officers.map((o) => [o.id, o.full_name || o.email || "-"])), [officers]);
   const accountsOf = useMemo(() => {
     const m = new Map<string, string[]>();
     assign.forEach((x) => { const a = (accounts || []).find((y) => y.id === x.account_id); if (a) m.set(x.officer_user_id, [...(m.get(x.officer_user_id) || []), a.name]); });
@@ -105,8 +105,8 @@ export default function OfficerAssignmentPage() {
                   return (
                     <tr key={a.id}>
                       <td><span className="v4-strong">{accountName(a)}</span><span className="v4-sub">{accountSub(a)}</span></td>
-                      <td data-label="Officer">{cur ? <><span className="v4-strong">{nameOf.get(cur.officer_user_id) || "—"}</span><span className="v4-sub">Account Officer{others.length ? ` · also ${others.slice(0, 3).join(", ")}` : ""}</span></> : <Chip tone="amber">No officer</Chip>}</td>
-                      <td className="v4-hide-sm">{cur ? shortDate(cur.created_at) : "—"}</td>
+                      <td data-label="Officer">{cur ? <><span className="v4-strong">{nameOf.get(cur.officer_user_id) || "-"}</span><span className="v4-sub">Account Officer{others.length ? `, also ${others.slice(0, 3).join(", ")}` : ""}</span></> : <Chip tone="amber">No officer</Chip>}</td>
+                      <td className="v4-hide-sm">{cur ? shortDate(cur.created_at) : "-"}</td>
                       <td className="v4-r">{canManage ? (
                         <span style={{ display: "inline-flex", gap: 6 }}>
                           <button type="button" className={`v4-btn ${cur ? "v4-btn-secondary" : "v4-btn-primary"}`} style={{ minHeight: 38, padding: "0 12px" }} onClick={() => setDlg({ acc: a, officer: cur?.officer_user_id || "" })}>{cur ? "Change" : "Assign"}</button>
@@ -127,7 +127,7 @@ export default function OfficerAssignmentPage() {
         {dlg ? (
           <div className="v4-field"><label className="v4-flabel" htmlFor="oa-officer" style={{ fontSize: 13, fontWeight: 700 }}>Account Officer <span className="v4-req">*</span></label>
             <Select id="oa-officer" value={dlg.officer} onChange={(v) => setDlg({ ...dlg, officer: v })} placeholder={officers.length ? "Choose the officer" : "No one holds the Account Officer position"}
-              options={officers.map((o) => ({ value: o.id, label: o.full_name || o.email || "—", hint: (accountsOf.get(o.id) || []).length ? `Has ${(accountsOf.get(o.id) || []).join(", ")}` : "No account yet" }))} />
+              options={officers.map((o) => ({ value: o.id, label: o.full_name || o.email || "-", hint: (accountsOf.get(o.id) || []).length ? `Has ${(accountsOf.get(o.id) || []).join(", ")}` : "No account yet" }))} />
             <span className="v4-help">Only people holding the Account Officer position are listed (Administration › Staff & Positions).</span></div>
         ) : null}
       </Modal>

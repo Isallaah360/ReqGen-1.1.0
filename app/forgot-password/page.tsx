@@ -36,8 +36,8 @@ function Content() {
   return (
     <PublicAuthShell title="Reset your password" subtitle="Two short steps. The link in the email works for 1 hour." showHomeLink={false}>
       <div className="v4-segmented" role="tablist" style={{ alignSelf: "center" }}>
-        <button type="button" role="tab" aria-selected="true">1 · Get the link</button>
-        <button type="button" role="tab" aria-selected="false" disabled>2 · New password</button>
+        <button type="button" role="tab" aria-selected="true">1, Get the link</button>
+        <button type="button" role="tab" aria-selected="false" disabled>2, New password</button>
       </div>
       <form className="v4-auth-form" onSubmit={(e) => void submit(e)} noValidate>
         <label className="v4-field"><span className="v4-flabel">Email address <span className="v4-req">*</span></span>

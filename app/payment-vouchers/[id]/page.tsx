@@ -190,7 +190,7 @@ function VoucherRecord() {
 
   const chip = pvChip(v.status);
   const amount = pvAmount(v);
-  const payee = Number(v.payee_count || 1) > 1 ? `${v.payee_count} payees` : String(v.payee_name || v.cash_payee_name || "—").toUpperCase();
+  const payee = Number(v.payee_count || 1) > 1 ? `${v.payee_count} payees` : String(v.payee_name || v.cash_payee_name || "-").toUpperCase();
   const lastStepPayee = Number(v.payee_count || 1) > 1 ? `${v.payee_count} payees` : String(v.payee_name || "Payee").toUpperCase();
   const waitingSince = v.updated_at || v.created_at;
 
@@ -205,7 +205,7 @@ function VoucherRecord() {
               <span>Payee <b>{payee}</b></span>
               <span>Mode <b>{pvMode(v)}</b></span>
               <span>Requests <b>{items.length || v.item_count || 1}</b></span>
-              <span>Prepared <b>{shortDate(v.prepared_at || v.created_at)}</b>{v.prepared_section ? <> · {v.prepared_section}</> : null}</span>
+              <span>Prepared <b>{shortDate(v.prepared_at || v.created_at)}</b>{v.prepared_section ? <>, {v.prepared_section}</> : null}</span>
               {isManual(v) ? <span><b>Manual voucher</b></span> : null}
             </div>
           </div>
@@ -292,7 +292,7 @@ function VoucherRecord() {
       {myResend ? (
         <section className="v4-action-card v4-card-pad">
           <h2 className="v4-h2" style={{ marginBottom: 4 }}>Your action: Correct and send again</h2>
-          <p className="v4-help" style={{ margin: "0 0 12px" }}>Fix what was asked{isManual(v) ? " in the manual voucher" : " — for a wrong request or amount, cancel this voucher and reissue it"}. Then send it again: signing starts again from the Auditor.</p>
+          <p className="v4-help" style={{ margin: "0 0 12px" }}>Fix what was asked{isManual(v) ? " in the manual voucher" : ": for a wrong request or amount, cancel this voucher and reissue it"}. Then send it again: signing starts again from the Auditor.</p>
           <div className="v4-form-actions">
             {isManual(v) ? <Link className="v4-btn v4-btn-secondary" href={`/payment-vouchers/manual?id=${v.id}`}><Icon name="pen" />Edit manual voucher</Link> : null}
             <button className="v4-btn v4-btn-primary v4-btn-lg" type="button" disabled={busy} onClick={() => void resend()}><Icon name="send" />Send again</button>
@@ -319,7 +319,7 @@ function VoucherRecord() {
         {canChangeCounter || canSetSection ? (
           <div className="v4-form-grid" style={{ marginTop: 16 }}>
             {canSetSection ? (
-              <div className="v4-field"><span className="v4-flabel">Preparing as</span><Select ariaLabel="Preparing as" value={v.prepared_section || ""} placeholder="Choose the section" onChange={(s) => void setSection(s)} options={SECTIONS.map((s) => ({ value: s, label: `Account Officer — ${s}` }))} /><span className="v4-help">Can change until the Auditor checks.</span></div>
+              <div className="v4-field"><span className="v4-flabel">Preparing as</span><Select ariaLabel="Preparing as" value={v.prepared_section || ""} placeholder="Choose the section" onChange={(s) => void setSection(s)} options={SECTIONS.map((s) => ({ value: s, label: `Account Officer: ${s}` }))} /><span className="v4-help">Can change until the Auditor checks.</span></div>
             ) : null}
             {canChangeCounter ? (
               <div className="v4-field"><span className="v4-flabel">Change the Counter Signer</span>
@@ -361,9 +361,9 @@ function VoucherRecord() {
                 <tbody>
                   {items.map((it) => (
                     <tr key={it.id}>
-                      <td><span className="v4-strong">{it.request_no || "—"}</span><span className="v4-sub">{it.title || ""}{it.requester_name ? ` · ${it.requester_name}` : ""}</span></td>
+                      <td><span className="v4-strong">{it.request_no || "-"}</span><span className="v4-sub">{it.title || ""}{it.requester_name ? `, ${it.requester_name}` : ""}</span></td>
                       <td className="v4-r v4-num v4-strong">{nairaExact(it.amount)}</td>
-                      <td data-label="Subhead">{it.subhead_code ? `${it.subhead_code} — ${it.subhead_name || ""}` : "—"}</td>
+                      <td data-label="Subhead">{it.subhead_code ? `${it.subhead_code}: ${it.subhead_name || ""}` : "-"}</td>
                       <td className="v4-r">{it.request_id ? <Link className="v4-btn v4-btn-secondary" style={{ minHeight: 38, padding: "0 12px" }} href={`/requests/${it.request_id}`}>Request</Link> : null}</td>
                     </tr>
                   ))}
@@ -388,7 +388,7 @@ function VoucherRecord() {
                 return (
                   <li key={h.id}>
                     <span className={`v4-ti v4-t-${look.tone}`}><Icon name={look.icon} /></span>
-                    <span><strong>{look.text}</strong><span>{h.actor_name || ""}{h.comment ? ` · “${h.comment}”` : ""}</span></span>
+                    <span><strong>{look.text}</strong><span>{h.actor_name || ""}{h.comment ? `, “${h.comment}”` : ""}</span></span>
                     <span className="v4-time">{when(h.created_at)}</span>
                   </li>
                 );

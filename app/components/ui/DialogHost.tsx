@@ -86,6 +86,10 @@ function DialogCard({ dialog }: { dialog: DialogRequest }) {
               ref={inputRef}
               value={value}
               placeholder={dialog.placeholder}
+              type={dialog.inputType === "password" ? "password" : "text"}
+              inputMode={dialog.inputType === "pin" ? "numeric" : undefined}
+              autoComplete={dialog.inputType === "password" ? "current-password" : "off"}
+              maxLength={dialog.inputType === "pin" ? 6 : undefined}
               onChange={(event) => setValue(event.target.value)}
               onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); accept(); } }}
             />

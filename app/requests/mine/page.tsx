@@ -151,7 +151,7 @@ function MyRequests() {
           <label className="v4-field v4-f-search"><span className="v4-flabel">Search</span><span className="v4-control"><input className="v4-input" placeholder="Request number or title" value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} /></span></label>
           <div className="v4-field"><span className="v4-flabel">Type</span>
             <Select size="compact" ariaLabel="Type" value={type} onChange={(v) => { setType(v); setPage(1); }}
-              options={[{ value: "all", label: "All types" }, { value: "Official", label: "Official" }, { value: "Personal · Fund", label: "Personal · Fund" }, { value: "Personal · Other", label: "Personal · Other" }]} />
+              options={[{ value: "all", label: "All types" }, { value: "Official", label: "Official" }, { value: "Personal, Fund", label: "Personal, Fund" }, { value: "Personal, Other", label: "Personal, Other" }]} />
           </div>
           <div className="v4-field"><span className="v4-flabel">Financial year</span>
             <Select size="compact" ariaLabel="Financial year" value={String(fy)} onChange={(v) => { setFy(Number(v)); setRows(null); setPage(1); }}
@@ -161,7 +161,7 @@ function MyRequests() {
           <button className="v4-btn v4-btn-ghost" type="button" onClick={() => { setQ(""); setType("all"); setTab("all"); setFy(currentFyStart()); setPage(1); }}>Reset</button>
         </div>
         {tab === "drafts" ? (
-          drafts === null ? <Skeleton lines={4} /> : (
+          drafts === null ? <Skeleton kind="rows" lines={4} /> : (
             <>
               {draftError ? <div style={{ padding: "12px 20px 0" }}><Notice tone="amber">{draftError}</Notice></div> : null}
               {drafts.length ? (
@@ -172,20 +172,20 @@ function MyRequests() {
                       <span className="v4-rt"><strong>{d.title || "Untitled draft"}</strong>
                         <span>{d.request_type === "Personal" ? `Personal · ${d.personal_category || "Other"}` : "Official"}{d.dept_id && depts[d.dept_id] ? ` · ${depts[d.dept_id]}` : ""}{(d.attachments || []).length ? ` · ${(d.attachments || []).length} attachment${(d.attachments || []).length === 1 ? "" : "s"}` : ""} · saved {new Date(d.updated_at).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</span></span>
                       <span className="v4-rr">
-                        <span className="v4-amt">{d.amount ? naira(d.amount) : "—"}</span>
+                        <span className="v4-amt">{d.amount ? naira(d.amount) : "-"}</span>
                         <button className="v4-btn v4-btn-ghost" type="button" style={{ color: "var(--v4-red)" }} onClick={() => void removeDraft(d)}>Delete</button>
                         <Btn small a={{ href: `/requests/new?draft=${d.id}`, label: "Continue", kind: "primary" }} />
                       </span>
                     </li>
                   ))}
                 </ul>
-              ) : <p className="v4-muted" style={{ padding: 20, margin: 0 }}>No drafts. Use “Save draft” on a new request to keep it for later — drafts are kept for 60 days.</p>}
+              ) : <p className="v4-muted" style={{ padding: 20, margin: 0 }}>No drafts. Use “Save draft” on a new request to keep it for later: drafts are kept for 60 days.</p>}
             </>
           )
-        ) : rows === null ? <Skeleton lines={6} /> : shown.length ? (
+        ) : rows === null ? <Skeleton kind="rows" lines={6} /> : shown.length ? (
           <div className="v4-table-wrap">
             <table className="v4-data v4-stack">
-              <thead><tr><th>Request</th><th className="v4-r">Amount</th><th>Title · type</th><th className="v4-hide-sm">Progress</th><th>Status</th><th className="v4-r">Action</th></tr></thead>
+              <thead><tr><th>Request</th><th className="v4-r">Amount</th><th>Title, type</th><th className="v4-hide-sm">Progress</th><th>Status</th><th className="v4-r">Action</th></tr></thead>
               <tbody>
                 {paged.map((r) => {
                   const chip = statusChip(r.status, r.current_stage);
@@ -195,9 +195,9 @@ function MyRequests() {
                   const label = b === "returned" ? "Back with you" : b === "progress" ? stageWords(r.current_stage) : chip.label;
                   return (
                     <tr key={r.id}>
-                      <td><span className="v4-strong">{r.request_no || "—"}</span><span className="v4-sub">{shortDate(r.created_at)}</span></td>
+                      <td><span className="v4-strong">{r.request_no || "-"}</span><span className="v4-sub">{shortDate(r.created_at)}</span></td>
                       <td className="v4-r v4-num v4-strong">{kindOf(r) === "Personal · Other" ? "—" : naira(r.amount)}</td>
-                      <td data-label="Title"><span className="v4-strong">{r.title || "Untitled"}</span><span className="v4-sub">{kindOf(r)}{depts[r.dept_id || ""] ? ` · ${depts[r.dept_id || ""]}` : ""}</span></td>
+                      <td data-label="Title"><span className="v4-strong">{r.title || "Untitled"}</span><span className="v4-sub">{kindOf(r)}{depts[r.dept_id || ""] ? `, ${depts[r.dept_id || ""]}` : ""}</span></td>
                       <td className="v4-hide-sm"><div className="v4-track" style={{ margin: 0, width: 110 }}>{[1, 2, 3, 4, 5].map((i) => <i key={i} className={i < n || (paid && i <= n) ? "v4-done" : i === n ? "v4-now" : undefined} />)}</div></td>
                       <td><Chip tone={b === "returned" ? "red" : chip.tone}>{label}</Chip></td>
                       <td className="v4-r">

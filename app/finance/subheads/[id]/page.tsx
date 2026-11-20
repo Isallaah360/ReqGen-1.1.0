@@ -156,12 +156,12 @@ export default function SubheadFormPage() {
         </form>
         <aside className="v4-side-stack">
           <section className="v4-card v4-card-pad"><h2 className="v4-h3" style={{ marginBottom: 12 }}>Live check</h2>
-            <dl className="v4-kv"><dt>Account not yet allocated</dt><dd>{acc ? nairaExact(unallocatedNow) : "—"}</dd><dt>{increase >= 0 ? "Increase" : "Decrease"}</dt><dd>{increase >= 0 ? "+" : "−"} {nairaExact(Math.abs(increase))}</dd><dt>Left after save</dt><dd style={{ color: leftAfter >= 0 ? "var(--v4-green)" : "var(--v4-red)" }}>{acc ? nairaExact(leftAfter) : "—"}</dd></dl>
+            <dl className="v4-kv"><dt>Account not yet allocated</dt><dd>{acc ? nairaExact(unallocatedNow) : "-"}</dd><dt>{increase >= 0 ? "Increase" : "Decrease"}</dt><dd>{increase >= 0 ? "+" : "−"} {nairaExact(Math.abs(increase))}</dd><dt>Left after save</dt><dd style={{ color: leftAfter >= 0 ? "var(--v4-green)" : "var(--v4-red)" }}>{acc ? nairaExact(leftAfter) : "-"}</dd></dl>
             {acc ? <div className={`v4-notice v4-notice-${leftAfter >= 0 ? "green" : "red"}`} style={{ marginTop: 12 }}><Icon name={leftAfter >= 0 ? "check" : "alert"} /><span>{leftAfter >= 0 ? "The account can cover this allocation." : "The account cannot cover this allocation. Add fund in Bank Accounts or lower it."}</span></div> : null}
           </section>
           {sub ? (
             <section className="v4-card v4-card-pad"><h2 className="v4-h3" style={{ marginBottom: 12 }}>This subhead now</h2>
-              <dl className="v4-kv"><dt>Spent</dt><dd>{nairaExact(sub.expenditure)}</dd><dt>Reserved</dt><dd>{nairaExact(sub.reserved_amount)}</dd><dt>Available</dt><dd>{nairaExact(subheadLeft(sub))}</dd><dt>Requests linked</dt><dd>{linked ?? "—"}</dd></dl></section>
+              <dl className="v4-kv"><dt>Spent</dt><dd>{nairaExact(sub.expenditure)}</dd><dt>Reserved</dt><dd>{nairaExact(sub.reserved_amount)}</dd><dt>Available</dt><dd>{nairaExact(subheadLeft(sub))}</dd><dt>Requests linked</dt><dd>{linked ?? "-"}</dd></dl></section>
           ) : null}
         </aside>
       </div>

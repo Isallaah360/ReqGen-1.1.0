@@ -31,7 +31,7 @@ async function token() {
 }
 
 const when = (d: string) => new Date(d).toLocaleString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
-const size = (b: number | null | undefined) => (!b ? "—" : b > 1048576 ? `${(b / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(b / 1024))} KB`);
+const size = (b: number | null | undefined) => (!b ? "-" : b > 1048576 ? `${(b / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(b / 1024))} KB`);
 const tablesOf = (s: Record<string, unknown> | null) => (s && typeof s.tables === "number" ? s.tables : null);
 
 function logTitle(l: LogRow) {
@@ -102,7 +102,7 @@ export default function MasterBackupPage() {
       const res = await fetch("/api/backup/snapshot", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${await token()}` }, body: JSON.stringify({ year: String(thisFy) }) });
       const body = (await res.json()) as { ok: boolean; error?: string; bytes?: number; tables?: number };
       if (!body.ok) throw new Error(body.error || "The backup failed.");
-      setMessage({ tone: "green", text: `Backup kept: FY ${fyLabel(thisFy)} · ${size(body.bytes)} · ${body.tables ?? "all"} tables.` });
+      setMessage({ tone: "green", text: `Backup kept: FY ${fyLabel(thisFy)}, ${size(body.bytes)}, ${body.tables ?? "all"} tables.` });
       await load();
     } catch (e) { setMessage({ tone: "red", text: e instanceof Error ? e.message : "The backup failed." }); }
     finally { setBusy(""); }
@@ -148,7 +148,7 @@ export default function MasterBackupPage() {
         actions={[{ label: busy === "now" ? "Backing up…" : "Back up now", icon: "database", kind: "primary", disabled: busy !== "", onClick: () => void backupNow() }]} />
       {message ? <Notice tone={message.tone}>{message.text}</Notice> : null}
       {log === null ? <Skeleton lines={2} /> : lastNightly ? (
-        <Notice tone="green">Last backup <b>{when(lastNightly.created_at)}</b> · {size(lastNightly.bytes)} · {lastNightly.summary?.tables ?? "all"} tables · nightly copies kept for 90 days, year-end copies kept for ever.</Notice>
+        <Notice tone="green">Last backup <b>{when(lastNightly.created_at)}</b>, {size(lastNightly.bytes)}, {lastNightly.summary?.tables ?? "all"} tables, nightly copies kept for 90 days, year-end copies kept for ever.</Notice>
       ) : <Notice tone="amber">No stored backup yet. The first nightly copy is taken at 02:00, or press <b>Back up now</b>.</Notice>}
       <Notice tone="blue"><b>Year end (31 August):</b> ReqGen makes the full year copy, you download it and check it opens, then the Super Admin clears that closed year from the live database. The database stays small, and every year is kept safely in its file.</Notice>
 
@@ -158,7 +158,7 @@ export default function MasterBackupPage() {
           return (
             <article key={fy} className="v4-fycard" data-fy={fy}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}><span className="v4-fy">FY {fyLabel(fy)}</span>{fy === thisFy ? <Chip tone="amber">Current year</Chip> : <Chip tone="green">Closed</Chip>}</div>
-              <p className="v4-help">{fyRangeText(fy)} · requests, vouchers, ledger, registry, audit log</p>
+              <p className="v4-help">{fyRangeText(fy)}, requests, vouchers, ledger, registry, audit log</p>
               <dl className="v4-kv"><dt>Size</dt><dd>{size(last?.bytes)}</dd><dt>Last copy</dt><dd>{last ? `${when(last.created_at)}${last.mode === "year-end" ? " (year end)" : ""}` : "None kept yet"}</dd></dl>
               <div className="v4-acts">
                 <button className="v4-btn v4-btn-primary" type="button" disabled={busy !== ""} onClick={() => void download(fy)}><Icon name="download" />{busy === `dl-${fy}` ? "Preparing…" : "Download"}</button>
@@ -176,7 +176,7 @@ export default function MasterBackupPage() {
             <table className="v4-data v4-stack">
               <thead><tr><th>Table</th><th className="v4-num">In backup</th><th className="v4-num">In ReqGen</th><th className="v4-num">Missing now</th>{result.mode !== "preview" ? <th className="v4-num">Written</th> : null}<th>Status</th></tr></thead>
               <tbody>{result.reports.map((r) => (
-                <tr key={r.table}><td className="v4-strong">{r.label}</td><td className="v4-num">{r.inFile}</td><td className="v4-num">{r.existing ?? "—"}</td><td className="v4-num">{r.missing ?? "—"}</td>
+                <tr key={r.table}><td className="v4-strong">{r.label}</td><td className="v4-num">{r.inFile}</td><td className="v4-num">{r.existing ?? "-"}</td><td className="v4-num">{r.missing ?? "-"}</td>
                   {result.mode !== "preview" ? <td className="v4-num">{r.written}</td> : null}
                   <td>{r.status === "ok" ? <Chip tone="green">OK</Chip> : <Chip tone="amber">{`${r.status}: ${r.note}`}</Chip>}</td></tr>
               ))}</tbody>
@@ -206,7 +206,7 @@ export default function MasterBackupPage() {
 
         <section className="v4-danger-zone v4-card-pad">
           <h2 className="v4-h2" style={{ marginBottom: 6 }}>Restore</h2>
-          <p className="v4-help" style={{ margin: "0 0 14px" }}>Super Admin only, with a fresh 2FA code. The Auditor can download and preview. A restore is written in one step — all or nothing — and never deletes anything.</p>
+          <p className="v4-help" style={{ margin: "0 0 14px" }}>Super Admin only, with a fresh 2FA code. The Auditor can download and preview. A restore is written in one step: all or nothing: and never deletes anything.</p>
           <div className="v4-field"><span className="v4-flabel">Backup to restore</span>
             <Select ariaLabel="Backup to restore" value={pick} onChange={(v) => { setPick(v); if (v) setFile(null); setResult(null); }} options={storedOptions} disabled={busy !== ""} />
           </div>
