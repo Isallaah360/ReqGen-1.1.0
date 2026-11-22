@@ -1,9 +1,11 @@
 {
-  "new": [],
+  "new": [
+    "The offline screen shows the app version and the address it opens."
+  ],
   "fixed": [
-    "The IET logo now shows on the offline screen."
+    "The app opens ietreqgen.barderians.com.ng instead of the old address, so it no longer shows \"You are offline\" on a working network."
   ],
   "better": [
-    "The app opens ietreqgen.barderians.com.ng."
+    "The new ReqGen design (v4.6.12) comes straight from the website."
   ]
 }

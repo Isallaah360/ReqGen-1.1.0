@@ -1,18 +1,17 @@
 {
-    "version":  "1.0.0",
-    "build":  1,
+    "version":  "1.0.2",
+    "build":  3,
     "apk":  "/downloads/ReqGen.apk",
     "size":  "6.0 MB",
-    "date":  "20 Nov 2026",
-    "sha256":  "5A1D 3191 739B B457 2B1E 99AA 17DA 61E2 B434 ABC9 605B 787B DE8A 7526 8B5C BE2D",
+    "date":  "22 Nov 2026",
+    "sha256":  "1667 A7A2 6610 90EB C09F 3003 5271 74C0 A326 4D31 978B 75C3 8094 7FA5 D1F2 F39A",
     "new":  [
-                "The ReqGen app for Android: fingerprint sign-in, app PIN lock, and updates inside the app.",
-                "Share or save requests, vouchers and exports as PDF from the phone."
+                "The offline screen shows the app version and the address it opens."
             ],
     "fixed":  [
-
+                  "The app opens ietreqgen.barderians.com.ng instead of the old address, so it no longer shows \"You are offline\" on a working network."
               ],
     "better":  [
-                   "Cream, navy and orange look with a glass bottom bar on phones."
+                   "The new ReqGen design (v4.6.12) comes straight from the website."
                ]
 }
