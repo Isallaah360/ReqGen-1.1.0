@@ -46,7 +46,7 @@ function Analysis() {
     return Array.from({ length: 12 }, (_, i) => addMonths(`${fy}-09`, i)).filter((m) => m <= month);
   }, [period, month]);
   const before = useMemo(() => months.map((m) => addMonths(m, period === "fy" ? -12 : -months.length)), [months, period]);
-  const label = period === "month" ? monthName(month) : period === "quarter" ? `${monthName(months[0], true)}–${monthName(month)}` : `FY ${fyLabel(fyOfMonth(month))} to ${monthName(month, true)}`;
+  const label = period === "month" ? monthName(month) : period === "quarter" ? `${monthName(months[0], true)} to ${monthName(month)}` : `FY ${fyLabel(fyOfMonth(month))} to ${monthName(month, true)}`;
   const prevLabel = period === "month" ? monthName(addMonths(month, -1), true) : period === "quarter" ? "the quarter before" : "the year before";
 
   const inSet = (set: string[]) => (r: TxRow) => set.includes(monthOf(r.at));
@@ -69,7 +69,7 @@ function Analysis() {
   const groupName = (() => {
     const names = new Map<string, Map<string, number>>();
     out.forEach((r) => { const g = groupOf(r.subhead_code); const m = names.get(g) || new Map(); m.set(r.dept_name || g, (m.get(r.dept_name || g) || 0) + 1); names.set(g, m); });
-    return (g: string) => { const m = names.get(g); const top = m ? [...m.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] : ""; return top && top !== g ? `${g} — ${top}` : g; };
+    return (g: string) => { const m = names.get(g); const top = m ? [...m.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] : ""; return top && top !== g ? `${g}: ${top}` : g; };
   })();
   const byGroup = group((r) => groupName(groupOf(r.subhead_code))).slice(0, 6);
   const byDept = group((r) => r.dept_name || "No department").slice(0, 8);
@@ -78,7 +78,7 @@ function Analysis() {
     { label: tier === "mine" ? "Paid to you" : "Money out", value: rows ? nairaShort(sum(outNow)) : "…", note: change === null ? "Nothing to compare" : `${change >= 0 ? "+" : ""}${change}% on ${prevLabel}`, icon: "upload", tone: "brand" },
     ...(tier !== "mine" ? [{ label: "Money in", value: rows ? nairaShort(sum(inNow)) : "…", note: "Allocations, transfers", icon: "download", tone: "green" as const }] : []),
     { label: "Vouchers paid", value: rows ? vouchers : "…", note: vouchers ? `Avg ${nairaShort(sum(outNow) / vouchers)}` : "-", icon: "card", tone: "blue" },
-    { label: "Request to payment", value: rows ? (dNow === null ? "—" : `${dNow.toFixed(1)} days`) : "…", note: dBefore === null ? "From submission to paid" : `Was ${dBefore.toFixed(1)} days`, icon: "clock", tone: "amber" },
+    { label: "Request to payment", value: rows ? (dNow === null ? "-" : `${dNow.toFixed(1)} days`) : "…", note: dBefore === null ? "From submission to paid" : `Was ${dBefore.toFixed(1)} days`, icon: "clock", tone: "amber" },
   ];
 
   function exportXlsx() {

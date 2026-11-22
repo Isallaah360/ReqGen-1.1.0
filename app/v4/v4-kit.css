@@ -1,0 +1,310 @@
+/* =========================================================================
+   ReqGen v4.6.12: the Barderian Design & Motion Kit (Blueprint 00) in IET
+   colours, and the ReqGen screens of Blueprint 06.
+   Motion tokens: press 100 ms, fast 180 ms, base 240 ms, slow 400 ms,
+   spring about 450 ms. Only transform and opacity move. Exits are quicker
+   than entrances. Reduced motion and low-power phones: instant changes.
+   Printing is never touched (see the print block at the end).
+   ========================================================================= */
+
+.v4-root {
+  --k-press: 100ms; --k-fast: 180ms; --k-base: 240ms; --k-slow: 400ms; --k-spring: 450ms;
+  --k-ease-fast: cubic-bezier(.2, .8, .2, 1); --k-ease-base: cubic-bezier(.2, .9, .3, 1.1); --k-ease-spring: cubic-bezier(.34, 1.36, .64, 1);
+  --k-done: #1E7A4C; --k-warn: #A15C00; --k-error: #B42318;
+}
+html[data-theme="dark"] .v4-root { --k-done: #5FD39A; --k-warn: #FFB45C; --k-error: #FF8A80; }
+
+/* Button press (all buttons): scale .97, 100 ms */
+.v4-root .v4-btn:active:not(:disabled), .v4-root .rg-btn:active:not(:disabled) { transform: scale(.97); transition: transform var(--k-press) ease-out; }
+
+/* ---------- K1 skeleton: 1.3 s shimmer ---------- */
+.v4-root .v4-skeleton i::after, .v4-root .v4-sk::after { animation-duration: 1.3s; }
+
+/* ---------- K2 centred dialog: scale .96 to 1 and fade, 240 ms ---------- */
+@keyframes k-dialog-in { from { opacity: 0; transform: scale(.96); } to { opacity: 1; transform: none; } }
+@keyframes k-fade-in { from { opacity: 0; } to { opacity: 1; } }
+html:not([data-console="developer"]) .rg-attention { animation: k-dialog-in var(--k-base, 240ms) var(--k-ease-base) both; border-radius: 22px; border-top-width: 1px; border-top-color: #E2D8C8; box-shadow: 0 24px 60px rgba(14, 21, 48, .26); }
+html[data-theme="dark"]:not([data-console="developer"]) .rg-attention { border-top-color: #2C3966; }
+html:not([data-console="developer"]) .rg-attention.is-danger .rg-attention-icon { background: #FCE7E4; color: #B42318; }
+html[data-theme="dark"]:not([data-console="developer"]) .rg-attention.is-danger .rg-attention-icon { background: #3E1E24; color: #FF8A80; }
+html:not([data-console="developer"]) .rg-attention.is-success .rg-attention-icon { background: #DDF1E5; color: #1E7A4C; }
+html[data-theme="dark"]:not([data-console="developer"]) .rg-attention.is-success .rg-attention-icon { background: #173A2C; color: #5FD39A; }
+html:not([data-console="developer"]) .rg-attention-backdrop { background: rgba(14, 21, 48, .48); animation: k-fade-in 180ms ease-out both; }
+html:not([data-console="developer"]) .rg-attention .rg-dialog-actions { width: 100%; display: flex; gap: 8px; }
+html:not([data-console="developer"]) .rg-attention .rg-dialog-actions .rg-btn { flex: 1; min-height: 48px; border-radius: 14px; }
+html:not([data-console="developer"]) body .rg-attention .rg-btn-danger { background: #B42318 !important; border-color: #B42318 !important; color: #FFFFFF !important; }
+html[data-theme="dark"]:not([data-console="developer"]) body .rg-attention .rg-btn-danger { background: #FF8A80 !important; border-color: #FF8A80 !important; color: #2A0B0B !important; }
+.rg-attention textarea.rg-dialog-textarea { width: 100%; min-height: 92px; resize: vertical; border: 1px solid var(--v4-line, #E2D8C8); border-radius: 14px; padding: 12px 14px; font: 500 15px/1.45 var(--v4-font, system-ui); background: var(--v4-surface, #fff); color: var(--v4-ink, #1C2B5A); }
+
+/* ---------- K4 centred toast with optional Undo ---------- */
+.k-toast-host { position: fixed; inset: 0; z-index: 420; display: grid; place-items: center; padding: 24px; pointer-events: none; }
+.k-toast { pointer-events: auto; max-width: 420px; width: 100%; display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 18px; font: 600 14.5px/1.4 var(--v4-font, system-ui); box-shadow: 0 18px 44px rgba(14, 21, 48, .28); background: #1C2B5A; color: #FFFFFF; }
+html[data-theme="dark"] .k-toast { background: #F2F4FA; color: #0E1530; }
+.k-toast .v4-icon { flex: none; width: 22px; height: 22px; }
+.k-toast span { flex: 1; min-width: 0; }
+.k-toast button { flex: none; min-height: 40px; padding: 0 10px; border: 0; background: none; font: 800 14px var(--v4-font, system-ui); color: #FF9A4D; cursor: pointer; }
+html[data-theme="dark"] .k-toast button { color: #A84500; }
+.k-toast.k-error { background: #FCE7E4; color: #8A1A12; border: 1px solid #F5C2BC; }
+html[data-theme="dark"] .k-toast.k-error { background: #3E1E24; color: #FFD1CC; border-color: #6A2F36; }
+
+/* ---------- K5 busy button ---------- */
+.k-busy { position: relative; }
+.k-spin { width: 18px; height: 18px; flex: none; animation: k-spin .8s linear infinite; }
+@keyframes k-spin { to { transform: rotate(360deg); } }
+.v4-root .v4-btn[aria-busy="true"] { pointer-events: none; }
+
+/* ---------- K6 glassy tab bar: the marker slides to the new tab on the spring ---------- */
+@media (max-width: 760px) {
+  .v4-tabbar .k-pill { position: absolute; top: 3px; left: 0; width: 22px; height: 3px; border-radius: 2px; background: #F5A524; pointer-events: none; opacity: 0; transition: transform var(--k-spring, 450ms) var(--k-ease-spring, ease), opacity var(--k-fast, 180ms) ease-out; will-change: transform; }
+  .v4-tabbar .k-pill.k-on { opacity: 1; }
+  .v4-tabbar.k-has-pill [aria-current="page"]::before, .v4-tabbar.k-has-pill button[aria-expanded="true"]::before { display: none; }
+  .v4-tabbar [aria-current="page"], .v4-tabbar button[aria-expanded="true"] { transition: transform var(--k-spring, 450ms) var(--k-ease-spring, ease), color var(--k-fast, 180ms) ease-out; }
+}
+
+/* ---------- Request detail: the approval route as a vertical timeline ---------- */
+html:not([data-console="developer"]) .v4-root .v4-chain { display: flex; flex-direction: column; gap: 0; grid-template-columns: none; }
+html:not([data-console="developer"]) .v4-root .v4-chain li {
+  position: relative; display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; column-gap: 14px; row-gap: 2px; align-items: start;
+  min-height: 0; padding: 0 0 18px; border: 0; background: none; border-radius: 0;
+}
+html:not([data-console="developer"]) .v4-root .v4-chain li:last-child { padding-bottom: 0; }
+html:not([data-console="developer"]) .v4-root .v4-chain li > * { grid-column: 2; }
+html:not([data-console="developer"]) .v4-root .v4-chain li::before {
+  content: ""; grid-column: 1; grid-row: 1 / span 4; width: 26px; height: 26px; border-radius: 50%; box-sizing: border-box;
+  border: 2px solid var(--v4-line-strong); background: var(--v4-surface); position: relative; z-index: 1;
+}
+html:not([data-console="developer"]) .v4-root .v4-chain li::after {
+  content: ""; position: absolute; left: 12px; top: 28px; bottom: 0; width: 2px; background: var(--v4-line);
+}
+html:not([data-console="developer"]) .v4-root .v4-chain li:last-child::after { display: none; }
+html:not([data-console="developer"]) .v4-root .v4-chain .v4-ink { grid-column: 3; grid-row: 1 / span 4; margin: 0; height: auto; align-self: center; }
+html:not([data-console="developer"]) .v4-root .v4-chain .v4-st { font-size: 11px; }
+/* done: filled */
+html:not([data-console="developer"]) .v4-root .v4-chain li.v4-done::before { border: 0; background: var(--k-done) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 12.5l4 4 8-9'/%3E%3C/svg%3E") center / 16px no-repeat; }
+html[data-theme="dark"]:not([data-console="developer"]) .v4-root .v4-chain li.v4-done::before { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230E1530' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 12.5l4 4 8-9'/%3E%3C/svg%3E"); }
+html:not([data-console="developer"]) .v4-root .v4-chain li.v4-done::after { background: var(--k-done); }
+html:not([data-console="developer"]) .v4-root .v4-chain li.v4-done .v4-st { color: var(--k-done); }
+/* now: pulses softly (2 s loop) */
+html:not([data-console="developer"]) .v4-root .v4-chain li.v4-now::before { border: 0; background: var(--v4-accent, #FF7A1A); box-shadow: 0 0 0 0 rgba(255, 122, 26, .5); animation: k-pulse 2s ease-out infinite; }
+html:not([data-console="developer"]) .v4-root .v4-chain li.v4-now .v4-st { color: var(--v4-brand); }
+html:not([data-console="developer"]) .v4-root .v4-chain li.v4-now strong { color: var(--v4-ink); }
+@keyframes k-pulse { 0% { box-shadow: 0 0 0 0 rgba(255, 122, 26, .5); } 70%, 100% { box-shadow: 0 0 0 12px rgba(255, 122, 26, 0); } }
+/* still to come */
+html:not([data-console="developer"]) .v4-root .v4-chain li.v4-wait strong { color: var(--v4-ink-2); }
+/* skipped (vacant): dashed */
+html:not([data-console="developer"]) .v4-root .v4-chain li.v4-skip::before { border: 2px dashed var(--v4-muted); background: transparent; }
+html:not([data-console="developer"]) .v4-root .v4-chain li.v4-skip::after { background: repeating-linear-gradient(var(--v4-muted) 0 4px, transparent 4px 8px); }
+html:not([data-console="developer"]) .v4-root .v4-chain li.v4-skip strong { color: var(--v4-muted); font-weight: 600; }
+/* optimistic: the step fills at once while it saves */
+html:not([data-console="developer"]) .v4-root .v4-chain li.v4-saving::before { animation: none; }
+
+/* ---------- K8 empty state ---------- */
+.k-empty { display: grid; grid-template-columns: minmax(0, 1fr); justify-items: center; gap: 8px; padding: 28px 20px 26px; text-align: center; }
+.k-empty svg { width: 168px; height: auto; }
+.k-empty strong { font-size: 16.5px; color: var(--v4-ink); }
+.k-empty p { margin: 0; max-width: 340px; color: var(--v4-muted); font-size: 14px; line-height: 1.5; }
+.k-empty .v4-btn { margin-top: 6px; }
+
+/* ---------- K9 success moment ---------- */
+.k-success { position: fixed; inset: 0; z-index: 410; display: grid; place-items: center; padding: 24px; background: rgba(247, 242, 234, .9); pointer-events: none; animation: k-fade-in 180ms ease-out both; }
+html[data-theme="dark"] .k-success { background: rgba(14, 21, 48, .9); }
+.k-success-in { display: grid; justify-items: center; gap: 8px; text-align: center; font-family: var(--v4-font, system-ui); animation: k-dialog-in 240ms cubic-bezier(.2, .9, .3, 1.1) both; }
+.k-success-in .k-tick { width: 120px; height: 120px; }
+.k-success-in b { font-size: 22px; color: var(--v4-ink, #1C2B5A); }
+.k-success-in span { font-size: 18px; font-weight: 800; letter-spacing: .02em; color: var(--v4-ink, #1C2B5A); }
+.k-success-in small { max-width: 300px; font-size: 14px; color: var(--v4-muted, #5B6482); line-height: 1.45; }
+.k-success.k-out { animation: k-fade-out 160ms ease-in both; }
+@keyframes k-fade-out { to { opacity: 0; } }
+
+/* ---------- K3 update box (app) and new web version ---------- */
+.k-update { display: grid; gap: 12px; }
+.k-update ul { margin: 0; padding-left: 18px; font-size: 14px; line-height: 1.6; }
+.k-progress { height: 12px; border-radius: 7px; background: var(--v4-surface-3, #EFE7DA); overflow: hidden; }
+.k-progress i { display: block; height: 100%; width: 100%; background: var(--v4-accent, #FF7A1A); transform-origin: left center; transition: transform 200ms linear; }
+.k-progress-row { display: flex; justify-content: space-between; font: 700 13.5px var(--v4-font, system-ui); color: var(--v4-ink); }
+
+/* ---------- K15 idle sign-out: countdown ring ---------- */
+.k-ring { width: 96px; height: 96px; }
+.k-ring circle.k-ring-bg { stroke: var(--v4-surface-3, #EFE7DA); }
+.k-ring circle.k-ring-fg { stroke: var(--v4-accent, #FF7A1A); transition: stroke-dashoffset 1s linear; }
+.k-ring text { fill: var(--v4-ink, #1C2B5A); font: 800 13px var(--v4-font, system-ui); }
+.rg-session-dialog.k-idle { display: grid; justify-items: center; gap: 10px; text-align: center; border-radius: 22px; animation: k-dialog-in 240ms cubic-bezier(.2, .9, .3, 1.1) both; }
+.rg-session-dialog.k-idle .rg-session-actions { width: 100%; display: flex; gap: 8px; }
+.rg-session-dialog.k-idle .rg-session-actions .rg-btn { flex: 1; min-height: 48px; border-radius: 14px; }
+
+/* ---------- The DG stamp moment: the IET stamp lands beside the signature ---------- */
+.k-stamp-moment { position: relative; width: 260px; height: 150px; background: #FFFFFF; border-radius: 14px; box-shadow: 0 10px 30px rgba(14, 21, 48, .14); }
+.k-stamp-moment .k-sig { position: absolute; left: 14px; top: 58px; width: 150px; height: 40px; color: #1F3A8A; }
+.k-stamp-moment .k-sig path { stroke-dasharray: 260; stroke-dashoffset: 260; animation: v4-draw .7s ease forwards; }
+.k-stamp-moment img { position: absolute; right: 10px; top: 10px; width: 128px; height: 128px; object-fit: contain; opacity: 0; transform: scale(1.15) rotate(-9deg); animation: k-land 300ms 600ms cubic-bezier(.2, .9, .3, 1.1) forwards; }
+@keyframes k-land { to { opacity: 1; transform: scale(1) rotate(-9deg); } }
+.k-stamp-moment .k-line { position: absolute; left: 14px; right: 14px; bottom: 34px; border-top: 1px solid #1C2B5A; }
+.k-stamp-moment small { position: absolute; left: 14px; bottom: 12px; font: 700 10.5px var(--v4-font, system-ui); letter-spacing: .06em; text-transform: uppercase; color: #5B6482; }
+
+/* ---------- Notifications: the bell dot pops ---------- */
+@keyframes k-pop { 0% { transform: scale(0); } 60% { transform: scale(1.3); } 100% { transform: scale(1); } }
+.k-pop { animation: k-pop 360ms cubic-bezier(.34, 1.36, .64, 1) both; }
+
+/* ---------- Payment voucher: selectable cards ---------- */
+.k-picks { display: grid; gap: 10px; padding: 14px 16px 16px; }
+@media (min-width: 900px) { .k-picks { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.k-pick { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 16px; border: 1px solid var(--v4-line); background: var(--v4-surface); color: var(--v4-ink); cursor: pointer; text-align: left; font: inherit; transition: border-color var(--k-fast) var(--k-ease-fast), background-color var(--k-fast) var(--k-ease-fast); min-height: 64px; }
+.k-pick:hover { border-color: var(--v4-line-strong); }
+.k-pick[aria-checked="true"] { border: 2px solid var(--v4-accent, #FF7A1A); background: var(--v4-brand-soft); padding: 11px 13px; }
+.k-pick .k-box { width: 24px; height: 24px; border-radius: 7px; border: 2px solid var(--v4-line-strong); display: grid; place-items: center; flex: none; color: var(--v4-on-accent, #1C2B5A); }
+.k-pick[aria-checked="true"] .k-box { background: var(--v4-accent, #FF7A1A); border-color: var(--v4-accent, #FF7A1A); }
+.k-pick .k-box .v4-icon { width: 15px; height: 15px; stroke-width: 3; }
+.k-pick .k-pt { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.k-pick .k-pt b { font-size: 14px; overflow-wrap: anywhere; }
+.k-pick .k-pt small { font-size: 12.5px; color: var(--v4-muted); overflow-wrap: anywhere; }
+.k-pick .k-amt { font-weight: 800; font-size: 14px; white-space: nowrap; }
+.k-counter { display: inline-flex; align-items: center; height: 32px; padding: 0 12px; border-radius: 999px; background: var(--v4-brand-soft); color: var(--v4-brand); font: 800 13.5px var(--v4-font, system-ui); }
+.k-counter.k-full { background: var(--v4-red-soft); color: var(--k-error); }
+
+/* ---------- Subhead balances: over budget ---------- */
+.v4-root .v4-mini-bar .k-over { background: var(--k-error) !important; }
+
+/* ---------- QR check result card (enters slow) ---------- */
+@keyframes k-enter { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+.k-check { display: grid; justify-items: center; gap: 8px; padding: 18px 16px; border-radius: 18px; border: 1px solid var(--v4-line); background: var(--v4-surface); text-align: center; animation: k-enter var(--k-slow, 400ms) var(--k-ease-fast) both; }
+.k-check .k-mark { width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center; }
+.k-check .k-mark .v4-icon { width: 32px; height: 32px; stroke-width: 2.5; }
+.k-check.k-good .k-mark { background: var(--v4-green-soft); color: var(--k-done); }
+.k-check.k-bad .k-mark { background: var(--v4-red-soft); color: var(--k-error); }
+.k-check b { font-size: 18px; }
+
+/* ---------- New request: "Draft saved" tick ---------- */
+.k-saved { display: inline-flex; align-items: center; gap: 6px; color: var(--k-done); font-weight: 700; font-size: 13.5px; }
+.k-saved .v4-icon { width: 18px; height: 18px; }
+
+/* ---------- Lists: auto-animate keeps transform/opacity only ---------- */
+.k-list > * { will-change: auto; }
+
+/* ---------- Credits page ---------- */
+.k-credits { display: grid; gap: 0; }
+.k-credits li { border-top: 1px solid var(--v4-line-2); }
+.k-credits .k-credit-row { display: flex; gap: 12px; align-items: center; min-height: 56px; padding: 8px 0; color: inherit; text-decoration: none; }
+.k-credits .k-credit-row:hover b { text-decoration: underline; }
+.k-credits li:first-child { border-top: 0; }
+.k-credits .k-credit-row > span:first-child { flex: 1; min-width: 0; }
+.k-credits li b { display: block; font-size: 14.5px; }
+.k-credits li small { color: var(--v4-muted); font-size: 12.5px; }
+
+/* ---------- Reduced motion and low-power phones: instant changes ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .rg-attention, .rg-attention-backdrop, .k-success, .k-success-in, .k-check, .k-pop, .k-stamp-moment img, .k-stamp-moment .k-sig path, .k-spin { animation: none !important; }
+  .k-stamp-moment img { opacity: 1; transform: rotate(-9deg); }
+  .k-stamp-moment .k-sig path { stroke-dashoffset: 0; }
+  html:not([data-console="developer"]) .v4-root .v4-chain li.v4-now::before { animation: none; box-shadow: 0 0 0 4px rgba(255, 122, 26, .25); }
+  .v4-tabbar .k-pill, .k-progress i, .k-pick, .k-ring circle.k-ring-fg { transition: none !important; }
+  .v4-root .v4-btn:active:not(:disabled), .v4-root .rg-btn:active:not(:disabled) { transform: none; }
+}
+html.v4-low-power .rg-attention, html.v4-low-power .k-success-in, html.v4-low-power .k-check, html.v4-low-power .k-stamp-moment img { animation: none !important; opacity: 1; }
+html.v4-low-power .v4-root .v4-chain li.v4-now::before { animation: none; }
+
+/* ---------- Printing is never animated or restyled ---------- */
+@media print { .k-toast-host, .k-success, .v4-tabbar { display: none !important; } }
+
+/* ---------- K9 tick: plain SVG until the dotLottie player is ready ---------- */
+.k-tick-wrap { position: relative; display: block; }
+.k-tick-wrap > svg, .k-tick-wrap > canvas, .k-tick-wrap .k-tick-lottie { position: absolute; inset: 0; width: 100%; height: 100%; }
+.k-tick-c { transform-origin: 60px 60px; animation: k-tick-c 450ms cubic-bezier(.34, 1.36, .64, 1) both; }
+.k-tick-p { stroke-dasharray: 70; stroke-dashoffset: 70; animation: k-tick-p 520ms 330ms cubic-bezier(.2, .8, .2, 1) forwards; }
+@keyframes k-tick-c { from { transform: scale(0); } to { transform: scale(1); } }
+@keyframes k-tick-p { to { stroke-dashoffset: 0; } }
+@media (prefers-reduced-motion: reduce) { .k-tick-c, .k-tick-p { animation: none !important; stroke-dashoffset: 0; } }
+html.v4-low-power .k-tick-c, html.v4-low-power .k-tick-p { animation: none !important; stroke-dashoffset: 0; }
+.rg-session-dialog.k-idle h2 { margin: 0; font-size: 18px; font-weight: 800; color: var(--v4-ink); }
+.rg-session-dialog.k-idle p { margin: 0; font-size: 14px; line-height: 1.5; color: var(--v4-muted); }
+html body .rg-session-dialog.k-idle { background: var(--v4-surface); border-color: var(--v4-line); padding: 24px 22px 20px; }
+.k-success-in span { font-size: 15px; font-weight: 600; letter-spacing: 0; }
+
+/* ---------- K2 for form dialogs too: centred on every screen ---------- */
+@keyframes k-modal-in { from { opacity: 0; transform: translate(-50%, -50%) scale(.96); } to { opacity: 1; transform: translate(-50%, -50%); } }
+.v4-modal-layer .v4-dialog.v4-modal { border-radius: 22px; animation: k-modal-in 240ms cubic-bezier(.2, .9, .3, 1.1) both; }
+.v4-modal-layer .v4-backdrop { animation: k-fade-in 180ms ease-out both; }
+@media (max-width: 640px) {
+  .v4-modal-layer .v4-dialog.v4-modal { top: 50%; bottom: auto; transform: translate(-50%, -50%); border-radius: 22px; width: calc(100vw - 24px); max-height: calc(100dvh - 48px); }
+}
+@media (prefers-reduced-motion: reduce) { .v4-modal-layer .v4-dialog.v4-modal, .v4-modal-layer .v4-backdrop { animation: none !important; } }
+html.v4-low-power .v4-modal-layer .v4-dialog.v4-modal { animation: none !important; }
+
+/* ---------- K3 website: "New version is ready" ---------- */
+.k-webupdate { position: fixed; z-index: 300; left: 50%; bottom: 24px; transform: translateX(-50%); width: min(460px, calc(100vw - 24px)); display: flex; align-items: center; gap: 10px; padding: 10px 10px 10px 16px; border-radius: 18px; background: var(--v4-brand-soft); border: 1px solid var(--v4-line); box-shadow: 0 14px 36px rgba(14, 21, 48, .2); font-weight: 700; color: var(--v4-ink); animation: k-up 400ms cubic-bezier(.2, .8, .2, 1) both; }
+@keyframes k-up { from { opacity: 0; transform: translate(-50%, 10px); } to { opacity: 1; transform: translate(-50%, 0); } }
+.k-webupdate span { flex: 1; min-width: 0; }
+.k-webupdate .v4-btn { min-height: 44px; }
+.k-webupdate-x { width: 44px; height: 44px; flex: none; display: grid; place-items: center; border: 0; background: none; color: var(--v4-muted); cursor: pointer; border-radius: 12px; }
+@media (max-width: 760px) { .k-webupdate { bottom: calc(96px + env(safe-area-inset-bottom, 0px)); } }
+@media (prefers-reduced-motion: reduce) { .k-webupdate { animation: none; } }
+@media print { .k-webupdate { display: none !important; } }
+.k-busy { position: relative; }
+.k-busy .k-busy-face { display: inline-flex; align-items: center; gap: inherit; }
+.k-busy .k-busy-over { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 0 10px; white-space: nowrap; overflow: hidden; }
+
+/* ---------- Narrow phones (320 to 360): nothing scrolls sideways ---------- */
+@media (max-width: 360px) {
+  .v4-root .v4-tabs button, .v4-root .v4-tabs a { padding: 0 10px; gap: 6px; }
+  .v4-root .v4-balbox > div { grid-template-columns: minmax(0, 118px) minmax(0, 1fr); }
+  .v4-root .v4-balbox > div > span:last-child { min-width: 0; overflow-wrap: anywhere; }
+}
+.v4-root .v4-group-bar .v4-chip { white-space: normal; height: auto; min-height: 26px; padding-top: 3px; padding-bottom: 3px; }
+
+/* ---------- Layout shift: the footer starts below the screen, so loading content never pushes it about ---------- */
+.v4-root .v4-stage > .v4-main { min-height: calc(100vh - 64px); min-height: calc(100dvh - 64px); }
+@media print { .v4-root .v4-stage > .v4-main { min-height: 0; } }
+
+/* ---------- Error and not-found boxes ---------- */
+.k-fallback { min-height: 60vh; display: grid; place-items: center; padding: 24px 16px; background: transparent; }
+.k-fallback-card { width: min(440px, 100%); display: grid; justify-items: center; gap: 10px; padding: 26px 22px 22px; text-align: center; border-radius: 22px; border: 1px solid var(--v4-line); background: var(--v4-surface); box-shadow: 0 24px 60px rgba(14, 21, 48, .14); animation: k-dialog-in 240ms cubic-bezier(.2, .9, .3, 1.1) both; }
+.k-fallback-card h1 { margin: 0; font-size: 19px; font-weight: 800; color: var(--v4-ink); }
+.k-fallback-card p { margin: 0; font-size: 14px; line-height: 1.5; color: var(--v4-ink-2); }
+.k-fallback-ic { width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; background: var(--v4-brand-soft); color: var(--v4-brand); }
+.k-fallback-ic.k-bad { background: var(--v4-red-soft); color: var(--k-error); }
+.k-fallback-actions { width: 100%; display: flex; gap: 8px; margin-top: 6px; }
+.k-fallback-actions > * { flex: 1; min-height: 48px; justify-content: center; }
+.k-fallback-ref { font-size: 12px !important; color: var(--v4-muted) !important; }
+@media (prefers-reduced-motion: reduce) { .k-fallback-card { animation: none; } }
+
+/* ---------- Contrast fixes found in the v4.6.12 page sweep ---------- */
+/* Dark mode: the light orange badges take navy text (white on #FFB27A was 1.8:1) */
+html[data-theme="dark"] .v4-root .v4-count,
+html[data-theme="dark"] .v4-root .v4-icon-btn .v4-dot,
+html[data-theme="dark"] .v4-root .v4-section-title .v4-no,
+html[data-theme="dark"] .v4-root .v4-acc-card.v4-sa .v4-ava,
+html[data-theme="dark"] .v4-root .v4-fchips button[aria-pressed="true"],
+html[data-theme="dark"] .v4-root .v4-acting-pop .v4-sel-opt.is-selected .v4-acting-dot { color: #0E1530; }
+/* Access matrix: "route", "own" and "no" readable in both modes */
+:where(.v4-ui) table.v4-matrix .v4-o { color: #8A5200; }
+:where(.v4-ui) table.v4-matrix .v4-n { color: var(--v4-muted); }
+html[data-theme="dark"] .v4-root .v4-ui table.v4-matrix .v4-o { color: #FFB45C; }
+html[data-theme="dark"] .v4-root .v4-ui table.v4-matrix .v4-n { color: var(--v4-muted); }
+/* A4 previews stay white paper with black ink in dark mode, as on paper */
+html[data-theme="dark"] .v4-root .rg-a4-page { background: #FFFFFF; color: #000000; }
+html[data-theme="dark"] .v4-root .rg-a4-page .v4-cp { color: #475569; }
+
+/* ---------- Tap targets: 44 px on phones (found in the v4.6.12 page sweep) ---------- */
+@media (max-width: 760px) {
+  .v4-root .v4-btn, .v4-root .v4-segmented button, .v4-root .v4-fchips button, .v4-root [role="tablist"] > button, .v4-root [role="tablist"] > a,
+  .v4-root .v4-icon-btn, .v4-root .v4-me-seg button { min-height: 44px; }
+  .v4-root .v4-icon-btn { min-width: 44px; }
+  .v4-root .rg-setup-banner a, .v4-root .v4-back-home, .v4-root .v4-card-head a:not(.v4-btn), .v4-root .v4-auth-form a:not(.v4-btn),
+  .v4-root .v4-card-pad > a:not(.v4-btn), .v4-root .v4-more-link { display: inline-flex; align-items: center; min-height: 44px; }
+}
+@media (max-width: 760px) { .v4-root .v4-monthpick button { min-width: 44px; min-height: 44px; } }
+.v4-root .v4-mlegend .v4-o { color: #8A5200; }
+.v4-root .v4-mlegend .v4-n { color: var(--v4-muted); }
+html[data-theme="dark"] .v4-root .v4-mlegend .v4-o { color: #FFB45C; }
+/* The current menu item keeps its white count (its badge sits on the card colour) */
+html[data-theme="dark"] .v4-root .v4-nav a[aria-current="page"] .v4-count { color: var(--v4-brand); }
+@media (max-width: 760px) {
+  .v4-root a.v4-chip { min-height: 44px; height: auto !important; }
+  .v4-root .v4-switch::before { content: ""; position: absolute; inset: -7px -2px; } /* 44 px hit area, same look */
+  .reqgen-btn, .v4-root .no-print button, .v4-root .no-print a.rounded-xl, .v4-root button.mt-5.rounded-xl { min-height: 44px; }
+}
+.k-empty p, .k-empty .v4-btn { max-width: min(340px, 100%); }
+.k-pick .k-pt .k-payee { font-size: 13px; font-weight: 700; overflow-wrap: anywhere; }
+@media (max-width: 420px) {
+  .k-pick { display: grid; grid-template-columns: 24px minmax(0, 1fr); column-gap: 12px; row-gap: 4px; }
+  .k-pick .k-amt { grid-column: 2; }
+}

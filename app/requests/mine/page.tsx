@@ -10,6 +10,9 @@ import { deleteDraft, listDrafts, type DraftRow } from "@/lib/v4/drafts";
 import { confirmDialog } from "@/lib/dialog";
 import { useIdentity } from "@/app/components/v4/useIdentity";
 import Icon from "@/app/components/v4/Icon";
+import EmptyState from "@/app/components/kit/EmptyState";
+import { useListMotion } from "@/app/components/kit/useListMotion";
+import { canAccessPath } from "@/lib/permissions";
 import { Select } from "@/app/components/v4/Select";
 import { Btn, Card, Chip, Notice, PageHead, Pager, Skeleton, Tabs, V4Page, downloadCsv, naira } from "@/app/components/v4/ui";
 
@@ -26,7 +29,7 @@ const PAGE = 20;
 function kindOf(r: Row) {
   if (String(r.request_type || "").toLowerCase().startsWith("official")) return "Official";
   const c = String(r.personal_category || "").toLowerCase();
-  return c === "fund" ? "Personal · Fund" : "Personal · Other";
+  return c === "fund" ? "Personal, Fund" : "Personal, Other";
 }
 
 function bucket(r: Row, me: string): Tab {
@@ -66,6 +69,8 @@ function MyRequests() {
   const [type, setType] = useState("all");
   const [fy, setFy] = useState<number>(() => currentFyStart());
   const [page, setPage] = useState(1);
+  const draftList = useListMotion<HTMLUListElement>();
+  const rowList = useListMotion<HTMLTableSectionElement>();
 
   useEffect(() => {
     if (!me.ready || !me.userId) return;
@@ -165,12 +170,12 @@ function MyRequests() {
             <>
               {draftError ? <div style={{ padding: "12px 20px 0" }}><Notice tone="amber">{draftError}</Notice></div> : null}
               {drafts.length ? (
-                <ul className="v4-rows">
+                <ul className="v4-rows" ref={draftList}>
                   {drafts.map((d) => (
                     <li key={d.id}>
                       <span className="v4-ri v4-t-amber"><Icon name="file" /></span>
                       <span className="v4-rt"><strong>{d.title || "Untitled draft"}</strong>
-                        <span>{d.request_type === "Personal" ? `Personal · ${d.personal_category || "Other"}` : "Official"}{d.dept_id && depts[d.dept_id] ? ` · ${depts[d.dept_id]}` : ""}{(d.attachments || []).length ? ` · ${(d.attachments || []).length} attachment${(d.attachments || []).length === 1 ? "" : "s"}` : ""} · saved {new Date(d.updated_at).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</span></span>
+                        <span>{d.request_type === "Personal" ? `Personal, ${d.personal_category || "Other"}` : "Official"}{d.dept_id && depts[d.dept_id] ? `, ${depts[d.dept_id]}` : ""}{(d.attachments || []).length ? `, ${(d.attachments || []).length} attachment${(d.attachments || []).length === 1 ? "" : "s"}` : ""}, saved {new Date(d.updated_at).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</span></span>
                       <span className="v4-rr">
                         <span className="v4-amt">{d.amount ? naira(d.amount) : "-"}</span>
                         <button className="v4-btn v4-btn-ghost" type="button" style={{ color: "var(--v4-red)" }} onClick={() => void removeDraft(d)}>Delete</button>
@@ -179,14 +184,14 @@ function MyRequests() {
                     </li>
                   ))}
                 </ul>
-              ) : <p className="v4-muted" style={{ padding: 20, margin: 0 }}>No drafts. Use “Save draft” on a new request to keep it for later: drafts are kept for 60 days.</p>}
+              ) : <EmptyState title="No drafts">Use “Save draft” on a new request to keep it for later. Drafts are kept for 60 days.</EmptyState>}
             </>
           )
         ) : rows === null ? <Skeleton kind="rows" lines={6} /> : shown.length ? (
           <div className="v4-table-wrap">
             <table className="v4-data v4-stack">
               <thead><tr><th>Request</th><th className="v4-r">Amount</th><th>Title, type</th><th className="v4-hide-sm">Progress</th><th>Status</th><th className="v4-r">Action</th></tr></thead>
-              <tbody>
+              <tbody ref={rowList}>
                 {paged.map((r) => {
                   const chip = statusChip(r.status, r.current_stage);
                   const b = bucket(r, me.userId);
@@ -196,7 +201,7 @@ function MyRequests() {
                   return (
                     <tr key={r.id}>
                       <td><span className="v4-strong">{r.request_no || "-"}</span><span className="v4-sub">{shortDate(r.created_at)}</span></td>
-                      <td className="v4-r v4-num v4-strong">{kindOf(r) === "Personal · Other" ? "—" : naira(r.amount)}</td>
+                      <td className="v4-r v4-num v4-strong">{kindOf(r) === "Personal, Other" ? "-" : naira(r.amount)}</td>
                       <td data-label="Title"><span className="v4-strong">{r.title || "Untitled"}</span><span className="v4-sub">{kindOf(r)}{depts[r.dept_id || ""] ? `, ${depts[r.dept_id || ""]}` : ""}</span></td>
                       <td className="v4-hide-sm"><div className="v4-track" style={{ margin: 0, width: 110 }}>{[1, 2, 3, 4, 5].map((i) => <i key={i} className={i < n || (paid && i <= n) ? "v4-done" : i === n ? "v4-now" : undefined} />)}</div></td>
                       <td><Chip tone={b === "returned" ? "red" : chip.tone}>{label}</Chip></td>
@@ -211,7 +216,8 @@ function MyRequests() {
               </tbody>
             </table>
           </div>
-        ) : <p className="v4-muted" style={{ padding: 20, margin: 0 }}>{rows.length ? "No request matches these filters." : `You have not made a request in FY ${fyLabel(fy)}.`}</p>}
+        ) : rows.length ? <p className="v4-muted" style={{ padding: 20, margin: 0 }}>No request matches these filters.</p>
+          : <EmptyState title="No requests yet" action={canAccessPath("/requests/new", me.roleSet) ? { label: "New request", href: "/requests/new", icon: "plus" } : undefined}>When you send a request, it shows here with where it is now (FY {fyLabel(fy)}).</EmptyState>}
         {tab === "drafts" ? null : <Pager page={page} pageSize={PAGE} total={shown.length} onPage={setPage} label="requests" />}
       </Card>
     </V4Page>

@@ -55,10 +55,10 @@ export const num = (v: unknown) => Number(v || 0);
 /** "Admin" with "IET002 · Zenith Bank" under it. */
 export function accountName(a: Pick<Account, "name"> | null | undefined) { return a?.name || "IET account"; }
 export function accountSub(a: Pick<Account, "code" | "bank_name"> | null | undefined) {
-  return [a?.code, a?.bank_name].filter(Boolean).join(" · ");
+  return [a?.code, a?.bank_name].filter(Boolean).join(", ");
 }
 export function subheadLabel(s: Pick<Subhead, "code" | "name"> | null | undefined) {
-  return s ? `${s.code ? `${s.code} — ` : ""}${s.name}` : "—";
+  return s ? `${s.code ? `${s.code}: ` : ""}${s.name}` : "-";
 }
 
 /** Money free to spend in an account (fund minus spending and reservations). */

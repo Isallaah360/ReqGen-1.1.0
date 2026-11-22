@@ -26,7 +26,7 @@ import UpdateSheet from "./UpdateSheet";
 
 const HOME_PATHS = new Set(["/dashboard", "/developer", "/login"]);
 const WEBSITE_ONLY = new Set(["/", "/app"]);
-const PUBLIC = new Set(["/", "/login", "/signup", "/forgot-password", "/reset-password", "/mfa", "/mfa/setup", "/unauthorized", "/app", "/console"]);
+const PUBLIC = new Set(["/", "/login", "/signup", "/forgot-password", "/reset-password", "/mfa", "/mfa/setup", "/unauthorized", "/app", "/console", "/credits"]);
 const OPEN_BOX = ".rg-dialog-backdrop, #v4-me-sheet.v4-open, .v4-drawer-open, [role='dialog'][aria-modal='true'], [role='alertdialog'], .v4-sel-pop, .v4-avatar-menu, .v4-search-results, .v4-bell-panel";
 
 function AppLock({ onOpen }: { onOpen: () => void }) {

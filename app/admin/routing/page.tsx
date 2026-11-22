@@ -222,7 +222,7 @@ function RoutingEngine() {
 
   const routeStep = (stage: string, who: string, vacant = false, key?: string) => (
     <span key={key} style={{ display: "contents" }}>
-      <span className={`v4-st${stage === "DG" ? " v4-dg" : ""}`}><b>{STAGE_TEXT[stage] || stage}</b><small>{vacant ? "vacant · skipped" : who}</small></span>
+      <span className={`v4-st${stage === "DG" ? " v4-dg" : ""}`}><b>{STAGE_TEXT[stage] || stage}</b><small>{vacant ? "vacant, skipped" : who}</small></span>
     </span>
   );
   const arrow = (k: string) => <span key={k} className="v4-ar"><Icon name="right" /></span>;
@@ -252,7 +252,7 @@ function RoutingEngine() {
             {groups.map((g) => (
               <div key={g.depts.map((d) => d.id).join()} className="v4-routecard">
                 <div className="v4-rh">
-                  <span><strong>{g.depts.length === 1 ? g.depts[0].name : `${g.depts.length} departments`}</strong>{g.depts.length > 1 ? <span className="v4-help" style={{ display: "block", margin: "2px 0 0" }}>{g.depts.map((d) => d.name).join(" · ")}</span> : null}</span>
+                  <span><strong>{g.depts.length === 1 ? g.depts[0].name : `${g.depts.length} departments`}</strong>{g.depts.length > 1 ? <span className="v4-help" style={{ display: "block", margin: "2px 0 0" }}>{g.depts.map((d) => d.name).join(", ")}</span> : null}</span>
                   <span style={{ display: "flex", gap: 8, alignItems: "center" }}><span className="v4-chip v4-chip-green">Live</span><button type="button" className="v4-btn v4-btn-secondary" style={{ minHeight: 38 }} onClick={() => openEditor(g.depts[0].id, view)}><Icon name="pen" />Change</button></span>
                 </div>
                 {VIEW_KINDS[view].map((k) => (
@@ -380,7 +380,7 @@ function RoutingEngine() {
         ) : null}
       </section>
 
-      <Modal open={!!editor} wide title={`Change the ${editor ? VIEW_LABEL[editor.view] : ""} route — ${depts.find((d) => d.id === editor?.deptId)?.name || ""}`} sub="Switch a step ON to make every request of that type pass through it. DG, Account Officer and HR Filing are fixed by IET rules." onClose={() => setEditor(null)} busy={busy}
+      <Modal open={!!editor} wide title={`Change the ${editor ? VIEW_LABEL[editor.view] : ""} route: ${depts.find((d) => d.id === editor?.deptId)?.name || ""}`} sub="Switch a step ON to make every request of that type pass through it. DG, Account Officer and HR Filing are fixed by IET rules." onClose={() => setEditor(null)} busy={busy}
         footer={<><button type="button" className="v4-btn v4-btn-ghost" onClick={() => setEditor(null)} disabled={busy}>Cancel</button><button type="button" className="v4-btn v4-btn-primary" onClick={() => void saveEditor()} disabled={busy || !editor?.dirty}><Icon name="check" />{busy ? "Saving…" : "Save route"}</button></>}>
         {editor ? (
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -431,7 +431,7 @@ function RoutingEngine() {
                 return (
                   <div key={s} className="v4-field"><span className="v4-flabel">{s === "DG" ? "Director General" : STAGE_TEXT[s]} for this department</span>
                     <Select ariaLabel={`${s} officer`} searchable value={editor.officers[s] || ""} onChange={(v) => setEditor({ ...editor, dirty: true, officers: { ...editor.officers, [s]: v } })}
-                      options={personOptions(s === "DOD" ? "director" : s === "HR" ? "hrcoordinator" : s === "DIN Admin" ? "dinadmin" : s.toLowerCase(), DEPT_ONLY.includes(s) ? "Nobody (step skipped or held)" : def ? `Institution officer — ${def}` : "Institution officer (not set)")} />
+                      options={personOptions(s === "DOD" ? "director" : s === "HR" ? "hrcoordinator" : s === "DIN Admin" ? "dinadmin" : s.toLowerCase(), DEPT_ONLY.includes(s) ? "Nobody (step skipped or held)" : def ? `Institution officer: ${def}` : "Institution officer (not set)")} />
                   </div>
                 );
               })}
@@ -442,7 +442,7 @@ function RoutingEngine() {
         ) : null}
       </Modal>
 
-      <Modal open={!!accForm} title={`Paying account — ${depts.find((d) => d.id === accForm?.deptId)?.name || ""}`} onClose={() => setAccForm(null)} busy={busy}
+      <Modal open={!!accForm} title={`Paying account: ${depts.find((d) => d.id === accForm?.deptId)?.name || ""}`} onClose={() => setAccForm(null)} busy={busy}
         footer={<><button type="button" className="v4-btn v4-btn-ghost" onClick={() => setAccForm(null)} disabled={busy}>Cancel</button><button type="button" className="v4-btn v4-btn-primary" onClick={() => void saveAccount()} disabled={busy}><Icon name="check" />Save</button></>}>
         {accForm ? (
           <div className="v4-form-grid">

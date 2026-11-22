@@ -4,6 +4,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import Icon from "./Icon";
 import { CountUp } from "./Motion";
+import EmptyState from "@/app/components/kit/EmptyState";
 import type { Tone } from "@/lib/v4/modules";
 
 /* ReqGen v4 UI kit — the approved mock-up components as React. */
@@ -92,7 +93,7 @@ export function Card({ title, link, children, pad, className }: { title?: ReactN
       {title ? (
         <div className={pad ? undefined : "v4-card-head"} style={pad ? { display: "flex", justifyContent: "space-between", gap: 12, marginBottom: 14 } : undefined}>
           <h2 className="v4-h2">{title}</h2>
-          {link ? <Link href={link.href}>{link.label} <Icon name="right" size="sm" /></Link> : null}
+          {link ? <Link className="v4-more-link" href={link.href}>{link.label} <Icon name="right" size="sm" /></Link> : null}
         </div>
       ) : null}
       {children}
@@ -155,14 +156,9 @@ export function Tabs<T extends string>({ value, onChange, items, label }: { valu
   );
 }
 
-export function Empty({ icon = "info", title, children }: { icon?: string; title: string; children?: ReactNode }) {
-  return (
-    <div className="v4-empty-state">
-      <span className="v4-ico v4-t-blue"><Icon name={icon} /></span>
-      <strong>{title}</strong>
-      {children ? <p>{children}</p> : null}
-    </div>
-  );
+/** v4.6.12 (Kit K8): the empty state with the drawn person, one sentence and at most one action. */
+export function Empty({ title, children, action }: { icon?: string; title: string; children?: ReactNode; action?: { label: string; href?: string; onClick?: () => void; icon?: string } }) {
+  return <EmptyState title={title} action={action}>{children}</EmptyState>;
 }
 
 /**
@@ -208,7 +204,7 @@ export function Pager({ page, pageSize, total, onPage, label = "records" }: { pa
   const nums = Array.from({ length: pages }, (_, i) => i + 1).filter((n) => n === 1 || n === pages || Math.abs(n - page) <= 1);
   return (
     <div className="v4-pager">
-      <span>Showing <b>{from}–{to}</b> of <b>{total}</b> {label}</span>
+      <span>Showing <b>{from} to {to}</b> of <b>{total}</b> {label}</span>
       <nav aria-label="Pages">
         <button type="button" aria-label="Previous page" disabled={page <= 1} onClick={() => onPage(page - 1)}><Icon name="left" size="sm" /></button>
         {nums.map((n, i) => (

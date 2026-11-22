@@ -220,7 +220,7 @@ function TreatRequest() {
             <div><span>Reserved for this</span><b>{nairaExact(reservedForThis)}</b></div>
             <div><span>Available after</span><b>{nairaExact(availableAfter)}</b></div>
           </div>
-        ) : <p className="v4-muted" style={{ margin: 0 }}>{String(req.request_type || "").toLowerCase() === "personal" ? "Personal fund request — no subhead." : "No subhead on this request."}</p>}
+        ) : <p className="v4-muted" style={{ margin: 0 }}>{String(req.request_type || "").toLowerCase() === "personal" ? "Personal fund request: no subhead." : "No subhead on this request."}</p>}
         <dl className="v4-kv" style={{ marginTop: 14 }}>
           <dt>Paid from</dt><dd>{acc ? <>{accountName(acc)} <span className="v4-muted">, {accountSub(acc)}</span></> : "-"}</dd>
           <dt>Account officer</dt><dd>{req.assigned_account_officer_name || me.name || "-"}</dd>
@@ -275,7 +275,7 @@ function TreatRequest() {
             {chain.length ? (
               <ol className="v4-numbered">
                 {chain.filter((c) => c.stage && !/account|hr ?filing/i.test(c.stage)).map((c) => (
-                  <li key={`${c.step_order}-${c.stage}`}>{stageTitle(c.stage)} · <span className="v4-muted">{c.state === "done" ? c.acted_by_name || c.owner_name || "—" : c.state === "skipped" ? "skipped" : "waiting"}</span></li>
+                  <li key={`${c.step_order}-${c.stage}`}>{stageTitle(c.stage)}, <span className="v4-muted">{c.state === "done" ? c.acted_by_name || c.owner_name || "-" : c.state === "skipped" ? "skipped" : "waiting"}</span></li>
                 ))}
               </ol>
             ) : <p className="v4-help" style={{ margin: 0 }}>The approval chain appears here.</p>}
@@ -285,7 +285,7 @@ function TreatRequest() {
             {files.length ? (
               <ul className="v4-files">
                 {files.map((f) => (
-                  <li key={f.id}><span className="v4-fi">{/\.pdf$/i.test(f.file_name) ? "PDF" : "IMG"}</span><span className="v4-ft"><strong>{f.file_name}</strong><span>{f.file_size ? `${Math.ceil(f.file_size / 1024)} KB` : ""}{checked.has(f.id) ? " · checked by you" : " · not checked yet"}</span></span><button type="button" className="v4-btn v4-btn-ghost" onClick={() => void checkFile(f)}>{checked.has(f.id) ? "View" : "Open & check"}</button></li>
+                  <li key={f.id}><span className="v4-fi">{/\.pdf$/i.test(f.file_name) ? "PDF" : "IMG"}</span><span className="v4-ft"><strong>{f.file_name}</strong><span>{f.file_size ? `${Math.ceil(f.file_size / 1024)} KB` : ""}{checked.has(f.id) ? ", checked by you" : ", not checked yet"}</span></span><button type="button" className="v4-btn v4-btn-ghost" onClick={() => void checkFile(f)}>{checked.has(f.id) ? "View" : "Open & check"}</button></li>
                 ))}
               </ul>
             ) : <p className="v4-help" style={{ margin: 0 }}>No attachment.</p>}

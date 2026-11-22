@@ -2,13 +2,15 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { clearToast, toast } from "@/lib/toast";
+import SuccessTick, { warmSuccessTick } from "@/app/components/kit/SuccessTick";
 
 /**
  * ReqGen v4.6.9 motion layer (screens only; no database change).
  *
  *   celebrate()      the green tick in the centre after a save, submit, approval or payment
  *   useCelebrate()   fires celebrate() when a page's success message appears
- *   <SavedHost />    draws the tick (mounted once, in the app frame)
+ *   <SavedHost />    draws the K9 success moment, or the K4 toast for an ordinary save
  *   <CountUp />      counts a whole number up from nought (never used on money)
  *   <PointerGlow />  the soft light that follows the pointer on tiles and summary cards
  *   hijriDate(), tipOfDay()  for the welcome card
@@ -64,45 +66,66 @@ export function useCelebrate(msg: { tone: string; text: string } | string | null
   }, [msg]);
 }
 
-/** Draws the tick in the centre of the screen for about two seconds. Clicks pass through. */
+// Real milestones get the K9 success moment; every other save gets the K4 toast.
+const MILESTONE = /^(submitted successfully|approved successfully|approved and stamped|payment recorded|request sent|voucher paid)/i;
+
+/**
+ * v4.6.12 (Kit K9 and K4): draws the success moment in the centre for about
+ * two seconds (clicks pass through). Only real milestones (request sent, an
+ * approval, a payment) get the big tick; an ordinary save shows the centred
+ * toast instead. After a Director General approval the IET stamp lands
+ * beside the signature (scale 1.15 to 1, 300 ms, once). Print-outs are
+ * never animated.
+ */
 export function SavedHost() {
   const [shown, setShown] = useState<(Celebration & { key: number }) | null>(null);
+  const [leaving, setLeaving] = useState(false);
   const [mounted, setMounted] = useState(false);
   useEffect(() => { queueMicrotask(() => setMounted(true)); }, []);
   useEffect(() => {
+    // Load the tick player quietly once the page has settled.
+    const w = window as Window & { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number };
+    const t0 = window.setTimeout(() => { if (w.requestIdleCallback) w.requestIdleCallback(() => void warmSuccessTick(), { timeout: 4000 }); else void warmSuccessTick(); }, 3000);
+    return () => window.clearTimeout(t0);
+  }, []);
+  useEffect(() => {
     let t: number | null = null;
+    let t2: number | null = null;
     const on = (e: Event) => {
       const c = (e as CustomEvent<Celebration>).detail;
       if (!c) return;
+      if (!c.stamp && !MILESTONE.test(c.title)) {
+        toast({ text: c.line && c.line.length < 120 ? c.line.replace(/^\u2713\s*/, "") : c.title });
+        return;
+      }
+      clearToast();
+      setLeaving(false);
       setShown({ ...c, key: Date.now() });
       if (t) window.clearTimeout(t);
-      t = window.setTimeout(() => setShown(null), c.stamp ? 2600 : 2100);
+      if (t2) window.clearTimeout(t2);
+      const life = c.stamp ? 2600 : 2100;
+      t = window.setTimeout(() => setLeaving(true), life - 160);
+      t2 = window.setTimeout(() => setShown(null), life);
     };
     window.addEventListener(CELEBRATE_EVENT, on);
-    return () => { window.removeEventListener(CELEBRATE_EVENT, on); if (t) window.clearTimeout(t); };
+    return () => { window.removeEventListener(CELEBRATE_EVENT, on); if (t) window.clearTimeout(t); if (t2) window.clearTimeout(t2); };
   }, []);
   if (!mounted || !shown) return null;
   return createPortal(
-    <div key={shown.key} className={`v4-ui v4-saved${shown.stamp ? " v4-saved-stamp" : ""}`} role="status" aria-live="polite">
-      {shown.stamp ? (
-        <div className="v4-stamp" aria-hidden="true">
-          <svg viewBox="0 0 120 120" width="132" height="132">
-            <defs><path id="v4-stamp-ring" d="M60 60 m-44 0 a44 44 0 1 1 88 0 a44 44 0 1 1 -88 0" /></defs>
-            <circle cx="60" cy="60" r="56" fill="none" stroke="currentColor" strokeWidth="4" />
-            <circle cx="60" cy="60" r="34" fill="none" stroke="currentColor" strokeWidth="2" />
-            <text fontSize="10.5" fontWeight="800" letterSpacing="2" fill="currentColor"><textPath href="#v4-stamp-ring">ISLAMIC EDUCATION TRUST · IET ·</textPath></text>
-            <text x="60" y="57" textAnchor="middle" fontSize="12" fontWeight="900" fill="currentColor">APPROVED</text>
-            <text x="60" y="72" textAnchor="middle" fontSize="9" fontWeight="700" fill="currentColor">DG</text>
-          </svg>
-          <svg className="v4-ink" viewBox="0 0 160 40" width="170" height="42"><path d="M6 28c14-18 22-20 26-8s8 12 16-4 14-14 16 2 10 8 20-6 18-6 22 4 14 6 26 0 20-6" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" /></svg>
-        </div>
-      ) : (
-        <div className="v4-saved-circle" aria-hidden="true">
-          <svg width="50" height="50" viewBox="0 0 44 44"><path className="v4-saved-tick" d="M12 23l7 7 13-16" fill="none" stroke="#fff" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
-        </div>
-      )}
-      <b>{shown.title}</b>
-      {shown.line ? <span>{shown.line}</span> : null}
+    <div key={shown.key} className={`v4-ui k-success${leaving ? " k-out" : ""}`} role="status" aria-live="polite">
+      <div className="k-success-in">
+        {shown.stamp ? (
+          <div className="k-stamp-moment" aria-hidden="true">
+            <svg className="k-sig" viewBox="0 0 160 40"><path d="M6 28c14-18 22-20 26-8s8 12 16-4 14-14 16 2 10 8 20-6 18-6 22 4 14 6 26 0 20-6" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" /></svg>
+            <span className="k-line" />
+            <small>Director General</small>
+            {/* eslint-disable-next-line @next/next/no-img-element -- the IET stamp, the same file the print-out uses */}
+            <img src="/v4/iet-stamp.png" alt="" />
+          </div>
+        ) : <SuccessTick />}
+        <b>{shown.title}</b>
+        {shown.line ? <span>{shown.line}</span> : null}
+      </div>
     </div>,
     document.body,
   );
@@ -110,29 +133,53 @@ export function SavedHost() {
 
 const reduced = () => typeof window !== "undefined" && !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
-/** Counts a whole number up from nought when it first appears. Money is never counted up. */
+/**
+ * v4.6.12 (Kit K10): counts a whole number up from nought once, when it is
+ * first seen on screen (about 1.4 s, easing out). Later changes count from
+ * the old number. Real numbers only; money is never counted up. Reduced
+ * motion shows the final number at once. The width is reserved, so the
+ * layout never shifts while it counts.
+ */
 export function CountUp({ value }: { value: number }) {
   const [shown, setShown] = useState(value);
-  const first = useRef(true);
+  const el = useRef<HTMLSpanElement>(null);
+  const seen = useRef(false);
+  const from = useRef(0);
   useEffect(() => {
-    if (!Number.isFinite(value) || !Number.isInteger(value) || value <= 0 || reduced()) { queueMicrotask(() => setShown(value)); return; }
-    const from = first.current ? 0 : shown;
-    first.current = false;
-    if (from === value) return;
-    const start = performance.now();
-    const dur = Math.min(900, 380 + Math.abs(value - from) * 25);
+    if (!Number.isFinite(value) || !Number.isInteger(value) || value <= 0 || reduced()) { queueMicrotask(() => setShown(value)); from.current = value; return; }
     let raf = 0;
-    const step = (now: number) => {
-      const p = Math.min(1, (now - start) / dur);
-      const eased = 1 - Math.pow(1 - p, 3);
-      setShown(Math.round(from + (value - from) * eased));
-      if (p < 1) raf = requestAnimationFrame(step);
+    const run = () => {
+      const start = performance.now();
+      const a = from.current;
+      if (a === value) { setShown(value); return; }
+      const dur = 1400;
+      const step = (now: number) => {
+        const p = Math.min(1, (now - start) / dur);
+        const eased = 1 - Math.pow(1 - p, 3);
+        setShown(Math.round(a + (value - a) * eased));
+        if (p < 1) raf = requestAnimationFrame(step);
+        else from.current = value;
+      };
+      raf = requestAnimationFrame(step);
     };
-    raf = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(raf);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- animate only when the target changes
+    if (seen.current) { run(); return () => cancelAnimationFrame(raf); }
+    queueMicrotask(() => setShown(0));
+    const node = el.current;
+    if (!node || typeof IntersectionObserver === "undefined") { seen.current = true; run(); return () => cancelAnimationFrame(raf); }
+    const io = new IntersectionObserver((entries) => {
+      if (entries.some((e) => e.isIntersecting)) { io.disconnect(); seen.current = true; run(); }
+    }, { threshold: 0.4 });
+    io.observe(node);
+    return () => { io.disconnect(); cancelAnimationFrame(raf); };
   }, [value]);
-  return <>{shown.toLocaleString("en-GB")}</>;
+  const final = Number.isFinite(value) ? value.toLocaleString("en-GB") : String(value);
+  return (
+    <span ref={el} className="k-ticker" style={{ display: "inline-grid" }}>
+      <span style={{ gridArea: "1 / 1", visibility: "hidden" }} aria-hidden="true">{final}</span>
+      <span style={{ gridArea: "1 / 1" }} aria-hidden="true">{shown.toLocaleString("en-GB")}</span>
+      <span className="v4-sr-only">{final}</span>
+    </span>
+  );
 }
 
 /** The soft light under the pointer on tiles and summary cards (one listener for the whole app). */

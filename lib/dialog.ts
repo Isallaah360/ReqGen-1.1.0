@@ -32,6 +32,7 @@ export type DialogRequest = {
   defaultValue?: string;
   required?: boolean;
   inputType?: "text" | "password" | "pin";
+  multiline?: boolean;
   resolve: (value: boolean | string | null) => void;
 };
 
@@ -53,6 +54,8 @@ export type PromptOptions = ConfirmOptions & {
   required?: boolean;
   /** v4.6.11: "password" hides the typing; "pin" shows the number pad. */
   inputType?: "text" | "password" | "pin";
+  /** v4.6.12 (Kit K2): a comment box of several lines instead of one line. */
+  multiline?: boolean;
 };
 
 type Listener = () => void;
@@ -121,6 +124,7 @@ function open(kind: DialogRequest["kind"], options: PromptOptions, defaults: { c
         defaultValue: options.defaultValue,
         required: options.required !== false,
         inputType: (options as PromptOptions).inputType,
+        multiline: (options as PromptOptions).multiline,
         resolve,
       },
     ];

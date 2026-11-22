@@ -3,7 +3,7 @@
   "appName": "ReqGen",
   "webDir": "www",
   "server": {
-    "url": "https://reqgen.barderians.com.ng",
+    "url": "https://ietreqgen.barderians.com.ng",
     "androidScheme": "https",
     "errorPath": "offline.html",
     "cleartext": false

@@ -102,7 +102,7 @@ export default function StaffPage() {
         <div className="v4-toolbar">
           <label className="v4-field v4-f-search"><span className="v4-flabel">Search</span><span className="v4-control"><Icon name="search" /><input className="v4-input" placeholder="Name, email or position" value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} /></span></label>
           <div className="v4-field"><span className="v4-flabel">Department</span><Select size="compact" searchable ariaLabel="Department" value={dept} onChange={(v) => { setDept(v); setPage(1); }} options={[{ value: "all", label: "All departments" }, ...depts.map((d) => ({ value: d.id, label: d.name }))]} /></div>
-          <div className="v4-field"><span className="v4-flabel">Position</span><Select size="compact" ariaLabel="Position" value={pos} onChange={(v) => { setPos(v); setPage(1); }} options={[{ value: "all", label: "Any position" }, ...POSITIONS.filter((p) => p.group !== "System" && p.code !== "STAFF").map((p) => ({ value: p.code, label: p.code === "PD" ? "PD · Program Director" : p.name }))]} /></div>
+          <div className="v4-field"><span className="v4-flabel">Position</span><Select size="compact" ariaLabel="Position" value={pos} onChange={(v) => { setPos(v); setPage(1); }} options={[{ value: "all", label: "Any position" }, ...POSITIONS.filter((p) => p.group !== "System" && p.code !== "STAFF").map((p) => ({ value: p.code, label: p.code === "PD" ? "PD, Program Director" : p.name }))]} /></div>
           <button className="v4-btn v4-btn-ghost" type="button" onClick={() => { setQ(""); setDept("all"); setPos("all"); setTab("all"); setPage(1); }}><Icon name="returned" />Reset</button>
         </div>
         {rows === null ? <Skeleton lines={8} /> : shown.length ? (

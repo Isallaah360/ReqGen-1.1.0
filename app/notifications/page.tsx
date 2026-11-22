@@ -1,5 +1,6 @@
 "use client";
 
+import MotionList from "@/app/components/kit/MotionList";
 import { alertDialog } from "@/lib/dialog";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -115,7 +116,7 @@ export default function NotificationsPage() {
         {groups.map((g) => (
           <div key={g.label}>
             <div className="v4-day">{g.label}</div>
-            <ul className="v4-rows">{g.rows.map((n) => <NoticeLine key={n.id} n={n} onOpen={open} />)}</ul>
+            <MotionList className="v4-rows">{g.rows.map((n) => <NoticeLine key={n.id} n={n} onOpen={open} />)}</MotionList>
           </div>
         ))}
         {items.length >= limit ? (

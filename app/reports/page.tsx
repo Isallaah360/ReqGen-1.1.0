@@ -66,7 +66,7 @@ export default function ReportsHome() {
       { href: "/reports/vouchers", title: "Voucher Reports", purpose: "Vouchers by mode and status, signing times, top payees.", icon: "card", tone: "brand" },
       { href: "/reports/registry", title: "Registry Reports", purpose: "Incoming, outgoing, dispatched and archived: counts only.", icon: "archive", tone: "blue" },
       { href: "/reports/enterprise-analytics", title: "Executive Analytics", purpose: "Budget pace, risk subheads and exceptions on one page.", icon: "alert", tone: "amber", meta: c ? `${c.atRisk} subhead${c.atRisk === 1 ? "" : "s"} at risk` : undefined, badge: c?.atRisk ? <span className="v4-chip v4-chip-red">{c.atRisk} risk{c.atRisk === 1 ? "" : "s"}</span> : undefined },
-      { href: "/requests/printable", title: "Print Register", purpose: "What has been printed, by whom and how many times.", icon: "printer", tone: "blue", meta: tier === "all" ? "Mine · treated · all" : "Treated by me" },
+      { href: "/requests/printable", title: "Print Register", purpose: "What has been printed, by whom and how many times.", icon: "printer", tone: "blue", meta: tier === "all" ? "Mine, treated, all" : "Treated by me" },
       { href: "/reports/compliance", title: "Compliance", purpose: "Automatic checks on vouchers, signatures and security.", icon: "shield", tone: "green" },
     ];
     return all.filter((t) => allowed(t.href));

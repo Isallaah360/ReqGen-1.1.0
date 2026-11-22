@@ -232,7 +232,7 @@ function Centre() {
                 {revs.map((v) => (
                   <tr key={v.id} style={params.get("reversal") === v.id ? { background: "var(--v4-brand-soft)" } : undefined}>
                     <td><span className="v4-strong">{v.reversal_no}</span><span className="v4-sub">{v.initiated_label}, {new Date(v.initiated_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</span></td>
-                    <td data-label="Of">{v.source_no}<span className="v4-sub">{v.source_kind === "release" ? "Fund release" : "Manual voucher"}{v.subhead_label ? ` · ${v.subhead_label}` : ""}</span></td>
+                    <td data-label="Of">{v.source_no}<span className="v4-sub">{v.source_kind === "release" ? "Fund release" : "Manual voucher"}{v.subhead_label ? `, ${v.subhead_label}` : ""}</span></td>
                     <td className="v4-r v4-num" data-label="Amount">{nairaExact(v.amount)}</td>
                     <td data-label="Status"><Chip tone={REV_TONE[v.status] || "grey"}>{v.status}</Chip>{v.check_comment || v.approve_comment ? <span className="v4-sub">{v.approve_comment || v.check_comment}</span> : null}</td>
                     <td className="v4-hide-md">{v.reason}</td>

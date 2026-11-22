@@ -76,7 +76,7 @@ export default function SystemAccountsPage() {
   const owner = (people || []).find((p) => p.email.toLowerCase() === OWNER_EMAIL);
   const saStatus = status.find((x) => x.kind === "Super Admin");
   const devStatus = status.find((x) => x.kind === "Developer");
-  const ready = (x: SystemAccountStatus | undefined) => (x ? <span className={`v4-chip ${x.signin === "Ready" && x.marked ? "v4-chip-green" : "v4-chip-red"}`}>{x.signin === "Ready" && x.marked ? "Can sign in" : x.signin === "Ready" ? "Not set up — run v4_6_6_system_accounts.sql" : x.signin}</span> : null);
+  const ready = (x: SystemAccountStatus | undefined) => (x ? <span className={`v4-chip ${x.signin === "Ready" && x.marked ? "v4-chip-green" : "v4-chip-red"}`}>{x.signin === "Ready" && x.marked ? "Can sign in" : x.signin === "Ready" ? "Not set up: run v4_6_6_system_accounts.sql" : x.signin}</span> : null);
   const iAmSuperAdmin = !!sa && sa.id === me.userId;
 
   async function handOver() {

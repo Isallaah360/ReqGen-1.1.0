@@ -171,7 +171,7 @@ export default function DepartmentsPage() {
     <V4Page>
       <PageHead title="Departments" sub="Each department has its director, head and the account its money is paid from."
         actions={[
-          { label: "Export Excel", icon: "download", kind: "secondary", disabled: !shown.length, onClick: () => downloadXlsx("Departments", [{ name: "Departments", title: "ReqGen — Departments", rows: shown.map((d) => ({ Department: d.name, Staff: staffIn.get(d.id) || 0, "Director (DOD)": dod(d), "Head / PD / DIN Admin": head(d), "Pays from": paysFrom(d), Status: d.is_active === false ? "Inactive" : "Active" })) }]) },
+          { label: "Export Excel", icon: "download", kind: "secondary", disabled: !shown.length, onClick: () => downloadXlsx("Departments", [{ name: "Departments", title: "ReqGen: Departments", rows: shown.map((d) => ({ Department: d.name, Staff: staffIn.get(d.id) || 0, "Director (DOD)": dod(d), "Head / PD / DIN Admin": head(d), "Pays from": paysFrom(d), Status: d.is_active === false ? "Inactive" : "Active" })) }]) },
           { label: "Add department", icon: "plus", kind: "primary", onClick: () => open(null) },
         ]} />
       {error ? <Notice tone="red">{error}</Notice> : null}
@@ -185,7 +185,7 @@ export default function DepartmentsPage() {
               <tbody>
                 {shown.map((d) => (
                   <tr key={d.id}>
-                    <td><span className="v4-strong">{d.name}</span><span className="v4-sub">{staffIn.get(d.id) || 0} staff{d.is_active === false ? " · inactive" : ""}</span></td>
+                    <td><span className="v4-strong">{d.name}</span><span className="v4-sub">{staffIn.get(d.id) || 0} staff{d.is_active === false ? ", inactive" : ""}</span></td>
                     <td data-label="Director (DOD)">{dod(d)}</td>
                     <td data-label="Head / PD / DIN">{head(d)}</td>
                     <td data-label="Pays from">{routeFor(d.id) ? paysFrom(d) : <span className="v4-chip v4-chip-amber">Not set</span>}</td>

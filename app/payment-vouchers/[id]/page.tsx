@@ -224,9 +224,9 @@ function VoucherRecord() {
       </section>
 
       {msg ? <Notice tone={msg.tone}>{msg.text}</Notice> : null}
-      {stage === "returned" ? <Notice tone="red" title={`Sent back by ${v.returned_by_name || "a signer"}${v.returned_at ? ` · ${when(v.returned_at)}` : ""}`}>“{v.returned_reason || "No reason given"}”</Notice> : null}
-      {stage === "cancelled" ? <Notice tone="red" title="This voucher is cancelled.">{v.cancel_reason ? `“${v.cancel_reason}” · ` : ""}The number is kept. Its requests are ready for a new voucher.</Notice> : null}
-      {stage === "paid" ? <Notice tone="green" title={`Paid on ${shortDate(v.paid_on || v.paid_at)}`}>{v.paid_by_name ? `Recorded by ${v.paid_by_name}` : "Recorded"}{v.paid_reference ? ` · bank reference ${v.paid_reference}` : ""}. The account and subhead ledgers show this payment.</Notice> : null}
+      {stage === "returned" ? <Notice tone="red" title={`Sent back by ${v.returned_by_name || "a signer"}${v.returned_at ? `, ${when(v.returned_at)}` : ""}`}>“{v.returned_reason || "No reason given"}”</Notice> : null}
+      {stage === "cancelled" ? <Notice tone="red" title="This voucher is cancelled.">{v.cancel_reason ? `“${v.cancel_reason}”, ` : ""}The number is kept. Its requests are ready for a new voucher.</Notice> : null}
+      {stage === "paid" ? <Notice tone="green" title={`Paid on ${shortDate(v.paid_on || v.paid_at)}`}>{v.paid_by_name ? `Recorded by ${v.paid_by_name}` : "Recorded"}{v.paid_reference ? `, bank reference ${v.paid_reference}` : ""}. The account and subhead ledgers show this payment.</Notice> : null}
 
       {myCheck ? (
         <section className="v4-action-card v4-card-pad">
@@ -307,9 +307,9 @@ function VoucherRecord() {
             const isMe = s.state === "now" && ((s.key === "checked" && myCheck) || (s.key === "counter" && myCounter) || (s.key === "dg" && myAuthorise) || (s.key === "paid" && myPay));
             return (
               <li key={s.key} className={`v4-${stage === "cancelled" && s.state !== "done" ? "wait" : s.state}`}>
-                <span className="v4-st">{i + 1} · {s.key === "paid" ? "Received" : s.label}</span>
+                <span className="v4-st">{i + 1}, {s.key === "paid" ? "Received" : s.label}</span>
                 <strong>{isMe ? "You" : s.key === "paid" ? lastStepPayee : s.who}</strong>
-                <span className="v4-r">{s.key === "paid" ? (stage === "paid" ? `Paid ${shortDate(v.paid_on || v.paid_at)}` : "Payee · after payment") : s.role}{s.state === "now" && s.key !== "paid" && stage !== "returned" ? ` · waiting ${waitedFor(waitingSince)}` : ""}</span>
+                <span className="v4-r">{s.key === "paid" ? (stage === "paid" ? `Paid ${shortDate(v.paid_on || v.paid_at)}` : "Payee, after payment") : s.role}{s.state === "now" && s.key !== "paid" && stage !== "returned" ? `, waiting ${waitedFor(waitingSince)}` : ""}</span>
                 <em>{s.state === "done" && s.at ? when(s.at) : ""}</em>
                 <span className="v4-ink">{s.state === "done" && s.key !== "paid" ? <span className="v4-chip v4-chip-green"><Icon name="pentool" size="sm" />{s.key === "dg" ? "Signed + stamp" : "Signed"}</span> : null}</span>
               </li>
@@ -336,7 +336,7 @@ function VoucherRecord() {
 
       {schedule.length > 1 || (schedule.length === 1 && Number(v.payee_count || 1) > 1) ? (
         <section className="v4-card">
-          <div className="v4-card-head"><h2 className="v4-h2">Transfer schedule · {schedule.length} payee{schedule.length === 1 ? "" : "s"}</h2><span className="v4-help">Printed with the voucher for the bank.</span></div>
+          <div className="v4-card-head"><h2 className="v4-h2">Transfer schedule, {schedule.length} payee{schedule.length === 1 ? "" : "s"}</h2><span className="v4-help">Printed with the voucher for the bank.</span></div>
           <div className="v4-table-wrap">
             <table className="v4-data v4-stack">
               <thead><tr><th>#</th><th>Account name</th><th>Bank</th><th>Account no.</th><th className="v4-hide-sm">Requests</th><th className="v4-r">Amount</th></tr></thead>
@@ -374,7 +374,7 @@ function VoucherRecord() {
           {pvFiles.length ? (
             <ul className="v4-files" style={{ padding: "0 20px 16px" }}>
               {pvFiles.map((f) => (
-                <li key={f.id}><span className="v4-fi">{/\.pdf$/i.test(f.file_name) ? "PDF" : "IMG"}</span><span className="v4-ft"><strong>{f.file_name}</strong><span>{f.uploaded_by_label || ""} · {shortDate(f.created_at)}</span></span><button type="button" className="v4-btn v4-btn-ghost" onClick={() => void openFile(f)}>Open</button></li>
+                <li key={f.id}><span className="v4-fi">{/\.pdf$/i.test(f.file_name) ? "PDF" : "IMG"}</span><span className="v4-ft"><strong>{f.file_name}</strong><span>{f.uploaded_by_label || ""}, {shortDate(f.created_at)}</span></span><button type="button" className="v4-btn v4-btn-ghost" onClick={() => void openFile(f)}>Open</button></li>
               ))}
             </ul>
           ) : null}

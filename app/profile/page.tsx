@@ -109,7 +109,7 @@ export default function MyAccountHome() {
         </span>
         <div>
           <h2>{name || "My Account"}</h2>
-          <p>{[profile?.email || me.email, systemAccount === "superadmin" ? "The Trust's own account" : systemAccount === "developer" ? "Barderian Enterprises" : dept].filter(Boolean).join(" · ")}</p>
+          <p>{[profile?.email || me.email, systemAccount === "superadmin" ? "The Trust's own account" : systemAccount === "developer" ? "Barderian Enterprises" : dept].filter(Boolean).join(", ")}</p>
           <div className="v4-chips">
             {positions.map((p, i) => <Chip key={p} tone={i === 0 ? "brand" : p === "Staff" ? "grey" : "blue"}>{p}</Chip>)}
           </div>

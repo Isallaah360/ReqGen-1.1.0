@@ -1,5 +1,4 @@
 "use client";
-import { Clock3 } from "lucide-react";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
@@ -20,6 +19,7 @@ const PUBLIC_PATHS = [
   "/mfa/setup",
   "/app",
   "/console",
+  "/credits",
 ];
 
 function isPublicPath(pathname: string) {
@@ -202,23 +202,24 @@ export default function SessionTimeout() {
 
   if (isPublicPath(pathname) || !warningVisible) return null;
 
+  // v4.6.12 (Kit K15): the same rule, in a K2 dialog with a countdown ring.
+  const total = Math.ceil(WARNING_BEFORE_LOGOUT_MS / 1000);
+  const C = 2 * Math.PI * 20;
+  const gone = Math.min(1, Math.max(0, (total - secondsLeft) / total));
+  const minutes = Math.round(limitRef.current / 60000);
   return (
-    <div className="rg-session-backdrop" role="presentation">
-      <section className="rg-session-dialog" role="alertdialog" aria-modal="true" aria-labelledby="rg-session-title" aria-describedby="rg-session-desc">
-        <header className="rg-session-head">
-          <span className="rg-session-icon" aria-hidden="true"><Clock3 size={20} /></span>
-          <div>
-            <h2 id="rg-session-title">Still there?</h2>
-            <p id="rg-session-desc">For your security, ReqGen will sign you out due to inactivity.</p>
-          </div>
-        </header>
-        <div className="rg-session-count" aria-live="assertive">
-          <span>Signing out in</span>
-          <strong>{formatCountdown(secondsLeft)}</strong>
-        </div>
+    <div className="rg-session-backdrop rg-attention-backdrop" role="presentation">
+      <section className="rg-session-dialog k-idle" role="alertdialog" aria-modal="true" aria-labelledby="rg-session-title" aria-describedby="rg-session-desc">
+        <svg className="k-ring" viewBox="0 0 48 48" aria-hidden="true">
+          <circle className="k-ring-bg" cx="24" cy="24" r="20" fill="none" strokeWidth="4" />
+          <circle className="k-ring-fg" cx="24" cy="24" r="20" fill="none" strokeWidth="4" strokeLinecap="round" strokeDasharray={C} strokeDashoffset={C * gone} transform="rotate(-90 24 24)" />
+          <text x="24" y="28" textAnchor="middle">{formatCountdown(secondsLeft)}</text>
+        </svg>
+        <h2 id="rg-session-title">Still there?</h2>
+        <p id="rg-session-desc">For your security, ReqGen signs you out after {minutes} minutes without activity. Signing out in about {secondsLeft > 30 ? "1 minute" : `${secondsLeft} seconds`}.</p>
         <div className="rg-session-actions">
           <button type="button" className="rg-btn rg-btn-secondary" onClick={() => void logoutDueToInactivity()}>
-            Sign out now
+            Sign out
           </button>
           <button type="button" className="rg-btn rg-btn-primary" onClick={recordActivity} autoFocus>
             Stay signed in

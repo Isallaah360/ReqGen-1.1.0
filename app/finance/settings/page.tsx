@@ -107,11 +107,11 @@ export default function FinanceSettingsPage() {
           <section><div className="v4-section-title"><span className="v4-no">1</span><h2 className="v4-h2">Financial year</h2></div>
             <div className="v4-form-grid">
               <div className="v4-field"><span className="v4-flabel">Starts on</span><span className="v4-locked"><Icon name="lock" size="sm" />1 September</span></div>
-              <div className="v4-field"><span className="v4-flabel">Current year</span><span className="v4-locked">{label(fy)} (1 Sep {fy} – 31 Aug {fy + 1})</span></div>
+              <div className="v4-field"><span className="v4-flabel">Current year</span><span className="v4-locked">{label(fy)} (1 Sep {fy} to 31 Aug {fy + 1})</span></div>
               <div className="v4-field v4-span-2"><span className="v4-flabel">Budget</span>
                 <div className="v4-fy-status">
                   <span className={`v4-chip v4-chip-${status === "Open" ? "green" : status === "Locked" ? "amber" : "grey"}`}>{status === "Locked" ? "Approved and locked" : status === "Closed" ? "Closed" : "Open for changes"}</span>
-                  <span className="v4-help">{status === "Locked" ? `Locked by ${year?.locked_by_label || "—"} on ${when(year?.locked_at || null)}${year?.lock_note ? ` · “${year.lock_note}”` : ""}` : status === "Closed" ? `Closed by ${year?.closed_by_label || "—"} on ${when(year?.closed_at || null)}` : year?.unlocked_at ? `Unlocked by ${year.unlocked_by_label} on ${when(year.unlocked_at)}: “${year.unlock_reason}”` : "Allocations can be edited by the Super Admin and the Auditor."}</span>
+                  <span className="v4-help">{status === "Locked" ? `Locked by ${year?.locked_by_label || "-"} on ${when(year?.locked_at || null)}${year?.lock_note ? `, “${year.lock_note}”` : ""}` : status === "Closed" ? `Closed by ${year?.closed_by_label || "-"} on ${when(year?.closed_at || null)}` : year?.unlocked_at ? `Unlocked by ${year.unlocked_by_label} on ${when(year.unlocked_at)}: “${year.unlock_reason}”` : "Allocations can be edited by the Super Admin and the Auditor."}</span>
                   <span className="v4-fy-actions">
                     {status === "Open" && canEdit ? <button type="button" className="v4-btn v4-btn-secondary" onClick={() => void lockYear()}><Icon name="lock" />Approve and lock budget</button> : null}
                     {status === "Locked" && isAdmin ? <button type="button" className="v4-btn v4-btn-ghost" onClick={() => void unlockYear()}>Unlock</button> : null}
@@ -157,7 +157,7 @@ export default function FinanceSettingsPage() {
             {last ? <dl className="v4-kv"><dt>By</dt><dd>{last.changed_by_label || "-"}</dd><dt>When</dt><dd>{when(last.changed_at)}</dd><dt>What</dt><dd>{SETTING_NAME[last.key] || last.key}</dd></dl> : <p className="v4-muted" style={{ margin: 0, fontSize: 13.5 }}>No change yet.</p>}
           </section>
           {log.length > 1 ? <section className="v4-card v4-card-pad"><h2 className="v4-h3" style={{ marginBottom: 10 }}>Earlier changes</h2>
-            <ul className="v4-rows v4-compact-rows">{log.slice(1).map((l) => <li key={l.changed_at + l.key}><span className="v4-rt"><strong>{SETTING_NAME[l.key] || l.key} → {l.key === "cash_dg_note_above" ? nairaExact(l.new_value) : l.new_value}</strong><span>{l.changed_by_label} · {when(l.changed_at)}</span></span></li>)}</ul></section> : null}
+            <ul className="v4-rows v4-compact-rows">{log.slice(1).map((l) => <li key={l.changed_at + l.key}><span className="v4-rt"><strong>{SETTING_NAME[l.key] || l.key} → {l.key === "cash_dg_note_above" ? nairaExact(l.new_value) : l.new_value}</strong><span>{l.changed_by_label}, {when(l.changed_at)}</span></span></li>)}</ul></section> : null}
         </aside>
       </div>
     </V4Page>

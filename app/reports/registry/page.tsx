@@ -60,7 +60,7 @@ export default function RegistryReportsPage() {
   function exportXlsx() {
     downloadXlsx(`Registry_Reports_FY_${fyLabel(fy).replace("/", "-")}`, [
       { name: "Per month", title: "Items received per month", rows: trend.map((t) => ({ Month: monthName(t.month), Items: t.value })) },
-      { name: "By office", title: `Turnaround by office — FY ${fyLabel(fy)}`, rows: offices.map((o) => ({ Office: o.office, Received: o.received, Dispatched: o.dispatched, "Avg days": o.avg === null ? null : Number(o.avg.toFixed(1)), "Over 5 days": o.late })) },
+      { name: "By office", title: `Turnaround by office: FY ${fyLabel(fy)}`, rows: offices.map((o) => ({ Office: o.office, Received: o.received, Dispatched: o.dispatched, "Avg days": o.avg === null ? null : Number(o.avg.toFixed(1)), "Over 5 days": o.late })) },
     ]);
   }
 
@@ -88,7 +88,7 @@ export default function RegistryReportsPage() {
             <div className="v4-card-head"><h2 className="v4-h2">Turnaround by office</h2><span className="v4-help">Days from receipt to dispatch</span></div>
             {offices.length ? (
               <div className="v4-table-wrap"><table className="v4-data v4-stack"><thead><tr><th>Office</th><th className="v4-r">Received</th><th className="v4-r">Dispatched</th><th className="v4-r">Avg days</th><th className="v4-r">Over 5 days</th></tr></thead>
-                <tbody>{offices.map((o) => <tr key={o.office}><td><span className="v4-strong">{o.office}</span></td><td className="v4-r v4-num">{o.received}</td><td className="v4-r v4-num">{o.dispatched}</td><td className="v4-r v4-num">{o.avg === null ? "—" : o.avg.toFixed(1)}</td><td className="v4-r v4-num">{o.late}</td></tr>)}</tbody></table></div>
+                <tbody>{offices.map((o) => <tr key={o.office}><td><span className="v4-strong">{o.office}</span></td><td className="v4-r v4-num">{o.received}</td><td className="v4-r v4-num">{o.dispatched}</td><td className="v4-r v4-num">{o.avg === null ? "-" : o.avg.toFixed(1)}</td><td className="v4-r v4-num">{o.late}</td></tr>)}</tbody></table></div>
             ) : <p className="v4-muted" style={{ padding: "16px 20px", margin: 0 }}>No registry item this year yet.</p>}
           </section>
         </>

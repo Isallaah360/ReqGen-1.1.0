@@ -159,7 +159,7 @@ export default function BankAccountsPage() {
         <Pager page={page} pageSize={PAGE} total={filtered.length} onPage={setPage} label="accounts" />
       </Card>
 
-      <Modal open={!!edit} title={edit?.mode === "new" ? "Add an IET account" : "Edit account"} sub="The account name only — never a payment word. The bank shows in grey under it." onClose={() => setEdit(null)} busy={busy}
+      <Modal open={!!edit} title={edit?.mode === "new" ? "Add an IET account" : "Edit account"} sub="The account name only: never a payment word. The bank shows in grey under it." onClose={() => setEdit(null)} busy={busy}
         footer={<><button type="button" className="v4-btn v4-btn-ghost" onClick={() => setEdit(null)} disabled={busy}>Cancel</button><button type="button" className="v4-btn v4-btn-primary" onClick={() => void saveAccount()} disabled={busy}>{busy ? "Saving…" : "Save account"}</button></>}>
         {edit ? (
           <>

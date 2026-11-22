@@ -104,8 +104,8 @@ function Statements() {
     const moves = ledger.filter((l) => l.subhead_id === sh.id && l.created_at.slice(0, 10) > fyRange(fy).from);
     const opening = num(sh.approved_allocation) - moves.reduce((t, l) => t + num(l.amount), 0);
     const lines = [
-      ...moves.map((l) => ({ at: l.created_at, title: l.entry_type === "Subhead Allocation" ? "Allocation added" : "Allocation moved (transfer)", ref: String(l.description || "").split(" ")[0] || "—", debit: num(l.amount) < 0 ? -num(l.amount) : 0, credit: num(l.amount) > 0 ? num(l.amount) : 0 })),
-      ...(spend || []).filter((x) => x.subhead_id === sh.id).map((x) => ({ at: x.at, title: `${x.ref}${x.detail ? ` · ${x.detail}` : ""}`, ref: x.source === "manual" ? "Manual voucher" : "Fund released", debit: x.amount, credit: 0 })),
+      ...moves.map((l) => ({ at: l.created_at, title: l.entry_type === "Subhead Allocation" ? "Allocation added" : "Allocation moved (transfer)", ref: String(l.description || "").split(" ")[0] || "-", debit: num(l.amount) < 0 ? -num(l.amount) : 0, credit: num(l.amount) > 0 ? num(l.amount) : 0 })),
+      ...(spend || []).filter((x) => x.subhead_id === sh.id).map((x) => ({ at: x.at, title: `${x.ref}${x.detail ? `, ${x.detail}` : ""}`, ref: x.source === "manual" ? "Manual voucher" : "Fund released", debit: x.amount, credit: 0 })),
     ].sort((a, b) => a.at.localeCompare(b.at));
     const all = [{ at: `${fyRange(fy).from}T00:00:00`, title: `Opening allocation FY ${fyLabel(fy)}`, ref: "-", debit: 0, credit: opening }, ...lines];
     const running = all.reduce<Array<typeof all[number] & { balance: number }>>((acc, l) => { acc.push({ ...l, balance: (acc.length ? acc[acc.length - 1].balance : 0) + l.credit - l.debit }); return acc; }, []);
@@ -153,10 +153,10 @@ function Statements() {
                 {monthly.map((r) => (
                   <tr key={r.month} className={r.balance === null ? "v4-muted-row v4-hide-sm" : undefined}>
                     <td><span className="v4-strong">{monthName(r.month)}</span></td>
-                    <td className="v4-r v4-num">{r.alloc === null ? "—" : nairaExact(r.alloc)}</td>
-                    <td className={`v4-r v4-num${r.inn ? " v4-credit" : ""}`}>{r.inn === null ? "—" : nairaExact(r.inn)}</td>
-                    <td className="v4-r v4-num">{r.spent === null ? "—" : nairaExact(r.spent)}</td>
-                    <td className="v4-r v4-num v4-strong">{r.balance === null ? "—" : nairaExact(r.balance)}</td>
+                    <td className="v4-r v4-num">{r.alloc === null ? "-" : nairaExact(r.alloc)}</td>
+                    <td className={`v4-r v4-num${r.inn ? " v4-credit" : ""}`}>{r.inn === null ? "-" : nairaExact(r.inn)}</td>
+                    <td className="v4-r v4-num">{r.spent === null ? "-" : nairaExact(r.spent)}</td>
+                    <td className="v4-r v4-num v4-strong">{r.balance === null ? "-" : nairaExact(r.balance)}</td>
                   </tr>
                 ))}
                 <tr><td><span className="v4-strong">Year to date</span></td><td className="v4-r v4-num v4-strong">{nairaExact(allocation)}</td><td className="v4-r v4-num v4-strong">{nairaExact(ytdIn)}</td><td className="v4-r v4-num v4-strong">{nairaExact(ytdSpent)}</td><td className="v4-r v4-num v4-strong">{nairaExact(allocation - ytdSpent)}</td></tr>

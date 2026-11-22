@@ -73,7 +73,7 @@ export default function FinanceProcessingPage() {
     { label: "Paid this month", value: rows ? paidThisMonth.length : "…", note: rows ? naira(sum(paidThisMonth)) : undefined, icon: "check", tone: "green", pressed: tab === "treated", onClick: () => { setTab("treated"); setLate(false); setPage(1); } },
   ];
 
-  const kind = (r: Row) => String(r.request_type || "").toLowerCase().startsWith("official") ? (r.subhead_id ? subs[r.subhead_id] || "Official" : "Official") : "Personal · Fund";
+  const kind = (r: Row) => String(r.request_type || "").toLowerCase().startsWith("official") ? (r.subhead_id ? subs[r.subhead_id] || "Official" : "Official") : "Personal, Fund";
 
   return (
     <V4Page>

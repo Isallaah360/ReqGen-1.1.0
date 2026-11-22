@@ -49,7 +49,7 @@ export function deviceName() {
   const ua = navigator.userAgent;
   const os = /Android/i.test(ua) ? "Android phone" : /iPhone/i.test(ua) ? "iPhone" : /iPad/i.test(ua) ? "iPad" : /Windows/i.test(ua) ? "Windows laptop" : /Mac OS/i.test(ua) ? "Mac" : /Linux/i.test(ua) ? "Linux computer" : "This device";
   const browser = /Edg\//.test(ua) ? "Edge" : /OPR\//.test(ua) ? "Opera" : /Chrome\//.test(ua) ? "Chrome" : /Firefox\//.test(ua) ? "Firefox" : /Safari\//.test(ua) ? "Safari" : "Browser";
-  return `${os} · ${browser}`;
+  return `${os}, ${browser}`;
 }
 
 async function bearer() {

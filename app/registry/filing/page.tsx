@@ -44,7 +44,7 @@ export default function FilingPage() {
       if (e) failed.push(`${it.record_no}: ${e.message}`);
     }
     setBusy(false);
-    setMsg(failed.length ? { tone: "amber", text: `Some were not filed — ${failed.join("; ")}` } : { tone: "green", text: `${picked.length} record${picked.length === 1 ? "" : "s"} filed at ${form.location}.` });
+    setMsg(failed.length ? { tone: "amber", text: `Some were not filed: ${failed.join("; ")}` } : { tone: "green", text: `${picked.length} record${picked.length === 1 ? "" : "s"} filed at ${form.location}.` });
     setForm(null); setPicked([]);
     await load();
   }
@@ -79,7 +79,7 @@ export default function FilingPage() {
         footer={<><button type="button" className="v4-btn v4-btn-ghost" onClick={() => setForm(null)} disabled={busy}>Cancel</button><button type="button" className="v4-btn v4-btn-primary" onClick={() => void file()} disabled={busy}><Icon name="archive" />{busy ? "Filing…" : "File"}</button></>}>
         {form ? (
           <div className="v4-form-grid">
-            <div className="v4-field v4-span-2"><span className="v4-flabel">How long it is kept</span><Select ariaLabel="How long it is kept" value={form.category} onChange={(v) => { const r = RETENTION.find((x) => x.value === v); setForm({ ...form, category: v, keep: r && r.years ? addYears(r.years) : form.keep }); }} options={RETENTION.filter((r) => r.years > 0).map((r) => ({ value: r.value, label: r.value }))} /></div>
+            <div className="v4-field v4-span-2"><span className="v4-flabel">How long it is kept</span><Select ariaLabel="How long it is kept" value={form.category} onChange={(v) => { const r = RETENTION.find((x) => x.value === v); setForm({ ...form, category: v, keep: r && r.years ? addYears(r.years) : form.keep }); }} options={RETENTION.filter((r) => r.years > 0).map((r) => ({ value: r.value, label: r.label }))} /></div>
             <label className="v4-field"><span className="v4-flabel">Keep until</span><input className="v4-input" type="date" value={form.keep} onChange={(e) => setForm({ ...form, keep: e.target.value })} /></label>
             <label className="v4-field"><span className="v4-flabel">Shelf location <span className="v4-req">*</span></span><input className="v4-input" value={form.location} placeholder="Cabinet B, Shelf 2, Box 15" onChange={(e) => setForm({ ...form, location: e.target.value })} /></label>
           </div>

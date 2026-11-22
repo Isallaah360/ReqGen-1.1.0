@@ -12,6 +12,9 @@ import Icon from "@/app/components/v4/Icon";
 import { Select } from "@/app/components/v4/Select";
 import { Card, Chip, Notice, PageHead, Skeleton, V4Page } from "@/app/components/v4/ui";
 import { useCelebrate } from "@/app/components/v4/Motion";
+import EmptyState from "@/app/components/kit/EmptyState";
+import { useListMotion } from "@/app/components/kit/useListMotion";
+import { toast } from "@/lib/toast";
 
 type Ready = { id: string; request_no: string | null; title: string | null; amount: number | null; request_type: string | null; personal_category: string | null; requester_name: string | null; dept_name: string | null; subhead_code: string | null; subhead_name: string | null };
 type Saved = { payee_key: string; payee_name: string | null; account_name: string; account_number: string; bank_name: string };
@@ -38,6 +41,7 @@ function Generate() {
   const mayPrepare = ["account", "accounts", "accountofficer", "admin"].includes(role);
 
   const [rows, setRows] = useState<Ready[] | null>(null);
+  const pickList = useListMotion<HTMLDivElement>();
   const [saved, setSaved] = useState<Map<string, Saved>>(new Map());
   const [counters, setCounters] = useState<string[]>([]);
   const [auditor, setAuditor] = useState("");
@@ -168,13 +172,13 @@ function Generate() {
 
   return (
     <V4Page>
-      <PageHead title="Generate from Requests" sub="Official requests from any staff can share one voucher: up to 10: paid by bank transfer. Personal requests get a voucher of their own."
+      <PageHead title="Generate from Requests" sub="Official requests from any staff can share one voucher (up to 10), paid by bank transfer. Personal requests get a voucher of their own."
         actions={[{ label: "Manual voucher", icon: "pen", kind: "secondary", href: "/payment-vouchers/manual" }]} />
       {reissueNo ? <Notice tone="blue" title={`Reissuing ${reissueNo}.`}>The cancelled voucher keeps its number. This one gets a new number and records that it replaces {reissueNo}.</Notice> : null}
       {loadError ? <Notice tone="red">{loadError}</Notice> : null}
       <div className="v4-stepper" aria-label="Progress">
         <div className={step > 1 ? "v4-done" : "v4-on"}>1, Pick requests</div>
-        <div className={step === 2 ? "v4-on" : ""}>2 · Payment details</div>
+        <div className={step === 2 ? "v4-on" : ""}>2, Payment details</div>
         <div>3, Prepared &amp; sent to Auditor</div>
       </div>
 
@@ -187,33 +191,35 @@ function Generate() {
           </div>
         </div>
         {rows === null ? <Skeleton lines={6} /> : list.length ? (
-          <div className="v4-table-wrap">
-            <table className="v4-data v4-stack">
-              <thead><tr><th style={{ width: 44 }}><span className="v4-sr-only">Select</span></th><th>Request</th><th className="v4-r">Amount</th><th>Payee</th><th>Subhead</th><th>Type</th></tr></thead>
-              <tbody>
-                {list.map((r) => {
-                  const on = picked.includes(r.id);
-                  const full = isOfficial(r) && !on && officialChosen >= CAP;
-                  return (
-                    <tr key={r.id} className={full ? "v4-muted-row" : undefined} title={full ? "Voucher full: start another voucher for the rest" : undefined}>
-                      <td><input className="v4-pick" type="checkbox" checked={on} disabled={full} onChange={() => toggle(r)} aria-label={`Select ${r.request_no || r.title}`} /></td>
-                      <td><span className="v4-strong">{r.request_no || "-"}</span><span className="v4-sub">{r.title || ""}</span></td>
-                      <td className="v4-r v4-num v4-strong">{nairaExact(r.amount)}</td>
-                      <td data-label="Payee"><span className="v4-strong">{String(r.requester_name || "-").toUpperCase()}</span><span className="v4-sub">{r.dept_name || ""}</span></td>
-                      <td data-label="Subhead" className="v4-hide-sm">{r.subhead_code ? `${r.subhead_code}: ${r.subhead_name || ""}` : <span className="v4-muted">Not set</span>}</td>
-                      <td data-label="Type">{isOfficial(r) ? <Chip tone="blue">Official</Chip> : <Chip tone="grey">Personal, own voucher</Chip>}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+          // v4.6.12 (Blueprint 06): selectable cards with a live "x of 10"; the 11th is refused with a short message.
+          <div className="k-picks" role="group" aria-label="Requests ready for a voucher" ref={pickList}>
+            {list.map((r) => {
+              const on = picked.includes(r.id);
+              const full = isOfficial(r) && !on && officialChosen >= CAP;
+              return (
+                <button key={r.id} type="button" role="checkbox" aria-checked={on} className="k-pick" aria-disabled={full || undefined}
+                  aria-label={`${r.request_no || r.title}, ${nairaExact(r.amount)}, ${String(r.requester_name || "")}`}
+                  onClick={() => {
+                    if (full) { toast({ text: `A voucher holds up to ${CAP} requests. Start another voucher for the rest.`, tone: "error" }); return; }
+                    toggle(r);
+                  }}>
+                  <span className="k-box" aria-hidden="true">{on ? <Icon name="tick" /> : null}</span>
+                  <span className="k-pt">
+                    <b>{r.request_no || "-"}</b>
+                    <span className="k-payee">{String(r.requester_name || "-").toUpperCase()}</span>
+                    <small>{[r.title, r.dept_name, r.subhead_code ? `${r.subhead_code}: ${r.subhead_name || ""}` : "Subhead not set", isOfficial(r) ? "" : "Personal, own voucher"].filter(Boolean).join(", ")}</small>
+                  </span>
+                  <span className="k-amt v4-num">{nairaExact(r.amount)}</span>
+                </button>
+              );
+            })}
           </div>
-        ) : <p className="v4-muted" style={{ padding: 20, margin: 0 }}>{kind === "official" ? "No official request is waiting for a voucher." : "No personal fund request is waiting for a voucher."}</p>}
+        ) : <EmptyState title={kind === "official" ? "No official request is waiting" : "No personal request is waiting"}>{kind === "official" ? "Approved official requests show here, ready for a voucher." : "Approved personal fund requests show here, ready for a voucher."}</EmptyState>}
         {kind === "official" ? (
           <div className="v4-group-bar">
-            <span><b>{officialChosen} of {CAP}</b> selected · Official · <b>{payees.length} payee{payees.length === 1 ? "" : "s"}</b> · <b className="v4-num">{nairaExact(total)}</b></span>
+            <span><span className={`k-counter${officialChosen >= CAP ? " k-full" : ""}`} aria-live="polite">{officialChosen} of {CAP}</span> selected, <b>{payees.length} payee{payees.length === 1 ? "" : "s"}</b>, <b className="v4-num">{nairaExact(total)}</b></span>
             <span className="v4-cap-meter" aria-label={`${officialChosen} of ${CAP} places used`}><i style={{ width: `${(officialChosen / CAP) * 100}%` }} /></span>
-            {officialChosen >= CAP ? <Chip tone="amber">Voucher full — start another voucher for the rest</Chip> : <Chip tone="green">Can be combined · {CAP - officialChosen} place{CAP - officialChosen === 1 ? "" : "s"} left</Chip>}
+            {officialChosen >= CAP ? <Chip tone="amber">Voucher full. Start another voucher for the rest</Chip> : <Chip tone="green">Can be combined, {CAP - officialChosen} place{CAP - officialChosen === 1 ? "" : "s"} left</Chip>}
           </div>
         ) : (
           <div className="v4-group-bar"><span>A personal request is paid on a voucher of its own{chosen.length ? <>, <b className="v4-num">{nairaExact(total)}</b></> : null}.</span></div>
@@ -256,7 +262,7 @@ function Generate() {
           {effMode === "Transfer" ? (
             <>
               <div className="v4-card-head" style={{ borderTop: "1px solid var(--line-2)" }}>
-                <h2 className="v4-h3">Transfer schedule · {payees.length} payee{payees.length === 1 ? "" : "s"}</h2>
+                <h2 className="v4-h3">Transfer schedule, {payees.length} payee{payees.length === 1 ? "" : "s"}</h2>
                 <span className="v4-help">Filled from each person’s saved bank details. Same person twice = one transfer.</span>
               </div>
               <div className="v4-table-wrap">

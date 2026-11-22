@@ -42,7 +42,7 @@ check("Home: the IET logo, welcome and buttons are kept", home.includes('src="/v
 // 3. Motion layer
 check("Tick: one host in the app frame", frame.includes("<SavedHost />") && motion.includes("export function SavedHost"));
 check("Tick: fired from success messages across the app", (() => { let n = 0; const walk = (d) => { for (const f of fs.readdirSync(d, { withFileTypes: true })) { const p = `${d}/${f.name}`; if (f.isDirectory()) walk(p); else if (/\.tsx$/.test(f.name) && read(p).includes("useCelebrate(")) n++; } }; walk("app"); return n >= 35; })());
-check("Tick: IET stamp and ink on the DG's approval", work.includes("stamp: true") && motion.includes("v4-stamp"));
+check("Tick: IET stamp and ink on the DG's approval", work.includes("stamp: true") && (motion.includes("v4-stamp") || (motion.includes("k-stamp-moment") && motion.includes("/v4/iet-stamp.png"))));
 check("Live alerts: heading (Request received / Voucher received) and the bell rings once", bell.includes("Request received") && bell.includes("Voucher received") && bell.includes("v4-bell-ring"));
 check("Count-up never used on money", read("app/components/v4/ui.tsx").includes('typeof s.value === "number" ? <CountUp'));
 check("Reduce motion respected, nothing moves in print, Audit Log and 2FA stay still", css.includes("prefers-reduced-motion: reduce") && css.includes(".v4-saved, .v4-tip { display: none !important; }") && frame.includes('pathname.startsWith("/audit-centre/logs")'));

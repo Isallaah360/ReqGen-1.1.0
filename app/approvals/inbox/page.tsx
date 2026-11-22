@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { APPROVAL_QUEUE_CHANGED_EVENT, isAwaitingUser, isHeldElsewhere, type ApprovalQueueRow } from "@/lib/approvalQueue";
 import { ageDays, stageWords, waitedFor } from "@/lib/v4/requestText";
 import { useIdentity } from "@/app/components/v4/useIdentity";
+import { useListMotion } from "@/app/components/kit/useListMotion";
 import { Btn, Card, Chip, Notice, PageHead, Pager, Skeleton, Stats, V4Page, naira, type StatItem } from "@/app/components/v4/ui";
 
 type Row = ApprovalQueueRow & {
@@ -17,7 +18,7 @@ const PAGE = 20;
 
 function typeOf(r: Row) {
   if (String(r.request_type || "").toLowerCase().startsWith("official")) return "Official";
-  return String(r.personal_category || "").toLowerCase() === "fund" ? "Personal · Fund" : "Personal · Other";
+  return String(r.personal_category || "").toLowerCase() === "fund" ? "Personal, Fund" : "Personal, Other";
 }
 
 /** Approvals › Requests to Approve (v4.1.0): oldest first. */
@@ -28,6 +29,7 @@ export default function RequestsToApprovePage() {
   const [depts, setDepts] = useState<Record<string, string>>({});
   const [treated, setTreated] = useState<Treated[] | null>(null);
   const [q, setQ] = useState("");
+  const rowList = useListMotion<HTMLTableSectionElement>();
   const [type, setType] = useState("all");
   const [dept, setDept] = useState("all");
   const [late, setLate] = useState(false);
@@ -113,13 +115,13 @@ export default function RequestsToApprovePage() {
           <div className="v4-table-wrap">
             <table className="v4-data v4-stack">
               <thead><tr><th>Request</th><th className="v4-r">Amount</th><th>From</th><th className="v4-hide-sm">Your step</th><th>Waiting</th><th className="v4-r">Action</th></tr></thead>
-              <tbody>
+              <tbody ref={rowList}>
                 {paged.map((r) => {
                   const days = ageDays(r.created_at);
                   return (
                     <tr key={r.id}>
                       <td><span className="v4-strong">{r.request_no || "-"}</span><span className="v4-sub">{r.title || "Untitled"}</span></td>
-                      <td className="v4-r v4-num v4-strong">{typeOf(r) === "Personal · Other" ? "—" : naira(r.amount)}</td>
+                      <td className="v4-r v4-num v4-strong">{typeOf(r) === "Personal, Other" ? "-" : naira(r.amount)}</td>
                       <td data-label="From"><span className="v4-strong">{r.requester_name || "Staff"}</span><span className="v4-sub">{depts[r.dept_id || ""] || typeOf(r)}</span></td>
                       <td className="v4-hide-sm"><Chip tone="brand">{stageWords(r.current_stage).replace(/^With (the )?/, "")}</Chip></td>
                       <td><Chip tone={days >= 3 ? "red" : days >= 1 ? "amber" : "green"}>{waitedFor(r.created_at)}</Chip></td>

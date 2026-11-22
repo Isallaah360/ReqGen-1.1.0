@@ -106,7 +106,7 @@ export default function RequestInsight({ requestId }: { requestId: string }) {
 
             {tab === "subhead" ? (data.subhead ? (
               <>
-                <p style={{ margin: "0 0 10px" }}><b>{[data.subhead.code, data.subhead.name].filter(Boolean).join(" — ")}</b> · used by {data.subhead.used_this_year} other request{data.subhead.used_this_year === 1 ? "" : "s"} in the last 12 months.</p>
+                <p style={{ margin: "0 0 10px" }}><b>{[data.subhead.code, data.subhead.name].filter(Boolean).join(": ")}</b>, used by {data.subhead.used_this_year} other request{data.subhead.used_this_year === 1 ? "" : "s"} in the last 12 months.</p>
                 {data.subhead.balances_shown && data.subhead.allocation !== null ? (() => {
                   const alloc = Number(data.subhead.allocation || 0);
                   const used = Number(data.subhead.reserved || 0) + Number(data.subhead.expenditure || 0);
@@ -150,7 +150,7 @@ export default function RequestInsight({ requestId }: { requestId: string }) {
                   return (
                     <li key={`${s.at}-${i}`}>
                       <span className="v4-insight-dot" aria-hidden="true" />
-                      <span><b>{s.action || "Step"}</b>{s.by_position ? ` · ${s.by_position}` : ""}{s.to_stage ? ` → ${stageWords(s.to_stage)}` : ""}<br /><span className="v4-help">{day(s.at)}{prev !== null ? ` · after ${hours(new Date(s.at).getTime() - prev)}` : ""}</span></span>
+                      <span><b>{s.action || "Step"}</b>{s.by_position ? `, ${s.by_position}` : ""}{s.to_stage ? ` → ${stageWords(s.to_stage)}` : ""}<br /><span className="v4-help">{day(s.at)}{prev !== null ? `, after ${hours(new Date(s.at).getTime() - prev)}` : ""}</span></span>
                     </li>
                   );
                 })}

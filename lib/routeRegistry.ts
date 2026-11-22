@@ -26,6 +26,16 @@ export const ROUTE_REGISTRY: RouteRegistryItem[] = [
     "description": "ReqGen route /app (v4.6.11: download the ReqGen Android app)"
   },
   {
+    "pattern": "/credits",
+    "title": "Open-source credits",
+    "rootHref": null,
+    "category": "Application Route",
+    "public": true,
+    "nav": false,
+    "searchable": false,
+    "description": "ReqGen route /credits (v4.6.12: open-source software used in ReqGen)"
+  },
+  {
     "pattern": "/console",
     "title": "Administration Sign-in",
     "rootHref": null,

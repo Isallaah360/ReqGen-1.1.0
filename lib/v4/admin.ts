@@ -21,7 +21,7 @@ export type PositionDef = { code: string; name: string; group: PositionGroup; ke
 export const POSITIONS: PositionDef[] = [
   { code: "STAFF", name: "Staff", group: "Base level", keys: ["staff"], chip: "staff", about: "Everyone in IET. Can raise requests, see their own requests, payments and print register, and reopen their own closed request." },
   { code: "DG", name: "Director General", group: "Leadership", keys: ["dg", "directorgeneral"], one: true, chip: "lead", about: "President of the Islamic Education Trust. Final approval of requests; signs, stamps and authorises vouchers." },
-  { code: "GS", name: "General Secretary", group: "Leadership", keys: ["generalsecretary", "gensec"], one: true, chip: "lead", about: "General Secretary of the Trust. Acts for the DG when the DG is away — signs and stamps “for the DG”." },
+  { code: "GS", name: "General Secretary", group: "Leadership", keys: ["generalsecretary", "gensec"], one: true, chip: "lead", about: "General Secretary of the Trust. Acts for the DG when the DG is away: signs and stamps “for the DG”." },
   { code: "PA", name: "PA to the DG", group: "Leadership", keys: ["padg"], chip: "lead", about: "Personal Assistant to the Director General. Manages the DG’s queue and correspondence." },
   { code: "DOD", name: "Director of Department", group: "Departments", keys: ["dod", "director"], chip: "dept", about: "Approves requests from their department." },
   { code: "HOD", name: "Head of Department", group: "Departments", keys: ["hod"], chip: "dept", about: "Approves requests from their unit." },
@@ -31,7 +31,7 @@ export const POSITIONS: PositionDef[] = [
   { code: "HRC", name: "HR Coordinator", group: "Offices", keys: ["hrcoordinator", "hrboss"], one: true, chip: "office", about: "Head of Human Resources. Every HR request passes through the HR Coordinator." },
   { code: "HR", name: "HR Officer", group: "Offices", keys: ["hr", "hrofficer"], chip: "office", about: "Human Resources staff. Prepares HR files." },
   { code: "ACC", name: "Account Officer", group: "Offices", keys: ["accountofficer", "account", "accounts"], chip: "office", about: "Releases funds and prepares vouchers for one account: General Admin, DIN or ASAP-ALLI." },
-  { code: "AUD", name: "Auditor", group: "Offices", keys: ["auditor"], one: true, chip: "office", about: "Internal Auditor. Checks every voucher — nobody chooses an auditor." },
+  { code: "AUD", name: "Auditor", group: "Offices", keys: ["auditor"], one: true, chip: "office", about: "Internal Auditor. Checks every voucher: nobody chooses an auditor." },
   { code: "CS", name: "Counter Signer", group: "Offices", keys: ["pvcountersigner", "pvsigner"], chip: "office", about: "Counter-signs vouchers after the Auditor." },
   { code: "RGY", name: "Registry", group: "Offices", keys: ["registry"], chip: "office", about: "Tracks, files, dispatches and archives. Never sees request contents." },
   { code: "SA", name: "Super Admin", group: "System", keys: ["superadmin"], one: true, chip: "sys", about: "The Trust’s own account for running ReqGen. Not a person." },
@@ -58,7 +58,7 @@ export const initials = (name: string) => name.split(/\s+/).filter(Boolean).slic
 /** Role keys offered when giving a position (the database checks the catalogue). */
 export const ASSIGNABLE: Array<{ key: string; label: string }> = [
   { key: "dg", label: "Director General" }, { key: "generalsecretary", label: "General Secretary" }, { key: "padg", label: "PA to the DG" },
-  { key: "director", label: "DOD — Director of Department" }, { key: "hod", label: "HOD — Head of Department" }, { key: "pd", label: "PD — Program Director" },
+  { key: "director", label: "DOD: Director of Department" }, { key: "hod", label: "HOD: Head of Department" }, { key: "pd", label: "PD: Program Director" },
   { key: "dinadmin", label: "DIN Admin" }, { key: "registrar", label: "Registrar" }, { key: "hrcoordinator", label: "HR Coordinator" },
   { key: "hrofficer", label: "HR Officer" }, { key: "accountofficer", label: "Account Officer" }, { key: "auditor", label: "Auditor" },
   { key: "pvcountersigner", label: "Counter Signer" }, { key: "registry", label: "Registry" },
@@ -83,7 +83,7 @@ export const MATRIX: Array<{ group: string; rows: Array<{ action: string; cells:
     { action: "Reopen a closed request (reason logged)", cells: cells({ Staff: "own", Acct: "y", "Aud.": "y", SA: "y", Dev: "y" }) },
   ] },
   { group: "Money", rows: [
-    { action: "Release fund · prepare voucher", cells: cells({ Acct: "y" }) },
+    { action: "Release fund, prepare voucher", cells: cells({ Acct: "y" }) },
     { action: "Check voucher", cells: cells({ "Aud.": "y" }) },
     { action: "Sign, stamp and authorise voucher", cells: cells({ DG: "y", GS: "route" }) },
     // the same rule as lib/v4/budgetVisibility.ts (owner's instruction, 12 Oct 2026)
@@ -101,7 +101,7 @@ export const MATRIX: Array<{ group: string; rows: Array<{ action: string; cells:
     { action: "Releases, database changes, repairs", cells: cells({ Dev: "y" }) },
   ] },
 ];
-export const CELL_TEXT: Record<Cell, string> = { y: "✓", route: "route", own: "own", n: "—", view: "view" };
+export const CELL_TEXT: Record<Cell, string> = { y: "✓", route: "route", own: "own", n: "-", view: "view" };
 
 /** Call an Administration server route as the signed-in person. */
 export async function adminApi<T = { ok: boolean; error?: string }>(path: string, method: "GET" | "POST" | "PATCH" | "DELETE", body?: unknown): Promise<T & { ok: boolean; error?: string }> {
@@ -119,5 +119,5 @@ export const whenText = (d: string | null | undefined) => {
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const hm = t.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
   if (t >= today) return `Today ${hm}`;
-  return `${t.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: t.getFullYear() === today.getFullYear() ? undefined : "numeric" })} · ${hm}`;
+  return `${t.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: t.getFullYear() === today.getFullYear() ? undefined : "numeric" })}, ${hm}`;
 };

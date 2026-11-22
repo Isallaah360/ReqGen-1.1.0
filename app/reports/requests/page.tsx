@@ -27,7 +27,7 @@ export default function RequestReportsPage() {
   const now = thisMonth();
   const fy = fyOfMonth(now);
   const periods = useMemo(() => {
-    const qs = [0, 1, 2, 3].map((q) => ({ value: `q${q + 1}`, label: `Quarter ${q + 1} (${monthName(addMonths(`${fy}-09`, q * 3), true)}–${monthName(addMonths(`${fy}-09`, q * 3 + 2), true)})`, from: monthRange(addMonths(`${fy}-09`, q * 3)).from, to: monthRange(addMonths(`${fy}-09`, q * 3 + 2)).to }));
+    const qs = [0, 1, 2, 3].map((q) => ({ value: `q${q + 1}`, label: `Quarter ${q + 1} (${monthName(addMonths(`${fy}-09`, q * 3), true)} to ${monthName(addMonths(`${fy}-09`, q * 3 + 2), true)})`, from: monthRange(addMonths(`${fy}-09`, q * 3)).from, to: monthRange(addMonths(`${fy}-09`, q * 3 + 2)).to }));
     return [
       { value: "fy", label: `FY ${fyLabel(fy)}`, ...fyRange(fy) },
       { value: "month", label: monthName(now), ...monthRange(now) },
@@ -83,7 +83,7 @@ export default function RequestReportsPage() {
 
   function exportXlsx() {
     downloadXlsx(`Request_Reports_${p.value}`, [
-      { name: "By department", title: `Requests by department — ${p.label}`, rows: [...table.map((t) => ({ Department: t.dept, Submitted: t.n, Approved: t.approved, Pending: t.pending, "Sent back": t.returned, Rejected: t.rejected, "Amount approved": t.amount, "Avg days to approve": t.days === null ? null : Number(t.days.toFixed(1)) })),
+      { name: "By department", title: `Requests by department: ${p.label}`, rows: [...table.map((t) => ({ Department: t.dept, Submitted: t.n, Approved: t.approved, Pending: t.pending, "Sent back": t.returned, Rejected: t.rejected, "Amount approved": t.amount, "Avg days to approve": t.days === null ? null : Number(t.days.toFixed(1)) })),
         { Department: "Total", Submitted: total.n, Approved: total.approved, Pending: total.pending, "Sent back": total.returned, Rejected: total.rejected, "Amount approved": total.amount, "Avg days to approve": total.days === null ? null : Number(total.days.toFixed(1)) }] },
       { name: "Requests", title: `Requests: ${p.label}`, rows: list.map((r) => ({ Request: r.request_no || "", ...(mine ? { Title: r.title || "" } : {}), Department: r.dept_name, Type: r.request_type, Status: r.status, Amount: r.amount, Submitted: shortDate(r.created_at) })) },
     ]);
@@ -91,7 +91,7 @@ export default function RequestReportsPage() {
 
   return (
     <V4Page>
-      <PageHead title={mine ? "My Requests" : "Request Reports"} sub={`Requests by department and status, ${p.value === "fy" ? `financial year ${fyLabel(fy)} (1 Sep ${fy} – 31 Aug ${fy + 1})` : p.label}.`}
+      <PageHead title={mine ? "My Requests" : "Request Reports"} sub={`Requests by department and status, ${p.value === "fy" ? `financial year ${fyLabel(fy)} (1 Sep ${fy} to 31 Aug ${fy + 1})` : p.label}.`}
         scope={tier ? scopeLabel(tier, me.roleName, "requests treated by Finance") : undefined}
         actions={[{ label: "Export Excel", icon: "download", kind: "secondary", onClick: exportXlsx, disabled: !list.length }]} />
       {error ? <Notice tone="red">{error}</Notice> : null}
@@ -113,9 +113,9 @@ export default function RequestReportsPage() {
               <thead><tr><th>Department</th><th className="v4-r">Submitted</th><th className="v4-r">Approved</th><th className="v4-r v4-hide-sm">Pending</th><th className="v4-r">Sent back</th><th className="v4-r">Rejected</th><th className="v4-r">Amount approved</th><th className="v4-r v4-hide-sm">Avg days to approve</th></tr></thead>
               <tbody>
                 {table.map((t) => (
-                  <tr key={t.dept}><td><span className="v4-strong">{t.dept}</span></td><td className="v4-r v4-num">{t.n}</td><td className="v4-r v4-num">{t.approved}</td><td className="v4-r v4-num v4-hide-sm">{t.pending}</td><td className="v4-r v4-num">{t.returned}</td><td className="v4-r v4-num">{t.rejected}</td><td className="v4-r v4-num v4-strong">{nairaExact(t.amount)}</td><td className="v4-r v4-num v4-hide-sm">{t.days === null ? "—" : t.days.toFixed(1)}</td></tr>
+                  <tr key={t.dept}><td><span className="v4-strong">{t.dept}</span></td><td className="v4-r v4-num">{t.n}</td><td className="v4-r v4-num">{t.approved}</td><td className="v4-r v4-num v4-hide-sm">{t.pending}</td><td className="v4-r v4-num">{t.returned}</td><td className="v4-r v4-num">{t.rejected}</td><td className="v4-r v4-num v4-strong">{nairaExact(t.amount)}</td><td className="v4-r v4-num v4-hide-sm">{t.days === null ? "-" : t.days.toFixed(1)}</td></tr>
                 ))}
-                <tr><td><span className="v4-strong">Total</span></td><td className="v4-r v4-num v4-strong">{total.n}</td><td className="v4-r v4-num v4-strong">{total.approved}</td><td className="v4-r v4-num v4-strong v4-hide-sm">{total.pending}</td><td className="v4-r v4-num v4-strong">{total.returned}</td><td className="v4-r v4-num v4-strong">{total.rejected}</td><td className="v4-r v4-num v4-strong">{nairaExact(total.amount)}</td><td className="v4-r v4-num v4-strong v4-hide-sm">{total.days === null ? "—" : total.days.toFixed(1)}</td></tr>
+                <tr><td><span className="v4-strong">Total</span></td><td className="v4-r v4-num v4-strong">{total.n}</td><td className="v4-r v4-num v4-strong">{total.approved}</td><td className="v4-r v4-num v4-strong v4-hide-sm">{total.pending}</td><td className="v4-r v4-num v4-strong">{total.returned}</td><td className="v4-r v4-num v4-strong">{total.rejected}</td><td className="v4-r v4-num v4-strong">{nairaExact(total.amount)}</td><td className="v4-r v4-num v4-strong v4-hide-sm">{total.days === null ? "-" : total.days.toFixed(1)}</td></tr>
               </tbody>
             </table>
           </div>

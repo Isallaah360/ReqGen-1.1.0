@@ -23,7 +23,7 @@ export async function loadCorrespondence(direction: "incoming" | "outgoing" | "a
 }
 
 export function ageText(iso: string | null | undefined, now: number) {
-  if (!iso) return "—";
+  if (!iso) return "-";
   const mins = Math.max(0, Math.round((now - new Date(iso).getTime()) / 60000));
   if (mins < 60) return `${mins} min`;
   const h = Math.floor(mins / 60);
@@ -49,10 +49,17 @@ export async function remindRequest(id: string): Promise<{ error: string | null;
   }
 }
 
+/** Shows a retention category without the long dash the database keeps. */
+export function retentionLabel(v: string | null | undefined) {
+  const r = RETENTION.find((x) => x.value === v);
+  return r ? r.label : String(v || "").replace(/\s*\u2014\s*/g, ", ");
+}
+
+/** `value` is what the database keeps (unchanged); `label` is what people see. */
 export const RETENTION = [
-  { value: "Financial records — 6 years", years: 6 },
-  { value: "Correspondence — 3 years", years: 3 },
-  { value: "Staff records — 7 years", years: 7 },
-  { value: "Contracts and agreements — 10 years", years: 10 },
-  { value: "Board minutes and deeds — permanent", years: 0 },
+  { value: "Financial records — 6 years", label: "Financial records, 6 years", years: 6 },
+  { value: "Correspondence — 3 years", label: "Correspondence, 3 years", years: 3 },
+  { value: "Staff records — 7 years", label: "Staff records, 7 years", years: 7 },
+  { value: "Contracts and agreements — 10 years", label: "Contracts and agreements, 10 years", years: 10 },
+  { value: "Board minutes and deeds — permanent", label: "Board minutes and deeds, permanent", years: 0 },
 ];

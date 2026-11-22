@@ -68,6 +68,7 @@ export default function BudgetSubheadsPage() {
   const left = active.reduce((t, s) => t + subheadLeft(s), 0);
   const bankFund = accounts.filter((a) => a.is_active !== false).reduce((t, a) => t + num(a.total_fund), 0);
   const atRisk = active.filter((s) => utilisation(s) >= 90);
+  const overBudget = active.filter((s) => utilisation(s) >= 100 || (subheadLeft(s) <= 0 && num(s.approved_allocation) > 0));
 
   const stats: StatItem[] = [
     { label: "Subheads", value: subs ? active.length : "…", note: `${new Set(active.map((s) => s.dept_id)).size} departments`, icon: "list", tone: "blue", pressed: show === "all", onClick: () => setShow("all") },
@@ -89,7 +90,7 @@ export default function BudgetSubheadsPage() {
 
   return (
     <V4Page>
-      <PageHead title="Budget & Subheads" sub={<>Approved allocation, what is spent or reserved, and what is left — per subhead. FY {fyLabel(fy)} · <span className={`v4-chip v4-chip-${fyStatus === "Open" ? "green" : "amber"}`}>{fyStatus === "Locked" ? "Budget locked" : fyStatus}</span></>}
+      <PageHead title="Budget & Subheads" sub={<>Approved allocation, what is spent or reserved, and what is left: per subhead. FY {fyLabel(fy)}, <span className={`v4-chip v4-chip-${fyStatus === "Open" ? "green" : "amber"}`}>{fyStatus === "Locked" ? "Budget locked" : fyStatus}</span></>}
         actions={[
           { label: "Export CSV", icon: "download", kind: "secondary", onClick: exportCsv, disabled: !filtered.length },
           ...(canManage ? [{ label: "New subhead", icon: "plus", kind: "primary" as const, href: "/finance/subheads/new" }] : []),
@@ -102,7 +103,7 @@ export default function BudgetSubheadsPage() {
           <label className="v4-field v4-f-search"><span className="v4-flabel">Search</span><span className="v4-control"><Icon name="search" /><input className="v4-input" placeholder="Code or name" value={q} onChange={(e) => setQ(e.target.value)} /></span></label>
           <div className="v4-field"><span className="v4-flabel">Department</span><Select size="compact" ariaLabel="Department" value={dept} onChange={setDept} options={[{ value: "all", label: "All departments" }, ...depts.map((d) => ({ value: d.id, label: d.name }))]} /></div>
           <div className="v4-field"><span className="v4-flabel">Show</span><Select size="compact" ariaLabel="Show" value={show} onChange={(v) => setShow(v as Show)} options={[{ value: "all", label: "Heads and subheads" }, { value: "risk", label: "At risk only" }, { value: "inactive", label: "Inactive" }]} /></div>
-          <div className="v4-field v4-f-extra" style={{ minWidth: 170 }}><span className="v4-flabel">Financial year</span><span className="v4-locked" style={{ minHeight: 40 }}>FY {fyLabel(fy)} (Sep–Aug)</span></div>
+          <div className="v4-field v4-f-extra" style={{ minWidth: 170 }}><span className="v4-flabel">Financial year</span><span className="v4-locked" style={{ minHeight: 40 }}>FY {fyLabel(fy)} (Sep to Aug)</span></div>
           <button className="v4-btn v4-btn-ghost" type="button" onClick={() => { setQ(""); setDept("all"); setShow("all"); }}><Icon name="returned" />Reset</button>
         </div>
         {subs === null ? <Skeleton kind="rows" lines={8} /> : groups.length ? (
@@ -116,7 +117,7 @@ export default function BudgetSubheadsPage() {
                   const pct = alloc > 0 ? Math.round((used / alloc) * 100) : 0;
                   return [
                     <tr key={`h-${deptId}`} className="v4-grouprow">
-                      <td><span className="v4-strong">{deptName.get(deptId) || "No department"}</span><span className="v4-sub">{list.length} subhead{list.length === 1 ? "" : "s"} · department total</span></td>
+                      <td><span className="v4-strong">{deptName.get(deptId) || "No department"}</span><span className="v4-sub">{list.length} subhead{list.length === 1 ? "" : "s"}, department total</span></td>
                       <td className="v4-r v4-num v4-strong">{naira(alloc)}</td>
                       <td data-label="Used" className="v4-r v4-num">{naira(used)}</td>
                       <td className="v4-full"><Bar pct={pct} /></td>
@@ -126,10 +127,10 @@ export default function BudgetSubheadsPage() {
                       const p = utilisation(s);
                       return (
                         <tr key={s.id}>
-                          <td><div className="v4-indent"><span className="v4-strong">{subheadLabel(s)}</span><span className="v4-sub">{deptName.get(s.dept_id || "") || ""}{s.is_active === false ? " · inactive" : ""} · left {naira(subheadLeft(s))}</span></div></td>
+                          <td><div className="v4-indent"><span className="v4-strong">{subheadLabel(s)}</span><span className="v4-sub">{deptName.get(s.dept_id || "") || ""}{s.is_active === false ? ", inactive" : ""}, left {naira(subheadLeft(s))}</span></div></td>
                           <td className="v4-r v4-num v4-strong">{naira(s.approved_allocation)}</td>
                           <td data-label="Used" className="v4-r v4-num">{naira(subheadUsed(s))}</td>
-                          <td className="v4-full"><Bar pct={p} /></td>
+                          <td className="v4-full"><Bar pct={subheadLeft(s) <= 0 && num(s.approved_allocation) > 0 ? Math.max(100, p) : p} /></td>
                           <td className="v4-r">{canManage ? <Link className="v4-btn v4-btn-secondary" style={{ minHeight: 38, padding: "0 12px" }} href={`/finance/subheads/${s.id}`}>Edit</Link> : <Link className="v4-btn v4-btn-ghost" style={{ minHeight: 38, padding: "0 12px" }} href={`/finance/subheads/${s.id}`}>View</Link>}</td>
                         </tr>
                       );
@@ -141,16 +142,24 @@ export default function BudgetSubheadsPage() {
           </div>
         ) : <p className="v4-muted" style={{ padding: 20, margin: 0 }}>{show === "risk" ? "No subhead is at 90% or more." : "No subhead matches these filters."}</p>}
       </Card>
+      {overBudget.length ? <Notice tone="red" title={`${overBudget.length} subhead${overBudget.length === 1 ? " is" : "s are"} over budget.`}>No new request can use {overBudget.length === 1 ? "it" : "them"} until the allocation is raised by an approved transfer: {overBudget.slice(0, 4).map(subheadLabel).join(", ")}{overBudget.length > 4 ? "…" : ""}.</Notice> : null}
       {atRisk.length && show !== "risk" ? <Notice tone="amber">{atRisk.length} subhead{atRisk.length === 1 ? " is" : "s are"} at 90% or more: {atRisk.slice(0, 4).map(subheadLabel).join(", ")}{atRisk.length > 4 ? "…" : ""}</Notice> : null}
     </V4Page>
   );
 }
 
+/**
+ * v4.6.12 (Blueprint 06): a bar gauge per subhead. Amber from 75%, red from
+ * 90%. Over budget shows the bar fully red with "Over budget": new requests
+ * on it are blocked (the rule itself is unchanged).
+ */
 function Bar({ pct }: { pct: number }) {
+  const over = pct >= 100;
   return (
     <>
-      <span className="v4-mini-bar" aria-label={`${pct}% used`}><span className={pct >= 90 ? "v4-risk" : pct >= 75 ? "v4-warn" : ""} style={{ width: `${Math.min(100, pct)}%` }} /></span>
+      <span className="v4-mini-bar" aria-label={over ? `Over budget, ${pct}% used` : `${pct}% used`}><span className={over ? "v4-risk k-over" : pct >= 90 ? "v4-risk" : pct >= 75 ? "v4-warn" : ""} style={{ width: "100%", transformOrigin: "left center", transform: `scaleX(${Math.min(100, Math.max(0, pct)) / 100})` }} /></span>
       <span className="v4-num" style={{ fontSize: 12.5, marginLeft: 6 }}>{pct}%</span>
+      {over ? <span className="v4-chip v4-chip-red" style={{ marginLeft: 6 }}>Over budget</span> : null}
     </>
   );
 }

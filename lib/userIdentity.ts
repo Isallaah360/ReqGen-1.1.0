@@ -48,7 +48,7 @@ export function roleLabel(value: string | null | undefined): string {
 
 /** Plain-text form for CSV, print and tooltips: "Name · Role" (or just the name). */
 export function nameWithRole(name: string | null | undefined, role: string | null | undefined): string {
-  const person = String(name ?? "").trim() || "—";
+  const person = String(name ?? "").trim() || "-";
   const label = roleLabel(role);
-  return label ? `${person} · ${label}` : person;
+  return label ? `${person}, ${label}` : person;
 }

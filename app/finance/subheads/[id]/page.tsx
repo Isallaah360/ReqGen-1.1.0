@@ -139,7 +139,7 @@ export default function SubheadFormPage() {
               <Select id="sh-dept" value={dept} onChange={(v) => { setDept(v); if (isNew && paysFrom[v]) setAccount(paysFrom[v]); }} disabled={ro} placeholder="Institution-wide" options={[{ value: "", label: "Institution-wide" }, ...depts.map((d) => ({ value: d.id, label: d.name }))]} /></div>
             <div className="v4-field"><label className="v4-flabel" htmlFor="sh-acc" style={{ fontSize: 13, fontWeight: 700 }}>Funding account <span className="v4-req">*</span></label>
               <Select id="sh-acc" value={account} onChange={setAccount} disabled={ro || locked} placeholder="Choose the account"
-                options={accounts.filter((a) => a.is_active !== false || a.id === account).map((a) => ({ value: a.id, label: a.name, hint: `${a.bank_name || ""} · not yet allocated ${nairaExact(accountUnallocated(a))}` }))} />
+                options={accounts.filter((a) => a.is_active !== false || a.id === account).map((a) => ({ value: a.id, label: a.name, hint: `${a.bank_name || ""}, not yet allocated ${nairaExact(accountUnallocated(a))}` }))} />
               {dept && paysFrom[dept] === account ? <span className="v4-help">The account this department is paid from (Administration › Departments).</span> : null}</div>
             <div className="v4-field"><label className="v4-flabel" htmlFor="sh-status" style={{ fontSize: 13, fontWeight: 700 }}>Status</label>
               <Select id="sh-status" value={active} onChange={setActive} disabled={ro} options={[{ value: "active", label: "Active" }, { value: "inactive", label: "Inactive" }]} /></div>

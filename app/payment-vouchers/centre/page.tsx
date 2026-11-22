@@ -75,7 +75,7 @@ function VoucherCentre() {
 
   return (
     <V4Page>
-      <PageHead title="Voucher Centre" sub={`Every payment voucher, financial year ${fyText(fy)} (1 Sep ${fy} – 31 Aug ${fy + 1}).`}
+      <PageHead title="Voucher Centre" sub={`Every payment voucher, financial year ${fyText(fy)} (1 Sep ${fy} to 31 Aug ${fy + 1}).`}
         actions={[
           { label: "Export CSV", icon: "download", kind: "secondary", onClick: exportCsv, disabled: !shown.length },
           ...(canPrepare ? [{ label: "Generate voucher", icon: "plus", kind: "primary" as const, href: "/payment-vouchers/new" }] : []),

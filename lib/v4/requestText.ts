@@ -49,12 +49,12 @@ export function statusChip(status: string | null | undefined, stage?: string | n
 
 export function shortDate(iso: string | null | undefined) {
   const d = iso ? new Date(iso) : null;
-  return d && !Number.isNaN(d.getTime()) ? d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "—";
+  return d && !Number.isNaN(d.getTime()) ? d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "-";
 }
 
 export function waitedFor(iso: string | null | undefined) {
   const t = iso ? new Date(iso).getTime() : NaN;
-  if (!Number.isFinite(t)) return "—";
+  if (!Number.isFinite(t)) return "-";
   const mins = Math.max(0, Math.round((Date.now() - t) / 60000));
   if (mins < 60) return `${mins} min`;
   const hrs = Math.round(mins / 60);

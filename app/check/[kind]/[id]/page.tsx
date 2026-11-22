@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import Icon from "@/app/components/v4/Icon";
 import { createClient } from "@supabase/supabase-js";
 import { PublicFoot } from "@/app/components/PublicAuthShell";
 import { modernisePositionText } from "@/lib/roles";
@@ -79,7 +80,13 @@ export default async function CheckPage({ params }: { params: Promise<{ kind: st
           <>
             <p className="v4-auth-sub">This {result.kind.toLowerCase()} is a genuine ReqGen record of the Islamic Education Trust.</p>
             <div className="v4-auth-form">
-              <div className="v4-notice v4-notice-green"><span><b>{result.number}</b>, {result.kind}<br />Status: <b>{result.status}</b>, Raised {day(result.raised)}</span></div>
+              {/* v4.6.12 (Blueprint 06): the result card enters slowly; a green tick for a genuine record. */}
+              <div className="k-check k-good" role="status">
+                <span className="k-mark" aria-hidden="true"><Icon name="tick" /></span>
+                <b>Genuine record</b>
+                <span><b>{result.number}</b>, {result.kind}</span>
+                <span className="v4-muted">Status: <b>{result.status}</b>, raised {day(result.raised)}</span>
+              </div>
               <div>
                 <h2 className="v4-h3" style={{ margin: "0 0 8px" }}>Who signed</h2>
                 {result.signers.length ? (
@@ -95,7 +102,12 @@ export default async function CheckPage({ params }: { params: Promise<{ kind: st
           <>
             <p className="v4-auth-sub">No ReqGen record matches this code.</p>
             <div className="v4-auth-form">
-              <div className="v4-notice v4-notice-red"><span>This paper may not be genuine. Do not act on it. Report it to the Auditor or the Registry.</span></div>
+              <div className="k-check k-bad" role="alert">
+                <span className="k-mark" aria-hidden="true"><Icon name="cross" /></span>
+                <b>Not found</b>
+                <span>No ReqGen record matches this code, so this paper may not be genuine.</span>
+                <span className="v4-muted">Do not act on it. Report it to the Auditor or the Registry.</span>
+              </div>
             </div>
           </>
         )}

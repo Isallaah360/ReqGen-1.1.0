@@ -18,7 +18,7 @@ export default function ReadyToPayPage() {
   const shown = of(mode);
 
   const stats: StatItem[] = (["all", "Transfer", "Cash", "Cheque"] as Mode[]).map((m) => ({
-    label: m === "all" ? "Ready to pay" : m, value: rows ? of(m).length : "…", note: rows ? (sum(of(m)) ? naira(sum(of(m))) : "—") : undefined,
+    label: m === "all" ? "Ready to pay" : m, value: rows ? of(m).length : "…", note: rows ? (sum(of(m)) ? naira(sum(of(m))) : "-") : undefined,
     icon: m === "all" ? "wallet" : m === "Transfer" ? "arrows" : m === "Cash" ? "card" : "file", tone: m === "Cash" ? "amber" : m === "Cheque" ? "brand" : "blue",
     pressed: mode === m, onClick: () => setMode(mode === m ? "all" : m),
   }));
@@ -32,7 +32,7 @@ export default function ReadyToPayPage() {
         <Card>
           {shown.map((v) => {
             const many = Number(v.payee_count || 1) > 1;
-            const what = many ? `${v.item_count || 0} Official requests · see Transfer Schedule` : v.narration || `${v.item_count || 1} request${Number(v.item_count || 1) === 1 ? "" : "s"}`;
+            const what = many ? `${v.item_count || 0} Official requests, see Transfer Schedule` : v.narration || `${v.item_count || 1} request${Number(v.item_count || 1) === 1 ? "" : "s"}`;
             return (
               <div className="v4-paycard" key={v.id}>
                 <span><strong style={{ fontSize: 15 }}>{v.voucher_no}, {many ? `${v.payee_count} PAYEES` : String(v.payee_name || "-").toUpperCase()}</strong>

@@ -63,7 +63,7 @@ export default function ExecutiveAnalyticsPage() {
 
   return (
     <V4Page>
-      <PageHead title="Executive Analytics" sub="Budget pace, subheads at risk and things that need attention — on one page." scope={tier ? scopeLabel(tier, me.roleName).replace("all departments", "whole Trust") : undefined}
+      <PageHead title="Executive Analytics" sub="Budget pace, subheads at risk and things that need attention: on one page." scope={tier ? scopeLabel(tier, me.roleName).replace("all departments", "whole Trust") : undefined}
         actions={[
           { label: "Export Excel", icon: "download", kind: "secondary", onClick: exportXlsx, disabled: !subs },
           { label: "Print A4", icon: "printer", kind: "secondary", href: `/reports/print?report=monthly&month=${month}` },
@@ -73,7 +73,7 @@ export default function ExecutiveAnalyticsPage() {
         <>
           <div className="v4-grid-2">
             <section className="v4-card v4-card-pad">
-              <h2 className="v4-h2">Budget used</h2><p className="v4-help" style={{ margin: "4px 0 14px" }}>FY {fyLabel(fy)} · {monthsGone} of 12 month{monthsGone === 1 ? "" : "s"} gone</p>
+              <h2 className="v4-h2">Budget used</h2><p className="v4-help" style={{ margin: "4px 0 14px" }}>FY {fyLabel(fy)}, {monthsGone} of 12 month{monthsGone === 1 ? "" : "s"} gone</p>
               <div className="v4-hero-n"><span className="v4-big">{used}%</span><span className="v4-cmp">{nairaShort(spent)} of {nairaShort(alloc)}, expected by now about <b>{expected}%</b></span></div>
               <Pace used={used} expected={expected} />
               <Notice tone={ahead ? "amber" : "green"}>{ahead ? `Spending is ahead of pace${risk.length ? `, mostly ${[...new Set(risk.slice(0, 2).map((s) => s.name))].join(" and ")}` : ""}.` : "Spending is on or below pace for the year."}</Notice>

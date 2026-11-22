@@ -202,7 +202,7 @@ export default function StaffRecordPage({ params }: { params: Promise<{ id: stri
         <h2 className="v4-h2" style={{ marginBottom: 12 }}>Sign-in and devices</h2>
         <dl className="v4-kv" style={{ maxWidth: 560 }}>
           <dt>2FA</dt><dd>{person.has_2fa ? "On, every 12 hours" : "Not set up yet"}</dd>
-          <dt>Fingerprint</dt><dd>{person.fingerprints ? `On · ${person.fingerprints} device${person.fingerprints === 1 ? "" : "s"}` : "Off"}</dd>
+          <dt>Fingerprint</dt><dd>{person.fingerprints ? `On, ${person.fingerprints} device${person.fingerprints === 1 ? "" : "s"}` : "Off"}</dd>
           <dt>Passcode</dt><dd>{person.passcodes ? `Set on ${person.passcodes} device${person.passcodes === 1 ? "" : "s"}` : "None"}</dd>
           <dt>Signature</dt><dd>{person.has_signature ? "On file" : "Not added yet"}</dd>
           <dt>Last sign-in</dt><dd>{whenText(person.last_sign_in)}</dd>

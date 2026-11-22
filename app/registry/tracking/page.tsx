@@ -104,7 +104,7 @@ export default function RequestTrackingPage() {
   return (
     <V4Page>
       <PageHead title="Request Tracking" sub="Where every request is now, today’s movement, and one-tap reminders by in-app alert, SMS and email."
-        actions={[{ label: "Export Excel", icon: "download", kind: "secondary", disabled: !shown.length, onClick: () => downloadXlsx("Request_Tracking", [{ name: "Tracking", title: "ReqGen — Request tracking (numbers only)", rows: shown.map((r) => ({ Request: r.request_no || "", Office: r.office, "Now at": stageTitle(r.stage), Officer: r.owner_name, Waiting: ageText(r.waiting_since, now), "Last reminder": r.last_reminder ? new Date(r.last_reminder).toLocaleString("en-GB") : "" })) }]) }]} />
+        actions={[{ label: "Export Excel", icon: "download", kind: "secondary", disabled: !shown.length, onClick: () => downloadXlsx("Request_Tracking", [{ name: "Tracking", title: "ReqGen: Request tracking (numbers only)", rows: shown.map((r) => ({ Request: r.request_no || "", Office: r.office, "Now at": stageTitle(r.stage), Officer: r.owner_name, Waiting: ageText(r.waiting_since, now), "Last reminder": r.last_reminder ? new Date(r.last_reminder).toLocaleString("en-GB") : "" })) }]) }]} />
       <PrivacyBar />
       {error ? <Notice tone="red">{error}</Notice> : null}
       {msg ? <Notice tone={msg.tone}>{msg.text}</Notice> : null}
@@ -139,7 +139,7 @@ export default function RequestTrackingPage() {
                     return (
                       <tr key={r.id} onClick={() => setPick(r)} style={{ cursor: "pointer", background: pick?.id === r.id ? "var(--v4-surface-2)" : undefined }}>
                         <td><span className="v4-strong">{r.request_no}</span><span className="v4-sub">{r.office}</span></td>
-                        <td data-label="Now at"><span className="v4-strong">{stageTitle(r.stage)}</span><span className="v4-sub">{r.owner_name || "—"}</span></td>
+                        <td data-label="Now at"><span className="v4-strong">{stageTitle(r.stage)}</span><span className="v4-sub">{r.owner_name || "-"}</span></td>
                         <td data-label="Waiting" className="v4-age"><Chip tone={d >= 3 ? "red" : d >= 1 ? "amber" : "blue"}>{ageText(r.waiting_since, now)}</Chip></td>
                         <td className="v4-r"><button className={`v4-btn ${d >= 1 ? "v4-btn-primary" : "v4-btn-secondary"}`} type="button" style={{ minHeight: 38, padding: "0 14px" }} disabled={busy || !r.owner_id} onClick={(e) => { e.stopPropagation(); void remind(r); }}><Icon name="bell" />Remind</button></td>
                       </tr>
@@ -155,7 +155,7 @@ export default function RequestTrackingPage() {
           {pick ? (
             <>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10, marginBottom: 12 }}>
-                <div><h2 className="v4-h2">{pick.request_no}</h2><p className="v4-help" style={{ margin: "4px 0 0" }}>{pick.office} · {pick.request_type}</p></div>
+                <div><h2 className="v4-h2">{pick.request_no}</h2><p className="v4-help" style={{ margin: "4px 0 0" }}>{pick.office}, {pick.request_type}</p></div>
                 <Chip tone="amber">{/^returned/i.test(pick.stage) ? "Returned to requester" : `With ${stageTitle(pick.stage)}`}</Chip>
               </div>
               {moves === null ? <Skeleton lines={4} /> : (
@@ -167,7 +167,7 @@ export default function RequestTrackingPage() {
                       <li key={`${m.step_order}-${m.stage}`} className={m.state === "now" ? "v4-now" : m.state === "next" ? "v4-next" : undefined}>
                         <span className="v4-dot"><Icon name={m.state === "done" ? "check" : m.state === "now" ? "clock" : "right"} size="sm" /></span>
                         <span><strong>{["Submitted", "Registry filing", "Returned for correction"].includes(m.stage) ? m.stage : stageTitle(m.stage)}</strong>
-                          <span className="v4-s">{m.state === "now" ? `${m.person || "—"} · waiting ${ageText(pick.waiting_since, now)}${pick.last_reminder ? " · reminder sent" : ""}` : m.stage === "Registry filing" && m.state === "next" ? "After payment" : `${m.person || "—"}${gap ? ` · ${gap}` : ""}`}</span></span>
+                          <span className="v4-s">{m.state === "now" ? `${m.person || "-"}, waiting ${ageText(pick.waiting_since, now)}${pick.last_reminder ? ", reminder sent" : ""}` : m.stage === "Registry filing" && m.state === "next" ? "After payment" : `${m.person || "-"}${gap ? `, ${gap}` : ""}`}</span></span>
                         <span className="v4-t">{m.state === "now" ? "Now" : m.state === "next" ? (m.stage === "Registry filing" ? "Last" : "Next") : m.at ? new Date(m.at).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : ""}</span>
                       </li>
                     );
@@ -184,13 +184,13 @@ export default function RequestTrackingPage() {
       <div style={{ position: "absolute", left: -10000, top: 0 }} aria-hidden="true">
         <article ref={sheet} className="rg-a4-page">
           <div className="rg-a4-content v4-rpt">
-            <div className="v4-rh"><div className="v4-o"><b>Islamic Education Trust</b><span>Registry — daily request movement</span><span>{new Date(now).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</span></div><span /></div>
+            <div className="v4-rh"><div className="v4-o"><b>Islamic Education Trust</b><span>Registry: daily request movement</span><span>{new Date(now).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</span></div><span /></div>
             <h3>Request movement summary</h3>
             <div className="v4-sum"><div><span>Generated today</span><b>{sum?.generated ?? 0}</b></div><div><span>Steps signed</span><b>{sum?.signed ?? 0}</b></div><div><span>Waiting</span><b>{rows?.length ?? 0}</b></div><div><span>Stuck 3+ days</span><b>{stuck.length}</b></div></div>
             <table><thead><tr><th>Request</th><th>Office</th><th>Now at</th><th>Officer</th><th className="v4-r">Waiting</th></tr></thead>
               <tbody>{(rows || []).slice(0, 40).map((r) => <tr key={r.id}><td>{r.request_no}</td><td>{r.office}</td><td>{stageTitle(r.stage)}</td><td>{r.owner_name}</td><td className="v4-r">{ageText(r.waiting_since, now)}</td></tr>)}</tbody></table>
             <p className="v4-note">Numbers, offices and people only. Printed by {me.name} from ReqGen Registry.</p>
-            <div className="v4-rfoot"><span>ReqGen • Registry daily summary • Page 1 of 1</span><em>Building Bridges</em></div>
+            <div className="v4-rfoot"><span>ReqGen, Registry daily summary, Page 1 of 1</span><em>Building Bridges</em></div>
           </div>
         </article>
       </div>

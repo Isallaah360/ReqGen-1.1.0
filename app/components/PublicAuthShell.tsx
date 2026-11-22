@@ -57,7 +57,7 @@ export function PublicFoot() {
         <a href="https://wa.me/2348031197746" target="_blank" rel="noreferrer"><Icon name="phone" size="sm" />WhatsApp 0803 119 7746</a>
         <a href="mailto:info@barderians.com.ng"><Icon name="mail" size="sm" />info@barderians.com.ng</a>
       </div>
-      <span>© {new Date().getFullYear()} Islamic Education Trust. All rights reserved.</span>
+      <span>© {new Date().getFullYear()} Islamic Education Trust. All rights reserved. <Link href="/credits">Open-source credits</Link></span>
     </div>
   );
 }

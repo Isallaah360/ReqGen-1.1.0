@@ -115,7 +115,7 @@ function Transfers() {
     await load();
   }
 
-  const acctOpts = accounts.filter((a) => a.is_active !== false).map((a) => ({ value: a.id, label: a.name, hint: `${a.bank_name || ""} · free ${nairaExact(accountUnallocated(a))}` }));
+  const acctOpts = accounts.filter((a) => a.is_active !== false).map((a) => ({ value: a.id, label: a.name, hint: `${a.bank_name || ""}, free ${nairaExact(accountUnallocated(a))}` }));
   const subOpts = subs.filter((s) => s.is_active !== false).map((s) => ({ value: s.id, label: subheadLabel(s), hint: `free ${nairaExact(subheadLeft(s))}` }));
   const fromFree = form ? (form.kind === "account" ? accountUnallocated(accounts.find((a) => a.id === form.from) || ({} as Account)) : subheadLeft(subs.find((s) => s.id === form.from) || ({} as Subhead))) : 0;
   const amt = form ? parseAmount(form.amount) : NaN;
@@ -155,10 +155,10 @@ function Transfers() {
               <tbody>
                 {shown.map((t) => (
                   <tr key={t.id}>
-                    <td><span className="v4-strong">{t.transfer_no}</span><span className="v4-sub">{shortDate(t.created_at)} · {t.kind === "account" ? "Between IET accounts" : "Between subheads"}</span></td>
+                    <td><span className="v4-strong">{t.transfer_no}</span><span className="v4-sub">{shortDate(t.created_at)}, {t.kind === "account" ? "Between IET accounts" : "Between subheads"}</span></td>
                     <td className="v4-r v4-num v4-strong">{nairaExact(t.amount)}</td>
                     <td data-label="From → To">{t.from_label} → {t.to_label}</td>
-                    <td><Chip tone={TRANSFER_TONE[t.status] || "grey"}>{t.status === "Approved" ? "Approved · stamped" : t.status}</Chip></td>
+                    <td><Chip tone={TRANSFER_TONE[t.status] || "grey"}>{t.status === "Approved" ? "Approved, stamped" : t.status}</Chip></td>
                     <td className="v4-r"><button type="button" className={`v4-btn ${myTurn(t) ? "v4-btn-primary" : "v4-btn-secondary"}`} style={{ minHeight: 38, padding: "0 12px" }} onClick={() => setOpen(t)}>{myTurn(t) ? "Act" : "Open"}</button></td>
                   </tr>
                 ))}
@@ -191,11 +191,11 @@ function Transfers() {
         ) : null}
       </Modal>
 
-      <Modal open={!!open} wide title={open ? `${open.transfer_no} · ${nairaExact(open.amount)}` : ""} sub={open ? `${open.kind === "account" ? "Between IET accounts" : "Between subheads"} · ${open.from_label} → ${open.to_label}` : undefined} onClose={() => setOpen(null)} busy={busy}
+      <Modal open={!!open} wide title={open ? `${open.transfer_no}, ${nairaExact(open.amount)}` : ""} sub={open ? `${open.kind === "account" ? "Between IET accounts" : "Between subheads"}, ${open.from_label} → ${open.to_label}` : undefined} onClose={() => setOpen(null)} busy={busy}
         footer={open ? (
           <>
             <button type="button" className="v4-btn v4-btn-ghost" onClick={() => setOpen(null)} disabled={busy}>Close</button>
-            {isAuditor && open.status === "With the Auditor" ? <><button type="button" className="v4-btn v4-btn-secondary" onClick={() => void act(open, "return")} disabled={busy}>Return</button><button type="button" className="v4-btn v4-btn-primary" onClick={() => void act(open, "pass")} disabled={busy}><Icon name="check" />Checked — send to the DG</button></> : null}
+            {isAuditor && open.status === "With the Auditor" ? <><button type="button" className="v4-btn v4-btn-secondary" onClick={() => void act(open, "return")} disabled={busy}>Return</button><button type="button" className="v4-btn v4-btn-primary" onClick={() => void act(open, "pass")} disabled={busy}><Icon name="check" />Checked: send to the DG</button></> : null}
             {isDG && open.status === "With the DG" ? <><button type="button" className="v4-btn v4-btn-secondary" onClick={() => void act(open, "reject")} disabled={busy}>Reject</button><button type="button" className="v4-btn v4-btn-primary" onClick={() => void act(open, "approve")} disabled={busy}><Icon name="shield" />Approve, sign and stamp</button></> : null}
             {open.initiated_by === me.userId && ["With the Auditor", "Returned"].includes(open.status) ? <button type="button" className="v4-btn v4-btn-ghost" style={{ color: "var(--v4-red)" }} onClick={() => void act(open, "cancel")} disabled={busy}>Cancel transfer</button> : null}
             {open.initiated_by === me.userId && open.status === "Returned" ? <button type="button" className="v4-btn v4-btn-primary" onClick={() => void act(open, "resend")} disabled={busy}>Send again</button> : null}
@@ -203,7 +203,7 @@ function Transfers() {
         ) : null}>
         {open ? (
           <>
-            <Chip tone={TRANSFER_TONE[open.status] || "grey"}>{open.status === "Approved" ? "Approved · stamped" : open.status}</Chip>
+            <Chip tone={TRANSFER_TONE[open.status] || "grey"}>{open.status === "Approved" ? "Approved, stamped" : open.status}</Chip>
             <p style={{ margin: 0 }}>{open.narration}{open.external_reference ? `, Bank ref ${open.external_reference}` : ""}</p>
             <p className="v4-help">{nairaInWords(open.amount)}</p>
             <ol className="v4-chain">

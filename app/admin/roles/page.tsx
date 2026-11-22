@@ -37,10 +37,10 @@ export default function PermissionsPage() {
         </div>
         <div className="v4-mlegend">
           <span><b className="v4-y" style={{ color: "var(--v4-green)" }}>✓</b> Allowed</span>
-          <span><b style={{ color: "#B26A00" }}>route</b> Only when the request is routed to them</span>
-          <span><b style={{ color: "#B26A00" }}>own</b> Only their own</span>
-          <span><b style={{ color: "#B26A00" }}>view</b> Can look, not change</span>
-          <span><b style={{ color: "#B8C1CF" }}>: </b> Not allowed</span>
+          <span><b className="v4-o">route</b> Only when the request is routed to them</span>
+          <span><b className="v4-o">own</b> Only their own</span>
+          <span><b className="v4-o">view</b> Can look, not change</span>
+          <span><b className="v4-n">-</b> Not allowed</span>
           <span>GS = General Secretary (acts for the DG when away), PA = PA to the DG, HRC = HR Coordinator, Rgy = Registry, SA = Super Admin, Dev = Developer</span>
         </div>
       </Card>

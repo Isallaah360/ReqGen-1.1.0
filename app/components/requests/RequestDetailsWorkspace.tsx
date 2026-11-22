@@ -17,6 +17,7 @@ import { nairaExact, nairaInWords } from "@/lib/v4/money";
 import { stageTitle, stageWords, statusChip, waitedFor } from "@/lib/v4/requestText";
 import { fingerprintAvailable, fingerprintStepUp } from "@/lib/v4/deviceSignIn";
 import { celebrate, useCelebrate } from "@/app/components/v4/Motion";
+import { toast } from "@/lib/toast";
 import RequestInsight from "./RequestInsight";
 import DirectActions from "./DirectActions";
 
@@ -176,13 +177,13 @@ function categoryKey(category: string | null | undefined) {
 }
 
 function requestTypeLabel(req: Req) {
-  if (req.direct_to) return Number(req.amount || 0) > 0 ? "Direct • Money" : "Direct";
+  if (req.direct_to) return Number(req.amount || 0) > 0 ? "Direct, Money" : "Direct";
   if (req.request_type === "Official") return "Official";
 
   const category = req.personal_category || "Others";
-  if (category === "NonFund") return "Personal • Other";
+  if (category === "NonFund") return "Personal, Other";
 
-  return `Personal • ${category}`;
+  return `Personal, ${category}`;
 }
 
 function fileSizeLabel(bytes: number | null | undefined) {
@@ -265,6 +266,10 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
   const [myRoles, setMyRoles] = useState<ProfileRole[]>([]);
   const [activeRoleKey, setActiveRoleKey] = useState<string>("");
   const [comment, setComment] = useState("");
+  // v4.6.12: the comment typed in the Approve or Reject dialog, read straight away by the save.
+  const commentRef = useRef("");
+  // v4.6.12 (Blueprint 06): the step fills at once while the approval saves; it rolls back if the save fails.
+  const [optimistic, setOptimistic] = useState(false);
 
   const [mfaVerified, setMfaVerified] = useState(false);
   const [totpFactorId, setTotpFactorId] = useState<string | null>(null);
@@ -1067,7 +1072,7 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
       return false;
     }
 
-    if (action === "Reject" && comment.trim().length < 3) {
+    if (action === "Reject" && commentRef.current.trim().length < 3) {
       setMsg("✕ Write the reason for sending this request back.");
       return false;
     }
@@ -1179,6 +1184,43 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
     }
   }
 
+  /**
+   * v4.6.12 (Kit K2, Blueprint 06): Approve and Reject open a centred dialog
+   * with a comment box. Reject needs the reason; its red button is never the
+   * default. Then the usual fingerprint or 2FA check runs, unchanged.
+   */
+  async function askThenAct(action: "Approve" | "Reject") {
+    if (!req) return;
+    setMsg(null);
+    const next = isDgStage ? "Then it goes to Account." : isAccountStage ? "" : isHRFiling ? "" : "It goes to the next officer on the route.";
+    const text = await promptDialog(action === "Approve" ? {
+      title: isDgStage ? "Approve, sign and stamp?" : isAccountStage ? (isPersonalFund ? "Record the payment?" : "Record that the fund is released?") : isHRFiling ? "Complete the HR review?" : "Approve this request?",
+      message: [isDgStage ? "Your signature is added, with the IET stamp beside it." : isAccountStage || isHRFiling ? "" : "Your signature is added.", next, isDgStage || isAccountStage ? "You confirm with your fingerprint or your 2FA code." : ""].filter(Boolean).join(" "),
+      label: "Comment (optional)",
+      placeholder: isDgStage ? "e.g. Approved" : "e.g. Approved, within the budget",
+      multiline: true,
+      required: false,
+      defaultValue: comment,
+      confirmLabel: isDgStage ? "Approve and stamp" : isAccountStage ? "Record" : isHRFiling ? "Complete" : "Approve",
+      cancelLabel: "Cancel",
+    } : {
+      title: "Send this request back?",
+      message: "It goes back with your reason, so it can be corrected.",
+      label: "Reason (required)",
+      placeholder: "e.g. Attach the quotation and resubmit",
+      multiline: true,
+      required: true,
+      defaultValue: comment,
+      confirmLabel: "Send back",
+      cancelLabel: "Cancel",
+      tone: "danger",
+    });
+    if (text === null) return;
+    setComment(text);
+    commentRef.current = text;
+    await openFresh2faModal(action);
+  }
+
   async function actAfterFresh2fa(action: "Approve" | "Reject") {
     if (!req || !me) return;
 
@@ -1186,8 +1228,10 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
     if (!stillValid) return;
 
     setSaving(true);
-    // v4.6.11 (brief §4): show the result at once; the server saves behind it.
-    setMsg(action === "Approve" ? "✓ Approved. Saving…" : "✓ Sent back. Saving…");
+    // v4.6.11 (brief §4) and v4.6.12 (Kit K4): show the result at once; the server saves behind it.
+    setMsg(null);
+    if (action === "Approve") setOptimistic(true);
+    toast({ text: action === "Approve" ? "Approved. Saving in the background." : "Sending back. Saving in the background.", tone: "info" });
 
     try {
       if (action === "Approve") {
@@ -1199,7 +1243,7 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
         const { data, error } = await supabase.rpc("approve_request_step", {
           p_request_id: req.id,
           p_actor_id: me.id,
-          p_comment: comment.trim(),
+          p_comment: commentRef.current.trim(),
           p_signature_url: me.signature_url,
         });
 
@@ -1235,7 +1279,7 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
         // officer whose approval sent it there; from any other officer to the requester.
         let back = await supabase.rpc("reqgen_return_request", {
           p_request_id: req.id,
-          p_comment: comment.trim(),
+          p_comment: commentRef.current.trim(),
           p_signature_url: me.signature_url,
         });
         if (back.error && /could not find the function|schema cache/i.test(back.error.message)) {
@@ -1243,7 +1287,7 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
           back = await supabase.rpc("reject_request_step", {
             p_request_id: req.id,
             p_actor_id: me.id,
-            p_comment: comment.trim(),
+            p_comment: commentRef.current.trim(),
             p_signature_url: me.signature_url,
           });
         }
@@ -1262,13 +1306,18 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
       }
 
       setComment("");
+      commentRef.current = "";
       await reload();
+      setOptimistic(false);
       // Tell every approval badge in this browser to refresh immediately.
       window.dispatchEvent(new Event(APPROVAL_QUEUE_CHANGED_EVENT));
       if (embedded) onProcessed?.();
     } catch (e: unknown) {
       // The server refused: undo the shown result with a short, plain message.
-      setMsg(`✕ Not saved: ${errorMessage(e)} ${action === "Approve" ? "Your approval was undone." : "The request was not sent back."}`);
+      setOptimistic(false);
+      const why = `Not saved: ${errorMessage(e)} ${action === "Approve" ? "Your approval was undone." : "The request was not sent back."}`;
+      setMsg(`✕ ${why}`);
+      toast({ text: why.length > 140 ? (action === "Approve" ? "Not saved. Your approval was undone." : "Not saved. The request was not sent back.") : why, tone: "error" });
     } finally {
       setSaving(false);
     }
@@ -1455,7 +1504,7 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
     ? (/returned for correction/i.test(req.status) ? "Back with the writer" : stageKey(req.current_stage) === "SUBMITTED" ? `With ${directHolder || "the person it is addressed to"}` : stageWords(req.current_stage))
     : stageWords(req.current_stage);
   const headChip = isDirect && me && req.current_owner === me.id
-    ? { tone: "brand", text: stageKey(req.current_stage) === "DG" ? "Your step: Director General · final approval" : /returned for correction/i.test(req.status) ? "Sent back to you to correct" : "Your step: addressed to you" }
+    ? { tone: "brand", text: stageKey(req.current_stage) === "DG" ? "Your step: Director General, final approval" : /returned for correction/i.test(req.status) ? "Sent back to you to correct" : "Your step: addressed to you" }
     : isDirect && isOpen
       ? { tone: "amber", text: `${directWhere}, ${waitedFor(req.updated_at || req.created_at)}` }
       : canAct
@@ -1506,19 +1555,29 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
     submitRow
       ? { key: "submit", cls: "v4-done", st: "1, Submitted", who: submitRow.actor_name || requester, r: `Requester${deptName ? `, ${deptName}` : ""}`, em: shortWhen(submitRow.created_at), ink: !!submitRow.signature_url }
       : null,
-    ...chain.filter((c) => c.state !== "skipped").map((c, i) => {
-      const label = stageTitle(c.stage);
-      const isMeNow = c.state === "now" && canAct;
-      return {
-        key: `${c.stage}-${i}`,
-        cls: c.state === "done" ? "v4-done" : c.state === "now" ? "v4-now" : "v4-wait",
-        st: `${i + (submitRow ? 2 : 1)}, ${label}`,
-        who: c.state === "done" ? c.acted_by_name || c.owner_name || label : isMeNow ? "You" : c.owner_name || (stageKey(c.stage) === "ACCOUNT" ? req.assigned_account_officer_name || "Account Officer" : "Vacant — skipped"),
-        r: c.state === "done" ? signedAsLabel(c.acted_role) || label : c.state === "now" ? (stageKey(c.stage) === "DG" ? "Sign + IET stamp" : `Waiting · ${waitedFor(req.updated_at || req.created_at)}`) : stageKey(c.stage) === "ACCOUNT" ? "Releases the fund" : stageKey(c.stage) === "DG" ? "Sign + IET stamp" : "",
-        em: c.state === "done" ? shortWhen(c.acted_at) : "",
-        ink: c.state === "done" && c.signed,
-      };
-    }),
+    // v4.6.12 (Blueprint 06): a vertical timeline. Done steps are filled, the
+    // current step pulses softly, and a vacant step the route skipped is dashed.
+    ...(() => {
+      let n = submitRow ? 1 : 0;
+      return chain.map((c, i) => {
+        const label = stageTitle(c.stage);
+        if (c.state === "skipped") {
+          return { key: `${c.stage}-${i}`, cls: "v4-skip", st: "Skipped", who: `${label}: vacant, skipped`, r: "The route moved on by itself", em: "", ink: false };
+        }
+        n += 1;
+        const isMeNow = c.state === "now" && canAct;
+        const filling = c.state === "now" && optimistic;
+        return {
+          key: `${c.stage}-${i}`,
+          cls: filling ? "v4-done v4-saving" : c.state === "done" ? "v4-done" : c.state === "now" ? "v4-now" : "v4-wait",
+          st: `${n}, ${label}`,
+          who: filling ? "You" : c.state === "done" ? c.acted_by_name || c.owner_name || label : isMeNow ? "You" : c.owner_name || (stageKey(c.stage) === "ACCOUNT" ? req.assigned_account_officer_name || "Account Officer" : "Vacant, skipped"),
+          r: filling ? "Signed just now. Saving…" : c.state === "done" ? signedAsLabel(c.acted_role) || label : c.state === "now" ? (stageKey(c.stage) === "DG" ? "Sign and IET stamp" : `Waiting ${waitedFor(req.updated_at || req.created_at)}`) : stageKey(c.stage) === "ACCOUNT" ? "Releases the fund" : stageKey(c.stage) === "DG" ? "Sign and IET stamp" : "",
+          em: c.state === "done" ? shortWhen(c.acted_at) : "",
+          ink: (c.state === "done" && c.signed) || filling,
+        };
+      });
+    })(),
   ].filter(Boolean) as Array<{ key: string; cls: string; st: string; who: string; r: string; em: string; ink: boolean }>;
 
   return (
@@ -1631,7 +1690,7 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
                 <div className="v4-field" style={{ flex: "1 1 260px" }}>
                   <label className="v4-flabel" htmlFor="rq-confirm-sub" style={{ fontSize: 13, fontWeight: 700 }}>Confirm subhead</label>
                   <Select id="rq-confirm-sub" value={changeSubTo || req.subhead_id || ""} onChange={setChangeSubTo} menuMinWidth={300}
-                    options={assignableSubheads.map((s) => ({ value: s.id, label: `${s.code ? `${s.code} — ` : ""}${s.name}${s.id === req.subhead_id ? ` (chosen by ${requester.split(" ")[0]})` : ""}`, hint: `Available ${formatNaira(availableBalanceForSubhead(s))}` }))} />
+                    options={assignableSubheads.map((s) => ({ value: s.id, label: `${s.code ? `${s.code}: ` : ""}${s.name}${s.id === req.subhead_id ? ` (chosen by ${requester.split(" ")[0]})` : ""}`, hint: `Available ${formatNaira(availableBalanceForSubhead(s))}` }))} />
                   <span className="v4-help">Change it if the requester chose the wrong one. A change needs a reason.</span>
                 </div>
                 {fig ? (
@@ -1670,10 +1729,7 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
             <Notice tone="green">Account Officer: {req.assigned_account_officer_name ? nameWithRole(req.assigned_account_officer_name, "accountofficer") : "set from the subhead"}.</Notice>
           ) : null}
 
-          <label className="v4-field" style={{ marginTop: 14 }}>
-            <span className="v4-flabel">Comment <span className="v4-muted" style={{ fontWeight: 600 }}>{decision === "reject" ? "(the reason — required)" : "(optional)"}</span></span>
-            <input className="v4-input" value={comment} onChange={(e) => setComment(e.target.value)} placeholder={decision === "reject" ? "e.g. Attach the quotation and resubmit" : isDgStage ? "e.g. Approved" : "e.g. Approved — within the budget"} />
-          </label>
+          {comment.trim() ? <p className="v4-help" style={{ margin: "14px 0 0" }}>Your comment: “{comment.trim()}”</p> : null}
 
           {attachmentsLocked ? <Notice tone="amber">Open and tick every attachment below before you decide ({myPendingAttachments.length} left).</Notice> : null}
           {needsSubheadAssignment && decision === "approve" ? <Notice tone="blue">Assign the subhead first; approval unlocks once the fund is reserved.</Notice> : null}
@@ -1682,10 +1738,10 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
             <Link className="v4-btn v4-btn-ghost" href={embedded ? "#" : "/approvals/inbox"} onClick={(e) => { if (embedded) { e.preventDefault(); onClose?.(); } }}>Back to the list</Link>
             {isDgStage ? <Link className="v4-btn v4-btn-secondary" href={`/requests/${req.id}/print`}><Icon name="eye" />Preview letter</Link> : null}
             {decision === "reject" && !isAccountStage && !isHRFiling ? (
-              <button type="button" className="v4-btn v4-btn-danger v4-btn-lg" onClick={() => openFresh2faModal("Reject")} disabled={actingLocked || attachmentsLocked || comment.trim().length < 3}>
+              <button type="button" className="v4-btn v4-btn-danger v4-btn-lg" onClick={() => void askThenAct("Reject")} disabled={actingLocked || attachmentsLocked}>
                 <Icon name="returned" />{saving || verifyingCode ? "Working…" : "Reject and send back"}</button>
             ) : (
-              <button type="button" className="v4-btn v4-btn-primary v4-btn-lg" onClick={() => openFresh2faModal("Approve")} disabled={actingLocked || attachmentsLocked || needsSubheadAssignment}>
+              <button type="button" className="v4-btn v4-btn-primary v4-btn-lg" onClick={() => void askThenAct("Approve")} disabled={actingLocked || attachmentsLocked || needsSubheadAssignment}>
                 <Icon name={isDgStage ? "shield" : isAccountStage ? "wallet" : "pentool"} />
                 {saving || verifyingCode ? "Working…" : isDgStage ? "Approve, sign and stamp" : isAccountStage ? (isPersonalFund ? "Record payment and send to HR" : "Record that the fund is released") : isHRFiling ? "Complete HR review" : "Sign and approve"}
               </button>
@@ -1701,7 +1757,7 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
 
       <section className="v4-card v4-card-pad">
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 14 }}>
-          <h2 className="v4-h2">Approval route</h2><span className="v4-help">{isDirect ? "A direct request goes from person to person, then to the DG." : "Each step shows who signed and when. A vacant step is skipped."}</span>
+          <h2 className="v4-h2">Approval route</h2><span className="v4-help">{isDirect ? "A direct request goes from person to person, then to the DG." : "Each step shows who signed and when. A vacant step is skipped, shown dashed."}</span>
         </div>
         {isDirect ? (
           <ol className="v4-chain">
@@ -1738,7 +1794,7 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
                   return (
                     <li key={a.id}>
                       <span className={`v4-fi${/\.(png|jpe?g|webp|xlsx?|csv)$/i.test(a.file_name) ? " v4-x" : ""}`}>{(a.file_name.split(".").pop() || "FILE").toUpperCase().slice(0, 4)}</span>
-                      <span className="v4-ft"><strong>{a.file_name}</strong><span>{fileSizeLabel(a.file_size)}{attachmentCheckCount(a.id) ? ` · checked by ${attachmentCheckCount(a.id)} officer${attachmentCheckCount(a.id) === 1 ? "" : "s"}` : ""}{mine ? " · checked by you" : ""}</span></span>
+                      <span className="v4-ft"><strong>{a.file_name}</strong><span>{fileSizeLabel(a.file_size)}{attachmentCheckCount(a.id) ? `, checked by ${attachmentCheckCount(a.id)} officer${attachmentCheckCount(a.id) === 1 ? "" : "s"}` : ""}{mine ? ", checked by you" : ""}</span></span>
                       {a.signed_url ? <a href={a.signed_url} target="_blank" rel="noreferrer">View</a> : <span className="v4-muted">Unavailable</span>}
                       {canCheckAttachments && !mine && canAct ? (
                         <button type="button" className="v4-btn v4-btn-secondary" style={{ minHeight: 36 }} onClick={() => void checkAttachmentPersonally(a)} disabled={checkingAttachmentId === a.id}>{checkingAttachmentId === a.id ? "Saving…" : "I have checked it"}</button>

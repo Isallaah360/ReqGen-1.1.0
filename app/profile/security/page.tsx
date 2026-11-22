@@ -120,7 +120,7 @@ export default function SecurityDevicesPage() {
 
   const stats: StatItem[] = [
     { label: "Two-factor (2FA)", value: loading ? "…" : hasTotp ? "On" : "Off", note: hasTotp ? "Authenticator app" : "Set it up now", icon: "shield", tone: hasTotp ? "green" : "red" },
-    { label: "Fingerprint", value: creds === null ? "—" : creds.length ? `${creds.length} device${creds.length === 1 ? "" : "s"}` : "Not set", note: creds?.length ? "One-touch sign-in" : "Add this device", icon: "fingerprint", tone: "brand" },
+    { label: "Fingerprint", value: creds === null ? "-" : creds.length ? `${creds.length} device${creds.length === 1 ? "" : "s"}` : "Not set", note: creds?.length ? "One-touch sign-in" : "Add this device", icon: "fingerprint", tone: "brand" },
     { label: "This session", value: windowEnd ? clock(windowEnd) : "-", note: windowEnd ? `Ends in ${hours} h ${mins} min` : "2FA window", icon: "clock", tone: "blue" },
     { label: "Passcode", value: thisDevice ? "On" : "Not set", note: thisDevice ? "On this device" : "For faster sign-in", icon: "key", tone: "amber", href: "/profile/passcode" },
   ];

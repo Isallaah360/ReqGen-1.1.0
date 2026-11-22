@@ -15,7 +15,9 @@ import { useIdentity } from "@/app/components/v4/useIdentity";
 import Icon from "@/app/components/v4/Icon";
 import { Select, type SelectOption } from "@/app/components/v4/Select";
 import { Notice, PageHead, Skeleton, V4Page } from "@/app/components/v4/ui";
-import { useCelebrate } from "@/app/components/v4/Motion";
+import { celebrate, useCelebrate } from "@/app/components/v4/Motion";
+import BusyButton from "@/app/components/kit/BusyButton";
+import { toast } from "@/lib/toast";
 
 /**
  * ReqGen v4.1.2 — New Request (mock-ups 25a and 25).
@@ -139,6 +141,8 @@ function NewRequest() {
 
   const [draftId, setDraftId] = useState<string | null>(draftParam);
   const [savingDraft, setSavingDraft] = useState(false);
+  // v4.6.12 (Blueprint 06): "Draft saved" with a tick beside the button.
+  const [draftSaved, setDraftSaved] = useState(0);
   const [busy, setBusy] = useState<"" | "submitting" | "uploading" | "sending-code" | "verifying">("");
   const [otpOpen, setOtpOpen] = useState(false);
   const [otp, setOtp] = useState("");
@@ -333,7 +337,9 @@ function NewRequest() {
       }, files);
       setDraftId(id);
       if (!embedded) router.replace(`/requests/new?draft=${id}`, { scroll: false });
-      setMsg({ tone: "green", text: "Draft saved. Find it under Requests › My Requests › Drafts. Drafts are kept for 60 days." });
+      setMsg(null);
+      setDraftSaved(Date.now());
+      toast({ text: "Draft saved. Find it under My Requests, Drafts. Drafts are kept for 60 days." });
     } catch (e) {
       setMsg({ tone: "red", text: "The draft could not be saved: " + errorText(e) });
     } finally {
@@ -356,7 +362,7 @@ function NewRequest() {
       title: "Sign and submit this request?",
       message: "Your saved signature is placed on the request letter and it goes to the first officer on the route.",
       details: [
-        `${requestType === "Official" ? "Official" : `Personal · ${category}`} · ${dept?.name || ""}`,
+        `${requestType === "Official" ? "Official" : `Personal, ${category}`}, ${dept?.name || ""}`,
         title.trim(),
         needsAmount ? `${nairaExact(amount)}: ${nairaInWords(amount)}` : "No amount",
       ],
@@ -450,7 +456,10 @@ function NewRequest() {
       }
       if (draftId) await deleteDraft(draftId).catch(() => null);
 
-      setMsg({ tone: "green", text: `Submitted. It is now with the ${stageTitle(result?.first_stage || "") || "first officer"}.` });
+      // v4.6.12 (Kit K9): the success moment with the request number.
+      const firstWith = stageTitle(result?.first_stage || "") || "first officer";
+      celebrate({ title: "Request sent", line: `${requestNo} is with the ${firstWith}. You get an SMS at each step.` });
+      setMsg({ tone: "green", text: `Submitted. It is now with the ${firstWith}.` });
       if (embedded) {
         window.parent.postMessage({ type: "reqgen-request-created", requestId }, window.location.origin);
         return;
@@ -519,7 +528,7 @@ function NewRequest() {
 
       <div className="v4-stepper" aria-label="Progress">
         {STEPS.map((s, i) => (
-          <div key={s} className={i < step ? "v4-done" : i === step ? "v4-on" : undefined} aria-current={i === step ? "step" : undefined}>{i + 1} · {s}</div>
+          <div key={s} className={i < step ? "v4-done" : i === step ? "v4-on" : undefined} aria-current={i === step ? "step" : undefined}>{i + 1}, {s}</div>
         ))}
       </div>
 
@@ -643,7 +652,8 @@ function NewRequest() {
               </div>
               <div className="v4-form-actions" style={{ marginTop: 18 }}>
                 <button type="button" className="v4-btn v4-btn-ghost" onClick={back}><Icon name="left" />Back</button>
-                <button type="button" className="v4-btn v4-btn-secondary" onClick={() => void doSaveDraft()} disabled={savingDraft}>{savingDraft ? "Saving…" : "Save draft"}</button>
+                <BusyButton type="button" className="v4-btn v4-btn-secondary" onClick={() => void doSaveDraft()} busy={savingDraft} busyText="Saving…">Save draft</BusyButton>
+                {draftSaved ? <span key={draftSaved} className="k-saved" role="status"><span className="k-pop" style={{ display: "inline-flex" }}><Icon name="tick" /></span>Draft saved</span> : null}
                 <button type="button" className="v4-btn v4-btn-primary" onClick={next} disabled={!!detailsProblem}>Continue to attachments <Icon name="right" /></button>
               </div>
               {detailsProblem ? <p className="v4-help" style={{ textAlign: "right", margin: "8px 0 0" }}>{detailsProblem}</p> : null}
@@ -676,7 +686,8 @@ function NewRequest() {
               ) : <p className="v4-muted" style={{ margin: "12px 0 0", fontSize: 13 }}>No files yet. Officers check every attachment before they approve.</p>}
               <div className="v4-form-actions" style={{ marginTop: 18 }}>
                 <button type="button" className="v4-btn v4-btn-ghost" onClick={back}><Icon name="left" />Back</button>
-                <button type="button" className="v4-btn v4-btn-secondary" onClick={() => void doSaveDraft()} disabled={savingDraft}>{savingDraft ? "Saving…" : "Save draft"}</button>
+                <BusyButton type="button" className="v4-btn v4-btn-secondary" onClick={() => void doSaveDraft()} busy={savingDraft} busyText="Saving…">Save draft</BusyButton>
+                {draftSaved ? <span key={draftSaved} className="k-saved" role="status"><span className="k-pop" style={{ display: "inline-flex" }}><Icon name="tick" /></span>Draft saved</span> : null}
                 <button type="button" className="v4-btn v4-btn-primary" onClick={next}>Continue to review <Icon name="right" /></button>
               </div>
             </div>
@@ -689,7 +700,7 @@ function NewRequest() {
               <dl className="v4-summary">
                 <div><dt>Type</dt><dd>{isOfficial ? "Official" : `Personal, ${category}`}</dd></div>
                 <div><dt>Department</dt><dd>{dept?.name || "-"}</dd></div>
-                <div><dt>Subhead</dt><dd>{isOfficial ? (choosesSubhead && chosenSub ? <>{subLabel(chosenSub)} {live === "available" ? <span className="v4-chip v4-chip-green" style={{ marginLeft: 4 }}>Fund available</span> : null}</> : "The approving officer will choose") : "—"}</dd></div>
+                <div><dt>Subhead</dt><dd>{isOfficial ? (choosesSubhead && chosenSub ? <>{subLabel(chosenSub)} {live === "available" ? <span className="v4-chip v4-chip-green" style={{ marginLeft: 4 }}>Fund available</span> : null}</> : "The approving officer will choose") : "-"}</dd></div>
                 <div className="v4-wide"><dt>Title</dt><dd>{title || "-"}</dd></div>
                 <div className="v4-wide"><dt>Description</dt><dd style={{ fontWeight: 500, whiteSpace: "pre-wrap" }}>{details || "-"}</dd></div>
                 <div><dt>Amount</dt><dd className="v4-num" style={{ fontSize: 20 }}>{needsAmount ? nairaExact(amount) : "-"}</dd></div>
@@ -712,8 +723,9 @@ function NewRequest() {
               {busyText ? <Notice tone="blue">{busyText}</Notice> : null}
               <div className="v4-form-actions">
                 <button type="button" className="v4-btn v4-btn-ghost" onClick={back} disabled={!!busy}><Icon name="left" />Back</button>
-                <button type="button" className="v4-btn v4-btn-secondary" onClick={() => void doSaveDraft()} disabled={savingDraft || !!busy}>{savingDraft ? "Saving…" : "Save draft"}</button>
-                <button type="button" className="v4-btn v4-btn-primary" onClick={() => void startSubmit()} disabled={!!busy || !!signProblem || !!detailsProblem}><Icon name="pentool" />{busy ? busyText : "Sign and submit"}</button>
+                <BusyButton type="button" className="v4-btn v4-btn-secondary" onClick={() => void doSaveDraft()} busy={savingDraft} busyText="Saving…" disabled={!!busy}>Save draft</BusyButton>
+                {draftSaved ? <span key={draftSaved} className="k-saved" role="status"><span className="k-pop" style={{ display: "inline-flex" }}><Icon name="tick" /></span>Draft saved</span> : null}
+                <BusyButton type="button" className="v4-btn v4-btn-primary" onClick={() => void startSubmit()} busy={!!busy} busyText="Sending…" disabled={!!signProblem || !!detailsProblem}><Icon name="pentool" />Sign and submit</BusyButton>
               </div>
               {signProblem && !busy ? <p className="v4-help" style={{ textAlign: "right", margin: "-12px 0 0" }}>{signProblem}</p> : null}
             </div>

@@ -108,7 +108,7 @@ export default function SetupCoach() {
       {guideStep && !closed ? (
         <aside className={`rg-coach ${guideStep.done ? "is-done" : ""}`} aria-label="Setup guide">
           <header>
-            <span><Compass size={16} /> Setup guide · Step {SETUP_ORDER.indexOf(guideStep.key) + 1} of 4</span>
+            <span><Compass size={16} /> Setup guide, Step {SETUP_ORDER.indexOf(guideStep.key) + 1} of 4</span>
             <button type="button" aria-label="Close guide" onClick={() => setClosed(true)}><X size={16} /></button>
           </header>
           <h3>{setupStepContent(guideStep.key).title}</h3>

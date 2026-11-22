@@ -79,7 +79,7 @@ function ReportPrint() {
     out.forEach((r) => { const v = vouchers.get(r.ref) || { ref: r.ref, title: r.title, detail: r.detail, mode: r.mode || "Transfer", amount: 0, items: 0 }; v.amount += r.amount; v.items += 1; vouchers.set(r.ref, v); });
     const vs = [...vouchers.values()];
     const modes = ["Transfer", "Cash", "Cheque"].map((m) => { const l = vs.filter((v) => v.mode === m); return { mode: m, n: l.length, amt: l.reduce((t, v) => t + v.amount, 0), combined: l.filter((v) => v.items > 1).length }; });
-    return { alloc, spentMonth, spentToDate, moneyIn, groups: [...groups.entries()].map(([k, g]) => ({ label: `${k} — ${deptOf.get(k) || g.name}`, ...g })).sort((a, b) => b.alloc - a.alloc), risk, modes, largest: vs.sort((a, b) => b.amount - a.amount).slice(0, 5) };
+    return { alloc, spentMonth, spentToDate, moneyIn, groups: [...groups.entries()].map(([k, g]) => ({ label: `${k}: ${deptOf.get(k) || g.name}`, ...g })).sort((a, b) => b.alloc - a.alloc), risk, modes, largest: vs.sort((a, b) => b.amount - a.amount).slice(0, 5) };
   }, [subs, spend, tx, month]);
 
   useA4Fit(sheet, [data, subs]);
@@ -89,8 +89,8 @@ function ReportPrint() {
 
   async function print() {
     setPrinting(true);
-    await logPrint("report", null, `${title} · ${monthName(month)}${dept !== "all" ? ` · ${deptName}` : ""}`);
-    await printA4Sheet(sheet.current, `${title} — ${monthName(month)}`);
+    await logPrint("report", null, `${title}, ${monthName(month)}${dept !== "all" ? `, ${deptName}` : ""}`);
+    await printA4Sheet(sheet.current, `${title}: ${monthName(month)}`);
     setPrinting(false);
   }
 
@@ -126,13 +126,13 @@ function ReportPrint() {
                   <tbody>{data.modes.map((m) => <tr key={m.mode}><td>{m.mode}</td><td className="v4-r">{m.n}</td><td className="v4-r">{money(m.amt)}</td><td>{m.mode === "Transfer" && m.combined ? `Includes ${m.combined} combined Official voucher${m.combined === 1 ? "" : "s"}` : m.mode === "Cheque" && m.n ? "Signed by the DG" : m.mode === "Cash" && m.n ? "Receipts on file" : ""}</td></tr>)}</tbody></table>
                 <div style={{ marginTop: 10, fontSize: 10.5, fontWeight: 900, textTransform: "uppercase" }}>Largest payments in {monthName(month, true)}</div>
                 <table style={{ marginTop: 4 }}><thead><tr><th>Voucher</th><th>Payee</th><th>Details</th><th className="v4-r">Amount</th></tr></thead>
-                  <tbody>{data.largest.length ? data.largest.map((v) => <tr key={v.ref}><td>{v.ref}</td><td>{v.title}</td><td>{v.items > 1 ? `${v.items} requests · transfer schedule` : v.detail}</td><td className="v4-r">{money(v.amount)}</td></tr>) : <tr><td colSpan={4}>No voucher paid in {monthName(month)}.</td></tr>}</tbody></table>
+                  <tbody>{data.largest.length ? data.largest.map((v) => <tr key={v.ref}><td>{v.ref}</td><td>{v.title}</td><td>{v.items > 1 ? `${v.items} requests, transfer schedule` : v.detail}</td><td className="v4-r">{money(v.amount)}</td></tr>) : <tr><td colSpan={4}>No voucher paid in {monthName(month)}.</td></tr>}</tbody></table>
                 <p className="v4-note">Figures are taken from the ReqGen ledger at the time of printing. Spending is counted when Account releases the fund; payments are vouchers marked paid.</p>
                 <div className="v4-rsig">
                   <div><span className="v4-ttl">Prepared by</span><span className="v4-ln">{me.name}</span><span className="v4-ln" /><span className="v4-ln">{printedAt.toLocaleDateString("en-GB")}</span><span className="v4-cp">Name</span><span className="v4-cp">Signature</span><span className="v4-cp">Date</span></div>
                   <div><span className="v4-ttl">Checked by</span><span className="v4-ln">{auditor}</span><span className="v4-ln" /><span className="v4-ln" /><span className="v4-cp">Name</span><span className="v4-cp">Signature</span><span className="v4-cp">Date</span></div>
                 </div>
-                <div className="v4-rfoot"><span>ReqGen report • {title} • Page 1 of 1</span><em>Building Bridges</em></div>
+                <div className="v4-rfoot"><span>ReqGen report, {title}, Page 1 of 1</span><em>Building Bridges</em></div>
               </div>
             </article>
           </div>

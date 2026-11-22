@@ -8,8 +8,11 @@ $ProgressPreference = "SilentlyContinue"
 $Here    = Split-Path -Parent $MyInvocation.MyCommand.Path
 $Web     = Split-Path -Parent $Here
 $Tools   = Join-Path $env:USERPROFILE "BarderianTools"
-$KeyDir  = Join-Path ([Environment]::GetFolderPath("MyDocuments")) "ReqGen_Key"
+# The key lives in C:\ReqGen_Key: outside the project, and away from OneDrive
+# and Windows' protected Documents folder (which can block Java from saving).
+$KeyDir  = "C:\ReqGen_Key"
 $KeyFile = Join-Path $KeyDir "reqgen-android.keystore"
+$OldKey  = Join-Path ([Environment]::GetFolderPath("MyDocuments")) "ReqGen_Key\reqgen-android.keystore"
 New-Item -ItemType Directory -Force -Path $Tools | Out-Null
 
 function Say($t)  { Write-Host "  $t" -ForegroundColor Cyan }
@@ -76,6 +79,7 @@ try {
 
   # 5. The ReqGen signing key (kept OUTSIDE the project; never on GitHub, Vercel or WhatsApp)
   New-Item -ItemType Directory -Force -Path $KeyDir | Out-Null
+  if (-not (Test-Path $KeyFile) -and (Test-Path $OldKey)) { Copy-Item $OldKey $KeyFile; Good "Found your ReqGen key in Documents and copied it to $KeyFile" }
   if (-not (Test-Path $KeyFile)) {
     Write-Host ""
     Write-Host "  No ReqGen key yet. Making a NEW ReqGen signing key." -ForegroundColor Yellow
@@ -86,8 +90,8 @@ try {
     $b = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($p2))
     if ($a -ne $b) { Stop-Red "The two passwords were not the same. Run MAKE_APP.bat again." }
     if ($a.Length -lt 8) { Stop-Red "The password must have at least 8 characters." }
-    & keytool -genkeypair -v -keystore $KeyFile -alias reqgen -keyalg RSA -keysize 4096 -validity 10000 -storepass $a -keypass $a -dname "CN=ReqGen, O=Barderian Enterprises, L=Minna, C=NG" | Out-Null
-    if ($LASTEXITCODE -ne 0) { Stop-Red "The key could not be made." }
+    & keytool -genkeypair -keystore $KeyFile -alias reqgen -keyalg RSA -keysize 4096 -validity 10000 -storepass $a -keypass $a -dname "CN=ReqGen, O=Barderian Enterprises, L=Minna, C=NG"
+    if ($LASTEXITCODE -ne 0 -or -not (Test-Path $KeyFile)) { Stop-Red "The key could not be saved in $KeyDir." }
     Good "New key saved in $KeyFile"
     Write-Host "  COPY THIS KEY FILE TO A FLASH DRIVE AND GOOGLE DRIVE NOW, and keep the password." -ForegroundColor Yellow
     Write-Host "  Every future ReqGen update must use this same key." -ForegroundColor Yellow

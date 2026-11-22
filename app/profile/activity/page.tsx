@@ -49,7 +49,7 @@ function dayLabel(d: Date) {
   const that = new Date(d); that.setHours(0, 0, 0, 0);
   const diff = Math.round((today.getTime() - that.getTime()) / 86400000);
   const long = d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
-  return diff === 0 ? `Today · ${long}` : diff === 1 ? `Yesterday · ${long}` : long;
+  return diff === 0 ? `Today, ${long}` : diff === 1 ? `Yesterday, ${long}` : long;
 }
 
 /** My Account › My Activity (mock-up 20): everything you did in ReqGen. Only you and the Auditor can see it. */

@@ -58,10 +58,10 @@ function Diagnostics() {
   const nightlyAge = d?.last_nightly?.at && ranAt ? (new Date(ranAt).getTime() - new Date(d.last_nightly.at).getTime()) / 3600000 : null;
   const health = d ? [
     { ok: true, label: "Database", s: `${d.tables} tables, response ${d.response_ms} ms`, chip: "Healthy" },
-    { ok: d.rls_off.length === 0, warn: true, label: "Row-level security", s: d.rls_off.length ? `On for ${d.rls_on} of ${d.tables} tables · off: ${d.rls_off.slice(0, 6).join(", ")}${d.rls_off.length > 6 ? "…" : ""}` : `On for all ${d.tables} tables`, chip: d.rls_off.length ? "Check" : "Healthy" },
+    { ok: d.rls_off.length === 0, warn: true, label: "Row-level security", s: d.rls_off.length ? `On for ${d.rls_on} of ${d.tables} tables, off: ${d.rls_off.slice(0, 6).join(", ")}${d.rls_off.length > 6 ? "…" : ""}` : `On for all ${d.tables} tables`, chip: d.rls_off.length ? "Check" : "Healthy" },
     { ok: true, label: "Notifications and phone alerts", s: d.last_notification ? `Last sent ${whenText(d.last_notification)}` : "None sent yet", chip: "Healthy" },
-    { ok: nightlyAge !== null && nightlyAge < 30, warn: true, label: "Nightly backup", s: d.last_nightly?.at ? `${whenText(d.last_nightly.at)}${size(d.last_nightly.bytes)}` : "No nightly copy yet — the first runs at 02:00", chip: nightlyAge !== null && nightlyAge < 30 ? "Healthy" : "Check" },
-    { ok: d.old_po_codes === 0, warn: true, label: "Old position codes", s: d.old_po_codes ? `${d.old_po_codes} records still say “PO” — they show as PD everywhere` : "Every record uses PD", chip: d.old_po_codes ? "To migrate" : "Healthy" },
+    { ok: nightlyAge !== null && nightlyAge < 30, warn: true, label: "Nightly backup", s: d.last_nightly?.at ? `${whenText(d.last_nightly.at)}${size(d.last_nightly.bytes)}` : "No nightly copy yet: the first runs at 02:00", chip: nightlyAge !== null && nightlyAge < 30 ? "Healthy" : "Check" },
+    { ok: d.old_po_codes === 0, warn: true, label: "Old position codes", s: d.old_po_codes ? `${d.old_po_codes} records still say “PO”: they show as PD everywhere` : "Every record uses PD", chip: d.old_po_codes ? "To migrate" : "Healthy" },
     { ok: true, label: "Audit Log", s: `${d.audit_events_today} event${d.audit_events_today === 1 ? "" : "s"} recorded today`, chip: "Healthy" },
     { ok: true, info: true, label: "Version", s: `ReqGen ${REQGEN_VERSION}, released by Barderian Enterprises`, chip: "Current" },
   ] : [];
@@ -112,7 +112,7 @@ function Diagnostics() {
                 <span className="v4-st"><b>Staff</b><small>Requester</small></span>
                 {route.map((s) => [
                   <span key={`a${s.step_order}`} className="v4-ar"><Icon name="right" /></span>,
-                  <span key={`s${s.step_order}`} className={`v4-st${s.stage === "DG" ? " v4-dg" : ""}`}><b>{STAGE_LABEL(s.stage)}</b><small>{s.is_vacant ? (s.if_vacant === "block" ? "vacant · holds" : "vacant · skipped") : "has an officer"}</small></span>,
+                  <span key={`s${s.step_order}`} className={`v4-st${s.stage === "DG" ? " v4-dg" : ""}`}><b>{STAGE_LABEL(s.stage)}</b><small>{s.is_vacant ? (s.if_vacant === "block" ? "vacant, holds" : "vacant, skipped") : "has an officer"}</small></span>,
                 ])}
               </div>
             ) : null}

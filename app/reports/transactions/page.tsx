@@ -71,8 +71,8 @@ function Transactions() {
   const mine = tier === "mine";
 
   function exportXlsx() {
-    downloadXlsx(`Transactions_${month}`, [{ name: monthName(month), title: `ReqGen — Transactions, ${monthName(month)}${dept !== "all" ? ` · ${dept}` : ""}`, rows: shown.map((l) => ({
-      Date: l.at.slice(0, 10), Reference: l.ref, Details: `${l.title} — ${l.sub}`, "Money out": l.kind === "out" || l.kind === "pending" ? l.amount : null,
+    downloadXlsx(`Transactions_${month}`, [{ name: monthName(month), title: `ReqGen: Transactions, ${monthName(month)}${dept !== "all" ? `, ${dept}` : ""}`, rows: shown.map((l) => ({
+      Date: l.at.slice(0, 10), Reference: l.ref, Details: `${l.title}: ${l.sub}`, "Money out": l.kind === "out" || l.kind === "pending" ? l.amount : null,
       "Money in": l.kind === "in" || l.kind === "transfer" ? l.amount : null, Status: l.status,
     })) }]);
   }
@@ -94,7 +94,7 @@ function Transactions() {
             <b>{monthName(month)}</b>
             <button type="button" aria-label="Next month" disabled={month >= thisMonth()} onClick={() => { setMonth(addMonths(month, 1)); setPage(1); }}><Icon name="right" /></button>
           </span>
-          {!mine ? <div className="v4-field" style={{ minWidth: 200 }}><Select size="compact" ariaLabel="Department" value={dept} onChange={(v) => { setDept(v); setPage(1); }} options={[{ value: "all", label: "All departments" }, ...depts.map((d) => ({ value: d, label: d }))]} /></div> : null}
+          {!mine ? <div className="v4-field" style={{ minWidth: "min(200px, 100%)" }}><Select size="compact" ariaLabel="Department" value={dept} onChange={(v) => { setDept(v); setPage(1); }} options={[{ value: "all", label: "All departments" }, ...depts.map((d) => ({ value: d, label: d }))]} /></div> : null}
         </div>
         <div className="v4-txsum">
           <div><div className="v4-l">{mine ? "Paid to you" : "Money out"}</div><div className="v4-v">{rows ? nairaExact(sum(out)) : "…"}</div><div className="v4-n">{out.length} voucher{out.length === 1 ? "" : "s"} paid</div></div>
@@ -111,7 +111,7 @@ function Transactions() {
           const i = d.items.filter((l) => l.kind === "in" || l.kind === "transfer").reduce((t, l) => t + l.amount, 0);
           return (
             <div key={d.day}>
-              <div className="v4-day v4-split2"><span>{new Date(`${d.day}T00:00:00`).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })}</span><span>Out {nairaExact(o).replace(".00", "")} · In {nairaExact(i).replace(".00", "")}</span></div>
+              <div className="v4-day v4-split2"><span>{new Date(`${d.day}T00:00:00`).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })}</span><span>Out {nairaExact(o).replace(".00", "")}, In {nairaExact(i).replace(".00", "")}</span></div>
               <ul className="v4-rows">
                 {d.items.map((l) => {
                   const credit = l.kind === "in" || l.kind === "transfer";

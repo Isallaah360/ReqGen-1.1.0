@@ -24,6 +24,7 @@ const PUBLIC_PATHS = new Set([
   "/check",
   "/app",
   "/console",
+  "/credits",
 ]);
 
 export default function GovernmentAppShell({ children }: { children: React.ReactNode }) {

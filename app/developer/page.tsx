@@ -54,7 +54,7 @@ export default function DeveloperConsolePage() {
   const stats: StatItem[] = [
     { label: "Running version", value: REQGEN_VERSION, note: latest ? (latest.version === REQGEN_VERSION ? "Published to the Trust" : `Last published: ${latest.version}`) : "Not published yet", icon: "monitor", tone: "blue", href: "/developer/releases" },
     { label: "Modules", value: switches ? `${switches.length - off.length} of ${switches.length} on` : "…", note: off.length ? `Off: ${off.map((s) => s.label).join(", ")}` : "Everything is on", icon: "grid", tone: off.length ? "amber" : "green", href: "/developer/modules" },
-    { label: "Super Admin account", value: sa ? sa.signin : "…", note: sa ? `${sa.has_2fa ? "2FA on" : "2FA not set"} · last sign-in ${whenText(sa.last_sign_in)}` : "ietreqgen@gmail.com", icon: "shield", tone: sa?.signin === "Ready" ? "green" : "red", href: "/developer/accounts" },
+    { label: "Super Admin account", value: sa ? sa.signin : "…", note: sa ? `${sa.has_2fa ? "2FA on" : "2FA not set"}, last sign-in ${whenText(sa.last_sign_in)}` : "ietreqgen@gmail.com", icon: "shield", tone: sa?.signin === "Ready" ? "green" : "red", href: "/developer/accounts" },
     { label: "Data checks", value: diag ? dataChecks : "…", note: differences === null ? "Records needing attention" : `${differences} finance difference${differences === 1 ? "" : "s"}`, icon: "activity", tone: dataChecks || differences ? "amber" : "green", href: "/admin/system-health" },
   ];
 

@@ -41,7 +41,7 @@ export default function FinanceHome() {
       {mayView ? (
         <div className="v4-cols">
           <section className="v4-card v4-card-pad">
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}><h2 className="v4-h2">Subheads to watch</h2><Link href="/finance/subheads" style={{ fontSize: 13.5 }}>All subheads</Link></div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}><h2 className="v4-h2">Subheads to watch</h2><Link className="v4-more-link" href="/finance/subheads" style={{ fontSize: 13.5 }}>All subheads</Link></div>
             {watch === null ? <Skeleton kind="rows" lines={3} /> : watch.length ? (
               <ul className="v4-util">
                 {watch.map((s) => {

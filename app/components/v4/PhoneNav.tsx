@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { canAccessPath } from "@/lib/permissions";
 import { THEME_EVENT, applyTheme, readThemeMode, type ThemeMode } from "@/lib/theme";
 import { confirmDialog, promptDialog } from "@/lib/dialog";
@@ -29,8 +29,42 @@ export function approves(roleSet: Set<string>) {
   return [...roleSet].some((r) => r !== "staff");
 }
 
-export function PhoneTabBar({ pathname, me, pending, meOpen, onMe }: { pathname: string; me: Who | null; pending: number; meOpen: boolean; onMe: () => void }) {
-  if (!me) return null;
+/**
+ * v4.6.12 (Kit K6): the orange marker slides to the chosen tab on the spring
+ * (about 450 ms, transform only). New keeps its raised button and has no
+ * marker. Reduced motion: the marker jumps.
+ */
+function placeMarker(bar: HTMLElement | null, mark: HTMLElement | null) {
+  if (!bar || !mark) return;
+  const on = bar.querySelector<HTMLElement>('[aria-current="page"], button[aria-expanded="true"]');
+  if (!on || on.querySelector(".v4-tab-fab")) { mark.classList.remove("k-on"); return; }
+  const x = on.offsetLeft + on.offsetWidth / 2 - 11;
+  const fresh = !mark.classList.contains("k-on");
+  if (fresh) mark.style.transition = "none"; // the first placement jumps; only moves between tabs slide
+  mark.style.transform = `translateX(${Math.round(x)}px)`;
+  mark.classList.add("k-on");
+  if (fresh) { void mark.offsetWidth; mark.style.transition = ""; }
+}
+
+function useTabMarker(nav: React.RefObject<HTMLElement | null>, key: string) {
+  const pill = useRef<HTMLSpanElement>(null);
+  useLayoutEffect(() => { placeMarker(nav.current, pill.current); }, [nav, key]);
+  useEffect(() => {
+    const on = () => placeMarker(nav.current, pill.current);
+    window.addEventListener("resize", on);
+    return () => window.removeEventListener("resize", on);
+  }, [nav]);
+  return pill;
+}
+
+export function PhoneTabBar(props: { pathname: string; me: Who | null; pending: number; meOpen: boolean; onMe: () => void }) {
+  if (!props.me) return null;
+  return <PhoneTabs {...props} me={props.me} />;
+}
+
+function PhoneTabs({ pathname, me, pending, meOpen, onMe }: { pathname: string; me: Who; pending: number; meOpen: boolean; onMe: () => void }) {
+  const navRef = useRef<HTMLElement>(null);
+  const pill = useTabMarker(navRef, `${pathname}|${meOpen}`);
   const isDeveloper = me.systemAccount === "developer";
   const at = (p: string) => pathname === p || pathname.startsWith(`${p}/`);
   const home = isDeveloper ? "/developer" : "/dashboard";
@@ -39,13 +73,14 @@ export function PhoneTabBar({ pathname, me, pending, meOpen, onMe }: { pathname:
   const canNew = canAccessPath("/requests/new", me.roleSet);
   const showApprovals = approves(me.roleSet) && canAccessPath("/approvals", me.roleSet);
   return (
-    <nav className="v4-tabbar" aria-label="Main">
+    <nav className="v4-tabbar k-has-pill" aria-label="Main" ref={navRef}>
+      <span className="k-pill" ref={pill} aria-hidden="true" />
       <Link href={home} aria-current={cur(pathname === home)}><Icon name="dashboard" />Home</Link>
       {canRequest ? <Link href="/requests/mine" aria-current={cur(at("/requests") && !at("/requests/new"))}><Icon name="file" />Requests</Link> : null}
       {canNew ? <Link href="/requests/new" aria-current={cur(at("/requests/new"))} aria-label="New request"><span className="v4-tab-fab"><Icon name="plus" /></span>New</Link> : null}
       {showApprovals ? (
         <Link href="/approvals" aria-current={cur(at("/approvals"))}>
-          <Icon name="shield" />Approvals{pending > 0 ? <span className="v4-tab-dot" aria-label={`${pending} waiting`} /> : null}
+          <Icon name="shield" />Approvals{pending > 0 ? <span className="v4-tab-dot k-pop" aria-label={`${pending} waiting`} /> : null}
         </Link>
       ) : null}
       <button type="button" onClick={onMe} aria-expanded={meOpen} aria-controls="v4-me-sheet"><Icon name="user" />Me</button>
@@ -154,6 +189,9 @@ function AppSettings({ version, build }: { version: string | null; build: number
           <dt>WhatsApp</dt><dd><a href="https://wa.me/2348031197746">0803 119 7746</a></dd>
           <dt>Email</dt><dd><a href="mailto:info@barderians.com.ng">info@barderians.com.ng</a></dd>
         </dl>
+      </div>
+      <div className="v4-me-card">
+        <Row href="/credits" icon="book" title="Open-source credits" sub="The software inside ReqGen" />
       </div>
     </>
   );

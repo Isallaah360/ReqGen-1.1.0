@@ -74,7 +74,7 @@ export default function ReconciliationPage() {
     setBusy(false);
     if (e) { setMsg({ tone: "red", text: e.message }); return; }
     const res = (typeof data === "string" ? JSON.parse(data) : data) as { difference?: number };
-    setMsg({ tone: Number(res?.difference || 0) === 0 ? "green" : "amber", text: Number(res?.difference || 0) === 0 ? "Statement saved — it matches the ReqGen ledger." : `Statement saved — a difference of ${nairaExact(Math.abs(Number(res.difference)))} needs explaining.` });
+    setMsg({ tone: Number(res?.difference || 0) === 0 ? "green" : "amber", text: Number(res?.difference || 0) === 0 ? "Statement saved: it matches the ReqGen ledger." : `Statement saved: a difference of ${nairaExact(Math.abs(Number(res.difference)))} needs explaining.` });
     setSel(upload.account); setUpload(null);
     await load();
   }
@@ -96,7 +96,7 @@ export default function ReconciliationPage() {
       <PageHead title="Finance Reconciliation" sub="Bank statements against the ReqGen ledger. Differences are flagged for the Auditor to explain."
         actions={[
           { label: "Upload statement", icon: "upload", kind: "secondary", onClick: () => setUpload({ account: sel || accounts[0]?.id || "", lines: [], opening: 0, closing: 0, file: "" }) },
-          { label: "Export Excel", icon: "download", kind: "secondary", disabled: !recons?.length, onClick: () => downloadXlsx(`Reconciliation_${month}`, (recons || []).map((r) => ({ name: accountName(accounts.find((a) => a.id === r.account_id)), title: `${accountName(accounts.find((a) => a.id === r.account_id))} — ${monthName(month)} · ${r.status}`, rows: (r.lines || []).map((l) => ({ Date: l.date, Details: l.details, Reference: l.ref, Out: l.out || null, In: l.in || null, Balance: l.balance, Match: l.matched || "Not matched" })) }))) },
+          { label: "Export Excel", icon: "download", kind: "secondary", disabled: !recons?.length, onClick: () => downloadXlsx(`Reconciliation_${month}`, (recons || []).map((r) => ({ name: accountName(accounts.find((a) => a.id === r.account_id)), title: `${accountName(accounts.find((a) => a.id === r.account_id))}: ${monthName(month)}, ${r.status}`, rows: (r.lines || []).map((l) => ({ Date: l.date, Details: l.details, Reference: l.ref, Out: l.out || null, In: l.in || null, Balance: l.balance, Match: l.matched || "Not matched" })) }))) },
         ]} />
       {error ? <Notice tone="red">{error}</Notice> : null}
       {msg ? <Notice tone={msg.tone}>{msg.text}</Notice> : null}
@@ -128,7 +128,7 @@ export default function ReconciliationPage() {
       {current ? (
         <section className="v4-card">
           <div className="v4-card-head">
-            <h2 className="v4-h2">Statement lines · {accountName(accounts.find((a) => a.id === current.account_id))} · {monthName(month)}</h2>
+            <h2 className="v4-h2">Statement lines, {accountName(accounts.find((a) => a.id === current.account_id))}, {monthName(month)}</h2>
             <div className="v4-segmented" role="tablist" aria-label="Show">
               <button type="button" role="tab" aria-selected={only === "all"} onClick={() => setOnly("all")}>All</button>
               <button type="button" role="tab" aria-selected={only === "unmatched"} onClick={() => setOnly("unmatched")}>Not matched <span className="v4-n">{unmatched}</span></button>
@@ -145,14 +145,14 @@ export default function ReconciliationPage() {
                     <td className="v4-r v4-num v4-debit">{l.out ? nairaExact(l.out) : ""}</td>
                     <td className="v4-r v4-num v4-credit">{l.in ? nairaExact(l.in) : ""}</td>
                     <td className="v4-r v4-num v4-hide-sm">{l.balance === null ? "" : nairaExact(l.balance)}</td>
-                    <td data-label="Match">{l.matched ? <Chip tone="green">{l.matched === "opening" ? "Opening" : `Matched · ${l.matched}`}</Chip> : <Chip tone="amber">Not matched</Chip>}</td>
+                    <td data-label="Match">{l.matched ? <Chip tone="green">{l.matched === "opening" ? "Opening" : `Matched, ${l.matched}`}</Chip> : <Chip tone="amber">Not matched</Chip>}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
           <div className="v4-card-pad">
-            {Number(current.difference || 0) !== 0 ? <p className="v4-help" style={{ margin: "0 0 12px" }}>The statement ends at {nairaExact(current.statement_closing)}; ReqGen expects {nairaExact(current.ledger_closing)}. {unmatched ? `${unmatched} line${unmatched === 1 ? " is" : "s are"} on the statement but not in ReqGen — add a manual voucher or explain.` : ""}</p> : null}
+            {Number(current.difference || 0) !== 0 ? <p className="v4-help" style={{ margin: "0 0 12px" }}>The statement ends at {nairaExact(current.statement_closing)}; ReqGen expects {nairaExact(current.ledger_closing)}. {unmatched ? `${unmatched} line${unmatched === 1 ? " is" : "s are"} on the statement but not in ReqGen: add a manual voucher or explain.` : ""}</p> : null}
             {current.explanation ? <Notice tone="blue" title="Explanation">{current.explanation}</Notice> : null}
             <div className="v4-form-actions">
               {current.status !== "Reconciled" && Number(current.difference || 0) !== 0 ? <button type="button" className="v4-btn v4-btn-secondary" onClick={() => void decide("explain")}>Explain difference</button> : null}

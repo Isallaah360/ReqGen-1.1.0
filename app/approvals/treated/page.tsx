@@ -82,7 +82,7 @@ export default function TreatedByMePage() {
                   return (
                     <tr key={`${r.item_id}-${r.acted_at}-${i}`}>
                       <td className="v4-hide-sm">{when(r.acted_at)}</td>
-                      <td><span className="v4-strong">{r.item_no || "—"}</span><span className="v4-sub">{r.title || (r.kind === "voucher" ? "Payment voucher" : "Request")}</span></td>
+                      <td><span className="v4-strong">{r.item_no || "-"}</span><span className="v4-sub">{r.title || (r.kind === "voucher" ? "Payment voucher" : "Request")}</span></td>
                       <td className="v4-r v4-num v4-strong">{r.amount ? naira(r.amount) : "-"}</td>
                       <td><Chip tone={d.tone}>{d.label}</Chip></td>
                       <td data-label="As" className="v4-hide-sm">{roleDisplayName(r.acted_as)}</td>

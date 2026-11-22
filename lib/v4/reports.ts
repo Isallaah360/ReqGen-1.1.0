@@ -25,7 +25,7 @@ export async function loadTier(role: string): Promise<Tier> {
 
 export function scopeLabel(tier: Tier, roleName: string, what = "") {
   const view = tier === "all" ? "all departments" : tier === "finance" ? `${what || "finance"} for all departments` : "your own requests";
-  return `Your view: ${view} · ${roleName}`;
+  return `Your view: ${view}, ${roleName}`;
 }
 
 export const pad = (n: number) => String(n).padStart(2, "0");

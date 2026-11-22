@@ -104,10 +104,10 @@ export default function DashboardPage() {
   const waitingTotal = (queue?.length || 0) + (vouchers?.length || 0);
 
   const stats: StatItem[] = [
-    { label: "Waiting for me", value: queue && vouchers ? waitingTotal : "…", note: `${queue?.length ?? 0} request${queue?.length === 1 ? "" : "s"} · ${vouchers?.length ?? 0} voucher${vouchers?.length === 1 ? "" : "s"}`, icon: "pen", tone: "brand", href: "/approvals" },
+    { label: "Waiting for me", value: queue && vouchers ? waitingTotal : "…", note: `${queue?.length ?? 0} request${queue?.length === 1 ? "" : "s"}, ${vouchers?.length ?? 0} voucher${vouchers?.length === 1 ? "" : "s"}`, icon: "pen", tone: "brand", href: "/approvals" },
     { label: "My requests in progress", value: mine ? open.length : "…", note: withDg ? `${withDg} with the DG` : open.length ? "Moving through approval" : "Nothing in progress", icon: "file", tone: "blue", href: "/requests/mine" },
     { label: "Approved this month", value: mine ? approvedMonth.length : "…", note: nairaShort(approvedMonth.reduce((s, r) => s + Number(r.amount || 0), 0)), icon: "check", tone: "green" },
-    { label: "Unread notifications", value: unread === null ? "—" : unread, note: newest ? `Newest ${timeAgo(newest)}` : "You are up to date", icon: "bell", tone: "amber", href: "/notifications" },
+    { label: "Unread notifications", value: unread === null ? "-" : unread, note: newest ? `Newest ${timeAgo(newest)}` : "You are up to date", icon: "bell", tone: "amber", href: "/notifications" },
   ];
 
   const reqRows = (queue || []).map((r) => ({

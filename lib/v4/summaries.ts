@@ -15,7 +15,7 @@ export type SummaryStat = { label: string; value: string; note?: string; icon: s
 /** badges: a small red chip on a tile (e.g. "1 stuck"). */
 export type Summary = { stats: SummaryStat[]; meta: Record<string, string>; badges?: Record<string, string> };
 
-const DASH = "—";
+const DASH = "-";
 
 function n(v: number | null | undefined) {
   return v === null || v === undefined ? DASH : v.toLocaleString("en-GB");
@@ -139,7 +139,7 @@ export async function financeSummary(): Promise<Summary> {
   return {
     stats: [
       { label: "Approved budget", value: nairaShort(budget), note: sub ? `${plural(sub.length, "subhead")}` : undefined, icon: "wallet", tone: "blue", href: "/finance/subheads" },
-      { label: "Spent", value: nairaShort(spent), note: issues && issues.length ? `${pct} · ${plural(issues.length, "difference")} to check` : pct, icon: "trend", tone: "brand", href: "/finance/transactions-centre?effect=Spent" },
+      { label: "Spent", value: nairaShort(spent), note: issues && issues.length ? `${pct}, ${plural(issues.length, "difference")} to check` : pct, icon: "trend", tone: "brand", href: "/finance/transactions-centre?effect=Spent" },
       { label: "Reserved", value: nairaShort(reserved), note: "Approved, not yet paid", icon: "clock", tone: "amber", href: "/finance/subheads" },
       { label: "Bank cash", value: nairaShort(cash), note: acc ? plural(acc.length, "IET account") : undefined, icon: "landmark", tone: "green", href: "/finance/manage-accounts" },
     ],
@@ -177,10 +177,10 @@ export async function vouchersSummary(): Promise<Summary> {
     meta: {
       "/payment-vouchers/centre": plural(rows.length, "voucher"),
       "/payment-vouchers/pending": `${signing.length} in signing`,
-      "/payment-vouchers/approved": `${ready.length} · ${nairaShort(ready.reduce((s, r) => s + amt(r), 0))}`,
+      "/payment-vouchers/approved": `${ready.length}, ${nairaShort(ready.reduce((s, r) => s + amt(r), 0))}`,
       "/payment-vouchers/history": `${paidAll.length} paid`,
       "/payment-vouchers/print-centre": `${ready.length + paidAll.length} ready`,
-      "/payment-vouchers/settings": "Super Admin · Auditor",
+      "/payment-vouchers/settings": "Super Admin, Auditor",
     },
   };
 }
@@ -271,7 +271,7 @@ export async function auditSummary(): Promise<Summary> {
   return {
     stats: [
       { label: "Events today", value: n(t), note: "Sign-ins, approvals, edits", icon: "activity", tone: "blue", href: "/audit-centre/logs" },
-      { label: "Stamps applied", value: stamps.error ? DASH : n(stamps.count ?? 0), note: "This week · all by the DG", icon: "pentool", tone: "brand", href: "/audit-centre/logs?tab=stamp" },
+      { label: "Stamps applied", value: stamps.error ? DASH : n(stamps.count ?? 0), note: "This week, all by the DG", icon: "pentool", tone: "brand", href: "/audit-centre/logs?tab=stamp" },
       { label: "To reconcile", value: recon.error ? DASH : n(open), note: open ? "Differences to explain" : "All matched", icon: "scale", tone: "amber", href: "/audit-centre/reconciliation" },
       { label: "Last backup", value: last ? new Date(last.created_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : DASH, note: last ? new Date(last.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" }) : "No backup yet", icon: "database", tone: "green", href: "/audit-centre/backup" },
     ],

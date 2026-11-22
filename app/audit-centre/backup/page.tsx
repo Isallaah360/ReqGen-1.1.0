@@ -40,7 +40,7 @@ function logTitle(l: LogRow) {
   if (l.action === "preview") return `Previewed ${fy}`;
   if (l.mode === "nightly") return "Nightly backup";
   if (l.mode === "pre-reset") return "Backup before a financial reset";
-  if (l.mode === "year-end") return `Year-end copy — ${fy}`;
+  if (l.mode === "year-end") return `Year-end copy: ${fy}`;
   if (l.mode === "download") return `Downloaded ${fy}`;
   return `Backed up ${fy}`;
 }
@@ -140,7 +140,7 @@ export default function MasterBackupPage() {
     finally { setBusy(""); }
   }
 
-  const storedOptions = [{ value: "", label: file ? "Using the file you chose" : "Choose a stored backup" }, ...stored.map((s) => ({ value: s.storage_path, label: `${when(s.created_at)} · ${s.financial_year && s.financial_year !== "all" ? `FY ${s.financial_year}` : "All years"} · ${size(s.bytes)}${s.mode === "nightly" ? " · nightly" : s.mode === "year-end" ? " · year end" : ""}` }))];
+  const storedOptions = [{ value: "", label: file ? "Using the file you chose" : "Choose a stored backup" }, ...stored.map((s) => ({ value: s.storage_path, label: `${when(s.created_at)}, ${s.financial_year && s.financial_year !== "all" ? `FY ${s.financial_year}` : "All years"}, ${size(s.bytes)}${s.mode === "nightly" ? ", nightly" : s.mode === "year-end" ? ", year end" : ""}` }))];
 
   return (
     <V4Page>
@@ -170,8 +170,8 @@ export default function MasterBackupPage() {
       </section>
 
       {result ? (
-        <Card title={`${result.mode === "preview" ? "Preview" : "Restore result"} — ${result.file}`}>
-          <p className="v4-muted" style={{ margin: "0 18px 10px" }}>Financial year in file: {result.year || "—"} · {result.totals.inFile} records · {result.totals.missing} not in ReqGen{result.mode !== "preview" ? ` · ${result.totals.written} written` : ""}</p>
+        <Card title={`${result.mode === "preview" ? "Preview" : "Restore result"}: ${result.file}`}>
+          <p className="v4-muted" style={{ margin: "0 18px 10px" }}>Financial year in file: {result.year || "-"}, {result.totals.inFile} records, {result.totals.missing} not in ReqGen{result.mode !== "preview" ? `, ${result.totals.written} written` : ""}</p>
           <div className="v4-table-wrap">
             <table className="v4-data v4-stack">
               <thead><tr><th>Table</th><th className="v4-num">In backup</th><th className="v4-num">In ReqGen</th><th className="v4-num">Missing now</th>{result.mode !== "preview" ? <th className="v4-num">Written</th> : null}<th>Status</th></tr></thead>
@@ -194,8 +194,8 @@ export default function MasterBackupPage() {
                 <tbody>{log.map((l) => (
                   <tr key={l.id}>
                     <td className="v4-num">{new Date(l.created_at).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</td>
-                    <td><span className="v4-strong">{logTitle(l)}</span><span className="v4-sub">{l.mode === "nightly" ? "System" : l.actor_name || "—"}</span></td>
-                    <td className="v4-hide-sm" data-label="Details">{l.action === "backup" ? `${size(l.bytes ?? (l.summary?.bytes as number | undefined))}${tablesOf(l.summary) ? ` · ${tablesOf(l.summary)} tables` : ""}` : `${String(l.summary?.inFile ?? "—")} records`}</td>
+                    <td><span className="v4-strong">{logTitle(l)}</span><span className="v4-sub">{l.mode === "nightly" ? "System" : l.actor_name || "-"}</span></td>
+                    <td className="v4-hide-sm" data-label="Details">{l.action === "backup" ? `${size(l.bytes ?? (l.summary?.bytes as number | undefined))}${tablesOf(l.summary) ? `, ${tablesOf(l.summary)} tables` : ""}` : `${String(l.summary?.inFile ?? "-")} records`}</td>
                     <td>{logChip(l)}</td>
                   </tr>
                 ))}</tbody>

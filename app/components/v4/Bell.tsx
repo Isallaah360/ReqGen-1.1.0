@@ -11,6 +11,7 @@ import {
 } from "@/lib/notifications";
 import type { Tone } from "@/lib/v4/modules";
 import Icon from "./Icon";
+import MotionList from "@/app/components/kit/MotionList";
 import { Skeleton } from "./ui";
 import { alertDialog } from "@/lib/dialog";
 
@@ -180,7 +181,7 @@ export default function Bell({ userId, pendingApprovalCount, onUnread }: { userI
         onClick={() => { setOpen((o) => !o); if (!open) { setLoading(items.length === 0); void refresh(); } }}
       >
         <span key={ring} className={ring ? "v4-bell-ring" : undefined} style={{ display: "inline-flex" }}><Icon name="bell" /></span>
-        {badge > 0 ? <span className="v4-dot">{badge > 99 ? "99+" : badge}</span> : null}
+        {badge > 0 ? <span key={badge} className="v4-dot k-pop">{badge > 99 ? "99+" : badge}</span> : null}
       </button>
 
       {mounted && open ? createPortal(
@@ -199,11 +200,11 @@ export default function Bell({ userId, pendingApprovalCount, onUnread }: { userI
               </li>
             </ul>
           ) : null}
-          <ul className="v4-rows">
+          <MotionList className="v4-rows">
             {loading ? <li><Skeleton kind="rows" lines={3} /></li> : null}
             {!loading && items.length === 0 ? <li><span className="v4-muted">No notifications yet. Updates on your requests and vouchers will appear here.</span></li> : null}
             {items.map((n) => <NoticeLine key={n.id} n={n} onOpen={openItem} />)}
-          </ul>
+          </MotionList>
           <footer><Link href="/notifications" onClick={() => setOpen(false)}>Open all notifications <Icon name="right" size="sm" /></Link></footer>
         </div>, document.body
       ) : null}

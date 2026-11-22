@@ -59,15 +59,15 @@ function Trace() {
   const total = steps && steps.length > 1 ? new Date(steps[steps.length - 1].at).getTime() - new Date(steps[0].at).getTime() : 0;
   const people = new Set((steps || []).map((s) => s.who.split(" · ")[0].split(" — ")[0]).filter(Boolean));
   const stats: StatItem[] = [
-    { label: "Start to last step", value: steps ? (total ? `${(total / 86400000).toFixed(1)} days` : "—") : "…", note: "Target 5 days", icon: "clock", tone: "blue" },
+    { label: "Start to last step", value: steps ? (total ? `${(total / 86400000).toFixed(1)} days` : "-") : "…", note: "Target 5 days", icon: "clock", tone: "blue" },
     { label: "People involved", value: steps ? people.size : "…", note: "Who signed or acted", icon: "users", tone: "brand" },
-    { label: "Slowest step", value: slowest ? slowest.title.replace(/ by the Director General| by the Auditor/, "").slice(0, 26) : "—", note: slowest ? gapText(slowest.ms) : undefined, icon: "alert", tone: "amber" },
+    { label: "Slowest step", value: slowest ? slowest.title.replace(/ by the Director General| by the Auditor/, "").slice(0, 26) : "-", note: slowest ? gapText(slowest.ms) : undefined, icon: "alert", tone: "amber" },
     { label: "IET stamps", value: steps ? steps.filter((s) => s.stamped).length : "…", note: "Request + voucher", icon: "pentool", tone: "green" },
   ];
 
   return (
     <V4Page>
-      <PageHead title="Workflow Trace" sub="Type any request or voucher number to see its full journey — every step, who did it and how long it took."
+      <PageHead title="Workflow Trace" sub="Type any request or voucher number to see its full journey: every step, who did it and how long it took."
         actions={[{ label: "Print A4", icon: "printer", kind: "secondary", disabled: !steps?.length, onClick: () => void printA4Sheet(box.current, `Workflow trace ${no}`) }]} />
       <section className="v4-card v4-card-pad">
         <form onSubmit={(e) => { e.preventDefault(); run(no); }} style={{ display: "flex", gap: 10, alignItems: "flex-end", flexWrap: "wrap" }}>
@@ -105,7 +105,7 @@ function Trace() {
             </section>
           </article>
         </>
-      ) : !error ? <Notice tone="blue">Comments and request contents are not shown here — only who acted, in which position, and when.</Notice> : null}
+      ) : !error ? <Notice tone="blue">Comments and request contents are not shown here: only who acted, in which position, and when.</Notice> : null}
     </V4Page>
   );
 }

@@ -42,15 +42,24 @@ export async function newerRelease(): Promise<AppRelease | null> {
   return latest.build > mine.build ? latest : null;
 }
 
-/** Downloads the APK with progress (0 to 100), then Android asks to Install. */
-export async function downloadAndInstall(release: AppRelease, onProgress: (pct: number) => void) {
+/**
+ * Downloads the APK with progress (0 to 100, plus bytes so far and the full
+ * size), then Android asks to Install. v4.6.12 (Kit K3): when `cancelled()`
+ * says yes by the time the file is in, the installer is not opened and the
+ * file is deleted.
+ */
+export async function downloadAndInstall(release: AppRelease, onProgress: (pct: number, bytes?: number, total?: number) => void, cancelled?: () => boolean) {
   const [{ Filesystem, Directory }, { FileOpener }] = await Promise.all([import("@capacitor/filesystem"), import("@capacitor-community/file-opener")]);
   const url = new URL(release.apk || "/downloads/ReqGen.apk", window.location.origin).href;
   const listener = await Filesystem.addListener("progress", (p) => {
-    if (p.contentLength > 0) onProgress(Math.min(100, Math.round((p.bytes / p.contentLength) * 100)));
+    if (p.contentLength > 0) onProgress(Math.min(100, Math.round((p.bytes / p.contentLength) * 100)), p.bytes, p.contentLength);
   });
   try {
     await Filesystem.downloadFile({ url, path: "ReqGen-update.apk", directory: Directory.Cache, progress: true });
+    if (cancelled?.()) {
+      await Filesystem.deleteFile({ path: "ReqGen-update.apk", directory: Directory.Cache }).catch(() => undefined);
+      return;
+    }
     onProgress(100);
     const { uri } = await Filesystem.getUri({ path: "ReqGen-update.apk", directory: Directory.Cache });
     await FileOpener.open({ filePath: uri, contentType: "application/vnd.android.package-archive" });

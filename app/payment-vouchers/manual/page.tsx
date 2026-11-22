@@ -257,7 +257,7 @@ function ManualVoucher() {
           <div className="v4-section-title" style={{ marginTop: 22 }}><span className="v4-no">3</span><h2 className="v4-h2">Attachment</h2></div>
           <input ref={fileInput} type="file" accept="application/pdf,image/*" multiple hidden onChange={(e) => { addFiles(e.target.files); e.target.value = ""; }} />
           <button type="button" className="v4-dropzone v4-dropzone-btn" onClick={() => fileInput.current?.click()}><Icon name="upload" /><span>Add the bill or receipt, PDF or picture</span></button>
-          {files.length ? <ul className="v4-files">{files.map((f, i) => <li key={`${f.name}-${i}`}><span className="v4-fi">{f.type.includes("pdf") ? "PDF" : "IMG"}</span><span className="v4-ft"><strong>{f.name}</strong><span>{Math.ceil(f.size / 1024)} KB · uploads when you save</span></span><button type="button" className="v4-btn v4-btn-ghost" onClick={() => setFiles((all) => all.filter((_, j) => j !== i))}>Remove</button></li>)}</ul> : null}
+          {files.length ? <ul className="v4-files">{files.map((f, i) => <li key={`${f.name}-${i}`}><span className="v4-fi">{f.type.includes("pdf") ? "PDF" : "IMG"}</span><span className="v4-ft"><strong>{f.name}</strong><span>{Math.ceil(f.size / 1024)} KB, uploads when you save</span></span><button type="button" className="v4-btn v4-btn-ghost" onClick={() => setFiles((all) => all.filter((_, j) => j !== i))}>Remove</button></li>)}</ul> : null}
 
           <div className="v4-form-actions">
             <button type="button" className="v4-btn v4-btn-ghost" onClick={() => router.push("/payment-vouchers/centre")}>Cancel</button>

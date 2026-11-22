@@ -62,7 +62,7 @@ export function pvNowWith(v: Voucher) {
     case "counter": return v.cheque_counter_signed_by_name || v.counter_signatory_name || "Counter Signer";
     case "dg": return "Director General";
     case "ready": case "returned": return v.prepared_by_name ? `${v.prepared_by_name} (Account)` : "Account Officer";
-    default: return "—";
+    default: return "-";
   }
 }
 
@@ -70,8 +70,8 @@ export function pvInSigning(status: string | null | undefined) { return ["check"
 
 export function pvMode(v: Voucher) {
   const m = v.disbursement_mode || "Transfer";
-  if (m === "Transfer") return Number(v.payee_count || 1) > 1 ? `Transfer · ${v.payee_count} accounts` : `Transfer${v.transfer_bank_name ? ` · ${v.transfer_bank_name}` : ""}`;
-  if (m === "Cheque") return `Cheque${v.cheque_no ? ` ${v.cheque_no}` : ""}${v.bank_name ? ` · ${v.bank_name}` : ""}`;
+  if (m === "Transfer") return Number(v.payee_count || 1) > 1 ? `Transfer, ${v.payee_count} accounts` : `Transfer${v.transfer_bank_name ? `, ${v.transfer_bank_name}` : ""}`;
+  if (m === "Cheque") return `Cheque${v.cheque_no ? ` ${v.cheque_no}` : ""}${v.bank_name ? `, ${v.bank_name}` : ""}`;
   return "Cash";
 }
 

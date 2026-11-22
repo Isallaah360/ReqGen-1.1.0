@@ -16,7 +16,7 @@ export function fyLabel(startYear: number) {
 }
 
 export function fyRangeText(startYear: number) {
-  return `1 Sep ${startYear} – 31 Aug ${startYear + 1}`;
+  return `1 Sep ${startYear} to 31 Aug ${startYear + 1}`;
 }
 
 /** ISO bounds [from, to) for database filters. */

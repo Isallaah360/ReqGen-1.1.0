@@ -17,6 +17,7 @@ export const PUBLIC_PATHS = [
   "/unauthorized",
   "/app",
   "/console",
+  "/credits",
 ];
 
 /**

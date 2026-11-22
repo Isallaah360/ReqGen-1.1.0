@@ -318,7 +318,7 @@ function CorrectRequest({ id }: { id: string }) {
 
   const subOptions = subs.map((s) => {
     const avail = s.approved_allocation !== undefined ? Number(s.approved_allocation || 0) - Number(s.reserved_amount || 0) - Number(s.expenditure || 0) : null;
-    return { value: s.id, label: `${s.code ? `${s.code} — ` : ""}${s.name}`, hint: seeBalances && avail !== null ? `Available ${nairaExact(avail)}` : undefined };
+    return { value: s.id, label: `${s.code ? `${s.code}: ` : ""}${s.name}`, hint: seeBalances && avail !== null ? `Available ${nairaExact(avail)}` : undefined };
   });
   const currentSub = subs.find((s) => s.id === (req.subhead_id || ""));
 

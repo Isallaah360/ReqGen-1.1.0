@@ -165,13 +165,13 @@ function Ledgers() {
         {accTx === null ? <Skeleton lines={6} /> : paged.length ? (
           <div className="v4-table-wrap">
             <table className="v4-data v4-stack">
-              <thead><tr><th>Date</th><th>Reference · description</th>{view === "all" ? <th className="v4-hide-sm">Account</th> : null}<th className="v4-r">Money in</th><th className="v4-r">Money out</th><th className="v4-r">Balance</th></tr></thead>
+              <thead><tr><th>Date</th><th>Reference, description</th>{view === "all" ? <th className="v4-hide-sm">Account</th> : null}<th className="v4-r">Money in</th><th className="v4-r">Money out</th><th className="v4-r">Balance</th></tr></thead>
               <tbody>
                 {paged.map((e) => (
                   <tr key={e.key}>
                     <td className="v4-hide-sm">{day(e.at)}</td>
                     <td><span className="v4-strong">{e.link ? <Link href={e.link}>{e.ref}</Link> : e.ref}</span><span className="v4-sub">{e.text}</span></td>
-                    {view === "all" ? <td className="v4-hide-sm">{e.account || "—"}</td> : null}
+                    {view === "all" ? <td className="v4-hide-sm">{e.account || "-"}</td> : null}
                     <td className="v4-r v4-num v4-credit">{e.inAmt ? naira(e.inAmt) : ""}</td>
                     <td className="v4-r v4-num v4-debit">{e.outAmt ? naira(e.outAmt) : ""}</td>
                     <td className="v4-r v4-num v4-strong" data-label="Balance">{naira(e.balance)}</td>

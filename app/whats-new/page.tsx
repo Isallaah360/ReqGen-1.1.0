@@ -21,7 +21,7 @@ export default function WhatsNewPage() {
       <Card>
         {rows === null ? <div className="v4-card-body"><Skeleton lines={5} /></div> : rows.length ? rows.map((r) => (
           <article key={r.id} className="v4-release">
-            <h3><span className="v4-mono">{r.version}</span> · {r.title} {r.version === REQGEN_VERSION ? <Chip tone="green">You are using this</Chip> : null}</h3>
+            <h3><span className="v4-mono">{r.version}</span>, {r.title} {r.version === REQGEN_VERSION ? <Chip tone="green">You are using this</Chip> : null}</h3>
             <small className="v4-muted">{whenText(r.published_at)}</small>
             <p>{r.notes}</p>
           </article>
