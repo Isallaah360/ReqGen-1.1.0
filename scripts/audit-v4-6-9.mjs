@@ -9,7 +9,8 @@ const check = (label, ok) => results.push([label, !!ok]);
 
 const approval = read("app/api/notifications/sms/request-approval/route.ts");
 const event = read("app/api/notifications/sms/request-event/route.ts");
-const otp = read("app/api/otp/request-submission/send/route.ts");
+// v4.7.0: every code (old and new routes) goes through the one code service.
+const otp = read("lib/server/codeService.ts");
 const work = read("app/components/requests/RequestDetailsWorkspace.tsx");
 const newReq = read("app/requests/new/page.tsx");
 const editReq = read("app/requests/[id]/edit/page.tsx");
@@ -66,7 +67,7 @@ check("Delete: written to the Audit Log", del.includes('adminLog(ctx, "Deactivat
 check("Delete: button only on a deactivated account, for the Super Admin", staff.includes("!person.is_active && iAmSuperAdmin") && staff.includes("challengeAndVerify"));
 
 // 6. Release
-check("Version 4.6.9 or a later 4.6 release", /REQGEN_SEMVER = "4\.6\.(9|[1-9]\d)"/.test(read("lib/version.ts")) && /"version": "4\.6\.(9|[1-9]\d)"/.test(read("package.json")));
+check("Version 4.6.9 or later", /REQGEN_SEMVER = "4\.(6\.(9|[1-9]\d)|([7-9]|[1-9]\d)\.\d+)"/.test(read("lib/version.ts")) && /"version": "4\.(6\.(9|[1-9]\d)|([7-9]|[1-9]\d)\.\d+)"/.test(read("package.json")));
 check("No .env file shipped", !fs.existsSync(".env") || read(".gitignore").includes(".env"));
 
 let failed = 0;

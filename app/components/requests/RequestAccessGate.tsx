@@ -37,7 +37,7 @@ export default function RequestAccessGate({ requestId, children }: { requestId: 
       const user = auth.user;
       if (!user) { if (alive) setState({ phase: "denied", reason: "not-involved" }); return; }
 
-      const [requestRes, historyRes, active, profile] = await Promise.all([
+      const [requestRes, historyRes, active, profile, directRes] = await Promise.all([
         supabase
           .from("requests")
           .select("created_by,current_owner,current_stage,status,assigned_account_officer_id,assigned_account_officer_user_id")
@@ -46,6 +46,8 @@ export default function RequestAccessGate({ requestId, children }: { requestId: 
         supabase.from("request_history").select("action_by").eq("request_id", requestId).limit(1000),
         getActiveRole(user.id),
         supabase.from("profiles").select("role").eq("id", user.id).maybeSingle(),
+        // v4.7.0: the people a Direct request was sent to may open it (read only), like the person holding it.
+        supabase.from("reqgen_direct_recipients").select("user_id").eq("request_id", requestId).eq("user_id", user.id).limit(1),
       ]);
       if (!alive) return;
       if (requestRes.error || !requestRes.data) { setState({ phase: "denied", reason: "not-found" }); return; }
@@ -55,6 +57,7 @@ export default function RequestAccessGate({ requestId, children }: { requestId: 
         userId: user.id,
         activeRole: active?.active_role_key || String(profile.data?.role || "staff"),
         actorIds: ((historyRes.data || []) as Array<{ action_by?: string | null }>).map((row) => row.action_by),
+        directReceiver: !directRes.error && (directRes.data || []).length > 0,
       });
       setState(decision.allowed ? { phase: "allowed" } : { phase: "denied", reason: decision.reason });
     }

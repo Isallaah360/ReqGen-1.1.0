@@ -32,6 +32,7 @@ export type RequestAccessReason =
   | "you-acted"
   | "account-officer"
   | "oversight"
+  | "direct-receiver"
   | "registry-movement-only"
   | "not-involved";
 
@@ -40,16 +41,20 @@ export function evaluateRequestAccess({
   userId,
   activeRole,
   actorIds,
+  directReceiver = false,
 }: {
   request: RequestAccessFacts;
   userId: string;
   activeRole: string;
   actorIds: Iterable<string | null | undefined>;
+  /** v4.7.0: one of the people a Direct request was sent to (reqgen_direct_recipients). */
+  directReceiver?: boolean;
 }): { allowed: boolean; reason: RequestAccessReason } {
   const role = queueRoleKey(activeRole);
   if (role === "registry") return { allowed: false, reason: "registry-movement-only" };
   if (request.created_by && request.created_by === userId) return { allowed: true, reason: "requester" };
   if (isAwaitingUser(request, userId, role)) return { allowed: true, reason: "awaiting-you" };
+  if (directReceiver) return { allowed: true, reason: "direct-receiver" };
   for (const id of actorIds) if (id && id === userId) return { allowed: true, reason: "you-acted" };
   if (isAssignedAccountOfficer(request, userId)) return { allowed: true, reason: "account-officer" };
   if (REQUEST_OVERSIGHT_ROLES.has(role)) return { allowed: true, reason: "oversight" };

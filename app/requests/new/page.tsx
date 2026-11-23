@@ -18,6 +18,7 @@ import { Notice, PageHead, Skeleton, V4Page } from "@/app/components/v4/ui";
 import { celebrate, useCelebrate } from "@/app/components/v4/Motion";
 import BusyButton from "@/app/components/kit/BusyButton";
 import { toast } from "@/lib/toast";
+import { confirmWithCode } from "@/lib/codeConfirm";
 
 /**
  * ReqGen v4.1.2 — New Request (mock-ups 25a and 25).
@@ -57,7 +58,6 @@ const MAX_FILES = 50;
 const MAX_MB = 10;
 const ACCEPT = ".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.webp,.txt";
 
-const otpEnabled = process.env.NEXT_PUBLIC_REQGEN_REQUEST_OTP_ENABLED === "true";
 // v4.6.9: SMS and email are switched on and off on the server (SENDCHAMP_SMS_ENABLED, SENDCHAMP_EMAIL_ENABLED);
 // the screen only stops when this optional switch is set to "false".
 const notificationsEnabled = process.env.NEXT_PUBLIC_REQGEN_NOTIFICATIONS_ENABLED !== "false";
@@ -369,8 +369,9 @@ function NewRequest() {
       confirmLabel: "Sign and submit",
     });
     if (!ok) return;
-    if (!otpEnabled) { await submitNow(); return; }
-    await sendCode();
+    // v4.7.0: every request needs the 6-digit code sent by SMS and e-mail (checked by the server).
+    if (!(await confirmWithCode("send this request"))) { setMsg({ tone: "amber", text: "Not sent: the code was not entered." }); return; }
+    await submitNow();
   }
 
   async function sendCode() {

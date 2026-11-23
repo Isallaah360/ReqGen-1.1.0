@@ -93,3 +93,27 @@ Use a test request. Sign in as each officer in turn.
 - **Page-by-page check:** before release, all 134 pages were opened at phone size (360 px) and laptop size (1280 px), in light and dark. Each was checked for errors, sideways scrolling, browser pop-ups, long dashes and dot bullets, purple, text contrast (4.5:1) and 44 px tap targets on phones. What it found is fixed and listed in CHANGELOG.md under "Fixed".
 - **Layout shift:** the Kit's motion never moves the layout. It animates only transform and opacity, and the tests measured 0 shift after a page has loaded, including during approve, the toasts and the success tick. While a page first loads its data, some content still settles into place. This was already so in v4.6.11, and this release reduces it (the footer no longer jumps). Removing it fully needs each page's loading shapes matched to its real content, and that can be a later patch.
 - **"You have 1.0.1"** in the update box shows only inside the real app.
+
+## App 1.0.2: fix for "You are offline" (22 Nov 2026)
+
+**Why:** the installed app was built from the old files. They open `reqgen.barderians.com.ng`, which Vercel never approved, so every launch failed and showed the offline screen. You can tell that screen is the old one because its logo shows as a broken picture.
+
+`ReqGen_App_Kit_Fix3.zip` makes the build stop unless the app opens `https://ietreqgen.barderians.com.ng`. It checks this before building, after Capacitor prepares the project, and inside the finished APK. It also deletes any older build first, and raises the app to **1.0.2 (build 3)**. The offline screen now shows the app version and the address it opens.
+
+1. Close Command Prompt. Unzip `ReqGen_App_Kit_Fix3.zip` into `C:\Projects\reqgen-web` and choose **Replace** for every file. It contains only the `mobile` folder.
+2. Double-click `mobile\MAKE_APP.bat` and type the ReqGen key password. It must end with these two lines:
+   - **Checked inside the APK: it opens https://ietreqgen.barderians.com.ng (app 1.0.2, build 3)**
+   - **DONE: ReqGen.apk 1.0.2 (build 3) is ready …**
+3. Push:
+   ```
+   cd C:\Projects\reqgen-web
+   git add -A
+   git commit -m "ReqGen app 1.0.2: opens ietreqgen.barderians.com.ng"
+   git push origin main
+   ```
+4. On the phone:
+   - uninstall the old ReqGen app (Settings, Apps, ReqGen, Uninstall);
+   - wait for Vercel **Ready**;
+   - open `https://ietreqgen.barderians.com.ng/app` and confirm it says **Download ReqGen 1.0.2**;
+   - download and install.
+5. Open ReqGen. It shows the sign-in page. If the offline screen ever shows on a working network, the small text under **Try again** says the version and address: send me a photo of it.

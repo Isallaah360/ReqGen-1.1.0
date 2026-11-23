@@ -35,7 +35,7 @@ const reqGenAuthLock: LockFunc = async <R>(
   }
 };
 
-export const supabase = createClient(
+const client = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
   {
@@ -49,3 +49,25 @@ export const supabase = createClient(
     },
   },
 );
+
+/**
+ * ReqGen v4.7.0: when the database asks for the 6-digit code (REQGEN_CODE_REQUIRED),
+ * ask for it and try the same call once more. Pages normally ask first; this
+ * catches any action that did not.
+ */
+type RpcArgs = Parameters<typeof client.rpc>;
+const plainRpc = client.rpc.bind(client);
+client.rpc = ((...args: RpcArgs) => {
+  const builder = plainRpc(...args);
+  const firstThen = builder.then.bind(builder);
+  (builder as unknown as { then: unknown }).then = (onOk?: (v: unknown) => unknown, onErr?: (e: unknown) => unknown) =>
+    firstThen(async (res: { error: { message?: string } | null }) => {
+      if (typeof window === "undefined" || !res?.error || !/REQGEN_CODE_REQUIRED/.test(String(res.error.message || ""))) return res;
+      const { confirmWithCode } = await import("@/lib/codeConfirm");
+      if (!(await confirmWithCode("confirm this action"))) return { ...res, error: { ...res.error, message: "Not done: the code was not entered." } };
+      return await plainRpc(...args);
+    }).then(onOk, onErr);
+  return builder;
+}) as typeof client.rpc;
+
+export const supabase = client;

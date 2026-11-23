@@ -23,13 +23,8 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
-            <!-- ReqGen links (SMS, email, WhatsApp) open in the app once assetlinks.json is on the website -->
-            <intent-filter android:autoVerify="true">
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="https" android:host="ietreqgen.barderians.com.ng" />
-            </intent-filter>
+            <!-- ReqGen 2.0.0: website links (password reset, print, Finance) open in the phone's browser,
+                 not in the app. The app's screens are inside it and do not open web addresses. -->
 
         </activity>
 

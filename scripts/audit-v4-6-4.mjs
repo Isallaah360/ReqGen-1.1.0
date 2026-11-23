@@ -40,7 +40,7 @@ check("Passcode input opens the keyboard on tap and takes numbers only", pad.inc
 check("No show/hide eye over the passcode boxes", pad.includes('data-rg-reveal="off"') && read("app/components/PasswordReveal.tsx").includes(":not([data-rg-reveal])"));
 check("Login and passcode set-up use the keyboard entry", read("app/login/LoginView.tsx").includes("<PasscodePad") && read("app/profile/passcode/page.tsx").includes("<PasscodePad"));
 
-check("Version 4.6.4 or a later 4.6 release", /REQGEN_SEMVER = "4\.6\.([4-9]|[1-9]\d)"/.test(read("lib/version.ts")) && /"version": "4\.6\.([4-9]|[1-9]\d)"/.test(read("package.json")));
+check("Version 4.6.4 or later", /REQGEN_SEMVER = "4\.(6\.([4-9]|[1-9]\d)|([7-9]|[1-9]\d)\.\d+)"/.test(read("lib/version.ts")) && /"version": "4\.(6\.([4-9]|[1-9]\d)|([7-9]|[1-9]\d)\.\d+)"/.test(read("package.json")));
 check("No .env file shipped", !fs.existsSync(".env") || read(".gitignore").includes(".env"));
 
 let failed = 0;

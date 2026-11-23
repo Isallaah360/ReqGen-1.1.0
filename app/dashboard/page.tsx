@@ -66,17 +66,21 @@ export default function DashboardPage() {
     if (!me.ready || !me.userId) return;
     let alive = true;
     const load = async () => {
-      const [own, visible, pv, count, list, history] = await Promise.all([
+      const [own, visible, pv, count, list, history, direct] = await Promise.all([
         supabase.from("requests").select("id,request_no,title,amount,status,current_stage,current_owner,created_at").eq("created_by", me.userId).order("created_at", { ascending: false }).limit(300),
         supabase.from("requests").select("id,request_no,title,amount,status,current_stage,current_owner,assigned_account_officer_id,assigned_account_officer_user_id,created_at").order("created_at", { ascending: true }).limit(2000),
         supabase.rpc("get_payment_vouchers_assigned_to_me"),
         countUnread(me.userId),
         fetchNotifications(me.userId, { limit: 1 }),
         supabase.rpc("reqgen_treated_by_me", { p_limit: 5 }),
+        supabase.rpc("reqgen_direct_waiting"),
       ]);
       if (!alive) return;
       setMine(own.error ? [] : (own.data || []) as Req[]);
-      setQueue(visible.error ? [] : ((visible.data || []) as Req[]).filter((r) => isAwaitingUser(r, me.userId, me.role)));
+      const routed = visible.error ? [] : ((visible.data || []) as Req[]).filter((r) => isAwaitingUser(r, me.userId, me.role));
+      // v4.7.0: Direct requests waiting for my answer
+      const directQ = direct.error ? [] : ((direct.data || []) as Req[]).filter((d) => !routed.some((r) => r.id === d.id)).map((d) => ({ ...d, status: "Direct, waiting for your answer", current_stage: "Submitted" }));
+      setQueue([...routed, ...directQ]);
       setVouchers(pv.error ? [] : ((pv.data || []) as Pv[]).filter((v) => String(v.status || "").startsWith("Pending")));
       setUnread(count);
       setNewest(list.items[0]?.createdAt || null);

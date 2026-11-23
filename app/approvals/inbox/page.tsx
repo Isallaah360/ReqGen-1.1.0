@@ -25,6 +25,7 @@ function typeOf(r: Row) {
 export default function RequestsToApprovePage() {
   const me = useIdentity();
   const [rows, setRows] = useState<Row[] | null>(null);
+  const [directRows, setDirectRows] = useState<Row[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [depts, setDepts] = useState<Record<string, string>>({});
   const [treated, setTreated] = useState<Treated[] | null>(null);
@@ -37,13 +38,16 @@ export default function RequestsToApprovePage() {
 
   const load = useCallback(async () => {
     if (!me.userId) return;
-    const [list, d, t] = await Promise.all([
+    const [list, d, t, dw] = await Promise.all([
       supabase.from("requests")
         .select("id,request_no,title,amount,status,current_stage,current_owner,assigned_account_officer_id,assigned_account_officer_user_id,created_at,request_type,personal_category,requester_name,dept_id")
         .order("created_at", { ascending: true }).limit(3000),
       supabase.from("departments").select("id,name"),
       supabase.rpc("reqgen_treated_by_me", { p_limit: 1000 }),
+      supabase.rpc("reqgen_direct_waiting"),
     ]);
+    // v4.7.0: Direct requests waiting for my answer join the list
+    setDirectRows(dw.error ? [] : ((dw.data || []) as Array<Partial<Row> & { id: string }>).map((x) => ({ ...x, status: "Direct, waiting for your answer", current_stage: "Submitted", current_owner: me.userId, request_type: "Direct", personal_category: null } as Row)));
     setError(list.error ? list.error.message : null);
     setRows(list.error ? [] : (list.data || []) as Row[]);
     setDepts(Object.fromEntries(((d.data || []) as Array<{ id: string; name: string }>).map((x) => [x.id, x.name])));
@@ -58,7 +62,7 @@ export default function RequestsToApprovePage() {
     return () => window.removeEventListener(APPROVAL_QUEUE_CHANGED_EVENT, again);
   }, [me.ready, load]);
 
-  const waiting = useMemo(() => (rows || []).filter((r) => isAwaitingUser(r, me.userId, me.role)), [rows, me.userId, me.role]);
+  const waiting = useMemo(() => [...(rows || []).filter((r) => isAwaitingUser(r, me.userId, me.role)), ...directRows.filter((d) => !(rows || []).some((r) => r.id === d.id && isAwaitingUser(r, me.userId, me.role)))], [rows, directRows, me.userId, me.role]);
   const heldElsewhere = useMemo(() => (rows || []).filter((r) => isHeldElsewhere(r, me.userId, me.role)), [rows, me.userId, me.role]);
   const shown = useMemo(() => {
     const term = q.trim().toLowerCase();

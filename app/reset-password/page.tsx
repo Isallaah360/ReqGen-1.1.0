@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Suspense, useEffect, useState, type FormEvent } from "react";
+import { Suspense, useCallback, useEffect, useState, type FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { passwordStrength } from "@/lib/v4/passwordStrength";
@@ -17,7 +17,8 @@ import { useCelebrate } from "@/app/components/v4/Motion";
 function Content() {
   const router = useRouter();
   const params = useSearchParams();
-  const [state, setState] = useState<"checking" | "ready" | "bad">("checking");
+  const [state, setState] = useState<"checking" | "ready" | "bad" | "confirm">("checking");
+  const [badWhy, setBadWhy] = useState("This reset link is not valid any more (it works once, for 1 hour). Ask for a new one.");
   const [factorId, setFactorId] = useState<string | null>(null);
   const [mfaOk, setMfaOk] = useState(false);
   const [code, setCode] = useState("");
@@ -28,21 +29,64 @@ function Content() {
   const [msg, setMsg] = useState<{ tone: "green" | "red"; text: string } | null>(null);
   useCelebrate(msg);
 
+  /**
+   * v4.7.0: the link from the e-mail can arrive in four ways, and each now works:
+   *  1. #access_token=…&refresh_token=… (the usual link): the session is set from it directly, even
+   *     when the page was opened inside the app without a full reload;
+   *  2. ?code=… (newer sign-in links): exchanged for a session;
+   *  3. ?token_hash=…&type=recovery (link-scanner-safe template): checked only when the person presses
+   *     Continue, so a mail scanner opening the link first cannot use it up;
+   *  4. #error=…: the reason is shown in plain words (used already, or expired).
+   */
+  const finish = useCallback(async () => {
+    const { data } = await supabase.auth.getSession();
+    if (!data.session?.user) { setState("bad"); return; }
+    // the one-time key is no longer needed in the address bar or the history
+    try { window.history.replaceState(null, "", "/reset-password"); } catch { /* ignore */ }
+    const [factors, aal] = await Promise.all([supabase.auth.mfa.listFactors(), supabase.auth.mfa.getAuthenticatorAssuranceLevel()]);
+    setFactorId((factors.data?.totp || []).find((f) => f.status === "verified")?.id || null);
+    setMfaOk(!aal.error && aal.data.currentLevel === "aal2");
+    setState("ready");
+  }, []);
+
   useEffect(() => {
+    const hash = new URLSearchParams(typeof window === "undefined" ? "" : window.location.hash.replace(/^#/, ""));
     const linkCode = params.get("code");
+    const tokenHash = params.get("token_hash");
+    const err = hash.get("error_description") || params.get("error_description");
     queueMicrotask(async () => {
-      if (linkCode) {
-        const { error } = await supabase.auth.exchangeCodeForSession(linkCode);
-        if (error) { setState("bad"); return; }
+      if (err) {
+        const code = hash.get("error_code") || params.get("error_code") || "";
+        setBadWhy(/expired|otp_expired/i.test(`${code} ${err}`)
+          ? "This reset link has expired or was already used (each link works once, for 1 hour). Some e-mail programs open links to check them, which uses them up. Ask for a new link and open it straight away."
+          : `This reset link did not work: ${err}. Ask for a new one.`);
+        setState("bad"); return;
       }
-      const { data } = await supabase.auth.getSession();
-      if (!data.session?.user) { setState("bad"); return; }
-      const [factors, aal] = await Promise.all([supabase.auth.mfa.listFactors(), supabase.auth.mfa.getAuthenticatorAssuranceLevel()]);
-      setFactorId((factors.data?.totp || []).find((f) => f.status === "verified")?.id || null);
-      setMfaOk(!aal.error && aal.data.currentLevel === "aal2");
-      setState("ready");
+      if (tokenHash) { setState("confirm"); return; }
+      const access = hash.get("access_token"), refresh = hash.get("refresh_token");
+      if (access && refresh) {
+        const { error } = await supabase.auth.setSession({ access_token: access, refresh_token: refresh });
+        if (error) { setState("bad"); return; }
+      } else if (linkCode) {
+        const { error } = await supabase.auth.exchangeCodeForSession(linkCode);
+        if (error) {
+          setBadWhy("This reset link must be opened on the same phone or computer where you asked for it, and works once, for 1 hour. Ask for a new link.");
+          setState("bad"); return;
+        }
+      }
+      await finish();
     });
-  }, [params]);
+  }, [params, finish]);
+
+  async function confirmLink() {
+    const tokenHash = params.get("token_hash");
+    if (!tokenHash) return;
+    setBusy(true);
+    const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type: "recovery" });
+    setBusy(false);
+    if (error) { setBadWhy("This reset link has expired or was already used. Ask for a new one."); setState("bad"); return; }
+    await finish();
+  }
 
   const s = passwordStrength(next);
   const locked = !!factorId && !mfaOk;
@@ -77,9 +121,14 @@ function Content() {
         <button type="button" role="tab" aria-selected="false" disabled>1, Get the link</button>
         <button type="button" role="tab" aria-selected="true">2, New password</button>
       </div>
-      {state === "checking" ? <p className="v4-muted" style={{ textAlign: "center" }}>Checking the link…</p> : state === "bad" ? (
+      {state === "checking" ? <p className="v4-muted" style={{ textAlign: "center" }}>Checking the link…</p> : state === "confirm" ? (
         <div className="v4-auth-form">
-          <Notice tone="red">This reset link is not valid any more (it works once, for 1 hour). Ask for a new one.</Notice>
+          <p className="v4-muted" style={{ textAlign: "center", margin: 0 }}>Press Continue to choose your new password.</p>
+          <button className="v4-btn v4-btn-primary v4-btn-lg v4-btn-block" type="button" disabled={busy} onClick={() => void confirmLink()}><Icon name="key" />{busy ? "Checking…" : "Continue"}</button>
+        </div>
+      ) : state === "bad" ? (
+        <div className="v4-auth-form">
+          <Notice tone="red">{badWhy}</Notice>
           <Link className="v4-btn v4-btn-primary v4-btn-lg v4-btn-block" href="/forgot-password"><Icon name="send" />Send a new link</Link>
         </div>
       ) : (

@@ -257,6 +257,8 @@ function PrintRequestPageContent() {
   const [budgetLine, setBudgetLine] = useState<{ allocation_bd: number; expenditure: number; balance_cd: number } | null>(null);
   const [history, setHistory] = useState<Hist[]>([]);
   const sheetRef = useRef<HTMLElement>(null);
+  // v4.7.0: page 2, every comment made on the request on its way (page 1 is unchanged)
+  const trailRef = useRef<HTMLElement>(null);
   const [isOwner, setIsOwner] = useState(false);
   // v4.1: QR check code — opens the public check page for this letter.
   const [qr, setQr] = useState("");
@@ -408,6 +410,11 @@ function PrintRequestPageContent() {
   }, [accountHistory, checkedHistory, hrHistory, isPersonal, req?.checked_by_name, req?.checked_signature_snapshot, req?.hr_name, req?.hr_signature_snapshot]);
 
   useA4Fit(sheetRef, [req, history, loading]);
+  useA4Fit(trailRef, [req, history, loading]);
+  const trail = useMemo(() => [...history].reverse().filter((h) => {
+    const a = String(h.action_type || "").toLowerCase();
+    return !/attachment|print|viewed|opened/.test(a) && (a.startsWith("submit") || !!String(h.comment || "").trim());
+  }), [history]);
 
   const sigHRFiling = useMemo(() => {
     return histSignatureUrl(hrFilingHistory, null);
@@ -675,7 +682,7 @@ function PrintRequestPageContent() {
 
     setTimeout(() => {
       void logPrint("request", latestReq?.id || null, latestReq?.request_no || "Request");
-      void printA4Sheet(sheetRef.current, `${latestReq?.request_no || "Request"} — ReqGen`).finally(() => setPrinting(false));
+      void printA4Sheet(trailRef.current ? [sheetRef.current, trailRef.current] : sheetRef.current, `${latestReq?.request_no || "Request"} | ReqGen`).finally(() => setPrinting(false));
     }, 250);
   }
 
@@ -769,7 +776,7 @@ function PrintRequestPageContent() {
             <span className="req-family-eyebrow">Print Preview</span>
             <h1>Request Print</h1>
             <p>Preview the approved ReqGen request document before printing.</p>
-            <div className="req-family-meta">{req.request_no} · {req.title}</div>
+            <div className="req-family-meta">{req.request_no}: {req.title}</div>
           </div>
         </header>
         <nav className="no-print req-family-subnav" aria-label="Request workspace navigation">
@@ -881,6 +888,29 @@ function PrintRequestPageContent() {
             </div>
           </article>
         </div>
+          {trail.length ? (
+          <div className="rg-a4-stage rg-trail-stage">
+            <article ref={trailRef} className="rg-a4-page rg-reqdoc-page rg-trail-page" aria-label={`Comments on ${req.request_no}`}>
+              <div className="rg-a4-content rg-reqdoc">
+                <header className="rg-trail-head">
+                  <Image src="/iet-logo.png" alt="Islamic Education Trust logo" width={44} height={44} />
+                  <div><div className="rg-reqdoc-org" style={{ fontSize: 15 }}>Islamic Education Trust</div><div className="rg-trail-title">Comments and approvals on {req.request_no}</div></div>
+                </header>
+                <p className="rg-trail-intro">Every remark made on this request on its way, in order, as recorded in ReqGen.</p>
+                <ol className="rg-trail rg-a4-grow">
+                  {trail.map((h) => (
+                    <li key={h.id}>
+                      <div className="rg-trail-who"><b><strong>{h.actor_name || "Officer"}</strong>{h.actor_role_name ? `, ${h.actor_role_name}` : ""}</b><span>{formatDate(h.created_at)}</span></div>
+                      <div className="rg-trail-act">{h.action_type || "Action"}{h.to_stage && h.to_stage !== h.from_stage ? `, sent to ${h.to_stage}` : ""}</div>
+                      {h.comment ? <div className="rg-trail-text">{h.comment}</div> : null}
+                    </li>
+                  ))}
+                </ol>
+                <footer className="rg-reqdoc-foot"><span>{req.request_no}, page 2: comments</span><em>Building Bridges</em></footer>
+              </div>
+            </article>
+          </div>
+          ) : null}
       </div>
     </main>
   );

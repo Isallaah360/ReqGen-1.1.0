@@ -12,7 +12,7 @@ $Tools   = Join-Path $env:USERPROFILE "BarderianTools"
 # and Windows' protected Documents folder (which can block Java from saving).
 $KeyDir  = "C:\ReqGen_Key"
 $KeyFile = Join-Path $KeyDir "reqgen-android.keystore"
-# The only address the app may open. The build stops if anything else is set.
+# The website the app reads its settings from (the app screens are inside the APK).
 $ServerUrl = "https://ietreqgen.barderians.com.ng"
 $OldKey  = Join-Path ([Environment]::GetFolderPath("MyDocuments")) "ReqGen_Key\reqgen-android.keystore"
 New-Item -ItemType Directory -Force -Path $Tools | Out-Null
@@ -76,19 +76,28 @@ try {
   Get-Content (Join-Path $Here "version.properties") | Where-Object { $_ -match "=" -and $_ -notmatch "^#" } | ForEach-Object { $k, $v = $_ -split "=", 2; $props[$k.Trim()] = $v.Trim() }
   $vName = $props["REQGEN_VERSION_NAME"]; $vCode = $props["REQGEN_VERSION_CODE"]
 
-  # 4a. The app must open the approved address (ReqGen 1.0.0 opened the old one and showed "You are offline")
+  # 4a. ReqGen 2.0.0 is a real app: its screens are inside the APK. It must NOT open the website in a window.
   $cfgPath = Join-Path $Here "capacitor.config.json"
   $cfg = Get-Content $cfgPath -Raw | ConvertFrom-Json
-  if ($cfg.server.url -ne $ServerUrl) { Stop-Red "capacitor.config.json opens $($cfg.server.url), not $ServerUrl. Use the files from the newest ReqGen zip." }
-  $offline = Get-Content (Join-Path $Here "www\offline.html") -Raw
-  if ($offline -notmatch "data:image/png;base64" -or $offline -notmatch "ietreqgen") { Stop-Red "mobile\www\offline.html is an old copy. Use the files from the newest ReqGen zip." }
-  Good "The app will open $ServerUrl"
+  if ($cfg.server.url) { Stop-Red "capacitor.config.json still opens $($cfg.server.url) in a window. Use the files from the newest ReqGen zip." }
+  Good "The app screens will be packed inside the APK."
 
   # 4b. Start clean, so nothing from an older build is packed again
   foreach ($old in @("android\app\build", "android\app\src\main\assets\public", "android\build")) {
     $full = Join-Path $Here $old
     if (Test-Path $full) { Remove-Item $full -Recurse -Force }
   }
+
+  Say "Building the app screens (mobile\app) ..."
+  Set-Location (Join-Path $Here "app")
+  & npm ci --no-audit --no-fund
+  if ($LASTEXITCODE -ne 0) { Stop-Red "npm could not get the parts for the app screens." }
+  & npm run build
+  if ($LASTEXITCODE -ne 0) { Stop-Red "The app screens did not build." }
+  Set-Location $Here
+  $index = Get-Content (Join-Path $Here "www\index.html") -Raw
+  if ($index -notmatch 'data-reqgen-app="2"') { Stop-Red "mobile\www is not the ReqGen 2.0.0 app screens." }
+  Good "App screens built."
 
   Say "Getting the app parts (npm) ..."
   & npm ci --no-audit --no-fund
@@ -97,12 +106,10 @@ try {
   if ($LASTEXITCODE -ne 0) { Stop-Red "Capacitor could not prepare the Android project." }
   $assets = Join-Path $Here "android\app\src\main\assets"
   $packed = Get-Content (Join-Path $assets "capacitor.config.json") -Raw
-  if ($packed -notmatch [regex]::Escape($ServerUrl)) { Stop-Red "Capacitor did not copy the new address into the Android project." }
-  $packedOffline = Join-Path $assets "public\offline.html"
-  if (-not (Test-Path $packedOffline) -or ((Get-Content $packedOffline -Raw) -notmatch "data:image/png;base64")) { Stop-Red "Capacitor did not copy the new offline screen into the Android project." }
-  $utf8NoBom = New-Object System.Text.UTF8Encoding $false
-  [IO.File]::WriteAllText($packedOffline, ((Get-Content $packedOffline -Raw) -replace "REQGEN_APP_VERSION", "$vName (build $vCode)"), $utf8NoBom)
-  Good "Android project prepared with the new address and offline screen."
+  if ($packed -match '"url"') { Stop-Red "Capacitor copied a website address into the Android project. Use the files from the newest ReqGen zip." }
+  $packedIndex = Join-Path $assets "public\index.html"
+  if (-not (Test-Path $packedIndex) -or ((Get-Content $packedIndex -Raw) -notmatch 'data-reqgen-app="2"')) { Stop-Red "Capacitor did not copy the app screens into the Android project." }
+  Good "Android project prepared with the app screens inside."
   Set-Content -Path (Join-Path $Here "android\local.properties") -Value ("sdk.dir=" + ($sdk -replace '\\','\\'))
 
   # 5. The ReqGen signing key (kept OUTSIDE the project; never on GitHub, Vercel or WhatsApp)
@@ -149,10 +156,13 @@ try {
     $entry = $zip.GetEntry("assets/capacitor.config.json")
     if (-not $entry) { Stop-Red "The APK has no app settings inside." }
     $reader = New-Object IO.StreamReader($entry.Open()); $inside = $reader.ReadToEnd(); $reader.Close()
-    if ($inside -notmatch [regex]::Escape($ServerUrl)) { Stop-Red "The APK does not open $ServerUrl. Do not install it." }
-    if (-not $zip.GetEntry("assets/public/offline.html")) { Stop-Red "The APK has no offline screen inside." }
+    if ($inside -match '"url"') { Stop-Red "The APK opens a website in a window. Do not install it." }
+    $ix = $zip.GetEntry("assets/public/index.html")
+    if (-not $ix) { Stop-Red "The APK has no app screens inside." }
+    $reader = New-Object IO.StreamReader($ix.Open()); $ixText = $reader.ReadToEnd(); $reader.Close()
+    if ($ixText -notmatch 'data-reqgen-app="2"') { Stop-Red "The APK does not have the ReqGen 2.0.0 screens inside. Do not install it." }
   } finally { $zip.Dispose() }
-  Good "Checked inside the APK: it opens $ServerUrl (app $vName, build $vCode)."
+  Good "Checked inside the APK: the real app screens are inside (app $vName, build $vCode)."
 
   # 7. Check the signature is the ReqGen key
   $apksigner = Join-Path $sdk "build-tools\36.0.0\apksigner.bat"
@@ -185,7 +195,7 @@ try {
   [IO.File]::WriteAllText((Join-Path $wellKnown "assetlinks.json"), (ConvertTo-Json -InputObject $links -Depth 5), $utf8)
 
   Write-Host ""
-  Good "DONE: ReqGen.apk $vName (build $vCode) is ready, signed with the ReqGen key, and opens $ServerUrl."
+  Good "DONE: ReqGen.apk $vName (build $vCode) is ready, signed with the ReqGen key, with the real app screens inside."
   Good "It is in public\downloads, with app-version.json; assetlinks.json is in public\.well-known."
   Write-Host "  SHA-256 of the APK: $shaGroups"
   Write-Host "  Next: commit and push the website (the guide has the commands)."

@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { formatAmountInput, nairaExact, nairaInWords, parseAmount } from "@/lib/v4/money";
 import { confirmDialog } from "@/lib/dialog";
+import { confirmWithCode } from "@/lib/codeConfirm";
+import { alertPeople } from "@/lib/v4/alerts";
 import Icon from "@/app/components/v4/Icon";
 import { Select } from "@/app/components/v4/Select";
 import { Notice, PageHead, Skeleton, V4Page } from "@/app/components/v4/ui";
@@ -22,10 +24,10 @@ function cleanFileName(name: string) {
 }
 
 /**
- * v4.6.10 — Direct request. You write to a named person in any department (for example the Auditor).
- * They comment and sign, then forward it to the Director General (choosing the Account Officer for a
- * money request), forward it to someone else, send it back to you, or decline it. No subhead is needed.
- * It moves only through reqgen_direct_submit / reqgen_direct_act; the Routing Engine is not used.
+ * v4.7.0: Direct request. You write to one or many people, from any departments, at once.
+ * Only they receive it: no HOD, HR, DG or Account step. Each answers on their own (approve, reply,
+ * decline, forward). To be paid, a receiver forwards it to the Director General with the Account
+ * Officer. It needs the 6-digit code sent by SMS and e-mail. reqgen_direct_send / reqgen_direct_answer.
  */
 export default function DirectRequestPage() {
   const router = useRouter();
@@ -34,7 +36,9 @@ export default function DirectRequestPage() {
   const [depts, setDepts] = useState<Dept[]>([]);
   const [deptId, setDeptId] = useState("");
   const [people, setPeople] = useState<Person[] | null>(null);
-  const [to, setTo] = useState("");
+  const [everyone, setEveryone] = useState<Record<string, Person & { dept: string }>>({});
+  const [chosen, setChosen] = useState<string[]>([]);
+  const [find, setFind] = useState("");
   const [title, setTitle] = useState("");
   const [details, setDetails] = useState("");
   const [money, setMoney] = useState<"no" | "yes">("no");
@@ -63,45 +67,56 @@ export default function DirectRequestPage() {
     return () => { alive = false; };
   }, []);
 
+  // Everyone, from every department (one list for search and "All departments")
   useEffect(() => {
-    if (!deptId) return;
+    if (!depts.length) return;
     let alive = true;
-    void supabase.rpc("reqgen_direct_people", { p_dept_id: deptId }).then(({ data, error }) => {
+    void Promise.all(depts.map((d) => supabase.rpc("reqgen_direct_people", { p_dept_id: d.id }).then(({ data, error }) => ({ d, data: (data || []) as Person[], error })))).then((all) => {
       if (!alive) return;
-      setPeople(error ? [] : ((data || []) as Person[]));
-      if (error) setMsg({ tone: "red", text: /could not find|schema cache/i.test(error.message) ? "Direct requests are not switched on yet. Ask the Super Admin to run the v4.6.10 database step." : error.message });
+      const map: Record<string, Person & { dept: string }> = {};
+      let err = "";
+      for (const { d, data, error } of all) { if (error) err = error.message; for (const p of data) map[p.id] = { ...p, dept: d.name }; }
+      setEveryone(map);
+      setPeople(Object.values(map));
+      if (err) setMsg({ tone: "red", text: /could not find|schema cache/i.test(err) ? "Direct requests are not switched on yet. Ask the Super Admin to run the database step." : err });
     });
     return () => { alive = false; };
-  }, [deptId]);
+  }, [depts]);
 
   const amount = parseAmount(amountText);
   const isMoney = money === "yes";
-  const person = (people || []).find((p) => p.id === to) || null;
+  const shown = useMemo(() => {
+    const t = find.trim().toLowerCase();
+    return Object.values(everyone).filter((p) => (!deptId || p.dept === depts.find((d) => d.id === deptId)?.name) && (!t || `${p.full_name} ${p.position_names} ${p.dept}`.toLowerCase().includes(t)))
+      .sort((a, b) => String(a.full_name).localeCompare(String(b.full_name)));
+  }, [everyone, deptId, depts, find]);
+  const names = chosen.map((id) => everyone[id]?.full_name || "Staff");
+  const toggle = (id: string) => setChosen((c) => (c.includes(id) ? c.filter((x) => x !== id) : [...c, id].slice(0, 50)));
   const problem = useMemo(() => {
-    if (!deptId) return "Choose the department of the person you are writing to.";
-    if (!to) return "Choose the person you are writing to.";
+    if (!chosen.length) return "Choose at least one person.";
     if (title.trim().length < 3) return "Type the title.";
     if (details.trim().length < 3) return "Write what the request is for.";
     if (isMoney && !(Number.isFinite(amount) && amount > 0)) return "Type the amount (numbers only).";
     if (!me?.signature_url) return "Add your signature in My Account before you send a request.";
     return "";
-  }, [deptId, to, title, details, isMoney, amount, me]);
+  }, [chosen, title, details, isMoney, amount, me]);
 
   async function send() {
-    if (problem || !me || !person) { setMsg({ tone: "red", text: problem }); return; }
+    if (problem || !me) { setMsg({ tone: "red", text: problem }); return; }
     const ok = await confirmDialog({
-      title: `Sign and send to ${person.full_name}?`,
-      message: "Your saved signature is placed on the request. It goes straight to this person.",
+      title: chosen.length === 1 ? `Sign and send to ${names[0]}?` : `Sign and send to ${chosen.length} people?`,
+      message: chosen.length === 1 ? "Your saved signature is placed on the request. Only this person receives it." : `Your saved signature is placed on the request. Only these people receive it, and each answers on their own: ${names.join(", ")}.`,
       details: [title.trim(), isMoney ? `${nairaExact(amount)}: ${nairaInWords(amount)}` : "No money is requested"],
       confirmLabel: "Sign and send",
     });
     if (!ok) return;
+    if (!(await confirmWithCode("send this request"))) { setMsg({ tone: "red", text: "Not sent: the code was not entered." }); return; }
     setBusy(true); setMsg(null);
     try {
       const now = new Date();
       const requestNo = `REQ-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getTime()).slice(-6)}`;
-      const { data, error } = await supabase.rpc("reqgen_direct_submit", { p_title: title.trim(), p_details: details.trim(), p_amount: isMoney ? amount : 0, p_to: to, p_request_no: requestNo });
-      if (error) throw new Error(/could not find|schema cache/i.test(error.message) ? "Direct requests are not switched on yet. Ask the Super Admin to run the v4.6.10 database step." : error.message);
+      const { data, error } = await supabase.rpc("reqgen_direct_send", { p_title: title.trim(), p_details: details.trim(), p_amount: isMoney ? amount : 0, p_to: chosen, p_request_no: requestNo });
+      if (error) throw new Error(/could not find|schema cache/i.test(error.message) ? "Sending to several people needs the v4.7.0 database step. Ask the Super Admin to run it." : error.message);
       const res = data as { request_id?: string } | null;
       const id = res?.request_id;
       if (!id) throw new Error("ReqGen did not return the request. Check My Requests before trying again.");
@@ -117,16 +132,8 @@ export default function DirectRequestPage() {
         const ins = await supabase.from("request_attachments").insert(rows);
         if (ins.error) throw new Error("The files uploaded but could not be linked to the request: " + ins.error.message);
       }
-      if (process.env.NEXT_PUBLIC_REQGEN_NOTIFICATIONS_ENABLED !== "false") {
-        const { data: s } = await supabase.auth.getSession();
-        const token = s.session?.access_token;
-        if (token) {
-          for (const event of ["submission_success", "approval_pending"]) {
-            void fetch("/api/notifications/sms/request-event", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ requestId: id, event }) }).catch(() => null);
-          }
-        }
-      }
-      setMsg({ tone: "green", text: `Submitted. It is now with ${person.full_name}.` });
+      const told = await alertPeople(id, "waiting");
+      setMsg({ tone: "green", text: `Sent to ${chosen.length === 1 ? names[0] : `${chosen.length} people`}.${told.error ? ` ${told.error}` : " Each got an SMS, an e-mail and an app notice."}` });
       window.setTimeout(() => router.push(`/requests/${id}`), 1400);
     } catch (e) {
       setMsg({ tone: "red", text: e instanceof Error ? e.message : "The request could not be sent." });
@@ -139,22 +146,34 @@ export default function DirectRequestPage() {
 
   return (
     <V4Page>
-      <PageHead title="Direct request" sub="Write to a named person. They sign and forward it to the Director General, or send it on." />
+      <PageHead title="Direct request" sub="Straight to the people you choose, from any departments. Nobody else receives it." />
       {msg ? <Notice tone={msg.tone}>{msg.text}</Notice> : null}
       <div className="v4-split">
         <section className="v4-card v4-card-pad">
           <div className="v4-form-grid">
-            <div className="v4-field">
-              <label className="v4-flabel" htmlFor="dr-dept" style={{ fontSize: 13, fontWeight: 700 }}>Department of the person <span className="v4-req">*</span></label>
-              <Select id="dr-dept" value={deptId} onChange={(v) => { setDeptId(v); setTo(""); setPeople(null); }} options={depts.map((d) => ({ value: d.id, label: d.name }))} placeholder="Choose the department" />
-              <span className="v4-help">Any department. Its staff are listed next.</span>
-            </div>
-            <div className="v4-field">
-              <label className="v4-flabel" htmlFor="dr-to" style={{ fontSize: 13, fontWeight: 700 }}>Send to <span className="v4-req">*</span></label>
-              <Select id="dr-to" value={to} onChange={setTo} disabled={!deptId || people === null || !people.length} menuMinWidth={280}
-                placeholder={!deptId ? "Choose the department first" : people === null ? "Loading…" : people.length ? "Choose the person" : "Nobody active in this department"}
-                options={(people || []).map((p) => ({ value: p.id, label: p.full_name || "Staff", hint: p.position_names || "Staff" }))} />
-              <span className="v4-help">They can forward it to the DG or to someone else.</span>
+            <div className="v4-field v4-span-2">
+              <span className="v4-flabel">Send to <span className="v4-req">*</span> <span className="v4-muted" style={{ fontWeight: 600 }}>(one or many people, any department)</span></span>
+              {chosen.length ? (
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap", margin: "0 0 8px" }}>
+                  {chosen.map((id) => <span key={id} className="v4-chip v4-chip-brand" style={{ height: 32 }}>{everyone[id]?.full_name || "Staff"}<button type="button" aria-label={`Remove ${everyone[id]?.full_name || "this person"}`} onClick={() => toggle(id)} style={{ border: 0, background: "none", cursor: "pointer", marginLeft: 4, minWidth: 24, minHeight: 24 }}>×</button></span>)}
+                </div>
+              ) : null}
+              <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 220px)", gap: 8 }} className="k-direct-find">
+                <span className="v4-control"><Icon name="search" /><input className="v4-input" value={find} onChange={(e) => setFind(e.target.value)} placeholder="Search any staff name or position" aria-label="Search staff" /></span>
+                <Select id="dr-dept" value={deptId} onChange={(v) => setDeptId(v)} options={[{ value: "", label: "All departments" }, ...depts.map((d) => ({ value: d.id, label: d.name }))]} ariaLabel="Department" />
+              </div>
+              <div className="k-picks" role="group" aria-label="Staff to send to" style={{ padding: "10px 0 0", maxHeight: 340, overflowY: "auto" }}>
+                {people === null ? <Skeleton kind="rows" lines={3} /> : shown.length ? shown.slice(0, 80).map((p) => {
+                  const on = chosen.includes(p.id);
+                  return (
+                    <button key={p.id} type="button" role="checkbox" aria-checked={on} className="k-pick" onClick={() => toggle(p.id)}>
+                      <span className="k-box" aria-hidden="true">{on ? <Icon name="tick" /> : null}</span>
+                      <span className="k-pt"><b>{p.full_name || "Staff"}</b><small>{[p.position_names || "Staff", p.dept].filter(Boolean).join(", ")}</small></span>
+                    </button>
+                  );
+                }) : <p className="v4-muted" style={{ margin: 0 }}>Nobody matches. Try another name or department.</p>}
+              </div>
+              <span className="v4-help">Only the people you choose receive it. Each answers on their own.</span>
             </div>
             <label className="v4-field v4-span-2">
               <span className="v4-flabel">Title <span className="v4-req">*</span></span>
@@ -175,7 +194,7 @@ export default function DirectRequestPage() {
               <label className="v4-field v4-span-2">
                 <span className="v4-flabel">Amount (₦) <span className="v4-req">*</span></span>
                 <input className="v4-input v4-num" inputMode="decimal" value={amountText} placeholder="0.00" onChange={(e) => setAmountText(formatAmountInput(e.target.value))} />
-                <span className="v4-help">{amount > 0 ? `${nairaExact(amount)}: ${nairaInWords(amount)}` : "No subhead is needed. The person you write to chooses the Account Officer who will treat it."}</span>
+                <span className="v4-help">{amount > 0 ? `${nairaExact(amount)}: ${nairaInWords(amount)}` : "No subhead is needed. To be paid, a receiver forwards it to the Director General with the Account Officer."}</span>
               </label>
             ) : null}
             <div className="v4-field v4-span-2">
@@ -196,10 +215,10 @@ export default function DirectRequestPage() {
         <section className="v4-card v4-card-pad">
           <h2 className="v4-h3" style={{ marginBottom: 10 }}>How a direct request moves</h2>
           <ol className="v4-numbered" style={{ fontSize: 13.5 }}>
-            <li>You write it to one person, in any department.</li>
-            <li>They comment and sign, then forward it to the Director General, pass it to someone else, send it back to you, or decline it.</li>
-            <li>For a money request, they choose the Account Officer who will treat it. No subhead is needed.</li>
-            <li>The Director General approves with signature and IET stamp, then the Account Officer releases the fund and prepares the voucher.</li>
+            <li>You choose one or many people, from any departments.</li>
+            <li>You confirm with the 6-digit code sent by SMS and e-mail. Each person is told at once by SMS, e-mail and in the app.</li>
+            <li>Each answers on their own: approve, reply, decline or forward. You see every answer. No HOD, HR, DG or Account step.</li>
+            <li>To be paid, a receiver forwards it to the Director General with the Account Officer.</li>
           </ol>
         </section>
       </div>

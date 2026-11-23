@@ -49,7 +49,7 @@ function kindOf(r: RequestRow): Kind {
 
 function messages(kind: Kind, name: string, no: string, title: string, stage: string, link: string) {
   const head = `ISLAMIC EDUCATION TRUST\nIET REQGEN WORKFLOW SYSTEM\n\nAssalamu Alaikum ${name},\n\n`;
-  const details = `REQUEST DETAILS\nRequest No: ${no}\nTitle: ${title}\nCurrent Stage: ${stage}\n\nRequest Link:\n${link}\n\nThis is an automated notification from IET REQGEN.\n\nThank you.\n\nISLAMIC EDUCATION TRUST\nIET REQGEN Notification`;
+  const details = `REQUEST DETAILS\nRequest No: ${no}\nCurrent Stage: ${stage}\n\nRequest Link:\n${link}\n\nThis is an automated notification from IET REQGEN.\n\nThank you.\n\nISLAMIC EDUCATION TRUST\nIET REQGEN Notification`;
   switch (kind) {
     case "returned":
       return {

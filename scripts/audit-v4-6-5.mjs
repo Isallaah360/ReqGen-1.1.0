@@ -27,7 +27,7 @@ check("Transaction Centre lists amounts with no record behind them", centre.incl
 check("Removing one: Auditor or Super Admin, reason, fresh 2FA, through the logged correction", centre.includes("powers.canCorrect") && centre.includes("reason.length < 10") && centre.includes('confirmFresh("remove the amount that has no record")') && centre.includes('rpc("reqgen_finance_correct", { p_subhead_ids: [removing.row.subject_id]'));
 check("Real records are still reversed, never deleted", centre.includes("reqgen_reversal_start") && !/from\("(requests|payment_vouchers|iet_bank_ledger)"\)\.delete/.test(centre));
 
-check("Version 4.6.5 or a later 4.6 release", /REQGEN_SEMVER = "4\.6\.([5-9]|[1-9]\d)"/.test(read("lib/version.ts")) && /"version": "4\.6\.([5-9]|[1-9]\d)"/.test(read("package.json")));
+check("Version 4.6.5 or later", /REQGEN_SEMVER = "4\.(6\.([5-9]|[1-9]\d)|([7-9]|[1-9]\d)\.\d+)"/.test(read("lib/version.ts")) && /"version": "4\.(6\.([5-9]|[1-9]\d)|([7-9]|[1-9]\d)\.\d+)"/.test(read("package.json")));
 check("No .env file shipped", !fs.existsSync(".env") || read(".gitignore").includes(".env"));
 
 let failed = 0;

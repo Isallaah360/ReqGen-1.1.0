@@ -3,27 +3,24 @@
   "appName": "ReqGen",
   "webDir": "www",
   "server": {
-    "url": "https://ietreqgen.barderians.com.ng",
     "androidScheme": "https",
-    "errorPath": "offline.html",
     "cleartext": false
   },
   "android": {
     "allowMixedContent": false,
-    "backgroundColor": "#FFFFFF"
+    "backgroundColor": "#F7F2EA"
   },
   "plugins": {
     "SplashScreen": {
-      "launchShowDuration": 1800,
+      "launchShowDuration": 1500,
       "launchAutoHide": true,
-      "backgroundColor": "#FFFFFF",
+      "backgroundColor": "#F7F2EA",
       "androidScaleType": "CENTER_INSIDE",
       "showSpinner": false
     },
-    "StatusBar": {
-      "style": "LIGHT",
-      "backgroundColor": "#F7F2EA",
-      "overlaysWebView": false
+    "SystemBars": {
+      "insetsHandling": "css",
+      "initialViewportFitValueHint": "cover"
     }
   }
 }

@@ -300,9 +300,12 @@ export default function AppFrame({ children }: { children: ReactNode }) {
   const badgeTimer = useRef<number | null>(null);
   const refreshPending = useCallback(async () => {
     if (!me) return;
-    const { data, error } = await supabase.from("requests").select("current_owner,current_stage,status,assigned_account_officer_id,assigned_account_officer_user_id");
+    const [{ data, error }, direct] = await Promise.all([
+      supabase.from("requests").select("current_owner,current_stage,status,assigned_account_officer_id,assigned_account_officer_user_id"),
+      supabase.rpc("reqgen_direct_waiting"), // v4.7.0: Direct requests waiting for my answer
+    ]);
     if (error) return;
-    setPending(((data || []) as ApprovalQueueRow[]).filter((row) => isAwaitingUser(row, me.userId, me.role)).length);
+    setPending(((data || []) as ApprovalQueueRow[]).filter((row) => isAwaitingUser(row, me.userId, me.role)).length + (direct.error ? 0 : (direct.data || []).length));
   }, [me]);
 
   useEffect(() => {

@@ -1,11 +1,15 @@
 {
   "new": [
-    "The offline screen shows the app version and the address it opens."
+    "A real app: every screen is inside the app, like a bank app. It no longer opens the website in a window.",
+    "Sign in once, then open ReqGen with your app PIN or fingerprint.",
+    "Direct requests to one or many people, from any department. Each person answers on their own.",
+    "Every request you send and every decision needs the 6-digit code sent by SMS and e-mail."
   ],
   "fixed": [
-    "The app opens ietreqgen.barderians.com.ng instead of the old address, so it no longer shows \"You are offline\" on a working network."
+    "Approving no longer asks for an authenticator app. The SMS or e-mail code is enough."
   ],
   "better": [
-    "The new ReqGen design (v4.6.12) comes straight from the website."
+    "Saved lists show at once, even on a weak network or offline.",
+    "What each officer said shows on the request, and prints with it."
   ]
 }

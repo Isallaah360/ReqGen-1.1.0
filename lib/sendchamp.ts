@@ -145,7 +145,7 @@ async function safeJson(response: Response) {
 export async function sendSendchampSms(input: SendSmsInput) {
   const apiKey = process.env.SENDCHAMP_API_KEY;
   const senderName =
-    input.senderName || process.env.SENDCHAMP_SENDER_NAME || "IET REQGEN";
+    input.senderName || process.env.SENDCHAMP_SENDER_NAME || "ReqGen"; // v4.7.0: the sender name registered on Sendchamp
 
   const route =
     input.route ||

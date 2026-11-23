@@ -5,7 +5,9 @@ import path from "node:path";
 
 const src = fs.readFileSync("lib/credits.ts", "utf8");
 const pkgs = [...src.matchAll(/pkg: "([^"]+)"/g)].map((m) => m[1]);
-const extra = ["react-dom", "@simplewebauthn/server", "@capacitor/app", "@capacitor/filesystem", "@capacitor/network", "@capacitor/preferences", "@capacitor/share", "@capacitor/splash-screen", "@capacitor/status-bar"];
+const extra = ["react-dom", "@simplewebauthn/server", "@capacitor/app", "@capacitor/filesystem", "@capacitor/network", "@capacitor/preferences", "@capacitor/share", "@capacitor/splash-screen", "@capacitor/status-bar",
+  // v4.7.0: packed inside the app 2.0.0 (mobile/app)
+  "@capacitor/core", "@capacitor/haptics", "@capgo/capacitor-native-biometric", "@capacitor-community/file-opener"];
 const all = [...new Set([...pkgs, ...extra])];
 const out = [
   "ReqGen, Islamic Education Trust (IET)",
@@ -18,7 +20,7 @@ const out = [
   "",
 ];
 for (const name of all) {
-  const dir = path.join("node_modules", name);
+  const dir = [path.join("node_modules", name), path.join("mobile", "app", "node_modules", name)].find((d) => fs.existsSync(path.join(d, "package.json"))) || path.join("node_modules", name);
   let pj;
   try { pj = JSON.parse(fs.readFileSync(path.join(dir, "package.json"), "utf8")); } catch { console.error(`Missing ${name}`); process.exitCode = 1; continue; }
   const file = fs.readdirSync(dir).find((f) => /^(licen[cs]e|copying)(\.(md|txt))?$/i.test(f));

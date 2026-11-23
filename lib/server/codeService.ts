@@ -1,0 +1,157 @@
+import crypto from "crypto";
+import { createClient, type SupabaseClient, type User } from "@supabase/supabase-js";
+import { hashOtp } from "@/lib/otpHash";
+import { accountProblem } from "@/lib/server/staffAuth";
+import { normalizeEmail, normalizeNigerianPhone, sendSendchampEmail, sendSendchampSms } from "@/lib/sendchamp";
+
+/**
+ * ReqGen v4.7.0: one 6-digit code for every send and every decision, on the
+ * website and in the app. The code goes by SMS and by e-mail together, and
+ * either one works. When it is right, the server writes a pass that the
+ * database checks before a request is sent or moved on (v4_7_0_upgrade.sql).
+ *
+ * Privacy: Sendchamp receives only the phone number or e-mail address and the
+ * code. Never a name, a request, an amount or a message.
+ */
+
+export type CodePurpose = "action" | "sign_in" | "request_submission";
+export const CODE_PURPOSES: CodePurpose[] = ["action", "sign_in", "request_submission"];
+const PASS_PURPOSES = new Set<CodePurpose>(["action", "request_submission"]);
+const MAX_TRIES = 5;
+const CODE_MINUTES = 10;
+const RESEND_SECONDS = 45;
+
+export type ServerCtx = { admin: SupabaseClient; user: User };
+export class CodeError extends Error { constructor(message: string, public status = 400) { super(message); } }
+
+/** Signed-in staff from the Bearer token. */
+export async function serverUser(authHeader: string | null): Promise<ServerCtx> {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL, anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY, service = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !anon || !service) throw new CodeError("The server is not fully set up (Supabase settings missing). Tell the Super Admin.", 500);
+  const token = String(authHeader || "").replace(/^Bearer\s+/i, "").trim();
+  if (!token) throw new CodeError("Please sign in again.", 401);
+  const { data, error } = await createClient(url, anon).auth.getUser(token);
+  if (error || !data.user) throw new CodeError("Please sign in again.", 401);
+  const admin = createClient(url, service, { auth: { persistSession: false, autoRefreshToken: false } });
+  const inactive = await accountProblem(admin, data.user.id);
+  if (inactive) throw new CodeError(inactive, 403);
+  return { admin, user: data.user };
+}
+
+/** What the server can send with, in plain words (shown when nothing can be sent). */
+export function deliveryStatus() {
+  const key = !!process.env.SENDCHAMP_API_KEY;
+  const sms = key && String(process.env.SENDCHAMP_SMS_ENABLED || "").toLowerCase() !== "false";
+  const email = key && String(process.env.SENDCHAMP_EMAIL_ENABLED || "").toLowerCase() !== "false";
+  return { key, sms, email };
+}
+
+const mask = {
+  phone: (p: string | null) => (p ? `${p.slice(0, 4)} *** ${p.slice(-4)}` : null),
+  email: (e: string | null) => {
+    if (!e) return null;
+    const [u, d] = e.split("@");
+    return `${u.slice(0, 1)}***@${d}`;
+  },
+};
+
+function emailText(code: string, purpose: CodePurpose) {
+  const what = purpose === "sign_in" ? "sign in to the ReqGen app" : "confirm your action in ReqGen";
+  return `ISLAMIC EDUCATION TRUST
+IET REQGEN
+
+Your ReqGen code is: ${code}
+
+Use it to ${what}. It works for ${CODE_MINUTES} minutes.
+Do not share this code with anyone. If you did not ask for it, report it to the Super Admin.
+
+IET ReqGen`;
+}
+
+async function log(admin: SupabaseClient, row: Record<string, unknown>) {
+  const { error } = await admin.from("sms_logs").insert(row);
+  if (error) console.error("ReqGen code log failed:", error.message);
+}
+
+/** Sends a new code by SMS and e-mail. */
+export async function sendCode(ctx: ServerCtx, purpose: CodePurpose) {
+  const { admin, user } = ctx;
+  const status = deliveryStatus();
+  if (!status.key) throw new CodeError("ReqGen cannot send codes: the SMS and e-mail service (Sendchamp) is not set up on the server. Tell the Super Admin to add SENDCHAMP_API_KEY on Vercel.", 503);
+  const { data: profile } = await admin.from("profiles").select("full_name,email,phone").eq("id", user.id).maybeSingle();
+  const phone = normalizeNigerianPhone((profile as { phone?: string } | null)?.phone || null);
+  const email = normalizeEmail((profile as { email?: string } | null)?.email || user.email || null);
+  const canSms = status.sms && !!phone, canEmail = status.email && !!email;
+  if (!canSms && !canEmail) throw new CodeError("Add your phone number or e-mail in My Account so ReqGen can send your code.");
+
+  const { data: recent } = await admin.from("sms_otps").select("created_at").eq("user_id", user.id).eq("purpose", purpose).order("created_at", { ascending: false }).limit(1).maybeSingle();
+  const age = recent?.created_at ? (Date.now() - new Date(recent.created_at as string).getTime()) / 1000 : 9999;
+  if (age < RESEND_SECONDS) throw new CodeError(`A code was sent ${Math.round(age)} seconds ago. You can ask again in ${Math.ceil(RESEND_SECONDS - age)} seconds.`, 429);
+
+  const code = String(crypto.randomInt(100000, 1000000));
+  const row = {
+    user_id: user.id, purpose, phone: canSms ? phone : null, email: canEmail ? email : null,
+    channel: canSms && canEmail ? "sms_email" : canSms ? "sms" : "email",
+    otp_hash: hashOtp(code), expires_at: new Date(Date.now() + CODE_MINUTES * 60000).toISOString(),
+  };
+  let { error } = await admin.from("sms_otps").insert(row);
+  // An older database may allow only the purpose "request_submission" on sms_otps: keep working with it.
+  if (error && /check constraint|violates/i.test(error.message) && purpose !== "request_submission") ({ error } = await admin.from("sms_otps").insert({ ...row, purpose: "request_submission" }));
+  if (error) throw new CodeError("The code could not be made: " + error.message, 500);
+
+  const sent: { sms: boolean; email: boolean } = { sms: false, email: false };
+  const problems: string[] = [];
+  const smsText = `Your ReqGen code is ${code}. It works for ${CODE_MINUTES} minutes. Do not share it.`;
+  await Promise.all([
+    (async () => {
+      if (!canSms || !phone) return;
+      try {
+        const r = await sendSendchampSms({ to: phone, message: smsText });
+        sent.sms = !(r && typeof r === "object" && "skipped" in r);
+        await log(admin, { recipient_user_id: user.id, phone, channel: "sms", message: "ReqGen code (hidden)", provider: "sendchamp-sms", status: sent.sms ? "sent" : "failed", sent_by: user.id });
+      } catch (e) {
+        problems.push("SMS: " + (e instanceof Error ? e.message : "not sent"));
+        await log(admin, { recipient_user_id: user.id, phone, channel: "sms", message: "ReqGen code (hidden)", provider: "sendchamp-sms", status: "failed", error: problems[problems.length - 1], sent_by: user.id });
+      }
+    })(),
+    (async () => {
+      if (!canEmail || !email) return;
+      try {
+        await sendSendchampEmail({ to: { email, name: (profile as { full_name?: string } | null)?.full_name || "Staff" }, subject: "Your ReqGen code", text: emailText(code, purpose) });
+        sent.email = true;
+        await log(admin, { recipient_user_id: user.id, email, channel: "email", message: "ReqGen code (hidden)", provider: "sendchamp-email", status: "sent", sent_by: user.id });
+      } catch (e) {
+        problems.push("E-mail: " + (e instanceof Error ? e.message : "not sent"));
+        await log(admin, { recipient_user_id: user.id, email, channel: "email", message: "ReqGen code (hidden)", provider: "sendchamp-email", status: "failed", error: problems[problems.length - 1], sent_by: user.id });
+      }
+    })(),
+  ]);
+  if (!sent.sms && !sent.email) throw new CodeError(`The code could not be sent. ${problems.join(" ")}`.trim(), 502);
+  return { ok: true, sms: sent.sms, email: sent.email, phone: sent.sms ? mask.phone(phone) : null, emailTo: sent.email ? mask.email(email) : null, resendIn: RESEND_SECONDS, minutes: CODE_MINUTES };
+}
+
+/** Checks the code. For sending and decisions it writes the pass the database asks for. */
+export async function verifyCode(ctx: ServerCtx, purpose: CodePurpose, raw: unknown) {
+  const { admin, user } = ctx;
+  const code = String(raw || "").replace(/\D/g, "").slice(0, 6);
+  if (!/^\d{6}$/.test(code)) throw new CodeError("Type the 6 numbers of your code.");
+  const { data: row, error } = await admin.from("sms_otps").select("id,otp_hash,expires_at,used_at,attempts")
+    .eq("user_id", user.id).in("purpose", purpose === "request_submission" ? [purpose] : [purpose, "request_submission"]).is("used_at", null).order("created_at", { ascending: false }).limit(1).maybeSingle();
+  if (error) throw new CodeError("The code could not be checked: " + error.message, 500);
+  if (!row) throw new CodeError("No code is waiting. Ask for a new one.");
+  if (new Date(row.expires_at as string).getTime() < Date.now()) throw new CodeError("This code has expired. Ask for a new one.");
+  const tries = Number(row.attempts || 0);
+  if (tries >= MAX_TRIES) throw new CodeError("Too many wrong tries. Ask for a new code.", 429);
+  const a = Buffer.from(String(row.otp_hash || ""), "hex"), b = Buffer.from(hashOtp(code), "hex");
+  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) {
+    await admin.from("sms_otps").update({ attempts: tries + 1 }).eq("id", row.id);
+    const left = MAX_TRIES - tries - 1;
+    throw new CodeError(left > 0 ? `That code is not right. ${left} ${left === 1 ? "try" : "tries"} left.` : "That code is not right. Ask for a new code.");
+  }
+  await admin.from("sms_otps").update({ used_at: new Date().toISOString() }).eq("id", row.id).is("used_at", null);
+  if (PASS_PURPOSES.has(purpose)) {
+    const { error: passErr } = await admin.from("reqgen_action_passes").insert({ user_id: user.id, purpose: "action" });
+    if (passErr && !/relation .* does not exist|schema cache/i.test(passErr.message)) throw new CodeError("The code was right but could not be recorded: " + passErr.message, 500);
+  }
+  return { ok: true };
+}

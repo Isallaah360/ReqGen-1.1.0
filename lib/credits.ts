@@ -17,7 +17,6 @@ export const CREDITS: Credit[] = [
   { name: "SimpleWebAuthn", pkg: "@simplewebauthn/browser", licence: "MIT", what: "Website fingerprint sign-in", url: "https://github.com/MasterKale/SimpleWebAuthn" },
   { name: "node-qrcode", pkg: "qrcode", licence: "MIT", what: "QR codes on print-outs", url: "https://github.com/soldair/node-qrcode" },
   { name: "fflate", pkg: "fflate", licence: "MIT", what: "Backup files", url: "https://github.com/101arrowz/fflate" },
-  { name: "clsx", pkg: "clsx", licence: "MIT", what: "Style names", url: "https://github.com/lukeed/clsx" },
   { name: "Capacitor", pkg: "@capacitor/core", licence: "MIT", what: "The Android app and its plugins", url: "https://github.com/ionic-team/capacitor" },
   { name: "Capacitor File Opener", pkg: "@capacitor-community/file-opener", licence: "MIT", what: "Opening the app update", url: "https://github.com/capacitor-community/file-opener" },
   { name: "Capgo Native Biometric", pkg: "@capgo/capacitor-native-biometric", licence: "MPL-2.0", what: "Fingerprint in the app (unchanged source at the link)", url: "https://github.com/Cap-go/capacitor-native-biometric" },

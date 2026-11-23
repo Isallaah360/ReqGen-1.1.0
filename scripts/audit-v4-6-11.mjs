@@ -28,7 +28,8 @@ const vercel = JSON.parse(read("vercel.json"));
 check("Speed: immutable fonts and assets, short cache on public checks", JSON.stringify(vercel.headers).includes("immutable") && JSON.stringify(vercel.headers).includes("s-maxage=60"));
 check("Upgrade SQL is idempotent and ends with the done line", /if not exists/.test(read("database/v4_6_11_upgrade.sql")) && /upgrade done' as result;\s*$/.test(read("database/v4_6_11_upgrade.sql")));
 const cap = JSON.parse(read("mobile/capacitor.config.json"));
-check("App: Capacitor 8, id ng.com.barderians.reqgen, opens the live site", cap.appId === "ng.com.barderians.reqgen" && /^https:\/\//.test(cap.server.url) && JSON.parse(read("mobile/package.json")).dependencies["@capacitor/android"].startsWith("8."));
+// v4.7.0 (app 2.0.0): the screens are inside the APK; it no longer opens the site in a window.
+check("App: Capacitor 8, id ng.com.barderians.reqgen, screens inside the APK", cap.appId === "ng.com.barderians.reqgen" && !cap.server?.url && JSON.parse(read("mobile/package.json")).dependencies["@capacitor/android"].startsWith("8."));
 check("App plugins from the brief", ["@capacitor/app", "@capacitor/status-bar", "@capacitor/splash-screen", "@capacitor/filesystem", "@capacitor/share", "@capacitor-community/file-opener", "@capgo/capacitor-native-biometric"].every((p) => read("mobile/package.json").includes(p) && read("package.json").includes(p)));
 check("Fingerprint keeps the email and password in the secure store", read("lib/app/biometric.ts").includes("setCredentials") && read("lib/app/biometric.ts").includes("getSecureCredentials") && read("lib/app/biometric.ts").includes("deleteCredentials"));
 check("App PIN and fingerprint lock with a Use fingerprint button", read("app/components/app/AppBridge.tsx").includes("Use fingerprint") && read("lib/app/pin.ts").includes("SHA-256"));

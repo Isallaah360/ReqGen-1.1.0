@@ -35,7 +35,7 @@ check("Every stored backup is read back and checked before it is marked verified
 check("Restore: Super Admin with a fresh 2FA code, written in one transaction", read("app/api/backup/restore/route.ts").includes("superAdminFromRequest(") && read("app/api/backup/restore/route.ts").includes('rpc("reqgen_backup_restore"') && sql.includes("grant execute on function public.reqgen_backup_restore(jsonb, text) to service_role"));
 
 // 5. Access
-check("Inactive or unverifiable accounts are refused by every server route", ["lib/server/staffAuth.ts", "lib/server/adminAuth.ts", "app/api/admin/users/route.ts", "app/api/pv/remind/route.ts", "app/api/registry/remind/route.ts", "app/api/otp/request-submission/send/route.ts", "app/api/otp/request-submission/verify/route.ts", "app/api/notifications/sms/request-event/route.ts", "app/api/notifications/sms/request-approval/route.ts"].every((f) => read(f).includes("accountProblem")));
+check("Inactive or unverifiable accounts are refused by every server route", ["lib/server/staffAuth.ts", "lib/server/adminAuth.ts", "app/api/admin/users/route.ts", "app/api/pv/remind/route.ts", "app/api/registry/remind/route.ts", "lib/server/codeService.ts", "app/api/notifications/sms/request-event/route.ts", "app/api/notifications/sms/request-approval/route.ts"].every((f) => read(f).includes("accountProblem")));
 const perm = read("lib/permissions.ts");
 check("Access: Integrity and Transaction Centre for Finance, DG office, Auditor, Super Admin; Reset under Administration", perm.includes('{ prefix: "/finance/integrity"') && perm.includes('{ prefix: "/finance/transactions-centre"') && perm.includes('{ prefix: "/admin", roles: ["admin"] }'));
 check("Route registry lists the new pages", ["/finance/integrity", "/finance/transactions-centre", "/admin/finance-reset"].every((p) => read("lib/routeRegistry.ts").includes(`"pattern": "${p}"`)));
@@ -50,7 +50,7 @@ check("v4.css is not edited by hand (theme additions live in v4-theme.css)", !re
 
 check("SQL ends with an all-OK verification table", /from v463_report order by[^;]*;\s*$/.test(sql.trim()));
 check("SQL: routing engine untouched", !/create or replace function public\.(approve_request_step|reject_request_step|reqgen_next_route_step|build_request_route|reqgen_build_route_for_template|reqgen_save_department_route)\b/i.test(sql));
-check("Version 4.6.3 or a later 4.6 release", /REQGEN_SEMVER = "4\.6\.([3-9]|[1-9]\d)"/.test(read("lib/version.ts")) && /"version": "4\.6\.([3-9]|[1-9]\d)"/.test(read("package.json")));
+check("Version 4.6.3 or later", /REQGEN_SEMVER = "4\.(6\.([3-9]|[1-9]\d)|([7-9]|[1-9]\d)\.\d+)"/.test(read("lib/version.ts")) && /"version": "4\.(6\.([3-9]|[1-9]\d)|([7-9]|[1-9]\d)\.\d+)"/.test(read("package.json")));
 check("No .env file shipped", !fs.existsSync(".env") || read(".gitignore").includes(".env"));
 
 let failed = 0;

@@ -107,7 +107,6 @@ Your request has been submitted successfully on IET REQGEN.
 
 REQUEST DETAILS
 Request No: ${input.requestNo}
-Title: ${input.title}
 Current Stage: ${input.stage}
 
 The request has entered the official approval workflow. You may log in to monitor its progress.
@@ -132,7 +131,6 @@ A request is awaiting your review and approval on IET REQGEN.
 
 REQUEST DETAILS
 Request No: ${input.requestNo}
-Title: ${input.title}
 Current Stage: ${input.stage}
 
 ACTION REQUIRED

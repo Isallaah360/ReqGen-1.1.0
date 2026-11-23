@@ -42,14 +42,15 @@ check("Direct: stored as personal requests, so the official-subhead rule at the 
 check("SQL: routing engine not created or replaced", !/create\s+or\s+replace\s+function\s+public\.(approve_request_step|reqgen_next_route_step|build_request_route|reqgen_build_route_for_template|reqgen_save_department_route|reqgen_actor_role_for_stage)\b/i.test(body));
 check("SQL: route tables not written", !/(insert\s+into|update|delete\s+from)\s+public\.(reqgen_route_templates|reqgen_route_steps|reqgen_department_routes)\b/i.test(body));
 check("SQL: ends with the report table and reloads the API", sql.trim().endsWith("order by step, item;") && body.includes("notify pgrst, 'reload schema'"));
-check("Direct page: department, then the person, title, details, money yes/no", direct.includes('rpc("reqgen_direct_people"') && direct.includes('rpc("reqgen_direct_submit"') && direct.includes("Is it a request for money?"));
+// v4.7.0: the Direct page sends to one or many people from any department (reqgen_direct_send).
+check("Direct page: people from the departments, title, details, money yes/no", direct.includes('rpc("reqgen_direct_people"') && (direct.includes('rpc("reqgen_direct_submit"') || direct.includes('rpc("reqgen_direct_send"')) && /money/i.test(direct));
 check("Direct decision card: forward to DG / someone else, send back, decline; DG approve with fresh 2FA", ["to_dg", "forward", "return", "decline", "approve", "resend"].every((k) => actions.includes(`"${k}"`)) && actions.includes("confirmFresh("));
 check("Direct: the usual decision card and Insight stay hidden on a Direct request", work.includes("{canAct && !isDirect ? (") && work.includes("canAct && !isMyRequest && !isDirect ? <RequestInsight"));
 check("Direct: the Account Officer releases it through its own function", fin.includes('rpc("reqgen_direct_act", { p_request_id: req.id, p_action: "release"'));
 check("New request offers the Direct request", newReq.includes('href="/requests/direct"') && read("lib/routeRegistry.ts").includes('"pattern": "/requests/direct"'));
 
 // 4. Release
-check("Version 4.6.10 or a later 4.6 release", /REQGEN_SEMVER = "4\.6\.(1\d|[2-9]\d)"/.test(read("lib/version.ts")) && /"version": "4\.6\.(1\d|[2-9]\d)"/.test(read("package.json")));
+check("Version 4.6.10 or later", /REQGEN_SEMVER = "4\.(6\.(1\d|[2-9]\d)|([7-9]|[1-9]\d)\.\d+)"/.test(read("lib/version.ts")) && /"version": "4\.(6\.(1\d|[2-9]\d)|([7-9]|[1-9]\d)\.\d+)"/.test(read("package.json")));
 check("No .env file shipped", !fs.existsSync(".env") || read(".gitignore").includes(".env"));
 
 let failed = 0;

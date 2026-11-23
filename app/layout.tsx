@@ -26,6 +26,7 @@ import NativeSelectUpgrade from "@/app/components/v4/NativeSelectUpgrade";
 import AppBridge from "@/app/components/app/AppBridge";
 import ToastHost from "@/app/components/kit/ToastHost";
 import WebUpdate from "@/app/components/kit/WebUpdate";
+import CodeHost from "@/app/components/kit/CodeHost";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://req-gen-1-1-0.vercel.app"),
@@ -80,6 +81,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <AppBridge />
         <ToastHost />
         <WebUpdate />
+        <CodeHost />
         <GovernmentAppShell>
           <MfaGuard>
             <RouteAccessGuard>

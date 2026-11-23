@@ -1,0 +1,42 @@
+-- =====================================================================================================
+-- REFERENCE ONLY. DO NOT RUN THIS FILE.
+-- ReqGen v4.7.0: what the database step adds, for reading. The step to run is database/v4_7_0_upgrade.sql.
+-- Nothing in the database is dropped or renamed by v4.7.0. The Routing Engine is not changed.
+-- =====================================================================================================
+
+-- 1. One code for every send and every decision --------------------------------------------------------
+-- Written only by the website server after a correct SMS or e-mail code. Row security on; no screen
+-- (anon or authenticated) can read or write it.
+-- table public.reqgen_action_passes (
+--   id uuid primary key,
+--   user_id uuid -> profiles(id),
+--   purpose text ('action' | 'request_submission'),
+--   channel text,
+--   created_at timestamptz,
+--   expires_at timestamptz (10 minutes after it is made),
+--   used_at timestamptz (a pass may be used again for 90 seconds after its first use)
+-- )
+-- function public.reqgen_require_pass() returns void
+--   Raises 'REQGEN_CODE_REQUIRED: Confirm with the code sent to your phone or e-mail first.' without a fresh pass.
+-- trigger reqgen_guard_request_action, before insert or update of current_owner on public.requests:
+--   on a new request, or when the person holding a request passes it on, a fresh pass is needed.
+
+-- 2. Direct to one or many people ------------------------------------------------------------------------
+-- table public.reqgen_direct_recipients (
+--   request_id uuid -> requests(id), user_id uuid -> profiles(id), primary key (request_id, user_id),
+--   status text ('Waiting' | 'Approved' | 'Declined' | 'Replied' | 'Forwarded'),
+--   comment text, signature_url text, added_by uuid, read_at timestamptz, acted_at timestamptz, created_at timestamptz
+-- )  Row security: a person reads their own rows; the sender reads the rows of their request.
+-- function public.reqgen_direct_send(p_title text, p_details text, p_amount numeric, p_to uuid[], p_request_no text) returns jsonb
+--   Up to 50 people. Stored as a Personal request, status 'Sent directly', stage 'Submitted'.
+-- function public.reqgen_direct_answer(p_request_id uuid, p_action text, p_comment text, p_to uuid) returns jsonb
+--   p_action: approve | reply | decline | forward | forward_dg (forward_dg needs the Account Officer for money).
+-- function public.reqgen_direct_read(p_request_id uuid) returns void
+-- function public.reqgen_direct_people_of(p_request_id uuid) returns table (user_id, full_name, position_names, status, comment, read_at, acted_at, added_by_name)
+-- function public.reqgen_direct_waiting() returns table (id, request_no, title, amount, requester_name, dept_id, created_at, read_at)
+-- policies: reqgen_direct_receivers_read on public.requests and reqgen_direct_receivers_history on public.request_history (read only).
+
+-- 3. Registry tracking ------------------------------------------------------------------------------------
+-- function public.reqgen_registry_moves(p_request_id uuid) returns table (step_order, stage, person, state, at)
+--   A Direct request shows "Sent by", each person chosen and their answer, then the DG and Account if forwarded.
+--   The earlier version is kept as public.reqgen_registry_moves_routed and is used for every other request.

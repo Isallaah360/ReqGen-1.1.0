@@ -157,7 +157,14 @@ export default function AppBridge() {
         if (!raw) return;
         try {
           const u = new URL(raw);
-          if (u.hostname === window.location.hostname && u.pathname !== pathRef.current) router.push(`${u.pathname}${u.search}${u.hash}`);
+          if (u.hostname !== window.location.hostname) return;
+          // v4.7.0: sign-in and password links carry a one-time key in the address (#access_token, ?code,
+          // ?token_hash). They need a full page load so the sign-in library reads that key; a quick in-app
+          // move kept the old page and the reset link showed "not valid any more".
+          const authLink = /access_token|refresh_token|error_description/.test(u.hash) || u.searchParams.has("code") || u.searchParams.has("token_hash")
+            || /^\/(reset-password|auth\/|login)/.test(u.pathname);
+          if (authLink) { window.location.assign(u.toString()); return; }
+          if (u.pathname !== pathRef.current) router.push(`${u.pathname}${u.search}${u.hash}`);
         } catch { /* not a ReqGen link */ }
       };
       const launch = await App.getLaunchUrl().catch(() => null);

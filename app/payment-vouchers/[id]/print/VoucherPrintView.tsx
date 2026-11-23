@@ -501,7 +501,7 @@ export function VoucherPrintView({ voucherId, embedded = false }: { voucherId: s
 
     setTimeout(() => {
       void logPrint("voucher", voucher?.id || null, voucher?.voucher_no || "Payment voucher");
-      void printA4Sheet([sheetRef.current, scheduleRef.current], `${voucher?.voucher_no || "Payment voucher"} — ReqGen`).finally(() => setPrinting(false));
+      void printA4Sheet([sheetRef.current, scheduleRef.current], `${voucher?.voucher_no || "Payment voucher"} | ReqGen`).finally(() => setPrinting(false));
     }, 250);
   }
 

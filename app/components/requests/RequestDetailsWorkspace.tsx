@@ -18,8 +18,10 @@ import { stageTitle, stageWords, statusChip, waitedFor } from "@/lib/v4/requestT
 import { fingerprintAvailable, fingerprintStepUp } from "@/lib/v4/deviceSignIn";
 import { celebrate, useCelebrate } from "@/app/components/v4/Motion";
 import { toast } from "@/lib/toast";
+import { confirmWithCode } from "@/lib/codeConfirm";
 import RequestInsight from "./RequestInsight";
 import DirectActions from "./DirectActions";
+import DirectMany, { useDirectPeople } from "./DirectMany";
 
 
 type PersonalCategory =
@@ -328,6 +330,9 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
   }, [req, me]);
 
   const isDirect = !!req?.direct_to;
+  // v4.7.0: a Direct request sent to one or many people (each answers on their own)
+  const { people: directPeople, reload: reloadDirect } = useDirectPeople(req?.id);
+  const isDirectMany = !!directPeople && directPeople.length > 0;
   const [directHolder, setDirectHolder] = useState<string | null>(null);
   useEffect(() => {
     if (!req?.direct_to || !req.current_owner) return;
@@ -1025,7 +1030,9 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
   function validateBeforeSensitiveAction(action: SensitiveAction) {
     if (!req || !me) return false;
 
-    if (!totpFactorId) {
+    // v4.7.0: Approve and Send back are confirmed with the SMS or e-mail code, so no
+    // authenticator app is needed for them. Delete still uses the authenticator.
+    if (action === "Delete" && !totpFactorId) {
       setMsg("✕ You must set up 2FA before performing this action.");
       router.push("/mfa/setup");
       return false;
@@ -1195,7 +1202,7 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
     const next = isDgStage ? "Then it goes to Account." : isAccountStage ? "" : isHRFiling ? "" : "It goes to the next officer on the route.";
     const text = await promptDialog(action === "Approve" ? {
       title: isDgStage ? "Approve, sign and stamp?" : isAccountStage ? (isPersonalFund ? "Record the payment?" : "Record that the fund is released?") : isHRFiling ? "Complete the HR review?" : "Approve this request?",
-      message: [isDgStage ? "Your signature is added, with the IET stamp beside it." : isAccountStage || isHRFiling ? "" : "Your signature is added.", next, isDgStage || isAccountStage ? "You confirm with your fingerprint or your 2FA code." : ""].filter(Boolean).join(" "),
+      message: [isDgStage ? "Your signature is added, with the IET stamp beside it." : isAccountStage || isHRFiling ? "" : "Your signature is added.", next, "You confirm with the 6-digit code sent to your phone and e-mail."].filter(Boolean).join(" "),
       label: "Comment (optional)",
       placeholder: isDgStage ? "e.g. Approved" : "e.g. Approved, within the budget",
       multiline: true,
@@ -1218,7 +1225,12 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
     if (text === null) return;
     setComment(text);
     commentRef.current = text;
-    await openFresh2faModal(action);
+    // v4.7.0: every decision needs the 6-digit code sent by SMS and e-mail (the same on the
+    // website and in the app). The database checks it before the request moves on.
+    if (!validateBeforeSensitiveAction(action)) return;
+    const what = action === "Approve" ? (isDgStage ? "sign and stamp this request" : isAccountStage ? "record this payment" : "approve this request") : "send this request back";
+    if (!(await confirmWithCode(what))) { setMsg("✕ Not done: the code was not entered."); return; }
+    await actAfterFresh2fa(action);
   }
 
   async function actAfterFresh2fa(action: "Approve" | "Reject") {
@@ -1503,7 +1515,11 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
   const directWhere = isDirect
     ? (/returned for correction/i.test(req.status) ? "Back with the writer" : stageKey(req.current_stage) === "SUBMITTED" ? `With ${directHolder || "the person it is addressed to"}` : stageWords(req.current_stage))
     : stageWords(req.current_stage);
-  const headChip = isDirect && me && req.current_owner === me.id
+  // v4.7.0: a Direct request to several people shows how many have answered.
+  const manyAnswered = isDirectMany ? (directPeople || []).filter((p) => p.status !== "Waiting").length : 0;
+  const headChip = isDirectMany && !req.current_owner
+    ? { tone: manyAnswered === (directPeople || []).length ? "green" : "amber", text: `Direct, ${manyAnswered} of ${(directPeople || []).length} answered` }
+    : isDirect && me && req.current_owner === me.id
     ? { tone: "brand", text: stageKey(req.current_stage) === "DG" ? "Your step: Director General, final approval" : /returned for correction/i.test(req.status) ? "Sent back to you to correct" : "Your step: addressed to you" }
     : isDirect && isOpen
       ? { tone: "amber", text: `${directWhere}, ${waitedFor(req.updated_at || req.created_at)}` }
@@ -1536,6 +1552,7 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
   const figCD = figBD - thisAmount;
   const usedPct = figAllocation > 0 ? Math.min(100, Math.round(((figExpenditure + figReservedOthers + thisAmount) / figAllocation) * 100)) : 0;
 
+  const officerComments = [...history].reverse().filter((h) => !/attachment|edited|print/i.test(String(h.action_type || "")) && String(h.comment || "").trim().length > 0);
   const historyLook = (h: Hist) => {
     const a = String(h.action_type || "").toLowerCase();
     if (a === "submit") return { icon: "send", tone: "blue", text: `Submitted by ${h.action_by === me?.id ? "you" : h.actor_name || "the requester"}` };
@@ -1614,6 +1631,26 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
 
       {notice ? <Notice tone={notice.tone}>{notice.text}</Notice> : null}
 
+      {/* v4.7.0: every comment made on the request travels with it, so the next officer and the DG
+          read what each officer said before they decide. Also printed as page 2 of the letter. */}
+      {officerComments.length ? (
+        <section className="v4-card v4-card-pad" aria-labelledby="rq-comments">
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 10 }}>
+            <h2 className="v4-h2" id="rq-comments">What the officers said</h2>
+            <span className="v4-help">{officerComments.length} comment{officerComments.length === 1 ? "" : "s"}, oldest first. Printed with the letter.</span>
+          </div>
+          <ol className="k-comments">
+            {officerComments.map((h) => (
+              <li key={h.id}>
+                <div className="k-comments-who"><strong>{h.actor_name || "Officer"}</strong>{h.actor_role_name ? <span>{signedAsLabel(h.actor_role_name) || h.actor_role_name}</span> : null}<em>{shortWhen(h.created_at)}</em></div>
+                <span className={`v4-chip v4-chip-${/reject|declin/i.test(h.action_type) ? "red" : /return/i.test(h.action_type) ? "amber" : /approv|paid|treat|complete/i.test(h.action_type) ? "green" : "blue"}`}>{h.action_type}</span>
+                <p>{h.comment}</p>
+              </li>
+            ))}
+          </ol>
+        </section>
+      ) : null}
+      {isDirectMany && me ? <DirectMany req={req} meId={me.id} people={directPeople || []} onDone={async () => { await reload(); await reloadDirect(); }} /> : null}
       {isDirect && me && req.current_owner === me.id && !isAccountStage ? <DirectActions req={req} meId={me.id} onDone={reload} /> : null}
       {isDirect && me && req.current_owner === me.id && isAccountStage ? (
         <Notice tone="blue" title="Approved by the Director General.">Release the fund and prepare the voucher in <Link href={`/finance/request/${req.id}`}>Finance › Treat this request</Link>.</Notice>
@@ -1747,7 +1784,7 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
               </button>
             )}
           </div>
-          {(isDgStage || isAccountStage) && decision === "approve" ? <p className="v4-help" style={{ margin: "8px 0 0", textAlign: "right" }}><Icon name="fingerprint" size="sm" /> You confirm with your fingerprint or your 2FA code.</p> : null}
+          <p className="v4-help" style={{ margin: "8px 0 0", textAlign: "right" }}><Icon name="shield" size="sm" /> You confirm with the 6-digit code sent to your phone and e-mail.</p>
         </section>
       ) : null}
 
@@ -1755,6 +1792,7 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
         <Notice tone="blue">Your request is with the {stageTitle(req.current_stage)}. You are told as soon as it moves.</Notice>
       ) : null}
 
+{isDirectMany ? null : (
       <section className="v4-card v4-card-pad">
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 14 }}>
           <h2 className="v4-h2">Approval route</h2><span className="v4-help">{isDirect ? "A direct request goes from person to person, then to the DG." : "Each step shows who signed and when. A vacant step is skipped, shown dashed."}</span>
@@ -1780,6 +1818,7 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
           </ol>
         ) : <p className="v4-muted" style={{ margin: 0 }}>{stageWords(req.current_stage)}.</p>}
       </section>
+      )}
 
       <div className="v4-cols">
         <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
