@@ -2,7 +2,7 @@
   "compilerOptions": {
     "target": "ES2020", "lib": ["ES2022", "DOM", "DOM.Iterable"], "module": "ESNext", "moduleResolution": "Bundler",
     "jsx": "react-jsx", "strict": true, "noUnusedLocals": true, "noUnusedParameters": true, "skipLibCheck": true,
-    "isolatedModules": true, "noEmit": true, "types": [], "baseUrl": ".", "paths": { "@web/*": ["../../lib/*"] }
+    "isolatedModules": true, "noEmit": true, "types": ["vite/client"], "baseUrl": ".", "paths": { "@web/*": ["../../lib/*"], "@/lib/supabaseClient": ["src/shim/supabaseClient.ts"], "@/lib/codeConfirm": ["src/shim/codeConfirm.ts"], "@/lib/activity": ["src/shim/activity.ts"], "@/lib/printA4": ["src/shim/printA4.ts"], "next/navigation": ["src/office/next/navigation.ts"], "next/link": ["src/office/next/link.tsx"], "next/image": ["src/office/next/image.tsx"], "@/*": ["../../*"] }
   },
   "include": ["src"]
 }

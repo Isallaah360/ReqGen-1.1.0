@@ -1,6 +1,6 @@
 import { createClient, type SupabaseClient, type Session } from "@supabase/supabase-js";
 import { Preferences } from "@capacitor/preferences";
-import { Capacitor } from "@capacitor/core";
+import { Capacitor, CapacitorHttp } from "@capacitor/core";
 
 /**
  * ReqGen real app: the connection to our own servers only.
@@ -80,16 +80,25 @@ export async function session(): Promise<Session | null> {
 }
 
 /** Calls to our website with the signed-in person's token. */
-export async function site<T>(path: string, body?: unknown): Promise<T> {
+export async function site<T>(path: string, body?: unknown, method?: "GET" | "POST" | "PATCH" | "DELETE"): Promise<T> {
   const s = await session();
-  const r = await fetch(`${WEBSITE}${path}`, {
-    method: body === undefined ? "GET" : "POST",
-    headers: { "Content-Type": "application/json", ...(s ? { Authorization: `Bearer ${s.access_token}` } : {}) },
-    body: body === undefined ? undefined : JSON.stringify(body),
-  });
-  const j = (await r.json().catch(() => ({}))) as T & { ok?: boolean; error?: string };
-  if (!r.ok || j.ok === false) throw new Error(j.error || "Something went wrong. Try again.");
-  return j;
+  const m = method || (body === undefined ? "GET" : "POST");
+  const headers: Record<string, string> = { "Content-Type": "application/json", ...(s ? { Authorization: `Bearer ${s.access_token}` } : {}) };
+  const url = `${WEBSITE}${path}`;
+  let status = 0;
+  let j: (T & { ok?: boolean; error?: string }) | null = null;
+  if (isNative()) {
+    // 3.0.2: from the phone the call goes out natively, so every website route answers the app.
+    const r = await CapacitorHttp.request({ url, method: m, headers, data: body === undefined ? undefined : body });
+    status = r.status;
+    j = (typeof r.data === "string" ? (() => { try { return JSON.parse(r.data as string); } catch { return {}; } })() : r.data) as T & { ok?: boolean; error?: string };
+  } else {
+    const r = await fetch(url, { method: m, headers, body: body === undefined ? undefined : JSON.stringify(body) });
+    status = r.status;
+    j = (await r.json().catch(() => ({}))) as T & { ok?: boolean; error?: string };
+  }
+  if (status < 200 || status >= 300 || j?.ok === false) throw new Error(j?.error || "Something went wrong. Try again.");
+  return j as T;
 }
 
 /** SMS and e-mail to whoever a request now waits for (or the sender, for an answer). Never blocks the screen. */

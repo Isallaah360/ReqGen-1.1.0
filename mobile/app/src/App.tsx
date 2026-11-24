@@ -1,10 +1,11 @@
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { House, FileText, Plus, ShieldCheck, User } from "lucide-react";
 import { db, loadConfig, session, store } from "./lib/core";
-import { finger, lockDue, onResume, paintStatusBar, pin, touch } from "./lib/native";
+import { buzz, finger, lockDue, onResume, paintStatusBar, pin, touch } from "./lib/native";
 import { loadMe, type Me } from "./lib/data";
 import { waitingForMe } from "./lib/text";
-import { Stack, ToastHost, CodeHost, useBack } from "./ui";
+import { Stack, ToastHost, CodeHost, useBack, toast } from "./ui";
+import OfficeHosts, { SignInHosts } from "./office/Hosts";
 import SignIn from "./screens/SignIn";
 import Unlock from "./screens/Unlock";
 import Home from "./screens/Home";
@@ -30,7 +31,7 @@ function useTheme() {
   const [look, setLookState] = useState<"sand" | "gold">("sand");
   useEffect(() => { void store.get<"system" | "light" | "dark">("rg:theme", "system").then(setThemeState); }, []);
   useEffect(() => { void store.get<"sand" | "gold">("rg:look", "sand").then((l) => setLookState(l === "gold" ? "gold" : "sand")); }, []);
-  useEffect(() => { document.documentElement.dataset.look = look; }, [look]);
+  useEffect(() => { document.documentElement.dataset.look = look; document.documentElement.dataset.accent = look; }, [look]);
   useEffect(() => {
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
     const apply = () => {
@@ -84,7 +85,7 @@ export default function App() {
 
   if (phase === "boot") return <Splash />;
   if (phase === "error") return <BootError text={bootError} onRetry={() => void start()} />;
-  if (phase === "signin") return <><SignIn onDone={async () => { setMe(await loadMe()); await touch(); setPhase("in"); }} /><CodeHost /><ToastHost /></>;
+  if (phase === "signin") return <><Stack root={<><SignIn onDone={async () => { setMe(await loadMe()); await touch(); setPhase("in"); }} /><SignInHosts /></>} /><CodeHost /><ToastHost /></>;
   if (phase === "locked" && me) return <><Unlock me={me} onOpen={async () => { await touch(); setPhase("in"); }} onSwitch={async () => { await signOutAll(); setMe(null); setPhase("signin"); }} /><ToastHost /></>;
   if (!me) return <Splash />;
   return (
@@ -121,7 +122,19 @@ function Signed({ me, setMe, theme, setTheme, look, setLook, onSignOut }: { me: 
     void refreshPending();
     const t = window.setInterval(() => void refreshPending(), 60_000);
     let ch: { unsubscribe: () => unknown } | null = null;
-    void db().then((s) => { ch = s.channel(`app-badge-${me.id}`).on("postgres_changes", { event: "*", schema: "public", table: "requests" }, () => void refreshPending()).subscribe(); });
+    void db().then((s) => {
+      ch = s.channel(`app-badge-${me.id}`)
+        .on("postgres_changes", { event: "*", schema: "public", table: "requests" }, () => void refreshPending())
+        // 3.0.2: a new notice shows at once (top banner, a short buzz), and every list refreshes
+        .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${me.id}` }, (p) => {
+          const n = (p.new || {}) as { title?: string; message?: string };
+          buzz.ok();
+          toast(n.title ? `${n.title}${n.message ? `: ${n.message}` : ""}` : "You have a new notice.", "in");
+          window.dispatchEvent(new CustomEvent("rg-notice"));
+          void refreshPending();
+        })
+        .subscribe();
+    });
     return () => { window.clearInterval(t); ch?.unsubscribe(); };
   }, [refreshPending, me.id]);
   useBack(tab !== "home", () => setTab("home"));
@@ -137,6 +150,7 @@ function Signed({ me, setMe, theme, setTheme, look, setLook, onSignOut }: { me: 
           {tab === "home" ? <Home /> : tab === "requests" ? <Requests /> : tab === "approvals" ? <Approvals /> : <MeScreen />}
           <TabBar tab={tab} setTab={setTab} pending={pending} onNew={() => setNewOpen(true)} />
           <NewTypeSheet open={newOpen} onClose={() => setNewOpen(false)} />
+          <OfficeHosts />
         </>
       } />
       <CodeHost />

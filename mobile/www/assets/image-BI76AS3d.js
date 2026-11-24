@@ -1,0 +1,1 @@
+import{j as p}from"./index-BtOUb9Nr.js";function a({src:t,alt:s,width:i,height:o,priority:e,fill:f,...n}){const r=typeof t=="string"?t:t.src;return p.jsx("img",{src:r.startsWith("/")?`.${r}`:r,alt:s,width:i,height:o,...n})}export{a as I};

@@ -1,14 +1,14 @@
 {
   "new": [
-    "The new ReqGen look (Blueprint 07): two themes, Sand and Gold, each Light, Dark or Match phone. Me › Appearance.",
-    "A new sign-in screen with the floating IET logo, and the Plus Jakarta Sans font packed inside the app.",
-    "Your offices (Finance, Registry, Reports, Administration and the others your position allows) are listed on Home."
+    "Every office now works inside the app: Finance, Payment Vouchers (from requests and manual), signatories, signing and paying, Registry, Reports, Audit, Administration, My Account and Developer. Nothing opens the website.",
+    "Printing a request or a voucher makes the standard IET A4 PDF on the phone and opens it.",
+    "New approvals and notices appear in the app straight away, with a short banner and a buzz."
   ],
   "fixed": [
-    "Requests, Approvals and Home showed an empty list when the database refused to read requests. Run the 5.0.1 SQL once; lists now say clearly if they cannot load.",
-    "Direct requests no longer stop with “requests_status_check” (run the 5.0.0 SQL once)."
+    "Long choices in lists and forms are shown in full instead of being cut.",
+    "Attachments, Excel and backup files open and save on the phone."
   ],
   "better": [
-    "A full-width bottom bar with a round New button, softer cards and clearer buttons on every screen."
+    "Office pages use the app header with Back, and the same Sand and Gold looks, in Light and Dark."
   ]
 }

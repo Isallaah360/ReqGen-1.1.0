@@ -19,8 +19,9 @@ html,body,#root{height:100%;margin:0}
 body{background:var(--bg);color:var(--ink);font:400 15px/1.45 system-ui,-apple-system,Roboto,"Segoe UI",Arial,sans-serif;
   -webkit-user-select:none;user-select:none;overscroll-behavior:none;-webkit-text-size-adjust:100%;touch-action:manipulation}
 input,textarea,.sel{-webkit-user-select:text;user-select:text}
-button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
-a{color:var(--in);text-decoration:none;font-weight:700}
+/* the app's own buttons and links; the office pages (.webui) keep the website's styles */
+:where(button:not(.webui button)){font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+:where(a:not(.webui a)){color:var(--in);text-decoration:none;font-weight:700}
 :focus-visible{outline:3px solid var(--or);outline-offset:2px}
 svg{flex:none}
 
@@ -270,3 +271,20 @@ textarea.inp{padding:12px 14px;min-height:100px;resize:none;line-height:1.45}
 .float-logo{animation:floaty 5.5s ease-in-out infinite}
 @keyframes floaty{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
 @media (prefers-reduced-motion:reduce){.float-logo{animation:none}}
+
+/* 3.0.2: office pages inside the app. The app header carries the page name, so the page's own big title is not repeated. */
+.office-body{padding-top:0}
+.office-body .webui{background:transparent;min-width:0}
+.office-body .webui .v4-page-head .v4-page-title,.office-body .webui .v4-page-head h1{display:none}
+.office-body .webui .v4-page{padding:0 !important;margin:0 !important;max-width:none !important}
+/* the website's pop-ups layer: never covers the app, never paints a background of its own */
+.webui.webui-layer{position:fixed !important;inset:0 !important;min-height:0 !important;height:auto !important;background:transparent !important;pointer-events:none;z-index:50;padding:0 !important;margin:0 !important;overflow:visible !important}
+.webui.webui-layer > *{pointer-events:auto}
+.webui.webui-layer > .k-toast-host{pointer-events:none}
+.webui.webui-layer .k-toast{pointer-events:auto}
+/* 3.0.2: print pages sit on the app background (no second page colour), full width */
+.office-body .webui main.min-h-screen{background:transparent !important;min-height:0 !important;padding-left:0 !important;padding-right:0 !important}
+/* the request print page: the app header already names the page and Back returns; its own tab row is not needed */
+.office-body .webui .req-family-subnav{display:none !important}
+.office-body .webui .req-family-head h1{display:none}
+.office-body .webui .req-family-head p,.office-body .webui .req-family-head .req-family-meta{color:var(--ink2) !important}

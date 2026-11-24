@@ -55,7 +55,7 @@ function Write({ chosen, setChosen, onAdd }: { chosen: Person[]; setChosen: (f: 
   const amount = parseAmount(amountText);
 
   async function send() {
-    const problem = !chosen.length ? "Choose at least one person." : title.trim().length < 3 ? "Write a short title." : details.trim().length < 3 ? "Write your message." : money && !(amount > 0) ? "Type the amount, or turn off Money involved." : !me.signature_url ? "Add your signature in My Account on the website first." : "";
+    const problem = !chosen.length ? "Choose at least one person." : title.trim().length < 3 ? "Write a short title." : details.trim().length < 3 ? "Write your message." : money && !(amount > 0) ? "Type the amount, or turn off Money involved." : !me.signature_url ? "Add your signature first: Me › Signature and photo." : "";
     if (problem) { setMsg(problem); return; }
     setMsg(null);
     if (!(await askCode("send this request"))) { setMsg("Not sent: the code was not entered."); return; }

@@ -1,0 +1,1 @@
+import{j as o}from"./index-BtOUb9Nr.js";import{M as r}from"./MotherPage-Dzuq6iHr.js";import"./summaries-BTX0Bumf.js";import"./supabaseClient-CKAr3K-h.js";import"./approvalQueue-D-R4VdrA.js";import"./useIdentity-C3CP1tep.js";import"./ui-Bb0d7p05.js";import"./link-BMpUOPv6.js";function n(){return o.jsx(r,{moduleKey:"payment-vouchers"})}export{n as default};

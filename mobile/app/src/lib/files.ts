@@ -24,7 +24,7 @@ export async function uploadAll(requestId: string, uploader: string, files: File
     const f = files[i];
     const path = `${requestId}/${Date.now()}-${i + 1}-${clean(f.name)}`;
     const up = await s.storage.from("request-attachments").upload(path, f, { upsert: false, contentType: f.type || "application/octet-stream" });
-    if (up.error) throw new Error(`The request was sent, but “${f.name}” did not upload. Open the request on the website to add it again.`);
+    if (up.error) throw new Error(`The request was sent, but “${f.name}” did not upload. Open the request and add it again.`);
     rows.push({ request_id: requestId, uploaded_by: uploader, file_name: f.name, file_path: path, file_type: f.type || null, file_size: f.size, verification_status: "Pending" });
   }
   const ins = await s.from("request_attachments").insert(rows);

@@ -111,12 +111,12 @@ html[data-theme="dark"]{
   --c-bg-657388:#657388;
   --c-bg-6746c7:#6746c7;
   --c-bg-6747d8:#6747d8;
-  --c-bg-7047e8:#7047e8;
+  --c-bg-0e7490:#0e7490;
   --c-bg-70a6f5:#853c1d;
   --c-bg-7558e8:#7558e8;
   --c-bg-7b4bc4:#7b4bc4;
   --c-bg-7c19ef:#7c19ef;
-  --c-bg-7c3aed:#7c3aed;
+  --c-bg-0e7490:#0e7490;
   --c-bg-8b3fe8:#8b3fe8;
   --c-bg-94a3b8:#485463;
   --c-bg-9aa8b8:#4c5662;
@@ -221,9 +221,9 @@ html[data-theme="dark"]{
   --c-bg-f0f6ff:#0c121b;
   --c-bg-f0fbf6:#091712;
   --c-bg-f0fdf4:#0c1810;
-  --c-bg-f1e8ff:#110b19;
+  --c-bg-e0f2f7:#0b1a1f;
   --c-bg-f1e9e2:#292018;
-  --c-bg-f1e9ff:#110b18;
+  --c-bg-e0f2f7:#0b1a1f;
   --c-bg-f1eafe:#100c17;
   --c-bg-f1eaff:#100c18;
   --c-bg-f1ebff:#100c17;
@@ -234,7 +234,7 @@ html[data-theme="dark"]{
   --c-bg-f1f6ff:#0d121c;
   --c-bg-f1f7ff:#0c131c;
   --c-bg-f1fbf6:#0a1711;
-  --c-bg-f2e9ff:#110b18;
+  --c-bg-e0f2f7:#0b1a1f;
   --c-bg-f2eaff:#110b18;
   --c-bg-f2f5f9:#0c111b;
   --c-bg-f2f6fb:#0d121c;
@@ -940,7 +940,7 @@ html[data-theme="dark"]{
   --c-fg-7b8899:#acb9cb;
   --c-fg-7b899a:#acbacc;
   --c-fg-7b899b:#acbace;
-  --c-fg-7c3aed:#aa73ff;
+  --c-fg-0e7490:#5ec4d8;
   --c-fg-7c4dff:#a984ff;
   --c-fg-7c4ee8:#aa83ff;
   --c-fg-7c899a:#adbacc;

@@ -78,7 +78,7 @@ export default function NewRequest({ kind, draft }: { kind: Kind; draft?: Draft 
     if (mustSub && subs.length && !subId) return "Choose the budget subhead: no officer on this route assigns it before the Director General.";
     if (live === "not_enough") return "Not enough fund in this subhead. Choose another subhead or lower the amount.";
     if (blocked.length) return `The route has no officer for ${blocked.join(", ")}. The Super Admin must complete the Routing Engine first.`;
-    if (!me.signature_url) return "Add your signature in My Account on the website first.";
+    if (!me.signature_url) return "Add your signature in Me › Signature and photo first.";
     if (!ok) return "Tick the box to confirm the details are correct.";
     return "";
   }, [deptId, title, details, needsAmount, amount, mustSub, subs.length, subId, live, blocked, me.signature_url, ok]);
@@ -122,7 +122,7 @@ export default function NewRequest({ kind, draft }: { kind: Kind; draft?: Draft 
     <>
       <Head title={official ? "Official request" : "Personal request"} />
       <Body bar>
-        {draft ? <Note tone="in">Draft opened.{Array.isArray(draft.attachments) && draft.attachments.length ? ` Its ${draft.attachments.length} saved ${draft.attachments.length === 1 ? "file stays" : "files stay"} on the website: add them again here, or send it from the website.` : ""}</Note> : null}
+        {draft ? <Note tone="in">Draft opened.{Array.isArray(draft.attachments) && draft.attachments.length ? ` It had ${draft.attachments.length} saved ${draft.attachments.length === 1 ? "file" : "files"}: add ${draft.attachments.length === 1 ? "it" : "them"} again here before you send.` : ""}</Note> : null}
         {!official ? (
           <div><span className="lbl">Kind</span>
             <div className="filters" role="radiogroup" aria-label="Kind">{CATS.map((c) => <button key={c.k} type="button" role="radio" aria-checked={cat === c.k} aria-pressed={cat === c.k} onClick={() => setCat(c.k)}>{c.t}</button>)}</div>

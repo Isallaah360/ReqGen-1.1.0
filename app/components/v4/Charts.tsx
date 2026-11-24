@@ -20,7 +20,7 @@ function useTip() {
   return { on, node };
 }
 
-export const SERIES_COLORS = ["#C2410C", "#2563EB", "#0F9D74", "#A16207", "#7C3AED", "#94A3B8", "#DB2777", "#0891B2"];
+export const SERIES_COLORS = ["#C2410C", "#2563EB", "#0F9D74", "#A16207", "#1E3A8A", "#94A3B8", "#DB2777", "#0891B2"];
 
 /** Vertical bars, one per label; `now` is drawn darker (the month being looked at). */
 export function BarChart({ data, now, fmt, label }: { data: Array<{ label: string; value: number }>; now?: number; fmt: (n: number) => string; label: string }) {

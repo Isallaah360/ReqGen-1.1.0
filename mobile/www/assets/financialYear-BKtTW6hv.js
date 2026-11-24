@@ -1,0 +1,1 @@
+function e(t){const n=new Date(t);return Number.isNaN(n.getTime())?NaN:n.getMonth()>=8?n.getFullYear():n.getFullYear()-1}function r(t){return`${t}/${String((t+1)%100).padStart(2,"0")}`}function u(t){return`1 Sep ${t} to 31 Aug ${t+1}`}function o(t){return{from:`${t}-09-01T00:00:00Z`,to:`${t+1}-09-01T00:00:00Z`}}function a(){return e(new Date)}export{u as a,o as b,a as c,r as f};

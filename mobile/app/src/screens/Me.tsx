@@ -1,13 +1,14 @@
 import { useEffect, useState } from "react";
-import { Bell, Download, Fingerprint, Info, KeyRound, LogOut, Moon, ShieldCheck } from "lucide-react";
-import { WEBSITE, openOutside } from "../lib/core";
+import { Bell, Download, Fingerprint, History, Info, KeyRound, ListChecks, LogOut, Moon, PenLine, ShieldCheck, UserRound } from "lucide-react";
 import { appVersion, downloadAndInstall, finger, newerRelease, pin, type Release } from "../lib/native";
 import { useApp } from "../App";
-import { Avatar, Big, Body, Cell, Chev, Note, Sheet, Toggle, toast } from "../ui";
+import { Avatar, Big, Body, Cell, Chev, Note, Sheet, Toggle, toast, useNav } from "../ui";
+import OfficeScreen from "../office/OfficeScreen";
 import { PinPad } from "./Unlock";
 
 export default function Me() {
   const { me, theme, setTheme, look, setLook, signOut } = useApp();
+  const { push } = useNav();
   const [ver, setVer] = useState({ version: "2.0.0", build: 0 });
   const [rel, setRel] = useState<Release | null>(null);
   const [checked, setChecked] = useState(false);
@@ -35,7 +36,14 @@ export default function Me() {
               if (v) { try { await finger.check("Turn on fingerprint"); } catch { return; } }
               await finger.set(v); setFing(v); toast(v ? "Fingerprint on." : "Fingerprint off.");
             }} /> : undefined} />
-          <Cell icon={<ShieldCheck size={18} />} iconTone="in" title="Password and signature" sub="Change them on the website" right={<Chev />} onClick={() => openOutside(`${WEBSITE}/profile`)} />
+        </div>
+        <div className="grp">
+          <Cell icon={<UserRound size={18} />} iconTone="in" title="Profile" sub="Name, phone, password" right={<Chev />} onClick={() => push(<OfficeScreen href="/profile/details" title="Profile" />)} />
+          <Cell icon={<PenLine size={18} />} iconTone="in" title="Signature and photo" sub="Printed on what you sign" right={<Chev />} onClick={() => push(<OfficeScreen href="/profile/details#signature" title="Signature and photo" />)} />
+          <Cell icon={<ShieldCheck size={18} />} iconTone="in" title="Security and devices" sub="2FA, fingerprint, signed-in devices" right={<Chev />} onClick={() => push(<OfficeScreen href="/profile/security" title="Security and devices" />)} />
+          <Cell icon={<KeyRound size={18} />} iconTone="in" title="My access" sub="Positions, acting as, my place on routes" right={<Chev />} onClick={() => push(<OfficeScreen href="/profile/access" title="My access" />)} />
+          <Cell icon={<History size={18} />} iconTone="in" title="My activity" sub="Everything you did, by day" right={<Chev />} onClick={() => push(<OfficeScreen href="/profile/activity" title="My activity" />)} />
+          <Cell icon={<ListChecks size={18} />} iconTone="in" title="Setup guide" sub="What makes your account ready" right={<Chev />} onClick={() => push(<OfficeScreen href="/profile/setup" title="Setup guide" />)} />
         </div>
         <div className="grp">
           <Cell icon={<Moon size={18} />} iconTone="mu" title="Appearance" sub={themeText} onClick={() => setSheet("theme")} />
@@ -71,7 +79,7 @@ export default function Me() {
         <p className="mu" style={{ fontSize: 14 }}>IET ReqGen, the requisition and approval system of the Islamic Education Trust. App version {ver.version}.</p>
         <p className="mu" style={{ fontSize: 14 }}>Your data stays with IET. ReqGen never sells, shares or leaks it, and has no trackers or adverts. The app talks only to our own website and database.</p>
         <p className="mu" style={{ fontSize: 14 }}>Developed by Barderian Enterprises. WhatsApp 0803 119 7746, info@barderians.com.ng</p>
-        <button type="button" className="btn bs block" onClick={() => openOutside(`${WEBSITE}/THIRD-PARTY-LICENSES.txt`)}>Open-source credits</button>
+        <button type="button" className="btn bs block" onClick={() => { setSheet(null); push(<OfficeScreen href="/credits" title="Open-source credits" />); }}>Open-source credits</button>
       </Sheet>
       <Sheet open={sheet === "out"} onClose={() => setSheet(null)} title="Sign out of this phone?">
         <p className="mu" style={{ fontSize: 14 }}>Your PIN, fingerprint and the lists saved on this phone are removed. Next time you sign in with your password and the code.</p>

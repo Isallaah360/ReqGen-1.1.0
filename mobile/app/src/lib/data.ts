@@ -48,6 +48,13 @@ export function useSaved<T>(key: string | null, load: () => Promise<T>) {
     });
     return () => { alive = false; };
   }, [key, reload]);
+  // 3.0.2: a new notice (a request moved, a voucher to sign) refreshes every open list at once
+  useEffect(() => {
+    if (!key) return;
+    const on = () => void reload();
+    window.addEventListener("rg-notice", on);
+    return () => window.removeEventListener("rg-notice", on);
+  }, [key, reload]);
   return { data, at, error, loading, reload };
 }
 

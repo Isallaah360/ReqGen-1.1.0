@@ -1,11 +1,11 @@
 {
   "name": "reqgen-app-screens",
-  "version": "3.0.1",
+  "version": "3.0.2",
   "private": true,
   "description": "ReqGen real app screens (packed inside the APK). Built into ../www with npm run build.",
   "type": "module",
   "scripts": {
-    "build": "tsc --noEmit && vite build",
+    "build": "node scripts/webcss.mjs && tsc --noEmit && vite build",
     "dev": "vite"
   },
   "dependencies": {
@@ -21,6 +21,8 @@
     "@capgo/capacitor-native-biometric": "8.9.3",
     "@fontsource/plus-jakarta-sans": "^5.3.0",
     "@supabase/supabase-js": "2.97.0",
+    "html-to-image": "^1.11.13",
+    "jspdf": "^3.0.3",
     "lucide-react": "1.28.0",
     "react": "19.2.3",
     "react-dom": "19.2.3"

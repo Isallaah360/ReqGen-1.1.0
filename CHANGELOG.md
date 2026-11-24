@@ -1,5 +1,25 @@
 # ReqGen changelog
 
+## 5.0.2 (24 Nov 2026), with the app 3.0.2
+
+The app now does every office job itself. On the website, long choices in lists are shown in full. No new database step beyond 5.0.0 and 5.0.1.
+
+### New (app 3.0.2)
+- Every office opens inside the app with the app header and Back: Finance, Payment Vouchers (generate from requests, manual voucher, signatories, check, counter-sign, DG sign and stamp, mark as paid, print), Registry, Reports, Audit, Administration, My Account and Developer. Nothing sends you to the website.
+- Printing a request or a voucher makes the standard IET A4 PDF (one page, with the request and PV numbers) on the phone and opens it, ready to print or share.
+- Excel, CSV and backup downloads and attachments are saved on the phone and opened.
+- New approvals and notices arrive while the app is open: a short banner, a buzz, and the lists refresh themselves.
+
+### Fixed
+- Long choices in drop-down lists (accounts, subheads, staff names) were cut with "…". They now wrap and show in full, on the website and in the app.
+- Phones: tab rows wrap onto a second line instead of hiding the last tab off the edge; request and voucher numbers in lists are no longer split across two lines; on very small phones (320 px) the list filters stack one under the other.
+- Phones: the A4 preview of a request or voucher shows the whole sheet, made smaller to fit, instead of being cut at the sides. Printing is unchanged.
+- Dark mode: A4 previews keep light paper colours in table heads and shaded boxes too.
+- No purple: the last purple chart and label colours are now IET teal and navy.
+
+### 5.0.1 (database only)
+- database/v5_0_1_rls_fix.sql: the requests and direct-request rules no longer loop ("infinite recursion"), and photo and signature uploads work again ("database schema is invalid").
+
 ## 5.0.0 (24 Nov 2026), with the app 3.0.0
 
 The Blueprint 07 "Super App" look, the direct-request fix and full Super Admin editing. One small database step: database/v5_0_0_status_fix.sql (adds two allowed statuses; nothing is removed). The approval rules are unchanged. Printed requests and vouchers keep the IET standard templates exactly.

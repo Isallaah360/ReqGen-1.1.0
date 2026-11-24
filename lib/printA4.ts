@@ -42,22 +42,41 @@ export function fitA4(page: HTMLElement | null) {
   page.dataset.a4Scale = scale.toFixed(2);
 }
 
+/**
+ * v5.0.2: on a narrow screen (a phone) the whole A4 sheet is shown, made smaller to fit the width, instead of
+ * being cut at the sides. Only the picture on screen changes; printing and the PDF always use the real A4 size.
+ */
+export function fitA4ToScreen(page: HTMLElement | null) {
+  if (!page) return;
+  const stage = page.closest<HTMLElement>(".rg-a4-stage");
+  if (!stage) return;
+  const cs = window.getComputedStyle(stage);
+  const avail = stage.clientWidth - parseFloat(cs.paddingLeft || "0") - parseFloat(cs.paddingRight || "0") - 4;
+  const full = 210 * (96 / 25.4); // 210 mm in CSS pixels
+  const z = avail > 0 && avail < full ? avail / full : 1;
+  page.style.zoom = z < 1 ? z.toFixed(4) : "";
+  page.dataset.screenFit = z < 1 ? z.toFixed(2) : "1";
+}
+
 /** Keeps a document fitted to A4 whenever its data or size changes. */
 export function useA4Fit(ref: RefObject<HTMLElement | null>, deps: unknown[]) {
   useEffect(() => {
     const page = ref.current;
     if (!page) return;
+    fitA4ToScreen(page);
     fitA4(page);
-    const late = window.setTimeout(() => fitA4(page), 350);
+    const late = window.setTimeout(() => { fitA4ToScreen(page); fitA4(page); }, 350);
     let observer: ResizeObserver | null = null;
     if (typeof ResizeObserver !== "undefined") {
       let frame = 0;
       observer = new ResizeObserver(() => {
         cancelAnimationFrame(frame);
-        frame = requestAnimationFrame(() => fitA4(page));
+        frame = requestAnimationFrame(() => { fitA4ToScreen(page); fitA4(page); });
       });
       const content = page.querySelector(".rg-a4-content");
       if (content) observer.observe(content);
+      const stage = page.closest(".rg-a4-stage");
+      if (stage) observer.observe(stage);
     }
     return () => {
       window.clearTimeout(late);
@@ -120,7 +139,7 @@ export async function printA4Sheet(page: HTMLElement | null | Array<HTMLElement 
     html, body { margin: 0 !important; padding: 0 !important; background: #fff !important; zoom: 1 !important; }
     body::before, body::after { display: none !important; }
     .rg-a4-stage { padding: 0 !important; background: #fff !important; overflow: visible !important; }
-    .rg-a4-page { margin: 0 !important; box-shadow: none !important; border-radius: 0 !important; break-after: page; page-break-after: always; }
+    .rg-a4-page { zoom: 1 !important; margin: 0 !important; box-shadow: none !important; border-radius: 0 !important; break-after: page; page-break-after: always; }
     .rg-a4-page:last-child { break-after: auto; page-break-after: auto; }
   </style>`;
 

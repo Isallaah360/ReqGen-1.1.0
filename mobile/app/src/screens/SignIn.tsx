@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { Eye, EyeOff, Fingerprint, ShieldCheck } from "lucide-react";
-import { db, openOutside, plainError, session, store, WEBSITE } from "../lib/core";
+import { db, plainError, session, store } from "../lib/core";
+import OfficeScreen from "../office/OfficeScreen";
 import { finger, pin } from "../lib/native";
-import { Note, Body } from "../ui";
+import { Note, Body, useNav } from "../ui";
 import { PinPad } from "./Unlock";
 
 /**
@@ -12,6 +13,7 @@ import { PinPad } from "./Unlock";
  */
 type Step = "password" | "code" | "pin" | "pin2" | "finger";
 export default function SignIn({ onDone }: { onDone: () => Promise<void> }) {
+  const { push } = useNav();
   const [step, setStep] = useState<Step>("password");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -124,8 +126,8 @@ export default function SignIn({ onDone }: { onDone: () => Promise<void> }) {
         {step === "code" ? (
           noFactor ? (
             <>
-              <Note tone="wa">Your account has no authenticator app (2FA) yet. Every ReqGen account needs one. Set it up on the website, then sign in here again.</Note>
-              <button type="button" className="btn bp block" onClick={() => openOutside(`${WEBSITE}/mfa/setup`)}>Set up 2FA on the website</button>
+              <Note tone="wa">Your account has no authenticator app (2FA) yet. Every ReqGen account needs one. Set it up now, then sign in here again.</Note>
+              <button type="button" className="btn bp block" onClick={() => push(<OfficeScreen href="/mfa/setup" title="Set up 2FA" />)}>Set up 2FA now</button>
               <button type="button" className="btn bs block" onClick={() => void cancel()}>Back to sign in</button>
             </>
           ) : (
@@ -139,7 +141,7 @@ export default function SignIn({ onDone }: { onDone: () => Promise<void> }) {
               <p className="foot">{busy ? "Checking…" : "ReqGen checks it as soon as the sixth number is in."}</p>
               {msg ? <Note tone="er">{msg}</Note> : null}
               <button type="button" className="btn bs block" onClick={() => void cancel()}>Use another account</button>
-              <button type="button" className="link" style={{ justifyContent: "center" }} onClick={() => setMsg("Lost your phone? Ask the Super Admin to reset your 2FA. Then sign in with your password and connect your authenticator app again on the website.")}>Lost your phone?</button>
+              <button type="button" className="link" style={{ justifyContent: "center" }} onClick={() => setMsg("Lost your phone? Ask the Super Admin to reset your 2FA. Then sign in with your password and set up your authenticator app again. The app shows you how.")}>Lost your phone?</button>
             </>
           )
         ) : (
@@ -155,7 +157,7 @@ export default function SignIn({ onDone }: { onDone: () => Promise<void> }) {
             </label>
             {msg ? <Note tone="er">{msg}</Note> : null}
             <button type="submit" className="btn bp block" disabled={busy}>{busy ? "Signing in…" : "Continue"}</button>
-            <a className="link" style={{ justifyContent: "center" }} href={`${WEBSITE}/forgot-password`} target="_blank" rel="noreferrer">Forgot password?</a>
+            <button type="button" className="link" style={{ justifyContent: "center" }} onClick={() => push(<OfficeScreen href="/forgot-password" title="Forgot password" />)}>Forgot password?</button>
           </form>
         )}
         <p className="foot" style={{ marginTop: "auto" }}>Next: the code from your authenticator app (2FA), then you choose an app PIN.</p>
