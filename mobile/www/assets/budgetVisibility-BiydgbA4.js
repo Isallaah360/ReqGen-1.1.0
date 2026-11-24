@@ -1,0 +1,1 @@
+import{n as o}from"./index-CpfhUtO7.js";const n=new Set(["dg","generalsecretary","dod","director","hod","dinadmin","registrar","hrcoordinator","hr","hrofficer","account","accounts","accountofficer","auditor","admin"]);function t(r){const e=o(r);return e.startsWith("hr:")?"hrofficer":e.replace(/\d+$/,"")}function c(r){return n.has(t(r))}export{c};

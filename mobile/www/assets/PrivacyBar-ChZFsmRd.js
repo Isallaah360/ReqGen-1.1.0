@@ -1,1 +1,0 @@
-import{j as e,a as s}from"./index-BtOUb9Nr.js";function n(){return e.jsxs("div",{className:"v4-privacy-bar",role:"note",children:[e.jsx(s,{name:"eyeoff"}),e.jsxs("span",{children:[e.jsx("b",{children:"Registry sees numbers, dates, offices and people only"}),": never the title, amount or contents of a request."]})]})}export{n as P};

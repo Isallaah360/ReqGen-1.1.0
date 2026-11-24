@@ -1,20 +1,20 @@
 {
-    "version":  "3.0.1",
-    "build":  7,
+    "version":  "3.0.2",
+    "build":  8,
     "apk":  "/downloads/ReqGen.apk",
-    "size":  "6.3 MB",
+    "size":  "7.0 MB",
     "date":  "24 Nov 2026",
-    "sha256":  "A8D2 61BB 65B7 EED7 6179 18CD 3237 569B 8684 A3A7 3FBC C1A7 286D 4B65 50D1 466E",
+    "sha256":  "F728 EB5D 8FF0 C958 7CBE C160 8924 27BF E4E3 722F 7BBC E294 559F EA96 A74F DB7E",
     "new":  [
-                "The new ReqGen look (Blueprint 07): two themes, Sand and Gold, each Light, Dark or Match phone. Me â€º Appearance.",
-                "A new sign-in screen with the floating IET logo, and the Plus Jakarta Sans font packed inside the app.",
-                "Your offices (Finance, Registry, Reports, Administration and the others your position allows) are listed on Home."
+                "Every office now works inside the app: Finance, Payment Vouchers (from requests and manual), signatories, signing and paying, Registry, Reports, Audit, Administration, My Account and Developer. Nothing opens the website.",
+                "Printing a request or a voucher makes the standard IET A4 PDF on the phone and opens it.",
+                "New approvals and notices appear in the app straight away, with a short banner and a buzz."
             ],
     "fixed":  [
-                  "Requests, Approvals and Home showed an empty list when the database refused to read requests. Run the 5.0.1 SQL once; lists now say clearly if they cannot load.",
-                  "Direct requests no longer stop with â€œrequests_status_checkâ€ (run the 5.0.0 SQL once)."
+                  "Long choices in lists and forms are shown in full instead of being cut.",
+                  "Attachments, Excel and backup files open and save on the phone."
               ],
     "better":  [
-                   "A full-width bottom bar with a round New button, softer cards and clearer buttons on every screen."
+                   "Office pages use the app header with Back, and the same Sand and Gold looks, in Light and Dark."
                ]
 }

@@ -1,1 +1,0 @@
-import{n,h as p}from"./index-BtOUb9Nr.js";import"./link-BMpUOPv6.js";import"./supabaseClient-CKAr3K-h.js";function l(o,r,i){const e=n(o);return e==="admin"&&i==="developer"?"Developer":p(e||r)}export{l as p};

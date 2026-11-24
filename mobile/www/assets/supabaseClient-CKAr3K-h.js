@@ -1,1 +1,0 @@
-import{e as i}from"./index-BtOUb9Nr.js";let n=null;async function o(){return n=await i(),n}o();const s=new Proxy({},{get(r,e){if(!n)throw new Error("ReqGen is still connecting. Please try again in a moment.");const t=n[e];return typeof t=="function"?t.bind(n):t}});export{s};
