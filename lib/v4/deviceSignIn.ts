@@ -71,9 +71,20 @@ async function finishSession(tokenHash: string) {
   if (r.error) throw new Error(r.error.message);
 }
 
+/**
+ * v4.7.1: a fingerprint (passkey) belongs to one web address. Browsers refuse it on any other
+ * address, so it is offered only on the main address (NEXT_PUBLIC_APP_URL). On other addresses
+ * (for example the vercel.app link) ReqGen asks for the authenticator code instead.
+ */
+export function onMainAddress() {
+  if (typeof window === "undefined") return false;
+  try { return new URL(process.env.NEXT_PUBLIC_APP_URL || window.location.origin).origin === window.location.origin; } catch { return false; }
+}
+
 export async function fingerprintAvailable() {
   // v4.6.11: in the ReqGen app the phone's own sensor is used (brief §7).
   if (isApp()) return fingerprintSaved();
+  if (!onMainAddress()) return false;
   try {
     return browserSupportsWebAuthn() && (await platformAuthenticatorIsAvailable());
   } catch {

@@ -24,7 +24,8 @@ check("Finance home shows subheads to watch only to balance viewers", read("app/
 
 const tr = read("app/finance/account-transfers/page.tsx");
 check("Transfers: Account Officer → Auditor → DG approves and stamps", tr.includes("reqgen_transfer_create") && tr.includes("reqgen_transfer_check") && tr.includes("reqgen_transfer_approve") && tr.includes("Approve, sign and stamp"));
-check("Transfer approval needs a fresh fingerprint or 2FA code", tr.includes('confirmFresh("approve and stamp this transfer")') && read("lib/v4/freshConfirm.ts").includes("challengeAndVerify"));
+// v4.7.1: the fresh check is now the SMS or e-mail code (one standard for every action)
+check("Transfer approval needs a fresh code", tr.includes('confirmFresh("approve and stamp this transfer")') && read("lib/v4/freshConfirm.ts").includes("confirmWithCode(purpose)"));
 check("The DG (or General Secretary acting) may open Transfers, not the rest of Finance", read("lib/permissions.ts").includes('{ prefix: "/finance/account-transfers", roles: ["admin", "auditor", "account", "accounts", "accountofficer", "dg", "directorgeneral", "generalsecretary"] }'));
 check("Settings: lock (Super Admin / Auditor), unlock with reason (Super Admin), close from 1 August", read("app/finance/settings/page.tsx").includes("reqgen_fy_lock") && read("app/finance/settings/page.tsx").includes("reqgen_fy_unlock") && read("app/finance/settings/page.tsx").includes("reqgen_fy_close"));
 

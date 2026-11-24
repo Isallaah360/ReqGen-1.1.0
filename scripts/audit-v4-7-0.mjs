@@ -13,7 +13,7 @@ const check = (label, ok) => { console.log(`${ok ? "PASS" : "FAIL"}  ${label}`);
 const walk = (d, out = []) => { if (!fs.existsSync(d)) return out; for (const f of fs.readdirSync(d, { withFileTypes: true })) { const p = path.join(d, f.name); if (f.name === "node_modules" || f.name === ".next") continue; if (f.isDirectory()) walk(p, out); else out.push(p); } return out; };
 
 const pkg = JSON.parse(read("package.json"));
-check("Version 4.7.0 or later, the same in package.json and lib/version.ts", /^4\.(7|[89]|\d\d)\./.test(pkg.version) && read("lib/version.ts").includes(`REQGEN_SEMVER = "${pkg.version}"`));
+check("Version 4.7.0 or later, the same in package.json and lib/version.ts", /^(4\.(7|[89]|\d\d)|[5-9])\./.test(pkg.version) && read("lib/version.ts").includes(`REQGEN_SEMVER = "${pkg.version}"`));
 check("CHANGELOG has this version", read("CHANGELOG.md").includes(`## ${pkg.version}`));
 
 // 1. codes
@@ -27,7 +27,7 @@ check("Server: the code is never written to the SMS log in clear", code.includes
 check("Website: the code box is mounted once for every page", read("app/layout.tsx").includes("<CodeHost />"));
 check("Website: a refused call asks for the code and tries once more", read("lib/supabaseClient.ts").includes("REQGEN_CODE_REQUIRED") && read("lib/supabaseClient.ts").includes("confirmWithCode"));
 const work = read("app/components/requests/RequestDetailsWorkspace.tsx");
-check("Website: Approve and Send back use the SMS or e-mail code, not the authenticator", work.includes('await confirmWithCode(what)') && work.includes('action === "Delete" && !totpFactorId'));
+check("Website: Approve and Send back use the SMS or e-mail code, not the authenticator", work.includes('await confirmWithCode(what)') && !work.includes('if (!totpFactorId) {\n      setMsg("✕ You must set up 2FA'));
 check("Website: sending a request always asks for the code", read("app/requests/new/page.tsx").includes('confirmWithCode("send this request")') && read("app/requests/direct/page.tsx").includes("confirmWithCode("));
 check("Website API: code routes open to the app only (CORS for https://localhost)", read("lib/server/cors.ts").includes('"https://localhost"') && ["app/api/otp/send/route.ts", "app/api/otp/verify/route.ts", "app/api/notifications/alert/route.ts", "app/api/app-config/route.ts"].every((f) => read(f).includes("OPTIONS = preflight")));
 check("App config gives only public values (no service key)", !/SERVICE_ROLE|service_role/i.test(read("app/api/app-config/route.ts")));
@@ -53,7 +53,7 @@ const cap = JSON.parse(read("mobile/capacitor.config.json"));
 check("App: no website address inside (not a window on the website)", !cap.server?.url && cap.server?.androidScheme === "https");
 check("App: screens built into mobile/www (data-reqgen-app=2)", fs.existsSync("mobile/www/index.html") && read("mobile/www/index.html").includes('data-reqgen-app="2"'));
 check("App maker refuses an APK without the app screens", read("mobile/make_app.ps1").includes('data-reqgen-app="2"') && read("mobile/make_app.ps1").includes("The APK opens a website in a window"));
-check("App version 2.0.0, build 4 or later", /REQGEN_VERSION_NAME=2\.\d+\.\d+/.test(read("mobile/version.properties")) && Number(read("mobile/version.properties").match(/REQGEN_VERSION_CODE=(\d+)/)[1]) >= 4);
+check("App version 2.0.0, build 4 or later", /REQGEN_VERSION_NAME=[2-9]\.\d+\.\d+/.test(read("mobile/version.properties")) && Number(read("mobile/version.properties").match(/REQGEN_VERSION_CODE=(\d+)/)[1]) >= 4);
 const appSrc = walk("mobile/app/src").filter((f) => /\.(tsx?|css)$/.test(f)).map(read).join("\n");
 check("App: code sheet for every send and decision, with the safety net", appSrc.includes('askCode("send this request")') && appSrc.includes("REQGEN_CODE_REQUIRED") && appSrc.includes("/api/otp/verify"));
 check("App: PIN kept only as a SHA-256 fingerprint, locks after 15 minutes", appSrc.includes('crypto.subtle.digest("SHA-256"') && appSrc.includes("15 * 60 * 1000"));

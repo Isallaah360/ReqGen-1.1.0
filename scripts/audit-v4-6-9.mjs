@@ -48,7 +48,8 @@ check("Live alerts: heading (Request received / Voucher received) and the bell r
 check("Count-up never used on money", read("app/components/v4/ui.tsx").includes('typeof s.value === "number" ? <CountUp'));
 check("Reduce motion respected, nothing moves in print, Audit Log and 2FA stay still", css.includes("prefers-reduced-motion: reduce") && css.includes(".v4-saved, .v4-tip { display: none !important; }") && frame.includes('pathname.startsWith("/audit-centre/logs")'));
 check("Welcome: Hijri date and a daily tip", dash.includes("hijriDate(now)") && dash.includes("tipOfDay(now)") && motion.includes("islamic-umalqura"));
-check("Themes: Light, Dark, Same as device and IET green", profile.includes("applyTheme(m)") && profile.includes("IET green") && theme.includes("ACCENT_STORAGE_KEY") && css.includes('html[data-accent="green"]'));
+// 5.0.0: the themes are now Sand and Gold (Blueprint 07); Light, Dark and Match device stay.
+check("Themes: Light, Dark, Match device; Sand and Gold (5.0.0)", profile.includes("applyTheme(m)") && profile.includes('"Sand"') && profile.includes('"Gold"') && theme.includes("ACCENT_STORAGE_KEY") && read("app/v4/v5-skin.css").includes('html[data-accent="gold"]'));
 check("Milestones on My Account (quiet, no pop-ups)", profile.includes("Milestones") && profile.includes("v4-milestones"));
 
 // 4. Request Insight
@@ -64,10 +65,10 @@ check("Delete: Super Admin only, typed DELETE, 2FA within 5 minutes", del.includ
 check("Delete: deactivated, not a system account, no history", del.includes("target.is_active !== false") && del.includes("target.system_account") && del.includes("const HISTORY"));
 check("Delete: never edits routing; settings must be changed first", del.includes("const SETTINGS") && !/from\("(reqgen_route_templates|reqgen_route_steps|reqgen_department_routes)"\)/.test(del) && !/from\(c\.table\)\.delete\(\)[^;]*SETTINGS/.test(del));
 check("Delete: written to the Audit Log", del.includes('adminLog(ctx, "Deactivated account deleted"'));
-check("Delete: button only on a deactivated account, for the Super Admin", staff.includes("!person.is_active && iAmSuperAdmin") && staff.includes("challengeAndVerify"));
+check("Delete: button only on a deactivated account, for the Super Admin", staff.includes("!person.is_active && iAmSuperAdmin") && (staff.includes("challengeAndVerify") || staff.includes("confirmWithCode(\"delete this account\")"))); // v4.7.1: SMS or e-mail code
 
 // 6. Release
-check("Version 4.6.9 or later", /REQGEN_SEMVER = "4\.(6\.(9|[1-9]\d)|([7-9]|[1-9]\d)\.\d+)"/.test(read("lib/version.ts")) && /"version": "4\.(6\.(9|[1-9]\d)|([7-9]|[1-9]\d)\.\d+)"/.test(read("package.json")));
+check("Version 4.6.9 or later", /REQGEN_SEMVER = "(4\.(6\.(9|[1-9]\d)|([7-9]|[1-9]\d)\.\d+)|[5-9]\.\d+\.\d+)"/.test(read("lib/version.ts")) && /"version": "(4\.(6\.(9|[1-9]\d)|([7-9]|[1-9]\d)\.\d+)|[5-9]\.\d+\.\d+)"/.test(read("package.json")));
 check("No .env file shipped", !fs.existsSync(".env") || read(".gitignore").includes(".env"));
 
 let failed = 0;

@@ -937,6 +937,7 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
     });
 
     if (!ok) return;
+    if (!(await confirmWithCode(isPersonalFund ? "recommend this subhead" : "assign this subhead"))) { setMsg("✕ Not done: the code was not entered."); return; }
 
     setAssigningSubhead(true);
     setMsg(null);
@@ -1030,13 +1031,6 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
   function validateBeforeSensitiveAction(action: SensitiveAction) {
     if (!req || !me) return false;
 
-    // v4.7.0: Approve and Send back are confirmed with the SMS or e-mail code, so no
-    // authenticator app is needed for them. Delete still uses the authenticator.
-    if (action === "Delete" && !totpFactorId) {
-      setMsg("✕ You must set up 2FA before performing this action.");
-      router.push("/mfa/setup");
-      return false;
-    }
 
     if (action === "Delete") {
       if (!canDeleteRequest) {
@@ -1089,45 +1083,13 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
 
   async function openFresh2faModal(action: SensitiveAction) {
     setMsg(null);
-
-    const ok = validateBeforeSensitiveAction(action);
-    if (!ok) return;
-
-    const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-    const sessionIsAal2 = aal?.currentLevel === "aal2";
-
-    // v4.1.2 (Build Reference §10): the DG's signature + IET stamp and the
-    // Account Officer's payment always need a fresh fingerprint or 2FA code —
-    // never a passcode session alone. Other steps reuse the verified session.
-    const mustConfirmFresh = action === "Approve" && (isDgStage || isAccountStage);
-
-    if (mustConfirmFresh && canUseFingerprint) {
-      try {
-        await fingerprintStepUp();
-        await actAfterFresh2fa(action);
-        return;
-      } catch (e: unknown) {
-        const m = errorMessage(e);
-        if (!/no fingerprint/i.test(m)) { setMsg("✕ " + m + " You can use your 2FA code instead."); }
-      }
-    }
-
-    // ReqGen already requires MFA for authenticated workspaces. Reuse that secure
-    // AAL2 session for normal request work so users are not challenged repeatedly.
-    if (!mustConfirmFresh && (sessionIsAal2 || mfaVerified)) {
-      if (action === "Delete") {
-        await deleteRequestAfterFresh2fa();
-      } else {
-        await actAfterFresh2fa(action);
-      }
-      return;
-    }
-
-    // Fallback only when the secure session has expired or dropped below AAL2.
-    setPendingAction(action);
-    setMfaCode("");
-    setShowMfaModal(true);
-    mfaAutoSubmittingRef.current = false;
+    // v4.7.1 (one standard): every action, Delete included, is confirmed with the 6-digit code
+    // sent by SMS and e-mail. The authenticator (2FA) is used only to sign in.
+    if (!validateBeforeSensitiveAction(action)) return;
+    const what = action === "Delete" ? "delete this request" : action === "Approve" ? "approve this request" : "send this request back";
+    if (!(await confirmWithCode(what))) { setMsg("✕ Not done: the code was not entered."); return; }
+    if (action === "Delete") await deleteRequestAfterFresh2fa();
+    else await actAfterFresh2fa(action);
   }
 
   async function verifyCodeAndContinue(codeOverride?: string) {
@@ -1344,6 +1306,7 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
     if (!req) return;
     const note = await promptDialog({ title: "Send the corrected request back?", message: "It goes back to the officer who returned it.", label: "Note for the officer (optional)", required: false, confirmLabel: "Send back" });
     if (note === null) return;
+    if (!(await confirmWithCode("send it again"))) { setMsg("✕ Not done: the code was not entered."); return; }
     setSaving(true); setMsg(null);
     try {
       const { error } = await supabase.rpc("reqgen_resubmit_request", { p_request_id: req.id, p_comment: note || null });
@@ -1358,6 +1321,7 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
     if (!req) return;
     const reason = await promptDialog({ title: "Withdraw this request?", message: "It closes and any reserved fund is released. This cannot be undone.", label: "Why are you withdrawing it?", confirmLabel: "Withdraw", tone: "danger" });
     if (!reason) return;
+    if (!(await confirmWithCode("withdraw this request"))) { setMsg("✕ Not done: the code was not entered."); return; }
     setSaving(true); setMsg(null);
     try {
       const { error } = await supabase.rpc("reqgen_withdraw_request", { p_request_id: req.id, p_reason: reason });
@@ -1392,6 +1356,7 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
       confirmLabel: "Reopen",
     });
     if (!reason) return;
+    if (!(await confirmWithCode("reopen this request"))) { setMsg("✕ Not done: the code was not entered."); return; }
     setSaving(true); setMsg(null);
     try {
       const { error } = await supabase.rpc("reqgen_reopen_request", { p_request_id: req.id, p_reason: reason });
@@ -1413,6 +1378,7 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
       confirmLabel: "Change subhead",
     });
     if (!reason) return;
+    if (!(await confirmWithCode("change the subhead"))) { setMsg("✕ Not done: the code was not entered."); return; }
     setAssigningSubhead(true); setMsg(null);
     try {
       const { error } = await supabase.rpc("update_request_adjust_reservation", {

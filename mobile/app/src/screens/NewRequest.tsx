@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Check, Paperclip, Send, X, Save } from "lucide-react";
-import { alert, askCode, db, plainError } from "../lib/core";
+import { askCode, db, notice, plainError } from "../lib/core";
 import { useOnline } from "../lib/data";
 import { ACCEPT, addFiles, fmtAmount, kb, newNumber, parseAmount, uploadAll } from "../lib/files";
 import { naira, withWho, stageKey } from "../lib/text";
@@ -110,7 +110,7 @@ export default function NewRequest({ kind, draft }: { kind: Kind; draft?: Draft 
       if (error) throw new Error(error.message);
       const res = (Array.isArray(data) ? data[0] : data) as { request_id?: string; first_stage?: string } | null;
       if (!res?.request_id) throw new Error("The request was sent but ReqGen did not return its number. Check Requests before trying again.");
-      alert(res.request_id, "waiting");
+      notice("submitted", res.request_id);
       if (files.length) { setBusy("upload"); try { await uploadAll(res.request_id, me.id, files); } catch (e) { toast(plainError(e), "er"); } }
       if (draftId) await s.from("reqgen_request_drafts").delete().eq("id", draftId);
       replace(<Sent title="Request sent" no={no} line={`It is with ${withWho(res.first_stage)}. They get an SMS, an e-mail and an app notice.`} openNode={<Detail id={res.request_id} meId={me.id} />} />);

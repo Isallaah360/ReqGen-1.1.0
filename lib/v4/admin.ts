@@ -22,7 +22,7 @@ export const POSITIONS: PositionDef[] = [
   { code: "STAFF", name: "Staff", group: "Base level", keys: ["staff"], chip: "staff", about: "Everyone in IET. Can raise requests, see their own requests, payments and print register, and reopen their own closed request." },
   { code: "DG", name: "Director General", group: "Leadership", keys: ["dg", "directorgeneral"], one: true, chip: "lead", about: "President of the Islamic Education Trust. Final approval of requests; signs, stamps and authorises vouchers." },
   { code: "GS", name: "General Secretary", group: "Leadership", keys: ["generalsecretary", "gensec"], one: true, chip: "lead", about: "General Secretary of the Trust. Acts for the DG when the DG is away: signs and stamps “for the DG”." },
-  { code: "PA", name: "PA to the DG", group: "Leadership", keys: ["padg"], chip: "lead", about: "Personal Assistant to the Director General. Manages the DG’s queue and correspondence." },
+  { code: "PA", name: "PA to the DG", group: "Leadership", keys: ["padg", "patothedg", "registry"], chip: "lead", about: "Personal Assistant to the DG and the Registry: logs every file into and out of the DG’s office, tracks where each request is, and reminds whoever holds it. Never sees request contents." },
   { code: "DOD", name: "Director of Department", group: "Departments", keys: ["dod", "director"], chip: "dept", about: "Approves requests from their department." },
   { code: "HOD", name: "Head of Department", group: "Departments", keys: ["hod"], chip: "dept", about: "Approves requests from their unit." },
   { code: "PD", name: "Program Director", group: "Departments", keys: ["pd", "po"], renamed: "Was “PO”", chip: "dept", about: "First check on ASAP-ALLI requests. Replaces “PO” everywhere." },
@@ -33,7 +33,6 @@ export const POSITIONS: PositionDef[] = [
   { code: "ACC", name: "Account Officer", group: "Offices", keys: ["accountofficer", "account", "accounts"], chip: "office", about: "Releases funds and prepares vouchers for one account: General Admin, DIN or ASAP-ALLI." },
   { code: "AUD", name: "Auditor", group: "Offices", keys: ["auditor"], one: true, chip: "office", about: "Internal Auditor. Checks every voucher: nobody chooses an auditor." },
   { code: "CS", name: "Counter Signer", group: "Offices", keys: ["pvcountersigner", "pvsigner"], chip: "office", about: "Counter-signs vouchers after the Auditor." },
-  { code: "RGY", name: "Registry", group: "Offices", keys: ["registry"], chip: "office", about: "Tracks, files, dispatches and archives. Never sees request contents." },
   { code: "SA", name: "Super Admin", group: "System", keys: ["superadmin"], one: true, chip: "sys", about: "The Trust’s own account for running ReqGen. Not a person." },
   { code: "DEV", name: "Developer", group: "System", keys: ["developer"], one: true, chip: "sys", about: "Barderian Enterprises. Maintenance, releases and repairs." },
 ];
@@ -57,11 +56,11 @@ export const initials = (name: string) => name.split(/\s+/).filter(Boolean).slic
 
 /** Role keys offered when giving a position (the database checks the catalogue). */
 export const ASSIGNABLE: Array<{ key: string; label: string }> = [
-  { key: "dg", label: "Director General" }, { key: "generalsecretary", label: "General Secretary" }, { key: "padg", label: "PA to the DG" },
+  { key: "dg", label: "Director General" }, { key: "generalsecretary", label: "General Secretary" }, { key: "padg", label: "PA to the DG (and Registry)" },
   { key: "director", label: "DOD: Director of Department" }, { key: "hod", label: "HOD: Head of Department" }, { key: "pd", label: "PD: Program Director" },
   { key: "dinadmin", label: "DIN Admin" }, { key: "registrar", label: "Registrar" }, { key: "hrcoordinator", label: "HR Coordinator" },
   { key: "hrofficer", label: "HR Officer" }, { key: "accountofficer", label: "Account Officer" }, { key: "auditor", label: "Auditor" },
-  { key: "pvcountersigner", label: "Counter Signer" }, { key: "registry", label: "Registry" },
+  { key: "pvcountersigner", label: "Counter Signer" },
 ];
 
 /**
@@ -71,13 +70,13 @@ export const ASSIGNABLE: Array<{ key: string; label: string }> = [
  * y = allowed · route = only when routed to them · own = only their own · n = not allowed · view = can look, not change
  */
 export type Cell = "y" | "route" | "own" | "n" | "view";
-export const MATRIX_COLUMNS = ["Staff", "DG", "GS", "PA", "DOD", "HOD", "PD", "DIN", "Reg.", "HRC", "Acct", "Aud.", "Rgy", "SA", "Dev"] as const;
+export const MATRIX_COLUMNS = ["Staff", "DG", "GS", "PA", "DOD", "HOD", "PD", "DIN", "Reg.", "HRC", "Acct", "Aud.", "SA", "Dev"] as const;
 const all = (v: Cell): Cell[] => MATRIX_COLUMNS.map(() => v);
 const cells = (spec: Partial<Record<(typeof MATRIX_COLUMNS)[number], Cell>>, rest: Cell = "n"): Cell[] => MATRIX_COLUMNS.map((c) => spec[c] ?? rest);
 export const MATRIX: Array<{ group: string; rows: Array<{ action: string; cells: Cell[] }> }> = [
   { group: "Requests", rows: [
     { action: "Raise a request", cells: cells({ SA: "n", Dev: "n" }, "y") },
-    { action: "Open request contents", cells: cells({ Staff: "own", Rgy: "n", SA: "n", Dev: "n" }, "route") },
+    { action: "Open request contents", cells: cells({ Staff: "own", PA: "n", SA: "n", Dev: "n" }, "route") },
     { action: "Approve / return / reject", cells: cells({ DG: "y", GS: "route", DOD: "route", HOD: "route", PD: "route", DIN: "route", "Reg.": "route", HRC: "route" }) },
     { action: "Final approval + IET stamp", cells: cells({ DG: "y", GS: "route" }) },
     { action: "Reopen a closed request (reason logged)", cells: cells({ Staff: "own", Acct: "y", "Aud.": "y", SA: "y", Dev: "y" }) },
@@ -90,7 +89,7 @@ export const MATRIX: Array<{ group: string; rows: Array<{ action: string; cells:
     { action: "See subhead balances", cells: cells({ DG: "y", GS: "y", DOD: "y", HOD: "y", DIN: "y", "Reg.": "y", HRC: "y", Acct: "y", "Aud.": "y", SA: "y", Dev: "y" }) },
   ] },
   { group: "Registry and oversight", rows: [
-    { action: "Track, file, dispatch, archive", cells: cells({ "Reg.": "y", Rgy: "y", "Aud.": "view", SA: "y", Dev: "y" }) },
+    { action: "Registry: track, remind, file, dispatch, archive", cells: cells({ PA: "y", SA: "y" }) },
     { action: "Reports (own scope)", cells: all("y") },
     { action: "Audit Log", cells: cells({ "Aud.": "y", SA: "y", Dev: "y" }) },
   ] },

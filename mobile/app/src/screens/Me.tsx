@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Bell, Download, Fingerprint, Info, KeyRound, LogOut, Moon, ShieldCheck, Laptop } from "lucide-react";
+import { Bell, Download, Fingerprint, Info, KeyRound, LogOut, Moon, ShieldCheck } from "lucide-react";
 import { WEBSITE, openOutside } from "../lib/core";
 import { appVersion, downloadAndInstall, finger, newerRelease, pin, type Release } from "../lib/native";
 import { useApp } from "../App";
@@ -7,7 +7,7 @@ import { Avatar, Big, Body, Cell, Chev, Note, Sheet, Toggle, toast } from "../ui
 import { PinPad } from "./Unlock";
 
 export default function Me() {
-  const { me, theme, setTheme, signOut } = useApp();
+  const { me, theme, setTheme, look, setLook, signOut } = useApp();
   const [ver, setVer] = useState({ version: "2.0.0", build: 0 });
   const [rel, setRel] = useState<Release | null>(null);
   const [checked, setChecked] = useState(false);
@@ -19,7 +19,7 @@ export default function Me() {
     void newerRelease().then((r) => { setRel(r); setChecked(true); });
     void finger.on().then(setFing); void finger.ready().then(setCanFing);
   }, []);
-  const themeText = theme === "system" ? "Same as phone" : theme === "dark" ? "Dark" : "Light";
+  const themeText = `${look === "gold" ? "Gold" : "Sand"}, ${theme === "system" ? "Match phone" : theme === "dark" ? "Dark" : "Light"}`;
   return (
     <>
       <Big>Me</Big>
@@ -43,16 +43,23 @@ export default function Me() {
           <Cell icon={<Download size={18} />} iconTone="mu" title={`App version ${ver.version}`} sub={!checked ? "Checking for a newer version…" : rel ? `Version ${rel.version} is ready` : "Up to date"} onClick={rel ? () => setSheet("update") : undefined} right={rel ? <span className="chip c-or">Update</span> : undefined} />
           <Cell icon={<Info size={18} />} iconTone="mu" title="About and credits" sub="IET, by Barderian Enterprises" onClick={() => setSheet("about")} />
         </div>
-        <Note tone="mu" icon={<Laptop size={16} />}>Finance, Budget, Reports, Administration and Audit stay on the website, on a laptop.</Note>
         <button type="button" className="btn bs block" style={{ color: "var(--er)" }} onClick={() => setSheet("out")}><LogOut size={18} />Sign out of this phone</button>
         <p className="foot">Developed by Barderian Enterprises. WhatsApp 0803 119 7746, info@barderians.com.ng</p>
       </Body>
 
       <Sheet open={sheet === "theme"} onClose={() => setSheet(null)} title="Appearance">
-        <div className="grp" role="radiogroup" aria-label="Appearance">
+        <div className="look" role="radiogroup" aria-label="Theme">
+          {(["sand", "gold"] as const).map((l) => (
+            <button key={l} type="button" role="radio" aria-checked={look === l} onClick={() => setLook(l)}>
+              <i aria-hidden="true"><b style={{ background: l === "sand" ? "#F4EEE3" : "#FBF5EA" }} /><b style={{ background: l === "sand" ? "#1D7DB0" : "#F2A01C" }} /></i>
+              {l === "sand" ? "Sand" : "Gold"}
+            </button>
+          ))}
+        </div>
+        <div className="grp" role="radiogroup" aria-label="Light or dark">
           {(["system", "light", "dark"] as const).map((t) => (
             <button key={t} type="button" className="cell" role="radio" aria-checked={theme === t} onClick={() => { setTheme(t); setSheet(null); }}>
-              <span className="t"><b>{t === "system" ? "Same as phone" : t === "light" ? "Light" : "Dark"}</b></span>
+              <span className="t"><b>{t === "system" ? "Match phone" : t === "light" ? "Light" : "Dark"}</b></span>
               <span className={`box${theme === t ? " on" : ""}`} style={{ borderRadius: 13 }} aria-hidden="true" />
             </button>
           ))}

@@ -54,6 +54,10 @@ export async function getAvailableRoles(userId: string): Promise<AvailableRole[]
   if (map.size === 0) {
     map.set("staff", { key: "staff", name: "Staff", source: "profile" });
   }
+  // 5.0.0: the PA to the DG is also the Registry. One position, shown once.
+  if (map.has("padg") && map.has("registry")) map.delete("registry");
+  const pa = map.get("padg");
+  if (pa) pa.name = "PA to the DG";
 
   return Array.from(map.values()).sort((a, b) => {
     if (a.key === "admin") return -1;

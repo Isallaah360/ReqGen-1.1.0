@@ -49,6 +49,8 @@ export function normalizeRole(value: string | null | undefined): string {
   // HR Coordinator. Old keys keep working until the v4 database step renames them.
   if (normalized === "po" || normalized === "programofficer" || normalized === "programmeofficer" || normalized === "programdirector") return "pd";
   if (normalized === "hrboss" || normalized === "headofhr" || normalized === "hrcoordinator") return "hrcoordinator";
+  // 5.0.0: one PA to the DG. Old spellings ("pa to the dg", "PA_to_DG" …) are the same position.
+  if (normalized === "patothedg" || normalized === "patodg" || normalized === "personalassistanttothedg" || normalized === "pa2dg") return "padg";
   return normalized;
 }
 

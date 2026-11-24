@@ -18,6 +18,8 @@ type Ctx = {
   me: Me; reloadMe: () => Promise<void>; pending: number; refreshPending: () => Promise<void>;
   tab: Tab; setTab: (t: Tab) => void; openNew: () => void; signOut: () => Promise<void>;
   theme: "system" | "light" | "dark"; setTheme: (t: "system" | "light" | "dark") => void;
+  /** 3.0.0: Sand or Gold */
+  look: "sand" | "gold"; setLook: (l: "sand" | "gold") => void;
 };
 const AppCtx = createContext<Ctx | null>(null);
 export const useApp = () => useContext(AppCtx) as Ctx;
@@ -25,7 +27,10 @@ export const useApp = () => useContext(AppCtx) as Ctx;
 /** Light or dark: follows the phone unless the person chose one in Me. The status bar follows too. */
 function useTheme() {
   const [theme, setThemeState] = useState<"system" | "light" | "dark">("system");
+  const [look, setLookState] = useState<"sand" | "gold">("sand");
   useEffect(() => { void store.get<"system" | "light" | "dark">("rg:theme", "system").then(setThemeState); }, []);
+  useEffect(() => { void store.get<"sand" | "gold">("rg:look", "sand").then((l) => setLookState(l === "gold" ? "gold" : "sand")); }, []);
+  useEffect(() => { document.documentElement.dataset.look = look; }, [look]);
   useEffect(() => {
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
     const apply = () => {
@@ -37,7 +42,10 @@ function useTheme() {
     mq.addEventListener("change", apply);
     return () => mq.removeEventListener("change", apply);
   }, [theme]);
-  return { theme, setTheme: (t: "system" | "light" | "dark") => { setThemeState(t); void store.set("rg:theme", t); } };
+  return {
+    theme, setTheme: (t: "system" | "light" | "dark") => { setThemeState(t); void store.set("rg:theme", t); },
+    look, setLook: (l: "sand" | "gold") => { setLookState(l); void store.set("rg:look", l); },
+  };
 }
 
 type Phase = "boot" | "signin" | "locked" | "in" | "error";
@@ -46,7 +54,7 @@ export default function App() {
   const [phase, setPhase] = useState<Phase>("boot");
   const [me, setMe] = useState<Me | null>(null);
   const [bootError, setBootError] = useState("");
-  const { theme, setTheme } = useTheme();
+  const { theme, setTheme, look, setLook } = useTheme();
 
   const start = useCallback(async () => {
     setPhase("boot");
@@ -80,7 +88,7 @@ export default function App() {
   if (phase === "locked" && me) return <><Unlock me={me} onOpen={async () => { await touch(); setPhase("in"); }} onSwitch={async () => { await signOutAll(); setMe(null); setPhase("signin"); }} /><ToastHost /></>;
   if (!me) return <Splash />;
   return (
-    <Signed me={me} setMe={setMe} theme={theme} setTheme={setTheme}
+    <Signed me={me} setMe={setMe} theme={theme} setTheme={setTheme} look={look} setLook={setLook}
       onSignOut={async () => { await signOutAll(); setMe(null); setPhase("signin"); }} />
   );
 }
@@ -94,7 +102,7 @@ async function signOutAll() {
   await Promise.all(keys.filter((k) => k.startsWith("rg:c:")).map((key) => Preferences.remove({ key })));
 }
 
-function Signed({ me, setMe, theme, setTheme, onSignOut }: { me: Me; setMe: (m: Me) => void; theme: Ctx["theme"]; setTheme: Ctx["setTheme"]; onSignOut: () => Promise<void> }) {
+function Signed({ me, setMe, theme, setTheme, look, setLook, onSignOut }: { me: Me; setMe: (m: Me) => void; theme: Ctx["theme"]; setTheme: Ctx["setTheme"]; look: Ctx["look"]; setLook: Ctx["setLook"]; onSignOut: () => Promise<void> }) {
   const [tab, setTab] = useState<Tab>("home");
   const [pending, setPending] = useState(0);
   const [newOpen, setNewOpen] = useState(false);
@@ -120,7 +128,7 @@ function Signed({ me, setMe, theme, setTheme, onSignOut }: { me: Me; setMe: (m: 
 
   const ctx: Ctx = {
     me, reloadMe: async () => setMe(await loadMe()), pending, refreshPending, tab, setTab,
-    openNew: () => setNewOpen(true), signOut: onSignOut, theme, setTheme,
+    openNew: () => setNewOpen(true), signOut: onSignOut, theme, setTheme, look, setLook,
   };
   return (
     <AppCtx.Provider value={ctx}>

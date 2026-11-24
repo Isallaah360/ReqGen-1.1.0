@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Bell, Check, CornerUpLeft, Eye, FileCheck, Forward, Laptop, Lock, Paperclip, PenLine, Reply, Send, ShieldCheck, Stamp, X, Wallet, Undo2, Printer } from "lucide-react";
-import { alert, askCode, db, plainError, site, WEBSITE, openOutside } from "../lib/core";
+import { alert, askCode, db, notice, plainError, site, WEBSITE, openOutside } from "../lib/core";
 import { buzz } from "../lib/native";
 import { useOnline, type Req } from "../lib/data";
 import { accountOfficers, type Person } from "../lib/people";
@@ -288,7 +288,7 @@ function ApproveSheet({ open, onClose, r, stage, onDone }: { open: boolean; onCl
           }
           const { data, error } = await s.rpc("approve_request_step", { p_request_id: r.id, p_actor_id: me.id, p_comment: note.trim(), p_signature_url: me.signature_url });
           if (error) throw new Error(error.message);
-          alert(r.id, "waiting");
+          notice("decided", r.id);
           const res = (Array.isArray(data) ? data[0] : data) as { new_stage?: string } | null;
           return res?.new_stage || "";
         }, "Approved.", (next) => next ? (next === "Completed" ? "Approved. The request is complete." : `Approved. It goes to ${withWho(String(next))}.`) : "Approved.")}>
@@ -316,7 +316,7 @@ function BackSheet({ open, onClose, r, onDone }: { open: boolean; onClose: () =>
           void run("send this request back", async () => {
             const { data, error } = await (await db()).rpc("reqgen_return_request", { p_request_id: r.id, p_comment: note.trim(), p_signature_url: me.signature_url });
             if (error) throw new Error(error.message);
-            alert(r.id, "waiting");
+            notice("decided", r.id);
             const res = (Array.isArray(data) ? data[0] : data) as { new_status?: string } | null;
             return String(res?.new_status || "");
           }, "Sent back.", (s) => /director general/i.test(String(s)) ? "Sent back to the officer who approved it before you." : "Sent back to the requester to correct.");

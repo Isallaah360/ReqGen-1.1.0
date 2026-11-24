@@ -6,8 +6,7 @@ import { decodeJwt } from "@/lib/server/mfaWindow";
  * ReqGen v4.6.6 — the guard for destructive actions (financial reset, restore).
  * The caller must be the Super Admin account (ietreqgen@gmail.com) acting as Super Admin,
  * or the Developer account — decided by the database, the same rule every finance action
- * uses — and must have typed the 2FA code in the last FRESH_MINUTES (the access token
- * then carries a fresh "totp" proof).
+ * uses — and must have confirmed with the SMS or e-mail code in the last FRESH_MINUTES.
  */
 export const FRESH_MINUTES = 10;
 
@@ -25,6 +24,18 @@ export function freshTotp(token: string, minutes = FRESH_MINUTES) {
   if (!Array.isArray(amr)) return false;
   const limit = Date.now() / 1000 - minutes * 60;
   return amr.some((m) => (m as { method?: string }).method === "totp" && Number((m as { timestamp?: number }).timestamp) >= limit);
+}
+
+/**
+ * v4.7.1 (one standard): a destructive job is confirmed with the SMS or e-mail code, like every
+ * other action. The website server writes a pass after a correct code (reqgen_action_passes);
+ * a pass made in the last FRESH_MINUTES counts. A fresh authenticator code still counts too.
+ */
+export async function freshProof(admin: SupabaseClient, userId: string, token: string) {
+  if (freshTotp(token)) return true;
+  const since = new Date(Date.now() - FRESH_MINUTES * 60000).toISOString();
+  const { data, error } = await admin.from("reqgen_action_passes").select("id").eq("user_id", userId).gte("created_at", since).gt("expires_at", new Date().toISOString()).limit(1);
+  return !error && (data || []).length > 0;
 }
 
 export async function superAdminFromRequest(authorization: string | null, opts: { fresh?: boolean } = {}): Promise<SuperAdminContext | Fail> {
@@ -55,7 +66,7 @@ export async function superAdminFromRequest(authorization: string | null, opts: 
     const check = await asUser.rpc("reqgen_is_super_admin");
     if (check.error || check.data !== true) return { error: "Only the Super Admin, acting as Super Admin, can do this.", status: 403 };
   }
-  if (opts.fresh && !freshTotp(token)) return { error: `Type your 2FA code first (it is valid for ${FRESH_MINUTES} minutes).`, status: 403 };
+  if (opts.fresh && !(await freshProof(admin, data.user.id, token))) return { error: `Confirm with the code sent to your phone or e-mail first (it is valid for ${FRESH_MINUTES} minutes).`, status: 403 };
 
   return { admin, asUser, userId: data.user.id, name: String(p.full_name || data.user.email || "Super Admin") };
 }

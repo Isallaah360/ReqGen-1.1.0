@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { Fragment, createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { ChevronLeft, ChevronRight, CloudOff, Mail, RefreshCw, Smartphone, CircleCheck, CircleAlert, Info } from "lucide-react";
 import { onCodeAsk, site, plainError } from "./lib/core";
 import { buzz, exitApp, onBack } from "./lib/native";
@@ -250,6 +250,74 @@ export function CodeSheet({ what, purpose, onDone }: { what: string; purpose: "a
         </div>
       ) : null}
       <button type="button" className="btn bs block" disabled={busy === "checking"} onClick={() => onDone(false)}>Cancel</button>
+    </Sheet>
+  );
+}
+
+// ---- 2.1.0: building blocks for the office screens (forms, filters, lists) ------------------------------
+export function Field({ label, req, help, children }: { label: string; req?: boolean; help?: ReactNode; children: ReactNode }) {
+  return (
+    <label style={{ display: "block" }}>
+      <span className="lbl">{label}{req ? <span style={{ color: "var(--er)" }}> *</span> : null}</span>
+      {children}
+      {help ? <span className="foot" style={{ display: "block", textAlign: "left", marginTop: 6 }}>{help}</span> : null}
+    </label>
+  );
+}
+export function Choose({ value, onChange, options, placeholder, label }: { value: string; onChange: (v: string) => void; options: Array<{ value: string; label: string }>; placeholder?: string; label: string }) {
+  return (
+    <select className="inp" aria-label={label} value={value} onChange={(e) => onChange(e.target.value)}>
+      {placeholder !== undefined ? <option value="">{placeholder}</option> : null}
+      {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+    </select>
+  );
+}
+export function SearchBox({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder: string }) {
+  return <label className="pill"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="M21 21l-4.3-4.3" /></svg><input type="search" value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} aria-label={placeholder} /></label>;
+}
+export function Chips<T extends string>({ value, onChange, items, label }: { value: T; onChange: (v: T) => void; items: Array<{ k: T; label: string; n?: number }>; label: string }) {
+  return (
+    <div className="filters" role="group" aria-label={label}>
+      {items.map((i) => <button key={i.k} type="button" aria-pressed={value === i.k} onClick={() => { buzz.tap(); onChange(i.k); }}>{i.label}{i.n !== undefined ? ` ${i.n}` : ""}</button>)}
+    </div>
+  );
+}
+/** Shows 30 at a time with "Show more", like a phone list. */
+export function useMore<T>(rows: T[], step = 30) {
+  const [n, setN] = useState(step);
+  return { shown: rows.slice(0, n), more: rows.length > n ? () => setN((x) => x + step) : null, left: Math.max(0, rows.length - n) };
+}
+export function More({ more, left }: { more: (() => void) | null; left: number }) {
+  return more ? <button type="button" className="btn bs block" onClick={more}>Show {Math.min(30, left)} more</button> : null;
+}
+export function KV({ rows }: { rows: Array<[string, ReactNode] | null | false> }) {
+  return <dl className="kv">{rows.filter(Boolean).map((r) => { const [k, v] = r as [string, ReactNode]; return <Fragment key={k}><dt>{k}</dt><dd>{v}</dd></Fragment>; })}</dl>;
+}
+/** A record card in a list: title, a line under it, a chip, facts and its buttons. */
+export function Item({ title, sub, chip, facts, children, onClick, pick }: { title: ReactNode; sub?: ReactNode; chip?: ReactNode; facts?: Array<[string, ReactNode] | null | false>; children?: ReactNode; onClick?: () => void; pick?: { on: boolean; toggle: () => void; label: string } }) {
+  return (
+    <div className="card" onClick={onClick} role={onClick ? "button" : undefined} tabIndex={onClick ? 0 : undefined} style={onClick ? { cursor: "pointer" } : undefined}>
+      <div className="row" style={{ alignItems: "flex-start" }}>
+        {pick ? <button type="button" className={`box${pick.on ? " on" : ""}`} role="checkbox" aria-checked={pick.on} aria-label={pick.label} onClick={(e) => { e.stopPropagation(); pick.toggle(); }} style={{ width: 40, height: 40, borderRadius: 12 }}>{pick.on ? "✓" : ""}</button> : null}
+        <span style={{ flex: 1, minWidth: 0 }}><b style={{ display: "block", fontSize: 15.5 }}>{title}</b>{sub ? <span className="mu" style={{ display: "block" }}>{sub}</span> : null}</span>
+        {chip}
+      </div>
+      {facts ? <KV rows={facts} /> : null}
+      {children ? <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }} onClick={(e) => e.stopPropagation()}>{children}</div> : null}
+    </div>
+  );
+}
+/** A form in a sheet with Cancel and the main button. */
+export function FormSheet({ open, title, sub, onClose, onSave, saveLabel, busy, error, children }: { open: boolean; title: string; sub?: string; onClose: () => void; onSave: () => void; saveLabel: string; busy?: boolean; error?: string | null; children: ReactNode }) {
+  return (
+    <Sheet open={open} onClose={() => { if (!busy) onClose(); }} title={title}>
+      {sub ? <p className="mu" style={{ fontSize: 14 }}>{sub}</p> : null}
+      {children}
+      {error ? <Note tone="er">{error}</Note> : null}
+      <div style={{ display: "flex", gap: 8 }}>
+        <button type="button" className="btn bs" style={{ flex: 1 }} disabled={busy} onClick={onClose}>Cancel</button>
+        <button type="button" className="btn bp" style={{ flex: 1 }} disabled={busy} onClick={onSave}>{busy ? "Saving…" : saveLabel}</button>
+      </div>
     </Sheet>
   );
 }

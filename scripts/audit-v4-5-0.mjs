@@ -30,7 +30,8 @@ check("Stored backups live in a private bucket with short-lived links", read("ap
 check("v4 tables are inside the backup", ["reqgen_audit_log", "reqgen_reconciliations", "reqgen_registry_archive"].every((t) => read("lib/server/backupCatalog.ts").includes(`"${t}"`)));
 
 const perm = read("lib/permissions.ts");
-check("Access: Registry pages for Registry; Tracking shared with Finance and the DG's office", perm.includes('{ prefix: "/registry", roles: ["admin", "auditor", "registry", "registrar"] }') && perm.includes('{ prefix: "/registry/tracking", roles: ["admin", "auditor", "registry", "registrar", "account", "accounts", "accountofficer", "dg", "directorgeneral", "generalsecretary"] }'));
+// 5.0.0 (owner's instruction): Registry, Tracking included, is for the PA to the DG (Registry) and the Super Admin only.
+check("Access: Registry pages for the PA to the DG (Registry) and the Super Admin only (5.0.0)", perm.includes('{ prefix: "/registry", roles: ["admin", "registry", "padg"] }') && !perm.includes('prefix: "/registry/tracking"'));
 check("Access: Audit for Admin and Auditor; Reconciliation also for the Account Officer", perm.includes('{ prefix: "/audit-centre", roles: ["admin", "auditor"] }') && perm.includes('{ prefix: "/audit-centre/reconciliation", roles: ["admin", "auditor", "account", "accounts", "accountofficer"] }'));
 check("Route registry lists the new pages", ["/registry/tracking", "/registry/filing", "/audit-centre/reconciliation"].every((p) => read("lib/routeRegistry.ts").includes(`"pattern": "${p}"`)));
 

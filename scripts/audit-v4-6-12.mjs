@@ -10,7 +10,7 @@ const walk = (d, out = []) => { for (const f of fs.readdirSync(d, { withFileType
 
 const kit = read("app/v4/v4-kit.css");
 const layout = read("app/layout.tsx");
-check("Version 4.6.12 or later", /REQGEN_SEMVER = "4\.(6\.(1[2-9]|[2-9]\d)|([7-9]|[1-9]\d)\.\d+)"/.test(read("lib/version.ts")) && JSON.parse(read("package.json")).version === read("lib/version.ts").match(/REQGEN_SEMVER = "([^"]+)"/)[1]);
+check("Version 4.6.12 or later", /REQGEN_SEMVER = "(4\.(6\.(1[2-9]|[2-9]\d)|([7-9]|[1-9]\d)\.\d+)|[5-9]\.\d+\.\d+)"/.test(read("lib/version.ts")) && JSON.parse(read("package.json")).version === read("lib/version.ts").match(/REQGEN_SEMVER = "([^"]+)"/)[1]);
 check("CHANGELOG has this version", read("CHANGELOG.md").includes(`## ${JSON.parse(read("package.json")).version}`));
 check("Kit stylesheet loads after the brief", layout.indexOf("v4-kit.css") > layout.indexOf("v4-brief.css"));
 check("Motion tokens: press 100, fast 180, base 240, slow 400, spring 450", ["--k-press: 100ms", "--k-fast: 180ms", "--k-base: 240ms", "--k-slow: 400ms", "--k-spring: 450ms"].every((t) => kit.includes(t)));

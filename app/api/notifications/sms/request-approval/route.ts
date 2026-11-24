@@ -1,3 +1,4 @@
+import { preflight } from "@/lib/server/cors";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { accountProblem } from "@/lib/server/staffAuth";
@@ -179,3 +180,6 @@ export async function POST(req: NextRequest) {
     return jsonError(e instanceof Error ? e.message : "Notification failed.", 500);
   }
 }
+
+// v4.7.1: the app (https://localhost) uses the same notices as the website
+export const OPTIONS = preflight;

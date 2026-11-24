@@ -8,6 +8,7 @@ import { ReqRow } from "./parts";
 import Notices from "./Notices";
 import Vouchers from "./Vouchers";
 import DirectNew from "./DirectNew";
+import { OfficeList, useOffices } from "./Offices";
 
 type HomeData = { mine: Req[]; direct: DirectWaiting[]; unread: number; vouchers: number };
 
@@ -26,6 +27,7 @@ export default function Home() {
     if (mine.error) throw new Error(mine.error.message);
     return { mine: (mine.data || []) as Req[], direct: (direct.data || []) as DirectWaiting[], unread: unread.count || 0, vouchers: pv.error ? 0 : (pv.data || []).length };
   });
+  const offices = useOffices();
   const directN = data?.direct.length || 0;
   const routedN = Math.max(0, pending - directN);
   return (
@@ -54,6 +56,7 @@ export default function Home() {
         {loading && !data ? <Skeleton /> : data && data.mine.length ? (
           <div className="grp">{data.mine.map((r) => <ReqRow key={r.id} r={r} meId={me.id} />)}</div>
         ) : <div className="grp"><Empty icon={<FileText size={28} />} title="No requests yet" text="Tap New to send your first request." /></div>}
+        {offices.length ? <><div className="sect"><b>Your offices</b></div><OfficeList /></> : null}
         <Updated at={at} offline={!online} />
       </Body>
     </>

@@ -40,7 +40,7 @@ function rp(req: NextRequest) {
   const app = new URL(configured);
   if (app.protocol !== "https:" && app.hostname !== "localhost") throw new Error("Fingerprint sign-in requires HTTPS.");
   const requestOrigin = req.headers.get("origin");
-  if (requestOrigin && requestOrigin !== app.origin) throw new Error("This fingerprint request came from a different website.");
+  if (requestOrigin && requestOrigin !== app.origin) throw new Error(`The fingerprint works only on ${app.hostname}. Here, use the code from your authenticator app.`);
   return { origin: app.origin, rpID: app.hostname };
 }
 

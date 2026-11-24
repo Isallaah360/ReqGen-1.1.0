@@ -40,6 +40,16 @@ const nextConfig: NextConfig = {
         ],
       },
       {
+        // v4.7.1: the real app sends the same SMS and e-mail notices as the website.
+        source: "/api/notifications/sms/:event(request-event|request-approval)",
+        headers: [
+          { key: "Access-Control-Allow-Origin", value: "https://localhost" },
+          { key: "Access-Control-Allow-Headers", value: "Authorization, Content-Type" },
+          { key: "Access-Control-Allow-Methods", value: "POST, OPTIONS" },
+          { key: "Vary", value: "Origin" },
+        ],
+      },
+      {
         // The real app (inside the APK) reads the newest version number.
         source: "/downloads/app-version.json",
         headers: [{ key: "Access-Control-Allow-Origin", value: "https://localhost" }, { key: "Vary", value: "Origin" }],

@@ -68,13 +68,13 @@ export const ROUTE_POLICIES: RoutePolicy[] = [
       "accountofficer",
     ],
   },
-  // v4.5: Request Tracking is shared with Finance and the DG's office (reqgen_registry_tracking decides the same)
-  { prefix: "/registry/tracking", roles: ["admin", "auditor", "registry", "registrar", "account", "accounts", "accountofficer", "dg", "directorgeneral", "generalsecretary"] },
-  { prefix: "/registry", roles: ["admin", "auditor", "registry", "registrar"] },
+  // 5.0.0: Registry belongs to the PA to the DG (Registry) and the Super Admin only. Nobody else,
+  // not the DG, the Auditor or Finance (the database decides the same: reqgen_is_registry).
+  { prefix: "/registry", roles: ["admin", "registry", "padg"] },
   // v4.4 Reports (mock-up 57): every person has Reports; each report shows only what they may see
   // (the database decides the scope — reqgen_report_tier). Some reports are for some positions only.
   { prefix: "/reports/compliance", roles: ["admin", "auditor"] },
-  { prefix: "/reports/registry", roles: ["admin", "auditor", "registry", "registrar"] },
+  { prefix: "/reports/registry", roles: ["admin", "registry", "padg"] },
   { prefix: "/reports/enterprise-analytics", roles: ["admin", "auditor", "dg", "directorgeneral", "generalsecretary"] },
   { prefix: "/reports/finance-statements", roles: ["admin", "auditor", "account", "accounts", "accountofficer", "dg", "directorgeneral", "generalsecretary"] },
   { prefix: "/reports/vouchers", roles: ["admin", "auditor", "account", "accounts", "accountofficer", "dg", "directorgeneral", "generalsecretary"] },
@@ -105,7 +105,7 @@ export const ROUTE_POLICIES: RoutePolicy[] = [
 export const ROUTE_DENIALS: Array<{ pattern: RegExp; roles: string[]; reason: string }> = [
   {
     pattern: /^\/requests\/(?!(?:new|mine|direct)(?:\/|$))[^/]+(?:\/.*)?$/,
-    roles: ["registry"],
+    roles: ["registry", "padg"],
     reason: "Registry tracks request movement only and cannot open request contents.",
   },
 ];

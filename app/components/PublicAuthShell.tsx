@@ -26,20 +26,28 @@ export default function PublicAuthShell({
 }) {
   const { app } = useApp();
   return (
-    <main className="v4-ui v4-public">
-      <section className={`v4-auth-card ${wide ? "v4-wide" : ""}`}>
-        <div className="v4-auth-logo v4-small"><Image src="/v4/iet-logo.png" alt="Islamic Education Trust logo" width={92} height={92} priority /></div>
-        <h1 className="v4-auth-title">{title}</h1>
-        <p className="v4-auth-sub">{subtitle}</p>
-        {steps ? (
-          <div className="v4-steps-dots" aria-label={`Step ${steps.current} of ${steps.total}`}>
-            {Array.from({ length: steps.total }, (_, i) => <span key={i} className={i < steps.current ? "v4-on" : undefined} />)}
-          </div>
-        ) : null}
-        <div className="v4-auth-form auth-body">{children}</div>
-        {showHomeLink && !app ? <Link href="/" className="v4-back-home"><Icon name="left" size="sm" /> Back to Homepage</Link> : null}
-        {app ? <AppFoot /> : <PublicFoot />}
-      </section>
+    <main className="v4-ui v5-auth">
+      {/* 5.0.0 Blueprint 07: the big floating IET logo and the ReqGen name, "Gen" in the theme colour */}
+      <div className="v5-auth-brand">
+        <span className="v5-org">Islamic Education Trust</span>
+        <div className="v5-logo-float"><Image src="/v4/iet-logo.png" alt="Islamic Education Trust logo" width={240} height={240} priority /></div>
+        <h2 className="v5-wordmark" aria-label="ReqGen">Req<span>Gen</span></h2>
+        <p className="v5-tag">Requests, approvals and payment vouchers for the Islamic Education Trust.</p>
+      </div>
+      <div className="v5-auth-side">
+        <section className={`v4-auth-card ${wide ? "v4-wide" : ""}`}>
+          <h1 className="v4-auth-title">{title}</h1>
+          <p className="v4-auth-sub">{subtitle}</p>
+          {steps ? (
+            <div className="v4-steps-dots" aria-label={`Step ${steps.current} of ${steps.total}`}>
+              {Array.from({ length: steps.total }, (_, i) => <span key={i} className={i < steps.current ? "v4-on" : undefined} />)}
+            </div>
+          ) : null}
+          <div className="v4-auth-form auth-body">{children}</div>
+          {showHomeLink && !app ? <Link href="/" className="v4-back-home"><Icon name="left" size="sm" /> Back to Homepage</Link> : null}
+          {app ? <AppFoot /> : <PublicFoot />}
+        </section>
+      </div>
     </main>
   );
 }

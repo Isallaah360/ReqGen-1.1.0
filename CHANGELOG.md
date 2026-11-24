@@ -1,5 +1,36 @@
 # ReqGen changelog
 
+## 5.0.0 (24 Nov 2026), with the app 3.0.0
+
+The Blueprint 07 "Super App" look, the direct-request fix and full Super Admin editing. One small database step: database/v5_0_0_status_fix.sql (adds two allowed statuses; nothing is removed). The approval rules are unchanged. Printed requests and vouchers keep the IET standard templates exactly.
+
+### New
+- Two themes, Sand (warm sand with IET blue) and Gold (the gold of the IET logo), each Light, Dark or Match device. My Account › Appearance on the website, Me › Appearance in the app.
+- Plus Jakarta Sans everywhere, kept on our own server and packed inside the app (no Google, no trackers).
+- New sign-in pages: the big floating IET logo and a large "ReqGen", with "Gen" in the theme colour. The same on 2FA, reset password and create account.
+- Super Admin: Edit details now changes the full name, the sign-in e-mail, the phone for SMS codes and the department. The password stays the same.
+- App 3.0.0: the new look on every screen (full-width bottom bar with a round New button, softer cards), and "Your offices" on Home for every office the position allows.
+
+### Changed (owner's instruction)
+- Registry belongs to the PA to the DG and the Super Admin only. The DG, the Auditor, Finance and the Registrar no longer open Registry, Request Tracking or Registry Reports. Registry logs files into and out of the DG's office, tracks every request, reminds whoever holds it, and never sees request contents. Database step 2: database/v5_0_0_step2_registry_pa.sql.
+- One "PA to the DG": the old spellings ("pa to the dg" and others) are moved onto it and switched off. The PA to the DG also holds Registry, shown as one position.
+
+### Fixed
+- Direct requests stopped with "new row for relation requests violates check constraint requests_status_check". The statuses "Sent directly" and "Answered" were never allowed. The 5.0.0 SQL adds them and keeps every status already in use.
+
+## 4.7.1 (23 Nov 2026), with the app 2.0.1
+
+One standard for checks, the same on the website and in the app. No database step.
+
+### Changed
+- Signing in: password, then the code from the authenticator app (2FA), on the website and in the app. The app no longer signs in with an SMS code. After that, the app opens with the fingerprint or the app PIN.
+- Every action is confirmed with the 6-digit code sent by SMS and e-mail: sending, approving, sending back, declining, forwarding, correcting, deleting, withdrawing, reopening, changing the subhead, Finance and voucher actions, deleting an account, and the Super Admin jobs (finance reset, restore, handover). The authenticator is used only to sign in (and for password and 2FA changes).
+- When a request moves on, the person who sent it gets an SMS and an e-mail too, as well as the person who now has it. The app sends the same notices as the website.
+
+### Fixed
+- App: the Me page and long lists were cut off on some phones (rows such as "Password and signature" were hidden). Boxes are no longer squeezed; the page scrolls.
+- The vercel.app address showed "This fingerprint request came from a different website". A fingerprint belongs to the address it was set up on, so it is offered only on ietreqgen.barderians.com.ng; on other addresses ReqGen asks for the authenticator code.
+
 ## 4.7.0 (23 Nov 2026)
 
 With the ReqGen real app 2.0.0 and the Barderian Privacy and Lightness Check. Needs the database step database/v4_7_0_upgrade.sql (safe to run twice; nothing is dropped). The routing engine and the approval rules are unchanged.

@@ -107,13 +107,13 @@ check("POS is not a standard IET account", !read("app/finance/manage-accounts/pa
 
 // 6. Privacy, dialogs, release hygiene
 const perms = read("lib/permissions.ts");
-check("Registry still cannot open request contents (own list allowed)", /\(\?!\(\?:new\|mine(\|direct)?\)\(\?:\\\/\|\$\)\)/.test(perms) /* v4.6.10: writing a Direct request is not opening contents */ && perms.includes('roles: ["registry"]'));
+check("Registry still cannot open request contents (own list allowed)", /\(\?!\(\?:new\|mine(\|direct)?\)\(\?:\\\/\|\$\)\)/.test(perms) /* v4.6.10: writing a Direct request is not opening contents */ && (perms.includes('roles: ["registry"]') || perms.includes('roles: ["registry", "padg"]')));
 const v4Files = walk("app/components/v4").concat(["app/dashboard/page.tsx", "app/notifications/page.tsx", "app/profile/page.tsx", "app/profile/security/page.tsx", "app/profile/passcode/page.tsx", "app/login/LoginView.tsx", "app/mfa/page.tsx", "app/mfa/setup/page.tsx"]);
 const nativeDialogs = v4Files.filter((f) => /\bwindow\.(alert|confirm|prompt)\(|(^|[^.\w])(alert|confirm)\(/m.test(read(f)));
 check(`In-app dialogs only (${nativeDialogs.join(", ") || "ok"})`, nativeDialogs.length === 0);
 const emoji = v4Files.filter((f) => /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u.test(read(f)));
 check(`No emoji in v4 screens (${emoji.join(", ") || "ok"})`, emoji.length === 0);
-check("Version 4.x everywhere", JSON.parse(read("package.json")).version.startsWith("4.") && read("lib/version.ts").includes(`REQGEN_SEMVER = "${JSON.parse(read("package.json")).version}"`));
+check("Version 4.x or later everywhere", /^([4-9])\./.test(JSON.parse(read("package.json")).version) && read("lib/version.ts").includes(`REQGEN_SEMVER = "${JSON.parse(read("package.json")).version}"`));
 const envFiles = fs.readdirSync(".").filter((f) => /^\.env/.test(f));
 check(`No .env file in the project (${envFiles.join(", ") || "ok"})`, envFiles.length === 0);
 

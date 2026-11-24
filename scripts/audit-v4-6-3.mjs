@@ -50,7 +50,7 @@ check("v4.css is not edited by hand (theme additions live in v4-theme.css)", !re
 
 check("SQL ends with an all-OK verification table", /from v463_report order by[^;]*;\s*$/.test(sql.trim()));
 check("SQL: routing engine untouched", !/create or replace function public\.(approve_request_step|reject_request_step|reqgen_next_route_step|build_request_route|reqgen_build_route_for_template|reqgen_save_department_route)\b/i.test(sql));
-check("Version 4.6.3 or later", /REQGEN_SEMVER = "4\.(6\.([3-9]|[1-9]\d)|([7-9]|[1-9]\d)\.\d+)"/.test(read("lib/version.ts")) && /"version": "4\.(6\.([3-9]|[1-9]\d)|([7-9]|[1-9]\d)\.\d+)"/.test(read("package.json")));
+check("Version 4.6.3 or later", /REQGEN_SEMVER = "(4\.(6\.([3-9]|[1-9]\d)|([7-9]|[1-9]\d)\.\d+)|[5-9]\.\d+\.\d+)"/.test(read("lib/version.ts")) && /"version": "(4\.(6\.([3-9]|[1-9]\d)|([7-9]|[1-9]\d)\.\d+)|[5-9]\.\d+\.\d+)"/.test(read("package.json")));
 check("No .env file shipped", !fs.existsSync(".env") || read(".gitignore").includes(".env"));
 
 let failed = 0;

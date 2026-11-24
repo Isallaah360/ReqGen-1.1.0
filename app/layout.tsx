@@ -10,6 +10,13 @@ import "./v4/v4-pages.css";
 import "./v4/v4-brief.css";
 import "./v4/v4-kit.css";
 import "./v4/v4-a4-paper.css";
+// 5.0.0 Blueprint 07: Plus Jakarta Sans, served from our own site (no Google), then the Sand and Gold skin.
+import "@fontsource/plus-jakarta-sans/latin-400.css";
+import "@fontsource/plus-jakarta-sans/latin-500.css";
+import "@fontsource/plus-jakarta-sans/latin-600.css";
+import "@fontsource/plus-jakarta-sans/latin-700.css";
+import "@fontsource/plus-jakarta-sans/latin-800.css";
+import "./v4/v5-skin.css";
 
 import SessionTimeout from "./components/SessionTimeout";
 import MfaGuard from "./components/MfaGuard";

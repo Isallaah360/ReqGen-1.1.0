@@ -38,7 +38,7 @@ check("Request: DG follows the department's Account Officer", work.includes('rpc
 check("Request: clear message when a department has no subheads", work.includes("has no subheads yet"));
 check("Signatures show the step's position", roles.includes("export function signedAsLabel") && work.includes("signedAsLabel("));
 check("New subhead: funded from its department's account by default", sub.includes("paysFrom[v]"));
-check("Version 4.6.8 or later", /REQGEN_SEMVER = "4\.(6\.([8-9]|[1-9]\d)|([7-9]|[1-9]\d)\.\d+)"/.test(read("lib/version.ts")) && /"version": "4\.(6\.([8-9]|[1-9]\d)|([7-9]|[1-9]\d)\.\d+)"/.test(read("package.json")));
+check("Version 4.6.8 or later", /REQGEN_SEMVER = "(4\.(6\.([8-9]|[1-9]\d)|([7-9]|[1-9]\d)\.\d+)|[5-9]\.\d+\.\d+)"/.test(read("lib/version.ts")) && /"version": "(4\.(6\.([8-9]|[1-9]\d)|([7-9]|[1-9]\d)\.\d+)|[5-9]\.\d+\.\d+)"/.test(read("package.json")));
 check("No .env file shipped", !fs.existsSync(".env") || read(".gitignore").includes(".env"));
 
 let failed = 0;

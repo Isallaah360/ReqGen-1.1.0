@@ -14,7 +14,8 @@ check("Finance home no longer has its own reports tile", !read("lib/v4/modules.t
 const perm = read("lib/permissions.ts");
 check("Reports open to everyone; scope decided in the database", perm.includes('{ prefix: "/reports", authenticatedOnly: true }') && read("lib/v4/reports.ts").includes('rpc("reqgen_report_tier")'));
 check("Compliance: Super Admin and Auditor only", perm.includes('{ prefix: "/reports/compliance", roles: ["admin", "auditor"] }'));
-check("Registry Reports: Registry, Registrar, Auditor, Super Admin", perm.includes('{ prefix: "/reports/registry", roles: ["admin", "auditor", "registry", "registrar"] }'));
+// 5.0.0 (owner's instruction): Registry Reports are for the PA to the DG (Registry) and the Super Admin only.
+check("Registry Reports: PA to the DG (Registry) and Super Admin only (5.0.0)", perm.includes('{ prefix: "/reports/registry", roles: ["admin", "registry", "padg"] }'));
 check("Finance Statements and Voucher Reports: Finance, DG, Auditor, Super Admin (not staff)", perm.includes('{ prefix: "/reports/finance-statements", roles: ["admin", "auditor", "account", "accounts", "accountofficer", "dg", "directorgeneral", "generalsecretary"] }'));
 check("Report pages never read requests directly", Object.keys(pages).every((p) => !/from\("(requests|request_history)"\)/.test(read(`app/reports${p ? `/${p}` : ""}/page.tsx`))));
 check("Every page shows 'Your view: …' (the acting position and its scope)", ["", "transactions", "analysis", "requests", "finance-statements", "vouchers", "enterprise-analytics"].every((p) => read(`app/reports${p ? `/${p}` : ""}/page.tsx`).includes("scope={")));

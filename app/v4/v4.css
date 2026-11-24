@@ -501,7 +501,7 @@
 .v4-rec .v4-meta { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 8px; font-size: 13.5px; color: var(--v4-ink-2); }
 .v4-rec .v4-meta b { color: var(--v4-ink); }
 .v4-rec .v4-amount-big { font-size: 30px; font-weight: 800; font-variant-numeric: tabular-nums; text-shadow: var(--v4-shadow-text); line-height: 1.1; }
-.v4-rec .v4-right { text-align: right; }
+.v4-rec .v4-right { text-align: right; min-width: 0; max-width: 100%; }
 .v4-rec .v4-btns { display: flex; gap: 8px; justify-content: flex-end; margin-top: 10px; flex-wrap: wrap; }
 .v4-chain { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
 .v4-chain li { position: relative; display: flex; flex-direction: column; gap: 4px; padding: 14px; border-radius: 14px; border: 1px solid var(--v4-line); background: var(--v4-surface); min-height: 150px; }
@@ -564,7 +564,7 @@
 }
 @media (max-width: 760px) {
   .v4-rec .v4-amount-big { font-size: 24px; }
-  .v4-rec .v4-right { text-align: left; }
+  .v4-rec .v4-right { text-align: left; flex-basis: 100%; }
   .v4-rec .v4-btns { justify-content: flex-start; }
   .v4-chain { grid-template-columns: 1fr; }
   .v4-chain li { min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 12px; }

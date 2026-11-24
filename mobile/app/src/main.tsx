@@ -3,6 +3,11 @@ import { createRoot } from "react-dom/client";
 import { SplashScreen } from "@capacitor/splash-screen";
 import App from "./App";
 import { openOutside } from "./lib/core";
+import "@fontsource/plus-jakarta-sans/latin-400.css";
+import "@fontsource/plus-jakarta-sans/latin-500.css";
+import "@fontsource/plus-jakarta-sans/latin-600.css";
+import "@fontsource/plus-jakarta-sans/latin-700.css";
+import "@fontsource/plus-jakarta-sans/latin-800.css";
 import "./styles.css";
 
 // Links to our website (print, Finance, password) open in the phone's browser, never inside the app.

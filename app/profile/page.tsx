@@ -27,7 +27,7 @@ export default function MyAccountHome() {
   const [made, setMade] = useState<number | null>(null);
   const [treated, setTreated] = useState<number | null>(null);
   const [mode, setMode] = useState<ThemeMode>("system");
-  const [accent, setAccent] = useState<AccentMode>("iet");
+  const [accent, setAccent] = useState<AccentMode>("sand");
 
   useEffect(() => {
     const read = () => { setMode(readThemeMode()); setAccent(readAccent()); };
@@ -130,14 +130,14 @@ export default function MyAccountHome() {
           <div className="v4-choice-row" role="radiogroup" aria-label="Light or dark">
             {(["light", "dark", "system"] as ThemeMode[]).map((m) => (
               <button key={m} type="button" role="radio" aria-checked={mode === m} className="v4-choice" onClick={() => applyTheme(m)}>
-                <span className={`v4-swatch v4-swatch-${m}`} aria-hidden="true" />{m === "light" ? "Light" : m === "dark" ? "Dark" : "Same as device"}
+                <span className={`v4-swatch v4-swatch-${m}`} aria-hidden="true" />{m === "light" ? "Light" : m === "dark" ? "Dark" : "Match device"}
               </button>
             ))}
           </div>
           <div className="v4-choice-row" role="radiogroup" aria-label="Colour" style={{ marginTop: 10 }}>
-            {(["iet", "green"] as AccentMode[]).map((a) => (
+            {(["sand", "gold"] as AccentMode[]).map((a) => (
               <button key={a} type="button" role="radio" aria-checked={accent === a} className="v4-choice" onClick={() => applyAccent(a)}>
-                <span className={`v4-swatch v4-swatch-${a}`} aria-hidden="true" />{a === "iet" ? "IET orange" : "IET green"}
+                <span className="v4-swatch" aria-hidden="true" style={{ background: a === "sand" ? "linear-gradient(90deg,#F4EEE3 50%,#1D7DB0 50%)" : "linear-gradient(90deg,#FBF5EA 50%,#F2A01C 50%)" }} />{a === "sand" ? "Sand" : "Gold"}
               </button>
             ))}
           </div>

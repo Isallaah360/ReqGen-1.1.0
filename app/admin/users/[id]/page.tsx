@@ -2,8 +2,8 @@
 
 import { use, useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import OtpBoxes from "@/app/components/v4/OtpBoxes";
 import { supabase } from "@/lib/supabaseClient";
+import { confirmWithCode } from "@/lib/codeConfirm";
 import { confirmDialog, promptDialog } from "@/lib/dialog";
 import { ASSIGNABLE, adminApi, initials, positionFor, positionsOf, whenText, type AdminPerson } from "@/lib/v4/admin";
 import { useIdentity } from "@/app/components/v4/useIdentity";
@@ -30,7 +30,8 @@ export default function StaffRecordPage({ params }: { params: Promise<{ id: stri
   useCelebrate(msg);
   const [busy, setBusy] = useState(false);
   const [addPos, setAddPos] = useState<{ key: string; primary: boolean } | null>(null);
-  const [edit, setEdit] = useState<{ fullName: string; deptId: string } | null>(null);
+  const [edit, setEdit] = useState<{ fullName: string; deptId: string; email: string; phone: string } | null>(null);
+  const [phone, setPhone] = useState("");
   const [iAmSuperAdmin, setIAmSuperAdmin] = useState(false);
   const router = useRouter();
   // v4.6.9: delete a deactivated account (Super Admin only, typed DELETE + a fresh 2FA code).
@@ -42,6 +43,8 @@ export default function StaffRecordPage({ params }: { params: Promise<{ id: stri
     setPerson(((p.data || []) as AdminPerson[]).find((x) => x.id === id) || null);
     setIAmSuperAdmin(((p.data || []) as AdminPerson[]).some((x) => x.id === me.userId && x.system_account === "superadmin"));
     setDepts((d.data || []) as Dept[]);
+    const ph = await supabase.from("profiles").select("phone").eq("id", id).maybeSingle();
+    setPhone(String((ph.data as { phone?: string | null } | null)?.phone || ""));
   }, [id, me.userId]);
   useEffect(() => { if (me.ready) queueMicrotask(() => { void load(); }); }, [me.ready, load]);
 
@@ -111,14 +114,10 @@ export default function StaffRecordPage({ params }: { params: Promise<{ id: stri
   async function deleteForever() {
     if (!del || !person) return;
     if (del.typed.trim() !== "DELETE") { setDel({ ...del, error: "Type DELETE in capital letters." }); return; }
-    if (!/^\d{6}$/.test(del.code)) { setDel({ ...del, error: "Enter the 6-digit code from your authenticator app." }); return; }
+    // v4.7.1 (one standard): deleting is confirmed with the SMS or e-mail code
+    if (!(await confirmWithCode("delete this account"))) { setDel({ ...del, error: "Not deleted: the code was not entered." }); return; }
     setBusy(true); setDel({ ...del, error: null });
     try {
-      const factors = await supabase.auth.mfa.listFactors();
-      const totp = factors.data?.totp?.find((f) => f.status === "verified");
-      if (!totp) throw new Error("No authenticator is set up on your account.");
-      const v = await supabase.auth.mfa.challengeAndVerify({ factorId: totp.id, code: del.code });
-      if (v.error) throw new Error("That 2FA code is not right. " + v.error.message);
       const res = await adminApi(`/api/admin/users/${id}`, "DELETE", { confirm: "DELETE" });
       if (!res.ok) throw new Error(res.error || "The account could not be deleted.");
       setDel(null);
@@ -132,7 +131,7 @@ export default function StaffRecordPage({ params }: { params: Promise<{ id: stri
   }
   async function saveDetails() {
     if (!edit) return;
-    const body = { action: "profile", fullName: edit.fullName, deptId: edit.deptId || null };
+    const body = { action: "profile", fullName: edit.fullName, deptId: edit.deptId || null, email: edit.email, phone: edit.phone };
     setEdit(null);
     await act("Saving", () => adminApi(`/api/admin/users/${id}`, "PATCH", body), "Details saved.");
   }
@@ -157,7 +156,7 @@ export default function StaffRecordPage({ params }: { params: Promise<{ id: stri
           </div>
           <div className="v4-right" style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "flex-end" }}>
             <span className={`v4-chip ${person.is_active ? (person.has_2fa ? "v4-chip-green" : "v4-chip-amber") : "v4-chip-grey"}`}><Icon name={person.is_active ? "check" : "x"} size="sm" />{status}</span>
-            {!isSystem ? <button className="v4-btn v4-btn-secondary" type="button" style={{ minHeight: 38 }} onClick={() => setEdit({ fullName: person.full_name, deptId: person.dept_id || "" })}><Icon name="pen" />Edit details</button> : null}
+            {!isSystem ? <button className="v4-btn v4-btn-secondary" type="button" style={{ minHeight: 38 }} onClick={() => setEdit({ fullName: person.full_name, deptId: person.dept_id || "", email: person.email || "", phone })}><Icon name="pen" />Edit details</button> : null}
           </div>
         </div>
       </section>
@@ -229,7 +228,7 @@ export default function StaffRecordPage({ params }: { params: Promise<{ id: stri
         ) : null}
       </Modal>
       <Modal open={!!del} title={`Delete ${name} permanently?`} sub="Only for a deactivated account with no history in ReqGen." onClose={() => setDel(null)} busy={busy}
-        footer={<><button type="button" className="v4-btn v4-btn-ghost" onClick={() => setDel(null)}>{del?.step === "blocked" ? "Close" : "Cancel"}</button>{del?.step === "confirm" ? <button type="button" className="v4-btn v4-btn-danger" disabled={busy || del.typed.trim() !== "DELETE" || del.code.length !== 6} onClick={() => void deleteForever()}><Icon name="trash" />{busy ? "Deleting…" : "Delete permanently"}</button> : null}</>}>
+        footer={<><button type="button" className="v4-btn v4-btn-ghost" onClick={() => setDel(null)}>{del?.step === "blocked" ? "Close" : "Cancel"}</button>{del?.step === "confirm" ? <button type="button" className="v4-btn v4-btn-danger" disabled={busy || del.typed.trim() !== "DELETE"} onClick={() => void deleteForever()}><Icon name="trash" />{busy ? "Deleting…" : "Delete permanently"}</button> : null}</>}>
         {del ? (
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             {del.step === "checking" ? <Skeleton lines={3} /> : null}
@@ -246,8 +245,7 @@ export default function StaffRecordPage({ params }: { params: Promise<{ id: stri
                 <Notice tone="red" title="This cannot be undone.">The sign-in, positions, devices and notifications of {name} are removed. The Audit Log keeps a line saying you deleted the account.</Notice>
                 <label className="v4-field"><span className="v4-flabel">Type <span className="v4-confirm-type">DELETE</span> to confirm</span>
                   <input className="v4-input" value={del.typed} autoComplete="off" onChange={(e) => setDel({ ...del, typed: e.target.value, error: null })} /></label>
-                <div className="v4-field"><span className="v4-flabel">Your 2FA code</span>
-                  <OtpBoxes value={del.code} onChange={(v) => setDel({ ...del, code: v, error: null })} disabled={busy} align="start" /></div>
+                <p className="v4-help" style={{ margin: 0 }}>Then confirm with the 6-digit code sent to your phone and e-mail.</p>
                 {del.error ? <Notice tone="red">{del.error}</Notice> : null}
               </>
             ) : null}
@@ -260,7 +258,9 @@ export default function StaffRecordPage({ params }: { params: Promise<{ id: stri
           <div className="v4-form-grid">
             <label className="v4-field v4-span-2"><span className="v4-flabel">Full name</span><input className="v4-input" value={edit.fullName} onChange={(e) => setEdit({ ...edit, fullName: e.target.value })} /></label>
             <div className="v4-field v4-span-2"><span className="v4-flabel">Department</span><Select ariaLabel="Department" searchable value={edit.deptId} placeholder="No department" onChange={(v) => setEdit({ ...edit, deptId: v })} options={depts.map((d) => ({ value: d.id, label: d.name }))} /></div>
-            <p className="v4-help v4-span-2" style={{ margin: 0 }}>The email is the person’s sign-in name. To change it, add the new email as a new staff member and deactivate this one.</p>
+            <label className="v4-field v4-span-2"><span className="v4-flabel">E-mail (their sign-in name)</span><input className="v4-input" type="email" value={edit.email} onChange={(e) => setEdit({ ...edit, email: e.target.value })} /></label>
+            <label className="v4-field v4-span-2"><span className="v4-flabel">Phone for SMS codes</span><input className="v4-input" type="tel" value={edit.phone} onChange={(e) => setEdit({ ...edit, phone: e.target.value })} /></label>
+            <p className="v4-help v4-span-2" style={{ margin: 0 }}>A new e-mail becomes their sign-in name at once. Their password stays the same.</p>
           </div>
         ) : null}
       </Modal>

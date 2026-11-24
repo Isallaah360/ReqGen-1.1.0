@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Network } from "@capacitor/network";
 import { db, store } from "./core";
+import { normalizeRole } from "./web";
 
 /** Online or not (the phone's own signal). */
 export function useOnline() {
@@ -53,6 +54,8 @@ export function useSaved<T>(key: string | null, load: () => Promise<T>) {
 export type Me = {
   id: string; email: string | null; full_name: string; avatar_url: string | null; signature_url: string | null;
   phone: string | null; dept_id: string | null; role: string; roleName: string; deptName: string;
+  /** 2.1.0: system account (developer or super admin) and the positions this person holds */
+  systemAccount: string | null; positions: Array<{ key: string; name: string; primary: boolean }>;
 };
 
 /** Who is signed in (with the position now in use). */
@@ -61,9 +64,10 @@ export async function loadMe(): Promise<Me> {
   const { data: u } = await s.auth.getUser();
   if (!u.user) throw new Error("Please sign in again.");
   const [p, active] = await Promise.all([
-    s.from("profiles").select("full_name,avatar_url,signature_url,phone,email,dept_id,role").eq("id", u.user.id).maybeSingle(),
+    s.from("profiles").select("full_name,avatar_url,signature_url,phone,email,dept_id,role,system_account").eq("id", u.user.id).maybeSingle(),
     s.rpc("get_my_active_role"),
   ]);
+  const pr = await s.from("profile_roles").select("role_key,role_name,is_primary,is_active").eq("profile_id", u.user.id).eq("is_active", true);
   const row = (p.data || {}) as Record<string, string | null>;
   const a = (Array.isArray(active.data) ? active.data[0] : active.data) as Record<string, string | null> | string | null;
   const roleKey = typeof a === "string" ? a : String(a?.active_role_key ?? a?.role_key ?? a?.role ?? row.role ?? "staff");
@@ -76,7 +80,9 @@ export async function loadMe(): Promise<Me> {
   const me: Me = {
     id: u.user.id, email: row.email || u.user.email || null, full_name: String(row.full_name || u.user.email || "ReqGen user").trim(),
     avatar_url: row.avatar_url || null, signature_url: row.signature_url || null, phone: row.phone || null, dept_id: row.dept_id || null,
-    role: String(roleKey || "staff").toLowerCase(), roleName: niceRole(roleName), deptName,
+    role: normalizeRole(String(roleKey || "staff")) || "staff", roleName: niceRole(roleName), deptName,
+    systemAccount: row.system_account || null,
+    positions: ((pr.data || []) as Array<{ role_key: string; role_name: string | null; is_primary: boolean | null }>).map((x) => ({ key: normalizeRole(x.role_key) || x.role_key, name: niceRole(x.role_name || x.role_key), primary: !!x.is_primary })),
   };
   await store.set("rg:me", me);
   return me;

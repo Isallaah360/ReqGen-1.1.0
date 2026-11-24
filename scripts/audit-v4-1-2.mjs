@@ -29,7 +29,9 @@ check("Plain dropdowns share one chevron look in light and dark", read("app/v4/v
 const ws = read("app/components/requests/RequestDetailsWorkspace.tsx");
 check("Request record follows mock-up 26/32: route chain, decision card, details, history", ["v4-chain", "v4-action-card", "v4-decide", "v4-timeline", "Approval route"].every((t) => ws.includes(t)));
 check("DG final approval: signature + IET stamp preview in one step", ws.includes("Approve, sign and stamp") && ws.includes('src="/v4/iet-stamp.png"'));
-check("DG and Account always confirm with fingerprint or 2FA code (never passcode alone)", ws.includes("mustConfirmFresh") && ws.includes("fingerprintStepUp()") && ws.includes("!mustConfirmFresh && (sessionIsAal2"));
+// v4.7.1 (one standard): every decision, the DG and Account included, is confirmed with a fresh
+// SMS or e-mail code, never the signed-in session alone.
+check("DG and Account always confirm with a fresh code (never the session alone)", ws.includes("async function openFresh2faModal") && ws.includes("await confirmWithCode(what)"));
 check("Approving officer sees ALLOCATION B/D, EXPENDITURE, BALANCE C/D; staff never", ws.includes("ALLOCATION B/D:") && ws.includes("balanceViewer &&") && ws.includes("canSeeBudgetBalances("));
 check("Changing the confirmed subhead needs a reason", ws.includes("Reason for the change") && ws.includes("Subhead changed"));
 check("Budget line kept with the officer's signature and printed on the letter", ws.includes("reqgen_confirm_request_budget") && read("app/requests/[id]/print/page.tsx").includes("reqgen_request_budget_lines"));

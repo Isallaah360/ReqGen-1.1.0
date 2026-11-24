@@ -10,6 +10,7 @@ export const dynamic = "force-dynamic";
  * written by the database).
  *   waiting   whoever now holds the request, or the Direct receivers still waiting
  *   answered  the sender, when a Direct receiver answers
+ *   (v4.7.1) with "waiting", the sender is told too that the request moved on
  * Only the request number and what to do are sent, never the title, amount or message.
  * Used by the website and the app.
  */
@@ -33,22 +34,26 @@ export async function POST(req: Request) {
     if (body.kind === "answered") to = r.created_by ? [r.created_by] : [];
     else if (r.current_owner) to = [r.current_owner];
     else to = receivers.filter((x) => x.status === "Waiting").map((x) => x.user_id);
-    if (Array.isArray(body.to) && body.to.length) to = to.filter((id) => body.to!.includes(id));
+    const reminder = Array.isArray(body.to) && body.to.length > 0;
+    if (reminder) to = to.filter((id) => body.to!.includes(id));
     to = [...new Set(to)].filter((id) => id && id !== user.id);
-    if (!to.length) return json(req, { ok: true, told: 0 });
+    // v4.7.1: when a request moves, the person who sent it is told too (not for a reminder)
+    const sender = !reminder && body.kind !== "answered" && r.created_by && r.created_by !== user.id && !to.includes(r.created_by) ? r.created_by : null;
+    if (!to.length && !sender) return json(req, { ok: true, told: 0 });
 
     const status = deliveryStatus();
     if (!status.key) return json(req, { ok: false, told: 0, error: "SMS and e-mail are not set up on the server (Sendchamp). The in-app notice was still sent." }, 503);
     const site = process.env.NEXT_PUBLIC_APP_URL || "https://ietreqgen.barderians.com.ng";
     const no = String(r.request_no || "A request");
-    const line = body.kind === "answered" ? `${no} has a new answer.` : `${no} is waiting for your action.`;
-    const { data: rows } = await admin.from("profiles").select("id,full_name,phone,email").in("id", to);
+    const mainLine = body.kind === "answered" ? `${no} has a new answer.` : `${no} is waiting for your action.`;
+    const { data: rows } = await admin.from("profiles").select("id,full_name,phone,email").in("id", sender ? [...to, sender] : to);
     let told = 0;
     const problems: string[] = [];
     for (const p of (rows || []) as Array<{ id: string; full_name: string | null; phone: string | null; email: string | null }>) {
       const { data: dup } = await admin.from("sms_logs").select("id").eq("request_id", r.id).eq("recipient_user_id", p.id).gte("created_at", new Date(Date.now() - 60000).toISOString()).limit(1);
       if (dup && dup.length) continue;
       const phone = normalizeNigerianPhone(p.phone), email = normalizeEmail(p.email);
+      const line = p.id === sender ? `${no} has moved on. Open ReqGen to see where it is.` : mainLine;
       let any = false;
       if (status.sms && phone) {
         try { await sendSendchampSms({ to: phone, message: `IET ReqGen: ${line} Open ReqGen: ${site}` }); any = true; }

@@ -2,7 +2,7 @@
   "compilerOptions": {
     "target": "ES2020", "lib": ["ES2022", "DOM", "DOM.Iterable"], "module": "ESNext", "moduleResolution": "Bundler",
     "jsx": "react-jsx", "strict": true, "noUnusedLocals": true, "noUnusedParameters": true, "skipLibCheck": true,
-    "isolatedModules": true, "noEmit": true, "types": []
+    "isolatedModules": true, "noEmit": true, "types": [], "baseUrl": ".", "paths": { "@web/*": ["../../lib/*"] }
   },
   "include": ["src"]
 }

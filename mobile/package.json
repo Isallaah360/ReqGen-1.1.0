@@ -1,8 +1,8 @@
 {
   "name": "reqgen-android",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "private": true,
-  "description": "ReqGen Android app 2.0.0 (Capacitor 8). The screens are inside the APK (mobile/app built into www). Built with MAKE_APP.bat.",
+  "description": "ReqGen Android app 2.0.1 (Capacitor 8). The screens are inside the APK (mobile/app built into www). Built with MAKE_APP.bat.",
   "dependencies": {
     "@capacitor-community/file-opener": "8.0.1",
     "@capacitor/android": "8.6.2",

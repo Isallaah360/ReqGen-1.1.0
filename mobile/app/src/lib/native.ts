@@ -50,8 +50,8 @@ export const finger = {
 
 // ---- Back button, app version, updates -------------------------------------------------------------
 export async function appVersion() {
-  if (!isNative()) return { version: "2.0.0", build: 0 };
-  try { const i = await App.getInfo(); return { version: i.version, build: Number(i.build) || 0 }; } catch { return { version: "2.0.0", build: 0 }; }
+  if (!isNative()) return { version: "2.0.1", build: 0 };
+  try { const i = await App.getInfo(); return { version: i.version, build: Number(i.build) || 0 }; } catch { return { version: "2.0.1", build: 0 }; }
 }
 export type Release = { version: string; build: number; apk: string; size?: string; new?: string[]; fixed?: string[]; better?: string[] };
 export async function newerRelease(): Promise<Release | null> {

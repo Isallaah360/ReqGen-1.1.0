@@ -97,6 +97,13 @@ export function alert(requestId: string, kind: "waiting" | "answered", to?: stri
   void site("/api/notifications/alert", { requestId, kind, to }).catch(() => null);
 }
 
+/** The same SMS and e-mail notices the website sends (sent, waiting for the officer, approved, returned). */
+export function notice(kind: "submitted" | "decided", requestId: string) {
+  if (kind === "submitted") {
+    for (const event of ["submission_success", "approval_pending"]) void site("/api/notifications/sms/request-event", { requestId, event }).catch(() => null);
+  } else void site("/api/notifications/sms/request-approval", { requestId }).catch(() => null);
+}
+
 // ---- the code sheet (drawn in ui.tsx) ------------------------------------------------------------
 type Ask = { what: string; purpose: "action" | "sign_in"; resolve: (ok: boolean) => void };
 let asker: ((a: Ask) => void) | null = null;

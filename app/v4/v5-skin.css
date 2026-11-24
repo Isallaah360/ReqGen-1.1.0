@@ -1,0 +1,124 @@
+/* =========================================================================
+   ReqGen 5.0.0 · Blueprint 07 "Super App" skin.
+   Two themes, each Light, Dark or Match device:
+     Sand  = warm sand ground, IET logo blue as the main colour (default)
+     Gold  = the gold of the IET logo, with dark ink on gold buttons
+   Font: Plus Jakarta Sans, kept on our own server (no Google, no trackers).
+   Loaded last, so these values win. The Developer Console keeps its own look.
+   PAPER (requests, vouchers, letters, reports) keeps its own standard fonts
+   and colours: see the "Paper stays standard" block at the end.
+   ========================================================================= */
+
+/* ---------- Sand ---------- */
+html[data-accent="sand"]:not([data-console="developer"]) .v4-root {
+  --v4-bg: #F4EEE3; --v4-surface: #FFFFFF; --v4-surface-2: #FAF6EF; --v4-surface-3: #ECE4D6;
+  --v4-line: #E9E0D2; --v4-line-2: #EFE8DC; --v4-line-strong: #D5C9B6;
+  --v4-ink: #221E18; --v4-ink-2: #4A4234; --v4-muted: #6A6255;
+  --v4-brand: #14648F; --v4-brand-dark: #0F4F72; --v4-brand-soft: #E1EEF5; --v4-brand-line: #B9D6E6; --v4-brand-tint: #F0F6FA;
+  --v4-link: #14648F;
+  --v4-accent: #1D7DB0; --v4-accent-hover: #186C99; --v4-on-accent: #FFFFFF; --v4-on-brand: #FFFFFF;
+  --v4-navy: #1E3A4A; --v4-navy-2: #2A4C5F; --v4-on-navy: #FFFFFF; --v4-on-navy-2: #C9D8E0; --v4-navy-link: #9CD4F0;
+  --v4-shadow-card: 0 1px 2px rgba(20,14,4,.05), 0 6px 18px rgba(20,14,4,.05);
+  --v4-stripe: linear-gradient(90deg, #21506A 0%, #1D7DB0 60%, #F2A01C 100%);
+  --v5-hero: linear-gradient(135deg, #21506A 0%, #1D7DB0 100%); --v5-on-hero: #FFFFFF; --v5-gen: #1D7DB0;
+}
+html[data-accent="sand"][data-theme="dark"]:not([data-console="developer"]) .v4-root {
+  --v4-bg: #14120E; --v4-surface: #1F1B15; --v4-surface-2: #26211A; --v4-surface-3: #2E281F;
+  --v4-line: #2E2920; --v4-line-2: #29241C; --v4-line-strong: #40382C;
+  --v4-ink: #F3EDE2; --v4-ink-2: #D6CDBE; --v4-muted: #B0A693;
+  --v4-brand: #7DC5EA; --v4-brand-dark: #A6D8F2; --v4-brand-soft: #183140; --v4-brand-line: #24506A; --v4-brand-tint: #16242C;
+  --v4-link: #7DC5EA;
+  --v4-accent: #5DB3DE; --v4-accent-hover: #7DC5EA; --v4-on-accent: #071923; --v4-on-brand: #071923;
+  --v4-navy: #0F0D0A; --v4-navy-2: #26211A; --v4-on-navy: #F3EDE2; --v4-on-navy-2: #B0A693; --v4-navy-link: #7DC5EA;
+  --v4-blue: #8DBCFF; --v4-blue-soft: #14273F; --v4-blue-tint: #121E2C;
+  --v4-green-soft: #12301F; --v4-green-tint: #10241A; --v4-amber-soft: #33260E; --v4-red-soft: #3A1A18; --v4-red-tint: #2B1716;
+  --v5-hero: linear-gradient(135deg, #183545 0%, #1E5674 100%); --v5-on-hero: #F3EDE2; --v5-gen: #5DB3DE;
+}
+
+/* ---------- Gold ---------- */
+html[data-accent="gold"]:not([data-console="developer"]) .v4-root {
+  --v4-bg: #FBF5EA; --v4-surface: #FFFFFF; --v4-surface-2: #FFF9EE; --v4-surface-3: #F2E8D6;
+  --v4-line: #F0E4CE; --v4-line-2: #F5ECDC; --v4-line-strong: #E0CDAA;
+  --v4-ink: #1F1A12; --v4-ink-2: #4A3F2C; --v4-muted: #6B5E49;
+  --v4-brand: #985A00; --v4-brand-dark: #7A4600; --v4-brand-soft: #FDECCD; --v4-brand-line: #F4D39A; --v4-brand-tint: #FFF7EA;
+  --v4-link: #985A00;
+  --v4-accent: #F2A01C; --v4-accent-hover: #F5B23F; --v4-on-accent: #2A1800; --v4-on-brand: #2A1800;
+  --v4-navy: #2A1E0C; --v4-navy-2: #3D2C12; --v4-on-navy: #FFF7EA; --v4-on-navy-2: #E6D3B0; --v4-navy-link: #FFC25E;
+  --v4-shadow-card: 0 1px 2px rgba(40,24,0,.05), 0 6px 18px rgba(40,24,0,.05);
+  --v4-stripe: linear-gradient(90deg, #F7B53C 0%, #F2A01C 45%, #E8761A 100%);
+  --v5-hero: linear-gradient(135deg, #F7B53C 0%, #F2A01C 45%, #E8761A 100%); --v5-on-hero: #2A1600; --v5-gen: #E8900C;
+}
+html[data-accent="gold"][data-theme="dark"]:not([data-console="developer"]) .v4-root {
+  --v4-bg: #110E08; --v4-surface: #1C1810; --v4-surface-2: #231E14; --v4-surface-3: #2B2518;
+  --v4-line: #2C2616; --v4-line-2: #272112; --v4-line-strong: #3F3520;
+  --v4-ink: #F7F0E2; --v4-ink-2: #DDD1B9; --v4-muted: #B9AC90;
+  --v4-brand: #FFC25E; --v4-brand-dark: #FFD48C; --v4-brand-soft: #3A2B0F; --v4-brand-line: #5E4515; --v4-brand-tint: #221B0E;
+  --v4-link: #FFC25E;
+  --v4-accent: #F5A623; --v4-accent-hover: #FFB847; --v4-on-accent: #241500; --v4-on-brand: #241500;
+  --v4-navy: #0B0905; --v4-navy-2: #231E14; --v4-on-navy: #F7F0E2; --v4-on-navy-2: #B9AC90; --v4-navy-link: #FFC25E;
+  --v4-blue: #8DBCFF; --v4-blue-soft: #14273F; --v4-blue-tint: #121E2C;
+  --v4-green-soft: #12301F; --v4-green-tint: #10241A; --v4-amber-soft: #33260E; --v4-red-soft: #3A1A18; --v4-red-tint: #2B1716;
+  --v5-hero: linear-gradient(135deg, #F7B53C 0%, #F2A01C 50%, #E2701A 100%); --v5-on-hero: #241400; --v5-gen: #F5A623;
+}
+
+/* ---------- Shared look: font, rounder cards, softer controls ---------- */
+html[data-accent]:not([data-console="developer"]) .v4-root {
+  --v4-font: "Plus Jakarta Sans", "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif;
+  --v4-r-sm: 14px; --v4-r-md: 16px; --v4-r-lg: 20px; --v4-r-xl: 26px;
+}
+html[data-accent]:not([data-console="developer"]) .v4-root .v4-btn { border-radius: 14px; font-weight: 800; }
+html[data-accent]:not([data-console="developer"]) .v4-root .v4-btn-primary,
+html[data-accent]:not([data-console="developer"]) .v4-root .v4-auth-form .auth-primary { background: var(--v4-accent); color: var(--v4-on-accent); box-shadow: 0 6px 16px rgba(0,0,0,.12); }
+html[data-accent]:not([data-console="developer"]) .v4-root .v4-btn-primary:hover { background: var(--v4-accent-hover); color: var(--v4-on-accent); }
+html[data-accent]:not([data-console="developer"]) .v4-root .v4-btn-navy { background: var(--v4-accent); color: var(--v4-on-accent); }
+html[data-accent]:not([data-console="developer"]) .v4-root .v4-btn-navy:hover { background: var(--v4-accent-hover); color: var(--v4-on-accent); }
+html[data-accent]:not([data-console="developer"]) .v4-root .v4-chip { font-weight: 800; }
+html[data-accent]:not([data-console="developer"]) .v4-root :is(.v4-input, .v4-select, select.v4-input, textarea.v4-input) { border-radius: 14px; }
+html[data-accent]:not([data-console="developer"]) .v4-root .v4-page-title { font-weight: 800; letter-spacing: -.015em; }
+
+/* ---------- Sign-in and the other public pages: big floating IET logo, big ReqGen ---------- */
+.v5-auth { min-height: 100vh; display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); background: var(--v4-bg); color: var(--v4-ink); font-family: var(--v4-font); }
+.v5-auth-brand { position: relative; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; padding: 48px 32px; text-align: center; }
+.v5-auth-brand::before { content: ""; position: absolute; width: 620px; height: 620px; border-radius: 50%; background: radial-gradient(circle, var(--v4-brand-soft) 0%, transparent 68%); left: 50%; top: 50%; transform: translate(-50%, -56%); }
+.v5-logo-float { position: relative; width: clamp(170px, 22vw, 260px); height: clamp(170px, 22vw, 260px); border-radius: 50%; background: #fff; display: grid; place-items: center; box-shadow: 0 24px 60px rgba(0,0,0,.14), 0 0 0 10px color-mix(in srgb, var(--v4-accent) 14%, transparent); animation: v5-float 5.5s ease-in-out infinite; }
+.v5-logo-float img { width: 86%; height: 86%; object-fit: contain; }
+.v5-logo-float::after { content: ""; position: absolute; inset: -22px; border-radius: 50%; border: 2px dashed color-mix(in srgb, var(--v4-accent) 40%, transparent); animation: v5-spin 40s linear infinite; }
+.v5-wordmark { position: relative; margin: 6px 0 0; font-size: clamp(54px, 7.4vw, 96px); line-height: 1; font-weight: 800; letter-spacing: -.035em; color: var(--v4-ink); }
+.v5-wordmark span { color: var(--v5-gen, var(--v4-accent)); }
+.v5-tag { position: relative; margin: 0; font-size: 17px; font-weight: 600; color: var(--v4-ink-2); max-width: 420px; line-height: 1.5; }
+.v5-org { position: relative; margin-bottom: 22px; display: inline-flex; align-items: center; gap: 8px; padding: 7px 14px; border-radius: 999px; background: var(--v4-surface); border: 1px solid var(--v4-line); font-size: 12.5px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--v4-ink-2); }
+.v5-auth-side { display: flex; align-items: center; justify-content: center; padding: 40px 28px; }
+.v5-auth-side .v4-auth-card { width: 100%; max-width: 480px; margin: 0; border-radius: 28px; background: var(--v4-surface); border: 1px solid var(--v4-line); box-shadow: var(--v4-shadow-card); }
+.v5-auth-side .v4-auth-card.v4-wide { max-width: 640px; }
+@keyframes v5-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-14px); } }
+@keyframes v5-spin { to { transform: rotate(360deg); } }
+@media (max-width: 900px) {
+  .v5-auth { grid-template-columns: minmax(0, 1fr); }
+  .v5-auth-brand { padding: 34px 20px 6px; gap: 10px; }
+  .v5-auth-brand::before { width: 420px; height: 420px; }
+  .v5-logo-float { width: 132px; height: 132px; }
+  .v5-logo-float::after { inset: -14px; }
+  .v5-org { margin-bottom: 14px; }
+  .v5-wordmark { font-size: 54px; }
+  .v5-tag { font-size: 14.5px; }
+  .v5-auth-side { padding: 18px 16px 32px; align-items: flex-start; }
+}
+@media (prefers-reduced-motion: reduce) { .v5-logo-float, .v5-logo-float::after { animation: none; } }
+
+/* ---------- Paper stays standard ----------
+   The IET request (minute) sheet, payment voucher, letters and reports print exactly as before,
+   in any theme: their own fonts and black on white. */
+.v4-root :is(.v4-v3a4, .v4-pv-a4, .v4-rpt-a4, .v4-a4, .rg-a4-stage, .rg-print-sheet) {
+  --v4-font: "Segoe UI", Aptos, Inter, system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
+  --v4-surface: #FFFFFF; --v4-surface-2: #FBF8F3; --v4-surface-3: #EFE7DA;
+  --v4-line: #E2D8C8; --v4-line-2: #ECE4D7; --v4-line-strong: #CFC2AE;
+  --v4-ink: #1C2B5A; --v4-ink-2: #3A4672; --v4-muted: #5B6482;
+  --v4-brand: #A84500; --v4-brand-dark: #8A3800; --v4-brand-soft: #FFE8D6; --v4-brand-line: #F7C9A6; --v4-brand-tint: #FFF6EE;
+  --v4-green: #17734A; --v4-amber: #8A5200; --v4-red: #B42318; --v4-red-tint: #FFF5F4; --v4-blue-tint: #EEF4FF;
+  --v4-r-sm: 10px; --v4-r-md: 14px; --v4-r-lg: 18px; --v4-r-xl: 24px;
+}
+
+/* Every other page (older screens too) uses the same font; printed paper keeps its standard font. */
+html[data-accent]:not([data-console="developer"]) { --rg3-font: "Plus Jakarta Sans", Aptos, "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif; }
+html[data-accent] .rg-a4-page { font-family: Aptos, "Segoe UI", Inter, system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif; }
+@media print { html[data-accent] .rg-a4-page { font-family: Aptos, "Segoe UI", Inter, system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif; } }

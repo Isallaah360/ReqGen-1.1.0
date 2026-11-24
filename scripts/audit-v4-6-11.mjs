@@ -6,7 +6,7 @@ let failures = 0;
 const check = (label, ok) => { console.log(`${ok ? "PASS" : "FAIL"}  ${label}`); if (!ok) failures += 1; };
 
 const css = read("app/v4/v4-brief.css");
-check("Version 4.6.11 or later", /REQGEN_SEMVER = "4\.(6\.(1[1-9]|[2-9]\d)|([7-9]|[1-9]\d)\.\d+)"/.test(read("lib/version.ts")));
+check("Version 4.6.11 or later", /REQGEN_SEMVER = "(4\.(6\.(1[1-9]|[2-9]\d)|([7-9]|[1-9]\d)\.\d+)|[5-9]\.\d+\.\d+)"/.test(read("lib/version.ts")));
 check("Colours: cream ground, navy text, orange buttons with navy text", css.includes("--v4-bg: #F7F2EA") && css.includes("--v4-ink: #1C2B5A") && css.includes("--v4-accent: #FF7A1A") && css.includes("color: var(--v4-on-accent)"));
 check("Dark mode ground #0E1530 with cards #18234A", css.includes("--v4-bg: #0E1530") && css.includes("--v4-surface: #18234A"));
 check("Brief stylesheet loads last", read("app/layout.tsx").indexOf("v4-brief.css") > read("app/layout.tsx").indexOf("v4-pages.css"));

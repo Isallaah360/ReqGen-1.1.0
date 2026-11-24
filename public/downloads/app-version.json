@@ -1,17 +1,21 @@
 {
-    "version":  "1.0.2",
-    "build":  3,
+    "version":  "2.0.0",
+    "build":  4,
     "apk":  "/downloads/ReqGen.apk",
-    "size":  "6.0 MB",
-    "date":  "22 Nov 2026",
-    "sha256":  "1667 A7A2 6610 90EB C09F 3003 5271 74C0 A326 4D31 978B 75C3 8094 7FA5 D1F2 F39A",
+    "size":  "6.1 MB",
+    "date":  "23 Nov 2026",
+    "sha256":  "F366 4BF1 3E8D 0103 82D2 625F 85AB 7953 E88A 69E9 35C4 7C39 9797 9E3F 2AEA 8A02",
     "new":  [
-                "The offline screen shows the app version and the address it opens."
+                "A real app: every screen is inside the app, like a bank app. It no longer opens the website in a window.",
+                "Sign in once, then open ReqGen with your app PIN or fingerprint.",
+                "Direct requests to one or many people, from any department. Each person answers on their own.",
+                "Every request you send and every decision needs the 6-digit code sent by SMS and e-mail."
             ],
     "fixed":  [
-                  "The app opens ietreqgen.barderians.com.ng instead of the old address, so it no longer shows \"You are offline\" on a working network."
+                  "Approving no longer asks for an authenticator app. The SMS or e-mail code is enough."
               ],
     "better":  [
-                   "The new ReqGen design (v4.6.12) comes straight from the website."
+                   "Saved lists show at once, even on a weak network or offline.",
+                   "What each officer said shows on the request, and prints with it."
                ]
 }

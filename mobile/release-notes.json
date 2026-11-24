@@ -1,15 +1,13 @@
 {
   "new": [
-    "A real app: every screen is inside the app, like a bank app. It no longer opens the website in a window.",
-    "Sign in once, then open ReqGen with your app PIN or fingerprint.",
-    "Direct requests to one or many people, from any department. Each person answers on their own.",
-    "Every request you send and every decision needs the 6-digit code sent by SMS and e-mail."
+    "The new ReqGen look (Blueprint 07): two themes, Sand and Gold, each Light, Dark or Match phone. Me › Appearance.",
+    "A new sign-in screen with the floating IET logo, and the Plus Jakarta Sans font packed inside the app.",
+    "Your offices (Finance, Registry, Reports, Administration and the others your position allows) are listed on Home."
   ],
   "fixed": [
-    "Approving no longer asks for an authenticator app. The SMS or e-mail code is enough."
+    "Direct requests no longer stop with “requests_status_check” (run the 5.0.0 SQL once)."
   ],
   "better": [
-    "Saved lists show at once, even on a weak network or offline.",
-    "What each officer said shows on the request, and prints with it."
+    "A full-width bottom bar with a round New button, softer cards and clearer buttons on every screen."
   ]
 }

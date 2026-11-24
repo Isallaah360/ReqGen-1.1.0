@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminFromRequest, adminLog, type AdminContext } from "@/lib/server/adminAuth";
 import { decodeJwt } from "@/lib/server/mfaWindow";
+import { freshProof } from "@/lib/server/superAdmin";
 
 export const runtime = "nodejs";
 
@@ -69,7 +70,7 @@ function secondsSince2fa(token: string) {
  *     Anyone with history stays deactivated, so every record keeps its name.
  *   * Settings that still name them (HOD, DOD, Account Officer, route officer, backup) must be
  *     changed first. This route never edits the routing engine.
- *   * body { confirm: "DELETE" }, and a 2FA code entered in the last 5 minutes.
+ *   * body { confirm: "DELETE" }, and the SMS or e-mail code confirmed in the last 10 minutes.
  *   * Written to the Audit Log before the account is removed.
  * GET returns what would block the deletion, so the screen can explain it before asking.
  */
@@ -119,8 +120,9 @@ export async function DELETE(req: NextRequest, context: { params: Promise<{ id: 
   if (id === ctx.actorId) return fail("You cannot delete your own account.", 409);
   const body = (await req.json().catch(() => ({}))) as { confirm?: string };
   if (String(body.confirm || "").trim() !== "DELETE") return fail("Type DELETE to confirm.");
+  // v4.7.1 (one standard): the SMS or e-mail code (a pass written in the last 10 minutes), or a fresh 2FA code
   const since = secondsSince2fa(ctx.token);
-  if (since === null || since > 300) return fail("Enter your 2FA code again to confirm it is you.", 403);
+  if ((since === null || since > 300) && !(await freshProof(ctx.admin, ctx.actorId, ctx.token))) return fail("Confirm with the code sent to your phone or e-mail first.", 403);
 
   try {
     const target = await loadTarget(ctx, id);
@@ -153,7 +155,7 @@ export async function DELETE(req: NextRequest, context: { params: Promise<{ id: 
 
 /**
  * ReqGen v4.6 — staff record actions (mock-up 82). Super Admin or Developer.
- * body: { action: "profile", fullName?, deptId? }
+ * body: { action: "profile", fullName?, deptId?, email?, phone? }  (5.0.0: e-mail and phone too)
  *       { action: "deactivate", reason }   sign-in is blocked; history, positions and signatures stay
  *       { action: "reactivate" }
  *       { action: "reset2fa" }             the person sets up a new authenticator at next sign-in
@@ -164,7 +166,7 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ id: s
   const ctx = await adminFromRequest(req.headers.get("authorization"));
   if ("error" in ctx) return fail(ctx.error, ctx.status);
   const { id } = await context.params;
-  const body = (await req.json().catch(() => ({}))) as { action?: string; reason?: string; fullName?: string; deptId?: string | null };
+  const body = (await req.json().catch(() => ({}))) as { action?: string; reason?: string; fullName?: string; deptId?: string | null; email?: string; phone?: string | null };
   const action = String(body.action || "");
 
   const { data: target, error: targetError } = await ctx.admin.from("profiles").select("id,full_name,email,system_account,is_active").eq("id", id).maybeSingle();
@@ -181,7 +183,29 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ id: s
       patch.full_name = name;
     }
     if (body.deptId !== undefined) patch.dept_id = body.deptId || null;
+    if (typeof body.phone === "string") {
+      const phone = body.phone.replace(/[^\d+]/g, "");
+      if (phone && phone.replace(/\D/g, "").length < 10) return fail("Write a full phone number.");
+      patch.phone = phone || null;
+    }
+    // 5.0.0: the Super Admin can correct the sign-in e-mail. The sign-in account changes with it.
+    let newEmail: string | null = null;
+    if (typeof body.email === "string") {
+      const em = body.email.trim().toLowerCase();
+      if (em && em !== String(target.email || "").toLowerCase()) {
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) return fail("Write a valid e-mail address.");
+        if (target.system_account) return fail("A system account keeps its e-mail.", 403);
+        const { data: taken } = await ctx.admin.from("profiles").select("id").ilike("email", em).neq("id", id).maybeSingle();
+        if (taken) return fail("Another staff member already uses that e-mail.", 409);
+        newEmail = em;
+        patch.email = em;
+      }
+    }
     if (!Object.keys(patch).length) return fail("Nothing to change.");
+    if (newEmail) {
+      const { error: authError } = await ctx.admin.auth.admin.updateUserById(id, { email: newEmail, email_confirm: true });
+      if (authError) return fail(authError.message, 500);
+    }
     const { error } = await ctx.admin.from("profiles").update(patch).eq("id", id);
     if (error) return fail(error.message, 500);
     await adminLog(ctx, "Staff record changed", label, id, { fields: Object.keys(patch) });

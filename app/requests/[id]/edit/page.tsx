@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import RequestAccessGate from "@/app/components/requests/RequestAccessGate";
 import { supabase } from "@/lib/supabaseClient";
+import { confirmWithCode } from "@/lib/codeConfirm";
 import { normalizeRole } from "@/lib/roles";
 import { canSeeBudgetBalances } from "@/lib/v4/budgetVisibility";
 import { stageTitle } from "@/lib/v4/requestText";
@@ -197,12 +198,10 @@ function CorrectRequest({ id }: { id: string }) {
   }, [title, details, isFund, amount, live, note, me]);
 
   async function confirmIdentity(): Promise<boolean> {
-    const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-    if (aal?.currentLevel === "aal2") return true;
-    if (!factorId && !canFinger) { setMsg({ tone: "red", text: "Set up 2FA in My Account › Security before correcting a request." }); return false; }
-    setCode("");
-    setCodeOpen(true);
-    return false;
+    // v4.7.1 (one standard): correcting a request is confirmed with the SMS or e-mail code.
+    const ok = await confirmWithCode("save the corrected request");
+    if (!ok) setMsg({ tone: "red", text: "Not saved: the code was not entered." });
+    return ok;
   }
 
   async function save() {

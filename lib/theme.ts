@@ -31,22 +31,27 @@ export function applyTheme(mode: ThemeMode) {
 }
 
 /**
- * v4.6.9: colour of the app, chosen in My Account › Appearance. "iet" is the usual IET orange;
- * "green" is IET green. It works with Light and Dark. Kept on this device only.
+ * 5.0.0 (Blueprint 07): the two themes, chosen in My Account › Appearance.
+ *   "sand" = warm sand with IET blue (default), "gold" = the gold of the IET logo.
+ * Each works with Light, Dark and Match device. Kept on this device only.
+ * Older saved choices still work: "iet" becomes Gold, "green" becomes Sand.
  */
-export type AccentMode = "iet" | "green";
+export type AccentMode = "sand" | "gold";
 export const ACCENT_STORAGE_KEY = "reqgen-accent";
 
 export function readAccent(): AccentMode {
-  try { return window.localStorage.getItem(ACCENT_STORAGE_KEY) === "green" ? "green" : "iet"; } catch { return "iet"; }
+  try {
+    const v = window.localStorage.getItem(ACCENT_STORAGE_KEY);
+    return v === "gold" || v === "iet" ? "gold" : "sand";
+  } catch { return "sand"; }
 }
 
 export function applyAccent(accent: AccentMode) {
   const root = document.documentElement;
-  if (accent === "green") root.dataset.accent = "green"; else delete root.dataset.accent;
+  root.dataset.accent = accent;
   try { window.localStorage.setItem(ACCENT_STORAGE_KEY, accent); } catch { /* private mode */ }
   window.dispatchEvent(new CustomEvent(THEME_EVENT, { detail: { accent } }));
 }
 
 /** Runs in <head> before first paint, so dark mode never flashes white. */
-export const THEME_BOOT_SCRIPT = `(function(){try{var m=localStorage.getItem('${THEME_STORAGE_KEY}')||'system';var d=m==='dark'||(m==='system'&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches);var r=document.documentElement;r.dataset.theme=d?'dark':'light';r.style.colorScheme=d?'dark':'light';if(localStorage.getItem('${ACCENT_STORAGE_KEY}')==='green'){r.dataset.accent='green';}}catch(e){}})();`;
+export const THEME_BOOT_SCRIPT = `(function(){try{var m=localStorage.getItem('${THEME_STORAGE_KEY}')||'system';var d=m==='dark'||(m==='system'&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches);var r=document.documentElement;r.dataset.theme=d?'dark':'light';r.style.colorScheme=d?'dark':'light';var a=localStorage.getItem('${ACCENT_STORAGE_KEY}');r.dataset.accent=(a==='gold'||a==='iet')?'gold':'sand';}catch(e){document.documentElement.dataset.accent='sand';}})();`;
