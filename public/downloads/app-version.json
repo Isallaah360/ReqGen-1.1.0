@@ -1,21 +1,19 @@
 {
-    "version":  "2.0.0",
-    "build":  4,
+    "version":  "3.0.0",
+    "build":  6,
     "apk":  "/downloads/ReqGen.apk",
-    "size":  "6.1 MB",
-    "date":  "23 Nov 2026",
-    "sha256":  "F366 4BF1 3E8D 0103 82D2 625F 85AB 7953 E88A 69E9 35C4 7C39 9797 9E3F 2AEA 8A02",
+    "size":  "6.3 MB",
+    "date":  "24 Nov 2026",
+    "sha256":  "FEAA 00D9 37C5 1160 25C0 E00E CCA8 7741 3738 D32C 984D B4DD CE18 FD53 FCE5 274C",
     "new":  [
-                "A real app: every screen is inside the app, like a bank app. It no longer opens the website in a window.",
-                "Sign in once, then open ReqGen with your app PIN or fingerprint.",
-                "Direct requests to one or many people, from any department. Each person answers on their own.",
-                "Every request you send and every decision needs the 6-digit code sent by SMS and e-mail."
+                "The new ReqGen look (Blueprint 07): two themes, Sand and Gold, each Light, Dark or Match phone. Me â€º Appearance.",
+                "A new sign-in screen with the floating IET logo, and the Plus Jakarta Sans font packed inside the app.",
+                "Your offices (Finance, Registry, Reports, Administration and the others your position allows) are listed on Home."
             ],
     "fixed":  [
-                  "Approving no longer asks for an authenticator app. The SMS or e-mail code is enough."
+                  "Direct requests no longer stop with â€œrequests_status_checkâ€ (run the 5.0.0 SQL once)."
               ],
     "better":  [
-                   "Saved lists show at once, even on a weak network or offline.",
-                   "What each officer said shows on the request, and prints with it."
+                   "A full-width bottom bar with a round New button, softer cards and clearer buttons on every screen."
                ]
 }
