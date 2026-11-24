@@ -1,6 +1,6 @@
 {
   "name": "reqgen-app-screens",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "private": true,
   "description": "ReqGen real app screens (packed inside the APK). Built into ../www with npm run build.",
   "type": "module",

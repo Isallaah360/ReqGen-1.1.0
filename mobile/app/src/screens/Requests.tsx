@@ -4,7 +4,7 @@ import { db } from "../lib/core";
 import { LIST_COLS, useOnline, useSaved, type Req } from "../lib/data";
 import { ago, naira, statusChip } from "../lib/text";
 import { useApp } from "../App";
-import { Big, Body, Cell, Chip, Empty, Seg, Skeleton, Updated, useNav } from "../ui";
+import { Big, Body, Cell, Chip, Empty, LoadError, Seg, Skeleton, Updated, useNav } from "../ui";
 import { ReqRow } from "./parts";
 import NewRequest, { type Draft } from "./NewRequest";
 
@@ -60,6 +60,7 @@ export default function Requests() {
     <>
       <Big>Requests</Big>
       <Body tabs onRefresh={async () => { await Promise.all([mine.reload(), tab === "direct" ? received.reload() : null, tab === "drafts" ? drafts.reload() : null]); }}>
+        <LoadError error={cur.error || (tab === "direct" ? mine.error : null)} />
         <Seg value={tab} onChange={(v) => { setTab(v); setF("all"); }} items={[{ k: "mine", label: "Mine" }, { k: "direct", label: "Direct" }, { k: "drafts", label: "Drafts" }]} />
         {tab !== "drafts" ? (
           <>

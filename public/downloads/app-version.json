@@ -1,16 +1,17 @@
 {
-    "version":  "3.0.0",
-    "build":  6,
+    "version":  "3.0.1",
+    "build":  7,
     "apk":  "/downloads/ReqGen.apk",
     "size":  "6.3 MB",
     "date":  "24 Nov 2026",
-    "sha256":  "FEAA 00D9 37C5 1160 25C0 E00E CCA8 7741 3738 D32C 984D B4DD CE18 FD53 FCE5 274C",
+    "sha256":  "A8D2 61BB 65B7 EED7 6179 18CD 3237 569B 8684 A3A7 3FBC C1A7 286D 4B65 50D1 466E",
     "new":  [
                 "The new ReqGen look (Blueprint 07): two themes, Sand and Gold, each Light, Dark or Match phone. Me â€º Appearance.",
                 "A new sign-in screen with the floating IET logo, and the Plus Jakarta Sans font packed inside the app.",
                 "Your offices (Finance, Registry, Reports, Administration and the others your position allows) are listed on Home."
             ],
     "fixed":  [
+                  "Requests, Approvals and Home showed an empty list when the database refused to read requests. Run the 5.0.1 SQL once; lists now say clearly if they cannot load.",
                   "Direct requests no longer stop with â€œrequests_status_checkâ€ (run the 5.0.0 SQL once)."
               ],
     "better":  [

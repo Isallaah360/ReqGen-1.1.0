@@ -5,6 +5,7 @@
     "Your offices (Finance, Registry, Reports, Administration and the others your position allows) are listed on Home."
   ],
   "fixed": [
+    "Requests, Approvals and Home showed an empty list when the database refused to read requests. Run the 5.0.1 SQL once; lists now say clearly if they cannot load.",
     "Direct requests no longer stop with “requests_status_check” (run the 5.0.0 SQL once)."
   ],
   "better": [

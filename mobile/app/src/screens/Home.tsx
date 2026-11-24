@@ -3,7 +3,7 @@ import { db } from "../lib/core";
 import { LIST_COLS, useOnline, useSaved, type Req, type DirectWaiting } from "../lib/data";
 import { first } from "../lib/text";
 import { useApp } from "../App";
-import { Avatar, Body, Empty, Skeleton, Updated, useNav } from "../ui";
+import { Avatar, Body, Empty, LoadError, Skeleton, Updated, useNav } from "../ui";
 import { ReqRow } from "./parts";
 import Notices from "./Notices";
 import Vouchers from "./Vouchers";
@@ -16,7 +16,7 @@ export default function Home() {
   const { me, pending, setTab, openNew, refreshPending } = useApp();
   const { push } = useNav();
   const online = useOnline();
-  const { data, at, loading, reload } = useSaved<HomeData>(`home:${me.id}`, async () => {
+  const { data, at, loading, reload, error } = useSaved<HomeData>(`home:${me.id}`, async () => {
     const s = await db();
     const [mine, direct, unread, pv] = await Promise.all([
       s.from("requests").select(LIST_COLS).eq("created_by", me.id).order("created_at", { ascending: false }).limit(5),
@@ -40,6 +40,7 @@ export default function Home() {
         </button>
       </div>
       <Body tabs onRefresh={async () => { await Promise.all([reload(), refreshPending()]); }}>
+        <LoadError error={error} />
         <div className="hero">
           <small>Waiting for you</small>
           <b>{pending}</b>

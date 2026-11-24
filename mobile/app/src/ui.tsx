@@ -122,6 +122,11 @@ export const Chev = () => <span className="chev"><ChevronRight size={18} /></spa
 export function Note({ tone = "in", icon, children }: { tone?: string; icon?: ReactNode; children: ReactNode }) {
   return <div className={`note n-${tone}`} role={tone === "er" ? "alert" : undefined}>{icon || <Info size={16} />}<span>{children}</span></div>;
 }
+/** 5.0.1: a list that could not load says so (never an empty list that hides the problem). */
+export function LoadError({ error }: { error: string | null | undefined }) {
+  if (!error) return null;
+  return <Note tone="er">Could not load the latest list: {error}. Pull down to try again. If it keeps happening, tell the Super Admin.</Note>;
+}
 export function Toggle({ on, onChange, label }: { on: boolean; onChange: (v: boolean) => void; label: string }) {
   return <button type="button" className="toggle" role="switch" aria-checked={on} aria-label={label} onClick={() => { buzz.tap(); onChange(!on); }}><i /></button>;
 }

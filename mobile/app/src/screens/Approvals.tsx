@@ -4,7 +4,7 @@ import { db } from "../lib/core";
 import { LIST_COLS, useOnline, useSaved, type Req, type DirectWaiting } from "../lib/data";
 import { ago, naira, waitingForMe, initials } from "../lib/text";
 import { useApp } from "../App";
-import { Big, Body, Cell, Chip, Empty, Seg, Skeleton, Updated, useNav } from "../ui";
+import { Big, Body, Cell, Chip, Empty, LoadError, Seg, Skeleton, Updated, useNav } from "../ui";
 import Detail from "./Detail";
 import Vouchers from "./Vouchers";
 
@@ -43,6 +43,7 @@ export default function Approvals() {
           <div style={{ flex: 1 }}><Seg value={tab} onChange={setTab} items={[{ k: "wait", label: n ? `Waiting ${n}` : "Waiting" }, { k: "done", label: "Done" }]} /></div>
           <button type="button" className="btn bs sm" onClick={() => push(<Vouchers />)} aria-label="Vouchers"><Wallet size={18} />Vouchers</button>
         </div>
+        <LoadError error={cur.error} />
         {tab === "wait" ? (
           waiting.loading && !waiting.data ? <Skeleton rows={4} /> : n ? (
             <div className="grp">
