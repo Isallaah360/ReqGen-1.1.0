@@ -1,6 +1,5 @@
 import { Fragment, createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
-import { ChevronLeft, ChevronRight, CloudOff, Mail, RefreshCw, Smartphone, CircleCheck, CircleAlert, Info } from "lucide-react";
-import { onCodeAsk, site, plainError } from "./lib/core";
+import { ChevronLeft, ChevronRight, CloudOff, RefreshCw, CircleCheck, CircleAlert, Info } from "lucide-react";
 import { buzz, exitApp, onBack } from "./lib/native";
 import { initials, clock } from "./lib/text";
 
@@ -192,70 +191,6 @@ export function ToastHost() {
     <div key={t.id} className={`toast t-${t.tone}`} role={t.tone === "er" ? "alert" : "status"} onClick={() => setT(null)}>
       {t.tone === "er" ? <CircleAlert size={20} /> : t.tone === "ok" ? <CircleCheck size={20} /> : <Info size={20} />}<span>{t.text}</span>
     </div>
-  );
-}
-
-// ---- the 6-digit code (SMS and e-mail). Needed for every send and every decision. ------------------------
-type Sent = { sms: boolean; email: boolean; phone: string | null; emailTo: string | null; resendIn: number };
-type Ask = { what: string; purpose: "action" | "sign_in"; resolve: (ok: boolean) => void };
-export function CodeHost() {
-  const [ask, setAsk] = useState<(Ask & { id: number }) | null>(null);
-  useEffect(() => { let n = 0; onCodeAsk((a) => setAsk({ ...a, id: ++n })); }, []);
-  if (!ask) return null;
-  return <CodeSheet key={ask.id} what={ask.what} purpose={ask.purpose} onDone={(ok) => { ask.resolve(ok); setAsk(null); }} />;
-}
-
-export function CodeSheet({ what, purpose, onDone }: { what: string; purpose: "action" | "sign_in"; onDone: (ok: boolean) => void }) {
-  const [code, setCode] = useState("");
-  const [sent, setSent] = useState<Sent | null>(null);
-  const [busy, setBusy] = useState<"" | "sending" | "checking">("sending");
-  const [msg, setMsg] = useState<string | null>(null);
-  const [bad, setBad] = useState(false);
-  const [wait, setWait] = useState(0);
-  const input = useRef<HTMLInputElement>(null);
-
-  const send = useCallback(async () => {
-    setBusy("sending"); setMsg(null);
-    try {
-      const j = await site<Sent>("/api/otp/send", { purpose });
-      setSent(j); setWait(j.resendIn || 45);
-      window.setTimeout(() => input.current?.focus(), 60);
-    } catch (e) { setMsg(plainError(e)); }
-    finally { setBusy(""); }
-  }, [purpose]);
-  useEffect(() => { void send(); }, [send]);
-  useEffect(() => { if (wait <= 0) return; const t = window.setTimeout(() => setWait((w) => w - 1), 1000); return () => window.clearTimeout(t); }, [wait]);
-
-  async function check(v: string) {
-    if (v.length !== 6 || busy) return;
-    setBusy("checking"); setMsg(null);
-    try { await site("/api/otp/verify", { purpose, code: v }); buzz.ok(); onDone(true); }
-    catch (e) { buzz.bad(); setMsg(plainError(e)); setBad(true); window.setTimeout(() => setBad(false), 400); setCode(""); setBusy(""); window.setTimeout(() => input.current?.focus(), 60); }
-  }
-  const where = sent ? [sent.sms && sent.phone ? `by SMS to ${sent.phone} (from ReqGen)` : "", sent.email && sent.emailTo ? `by e-mail to ${sent.emailTo}` : ""].filter(Boolean).join(" and ") : "";
-  return (
-    <Sheet open onClose={() => { if (busy !== "checking") onDone(false); }} title="Enter the 6-digit code">
-      <p className="mu" style={{ fontSize: 14 }}>
-        {busy === "sending" ? "Sending your code by SMS and e-mail…" : sent ? `To ${what}: we sent it ${where}. Either code works.` : `To ${what}, ReqGen sends a code to your phone and e-mail.`}
-      </p>
-      <label className={`otp${bad ? " bad" : ""}`} aria-label="6-digit code">
-        {Array.from({ length: 6 }).map((_, i) => <i key={i} className={i < code.length || i === code.length ? "on" : ""}>{code[i] || ""}</i>)}
-        <input ref={input} inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={code} disabled={busy === "checking"}
-          onChange={(e) => { const v = e.target.value.replace(/\D/g, "").slice(0, 6); setCode(v); if (v.length === 6) void check(v); }} />
-      </label>
-      {msg ? <Note tone="er">{msg}</Note> : null}
-      <div className="row" style={{ fontSize: 13.5 }}>
-        <span className="mu">{busy === "checking" ? "Checking…" : wait > 0 ? `Resend in 0:${String(wait).padStart(2, "0")}` : "Did not get it?"}</span>
-        <button type="button" className="link" disabled={wait > 0 || busy !== ""} style={{ opacity: wait > 0 ? 0.45 : 1 }} onClick={() => { setCode(""); void send(); }}>Send again</button>
-      </div>
-      {sent ? (
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <span className={`chip ${sent.sms ? "c-ok" : "c-mu"}`}><Smartphone size={14} />{sent.sms ? "SMS sent" : "No phone number"}</span>
-          <span className={`chip ${sent.email ? "c-ok" : "c-mu"}`}><Mail size={14} />{sent.email ? "E-mail sent" : "No e-mail"}</span>
-        </div>
-      ) : null}
-      <button type="button" className="btn bs block" disabled={busy === "checking"} onClick={() => onDone(false)}>Cancel</button>
-    </Sheet>
   );
 }
 

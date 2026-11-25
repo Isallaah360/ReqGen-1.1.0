@@ -1,27 +1,31 @@
-/* ReqGen real app 2.0.0. Colours from the approved mock-ups (canvas page 11). IET navy and orange, no purple.
-   Fonts: the phone's own (Roboto on Android). Nothing is downloaded. */
+/* ReqGen app 4.0.0. Every colour comes from the OFFICIAL IET LOGO, measured from the logo file:
+     IET Blue #31A8E0, IET Gold #F9A11F, IET Orange #F47824, IET Red #EF3F27, and the black of the lettering.
+   Lighter tints and deeper shades of those same colours are used where text must stay readable
+   (white text sits on #146185, the deep IET Blue). Plus white, black and greys. No other colour, no purple.
+   Font: Plus Jakarta Sans, packed inside the app. */
 :root{
-  --bg:#F7F2EA;--card:#FFFFFF;--card2:#EFE7DA;--ink:#1C2B5A;--ink2:#3A4672;--mute:#5B6482;--line:#E2D8C8;--hdr:#1C2B5A;
-  --or:#FF7A1A;--ont:#1C2B5A;--ort:#A84500;--ors:#FFE8D6;--ok:#1E7A4C;--oks:#E3F2EA;--wa:#A15C00;--was:#FCEFD6;
-  --er:#B42318;--ers:#FCE7E4;--in:#1F5FBF;--ins:#E5EDFA;--sk:#E9E1D4;--glass:rgba(255,255,255,.86);--gline:rgba(255,255,255,.75);
-  --sh:0 1px 2px rgba(28,43,90,.06),0 8px 22px rgba(28,43,90,.08);--scrim:rgba(14,21,48,.45);
+  --bg:#F5F7F8;--card:#FFFFFF;--card2:#EDF1F3;--ink:#111111;--ink2:#333333;--mute:#5C5F63;--line:#E1E6EA;--hdr:#111111;
+  --or:#146185;--ont:#FFFFFF;--ort:#146185;--ors:#E9F6FC;--ok:#146185;--oks:#E9F6FC;--wa:#955A04;--was:#FEF5E6;
+  --er:#B8301C;--ers:#FDEAE7;--in:#146185;--ins:#E9F6FC;--sk:#EDF1F3;--glass:rgba(255,255,255,.9);--gline:rgba(255,255,255,.8);
+  --hero:linear-gradient(135deg,#31A8E0 0%,#7AC7EB 100%);--onhero:#000000;--onhero2:rgba(0,0,0,.74);--acc:#FEF5E6;--acct:#7C4B03;
+  --sh:0 1px 2px rgba(0,0,0,.05),0 6px 18px rgba(0,0,0,.05);--scrim:rgba(0,0,0,.45);
   --safe-t:var(--safe-area-inset-top,env(safe-area-inset-top,0px));--safe-b:var(--safe-area-inset-bottom,env(safe-area-inset-bottom,0px));
   color-scheme:light;
 }
 :root[data-theme="dark"]{
-  --bg:#0E1530;--card:#18234A;--card2:#212D58;--ink:#F2F4FA;--ink2:#CDD3E6;--mute:#A3ACCB;--line:#2C3966;--hdr:#0A1026;
-  --or:#FF8A33;--ont:#0E1530;--ort:#FFB27A;--ors:#3A2A22;--ok:#5FD39A;--oks:#15352A;--wa:#FFB45C;--was:#362A12;
-  --er:#FF8A80;--ers:#3E1E24;--in:#8DB3FF;--ins:#1B2A52;--sk:#24315E;--glass:rgba(24,35,74,.88);--gline:rgba(255,255,255,.12);
-  --sh:0 1px 2px rgba(0,0,0,.4),0 8px 22px rgba(0,0,0,.35);--scrim:rgba(0,0,0,.55);color-scheme:dark;
+  --bg:#0B0C0D;--card:#17191B;--card2:#202326;--ink:#F4F4F4;--ink2:#D0D3D6;--mute:#A3A8AD;--line:#2A2E32;--hdr:#000000;
+  --or:#31A8E0;--ont:#000000;--ort:#7AC7EB;--ors:#0F2A38;--ok:#7AC7EB;--oks:#0F2A38;--wa:#FBC06A;--was:#2E1F06;
+  --er:#F48071;--ers:#3A120D;--in:#7AC7EB;--ins:#0F2A38;--sk:#202326;--glass:rgba(23,25,27,.92);--gline:rgba(255,255,255,.08);
+  --hero:linear-gradient(135deg,#31A8E0 0%,#1E86B8 100%);--onhero:#000000;--onhero2:rgba(0,0,0,.74);--acc:#2E1F06;--acct:#FBC06A;
+  --sh:0 1px 2px rgba(0,0,0,.4),0 8px 22px rgba(0,0,0,.3);--scrim:rgba(0,0,0,.6);color-scheme:dark;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body,#root{height:100%;margin:0}
 body{background:var(--bg);color:var(--ink);font:400 15px/1.45 system-ui,-apple-system,Roboto,"Segoe UI",Arial,sans-serif;
   -webkit-user-select:none;user-select:none;overscroll-behavior:none;-webkit-text-size-adjust:100%;touch-action:manipulation}
 input,textarea,.sel{-webkit-user-select:text;user-select:text}
-/* the app's own buttons and links; the office pages (.webui) keep the website's styles */
-:where(button:not(.webui button)){font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
-:where(a:not(.webui a)){color:var(--in);text-decoration:none;font-weight:700}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+a{color:var(--in);text-decoration:none;font-weight:700}
 :focus-visible{outline:3px solid var(--or);outline-offset:2px}
 svg{flex:none}
 
@@ -39,7 +43,7 @@ svg{flex:none}
 
 .ah{padding:8px 14px 6px;display:flex;align-items:center;gap:10px;min-height:56px}
 .ah .back{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;color:var(--ink);background:var(--card2)}
-.ah .ttl{font-weight:800;font-size:16px;line-height:1.2;font-family:inherit;flex:1;text-align:center;margin-right:44px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ah .ttl{font-weight:800;font-size:16px;line-height:1.25;font-family:inherit;flex:1;text-align:center;margin-right:44px;overflow-wrap:anywhere}
 .big{margin:8px 18px 10px;font-weight:800;font-size:28px;line-height:1.15;font-family:inherit;letter-spacing:-.01em}
 
 .grp{background:var(--card);border-radius:18px;overflow:hidden;box-shadow:var(--sh)}
@@ -47,8 +51,8 @@ svg{flex:none}
 .cell+.cell{border-top:1px solid var(--line)}
 button.cell:active{background:var(--card2)}
 .cell .t{flex:1;min-width:0}
-.cell .t b{display:block;font-weight:700;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.cell .t small{display:block;color:var(--mute);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cell .t b{display:block;font-weight:700;font-size:15px;line-height:1.3;overflow-wrap:break-word;min-width:0}
+.cell .t small{display:block;color:var(--mute);font-size:13px;line-height:1.35;overflow-wrap:break-word}
 .cell .t small.wrap{white-space:normal}
 .av{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:13px;flex:none;background:var(--ors);color:var(--ort);overflow:hidden}
 .av img{width:100%;height:100%;object-fit:cover}
@@ -70,7 +74,7 @@ button.cell:active{background:var(--card2)}
 .bp{background:var(--or);color:var(--ont)}
 .bs{background:var(--card);color:var(--ink);border-color:var(--line)}
 .bd{background:var(--er);color:#fff}
-:root[data-theme="dark"] .bd{color:#1C0B0B}
+:root[data-theme="dark"] .bd{color:#000000}
 .btn.sm{min-height:42px;padding:0 14px;font-size:14px}
 .btn.block{width:100%}
 .btn:active{transform:scale(.98)}
@@ -104,11 +108,11 @@ textarea.inp{padding:12px 14px;min-height:100px;resize:none;line-height:1.45}
 
 /* home */
 .hello{display:flex;align-items:center;gap:10px;padding:8px 16px 6px;min-height:60px}
-.hello .who{flex:1;min-width:0}.hello small{display:block;color:var(--mute);font-size:12.5px}.hello b{display:block;font-weight:800;font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hello .who{flex:1;min-width:0}.hello small{display:block;color:var(--mute);font-size:12.5px}.hello b{display:block;font-weight:800;font-size:17px;line-height:1.25;overflow-wrap:anywhere}
 .ib{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;background:var(--card2);color:var(--ink);position:relative}
 .ib .dot{position:absolute;top:9px;right:10px;width:10px;height:10px;border-radius:50%;background:var(--or);box-shadow:0 0 0 2px var(--card2)}
 .hero{border-radius:22px;padding:18px;background:var(--hdr);color:#fff;display:flex;flex-direction:column;gap:4px}
-.hero small{color:#C9D1EA;font-weight:600;font-size:13px}.hero b{font-weight:800;font-size:36px;line-height:1.1}.hero span{color:#C9D1EA;font-weight:600;font-size:13.5px}
+.hero small{color:rgba(255,255,255,.8);font-weight:600;font-size:13px}.hero b{font-weight:800;font-size:36px;line-height:1.1}.hero span{color:rgba(255,255,255,.8);font-weight:600;font-size:13.5px}
 .hero .btn{align-self:flex-start;margin-top:8px}
 .qa{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
 .qa button{display:flex;flex-direction:column;align-items:center;gap:6px;font-weight:700;font-size:12px;color:var(--ink);text-align:center}
@@ -126,7 +130,7 @@ textarea.inp{padding:12px 14px;min-height:100px;resize:none;line-height:1.45}
   box-shadow:0 10px 30px rgba(28,43,90,.16);display:grid;grid-template-columns:repeat(5,1fr);align-items:center;padding:0 6px;z-index:5}
 .tb button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-weight:700;font-size:11px;color:var(--mute);min-height:56px;position:relative}
 .tb button[aria-current="page"]{color:var(--ink)}
-.tb button[aria-current="page"]::before{content:"";position:absolute;top:-2px;left:50%;width:22px;height:3px;border-radius:2px;background:#F5A524;transform:translateX(-50%)}
+.tb button[aria-current="page"]::before{content:"";position:absolute;top:-2px;left:50%;width:22px;height:3px;border-radius:2px;background:#F9A11F;transform:translateX(-50%)}
 .tb .fab{width:56px;height:56px;border-radius:18px;background:var(--or);color:var(--ont);display:grid;place-items:center;margin-top:-34px;box-shadow:0 8px 18px rgba(255,122,26,.4)}
 .tb .nd{position:absolute;top:4px;right:calc(50% - 22px);min-width:18px;height:18px;border-radius:9px;background:var(--or);color:var(--ont);font-weight:800;font-size:10.5px;line-height:18px;padding:0 4px;box-shadow:0 0 0 2px var(--card)}
 
@@ -188,7 +192,7 @@ textarea.inp{padding:12px 14px;min-height:100px;resize:none;line-height:1.45}
 .toast{position:fixed;left:16px;right:16px;top:calc(14px + var(--safe-t));border-radius:16px;padding:13px 16px;display:flex;gap:10px;align-items:center;font-weight:600;font-size:14px;box-shadow:0 18px 40px rgba(0,0,0,.25);z-index:40;animation:drop .28s cubic-bezier(.2,.9,.3,1.1)}
 @keyframes drop{from{transform:translateY(-20px);opacity:0}}
 .t-ok{background:var(--ok);color:#fff}.t-er{background:var(--er);color:#fff}.t-in{background:var(--hdr);color:#fff}
-:root[data-theme="dark"] .t-ok,:root[data-theme="dark"] .t-er{color:#0E1530}
+:root[data-theme="dark"] .t-ok,:root[data-theme="dark"] .t-er{color:#000000}
 .offline{margin:0 16px 6px}
 .center{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:12px;padding:24px}
 .logo{width:92px;height:92px;border-radius:24px;background:#fff;padding:6px;align-self:center}
@@ -201,38 +205,42 @@ textarea.inp{padding:12px 14px;min-height:100px;resize:none;line-height:1.45}
 
 /* =====================================================================
    3.0.0 · Blueprint 07 "Super App". Two themes, each Light, Dark or Match phone:
-   Sand (default): warm sand with IET blue.  Gold: the gold of the IET logo, dark ink on gold.
+   4.0.0: both looks use only the IET logo colours. "IET Blue" (key sand, the default) and "IET Gold" (key gold).
    Font: Plus Jakarta Sans, packed inside the app (nothing downloaded).
    ===================================================================== */
 :root[data-look="sand"]{
-  --bg:#F4EEE3;--card:#FFFFFF;--card2:#ECE4D6;--ink:#221E18;--ink2:#4A4234;--mute:#6A6255;--line:#E9E0D2;--hdr:#21506A;
-  --or:#1D7DB0;--ont:#FFFFFF;--ort:#135C82;--ors:#E1EEF5;--in:#14648F;--ins:#E1EEF5;--sk:#ECE4D6;
-  --hero:linear-gradient(135deg,#21506A 0%,#1D7DB0 100%);--onhero:#FFFFFF;--onhero2:rgba(255,255,255,.82);--acc:#F6E7C8;--acct:#7A4B00;
-  --glass:rgba(255,253,249,.9);--gline:rgba(255,255,255,.8);--sh:0 1px 2px rgba(20,14,4,.05),0 6px 18px rgba(20,14,4,.05);
+  --bg:#F5F7F8;--card:#FFFFFF;--card2:#EDF1F3;--ink:#111111;--ink2:#333333;--mute:#5C5F63;--line:#E1E6EA;--hdr:#111111;
+  --or:#146185;--ont:#FFFFFF;--ort:#146185;--ors:#E9F6FC;--ok:#146185;--oks:#E9F6FC;--wa:#955A04;--was:#FEF5E6;
+  --er:#B8301C;--ers:#FDEAE7;--in:#146185;--ins:#E9F6FC;--sk:#EDF1F3;--glass:rgba(255,255,255,.9);--gline:rgba(255,255,255,.8);
+  --hero:linear-gradient(135deg,#31A8E0 0%,#7AC7EB 100%);--onhero:#000000;--onhero2:rgba(0,0,0,.74);--acc:#FEF5E6;--acct:#7C4B03;
+  --sh:0 1px 2px rgba(0,0,0,.05),0 6px 18px rgba(0,0,0,.05);--scrim:rgba(0,0,0,.45);
 }
 :root[data-look="sand"][data-theme="dark"]{
-  --bg:#14120E;--card:#1F1B15;--card2:#2A251D;--ink:#F3EDE2;--ink2:#D6CDBE;--mute:#B0A693;--line:#2E2920;--hdr:#183545;
-  --or:#5DB3DE;--ont:#071923;--ort:#9CD4F0;--ors:#183140;--in:#7DC5EA;--ins:#183140;--sk:#2A251D;
-  --hero:linear-gradient(135deg,#183545 0%,#1E5674 100%);--onhero:#F3EDE2;--onhero2:rgba(243,237,226,.8);--acc:#3A2C12;--acct:#F4CF86;
-  --glass:rgba(31,27,21,.92);--gline:rgba(255,255,255,.08);--sh:0 1px 2px rgba(0,0,0,.4),0 8px 22px rgba(0,0,0,.3);
+  --bg:#0B0C0D;--card:#17191B;--card2:#202326;--ink:#F4F4F4;--ink2:#D0D3D6;--mute:#A3A8AD;--line:#2A2E32;--hdr:#000000;
+  --or:#31A8E0;--ont:#000000;--ort:#7AC7EB;--ors:#0F2A38;--ok:#7AC7EB;--oks:#0F2A38;--wa:#FBC06A;--was:#2E1F06;
+  --er:#F48071;--ers:#3A120D;--in:#7AC7EB;--ins:#0F2A38;--sk:#202326;--glass:rgba(23,25,27,.92);--gline:rgba(255,255,255,.08);
+  --hero:linear-gradient(135deg,#31A8E0 0%,#1E86B8 100%);--onhero:#000000;--onhero2:rgba(0,0,0,.74);--acc:#2E1F06;--acct:#FBC06A;
+  --sh:0 1px 2px rgba(0,0,0,.4),0 8px 22px rgba(0,0,0,.3);--scrim:rgba(0,0,0,.6);
 }
 :root[data-look="gold"]{
-  --bg:#FBF5EA;--card:#FFFFFF;--card2:#F2E8D6;--ink:#1F1A12;--ink2:#4A3F2C;--mute:#6B5E49;--line:#F0E4CE;--hdr:#2A1E0C;
-  --or:#F2A01C;--ont:#2A1800;--ort:#7A4600;--ors:#FDECCD;--in:#985A00;--ins:#FDECCD;--sk:#F2E8D6;
-  --hero:linear-gradient(135deg,#F7B53C 0%,#F2A01C 45%,#E8761A 100%);--onhero:#2A1600;--onhero2:rgba(42,22,0,.78);--acc:#E0F0F8;--acct:#145E85;
-  --glass:rgba(255,255,255,.92);--gline:rgba(255,255,255,.8);--sh:0 1px 2px rgba(40,24,0,.05),0 6px 18px rgba(40,24,0,.05);
+  --bg:#FAF8F5;--card:#FFFFFF;--card2:#F3EFE8;--ink:#111111;--ink2:#333333;--mute:#5E5C58;--line:#ECE6DC;--hdr:#111111;
+  --or:#F9A11F;--ont:#000000;--ort:#7C4B03;--ors:#FEF5E6;--ok:#146185;--oks:#E9F6FC;--wa:#955A04;--was:#FEF5E6;
+  --er:#B8301C;--ers:#FDEAE7;--in:#146185;--ins:#E9F6FC;--sk:#F3EFE8;--glass:rgba(255,255,255,.92);--gline:rgba(255,255,255,.8);
+  --hero:linear-gradient(135deg,#EF3F27 0%,#F47824 45%,#F9A11F 100%);--onhero:#000000;--onhero2:rgba(0,0,0,.74);--acc:#E9F6FC;--acct:#146185;
+  --sh:0 1px 2px rgba(0,0,0,.05),0 6px 18px rgba(0,0,0,.05);--scrim:rgba(0,0,0,.45);
 }
 :root[data-look="gold"][data-theme="dark"]{
-  --bg:#110E08;--card:#1C1810;--card2:#2A2416;--ink:#F7F0E2;--ink2:#DDD1B9;--mute:#B9AC90;--line:#2C2616;--hdr:#0B0905;
-  --or:#F5A623;--ont:#241500;--ort:#FFD48C;--ors:#3A2B0F;--in:#FFC25E;--ins:#3A2B0F;--sk:#2A2416;
-  --hero:linear-gradient(135deg,#F7B53C 0%,#F2A01C 50%,#E2701A 100%);--onhero:#241400;--onhero2:rgba(36,20,0,.78);--acc:#16303D;--acct:#9CD4F0;
-  --glass:rgba(28,24,16,.92);--gline:rgba(255,255,255,.08);--sh:0 1px 2px rgba(0,0,0,.4),0 8px 22px rgba(0,0,0,.3);
+  --bg:#0C0B09;--card:#191714;--card2:#24211C;--ink:#F5F3EF;--ink2:#D6D1C8;--mute:#ADA69A;--line:#2D2924;--hdr:#000000;
+  --or:#F9A11F;--ont:#000000;--ort:#FBC06A;--ors:#2E1F06;--ok:#7AC7EB;--oks:#0F2A38;--wa:#FBC06A;--was:#2E1F06;
+  --er:#F48071;--ers:#3A120D;--in:#7AC7EB;--ins:#0F2A38;--sk:#24211C;--glass:rgba(25,23,20,.92);--gline:rgba(255,255,255,.08);
+  --hero:linear-gradient(135deg,#EF3F27 0%,#F47824 45%,#F9A11F 100%);--onhero:#000000;--onhero2:rgba(0,0,0,.74);--acc:#0F2A38;--acct:#7AC7EB;
+  --sh:0 1px 2px rgba(0,0,0,.4),0 8px 22px rgba(0,0,0,.3);--scrim:rgba(0,0,0,.6);
 }
 :root[data-look] body{font-family:"Plus Jakarta Sans",system-ui,-apple-system,Roboto,Arial,sans-serif}
 :root[data-look] .hero{background:var(--hero);color:var(--onhero);position:relative;overflow:hidden}
 :root[data-look] .hero::after{content:"";position:absolute;right:-40px;top:-40px;width:150px;height:150px;border-radius:50%;background:rgba(255,255,255,.13);pointer-events:none}
 :root[data-look] .hero small,:root[data-look] .hero span{color:var(--onhero2)}
-:root[data-look] .hero .btn{background:rgba(255,255,255,.95);color:#1F1A12;position:relative;z-index:1}
+:root[data-look] .hero .btn{background:rgba(255,255,255,.95);color:#111111;position:relative;z-index:1}
 :root[data-look] .grp,:root[data-look] .card{border-radius:20px}
 :root[data-look] .card{border-color:transparent}
 :root[data-look] .btn{border-radius:16px;font-weight:800}
@@ -245,7 +253,7 @@ textarea.inp{padding:12px 14px;min-height:100px;resize:none;line-height:1.45}
 :root[data-look] .seg button{border-radius:999px}
 :root[data-look] .seg button[aria-selected="true"]{background:var(--or);color:var(--ont);box-shadow:none}
 :root[data-look] .ib{background:var(--card);box-shadow:0 1px 2px rgba(0,0,0,.06)}
-:root[data-look] .ib .dot{background:#E5484D;box-shadow:0 0 0 2px var(--card)}
+:root[data-look] .ib .dot{background:#EF3F27;box-shadow:0 0 0 2px var(--card)}
 :root[data-look] .ah .back{background:var(--card)}
 /* bottom bar: full width, frosted, the chosen tab in a soft pill, a round raised New button */
 :root[data-look] .tb{left:0;right:0;bottom:0;height:calc(76px + var(--safe-b));padding:0 4px var(--safe-b);border-radius:0;border:0;border-top:1px solid var(--line);box-shadow:none}
@@ -255,10 +263,10 @@ textarea.inp{padding:12px 14px;min-height:100px;resize:none;line-height:1.45}
 :root[data-look] .tb button[aria-current="page"] > svg{background:var(--ors)}
 :root[data-look] .tb button[aria-current="page"]::before{display:none}
 :root[data-look] .tb .fab{width:56px;height:56px;border-radius:50%;margin-top:-30px;border:4px solid var(--bg);box-shadow:0 8px 20px rgba(0,0,0,.18)}
-:root[data-look] .tb .nd{background:#E5484D;color:#fff}
+:root[data-look] .tb .nd{background:#B8301C;color:#fff}
 :root[data-look] .body.withbar{padding-bottom:calc(104px + var(--safe-b))}
 :root[data-look] .toggle[aria-checked="true"]{background:var(--or)}
-:root[data-look] .t-in{background:#1E1A13;color:#F7F0E2}
+:root[data-look] .t-in{background:#111111;color:#FFFFFF}
 .look{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .look button{display:flex;flex-direction:column;gap:8px;padding:12px;border-radius:16px;border:1.5px solid var(--line);background:var(--card);font-weight:800;text-align:left}
 .look button[aria-checked="true"]{border-color:var(--or);background:var(--ors)}
@@ -266,25 +274,17 @@ textarea.inp{padding:12px 14px;min-height:100px;resize:none;line-height:1.45}
 .look i b{flex:1}
 .brand-word{font-weight:800;font-size:46px;letter-spacing:-.035em;line-height:1;margin:4px 0 0}
 .brand-word span{color:var(--or)}
-:root[data-look="gold"] .brand-word span{color:#E8900C}
-:root[data-look="gold"][data-theme="dark"] .brand-word span{color:#F5A623}
+:root[data-look="gold"] .brand-word span{color:#EF3F27}
+:root[data-look="gold"][data-theme="dark"] .brand-word span{color:#F9A11F}
 .float-logo{animation:floaty 5.5s ease-in-out infinite}
 @keyframes floaty{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
 @media (prefers-reduced-motion:reduce){.float-logo{animation:none}}
 
-/* 3.0.2: office pages inside the app. The app header carries the page name, so the page's own big title is not repeated. */
-.office-body{padding-top:0}
-.office-body .webui{background:transparent;min-width:0}
-.office-body .webui .v4-page-head .v4-page-title,.office-body .webui .v4-page-head h1{display:none}
-.office-body .webui .v4-page{padding:0 !important;margin:0 !important;max-width:none !important}
-/* the website's pop-ups layer: never covers the app, never paints a background of its own */
-.webui.webui-layer{position:fixed !important;inset:0 !important;min-height:0 !important;height:auto !important;background:transparent !important;pointer-events:none;z-index:50;padding:0 !important;margin:0 !important;overflow:visible !important}
-.webui.webui-layer > *{pointer-events:auto}
-.webui.webui-layer > .k-toast-host{pointer-events:none}
-.webui.webui-layer .k-toast{pointer-events:auto}
-/* 3.0.2: print pages sit on the app background (no second page colour), full width */
-.office-body .webui main.min-h-screen{background:transparent !important;min-height:0 !important;padding-left:0 !important;padding-right:0 !important}
-/* the request print page: the app header already names the page and Back returns; its own tab row is not needed */
-.office-body .webui .req-family-subnav{display:none !important}
-.office-body .webui .req-family-head h1{display:none}
-.office-body .webui .req-family-head p,.office-body .webui .req-family-head .req-family-meta{color:var(--ink2) !important}
+/* 4.0.0: confirming with the fingerprint */
+.fp-btn{width:96px;height:96px;border-radius:50%;display:grid;place-items:center;background:var(--ors);color:var(--ort);box-shadow:var(--sh);animation:fp-pulse 1.8s ease-in-out infinite}
+.fp-btn:active{transform:scale(.96)}
+@keyframes fp-pulse{0%,100%{box-shadow:0 0 0 0 rgba(249,161,31,.35)}50%{box-shadow:0 0 0 14px rgba(249,161,31,0)}}
+@media (prefers-reduced-motion:reduce){.fp-btn{animation:none}}
+
+/* 4.0.0: nothing is ever cut with "…": every line wraps to show in full */
+.chip{height:auto;min-height:26px;white-space:normal;padding-top:3px;padding-bottom:3px;line-height:1.2;text-align:center}

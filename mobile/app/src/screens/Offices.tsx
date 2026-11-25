@@ -1,9 +1,9 @@
 import type { ReactNode } from "react";
 import { Archive, BarChart3, Building2, FileText, Landmark, ListChecks, ScrollText, Settings, ShieldCheck, Users, Wallet, Route, Send, Download, Upload, Printer, Clock, History, Scale, ArrowLeftRight, PenLine, Plus, Activity, KeyRound, Bell, CreditCard, TrendingUp, Database } from "lucide-react";
 import { useApp } from "../App";
-import { officesFor, roleSetOf, type ModuleDef } from "../lib/web";
+import { officesFor, roleSetOf, type ModuleDef } from "../lib/offices";
 import { Body, Cell, Empty, Head, useNav } from "../ui";
-import { screenFor } from "../modules/registry";
+import { screenFor } from "../lib/screens";
 
 /** Icons for the website's icon names (lib/v4/modules.ts), so each office looks the same in the app. */
 const ICON: Record<string, ReactNode> = {

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Network } from "@capacitor/network";
 import { db, store } from "./core";
-import { normalizeRole } from "./web";
+import { normalizeRole } from "./rules/roles";
 
 /** Online or not (the phone's own signal). */
 export function useOnline() {

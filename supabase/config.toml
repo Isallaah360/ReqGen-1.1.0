@@ -1,0 +1,10 @@
+# ReqGen 6.0.0: settings for the Supabase Edge Functions (deployed with DEPLOY_FUNCTIONS.bat).
+# The functions check the signed-in person's token themselves, so the gateway check is off
+# (this also lets the app's CORS preflight through).
+project_id = "reqgen"
+
+[functions.reqgen-notify]
+verify_jwt = false
+
+[functions.reqgen-code]
+verify_jwt = false

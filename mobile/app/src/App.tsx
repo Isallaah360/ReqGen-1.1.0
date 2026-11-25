@@ -1,11 +1,12 @@
-import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { House, FileText, Plus, ShieldCheck, User } from "lucide-react";
-import { db, loadConfig, session, store } from "./lib/core";
+import { checkSignIn, db, onSignedOut, session, signingOut, store } from "./lib/core";
+import { ensureDevice, forgetDevice } from "./lib/device";
 import { buzz, finger, lockDue, onResume, paintStatusBar, pin, touch } from "./lib/native";
 import { loadMe, type Me } from "./lib/data";
 import { waitingForMe } from "./lib/text";
-import { Stack, ToastHost, CodeHost, useBack, toast } from "./ui";
-import OfficeHosts, { SignInHosts } from "./office/Hosts";
+import { Stack, ToastHost, useBack, toast } from "./ui";
+import ConfirmHost from "./screens/Confirm";
 import SignIn from "./screens/SignIn";
 import Unlock from "./screens/Unlock";
 import Home from "./screens/Home";
@@ -19,7 +20,7 @@ type Ctx = {
   me: Me; reloadMe: () => Promise<void>; pending: number; refreshPending: () => Promise<void>;
   tab: Tab; setTab: (t: Tab) => void; openNew: () => void; signOut: () => Promise<void>;
   theme: "system" | "light" | "dark"; setTheme: (t: "system" | "light" | "dark") => void;
-  /** 3.0.0: Sand or Gold */
+  /** 4.0.0: IET Blue (key "sand") or IET Gold (key "gold"), both from the IET logo */
   look: "sand" | "gold"; setLook: (l: "sand" | "gold") => void;
 };
 const AppCtx = createContext<Ctx | null>(null);
@@ -37,30 +38,30 @@ function useTheme() {
     const apply = () => {
       const dark = theme === "dark" || (theme === "system" && mq.matches);
       document.documentElement.dataset.theme = dark ? "dark" : "light";
-      paintStatusBar(dark);
+      requestAnimationFrame(() => paintStatusBar(dark));
     };
     apply();
     mq.addEventListener("change", apply);
     return () => mq.removeEventListener("change", apply);
-  }, [theme]);
+  }, [theme, look]);
   return {
     theme, setTheme: (t: "system" | "light" | "dark") => { setThemeState(t); void store.set("rg:theme", t); },
     look, setLook: (l: "sand" | "gold") => { setLookState(l); void store.set("rg:look", l); },
   };
 }
 
-type Phase = "boot" | "signin" | "locked" | "in" | "error";
+type Phase = "boot" | "signin" | "locked" | "in" | "error" | "out";
 
 export default function App() {
   const [phase, setPhase] = useState<Phase>("boot");
   const [me, setMe] = useState<Me | null>(null);
   const [bootError, setBootError] = useState("");
+  const [outWhy, setOutWhy] = useState<"elsewhere" | "deactivated">("elsewhere");
   const { theme, setTheme, look, setLook } = useTheme();
 
   const start = useCallback(async () => {
     setPhase("boot");
     try {
-      await loadConfig();
       const s = await session();
       const verified = await store.get<string | null>("rg:verified", null);
       if (!s || verified !== s.user.id) { setPhase("signin"); return; }
@@ -77,15 +78,30 @@ export default function App() {
   }, []);
   useEffect(() => { void start(); }, [start]);
 
-  // lock after 15 minutes away
+  // 4.0.0: signed out somewhere else (a password, passcode or 2FA change, or the account switched off):
+  // say so at once and go to sign-in, instead of showing screens the database will refuse
+  const phaseRef = useRef<Phase>("boot");
+  useEffect(() => { phaseRef.current = phase; }, [phase]);
+  useEffect(() => {
+    onSignedOut((why) => {
+      if (phaseRef.current !== "in" && phaseRef.current !== "locked") return;
+      phaseRef.current = "out";
+      void clearPhone();
+      setOutWhy(why); setMe(null); setPhase("out");
+    });
+  }, []);
+
+  // lock after 15 minutes away; on coming back, check the sign-in is still valid
   useEffect(() => onResume((active) => {
     if (!active) { void touch(); return; }
+    void checkSignIn();
     void (async () => { if (phase === "in" && (await pin.isSet()) && (await lockDue())) setPhase("locked"); else void touch(); })();
   }), [phase]);
 
   if (phase === "boot") return <Splash />;
   if (phase === "error") return <BootError text={bootError} onRetry={() => void start()} />;
-  if (phase === "signin") return <><Stack root={<><SignIn onDone={async () => { setMe(await loadMe()); await touch(); setPhase("in"); }} /><SignInHosts /></>} /><CodeHost /><ToastHost /></>;
+  if (phase === "out") return <SignedOut why={outWhy} onOk={() => setPhase("signin")} />;
+  if (phase === "signin") return <><Stack root={<SignIn onDone={async () => { setMe(await loadMe()); await touch(); setPhase("in"); }} />} /><ConfirmHost /><ToastHost /></>;
   if (phase === "locked" && me) return <><Unlock me={me} onOpen={async () => { await touch(); setPhase("in"); }} onSwitch={async () => { await signOutAll(); setMe(null); setPhase("signin"); }} /><ToastHost /></>;
   if (!me) return <Splash />;
   return (
@@ -95,8 +111,16 @@ export default function App() {
 }
 
 async function signOutAll() {
+  signingOut(true);
   try { await (await db()).auth.signOut(); } catch { /* offline: the saved session is removed below */ }
-  await Promise.all([store.del("rg:verified"), store.del("rg:me"), pin.clear(), finger.set(false)]);
+  await clearPhone();
+  // the sign-in service tells "signed out" a moment later: that one is ours, not from elsewhere
+  window.setTimeout(() => signingOut(false), 4000);
+}
+
+/** Everything of the person on this phone: PIN, fingerprint, device key, saved lists. */
+async function clearPhone() {
+  await Promise.all([store.del("rg:verified"), store.del("rg:me"), pin.clear(), finger.set(false), forgetDevice()]);
   // lists saved on this phone belong to the person who signed out
   const { Preferences } = await import("@capacitor/preferences");
   const { keys } = await Preferences.keys();
@@ -118,6 +142,8 @@ function Signed({ me, setMe, theme, setTheme, look, setLook, onSignOut }: { me: 
       setPending(routed + (d.error ? 0 : (d.data || []).length));
     } catch { /* offline */ }
   }, [me.id]);
+  // this phone's key for fingerprint confirmation (made once; quietly retried if the database step is not there yet)
+  useEffect(() => { void ensureDevice(); }, []);
   useEffect(() => {
     void refreshPending();
     const t = window.setInterval(() => void refreshPending(), 60_000);
@@ -150,10 +176,9 @@ function Signed({ me, setMe, theme, setTheme, look, setLook, onSignOut }: { me: 
           {tab === "home" ? <Home /> : tab === "requests" ? <Requests /> : tab === "approvals" ? <Approvals /> : <MeScreen />}
           <TabBar tab={tab} setTab={setTab} pending={pending} onNew={() => setNewOpen(true)} />
           <NewTypeSheet open={newOpen} onClose={() => setNewOpen(false)} />
-          <OfficeHosts />
         </>
       } />
-      <CodeHost />
+      <ConfirmHost />
       <ToastHost />
     </AppCtx.Provider>
   );
@@ -173,6 +198,19 @@ function TabBar({ tab, setTab, pending, onNew }: { tab: Tab; setTab: (t: Tab) =>
       {b("approvals", "Approvals", <ShieldCheck size={22} />, pending)}
       {b("me", "Me", <User size={22} />)}
     </nav>
+  );
+}
+
+function SignedOut({ why, onOk }: { why: "elsewhere" | "deactivated"; onOk: () => void }) {
+  return (
+    <div className="center">
+      <img className="logo" src="./iet-logo.png" alt="Islamic Education Trust logo" />
+      <p className="title">{why === "deactivated" ? "This account is switched off" : "You were signed out"}</p>
+      <p className="mu" style={{ maxWidth: 320 }}>{why === "deactivated"
+        ? "The Super Admin has switched this account off. If this is a mistake, contact the Super Admin."
+        : "Your sign-in changed on another device (a new password, passcode or 2FA), so ReqGen signed this phone out to keep your account safe. Sign in again to continue."}</p>
+      <button type="button" className="btn bp" onClick={onOk}>Sign in again</button>
+    </div>
   );
 }
 

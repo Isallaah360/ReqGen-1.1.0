@@ -1,1 +1,0 @@
-import{n,h as p}from"./index-CpfhUtO7.js";import"./link-CjQyafxQ.js";import"./supabaseClient-ikJbhJR1.js";function l(o,r,i){const e=n(o);return e==="admin"&&i==="developer"?"Developer":p(e||r)}export{l as p};

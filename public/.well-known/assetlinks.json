@@ -2,7 +2,7 @@
     {
         "target":  {
                        "sha256_cert_fingerprints":  [
-                                                        "BB:EF:A7:72:7E:21:3C:53:E0:41:88:4D:8D:44:9F:34:1D:EC:E9:5D:5A:81:24:EC:39:0B:0B:9B:2E:97:A7:5E"
+                                                        "FF:86:A7:9D:B8:16:43:E1:9B:D7:15:7F:E6:23:9E:58:C5:61:B6:45:40:A8:94:13:99:E5:B3:68:49:FE:81:66"
                                                     ],
                        "namespace":  "android_app",
                        "package_name":  "ng.com.barderians.reqgen"

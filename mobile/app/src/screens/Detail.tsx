@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
-import { Bell, Check, CornerUpLeft, Eye, FileCheck, Forward, Laptop, Lock, Paperclip, PenLine, Reply, Send, ShieldCheck, Stamp, X, Wallet, Undo2, Printer } from "lucide-react";
-import { alert, askCode, db, notice, plainError, site, openOutside } from "../lib/core";
-import OfficeScreen from "../office/OfficeScreen";
+import { Bell, Check, CornerUpLeft, Eye, FileCheck, Forward, Laptop, Lock, Paperclip, PenLine, Reply, Send, ShieldCheck, Stamp, X, Wallet, Undo2 } from "lucide-react";
+import { alert, askCode, db, fn, notice, plainError } from "../lib/core";
+import { saveAndOpen } from "../lib/files2";
 import { buzz } from "../lib/native";
 import { useOnline, type Req } from "../lib/data";
 import { accountOfficers, type Person } from "../lib/people";
 import { day, initials, naira, stageKey, statusChip, waitingForMe, when, withWho } from "../lib/text";
 import { useApp } from "../App";
-import { Body, Cell, Chip, Head, Note, Sheet, Skeleton, toast, useNav } from "../ui";
+import { Body, Cell, Chip, Head, Note, Sheet, Skeleton, toast } from "../ui";
 import { PeopleList } from "./PickPerson";
 
 type Full = Req & { details: string | null; subhead_id: string | null };
@@ -22,7 +22,6 @@ const BUDGET_STAGES = ["DIRECTOR", "DINADMIN", "HOD", "REGISTRAR", "HR", "DG"];
 
 export default function Detail({ id, meId, onChanged }: { id: string; meId: string; onChanged?: () => void }) {
   const { me, refreshPending } = useApp();
-  const { push } = useNav();
   const online = useOnline();
   const [d, setD] = useState<Data | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -101,8 +100,7 @@ export default function Detail({ id, meId, onChanged }: { id: string; meId: stri
         {!online ? <Note tone="wa">You are offline. You can read this request; answering waits until the network returns.</Note> : null}
         {laptopOnly ? (
           <>
-            <Note tone="mu" icon={<Laptop size={16} />}>{st === "ACCOUNT" ? "Release the fund and prepare the voucher on the full request page." : "This request needs its budget subhead chosen before you approve. The full request page shows the balances."}</Note>
-            <button type="button" className="btn bp block" onClick={() => push(<OfficeScreen href={`/requests/${r.id}?full=1`} title={r.request_no || "Request"} />)}><Laptop size={18} />Open the full request page</button>
+            <Note tone="mu" icon={<Laptop size={16} />}>{st === "ACCOUNT" ? "Releasing the fund and preparing the voucher arrive in the app with the Payment Voucher update." : "This request needs its budget subhead chosen before it is approved. For now do this on a computer; in the next app update the sender chooses the subhead when sending."}</Note>
           </>
         ) : null}
         {canAct && !laptopOnly && !me.signature_url ? <Note tone="er">Add your signature in Me › Signature and photo before you approve.</Note> : null}
@@ -129,7 +127,7 @@ export default function Detail({ id, meId, onChanged }: { id: string; meId: stri
             </div>
             {isSender ? d.people.filter((p) => p.status === "Waiting").map((p) => (
               <button key={p.user_id} type="button" className="btn bs block" style={{ marginTop: 10 }} onClick={async () => {
-                try { const j = await site<{ told: number }>("/api/notifications/alert", { requestId: r.id, kind: "waiting", to: [p.user_id] }); toast(j.told ? `${p.full_name || "They"} got an SMS and e-mail reminder.` : "Already reminded in the last minute.", j.told ? "ok" : "in"); }
+                try { const j = await fn<{ told: number }>("reqgen-notify", { kind: "alert", requestId: r.id, alertKind: "waiting", to: [p.user_id] }); toast(j.told ? `${p.full_name || "They"} got an SMS and e-mail reminder.` : "Already reminded in the last minute.", j.told ? "ok" : "in"); }
                 catch (e) { toast(plainError(e), "er"); }
               }}><Bell size={18} />Remind {p.full_name || "them"}</button>
             )) : null}
@@ -183,7 +181,6 @@ export default function Detail({ id, meId, onChanged }: { id: string; meId: stri
             </div>
           ) : <p className="mu">No comments yet. Each officer's comment shows here, and prints with the request.</p>}
         </section>
-        <button type="button" className="btn bs block" onClick={() => push(<OfficeScreen href={`/requests/${r.id}/print`} title="Print request" />)}><Printer size={18} />Print with the comments</button>
       </Body>
 
       {showBar ? (
@@ -223,7 +220,11 @@ function AttRow({ a, req, checked, canCheck, onChecked }: { a: Att; req: Req; ch
   async function open() {
     const { data, error } = await (await db()).storage.from("request-attachments").createSignedUrl(a.file_path, 600);
     if (error || !data?.signedUrl) { toast("The file could not be opened.", "er"); return; }
-    openOutside(data.signedUrl);
+    try {
+      const res = await fetch(data.signedUrl);
+      if (!res.ok) throw new Error();
+      await saveAndOpen(a.file_name, new Uint8Array(await res.arrayBuffer()), res.headers.get("content-type") || undefined);
+    } catch { toast("The file could not be opened.", "er"); return; }
     setOpened(true);
   }
   async function check() {
@@ -240,14 +241,17 @@ function AttRow({ a, req, checked, canCheck, onChecked }: { a: Att; req: Req; ch
     await onChecked();
   }
   return (
-    <Cell icon={checked ? <FileCheck size={18} /> : <Paperclip size={18} />} iconTone={checked ? "ok" : "mu"} title={a.file_name}
-      sub={checked ? "Checked by you" : a.file_size ? `${Math.max(1, Math.round(a.file_size / 1024))} KB` : "File"}
-      right={
-        <span style={{ display: "flex", gap: 6 }}>
-          <button type="button" className="btn bs sm" style={{ padding: 0, width: 44 }} onClick={() => void open()} aria-label={`Open ${a.file_name}`}><Eye size={18} /></button>
+    <div className="cell">
+      <span className={`av ic-${checked ? "ok" : "mu"}`} aria-hidden="true">{checked ? <FileCheck size={18} /> : <Paperclip size={18} />}</span>
+      <span className="t">
+        <b>{a.file_name}</b>
+        <small>{checked ? "Checked by you" : a.file_size ? `${Math.max(1, Math.round(a.file_size / 1024))} KB` : "File"}</small>
+        <span style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
+          <button type="button" className="btn bs sm" onClick={() => void open()} aria-label={`Open ${a.file_name}`}><Eye size={18} />Open</button>
           {canCheck && !checked ? <button type="button" className="btn bp sm" disabled={!opened || busy} onClick={() => void check()} aria-label={`Mark ${a.file_name} as checked`}><Check size={16} />Checked</button> : null}
         </span>
-      } />
+      </span>
+    </div>
   );
 }
 
@@ -330,7 +334,6 @@ function BackSheet({ open, onClose, r, onDone }: { open: boolean; onClose: () =>
 }
 
 function ResendSheet({ open, onClose, r, onDone }: { open: boolean; onClose: () => void; r: Full; onDone: () => Promise<void> }) {
-  const { push } = useNav();
   const [note, setNote] = useState("");
   const { busy, err, run } = useAct(onClose, onDone);
   return (
@@ -346,7 +349,6 @@ function ResendSheet({ open, onClose, r, onDone }: { open: boolean; onClose: () 
         if (error) throw new Error(error.message);
         alert(r.id, "waiting");
       }, "Sent again.")}>{busy ? "Sending…" : "Send it again"}</button>
-      <button type="button" className="link" style={{ justifyContent: "center" }} onClick={() => { onClose(); push(<OfficeScreen href={`/requests/${r.id}/edit`} title="Edit request" />); }}>Edit the request</button>
       <CodeLine />
     </Sheet>
   );

@@ -76,7 +76,7 @@ try {
   Get-Content (Join-Path $Here "version.properties") | Where-Object { $_ -match "=" -and $_ -notmatch "^#" } | ForEach-Object { $k, $v = $_ -split "=", 2; $props[$k.Trim()] = $v.Trim() }
   $vName = $props["REQGEN_VERSION_NAME"]; $vCode = $props["REQGEN_VERSION_CODE"]
 
-  # 4a. ReqGen 2.0.0 is a real app: its screens are inside the APK. It must NOT open the website in a window.
+  # 4a. ReqGen is a real app: its screens are inside the APK. It must NOT open the website in a window.
   $cfgPath = Join-Path $Here "capacitor.config.json"
   $cfg = Get-Content $cfgPath -Raw | ConvertFrom-Json
   if ($cfg.server.url) { Stop-Red "capacitor.config.json still opens $($cfg.server.url) in a window. Use the files from the newest ReqGen zip." }
@@ -96,7 +96,7 @@ try {
   if ($LASTEXITCODE -ne 0) { Stop-Red "The app screens did not build." }
   Set-Location $Here
   $index = Get-Content (Join-Path $Here "www\index.html") -Raw
-  if ($index -notmatch 'data-reqgen-app="2"') { Stop-Red "mobile\www is not the ReqGen 2.0.0 app screens." }
+  if ($index -notmatch 'data-reqgen-app="2"') { Stop-Red "mobile\www is not the ReqGen app screens." }
   Good "App screens built."
 
   Say "Getting the app parts (npm) ..."
@@ -160,7 +160,7 @@ try {
     $ix = $zip.GetEntry("assets/public/index.html")
     if (-not $ix) { Stop-Red "The APK has no app screens inside." }
     $reader = New-Object IO.StreamReader($ix.Open()); $ixText = $reader.ReadToEnd(); $reader.Close()
-    if ($ixText -notmatch 'data-reqgen-app="2"') { Stop-Red "The APK does not have the ReqGen 2.0.0 screens inside. Do not install it." }
+    if ($ixText -notmatch 'data-reqgen-app="2"') { Stop-Red "The APK does not have the ReqGen app screens inside. Do not install it." }
   } finally { $zip.Dispose() }
   Good "Checked inside the APK: the real app screens are inside (app $vName, build $vCode)."
 

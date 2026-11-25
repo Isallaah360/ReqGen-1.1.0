@@ -1,14 +1,16 @@
 {
   "new": [
-    "Every office now works inside the app: Finance, Payment Vouchers (from requests and manual), signatories, signing and paying, Registry, Reports, Audit, Administration, My Account and Developer. Nothing opens the website.",
-    "Printing a request or a voucher makes the standard IET A4 PDF on the phone and opens it.",
-    "New approvals and notices appear in the app straight away, with a short banner and a buzz."
+    "A real app of its own: every screen is drawn by the app and talks only to the ReqGen database. No website page is opened or used.",
+    "Confirm what you send, approve, sign or pay with your fingerprint or app PIN. The SMS code stays as the back-up.",
+    "Forgot password, 2FA set-up, profile, acting as, signature and photo, and your phones are now app screens.",
+    "Colours taken from the official IET logo: IET Blue, IET Gold, IET Orange and IET Red."
   ],
   "fixed": [
-    "Long choices in lists and forms are shown in full instead of being cut.",
-    "Attachments, Excel and backup files open and save on the phone."
+    "“permission denied for function” after a password, passcode or 2FA change on another device. The app now says you were signed out and takes you to sign-in.",
+    "No database wording is shown any more: every problem is explained in plain words and reported to the Super Admin."
   ],
   "better": [
-    "Office pages use the app header with Back, and the same Sand and Gold looks, in Light and Dark."
+    "The app is about 770 KB of screens instead of several MB, so it opens faster.",
+    "Nothing is cut with “…”: long names and lines wrap and show in full."
   ]
 }

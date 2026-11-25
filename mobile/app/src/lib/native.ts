@@ -4,7 +4,7 @@ import { App } from "@capacitor/app";
 import { NativeBiometric } from "@capgo/capacitor-native-biometric";
 import { Filesystem, Directory } from "@capacitor/filesystem";
 import { FileOpener } from "@capacitor-community/file-opener";
-import { isNative, store, WEBSITE } from "./core";
+import { APP_VERSION, db, isNative, store } from "./core";
 
 /** Short vibrations on actions that matter. */
 export const buzz = {
@@ -17,7 +17,9 @@ export const buzz = {
 export function paintStatusBar(dark: boolean) {
   if (!isNative()) return;
   void StatusBar.setStyle({ style: dark ? Style.Dark : Style.Light }).catch(() => null);
-  void StatusBar.setBackgroundColor({ color: dark ? "#0E1530" : "#F7F2EA" }).catch(() => null);
+  // the page's own background (IET logo palette), read after the theme is applied
+  const bg = getComputedStyle(document.documentElement).getPropertyValue("--bg").trim() || (dark ? "#0B0C0D" : "#F5F7F8");
+  void StatusBar.setBackgroundColor({ color: bg }).catch(() => null);
 }
 
 // ---- App PIN (6 numbers, kept only as a SHA-256 fingerprint) and the 15-minute lock ----------------
@@ -50,22 +52,23 @@ export const finger = {
 
 // ---- Back button, app version, updates -------------------------------------------------------------
 export async function appVersion() {
-  if (!isNative()) return { version: "2.0.1", build: 0 };
-  try { const i = await App.getInfo(); return { version: i.version, build: Number(i.build) || 0 }; } catch { return { version: "2.0.1", build: 0 }; }
+  if (!isNative()) return { version: APP_VERSION, build: 0 };
+  try { const i = await App.getInfo(); return { version: i.version, build: Number(i.build) || 0 }; } catch { return { version: APP_VERSION, build: 0 }; }
 }
 export type Release = { version: string; build: number; apk: string; size?: string; new?: string[]; fixed?: string[]; better?: string[] };
+/** 4.0.0: the newest version is announced in the ReqGen database (Administration publishes it). */
 export async function newerRelease(): Promise<Release | null> {
   if (!isNative()) return null;
   try {
-    const r = await fetch(`${WEBSITE}/downloads/app-version.json?t=${Date.now()}`, { cache: "no-store" });
-    if (!r.ok) return null;
-    const j = (await r.json()) as Release;
+    const { data, error } = await (await db()).from("reqgen_app_releases").select("version,build,apk_url,notes").order("build", { ascending: false }).limit(1).maybeSingle();
+    if (error || !data) return null;
+    const row = data as { version: string; build: number; apk_url: string; notes: { new?: string[]; fixed?: string[]; better?: string[]; size?: string } | null };
     const mine = await appVersion();
-    return j.build > mine.build ? j : null;
+    return row.build > mine.build ? { version: row.version, build: row.build, apk: row.apk_url, ...(row.notes || {}) } : null;
   } catch { return null; }
 }
 export async function downloadAndInstall(rel: Release, onProgress: (pct: number, got: number, total: number) => void, cancelled: () => boolean) {
-  const url = new URL(rel.apk || "/downloads/ReqGen.apk", WEBSITE).href;
+  const url = rel.apk;
   const l = await Filesystem.addListener("progress", (p) => { if (p.contentLength > 0) onProgress(Math.min(100, Math.round((p.bytes / p.contentLength) * 100)), p.bytes, p.contentLength); });
   try {
     await Filesystem.downloadFile({ url, path: "ReqGen-update.apk", directory: Directory.Cache, progress: true });

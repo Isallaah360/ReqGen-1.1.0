@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { Eye, EyeOff, Fingerprint, ShieldCheck } from "lucide-react";
 import { db, plainError, session, store } from "../lib/core";
-import OfficeScreen from "../office/OfficeScreen";
+import Forgot from "./Forgot";
+import Setup2fa from "./Setup2fa";
+import { ensureDevice } from "../lib/device";
 import { finger, pin } from "../lib/native";
 import { Note, Body, useNav } from "../ui";
 import { PinPad } from "./Unlock";
@@ -9,7 +11,8 @@ import { PinPad } from "./Unlock";
 /**
  * First sign-in on a phone (2.0.1, the ReqGen standard, the same as the website): e-mail and password,
  * then the 6-digit code from the authenticator app (2FA), then an app PIN and, if the phone has one,
- * the fingerprint. Done once per phone. Sending and approving use the SMS or e-mail code instead.
+ * the fingerprint. Done once per phone. 4.0.0: sending, approving, signing and paying are then
+ * confirmed with the fingerprint or the app PIN.
  */
 type Step = "password" | "code" | "pin" | "pin2" | "finger";
 export default function SignIn({ onDone }: { onDone: () => Promise<void> }) {
@@ -69,6 +72,7 @@ export default function SignIn({ onDone }: { onDone: () => Promise<void> }) {
     const s = await session();
     if (!s) { setStep("password"); return; }
     await store.set("rg:verified", s.user.id);
+    void ensureDevice(); // this phone's key for confirming with the fingerprint or PIN
     setStep("pin");
   }
 
@@ -126,8 +130,8 @@ export default function SignIn({ onDone }: { onDone: () => Promise<void> }) {
         {step === "code" ? (
           noFactor ? (
             <>
-              <Note tone="wa">Your account has no authenticator app (2FA) yet. Every ReqGen account needs one. Set it up now, then sign in here again.</Note>
-              <button type="button" className="btn bp block" onClick={() => push(<OfficeScreen href="/mfa/setup" title="Set up 2FA" />)}>Set up 2FA now</button>
+              <Note tone="wa">Your account has no authenticator app (2FA) yet. Every ReqGen account needs one. It takes a minute.</Note>
+              <button type="button" className="btn bp block" onClick={() => push(<Setup2fa onDone={prepareCode} />)}>Set up 2FA now</button>
               <button type="button" className="btn bs block" onClick={() => void cancel()}>Back to sign in</button>
             </>
           ) : (
@@ -157,7 +161,7 @@ export default function SignIn({ onDone }: { onDone: () => Promise<void> }) {
             </label>
             {msg ? <Note tone="er">{msg}</Note> : null}
             <button type="submit" className="btn bp block" disabled={busy}>{busy ? "Signing in…" : "Continue"}</button>
-            <button type="button" className="link" style={{ justifyContent: "center" }} onClick={() => push(<OfficeScreen href="/forgot-password" title="Forgot password" />)}>Forgot password?</button>
+            <button type="button" className="link" style={{ justifyContent: "center" }} onClick={() => push(<Forgot startEmail={email} />)}>Forgot password?</button>
           </form>
         )}
         <p className="foot" style={{ marginTop: "auto" }}>Next: the code from your authenticator app (2FA), then you choose an app PIN.</p>

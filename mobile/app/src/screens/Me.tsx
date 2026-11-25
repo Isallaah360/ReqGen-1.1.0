@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { Bell, Download, Fingerprint, History, Info, KeyRound, ListChecks, LogOut, Moon, PenLine, ShieldCheck, UserRound } from "lucide-react";
+import { Bell, Download, Fingerprint, Info, KeyRound, LogOut, Moon, PenLine, ShieldCheck, UserRound } from "lucide-react";
 import { appVersion, downloadAndInstall, finger, newerRelease, pin, type Release } from "../lib/native";
 import { useApp } from "../App";
 import { Avatar, Big, Body, Cell, Chev, Note, Sheet, Toggle, toast, useNav } from "../ui";
-import OfficeScreen from "../office/OfficeScreen";
+import { Credits, Profile, Security, SignaturePhoto } from "./Account";
 import { PinPad } from "./Unlock";
 
 export default function Me() {
@@ -20,7 +20,7 @@ export default function Me() {
     void newerRelease().then((r) => { setRel(r); setChecked(true); });
     void finger.on().then(setFing); void finger.ready().then(setCanFing);
   }, []);
-  const themeText = `${look === "gold" ? "Gold" : "Sand"}, ${theme === "system" ? "Match phone" : theme === "dark" ? "Dark" : "Light"}`;
+  const themeText = `${look === "gold" ? "IET Gold" : "IET Blue"}, ${theme === "system" ? "Match phone" : theme === "dark" ? "Dark" : "Light"}`;
   return (
     <>
       <Big>Me</Big>
@@ -38,12 +38,9 @@ export default function Me() {
             }} /> : undefined} />
         </div>
         <div className="grp">
-          <Cell icon={<UserRound size={18} />} iconTone="in" title="Profile" sub="Name, phone, password" right={<Chev />} onClick={() => push(<OfficeScreen href="/profile/details" title="Profile" />)} />
-          <Cell icon={<PenLine size={18} />} iconTone="in" title="Signature and photo" sub="Printed on what you sign" right={<Chev />} onClick={() => push(<OfficeScreen href="/profile/details#signature" title="Signature and photo" />)} />
-          <Cell icon={<ShieldCheck size={18} />} iconTone="in" title="Security and devices" sub="2FA, fingerprint, signed-in devices" right={<Chev />} onClick={() => push(<OfficeScreen href="/profile/security" title="Security and devices" />)} />
-          <Cell icon={<KeyRound size={18} />} iconTone="in" title="My access" sub="Positions, acting as, my place on routes" right={<Chev />} onClick={() => push(<OfficeScreen href="/profile/access" title="My access" />)} />
-          <Cell icon={<History size={18} />} iconTone="in" title="My activity" sub="Everything you did, by day" right={<Chev />} onClick={() => push(<OfficeScreen href="/profile/activity" title="My activity" />)} />
-          <Cell icon={<ListChecks size={18} />} iconTone="in" title="Setup guide" sub="What makes your account ready" right={<Chev />} onClick={() => push(<OfficeScreen href="/profile/setup" title="Setup guide" />)} />
+          <Cell icon={<UserRound size={18} />} iconTone="in" title="Profile" sub={me.positions.length > 1 ? "Name, phone, acting as, password" : "Name, phone, password"} right={<Chev />} onClick={() => push(<Profile />)} />
+          <Cell icon={<PenLine size={18} />} iconTone="in" title="Signature and photo" sub={me.signature_url ? "Printed on what you sign" : "Missing: needed to approve"} right={<Chev />} onClick={() => push(<SignaturePhoto />)} />
+          <Cell icon={<ShieldCheck size={18} />} iconTone="in" title="Security and phones" sub="2FA, fingerprint, phones set up" right={<Chev />} onClick={() => push(<Security />)} />
         </div>
         <div className="grp">
           <Cell icon={<Moon size={18} />} iconTone="mu" title="Appearance" sub={themeText} onClick={() => setSheet("theme")} />
@@ -59,8 +56,8 @@ export default function Me() {
         <div className="look" role="radiogroup" aria-label="Theme">
           {(["sand", "gold"] as const).map((l) => (
             <button key={l} type="button" role="radio" aria-checked={look === l} onClick={() => setLook(l)}>
-              <i aria-hidden="true"><b style={{ background: l === "sand" ? "#F4EEE3" : "#FBF5EA" }} /><b style={{ background: l === "sand" ? "#1D7DB0" : "#F2A01C" }} /></i>
-              {l === "sand" ? "Sand" : "Gold"}
+              <i aria-hidden="true"><b style={{ background: l === "sand" ? "#F5F7F8" : "#FAF8F5" }} /><b style={{ background: l === "sand" ? "#31A8E0" : "#F9A11F" }} /><b style={{ background: l === "sand" ? "#F9A11F" : "#EF3F27" }} /></i>
+              {l === "sand" ? "IET Blue" : "IET Gold"}
             </button>
           ))}
         </div>
@@ -77,9 +74,9 @@ export default function Me() {
       {rel ? <UpdateSheet open={sheet === "update"} onClose={() => setSheet(null)} rel={rel} /> : null}
       <Sheet open={sheet === "about"} onClose={() => setSheet(null)} title="About ReqGen">
         <p className="mu" style={{ fontSize: 14 }}>IET ReqGen, the requisition and approval system of the Islamic Education Trust. App version {ver.version}.</p>
-        <p className="mu" style={{ fontSize: 14 }}>Your data stays with IET. ReqGen never sells, shares or leaks it, and has no trackers or adverts. The app talks only to our own website and database.</p>
+        <p className="mu" style={{ fontSize: 14 }}>Your data stays with IET. ReqGen never sells, shares or leaks it, and has no trackers or adverts. The app talks only to the ReqGen database.</p>
         <p className="mu" style={{ fontSize: 14 }}>Developed by Barderian Enterprises. WhatsApp 0803 119 7746, info@barderians.com.ng</p>
-        <button type="button" className="btn bs block" onClick={() => { setSheet(null); push(<OfficeScreen href="/credits" title="Open-source credits" />); }}>Open-source credits</button>
+        <button type="button" className="btn bs block" onClick={() => { setSheet(null); push(<Credits />); }}>Open-source credits</button>
       </Sheet>
       <Sheet open={sheet === "out"} onClose={() => setSheet(null)} title="Sign out of this phone?">
         <p className="mu" style={{ fontSize: 14 }}>Your PIN, fingerprint and the lists saved on this phone are removed. Next time you sign in with your password and the code.</p>

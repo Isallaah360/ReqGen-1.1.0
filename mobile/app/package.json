@@ -1,11 +1,11 @@
 {
   "name": "reqgen-app-screens",
-  "version": "3.0.2",
+  "version": "4.0.0",
   "private": true,
-  "description": "ReqGen real app screens (packed inside the APK). Built into ../www with npm run build.",
+  "description": "ReqGen app 4.0.0: its own screens, talking only to the ReqGen database. Built into ../www with npm run build.",
   "type": "module",
   "scripts": {
-    "build": "node scripts/webcss.mjs && tsc --noEmit && vite build",
+    "build": "node check-env.mjs && tsc --noEmit && vite build",
     "dev": "vite"
   },
   "dependencies": {
