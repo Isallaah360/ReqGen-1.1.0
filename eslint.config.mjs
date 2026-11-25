@@ -20,6 +20,8 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // v4.6.11: the Android app project (built on the laptop with MAKE_APP.bat)
     "mobile/**",
+    // 6.0.0: Supabase Edge Functions run on Deno, not in the website build
+    "supabase/**",
   ]),
 ]);
 
