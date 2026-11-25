@@ -3,6 +3,8 @@ import { Bell, Download, Fingerprint, Info, KeyRound, LogOut, Moon, PenLine, Shi
 import { appVersion, downloadAndInstall, finger, newerRelease, pin, type Release } from "../lib/native";
 import { useApp } from "../App";
 import { Avatar, Big, Body, Cell, Chev, Note, Sheet, Toggle, toast, useNav } from "../ui";
+import { MyAccess, MyActivity, SetupGuide } from "./office/Mine";
+import { History, ListChecks } from "lucide-react";
 import { Credits, Profile, Security, SignaturePhoto } from "./Account";
 import { PinPad } from "./Unlock";
 
@@ -41,6 +43,9 @@ export default function Me() {
           <Cell icon={<UserRound size={18} />} iconTone="in" title="Profile" sub={me.positions.length > 1 ? "Name, phone, acting as, password" : "Name, phone, password"} right={<Chev />} onClick={() => push(<Profile />)} />
           <Cell icon={<PenLine size={18} />} iconTone="in" title="Signature and photo" sub={me.signature_url ? "Printed on what you sign" : "Missing: needed to approve"} right={<Chev />} onClick={() => push(<SignaturePhoto />)} />
           <Cell icon={<ShieldCheck size={18} />} iconTone="in" title="Security and phones" sub="2FA, fingerprint, phones set up" right={<Chev />} onClick={() => push(<Security />)} />
+          <Cell icon={<KeyRound size={18} />} iconTone="in" title="My access" sub="Your positions, acting as, away" right={<Chev />} onClick={() => push(<MyAccess />)} />
+          <Cell icon={<History size={18} />} iconTone="in" title="My activity" sub="Everything you did in ReqGen" right={<Chev />} onClick={() => push(<MyActivity />)} />
+          <Cell icon={<ListChecks size={18} />} iconTone="in" title="Setup guide" sub="The steps that make an account ready" right={<Chev />} onClick={() => push(<SetupGuide />)} />
         </div>
         <div className="grp">
           <Cell icon={<Moon size={18} />} iconTone="mu" title="Appearance" sub={themeText} onClick={() => setSheet("theme")} />

@@ -6,7 +6,7 @@ import { useApp } from "../App";
 import { Avatar, Body, Empty, LoadError, Skeleton, Updated, useNav } from "../ui";
 import { ReqRow } from "./parts";
 import Notices from "./Notices";
-import Coming from "./Coming";
+import { VoucherList } from "./office/Vouchers";
 import DirectNew from "./DirectNew";
 import { OfficeList, useOffices } from "./Offices";
 
@@ -51,7 +51,7 @@ export default function Home() {
           <button type="button" onClick={openNew}><span style={{ color: "var(--ort)" }}><Plus size={24} strokeWidth={2.4} /></span>New request</button>
           <button type="button" onClick={() => push(<DirectNew />)}><span style={{ color: "var(--in)" }}><Send size={22} /></span>Direct</button>
           <button type="button" onClick={() => setTab("approvals")}><span style={{ color: "var(--ok)" }}><ShieldCheck size={22} /></span>Approvals</button>
-          <button type="button" onClick={() => push(<Coming title="Vouchers to sign" />)}><span style={{ color: "var(--wa)" }}><Wallet size={22} /></span>Vouchers{data?.vouchers ? ` (${data.vouchers})` : ""}</button>
+          <button type="button" onClick={() => push(<VoucherList mode="mine" />)}><span style={{ color: "var(--wa)" }}><Wallet size={22} /></span>Vouchers{data?.vouchers ? ` (${data.vouchers})` : ""}</button>
         </div>
         <div className="sect"><b>My requests</b><button type="button" className="link" onClick={() => setTab("requests")}>See all</button></div>
         {loading && !data ? <Skeleton /> : data && data.mine.length ? (

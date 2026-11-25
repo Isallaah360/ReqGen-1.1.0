@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
-import { Bell, Check, CornerUpLeft, Eye, FileCheck, Forward, Laptop, Lock, Paperclip, PenLine, Reply, Send, ShieldCheck, Stamp, X, Wallet, Undo2 } from "lucide-react";
+import { Bell, Check, CornerUpLeft, Eye, FileCheck, Forward, Laptop, Lock, MessageSquare, Printer, Paperclip, PenLine, Reply, Send, ShieldCheck, Stamp, X, Wallet, Undo2 } from "lucide-react";
 import { alert, askCode, db, fn, notice, plainError } from "../lib/core";
 import { saveAndOpen } from "../lib/files2";
 import { buzz } from "../lib/native";
@@ -7,7 +7,11 @@ import { useOnline, type Req } from "../lib/data";
 import { accountOfficers, type Person } from "../lib/people";
 import { day, initials, naira, stageKey, statusChip, waitingForMe, when, withWho } from "../lib/text";
 import { useApp } from "../App";
-import { Body, Cell, Chip, Head, Note, Sheet, Skeleton, toast } from "../ui";
+import { Body, Cell, Chip, Head, Note, Sheet, Skeleton, toast, useNav } from "../ui";
+import EditRequest from "./EditRequest";
+import { AssignSubheadSheet, canSeeBudget } from "./BudgetAssign";
+import { TreatRequest } from "./office/Finance";
+import { printRequest } from "../lib/a4";
 import { PeopleList } from "./PickPerson";
 
 type Full = Req & { details: string | null; subhead_id: string | null };
@@ -25,7 +29,8 @@ export default function Detail({ id, meId, onChanged }: { id: string; meId: stri
   const online = useOnline();
   const [d, setD] = useState<Data | null>(null);
   const [err, setErr] = useState<string | null>(null);
-  const [sheet, setSheet] = useState<null | "approve" | "back" | "answer" | "direct" | "resend">(null);
+  const [sheet, setSheet] = useState<null | "approve" | "back" | "answer" | "direct" | "resend" | "comment" | "subhead">(null);
+  const { push } = useNav();
 
   const load = useCallback(async () => {
     try {
@@ -75,8 +80,12 @@ export default function Detail({ id, meId, onChanged }: { id: string; meId: stri
   const personalFund = String(r.request_type || "").toUpperCase() === "PERSONAL" && String(r.personal_category || "").toUpperCase() === "FUND";
   const needsSubhead = !r.subhead_id && ((official && BUDGET_STAGES.includes(st)) || (personalFund && st === "HR"));
   const unchecked = d.atts.filter((a) => !d.checked.includes(a.id));
-  const laptopOnly = canAct && (st === "ACCOUNT" || needsSubhead);
+  // 4.1.0: an older request without a subhead gets one here from the officer who sees the budget
+  const assignHere = canAct && needsSubhead && canSeeBudget(me.role);
+  const atAccount = canAct && st === "ACCOUNT";
+  const laptopOnly = canAct && needsSubhead && !assignHere && st !== "ACCOUNT";
   const comments = d.hist.filter((h) => !/attachment|edited|print/i.test(String(h.action_type || "")) && String(h.comment || "").trim());
+  const canComment = online && !d.people.length;
   const showBar = online && (answerDirect || ownDirect || writerBack || (canAct && !laptopOnly));
 
   return (
@@ -100,9 +109,10 @@ export default function Detail({ id, meId, onChanged }: { id: string; meId: stri
         {!online ? <Note tone="wa">You are offline. You can read this request; answering waits until the network returns.</Note> : null}
         {laptopOnly ? (
           <>
-            <Note tone="mu" icon={<Laptop size={16} />}>{st === "ACCOUNT" ? "Releasing the fund and preparing the voucher arrive in the app with the Payment Voucher update." : "This request needs its budget subhead chosen before it is approved. For now do this on a computer; in the next app update the sender chooses the subhead when sending."}</Note>
+            <Note tone="mu" icon={<Laptop size={16} />}>This older request has no budget subhead. An officer who sees the budget must choose it before it is approved.</Note>
           </>
         ) : null}
+        {assignHere ? <Note tone="wa">This older request has no budget subhead. Choose it before you approve. Senders now choose it when they send.</Note> : null}
         {canAct && !laptopOnly && !me.signature_url ? <Note tone="er">Add your signature in Me › Signature and photo before you approve.</Note> : null}
 
         {d.atts.length ? (
@@ -159,13 +169,13 @@ export default function Detail({ id, meId, onChanged }: { id: string; meId: stri
         ) : null}
 
         <section aria-labelledby="said-h">
-          <div className="sect" style={{ marginBottom: 8 }}><b id="said-h">What the officers said</b></div>
+          <div className="sect" style={{ marginBottom: 8 }}><b id="said-h">Comments</b></div>
           {comments.length ? (
             <div className="card">
               <ol className="tl">
                 {comments.map((h) => {
                   const a = String(h.action_type || "").toLowerCase();
-                  const look = a === "return" ? { i: <CornerUpLeft size={15} />, t: "ic-wa" } : /reject|declin/.test(a) ? { i: <X size={15} />, t: "ic-er" } : a === "submit" || a === "resubmit" ? { i: <Send size={15} />, t: "ic-in" } : { i: <Check size={15} />, t: "ic-ok" };
+                  const look = a === "comment" ? { i: <MessageSquare size={15} />, t: "ic-in" } : a === "corrected" ? { i: <PenLine size={15} />, t: "ic-in" } : a === "return" ? { i: <CornerUpLeft size={15} />, t: "ic-wa" } : /reject|declin/.test(a) ? { i: <X size={15} />, t: "ic-er" } : a === "submit" || a === "resubmit" ? { i: <Send size={15} />, t: "ic-in" } : { i: <Check size={15} />, t: "ic-ok" };
                   return (
                     <li key={h.id}>
                       <span className={`pt ${look.t}`}>{look.i}</span>
@@ -179,8 +189,11 @@ export default function Detail({ id, meId, onChanged }: { id: string; meId: stri
                 })}
               </ol>
             </div>
-          ) : <p className="mu">No comments yet. Each officer's comment shows here, and prints with the request.</p>}
+          ) : <p className="mu">No comments yet. Every comment shows here and prints with the request.</p>}
+          {canComment ? <button type="button" className="btn bs block" style={{ marginTop: 10 }} onClick={() => setSheet("comment")}><MessageSquare size={18} />Add a comment</button> : null}
+          <p className="foot" style={{ textAlign: "left" }}>Once a request is sent, only its sender can change it, and only when it is sent back to them. Everyone else comments.</p>
         </section>
+        <PrintRow id={r.id} />
       </Body>
 
       {showBar ? (
@@ -190,7 +203,25 @@ export default function Detail({ id, meId, onChanged }: { id: string; meId: stri
           ) : ownDirect ? (
             <button type="button" className="btn bp" onClick={() => setSheet("direct")}><PenLine size={18} />{st === "DG" ? "Decide" : "Answer"}</button>
           ) : writerBack ? (
-            <button type="button" className="btn bp" onClick={() => setSheet("resend")}><Undo2 size={18} />Send it again</button>
+            r.direct_to ? <button type="button" className="btn bp" onClick={() => setSheet("resend")}><Undo2 size={18} />Send it again</button> : (
+              <>
+                <button type="button" className="btn bs" onClick={() => setSheet("resend")}><Undo2 size={18} />Send as is</button>
+                <button type="button" className="btn bp" onClick={() => push(<EditRequest r={r} deptName={d.dept} onDone={after} />)}><PenLine size={18} />Correct it</button>
+              </>
+            )
+          ) : atAccount ? (
+            <>
+              <button type="button" className="btn bs" onClick={() => setSheet("back")}><CornerUpLeft size={18} />Return</button>
+              <button type="button" className="btn bp" disabled={!me.signature_url} onClick={() => {
+                if (unchecked.length) { buzz.bad(); toast(`Open and check ${unchecked.length === 1 ? "the attachment" : `all ${unchecked.length} attachments`} first.`, "er"); return; }
+                push(<TreatRequest id={r.id} onDone={() => void after()} />);
+              }}><Wallet size={18} />Release the fund</button>
+            </>
+          ) : assignHere ? (
+            <>
+              <button type="button" className="btn bs" onClick={() => setSheet("back")}><CornerUpLeft size={18} />Send back</button>
+              <button type="button" className="btn bp" onClick={() => setSheet("subhead")}><Wallet size={18} />Choose subhead</button>
+            </>
           ) : (
             <>
               <button type="button" className="btn bs" onClick={() => setSheet("back")}><CornerUpLeft size={18} />Send back</button>
@@ -208,6 +239,8 @@ export default function Detail({ id, meId, onChanged }: { id: string; meId: stri
       {answerDirect ? <AnswerSheet open={sheet === "answer"} onClose={() => setSheet(null)} r={r} people={d.people} onDone={after} /> : null}
       {ownDirect ? <DirectActSheet open={sheet === "direct"} onClose={() => setSheet(null)} r={r} stage={st} onDone={after} /> : null}
       <ResendSheet open={sheet === "resend"} onClose={() => setSheet(null)} r={r} onDone={after} />
+      <CommentSheet open={sheet === "comment"} onClose={() => setSheet(null)} r={r} onDone={after} />
+      {assignHere ? <AssignSubheadSheet open={sheet === "subhead"} onClose={() => setSheet(null)} r={r} onDone={after} /> : null}
     </>
   );
 }
@@ -320,7 +353,9 @@ function BackSheet({ open, onClose, r, onDone }: { open: boolean; onClose: () =>
         <button type="button" className="btn bd" style={{ flex: 1 }} disabled={busy} onClick={() => {
           if (note.trim().length < 3) { setErr("Write the reason for sending it back."); return; }
           void run("send this request back", async () => {
-            const { data, error } = await (await db()).rpc("reqgen_return_request", { p_request_id: r.id, p_comment: note.trim(), p_signature_url: me.signature_url });
+            const { data, error } = r.direct_to
+              ? await (await db()).rpc("reqgen_direct_act", { p_request_id: r.id, p_action: "return", p_comment: note.trim() })
+              : await (await db()).rpc("reqgen_return_request", { p_request_id: r.id, p_comment: note.trim(), p_signature_url: me.signature_url });
             if (error) throw new Error(error.message);
             notice("decided", r.id);
             const res = (Array.isArray(data) ? data[0] : data) as { new_status?: string } | null;
@@ -338,7 +373,7 @@ function ResendSheet({ open, onClose, r, onDone }: { open: boolean; onClose: () 
   const { busy, err, run } = useAct(onClose, onDone);
   return (
     <Sheet open={open} onClose={onClose} title="Send the corrected request again?">
-      <p className="mu" style={{ fontSize: 14 }}>It goes back to the officer who returned it. To change the title, amount or files, edit it first.</p>
+      <p className="mu" style={{ fontSize: 14 }}>It goes back to the officer who returned it, unchanged. To change the title, amount, subhead or files, choose "Correct it" instead.</p>
       <Comment value={note} onChange={setNote} label="Note for the officer (optional)" placeholder="e.g. Quotation attached" />
       {err ? <Note tone="er">{err}</Note> : null}
       <button type="button" className="btn bp block" disabled={busy} onClick={() => void run("send it again", async () => {
@@ -350,6 +385,30 @@ function ResendSheet({ open, onClose, r, onDone }: { open: boolean; onClose: () 
         alert(r.id, "waiting");
       }, "Sent again.")}>{busy ? "Sending…" : "Send it again"}</button>
       <CodeLine />
+    </Sheet>
+  );
+}
+
+/** 4.1.0: anyone who can open the request comments; the request itself does not change. */
+function CommentSheet({ open, onClose, r, onDone }: { open: boolean; onClose: () => void; r: Full; onDone: () => Promise<void> }) {
+  const [note, setNote] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  return (
+    <Sheet open={open} onClose={onClose} title="Add a comment">
+      <p className="mu" style={{ fontSize: 14 }}>Your comment stays on the request and prints with it. The sender and whoever holds it are told.</p>
+      <Comment value={note} onChange={setNote} label="Comment" placeholder="e.g. Please attach the quotation" />
+      {err ? <Note tone="er">{err}</Note> : null}
+      <button type="button" className="btn bp block" disabled={busy} onClick={async () => {
+        if (note.trim().length < 2) { setErr("Write the comment."); return; }
+        setBusy(true); setErr(null);
+        try {
+          const { error } = await (await db()).rpc("reqgen_request_comment", { p_request_id: r.id, p_comment: note.trim() });
+          if (error) throw new Error(error.message);
+          setNote(""); onClose(); toast("Comment added."); await onDone();
+        } catch (e) { buzz.bad(); setErr(plainError(e)); }
+        finally { setBusy(false); }
+      }}><MessageSquare size={18} />{busy ? "Adding…" : "Add the comment"}</button>
     </Sheet>
   );
 }
@@ -479,3 +538,13 @@ function DirectActSheet({ open, onClose, r, stage, onDone }: { open: boolean; on
   );
 }
 
+/** The IET A4 request letter (with its comments page), made on the phone. */
+function PrintRow({ id }: { id: string }) {
+  const [busy, setBusy] = useState(false);
+  return (
+    <button type="button" className="cell grp" disabled={busy} onClick={async () => { setBusy(true); try { await printRequest(id); } catch (e) { toast(plainError(e), "er"); } finally { setBusy(false); } }}>
+      <span className="av ic-in" aria-hidden="true"><Printer size={18} /></span>
+      <span className="t"><b>{busy ? "Making the PDF…" : "A4 PDF (IET request letter)"}</b><small>Save, print or share</small></span>
+    </button>
+  );
+}

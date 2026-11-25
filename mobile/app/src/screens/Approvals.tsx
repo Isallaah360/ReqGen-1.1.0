@@ -6,7 +6,7 @@ import { ago, naira, waitingForMe, initials } from "../lib/text";
 import { useApp } from "../App";
 import { Big, Body, Cell, Chip, Empty, LoadError, Seg, Skeleton, Updated, useNav } from "../ui";
 import Detail from "./Detail";
-import Coming from "./Coming";
+import { VoucherList } from "./office/Vouchers";
 
 type Row = { id: string; title: string; who: string; amount: number | null; at: string | null; direct: boolean; unread?: boolean };
 type Done = { kind: string; item_id: string; item_no: string | null; title: string | null; amount: number | null; action_type: string | null; acted_as: string | null; acted_at: string | null };
@@ -41,7 +41,7 @@ export default function Approvals() {
       <Body tabs onRefresh={async () => { await Promise.all([cur.reload(), refreshPending()]); }}>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <div style={{ flex: 1 }}><Seg value={tab} onChange={setTab} items={[{ k: "wait", label: n ? `Waiting ${n}` : "Waiting" }, { k: "done", label: "Done" }]} /></div>
-          <button type="button" className="btn bs sm" onClick={() => push(<Coming title="Vouchers to sign" />)} aria-label="Vouchers"><Wallet size={18} />Vouchers</button>
+          <button type="button" className="btn bs sm" onClick={() => push(<VoucherList mode="mine" />)} aria-label="Vouchers"><Wallet size={18} />Vouchers</button>
         </div>
         <LoadError error={cur.error} />
         {tab === "wait" ? (

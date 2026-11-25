@@ -44,7 +44,6 @@ type SubFull = SubName & { dept_id: string; approved_allocation: number | null; 
 type Me = { id: string; full_name: string | null; email: string | null; phone: string | null; signature_url: string | null };
 type Live = "idle" | "checking" | "available" | "not_enough" | "unknown";
 type RouteStop = { stage: string; who: string | null };
-const BUDGET_STEPS = new Set(["DOD", "DIRECTOR", "DINADMIN", "HOD", "REGISTRAR", "HR"]);
 
 const STEPS = ["Type", "Details", "Attachments", "Sign & submit"] as const;
 const CATEGORIES: Array<{ key: PersonalCategory; title: string; text: string; icon: string }> = [
@@ -137,6 +136,15 @@ function NewRequest() {
   const [subFull, setSubFull] = useState<SubFull[]>([]);
   const [subsLoading, setSubsLoading] = useState(false);
   const [live, setLive] = useState<Live>("idle");
+  // 6.1.0: when a subhead cannot finance the amount, staff are told whom to contact (the Auditor)
+  const [helper, setHelper] = useState<{ name: string; position: string } | null>(null);
+  useEffect(() => {
+    if (live !== "not_enough" || helper) return;
+    void supabase.rpc("reqgen_help_contact").then(({ data }) => {
+      const r = (Array.isArray(data) ? data[0] : data) as { full_name?: string; position_name?: string } | null;
+      if (r?.full_name) setHelper({ name: r.full_name, position: r.position_name || "Auditor" });
+    });
+  }, [live, helper]);
   const [route, setRoute] = useState<{ stops: RouteStop[]; blocked: string[]; keys: string[] } | null>(null);
 
   const [draftId, setDraftId] = useState<string | null>(draftParam);
@@ -160,9 +168,10 @@ function NewRequest() {
   // the subhead and reserves the fund before approving.
   // ...unless no officer on this department's route assigns it before the DG (the database refuses an
   // official request at the DG without a subhead): then the subhead is chosen here, by anyone.
-  const budgetStepBeforeDg = !route || (() => { const dg = route.keys.indexOf("DG"); return route.keys.slice(0, dg < 0 ? route.keys.length : dg).some((k) => BUDGET_STEPS.has(k)); })();
-  const mustChooseSubhead = isOfficial && !budgetStepBeforeDg;
-  const choosesSubhead = isOfficial && (seeBalances || mustChooseSubhead);
+  // 6.1.0 (HR's rule): the sender chooses the subhead on every official request. Staff see names only and
+  // the live answer (available or not enough); positions that see balances also see the figures.
+  const mustChooseSubhead = isOfficial && subOptions.length > 0;
+  const choosesSubhead = isOfficial;
   const chosenSub = subOptions.find((s) => s.id === subheadId) || null;
   const chosenFull = subFull.find((s) => s.id === subheadId) || null;
   const available = chosenFull ? Number(chosenFull.approved_allocation || 0) - Number(chosenFull.reserved_amount || 0) - Number(chosenFull.expenditure || 0) : 0;
@@ -293,11 +302,11 @@ function NewRequest() {
     if (!title.trim()) return "Type the title of the request.";
     if (!details.trim()) return "Describe what the request is for.";
     if (needsAmount && !amountOk) return "Type the amount (numbers only, up to two decimals).";
-    if (mustChooseSubhead && subOptions.length > 0 && !subheadId) return "Choose the budget subhead: no officer on this route assigns it before the Director General.";
+    if (mustChooseSubhead && !subheadId) return "Choose the budget subhead.";
     if (choosesSubhead && subheadId && live === "not_enough") return "Not enough fund in this subhead. Choose another subhead or lower the amount. You can still save a draft.";
     if (choosesSubhead && subheadId && live === "checking") return "Checking the budget…";
     return "";
-  }, [deptId, title, choosesSubhead, mustChooseSubhead, subOptions.length, subheadId, details, needsAmount, amountOk, live]);
+  }, [deptId, title, choosesSubhead, mustChooseSubhead, subheadId, details, needsAmount, amountOk, live]);
 
   const signProblem = useMemo(() => {
     if (!me?.full_name?.trim()) return "Add your full name in My Account first.";
@@ -503,14 +512,14 @@ function NewRequest() {
     <div className={`v4-livecheck ${live === "available" ? "v4-lc-ok" : live === "not_enough" ? "v4-lc-no" : "v4-lc-wait"} v4-span-2`} role={live === "not_enough" ? "alert" : "status"} aria-live="polite">
       <Icon name={live === "available" ? "check" : live === "not_enough" ? "x" : "clock"} />
       <span>
-        <strong>{live === "available" ? "Fund available" : live === "not_enough" ? "Not enough in this subhead" : live === "checking" ? "Checking the budget…" : "The budget could not be checked"}</strong>
+        <strong>{live === "available" ? "Available" : live === "not_enough" ? "Not enough in this subhead" : live === "checking" ? "Checking the budget…" : "The budget could not be checked"}</strong>
         <span>
           {live === "available"
             ? seeBalances
               ? `${chosenSub ? subLabel(chosenSub) : "This subhead"} can cover ${nairaExact(amount)}.`
-              : `${chosenSub ? subLabel(chosenSub) : "This subhead"} can cover ${nairaExact(amount)}. You do not see the balance: the approving officer confirms the subhead when approving.`
+              : `${chosenSub ? subLabel(chosenSub) : "This subhead"} can finance ${nairaExact(amount)}. Balances stay private.`
             : live === "not_enough"
-              ? `${chosenSub ? subLabel(chosenSub) : "This subhead"} cannot cover ${nairaExact(amount)}. Choose another subhead, lower the amount, or speak to your Head of Department. You can save a draft but not submit until the check passes.`
+              ? `${chosenSub ? subLabel(chosenSub) : "This subhead"} cannot finance ${nairaExact(amount)}. Choose another subhead or lower the amount, or contact ${helper ? `${helper.name}, ${helper.position},` : "the Auditor"} for help. You can save a draft but not submit until the check passes.`
               : live === "checking" ? "One moment." : "The approving officer will confirm the budget."}
         </span>
       </span>
@@ -522,7 +531,7 @@ function NewRequest() {
       {embedded ? null : (
         <PageHead
           title="New Request"
-          sub={step === 0 ? "Choose what kind of request this is." : step === 1 ? (seeBalances ? "Type the title and the amount. You may pick the subhead; ReqGen checks the budget live." : "Type the title, the description and the amount. The approving officer chooses the subhead.") : step === 2 ? "Add quotations, invoices or letters that support the request." : "Check everything once more, then sign and submit."}
+          sub={step === 0 ? "Choose what kind of request this is." : step === 1 ? (isOfficial ? "Type the title, the description and the amount, and choose the subhead. ReqGen checks the budget live." : "Type the title, the description and the amount.") : step === 2 ? "Add quotations, invoices or letters that support the request." : "Check everything once more, then sign and submit."}
           actions={draftId ? [{ label: "My drafts", href: "/requests/mine?tab=drafts", icon: "file", kind: "ghost" }] : undefined}
         />
       )}
@@ -595,14 +604,14 @@ function NewRequest() {
 
                 {choosesSubhead ? (
                   <div className="v4-field">
-                    <label className="v4-flabel" htmlFor="nr-sub" style={{ fontSize: 13, fontWeight: 700 }}>Budget subhead {mustChooseSubhead ? <span className="v4-req">*</span> : <span className="v4-muted" style={{ fontWeight: 500 }}>(optional)</span>}</label>
+                    <label className="v4-flabel" htmlFor="nr-sub" style={{ fontSize: 13, fontWeight: 700 }}>Budget subhead {mustChooseSubhead ? <span className="v4-req">*</span> : null}</label>
                     <Select id="nr-sub" value={subheadId} onChange={setSubheadId} options={subSelect} disabled={!deptId || subsLoading || !subSelect.length}
-                      placeholder={!deptId ? "Choose the department first" : subsLoading ? "Loading subheads…" : subSelect.length ? (mustChooseSubhead ? "Choose the subhead" : "Choose the subhead (optional)") : "No subheads: the officer will choose"} menuMinWidth={300} />
+                      placeholder={!deptId ? "Choose the department first" : subsLoading ? "Loading subheads…" : subSelect.length ? "Choose the subhead" : "No subheads: the officer will choose"} menuMinWidth={300} />
                     <span className="v4-help">
                       {!deptId ? "" : subSelect.length
-                        ? mustChooseSubhead
-                          ? `No officer on ${dept?.name || "this department"}'s route assigns the subhead before the Director General, so choose it here.${seeBalances ? "" : " Balances are private."}`
-                          : `The ${subSelect.length} subheads of ${dept?.name || "this department"}, with what is available. Leave it empty and the approving officer chooses.`
+                        ? seeBalances
+                          ? `The ${subSelect.length} subheads of ${dept?.name || "this department"}, with what is available.`
+                          : `The ${subSelect.length} subheads of ${dept?.name || "this department"}. Type the amount to see if the subhead can finance it. Balances are private.`
                         : subsLoading ? "" : "This department has no active subhead. The approving officer will choose one."}
                     </span>
                   </div>
@@ -740,8 +749,9 @@ function NewRequest() {
               {isOfficial ? (
                 <ol className="v4-numbered" style={{ fontSize: 13.5 }}>
                   <li>Pick your department, type the title, the description and the amount.</li>
-                  <li>{seeBalances ? <>You may pick the subhead; ReqGen answers <b>yes</b> or <b>no</b> at once. You can also leave it to the approving officer.</> : <>You do not pick a subhead. Submit the request as it is.</>}</li>
-                  <li>The approving officer who sees the budget assigns or confirms the subhead and reserves the fund.</li>
+                  <li>Choose the subhead. ReqGen answers <b>available</b> or <b>not enough</b> at once, without showing the balance.</li>
+                  <li>If it is not enough, choose another subhead, lower the amount, or contact the Auditor.</li>
+                  <li>Once sent, only you can change the request, and only when an officer sends it back to you. Officers comment.</li>
                   <li>The balance figures are printed on the letter with their signature.</li>
                 </ol>
               ) : (

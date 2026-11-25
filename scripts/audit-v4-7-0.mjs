@@ -45,7 +45,7 @@ check("Alerts: only someone involved in the request can send them, once a minute
 
 // 4. comments trail
 const print = read("app/requests/[id]/print/page.tsx");
-check("Request page: What the officers said", work.includes("What the officers said") && work.includes("officerComments"));
+check("Request page: comments travel with the request; anyone who can open it comments (6.1.0)", work.includes("officerComments") && work.includes("reqgen_request_comment") && work.includes("function CommentBox"));
 check("Print: comments on page 2, page 1 unchanged", print.includes("rg-trail-page") && print.includes("[sheetRef.current, trailRef.current]"));
 
 // 5. the real app
@@ -55,10 +55,16 @@ check("App: screens built into mobile/www (data-reqgen-app=2)", fs.existsSync("m
 check("App maker refuses an APK without the app screens", read("mobile/make_app.ps1").includes('data-reqgen-app="2"') && read("mobile/make_app.ps1").includes("The APK opens a website in a window"));
 check("App version 2.0.0, build 4 or later", /REQGEN_VERSION_NAME=[2-9]\.\d+\.\d+/.test(read("mobile/version.properties")) && Number(read("mobile/version.properties").match(/REQGEN_VERSION_CODE=(\d+)/)[1]) >= 4);
 const appSrc = walk("mobile/app/src").filter((f) => /\.(tsx?|css)$/.test(f)).map(read).join("\n");
-check("App: code sheet for every send and decision, with the safety net", appSrc.includes('askCode("send this request")') && appSrc.includes("REQGEN_CODE_REQUIRED") && appSrc.includes("/api/otp/verify"));
+// 6.0.0 (app 4.0.0): confirmed with the fingerprint or PIN (device pass); the SMS code is the back-up, from the database program reqgen-code
+check("App: every send and decision is confirmed (fingerprint, PIN or code), with the safety net", appSrc.includes('askCode("send this request")') && appSrc.includes("REQGEN_CODE_REQUIRED") && appSrc.includes("reqgen_app_action_pass") && appSrc.includes('"reqgen-code"'));
 check("App: PIN kept only as a SHA-256 fingerprint, locks after 15 minutes", appSrc.includes('crypto.subtle.digest("SHA-256"') && appSrc.includes("15 * 60 * 1000"));
 check("App: sign-out removes the saved lists of that person", appSrc.includes('k.startsWith("rg:c:")'));
-check("App: no balances shown (staff privacy)", !/approved_allocation|reserved_amount|expenditure/.test(appSrc));
+// 6.1.0: subhead figures appear only on the office screens (Finance, Payment Vouchers, Reports), which the
+// position rules open only to positions that may see them, and on the older-request subhead sheet, which is
+// gated by canSeeBudget. The staff screens (sending, correcting, reading a request) never read them.
+const staffSrc = walk("mobile/app/src/screens").filter((f) => /\.tsx$/.test(f) && !/office|BudgetAssign/.test(f)).map(read).join("\n");
+check("App: no balances on the staff screens (staff privacy)", !/approved_allocation|reserved_amount|expenditure/.test(staffSrc));
+check("App: the older-request subhead sheet is only for positions that see balances", read("mobile/app/src/screens/Detail.tsx").includes("canSeeBudget(me.role)") && read("mobile/app/src/screens/BudgetAssign.tsx").includes('"registrar"') && !read("mobile/app/src/screens/BudgetAssign.tsx").includes('"padg"'));
 check("App wording: no long dashes or dot bullets", !/[—–•]/.test(appSrc.replace(/\/\/.*$/gm, "").replace(/\/\*[\s\S]*?\*\//g, "")));
 check("App colours: no purple", !/#7C3AED|#8B5CF6|#6D28D9|purple|violet/i.test(appSrc.replace(/\/\*[\s\S]*?\*\//g, "")));
 check("App: status bar follows light and dark (Android 15 and newer)", appSrc.includes("StatusBar.setStyle") && JSON.stringify(cap).includes('"insetsHandling":"css"'));
@@ -74,7 +80,7 @@ check("App 2.0.0: website links open in the browser, not in the app", !read("mob
 // 6. privacy
 const nextCfg = read("next.config.ts");
 check("Website CSP: only this website and our database", nextCfg.includes("Content-Security-Policy") && nextCfg.includes("default-src 'self'") && nextCfg.includes("frame-ancestors 'self'"));
-check("App CSP: only our database and website", read("mobile/app/index.html").includes("connect-src 'self' https://*.supabase.co wss://*.supabase.co https://ietreqgen.barderians.com.ng"));
+check("App CSP: only our database (6.0.0: never the website)", /connect-src 'self' https:\/\/\*\.supabase\.co wss:\/\/\*\.supabase\.co;/.test(read("mobile/app/index.html")));
 const client = walk("app").concat(walk("lib"), walk("mobile/app/src")).filter((f) => /\.(tsx?|css|mjs)$/.test(f) && !f.includes(`${path.sep}api${path.sep}`) && !f.includes(`lib${path.sep}server`));
 const outside = [];
 for (const f of client) {

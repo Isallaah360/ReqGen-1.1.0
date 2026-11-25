@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.reqgen-code]
 verify_jwt = false
+
+[functions.reqgen-office]
+verify_jwt = false

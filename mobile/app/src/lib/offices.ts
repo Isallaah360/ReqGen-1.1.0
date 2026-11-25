@@ -2,7 +2,7 @@
  * App 4.0.0: which offices a position can open. The app's own copy of the ReqGen position rules
  * (lib/rules), so the app shows exactly the offices the same position has, without the website.
  */
-import { MODULES, type ModuleDef, type ModuleTile } from "./rules/modules";
+import { DEVELOPER_MODULE, MODULES, type ModuleDef, type ModuleTile } from "./rules/modules";
 import { canAccessPath } from "./rules/permissions";
 import { normalizeRole } from "./rules/roles";
 
@@ -22,7 +22,8 @@ export const allowed = (href: string, roles: Set<string>) => canAccessPath(href.
 /** Offices other than the ones that already have their own tabs. */
 const OWN_TABS = new Set(["dashboard", "requests", "approvals", "notifications"]);
 export function officesFor(roles: Set<string>) {
-  return MODULES.filter((m) => !OWN_TABS.has(m.key) && allowed(m.href, roles))
+  // the Developer Console sits at the top for the Developer account only (as on the website)
+  return [...(roles.has("developer") ? [DEVELOPER_MODULE] : []), ...MODULES].filter((m) => !OWN_TABS.has(m.key) && allowed(m.href, roles))
     .map((m) => ({ ...m, tiles: m.tiles.filter((t) => allowed(t.href, roles)) }))
     .filter((m) => m.tiles.length > 0);
 }

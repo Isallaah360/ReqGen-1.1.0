@@ -1,5 +1,28 @@
 # ReqGen changelog
 
+## 6.1.0 (25 Nov 2026), with the app 4.1.0
+
+Steps 2, 3 and 4 of the real app, and HR's rule for requests on both the website and the app. Database step: `database/v6_1_0_requests_hr_rule.sql`. New Edge Function: `reqgen-office`.
+
+### HR's rule (website and app)
+- Once a request is sent, only its sender can change it, and only when it is sent back to them. Officers, the Super Admin and the Auditor comment instead. The database enforces it, so no screen can get round it.
+- Anyone who can open a request can add a comment. Comments stay on the request, print on page 2 of the letter, and the sender and whoever holds it are told.
+
+### The sender chooses the subhead (website and app)
+- Every official request carries the subhead its sender chose. Staff see subhead names only.
+- When the amount is typed, ReqGen answers at once: available (blue tick), or not enough (red), with the name of the Auditor to contact. Balances stay private.
+
+### App 4.1.0: every office is an app screen
+- Payment Vouchers: Voucher Centre, generate from requests, manual voucher, signing tracker, ready to pay, paid history, print centre, signatories; check, counter-sign, DG sign and stamp, send back, send again, cancel, mark as paid, remind.
+- Finance: processing (release the fund and prepare the voucher in one step), bank accounts, officer assignment, budget and subheads, ledgers, transfers, transaction centre with reversals, integrity, settings.
+- Registry, Reports (with charts and Excel), Audit (log, workflow trace, reconciliation, master backup), Administration (staff and positions, positions, permissions, departments, Routing Engine, security, diagnostics, financial reset, system accounts) and the Developer Console.
+- The IET A4 request letter and payment voucher are made in the app as PDFs, to print or share.
+- Staff accounts, reminders, backups and the financial reset run in the new `reqgen-office` Edge Function: the website's own server code, on Supabase. The app never calls the website.
+
+### Fixed
+- The website build no longer reads the Supabase functions folder (the Vercel "Cannot find name Deno" error).
+- The app build ignores files left over from app 3.x.
+
 ## 5.0.2 (24 Nov 2026), with the app 3.0.2
 
 The app now does every office job itself. On the website, long choices in lists are shown in full. No new database step beyond 5.0.0 and 5.0.1.

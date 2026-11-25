@@ -1,6 +1,6 @@
 {
   "name": "reqgen-app-screens",
-  "version": "4.0.0",
+  "version": "4.1.0",
   "private": true,
   "description": "ReqGen app 4.0.0: its own screens, talking only to the ReqGen database. Built into ../www with npm run build.",
   "type": "module",
@@ -21,6 +21,7 @@
     "@capgo/capacitor-native-biometric": "8.9.3",
     "@fontsource/plus-jakarta-sans": "^5.3.0",
     "@supabase/supabase-js": "2.97.0",
+    "fflate": "0.8.3",
     "html-to-image": "^1.11.13",
     "jspdf": "^3.0.3",
     "lucide-react": "1.28.0",

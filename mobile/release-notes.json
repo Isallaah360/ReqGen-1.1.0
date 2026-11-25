@@ -1,16 +1,15 @@
 {
   "new": [
-    "A real app of its own: every screen is drawn by the app and talks only to the ReqGen database. No website page is opened or used.",
-    "Confirm what you send, approve, sign or pay with your fingerprint or app PIN. The SMS code stays as the back-up.",
-    "Forgot password, 2FA set-up, profile, acting as, signature and photo, and your phones are now app screens.",
-    "Colours taken from the official IET logo: IET Blue, IET Gold, IET Orange and IET Red."
+    "Every office is now an app screen: Payment Vouchers, Finance, Registry, Reports, Audit, Administration and the Developer Console.",
+    "HR's rule: once a request is sent, only its sender changes it, and only when it is sent back to them. Everyone else comments.",
+    "Choose the subhead when you send. ReqGen answers at once: available, or not enough with the name of the Auditor to contact.",
+    "The IET A4 request letter and payment voucher, made on the phone as PDFs."
   ],
   "fixed": [
-    "“permission denied for function” after a password, passcode or 2FA change on another device. The app now says you were signed out and takes you to sign-in.",
-    "No database wording is shown any more: every problem is explained in plain words and reported to the Super Admin."
+    "The app build ignores files left over from the old app."
   ],
   "better": [
-    "The app is about 770 KB of screens instead of several MB, so it opens faster.",
-    "Nothing is cut with “…”: long names and lines wrap and show in full."
+    "Comments travel with the request and print with it.",
+    "Reports have charts and save as Excel on the phone."
   ]
 }

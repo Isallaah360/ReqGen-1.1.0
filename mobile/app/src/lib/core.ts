@@ -7,7 +7,7 @@ import { Capacitor } from "@capacitor/core";
  * and two small database programs (Edge Functions) for SMS and e-mail. It never opens or calls
  * the website. The address and the PUBLIC key are packed at build time from .env.local.
  */
-export const APP_VERSION = "4.0.0";
+export const APP_VERSION = "4.1.0";
 export const SUPABASE_URL = String(import.meta.env.NEXT_PUBLIC_SUPABASE_URL || "").replace(/\/$/, "");
 const SUPABASE_KEY = String(import.meta.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "");
 export const isNative = () => Capacitor.isNativePlatform();
@@ -130,6 +130,27 @@ export async function fn<T>(name: "reqgen-notify" | "reqgen-code", body: Record<
   const j = data as T & { ok?: boolean; error?: string };
   if (j && j.ok === false) throw new Error(j.error || "Something went wrong. Try again.");
   return j as T;
+}
+
+/**
+ * 4.1.0: the office jobs that need the server (staff accounts, reminders, backups, the financial reset)
+ * run in the reqgen-office Edge Function: the website's own server code, on Supabase. Never the website.
+ */
+export async function office<T = Record<string, unknown>>(route: string, opts: { method?: string; body?: unknown; id?: string; raw?: boolean } = {}): Promise<T> {
+  const c = await db();
+  const { data } = await c.auth.getSession();
+  const token = data.session?.access_token;
+  if (!token) throw new Error("Your sign-in has ended. Please sign in again.");
+  const form = typeof FormData !== "undefined" && opts.body instanceof FormData;
+  const res = await fetch(`${SUPABASE_URL}/functions/v1/reqgen-office?route=${encodeURIComponent(route)}${opts.id ? `&id=${encodeURIComponent(opts.id)}` : ""}`, {
+    method: opts.method || "POST",
+    headers: { Authorization: `Bearer ${token}`, apikey: SUPABASE_KEY, ...(form || opts.body === undefined ? {} : { "Content-Type": "application/json" }) },
+    body: opts.body === undefined ? undefined : form ? (opts.body as FormData) : JSON.stringify(opts.body),
+  });
+  if (opts.raw && res.ok) return (await res.arrayBuffer()) as T;
+  const j = (await res.json().catch(() => ({}))) as T & { ok?: boolean; error?: string };
+  if (!res.ok || j.ok === false) throw new Error(j.error || (res.status === 404 ? "This needs the reqgen-office Edge Function. Run DEPLOY_FUNCTIONS.bat." : "Something went wrong. Try again."));
+  return j;
 }
 
 /** SMS and e-mail to whoever a request now waits for (or the sender, for an answer). Never blocks the screen. */

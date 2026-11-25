@@ -379,33 +379,12 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
     );
   }, [req, me, stg]);
 
-  const assignedWorkflowOfficerCanEdit = useMemo(() => {
-    if (!req || !me) return false;
 
-    const editableOfficialStages = [
-      "PD",
-      "DOD",
-      "DIRECTOR",
-      "DINADMIN",
-      "REGISTRAR",
-      "HOD",
-    ];
-
-    const editablePersonalStages = ["DOD", "HOD", "HR"];
-
-    const stageIsEditable =
-      isOfficial
-        ? editableOfficialStages.includes(stg)
-        : isPersonal
-          ? editablePersonalStages.includes(stg)
-          : false;
-
-    return req.current_owner === me.id && stageIsEditable;
-  }, [req, me, isOfficial, isPersonal, stg]);
-
+  // 6.1.0 (HR's rule): once sent, only the sender changes a request, and only when it is sent back to them.
   const canEditRequest = useMemo(() => {
-    return requesterCanEditDeleteEarly || assignedWorkflowOfficerCanEdit;
-  }, [requesterCanEditDeleteEarly, assignedWorkflowOfficerCanEdit]);
+    if (!req || !me) return false;
+    return req.created_by === me.id && req.current_owner === me.id && /^returned for correction/i.test(String(req.status || ""));
+  }, [req, me]);
 
   const canDeleteRequest = useMemo(() => {
     return requesterCanEditDeleteEarly;
@@ -1599,13 +1578,13 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
 
       {/* v4.7.0: every comment made on the request travels with it, so the next officer and the DG
           read what each officer said before they decide. Also printed as page 2 of the letter. */}
-      {officerComments.length ? (
+      {officerComments.length || (me && !isDirectMany) ? (
         <section className="v4-card v4-card-pad" aria-labelledby="rq-comments">
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 10 }}>
-            <h2 className="v4-h2" id="rq-comments">What the officers said</h2>
-            <span className="v4-help">{officerComments.length} comment{officerComments.length === 1 ? "" : "s"}, oldest first. Printed with the letter.</span>
+            <h2 className="v4-h2" id="rq-comments">Comments</h2>
+            <span className="v4-help">{officerComments.length ? `${officerComments.length} comment${officerComments.length === 1 ? "" : "s"}, newest first. Printed with the letter.` : "No comments yet."}</span>
           </div>
-          <ol className="k-comments">
+          {officerComments.length ? <ol className="k-comments">
             {officerComments.map((h) => (
               <li key={h.id}>
                 <div className="k-comments-who"><strong>{h.actor_name || "Officer"}</strong>{h.actor_role_name ? <span>{signedAsLabel(h.actor_role_name) || h.actor_role_name}</span> : null}<em>{shortWhen(h.created_at)}</em></div>
@@ -1613,7 +1592,9 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
                 <p>{h.comment}</p>
               </li>
             ))}
-          </ol>
+          </ol> : null}
+          {me && !isDirectMany ? <CommentBox requestId={req.id} onDone={reload} /> : null}
+          <p className="v4-help" style={{ margin: "10px 0 0" }}>Once a request is sent, only its sender can change it, and only when it is sent back to them. Everyone else comments.</p>
         </section>
       ) : null}
       {isDirectMany && me ? <DirectMany req={req} meId={me.id} people={directPeople || []} onDone={async () => { await reload(); await reloadDirect(); }} /> : null}
@@ -1884,4 +1865,32 @@ function shortWhen(iso: string | null | undefined) {
   if (!iso) return "";
   const d = new Date(iso);
   return Number.isNaN(d.getTime()) ? "" : d.toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+}
+
+/** 6.1.0: anyone who can open the request adds a comment; the request itself does not change. */
+function CommentBox({ requestId, onDone }: { requestId: string; onDone: () => Promise<void> | void }) {
+  const [text, setText] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState<{ tone: "green" | "red"; text: string } | null>(null);
+  async function add() {
+    if (text.trim().length < 2) { setNote({ tone: "red", text: "Write the comment." }); return; }
+    setBusy(true); setNote(null);
+    const { error } = await supabase.rpc("reqgen_request_comment", { p_request_id: requestId, p_comment: text.trim() });
+    setBusy(false);
+    if (error) { setNote({ tone: "red", text: error.message.replace(/^REQGEN_[A-Z_]+:\s*/, "") }); return; }
+    setText(""); setNote({ tone: "green", text: "Comment added. The sender and whoever holds the request are told." });
+    await onDone();
+  }
+  return (
+    <div style={{ marginTop: 12 }}>
+      <label className="v4-field">
+        <span className="v4-flabel">Add a comment</span>
+        <textarea className="v4-textarea" value={text} maxLength={1000} onChange={(e) => setText(e.target.value)} placeholder="e.g. Please attach the quotation" style={{ minHeight: 72 }} />
+      </label>
+      <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", marginTop: 8 }}>
+        <button type="button" className="v4-btn v4-btn-secondary" disabled={busy} onClick={() => void add()}>{busy ? "Adding…" : "Add comment"}</button>
+        {note ? <span className={note.tone === "red" ? "v4-error" : "v4-help"} role={note.tone === "red" ? "alert" : "status"}>{note.text}</span> : null}
+      </div>
+    </div>
+  );
 }

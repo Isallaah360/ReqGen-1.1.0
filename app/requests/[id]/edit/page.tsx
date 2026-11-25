@@ -20,9 +20,8 @@ import { useCelebrate } from "@/app/components/v4/Motion";
 /**
  * ReqGen v4.1.2 — Correct Request (mock-up 27).
  *
- * The requester corrects a request that was sent back (or edits it while it
- * is still at an early step); the officer who holds it at an early step may
- * also correct it. Type and department are locked after submission. A note
+ * 6.1.0 (HR's rule): only the requester corrects a request, and only when it
+ * was sent back to them. Officers comment instead. Type and department are locked after submission. A note
  * saying what changed is required and shown to the officer. When the request
  * was sent back, "Sign and resubmit" saves and returns it to the officer who
  * sent it back (or, after a reopen, to the first officer).
@@ -37,8 +36,6 @@ type Sub = { id: string; code: string | null; name: string; approved_allocation?
 type Hist = { id: string; action_type: string; comment: string | null; actor_name: string | null; actor_role_name: string | null; created_at: string };
 type Existing = { id: string; file_name: string; file_size: number | null; url: string | null };
 
-const EARLY_OFFICIAL = ["PD", "PO", "DOD", "DIRECTOR", "DINADMIN", "REGISTRAR", "HOD"];
-const EARLY_PERSONAL = ["DOD", "HOD", "HR"];
 const CLOSED = ["DG", "ACCOUNT", "HRFILING", "COMPLETED", "REJECTED", "DELETED", "CANCELLED"];
 
 function key(s: string | null | undefined) { return String(s || "").toUpperCase().replace(/[^A-Z0-9]/g, ""); }
@@ -149,17 +146,14 @@ function CorrectRequest({ id }: { id: string }) {
   const isOfficial = key(req?.request_type) === "OFFICIAL";
   const isFund = isOfficial || key(req?.personal_category) === "FUND";
   const closed = !!req && (CLOSED.includes(stage) || /reject|cancel|delete|paid|closed|complete/i.test(String(req.status || "")));
-  const early = !!req && (isOfficial ? EARLY_OFFICIAL.includes(stage) : EARLY_PERSONAL.includes(stage));
   const isRequester = !!req && !!me && req.created_by === me.id;
   const isHolder = !!req && !!me && req.current_owner === me.id;
   const sentBack = !!req && /^returned for correction/i.test(String(req.status || "")) && isHolder;
-  const isOverseer = ["admin", "auditor"].includes(role);
-  const canEdit = !!req && !closed && early && (isRequester || isHolder || isOverseer);
-  const officerFinance = isOfficial && (isOverseer || (isHolder && !isRequester && ["hod", "registrar", "dinadmin", "dod", "director"].includes(role.replace(/\d+$/, ""))));
-  const requesterReserved = isRequester && !officerFinance && String(req?.funds_state || "").toLowerCase() === "reserved";
-  // v4.6.10: only a position that sees subhead balances chooses or changes the subhead; staff never do.
-  const canChangeSubhead = isOfficial && seeBalances && (officerFinance || (isRequester && (sentBack || !requesterReserved)));
-  const canChangeAmount = isFund && (officerFinance || (isRequester && (sentBack || !requesterReserved)));
+  // 6.1.0 (HR's rule): once sent, only the sender changes a request, and only when it is sent back to them.
+  // Officers, the Auditor and the Super Admin comment on the request instead.
+  const canEdit = !!req && !closed && isRequester && sentBack;
+  const canChangeSubhead = isOfficial && canEdit;
+  const canChangeAmount = isFund && canEdit;
 
   const amount = parseAmount(amountText);
   const amountChanged = isFund && Number.isFinite(amount) && Math.abs(amount - Number(req?.amount || 0)) > 0.001;
@@ -308,7 +302,7 @@ function CorrectRequest({ id }: { id: string }) {
       <V4Page>
         <PageHead title={`Correct ${req.request_no || "request"}`} sub={req.title} />
         <Notice tone="amber" title="This request cannot be changed now.">
-          {closed ? "It has reached the Director General, Account or is closed. Ask the Auditor if something is wrong." : "Only the requester (while it is at an early step or sent back), the officer holding it at an early step, the Auditor or the Super Admin can correct it."}
+          {closed ? "It is closed. Add a comment on the request if something is wrong." : isRequester ? "It is with an officer. You can change it when it is sent back to you. Until then, add a comment on the request." : "Only the person who sent this request can change it, and only when it is sent back to them. Add a comment on the request instead, or send it back with your reason."}
         </Notice>
         <div><Link className="v4-btn v4-btn-secondary" href={`/requests/${req.id}`}><Icon name="left" />Back to the request</Link></div>
       </V4Page>

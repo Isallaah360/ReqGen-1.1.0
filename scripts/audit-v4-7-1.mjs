@@ -14,7 +14,7 @@ check("CHANGELOG has this version", read("CHANGELOG.md").includes(`## ${pkg.vers
 // sign-in
 const signIn = read("mobile/app/src/screens/SignIn.tsx");
 check("App sign-in: authenticator code (2FA), no SMS sign-in code", signIn.includes("auth.mfa.challengeAndVerify") && !signIn.includes('"sign_in"'));
-check("App sign-in: no authenticator means set it up first", signIn.includes("/mfa/setup"));
+check("App sign-in: no authenticator means set it up first (6.0.0: in the app)", signIn.includes("Setup2fa") && read("mobile/app/src/screens/Setup2fa.tsx").includes("auth.mfa.enroll"));
 check("Website sign-in still asks the authenticator", read("app/mfa/page.tsx").includes("Code from your authenticator app"));
 
 // actions use the SMS or e-mail code
@@ -28,7 +28,7 @@ check("Server: Super Admin jobs accept the SMS or e-mail pass", read("lib/server
 
 // notices
 check("When a request moves, the sender is told too", read("app/api/notifications/alert/route.ts").includes("has moved on"));
-check("The app sends the website's notices (sent, waiting, decided)", read("mobile/app/src/lib/core.ts").includes("/api/notifications/sms/request-event") && read("app/api/notifications/sms/request-event/route.ts").includes("OPTIONS = preflight"));
+check("The app sends the same notices (sent, waiting, decided) through the database program reqgen-notify", read("mobile/app/src/lib/core.ts").includes('"reqgen-notify"') && read("supabase/functions/reqgen-notify/index.ts").includes("notify_event.ts"));
 
 // fingerprint address and app layout
 check("Fingerprint offered only on the main address", read("lib/v4/deviceSignIn.ts").includes("export function onMainAddress") && read("lib/v4/deviceSignIn.ts").includes("if (!onMainAddress()) return false;"));

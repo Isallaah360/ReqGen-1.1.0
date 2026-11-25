@@ -288,3 +288,23 @@ textarea.inp{padding:12px 14px;min-height:100px;resize:none;line-height:1.45}
 
 /* 4.0.0: nothing is ever cut with "…": every line wraps to show in full */
 .chip{height:auto;min-height:26px;white-space:normal;padding-top:3px;padding-bottom:3px;line-height:1.2;text-align:center}
+/* 4.1.0: the live budget answer under the subhead (available: IET blue; not enough: IET red) */
+.budget{display:flex;gap:8px;align-items:flex-start;margin-top:8px;padding:10px 12px;border-radius:12px;font-size:14px;font-weight:600;line-height:1.4}
+.budget svg{flex:0 0 auto;margin-top:1px}
+.b-ok{background:var(--oks);color:var(--ok)}.b-er{background:var(--ers);color:var(--er)}.b-chk{background:var(--card2);color:var(--ink2)}
+/* 4.1.0: office screens: figures, bar charts */
+.stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 12px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.stat small{color:var(--mute);font-size:12.5px;font-weight:700}
+.stat b{font-size:17px;font-weight:800;overflow-wrap:anywhere}
+.st-ok b{color:var(--ok)}.st-er b{color:var(--er)}.st-wa b{color:var(--wa)}
+.bars{margin:0;display:flex;flex-direction:column;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px}
+.bar-row{display:grid;grid-template-columns:64px 1fr auto;gap:8px;align-items:center;font-size:12.5px}
+.bar-row .bk{color:var(--mute);font-weight:700;overflow-wrap:anywhere}
+.bar-row .bt{display:flex;flex-direction:column;gap:2px;min-width:0}
+.bar-row .bt i{display:block;height:10px;border-radius:5px;background:var(--or);min-width:2px}
+.bar-row .bt i.b2{background:#F9A11F}
+.bar-row .bv{font-weight:700;white-space:nowrap}
+/* 4.1.0: chip rows wrap (nothing half cut at the edge); small buttons stay at least 44 px wide */
+.filters{flex-wrap:wrap;overflow:visible;margin:0;padding:0}
+.btn.sm{min-width:44px}

@@ -3,19 +3,18 @@ import { Check, Paperclip, Send, X, Save } from "lucide-react";
 import { askCode, db, notice, plainError } from "../lib/core";
 import { useOnline } from "../lib/data";
 import { ACCEPT, addFiles, fmtAmount, kb, newNumber, parseAmount, uploadAll } from "../lib/files";
-import { naira, withWho, stageKey } from "../lib/text";
+import { naira, withWho } from "../lib/text";
 import { useApp } from "../App";
 import { Body, Head, Note, toast, useNav } from "../ui";
 import Detail from "./Detail";
 import Sent from "./Sent";
+import { SubheadField, useLive, useSubheads } from "./Budget";
 
 export type Draft = { id: string; request_type: string | null; personal_category: string | null; dept_id: string | null; subhead_id: string | null; title: string | null; details: string | null; amount: number | null; attachments: unknown[] | null; updated_at: string | null };
 type Kind = "Official" | "Personal";
 const CATS = [
   { k: "Fund", t: "Personal fund" }, { k: "Leave", t: "Leave" }, { k: "Contract Renewal", t: "Contract renewal" }, { k: "Resignation", t: "Resignation" }, { k: "Others", t: "Other personal" },
 ];
-// The same rule as the website: if no officer on the route before the DG assigns the subhead, it is chosen here.
-const BUDGET_STEPS = new Set(["DOD", "DIRECTOR", "DINADMIN", "HOD", "REGISTRAR", "HR"]);
 type Step = { step_order: number; stage: string; is_vacant: boolean; if_vacant: string };
 
 export default function NewRequest({ kind, draft }: { kind: Kind; draft?: Draft }) {
@@ -29,8 +28,6 @@ export default function NewRequest({ kind, draft }: { kind: Kind; draft?: Draft 
   const [details, setDetails] = useState(draft?.details || "");
   const [amountText, setAmountText] = useState(draft?.amount ? fmtAmount(String(draft.amount)) : "");
   const [subId, setSubId] = useState(draft?.subhead_id || "");
-  const [subs, setSubs] = useState<Array<{ id: string; code: string | null; name: string }>>([]);
-  const [live, setLive] = useState<"" | "checking" | "available" | "not_enough">("");
   const [route, setRoute] = useState<Step[] | null>(null);
   const [files, setFiles] = useState<File[]>([]);
   const [ok, setOk] = useState(false);
@@ -42,9 +39,10 @@ export default function NewRequest({ kind, draft }: { kind: Kind; draft?: Draft 
   const official = kind === "Official";
   const needsAmount = official || cat === "Fund";
   const amount = parseAmount(amountText);
-  const keys = (route || []).filter((s) => !(s.is_vacant && s.if_vacant === "skip")).map((s) => stageKey(s.stage));
-  const budgetBeforeDg = !route || (() => { const dg = keys.indexOf("DG"); return keys.slice(0, dg < 0 ? keys.length : dg).some((k) => BUDGET_STEPS.has(k)); })();
-  const mustSub = official && !budgetBeforeDg;
+  // 4.1.0 (HR's rule): the sender chooses the subhead on every official request; names only, never balances
+  const subs = useSubheads(deptId, official);
+  const mustSub = official && !!subs && subs.length > 0;
+  const live = useLive(subId, amount > 0 ? amount : NaN, official);
   const blocked = (route || []).filter((s) => s.is_vacant && s.if_vacant === "block").map((s) => withWho(s.stage));
 
   useEffect(() => { void db().then((s) => s.from("departments").select("id,name").eq("is_active", true).order("name")).then(({ data }) => setDepts((data || []) as typeof depts)); }, []);
@@ -54,34 +52,21 @@ export default function NewRequest({ kind, draft }: { kind: Kind; draft?: Draft 
     void db().then((s) => s.rpc("reqgen_route_preview", { p_dept_id: deptId, p_request_type: kind, p_personal_category: kind === "Personal" ? cat : null })).then(({ data, error }) => { if (alive) setRoute(error ? null : (data || []) as Step[]); });
     return () => { alive = false; };
   }, [deptId, kind, cat]);
-  useEffect(() => {
-    if (!mustSub || !deptId) { setSubs([]); return; }
-    void db().then((s) => s.rpc("reqgen_department_subhead_names", { p_dept_id: deptId })).then(({ data }) => setSubs((data || []) as typeof subs));
-  }, [mustSub, deptId]);
-  useEffect(() => {
-    if (!mustSub || !subId || !(amount > 0)) { setLive(""); return; }
-    setLive("checking");
-    const t = window.setTimeout(() => {
-      void db().then((s) => s.rpc("reqgen_subhead_live_check", { p_subhead_id: subId, p_amount: amount })).then(({ data, error }) => {
-        const v = String(Array.isArray(data) ? data[0] : data || "");
-        setLive(error ? "" : v === "available" ? "available" : v === "not_enough" ? "not_enough" : "");
-      });
-    }, 400);
-    return () => window.clearTimeout(t);
-  }, [mustSub, subId, amount]);
 
   const problem = useMemo(() => {
     if (!deptId) return "Choose the department.";
     if (title.trim().length < 3) return "Write a short title.";
     if (details.trim().length < 5) return "Write the details.";
     if (needsAmount && !(amount > 0)) return "Type the amount in naira.";
-    if (mustSub && subs.length && !subId) return "Choose the budget subhead: no officer on this route assigns it before the Director General.";
-    if (live === "not_enough") return "Not enough fund in this subhead. Choose another subhead or lower the amount.";
+    if (official && !subs) return "Loading the subheads…";
+    if (mustSub && !subId) return "Choose the budget subhead.";
+    if (live === "checking") return "Checking the budget…";
+    if (live === "not_enough") return "This subhead cannot finance the amount. Choose another subhead, lower the amount, or contact the Auditor.";
     if (blocked.length) return `The route has no officer for ${blocked.join(", ")}. The Super Admin must complete the Routing Engine first.`;
     if (!me.signature_url) return "Add your signature in Me › Signature and photo first.";
     if (!ok) return "Tick the box to confirm the details are correct.";
     return "";
-  }, [deptId, title, details, needsAmount, amount, mustSub, subs.length, subId, live, blocked, me.signature_url, ok]);
+  }, [deptId, title, details, needsAmount, amount, official, subs, mustSub, subId, live, blocked, me.signature_url, ok]);
 
   async function saveDraft() {
     setBusy("draft"); setMsg(null);
@@ -139,15 +124,7 @@ export default function NewRequest({ kind, draft }: { kind: Kind; draft?: Draft 
         {needsAmount ? (
           <label><span className="lbl">Amount (₦)</span><input className="inp" inputMode="decimal" value={amountText} onChange={(e) => setAmountText(fmtAmount(e.target.value))} placeholder="0" /></label>
         ) : null}
-        {official ? (mustSub ? (
-          <label><span className="lbl">Budget subhead</span>
-            <select className="inp" value={subId} onChange={(e) => setSubId(e.target.value)} disabled={!subs.length}>
-              <option value="">{subs.length ? "Choose the subhead" : "No subheads: the officer will choose"}</option>
-              {subs.map((s) => <option key={s.id} value={s.id}>{s.code ? `${s.code}: ` : ""}{s.name}</option>)}
-            </select>
-            <span className="foot" style={{ textAlign: "left", display: "block", marginTop: 6 }}>{live === "checking" ? "Checking the budget…" : live === "available" ? "Enough fund in this subhead." : `No officer on ${dept?.name || "this department"}'s route assigns the subhead before the DG, so choose it here. Balances are private.`}</span>
-          </label>
-        ) : <Note tone="mu">You do not choose a subhead. The officer who sees the budget assigns it when approving.</Note>) : null}
+        {official && deptId ? <SubheadField subs={subs} value={subId} onChange={setSubId} live={live} deptName={dept?.name} /> : null}
 
         <div>
           <span className="lbl">Attachments (optional)</span>

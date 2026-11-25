@@ -1,5 +1,6 @@
-# ReqGen 6.0.0: deploys the Supabase Edge Functions reqgen-notify (SMS and e-mail notices) and
-# reqgen-code (the back-up 6-digit code). The app calls only these and the database, never the website.
+# ReqGen 6.1.0: deploys the Supabase Edge Functions reqgen-notify (SMS and e-mail notices),
+# reqgen-code (the back-up 6-digit code) and reqgen-office (staff accounts, reminders, backups, reset).
+# The app calls only these and the database, never the website.
 # The Sendchamp key and the code secret are read from .env.local and sent straight to Supabase as secrets.
 # Nothing secret is printed, saved in the project or sent anywhere else.
 # Supabase prints notes and progress on the error stream; Windows PowerShell must not treat those as failures.
@@ -56,7 +57,7 @@ try {
   if (Test-Path $tmp) { Remove-Item $tmp -Force }
 }
 
-foreach ($fn in @("reqgen-notify","reqgen-code")) {
+foreach ($fn in @("reqgen-notify","reqgen-code","reqgen-office")) {
   Say "Deploying $fn ..."
   # Supabase sometimes answers "502 Bad gateway" for a moment: wait and try again (up to 3 times)
   $done = $false

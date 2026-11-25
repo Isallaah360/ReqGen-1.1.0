@@ -21,9 +21,10 @@ const body = sql.replace(/--.*$/gm, "");
 check("Dropdown list is drawn on the page itself, never inside the hidden phone menu", !select.includes('document.body.querySelector<HTMLElement>(".v4-ui")') && select.includes('closest<HTMLElement>(".v4-modal-layer") || document.body'));
 
 // 2. Subhead
-check("New request: staff do not choose a subhead (unless no budget officer comes before the DG)", newReq.includes("const choosesSubhead = isOfficial && (seeBalances || mustChooseSubhead)") && newReq.includes("{choosesSubhead ? (") && newReq.includes("The approving officer chooses it") && newReq.includes('const BUDGET_STEPS = new Set(["DOD", "DIRECTOR", "DINADMIN", "HOD", "REGISTRAR", "HR"])'));
-check("New request: a subhead is required only when no officer could assign it before the DG", !newReq.includes('"Choose the budget subhead."') && newReq.includes("if (mustChooseSubhead && subOptions.length > 0 && !subheadId)") && newReq.includes("p_subhead_id: choosesSubhead ? subheadId || null : null"));
-check("Edit: only a position that sees balances changes the subhead", edit.includes("isOfficial && seeBalances && (officerFinance"));
+// 6.1.0 (HR's rule) replaces the v4.6.10 subhead rule: the sender chooses the subhead (names only, live yes/no).
+check("New request: the sender chooses the subhead on every official request (6.1.0)", newReq.includes("const choosesSubhead = isOfficial;") && newReq.includes("const mustChooseSubhead = isOfficial && subOptions.length > 0;") && newReq.includes("reqgen_help_contact"));
+check("New request: a subhead is required when the department has subheads (6.1.0)", newReq.includes('if (mustChooseSubhead && !subheadId) return "Choose the budget subhead.";') && newReq.includes("p_subhead_id: choosesSubhead ? subheadId || null : null"));
+check("Edit: only the sender changes a request, only when it is sent back (6.1.0)", edit.includes("const canEdit = !!req && !closed && isRequester && sentBack;") && !edit.includes("officerFinance"));
 check("Officer: approval waits until the budget officer assigns the subhead", work.includes("needsSubheadAssignment") && work.includes("disabled={actingLocked || attachmentsLocked || needsSubheadAssignment}"));
 check("Officer: the DG never assigns a subhead (locked rule kept)", !work.includes("dgFallback") && !body.includes("reqgen_officer_assign_subhead"));
 
