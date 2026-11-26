@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
-import { House, FileText, Plus, ShieldCheck, User } from "lucide-react";
+import { House, FileText, Plus, Settings, ShieldCheck } from "lucide-react";
 import { checkSignIn, db, onSignedOut, session, signingOut, store } from "./lib/core";
 import { ensureDevice, forgetDevice } from "./lib/device";
 import { buzz, finger, lockDue, onResume, paintStatusBar, pin, touch } from "./lib/native";
@@ -20,8 +20,8 @@ type Ctx = {
   me: Me; reloadMe: () => Promise<void>; pending: number; refreshPending: () => Promise<void>;
   tab: Tab; setTab: (t: Tab) => void; openNew: () => void; signOut: () => Promise<void>;
   theme: "system" | "light" | "dark"; setTheme: (t: "system" | "light" | "dark") => void;
-  /** 4.0.0: IET Blue (key "sand") or IET Gold (key "gold"), both from the IET logo */
-  look: "sand" | "gold"; setLook: (l: "sand" | "gold") => void;
+  /** 4.2.1: "grid" (Icon Grid, the default, light or dark) or "glass" (Glass Dock, deep IET blue). Older "sand"/"gold" become "grid". */
+  look: "grid" | "glass"; setLook: (l: "grid" | "glass") => void;
 };
 const AppCtx = createContext<Ctx | null>(null);
 export const useApp = () => useContext(AppCtx) as Ctx;
@@ -29,14 +29,15 @@ export const useApp = () => useContext(AppCtx) as Ctx;
 /** Light or dark: follows the phone unless the person chose one in Me. The status bar follows too. */
 function useTheme() {
   const [theme, setThemeState] = useState<"system" | "light" | "dark">("system");
-  const [look, setLookState] = useState<"sand" | "gold">("sand");
+  const [look, setLookState] = useState<"grid" | "glass">("grid");
   useEffect(() => { void store.get<"system" | "light" | "dark">("rg:theme", "system").then(setThemeState); }, []);
-  useEffect(() => { void store.get<"sand" | "gold">("rg:look", "sand").then((l) => setLookState(l === "gold" ? "gold" : "sand")); }, []);
-  useEffect(() => { document.documentElement.dataset.look = look; document.documentElement.dataset.accent = look; }, [look]);
+  useEffect(() => { void store.get<string>("rg:look", "grid").then((l) => setLookState(l === "glass" ? "glass" : "grid")); }, []);
+  // Icon Grid uses the IET Blue colours (data-look "sand"); Glass Dock has its own (data-look "glass")
+  useEffect(() => { document.documentElement.dataset.look = look === "glass" ? "glass" : "sand"; document.documentElement.dataset.accent = look; }, [look]);
   useEffect(() => {
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
     const apply = () => {
-      const dark = theme === "dark" || (theme === "system" && mq.matches);
+      const dark = look === "glass" || theme === "dark" || (theme === "system" && mq.matches);
       document.documentElement.dataset.theme = dark ? "dark" : "light";
       requestAnimationFrame(() => paintStatusBar(dark));
     };
@@ -46,7 +47,7 @@ function useTheme() {
   }, [theme, look]);
   return {
     theme, setTheme: (t: "system" | "light" | "dark") => { setThemeState(t); void store.set("rg:theme", t); },
-    look, setLook: (l: "sand" | "gold") => { setLookState(l); void store.set("rg:look", l); },
+    look, setLook: (l: "grid" | "glass") => { setLookState(l); void store.set("rg:look", l); },
   };
 }
 
@@ -196,7 +197,7 @@ function TabBar({ tab, setTab, pending, onNew }: { tab: Tab; setTab: (t: Tab) =>
       {b("requests", "Requests", <FileText size={22} />)}
       <button type="button" onClick={onNew} aria-label="New request"><span className="fab"><Plus size={24} strokeWidth={2.4} /></span>New</button>
       {b("approvals", "Approvals", <ShieldCheck size={22} />, pending)}
-      {b("me", "Me", <User size={22} />)}
+      {b("me", "Settings", <Settings size={22} />)}
     </nav>
   );
 }

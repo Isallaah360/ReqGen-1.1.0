@@ -1,94 +1,126 @@
 import { useEffect, useState } from "react";
-import { Bell, Download, Fingerprint, Info, KeyRound, LogOut, Moon, PenLine, ShieldCheck, UserRound } from "lucide-react";
+import { Bell, Download, Fingerprint, Info, KeyRound, LogOut, PenLine, ShieldCheck, UserRound } from "lucide-react";
 import { appVersion, downloadAndInstall, finger, newerRelease, pin, type Release } from "../lib/native";
 import { useApp } from "../App";
-import { Avatar, Big, Body, Cell, Chev, Note, Sheet, Toggle, toast, useNav } from "../ui";
+import { Avatar, Big, Body, Cell, Chev, Head, Note, Sheet, Toggle, toast, useNav } from "../ui";
+import { AppGrid } from "./Offices";
+import Notices from "./Notices";
 import { MyAccess, MyActivity, SetupGuide } from "./office/Mine";
 import { History, ListChecks } from "lucide-react";
 import { Credits, Profile, Security, SignaturePhoto } from "./Account";
 import { PinPad } from "./Unlock";
 
-export default function Me() {
-  const { me, theme, setTheme, look, setLook, signOut } = useApp();
+/** 4.2.1: the Settings tab (it was "Me"): this phone and how ReqGen looks. The person's own things are in ProfileScreen, opened from their photo. */
+export default function SettingsScreen() {
+  const { theme, setTheme, look, setLook } = useApp();
   const { push } = useNav();
   const [ver, setVer] = useState({ version: "2.0.0", build: 0 });
   const [rel, setRel] = useState<Release | null>(null);
   const [checked, setChecked] = useState(false);
   const [fing, setFing] = useState(false);
   const [canFing, setCanFing] = useState(false);
-  const [sheet, setSheet] = useState<null | "theme" | "pin" | "update" | "about" | "out">(null);
+  const [sheet, setSheet] = useState<null | "pin" | "update" | "out">(null);
   useEffect(() => {
     void appVersion().then(setVer);
     void newerRelease().then((r) => { setRel(r); setChecked(true); });
     void finger.on().then(setFing); void finger.ready().then(setCanFing);
   }, []);
-  const themeText = `${look === "gold" ? "IET Gold" : "IET Blue"}, ${theme === "system" ? "Match phone" : theme === "dark" ? "Dark" : "Light"}`;
   return (
     <>
-      <Big>Me</Big>
+      <Big>Settings</Big>
       <Body tabs>
-        <div className="cell grp">
-          <Avatar name={me.full_name} url={me.avatar_url} size="lg" />
-          <span className="t"><b style={{ fontSize: 17 }}>{me.full_name}</b><small>{[me.roleName, me.deptName].filter(Boolean).join(", ")}</small></span>
-        </div>
         <div className="grp">
-          <Cell icon={<KeyRound size={18} />} iconTone="wa" title="App PIN" sub="Change the 6 numbers" onClick={() => setSheet("pin")} />
           <Cell icon={<Fingerprint size={18} />} iconTone="ok" title="Fingerprint" sub={canFing ? (fing ? "On" : "Off") : "Not set up on this phone"}
             right={canFing ? <Toggle on={fing} label="Fingerprint" onChange={async (v) => {
               if (v) { try { await finger.check("Turn on fingerprint"); } catch { return; } }
               await finger.set(v); setFing(v); toast(v ? "Fingerprint on." : "Fingerprint off.");
             }} /> : undefined} />
+          <Cell icon={<KeyRound size={18} />} iconTone="wa" title="App PIN" sub="Change the 6 numbers" right={<Chev />} onClick={() => setSheet("pin")} />
         </div>
+        <div className="sect"><b>Look</b></div>
+        <div className="look2" role="radiogroup" aria-label="Look">
+          {LOOKS.map((l) => (
+            <button key={l.key} type="button" role="radio" aria-checked={look === l.key} onClick={() => { setLook(l.key); toast(`${l.name} look on.`); }}>
+              <i className={`look-pv look-pv-${l.key}`} aria-hidden="true"><b /><b /><b /><b /></i>
+              <span><b>{l.name}</b><small>{l.about}</small></span>
+            </button>
+          ))}
+        </div>
+        {look === "grid" ? (
+          <div className="seg" role="radiogroup" aria-label="Light or dark">
+            {(["light", "dark", "system"] as const).map((t) => (
+              <button key={t} type="button" role="radio" aria-selected={theme === t} aria-checked={theme === t} onClick={() => setTheme(t)}>{t === "system" ? "Match phone" : t === "light" ? "Light" : "Dark"}</button>
+            ))}
+          </div>
+        ) : <p className="mu" style={{ margin: 0 }}>Glass Dock is always deep IET blue, day and night.</p>}
         <div className="grp">
-          <Cell icon={<UserRound size={18} />} iconTone="in" title="Profile" sub={me.positions.length > 1 ? "Name, phone, acting as, password" : "Name, phone, password"} right={<Chev />} onClick={() => push(<Profile />)} />
-          <Cell icon={<PenLine size={18} />} iconTone="in" title="Signature and photo" sub={me.signature_url ? "Printed on what you sign" : "Missing: needed to approve"} right={<Chev />} onClick={() => push(<SignaturePhoto />)} />
           <Cell icon={<ShieldCheck size={18} />} iconTone="in" title="Security and phones" sub="2FA, fingerprint, phones set up" right={<Chev />} onClick={() => push(<Security />)} />
-          <Cell icon={<KeyRound size={18} />} iconTone="in" title="My access" sub="Your positions, acting as, away" right={<Chev />} onClick={() => push(<MyAccess />)} />
-          <Cell icon={<History size={18} />} iconTone="in" title="My activity" sub="Everything you did in ReqGen" right={<Chev />} onClick={() => push(<MyActivity />)} />
           <Cell icon={<ListChecks size={18} />} iconTone="in" title="Setup guide" sub="The steps that make an account ready" right={<Chev />} onClick={() => push(<SetupGuide />)} />
-        </div>
-        <div className="grp">
-          <Cell icon={<Moon size={18} />} iconTone="mu" title="Appearance" sub={themeText} onClick={() => setSheet("theme")} />
           <Cell icon={<Bell size={18} />} iconTone="mu" title="Notices" sub="SMS, e-mail and app, for every request that reaches you" />
-          <Cell icon={<Download size={18} />} iconTone="mu" title={`App version ${ver.version}`} sub={!checked ? "Checking for a newer version…" : rel ? `Version ${rel.version} is ready` : "Up to date"} onClick={rel ? () => setSheet("update") : undefined} right={rel ? <span className="chip c-or">Update</span> : undefined} />
-          <Cell icon={<Info size={18} />} iconTone="mu" title="About and credits" sub="IET, by Barderian Enterprises" onClick={() => setSheet("about")} />
+          <Cell icon={<Download size={18} />} iconTone="mu" title={`App version ${ver.version}`} sub={!checked ? "Checking for a newer version…" : rel ? `Version ${rel.version} is ready` : "Up to date"} onClick={rel ? () => setSheet("update") : undefined} right={rel ? <Chev /> : undefined} />
         </div>
         <button type="button" className="btn bs block" style={{ color: "var(--er)" }} onClick={() => setSheet("out")}><LogOut size={18} />Sign out of this phone</button>
         <p className="foot">Developed by Barderian Enterprises. WhatsApp 0803 119 7746, info@barderians.com.ng</p>
       </Body>
-
-      <Sheet open={sheet === "theme"} onClose={() => setSheet(null)} title="Appearance">
-        <div className="look" role="radiogroup" aria-label="Theme">
-          {(["sand", "gold"] as const).map((l) => (
-            <button key={l} type="button" role="radio" aria-checked={look === l} onClick={() => setLook(l)}>
-              <i aria-hidden="true"><b style={{ background: l === "sand" ? "#F5F7F8" : "#FAF8F5" }} /><b style={{ background: l === "sand" ? "#31A8E0" : "#F9A11F" }} /><b style={{ background: l === "sand" ? "#F9A11F" : "#EF3F27" }} /></i>
-              {l === "sand" ? "IET Blue" : "IET Gold"}
-            </button>
-          ))}
-        </div>
-        <div className="grp" role="radiogroup" aria-label="Light or dark">
-          {(["system", "light", "dark"] as const).map((t) => (
-            <button key={t} type="button" className="cell" role="radio" aria-checked={theme === t} onClick={() => { setTheme(t); setSheet(null); }}>
-              <span className="t"><b>{t === "system" ? "Match phone" : t === "light" ? "Light" : "Dark"}</b></span>
-              <span className={`box${theme === t ? " on" : ""}`} style={{ borderRadius: 13 }} aria-hidden="true" />
-            </button>
-          ))}
-        </div>
-      </Sheet>
       <ChangePin open={sheet === "pin"} onClose={() => setSheet(null)} />
       {rel ? <UpdateSheet open={sheet === "update"} onClose={() => setSheet(null)} rel={rel} /> : null}
+      <SignOutSheet open={sheet === "out"} onClose={() => setSheet(null)} />
+    </>
+  );
+}
+
+const LOOKS: Array<{ key: "grid" | "glass"; name: string; about: string }> = [
+  { key: "grid", name: "Icon Grid", about: "IET colours on a light or dark screen" },
+  { key: "glass", name: "Glass Dock", about: "Deep IET blue with frosted glass" },
+];
+
+/** 4.2.1: the person's own page, opened by tapping their photo on Home. */
+export function ProfileScreen() {
+  const { me } = useApp();
+  const { push } = useNav();
+  const [ver, setVer] = useState({ version: "2.0.0", build: 0 });
+  const [sheet, setSheet] = useState<null | "about" | "out">(null);
+  useEffect(() => { void appVersion().then(setVer); }, []);
+  const ic = (n: React.ReactNode) => <span className="app-svg">{n}</span>;
+  return (
+    <>
+      <Head title="Profile" />
+      <Body>
+        <div className="prof">
+          <Avatar name={me.full_name} url={me.avatar_url} size="xl" />
+          <b>{me.full_name}</b>
+          <small>{[me.roleName, me.deptName].filter(Boolean).join(", ")}</small>
+        </div>
+        <AppGrid label="Your profile" items={[
+          { key: "account", label: "My account", icon: ic(<UserRound size={28} />), color: "#146185", onClick: () => push(<Profile />) },
+          { key: "sign", label: "Signature and photo", icon: ic(<PenLine size={28} />), color: "#F9A11F", onClick: () => push(<SignaturePhoto />) },
+          { key: "access", label: "My access", icon: ic(<KeyRound size={28} />), color: "#31A8E0", onClick: () => push(<MyAccess />) },
+          { key: "activity", label: "My activity", icon: ic(<History size={28} />), color: "#F47824", onClick: () => push(<MyActivity />) },
+          { key: "notices", label: "Notices", icon: ic(<Bell size={28} />), color: "#7C4B03", onClick: () => push(<Notices meId={me.id} onRead={() => null} />) },
+          { key: "about", label: "About ReqGen", icon: ic(<Info size={28} />), color: "#146185", onClick: () => setSheet("about") },
+        ]} />
+        <p className="mu" style={{ textAlign: "center", margin: 0 }}>ReqGen app {ver.version}{ver.build ? `, build ${ver.build}` : ""}</p>
+        <button type="button" className="btn bs block" style={{ color: "var(--er)" }} onClick={() => setSheet("out")}><LogOut size={18} />Sign out of this phone</button>
+      </Body>
       <Sheet open={sheet === "about"} onClose={() => setSheet(null)} title="About ReqGen">
         <p className="mu" style={{ fontSize: 14 }}>IET ReqGen, the requisition and approval system of the Islamic Education Trust. App version {ver.version}.</p>
         <p className="mu" style={{ fontSize: 14 }}>Your data stays with IET. ReqGen never sells, shares or leaks it, and has no trackers or adverts. The app talks only to the ReqGen database.</p>
         <p className="mu" style={{ fontSize: 14 }}>Developed by Barderian Enterprises. WhatsApp 0803 119 7746, info@barderians.com.ng</p>
         <button type="button" className="btn bs block" onClick={() => { setSheet(null); push(<Credits />); }}>Open-source credits</button>
       </Sheet>
-      <Sheet open={sheet === "out"} onClose={() => setSheet(null)} title="Sign out of this phone?">
-        <p className="mu" style={{ fontSize: 14 }}>Your PIN, fingerprint and the lists saved on this phone are removed. Next time you sign in with your password and the code.</p>
-        <button type="button" className="btn bd block" onClick={() => void signOut()}>Sign out</button>
-        <button type="button" className="btn bs block" onClick={() => setSheet(null)}>Cancel</button>
-      </Sheet>
+      <SignOutSheet open={sheet === "out"} onClose={() => setSheet(null)} />
     </>
+  );
+}
+
+function SignOutSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const { signOut } = useApp();
+  return (
+    <Sheet open={open} onClose={onClose} title="Sign out of this phone?">
+      <p className="mu" style={{ fontSize: 14 }}>Your PIN, fingerprint and the lists saved on this phone are removed. Next time you sign in with your password and the code.</p>
+      <button type="button" className="btn bd block" onClick={() => void signOut()}>Sign out</button>
+      <button type="button" className="btn bs block" onClick={onClose}>Cancel</button>
+    </Sheet>
   );
 }
 

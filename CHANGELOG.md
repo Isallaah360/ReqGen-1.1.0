@@ -1,5 +1,25 @@
 # ReqGen changelog
 
+## 6.3.1 (26 Nov 2026), with the app 4.2.1 (build 13)
+
+A new look for the website and the app. No database step and no Edge Function change.
+
+### Website
+- Royal Blue is the default look: the top bar and office menu are IET blue (#146185) with gold highlights. The black bar and the colour strip at the top of every page are gone.
+- Glass is a second look anyone can switch to from the menu under their photo (top right). The choice is remembered on that computer.
+- The search bar text and its hint are white and light blue on the blue bar, so they are easy to read.
+- Dark mode is deep IET blue, not black. The footer is dark blue.
+- The home page has the big IET logo again, "Welcome to ReqGen" under it, the sign-in and create-account buttons, the app banner and a moving strip of short notices (it stops when you point at it, and on devices set to reduce motion).
+- Gentle animations: buttons lift and press, menu links get a sliding gold underline, pages fade in, cards rise on hover, and saved or sent messages slide in.
+
+### App 4.2.1 (build 13)
+- The home screen shows your offices and pages as app icons (New request, Approvals, Direct, My vouchers, My requests, Notices, then every office you hold), with a red count badge where something waits.
+- Each office opens to its own page of app icons.
+- "Me" is now **Settings**: fingerprint, App PIN, look, light or dark, security and phones, setup guide, notices, app version and update, and Sign out.
+- Tap your photo on the home screen to open **Profile**: my account, signature and photo, my access, my activity, notices, about ReqGen, the version and Sign out.
+- Two looks: **Icon Grid** (default, IET blue) and **Glass Dock** (frosted glass on deep IET blue). Switch in Settings.
+- Button, tab and icon press animations; motion is switched off when the phone asks for less motion.
+
 ## 6.3.0 (25 Nov 2026), with the app 4.2.0
 
 Backup officers. Database step: `database/v6_3_0_backup_handover.sql`. Edge Function `reqgen-office` updated.

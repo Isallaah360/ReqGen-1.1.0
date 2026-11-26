@@ -8,7 +8,8 @@ import { ReqRow } from "./parts";
 import Notices from "./Notices";
 import { VoucherList } from "./office/Vouchers";
 import DirectNew from "./DirectNew";
-import { OfficeList, useOffices } from "./Offices";
+import { AppGrid, Office, officeIcons, useOffices } from "./Offices";
+import { ProfileScreen } from "./Me";
 
 type HomeData = { mine: Req[]; direct: DirectWaiting[]; unread: number; vouchers: number };
 
@@ -33,7 +34,7 @@ export default function Home() {
   return (
     <>
       <div className="hello">
-        <Avatar name={me.full_name} url={me.avatar_url} />
+        <button type="button" className="av-btn" aria-label="Your profile" onClick={() => push(<ProfileScreen />)}><Avatar name={me.full_name} url={me.avatar_url} /></button>
         <span className="who"><small>Assalamu alaikum</small><b>{me.full_name}</b></span>
         <button type="button" className="ib" aria-label={data?.unread ? `Notices, ${data.unread} new` : "Notices"} onClick={() => push(<Notices meId={me.id} onRead={() => void reload()} />)}>
           <Bell size={21} />{data?.unread ? <span className="dot" /> : null}
@@ -47,17 +48,20 @@ export default function Home() {
           <span>{pending ? [routedN ? `${routedN} ${routedN === 1 ? "request" : "requests"}` : "", directN ? `${directN} direct ${directN === 1 ? "message" : "messages"}` : ""].filter(Boolean).join(" and ") : `Nothing to approve, ${first(me.full_name)}.`}</span>
           {pending ? <button type="button" className="btn bp sm" onClick={() => setTab("approvals")}>Open Approvals</button> : null}
         </div>
-        <div className="qa">
-          <button type="button" onClick={openNew}><span style={{ color: "var(--ort)" }}><Plus size={24} strokeWidth={2.4} /></span>New request</button>
-          <button type="button" onClick={() => push(<DirectNew />)}><span style={{ color: "var(--in)" }}><Send size={22} /></span>Direct</button>
-          <button type="button" onClick={() => setTab("approvals")}><span style={{ color: "var(--ok)" }}><ShieldCheck size={22} /></span>Approvals</button>
-          <button type="button" onClick={() => push(<VoucherList mode="mine" />)}><span style={{ color: "var(--wa)" }}><Wallet size={22} /></span>Vouchers{data?.vouchers ? ` (${data.vouchers})` : ""}</button>
-        </div>
+        <div className="sect"><b>{offices.length ? "Your apps and offices" : "Your apps"}</b></div>
+        <AppGrid label="Your apps and offices" items={[
+          { key: "new", label: "New request", icon: <span className="app-svg"><Plus size={28} strokeWidth={2.4} /></span>, color: "#F9A11F", onClick: openNew },
+          { key: "approvals", label: "Approvals", icon: <span className="app-svg"><ShieldCheck size={28} /></span>, color: "#146185", badge: pending, onClick: () => setTab("approvals") },
+          { key: "direct", label: "Direct", icon: <span className="app-svg"><Send size={26} /></span>, color: "#31A8E0", onClick: () => push(<DirectNew />) },
+          { key: "vouchers", label: "My vouchers", icon: <span className="app-svg"><Wallet size={28} /></span>, color: "#F47824", badge: data?.vouchers || 0, onClick: () => push(<VoucherList mode="mine" />) },
+          { key: "requests", label: "My requests", icon: <span className="app-svg"><FileText size={28} /></span>, color: "#31A8E0", onClick: () => setTab("requests") },
+          { key: "notices", label: "Notices", icon: <span className="app-svg"><Bell size={28} /></span>, color: "#7C4B03", badge: data?.unread || 0, onClick: () => push(<Notices meId={me.id} onRead={() => void reload()} />) },
+          ...officeIcons(offices, (m) => push(<Office mod={m} />)),
+        ]} />
         <div className="sect"><b>My requests</b><button type="button" className="link" onClick={() => setTab("requests")}>See all</button></div>
         {loading && !data ? <Skeleton /> : data && data.mine.length ? (
           <div className="grp">{data.mine.map((r) => <ReqRow key={r.id} r={r} meId={me.id} />)}</div>
         ) : <div className="grp"><Empty icon={<FileText size={28} />} title="No requests yet" text="Tap New to send your first request." /></div>}
-        {offices.length ? <><div className="sect"><b>Your offices</b></div><OfficeList /></> : null}
         <Updated at={at} offline={!online} />
       </Body>
     </>

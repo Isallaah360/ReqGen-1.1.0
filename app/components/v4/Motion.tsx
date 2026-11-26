@@ -222,7 +222,7 @@ const TIPS = [
   "The search box at the top finds a request by its number, title or requester.",
   "A request sent back to you keeps the officer's reason on its record. Read it before you correct it.",
   "You can switch between your positions with the position menu at the top.",
-  "Choose Light, Dark or IET green in My Account › Appearance.",
+  "Switch between Royal Blue and Glass from the menu under your photo, top right.",
 ];
 
 /** One quiet tip a day, the same for everybody on that day. */

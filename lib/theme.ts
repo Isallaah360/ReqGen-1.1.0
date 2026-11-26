@@ -53,5 +53,20 @@ export function applyAccent(accent: AccentMode) {
   window.dispatchEvent(new CustomEvent(THEME_EVENT, { detail: { accent } }));
 }
 
+/**
+ * 6.3.1: the website look. "royal" (Royal Blue, the default) or "glass" (frosted glass over soft IET blue and gold).
+ * Written to <html data-look="…">, kept on this device, chosen from the account menu.
+ */
+export type LookMode = "royal" | "glass";
+export const LOOK_STORAGE_KEY = "reqgen-look";
+export function readLook(): LookMode {
+  try { return window.localStorage.getItem(LOOK_STORAGE_KEY) === "glass" ? "glass" : "royal"; } catch { return "royal"; }
+}
+export function applyLook(look: LookMode) {
+  document.documentElement.dataset.look = look;
+  try { window.localStorage.setItem(LOOK_STORAGE_KEY, look); } catch { /* private mode */ }
+  window.dispatchEvent(new CustomEvent(THEME_EVENT, { detail: { look } }));
+}
+
 /** Runs in <head> before first paint, so dark mode never flashes white. */
-export const THEME_BOOT_SCRIPT = `(function(){try{var m=localStorage.getItem('${THEME_STORAGE_KEY}')||'system';var d=m==='dark'||(m==='system'&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches);var r=document.documentElement;r.dataset.theme=d?'dark':'light';r.style.colorScheme=d?'dark':'light';var a=localStorage.getItem('${ACCENT_STORAGE_KEY}');r.dataset.accent=(a==='gold'||a==='iet')?'gold':'sand';}catch(e){document.documentElement.dataset.accent='sand';}})();`;
+export const THEME_BOOT_SCRIPT = `(function(){try{var m=localStorage.getItem('${THEME_STORAGE_KEY}')||'system';var d=m==='dark'||(m==='system'&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches);var r=document.documentElement;r.dataset.theme=d?'dark':'light';r.style.colorScheme=d?'dark':'light';var a=localStorage.getItem('${ACCENT_STORAGE_KEY}');r.dataset.accent=(a==='gold'||a==='iet')?'gold':'sand';r.dataset.look=localStorage.getItem('${LOOK_STORAGE_KEY}')==='glass'?'glass':'royal';}catch(e){document.documentElement.dataset.accent='sand';document.documentElement.dataset.look='royal';}})();`;

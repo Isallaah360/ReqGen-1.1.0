@@ -11,7 +11,7 @@ import { MODULE_SWITCH_EVENT, SWITCH_PREFIXES, loadModuleSwitches, type ModuleSw
 import { APPROVAL_QUEUE_CHANGED_EVENT, isAwaitingUser, type ApprovalQueueRow } from "@/lib/approvalQueue";
 import { MODULES, ACCOUNT_MODULE, DEVELOPER_MODULE, breadcrumbsFor, moduleForPath, searchablePages } from "@/lib/v4/modules";
 import { storedWindowEnd } from "@/lib/mfaTrust";
-import { THEME_EVENT, applyTheme, readThemeMode, type ThemeMode } from "@/lib/theme";
+import { THEME_EVENT, applyLook, applyTheme, readLook, readThemeMode, type LookMode, type ThemeMode } from "@/lib/theme";
 import { REQGEN_VERSION } from "@/lib/version";
 import { subscribeActivity } from "@/lib/activity";
 import { confirmDialog } from "@/lib/dialog";
@@ -107,9 +107,10 @@ function AvatarMenu({ me, onSignOut }: { me: Identity; onSignOut: () => void }) 
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<ThemeMode>("system");
   const ref = useRef<HTMLDivElement>(null);
+  const [look, setLook] = useState<LookMode>("royal");
   useEffect(() => {
-    queueMicrotask(() => setMode(readThemeMode()));
-    const onChange = () => setMode(readThemeMode());
+    queueMicrotask(() => { setMode(readThemeMode()); setLook(readLook()); });
+    const onChange = () => { setMode(readThemeMode()); setLook(readLook()); };
     window.addEventListener(THEME_EVENT, onChange);
     return () => window.removeEventListener(THEME_EVENT, onChange);
   }, []);
@@ -134,6 +135,8 @@ function AvatarMenu({ me, onSignOut }: { me: Identity; onSignOut: () => void }) 
           <Link role="menuitem" href="/profile" onClick={() => setOpen(false)}><Icon name="user" />My Account</Link>
           <Link role="menuitem" href="/profile/security" onClick={() => setOpen(false)}><Icon name="lock" />Security &amp; Devices</Link>
           <button role="menuitem" type="button" onClick={() => applyTheme(next)}><Icon name={mode === "dark" ? "moon" : mode === "light" ? "sun" : "monitor"} />Appearance: {THEME_LABEL[mode]}</button>
+          {/* 6.3.1: Royal Blue (default) or Glass, kept on this device */}
+          <button role="menuitem" type="button" onClick={() => applyLook(look === "glass" ? "royal" : "glass")}><Icon name="grid" />Look: {look === "glass" ? "Glass" : "Royal Blue"}<small className="s6-look-next">Switch to {look === "glass" ? "Royal Blue" : "Glass"}</small></button>
           <Link role="menuitem" href="/docs" onClick={() => setOpen(false)}><Icon name="help" />Help</Link>
           <button role="menuitem" type="button" className="v4-danger" onClick={() => { setOpen(false); onSignOut(); }}><Icon name="logout" />Sign out</button>
         </div>
@@ -392,7 +395,7 @@ export default function AppFrame({ children }: { children: ReactNode }) {
             {subTabs.map((t) => <Link key={t.href} href={t.href} aria-current={currentSub === t.href ? "page" : undefined}>{t.title}</Link>)}
           </nav>
         ) : null}
-        <div className="s6-content">{children}</div>
+        <div className="s6-content" key={pathname}>{children}</div>
       </main>
       <SiteFooter />
       <SavedHost />

@@ -1,19 +1,21 @@
 {
-    "version":  "4.2.0",
-    "build":  12,
+    "version":  "4.2.1",
+    "build":  13,
     "apk":  "/downloads/ReqGen.apk",
     "size":  "6.7 MB",
     "date":  "26 Nov 2026",
-    "sha256":  "91BE 3168 E3B9 DC64 8F1F 31EC 7B02 FDD0 C15C 56D5 16DE 7E7C 73BD 048D 7A96 DED9",
+    "sha256":  "B2CA C8C5 D046 7C29 A027 0112 7BF9 46E2 3B6D FA62 8515 2B4C CCA7 89AD AA13 0EF0",
     "new":  [
-                "Backup officers: a request that waits too long with an officer moves to the backup, then back to the officer.",
-                "The Super Admin sets a backup under each officer in the Routing Engine."
+                "Your offices and pages are now app icons on the home screen, like a phone.",
+                "Settings has its own tab: App PIN, fingerprint, look, security and setup guide.",
+                "Tap your photo at the top to open your Profile: account, access, activity, notices and about.",
+                "Two looks: Icon Grid (the IET blue default) and Glass Dock. Switch in Settings."
             ],
     "fixed":  [
                   null
               ],
     "better":  [
-                   "Times are shown with AM and PM.",
-                   "The opening screen sits in the middle, with a live loading bar."
+                   "Smoother animations on buttons, tabs and saved messages.",
+                   "Every word is easy to read in both looks."
                ]
 }

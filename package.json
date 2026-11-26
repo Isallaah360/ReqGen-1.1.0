@@ -1,6 +1,6 @@
 {
   "name": "reqgen-web",
-  "version": "6.3.0",
+  "version": "6.3.1",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -20,8 +20,9 @@
     "audit:components": "node scripts/audit-component-contracts.cjs",
     "audit:v610": "node scripts/audit-v6-1-0.mjs",
     "audit:v620": "node scripts/audit-v6-2-0.mjs",
+    "audit:v631": "node scripts/audit-v6-3-1.mjs",
     "audit:v630": "node scripts/audit-v6-3-0.mjs",
-    "audit:deploy": "npm run audit:v630 && npm run audit:v620 && npm run audit:v610 && npm run audit:v400 && npm run audit:v410 && npm run audit:v411 && npm run audit:v412 && npm run audit:v420 && npm run audit:v430 && npm run audit:v440 && npm run audit:v450 && npm run audit:v460 && npm run audit:v463 && npm run audit:v464 && npm run audit:v465 && npm run audit:v466 && npm run audit:v467 && npm run audit:v468 && npm run audit:v469 && npm run audit:v4610 && npm run audit:v4611 && npm run audit:v4612 && npm run audit:v470 && npm run audit:v471 && npm run audit:routes && npm run audit:rbac && npm run audit:workflow && npm run audit:navigation && npm run audit:mockup-lock && npm run audit:components && npm run audit:privacy",
+    "audit:deploy": "npm run audit:v631 && npm run audit:v630 && npm run audit:v620 && npm run audit:v610 && npm run audit:v400 && npm run audit:v410 && npm run audit:v411 && npm run audit:v412 && npm run audit:v420 && npm run audit:v430 && npm run audit:v440 && npm run audit:v450 && npm run audit:v460 && npm run audit:v463 && npm run audit:v464 && npm run audit:v465 && npm run audit:v466 && npm run audit:v467 && npm run audit:v468 && npm run audit:v469 && npm run audit:v4610 && npm run audit:v4611 && npm run audit:v4612 && npm run audit:v470 && npm run audit:v471 && npm run audit:routes && npm run audit:rbac && npm run audit:workflow && npm run audit:navigation && npm run audit:mockup-lock && npm run audit:components && npm run audit:privacy",
     "audit:route-registry": "node scripts/audit-route-registry.mjs",
     "audit:rmb-architecture": "node scripts/audit-rmb-page-architecture.mjs",
     "audit:section4": "node scripts/audit-section4-lock.mjs",

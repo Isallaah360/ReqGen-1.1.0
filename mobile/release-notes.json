@@ -1,10 +1,12 @@
 {
   "new": [
-    "Backup officers: a request that waits too long with an officer moves to the backup, then back to the officer.",
-    "The Super Admin sets a backup under each officer in the Routing Engine."
+    "Your offices and pages are now app icons on the home screen, like a phone.",
+    "Settings has its own tab: App PIN, fingerprint, look, security and setup guide.",
+    "Tap your photo at the top to open your Profile: account, access, activity, notices and about.",
+    "Two looks: Icon Grid (the IET blue default) and Glass Dock. Switch in Settings."
   ],
   "better": [
-    "Times are shown with AM and PM.",
-    "The opening screen sits in the middle, with a live loading bar."
+    "Smoother animations on buttons, tabs and saved messages.",
+    "Every word is easy to read in both looks."
   ]
 }

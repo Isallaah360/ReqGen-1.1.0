@@ -321,3 +321,67 @@ textarea.inp{padding:12px 14px;min-height:100px;resize:none;line-height:1.45}
 @keyframes splashDot{0%,60%,100%{opacity:.2}30%{opacity:1}}
 @keyframes splashRun{0%{left:-40%}100%{left:100%}}
 @media (prefers-reduced-motion: reduce){.splash-logo,.splash-dots i,.splash-bar span{animation:none}.splash-bar span{left:30%}.splash-dots i{opacity:1}}
+
+/* =====================================================================
+   4.2.1: offices and pages are app icons, like a phone's home screen.
+   Two looks: Icon Grid (default; IET Blue colours, light or dark) and Glass Dock (deep IET blue, frosted glass).
+   ===================================================================== */
+.apps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px 6px;padding:4px 0 6px}
+.apps > div{display:flex;justify-content:center}
+.app{position:relative;display:flex;flex-direction:column;align-items:center;gap:7px;width:100%;max-width:92px;padding:2px 0;animation:appIn .45s cubic-bezier(.2,.9,.3,1.4) both}
+.app-ic{width:62px;height:62px;border-radius:19px;display:grid;place-items:center;box-shadow:0 6px 14px rgba(20,97,133,.20);transition:transform .16s ease,box-shadow .16s ease}
+.app-svg{display:grid;place-items:center}
+.app-svg svg{width:28px;height:28px}
+.app:active .app-ic{transform:scale(.88);box-shadow:0 2px 6px rgba(20,97,133,.2)}
+.app-t{font-size:12px;font-weight:700;line-height:1.2;text-align:center;color:var(--ink);overflow-wrap:anywhere}
+.app-nd{position:absolute;top:-6px;right:calc(50% - 40px);min-width:21px;height:21px;padding:0 5px;border-radius:11px;background:#B8301C;color:#fff;font-size:11px;font-weight:800;line-height:21px;box-shadow:0 0 0 2px var(--bg);animation:ndPulse 2s ease-in-out infinite}
+@keyframes appIn{from{transform:scale(.6);opacity:0}}
+@keyframes ndPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.14)}}
+@media (max-width:340px){.apps{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.av-btn{border-radius:50%;padding:0;flex:none;box-shadow:0 0 0 2px #F9A11F;transition:transform .15s}
+.av-btn:active{transform:scale(.92)}
+.prof{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;padding:6px 0 8px}
+.prof .av{box-shadow:0 0 0 4px #F9A11F}
+.prof b{font-size:20px}.prof small{color:var(--mute)}
+.look2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.look2 button{display:flex;flex-direction:column;gap:8px;padding:10px;border-radius:18px;background:var(--card);border:2px solid var(--line);text-align:left;transition:border-color .2s,transform .15s}
+.look2 button:active{transform:scale(.97)}
+.look2 button[aria-checked="true"]{border-color:#F9A11F;box-shadow:0 0 0 3px rgba(249,161,31,.25)}
+.look2 span{display:flex;flex-direction:column;gap:2px}.look2 small{color:var(--mute);font-size:12px}
+.look-pv{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;padding:10px;border-radius:12px}
+.look-pv b{aspect-ratio:1;border-radius:6px}
+.look-pv-grid{background:#F5F7F8}.look-pv-grid b:nth-child(1){background:#146185}.look-pv-grid b:nth-child(2){background:#31A8E0}.look-pv-grid b:nth-child(3){background:#F9A11F}.look-pv-grid b:nth-child(4){background:#F47824}
+.look-pv-glass{background:radial-gradient(circle at 20% 10%,rgba(49,168,224,.6),transparent 60%),#0B3D55}.look-pv-glass b{background:rgba(255,255,255,.22);border:1px solid rgba(255,255,255,.35)}.look-pv-glass b:nth-child(3){background:#F9A11F}
+/* gentle motion on every button, card and row */
+.btn{transition:transform .15s ease,box-shadow .15s ease,filter .15s}
+.btn:active{transform:scale(.96)}
+.cell{transition:background .15s}
+.cell:active{background:var(--card2)}
+@media (prefers-reduced-motion: reduce){.app,.app-nd{animation:none}.app-ic,.btn{transition:none}}
+
+/* ---- Glass Dock look ---- */
+:root[data-look="glass"]{
+  --bg:#0B3D55;--card:rgba(255,255,255,.08);--card2:rgba(255,255,255,.06);--ink:#FFFFFF;--ink2:#E2F1F9;--mute:#DCEFF8;--line:rgba(255,255,255,.20);--hdr:#0B3D55;
+  --or:#F9A11F;--ont:#000000;--ort:#FCD089;--ors:rgba(124,75,3,.82);--ok:#9AD6F2;--oks:rgba(4,40,58,.55);--wa:#FCD089;--was:rgba(124,75,3,.82);
+  --er:#FFB4A8;--ers:rgba(80,10,0,.5);--in:#9AD6F2;--ins:rgba(4,40,58,.55);--sk:rgba(255,255,255,.10);--glass:rgba(11,61,85,.62);--gline:rgba(255,255,255,.24);
+  --hero:rgba(4,40,58,.45);--onhero:#FFFFFF;--onhero2:#E2F1F9;--acc:rgba(124,75,3,.82);--acct:#FCD089;
+  --sh:0 8px 24px rgba(0,0,0,.2);--scrim:rgba(0,20,30,.6);color-scheme:dark;
+}
+:root[data-look="glass"] .scr{background:radial-gradient(circle at 8% 4%,rgba(49,168,224,.25),transparent 42%),radial-gradient(circle at 100% 58%,rgba(249,161,31,.18),transparent 40%),radial-gradient(circle at 30% 100%,rgba(49,168,224,.18),transparent 45%),#0B3D55}
+:root[data-look="glass"] .grp,:root[data-look="glass"] .card,:root[data-look="glass"] .hero,:root[data-look="glass"] .look2 button{-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.22)}
+:root[data-look="glass"] .hero .btn{background:#F9A11F;color:#000}
+:root[data-look="glass"] .sheet,:root[data-look="glass"] .dlg{background:#0E4A66;color:#fff}
+:root[data-look="glass"] .inp{background:rgba(255,255,255,.12);color:#fff;border-color:rgba(255,255,255,.3)}
+:root[data-look="glass"] .inp::placeholder{color:#CFE8F5;opacity:1}
+:root[data-look="glass"] option{color:#111111;background:#FFFFFF}
+:root[data-look="glass"] .tb{background:rgba(11,61,85,.72);-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);border-top:1px solid rgba(255,255,255,.22)}
+:root[data-look="glass"] .tb button{color:#CFE8F5}
+:root[data-look="glass"] .tb button[aria-current="page"]{color:#FBC06A}
+:root[data-look="glass"] .tb .fab{background:#F9A11F;color:#000;box-shadow:0 8px 18px rgba(249,161,31,.4)}
+:root[data-look="glass"] .app-ic{box-shadow:0 8px 18px rgba(0,0,0,.25)}
+:root[data-look="glass"] .app-t{color:#FFFFFF;text-shadow:0 1px 2px rgba(0,0,0,.35)}
+:root[data-look="glass"] .app-nd{box-shadow:0 0 0 2px #0B3D55}
+:root[data-look="glass"] .brand-word span{color:#FBC06A}
+:root[data-look="glass"] .btn.bs{background:rgba(255,255,255,.12);color:#fff;border-color:rgba(255,255,255,.3)}
+:root[data-look="glass"] .btn.bp{background:#F9A11F;color:#000}
+:root[data-look="glass"] .splash{background:#0B3D55}
