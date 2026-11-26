@@ -87,7 +87,7 @@ function AuditLog() {
                   const who = split(r.actor_label);
                   return (
                     <tr key={`${r.at}-${i}`}>
-                      <td className="v4-num">{new Date(r.at).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</td>
+                      <td className="v4-num">{new Date(r.at).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "numeric", minute: "2-digit", hour12: true }).replace(/(\d) ?([ap])m\b/i, (_m, d, x) => `${d} ${x.toUpperCase()}M`)}</td>
                       <td><span className="v4-strong">{who.name}</span>{who.pos ? <span className="v4-sub">{who.pos}</span> : null}</td>
                       <td><span className="v4-strong" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
                         {/* eslint-disable-next-line @next/next/no-img-element */}

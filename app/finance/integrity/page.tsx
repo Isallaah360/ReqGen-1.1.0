@@ -235,7 +235,7 @@ export default function FinanceIntegrityPage() {
               <tbody>
                 {history.map((c) => (
                   <tr key={c.id}>
-                    <td><span className="v4-strong">{c.correction_no}</span><span className="v4-sub">{new Date(c.created_at).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}</span></td>
+                    <td><span className="v4-strong">{c.correction_no}</span><span className="v4-sub">{new Date(c.created_at).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit", hour12: true }).replace(/(\d) ?([ap])m\b/i, (_m, d, x) => `${d} ${x.toUpperCase()}M`)}</span></td>
                     <td data-label="Record">{c.subject_label}</td>
                     <td data-label="Item">{c.item}</td>
                     <td className="v4-r v4-num" data-label="Before">{nairaExact(Number(c.before_value))}</td>

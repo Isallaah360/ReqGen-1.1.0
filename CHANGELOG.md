@@ -1,5 +1,34 @@
 # ReqGen changelog
 
+## 6.3.0 (25 Nov 2026), with the app 4.2.0
+
+Backup officers. Database step: `database/v6_3_0_backup_handover.sql`. Edge Function `reqgen-office` updated.
+
+### Backup officers (website and app)
+- Each review step (PD, DOD, HOD, DIN Admin, HR Coordinator, Registrar) of each department can have a backup, set by the Super Admin in the Routing Engine.
+- When the officer holding a request does not treat it within 25 working minutes (Monday to Friday, 8:00 AM to 5:00 PM), it moves to the backup, who gets an SMS, an e-mail and an app notice.
+- If the backup does not treat it either, it goes back to the officer and stays there, and the Registry is told. When no backup is set, the request stays and the Registry is told once.
+- The DG, Account, HR Filing, Direct requests and requests sent back to their sender never move by themselves.
+- The Super Admin can change the minutes, days and hours, or switch it off. Every move is written in the request's history.
+
+## 6.2.0 (25 Nov 2026), with the app 4.1.1
+
+The new website look (Blueprint 08) and the app's printed papers matched to the website. No database step.
+
+### The website's new look
+- Every signed-in page sits in one plain frame: the IET top bar (logo, search, notices, acting as, your menu), one row of office menus under it, the page path, the page, and the footer.
+- The sign-in, sign-up, 2FA and password pages use the same top bar and footer.
+- Colours come from the IET logo only: Blue, Gold, Orange and Red on white, with readable dark shades for text. Plain white cards with thin lines, no shadows or glow.
+- The old left menu, the phone tab bar and the pointer glow are gone. On phones the search sits on its own row and long buttons wrap, so no page scrolls sideways.
+
+### Times
+- Every time on the website and in the app is shown in 12-hour form with AM or PM (for example 8:19 PM).
+
+### App 4.1.1 (build 11)
+- The opening screen sits in the middle of the phone, with "Opening ReqGen" and a moving loading bar in the IET colours.
+- The request letter and payment voucher PDFs are now laid out exactly as the website prints them: the same header, boxes, signature lines, "Building Bridges" footer, colour stripes and QR check code.
+- Paper styles are kept apart from the app's screen styles, so nothing on the paper is resized by the app.
+
 ## 6.1.0 (25 Nov 2026), with the app 4.1.0
 
 Steps 2, 3 and 4 of the real app, and HR's rule for requests on both the website and the app. Database step: `database/v6_1_0_requests_hr_rule.sql`. New Edge Function: `reqgen-office`.

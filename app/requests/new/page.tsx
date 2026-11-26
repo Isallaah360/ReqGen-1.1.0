@@ -204,7 +204,7 @@ function NewRequest() {
             setSubheadId(d.subhead_id || "");
             setFiles(d.files);
             setStep(1);
-            setMsg({ tone: "blue", text: `Draft opened. Saved ${new Date(d.updated_at).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}.` });
+            setMsg({ tone: "blue", text: `Draft opened. Saved ${new Date(d.updated_at).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit", hour12: true }).replace(/(\d) ?([ap])m\b/i, (_m, d, x) => `${d} ${x.toUpperCase()}M`)}.` });
           } else {
             setMsg({ tone: "amber", text: "That draft was not found. It may have been submitted or deleted." });
             setDraftId(null);

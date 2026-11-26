@@ -214,8 +214,15 @@ function SignedOut({ why, onOk }: { why: "elsewhere" | "deactivated"; onOk: () =
   );
 }
 
+/** 4.1.1: the opening screen sits in the middle of the phone, with a live loading bar. */
 function Splash() {
-  return <div className="center" aria-busy="true"><img className="logo" src="./iet-logo.png" alt="Islamic Education Trust logo" /><p className="mu">Opening ReqGen…</p></div>;
+  return (
+    <div className="splash" role="status" aria-busy="true" aria-label="Opening ReqGen">
+      <img className="logo splash-logo" src="./iet-logo.png" alt="Islamic Education Trust logo" />
+      <p className="splash-txt">Opening ReqGen<span className="splash-dots" aria-hidden="true"><i>.</i><i>.</i><i>.</i></span></p>
+      <div className="splash-bar" aria-hidden="true"><span /></div>
+    </div>
+  );
 }
 function BootError({ text, onRetry }: { text: string; onRetry: () => void }) {
   return (

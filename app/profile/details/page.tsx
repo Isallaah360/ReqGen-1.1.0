@@ -283,7 +283,7 @@ export default function ProfileDetailsPage() {
               <button className="v4-btn v4-btn-secondary v4-btn-block" type="button" onClick={() => go("signature")}><Icon name="camera" />Change photo</button>
             </section>
             <section className="v4-card v4-card-pad">
-              <dl className="v4-kv"><dt>Member since</dt><dd>{dateText(me.since)}</dd><dt>Last sign-in</dt><dd>{me.lastSignIn ? new Date(me.lastSignIn).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "-"}</dd><dt>Main position</dt><dd>{position}</dd></dl>
+              <dl className="v4-kv"><dt>Member since</dt><dd>{dateText(me.since)}</dd><dt>Last sign-in</dt><dd>{me.lastSignIn ? new Date(me.lastSignIn).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit", hour12: true }).replace(/(\d) ?([ap])m\b/i, (_m, d, x) => `${d} ${x.toUpperCase()}M`) : "-"}</dd><dt>Main position</dt><dd>{position}</dd></dl>
               <Link className="v4-btn v4-btn-ghost" style={{ marginTop: 10 }} href="/change-password"><Icon name="key" />Change password</Link>
             </section>
           </aside>

@@ -8,6 +8,7 @@ import { confirmDialog } from "@/lib/dialog";
 import { GLOBAL_STAGE_SETTING, ROUTE_KIND_LABEL, isAwayToday, loadEngineConfig, setOfficerAvailability, type EngineConfig, type EngineStage, type RouteKind } from "@/lib/routingEngine";
 import { DEPT_ONLY, OFFICER_STAGES, REVIEW, STAGE_TEXT, loadRouting, routeOf, saveRoute, type IfVacant, type Lane, type OverviewRow, type OfficerStage, type StageOfficer } from "@/lib/v4/routing";
 import { positionFor, type AdminPerson } from "@/lib/v4/admin";
+import { BACKUP_STAGES, DAY_SETS, DEFAULT_HANDOVER, HOURS, MINUTE_CHOICES, clock12, handoverSummary, loadHandover, saveHandover, type Handover } from "@/lib/v4/handover";
 import { useIdentity } from "@/app/components/v4/useIdentity";
 import Icon from "@/app/components/v4/Icon";
 import Modal from "@/app/components/v4/Modal";
@@ -66,6 +67,8 @@ function RoutingEngine() {
   const [accForm, setAccForm] = useState<{ deptId: string; account: string; officer: string } | null>(null);
   const [away, setAway] = useState<{ id: string; from: string; until: string; note: string } | null>(null);
   const [backupDept, setBackupDept] = useState("");
+  const [rule, setRule] = useState<Handover>(DEFAULT_HANDOVER);
+  const [ruleEdit, setRuleEdit] = useState<Handover | null>(null);
   const [view, setView] = useState<RouteView>(() => (params.get("view") === "personal" ? "personal" : "official"));
 
   const load = useCallback(async () => {
@@ -78,6 +81,7 @@ function RoutingEngine() {
       supabase.rpc("reqgen_admin_departments_data").then(async (x) => (x.error ? await supabase.from("department_account_routing").select("id,dept_id,iet_account_id,officer_user_id,is_active") : { data: (x.data as { routing?: AccRoute[] } | null)?.routing || [], error: null })),
       loadEngineConfig().catch(() => null),
     ]);
+    setRule(await loadHandover());
     setError(eng.error || p.error?.message || null);
     setDepts(((d.data || []) as Dept[]).filter((x) => x.is_active !== false));
     setPeople(((p.data || []) as AdminPerson[]).filter((x) => x.is_active && !x.system_account));
@@ -323,6 +327,13 @@ function RoutingEngine() {
 
         {overview && tab === "backups" ? (
           <div className="v4-card-pad" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <div className="v4-routecard" style={{ padding: "0 0 14px" }}>
+              <div className="v4-rh" style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
+                <strong>Backup rule: {rule.on ? `backups take over after ${rule.minutes} working minutes` : "off"}</strong>
+                <button type="button" className="v4-btn v4-btn-secondary" style={{ minHeight: 38 }} disabled={busy} onClick={() => setRuleEdit({ ...rule })}><Icon name="pen" />Change</button>
+              </div>
+              <p className="v4-help" style={{ margin: "6px 0 0" }}>{handoverSummary(rule)} Only PD, DOD, HOD, DIN Admin, HR Coordinator and Registrar hand over; the DG and Account never move by themselves.</p>
+            </div>
             <p className="v4-help" style={{ margin: 0 }}>When someone is marked <b>Away</b>, their steps go to the next person below. ReqGen writes “for the DG” (or the officer covered) beside the name.</p>
             <div className="v4-routecard" style={{ padding: "0 0 14px" }}>
               <div className="v4-rh"><strong>Director General away</strong></div>
@@ -344,11 +355,11 @@ function RoutingEngine() {
                 <div className="v4-field" style={{ maxWidth: 360 }}><span className="v4-flabel">Department</span><Select ariaLabel="Department for backups" searchable value={backupDept} placeholder="Choose a department" onChange={setBackupDept} options={depts.map((d) => ({ value: d.id, label: d.name }))} /></div>
                 {backupDept ? (
                   <div className="v4-bankcards">
-                    {(DEPT_ONLY as EngineStage[]).map((stage) => (
+                    {(BACKUP_STAGES as readonly EngineStage[]).map((stage) => (
                       <article key={stage} className="v4-bankcard">
-                        <div className="v4-top"><span><strong>{stage}</strong><span>Primary: {nameOf.get(routeOf(backupDept, overview, officers).officers[stage as OfficerStage]) || "Not set"}</span></span></div>
+                        <div className="v4-top"><span><strong>{STAGE_TEXT[stage] || stage}</strong><span>Primary: {nameOf.get(routeOf(backupDept, overview, officers).officers[stage as OfficerStage]) || "Not set"}</span></span></div>
                         {backupsFor(backupDept, stage).map((b) => <span key={b.id} className="v4-pchip v4-office" style={{ justifyContent: "space-between" }}>{b.label || "Backup"}, {nameOf.get(b.user_id) || "Officer"}<button type="button" className="v4-link" aria-label="Remove backup" onClick={() => void removeBackup(b.id)} disabled={busy}><Icon name="x" size="sm" /></button></span>)}
-                        <Select size="compact" ariaLabel={`Add ${stage} backup`} value="" placeholder={`+ Add ${stage} backup`} onChange={(v) => void addBackup(backupDept, stage, v)} options={personOptions(stage === "DOD" ? "director" : stage.toLowerCase()).filter((o) => o.value)} disabled={busy} />
+                        <Select size="compact" ariaLabel={`Add ${stage} backup`} value="" placeholder={`+ Add ${STAGE_TEXT[stage] || stage} backup`} onChange={(v) => void addBackup(backupDept, stage, v)} options={personOptions(stage === "DOD" ? "director" : stage === "HR" ? "hrcoordinator" : stage === "DIN Admin" ? "dinadmin" : stage.toLowerCase()).filter((o) => o.value)} disabled={busy} />
                       </article>
                     ))}
                   </div>
@@ -452,6 +463,24 @@ function RoutingEngine() {
         ) : null}
       </Modal>
 
+      <Modal open={!!ruleEdit} title="Backup rule" sub="When a request waits too long with an officer, it moves to the backup; if the backup does not act either, it goes back to the officer, where it stays. The new holder gets an SMS, an e-mail and an app notice; the Registry is told." onClose={() => setRuleEdit(null)} busy={busy}
+        footer={<><button type="button" className="v4-btn v4-btn-ghost" onClick={() => setRuleEdit(null)} disabled={busy}>Cancel</button><button type="button" className="v4-btn v4-btn-primary" disabled={busy} onClick={() => void (async () => {
+          if (!ruleEdit) return;
+          setBusy(true);
+          try { await saveHandover(ruleEdit); setRule(ruleEdit); setRuleEdit(null); setMsg({ tone: "green", text: "Backup rule saved. It applies from now." }); }
+          catch (e) { setMsg({ tone: "red", text: e instanceof Error ? e.message : "Could not save the backup rule." }); }
+          finally { setBusy(false); }
+        })()}><Icon name="check" />Save the rule</button></>}>
+        {ruleEdit ? (
+          <div className="v4-form-grid">
+            <label className="v4-field"><span className="v4-flabel">Backups</span><Select ariaLabel="Backups on or off" value={ruleEdit.on ? "on" : "off"} onChange={(v) => setRuleEdit({ ...ruleEdit, on: v === "on" })} options={[{ value: "on", label: "On: hand over when a request waits" }, { value: "off", label: "Off: requests stay with the officer" }]} /></label>
+            <label className="v4-field"><span className="v4-flabel">Hand over after</span><Select ariaLabel="Minutes" value={String(ruleEdit.minutes)} onChange={(v) => setRuleEdit({ ...ruleEdit, minutes: Number(v) })} options={MINUTE_CHOICES.map((m) => ({ value: String(m), label: `${m} working minutes` }))} /></label>
+            <label className="v4-field"><span className="v4-flabel">Working days</span><Select ariaLabel="Working days" value={ruleEdit.days} onChange={(v) => setRuleEdit({ ...ruleEdit, days: v })} options={DAY_SETS} /></label>
+            <label className="v4-field"><span className="v4-flabel">Day starts</span><Select ariaLabel="Day starts" value={ruleEdit.from} onChange={(v) => setRuleEdit({ ...ruleEdit, from: v })} options={HOURS.map((h) => ({ value: h, label: clock12(h) }))} /></label>
+            <label className="v4-field"><span className="v4-flabel">Day ends</span><Select ariaLabel="Day ends" value={ruleEdit.to} onChange={(v) => setRuleEdit({ ...ruleEdit, to: v })} options={HOURS.map((h) => ({ value: h, label: clock12(h) }))} /></label>
+          </div>
+        ) : null}
+      </Modal>
       <Modal open={!!away} title={`Mark ${nameOf.get(away?.id || "") || "officer"} away`} sub="Requests already waiting move to the backup at once; new requests skip them until they are back." onClose={() => setAway(null)} busy={busy}
         footer={<><button type="button" className="v4-btn v4-btn-ghost" onClick={() => setAway(null)} disabled={busy}>Cancel</button><button type="button" className="v4-btn v4-btn-primary" onClick={() => void markAway()} disabled={busy}><Icon name="check" />Mark away</button></>}>
         {away ? (

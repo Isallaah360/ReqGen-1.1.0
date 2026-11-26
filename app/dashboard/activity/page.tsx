@@ -88,7 +88,7 @@ export default function RecentActivityPage() {
                         <strong>{isRegistry ? no : <Link href={`/requests/${m.request_id}`}>{no}</Link>}, {x.text}</strong>
                         <span>{m.actor_name || "Someone"}{m.actor_role_name ? `, ${positionName(m.actor_role_name, m.actor_role_name)}` : ""}</span>
                       </span>
-                      <span className="v4-time">{new Date(m.created_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}</span>
+                      <span className="v4-time">{new Date(m.created_at).toLocaleTimeString("en-GB", { hour: "numeric", minute: "2-digit", hour12: true }).replace(/(\d) ?([ap])m\b/i, (_m, d, x) => `${d} ${x.toUpperCase()}M`)}</span>
                     </li>
                   );
                 })}

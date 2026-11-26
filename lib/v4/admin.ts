@@ -116,7 +116,7 @@ export const whenText = (d: string | null | undefined) => {
   if (!d) return "Never";
   const t = new Date(d);
   const today = new Date(); today.setHours(0, 0, 0, 0);
-  const hm = t.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+  const hm = t.toLocaleTimeString("en-GB", { hour: "numeric", minute: "2-digit", hour12: true }).replace(/(\d) ?([ap])m\b/i, (_m, d, x) => `${d} ${x.toUpperCase()}M`);
   if (t >= today) return `Today ${hm}`;
   return `${t.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: t.getFullYear() === today.getFullYear() ? undefined : "numeric" })}, ${hm}`;
 };

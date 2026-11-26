@@ -4,6 +4,7 @@ import { db, office } from "../../lib/core";
 import { ASSIGNABLE, CELL_TEXT, MATRIX, MATRIX_COLUMNS, POSITIONS, positionFor, positionsOf, whenText, type AdminPerson } from "../../lib/admin";
 import { OFFICER_STAGES, REVIEW, STAGE_TEXT, loadRouting, routeOf, saveRoute, type IfVacant, type Lane, type OfficerStage, type RouteKind } from "../../lib/routing";
 import { naira, when } from "../../lib/text";
+import { BACKUP_STAGES, DAY_SETS, HOURS, MINUTE_CHOICES, clock12, handoverSummary, loadDeptBackups, loadHandover, saveHandover, setDeptBackup, type BackupStage, type Handover } from "../../lib/handover";
 import { useApp } from "../../App";
 import { Body, Cell, Chip, Chips, FormSheet, Head, Item, More, Note, SearchBox, Skeleton, useMore, useNav } from "../../ui";
 import { Err, Facts, Stats, call, isAdminRole, rows, useAction, useLoad } from "./kit";
@@ -231,10 +232,11 @@ export function Routing() {
   const { push } = useNav();
   const { data, error, reload } = useLoad(async () => {
     const c = await db();
-    const [d, r, p, s] = await Promise.all([c.from("departments").select("id,name,is_active").order("name"), loadRouting(), people(), c.from("app_settings").select("key,value").in("key", INSTITUTION.map((i) => i.key))]);
-    return { depts: (d.data || []) as DRow[], routing: r, people: p, settings: Object.fromEntries(((s.data || []) as Array<{ key: string; value: string | null }>).map((x) => [x.key, x.value || ""])) };
+    const [d, r, p, s, h] = await Promise.all([c.from("departments").select("id,name,is_active").order("name"), loadRouting(), people(), c.from("app_settings").select("key,value").in("key", INSTITUTION.map((i) => i.key)), loadHandover()]);
+    return { depts: (d.data || []) as DRow[], routing: r, people: p, handover: h, settings: Object.fromEntries(((s.data || []) as Array<{ key: string; value: string | null }>).map((x) => [x.key, x.value || ""])) };
   }, []);
   const [inst, setInst] = useState<Record<string, string> | null>(null);
+  const [rule, setRule] = useState<Handover | null>(null);
   const { busy, err, run } = useAction();
   const nameOf = (id: string) => data?.people.find((p) => p.id === id)?.full_name || "";
   return (
@@ -245,12 +247,28 @@ export function Routing() {
         <Err text={error || data?.routing.error} />
         <div className="sect"><b>Institution officers</b></div>
         <div className="grp">{INSTITUTION.map((i) => <Cell key={i.key} icon={<KeyRound size={18} />} title={i.label} sub={nameOf(data?.settings[i.key] || "") || "Not set"} onClick={() => setInst({ ...(data?.settings || {}) })} />)}</div>
+        <div className="sect"><b>Backup rule</b></div>
+        <div className="grp"><Cell icon={<Users size={18} />} title={data?.handover.on === false ? "Backups: off" : `Backups take over after ${data?.handover.minutes ?? 25} minutes`} sub={data ? handoverSummary(data.handover) : "Loading"} wrap onClick={() => data && setRule({ ...data.handover })} /></div>
+        <p className="mu" style={{ margin: 0 }}>Set each department&apos;s backups in its route below, under each officer.</p>
         <div className="sect"><b>Departments</b></div>
         {!data ? <Skeleton rows={4} /> : <div className="grp">{data.depts.filter((d) => d.is_active !== false).map((d) => {
           const steps = data.routing.overview.filter((r) => r.dept_id === d.id && r.route_kind === "official").sort((a, b) => a.step_order - b.step_order);
           return <Cell key={d.id} icon={<RouteIcon size={18} />} title={d.name} sub={steps.length ? steps.map((s) => STAGE_TEXT[s.stage] || s.stage).join(", then ") : "No route yet"} wrap onClick={() => push(<RouteEditor deptId={d.id} deptName={d.name} onSaved={reload} />)} />;
         })}</div>}
       </Body>
+      <FormSheet open={!!rule} title="Backup rule" sub="Only PD, DOD, HOD, DIN Admin, HR Coordinator and Registrar hand over. The DG and Account never move by themselves." onClose={() => setRule(null)} saveLabel="Save the rule" busy={busy} error={err} onSave={() => {
+        if (!rule) return;
+        void run("save the backup rule", () => saveHandover(rule), "Saved. The new rule applies from now.", async () => { setRule(null); await reload(); });
+      }}>
+        {rule ? <>
+          <label><span className="lbl">Backups</span><select className="inp" value={rule.on ? "on" : "off"} onChange={(e) => setRule({ ...rule, on: e.target.value === "on" })}><option value="on">On: hand over when a request waits</option><option value="off">Off: requests stay with the officer</option></select></label>
+          <label><span className="lbl">Hand over after</span><select className="inp" value={rule.minutes} onChange={(e) => setRule({ ...rule, minutes: Number(e.target.value) })}>{MINUTE_CHOICES.map((m) => <option key={m} value={m}>{m} working minutes</option>)}</select></label>
+          <label><span className="lbl">Working days</span><select className="inp" value={rule.days} onChange={(e) => setRule({ ...rule, days: e.target.value })}>{DAY_SETS.map((d) => <option key={d.value} value={d.value}>{d.label}</option>)}</select></label>
+          <label><span className="lbl">Day starts</span><select className="inp" value={rule.from} onChange={(e) => setRule({ ...rule, from: e.target.value })}>{HOURS.map((h) => <option key={h} value={h}>{clock12(h)}</option>)}</select></label>
+          <label><span className="lbl">Day ends</span><select className="inp" value={rule.to} onChange={(e) => setRule({ ...rule, to: e.target.value })}>{HOURS.map((h) => <option key={h} value={h}>{clock12(h)}</option>)}</select></label>
+          <p className="mu" style={{ margin: 0 }}>The officer, then the backup, then back to the officer, where it stays. The new holder gets an SMS, an e-mail and an app notice, and the Registry is told.</p>
+        </> : null}
+      </FormSheet>
       <FormSheet open={!!inst} title="Institution officers" sub="New requests use them at once." onClose={() => setInst(null)} saveLabel="Save" busy={busy} error={err} onSave={() => {
         if (!inst || !data) return;
         const changed = INSTITUTION.filter((i) => (inst[i.key] || "") !== (data.settings[i.key] || ""));
@@ -270,14 +288,15 @@ export function Routing() {
 
 function RouteEditor({ deptId, deptName, onSaved }: { deptId: string; deptName: string; onSaved: () => void }) {
   const { pop } = useNav();
-  const { data, error } = useLoad(async () => { const [r, p] = await Promise.all([loadRouting(), people()]); return { r: routeOf(deptId, r.overview, r.officers), people: p.filter((x) => x.is_active) }; }, [deptId]);
+  const { data, error } = useLoad(async () => { const [r, p, b] = await Promise.all([loadRouting(), people(), loadDeptBackups(deptId)]); return { r: routeOf(deptId, r.overview, r.officers), people: p.filter((x) => x.is_active), backups: b }; }, [deptId]);
+  const [bks, setBks] = useState<Partial<Record<BackupStage, string>> | null>(null);
   const [kind, setKind] = useState<RouteKind>("official");
   const [lanes, setLanes] = useState<Record<RouteKind, Lane> | null>(null);
   const [offs, setOffs] = useState<Record<OfficerStage, string> | null>(null);
   const [dgVacant, setDgVacant] = useState<IfVacant | null>(null);
   const { busy, err, run } = useAction();
   if (!data) return <><Head title={deptName} /><Body>{error ? <Note tone="er">{error}</Note> : <Skeleton rows={4} />}</Body></>;
-  const L = lanes || data.r.lanes, O = offs || data.r.officers, D = dgVacant || data.r.dgVacant;
+  const L = lanes || data.r.lanes, O = offs || data.r.officers, D = dgVacant || data.r.dgVacant, B = bks || data.backups;
   const setLane = (s: (typeof REVIEW)[number], patch: Partial<{ on: boolean; ifVacant: IfVacant }>) => setLanes({ ...L, [kind]: { ...L[kind], [s]: { ...L[kind][s], ...patch } } });
   return (
     <>
@@ -296,10 +315,22 @@ function RouteEditor({ deptId, deptName, onSaved }: { deptId: string; deptName: 
           <div className="cell"><span className="t"><b>DG + stamp</b><small>{D === "skip" ? "Skipped when vacant" : "Blocks when vacant"}</small></span><button type="button" className="btn bs sm" onClick={() => setDgVacant(D === "skip" ? "block" : "skip")}>{D === "skip" ? "Skip" : "Block"}</button></div>
         </div>
         <div className="sect"><b>Officers for {deptName}</b></div>
-        {OFFICER_STAGES.map((s) => <label key={s}><span className="lbl">{STAGE_TEXT[s]}</span><select className="inp" value={O[s] || ""} onChange={(e) => setOffs({ ...O, [s]: e.target.value })}><option value="">Not set (institution officer)</option>{data.people.map((p) => <option key={p.id} value={p.id}>{p.full_name}</option>)}</select></label>)}
+        <p className="mu" style={{ margin: 0 }}>Each step can have a backup. When a request waits too long, it moves to the backup, then back to the officer.</p>
+        {OFFICER_STAGES.map((s) => {
+          const isB = (BACKUP_STAGES as readonly string[]).includes(s);
+          return (
+            <div key={s} className="grp" style={{ padding: 12, display: "flex", flexDirection: "column", gap: 10 }}>
+              <label><span className="lbl">{STAGE_TEXT[s]}</span><select className="inp" value={O[s] || ""} onChange={(e) => setOffs({ ...O, [s]: e.target.value })}><option value="">Not set (institution officer)</option>{data.people.map((p) => <option key={p.id} value={p.id}>{p.full_name}</option>)}</select></label>
+              {isB ? <label><span className="lbl">Backup {STAGE_TEXT[s]}</span><select className="inp" value={B[s as BackupStage] || ""} onChange={(e) => setBks({ ...B, [s]: e.target.value })}><option value="">No backup</option>{data.people.filter((p) => p.id !== O[s]).map((p) => <option key={p.id} value={p.id}>{p.full_name}</option>)}</select></label> : null}
+            </div>
+          );
+        })}
         <Err text={err} />
       </Body>
-      <div className="bar"><button type="button" className="btn bp" disabled={busy} onClick={() => void run("save this route", () => saveRoute(deptId, L, O, D), "Route saved. New requests follow it.", () => { onSaved(); pop(); })}><RouteIcon size={18} />{busy ? "Saving…" : "Save the route"}</button></div>
+      <div className="bar"><button type="button" className="btn bp" disabled={busy} onClick={() => void run("save this route", async () => {
+        await saveRoute(deptId, L, O, D);
+        for (const st of BACKUP_STAGES) if ((B[st] || "") !== (data.backups[st] || "")) await setDeptBackup(deptId, st, B[st] || null);
+      }, "Route and backups saved. New requests follow them.", () => { onSaved(); pop(); })}><RouteIcon size={18} />{busy ? "Saving…" : "Save the route"}</button></div>
     </>
   );
 }

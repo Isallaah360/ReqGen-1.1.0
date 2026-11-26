@@ -24,7 +24,7 @@ function when(iso: string | null) {
   if (!iso) return "-";
   const d = new Date(iso);
   const today = new Date(); today.setHours(0, 0, 0, 0);
-  const time = d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+  const time = d.toLocaleTimeString("en-GB", { hour: "numeric", minute: "2-digit", hour12: true }).replace(/(\d) ?([ap])m\b/i, (_m, d, x) => `${d} ${x.toUpperCase()}M`);
   if (d.getTime() >= today.getTime()) return `Today ${time}`;
   if (d.getTime() >= today.getTime() - 86_400_000) return `Yesterday ${time}`;
   return `${d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })} ${time}`;

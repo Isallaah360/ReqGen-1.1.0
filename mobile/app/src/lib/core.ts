@@ -7,7 +7,7 @@ import { Capacitor } from "@capacitor/core";
  * and two small database programs (Edge Functions) for SMS and e-mail. It never opens or calls
  * the website. The address and the PUBLIC key are packed at build time from .env.local.
  */
-export const APP_VERSION = "4.1.0";
+export const APP_VERSION = "4.2.0";
 export const SUPABASE_URL = String(import.meta.env.NEXT_PUBLIC_SUPABASE_URL || "").replace(/\/$/, "");
 const SUPABASE_KEY = String(import.meta.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "");
 export const isNative = () => Capacitor.isNativePlatform();

@@ -23,7 +23,7 @@ const TABS: Record<Dir, Array<{ key: string; label: string }>> = {
   outgoing: [{ key: "all", label: "All" }, { key: "Ready to dispatch", label: "Ready to dispatch" }, { key: "In transit", label: "In transit" }, { key: "Delivered", label: "Delivered" }],
 };
 const TONE: Record<string, ChipTone> = { New: "amber", Acknowledged: "blue", Forwarded: "green", "Ready to dispatch": "amber", "In transit": "blue", Delivered: "green" };
-const when = (iso: string | null | undefined) => (iso ? new Date(iso).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "");
+const when = (iso: string | null | undefined) => (iso ? new Date(iso).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit", hour12: true }).replace(/(\d) ?([ap])m\b/i, (_m, d, x) => `${d} ${x.toUpperCase()}M`) : "");
 
 /** Registry › Incoming (mock-up 70) and Outgoing (mock-up 71). */
 export default function Correspondence({ direction }: { direction: Dir }) {

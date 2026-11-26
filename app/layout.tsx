@@ -17,6 +17,8 @@ import "@fontsource/plus-jakarta-sans/latin-600.css";
 import "@fontsource/plus-jakarta-sans/latin-700.css";
 import "@fontsource/plus-jakarta-sans/latin-800.css";
 import "./v4/v5-skin.css";
+// 6.2.0 Blueprint 08: the plain website look, in the colours of the official IET logo (loaded last).
+import "./v4/v6-site.css";
 
 import SessionTimeout from "./components/SessionTimeout";
 import MfaGuard from "./components/MfaGuard";

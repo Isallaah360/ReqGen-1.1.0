@@ -16,7 +16,7 @@ type Year = { fy_start: number; status: string; locked_by_label: string | null; 
 type Log = { key: string; new_value: string | null; changed_by_label: string | null; changed_at: string };
 
 const label = (y: number) => `${y}/${String((y + 1) % 100).padStart(2, "0")}`;
-const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "-");
+const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit", hour12: true }).replace(/(\d) ?([ap])m\b/i, (_m, d, x) => `${d} ${x.toUpperCase()}M`) : "-");
 const SETTING_NAME: Record<string, string> = { default_payment_method: "Default payment method", cash_dg_note_above: "Large cash limit" };
 
 /** Finance › Finance Settings (mock-up 45). Saved for everyone; every change logged. */

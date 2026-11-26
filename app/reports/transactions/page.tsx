@@ -46,7 +46,7 @@ function Transactions() {
       const k = r.voucher_id ? `${r.kind}-${r.voucher_id}` : `${r.kind}-${r.ref}-${i}`;
       const prev = m.get(k);
       if (prev) { prev.amount += r.amount; if (r.dept_name) prev.depts.add(r.dept_name); return; }
-      const time = new Date(r.at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+      const time = new Date(r.at).toLocaleTimeString("en-GB", { hour: "numeric", minute: "2-digit", hour12: true }).replace(/(\d) ?([ap])m\b/i, (_m, d, x) => `${d} ${x.toUpperCase()}M`);
       const sub = r.kind === "out" || r.kind === "pending"
         ? [r.detail, r.subhead_code, r.mode, time].filter(Boolean).join(", ")
         : [r.detail, time].filter(Boolean).join(", ");

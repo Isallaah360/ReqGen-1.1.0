@@ -16,14 +16,11 @@ import { REQGEN_VERSION } from "@/lib/version";
 import { subscribeActivity } from "@/lib/activity";
 import { confirmDialog } from "@/lib/dialog";
 import Icon from "./Icon";
-import { DayIcon, dayPart } from "./Greeting";
 import Bell from "./Bell";
-import { PointerGlow, SavedHost } from "./Motion";
+import { SavedHost } from "./Motion";
 import RoleSelect, { positionName } from "./RoleSelect";
 import SetupCoach from "@/app/components/SetupCoach";
-import { MeSheet, PhoneTabBar } from "./PhoneNav";
 
-const MINI_KEY = "reqgen:v4-sidebar-mini";
 
 
 
@@ -204,31 +201,16 @@ function Search({ roleSet }: { roleSet: Set<string> }) {
 }
 
 /**
- * ReqGen v4 app frame: left menu of the ten modules, top bar, loading bar,
- * breadcrumb, footer. Wraps every signed-in page. Pages built for v4 render
- * their own v4 content; v3 pages keep their own look inside the frame.
+ * ReqGen 6.2.0 website frame (Blueprint 08): the IET top bar, one menu of tabs, the office's pages as
+ * sub-tabs, breadcrumb and footer. A plain website on every device; the Android app has its own screens.
  */
 export default function AppFrame({ children }: { children: ReactNode }) {
   const pathname = usePathname() || "/dashboard";
   const router = useRouter();
   const [me, setMe] = useState<Identity | null>(null);
-  const [mini, setMini] = useState(false);
-  const [drawer, setDrawer] = useState(false);
   const [pending, setPending] = useState(0);
   const [unread, setUnread] = useState(0);
-  const [hour, setHour] = useState(9);
   const [recordLabel, setRecordLabel] = useState<string | null>(null);
-  const [meOpen, setMeOpen] = useState(false);
-  const closeMe = useCallback(() => setMeOpen(false), []);
-
-  useEffect(() => {
-    queueMicrotask(() => {
-      try { setMini(window.localStorage.getItem(MINI_KEY) === "1"); } catch { /* ignore */ }
-      setHour(new Date().getHours());
-    });
-    const t = window.setInterval(() => setHour(new Date().getHours()), 5 * 60_000);
-    return () => window.clearInterval(t);
-  }, []);
 
   // Pages may name the record they show (for the breadcrumb): window event.
   useEffect(() => {
@@ -236,14 +218,7 @@ export default function AppFrame({ children }: { children: ReactNode }) {
     window.addEventListener("reqgen-record-label", on);
     return () => window.removeEventListener("reqgen-record-label", on);
   }, []);
-  useEffect(() => { queueMicrotask(() => { setDrawer(false); setRecordLabel(null); setMeOpen(false); }); }, [pathname]);
-  // v4.6.11: Escape (and the phone's back button) closes the menu drawer.
-  useEffect(() => {
-    if (!drawer) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setDrawer(false); };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [drawer]);
+  useEffect(() => { queueMicrotask(() => { setRecordLabel(null); }); }, [pathname]);
 
   const loadIdentity = useCallback(async () => {
     const [context, auth] = await Promise.all([getCurrentAuthContext(), supabase.auth.getUser()]);
@@ -333,14 +308,6 @@ export default function AppFrame({ children }: { children: ReactNode }) {
     };
   }, [me, refreshPending]);
 
-  const toggleMini = () => {
-    setMini((m) => {
-      const next = !m;
-      try { window.localStorage.setItem(MINI_KEY, next ? "1" : "0"); } catch { /* ignore */ }
-      return next;
-    });
-  };
-
   async function signOut() {
     const ok = await confirmDialog({ title: "Sign out of ReqGen?", message: "Unsaved work on this page will be lost.", confirmLabel: "Sign out" });
     if (!ok) return;
@@ -355,108 +322,92 @@ export default function AppFrame({ children }: { children: ReactNode }) {
   const visible = me ? MODULES.filter((m) => canAccessPath(m.href, roleSet) && (isDeveloper || !isOff(m))) : [];
   const crumbs = breadcrumbsFor(pathname, recordLabel);
   const countFor = (key: string) => (key === "approvals" ? pending : key === "notifications" ? unread : 0);
-
-  const nav = visible.map((m, i) => {
-    const prevGroup = visible.slice(0, i).reverse().find((x) => x.group)?.group;
-    const heading = m.group && m.group !== prevGroup ? <div key={`g-${m.group}`} className="v4-nav-group">{m.group}</div> : null;
-    const count = countFor(m.key);
-    const current = active?.key === m.key;
-    const href = isDeveloper && m.key === "dashboard" ? "/dashboard?view=trust" : m.href;
-    return [
-      heading,
-      <Link key={m.key} href={href} title={m.label} aria-current={current ? "page" : undefined}>
-        <Icon name={m.icon} /><span>{isDeveloper && m.key === "dashboard" ? "Trust Dashboard" : m.label}</span>
-        {isDeveloper && isOff(m) ? <b className="v4-count v4-off" aria-label="Switched off">Off</b> : null}
-        {count > 0 ? <b className="v4-count" aria-label={`${count} waiting`}>{count > 99 ? "99+" : count}</b> : null}
-      </Link>,
-    ];
-  });
-  const devNav = isDeveloper ? [
-    <div key="g-dev" className="v4-nav-group">Developer</div>,
-    <Link key="dev-home" href={DEVELOPER_MODULE.href} title="Console" aria-current={pathname === DEVELOPER_MODULE.href ? "page" : undefined}><Icon name="monitor" /><span>Console</span></Link>,
-    ...DEVELOPER_MODULE.tiles.map((t) => (
-      <Link key={t.href} href={t.href} title={t.title} aria-current={pathname === t.href ? "page" : undefined}><Icon name={t.icon} /><span>{t.title}</span></Link>
-    )),
-    <div key="g-trust" className="v4-nav-group">The Trust&rsquo;s ReqGen</div>,
-  ] : [];
-
-  const firstName = me?.name || "";
   const isHome = pathname === "/dashboard" || pathname === "/developer";
 
+  // 6.2.0 (Blueprint 08): a plain website. One menu of tabs across the top, the office's own pages as
+  // sub-tabs under it, the same layout on every screen size (the menu wraps; nothing slides in).
+  const menu = [
+    ...(isDeveloper ? [{ key: "developer", label: "Developer", href: DEVELOPER_MODULE.href }] : []),
+    // the bell holds Notifications and the avatar menu holds My Account, so the menu stays one line
+    ...visible.filter((m) => m.key !== "notifications").map((m) => ({ key: m.key, label: isDeveloper && m.key === "dashboard" ? "Trust Dashboard" : m.label, href: isDeveloper && m.key === "dashboard" ? "/dashboard?view=trust" : m.href })),
+  ];
+  const activeKey = pathname.startsWith("/developer") ? "developer" : active?.key;
+  const activeModule = pathname.startsWith("/developer") ? DEVELOPER_MODULE : active?.key === "account" ? ACCOUNT_MODULE : active;
+  const subTabs = (activeModule?.tiles || []).filter((t) => canAccessPath(t.href.split("#")[0], roleSet));
+  const subOn = (href: string) => { const base = href.split("#")[0]; return pathname === base || pathname.startsWith(`${base}/`); };
+  const currentSub = [...subTabs].filter((t) => subOn(t.href)).sort((a, b) => b.href.length - a.href.length)[0]?.href;
+
   return (
-    <>
-      <div className="v4-top-stripe" aria-hidden="true" />
-      <div className={`v4-app ${mini ? "v4-is-mini" : ""} ${drawer ? "v4-drawer-open" : ""}`}>
-        <aside className="v4-ui v4-sidebar" aria-label="Main menu">
-          {isDeveloper ? (
-            <Link className="v4-brand" href="/developer" style={{ color: "inherit", textDecoration: "none" }}>
-              <Image src="/v4/be-logo.png" alt="Barderian Enterprises logo" width={42} height={42} priority />
-              <div><strong>ReqGen Console</strong><small>Developer, Barderian Enterprises</small></div>
-            </Link>
-          ) : (
-            <Link className="v4-brand" href="/dashboard" style={{ color: "inherit", textDecoration: "none" }}>
-              <Image src="/v4/iet-mark.png" alt="Islamic Education Trust logo" width={42} height={42} priority />
-              <div><strong>ReqGen</strong><small>Islamic Education Trust</small></div>
-            </Link>
-          )}
-          <button className="v4-collapse-btn" type="button" onClick={toggleMini} aria-label={mini ? "Expand the menu" : "Collapse the menu"} aria-pressed={mini}>
-            <Icon name="left" size="sm" />
-          </button>
-          <nav className="v4-nav" aria-label="Modules">{devNav}{nav}</nav>
-          <div className="v4-side-foot">
-            <Link className="v4-me" href={ACCOUNT_MODULE.href} title="My Account" aria-current={active?.key === "account" ? "page" : undefined}>
-              <span className="v4-avatar">
-                {/* eslint-disable-next-line @next/next/no-img-element -- photo from Supabase Storage */}
-                {me?.avatarUrl ? <img src={me.avatarUrl} alt="" /> : initialsOf(firstName || "ReqGen")}
-              </span>
-              <span><b>{me?.name || "…"}</b><small>My Account</small></span>
-            </Link>
-            <button className="v4-icon-btn v4-out" type="button" aria-label="Sign out" title="Sign out" onClick={() => void signOut()}><Icon name="logout" /></button>
+    <div className="s6-site">
+      <header className="s6-top">
+        <div className="s6-top-in">
+          <Link className="s6-brand" href={isDeveloper ? "/developer" : "/dashboard"}>
+            <Image src={isDeveloper ? "/v4/be-logo.png" : "/v4/iet-logo.png"} alt={isDeveloper ? "Barderian Enterprises logo" : "Islamic Education Trust logo"} width={44} height={44} priority />
+            {isDeveloper
+              ? <span><b>ReqGen Console</b><small>Barderian Enterprises, the developer</small></span>
+              : <span><b>Req<span>Gen</span></b><small>Islamic Education Trust, Request and Payment System</small></span>}
+          </Link>
+          {isDeveloper ? <span className="s6-console-badge">DEVELOPER CONSOLE</span> : null}
+          <Search roleSet={roleSet} />
+          <div className="s6-top-actions">
+            <Bell userId={me?.userId ?? null} pendingApprovalCount={pending} onUnread={setUnread} />
+            <RoleSelect systemAccount={me?.systemAccount} />
+            {me ? <AvatarMenu me={me} onSignOut={() => void signOut()} /> : <span className="v4-avatar" aria-hidden="true">…</span>}
           </div>
-        </aside>
-        <button className={`v4-backdrop ${drawer ? "v4-show" : ""}`} type="button" aria-label="Close menu" onClick={() => setDrawer(false)} tabIndex={drawer ? 0 : -1} />
-        <div className="v4-stage">
-          <header className={`v4-ui v4-topbar ${isHome ? "" : "v4-has-back"}`}>
-            {/* v4.6.11 phones: Back on every page that is not Home (brief §5) */}
-            {!isHome ? <button className="v4-icon-btn v4-back-btn" type="button" aria-label="Back" onClick={() => { if (window.history.length > 1) router.back(); else router.push(isDeveloper ? "/developer" : "/dashboard"); }}><Icon name="left" /></button> : null}
-            <button className="v4-icon-btn v4-menu-btn" type="button" aria-label="Open menu" onClick={() => setDrawer(true)}><Icon name="menu" /></button>
-            {/* One greeting per screen: the Dashboard shows its own large greeting. */}
-            {pathname !== "/dashboard" ? (
-              <div className="v4-greet" aria-live="polite"><DayIcon hour={hour} size={16} />{dayPart(hour).text},&nbsp;<b>{(me?.name || "").toUpperCase()}</b></div>
-            ) : <div className="v4-greet-space" />}
-            {isDeveloper ? <span className="v4-dev-badge" title="Signed in as the Developer system account">DEVELOPER CONSOLE</span> : null}
-            <Search roleSet={roleSet} />
-            <div className="v4-top-actions">
-              <Bell userId={me?.userId ?? null} pendingApprovalCount={pending} onUnread={setUnread} />
-              <RoleSelect systemAccount={me?.systemAccount} />
-              {me ? <AvatarMenu me={me} onSignOut={() => void signOut()} /> : <span className="v4-avatar" aria-hidden="true">…</span>}
-            </div>
-          </header>
-          <LoadBar />
-          <SetupCoach />
-          <main className="v4-main" id="reqgen-main-content" data-still={pathname.startsWith("/audit-centre/logs") || pathname.startsWith("/mfa") ? "" : undefined}>
-            <div className="v4-content">
-              <nav className="v4-ui v4-crumbs" aria-label="You are here" data-home={isHome ? "" : undefined}>
-                {crumbs.map((c, i) => {
-                  const last = i === crumbs.length - 1;
-                  return (
-                    <span key={`${c.label}-${i}`} style={{ display: "contents" }}>
-                      {i > 0 ? <Icon name="right" /> : null}
-                      {c.href && !last ? <Link href={c.href}>{c.label}</Link> : <span aria-current={last ? "page" : undefined}>{c.label}</span>}
-                    </span>
-                  );
-                })}
-              </nav>
-              {children}
-            </div>
-          </main>
-          <V4Footer />
-          <SavedHost />
-          <PointerGlow />
         </div>
+      </header>
+      <nav className="s6-menu" aria-label="Main menu">
+        <div className="s6-menu-in">
+          {menu.map((m) => {
+            const n = countFor(m.key);
+            return (
+              <Link key={m.key} href={m.href} aria-current={activeKey === m.key ? "page" : undefined}>
+                {m.label}{n > 0 ? <span className="s6-n" aria-label={`${n} waiting`}>{n > 99 ? "99+" : n}</span> : null}
+                {isDeveloper && m.key !== "developer" && isOff({ href: m.href }) ? <span className="s6-off">Off</span> : null}
+              </Link>
+            );
+          })}
+        </div>
+      </nav>
+      <LoadBar />
+      <SetupCoach />
+      <main className="s6-page" id="reqgen-main-content" data-still={pathname.startsWith("/audit-centre/logs") || pathname.startsWith("/mfa") ? "" : undefined}>
+        {!isHome ? (
+          <nav className="s6-crumbs" aria-label="You are here" data-home={isHome ? "" : undefined}>
+            {/* v4.6.11, kept in 6.2.0: Back on every page that is not Home */}
+            <button className="s6-back v4-back-btn" type="button" aria-label="Back" onClick={() => { if (window.history.length > 1) router.back(); else router.push(isDeveloper ? "/developer" : "/dashboard"); }}><Icon name="left" size="sm" /><span>Back</span></button>
+            {crumbs.map((c, i) => {
+              const last = i === crumbs.length - 1;
+              return (
+                <span key={`${c.label}-${i}`}>
+                  {i > 0 ? <span className="s6-sep" aria-hidden="true">/</span> : null}
+                  {c.href && !last ? <Link href={c.href}>{c.label}</Link> : <span aria-current={last ? "page" : undefined}>{c.label}</span>}
+                </span>
+              );
+            })}
+          </nav>
+        ) : null}
+        {subTabs.length > 1 && !isHome ? (
+          <nav className="s6-subtabs" aria-label={`${activeModule?.label || "Office"} pages`}>
+            {subTabs.map((t) => <Link key={t.href} href={t.href} aria-current={currentSub === t.href ? "page" : undefined}>{t.title}</Link>)}
+          </nav>
+        ) : null}
+        <div className="s6-content">{children}</div>
+      </main>
+      <SiteFooter />
+      <SavedHost />
+    </div>
+  );
+}
+
+/** 6.2.0: the website footer: IET first; Barderian only as the developer. */
+export function SiteFooter() {
+  return (
+    <footer className="s6-foot">
+      <div className="s6-foot-in">
+        <span>Islamic Education Trust, General Headquarters, Minna. ReqGen {REQGEN_VERSION}. <Link href="/docs">Help</Link> <Link href="/docs#privacy">Privacy</Link> <Link href="/app">Android app</Link> <Link href="/credits">Credits</Link></span>
+        <span>Developed by Barderian Enterprises: WhatsApp <a href="https://wa.me/2348031197746" target="_blank" rel="noreferrer">0803 119 7746</a>, <a href="mailto:info@barderians.com.ng">info@barderians.com.ng</a></span>
       </div>
-      <PhoneTabBar pathname={pathname} me={me} pending={pending} meOpen={meOpen} onMe={() => setMeOpen((o) => !o)} />
-      <MeSheet open={meOpen} onClose={closeMe} me={me} onSignOut={() => void signOut()} />
-    </>
+    </footer>
   );
 }

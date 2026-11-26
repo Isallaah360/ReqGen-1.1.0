@@ -30,7 +30,7 @@ export default function DeveloperActivityPage() {
               <tbody>
                 {list.slice((page - 1) * PAGE, page * PAGE).map((r, i) => (
                   <tr key={`${r.at}-${i}`}>
-                    <td className="v4-num">{new Date(r.at).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</td>
+                    <td className="v4-num">{new Date(r.at).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "numeric", minute: "2-digit", hour12: true }).replace(/(\d) ?([ap])m\b/i, (_m, d, x) => `${d} ${x.toUpperCase()}M`)}</td>
                     <td><span className="v4-strong">{r.action}</span></td>
                     <td data-label="Record">{r.record_no || "-"}</td>
                     <td className="v4-hide-md">{r.module}</td>

@@ -90,7 +90,7 @@ function Trace() {
                     return [
                       head ? <li key={`p-${i}`} className="v4-phase">{head}</li> : null,
                       <li key={i}>
-                        <span className="v4-when"><b>{d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}</b>{d.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })}</span>
+                        <span className="v4-when"><b>{d.toLocaleTimeString("en-GB", { hour: "numeric", minute: "2-digit", hour12: true }).replace(/(\d) ?([ap])m\b/i, (_m, d, x) => `${d} ${x.toUpperCase()}M`)}</b>{d.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })}</span>
                         <span className="v4-rail"><span className={`v4-node v4-t-${s.tone}`}><Icon name={s.tone === "red" ? "returned" : s.stamped ? "pentool" : "check"} size="sm" /></span></span>
                         <span className="v4-body"><strong>{s.title}</strong><span>{s.who}</span>
                           {g !== null ? <span className={`v4-gap${g > 24 * 3600000 ? " v4-slow" : ""}`}>{gapText(g)}</span> : null}

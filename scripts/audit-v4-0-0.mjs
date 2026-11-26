@@ -63,7 +63,8 @@ check("Shell uses the v4 frame for signed-in pages", shell.includes("<AppFrame>"
 check("Breadcrumb on every page (Home › Module › Page › Record)", frame.includes("breadcrumbsFor(") && modules.includes("export function breadcrumbsFor"));
 check("Loading bar sits below the top bar", frame.indexOf("</header>") < frame.indexOf("<LoadBar />"));
 check("Approvals badge uses the shared queue rule", frame.includes("isAwaitingUser(row"));
-check("Sidebar collapses and opens as a drawer on phones", frame.includes("v4-is-mini") && frame.includes("v4-drawer-open"));
+// 6.2.0 (Blueprint 08) replaced the left sidebar with one row of office menus under the top bar; either passes.
+check("Main menu works on phones (4.0 drawer, or the 6.2 office menu row)", (frame.includes("v4-is-mini") && frame.includes("v4-drawer-open")) || (frame.includes("s6-menu") && fs.readFileSync("app/v4/v6-site.css", "utf8").includes(".s6-menu")));
 check("Footer: Made for IET, values, Help, Privacy, version, 2FA window, Powered by", frame.includes("Made for the") && frame.includes("REQGEN_VERSION") && frame.includes("2FA verified until") && frame.includes("Powered by"));
 check("Theme choice kept (light, dark, device) in the account menu", frame.includes("applyTheme(next)"));
 const moved = ["requests/mine", "approvals/inbox", "finance/overview", "payment-vouchers/centre", "registry/centre", "reports/centre", "audit-centre/logs", "admin/overview", "profile/details"];

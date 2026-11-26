@@ -111,7 +111,7 @@ function ReportPrint() {
               <div className="rg-a4-content v4-rpt">
                 <div className="v4-rh"><Image src="/iet-logo.png" alt="IET logo" width={56} height={56} /><div className="v4-o"><b>Islamic Education Trust</b><span>IW2, Ilmi Avenue Intermediate Housing Estate, PMB 229</span><span>Minna, Niger State - Nigeria</span></div><span /></div>
                 <h3>{title}</h3>
-                <div className="v4-meta"><span><b>Period:</b> {monthName(month)} (FY {fyLabel(fy)}, month {monthNo})</span><span><b>Scope:</b> {deptName}</span><span><b>Printed:</b> {printedAt.toLocaleDateString("en-GB")} {printedAt.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}</span></div>
+                <div className="v4-meta"><span><b>Period:</b> {monthName(month)} (FY {fyLabel(fy)}, month {monthNo})</span><span><b>Scope:</b> {deptName}</span><span><b>Printed:</b> {printedAt.toLocaleDateString("en-GB")} {printedAt.toLocaleTimeString("en-GB", { hour: "numeric", minute: "2-digit", hour12: true }).replace(/(\d) ?([ap])m\b/i, (_m, d, x) => `${d} ${x.toUpperCase()}M`)}</span></div>
                 <div className="v4-sum"><div><span>Allocation (FY)</span><b>{money(data.alloc)}</b></div><div><span>Money in ({short})</span><b>{money(data.moneyIn)}</b></div><div><span>Spent ({short})</span><b>{money(data.spentMonth)}</b></div><div><span>Balance C/D</span><b>{money(data.alloc - data.spentToDate)}</b></div></div>
                 <table><thead><tr><th>Subhead group</th><th className="v4-r">Allocation</th><th className="v4-r">Spent in {short}</th><th className="v4-r">Spent to date</th><th className="v4-r">Balance</th></tr></thead>
                   <tbody>

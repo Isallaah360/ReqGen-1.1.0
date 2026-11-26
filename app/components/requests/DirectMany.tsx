@@ -22,7 +22,7 @@ type Req = { id: string; request_no?: string | null; amount?: number | null; cre
 type Choice = "approve" | "reply" | "decline" | "forward" | "forward_dg";
 
 const TONE: Record<string, string> = { Waiting: "amber", Approved: "green", Declined: "red", Replied: "blue", Forwarded: "blue" };
-const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "");
+const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit", hour12: true }).replace(/(\d) ?([ap])m\b/i, (_m, d, x) => `${d} ${x.toUpperCase()}M`) : "");
 const initials = (n: string | null) => String(n || "S").split(/\s+/).filter(Boolean).slice(0, 2).map((x) => x[0]?.toUpperCase()).join("");
 
 export function useDirectPeople(requestId: string | null | undefined) {

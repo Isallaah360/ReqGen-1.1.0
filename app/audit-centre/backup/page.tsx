@@ -30,7 +30,7 @@ async function token() {
   return value;
 }
 
-const when = (d: string) => new Date(d).toLocaleString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+const when = (d: string) => new Date(d).toLocaleString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "numeric", minute: "2-digit", hour12: true }).replace(/(\d) ?([ap])m\b/i, (_m, d, x) => `${d} ${x.toUpperCase()}M`);
 const size = (b: number | null | undefined) => (!b ? "-" : b > 1048576 ? `${(b / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(b / 1024))} KB`);
 const tablesOf = (s: Record<string, unknown> | null) => (s && typeof s.tables === "number" ? s.tables : null);
 
@@ -193,7 +193,7 @@ export default function MasterBackupPage() {
                 <thead><tr><th>When</th><th>What</th><th className="v4-hide-sm">Details</th><th>Type</th></tr></thead>
                 <tbody>{log.map((l) => (
                   <tr key={l.id}>
-                    <td className="v4-num">{new Date(l.created_at).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</td>
+                    <td className="v4-num">{new Date(l.created_at).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "numeric", minute: "2-digit", hour12: true }).replace(/(\d) ?([ap])m\b/i, (_m, d, x) => `${d} ${x.toUpperCase()}M`)}</td>
                     <td><span className="v4-strong">{logTitle(l)}</span><span className="v4-sub">{l.mode === "nightly" ? "System" : l.actor_name || "-"}</span></td>
                     <td className="v4-hide-sm" data-label="Details">{l.action === "backup" ? `${size(l.bytes ?? (l.summary?.bytes as number | undefined))}${tablesOf(l.summary) ? `, ${tablesOf(l.summary)} tables` : ""}` : `${String(l.summary?.inFile ?? "-")} records`}</td>
                     <td>{logChip(l)}</td>

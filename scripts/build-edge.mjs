@@ -40,6 +40,7 @@ const FILES = {
   "app/api/backup/export/route.ts": "office_backup_export.ts",
   "app/api/backup/files/route.ts": "office_backup_files.ts",
   "app/api/backup/restore/route.ts": "office_backup_restore.ts",
+  "app/api/cron/backup-handover/route.ts": "office_backup_handover.ts",
 };
 const byWebsitePath = Object.fromEntries(Object.entries(FILES).map(([from, to]) => [from.replace(/\.ts$/, ""), to]));
 

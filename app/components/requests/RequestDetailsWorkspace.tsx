@@ -1556,7 +1556,7 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
               <span>Type <b>{requestTypeLabel(req)}</b></span>
               {deptName ? <span>Department <b>{deptName}</b></span> : null}
               {isOfficial || isPersonalFund ? <span>Subhead <b>{subText}</b></span> : null}
-              <span>Submitted <b>{new Date(req.created_at).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}</b></span>
+              <span>Submitted <b>{new Date(req.created_at).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit", hour12: true }).replace(/(\d) ?([ap])m\b/i, (_m, d, x) => `${d} ${x.toUpperCase()}M`)}</b></span>
             </div>
           </div>
           <div className="v4-right">
@@ -1748,7 +1748,7 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
           <ol className="v4-chain">
             {[...history].reverse().filter((h) => !/attachment|edited/i.test(h.action_type)).map((h) => (
               <li key={h.id} className="v4-done">
-                <span className="v4-st">{h.action_type}</span><strong>{h.actor_name || "Officer"}</strong><span className="v4-r">{h.actor_role_name || ""}</span><em>{new Date(h.created_at).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</em>
+                <span className="v4-st">{h.action_type}</span><strong>{h.actor_name || "Officer"}</strong><span className="v4-r">{h.actor_role_name || ""}</span><em>{new Date(h.created_at).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit", hour12: true }).replace(/(\d) ?([ap])m\b/i, (_m, d, x) => `${d} ${x.toUpperCase()}M`)}</em>
                 <span className="v4-ink">{h.signature_url ? <span className="v4-chip v4-chip-green"><Icon name="pentool" size="sm" />Signed</span> : null}</span>
               </li>
             ))}
@@ -1864,7 +1864,7 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
 function shortWhen(iso: string | null | undefined) {
   if (!iso) return "";
   const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? "" : d.toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+  return Number.isNaN(d.getTime()) ? "" : d.toLocaleString("en-GB", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit", hour12: true }).replace(/(\d) ?([ap])m\b/i, (_m, d, x) => `${d} ${x.toUpperCase()}M`);
 }
 
 /** 6.1.0: anyone who can open the request adds a comment; the request itself does not change. */

@@ -120,7 +120,7 @@ export default function MyActivityPage() {
                   <li key={`${e.at}-${i}`}>
                     <span className={`v4-ti v4-t-${toneOf(e)}`}><Icon name={iconOf(e)} /></span>
                     <span><strong>{e.action}{e.record_no ? `, ${e.record_no}` : ""}</strong><span>{e.module}{e.device ? `, ${e.device}` : ""}</span></span>
-                    <span className="v4-time">{new Date(e.at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}</span>
+                    <span className="v4-time">{new Date(e.at).toLocaleTimeString("en-GB", { hour: "numeric", minute: "2-digit", hour12: true }).replace(/(\d) ?([ap])m\b/i, (_m, d, x) => `${d} ${x.toUpperCase()}M`)}</span>
                   </li>
                 ))}
               </ul>

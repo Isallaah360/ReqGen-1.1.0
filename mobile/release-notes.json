@@ -1,15 +1,10 @@
 {
   "new": [
-    "Every office is now an app screen: Payment Vouchers, Finance, Registry, Reports, Audit, Administration and the Developer Console.",
-    "HR's rule: once a request is sent, only its sender changes it, and only when it is sent back to them. Everyone else comments.",
-    "Choose the subhead when you send. ReqGen answers at once: available, or not enough with the name of the Auditor to contact.",
-    "The IET A4 request letter and payment voucher, made on the phone as PDFs."
-  ],
-  "fixed": [
-    "The app build ignores files left over from the old app."
+    "Backup officers: a request that waits too long with an officer moves to the backup, then back to the officer.",
+    "The Super Admin sets a backup under each officer in the Routing Engine."
   ],
   "better": [
-    "Comments travel with the request and print with it.",
-    "Reports have charts and save as Excel on the phone."
+    "Times are shown with AM and PM.",
+    "The opening screen sits in the middle, with a live loading bar."
   ]
 }

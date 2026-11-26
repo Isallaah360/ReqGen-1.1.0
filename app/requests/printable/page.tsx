@@ -90,7 +90,7 @@ export default function PrintRegisterPage() {
                     <td><span className="v4-strong">{r.doc_no}</span><span className="v4-sub">{r.label}</span></td>
                     <td data-label="For">{r.for_name || "-"}</td>
                     <td className="v4-r v4-num">{r.times_printed}</td>
-                    <td className="v4-hide-sm">{r.last_printed ? new Date(r.last_printed).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "Not printed yet"}</td>
+                    <td className="v4-hide-sm">{r.last_printed ? new Date(r.last_printed).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit", hour12: true }).replace(/(\d) ?([ap])m\b/i, (_m, d, x) => `${d} ${x.toUpperCase()}M`) : "Not printed yet"}</td>
                     <td className="v4-hide-sm v4-hide-md">{r.last_by || "-"}</td>
                     <td className="v4-r">{r.link ? <Btn small a={{ href: r.link, label: "Print", icon: "printer", kind: "secondary" }} /> : null}</td>
                   </tr>

@@ -40,5 +40,5 @@ export function isDeveloperEvent(e: { actor_label: string | null }) {
 
 export function whenText(at: string | null | undefined) {
   if (!at) return "never";
-  return new Date(at).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+  return new Date(at).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit", hour12: true }).replace(/(\d) ?([ap])m\b/i, (_m, d, x) => `${d} ${x.toUpperCase()}M`);
 }

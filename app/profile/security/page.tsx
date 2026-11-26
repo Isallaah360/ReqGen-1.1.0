@@ -25,7 +25,7 @@ function lastUsed(iso: string | null) {
   if (!iso) return "not used yet";
   const d = new Date(iso);
   const today = new Date(); today.setHours(0, 0, 0, 0);
-  if (d.getTime() >= today.getTime()) return `last used today ${d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}`;
+  if (d.getTime() >= today.getTime()) return `last used today ${d.toLocaleTimeString("en-GB", { hour: "numeric", minute: "2-digit", hour12: true }).replace(/(\d) ?([ap])m\b/i, (_m, d, x) => `${d} ${x.toUpperCase()}M`)}`;
   return `last used ${shortDate(iso)}`;
 }
 

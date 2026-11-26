@@ -168,7 +168,7 @@ export default function RequestTrackingPage() {
                         <span className="v4-dot"><Icon name={m.state === "done" ? "check" : m.state === "now" ? "clock" : "right"} size="sm" /></span>
                         <span><strong>{["Submitted", "Registry filing", "Returned for correction"].includes(m.stage) ? m.stage : stageTitle(m.stage)}</strong>
                           <span className="v4-s">{m.state === "now" ? `${m.person || "-"}, waiting ${ageText(pick.waiting_since, now)}${pick.last_reminder ? ", reminder sent" : ""}` : m.stage === "Registry filing" && m.state === "next" ? "After payment" : `${m.person || "-"}${gap ? `, ${gap}` : ""}`}</span></span>
-                        <span className="v4-t">{m.state === "now" ? "Now" : m.state === "next" ? (m.stage === "Registry filing" ? "Last" : "Next") : m.at ? new Date(m.at).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : ""}</span>
+                        <span className="v4-t">{m.state === "now" ? "Now" : m.state === "next" ? (m.stage === "Registry filing" ? "Last" : "Next") : m.at ? new Date(m.at).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit", hour12: true }).replace(/(\d) ?([ap])m\b/i, (_m, d, x) => `${d} ${x.toUpperCase()}M`) : ""}</span>
                       </li>
                     );
                   })}

@@ -273,7 +273,7 @@ export async function auditSummary(): Promise<Summary> {
       { label: "Events today", value: n(t), note: "Sign-ins, approvals, edits", icon: "activity", tone: "blue", href: "/audit-centre/logs" },
       { label: "Stamps applied", value: stamps.error ? DASH : n(stamps.count ?? 0), note: "This week, all by the DG", icon: "pentool", tone: "brand", href: "/audit-centre/logs?tab=stamp" },
       { label: "To reconcile", value: recon.error ? DASH : n(open), note: open ? "Differences to explain" : "All matched", icon: "scale", tone: "amber", href: "/audit-centre/reconciliation" },
-      { label: "Last backup", value: last ? new Date(last.created_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : DASH, note: last ? new Date(last.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" }) : "No backup yet", icon: "database", tone: "green", href: "/audit-centre/backup" },
+      { label: "Last backup", value: last ? new Date(last.created_at).toLocaleTimeString("en-GB", { hour: "numeric", minute: "2-digit", hour12: true }).replace(/(\d) ?([ap])m\b/i, (_m, d, x) => `${d} ${x.toUpperCase()}M`) : DASH, note: last ? new Date(last.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" }) : "No backup yet", icon: "database", tone: "green", href: "/audit-centre/backup" },
     ],
     meta: {
       "/audit-centre/logs": t === null ? DASH : `${t} today`,

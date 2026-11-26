@@ -24,13 +24,19 @@ check("App: the vouchers buttons open app screens", !read(`${app}/screens/Home.t
 check("App: the sender chooses the subhead with the live check and the Auditor's name", read(`${app}/screens/Budget.tsx`).includes("reqgen_department_subhead_names") && read(`${app}/screens/Budget.tsx`).includes("reqgen_subhead_live_check") && read(`${app}/screens/Budget.tsx`).includes("reqgen_help_contact"));
 check("App: correcting only when sent back; officers comment", read(`${app}/screens/Detail.tsx`).includes("<EditRequest") && read(`${app}/screens/Detail.tsx`).includes("reqgen_request_comment") && read(`${app}/screens/EditRequest.tsx`).includes("reqgen_correct_request"));
 check("App: IET A4 request and voucher PDFs made in the app", read(`${app}/lib/a4.ts`).includes("export async function printVoucher") && read(`${app}/lib/a4.ts`).includes("export async function printRequest"));
-const appSrc = walk(app).filter((f) => /\.(tsx?)$/.test(f)).map(read).join("\n");
-check("App: never calls the website", !/ietreqgen\.barderians\.com\.ng|fetch\("\/api\//.test(appSrc) && !read("mobile/app/index.html").includes("barderians"));
+const appFiles = walk(app).filter((f) => /\.(tsx?)$/.test(f));
+const appSrc = appFiles.map(read).join("\n");
+// 6.2.0: the website address may appear in exactly one place, a4.ts, as the text inside the QR code printed on
+// paper (the public check page). No app file may fetch the website or its /api routes.
+const siteNamed = appFiles.filter((f) => /ietreqgen\.barderians\.com\.ng/.test(read(f))).map((f) => f.replace(/\\/g, "/"));
+const a4 = read(`${app}/lib/a4.ts`);
+check("App: never calls the website (address only inside the printed QR)", siteNamed.every((f) => f.endsWith("lib/a4.ts")) && !/fetch\([^)]*ietreqgen|fetch\(\s*["'`]\/api\//.test(appSrc) && !/fetch\(\s*CHECK_SITE/.test(a4) && !read("mobile/app/index.html").includes("barderians"));
 check("App: the secret service key is never read", !/SERVICE_ROLE/.test(appSrc) && read("mobile/app/vite.config.ts").includes('envPrefix: ["NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_ANON_KEY"]'));
 check("Edge Function reqgen-office built from the website's own server code", fs.existsSync("supabase/functions/reqgen-office/index.ts") && read("scripts/build-edge.mjs").includes('"app/api/admin/users/[id]/route.ts"') && read("supabase/config.toml").includes("[functions.reqgen-office]") && read("deploy_functions.ps1").includes('"reqgen-office"'));
 check("Website build skips the Supabase functions folder", read("tsconfig.json").includes('"supabase"') && read("eslint.config.mjs").includes('"supabase/**"'));
 const pkg = JSON.parse(read("package.json"));
 check("Website version 6.1.0 or later", /^(6\.([1-9]|\d\d)|([7-9]|\d\d)\.)/.test(pkg.version));
-check("App version 4.1.0 or later", /REQGEN_VERSION_NAME=4\.([1-9]|\d\d)\./.test(read("mobile/version.properties")) && read(`${app}/lib/core.ts`).includes('APP_VERSION = "4.1.'));
+const appVer = (read("mobile/version.properties").match(/REQGEN_VERSION_NAME=(.+)/) || [])[1]?.trim() || "";
+check("App version 4.1.0 or later", /^4\.([1-9]|\d\d)\./.test(appVer) && read(`${app}/lib/core.ts`).includes(`APP_VERSION = "${appVer}"`));
 if (failures) { console.log(`\nv6.1.0 release lock: ${failures} failure(s).`); process.exit(1); }
 console.log("\nv6.1.0 release lock: all checks passed.");

@@ -308,3 +308,16 @@ textarea.inp{padding:12px 14px;min-height:100px;resize:none;line-height:1.45}
 /* 4.1.0: chip rows wrap (nothing half cut at the edge); small buttons stay at least 44 px wide */
 .filters{flex-wrap:wrap;overflow:visible;margin:0;padding:0}
 .btn.sm{min-width:44px}
+
+/* 4.1.1: opening screen, centred on the phone, with a live loading bar in the IET logo colours */
+.splash{position:fixed;inset:0;z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:24px;background:var(--bg);text-align:center}
+.splash-logo{width:120px;height:120px;border-radius:30px;padding:8px;animation:splashPulse 1.8s ease-in-out infinite}
+.splash-txt{margin:0;font-size:18px;font-weight:600;color:var(--mute)}
+.splash-dots i{font-style:normal;display:inline-block;animation:splashDot 1.2s infinite}
+.splash-dots i:nth-child(2){animation-delay:.2s}.splash-dots i:nth-child(3){animation-delay:.4s}
+.splash-bar{position:relative;width:180px;height:5px;border-radius:5px;overflow:hidden;background:color-mix(in srgb,var(--mute) 22%,transparent)}
+.splash-bar span{position:absolute;top:0;bottom:0;left:0;width:40%;border-radius:5px;background:linear-gradient(90deg,#F47824,#EF3F27 40%,#F9A11F 75%,#31A8E0);animation:splashRun 1.3s ease-in-out infinite}
+@keyframes splashPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
+@keyframes splashDot{0%,60%,100%{opacity:.2}30%{opacity:1}}
+@keyframes splashRun{0%{left:-40%}100%{left:100%}}
+@media (prefers-reduced-motion: reduce){.splash-logo,.splash-dots i,.splash-bar span{animation:none}.splash-bar span{left:30%}.splash-dots i{opacity:1}}

@@ -1,0 +1,86 @@
+import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
+import { normalizeEmail, normalizeNigerianPhone, sendSendchampEmail, sendSendchampSms } from "@/lib/sendchamp";
+
+export const runtime = "nodejs";
+
+/**
+ * ReqGen 6.3.0: the SMS and e-mails for the backup handover.
+ * The database timer (pg_cron, every 2 minutes) moves requests that waited too long
+ * (reqgen_backup_handover_run) and leaves one row per person in reqgen_handover_outbox.
+ * It then calls this job (as the Edge Function reqgen-office?route=backup_handover) with the
+ * shared secret from reqgen_cron_secret. Staff cannot call it: the secret is closed to them.
+ * Messages carry the request NUMBER and step only, never the title or amount, because the
+ * Registry receives some of them.
+ */
+type Row = { id: string; request_id: string; user_id: string; kind: string };
+type Req = { id: string; request_no: string | null; current_stage: string | null; current_owner: string | null };
+type Person = { id: string; full_name: string | null; email: string | null; phone: string | null };
+
+const flag = (name: string) => String(process.env[name] || "").toLowerCase() !== "false" && !!process.env.SENDCHAMP_API_KEY;
+
+function handoverText(kind: string, r: Req, holder: string, minutes: number, link: string) {
+  const no = r.request_no || "a request", step = r.current_stage || "its step";
+  switch (kind) {
+    case "to_backup":
+      return { subject: `${no} is now with you as the backup`, body: `Request ${no} at ${step} was not treated in ${minutes} working minutes, so it is now with you as the backup. Please log in: ${link}` };
+    case "moved_away":
+      return { subject: `${no} moved to your backup`, body: `Request ${no} at ${step} waited ${minutes} working minutes, so it is now with your backup, ${holder}.` };
+    case "back_to_first":
+      return { subject: `${no} is back with you`, body: `Request ${no} at ${step} was not treated by your backup either. It is back with you and stays with you. Please log in: ${link}` };
+    case "registry_back":
+      return { subject: `Still waiting: ${no}`, body: `Request ${no} at ${step} was not treated by the officer or the backup. It is back with ${holder}.` };
+    default:
+      return { subject: `No backup for ${step}: ${no}`, body: `Request ${no} has waited ${minutes} working minutes at ${step} and no backup is set for that step. Please ask the Super Admin to add one.` };
+  }
+}
+
+export async function POST(req: NextRequest) {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const service = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !service) return NextResponse.json({ ok: false, error: "Server environment variables are incomplete." }, { status: 500 });
+  const admin = createClient(url, service, { auth: { persistSession: false } });
+
+  // only the database timer knows this secret
+  const given = (req.headers.get("x-reqgen-cron") || "").trim();
+  const { data: sec } = await admin.from("reqgen_cron_secret").select("secret").eq("id", 1).maybeSingle();
+  const secret = (sec as { secret?: string } | null)?.secret || "";
+  if (!given || !secret || given.length !== secret.length || given !== secret) return NextResponse.json({ ok: false, error: "Unauthorized." }, { status: 401 });
+
+  const { data: rows } = await admin.from("reqgen_handover_outbox").select("id,request_id,user_id,kind").is("sent_at", null).order("created_at").limit(100);
+  const list = (rows || []) as Row[];
+  if (!list.length) return NextResponse.json({ ok: true, sent: 0 });
+
+  const { data: minRow } = await admin.from("app_settings").select("value").eq("key", "HANDOVER_MINUTES").maybeSingle();
+  const minutes = Number((minRow as { value?: string } | null)?.value || 25) || 25;
+  const { data: reqRows } = await admin.from("requests").select("id,request_no,current_stage,current_owner").in("id", [...new Set(list.map((r) => r.request_id))]);
+  const reqs = new Map(((reqRows || []) as Req[]).map((r) => [r.id, r]));
+  const ids = new Set(list.map((r) => r.user_id));
+  reqs.forEach((r) => { if (r.current_owner) ids.add(r.current_owner); });
+  const { data: people } = await admin.from("profiles").select("id,full_name,email,phone").in("id", [...ids]);
+  const who = new Map(((people || []) as Person[]).map((p) => [p.id, p]));
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "";
+
+  let sent = 0;
+  for (const row of list) {
+    const r = reqs.get(row.request_id), p = who.get(row.user_id);
+    let result = "";
+    if (!r || !p) result = "skipped: request or person not found";
+    else {
+      const holder = (r.current_owner && who.get(r.current_owner)?.full_name) || "the officer";
+      const t = handoverText(row.kind, r, holder, minutes, `${appUrl}/requests/${r.id}`);
+      const phone = normalizeNigerianPhone(p.phone), mail = normalizeEmail(p.email);
+      let sms = "skipped", email = "skipped";
+      if (flag("SENDCHAMP_SMS_ENABLED") && phone) { try { await sendSendchampSms({ to: phone, message: `IET REQGEN: ${t.body}` }); sms = "sent"; } catch (e) { sms = e instanceof Error ? `failed: ${e.message}` : "failed"; } }
+      else if (!phone) sms = "no phone";
+      if (flag("SENDCHAMP_EMAIL_ENABLED") && mail) {
+        try { await sendSendchampEmail({ to: { email: mail, name: p.full_name }, subject: `IET REQGEN | ${t.subject}`, text: `ISLAMIC EDUCATION TRUST\nIET REQGEN\n\nAssalamu Alaikum ${p.full_name || ""},\n\n${t.body}\n\nThank you.\nIET REQGEN Notification` }); email = "sent"; }
+        catch (e) { email = e instanceof Error ? `failed: ${e.message}` : "failed"; }
+      } else if (!mail) email = "no email";
+      result = `sms ${sms}, email ${email}`;
+      sent += 1;
+    }
+    await admin.from("reqgen_handover_outbox").update({ sent_at: new Date().toISOString(), result: result.slice(0, 300) }).eq("id", row.id);
+  }
+  return NextResponse.json({ ok: true, sent });
+}

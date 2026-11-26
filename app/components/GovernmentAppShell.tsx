@@ -2,11 +2,13 @@
 
 import { Suspense } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
-import AppFrame from "@/app/components/v4/AppFrame";
+import Image from "next/image";
+import Link from "next/link";
+import AppFrame, { SiteFooter } from "@/app/components/v4/AppFrame";
 import { isV4Page } from "@/lib/v4/modules";
 
 /**
- * ReqGen v4.0.0 — app shell switch.
+ * ReqGen 6.2.0: website frame switch (Blueprint 08). Earlier: v4.0.0 app shell switch.
  * Public pages (home, sign-in, 2FA…) and embedded/print views render on their
  * own. Every signed-in page sits inside the v4 frame (left menu, top bar,
  * breadcrumb, footer). Pages not yet rebuilt in v4 keep their v3 styles via
@@ -52,7 +54,9 @@ function ShellSwitch({ children }: { children: React.ReactNode }) {
   const embedded = params.get("embedded") === "1";
   const isPublic = PUBLIC_PATHS.has(pathname) || pathname.startsWith("/check/");
 
-  if (isPublic || embedded) return <>{children}</>;
+  if (embedded || pathname === "/console") return <>{children}</>;
+  // 6.2.0: public pages (sign-in, sign-up, 2FA, password) sit in the same plain website frame
+  if (isPublic) return <PublicFrame>{children}</PublicFrame>;
 
   const moduleKey = pathname.split("/").filter(Boolean)[0] || "dashboard";
   return (
@@ -61,5 +65,22 @@ function ShellSwitch({ children }: { children: React.ReactNode }) {
         ? children
         : <div className={`rg-content v4-legacy module-${moduleKey}`} data-route={pathname}>{children}</div>}
     </AppFrame>
+  );
+}
+
+function PublicFrame({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="s6-site s6-public">
+      <header className="s6-top">
+        <div className="s6-top-in">
+          <Link className="s6-brand" href="/">
+            <Image src="/v4/iet-logo.png" alt="Islamic Education Trust logo" width={44} height={44} priority />
+            <span><b>Req<span>Gen</span></b><small>Islamic Education Trust, Request and Payment System</small></span>
+          </Link>
+        </div>
+      </header>
+      <main className="s6-page s6-public-page">{children}</main>
+      <SiteFooter />
+    </div>
   );
 }

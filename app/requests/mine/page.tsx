@@ -175,7 +175,7 @@ function MyRequests() {
                     <li key={d.id}>
                       <span className="v4-ri v4-t-amber"><Icon name="file" /></span>
                       <span className="v4-rt"><strong>{d.title || "Untitled draft"}</strong>
-                        <span>{d.request_type === "Personal" ? `Personal, ${d.personal_category || "Other"}` : "Official"}{d.dept_id && depts[d.dept_id] ? `, ${depts[d.dept_id]}` : ""}{(d.attachments || []).length ? `, ${(d.attachments || []).length} attachment${(d.attachments || []).length === 1 ? "" : "s"}` : ""}, saved {new Date(d.updated_at).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</span></span>
+                        <span>{d.request_type === "Personal" ? `Personal, ${d.personal_category || "Other"}` : "Official"}{d.dept_id && depts[d.dept_id] ? `, ${depts[d.dept_id]}` : ""}{(d.attachments || []).length ? `, ${(d.attachments || []).length} attachment${(d.attachments || []).length === 1 ? "" : "s"}` : ""}, saved {new Date(d.updated_at).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit", hour12: true }).replace(/(\d) ?([ap])m\b/i, (_m, d, x) => `${d} ${x.toUpperCase()}M`)}</span></span>
                       <span className="v4-rr">
                         <span className="v4-amt">{d.amount ? naira(d.amount) : "-"}</span>
                         <button className="v4-btn v4-btn-ghost" type="button" style={{ color: "var(--v4-red)" }} onClick={() => void removeDraft(d)}>Delete</button>

@@ -1,7 +1,8 @@
 // ReqGen Edge Function: the office jobs that need the server, for the app.
 //   /functions/v1/reqgen-office?route=<route>[&id=<staff id>]
 // routes: admin_users (POST), admin_user (GET, PATCH, DELETE with id), handover, pv_remind, registry_remind,
-//         finance_reset, backup_snapshot, backup_export, backup_files (GET), backup_restore (multipart)
+//         finance_reset, backup_snapshot, backup_export, backup_files (GET), backup_restore (multipart),
+//         backup_handover (the database timer only)
 // The logic is the website's own server code (generated into _shared/gen by scripts/build-edge.mjs), so the
 // same checks apply: who may do it, the fresh confirmation, the audit log. The service key never leaves Supabase.
 import { POST as adminUsers } from "../_shared/gen/office_admin_users.ts";
@@ -14,6 +15,7 @@ import { POST as backupSnapshot } from "../_shared/gen/office_backup_snapshot.ts
 import { POST as backupExport } from "../_shared/gen/office_backup_export.ts";
 import { GET as backupFiles } from "../_shared/gen/office_backup_files.ts";
 import { POST as backupRestore } from "../_shared/gen/office_backup_restore.ts";
+import { POST as backupHandover } from "../_shared/gen/office_backup_handover.ts";
 import { preflight, withCors } from "../_shared/http.ts";
 
 type Handler = (req: Request) => Promise<Response>;
@@ -28,6 +30,8 @@ const ROUTES: Record<string, Partial<Record<string, Handler>>> = {
   backup_export: { POST: backupExport },
   backup_files: { GET: backupFiles },
   backup_restore: { POST: backupRestore },
+  // 6.3.0: called by the database timer only (secret header), sends the backup-handover SMS and e-mails
+  backup_handover: { POST: backupHandover },
 };
 const BY_ID: Partial<Record<string, IdHandler>> = { GET: adminUserGet, PATCH: adminUserPatch, DELETE: adminUserDelete };
 

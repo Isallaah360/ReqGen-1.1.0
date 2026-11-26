@@ -1,22 +1,19 @@
 {
-    "version":  "4.0.0",
-    "build":  9,
+    "version":  "4.2.0",
+    "build":  12,
     "apk":  "/downloads/ReqGen.apk",
-    "size":  "6.3 MB",
-    "date":  "25 Nov 2026",
-    "sha256":  "4912 EC15 5C30 9718 6FCD B4AA 907C B0B1 725D 2C07 B9CD 3C71 D2F4 9A72 FE26 302E",
+    "size":  "6.7 MB",
+    "date":  "26 Nov 2026",
+    "sha256":  "91BE 3168 E3B9 DC64 8F1F 31EC 7B02 FDD0 C15C 56D5 16DE 7E7C 73BD 048D 7A96 DED9",
     "new":  [
-                "A real app of its own: every screen is drawn by the app and talks only to the ReqGen database. No website page is opened or used.",
-                "Confirm what you send, approve, sign or pay with your fingerprint or app PIN. The SMS code stays as the back-up.",
-                "Forgot password, 2FA set-up, profile, acting as, signature and photo, and your phones are now app screens.",
-                "Colours taken from the official IET logo: IET Blue, IET Gold, IET Orange and IET Red."
+                "Backup officers: a request that waits too long with an officer moves to the backup, then back to the officer.",
+                "The Super Admin sets a backup under each officer in the Routing Engine."
             ],
     "fixed":  [
-                  "â€œpermission denied for functionâ€ after a password, passcode or 2FA change on another device. The app now says you were signed out and takes you to sign-in.",
-                  "No database wording is shown any more: every problem is explained in plain words and reported to the Super Admin."
+                  null
               ],
     "better":  [
-                   "The app is about 770 KB of screens instead of several MB, so it opens faster.",
-                   "Nothing is cut with â€œâ€¦â€: long names and lines wrap and show in full."
+                   "Times are shown with AM and PM.",
+                   "The opening screen sits in the middle, with a live loading bar."
                ]
 }

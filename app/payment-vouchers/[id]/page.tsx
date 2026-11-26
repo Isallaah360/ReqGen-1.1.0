@@ -23,7 +23,7 @@ type Hist = { id: string; action_type: string | null; from_status: string | null
 type PvFile = { id: string; file_name: string; file_path: string; uploaded_by_label: string | null; created_at: string };
 type Msg = { tone: "red" | "green" | "amber" | "blue"; text: string };
 
-const when = (iso: string | null | undefined) => (iso ? new Date(iso).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "");
+const when = (iso: string | null | undefined) => (iso ? new Date(iso).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit", hour12: true }).replace(/(\d) ?([ap])m\b/i, (_m, d, x) => `${d} ${x.toUpperCase()}M`) : "");
 const todayIso = () => new Date().toISOString().slice(0, 10);
 
 export default function VoucherRecordPage() {

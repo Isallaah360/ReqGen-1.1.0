@@ -8,7 +8,8 @@ const check = (label, ok) => results.push([label, !!ok]);
 const greet = read("app/components/v4/Greeting.tsx");
 const frame = read("app/components/v4/AppFrame.tsx");
 check("Greeting in title case with a picture for each part of the day", ["Good Morning", "Good Afternoon", "Good Evening", "Good Night"].every((g) => greet.includes(g)) && greet.includes("Sunrise") && greet.includes("Moon"));
-check("One greeting per screen (top bar hides it on the Dashboard)", frame.includes('pathname !== "/dashboard"') && read("app/dashboard/page.tsx").includes("<DayIcon"));
+// 6.2.0: the new top bar carries no greeting at all, so the Dashboard's is the only one.
+check("One greeting per screen (top bar hides it on the Dashboard, or has none)", (frame.includes('pathname !== "/dashboard"') || !/DayIcon|dayPart|Good (morning|afternoon|evening)/.test(frame)) && read("app/dashboard/page.tsx").includes("<DayIcon"));
 
 const mine = read("app/requests/mine/page.tsx");
 check("My Requests: own requests only, by financial year", mine.includes('.eq("created_by", me.userId)') && mine.includes("fyBounds("));

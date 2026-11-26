@@ -232,7 +232,7 @@ export default function FinanceResetPage() {
               <tbody>
                 {history.map((h) => (
                   <tr key={h.id}>
-                    <td><span className="v4-strong">{h.reset_no}</span><span className="v4-sub">{h.reset_label}, {new Date(h.created_at).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}</span></td>
+                    <td><span className="v4-strong">{h.reset_no}</span><span className="v4-sub">{h.reset_label}, {new Date(h.created_at).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit", hour12: true }).replace(/(\d) ?([ap])m\b/i, (_m, d, x) => `${d} ${x.toUpperCase()}M`)}</span></td>
                     <td data-label="Cleared">{h.scopes.join(", ")}</td>
                     <td className="v4-hide-md">{h.reason}</td>
                     <td data-label="Checked">{h.verified ? <Chip tone="green">All ₦0.00</Chip> : <Chip tone="red">Not checked</Chip>}</td>

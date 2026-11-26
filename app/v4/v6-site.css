@@ -1,0 +1,152 @@
+/* =========================================================================
+   ReqGen 6.2.0 · Blueprint 08: a plain, standard website.
+   Every colour comes from the OFFICIAL IET LOGO: IET Blue #31A8E0, IET Gold #F9A11F,
+   IET Orange #F47824, IET Red #EF3F27 and the black of the lettering, with deeper shades
+   of the same colours where text must stay readable. No other colour, no purple.
+   One layout on every device: the IET top bar, one menu of tabs, the office's pages as
+   sub-tabs, plain panels and tables. The Android app has its own screens.
+   Loaded last, so these values win. The Developer Console keeps its own look.
+   ========================================================================= */
+
+html:not([data-console="developer"]) body.v4-root.v4-root {
+  --v4-bg: #F5F7F8; --v4-surface: #FFFFFF; --v4-surface-2: #F8FAFB; --v4-surface-3: #EEF2F5;
+  --v4-line: #DDE3E8; --v4-line-2: #EEF2F5; --v4-line-strong: #C3CAD5;
+  --v4-ink: #111111; --v4-ink-2: #2F3337; --v4-muted: #5C5F63;
+  --v4-brand: #146185; --v4-brand-dark: #0E4A66; --v4-brand-soft: #E9F6FC; --v4-brand-line: #B5DDF1; --v4-brand-tint: #F2FAFE;
+  --v4-link: #146185;
+  --v4-accent: #146185; --v4-accent-hover: #0E4A66; --v4-on-accent: #FFFFFF; --v4-on-brand: #FFFFFF;
+  --v4-navy: #111111; --v4-navy-2: #000000; --v4-on-navy: #FFFFFF; --v4-on-navy-2: #D9D9D9; --v4-navy-link: #7AC7EB;
+  --v4-green: #146185; --v4-green-soft: #E9F6FC; --v4-green-tint: #F2FAFE;
+  --v4-amber: #7C4B03; --v4-amber-soft: #FEF5E6;
+  --v4-red: #B8301C; --v4-red-soft: #FDEAE7; --v4-red-tint: #FEF4F2;
+  --v4-shadow-card: none;
+  --v4-stripe: linear-gradient(90deg, #EF3F27, #F47824 40%, #F9A11F 70%, #31A8E0);
+  --v5-hero: #146185; --v5-on-hero: #FFFFFF; --v5-gen: #EF3F27;
+  --s6-gold: #F9A11F; --s6-gold-ink: #7C4B03;
+  background: var(--v4-bg);
+}
+html[data-theme="dark"]:not([data-console="developer"]) body.v4-root.v4-root {
+  --v4-bg: #0E1113; --v4-surface: #171B1E; --v4-surface-2: #1C2125; --v4-surface-3: #232A2F;
+  --v4-line: #2A3035; --v4-line-2: #222830; --v4-line-strong: #3A424A;
+  --v4-ink: #EEF1F3; --v4-ink-2: #D2D8DD; --v4-muted: #A9B1B7;
+  --v4-brand: #7AC7EB; --v4-brand-dark: #A6D8F2; --v4-brand-soft: #0F2A38; --v4-brand-line: #24506A; --v4-brand-tint: #11222B;
+  --v4-link: #7AC7EB;
+  --v4-accent: #7AC7EB; --v4-accent-hover: #A6D8F2; --v4-on-accent: #071923; --v4-on-brand: #071923;
+  --v4-green: #7AC7EB; --v4-green-soft: #0F2A38; --v4-green-tint: #11222B;
+  --v4-amber: #FBC06A; --v4-amber-soft: #2E1F06;
+  --v4-red: #F48071; --v4-red-soft: #3A120D; --v4-red-tint: #2B1410;
+  --v5-hero: #0F2A38; --v5-on-hero: #EEF1F3; --v5-gen: #F48071;
+  --s6-gold-ink: #FBC06A;
+}
+
+/* ---------- the frame ---------- */
+.s6-site { min-height: 100vh; display: flex; flex-direction: column; background: var(--v4-bg); color: var(--v4-ink); font-family: "Plus Jakarta Sans", system-ui, sans-serif; }
+.s6-top { background: #000; color: #fff; border-bottom: 4px solid transparent; border-image: linear-gradient(90deg, #EF3F27, #F47824 40%, #F9A11F 70%, #31A8E0) 1; position: relative; z-index: 30; }
+.s6-top-in { max-width: 1240px; margin: 0 auto; padding: 10px 24px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.s6-brand { display: flex; align-items: center; gap: 12px; color: #fff !important; text-decoration: none !important; margin-right: auto; min-width: 0; }
+.s6-brand img { width: 44px; height: 44px; border-radius: 50%; background: #fff; border: 2px solid #F9A11F; object-fit: contain; flex: 0 0 auto; }
+.s6-brand b { display: block; font-size: 19px; font-weight: 800; letter-spacing: .2px; line-height: 1.2; }
+.s6-brand b span { color: #F9A11F; }
+.s6-brand small { display: block; font-size: 12.5px; color: #D9D9D9; line-height: 1.3; }
+.s6-top .v4-search { width: 300px; max-width: 100%; background: #fff; border-radius: 6px; border: 0; height: 42px; color: #5C5F63; }
+.s6-top .v4-search input { color: #111; }
+.s6-top-actions { display: flex; align-items: center; gap: 8px; }
+.s6-top-actions .v4-icon-btn, .s6-top-actions .v4-avatar, .s6-top-actions button { color: #fff; }
+.s6-top-actions .v4-icon-btn { background: transparent; border: 1px solid rgba(255,255,255,.28); border-radius: 6px; width: 44px; height: 44px; }
+.s6-top-actions .v4-avatar { border: 2px solid #F9A11F; background: #fff; color: #111; }
+.s6-top-actions .v4-role-select, .s6-top-actions [class*="role"] { color: #fff; }
+.s6-top-actions [class*="role"] button, .s6-top-actions .v4-rs { background: transparent; border: 1px solid rgba(255,255,255,.28); border-radius: 6px; color: #fff; }
+.s6-top-actions [class*="role"] small, .s6-top-actions [class*="role"] span { color: #D9D9D9; }
+.s6-top-actions [class*="role"] b, .s6-top-actions [class*="role"] strong { color: #fff; }
+/* menus that open from the top bar keep the page colours */
+.s6-top .v4-avatar-menu, .s6-top .v4-bell-panel, .s6-top .v4-search-results, .s6-top [role="menu"], .s6-top [role="listbox"] { color: var(--v4-ink); }
+
+.s6-menu { background: var(--v4-surface); border-bottom: 1px solid var(--v4-line); position: sticky; top: 0; z-index: 20; }
+.s6-menu-in { max-width: 1240px; margin: 0 auto; padding: 0 24px; display: flex; flex-wrap: wrap; gap: 2px; }
+.s6-menu a { display: inline-flex; align-items: center; gap: 8px; min-height: 50px; padding: 0 14px; color: var(--v4-ink) !important; text-decoration: none !important; font-weight: 600; font-size: 14.5px; border-bottom: 3px solid transparent; }
+.s6-menu a:hover { color: var(--v4-brand) !important; background: var(--v4-surface-3); }
+.s6-menu a[aria-current="page"] { font-weight: 800; border-bottom-color: #F9A11F; }
+.s6-n { background: #B8301C; color: #fff; border-radius: 10px; font-size: 11.5px; font-weight: 800; padding: 0 7px; line-height: 19px; }
+.s6-off { background: var(--v4-surface-3); color: var(--v4-muted); border-radius: 4px; font-size: 11px; font-weight: 800; padding: 0 6px; line-height: 18px; }
+
+.s6-page { flex: 1; max-width: 1240px; width: 100%; margin: 0 auto; padding: 18px 24px 40px; }
+.s6-crumbs { font-size: 13.5px; color: var(--v4-muted); margin-bottom: 8px; display: flex; flex-wrap: wrap; gap: 6px; }
+.s6-crumbs a { color: var(--v4-muted) !important; }
+.s6-sep { margin-right: 6px; }
+.s6-subtabs { display: flex; flex-wrap: wrap; border-bottom: 1px solid var(--v4-line); margin-bottom: 18px; }
+.s6-subtabs a { min-height: 44px; display: inline-flex; align-items: center; padding: 0 14px; text-decoration: none !important; color: var(--v4-muted) !important; font-weight: 600; font-size: 14px; border-bottom: 3px solid transparent; margin-bottom: -1px; }
+.s6-subtabs a:hover { color: var(--v4-brand) !important; }
+.s6-subtabs a[aria-current="page"] { color: var(--v4-ink) !important; border-bottom-color: var(--v4-brand); font-weight: 800; }
+.s6-content { min-width: 0; }
+
+.s6-foot { background: #000; color: #D9D9D9; font-size: 13px; }
+.s6-foot-in { max-width: 1240px; margin: 0 auto; padding: 16px 24px; display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.s6-foot a { color: #fff !important; }
+.s6-foot-in > span:first-child a { margin-left: 8px; }
+
+/* ---------- public pages (sign-in, sign-up, 2FA, passwords) ---------- */
+.s6-public-page { display: flex; justify-content: center; align-items: flex-start; padding-top: 40px; }
+.s6-public .v4-public { min-height: 0; padding: 0; background: none; display: block; width: 100%; max-width: 560px; overflow: visible; }
+.s6-public .v4-auth-card { width: 100%; border-radius: 8px; box-shadow: none; padding: 28px 28px 22px !important; text-align: left; }
+.s6-public .v4-auth-card > p:first-of-type { margin-top: 0 !important; }
+.s6-public .v4-auth-card h1 { text-align: left; }
+.s6-public .v4-auth-logo { display: none; }
+.s6-public .v4-auth-foot, .s6-public .v4-auth-bg, .s6-public .v4-blob { display: none !important; }
+
+/* ---------- plain panels, buttons, chips and tables everywhere ---------- */
+.s6-site .v4-card, .s6-site .k-card, .s6-site .v4-stat, .s6-site .v4-tile, .s6-site .v4-acc-card, .s6-site .v4-stepcard { border-radius: 8px !important; box-shadow: none !important; }
+.s6-site .v4-btn { border-radius: 6px; box-shadow: none !important; }
+.s6-site .v4-btn-primary { background: var(--v4-brand); color: var(--v4-on-brand); }
+.s6-site .v4-btn-primary:hover { background: var(--v4-brand-dark); color: var(--v4-on-brand); }
+.s6-site .v4-chip { border-radius: 4px; }
+.s6-site .v4-hero { background: var(--v5-hero) !important; border-radius: 8px; color: var(--v5-on-hero); }
+.s6-site table th { background: var(--v4-surface-2); text-transform: uppercase; letter-spacing: .04em; font-size: 12.5px; }
+.s6-site .v4-tabs [aria-selected="true"], .s6-site .v4-tabs .v4-on { border-bottom-color: var(--v4-brand); }
+.s6-site input, .s6-site select, .s6-site textarea { border-radius: 6px; }
+
+/* ---------- phone width: the same website; the menu wraps, panels stack ---------- */
+@media (max-width: 760px) {
+  .s6-top-in { padding: 10px 14px; gap: 10px; }
+  .s6-brand small { display: none; }
+  .s6-top .v4-search { order: 3; width: 100%; }
+  .s6-menu { position: static; }
+  .s6-menu-in { padding: 0 8px; }
+  .s6-menu a { min-height: 44px; padding: 0 10px; font-size: 13.5px; }
+  .s6-page { padding: 14px 14px 30px; }
+  .s6-subtabs a { padding: 0 10px; font-size: 13.5px; }
+  .s6-foot-in { padding: 14px; }
+}
+
+/* sign-in, sign-up, 2FA and password pages: one plain panel (the brand is in the top bar) */
+.s6-public .v5-auth { min-height: 0; display: block; width: 100%; max-width: 480px; padding: 0; background: none; }
+.s6-public .v5-auth-brand, .s6-public .v4-steps-dots { display: none !important; }
+.s6-public .v5-auth-side { width: 100%; padding: 0; display: block; }
+.s6-public .v4-auth-title { font-size: 22px; text-align: left; margin: 0; }
+.s6-public .v4-auth-sub { text-align: left; color: var(--v4-muted); }
+
+/* the "acting as" switch in the black top bar */
+.s6-top .v4-acting-btn { background: transparent !important; border: 1px solid rgba(255,255,255,.28) !important; border-radius: 6px; color: #fff !important; box-shadow: none !important; }
+.s6-top .v4-acting-txt small { color: #D9D9D9 !important; }
+.s6-top .v4-acting-txt strong { color: #fff !important; }
+.s6-top .v4-acting-ico, .s6-top .v4-sel-caret { color: #F9A11F !important; background: transparent !important; }
+.s6-top .v4-acting-pop { color: var(--v4-ink); }
+@media (max-width: 760px) {
+  .s6-top .v4-search { display: flex !important; }
+  .s6-top .v4-acting { display: block !important; }
+  .s6-top .v4-acting-txt small { display: none; }
+}
+@media (max-width: 760px) {
+  .s6-top .s6-top-actions { margin-left: auto; }
+  .s6-top .v4-search { order: 3; flex: 1 1 100%; width: 100%; }
+}
+/* a long button label wraps instead of pushing the page sideways */
+.s6-site .v4-btn { max-width: 100%; }
+@media (max-width: 760px) { .s6-site .v4-btn { white-space: normal; text-align: center; height: auto; padding-top: 8px; padding-bottom: 8px; } }
+
+/* 6.2.0: the developer's console keeps its own name and badge in the new top bar */
+.s6-console-badge { flex: 0 0 auto; border: 1px solid #F9A11F; color: #F9A11F; border-radius: 4px; padding: 3px 8px; font-size: 11px; font-weight: 800; letter-spacing: .06em; }
+@media (max-width: 720px) { .s6-console-badge { display: none; } }
+.s6-page[data-still] *, .s6-page[data-still] *::after { animation: none !important; transition: none !important; }
+.s6-back { display: inline-flex; align-items: center; gap: 4px; min-height: 36px; padding: 0 10px 0 6px; margin-right: 10px; border: 1px solid var(--v4-line); border-radius: 6px; background: transparent; color: var(--v4-ink); font: inherit; font-weight: 600; cursor: pointer; }
+.s6-back:hover { border-color: #31A8E0; color: #146185; }
+@media (max-width: 720px) { .s6-back { min-height: 44px; } }
