@@ -1,11 +1,11 @@
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { Paperclip, Send, X } from "lucide-react";
 import { alert, askCode, db, plainError } from "../lib/core";
 import { useOnline, type Req } from "../lib/data";
 import { ACCEPT, addFiles, fmtAmount, kb, parseAmount, uploadAll } from "../lib/files";
 import { naira } from "../lib/text";
 import { useApp } from "../App";
-import { Body, Head, Note, toast, useNav } from "../ui";
+import { AttachButtons, Body, Head, Note, toast, useNav } from "../ui";
 import { SubheadField, useLive, useSubheads } from "./Budget";
 
 type Full = Req & { details: string | null; subhead_id: string | null };
@@ -28,7 +28,6 @@ export default function EditRequest({ r, deptName, onDone }: { r: Full; deptName
   const [files, setFiles] = useState<File[]>([]);
   const [busy, setBusy] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
 
   const amount = parseAmount(amountText);
   const subs = useSubheads(r.dept_id || "", official);
@@ -89,8 +88,7 @@ export default function EditRequest({ r, deptName, onDone }: { r: Full; deptName
           {files.length ? <div className="grp" style={{ marginBottom: 8 }}>{files.map((f, i) => (
             <div className="cell" key={`${f.name}-${i}`}><span className="av ic-mu"><Paperclip size={18} /></span><span className="t"><b>{f.name}</b><small>{kb(f.size)}</small></span><button type="button" className="ib" aria-label={`Remove ${f.name}`} onClick={() => setFiles((x) => x.filter((_, j) => j !== i))}><X size={18} /></button></div>
           ))}</div> : null}
-          <input ref={fileRef} type="file" multiple accept={ACCEPT} hidden onChange={(e) => { const x = addFiles(files, e.target.files); setFiles(x.files); if (x.problem) setMsg(x.problem); e.target.value = ""; }} />
-          <button type="button" className="btn bs block" onClick={() => fileRef.current?.click()}><Paperclip size={18} />Add a file</button>
+          <AttachButtons accept={ACCEPT} onFiles={(list) => { const x = addFiles(files, list); setFiles(x.files); if (x.problem) setMsg(x.problem); }} />
         </div>
         <label><span className="lbl">What you changed (the officer sees this)</span><textarea className="inp" value={note} maxLength={1000} onChange={(e) => setNote(e.target.value)} placeholder="e.g. Quotation attached and amount lowered" style={{ minHeight: 84 }} /></label>
         {msg ? <Note tone="er">{msg}</Note> : null}

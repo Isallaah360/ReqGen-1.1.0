@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { Paperclip, Plus, Send, X, Info } from "lucide-react";
 import { alert, askCode, db, plainError } from "../lib/core";
 import { useOnline } from "../lib/data";
@@ -6,7 +6,7 @@ import { ACCEPT, addFiles, fmtAmount, kb, newNumber, parseAmount, uploadAll } fr
 import type { Person } from "../lib/people";
 import { initials } from "../lib/text";
 import { useApp } from "../App";
-import { Body, Cell, Chip, Head, Note, Toggle, toast, useNav } from "../ui";
+import { AttachButtons, Body, Cell, Chip, Head, Note, Toggle, toast, useNav } from "../ui";
 import { PeopleList } from "./PickPerson";
 import Detail from "./Detail";
 import Sent from "./Sent";
@@ -51,7 +51,6 @@ function Write({ chosen, setChosen, onAdd }: { chosen: Person[]; setChosen: (f: 
   const [files, setFiles] = useState<File[]>([]);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
   const amount = parseAmount(amountText);
 
   async function send() {
@@ -95,13 +94,12 @@ function Write({ chosen, setChosen, onAdd }: { chosen: Person[]; setChosen: (f: 
         {files.length ? <div className="grp">{files.map((f, i) => (
           <div className="cell" key={`${f.name}-${i}`}><span className="av ic-mu"><Paperclip size={18} /></span><span className="t"><b>{f.name}</b><small>{kb(f.size)}</small></span><button type="button" className="ib" aria-label={`Remove ${f.name}`} onClick={() => setFiles((x) => x.filter((_, j) => j !== i))}><X size={18} /></button></div>
         ))}</div> : null}
-        <input ref={fileRef} type="file" multiple accept={ACCEPT} hidden onChange={(e) => { const r = addFiles(files, e.target.files); setFiles(r.files); if (r.problem) setMsg(r.problem); e.target.value = ""; }} />
+        <AttachButtons accept={ACCEPT} onFiles={(list) => { const r = addFiles(files, list); setFiles(r.files); if (r.problem) setMsg(r.problem); }} />
         <Note tone="in" icon={<Info size={16} />}>Only {chosen.length === 1 ? "this person sees" : `these ${chosen.length} people see`} it. Each answers on their own. To be paid, a receiver forwards it to the DG with the Account Officer.</Note>
         {msg ? <Note tone="er">{msg}</Note> : null}
         {!online ? <Note tone="wa">You are offline. Sending waits until the network returns.</Note> : null}
       </Body>
       <div className="bar">
-        <button type="button" className="btn bs" style={{ flex: "0 0 auto" }} aria-label="Add a file" onClick={() => fileRef.current?.click()}><Paperclip size={18} /></button>
         <button type="button" className="btn bp" disabled={busy || !online} onClick={() => void send()}><Send size={18} />{busy ? "Sending…" : "Sign and send"}</button>
       </div>
     </>

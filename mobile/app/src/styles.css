@@ -4,7 +4,7 @@
    (white text sits on #146185, the deep IET Blue). Plus white, black and greys. No other colour, no purple.
    Font: Plus Jakarta Sans, packed inside the app. */
 :root{
-  --bg:#F5F7F8;--card:#FFFFFF;--card2:#EDF1F3;--ink:#111111;--ink2:#333333;--mute:#5C5F63;--line:#E1E6EA;--hdr:#111111;
+  --bg:#F5F7F8;--card:#FFFFFF;--card2:#EDF1F3;--ink:#111111;--ink2:#333333;--mute:#5C5F63;--line:#E1E6EA;--hdr:#0E4A66;
   --or:#146185;--ont:#FFFFFF;--ort:#146185;--ors:#E9F6FC;--ok:#146185;--oks:#E9F6FC;--wa:#955A04;--was:#FEF5E6;
   --er:#B8301C;--ers:#FDEAE7;--in:#146185;--ins:#E9F6FC;--sk:#EDF1F3;--glass:rgba(255,255,255,.9);--gline:rgba(255,255,255,.8);
   --hero:linear-gradient(135deg,#31A8E0 0%,#7AC7EB 100%);--onhero:#000000;--onhero2:rgba(0,0,0,.74);--acc:#FEF5E6;--acct:#7C4B03;
@@ -13,9 +13,9 @@
   color-scheme:light;
 }
 :root[data-theme="dark"]{
-  --bg:#0B0C0D;--card:#17191B;--card2:#202326;--ink:#F4F4F4;--ink2:#D0D3D6;--mute:#A3A8AD;--line:#2A2E32;--hdr:#000000;
+  --bg:#071E2A;--card:#0C2C3C;--card2:#0F3446;--ink:#F4F4F4;--ink2:#D6E6EE;--mute:#A9C7D6;--line:#1D4B61;--hdr:#0E4A66;
   --or:#31A8E0;--ont:#000000;--ort:#7AC7EB;--ors:#0F2A38;--ok:#7AC7EB;--oks:#0F2A38;--wa:#FBC06A;--was:#2E1F06;
-  --er:#F48071;--ers:#3A120D;--in:#7AC7EB;--ins:#0F2A38;--sk:#202326;--glass:rgba(23,25,27,.92);--gline:rgba(255,255,255,.08);
+  --er:#F48071;--ers:#3A120D;--in:#7AC7EB;--ins:#0F2A38;--sk:#0F3446;--glass:rgba(12,44,60,.92);--gline:rgba(255,255,255,.08);
   --hero:linear-gradient(135deg,#31A8E0 0%,#1E86B8 100%);--onhero:#000000;--onhero2:rgba(0,0,0,.74);--acc:#2E1F06;--acct:#FBC06A;
   --sh:0 1px 2px rgba(0,0,0,.4),0 8px 22px rgba(0,0,0,.3);--scrim:rgba(0,0,0,.6);color-scheme:dark;
 }
@@ -209,16 +209,16 @@ textarea.inp{padding:12px 14px;min-height:100px;resize:none;line-height:1.45}
    Font: Plus Jakarta Sans, packed inside the app (nothing downloaded).
    ===================================================================== */
 :root[data-look="sand"]{
-  --bg:#F5F7F8;--card:#FFFFFF;--card2:#EDF1F3;--ink:#111111;--ink2:#333333;--mute:#5C5F63;--line:#E1E6EA;--hdr:#111111;
+  --bg:#F5F7F8;--card:#FFFFFF;--card2:#EDF1F3;--ink:#111111;--ink2:#333333;--mute:#5C5F63;--line:#E1E6EA;--hdr:#0E4A66;
   --or:#146185;--ont:#FFFFFF;--ort:#146185;--ors:#E9F6FC;--ok:#146185;--oks:#E9F6FC;--wa:#955A04;--was:#FEF5E6;
   --er:#B8301C;--ers:#FDEAE7;--in:#146185;--ins:#E9F6FC;--sk:#EDF1F3;--glass:rgba(255,255,255,.9);--gline:rgba(255,255,255,.8);
   --hero:linear-gradient(135deg,#31A8E0 0%,#7AC7EB 100%);--onhero:#000000;--onhero2:rgba(0,0,0,.74);--acc:#FEF5E6;--acct:#7C4B03;
   --sh:0 1px 2px rgba(0,0,0,.05),0 6px 18px rgba(0,0,0,.05);--scrim:rgba(0,0,0,.45);
 }
 :root[data-look="sand"][data-theme="dark"]{
-  --bg:#0B0C0D;--card:#17191B;--card2:#202326;--ink:#F4F4F4;--ink2:#D0D3D6;--mute:#A3A8AD;--line:#2A2E32;--hdr:#000000;
+  --bg:#071E2A;--card:#0C2C3C;--card2:#0F3446;--ink:#F4F4F4;--ink2:#D6E6EE;--mute:#A9C7D6;--line:#1D4B61;--hdr:#0E4A66;
   --or:#31A8E0;--ont:#000000;--ort:#7AC7EB;--ors:#0F2A38;--ok:#7AC7EB;--oks:#0F2A38;--wa:#FBC06A;--was:#2E1F06;
-  --er:#F48071;--ers:#3A120D;--in:#7AC7EB;--ins:#0F2A38;--sk:#202326;--glass:rgba(23,25,27,.92);--gline:rgba(255,255,255,.08);
+  --er:#F48071;--ers:#3A120D;--in:#7AC7EB;--ins:#0F2A38;--sk:#0F3446;--glass:rgba(12,44,60,.92);--gline:rgba(255,255,255,.08);
   --hero:linear-gradient(135deg,#31A8E0 0%,#1E86B8 100%);--onhero:#000000;--onhero2:rgba(0,0,0,.74);--acc:#2E1F06;--acct:#FBC06A;
   --sh:0 1px 2px rgba(0,0,0,.4),0 8px 22px rgba(0,0,0,.3);--scrim:rgba(0,0,0,.6);
 }
@@ -266,7 +266,7 @@ textarea.inp{padding:12px 14px;min-height:100px;resize:none;line-height:1.45}
 :root[data-look] .tb .nd{background:#B8301C;color:#fff}
 :root[data-look] .body.withbar{padding-bottom:calc(104px + var(--safe-b))}
 :root[data-look] .toggle[aria-checked="true"]{background:var(--or)}
-:root[data-look] .t-in{background:#111111;color:#FFFFFF}
+:root[data-look] .t-in{background:#0E4A66;color:#FFFFFF}
 .look{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .look button{display:flex;flex-direction:column;gap:8px;padding:12px;border-radius:16px;border:1.5px solid var(--line);background:var(--card);font-weight:800;text-align:left}
 .look button[aria-checked="true"]{border-color:var(--or);background:var(--ors)}
@@ -360,28 +360,69 @@ textarea.inp{padding:12px 14px;min-height:100px;resize:none;line-height:1.45}
 @media (prefers-reduced-motion: reduce){.app,.app-nd{animation:none}.app-ic,.btn{transition:none}}
 
 /* ---- Glass Dock look ---- */
-:root[data-look="glass"]{
+:root[data-look="glass"][data-theme="dark"]{
   --bg:#0B3D55;--card:rgba(255,255,255,.08);--card2:rgba(255,255,255,.06);--ink:#FFFFFF;--ink2:#E2F1F9;--mute:#DCEFF8;--line:rgba(255,255,255,.20);--hdr:#0B3D55;
   --or:#F9A11F;--ont:#000000;--ort:#FCD089;--ors:rgba(124,75,3,.82);--ok:#9AD6F2;--oks:rgba(4,40,58,.55);--wa:#FCD089;--was:rgba(124,75,3,.82);
   --er:#FFB4A8;--ers:rgba(80,10,0,.5);--in:#9AD6F2;--ins:rgba(4,40,58,.55);--sk:rgba(255,255,255,.10);--glass:rgba(11,61,85,.62);--gline:rgba(255,255,255,.24);
   --hero:rgba(4,40,58,.45);--onhero:#FFFFFF;--onhero2:#E2F1F9;--acc:rgba(124,75,3,.82);--acct:#FCD089;
   --sh:0 8px 24px rgba(0,0,0,.2);--scrim:rgba(0,20,30,.6);color-scheme:dark;
 }
-:root[data-look="glass"] .scr{background:radial-gradient(circle at 8% 4%,rgba(49,168,224,.25),transparent 42%),radial-gradient(circle at 100% 58%,rgba(249,161,31,.18),transparent 40%),radial-gradient(circle at 30% 100%,rgba(49,168,224,.18),transparent 45%),#0B3D55}
-:root[data-look="glass"] .grp,:root[data-look="glass"] .card,:root[data-look="glass"] .hero,:root[data-look="glass"] .look2 button{-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.22)}
-:root[data-look="glass"] .hero .btn{background:#F9A11F;color:#000}
-:root[data-look="glass"] .sheet,:root[data-look="glass"] .dlg{background:#0E4A66;color:#fff}
-:root[data-look="glass"] .inp{background:rgba(255,255,255,.12);color:#fff;border-color:rgba(255,255,255,.3)}
-:root[data-look="glass"] .inp::placeholder{color:#CFE8F5;opacity:1}
-:root[data-look="glass"] option{color:#111111;background:#FFFFFF}
-:root[data-look="glass"] .tb{background:rgba(11,61,85,.72);-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);border-top:1px solid rgba(255,255,255,.22)}
-:root[data-look="glass"] .tb button{color:#CFE8F5}
-:root[data-look="glass"] .tb button[aria-current="page"]{color:#FBC06A}
-:root[data-look="glass"] .tb .fab{background:#F9A11F;color:#000;box-shadow:0 8px 18px rgba(249,161,31,.4)}
-:root[data-look="glass"] .app-ic{box-shadow:0 8px 18px rgba(0,0,0,.25)}
-:root[data-look="glass"] .app-t{color:#FFFFFF;text-shadow:0 1px 2px rgba(0,0,0,.35)}
-:root[data-look="glass"] .app-nd{box-shadow:0 0 0 2px #0B3D55}
-:root[data-look="glass"] .brand-word span{color:#FBC06A}
-:root[data-look="glass"] .btn.bs{background:rgba(255,255,255,.12);color:#fff;border-color:rgba(255,255,255,.3)}
-:root[data-look="glass"] .btn.bp{background:#F9A11F;color:#000}
-:root[data-look="glass"] .splash{background:#0B3D55}
+:root[data-look="glass"][data-theme="dark"] .scr{background:radial-gradient(circle at 8% 4%,rgba(49,168,224,.25),transparent 42%),radial-gradient(circle at 100% 58%,rgba(249,161,31,.18),transparent 40%),radial-gradient(circle at 30% 100%,rgba(49,168,224,.18),transparent 45%),#0B3D55}
+:root[data-look="glass"][data-theme="dark"] .grp,:root[data-look="glass"][data-theme="dark"] .card,:root[data-look="glass"][data-theme="dark"] .hero,:root[data-look="glass"][data-theme="dark"] .look2 button{-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.22)}
+:root[data-look="glass"][data-theme="dark"] .hero .btn{background:#F9A11F;color:#000}
+:root[data-look="glass"][data-theme="dark"] .sheet,:root[data-look="glass"][data-theme="dark"] .dlg{background:#0E4A66;color:#fff}
+:root[data-look="glass"][data-theme="dark"] .inp{background:rgba(255,255,255,.12);color:#fff;border-color:rgba(255,255,255,.3)}
+:root[data-look="glass"][data-theme="dark"] .inp::placeholder{color:#CFE8F5;opacity:1}
+:root[data-look="glass"][data-theme="dark"] option{color:#111111;background:#FFFFFF}
+:root[data-look="glass"][data-theme="dark"] .tb{background:rgba(11,61,85,.72);-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);border-top:1px solid rgba(255,255,255,.22)}
+:root[data-look="glass"][data-theme="dark"] .tb button{color:#CFE8F5}
+:root[data-look="glass"][data-theme="dark"] .tb button[aria-current="page"]{color:#FBC06A}
+:root[data-look="glass"][data-theme="dark"] .tb .fab{background:#F9A11F;color:#000;box-shadow:0 8px 18px rgba(249,161,31,.4)}
+:root[data-look="glass"][data-theme="dark"] .app-ic{box-shadow:0 8px 18px rgba(0,0,0,.25)}
+:root[data-look="glass"][data-theme="dark"] .app-t{color:#FFFFFF;text-shadow:0 1px 2px rgba(0,0,0,.35)}
+:root[data-look="glass"][data-theme="dark"] .app-nd{box-shadow:0 0 0 2px #0B3D55}
+:root[data-look="glass"][data-theme="dark"] .brand-word span{color:#FBC06A}
+:root[data-look="glass"][data-theme="dark"] .btn.bs{background:rgba(255,255,255,.12);color:#fff;border-color:rgba(255,255,255,.3)}
+:root[data-look="glass"][data-theme="dark"] .btn.bp{background:#F9A11F;color:#000}
+:root[data-look="glass"][data-theme="dark"] .splash{background:#0B3D55}
+/* 4.2.2: Glass Dock in light (frosted glass on soft IET blue) */
+:root[data-look="glass"][data-theme="light"]{
+  --bg:#E4F2FA;--card:rgba(255,255,255,.74);--card2:rgba(255,255,255,.55);--ink:#0B2533;--ink2:#173B4D;--mute:#34495A;--line:rgba(20,97,133,.18);--hdr:#0E4A66;
+  --or:#146185;--ont:#FFFFFF;--ort:#7C4B03;--ors:#FDEBCB;--ok:#146185;--oks:#DDF0F9;--wa:#7C4B03;--was:#FDEBCB;
+  --er:#B8301C;--ers:#FBE2DD;--in:#146185;--ins:#DDF0F9;--sk:rgba(20,97,133,.10);--glass:rgba(255,255,255,.72);--gline:rgba(20,97,133,.20);
+  --hero:linear-gradient(135deg,#146185 0%,#0E4A66 100%);--onhero:#FFFFFF;--onhero2:#E2F1F9;--acc:#FDEBCB;--acct:#7C4B03;
+  --sh:0 8px 24px rgba(14,74,102,.12);--scrim:rgba(4,30,44,.45);color-scheme:light;
+}
+:root[data-look="glass"][data-theme="light"] .scr{background:radial-gradient(circle at 8% 4%,rgba(49,168,224,.28),transparent 42%),radial-gradient(circle at 100% 58%,rgba(249,161,31,.20),transparent 40%),radial-gradient(circle at 30% 100%,rgba(49,168,224,.20),transparent 45%),#E4F2FA}
+:root[data-look="glass"][data-theme="light"] .grp,:root[data-look="glass"][data-theme="light"] .card,:root[data-look="glass"][data-theme="light"] .look2 button{-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.9)}
+:root[data-look="glass"][data-theme="light"] .hero .btn{background:#F9A11F;color:#000}
+:root[data-look="glass"][data-theme="light"] .sheet,:root[data-look="glass"][data-theme="light"] .dlg{background:#F4FAFD;color:#0B2533}
+:root[data-look="glass"][data-theme="light"] .inp{background:rgba(255,255,255,.85);color:#0B2533;border-color:rgba(20,97,133,.3)}
+:root[data-look="glass"][data-theme="light"] .inp::placeholder{color:#45535E;opacity:1}
+:root[data-look="glass"][data-theme="light"] .tb{background:rgba(255,255,255,.72);-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);border-top:1px solid rgba(20,97,133,.18)}
+:root[data-look="glass"][data-theme="light"] .tb button{color:#34495A}
+:root[data-look="glass"][data-theme="light"] .tb button[aria-current="page"]{color:#146185}
+:root[data-look="glass"][data-theme="light"] .tb .fab{background:#F9A11F;color:#000;box-shadow:0 8px 18px rgba(249,161,31,.4)}
+:root[data-look="glass"][data-theme="light"] .app-ic{box-shadow:0 8px 18px rgba(14,74,102,.18)}
+:root[data-look="glass"][data-theme="light"] .app-t{color:#0B2533}
+:root[data-look="glass"][data-theme="light"] .app-nd{box-shadow:0 0 0 2px #E4F2FA}
+:root[data-look="glass"][data-theme="light"] .brand-word span{color:#7C4B03}
+:root[data-look="glass"][data-theme="light"] .btn.bs{background:rgba(255,255,255,.8);color:#146185;border-color:rgba(20,97,133,.3)}
+:root[data-look="glass"][data-theme="light"] .btn.bp{background:#146185;color:#FFFFFF}
+
+/* 4.2.2: links inside messages */
+a.lnk { color: var(--acct, #146185); text-decoration: underline; text-underline-offset: 2px; font-weight: 700; overflow-wrap: anywhere; }
+
+/* 4.2.2: Sign out is the bright IET red bar of the Glass mock-up, in every look. The words are large and bold (19px, 800),
+   so white on #EF3F27 (3.9 to 1) meets the large-text rule of 3 to 1. */
+.btn.bsignout,:root[data-look] .btn.bsignout{background:#EF3F27;color:#FFFFFF;border:0;min-height:54px;border-radius:18px;font-size:19px;font-weight:800;box-shadow:0 10px 22px rgba(239,63,39,.32)}
+.btn.bsignout:active{filter:brightness(.92)}
+
+/* 4.2.2: All apps search */
+.search-in{position:relative;display:block;margin-bottom:6px}
+.search-in svg{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--mute)}
+.search-in .inp{padding-left:42px}
+
+/* 4.2.2: attach from the camera or the phone */
+.attach2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+@media (max-width:339px){.attach2{grid-template-columns:1fr}}

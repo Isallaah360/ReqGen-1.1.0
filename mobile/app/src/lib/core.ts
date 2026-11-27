@@ -7,7 +7,7 @@ import { Capacitor } from "@capacitor/core";
  * and two small database programs (Edge Functions) for SMS and e-mail. It never opens or calls
  * the website. The address and the PUBLIC key are packed at build time from .env.local.
  */
-export const APP_VERSION = "4.2.1";
+export const APP_VERSION = "4.2.2";
 export const SUPABASE_URL = String(import.meta.env.NEXT_PUBLIC_SUPABASE_URL || "").replace(/\/$/, "");
 const SUPABASE_KEY = String(import.meta.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "");
 export const isNative = () => Capacitor.isNativePlatform();
@@ -62,13 +62,42 @@ export function checkSignIn(): Promise<void> {
 let lastScreen = "Home";
 export function setScreen(name: string) { lastScreen = name; }
 const recent = new Map<string, number>();
-export function reportError(code: string, message: string, detail?: Record<string, unknown>) {
+/**
+ * 4.2.2: a real error is reported with a picture of the screen, and the Super Admin is told at once
+ * (database/v6_3_2_error_reports.sql). Normal messages to the user ("Write the title.") are kept without a picture.
+ */
+export type Severity = "crash" | "error" | "warning";
+async function shootScreen(uid: string): Promise<string | null> {
+  try {
+    const { toJpeg } = await import("html-to-image");
+    const el = document.body;
+    const w = Math.min(window.innerWidth, 1080), h = Math.min(window.innerHeight, 2400);
+    const data = await toJpeg(el, { quality: 0.6, pixelRatio: 1, width: w, height: h, backgroundColor: "#ffffff", cacheBust: false, skipFonts: true,
+      filter: (n) => !(n instanceof HTMLElement && n.dataset && n.dataset.noShot !== undefined) });
+    const bin = atob(data.slice(data.indexOf(",") + 1)); const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    const blob = new Blob([bytes], { type: "image/jpeg" });
+    if (blob.size > 1000000) return null;
+    const c = await db();
+    const path = `${uid}/${Date.now()}.jpg`;
+    const up = await c.storage.from("app-error-shots").upload(path, blob, { contentType: "image/jpeg", upsert: false });
+    return up.error ? null : path;
+  } catch { return null; }
+}
+export function reportError(code: string, message: string, detail?: Record<string, unknown>, severity: Severity = "error") {
   const key = `${code}|${message}`.slice(0, 200);
   const now = Date.now();
   if ((recent.get(key) || 0) > now - 30000) return;
   recent.set(key, now);
   void (async () => {
-    try { const c = await db(); await c.rpc("reqgen_app_log_error", { p_version: APP_VERSION, p_screen: lastScreen, p_code: code, p_message: message.slice(0, 600), p_detail: detail || null }); } catch { /* never blocks */ }
+    try {
+      const c = await db();
+      const uid = (await c.auth.getSession()).data.session?.user.id || "";
+      const shot = severity !== "warning" && uid ? await shootScreen(uid) : null;
+      const r = await c.rpc("reqgen_app_report_error", { p_version: APP_VERSION, p_screen: lastScreen, p_code: code, p_message: message.slice(0, 600), p_detail: detail || null, p_shot: shot, p_severity: severity, p_source: "app" });
+      // before the 6.3.2 database step, the older report still works
+      if (r.error) await c.rpc("reqgen_app_log_error", { p_version: APP_VERSION, p_screen: lastScreen, p_code: code, p_message: message.slice(0, 600), p_detail: detail || null });
+    } catch { /* never blocks */ }
   })();
 }
 
@@ -76,11 +105,13 @@ export function reportError(code: string, message: string, detail?: Record<strin
 const watchedFetch: typeof fetch = async (input, init) => {
   const res = await fetch(input, init);
   const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
-  if (!res.ok && /\/(rest|functions)\/v1\//.test(url) && !url.includes("reqgen_app_log_error")) {
+  if (!res.ok && /\/(rest|functions)\/v1\//.test(url) && !/reqgen_app_(log|report)_error/.test(url)) {
     void res.clone().json().catch(() => ({})).then((j: { message?: string; error?: string; code?: string; msg?: string }) => {
       const msg = String(j?.message || j?.error || j?.msg || res.statusText || "");
       if (res.status === 401 || /JWT expired|invalid JWT|permission denied for (function|table|schema)|not authenticated/i.test(msg)) void checkSignIn();
-      if (!/REQGEN_CODE_REQUIRED/.test(msg)) reportError(String(j?.code || res.status), msg, { path: url.replace(SUPABASE_URL, "").split("?")[0] });
+      // a raised message (P0001, REQGEN_...) is a normal answer to the user; anything else is a real error
+      const normal = j?.code === "P0001" || /^REQGEN_/.test(msg) || res.status === 401 || res.status === 403 && /JWT|session/i.test(msg);
+      if (!/REQGEN_CODE_REQUIRED/.test(msg)) reportError(String(j?.code || res.status), msg, { path: url.replace(SUPABASE_URL, "").split("?")[0], status: res.status }, normal ? "warning" : "error");
     });
   }
   return res;

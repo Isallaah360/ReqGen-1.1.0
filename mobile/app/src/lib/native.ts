@@ -1,3 +1,4 @@
+/// <reference path="../globals.d.ts" />
 import { Haptics, ImpactStyle, NotificationType } from "@capacitor/haptics";
 import { StatusBar, Style } from "@capacitor/status-bar";
 import { App } from "@capacitor/app";
@@ -57,8 +58,11 @@ export async function appVersion() {
 }
 export type Release = { version: string; build: number; apk: string; size?: string; new?: string[]; fixed?: string[]; better?: string[] };
 /** 4.0.0: the newest version is announced in the ReqGen database (Administration publishes it). */
+export const PLAY_URL = "https://play.google.com/store/apps/details?id=ng.com.barderians.reqgen";
+/** 4.2.2: true in the Google Play copy. Google Play updates it, so the app never downloads an APK itself. */
+export const FROM_PLAY = __REQGEN_STORE__ === "play";
 export async function newerRelease(): Promise<Release | null> {
-  if (!isNative()) return null;
+  if (!isNative() || FROM_PLAY) return null;
   try {
     const { data, error } = await (await db()).from("reqgen_app_releases").select("version,build,apk_url,notes").order("build", { ascending: false }).limit(1).maybeSingle();
     if (error || !data) return null;

@@ -1,6 +1,8 @@
 import QRCode from "qrcode";
 import { db, SUPABASE_URL } from "./core";
 import { savePdf } from "./files2";
+import { extractSignatureInk } from "./signatureInk";
+import { DIRECT_CSS, directAnswers, directLetterHtml, directTo, fitDirect, type DirectHist, type DirectPerson } from "./directLetter";
 import type { ScheduleLine, Voucher } from "./vouchers";
 
 /**
@@ -35,6 +37,25 @@ async function inline(url: string | null) {
     const b = await r.blob();
     return await new Promise<string>((ok) => { const f = new FileReader(); f.onload = () => ok(String(f.result)); f.readAsDataURL(b); });
   } catch { return null; }
+}
+/** 4.2.2: a signature is drawn as ink only (paper background removed), the same as the website's print. */
+async function sigInline(url: string | null) {
+  const data = await inline(url);
+  if (!data) return null;
+  try { return (await extractSignatureInk(data)).url; } catch { return data; }
+}
+/**
+ * 4.2.2: a name on the paper always has its signature. When a step kept no signature of its own, the person's
+ * saved signature is used (best effort; the paper still prints if it cannot be read).
+ */
+async function savedSigs(ids: Array<string | null | undefined>) {
+  const want = [...new Set(ids.filter((x): x is string => !!x))];
+  if (!want.length) return {} as Record<string, string>;
+  try {
+    const c = await db();
+    const { data } = await c.from("profiles").select("id,signature_url").in("id", want);
+    return Object.fromEntries(((data || []) as Array<{ id: string; signature_url: string | null }>).filter((p) => p.signature_url).map((p) => [p.id, p.signature_url as string]));
+  } catch { return {} as Record<string, string>; }
 }
 const qr = (path: string) => QRCode.toDataURL(`${CHECK_SITE}${path}`, { errorCorrectionLevel: "M", margin: 2, width: 240, color: { dark: "#000000", light: "#ffffff" } }).catch(() => null);
 
@@ -150,14 +171,17 @@ const CSS = `
 .p4-pvfoot{margin-top:8px;display:flex;justify-content:space-between;align-items:center;font-size:10px;font-weight:600}
 `;
 
-async function render(pages: string[], title: string) {
+async function render(pages: string[], title: string, kind: "p4" | "direct" = "p4") {
   const host = document.createElement("div");
   host.style.cssText = "position:fixed;left:-10000px;top:0;z-index:-1;pointer-events:none";
-  host.innerHTML = `<style>${CSS}</style>${pages.map((p) => `<div class="p4-page">${p}</div>`).join("")}`;
+  host.innerHTML = kind === "direct"
+    ? `<style>${DIRECT_CSS}</style>${pages.map((p) => `<div class="dl-sheet">${p}</div>`).join("")}`
+    : `<style>${CSS}</style>${pages.map((p) => `<div class="p4-page">${p}</div>`).join("")}`;
   document.body.appendChild(host);
   try {
     await Promise.all(Array.from(host.querySelectorAll("img")).map((im) => (im.complete ? Promise.resolve() : new Promise((ok) => { im.onload = im.onerror = () => ok(null); }))));
-    await savePdf(Array.from(host.querySelectorAll<HTMLElement>(".p4-page")), title);
+    if (kind === "direct") host.querySelectorAll<HTMLElement>(".dl-sheet").forEach((el) => fitDirect(el));
+    await savePdf(Array.from(host.querySelectorAll<HTMLElement>(kind === "direct" ? ".dl-sheet" : ".p4-page")), title);
   } finally { host.remove(); }
 }
 
@@ -184,7 +208,13 @@ const sbox = (title: string, name: string, sig: string | null, when: string, sta
 /** The IET payment voucher, one A4 page (the website's voucher sheet). */
 export async function printVoucher(v: Voucher, items: PvItem[], schedule: ScheduleLine[]) {
   const total = Number(v.total_amount ?? v.amount ?? 0);
-  const [sp, sc, sa, scs, code] = await Promise.all([inline(signatureUrl(v.prepared_signature_url)), inline(signatureUrl(v.checked_signature_url)), inline(signatureUrl(v.authorized_signature_url)), inline(signatureUrl(v.cheque_counter_signed_signature_url)), qr(`/check/v/${v.id}`)]);
+  const vv = v as Voucher & Record<string, string | null | undefined>;
+  const saved = await savedSigs([
+    !v.prepared_signature_url ? vv.prepared_by : null, !v.checked_signature_url ? vv.checked_by : null,
+    !v.authorized_signature_url ? vv.authorized_by : null, !vv.cheque_counter_signed_signature_url ? vv.cheque_counter_signed_by : null,
+  ]);
+  const pick = (own: string | null | undefined, who: string | null | undefined) => signatureUrl(own || (who ? saved[who] : null) || null);
+  const [sp, sc, sa, scs, code] = await Promise.all([sigInline(pick(v.prepared_signature_url, vv.prepared_by)), sigInline(pick(v.checked_signature_url, vv.checked_by)), sigInline(pick(v.authorized_signature_url, vv.authorized_by)), sigInline(pick(vv.cheque_counter_signed_signature_url, vv.cheque_counter_signed_by)), qr(`/check/v/${v.id}`)]);
   const multiple = items.length > 1 || v.voucher_scope === "Multiple";
   const lines = (items.length ? items : [{ request_no: v.request_no, title: v.narration, amount: total, subhead_code: v.subhead_code, subhead_name: v.subhead_name, subhead_id: v.subhead_id }]).slice(0, 10);
   const mode = v.disbursement_mode || "Transfer";
@@ -231,7 +261,7 @@ export async function printVoucher(v: Voucher, items: PvItem[], schedule: Schedu
 }
 
 // ---- request letter ----------------------------------------------------------------------------------------
-type Hist = { id: string; action_type: string | null; comment: string | null; to_stage: string | null; from_stage: string | null; created_at: string; actor_name: string | null; signature_url: string | null; actor_role_key: string | null; actor_role_name: string | null; actor_signature_url: string | null };
+type Hist = { action_by?: string | null; id: string; action_type: string | null; comment: string | null; to_stage: string | null; from_stage: string | null; created_at: string; actor_name: string | null; signature_url: string | null; actor_role_key: string | null; actor_role_name: string | null; actor_signature_url: string | null };
 const approve = (h: Hist) => { const a = norm(h.action_type); return !!a && !/reject|return|declin|cancel|withdraw|comment|attachment|submit|create|view|corrected/.test(a) && /approv|recommend|forward|endors|check|treat|confirm|verif|authori/.test(a); };
 const roleIs = (h: Hist, keys: string[]) => keys.includes(norm(h.actor_role_key || h.actor_role_name).replace(/\d+$/, ""));
 const stageIs = (s: string | null, keys: string[]) => keys.includes(norm(s));
@@ -239,9 +269,15 @@ const stageIs = (s: string | null, keys: string[]) => keys.includes(norm(s));
 /** The IET request letter (page 1, the website's letter) and its comments (page 2). */
 export async function printRequest(id: string) {
   const c = await db();
+  // 4.2.2: a Direct message has its own one-page paper, between the sender and the people it went to.
+  const [kind, people] = await Promise.all([
+    c.from("requests").select("direct_to,created_by").eq("id", id).maybeSingle(),
+    c.rpc("reqgen_direct_people_of", { p_request_id: id }),
+  ]);
+  if (kind.data?.direct_to || (Array.isArray(people.data) && people.data.length)) return printDirect(id, (people.data || []) as DirectPerson[], String(kind.data?.created_by || ""));
   const [d, h, b] = await Promise.all([
     c.rpc("get_print_request_detail", { p_request_id: id }),
-    c.from("request_history").select("id,action_type,comment,to_stage,from_stage,created_at,actor_name,signature_url,actor_role_key,actor_role_name,actor_signature_url").eq("request_id", id).order("created_at", { ascending: true }),
+    c.from("request_history").select("id,action_type,comment,to_stage,from_stage,created_at,actor_name,signature_url,actor_role_key,actor_role_name,actor_signature_url,action_by").eq("request_id", id).order("created_at", { ascending: true }),
     c.from("reqgen_request_budget_lines").select("allocation_bd,expenditure,balance_cd").eq("request_id", id).maybeSingle(),
   ]);
   if (d.error) throw new Error(d.error.message);
@@ -256,10 +292,12 @@ export async function printRequest(id: string) {
     || (!official ? latest((x) => approve(x) && (roleIs(x, ["hr", "hrofficer", "hrcoordinator"]) || stageIs(x.from_stage, ["hr"]))) : null)
     || latest((x) => approve(x) && (roleIs(x, ["account", "accounts", "accountofficer"]) || stageIs(x.from_stage, ["account"])));
   const dgH = latest((x) => approve(x) && (roleIs(x, ["dg"]) || stageIs(x.from_stage, ["dg"])));
-  const sigOf = (x: Hist | null) => signatureUrl(x?.actor_signature_url || x?.signature_url || null);
+  const reqOwn = String(r.requester_signature_snapshot || r.requester_signature || r.signature_url || "");
+  const saved = await savedSigs([!reqOwn ? String(r.created_by || "") : null, checked && !(checked.actor_signature_url || checked.signature_url) ? checked.action_by : null, dgH && !(dgH.actor_signature_url || dgH.signature_url) ? dgH.action_by : null]);
+  const sigOf = (x: Hist | null) => signatureUrl(x?.actor_signature_url || x?.signature_url || (x?.action_by ? saved[x.action_by] : null) || null);
   const [sReq, sChk, sDg, code] = await Promise.all([
-    inline(signatureUrl(String(r.requester_signature_snapshot || r.requester_signature || r.signature_url || "") || null)),
-    inline(sigOf(checked)), inline(sigOf(dgH) || signatureUrl(String(r.dg_signature_snapshot || "") || null)), qr(`/check/r/${id}`),
+    sigInline(signatureUrl(reqOwn || saved[String(r.created_by || "")] || null)),
+    sigInline(sigOf(checked)), sigInline(sigOf(dgH) || signatureUrl(String(r.dg_signature_snapshot || "") || null)), qr(`/check/r/${id}`),
   ]);
   const amount = Number(r.amount || 0);
   const bl = b.data as { allocation_bd?: number; expenditure?: number; balance_cd?: number } | null;
@@ -294,4 +332,35 @@ export async function printRequest(id: string) {
   </div>`);
   await render(pages, String(r.request_no || "Request"));
   void c.rpc("reqgen_log_print", { p_kind: "request", p_doc_id: id, p_doc_no: String(r.request_no || "") });
+}
+
+// ---- direct message (4.2.2) ------------------------------------------------------------------------------
+async function printDirect(id: string, people: DirectPerson[], senderId: string) {
+  const c = await db();
+  const [r, h, u] = await Promise.all([
+    c.from("requests").select("request_no,title,details,amount,created_at,requester_name,requester_signature_url,created_by").eq("id", id).maybeSingle(),
+    c.from("request_history").select("id,action_type,comment,to_stage,from_stage,created_at,actor_name,signature_url,actor_role_key,actor_role_name,actor_signature_url,action_by").eq("request_id", id).order("created_at", { ascending: true }),
+    c.auth.getUser(),
+  ]);
+  if (r.error || !r.data) throw new Error("This message cannot be printed by you.");
+  const q = r.data as Record<string, string | number | null>;
+  const viewer = u.data.user?.id || "";
+  const sender = senderId || String(q.created_by || "");
+  const hist = (h.data || []) as DirectHist[];
+  const raw = directAnswers(hist, viewer, sender, (iso) => ukDate(iso), (x) => signatureUrl(x.actor_signature_url || x.signature_url || null));
+  const [fromSig, code, ...sigs] = await Promise.all([
+    sigInline(signatureUrl(String(q.requester_signature_url || "") || null)),
+    qr(`/check/r/${id}`),
+    ...raw.map((a) => sigInline(a.sig)),
+  ]);
+  const html = directLetterHtml({
+    no: String(q.request_no || ""), title: String(q.title || ""), message: String(q.details || ""), amount: Number(q.amount || 0),
+    date: ukDate(String(q.created_at || "")),
+    from: { name: String(q.requester_name || ""), sig: fromSig, when: ukDate(String(q.created_at || "")) },
+    to: directTo(people, viewer, sender, String(q.requester_name || "")),
+    answers: raw.map((a, i) => ({ label: a.label, name: a.name, position: a.position, words: a.words, sig: sigs[i] || null, when: a.when, stamp: a.stamp })),
+    qr: code, logo: LOGO, stamp: STAMP,
+  });
+  await render([html], String(q.request_no || "Direct message"), "direct");
+  void c.rpc("reqgen_log_print", { p_kind: "request", p_doc_id: id, p_doc_no: String(q.request_no || "") });
 }

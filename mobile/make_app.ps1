@@ -1,6 +1,9 @@
-# ReqGen app maker (Windows). Run MAKE_APP.bat, not this file.
+# ReqGen app maker (Windows). Run MAKE_APP.bat (or MAKE_PLAY.bat for Google Play), not this file.
 # Builds mobile\android into a signed ReqGen.apk, then puts the APK,
 # app-version.json and assetlinks.json in the website's public folder.
+# 4.2.2: with -Play it builds the Google Play copy instead: a signed .aab file, with no
+# self-update and no "install unknown apps" permission (Google Play updates it).
+param([switch]$Play)
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
@@ -88,6 +91,7 @@ try {
     if (Test-Path $full) { Remove-Item $full -Recurse -Force }
   }
 
+  if ($Play) { $env:REQGEN_STORE = "play"; Say "Google Play copy: updates will come from Google Play." } else { Remove-Item Env:REQGEN_STORE -ErrorAction SilentlyContinue }
   Say "Building the app screens (mobile\app) ..."
   Set-Location (Join-Path $Here "app")
   & npm ci --no-audit --no-fund
@@ -143,6 +147,36 @@ try {
   $env:REQGEN_KEYSTORE = $KeyFile
   $env:REQGEN_KEY_PASSWORD = $pass
   Set-Location (Join-Path $Here "android")
+  if ($Play) {
+    # Google does not allow an app to install its own updates: the Play copy has no such permission.
+    $manifest = Join-Path $Here "android\app\src\main\AndroidManifest.xml"
+    $manifestText = Get-Content $manifest -Raw
+    try {
+      $playText = ($manifestText -split "`n" | Where-Object { $_ -notmatch "REQUEST_INSTALL_PACKAGES" }) -join "`n"
+      [IO.File]::WriteAllText($manifest, $playText, (New-Object System.Text.UTF8Encoding $false))
+      & .\gradlew.bat bundleRelease "-PREQGEN_VERSION_CODE=$vCode" "-PREQGEN_VERSION_NAME=$vName" --no-daemon
+      if ($LASTEXITCODE -ne 0) { Stop-Red "The Android build failed (see the red lines above)." }
+    } finally {
+      [IO.File]::WriteAllText($manifest, $manifestText, (New-Object System.Text.UTF8Encoding $false))
+      Remove-Item Env:REQGEN_KEY_PASSWORD -ErrorAction SilentlyContinue
+      Remove-Item Env:REQGEN_STORE -ErrorAction SilentlyContinue
+    }
+    $aab = Join-Path $Here "android\app\build\outputs\bundle\release\app-release.aab"
+    if (-not (Test-Path $aab)) { Stop-Red "The Google Play file (.aab) was not made." }
+    $verify = & jarsigner -verify -certs $aab 2>&1 | Out-String
+    if ($verify -notmatch "jar verified") { Stop-Red "The Google Play file is not signed." }
+    $keyList = & keytool -list -v -keystore $KeyFile -storepass $pass -alias reqgen | Out-String
+    $pass = $null
+    $outAab = Join-Path $Here "ReqGen-Play-$vName-build$vCode.aab"
+    Copy-Item $aab $outAab -Force
+    $certSha = ([regex]::Match($keyList, "SHA256:\s*([0-9A-F:]+)")).Groups[1].Value
+    Write-Host ""
+    Good "DONE: the Google Play file for ReqGen $vName (build $vCode) is ready, signed with the ReqGen key:"
+    Write-Host "  $outAab"
+    Write-Host "  Upload it in Play Console > Test and release. Your upload key SHA-256: $certSha"
+    Write-Host "  This file is for Google Play only. Do not put it on the website or WhatsApp."
+    exit 0
+  }
   & .\gradlew.bat assembleRelease "-PREQGEN_VERSION_CODE=$vCode" "-PREQGEN_VERSION_NAME=$vName" --no-daemon
   if ($LASTEXITCODE -ne 0) { Stop-Red "The Android build failed (see the red lines above)." }
   Remove-Item Env:REQGEN_KEY_PASSWORD

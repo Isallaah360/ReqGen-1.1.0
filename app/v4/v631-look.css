@@ -161,3 +161,7 @@ html body::before { display: none !important; content: none !important; }
 .s6-home-wrap { width: 100%; align-self: stretch; }
 /* 6.3.1: dark mode is deep IET blue, never black. */
 html[data-theme="dark"] .v4-root { --v4-bg: #071E2A; --v4-surface: #0C2C3C; --v4-surface-2: #0F3446; --v4-surface-3: #123B50; --v4-line: #1D4B61; --v4-line-2: #173F53; --v4-line-strong: #26607A; --v4-muted: #A9C7D6; --v4-ink-2: #D6E6EE; }
+
+/* 6.3.2: links inside messages and comments */
+a.rg-lnk { color: var(--v4-brand-link, #146185); text-decoration: underline; text-underline-offset: 2px; font-weight: 700; overflow-wrap: anywhere; }
+html[data-theme="dark"] a.rg-lnk { color: #8FD3F2; }

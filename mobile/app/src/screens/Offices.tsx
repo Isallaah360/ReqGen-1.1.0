@@ -4,6 +4,7 @@ import { useApp } from "../App";
 import { officesFor, roleSetOf, type ModuleDef } from "../lib/offices";
 import { Body, Empty, Head, useNav } from "../ui";
 import { screenFor } from "../lib/screens";
+import { officeIcon, pageIcon } from "../lib/appIcons";
 
 /** Icons for the website's icon names (lib/v4/modules.ts), so each office looks the same in the app. */
 const ICON: Record<string, ReactNode> = {
@@ -49,9 +50,8 @@ export function AppGrid({ items, label }: { items: AppIcon[]; label: string }) {
     </div>
   );
 }
-const big = (node: ReactNode) => <span className="app-svg">{node}</span>;
 export function officeIcons(offices: ModuleDef[], open: (m: ModuleDef) => void): AppIcon[] {
-  return offices.map((m, i) => ({ key: m.key, label: m.label, icon: big(iconFor(m.icon)), color: tileColor(OFFICE_COLOR[m.key] ?? i)[0], onClick: () => open(m) }));
+  return offices.map((m, i) => ({ key: m.key, label: m.label, icon: officeIcon(m.key, iconFor(m.icon)), color: tileColor(OFFICE_COLOR[m.key] ?? i)[0], onClick: () => open(m) }));
 }
 
 export function OfficeList() {
@@ -81,7 +81,7 @@ export function Office({ mod }: { mod: ModuleDef }) {
       <Body>
         <p className="mu">{mod.intro}</p>
         <AppGrid label={`${mod.label} pages`} items={mod.tiles.map((t, i) => ({
-          key: t.href, label: t.title, icon: big(iconFor(t.icon)), color: TONE[t.tone] === "er" ? "#EF3F27" : tileColor(i)[0],
+          key: t.href, label: t.title, icon: pageIcon(t.title, iconFor(t.icon)), color: TONE[t.tone] === "er" ? "#EF3F27" : tileColor(i)[0],
           onClick: () => push(screenFor(t.href, t.title)),
         }))} />
       </Body>

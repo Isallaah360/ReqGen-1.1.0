@@ -5,7 +5,7 @@ import { useOnline } from "../lib/data";
 import { cleanSignatureFile } from "../lib/signatureInk";
 import { when } from "../lib/text";
 import { useApp } from "../App";
-import { Avatar, Body, Cell, Chip, Choose, Field, Head, Note, Skeleton, Toggle, toast } from "../ui";
+import { Avatar, Body, Cell, Chip, Choose, Field, Head, Note, Skeleton, toast } from "../ui";
 
 /** App 4.0.0: My account, as app screens (profile, acting as, password, signature, photo, phones). */
 
@@ -117,7 +117,6 @@ export function SignaturePhoto() {
   const [mode, setMode] = useState<"draw" | "photo">("draw");
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
-  const [clean, setClean] = useState(true);
   const [busy, setBusy] = useState<"" | "sig" | "photo">("");
   const [msg, setMsg] = useState<{ tone: string; text: string } | null>(null);
   const current = sigUrl(me.signature_url);
@@ -146,10 +145,15 @@ export function SignaturePhoto() {
     setFile(f); setPreview(URL.createObjectURL(f));
   }
 
-  async function saveSig() {
+  async function saveSig(fromSaved = false) {
     setMsg(null);
     let up: File | null = null;
-    if (mode === "draw") {
+    if (fromSaved) {
+      // 4.2.2: clean a signature saved before cleaning existed, and save it again as ink only.
+      if (!current) return;
+      try { const r = await fetch(current); if (!r.ok) throw new Error(); up = new File([await r.blob()], "signature.png", { type: "image/png" }); }
+      catch { setMsg({ tone: "er", text: "Your saved signature could not be opened. Save it again." }); return; }
+    } else if (mode === "draw") {
       if (!drawn || !pad.current) { setMsg({ tone: "er", text: "Sign in the box first." }); return; }
       const blob = await new Promise<Blob | null>((ok) => pad.current!.toBlob(ok, "image/png"));
       if (!blob) { setMsg({ tone: "er", text: "The drawing could not be read. Try again." }); return; }
@@ -160,7 +164,7 @@ export function SignaturePhoto() {
     }
     setBusy("sig");
     try {
-      if (clean || mode === "photo") up = (await cleanSignatureFile(up)).file;
+      up = (await cleanSignatureFile(up)).file; // always: only the ink goes on the papers
       if (up.size > 500 * 1024) throw new Error("The cleaned signature is still too large. Take a closer photo.");
       const s = await db();
       const path = `${me.id}/signature-${Date.now()}.png`;
@@ -220,7 +224,8 @@ export function SignaturePhoto() {
             {preview ? <img src={preview} alt="Chosen signature photo" style={{ maxHeight: 120, objectFit: "contain", background: "#fff", borderRadius: 10 }} /> : <p className="mu" style={{ fontSize: 13.5 }}>Sign on white paper with a dark pen, then take a close, clear photo.</p>}
           </div>
         )}
-        {mode === "draw" ? <Cell icon={<Check size={18} />} iconTone="ok" title="Clean the background" sub="Keeps only the ink" right={<Toggle on={clean} label="Clean the background" onChange={setClean} />} /> : null}
+        <p className="mu" style={{ fontSize: 13.5 }}>ReqGen removes the paper background, so only the ink of your signature goes on the papers.</p>
+        {current && !preview && !drawn ? <button type="button" className="btn bs block" disabled={busy !== "" || !online} onClick={() => void saveSig(true)}><Check size={18} />Clean my saved signature</button> : null}
         <button type="button" className="btn bp block" disabled={busy !== "" || !online} onClick={() => void saveSig()}>{busy === "sig" ? "Saving…" : "Save signature"}</button>
 
         <div className="sect"><b>Your photo</b></div>
@@ -229,7 +234,10 @@ export function SignaturePhoto() {
           <span className="t"><b>{me.avatar_url ? "Photo set" : "No photo"}</b><small>Shown beside your name</small></span>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
-          <label className="btn bs" style={{ flex: 1, cursor: "pointer" }}><ImagePlus size={18} />{busy === "photo" ? "Saving…" : "Change photo"}
+          <label className="btn bs" style={{ flex: 1, cursor: "pointer" }}><Camera size={18} />{busy === "photo" ? "Saving…" : "Take a photo"}
+            <input type="file" accept="image/png,image/jpeg,image/webp" capture="user" hidden disabled={busy !== ""} onChange={(e) => void savePhoto(e.target.files?.[0] || null)} />
+          </label>
+          <label className="btn bs" style={{ flex: 1, cursor: "pointer" }}><ImagePlus size={18} />Choose
             <input type="file" accept="image/png,image/jpeg,image/webp" hidden disabled={busy !== ""} onChange={(e) => void savePhoto(e.target.files?.[0] || null)} />
           </label>
           {me.avatar_url ? <button type="button" className="btn bs" style={{ flex: 1, color: "var(--er)" }} disabled={busy !== ""} onClick={() => void savePhoto(null)}><Trash2 size={18} />Remove</button> : null}

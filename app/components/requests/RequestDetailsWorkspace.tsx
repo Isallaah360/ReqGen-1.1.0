@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import LinkText from "@/app/components/ui/LinkText";
 import { confirmDialog, promptDialog } from "@/lib/dialog";
 import { isAwaitingUser } from "@/lib/approvalQueue";
 import { useParams, useRouter } from "next/navigation";
@@ -1589,7 +1590,7 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
               <li key={h.id}>
                 <div className="k-comments-who"><strong>{h.actor_name || "Officer"}</strong>{h.actor_role_name ? <span>{signedAsLabel(h.actor_role_name) || h.actor_role_name}</span> : null}<em>{shortWhen(h.created_at)}</em></div>
                 <span className={`v4-chip v4-chip-${/reject|declin/i.test(h.action_type) ? "red" : /return/i.test(h.action_type) ? "amber" : /approv|paid|treat|complete/i.test(h.action_type) ? "green" : "blue"}`}>{h.action_type}</span>
-                <p>{h.comment}</p>
+                <p><LinkText text={h.comment} /></p>
               </li>
             ))}
           </ol> : null}
@@ -1771,7 +1772,7 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
         <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
           <section className="v4-card v4-card-pad">
             <h2 className="v4-h2" style={{ marginBottom: 12 }}>Details</h2>
-            <p style={{ margin: "0 0 16px", whiteSpace: "pre-wrap" }}>{req.details}</p>
+            <p style={{ margin: "0 0 16px", whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}><LinkText text={req.details} /></p>
             <span className="v4-label">Attachments</span>
             {attachments.length ? (
               <ul className="v4-files" style={{ marginTop: 8 }}>
@@ -1800,7 +1801,7 @@ export default function RequestDetailsWorkspace({ requestId, embedded = false, o
                   return (
                     <li key={h.id}>
                       <span className={`v4-ti v4-t-${look.tone}`}><Icon name={look.icon} /></span>
-                      <span><strong>{look.text}</strong>{h.comment ? <span>“{h.comment}”</span> : null}</span>
+                      <span><strong>{look.text}</strong>{h.comment ? <span>“<LinkText text={h.comment} />”</span> : null}</span>
                       <span className="v4-time">{shortWhen(h.created_at)}</span>
                     </li>
                   );

@@ -12,6 +12,8 @@ export default defineConfig({
   plugins: [react()],
   envDir: fileURLToPath(new URL("../../", import.meta.url)),
   envPrefix: ["NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_ANON_KEY"],
+  // 4.2.2: the Google Play copy (MAKE_PLAY.bat sets REQGEN_STORE=play) never downloads APKs itself: Play updates it.
+  define: { __REQGEN_STORE__: JSON.stringify(process.env.REQGEN_STORE === "play" ? "play" : "site") },
   base: "./",
   build: { outDir: "../www", emptyOutDir: true, target: "es2020", chunkSizeWarningLimit: 900, sourcemap: false },
 });

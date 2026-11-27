@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Check, Paperclip, Send, X, Save } from "lucide-react";
 import { askCode, db, notice, plainError } from "../lib/core";
 import { useOnline } from "../lib/data";
 import { ACCEPT, addFiles, fmtAmount, kb, newNumber, parseAmount, uploadAll } from "../lib/files";
 import { naira, withWho } from "../lib/text";
 import { useApp } from "../App";
-import { Body, Head, Note, toast, useNav } from "../ui";
+import { AttachButtons, Body, Head, Note, toast, useNav } from "../ui";
 import Detail from "./Detail";
 import Sent from "./Sent";
 import { SubheadField, useLive, useSubheads } from "./Budget";
@@ -34,7 +34,6 @@ export default function NewRequest({ kind, draft }: { kind: Kind; draft?: Draft 
   const [busy, setBusy] = useState<"" | "draft" | "send" | "upload">("");
   const [msg, setMsg] = useState<string | null>(null);
   const [draftId, setDraftId] = useState(draft?.id || null);
-  const fileRef = useRef<HTMLInputElement>(null);
 
   const official = kind === "Official";
   const needsAmount = official || cat === "Fund";
@@ -131,8 +130,7 @@ export default function NewRequest({ kind, draft }: { kind: Kind; draft?: Draft 
           {files.length ? <div className="grp" style={{ marginBottom: 8 }}>{files.map((f, i) => (
             <div className="cell" key={`${f.name}-${i}`}><span className="av ic-mu"><Paperclip size={18} /></span><span className="t"><b>{f.name}</b><small>{kb(f.size)}</small></span><button type="button" className="ib" aria-label={`Remove ${f.name}`} onClick={() => setFiles((x) => x.filter((_, j) => j !== i))}><X size={18} /></button></div>
           ))}</div> : null}
-          <input ref={fileRef} type="file" multiple accept={ACCEPT} hidden onChange={(e) => { const r = addFiles(files, e.target.files); setFiles(r.files); if (r.problem) setMsg(r.problem); e.target.value = ""; }} />
-          <button type="button" className="btn bs block" onClick={() => fileRef.current?.click()}><Paperclip size={18} />Add a file</button>
+          <AttachButtons accept={ACCEPT} onFiles={(list) => { const r = addFiles(files, list); setFiles(r.files); if (r.problem) setMsg(r.problem); }} />
         </div>
 
         {route && route.length ? (

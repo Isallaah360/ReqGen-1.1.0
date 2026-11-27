@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { Bell, Check, CornerUpLeft, FileText, Paperclip, PenLine, Printer, Send, Stamp, Wallet, X, Plus, UserCheck } from "lucide-react";
 import { db, office, plainError } from "../../lib/core";
 import { saveAndOpen } from "../../lib/files2";
@@ -8,7 +8,7 @@ import { SECTIONS, isManual, pvAmount, pvChip, pvMode, pvNowWith, pvStage, pvSte
 import { ACCOUNT_COLUMNS, NIGERIAN_BANKS, SUBHEAD_COLUMNS, accountAvailable, accountName, subheadLabel, subheadLeft, type Account, type Subhead } from "../../lib/finance";
 import { printVoucher } from "../../lib/a4";
 import { useApp } from "../../App";
-import { Body, Cell, Chip, Chips, Empty, Head, Item, More, Note, SearchBox, Sheet, Skeleton, toast, useMore, useNav } from "../../ui";
+import { AttachButtons, Body, Cell, Chip, Chips, Empty, Head, Item, More, Note, SearchBox, Sheet, Skeleton, toast, useMore, useNav } from "../../ui";
 import { Err, Facts, TONE, call, isAdminRole, isAuditorRole, isDgRole, isOfficerRole, one, parsed, rows, todayIso, useAction, useLoad } from "./kit";
 
 type Item = { id: string; request_id: string | null; request_no: string | null; title: string | null; amount: number | null; dept_name: string | null; subhead_code: string | null; subhead_name: string | null; requester_name: string | null };
@@ -450,7 +450,6 @@ export function ManualVoucher() {
   }, []);
   const [f, setF] = useState({ dept: "", account: "", subhead: "", reason: "", section: "", payee: "", amount: "", date: todayIso(), mode: "Transfer" as Mode, narration: "", counter: "", reference: "" });
   const [files, setFiles] = useState<File[]>([]);
-  const fileRef = useRef<HTMLInputElement>(null);
   const { busy, err, setErr, run } = useAction();
   const set = (p: Partial<typeof f>) => setF((x) => ({ ...x, ...p }));
   const amt = parseAmount(f.amount);
@@ -504,8 +503,7 @@ export function ManualVoucher() {
         <div>
           <span className="lbl">Supporting files (optional)</span>
           {files.length ? <div className="grp" style={{ marginBottom: 8 }}>{files.map((x, i) => <div className="cell" key={`${x.name}-${i}`}><span className="av ic-mu"><Paperclip size={18} /></span><span className="t"><b>{x.name}</b><small>{kb(x.size)}</small></span><button type="button" className="ib" aria-label={`Remove ${x.name}`} onClick={() => setFiles((all) => all.filter((_, j) => j !== i))}><X size={18} /></button></div>)}</div> : null}
-          <input ref={fileRef} type="file" multiple hidden onChange={(e) => { const add = Array.from(e.target.files || []).filter((x) => x.size <= 10 * 1024 * 1024); setFiles((all) => [...all, ...add]); e.target.value = ""; }} />
-          <button type="button" className="btn bs block" onClick={() => fileRef.current?.click()}><Paperclip size={18} />Add a file</button>
+          <AttachButtons onFiles={(list) => { const add = Array.from(list || []).filter((x) => x.size <= 10 * 1024 * 1024); setFiles((all) => [...all, ...add]); }} />
         </div>
         <Err text={err} />
       </Body>

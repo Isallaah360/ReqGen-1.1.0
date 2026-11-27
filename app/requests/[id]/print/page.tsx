@@ -10,6 +10,8 @@ import { printA4Sheet, useA4Fit } from "@/lib/printA4";
 import RequestAccessGate from "@/app/components/requests/RequestAccessGate";
 import { supabase } from "@/lib/supabaseClient";
 import { signedAsLabel } from "@/lib/roles";
+import DirectPrint from "./DirectPrint";
+import type { DirectPerson } from "@/lib/directLetter";
 
 type Req = {
   id: string;
@@ -963,9 +965,25 @@ function SignatureLine({
 /** v3.0.3: full request content is shown only to people entitled to it. */
 export default function PrintRequestPage() {
   const params = useParams<{ id: string }>();
+  const id = params?.id || "";
+  // 6.3.2: a Direct message has its own one-page paper (sender, the people it went to, their answers).
+  const [direct, setDirect] = useState<null | { people: DirectPerson[]; senderId: string } | false>(null);
+  useEffect(() => {
+    let alive = true;
+    if (!id) return;
+    void Promise.all([
+      supabase.from("requests").select("direct_to,created_by").eq("id", id).maybeSingle(),
+      supabase.rpc("reqgen_direct_people_of", { p_request_id: id }),
+    ]).then(([k, p]) => {
+      if (!alive) return;
+      const people = (Array.isArray(p.data) ? p.data : []) as DirectPerson[];
+      setDirect(k.data?.direct_to || people.length ? { people, senderId: String(k.data?.created_by || "") } : false);
+    }).catch(() => { if (alive) setDirect(false); });
+    return () => { alive = false; };
+  }, [id]);
   return (
     <RequestAccessGate requestId={params?.id}>
-      <PrintRequestPageContent />
+      {direct === null ? <main className="min-h-screen px-4 py-8"><div className="mx-auto max-w-3xl">Preparing the print preview…</div></main> : direct ? <DirectPrint id={id} people={direct.people} senderId={direct.senderId} /> : <PrintRequestPageContent />}
     </RequestAccessGate>
   );
 }

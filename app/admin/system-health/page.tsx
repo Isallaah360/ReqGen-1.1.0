@@ -10,6 +10,7 @@ import { useIdentity } from "@/app/components/v4/useIdentity";
 import Icon from "@/app/components/v4/Icon";
 import { Select } from "@/app/components/v4/Select";
 import { Notice, PageHead, Skeleton, Tabs, V4Page } from "@/app/components/v4/ui";
+import ErrorReports from "./ErrorReports";
 
 type Diag = {
   tables: number; rls_on: number; rls_off: string[]; last_notification: string | null; last_nightly: { at: string | null; bytes: number | null } | null;
@@ -120,6 +121,7 @@ function Diagnostics() {
         ) : null}
       </section>
       {ranAt ? <p className="v4-help" style={{ margin: 0 }}>Checked {whenText(ranAt)}.</p> : null}
+      <ErrorReports />
     </V4Page>
   );
 }

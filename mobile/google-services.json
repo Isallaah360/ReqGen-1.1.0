@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "40353877543",
+    "project_id": "barespro-1e6c1",
+    "storage_bucket": "barespro-1e6c1.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:40353877543:android:3c7919e5554b91f9280802",
+        "android_client_info": {
+          "package_name": "ng.com.barderians.barespro"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA7mQjcO89nHK49gKtMUqeP5dgWIJyRRcg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

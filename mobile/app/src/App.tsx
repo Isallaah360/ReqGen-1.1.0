@@ -37,7 +37,7 @@ function useTheme() {
   useEffect(() => {
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
     const apply = () => {
-      const dark = look === "glass" || theme === "dark" || (theme === "system" && mq.matches);
+      const dark = theme === "dark" || (theme === "system" && mq.matches);
       document.documentElement.dataset.theme = dark ? "dark" : "light";
       requestAnimationFrame(() => paintStatusBar(dark));
     };

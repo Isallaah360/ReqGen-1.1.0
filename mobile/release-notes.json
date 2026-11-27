@@ -1,12 +1,17 @@
 {
   "new": [
-    "Your offices and pages are now app icons on the home screen, like a phone.",
-    "Settings has its own tab: App PIN, fingerprint, look, security and setup guide.",
-    "Tap your photo at the top to open your Profile: account, access, activity, notices and about.",
-    "Two looks: Icon Grid (the IET blue default) and Glass Dock. Switch in Settings."
+    "Direct messages print on their own one-page paper: you, the people it went to, and their answers with signatures.",
+    "Links in messages open when you tap them.",
+    "More: every page you can open, as app icons, with a search.",
+    "Glass Dock now has light and dark too."
+  ],
+  "fixed": [
+    "Signatures print as ink only, without the paper background.",
+    "Every name on a paper now has its signature."
   ],
   "better": [
-    "Smoother animations on buttons, tabs and saved messages.",
-    "Every word is easy to read in both looks."
+    "Every app icon has its own picture.",
+    "Sign out is a clear red bar.",
+    "If something goes wrong, a report with a picture of the screen goes to the Super Admin at once."
   ]
 }

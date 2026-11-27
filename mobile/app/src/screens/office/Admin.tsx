@@ -382,7 +382,43 @@ export function Diagnostics() {
           <Facts rows={[["Last notice sent", when(data.last_notification) || "-"], ["Last nightly backup", data.last_nightly?.at ? when(data.last_nightly.at) : "-"]]} />
           <div className="grp">{data.checks.map((c) => <Cell key={c.label} icon={<Activity size={18} />} iconTone={c.count ? "wa" : "ok"} title={c.label} right={<Chip tone={c.count ? "wa" : "ok"}>{String(c.count)}</Chip>} />)}</div>
         </>)}
+        <ErrorReports />
       </Body>
+    </>
+  );
+}
+
+/** 4.2.2: error reports from the app and the website, each with a picture of the screen (Super Admin and Developer). */
+type ErrRow = { id: number; at: string; full_name: string | null; app_version: string | null; screen: string | null; code: string | null; message: string | null; severity: string; source: string; shot_path: string | null };
+function ErrorReports() {
+  const { data, error } = useLoad(() => rows<ErrRow>("reqgen_app_error_list", { p_limit: 50 }), []);
+  const [pic, setPic] = useState<{ url: string; row: ErrRow } | null>(null);
+  async function open(r: ErrRow) {
+    if (!r.shot_path) return;
+    const s = await db();
+    const { data: u } = await s.storage.from("app-error-shots").createSignedUrl(r.shot_path, 600);
+    if (u?.signedUrl) setPic({ url: u.signedUrl, row: r });
+  }
+  const real = (data || []).filter((r) => r.severity !== "warning");
+  return (
+    <>
+      <div className="sect" id="app-errors"><b>Error reports</b><small className="mu">{real.length ? `${real.length} recent` : ""}</small></div>
+      {error ? <Note tone="wa">Error reports need the 6.3.2 database step.</Note> : !data ? <Skeleton rows={2} /> : !real.length ? <Note tone="ok">No errors reported. Every error is sent here with a picture of the screen.</Note> : (
+        <div className="grp">{real.slice(0, 30).map((r) => (
+          <Cell key={r.id} icon={<Activity size={18} />} iconTone={r.severity === "crash" ? "er" : "wa"}
+            title={`${r.full_name || "Staff"}, ${r.screen || "ReqGen"}`}
+            sub={`${when(r.at)}, ${r.source === "website" ? "website" : `app ${r.app_version || ""}`}: ${(r.message || r.code || "").slice(0, 140)}`}
+            right={r.shot_path ? <Chip tone="in">Picture</Chip> : undefined} onClick={r.shot_path ? () => void open(r) : undefined} />
+        ))}</div>
+      )}
+      {pic ? (
+        <div className="dlg-wrap" role="dialog" aria-label="Picture of the screen" onClick={() => setPic(null)} style={{ position: "fixed", inset: 0, zIndex: 80, background: "var(--scrim)", display: "grid", placeItems: "center", padding: 16 }}>
+          <figure style={{ margin: 0, maxWidth: 420, width: "100%", background: "var(--card)", borderRadius: 18, padding: 12 }}>
+            <img src={pic.url} alt={`Screen when the error happened: ${pic.row.message || ""}`} style={{ width: "100%", borderRadius: 10, display: "block" }} />
+            <figcaption className="mu" style={{ fontSize: 13, marginTop: 8 }}>{pic.row.message}. Tap to close.</figcaption>
+          </figure>
+        </div>
+      ) : null}
     </>
   );
 }

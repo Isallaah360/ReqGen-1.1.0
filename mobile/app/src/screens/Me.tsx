@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Bell, Download, Fingerprint, Info, KeyRound, LogOut, PenLine, ShieldCheck, UserRound } from "lucide-react";
-import { appVersion, downloadAndInstall, finger, newerRelease, pin, type Release } from "../lib/native";
+import { FROM_PLAY, PLAY_URL, appVersion, downloadAndInstall, finger, newerRelease, pin, type Release } from "../lib/native";
 import { useApp } from "../App";
 import { Avatar, Big, Body, Cell, Chev, Head, Note, Sheet, Toggle, toast, useNav } from "../ui";
 import { AppGrid } from "./Offices";
@@ -46,20 +46,20 @@ export default function SettingsScreen() {
             </button>
           ))}
         </div>
-        {look === "grid" ? (
-          <div className="seg" role="radiogroup" aria-label="Light or dark">
-            {(["light", "dark", "system"] as const).map((t) => (
-              <button key={t} type="button" role="radio" aria-selected={theme === t} aria-checked={theme === t} onClick={() => setTheme(t)}>{t === "system" ? "Match phone" : t === "light" ? "Light" : "Dark"}</button>
-            ))}
-          </div>
-        ) : <p className="mu" style={{ margin: 0 }}>Glass Dock is always deep IET blue, day and night.</p>}
+        <div className="seg" role="radiogroup" aria-label="Light or dark">
+          {(["light", "dark", "system"] as const).map((t) => (
+            <button key={t} type="button" role="radio" aria-selected={theme === t} aria-checked={theme === t} onClick={() => setTheme(t)}>{t === "system" ? "Match phone" : t === "light" ? "Light" : "Dark"}</button>
+          ))}
+        </div>
         <div className="grp">
           <Cell icon={<ShieldCheck size={18} />} iconTone="in" title="Security and phones" sub="2FA, fingerprint, phones set up" right={<Chev />} onClick={() => push(<Security />)} />
           <Cell icon={<ListChecks size={18} />} iconTone="in" title="Setup guide" sub="The steps that make an account ready" right={<Chev />} onClick={() => push(<SetupGuide />)} />
           <Cell icon={<Bell size={18} />} iconTone="mu" title="Notices" sub="SMS, e-mail and app, for every request that reaches you" />
-          <Cell icon={<Download size={18} />} iconTone="mu" title={`App version ${ver.version}`} sub={!checked ? "Checking for a newer version…" : rel ? `Version ${rel.version} is ready` : "Up to date"} onClick={rel ? () => setSheet("update") : undefined} right={rel ? <Chev /> : undefined} />
+          {FROM_PLAY
+            ? <Cell icon={<Download size={18} />} iconTone="mu" title={`App version ${ver.version}`} sub="Updates come from Google Play" onClick={() => { window.location.href = PLAY_URL; }} right={<Chev />} />
+            : <Cell icon={<Download size={18} />} iconTone="mu" title={`App version ${ver.version}`} sub={!checked ? "Checking for a newer version…" : rel ? `Version ${rel.version} is ready` : "Up to date"} onClick={rel ? () => setSheet("update") : undefined} right={rel ? <Chev /> : undefined} />}
         </div>
-        <button type="button" className="btn bs block" style={{ color: "var(--er)" }} onClick={() => setSheet("out")}><LogOut size={18} />Sign out of this phone</button>
+        <button type="button" className="btn bsignout block" onClick={() => setSheet("out")}><LogOut size={18} />Sign out of this phone</button>
         <p className="foot">Developed by Barderian Enterprises. WhatsApp 0803 119 7746, info@barderians.com.ng</p>
       </Body>
       <ChangePin open={sheet === "pin"} onClose={() => setSheet(null)} />
@@ -71,7 +71,7 @@ export default function SettingsScreen() {
 
 const LOOKS: Array<{ key: "grid" | "glass"; name: string; about: string }> = [
   { key: "grid", name: "Icon Grid", about: "IET colours on a light or dark screen" },
-  { key: "glass", name: "Glass Dock", about: "Deep IET blue with frosted glass" },
+  { key: "glass", name: "Glass Dock", about: "Frosted glass on IET blue, light or dark" },
 ];
 
 /** 4.2.1: the person's own page, opened by tapping their photo on Home. */
@@ -100,7 +100,7 @@ export function ProfileScreen() {
           { key: "about", label: "About ReqGen", icon: ic(<Info size={28} />), color: "#146185", onClick: () => setSheet("about") },
         ]} />
         <p className="mu" style={{ textAlign: "center", margin: 0 }}>ReqGen app {ver.version}{ver.build ? `, build ${ver.build}` : ""}</p>
-        <button type="button" className="btn bs block" style={{ color: "var(--er)" }} onClick={() => setSheet("out")}><LogOut size={18} />Sign out of this phone</button>
+        <button type="button" className="btn bsignout block" onClick={() => setSheet("out")}><LogOut size={18} />Sign out of this phone</button>
       </Body>
       <Sheet open={sheet === "about"} onClose={() => setSheet(null)} title="About ReqGen">
         <p className="mu" style={{ fontSize: 14 }}>IET ReqGen, the requisition and approval system of the Islamic Education Trust. App version {ver.version}.</p>

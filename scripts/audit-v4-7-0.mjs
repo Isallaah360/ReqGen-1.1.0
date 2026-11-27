@@ -90,6 +90,7 @@ for (const f of client) {
     if (/(^|\.)barderians\.com\.ng$|supabase\.co$|^localhost$|^example\.|w3\.org$|wa\.me$|iet\.org\.ng$|^req-gen-[\w-]+\.vercel\.app$/.test(h)) continue;
     if (/schemas\.openxmlformats\.org$/.test(h)) continue; // spreadsheet XML names, never loaded
     if (f.endsWith(`lib${path.sep}sendchamp.ts`) && h === "api.sendchamp.com") continue; // server only: SMS and e-mail go out from our server
+    if (f.endsWith(`lib${path.sep}native.ts`) && h === "play.google.com") continue; // 4.2.2: ReqGen's own Play Store page, opened only when tapped, never loaded
     if (f.endsWith(`lib${path.sep}credits.ts`) && /github\.com$|npmjs\.com$/.test(h)) continue; // credit links, never loaded
     outside.push(`${f}: ${h}`);
   }

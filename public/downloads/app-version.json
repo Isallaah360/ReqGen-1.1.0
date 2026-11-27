@@ -1,21 +1,23 @@
 {
-    "version":  "4.2.1",
-    "build":  13,
+    "version":  "4.2.2",
+    "build":  14,
     "apk":  "/downloads/ReqGen.apk",
     "size":  "6.7 MB",
-    "date":  "26 Nov 2026",
-    "sha256":  "B2CA C8C5 D046 7C29 A027 0112 7BF9 46E2 3B6D FA62 8515 2B4C CCA7 89AD AA13 0EF0",
+    "date":  "27 Nov 2026",
+    "sha256":  "5FDB 39A8 F0C4 EFD6 F235 B6C8 8777 A956 6513 9EA7 1C5F 15A4 4CCD B630 91F3 A828",
     "new":  [
-                "Your offices and pages are now app icons on the home screen, like a phone.",
-                "Settings has its own tab: App PIN, fingerprint, look, security and setup guide.",
-                "Tap your photo at the top to open your Profile: account, access, activity, notices and about.",
-                "Two looks: Icon Grid (the IET blue default) and Glass Dock. Switch in Settings."
+                "Direct messages print on their own one-page paper: you, the people it went to, and their answers with signatures.",
+                "Links in messages open when you tap them.",
+                "More: every page you can open, as app icons, with a search.",
+                "Glass Dock now has light and dark too."
             ],
     "fixed":  [
-                  null
+                  "Signatures print as ink only, without the paper background.",
+                  "Every name on a paper now has its signature."
               ],
     "better":  [
-                   "Smoother animations on buttons, tabs and saved messages.",
-                   "Every word is easy to read in both looks."
+                   "Every app icon has its own picture.",
+                   "Sign out is a clear red bar.",
+                   "If something goes wrong, a report with a picture of the screen goes to the Super Admin at once."
                ]
 }

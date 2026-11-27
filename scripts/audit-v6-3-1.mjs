@@ -19,7 +19,7 @@ check("Home page: big IET logo, ReqGen under it, sign-in links and the moving st
 check("Home page: IET only, no developer branding", !/Barderian/i.test(home));
 
 const grid = read("mobile/app/src/screens/Offices.tsx"), homeApp = read("mobile/app/src/screens/Home.tsx"), me = read("mobile/app/src/screens/Me.tsx"), appTsx = read("mobile/app/src/App.tsx"), acss = read("mobile/app/src/styles.css");
-check("App: offices and pages are app icons on the home screen", grid.includes("export function AppGrid") && grid.includes("export function officeIcons") && homeApp.includes("<AppGrid") && homeApp.includes("officeIcons("));
+check("App: offices and pages are app icons on the home screen", grid.includes("export function AppGrid") && grid.includes("export function officeIcons") && homeApp.includes("<AppGrid") && (homeApp.includes("officeIcons(") || homeApp.includes("pageApps(")) /* 4.2.2: pages come straight onto home, with More */);
 check("App: each office opens to a page of app icons", /function Office\b[\s\S]*<AppGrid/.test(grid));
 check("App: the tab is Settings; the profile photo opens Profile", appTsx.includes('b("me", "Settings", <Settings size={22} />)') && homeApp.includes('className="av-btn"') && homeApp.includes("<ProfileScreen />") && me.includes("export function ProfileScreen"));
 check("App: Settings has fingerprint, App PIN, look and Sign out; Profile has access, activity, notices, about and Sign out", me.includes("<Big>Settings</Big>") && /PIN/.test(me) && /[Ff]ingerprint/.test(me) && me.includes('"Icon Grid"') && me.includes('"Glass Dock"') && (me.match(/Sign out/g) || []).length >= 2 && /My access/.test(me) && /My activity/.test(me) && /About ReqGen/.test(me));

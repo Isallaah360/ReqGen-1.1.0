@@ -20,7 +20,7 @@ check("Website: IET brand for staff; Barderian only as developer, in the footer"
 const a4 = read("mobile/app/src/lib/a4.ts");
 check("App: the A4 papers follow the website's IET print templates", ["SUB-HEAD:", "Request for Fund", "ALLOCATION B/D:", "Payment Voucher", "Amount in Words", "Disbursement Details", "Certification / Approval / Receipt", "Building Bridges"].every((k) => a4.includes(k)));
 check("App: the papers carry the QR check code", a4.includes('from "qrcode"') && a4.includes("/check/v/") && a4.includes("/check/r/"));
-check("App: paper styles cannot clash with app styles (all prefixed)", !/class="(?!p4-|q-)[^"$]/.test(a4.replace(/class="p4-[^"]*"/g, "")));
+check("App: paper styles cannot clash with app styles (all prefixed)", !/class="(?!p4-|q-|dl-)[^"$]/ /* 6.3.2: dl- is the Direct message paper's own prefix */.test(a4.replace(/class="p4-[^"]*"/g, "")));
 check("App: the QR address is printed, never fetched", !/fetch\(\s*CHECK_SITE/.test(a4));
 
 // times are 12-hour with AM/PM everywhere (website and app)

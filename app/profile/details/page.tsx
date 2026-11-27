@@ -58,7 +58,8 @@ export default function ProfileDetailsPage() {
   const [emailOpen, setEmailOpen] = useState(false);
   // signature
   const [sigMode, setSigMode] = useState<"upload" | "draw">("upload");
-  const [cleanBg, setCleanBg] = useState(true);
+  // 6.3.2: the paper background is always removed (owner: only the ink goes on the templates).
+  const cleanBg = true;
   const [sigFile, setSigFile] = useState<File | null>(null);
   const [sigOriginal, setSigOriginal] = useState<string | null>(null);
   const [drawn, setDrawn] = useState(false);
@@ -159,10 +160,15 @@ export default function ProfileDetailsPage() {
     const c = pad.current; c?.getContext("2d")?.clearRect(0, 0, c.width, c.height); setDrawn(false);
   }
 
-  async function saveSignature() {
+  async function saveSignature(fromSaved = false) {
     setMsg(null);
     let upload: File | null = null;
-    if (sigMode === "draw") {
+    if (fromSaved) {
+      // 6.3.2: clean a signature saved before cleaning existed, and save it again as ink only.
+      if (!savedSig) return;
+      try { const r = await fetch(savedSig); if (!r.ok) throw new Error(); upload = new File([await r.blob()], "signature.png", { type: "image/png" }); }
+      catch { setMsg({ tone: "red", text: "Your saved signature could not be opened. Upload it again." }); return; }
+    } else if (sigMode === "draw") {
       if (!drawn || !pad.current) { setMsg({ tone: "red", text: "Sign in the box first." }); return; }
       const blob = await new Promise<Blob | null>((ok) => pad.current!.toBlob(ok, "image/png"));
       if (!blob) { setMsg({ tone: "red", text: "The drawing could not be read. Try again." }); return; }
@@ -311,7 +317,8 @@ export default function ProfileDetailsPage() {
                     {sigOriginal && cleanBg ? <span className="rg-sig-slot" style={{ display: "block", width: "80%", height: 100 }}><SignatureInk src={sigOriginal} alt="Signature as ReqGen saves it" /></span> : sigOriginal ? <img src={sigOriginal} alt="The picture as uploaded" style={{ maxWidth: "90%", maxHeight: 110 }} /> : savedSig ? <span className="rg-sig-slot" style={{ display: "block", width: "80%", height: 100 }}><SignatureInk src={savedSig} alt="Saved signature" /></span> : <span className="v4-muted">: </span>}
                   </div></div>
                 </div>
-                <label className="v4-check"><input type="checkbox" checked={cleanBg} onChange={(e) => setCleanBg(e.target.checked)} /> Remove the paper background automatically</label>
+                <p className="v4-help" style={{ margin: 0 }}>ReqGen removes the paper background, so only the ink of your signature goes on the papers.</p>
+                {savedSig && !sigOriginal ? <button type="button" className="v4-btn v4-btn-secondary" disabled={busy !== null} onClick={() => void saveSignature(true)}><Icon name="tick" />Clean my saved signature</button> : null}
                 <label className="v4-dropzone" style={{ cursor: "pointer" }}>
                   <Icon name="upload" size="lg" />
                   <p style={{ margin: "8px 0 4px" }}><b>Choose a clear photo</b> of your signature on white paper</p>

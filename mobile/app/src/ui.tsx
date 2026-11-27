@@ -1,5 +1,6 @@
+import { linkParts } from "./lib/directLetter";
 import { Fragment, createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
-import { ChevronLeft, ChevronRight, CloudOff, RefreshCw, CircleCheck, CircleAlert, Info } from "lucide-react";
+import { Camera, ChevronLeft, ChevronRight, CloudOff, RefreshCw, CircleCheck, CircleAlert, FolderOpen, Info } from "lucide-react";
 import { buzz, exitApp, onBack } from "./lib/native";
 import { initials, clock } from "./lib/text";
 
@@ -259,5 +260,27 @@ export function FormSheet({ open, title, sub, onClose, onSave, saveLabel, busy, 
         <button type="button" className="btn bp" style={{ flex: 1 }} disabled={busy} onClick={onSave}>{busy ? "Saving…" : saveLabel}</button>
       </div>
     </Sheet>
+  );
+}
+
+/** 4.2.2: message text with its web links made tappable (they open in the phone's browser). */
+export function LinkText({ text }: { text: string | null | undefined }) {
+  return <>{linkParts(String(text || "")).map((p, i) => (p.href ? <a key={i} className="lnk" href={p.href} target="_blank" rel="noopener noreferrer">{p.text}</a> : <span key={i}>{p.text}</span>))}</>;
+}
+
+/**
+ * 4.2.2: attach from the camera or from the phone. "Take a photo" opens the camera (Android asks once to allow the
+ * camera); "Choose a file" opens the phone's own file and photo picker, which needs no storage permission.
+ */
+export function AttachButtons({ onFiles, accept }: { onFiles: (files: FileList | null) => void; accept?: string }) {
+  const cam = useRef<HTMLInputElement>(null);
+  const pick = useRef<HTMLInputElement>(null);
+  return (
+    <div className="attach2">
+      <input ref={cam} type="file" accept="image/*" capture="environment" hidden onChange={(e) => { onFiles(e.target.files); e.target.value = ""; }} />
+      <input ref={pick} type="file" multiple accept={accept} hidden onChange={(e) => { onFiles(e.target.files); e.target.value = ""; }} />
+      <button type="button" className="btn bs" onClick={() => cam.current?.click()}><Camera size={18} />Take a photo</button>
+      <button type="button" className="btn bs" onClick={() => pick.current?.click()}><FolderOpen size={18} />Choose a file</button>
+    </div>
   );
 }

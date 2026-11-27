@@ -7,7 +7,7 @@ import { useOnline, type Req } from "../lib/data";
 import { accountOfficers, type Person } from "../lib/people";
 import { day, initials, naira, stageKey, statusChip, waitingForMe, when, withWho } from "../lib/text";
 import { useApp } from "../App";
-import { Body, Cell, Chip, Head, Note, Sheet, Skeleton, toast, useNav } from "../ui";
+import { Body, Cell, Chip, Head, LinkText, Note, Sheet, Skeleton, toast, useNav } from "../ui";
 import EditRequest from "./EditRequest";
 import { AssignSubheadSheet, canSeeBudget } from "./BudgetAssign";
 import { TreatRequest } from "./office/Finance";
@@ -95,7 +95,7 @@ export default function Detail({ id, meId, onChanged }: { id: string; meId: stri
         <div className="card">
           <div className="row"><Chip tone={chip.tone}>{many ? `Direct, ${d.people.filter((p) => p.status !== "Waiting").length} of ${d.people.length} answered` : chip.text}</Chip>{Number(r.amount) > 0 ? <span className="amt">{naira(r.amount)}</span> : null}</div>
           <p className="title">{r.title || "Request"}</p>
-          {r.details ? <p className="p">{r.details}</p> : null}
+          {r.details ? <p className="p"><LinkText text={r.details} /></p> : null}
           <dl className="kv" style={{ marginTop: 4 }}>
             <dt>From</dt><dd>{isSender ? "You" : r.requester_name || "Staff"}</dd>
             {d.dept ? <><dt>Department</dt><dd>{d.dept}</dd></> : null}
@@ -182,7 +182,7 @@ export default function Detail({ id, meId, onChanged }: { id: string; meId: stri
                       <span className="tx">
                         <b>{h.action_by === meId ? "You" : h.actor_name || "Officer"}{h.actor_role_name ? `, ${h.actor_role_name}` : ""}</b>
                         <small>{h.action_type || "Comment"}, {when(h.created_at)}</small>
-                        <p className="quote">{h.comment}</p>
+                        <p className="quote"><LinkText text={h.comment} /></p>
                       </span>
                     </li>
                   );
@@ -193,7 +193,7 @@ export default function Detail({ id, meId, onChanged }: { id: string; meId: stri
           {canComment ? <button type="button" className="btn bs block" style={{ marginTop: 10 }} onClick={() => setSheet("comment")}><MessageSquare size={18} />Add a comment</button> : null}
           <p className="foot" style={{ textAlign: "left" }}>Once a request is sent, only its sender can change it, and only when it is sent back to them. Everyone else comments.</p>
         </section>
-        <PrintRow id={r.id} />
+        <PrintRow id={r.id} direct={!!r.direct_to || many} />
       </Body>
 
       {showBar ? (
@@ -539,12 +539,12 @@ function DirectActSheet({ open, onClose, r, stage, onDone }: { open: boolean; on
 }
 
 /** The IET A4 request letter (with its comments page), made on the phone. */
-function PrintRow({ id }: { id: string }) {
+function PrintRow({ id, direct }: { id: string; direct: boolean }) {
   const [busy, setBusy] = useState(false);
   return (
     <button type="button" className="cell grp" disabled={busy} onClick={async () => { setBusy(true); try { await printRequest(id); } catch (e) { toast(plainError(e), "er"); } finally { setBusy(false); } }}>
       <span className="av ic-in" aria-hidden="true"><Printer size={18} /></span>
-      <span className="t"><b>{busy ? "Making the PDF…" : "A4 PDF (IET request letter)"}</b><small>Save, print or share</small></span>
+      <span className="t"><b>{busy ? "Making the PDF…" : direct ? "A4 PDF (Direct message)" : "A4 PDF (IET request letter)"}</b><small>{direct ? "One page: you, the people it went to, and their answers" : "Save, print or share"}</small></span>
     </button>
   );
 }

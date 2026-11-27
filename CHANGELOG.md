@@ -1,5 +1,29 @@
 # ReqGen changelog
 
+## 6.3.2 (26 Nov 2026), with the app 4.2.2 (build 14)
+
+Signatures, the Direct message paper, links, error reports with a picture, and the app home screen. Database step: `database/v6_3_2_error_reports.sql` (adds; drops nothing). No Edge Function change.
+
+### Papers and signatures (website and app)
+- Every signature prints as ink only: the paper background is removed when it is drawn on the paper, in the app's PDFs too, and always when a signature is saved. "Clean my saved signature" re-saves an older one.
+- Every name on a request letter or a payment voucher has its signature: when a step kept no signature of its own, the person's saved signature is used.
+- A Direct message prints on its own one-page paper: From (with signature), To (only the people it was sent to), the message with its links, and each answer with its signature. A receiver who prints it sees only their own answer. When it is paid, the DG's approval (with the IET stamp) and the Account's step are added. A very long message still fits one page, with a note to scan the code for the rest.
+
+### Links
+- Web addresses in messages and comments are tappable on the website and in the app.
+
+### Error reports with a picture
+- When the app meets a real error, it takes a picture of the screen and sends the report; the Super Admin gets a notice at once. Reports and pictures are in Administration, Diagnostics (Super Admin and Developer only). Normal messages to the user are not reported as errors.
+- If a screen breaks, a calm page says the report was sent, with a button to open ReqGen again.
+
+### App 4.2.2 (build 14)
+- Home shows two rows of app icons; the four-squares More icon opens every page you can open, office by office, with a search.
+- Every icon has its own picture; Settings is a gear and Profile is a person.
+- Glass Dock has Light, Dark and Match phone, like Icon Grid. Dark Icon Grid is deep IET blue, not black.
+- Sign out is the bright IET red bar of the Glass mock-up, in every look.
+- Take a photo or Choose a file wherever attachments are added, and for the profile photo. The app asks for the camera the first time; no storage permission is needed.
+- Google Play: MAKE_PLAY.bat builds the signed Google Play file (.aab). That copy never downloads updates itself; Google Play updates it.
+
 ## 6.3.1 (26 Nov 2026), with the app 4.2.1 (build 13)
 
 A new look for the website and the app. No database step and no Edge Function change.
